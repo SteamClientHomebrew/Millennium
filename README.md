@@ -1,4 +1,4 @@
-# millennium-steam-patcher
+# Millennium Steam Patcher for Windows 
 Apply steam skins Steam after the 2023-04-27 Chromium UI update
 
 ## How to install
