@@ -22,4 +22,5 @@ you need to install x86 version of the following libraries from vcpkg and compil
 - `rapidjson`
 - `nlohmann`
 - `boost`
+
 no further help will be provided on how to compile. 
