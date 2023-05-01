@@ -1,3 +1,6 @@
+# Join the support server and see updates
+https://discord.gg/MXMWEQKgJF
+
 # Millennium Steam Patcher for Windows 
 Apply steam skins Steam after the 2023-04-27 Chromium UI update
 
