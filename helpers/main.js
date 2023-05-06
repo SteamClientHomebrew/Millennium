@@ -51,9 +51,8 @@ function insertMillennium()
             const selectedOption = event.target.value;
             console.log("Selected skin: ", selectedOption);
 
-            fetch('http://localhost:6438', {
-                method: 'POST',
-                body: selectedOption
+            fetch('http://localhost:6438/' + selectedOption, {
+                method: 'POST'
             })
         });
 	}
