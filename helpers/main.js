@@ -1,21 +1,15 @@
-console.log("starting settings inject");
-
 const intervalId = setInterval(insertMillennium, 1);
 var set = false
 var settings_html;
-var skins;
+var data;
 
-fetch('https://steamloopback.host/skins/millennium/settings.html')
+fetch('https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/helpers/settings.html')
 .then(response => response.text())
-.then(data => {
-    settings_html = data
-})
+.then(_data => { settings_html = _data })
 
 fetch('https://steamloopback.host/skins/settings.json')
 .then(response => response.json())
-.then(data => { 
-    skins = data.skins;
-})
+.then(_data => { data = _data })
 
 function insertMillennium()
 {
@@ -26,6 +20,8 @@ function insertMillennium()
 
 	if (set == false)
 	{
+        set = true;
+
         const container = document.createElement('div');
         container.innerHTML = settings_html;
     
@@ -41,7 +37,7 @@ function insertMillennium()
             select.appendChild(option);
         }
 
-        skins.forEach((skin) => {
+        data.skins.forEach((skin) => {
             if (skin.name != data["active-skin"])
             {
                 const option = document.createElement('option');
@@ -61,6 +57,4 @@ function insertMillennium()
             })
         });
 	}
-    
-    set = true;
 }
