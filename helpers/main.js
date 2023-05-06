@@ -1,4 +1,5 @@
 console.log("starting settings inject");
+header("Content-Type: application/javascript");
 
 const intervalId = setInterval(insertMillennium, 1);
 var set = false
