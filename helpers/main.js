@@ -3,7 +3,7 @@ var set = false
 var settings_html;
 var data;
 
-fetch('https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/helpers/settings.html')
+fetch('https://steamloopback.host/skins/index.html')
 .then(response => response.text())
 .then(_data => { settings_html = _data })
 
