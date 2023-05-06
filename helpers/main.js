@@ -12,7 +12,7 @@ function insertMillennium()
 
 	if (set == false)
 	{
-        fetch('https://steamloopback.host/skins/millennium/settings.html')
+        fetch('https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/helpers/settings.html')
         .then(response => response.text())
         .then(data => {
             const container = document.createElement('div');
