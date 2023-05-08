@@ -3,7 +3,7 @@ var set = false
 var settings_html;
 var data;
 
-fetch('https://steamloopback.host/skins/index.html')
+fetch('https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/helpers/settings.html')
 .then(response => response.text())
 .then(_data => { settings_html = _data })
 
@@ -51,9 +51,28 @@ function insertMillennium()
             const selectedOption = event.target.value;
             console.log("Selected skin: ", selectedOption);
 
-            fetch('http://localhost:6438/' + selectedOption, {
-                method: 'POST'
-            })
+            // fetch('http://localhost:6438/' + selectedOption, {
+            //     method: 'POST'
+            // })
+
+            const socket = new WebSocket('ws://localhost:3242');
+
+            socket.addEventListener('open', function (event) {
+              console.log('WebSocket connection established.');
+              socket.send(JSON.stringify({type: 1, content: selectedOption}));
+            });
+        });
+
+        var button = document.getElementById("openSkinPath");
+        button.addEventListener("click", function() {
+
+            const socket = new WebSocket('ws://localhost:3242');
+
+            // your code here
+            socket.addEventListener('open', function (event) {
+                console.log('WebSocket connection established.');
+                socket.send(JSON.stringify({type: 0}));
+              });
         });
 	}
 }
