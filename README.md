@@ -1,4 +1,4 @@
-# Join the support server and see updates
+# [Join the support server and see updates](https://discord.gg/MXMWEQKgJF)
 https://discord.gg/MXMWEQKgJF
 
 # Millennium Steam Patcher for Windows 
