@@ -84,7 +84,7 @@ the steam store page and the community tab are collectively one CEF instance, so
 
 **NOTE** 
 
-unsafe scripting HAS been enabled meaning Content Security Policy is no longer disabled on remote steam pages, so you can script from cross-origin if you'd like.
+unsafe scripting HAS been enabled meaning Content Security Policy is no longer enabled on remote steam pages, so you can script from cross-origin if you'd like.
 
 **Example config.json**
 
