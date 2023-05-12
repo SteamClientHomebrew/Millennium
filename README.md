@@ -1,7 +1,7 @@
 
 ![Logo](https://cdn.discordapp.com/attachments/923017628367335428/1057455729067429918/icons8-planet-50.png)
 
-## Millennium Steam Patcher
+## Millennium Steam Patcher for Windows
 
 Join the discord server for updates or for support if something doesn't make sense.
 
