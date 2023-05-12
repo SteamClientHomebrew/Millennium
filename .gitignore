@@ -6,6 +6,6 @@
 *.log
 
 # Ignore directories
-build/
+dist/
 intermediate/
 .vs/

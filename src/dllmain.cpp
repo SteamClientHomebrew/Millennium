@@ -5,7 +5,9 @@
 
 #pragma warning(disable: 6258)
 
-const char* current_app_version = "1.0.1";
+Console Out;
+
+const char* current_app_version = "public3";
 const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/releases/latest";
 
 class auto_updater {
@@ -34,22 +36,28 @@ public:
 
         //no internet connection most likely
         if (github_response.empty()) {
+            Out.imp("no internet connection or secure connection to server couldnt be established");
             return;
         }
 
-        if (nlohmann::json::parse(github_response)["tag_name"].get<std::string>() != current_app_version)
+        if (nlohmann::json::parse(github_response)["tag_name"].get<std::string>() == current_app_version)
         {
-            MessageBoxA(
-                GetForegroundWindow(), 
-                "New version of the patcher is available!\nYou are required to download the latest release, or you can uninstall the current release you have", 
-                "Millennium - Updater", 
-                MB_OK | MB_ICONINFORMATION);
-
-            const char* url = "https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest";
-            ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
-
-            exit(1);
+            Out.imp("millennium loader is up to date! version: " + std::string(current_app_version));
+            return;
         }
+
+        //millennium needs an update
+
+        MessageBoxA(
+            GetForegroundWindow(),
+            "New version of the patcher is available!\nYou are required to download the latest release, or you can uninstall the current release you have",
+            "Millennium - Updater",
+            MB_OK | MB_ICONINFORMATION);
+
+        const char* url = "https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest";
+        ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+
+        exit(1);
     }
 
     ~auto_updater()
@@ -63,10 +71,11 @@ class Millennium
 {
 private:
     auto_updater millennium_updater;
-    Console Out;
 public:
     inline DWORD WINAPI Start(LPVOID lpParam)
     {
+        Out.imp("starting millennium loader...");
+
         std::string param = std::string(GetCommandLine()).find("-cef-enable-debugging") == std::string::npos ? " -cef-enable-debugging" : "";
 
         //store current parameters
@@ -91,7 +100,8 @@ public:
             __fastfail(0);
         }
 
-        //millennium_updater.check_for_updates();
+        Out.imp("checking for updates...");
+        millennium_updater.check_for_updates();
 
         (HANDLE)CreateThread(NULL, NULL, Initialize, NULL, NULL, NULL);
         return true;
