@@ -128,6 +128,9 @@ where you can find all the steam pages, there name, and customize css on pages y
 
 if you think this documentation needs more information, join the discord server and ask for a better explaination on something.
 
+## TODO
+
+use 100% nlohmann::json instead of rapidJson because its slower and its buggy
 
 ## Authors
 
