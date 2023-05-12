@@ -22,7 +22,7 @@ run the `installer.exe` in the release folder, and then run steam normally
 - Supports webkit insertions
 - Supports steam big picture mode
 
-#### Custom JS Insertion
+#### Custom JS Insertion (Enabled by default)
 - Can be disabled at request if you believe it may be malicious
 - Add custom JS to all pages/windows in the new steam client
 - you can manage what files and what windows do what
