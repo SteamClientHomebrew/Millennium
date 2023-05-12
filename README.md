@@ -73,7 +73,7 @@ then this is what the `"css"` json key should be
 
 ```json
 {
-    "css": "css_files\styles.css"
+    "css": "css_files/styles.css"
 }
 ```
 
