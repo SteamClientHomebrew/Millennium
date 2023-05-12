@@ -3,8 +3,8 @@ const socket = new WebSocket('ws://localhost:3242');
 var settings_html, sidebar_html;
 var data;
 
-fetch('https://steamloopback.host/skins/index.html').then(response => response.text()).then(_data => { settings_html = _data })
-fetch('https://steamloopback.host/skins/sidebar.html').then(response => response.text()).then(_data => { sidebar_html = _data })
+fetch('https://github.com/ShadowMonster99/millennium-steam-patcher/blob/main/settings_modal/index.html').then(response => response.text()).then(_data => { settings_html = _data })
+fetch('https://github.com/ShadowMonster99/millennium-steam-patcher/blob/main/settings_modal/sidebar.html').then(response => response.text()).then(_data => { sidebar_html = _data })
 fetch('https://steamloopback.host/skins/settings.json').then(response => response.json()).then(_data => { data = _data })
 
 function millennium_ipc(value) { socket.send(JSON.stringify(value)) }
