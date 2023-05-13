@@ -58,6 +58,9 @@
     <ClInclude Include="src\window\memory.h">
       <Filter>window</Filter>
     </ClInclude>
+    <ClInclude Include="scripts\resource.h">
+      <Filter>scripts</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">
@@ -69,5 +72,18 @@
     <Filter Include="imgui\custom">
       <UniqueIdentifier>{cb79cb6a-9fa6-494a-a53b-86948aa3f3ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="scripts">
+      <UniqueIdentifier>{ae2883b0-2944-4d02-bf58-49baed54a68e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="scripts\millennium.installer.rc">
+      <Filter>scripts</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="scripts\icon1.ico">
+      <Filter>scripts</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -28,7 +28,7 @@ static bool accepted_tos;
 static bool show_accept_tos_popup = false;
 static int selected_option = 0;
 
-const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/releases/latest";
+const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-binaries/releases/latest";
 
 std::string get_steam_install_path()
 {
@@ -79,7 +79,7 @@ public:
 
 		nlohmann::json response = nlohmann::json::parse(github_response);
 
-		if (response["message"].get<std::string>() == "Not Found")
+		if (response.contains("message") && response["message"].get<std::string>() == "Not Found")
 		{
 			std::cout << "Couldn't get latest release because it doesn't exist. Try again later?" << std::endl;
 			return;
@@ -110,9 +110,11 @@ public:
 
 			HINTERNET hConnection = InternetOpenUrlA(connection, download.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
 
-			std::string path = "C:\\Users\\Admin\\Downloads\\" + name;
+			std::string path = get_steam_install_path() + "/" + name;
 
 			std::cout << "Downloading to: " << path << std::endl;
+
+			std::remove(path.c_str());
 
 			HANDLE hFile = CreateFile(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -129,8 +131,10 @@ public:
 			auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
 
 			std::cout << "Done! " << duration << " milliseconds elapsed" << std::endl;
-
 		}
+
+		std::cout << "--------------------------------" << std::endl;
+		std::cout << "Installation completed. You can now start Steam" << std::endl;
 	}
 
 	~downloader()
@@ -142,37 +146,36 @@ public:
 
 bool steam_running()
 {
-	std::string processName = "steam.exe";
-	std::vector<DWORD> pids;
-	DWORD pidArraySize = 1024;
+	std::vector<DWORD> pids(1024);
 	DWORD bytesReturned;
-	DWORD* processIds = new DWORD[pidArraySize / sizeof(DWORD)];
 
-	if (EnumProcesses(processIds, pidArraySize, &bytesReturned))
+	if (EnumProcesses(pids.data(), static_cast<DWORD>(pids.size() * sizeof(DWORD)), &bytesReturned)) 
 	{
-		DWORD processCount = bytesReturned / sizeof(DWORD);
-		for (DWORD i = 0; i < processCount; i++) {
-			if (processIds[i] != 0) {
-				char processNameBuffer[MAX_PATH];
-				HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processIds[i]);
+		for (DWORD i = 0; i < (DWORD)(bytesReturned / sizeof(DWORD)); i++) {
 
-				if (hProcess != nullptr) {
-					if (GetModuleBaseNameA(hProcess, nullptr, processNameBuffer, sizeof(processNameBuffer)) > 0) {
-						std::string runningProcessName(processNameBuffer);
+			if (pids[i] == NULL)
+				continue;
 
-						if (runningProcessName == processName) {
-							std::cout << "[WARNING] Process '" + processName + "' is running. Close it to continue" << std::endl;
+			HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, FALSE, pids[i]);
 
-							delete[] processIds;
-							return true;
-						}
-					}
-				}
+			if (hProcess == nullptr)
+				continue;
+
+			char processNameBuffer[MAX_PATH];
+
+			if (!(GetModuleBaseNameA(hProcess, nullptr, processNameBuffer, sizeof(processNameBuffer)) > 0))
+				continue;
+
+			if (std::string(processNameBuffer) == "steam.exe")
+			{
+				std::cout << "[FATAL] Steam is running. Close it to continue" << std::endl;
+				CloseHandle(hProcess);
+				return true;
 			}
+
+			CloseHandle(hProcess);
 		}
 	}
-
-	delete[] processIds;
 	return false;
 }
 
@@ -189,7 +192,7 @@ void uninstall_millennium()
 
 	for (const auto& file : filesToDelete)
 	{
-		std::filesystem::path filePath = directory + "\\" + file;
+		std::filesystem::path filePath = directory + "/" + file;
 		if (std::filesystem::exists(filePath)) {
 			if (std::filesystem::remove(filePath)) {
 				std::cout << "[SUCCESS] Deleted file: " << filePath << std::endl;
@@ -316,40 +319,47 @@ public:
 		if (ImGui::BeginChild("##install_page", ImVec2(Region.x, Region.y - 30), false))
 		{
 			static const char* install = "Install Millennium", * reset = "Reset Millennium", * uninstall = "Uninstall Millennium";
+			ImU32 col = ImGui::GetColorU32(ImGuiCol_CheckMark);
 
 			ImGui::Text("Choose an option:");
 			if (selected_option == 1) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22, 0.22, 0.22, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.22, 0.22, 0.22, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_Button, col);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
 				if (ImGui::Button(install, ImVec2(Region.x, 45))) selected_option = 1;
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 				ImGui::PopStyleColor(2);
 			}
 			else {
 				if (ImGui::Button(install, ImVec2(Region.x, 45))) selected_option = 1;
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 			}
 			if (selected_option == 2) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22, 0.22, 0.22, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.22, 0.22, 0.22, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_Button, col);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
 				if (ImGui::Button(reset, ImVec2(Region.x, 45))) selected_option = 2;
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 				ImGui::PopStyleColor(2);
 			}
 			else {
 				if (ImGui::Button(reset, ImVec2(Region.x, 45))) selected_option = 2;
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 			}
 			if (selected_option == 3)
 			{
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.22, 0.22, 0.22, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.22, 0.22, 0.22, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_Button, col);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
 				if (ImGui::Button(uninstall, ImVec2(Region.x, 45))) selected_option = 3;
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 				ImGui::PopStyleColor(2);
 			}
 			else {
 				if (ImGui::Button(uninstall, ImVec2(Region.x, 45))) selected_option = 3;
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 			}
 		}
 		ImGui::EndChild();
-
 		ImGui::PopStyleColor();
+
 		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Next >").x - 53); // Align cursor to the right
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5, 0));
 
@@ -358,6 +368,12 @@ public:
 		if (ImGui::Button("Next >"))
 		{
 			current_page = 3;
+
+			if (selected_option == 0)
+			{
+				ImGui::OpenPopup(" Choose an option");
+				current_page = 2;
+			}
 			if (selected_option == 1)
 			{
 				standard_out.str("");
@@ -419,6 +435,21 @@ public:
 			select_option_page();
 		else if (current_page == 3)
 			console_page();
+
+		CenterModal(ImVec2(200, 125));
+		if (ImGui::BeginPopupModal(" Choose an option", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+		{
+			ImGui::TextWrapped("You must choose an option to proceed.");
+
+			ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close").x - 5);
+			ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 23);
+
+			if (ImGui::Button("Close")) {
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+
 
 		CenterModal(ImVec2(215, 150));
 		if (ImGui::BeginPopupModal(" Reset Warning", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))

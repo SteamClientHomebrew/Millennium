@@ -30,6 +30,7 @@
     <ClCompile Include="src\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="scripts\resource.h" />
     <ClInclude Include="src\vendor\imgui\imconfig.h" />
     <ClInclude Include="src\vendor\imgui\imgui.h" />
     <ClInclude Include="src\vendor\imgui\imgui_impl_dx9.h" />
@@ -40,6 +41,12 @@
     <ClInclude Include="src\vendor\imgui\imstb_truetype.h" />
     <ClInclude Include="src\window\memory.h" />
     <ClInclude Include="src\window\window.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="scripts\millennium.installer.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="scripts\icon1.ico" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -112,14 +119,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)dist\millennium-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
+    <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
     <IncludePath>$(ProjectDir)src;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Include</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x64;$(LibraryPath)</LibraryPath>
     <TargetName>millennium</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)dist\millennium-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
+    <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
     <IncludePath>$(ProjectDir)src;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x64;$(LibraryPath)</LibraryPath>

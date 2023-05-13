@@ -102,9 +102,9 @@ void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::
 
     console.imp("steam_client::remote_page_event_handler() socket.handshake success");
 
-    std::function<void()> evaluate_scripting = ([&](void) -> void {
+    std::function<void()> evaluate_scripting = ([&]() -> void {
 
-        console.imp("steam_client::evaluate_*() evaluating sources");
+        //console.imp("steam_client::evaluate_remote() evaluating sources");
 
         if (javascript_allowed())
         {
@@ -124,7 +124,6 @@ void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::
 
     console.imp("steam_client::remote_page_event_handler() connection to socket was made");
 
-    //if the socket took too long to connect, that means no events will be logged, so just force inject on launch
     evaluate_scripting();
 
     while (true) {
@@ -136,6 +135,7 @@ void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::
         if (response["method"] == "Page.frameResized") continue;
 
         while (true) {
+
             evaluate_scripting();
 
             boost::beast::multi_buffer buffer;
@@ -153,6 +153,13 @@ void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::
 void steam_client::steam_remote_interface_handler()
 {
     nlohmann::json jsonConfig = config.get_skin_config();
+
+    if (jsonConfig["config_fail"])
+    {
+        console.log("steam_client::steam_remote_interface_handler() loading nothing");
+        return;
+    }
+
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -172,6 +179,8 @@ void steam_client::steam_remote_interface_handler()
                 if (!should_patch_interface(address, current_instance))  continue;
 
                 mark_page_patch_status(jsonConfig, address, true);
+                console.log("handling events from " + std::string(current_instance["url"].GetString()));
+
                 std::thread handle_event([&]() {
                     try {
                         remote_page_event_handler(
@@ -220,7 +229,7 @@ void append_skins_to_settings()
     skins.push_back({ {"name", "default"} });
 
     try { data = json::read_json_file(setting_json_path); }
-    catch (nlohmann::detail::parse_error& ex) {
+    catch (nlohmann::detail::parse_error&) {
         std::ofstream file(setting_json_path, std::ofstream::out | std::ofstream::trunc);
         file.close();
     }
@@ -353,7 +362,7 @@ void steam_client::steam_to_millennium_ipc()
         ioc.run();
     }
     catch (std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        console.log("ISteamClient::SteamMillenniumIPC() excep " + std::string(e.what()));
     }
 }
 
@@ -366,6 +375,7 @@ steam_client::steam_client()
         catch (nlohmann::json::exception& ex) { console.err("this->SteamClientInterfaceHandler() " + std::string(ex.what())); }
         catch (const boost::system::system_error& ex) { console.err("this->SteamClientInterfaceHandler() " + std::string(ex.what())); }
         catch (const std::exception& ex) { console.err("this->SteamClientInterfaceHandler() " + std::string(ex.what())); }
+        catch (...) { console.err("this->SteamClientInterfaceHandler() unkown"); }
 
     });
     std::thread Remote([&]() { 
@@ -375,10 +385,13 @@ steam_client::steam_client()
         catch (nlohmann::json::exception& ex) { console.err("this->SteamRemoteInterfaceHandler() " + std::string(ex.what())); }
         catch (const boost::system::system_error& ex) { console.err("this->SteamRemoteInterfaceHandler() " + std::string(ex.what())); }
         catch (const std::exception& ex) { console.err("this->SteamRemoteInterfaceHandler() " + std::string(ex.what())); }
+        catch (...) { console.err("this->SteamRemoteInterfaceHandler() unkown"); }
     });
     std::thread SteamIPC([&]() { this->steam_to_millennium_ipc(); });
 
-    Remote.join(); Client.join(); SteamIPC.join();
+    Remote.join();
+    Client.join();
+    SteamIPC.join();
 }
 
 DWORD WINAPI Initialize(LPVOID lpParam)

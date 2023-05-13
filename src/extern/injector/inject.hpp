@@ -1,8 +1,6 @@
 #include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
 
-#include <sstream>
-
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
@@ -17,7 +15,6 @@
 
 #include <include/logger.hpp>
 #include <include/config.hpp>
-
 
 using tcp = boost::asio::ip::tcp;
 

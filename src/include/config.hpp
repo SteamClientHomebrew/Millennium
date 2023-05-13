@@ -1,17 +1,7 @@
 #ifndef CONFIG
 #define CONFIG
 
-#include <windows.h>
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <filesystem>
-#include <Lmcons.h>
-#include <string>
-#include <sstream>
-#include <fstream>
-#include <winsock2.h>
-#include <chrono>
 #include <include/logger.hpp>
 
 class SkinConfig
@@ -74,17 +64,11 @@ public:
                 currentSkin = json_object["active-skin"];
                 return json_object;
             }
-            /*else {
-
-                std::string path = std::format("{}/settings.json", SteamSkinPath);
-
-                MessageBoxA(0, std::format("json from \n[{}] is invalid.\nits likely an extra , at the end of the json", path).c_str(), "Millennium", MB_ICONINFORMATION);
-                __fastfail(0);
-            }*/
         }
-        catch (nlohmann::json::exception& ex) { 
-            return 0;
+        catch (nlohmann::json::exception&) { 
+            return false;
         }
+        return false;
     }
 
     nlohmann::json get_skin_config()
@@ -93,7 +77,9 @@ public:
 
         std::ifstream configFile(std::format("{}/{}/config.json", SteamSkinPath, currentSkin));
         if (!configFile.is_open() || !configFile) {
-            //std::cout << "Failed to open config file!" << std::endl;
+            nlohmann::json json;
+            json["config_fail"] = true;
+            return json;
         }
 
         std::stringstream buffer;
@@ -101,13 +87,11 @@ public:
 
         if (nlohmann::json::accept(buffer.str())) {
             nlohmann::json json_object = nlohmann::json::parse(buffer.str());
+            json_object["config_fail"] = false;
             return json_object;
         }
-        //else {
-        //    std::string path = std::format("{}/{}/config.json", SteamSkinPath, currentSkin);
-        //    MessageBoxA(0, std::format("json from \n[{}] is invalid.\nits likely an extra , at the end of the json key.", path).c_str(), "Millennium", MB_ICONINFORMATION);
-        //}
+        return false;
     }
 };
 
-#endif // CONFIG
+#endif

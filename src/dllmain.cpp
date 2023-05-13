@@ -36,13 +36,11 @@ public:
 
         //no internet connection most likely
         if (github_response.empty()) {
-            Out.imp("no internet connection or secure connection to server couldnt be established");
             return;
         }
 
         if (nlohmann::json::parse(github_response)["tag_name"].get<std::string>() == current_app_version)
         {
-            Out.imp("millennium loader is up to date! version: " + std::string(current_app_version));
             return;
         }
 
@@ -74,8 +72,6 @@ private:
 public:
     inline DWORD WINAPI Start(LPVOID lpParam)
     {
-        Out.imp("starting millennium loader...");
-
         std::string param = std::string(GetCommandLine()).find("-cef-enable-debugging") == std::string::npos ? " -cef-enable-debugging" : "";
 
         //store current parameters
@@ -100,8 +96,7 @@ public:
             __fastfail(0);
         }
 
-        Out.imp("checking for updates...");
-        millennium_updater.check_for_updates();
+        //millennium_updater.check_for_updates();
 
         (HANDLE)CreateThread(NULL, NULL, Initialize, NULL, NULL, NULL);
         return true;
