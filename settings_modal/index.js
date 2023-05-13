@@ -36,7 +36,7 @@ function load_page()
     });
 
     document.getElementById("discordServer").addEventListener("click", () => millennium_ipc({type: 2, content: "https://discord.gg/MXMWEQKgJF"}));
-    document.getElementById("donate_link").addEventListener("click", () => millennium_ipc({type: 6, content: "my paypal is purchase-millennium@outlook.com\ndont send anything more than a couple dollars if you decide to send something.\n\nthanks for helping support the project! :)"}));
+    document.getElementById("donate_link").addEventListener("click", () => millennium_ipc({type: 2, content: "https://ko-fi.com/shadowmonster"}));
     document.getElementById("github_link").addEventListener("click", () => millennium_ipc({type: 2, content: "https://github.com/ShadowMonster99"}));
     document.getElementById("uninstall_millennium").addEventListener("click", () => millennium_ipc({type: 5}));
 
