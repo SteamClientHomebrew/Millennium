@@ -101,26 +101,16 @@ private:
                 }
 
                 functions* skin_helpers = new functions;
-                nlohmann::basic_json<> incoming_payload = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
-                ipc_types ipc_message = static_cast<ipc_types>(incoming_payload["type"].get<int>());
+                nlohmann::basic_json<> msg = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
+                ipc_types ipc_message = static_cast<ipc_types>(msg["type"].get<int>());
 
                 switch (ipc_message)
                 {
-                case ipc_types::open_skins_folder:
-                    skin_helpers->open_skin_folder();
-                    break;
-                case ipc_types::open_url:
-                    ShellExecute(NULL, "open", incoming_payload["content"].get<std::string>().c_str(), NULL, NULL, SW_SHOWNORMAL);
-                    break;
-                case ipc_types::skin_update:
-                    skin_helpers->update_skin(incoming_payload["content"]);
-                    break;
-                case ipc_types::change_javascript:
-                    skin_helpers->allow_javascript(incoming_payload["content"].get<bool>());
-                    break;
-                case ipc_types::change_console:
-                    skin_helpers->change_console(incoming_payload["content"].get<bool>());
-                    break;
+                    case ipc_types::open_skins_folder: skin_helpers->open_skin_folder(); break;
+                    case ipc_types::open_url: ShellExecute(NULL, "open", msg["content"].get<std::string>().c_str(), 0, 0, 1); break;
+                    case ipc_types::skin_update: skin_helpers->update_skin(msg["content"]); break;
+                    case ipc_types::change_javascript: skin_helpers->allow_javascript(msg["content"].get<bool>()); break;
+                    case ipc_types::change_console: skin_helpers->change_console(msg["content"].get<bool>()); break;
                 }
 
                 delete skin_helpers;
@@ -130,8 +120,7 @@ private:
         }
 
     private:
-        enum ipc_types
-        {
+        enum ipc_types {
             open_skins_folder, skin_update, open_url, change_javascript, change_console
         };
 
