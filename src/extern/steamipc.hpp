@@ -1,44 +1,16 @@
 #include <include/json.hpp>
 
+using tcp = boost::asio::ip::tcp;
 using namespace boost::asio;
 using namespace boost::asio::ip;
+
+namespace websocket = boost::beast::websocket;
 
 class functions
 {
 private:
     SkinConfig skinConfig;
 public:
-
-    inline void uninstall()
-    {
-        std::ofstream outfile("uninstall.bat");
-        outfile << R"(
-            @echo off
-            setlocal
-            echo [Millennium] uninstalling millennium from steam...
-            :LOOP
-            tasklist /FI "IMAGENAME eq steam.exe" 2>NUL | find /I /N "steam.exe">NUL
-            if "%ERRORLEVEL%"=="0" (
-                echo [Millennium] steam is running, waiting for it to close...
-                ping -n 2 127.0.0.1 >NUL
-                goto LOOP
-            )
-            echo [Millennium] deleting file User32.dll...
-            del /F User32.dll
-            echo [Millennium] deleting file User32.pdb...
-            del /F User32.pdb
-            echo [Millennium] deleting file libcrypto-3.dll...
-            del /F libcrypto-3.dll
-            echo [Millennium] uninstall successful. thanks for being a part of Millennium!
-            echo [Millennium] you can now close this window...
-            pause
-            )";
-        outfile.close();
-
-        ShellExecuteA(NULL, "open", "uninstall.bat", NULL, NULL, SW_SHOW);
-        exit(0);
-    }
-
     inline void restart_steam()
     {
         int message_box_result = MessageBoxA(GetForegroundWindow(), "Steam requires a restart to apply new changes. Do you want to restart steam now?", "Millennium", MB_YESNO | MB_ICONINFORMATION);
@@ -90,9 +62,6 @@ public:
     }
 };
 
-using tcp = boost::asio::ip::tcp;
-namespace websocket = boost::beast::websocket;
-
 class millennium_ipc_listener {
 public:
     millennium_ipc_listener(boost::asio::io_context& ioc) :
@@ -105,7 +74,6 @@ private:
     void ipc_do_accept() {
         acceptor_.async_accept(socket_, [this](boost::system::error_code ec) {
             if (!ec) {
-                //std::cout << "New WebSocket connection accepted\n";
                 std::make_shared<millennium_ipc_session>(std::move(socket_))->ipc_initialize();
             }
             ipc_do_accept();
@@ -124,56 +92,47 @@ private:
             });
         }
 
-        void read_request_payload() {
-            ws_.async_read(buffer_, [self = shared_from_this()](boost::system::error_code ec, std::size_t bytes_transferred) 
+        void read_request_payload() 
+        {
+            ws_.async_read(buffer_, [self = shared_from_this()](boost::system::error_code read_error, std::size_t bytes_transferred) 
             {
-                if (!ec)  {
-
-                    functions* skin_helpers = new functions;
-                    nlohmann::basic_json<> incoming_payload = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
-                    ipc_types ipc_message = static_cast<ipc_types>(incoming_payload["type"].get<int>());
-
-                    if (ipc_message == ipc_types::open_skins_folder) 
-                        skin_helpers->open_skin_folder();
-                    
-                    if (ipc_message == ipc_types::open_url)
-                        ShellExecute(NULL, "open", incoming_payload["content"].get<std::string>().c_str(), NULL, NULL, SW_SHOWNORMAL);
-
-                    if (ipc_message == ipc_types::skin_update) 
-                        skin_helpers->update_skin(incoming_payload["content"]);
-                    
-                    if (ipc_message == ipc_types::change_javascript) 
-                        skin_helpers->allow_javascript(incoming_payload["content"].get<bool>());
-                    
-                    if (ipc_message == ipc_types::change_console)
-                        skin_helpers->change_console(incoming_payload["content"].get<bool>()); 
-                    
-                    if (ipc_message == ipc_types::uninstall)
-                        skin_helpers->uninstall();
-
-                    if (ipc_message == ipc_types::message_box)
-                    {
-                        MessageBoxA(GetForegroundWindow(), incoming_payload["content"].get<std::string>().c_str(), "Millennium", MB_ICONINFORMATION);
-                    }
-             
-
-                    delete skin_helpers;
-                    self->buffer_.consume(bytes_transferred);
-                    self->read_request_payload();
+                if (read_error) {
+                    return;
                 }
+
+                functions* skin_helpers = new functions;
+                nlohmann::basic_json<> incoming_payload = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
+                ipc_types ipc_message = static_cast<ipc_types>(incoming_payload["type"].get<int>());
+
+                switch (ipc_message)
+                {
+                case ipc_types::open_skins_folder:
+                    skin_helpers->open_skin_folder();
+                    break;
+                case ipc_types::open_url:
+                    ShellExecute(NULL, "open", incoming_payload["content"].get<std::string>().c_str(), NULL, NULL, SW_SHOWNORMAL);
+                    break;
+                case ipc_types::skin_update:
+                    skin_helpers->update_skin(incoming_payload["content"]);
+                    break;
+                case ipc_types::change_javascript:
+                    skin_helpers->allow_javascript(incoming_payload["content"].get<bool>());
+                    break;
+                case ipc_types::change_console:
+                    skin_helpers->change_console(incoming_payload["content"].get<bool>());
+                    break;
+                }
+
+                delete skin_helpers;
+                self->buffer_.consume(bytes_transferred);
+                self->read_request_payload();
             });
         }
 
     private:
         enum ipc_types
         {
-            open_skins_folder = 0,
-            skin_update = 1,
-            open_url = 2,
-            change_javascript = 3,
-            change_console = 4,
-            uninstall = 5,
-            message_box = 6
+            open_skins_folder, skin_update, open_url, change_javascript, change_console
         };
 
         websocket::stream<tcp::socket> ws_;

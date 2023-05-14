@@ -1,9 +1,6 @@
 #include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
 
-#include <rapidjson/document.h>
-#include <rapidjson/writer.h>
-#include <rapidjson/stringbuffer.h>
 #include <nlohmann/json.hpp>
 
 #include <boost/asio.hpp>
@@ -23,12 +20,9 @@ class steam_client
 private:
     void evaluate_stylesheet(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, nlohmann::basic_json<> socket_response);
     void evaluate_javascript(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, nlohmann::basic_json<> socket_response);
-    bool check_interface_patch_status(const rapidjson::Value& data, nlohmann::json& configJson);
-    void mark_page_patch_status(nlohmann::json& configJson, nlohmann::json& patchAddress, bool patched);
-    bool check_valid_instances(rapidjson::Document& document);
-    bool should_patch_interface(nlohmann::json& patchAddress, const rapidjson::Value& currentSteamInstance);
+    bool should_patch_interface(nlohmann::json& patchAddress, const nlohmann::json& currentSteamInstance);
 
-    void remote_page_event_handler(const rapidjson::Value& CefBrowserInstance, std::string StyleSheetInject, std::string JavaScriptInject);
+    void remote_page_event_handler(const nlohmann::json& page, std::string css_to_evaluate, std::string js_to_evaluate);
 
     void steam_remote_interface_handler();
     void steam_client_interface_handler();

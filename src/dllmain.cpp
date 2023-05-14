@@ -25,7 +25,7 @@ public:
         request_buffer = InternetOpenUrlA(connection, repo_url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
 
         if (!request_buffer || !connection) {
-            std::cout << "Error opening URL: " << GetLastError() << std::endl;
+            //std::cout << "Error opening URL: " << GetLastError() << std::endl;
             InternetCloseHandle(connection);
             return;
         }

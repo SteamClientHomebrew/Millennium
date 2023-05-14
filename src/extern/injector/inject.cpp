@@ -3,6 +3,14 @@
 #include <include/json.hpp>
 #include <extern/cef_manager.hpp>
 
+struct endpoints
+{
+public:
+    std::string steam_resources = "https://steamloopback.host/";
+    std::string steam_instances = "http://localhost:8080/json";
+    std::string steam_browser = "http://localhost:8080/json/version";
+}endpoints;
+
 namespace websocket = boost::beast::websocket;
 
 Console console; SkinConfig config;
@@ -34,53 +42,13 @@ void steam_client::evaluate_javascript(boost::beast::websocket::stream<tcp::sock
     else 
         steam_interface.push_to_socket_session(socket, (const char*)get_js("https://steamloopback.host/" + javascript).c_str(), socket_response["sessionId"]);
 }
-
-bool steam_client::check_interface_patch_status(const rapidjson::Value& data, nlohmann::json& configJson)
-{
-    if (data.IsArray()) {
-        if (data.Size() == 1) {
-            const rapidjson::Value& obj = data[0];
-            if (obj.IsObject()
-                && obj.HasMember("title")
-                && obj["title"].IsString()
-                && obj["title"].GetString() == std::string("SharedJSContext"))
-            {
-                for (auto& element : configJson["patch"]) {
-                    element["patched"] = false;
-                }
-                return false;
-            }
-        }
-    }
-    return true;
-}
-void steam_client::mark_page_patch_status(nlohmann::json& configJson, nlohmann::json& patchAddress, bool patched)
-{
-    nlohmann::basic_json<>::value_type& patchAddr = configJson["patch"];
-    for (nlohmann::json::iterator item = patchAddr.begin(); item != patchAddr.end(); ++item) {
-        if ((*item)["url"] == std::string(patchAddress["url"])) {
-            (*item)["patched"] = patched;
-            break;
-        }
-    }
-}
-bool steam_client::check_valid_instances(rapidjson::Document& document)
-{
-    bool hasIterableItems = std::any_of(document.Begin(), document.End(),
-        [](const auto& item) { return item.IsObject() || item.IsArray(); });
-
-    if (!hasIterableItems) {
-        return false;
-    }
-    return true;
-}
-bool steam_client::should_patch_interface(nlohmann::json& patchAddress, const rapidjson::Value& currentSteamInstance)
+bool steam_client::should_patch_interface(nlohmann::json& patchAddress, const nlohmann::json& currentSteamInstance)
 {
     if (patchAddress.contains("patched") && patchAddress["patched"]) {
         return false;
     }
 
-    std::string steam_page_url_header = currentSteamInstance["url"].GetString();
+    std::string steam_page_url_header = currentSteamInstance["url"].get<std::string>();
 
     if (steam_page_url_header.find(patchAddress["url"]) != std::string::npos && steam_page_url_header.find("about:blank") == std::string::npos) {
         console.imp("patching -> " + steam_page_url_header);
@@ -88,9 +56,9 @@ bool steam_client::should_patch_interface(nlohmann::json& patchAddress, const ra
     else return false;
 }
 
-void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::string css_to_evaluate, std::string js_to_evaluate)
+void steam_client::remote_page_event_handler(const nlohmann::json& page, std::string css_to_evaluate, std::string js_to_evaluate)
 {
-    boost::network::uri::uri socket_url(page["webSocketDebuggerUrl"].GetString());
+    boost::network::uri::uri socket_url(page["webSocketDebuggerUrl"].get<std::string>());
 
     boost::asio::io_context io_context;
     tcp::resolver resolver(io_context);
@@ -104,14 +72,7 @@ void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::
 
     std::function<void()> evaluate_scripting = ([&]() -> void {
 
-        //console.imp("steam_client::evaluate_remote() evaluating sources");
-
-        if (javascript_allowed())
-        {
-            if (!js_to_evaluate.empty()) evaluate_javascript(socket, js_to_evaluate);
-        }
-        else console.log("javascript execution was blocked [reason:user_requested]");
-
+        if (!js_to_evaluate.empty()) evaluate_javascript(socket, js_to_evaluate);
         if (!css_to_evaluate.empty()) evaluate_stylesheet(socket, css_to_evaluate);
     });
 
@@ -126,24 +87,24 @@ void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::
 
     evaluate_scripting();
 
-    while (true) {
+    while (true) 
+    {
         boost::beast::flat_buffer buffer;
         socket.read(buffer);
 
         nlohmann::json response = nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()));
+        if (response["method"] == "Page.frameResized")
+            continue;
 
-        if (response["method"] == "Page.frameResized") continue;
-
-        while (true) {
-
+        while (true) 
+        {
             evaluate_scripting();
 
             boost::beast::multi_buffer buffer;
             socket.read(buffer);
 
             if (nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))
-                ["result"]["exceptionDetails"]["exception"]["className"] != "TypeError")
-            {
+                ["result"]["exceptionDetails"]["exception"]["className"] != "TypeError") {
                 break;
             }
         }
@@ -152,6 +113,8 @@ void steam_client::remote_page_event_handler(const rapidjson::Value& page, std::
 
 void steam_client::steam_remote_interface_handler()
 {
+    console.log("steam_client::steam_remote_interface_handler() starting...");
+
     nlohmann::json jsonConfig = config.get_skin_config();
 
     if (jsonConfig["config_fail"])
@@ -162,40 +125,28 @@ void steam_client::steam_remote_interface_handler()
 
     while (true)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        rapidjson::Document document;
+        nlohmann::json instances = nlohmann::json::parse(steam_interface.discover(endpoints.steam_instances));
 
-        document.Parse(steam_interface.discover("http://localhost:8080/json").c_str());
-        if (!check_valid_instances(document)) continue;
-        const rapidjson::Value& data = document;
-        if (!check_interface_patch_status(data, jsonConfig)) jsonConfig = config.get_skin_config();
-
-        for (rapidjson::Value::ConstValueIterator itr = data.Begin(); itr != data.End(); ++itr) 
+        for (nlohmann::basic_json<>& instance : instances)
         {
-            const rapidjson::Value& current_instance = *itr;
-            for (nlohmann::basic_json<>& address : jsonConfig["patch"]) 
+            for (nlohmann::basic_json<>& address : jsonConfig["patch"])
             {
-                if (address["remote"] == false) continue;
-                if (!should_patch_interface(address, current_instance))  continue;
+                if (address["remote"] == false || !should_patch_interface(address, instance))
+                    continue;
 
-                mark_page_patch_status(jsonConfig, address, true);
-                console.log("handling events from " + std::string(current_instance["url"].GetString()));
-
-                std::thread handle_event([&]() {
-                    try {
-                        remote_page_event_handler(
-                            current_instance,
-                            address.find("css") != address.end() ? address["css"] : "",
-                            address.find("js") != address.end() ? address["js"] : ""
-                        );
+                try {
+                    //hang on this call, and wait for it to be destroyed
+                    remote_page_event_handler(
+                        instance,
+                        address.contains("css") ? address["css"] : "",
+                        address.contains("js") ? address["js"] : ""
+                    );
+                }
+                catch (const boost::system::system_error& ex) {
+                    if (ex.code() == boost::asio::error::misc_errors::eof) {
+                        console.log("instance destroyed, restarting...");
                     }
-                    catch (const boost::system::system_error& ex) {
-                        if (ex.code() == boost::asio::error::misc_errors::eof) {
-                            mark_page_patch_status(jsonConfig, address, false);
-                        }
-                    }
-                });
-                handle_event.detach();
+                }
             }
         }
     }
@@ -259,8 +210,8 @@ void millennium_settings_page(boost::beast::websocket::stream<tcp::socket>& sock
 {
     append_skins_to_settings();
 
-    std::string javascript = "https://raw.githack.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.js";
-    //std::string javascript = "https://steamloopback.host/skins/index.js";
+    //std::string javascript = "https://raw.githack.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.js";
+    std::string javascript = "https://steamloopback.host/skins/index.js";
     std::string js_code = "!document.querySelectorAll(`script[src='" + javascript + "']`).length && document.head.appendChild(Object.assign(document.createElement('script'), { src: '" + javascript + "' }));";
 
     socket.write(boost::asio::buffer(nlohmann::json({
@@ -273,12 +224,10 @@ void millennium_settings_page(boost::beast::websocket::stream<tcp::socket>& sock
 
 void steam_client::steam_client_interface_handler()
 {
-    const char* browser_socket_url = "http://localhost:8080/json/version";
-
     std::basic_string<char, std::char_traits<char>, std::allocator<char>> current_skin = std::string(config.GetConfig()["active-skin"]);
     nlohmann::basic_json<> skin_json_config = config.get_skin_config();
 
-    boost::network::uri::uri socket_url(nlohmann::json::parse(steam_interface.discover(browser_socket_url).c_str())["webSocketDebuggerUrl"]);
+    boost::network::uri::uri socket_url(nlohmann::json::parse(steam_interface.discover(endpoints.steam_browser).c_str())["webSocketDebuggerUrl"]);
     boost::asio::io_context io_context;
 
     boost::beast::websocket::stream<tcp::socket> socket(io_context);

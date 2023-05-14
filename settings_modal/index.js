@@ -1,15 +1,13 @@
 const socket = new WebSocket('ws://localhost:3242');
 
-var settings_html, sidebar_html;
-var data;
+var settings_html, sidebar_html, data;
 
 fetch('https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.html').then(response => response.text()).then(_data => { settings_html = _data })
-fetch('https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/sidebar.html').then(response => response.text()).then(_data => { sidebar_html = _data })
 fetch('https://steamloopback.host/skins/settings.json').then(response => response.json()).then(_data => { data = _data })
 
 function millennium_ipc(value) { socket.send(JSON.stringify(value)) }
 
-function load_page()
+function handle_interface()
 {
     const select = document.getElementById("skinsSelect"); {
         const option = document.createElement('option');
@@ -28,71 +26,80 @@ function load_page()
         }
     });
 
-    document.getElementById("openSkinPath").addEventListener("click", () => millennium_ipc({type: 0}));
-
     select.addEventListener("change", (event) => {
         const value = event.target.value;
         millennium_ipc({type: 1, content: value})
     });
 
+    document.getElementById("openSkinPath").addEventListener("click", () => millennium_ipc({type: 0}));
     document.getElementById("discordServer").addEventListener("click", () => millennium_ipc({type: 2, content: "https://discord.gg/MXMWEQKgJF"}));
     document.getElementById("donate_link").addEventListener("click", () => millennium_ipc({type: 2, content: "https://ko-fi.com/shadowmonster"}));
     document.getElementById("github_link").addEventListener("click", () => millennium_ipc({type: 2, content: "https://github.com/ShadowMonster99"}));
-    document.getElementById("uninstall_millennium").addEventListener("click", () => millennium_ipc({type: 5}));
 
-    const enable_javascript = document.querySelector("#enable_js");
+    const checked = "gamepaddialog_On_3ld7T"
 
-    if (!data["allow-javascript"])
+    //handle enable javascript events
     {
-        enable_javascript.classList.remove("gamepaddialog_On_3ld7T");
+        const enable_javascript = document.querySelector("#enable_js");
+
+        if (!data["allow-javascript"])
+            enable_javascript.classList.remove(checked);
+
+        enable_javascript.addEventListener("click", () => 
+        {
+            if (enable_javascript.classList.contains(checked)) { 
+                enable_javascript.classList.remove(checked); 
+                value = false; 
+            }
+            else { 
+                enable_javascript.classList.add(checked); 
+                value = true; 
+            }
+
+            millennium_ipc({type: 3, content: value})
+        });
     }
 
-    enable_javascript.addEventListener("click", () => 
+    //handle enable console events
     {
-        if (enable_javascript.classList.contains("gamepaddialog_On_3ld7T")){ enable_javascript.classList.remove("gamepaddialog_On_3ld7T"); value = false; }
-        else { enable_javascript.classList.add("gamepaddialog_On_3ld7T"); value = true; }
+        const enable_console = document.querySelector("#enable_console");
 
-        millennium_ipc({type: 3, content: value})
-    });
+        if (!data["enable-console"])
+            enable_console.classList.remove(checked);
 
-    const enable_console = document.querySelector("#enable_console");
+        enable_console.addEventListener("click", () => 
+        {
+            if (enable_console.classList.contains(checked)) { 
+                enable_console.classList.remove(checked); 
+                value = false; 
+            }
+            else { 
+                enable_console.classList.add(checked); 
+                value = true; 
+            }
 
-    if (!data["enable-console"])
-    {
-        enable_console.classList.remove("gamepaddialog_On_3ld7T");
+            millennium_ipc({type: 4, content: value})
+        });
     }
-
-    enable_console.addEventListener("click", () => 
-    {
-        if (enable_console.classList.contains("gamepaddialog_On_3ld7T")){ enable_console.classList.remove("gamepaddialog_On_3ld7T"); value = false; }
-        else { enable_console.classList.add("gamepaddialog_On_3ld7T"); value = true; }
-
-        millennium_ipc({type: 4, content: value})
-    });
 }
 
-function bootstrap_millennium()
-{
-    const dialogBody = document.querySelector("[class*='pagedsettings_PagedSettingsDialog_PageList__']");
+const intervalId = setInterval(() => {
+    const tab_name = document.querySelector('.DialogHeader');
 
-    if (dialogBody != null && sidebar_html != "undefined" && sidebar_html != null)
-    {
+    if (tab_name.innerText == "Interface") {
+
+        if (set) return
+
+        set = true;
+
         const container = document.createElement('div');
-        container.innerHTML = sidebar_html;    
-
-        console.log({"sidebar": sidebar_html, "query": dialogBody})
-
+        container.innerHTML = settings_html;
+        
+        const dialogBody = document.querySelector('.DialogBody.settings_SettingsDialogBodyFade_aFxOa');
         const firstChild = dialogBody.firstChild;
         dialogBody.insertBefore(container, firstChild);
 
-        const millenniumTab = document.getElementById('millennium_tab');
-        millenniumTab.addEventListener('click', function() {
-            console.log("click");
-            document.getElementsByClassName("DialogContent_InnerWidth")[0].innerHTML = settings_html;
-            load_page()
-        });
-
-        clearInterval(val)
+        handle_interface()
     }
-
-} const val = setInterval(bootstrap_millennium, 1);
+    else set = false;
+}, 1);
