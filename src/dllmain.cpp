@@ -4,11 +4,12 @@
 #include <filesystem>
 
 #pragma warning(disable: 6258)
+#pragma warning(disable: 6387)
 
 Console Out;
 
-const char* current_app_version = "public3";
-const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/releases/latest";
+const char* current_app_version = "1.0.0";
+const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-binaries/releases/latest";
 
 class auto_updater {
 private:
@@ -18,7 +19,7 @@ private:
 
     HINTERNET request_buffer, connection;
 public:
-    auto_updater()
+    __declspec(noinline) auto_updater()
     {
         connection = InternetOpenA("millennium.updater", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
         request_buffer = InternetOpenUrlA(connection, repo_url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
@@ -34,26 +35,19 @@ public:
     {
         while (InternetReadFile(request_buffer, buffer, sizeof(buffer), &total_bytes_read) && total_bytes_read > 0) { github_response.append(buffer, total_bytes_read); }
 
-        //no internet connection most likely
-        if (github_response.empty()) {
-            return;
-        }
-
-        if (nlohmann::json::parse(github_response)["tag_name"].get<std::string>() == current_app_version)
+        if (github_response.empty() || 
+            nlohmann::json::parse(github_response)["tag_name"].get<std::string>() == current_app_version) 
         {
             return;
         }
 
-        //millennium needs an update
-
         MessageBoxA(
             GetForegroundWindow(),
-            "New version of the patcher is available!\nYou are required to download the latest release, or you can uninstall the current release you have",
+            "A new version of the patcher is available!\nYou are required to download the latest release, or you can uninstall the current release you have.\nRun the installer on the github page to download the new release",
             "Millennium - Updater",
             MB_OK | MB_ICONINFORMATION);
 
-        const char* url = "https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest";
-        ShellExecute(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+        ShellExecute(NULL, "open", "https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest", NULL, NULL, SW_SHOWNORMAL);
 
         exit(1);
     }
@@ -96,7 +90,7 @@ public:
             __fastfail(0);
         }
 
-        //millennium_updater.check_for_updates();
+        millennium_updater.check_for_updates();
 
         (HANDLE)CreateThread(NULL, NULL, Initialize, NULL, NULL, NULL);
         return true;
