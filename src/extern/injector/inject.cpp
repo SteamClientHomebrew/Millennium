@@ -210,8 +210,8 @@ void millennium_settings_page(boost::beast::websocket::stream<tcp::socket>& sock
 {
     append_skins_to_settings();
 
-    //std::string javascript = "https://raw.githack.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.js";
-    std::string javascript = "https://steamloopback.host/skins/index.js";
+    std::string javascript = "https://raw.githack.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.js";
+    //std::string javascript = "https://steamloopback.host/skins/index.js";
     std::string js_code = "!document.querySelectorAll(`script[src='" + javascript + "']`).length && document.head.appendChild(Object.assign(document.createElement('script'), { src: '" + javascript + "' }));";
 
     socket.write(boost::asio::buffer(nlohmann::json({
