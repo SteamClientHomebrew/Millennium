@@ -33,7 +33,7 @@
     <ClInclude Include="include\json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="extern\cef_manager.hpp">
+    <ClInclude Include="extern\steam\cef_manager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

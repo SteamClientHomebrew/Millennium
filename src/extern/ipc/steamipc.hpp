@@ -13,11 +13,14 @@ private:
 public:
     inline void restart_steam()
     {
-        int message_box_result = MessageBoxA(GetForegroundWindow(), "Steam requires a restart to apply new changes. Do you want to restart steam now?", "Millennium", MB_YESNO | MB_ICONINFORMATION);
+        if (std::string(GetCommandLineA()).find("-dev") == std::string::npos)
+        {
+            int message_box_result = MessageBoxA(GetForegroundWindow(), "Steam requires a restart to apply new changes. Do you want to restart steam now?", "Millennium", MB_YESNO | MB_ICONINFORMATION);
 
-        if (message_box_result == IDYES) {
-            ShellExecuteA(NULL, "open", "restart.bat", NULL, NULL, SW_HIDE);
-            exit(0);
+            if (message_box_result == IDYES) {
+                ShellExecuteA(NULL, "open", "restart.bat", NULL, NULL, SW_HIDE);
+                exit(0);
+            }
         }
     }
 

@@ -18,8 +18,6 @@ using tcp = boost::asio::ip::tcp;
 class steam_client
 {
 private:
-    void evaluate_stylesheet(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, nlohmann::basic_json<> socket_response);
-    void evaluate_javascript(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, nlohmann::basic_json<> socket_response);
     bool should_patch_interface(nlohmann::json& patchAddress, const nlohmann::json& currentSteamInstance);
 
     void remote_page_event_handler(const nlohmann::json& page, std::string css_to_evaluate, std::string js_to_evaluate);

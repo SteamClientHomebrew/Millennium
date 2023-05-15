@@ -1,7 +1,7 @@
 #include <extern/injector/inject.hpp>
 #include <extern/ipc/steamipc.hpp>
 #include <include/json.hpp>
-#include <extern/cef_manager.hpp>
+#include <extern/steam/cef_manager.hpp>
 
 struct endpoints
 {
@@ -16,32 +16,6 @@ namespace websocket = boost::beast::websocket;
 Console console; SkinConfig config;
 using tcp = boost::asio::ip::tcp;
 
-bool javascript_allowed() { return json::read_json_file(std::format("{}/settings.json", config.get_steam_skin_path()))["allow-javascript"].get<bool>(); }
-
-std::string get_css(std::string filename) { return R"((()=>{const h=')" + filename + R"('; if (!document.querySelectorAll(`link[href = "${h}"]`).length) { const l = document.createElement('link'); l.rel = 'stylesheet', l.href = h, document.head.appendChild(l); } })())"; }
-std::string get_js(std::string filename) { return "!document.querySelectorAll(`script[src='" + filename + "']`).length && document.head.appendChild(Object.assign(document.createElement('script'), { src: '" + filename + "' }));"; }
-
-void steam_client::evaluate_stylesheet(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, nlohmann::basic_json<> socket_response = NULL)
-{
-    std::string stylesheet = std::format("skins/{}/{}", std::string(config.GetConfig()["active-skin"]), file);
-
-    if (socket_response == NULL) 
-        steam_interface.push_to_socket(socket, (const char*)get_css("https://steamloopback.host/" + stylesheet).c_str());
-    else 
-        steam_interface.push_to_socket_session(socket, (const char*)get_css("https://steamloopback.host/" + stylesheet).c_str(), socket_response["sessionId"]);
-}
-void steam_client::evaluate_javascript(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, nlohmann::basic_json<> socket_response = NULL)
-{
-    if (!javascript_allowed())
-        return;
-
-    std::string javascript = std::format("skins/{}/{}", std::string(config.GetConfig()["active-skin"]), file);
-
-    if (socket_response == NULL) 
-        steam_interface.push_to_socket(socket, (const char*)get_js("https://steamloopback.host/" + javascript).c_str());
-    else 
-        steam_interface.push_to_socket_session(socket, (const char*)get_js("https://steamloopback.host/" + javascript).c_str(), socket_response["sessionId"]);
-}
 bool steam_client::should_patch_interface(nlohmann::json& patchAddress, const nlohmann::json& currentSteamInstance)
 {
     if (patchAddress.contains("patched") && patchAddress["patched"]) {
@@ -70,10 +44,16 @@ void steam_client::remote_page_event_handler(const nlohmann::json& page, std::st
 
     console.imp("steam_client::remote_page_event_handler() socket.handshake success");
 
-    std::function<void()> evaluate_scripting = ([&]() -> void {
-
-        if (!js_to_evaluate.empty()) evaluate_javascript(socket, js_to_evaluate);
-        if (!css_to_evaluate.empty()) evaluate_stylesheet(socket, css_to_evaluate);
+    std::function<void()> evaluate_scripting = ([&]() -> void 
+    {
+        if (!js_to_evaluate.empty())
+        {
+            steam_interface.evaluate(socket, js_to_evaluate, steam_interface.script_type::javascript);
+        }
+        if (!css_to_evaluate.empty()) 
+        {
+            steam_interface.evaluate(socket, css_to_evaluate, steam_interface.script_type::stylesheet);
+        }
     });
 
     std::function<void()> page_set_settings = ([&](void) -> void {
@@ -225,6 +205,7 @@ void millennium_settings_page(boost::beast::websocket::stream<tcp::socket>& sock
 void steam_client::steam_client_interface_handler()
 {
     std::basic_string<char, std::char_traits<char>, std::allocator<char>> current_skin = std::string(config.GetConfig()["active-skin"]);
+
     nlohmann::basic_json<> skin_json_config = config.get_skin_config();
 
     boost::network::uri::uri socket_url(nlohmann::json::parse(steam_interface.discover(endpoints.steam_browser).c_str())["webSocketDebuggerUrl"]);
@@ -274,7 +255,8 @@ void steam_client::steam_client_interface_handler()
 
             std::string title = socket_response["result"]["result"]["value"]["title"].get<std::string>();
 
-            if (title == "Steam Settings") {
+            //"Steam Settings" is for desktop app "Settings" is for game overlay
+            if (title == "Steam Settings" || title == "Settings") {
                 millennium_settings_page(socket, socket_response);
             }
 
@@ -290,8 +272,8 @@ void steam_client::steam_client_interface_handler()
 
                 console.imp("patching -> " + title);
 
-                if (patchAddress.contains("css")) { evaluate_stylesheet(socket, patchAddress["css"], socket_response); }
-                if (patchAddress.contains("js"))  { evaluate_javascript(socket, patchAddress["js"], socket_response); }
+                if (patchAddress.contains("css")) { steam_interface.evaluate(socket, patchAddress["css"], steam_interface.script_type::stylesheet, socket_response); }
+                if (patchAddress.contains("js"))  { steam_interface.evaluate(socket, patchAddress["js"], steam_interface.script_type::javascript, socket_response); }
             }
         }
 

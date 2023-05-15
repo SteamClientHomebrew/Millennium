@@ -161,7 +161,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="extern\cef_manager.hpp" />
+    <ClInclude Include="extern\steam\cef_manager.hpp" />
     <ClInclude Include="include\config.hpp" />
     <ClInclude Include="include\json.hpp" />
     <ClInclude Include="include\logger.hpp" />
