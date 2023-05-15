@@ -45,6 +45,7 @@ Compile millennium with platform toolset v143 or v142, use ``/std:c++20``
 Required [vcpkg](https://vcpkg.io/)'s
 ```bash
   vcpkg install boost:x86-windows
+  vcpkg install cpp-netlib:x86-windows
   vcpkg install rapidjson:x86-windows
   vcpkg install nlohmann-json:x86-windows
   vcpkg install websocketpp:x86-windows
