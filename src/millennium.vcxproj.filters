@@ -27,7 +27,7 @@
     <ClInclude Include="include\logger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="extern\steamipc.hpp">
+    <ClInclude Include="extern\ipc\steamipc.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\json.hpp">

@@ -167,7 +167,7 @@
     <ClInclude Include="include\logger.hpp" />
     <ClInclude Include="scripts\resource.h" />
     <ClInclude Include="extern\injector\inject.hpp" />
-    <ClInclude Include="extern\steamipc.hpp" />
+    <ClInclude Include="extern\ipc\steamipc.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />

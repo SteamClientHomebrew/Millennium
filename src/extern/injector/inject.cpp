@@ -1,5 +1,5 @@
 #include <extern/injector/inject.hpp>
-#include <extern/steamipc.hpp>
+#include <extern/ipc/steamipc.hpp>
 #include <include/json.hpp>
 #include <extern/cef_manager.hpp>
 
