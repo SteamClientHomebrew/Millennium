@@ -130,7 +130,11 @@ if you think this documentation needs more information, join the discord server 
 
 ## TODO
 
-use 100% nlohmann::json instead of rapidJson because its slower and its buggy
+Settins menu is not loaded on any other language other than English
+
+## TODO
+
+~use 100% nlohmann::json instead of rapidJson because its slower and its buggy~
 
 ## Authors
 
