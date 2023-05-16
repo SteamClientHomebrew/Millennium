@@ -1,5 +1,6 @@
 #include <extern/injector/inject.hpp>
 #include <extern/ipc/steamipc.hpp>
+#include <include/config.hpp>
 #include <include/json.hpp>
 #include <extern/steam/cef_manager.hpp>
 
@@ -12,8 +13,9 @@ public:
 }endpoints;
 
 namespace websocket = boost::beast::websocket;
+using namespace boost;
 
-Console console; SkinConfig config;
+Console console; skin_config config;
 using tcp = boost::asio::ip::tcp;
 
 bool steam_client::should_patch_interface(nlohmann::json& patchAddress, const nlohmann::json& currentSteamInstance)
@@ -132,94 +134,23 @@ void steam_client::steam_remote_interface_handler()
     }
 }
 
-void check_if_valid_settings(std::string settings_path)
-{
-    std::filesystem::path directory_path(settings_path);
-
-    if (!std::filesystem::exists(directory_path)) {
-        std::filesystem::create_directory(directory_path);
-        std::ofstream settings_file(std::format("{}/settings.json", settings_path));
-    }
-}
-
-void append_skins_to_settings()
-{
-    SkinConfig MillenniumConfig;
-
-    std::string steam_skin_path = MillenniumConfig.get_steam_skin_path();
-    std::string setting_json_path = std::format("{}/settings.json", MillenniumConfig.get_steam_skin_path());
-
-    check_if_valid_settings(steam_skin_path);
-    nlohmann::json skins, data;
-
-    for (const auto& entry : std::filesystem::directory_iterator(steam_skin_path)) {
-        if (entry.is_directory()) {
-            skins.push_back({ {"name", entry.path().filename().string()} });
-        }
-    }
-    skins.push_back({ {"name", "default"} });
-
-    try { data = json::read_json_file(setting_json_path); }
-    catch (nlohmann::detail::parse_error&) {
-        std::ofstream file(setting_json_path, std::ofstream::out | std::ofstream::trunc);
-        file.close();
-    }
-
-    //edit contents of the settings.json
-    data["skins"] = skins;
-    if (!data.contains("active-skin")) {
-        data["active-skin"] = "default";
-    }
-    if (!data.contains("allow-javascript")) {
-        data["allow-javascript"] = true;
-    }
-    if (!data.contains("enable-console")) {
-        data["enable-console"] = false;
-    }
-
-    if (data["enable-console"])
-    {
-        AllocConsole();
-        FILE* fp = freopen("CONOUT$", "w", stdout);
-    }
-
-    json::write_json_file(setting_json_path, data);
-}
-
-void millennium_settings_page(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response)
-{
-    append_skins_to_settings();
-
-    std::string javascript = "https://raw.githack.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.js";
-    //std::string javascript = "https://steamloopback.host/skins/index.js";
-    std::string js_code = "!document.querySelectorAll(`script[src='" + javascript + "']`).length && document.head.appendChild(Object.assign(document.createElement('script'), { src: '" + javascript + "' }));";
-
-    socket.write(boost::asio::buffer(nlohmann::json({
-        {"id", steam_socket::response::script_inject_evaluate},
-        {"method", "Runtime.evaluate"},
-        {"sessionId", socket_response["sessionId"]},
-        {"params", {{"expression", js_code}}}
-    }).dump()));
-}
-
 void steam_client::steam_client_interface_handler()
 {
-    std::basic_string<char, std::char_traits<char>, std::allocator<char>> current_skin = std::string(config.GetConfig()["active-skin"]);
-
     nlohmann::basic_json<> skin_json_config = config.get_skin_config();
 
-    boost::network::uri::uri socket_url(nlohmann::json::parse(steam_interface.discover(endpoints.steam_browser).c_str())["webSocketDebuggerUrl"]);
-    boost::asio::io_context io_context;
+    asio::io_context io_context;
+    beast::websocket::stream<tcp::socket> socket(io_context);
+    asio::ip::tcp::resolver resolver(io_context);
 
-    boost::beast::websocket::stream<tcp::socket> socket(io_context);
-    boost::asio::ip::tcp::resolver resolver(io_context);
+    asio::connect(socket.next_layer(), resolver.resolve("localhost", "8080"));
+    socket.handshake("localhost", network::uri::uri(nlohmann::json::parse(steam_interface.discover(endpoints.steam_browser))["webSocketDebuggerUrl"]).path());
+    socket.write(boost::asio::buffer(nlohmann::json({ 
+        {"id", 1}, 
+        {"method", "Target.setDiscoverTargets"}, 
+        {"params", {{"discover", true}}} 
+    }).dump()));
 
-    boost::asio::connect(socket.next_layer(), resolver.resolve("localhost", "8080"));
-
-    socket.handshake("localhost", socket_url.path());
-    socket.write(boost::asio::buffer(nlohmann::json({ {"id", 1}, {"method", "Target.setDiscoverTargets"}, {"params", {{"discover", true}}} }).dump()));
-
-    std::basic_string<char, std::char_traits<char>, std::allocator<char>> sessionId = {  };
+    std::string sessionId;
 
     while (true)
     {
@@ -228,10 +159,44 @@ void steam_client::steam_client_interface_handler()
 
         nlohmann::json socket_response = nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()));
 
+        const auto millennium_patch = ([&](std::string title) -> void
+        {
+            for (nlohmann::basic_json<>& patch : skin_json_config["patch"])
+            {
+                if (patch["remote"] == true || patch["url"] != title)
+                    continue;
+
+                console.imp("patching -> " + title);
+
+                if (patch.contains("css")) steam_interface.evaluate(socket, patch["css"], steam_interface.script_type::stylesheet, socket_response);
+                if (patch.contains("js"))  steam_interface.evaluate(socket, patch["js"] , steam_interface.script_type::javascript, socket_response);
+            }
+        });
+
+        if (socket_response["id"] == steam_cef_manager::response::get_document)
+        {
+            try 
+            {
+                std::string attributes = std::string(socket_response["result"]["root"]["children"][1]["attributes"][1]);
+
+                if (attributes.find("friendsui-container") != std::string::npos)
+                {
+                    millennium_patch("Friends & Chat");
+                }
+                if (attributes.find("settings_SettingsModalRoot") != std::string::npos)
+                {
+                    steam_interface.inject_millennium(socket, socket_response);
+                }
+            }
+            catch (const nlohmann::json::exception& e) {
+                continue;
+            }
+        }
+
         if (socket_response["method"] == "Target.targetCreated" && socket_response.contains("params"))
         {
             socket.write(boost::asio::buffer(nlohmann::json({
-                {"id", steam_socket::response::attached_to_target},
+                {"id", steam_cef_manager::response::attached_to_target},
                 {"method", "Target.attachToTarget"},
                 {"params", { {"targetId", socket_response["params"]["targetInfo"]["targetId"]}, {"flatten", true} } }
             }).dump()));
@@ -240,44 +205,33 @@ void steam_client::steam_client_interface_handler()
         if (socket_response["method"] == "Target.targetInfoChanged" && socket_response["params"]["targetInfo"]["attached"])
         {
             socket.write(boost::asio::buffer(nlohmann::json({
-                {"id", steam_socket::response::received_cef_details},
+                {"id", steam_cef_manager::response::received_cef_details},
                 {"method", "Runtime.evaluate"},
                 {"sessionId", sessionId},
-                {"params", { {"expression", "(() => { return { title: document.title, url: document.location.href }; })()"}, {"returnByValue", true} }}
+                {"params", { 
+                    {"expression", "(() => { return { title: document.title, url: document.location.href }; })()"}, 
+                    {"returnByValue", true} 
+                }}
             }).dump()));
         }
 
-        if (socket_response["id"] == steam_socket::response::received_cef_details)
+        if (socket_response["id"] == steam_cef_manager::response::received_cef_details)
         {
-            if (socket_response.contains("error")) {
+            if (socket_response.contains("error"))
                 continue;
-            }
 
-            std::string title = socket_response["result"]["result"]["value"]["title"].get<std::string>();
+            millennium_patch(socket_response["result"]["result"]["value"]["title"].get<std::string>());
 
-            //"Steam Settings" is for desktop app "Settings" is for game overlay
-            if (title == "Steam Settings" || title == "Settings") {
-                millennium_settings_page(socket, socket_response);
-            }
-
-            if (!skin_json_config.contains("patch")) {
-                continue;
-            }
-
-            for (nlohmann::basic_json<>& patchAddress : skin_json_config["patch"]) 
-            {
-                if (patchAddress["remote"] == true || title != patchAddress["url"]) {
-                    continue;
-                }
-
-                console.imp("patching -> " + title);
-
-                if (patchAddress.contains("css")) { steam_interface.evaluate(socket, patchAddress["css"], steam_interface.script_type::stylesheet, socket_response); }
-                if (patchAddress.contains("js"))  { steam_interface.evaluate(socket, patchAddress["js"], steam_interface.script_type::javascript, socket_response); }
-            }
+            socket.write(boost::asio::buffer(
+                nlohmann::json({
+                    {"id", steam_cef_manager::response::get_document},
+                    {"method", "DOM.getDocument"},
+                    {"sessionId", sessionId}
+                }).dump()
+            ));
         }
 
-        if (socket_response["id"] == steam_socket::response::attached_to_target)
+        if (socket_response["id"] == steam_cef_manager::response::attached_to_target)
         {
             sessionId = socket_response["result"]["sessionId"];
         }
@@ -327,7 +281,7 @@ steam_client::steam_client()
 
 DWORD WINAPI Initialize(LPVOID lpParam)
 {
-    append_skins_to_settings();
+    config.append_skins_to_settings();
     steam_client ISteamHandler;
     return true;
 }

@@ -1,21 +1,26 @@
-namespace steam_socket
-{
-    enum response {
-        attached_to_target = 420,
-        script_inject_evaluate = 69,
-        received_cef_details = 69420
-    };
-}
-
 struct steam_cef_manager
 {
+public:
+    static enum response
+    {
+        attached_to_target = 420,
+        script_inject_evaluate = 69,
+        received_cef_details = 69420,
+        get_document = 9898
+    };
+
+    enum script_type
+    {
+        javascript,
+        stylesheet
+    };
 private:
-    SkinConfig config;
+    skin_config config;
 
     inline void push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId = "")
     {
         nlohmann::json evaluate_script = {
-            {"id", steam_socket::response::script_inject_evaluate},
+            {"id", response::script_inject_evaluate},
             {"method", "Runtime.evaluate"},
             {"params", {
                 {"expression", raw_script}, {"userGesture", true}, {"awaitPromise", false} }
@@ -31,21 +36,15 @@ private:
         return json::read_json_file(std::format("{}/settings.json", config.get_steam_skin_path()))["allow-javascript"].get<bool>();
     }
 
-    std::string get_css(std::string filename) {
+    std::string append_css(std::string filename) {
         return R"((()=>{const h=')" + filename + R"('; if (!document.querySelectorAll(`link[href = "${h}"]`).length) { const l = document.createElement('link'); l.rel = 'stylesheet', l.href = h, document.head.appendChild(l); } })())";
     }
 
-    std::string get_js(std::string filename) {
+    std::string append_js(std::string filename) {
         return "!document.querySelectorAll(`script[src='" + filename + "']`).length && document.head.appendChild(Object.assign(document.createElement('script'), { src: '" + filename + "' }));";
     }
 
 public:
-    enum script_type
-    {
-        javascript,
-        stylesheet
-    };
-
     inline std::string discover(std::basic_string<char, std::char_traits<char>, std::allocator<char>> remote_endpoint)
     {
         HINTERNET hInternet = InternetOpenA("millennium.patcher", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
@@ -61,6 +60,16 @@ public:
         return discovery_result;
     }
 
+    __declspec(noinline) void inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response)
+    {
+        config.append_skins_to_settings();
+
+        std::string javascript = "https://raw.githack.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.js";
+        //std::string javascript = "https://steamloopback.host/skins/index.js";
+
+        push_to_socket(socket, append_js(javascript), socket_response["sessionId"].get<std::string>());
+    }
+
     void evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL)
     {
         if (type == script_type::javascript && !javascript_allowed())
@@ -68,7 +77,7 @@ public:
             return;
         }
 
-        std::string file_address = std::format("https://steamloopback.host/skins/{}/{}", std::string(config.GetConfig()["active-skin"]), file);
+        std::string file_address = std::format("https://steamloopback.host/skins/{}/{}", std::string(config.get_settings_config()["active-skin"]), file);
 
         std::optional<std::string> sessionId;
 
@@ -76,6 +85,7 @@ public:
             sessionId = socket_response["sessionId"].get<std::string>();
         }
 
-        steam_interface.push_to_socket(socket, type == script_type::javascript ? get_js(file_address) : get_css(file_address), sessionId.value_or(std::string()));
+        steam_interface.push_to_socket(socket, type == script_type::javascript ? append_js(file_address) : append_css(file_address), sessionId.value_or(std::string()));
     }
+
 } steam_interface;

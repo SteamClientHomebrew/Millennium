@@ -1,4 +1,5 @@
 #include <include/json.hpp>
+#include <include/config.hpp>
 
 using tcp = boost::asio::ip::tcp;
 using namespace boost::asio;
@@ -9,7 +10,7 @@ namespace websocket = boost::beast::websocket;
 class functions
 {
 private:
-    SkinConfig skinConfig;
+    skin_config skinConfig;
 public:
     inline void restart_steam()
     {

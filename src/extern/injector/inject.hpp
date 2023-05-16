@@ -11,7 +11,6 @@
 #pragma comment(lib, "wininet.lib")
 
 #include <include/logger.hpp>
-#include <include/config.hpp>
 
 using tcp = boost::asio::ip::tcp;
 

@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <include/logger.hpp>
 
-class SkinConfig
+class skin_config
 {
 private:
     Console console;
@@ -12,16 +12,16 @@ private:
     std::string currentSkin;
 public:
 
-    SkinConfig(const SkinConfig&) = delete;
-    SkinConfig& operator=(const SkinConfig&) = delete;
+    skin_config(const skin_config&) = delete;
+    skin_config& operator=(const skin_config&) = delete;
 
-    static SkinConfig& getInstance()
+    static skin_config& getInstance()
     {
-        static SkinConfig instance;
+        static skin_config instance;
         return instance;
     }
 
-    SkinConfig()
+    skin_config()
     {
         HKEY hKey;
         DWORD dwType = REG_SZ, dwSize = MAX_PATH;
@@ -47,7 +47,7 @@ public:
         return SteamSkinPath;
     }
 
-    nlohmann::json GetConfig()
+    nlohmann::json get_settings_config()
     {
         std::ifstream configFile(std::format("{}/settings.json", SteamSkinPath));
         if (!configFile.is_open() || !configFile) {
@@ -73,7 +73,7 @@ public:
 
     nlohmann::json get_skin_config()
     {
-        GetConfig();
+        get_settings_config();
 
         std::ifstream configFile(std::format("{}/{}/config.json", SteamSkinPath, currentSkin));
         if (!configFile.is_open() || !configFile) {
@@ -91,6 +91,59 @@ public:
             return json_object;
         }
         return false;
+    }
+
+
+    void check_if_valid_settings(std::string settings_path)
+    {
+        std::filesystem::path directory_path(settings_path);
+        std::string setting_json = std::format("{}/settings.json", settings_path);
+
+        if (!std::filesystem::exists(directory_path)) {
+            std::filesystem::create_directory(directory_path);
+            std::ofstream settings_file(setting_json);
+        }
+        else if (!std::filesystem::exists(setting_json))
+        {
+            std::ofstream settings_file(setting_json);
+        }
+    }
+
+    void append_skins_to_settings()
+    {
+        skin_config skin_config;
+
+        std::string steam_skin_path = skin_config.get_steam_skin_path();
+        std::string setting_json_path = std::format("{}/settings.json", steam_skin_path);
+
+        check_if_valid_settings(steam_skin_path);
+        nlohmann::json skins, data;
+
+        for (const auto& entry : std::filesystem::directory_iterator(steam_skin_path)) {
+            if (entry.is_directory()) {
+                skins.push_back({ {"name", entry.path().filename().string()} });
+            }
+        }
+        skins.push_back({ {"name", "default"} });
+
+        try {
+            data = json::read_json_file(setting_json_path);
+        }
+        catch (nlohmann::detail::parse_error&) {
+            std::ofstream file(setting_json_path, std::ofstream::out | std::ofstream::trunc);
+            file.close();
+        }
+        data["skins"] = skins;
+
+        if (!data.contains("active-skin"))      data["active-skin"] = "default";
+        if (!data.contains("allow-javascript")) data["allow-javascript"] = true;
+        if (!data.contains("enable-console"))   data["enable-console"] = false;
+
+        if (data["enable-console"]) {
+            AllocConsole();
+            freopen("CONOUT$", "w", stdout);
+        }
+        json::write_json_file(setting_json_path, data);
     }
 };
 
