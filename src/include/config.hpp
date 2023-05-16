@@ -47,6 +47,48 @@ public:
         return SteamSkinPath;
     }
 
+    // Taken from https://stackoverflow.com/a/24315631/7418213
+    std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) {
+        size_t start_pos = 0;
+        while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+            str.replace(start_pos, from.length(), to);
+            start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+        }
+        return str;
+    }
+
+    nlohmann::json GetSteamuiLocalization(std::string languageName)
+    {
+        std::ifstream steamuiLangResource(std::format("{}/../localization/steamui_{}-json.js", SteamSkinPath, languageName));
+        if (!steamuiLangResource.is_open() || !steamuiLangResource) {
+            console.err(std::format(" loading steamui localization data, language file (steamui_{}-json.js) was not found", languageName));
+        }
+
+        std::stringstream buffer;
+        buffer << steamuiLangResource.rdbuf();
+        std::string contentString = buffer.str();
+        std::string delimiterStart = "JSON.parse('";
+        std::string delimiterEnd = "')}}]);";
+
+        // Remove JavaScript parts and extract pure JSON
+        contentString.erase(0, contentString.find(delimiterStart) + delimiterStart.length());
+        std::string jsonString = contentString.substr(0, contentString.find(delimiterEnd));
+        jsonString = ReplaceAll(jsonString, std::string("\\\\"), std::string("\\"));
+        jsonString = ReplaceAll(jsonString, std::string("\\\'"), std::string("\'"));
+
+        try
+        {
+            if (nlohmann::json::accept(jsonString)) {
+                nlohmann::json json_object = nlohmann::json::parse(jsonString);
+                return json_object;
+            }
+        }
+        catch (nlohmann::json::exception&) {
+            return false;
+        }
+        return false;
+    }
+
     nlohmann::json GetConfig()
     {
         std::ifstream configFile(std::format("{}/settings.json", SteamSkinPath));

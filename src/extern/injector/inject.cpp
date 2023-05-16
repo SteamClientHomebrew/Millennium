@@ -173,6 +173,9 @@ void append_skins_to_settings()
     if (!data.contains("allow-javascript")) {
         data["allow-javascript"] = true;
     }
+    if (!data.contains("steam-language")) {
+        data["steam-language"] = "english";
+    }
     if (!data.contains("enable-console")) {
         data["enable-console"] = false;
     }
@@ -186,13 +189,13 @@ void append_skins_to_settings()
     json::write_json_file(setting_json_path, data);
 }
 
-void millennium_settings_page(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response)
+void steam_client::millennium_settings_page(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response)
 {
     append_skins_to_settings();
 
     std::string javascript = "https://raw.githack.com/ShadowMonster99/millennium-steam-patcher/main/settings_modal/index.js";
     //std::string javascript = "https://steamloopback.host/skins/index.js";
-    std::string js_code = "!document.querySelectorAll(`script[src='" + javascript + "']`).length && document.head.appendChild(Object.assign(document.createElement('script'), { src: '" + javascript + "' }));";
+    std::string js_code = "!document.querySelectorAll(`script[src='" + javascript + "']`).length && document.head.appendChild(Object.assign(document.createElement('script'), { text: 'const localizedStringInterface = \"" + std::string(steamui_localization["Settings_Page_Interface"]) + "\";' })) && document.head.appendChild(Object.assign(document.createElement('script'), { src: '" + javascript + "' }));";
 
     socket.write(boost::asio::buffer(nlohmann::json({
         {"id", steam_socket::response::script_inject_evaluate},
@@ -207,6 +210,7 @@ void steam_client::steam_client_interface_handler()
     std::basic_string<char, std::char_traits<char>, std::allocator<char>> current_skin = std::string(config.GetConfig()["active-skin"]);
 
     nlohmann::basic_json<> skin_json_config = config.get_skin_config();
+    steamui_localization = config.GetSteamuiLocalization(config.GetConfig()["steam-language"]);
 
     boost::network::uri::uri socket_url(nlohmann::json::parse(steam_interface.discover(endpoints.steam_browser).c_str())["webSocketDebuggerUrl"]);
     boost::asio::io_context io_context;
@@ -256,7 +260,7 @@ void steam_client::steam_client_interface_handler()
             std::string title = socket_response["result"]["result"]["value"]["title"].get<std::string>();
 
             //"Steam Settings" is for desktop app "Settings" is for game overlay
-            if (title == "Steam Settings" || title == "Settings") {
+            if (title == steamui_localization["Settings_Title"] || title == steamui_localization["AppOverlay_Toolbar_Settings"]) {
                 millennium_settings_page(socket, socket_response);
             }
 

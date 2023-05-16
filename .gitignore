@@ -5,6 +5,9 @@
 # Ignore log files
 *.log
 
+# Ignore editor files
+*.aps
+
 # Ignore directories
 dist/
 intermediate/

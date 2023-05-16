@@ -86,7 +86,7 @@ function handle_interface()
 const intervalId = setInterval(() => {
     const tab_name = document.querySelector('.DialogHeader');
 
-    if (tab_name.innerText == "Interface") {
+    if (tab_name.innerText == localizedStringInterface) {
 
         if (set) return
 
