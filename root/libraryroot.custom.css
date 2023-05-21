@@ -509,13 +509,12 @@ a[class*="appdetailsbroadcastsection_ViewBroadcastOnWeb_"]:hover {
 
 /** ================================================================================== **/
 /** Position the buttons **/
-[class*="bottombar_BottomBarContainer"] {    
+[class*="bottombar_BottomBarContainer"] {
     padding: 0 !important;
     position: absolute !important;
     --steam-control-width: 242px !important;
-    right: 165px !important;
+    right: 170px !important;
     top: 40px !important;
-    
 }
 /** ================================================================================== **/
 /** Override some colours and sizes **/
@@ -535,6 +534,7 @@ a[class*="appdetailsbroadcastsection_ViewBroadcastOnWeb_"]:hover {
     border-radius: 2px !important;
     min-width: 24px !important;
     min-height: 24px !important;
+    max-height: 24px !important;
     display: flex !important;
     height: 100% !important;
     align-items: center !important;
@@ -551,7 +551,7 @@ a[class*="appdetailsbroadcastsection_ViewBroadcastOnWeb_"]:hover {
 [class*="bottombar_BottomBar"] [class*="FriendsButton"] [class*="bottombar_Icon"],
 [class*="bottombar_BottomBar"] [class*="AddGameButton"] [class*="bottombar_Icon"],
 [class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="bottombar_Icon"] {
-    margin-bottom: 4px !important;
+    /* margin-bottom: 4px !important; */
 }
 
 /** ================================================================================== **/
@@ -596,11 +596,13 @@ a[class*="appdetailsbroadcastsection_ViewBroadcastOnWeb_"]:hover {
     order: var(--order-download) !important;
     flex-grow: 0 !important;
     padding: 0 6px !important;
-
+    height: 20px;
 }
 
 [class*="bottombar_BottomBar"] [class*="FriendsButton"] {
     order: var(--order-friends) !important;
+    /* align-items: center !important; */
+    /* display: flex !important; */
 }
 
 /** ================================================================================== **/
@@ -700,10 +702,6 @@ a[class*="appdetailsbroadcastsection_ViewBroadcastOnWeb_"]:hover {
 
 .rootmenu_RootMenuButton_2UyOB {
     padding: 0px 0px 4px !important;
-}
-
-.DesktopUI .title-area-icon, .friendsui-container .title-area-icon {
-    margin-top: 4px !important;
 }
 
 .appdetailsplaysection_InnerContainer_3Y87Y {
@@ -807,5 +805,12 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 
 .contextmenu_contextMenuItem_pFo3k.contextMenuItem:hover {
     background: #303030 !important;
-    color: #fff;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_HasNew_3L1c8 {
+	color: #8b929a !important;
+}
+
+.titlebarcontrols_Button_2Szzh.titlebarcontrols_AnnouncementsButton_5wILZ.titlebarcontrols_Active_1oEwi {
+	color: #8b929a !important;
 }
