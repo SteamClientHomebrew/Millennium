@@ -1,7 +1,7 @@
 const socket = new WebSocket('ws://localhost:3242');
 
 var settings_html;
-fetch('modal.html').then(response => response.text()).then(_data => { settings_html = _data })
+fetch('https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/modal.html').then(response => response.text()).then(_data => { settings_html = _data })
 
 let ipc_types = {
     open_skins_folder: 0, skin_update: 1, open_url: 2, change_javascript: 3, change_console: 4, get_skins: 5,   
