@@ -141,11 +141,6 @@ Settins menu is not loaded on any other language other than English
 
 - [@ShadowMonster99](https://github.com/ShadowMonster99)
 
-
-## Helpers
-
-- [@PhantomGamers](https://github.com/PhantomGamers) - discovered browser instance from remote debugger instead of connecting to individual cef instances `json/version`
-
 ## Testers
 
 - [@AikoMidori AKA Shiina](https://github.com/AikoMidori)
