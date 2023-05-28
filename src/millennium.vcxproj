@@ -163,7 +163,6 @@
   <ItemGroup>
     <ClInclude Include="extern\steam\cef_manager.hpp" />
     <ClInclude Include="include\config.hpp" />
-    <ClInclude Include="include\json.hpp" />
     <ClInclude Include="include\logger.hpp" />
     <ClInclude Include="scripts\resource.h" />
     <ClInclude Include="extern\injector\inject.hpp" />

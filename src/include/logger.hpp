@@ -1,16 +1,14 @@
-#ifndef LOGGER
-#define LOGGER
-
-#include <fstream>
-
+#pragma once
+/// <summary>
+/// incredibly shitty logger class
+/// </summary>
 class Console {
 private:
 	std::ofstream fileStream;
 
 	std::string get_time()
 	{
-		std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-		std::time_t time = std::chrono::system_clock::to_time_t(now);
+		std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 		std::stringstream ss;
 		ss << std::put_time(&*std::localtime(&time), "%y-%m-%d %H:%M:%S");
@@ -26,7 +24,7 @@ public:
 
 	Console() 
 	{
-		fileStream.open("millennium.log", std::ios::app);
+		fileStream.open("millennium.log", std::ios::trunc);
 	}
 	~Console() 
 	{
@@ -39,5 +37,3 @@ public:
 	void succ(std::string val) { log(" [OKAY] ", val); }
 	void imp (std::string val) { log(" [Millennium] ", val); }
 };
-
-#endif // LOGGER

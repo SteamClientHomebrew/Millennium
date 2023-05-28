@@ -30,9 +30,6 @@
     <ClInclude Include="extern\ipc\steamipc.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\json.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="extern\steam\cef_manager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

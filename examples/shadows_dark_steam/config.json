@@ -1,0 +1,83 @@
+{
+  "patch": [
+    {
+      "url": "https://store.steampowered.com",
+      "css": "webkit.css",
+      "js": "libraryroot.custom.js"
+    },
+    {
+      "url": "SteamBrowser_Find",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "Steam",
+      "css": "libraryroot.custom.css",
+      "js": "steam.js"
+    },
+    {
+      "url": "Friends & Chat",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": ".*Supernav$",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": ".*Menu$",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": ".*Settings$",
+      "css": "libraryroot.custom.css"
+    },
+
+
+    {
+      "url": "Steam Big Picture Mode",
+      "css": "bigpicture.custom.css"
+    },
+
+
+    {
+      "url": ".*SP Overlay:.*",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "Achievements",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "GameOverview",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "ScreenshotManager",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "GameOverview",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "SoundtrackPlayer",
+      "css": "libraryroot.custom.css"
+    },
+
+    {
+      "url": "OverlayBrowser_(?!.*_Find$).*",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "OverlayBrowser_.*_Find",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "OverlayTab\\d+_Find",
+      "css": "libraryroot.custom.css"
+    },
+    {
+      "url": "OverlayBrowser_Browser",
+      "css": "libraryroot.custom.css"
+    }
+  ]
+}
