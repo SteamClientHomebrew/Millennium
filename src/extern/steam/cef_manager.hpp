@@ -152,7 +152,7 @@ public:
     __declspec(noinline) void __fastcall inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response)
     {
         std::string javascript = "https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/source.js";
-        std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
+        //std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
 
         steam_interface.push_to_socket(
             socket, 

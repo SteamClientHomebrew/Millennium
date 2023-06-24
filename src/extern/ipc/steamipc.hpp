@@ -20,7 +20,7 @@ public:
     /// <param name="skin_update_name"></param>
     inline void update_skin(std::string skin_update_name)
     {
-        std::string disk_path = std::format("{}/{}/config.json", skinConfig.get_steam_skin_path(), skin_update_name);
+        std::string disk_path = std::format("{}/{}/skin.json", skinConfig.get_steam_skin_path(), skin_update_name);
 
         //whitelist the default skin
         if (skin_update_name == "default" || std::filesystem::exists(disk_path)) 
@@ -32,7 +32,11 @@ public:
             js_context.reload();
         }
         else {
-            int result = MessageBoxA(GetForegroundWindow(), "Millennium cant seem to find the selected skin?\ncheck the names of the skin folders", "Millennium", MB_ICONINFORMATION);
+            MessageBoxA(
+                GetForegroundWindow(), 
+                std::format("file: {}\nin the selected skin was not found, therefor can't be loaded.", disk_path).c_str(), "Millennium",
+                MB_ICONINFORMATION
+            );
         }
     }
 
