@@ -11,22 +11,15 @@ public:
     static const void set_registry(std::string key, std::string value) noexcept
     {
         HKEY hKey;
-        LPCSTR subKey = "Software\\Millennium";
-        LPCSTR valueName = key.c_str();
-        LPCWSTR valueData = (LPWSTR)value.c_str();
+        const LPCWSTR valueData = (LPWSTR)value.c_str();
 
-        if (RegCreateKeyEx(HKEY_CURRENT_USER, subKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL) == ERROR_SUCCESS) {
-            if (RegSetValueEx(hKey, valueName, 0, REG_SZ, reinterpret_cast<const BYTE*>(valueData), (wcslen(valueData) + 1) * sizeof(wchar_t)) == ERROR_SUCCESS) {
-                std::cout << "Registry key and value created successfully.\n";
-            }
-            else {
-                std::cout << "Failed to set the registry value.\n";
-            }
-            RegCloseKey(hKey);
+        if (RegCreateKeyEx(HKEY_CURRENT_USER, "Software\\Millennium", 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL) != ERROR_SUCCESS ||
+            RegSetValueEx(hKey, key.c_str(), 0, REG_SZ, reinterpret_cast<const BYTE*>(valueData), (wcslen(valueData) + 1) * sizeof(wchar_t)) != ERROR_SUCCESS)
+        {
+            MessageBoxA(GetForegroundWindow(), "registry settings cannot be set from millenniums user-space, try again or ask for help", "error", 0);
         }
-        else {
-            std::cout << "Failed to create the registry key.\n";
-        }
+
+        RegCloseKey(hKey);
     }
 
     /// <summary>
@@ -40,10 +33,8 @@ public:
         TCHAR sz_read_value[MAX_PATH];
         DWORD dwType = REG_SZ, dwSize = sizeof(sz_read_value);
 
-        if (RegOpenKeyExA(HKEY_CURRENT_USER, TEXT("Software\\Millennium"), 0, KEY_READ, &hKey) != ERROR_SUCCESS)
-            std::cout << "Failed to open Millennium hive" << std::endl;
-
-        if (RegGetValueA(hKey, NULL, (LPCSTR)key.c_str(), RRF_RT_REG_SZ, &dwType, sz_read_value, &dwSize) != ERROR_SUCCESS)
+        if (RegOpenKeyExA(HKEY_CURRENT_USER, TEXT("Software\\Millennium"), 0, KEY_READ, &hKey) != ERROR_SUCCESS ||
+            RegGetValueA(hKey, NULL, (LPCSTR)key.c_str(), RRF_RT_REG_SZ, &dwType, sz_read_value, &dwSize) != ERROR_SUCCESS)
         {
             std::cout << "Failed to read " << key << " value" << std::endl;
             return std::string();
@@ -60,6 +51,32 @@ private:
     Console console;
     std::string SteamSkinPath;
     std::string currentSkin;
+
+    inline const nlohmann::basic_json<> get_default_patches()
+    {
+        nlohmann::basic_json<> patches = {
+            {"Patches", nlohmann::json::array({
+                { {"MatchRegexString", ".*http.*steam.*"}, {"TargetCss", "webkit.css"}, {"TargetJs", "webkit.js"} },
+                { {"MatchRegexString", "^Steam$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "^OverlayBrowser_Browser$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "^SP Overlay:"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "Menu$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "Supernav$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "^notificationtoasts_"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "^SteamBrowser_Find$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "^OverlayTab\\d+_Find$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", "^Steam Big Picture Mode$"}, {"TargetCss", "bigpicture.custom.css"}, {"TargetJs", "bigpicture.custom.js"} },
+                { {"MatchRegexString", "^QuickAccess_"}, {"TargetCss", "bigpicture.custom.css"}, {"TargetJs", "bigpicture.custom.js"} },
+                { {"MatchRegexString", "^MainMenu_"}, {"TargetCss", "bigpicture.custom.css"}, {"TargetJs", "bigpicture.custom.js"} },
+                { {"MatchRegexString", ".friendsui-container"}, {"TargetCss", "friends.custom.css"}, {"TargetJs", "friends.custom.js"} },
+                { {"MatchRegexString", ".ModalDialogPopup"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
+                { {"MatchRegexString", ".FullModalOverlay"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} }
+            })}
+        };
+
+        return patches;
+    }
+
 public:
 
     skin_config(const skin_config&) = delete;
@@ -154,22 +171,11 @@ public:
 
     skin_config()
     {
-        HKEY hKey;
-        DWORD dwType = REG_SZ, dwSize = MAX_PATH;
-        TCHAR szInstallPath[MAX_PATH];
-
-        auto handleError = [&]() -> void { SteamSkinPath = "C:\\Program Files (x86)\\Steam\\"; };
-
-        if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Valve\\Steam"), 0, KEY_READ, &hKey) != ERROR_SUCCESS) 
-            handleError();
-        if (RegGetValue(hKey, NULL, TEXT("SteamPath"), RRF_RT_REG_SZ, &dwType, szInstallPath, &dwSize) != ERROR_SUCCESS) 
-            handleError();
-
-        RegCloseKey(hKey);
-        SteamSkinPath = std::format("{}/steamui/skins", szInstallPath);
+        SteamSkinPath = std::format("{}/steamui/skins", getenv("SteamPath"));
     }
 
-    std::string get_steam_skin_path() {
+    std::string get_steam_skin_path() 
+    {
         return SteamSkinPath;
     }
 
@@ -179,7 +185,7 @@ public:
     /// <returns>json_object</returns>
     nlohmann::json get_skin_config()
     {
-        std::ifstream configFile(std::format("{}/{}/config.json", SteamSkinPath, registry::get_registry("active-skin")));
+        std::ifstream configFile(std::format("{}/{}/skin.json", SteamSkinPath, registry::get_registry("active-skin")));
 
         if (!configFile.is_open() || !configFile) {
             return { {"config_fail", true} };
@@ -191,6 +197,12 @@ public:
         if (nlohmann::json::accept(buffer.str())) {
             nlohmann::json json_object = nlohmann::json::parse(buffer.str());
             json_object["config_fail"] = false;
+
+            if (json_object["UseDefaultPatches"]) {
+                //add it to the end, so if any default patches are overwritten, it still works
+                json_object["Patches"] += get_default_patches()["Patches"][0];
+            }
+
             return json_object;
         }
         return false;

@@ -12,9 +12,8 @@ namespace websocket = boost::beast::websocket;
 /// </summary>
 class functions
 {
-private:
-    steam_js_context js_context;
 public:
+    steam_js_context js_context;
     /// <summary>
     /// update skin selection, requires skin name, and it to exist
     /// </summary>
@@ -37,6 +36,31 @@ public:
         }
     }
 
+    const inline void respond_skins(websocket::stream<tcp::socket>& ws)
+    {
+        //get steam skins path
+        std::string steam_skin_path = skinConfig.get_steam_skin_path();
+
+        nlohmann::json data, skins;
+
+        //search all folders in the skins directory and assume they are valid skin
+        //it will stop the user if its not valid once they select it
+        for (const auto& entry : std::filesystem::directory_iterator(steam_skin_path)) {
+            if (entry.is_directory()) {
+                skins.push_back({ {"name", entry.path().filename().string()} });
+            }
+        }
+        //add the default skin virtually
+        skins.push_back({ {"name", "default"} });
+
+        data["skins"] = skins;
+        //include other information used by the modal
+        data["active-skin"] = registry::get_registry("active-skin");
+        data["allow-javascript"] = registry::get_registry("allow-javascript");
+
+        ws.write(boost::asio::buffer(data.dump()));
+    }
+
     /// <summary>
     /// open the skins folder
     /// </summary>
@@ -55,12 +79,6 @@ public:
         //reload the steam interface to effectively restart the skinning
         js_context.reload();
     }
-
-    //inline void change_console(bool value)
-    //{
-    //    registry::set_registry("enable-console", value ? "true" : "false");
-    //    js_context.reload();
-    //}
 };
 
 /// <summary>
@@ -103,8 +121,7 @@ private:
             //async read from the socket and wait for a message
             ws_.async_read(buffer_, [self = shared_from_this()](boost::system::error_code read_error, std::size_t bytes_transferred) 
             {
-                if (read_error) 
-                    return;
+                if (read_error) return;
 
                 functions* skin_helpers = new functions;
 
@@ -112,47 +129,15 @@ private:
                 nlohmann::basic_json<> msg = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
                 ipc_types ipc_message = static_cast<ipc_types>(msg["type"].get<int>());
 
-                const auto respond_skins = ([&]() {
-
-                    //get steam skins path
-                    std::string steam_skin_path = skinConfig.get_steam_skin_path();
-
-                    nlohmann::json data, skins;
-
-                    //search all folders in the skins directory and assume they are valid skin
-                    //it will stop the user if its not valid once they select it
-                    for (const auto& entry : std::filesystem::directory_iterator(steam_skin_path)) {
-                        if (entry.is_directory()) {
-                            skins.push_back({ {"name", entry.path().filename().string()} });
-                        }
-                    }
-                    //add the default skin virtually
-                    skins.push_back({ {"name", "default"} });
-
-                    data["skins"] = skins;
-                    //include other information used by the modal
-                    data["active-skin"] = registry::get_registry("active-skin");
-                    data["allow-javascript"] = registry::get_registry("allow-javascript");
-
-                    self->ws_.write(boost::asio::buffer(data.dump()));
-                });
-
                 //msg["content"] contains the payload from js, its a dynamic typing
                 switch (ipc_message)
                 {
-                    case ipc_types::open_skins_folder: 
-                        skin_helpers->open_skin_folder(); 
-                        break;
-                    case ipc_types::open_url: 
-                        ShellExecuteA(NULL, "open", msg["content"].get<std::string>().c_str(), 0, 0, 1); 
-                        break;
-                    case ipc_types::skin_update: 
-                        skin_helpers->update_skin(msg["content"]); 
-                        break;
-                    case ipc_types::change_javascript: 
-                        skin_helpers->allow_javascript(msg["content"].get<bool>()); 
-                        break;
-                    case ipc_types::get_skins: respond_skins(); break;
+                    case ipc_types::open_skins_folder: { skin_helpers->open_skin_folder(); break; }
+                    case ipc_types::open_url: { ShellExecuteA(NULL, "open", msg["content"].get<std::string>().c_str(), 0, 0, 1); break; }
+                    case ipc_types::change_javascript: { skin_helpers->allow_javascript(msg["content"].get<bool>()); break; }
+                    case ipc_types::get_skins: { skin_helpers->respond_skins(self->ws_); break; }
+                    case ipc_types::skin_update: { skin_helpers->update_skin(msg["content"]); break; }
+                    case ipc_types::exec_command: { self->ws_.write(boost::asio::buffer(skin_helpers->js_context.exec_command(msg["content"]))); break; }
                 }
 
                 delete skin_helpers;
@@ -164,7 +149,7 @@ private:
     private:
         //ipc types, enumerated respectively
         enum ipc_types {
-            open_skins_folder, skin_update, open_url, change_javascript, change_console, get_skins
+            open_skins_folder, skin_update, open_url, change_javascript, change_console, get_skins, exec_command
         };
 
         websocket::stream<tcp::socket> ws_;

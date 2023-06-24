@@ -19,15 +19,10 @@ using tcp = boost::asio::ip::tcp;
 
 class steam_client
 {
-private:
-    bool should_patch_interface(nlohmann::json& patchAddress, const nlohmann::json& currentSteamInstance);
-
-    void remote_page_event_handler(const nlohmann::json& page, std::string css_to_evaluate, std::string js_to_evaluate);
-
-    void steam_remote_interface_handler();
-    void steam_to_millennium_ipc();
 public:
     steam_client();
 };
+
+uint16_t get_proxy_port();
 
 unsigned long __stdcall Initialize(void*);
