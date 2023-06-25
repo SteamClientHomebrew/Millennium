@@ -1,13 +1,13 @@
+#include <stdafx.h>
 #include <extern/injector/inject.hpp>
 #include <include/config.hpp>
 #include <extern/steam/cef_manager.hpp>
 #include <extern/ipc/steamipc.hpp>
-#include <regex>
 
 namespace websocket = boost::beast::websocket;
 using namespace boost;
 
-Console console; skin_config config;
+output_console console; skin_config config;
 using tcp = boost::asio::ip::tcp;
 
 nlohmann::basic_json<> skin_json_config;
@@ -42,8 +42,7 @@ private:
 
         socket_response_error(int errorCode) : errorCode_(errorCode) {}
 
-        int code() const
-        {
+        int code() const {
             return errorCode_;
         }
 
@@ -55,7 +54,7 @@ private:
     /// function responsible for handling css and js injections
     /// </summary>
     /// <param name="title">the title of the cef page to inject into</param>
-    void patch(std::string title)
+    inline const void patch(std::string title) noexcept
     {
         for (nlohmann::basic_json<>& patch : skin_json_config["Patches"])
         {
@@ -76,7 +75,7 @@ private:
     /// <summary>
     /// cef instance created, captures remote and client based targets, however only local targets are controlled
     /// </summary>
-    void target_created()
+    const void target_created() noexcept
     {
         socket.write(boost::asio::buffer(nlohmann::json({
             {"id", steam_cef_manager::response::attached_to_target},
@@ -88,7 +87,7 @@ private:
     /// <summary>
     /// cef instance target info changed, happens when something ab the instance changes, i.e the client title or others
     /// </summary>
-    void target_info_changed()
+    const void target_info_changed() noexcept
     {
         //run a js vm to get cef info
         socket.write(boost::asio::buffer(
@@ -109,7 +108,7 @@ private:
     /// <summary>
     /// received cef details from the js query, returns title and url
     /// </summary>
-    void received_cef_details()
+    const void received_cef_details()
     {
         if (socket_response.contains("error"))
         {
@@ -135,31 +134,37 @@ private:
     /// instantiated from the cef details callback 
     /// contains a json root of the query on the document, hard to parse all types
     /// </summary>
-    void get_doc_callback()
+    const void get_doc_callback() noexcept
     {
-        //get the <head> attributes of the dom which is what is most important in selecting pages
-        std::string attributes = std::string(socket_response["result"]["root"]["children"][1]["attributes"][1]);
+        try {
+            //get the <head> attributes of the dom which is what is most important in selecting pages
+            std::string attributes = std::string(socket_response["result"]["root"]["children"][1]["attributes"][1]);
 
-        //console.log(std::format("[FOR DEVELOPERS]\nselectable <html> query on page [{}]:\n -> [{}]\n", page_title, attributes));
+            //console.log(std::format("[FOR DEVELOPERS]\nselectable <html> query on page [{}]:\n -> [{}]\n", page_title, attributes));
 
-        for (nlohmann::basic_json<>& patch : skin_json_config["Patches"])
-        {
-            bool contains_http = patch["MatchRegexString"].get<std::string>().find("http") != std::string::npos;
+            for (nlohmann::basic_json<>& patch : skin_json_config["Patches"])
+            {
+                bool contains_http = patch["MatchRegexString"].get<std::string>().find("http") != std::string::npos;
 
-            if (contains_http || attributes.find(patch["MatchRegexString"].get<std::string>()) == std::string::npos)
-                continue;
+                if (contains_http || attributes.find(patch["MatchRegexString"].get<std::string>()) == std::string::npos)
+                    continue;
 
-            console.imp("[class_name] match => " + std::string(page_title) + " regex: [" + patch["MatchRegexString"].get<std::string>() + "]");
+                console.imp("[class_name] match => " + std::string(page_title) + " regex: [" + patch["MatchRegexString"].get<std::string>() + "]");
 
-            if (patch.contains("TargetCss")) steam_interface.evaluate(socket, patch["TargetCss"], steam_interface.script_type::stylesheet, socket_response);
-            if (patch.contains("TargetJs"))  steam_interface.evaluate(socket, patch["TargetJs"], steam_interface.script_type::javascript, socket_response);
+                if (patch.contains("TargetCss")) steam_interface.evaluate(socket, patch["TargetCss"], steam_interface.script_type::stylesheet, socket_response);
+                if (patch.contains("TargetJs"))  steam_interface.evaluate(socket, patch["TargetJs"], steam_interface.script_type::javascript, socket_response);
+            }
+
+            /// <summary>
+            /// inject millennium into the settings page, uses query instead of title because title varies between languages
+            /// </summary>
+            if (attributes.find("settings_SettingsModalRoot_") != std::string::npos) {
+                steam_interface.inject_millennium(socket, socket_response);
+            }
         }
-
-        /// <summary>
-        /// inject millennium into the settings page, uses query instead of title because title varies between languages
-        /// </summary>
-        if (attributes.find("settings_SettingsModalRoot_") != std::string::npos) {
-            steam_interface.inject_millennium(socket, socket_response);
+        catch (std::exception& ex)
+        {
+            std::cout << "get_doc_callback exception: " << ex.what() << std::endl;
         }
     }
 
@@ -167,7 +172,7 @@ private:
     /// received the sessionId from the cef instance after we attached to it
     /// we then use the sessionId provided to use runtime.evaluate on the instance
     /// </summary>
-    void attached_to_target()
+    const void attached_to_target() noexcept
     {
         sessionId = socket_response["result"]["sessionId"];
     }
@@ -244,6 +249,7 @@ public:
             { "params", {{"discover", true}} }
         }).dump()));
 
+        //could make this async, but it doesnt matter, it only runs when a socket request is recieved
         while (true)
         {
             boost::beast::flat_buffer buffer; socket.read(buffer);
@@ -404,29 +410,53 @@ private:
         //ie millennium missed the original page events so it misses the first inject
         evaluate_scripting();
 
-        for (;;)
+        const auto async_read_socket = [&](
+            boost::beast::websocket::stream<tcp::socket>& socket, 
+            boost::beast::multi_buffer& buffer, 
+            std::function<void(const boost::system::error_code&, std::size_t)> handler)
         {
-            //read socket response and convert to a json response
-            boost::beast::flat_buffer buffer; socket.read(buffer);
-            nlohmann::json response = nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()));
+            //consume the buffer to reset last response
+            buffer.consume(buffer.size());
+            //hang async on socket for a response
+            socket.async_read(buffer, handler);
+        };
 
-            //check response method
-            if (response["method"] == "Page.frameResized") continue;
+        boost::beast::multi_buffer buffer;
 
-            //run scripting until it succeeds
-            for (;;) {
-                evaluate_scripting();
+        //handle reading from the socket asynchronously and continue processing
+        std::function<void(const boost::system::error_code&, std::size_t)> handle_read = 
+            [&](const boost::system::error_code& socket_error_code, std::size_t bytes_transferred) 
+        {
+            if (socket_error_code) {
+                console.err("socket failure, couldnt read from socket");
+                async_read_socket(socket, buffer, handle_read);
+                return;
+            }
+            //get socket response and parse as a json object
+            nlohmann::basic_json<> response = nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()));
 
-                //create a new response buffer but on the same socket stream to prevent shared memory usage
-                boost::beast::multi_buffer buffer; socket.read(buffer);
-
-                //the js evaluation was successful so we can break.
-                if (nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))
-                    ["result"]["exceptionDetails"]["exception"]["className"] not_eq "TypeError") {
-                    break;
+            if (response.value("method", std::string()) != "Page.frameResized")
+            {
+                //evaluate scripts over and over again until they succeed, because sometimes it doesnt.
+                //usually around 2 iterations max
+                while (true)
+                {
+                    //evaluating scripting
+                    evaluate_scripting();
+                    //create a new response buffer but on the same socket stream to prevent shared memory usage
+                    boost::beast::multi_buffer buffer; socket.read(buffer);
+                    //the js evaluation was successful so we can break.
+                    if (nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))
+                        ["result"]["exceptionDetails"]["exception"]["className"] not_eq "TypeError") {
+                        break;
+                    }
                 }
             }
-        }
+            //reopen socket async reading
+            async_read_socket(socket, buffer, handle_read);
+        };
+        async_read_socket(socket, buffer, handle_read);
+        io_context.run();
     }
 
 public:
@@ -513,13 +543,6 @@ void steam_to_millennium_ipc()
     catch (std::exception& e) {
         console.log("ipc exception " + std::string(e.what()));
     }
-}
-
-short port_number;
-
-uint16_t get_proxy_port()
-{
-    return port_number;
 }
 
 /// <summary>

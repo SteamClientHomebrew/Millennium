@@ -1,6 +1,4 @@
 #pragma once
-#include <extern/injector/inject.hpp>
-
 struct endpoints
 {
 public:
@@ -37,14 +35,14 @@ private:
 
     class stylesheet : public dom_head {
     public:
-        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) override {
+        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override {
             return std::format("!document.querySelectorAll(`link[href='{}']`).length && document.head.appendChild(Object.assign(document.createElement('link'), {{ rel: 'stylesheet', href: '{}' }}));", filename, filename);
         }
     };
 
     class javascript : public dom_head {
     public:
-        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) override {
+        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override {
             return std::format("!document.querySelectorAll(`script[src='{}'][type='module']`).length && document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module' }}));", filename, filename);
         }
     };
@@ -86,7 +84,7 @@ public:
 
     enum script_type { javascript, stylesheet };
 private:
-    skin_config config;
+    const skin_config config;
 
     /// <summary>
     /// https://chromedevtools.github.io/devtools-protocol/tot/Runtime/#method-evaluate
@@ -95,8 +93,9 @@ private:
     /// <param name="socket">steam cef socket, unique to each page</param>
     /// <param name="raw_script">javascript to be executed</param>
     /// <param name="sessionId">socket identifier, if needed (not required for remote webpages)</param>
-    inline void push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId = std::string())
+    inline void push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId = std::string()) noexcept
     {
+        //include millennium functions
         const std::string millennium_functions = R"(
             class millennium{static sharedjscontext_exec(c){const t=new WebSocket(atob('d3M6Ly9sb2NhbGhvc3Q6MzI0Mg==')),r=()=>t.send(JSON.stringify({type:6,content:c}));return new Promise((e,n)=>{t.onopen=r,t.onmessage=t=>(e(JSON.parse(t.data)),t.target.close()),t.onerror=n,t.onclose=()=>n(new Error)})}}window.millennium=millennium;
         )";
@@ -110,11 +109,15 @@ private:
         if (!sessionId.empty())
             evaluate_script["sessionId"] = sessionId;
 
-        evaluate_script["params"]["expression"] = raw_script;
-        socket.write(boost::asio::buffer(evaluate_script.dump(4)));
+        try
+        {
+            evaluate_script["params"]["expression"] = raw_script;
+            socket.write(boost::asio::buffer(evaluate_script.dump(4)));
 
-        evaluate_script["params"]["expression"] = millennium_functions;
-        socket.write(boost::asio::buffer(evaluate_script.dump(4)));
+            evaluate_script["params"]["expression"] = millennium_functions;
+            socket.write(boost::asio::buffer(evaluate_script.dump(4)));
+        }
+        catch (std::exception&) { }
     }
 
 public:
@@ -149,7 +152,7 @@ public:
     /// <param name="socket">steam socket</param>
     /// <param name="socket_response">used sessionId to target the setting modal</param>
     /// <returns></returns>
-    __declspec(noinline) void __fastcall inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response)
+    __declspec(noinline) void __fastcall inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response) noexcept
     {
         std::string javascript = "https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/source.js";
         //std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
@@ -169,7 +172,7 @@ public:
     /// <param name="file">the remote or local endpoint to a file</param>
     /// <param name="type">javascript or stylesheet injections from script_type</param>
     /// <param name="socket_response">if not null, its assumed to use sessionId (i.e for client handling)</param>
-    void evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL)
+    inline const void evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL)
     {
         if (type == script_type::javascript && (registry::get_registry("allow-javascript") == "false")) {
             return;
@@ -216,23 +219,20 @@ private:
     /// connect to the socket of SharedJSContext
     /// </summary>
     /// <param name="callback"></param>
-    void establish_socket_handshake(std::function<void()> callback)
+    const void establish_socket_handshake(std::function<void()> callback)
     {
         if (callback == nullptr)
             throw std::runtime_error("callback function was nullptr");
 
         boost::asio::connect(socket.next_layer(), resolver.resolve(endpoints.debugger.host(), endpoints.debugger.port()));
 
-        nlohmann::json instances = nlohmann::json::parse(steam_interface.discover(endpoints.debugger.string() + "/json"));
+        nlohmann::basic_json<> instances = nlohmann::json::parse(steam_interface.discover(endpoints.debugger.string() + "/json"));
 
         //instances contains all pages, filter the correct instance
         auto itr_impl = std::find_if(instances.begin(), instances.end(), [](const nlohmann::json& instance) { 
             return instance["title"].get<std::string>() == "SharedJSContext"; 
         });
-
-        if (itr_impl == instances.end()) {
-            throw std::runtime_error("SharedJSContext wasn't instantiated");
-        }
+        if (itr_impl == instances.end()) { throw std::runtime_error("SharedJSContext wasn't instantiated"); }
 
         boost::network::uri::uri socket_url((*itr_impl)["webSocketDebuggerUrl"].get<std::string>());
         socket.handshake(endpoints.debugger.host(), socket_url.path());
@@ -243,7 +243,7 @@ private:
     }
 
     //prolonging the socket closure causes socket failure and slow exec times all around
-    void close_socket()
+    inline const void close_socket() noexcept
     {
         boost::system::error_code error_code;
         socket.close(boost::beast::websocket::close_code::normal, error_code);
@@ -256,7 +256,7 @@ public:
     /// <summary>
     /// reload the SteamJSContext, which will reload the steam interface, but not the app
     /// </summary>
-    void reload()
+    __declspec(noinline) const void reload() noexcept
     {
         establish_socket_handshake([this]() {
             //https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-reload
@@ -267,7 +267,7 @@ public:
     /// <summary>
     /// restart the app completely, SharedJsContext and the app intself, cmd args are retained
     /// </summary>
-    void restart()
+    __declspec(noinline) const void restart() noexcept
     {
         establish_socket_handshake([this]() {
             //not used anymore, but here in case

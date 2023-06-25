@@ -2,7 +2,7 @@
 /// <summary>
 /// incredibly shitty logger class
 /// </summary>
-class Console {
+class output_console {
 private:
 	std::ofstream fileStream;
 
@@ -22,11 +22,11 @@ private:
 	}
 public:
 
-	Console() 
+	output_console() 
 	{
 		fileStream.open("millennium.log", std::ios::trunc);
 	}
-	~Console() 
+	~output_console() 
 	{
 		fileStream.close();
 	}

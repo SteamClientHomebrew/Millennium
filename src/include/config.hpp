@@ -1,5 +1,4 @@
 #pragma once
-
 class registry {
 public:
     /// <summary>
@@ -48,10 +47,13 @@ public:
 class skin_config
 {
 private:
-    Console console;
-    std::string SteamSkinPath;
-    std::string currentSkin;
+    output_console console;
+    std::string steam_skin_path, active_skin;
 
+    /// <summary>
+    /// append default patches to the patch list if wanted
+    /// </summary>
+    /// <returns></returns>
     inline const nlohmann::basic_json<> get_default_patches()
     {
         nlohmann::basic_json<> patches = {
@@ -77,6 +79,31 @@ private:
         return patches;
     }
 
+    /// <summary>
+    /// if default patches are overridden by the user, use the user prompted patches
+    /// </summary>
+    /// <param name="json_object"></param>
+    inline void decide_overrides(nlohmann::basic_json<>& json_object)
+    {
+        nlohmann::basic_json<> default_patches = get_default_patches();
+        std::map<std::string, nlohmann::json> patches_map;
+
+        for (const auto& patch : default_patches["Patches"]) {
+            patches_map[patch["MatchRegexString"]] = patch;
+        }
+        for (const auto& patch : json_object["Patches"]) {
+            patches_map[patch["MatchRegexString"]] = patch;
+        }
+
+        // Convert the map values back to a json array
+        nlohmann::json patches_final;
+        for (const auto& patch : patches_map) {
+            patches_final.push_back(patch.second);
+        }
+
+        json_object["Patches"] = std::move(patches_final);
+    }
+
 public:
 
     skin_config(const skin_config&) = delete;
@@ -88,6 +115,9 @@ public:
         return instance;
     }
 
+    /// <summary>
+    /// event managers for skin change events
+    /// </summary>
     class skin_change_events {
     public:
         static skin_change_events& get_instance() {
@@ -171,21 +201,21 @@ public:
 
     skin_config()
     {
-        SteamSkinPath = std::format("{}/steamui/skins", getenv("SteamPath"));
+        steam_skin_path = std::format("{}/steamui/skins", getenv("SteamPath"));
     }
 
     std::string get_steam_skin_path() 
     {
-        return SteamSkinPath;
+        return steam_skin_path;
     }
 
     /// <summary>
     /// get the configuration files, as json from the current skin selected
     /// </summary>
     /// <returns>json_object</returns>
-    nlohmann::json get_skin_config()
+    const nlohmann::json get_skin_config() noexcept
     {
-        std::ifstream configFile(std::format("{}/{}/skin.json", SteamSkinPath, registry::get_registry("active-skin")));
+        std::ifstream configFile(std::format("{}/{}/skin.json", steam_skin_path, registry::get_registry("active-skin")));
 
         if (!configFile.is_open() || !configFile) {
             return { {"config_fail", true} };
@@ -198,9 +228,8 @@ public:
             nlohmann::json json_object = nlohmann::json::parse(buffer.str());
             json_object["config_fail"] = false;
 
-            if (json_object["UseDefaultPatches"]) {
-                //add it to the end, so if any default patches are overwritten, it still works
-                json_object["Patches"] += get_default_patches()["Patches"][0];
+            if (json_object.value("UseDefaultPatches", false)) {
+                decide_overrides(json_object);
             }
 
             return json_object;
@@ -211,7 +240,7 @@ public:
     /// <summary>
     /// setup millennium if it has no configuration types
     /// </summary>
-    void verify_registry()
+    inline const void verify_registry() noexcept
     {
         //create registry key if it doesnt exist
         std::function<void(std::string, std::string)> create_if_empty = ([this](std::string key, std::string value) {

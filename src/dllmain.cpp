@@ -1,9 +1,10 @@
 #define WIN32_LEAN_AND_MEAN 
-#include <extern/injector/inject.hpp>
-#include <shellapi.h>
-
+#define millennium_entry_point int __stdcall
 #pragma warning(disable: 6258)
 #pragma warning(disable: 6387)
+
+#include <stdafx.h>
+#include <extern/injector/inject.hpp>
 
 const char* current_app_version = "1.0.1";
 
@@ -91,7 +92,7 @@ public:
     {
         constexpr const std::basic_string_view<char> filePath = ".cef-enable-remote-debugging";
 
-        if (not std::ifstream(filePath.data()))
+        if (!std::ifstream(filePath.data()))
         {
             std::ofstream(filePath.data()).close();
             return false;
@@ -116,7 +117,7 @@ public:
 
         constexpr const std::basic_string_view<char> dev_cmd = "-dev";
 
-        if (static_cast<std::string>(GetCommandLineA()).find(dev_cmd) xor std::string::npos) 
+        if (static_cast<std::string>(GetCommandLineA()).find(dev_cmd) != std::string::npos) 
         {
             if (static_cast<bool>(AllocConsole()))
             {
@@ -144,45 +145,53 @@ unsigned long __cdecl thread_callback_wrapper(void* lpParam)
     return threadCallback(lpParam);
 }
 
-double GetCurrentCpuUsage()
+/// <summary>
+/// get the cpu usage percent to show for debugging
+/// </summary>
+/// <returns></returns>
+inline const double get_current_cpu_usage() noexcept
 {
-    FILETIME idleTime, kernelTime, userTime;
-    if (GetSystemTimes(&idleTime, &kernelTime, &userTime))
+    FILETIME idle_t, kernel_time, user_t;
+    if (static_cast<bool>(GetSystemTimes(&idle_t, &kernel_time, &user_t)))
     {
-        ULARGE_INTEGER previousTotalTime;
-        previousTotalTime.LowPart = kernelTime.dwLowDateTime;
-        previousTotalTime.HighPart = kernelTime.dwHighDateTime;
-        previousTotalTime.QuadPart += userTime.dwLowDateTime;
-        previousTotalTime.QuadPart += userTime.dwHighDateTime;
+        ULARGE_INTEGER prev;
+        prev.LowPart = kernel_time.dwLowDateTime;
+        prev.HighPart = kernel_time.dwHighDateTime;
+        prev.QuadPart += user_t.dwLowDateTime;
+        prev.QuadPart += user_t.dwHighDateTime;
 
-        ULONGLONG previousIdleTime = idleTime.dwLowDateTime + ((ULONGLONG)idleTime.dwHighDateTime << 32);
+        unsigned long long previousIdleTime = idle_t.dwLowDateTime + ((ULONGLONG)idle_t.dwHighDateTime << 32);
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
-        if (GetSystemTimes(&idleTime, &kernelTime, &userTime))
+        if (static_cast<bool>(GetSystemTimes(&idle_t, &kernel_time, &user_t)))
         {
-            ULARGE_INTEGER currentTime;
-            currentTime.LowPart = kernelTime.dwLowDateTime;
-            currentTime.HighPart = kernelTime.dwHighDateTime;
-            currentTime.QuadPart += userTime.dwLowDateTime;
-            currentTime.QuadPart += userTime.dwHighDateTime;
+            ULARGE_INTEGER current_t;
+            current_t.LowPart = kernel_time.dwLowDateTime;
+            current_t.HighPart = kernel_time.dwHighDateTime;
+            current_t.QuadPart += user_t.dwLowDateTime;
+            current_t.QuadPart += user_t.dwHighDateTime;
 
-            ULONGLONG currentIdleTime = idleTime.dwLowDateTime + ((ULONGLONG)idleTime.dwHighDateTime << 32);
-            ULONGLONG totalTime = currentTime.QuadPart - previousTotalTime.QuadPart;
-            ULONGLONG idleTimeDiff = currentIdleTime - previousIdleTime;
+            unsigned long long current_idle = idle_t.dwLowDateTime + ((ULONGLONG)idle_t.dwHighDateTime << 32);
+            unsigned long long total = current_t.QuadPart - prev.QuadPart;
 
-            double cpuUsage = 1.0 - static_cast<double>(idleTimeDiff) / totalTime;
-            return cpuUsage * 100.0;
+            return (double)(1.0 - static_cast<double>(current_idle - previousIdleTime) / total) * 100.0;
         }
     }
     return 0.0;
 }
 
+/// <summary>
+/// thread to display the console header
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
 unsigned long long __stdcall console_header(void*)
 {
+    // runs an iteration every 1 second
     while (true)
     {
-        double cpuUsage = GetCurrentCpuUsage();
+        double cpuUsage = get_current_cpu_usage();
         SetConsoleTitleA((LPCSTR)(
             std::format(
                 "millennium+prod.client-v{} [steam-ppid-cpu-usage:{}%, millennium-cpu:{}%]", 
@@ -202,7 +211,7 @@ unsigned long long __stdcall console_header(void*)
 /// <param name="call">the call type on the library</param>
 /// <param name="">discarded</param>
 /// <returns></returns>
-int __stdcall DllMain(void*, DWORD call, void*)
+millennium_entry_point DllMain(void*, DWORD call, void*)
 {
     //check for process attach instead of 
     if (call == DLL_PROCESS_ATTACH)
