@@ -1,0 +1,20 @@
+/* Set default window colors on the Overlay */
+.steamdesktopoverlay_OverlayPopup_C9tvu, .steamdesktopoverlay_GameOverview_27m9Q {
+    background: radial-gradient(155.42% 100% at 0% 0%, #151515 0 0%, #191919 100%) !important;
+}
+
+/* Overview Headers */
+.steamdesktopoverlay_GameOverview_27m9Q .steamdesktopoverlay_GameOverviewSection_1vG-v .steamdesktopoverlay_GameOverviewSectionHeader_2wBK7 {
+    background: #303030 !important;
+}
+
+/* Item Colors */
+.steamdesktopoverlay_GameOverview_27m9Q .steamdesktopoverlay_GameOverviewSection_1vG-v .steamdesktopoverlay_GameOverviewSectionChildren_17TJ4.steamdesktopoverlay_ContainChildren_3WMiI,
+.steamdesktopoverlay_GameOverview_27m9Q .steamdesktopoverlay_GameOverviewSection_1vG-v .steamdesktopoverlay_GuideListItem_2OwqX,
+.steamdesktopoverlay_GameOverview_27m9Q .steamdesktopoverlay_GameOverviewSection_1vG-v .steamdesktopoverlay_RecentNewsItem_3eNE5  {
+    background: #212121 !important;
+}
+
+.steamdesktopoverlay_GameOverview_27m9Q .steamdesktopoverlay_GameOverviewSection_1vG-v .steamdesktopoverlay_PlayersSection_2fYjC .steamdesktopoverlay_ViewPlayersBtn_2NLwf {
+    background: #303030 !important;
+}

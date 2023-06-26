@@ -29,3 +29,5 @@
 
 //opening folders and interacting with the file system
 #include <shellapi.h>
+#include <TCHAR.h>
+#include <pdh.h>

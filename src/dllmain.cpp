@@ -146,61 +146,36 @@ unsigned long __cdecl thread_callback_wrapper(void* lpParam)
 }
 
 /// <summary>
-/// get the cpu usage percent to show for debugging
-/// </summary>
-/// <returns></returns>
-inline const double get_current_cpu_usage() noexcept
-{
-    FILETIME idle_t, kernel_time, user_t;
-    if (static_cast<bool>(GetSystemTimes(&idle_t, &kernel_time, &user_t)))
-    {
-        ULARGE_INTEGER prev;
-        prev.LowPart = kernel_time.dwLowDateTime;
-        prev.HighPart = kernel_time.dwHighDateTime;
-        prev.QuadPart += user_t.dwLowDateTime;
-        prev.QuadPart += user_t.dwHighDateTime;
-
-        unsigned long long previousIdleTime = idle_t.dwLowDateTime + ((ULONGLONG)idle_t.dwHighDateTime << 32);
-
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        if (static_cast<bool>(GetSystemTimes(&idle_t, &kernel_time, &user_t)))
-        {
-            ULARGE_INTEGER current_t;
-            current_t.LowPart = kernel_time.dwLowDateTime;
-            current_t.HighPart = kernel_time.dwHighDateTime;
-            current_t.QuadPart += user_t.dwLowDateTime;
-            current_t.QuadPart += user_t.dwHighDateTime;
-
-            unsigned long long current_idle = idle_t.dwLowDateTime + ((ULONGLONG)idle_t.dwHighDateTime << 32);
-            unsigned long long total = current_t.QuadPart - prev.QuadPart;
-
-            return (double)(1.0 - static_cast<double>(current_idle - previousIdleTime) / total) * 100.0;
-        }
-    }
-    return 0.0;
-}
-
-/// <summary>
 /// thread to display the console header
 /// </summary>
 /// <param name=""></param>
 /// <returns></returns>
 unsigned long long __stdcall console_header(void*)
 {
+    static void *cpuQuery, *cpuTotal;
+
+    PdhOpenQueryA(NULL, NULL, &cpuQuery);
+    PdhAddEnglishCounter(cpuQuery, (LPCSTR)"\\Processor(_Total)\\% Processor Time", NULL, &cpuTotal);
+    PdhCollectQueryData(cpuQuery);
     // runs an iteration every 1 second
     while (true)
     {
-        double cpuUsage = get_current_cpu_usage();
+        PDH_FMT_COUNTERVALUE counterVal;
+
+        PdhCollectQueryData(cpuQuery);
+        PdhGetFormattedCounterValue(cpuTotal, PDH_FMT_DOUBLE, NULL, &counterVal);
+
         SetConsoleTitleA((LPCSTR)(
             std::format(
                 "millennium+prod.client-v{} [steam-ppid-cpu-usage:{}%, millennium-cpu:{}%]", 
                 current_app_version, 
-                (std::round(cpuUsage * 100) / 100), 
+                (std::round(counterVal.doubleValue * 100) / 100),
                 //assume maximum memory allocation on the heap relative to file size which is relative to max friendly cpu usage, (slightly off)
-                ((std::round((cpuUsage * 100) * 0.18) / 100))
+                ((std::round((counterVal.doubleValue * 100) * 0.18) / 100))
             )
         ).c_str());
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
 

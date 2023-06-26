@@ -1,0 +1,78 @@
+/* Settings Panel */
+[class*="pagedsettings_PagedSettingsDialog_PageContent_"] {
+    background: var(--color-dark) !important;
+}
+
+[class*="pagedsettings_PagedSettingsDialog_PageListColumn_"] {
+    background: var(--color-darker) !important;
+}
+
+[class*="pagedsettings_PagedSettingsDialog_PageListItem_"][class*="pagedsettings_Active_"] {
+    background: var(--color-light) !important;
+}
+
+[class*="appproperties_AppProperties_"] [class*="appproperties_Checkbox_"] { 
+    background: var(--color-light) !important;
+}
+
+.DialogTextInputBase, ._DialogInputContainer {
+    background: var(--color-light) !important; 
+}
+
+/* DLC page */
+[class*="appproperties_AppProperties_"] .DialogBody [class*="appproperties_DlcTopRow_"] [class*="appproperties_ViewMore_"] {
+    background: var(--color-light) !important;
+}
+
+[class*="appproperties_AppProperties_"] .DialogBody [class*="appproperties_DlcGrid_"] [class*="appproperties_DlcHeader_"] {
+    background: var(--color-light) !important;
+}
+
+.DialogBody a {
+    background: var(--color-darker) !important;
+}
+
+[class*="appproperties_AppProperties_"] .DialogBody [class*="appproperties_DlcGrid_"] [class*="appproperties_Install_"] {
+    margin: none !important;
+    background: var(--color-darker) !important;
+}
+
+[class*="appproperties_AppProperties_"] .DialogBody [class*="appproperties_DlcGrid_"] {
+    background: var(--color-darker) !important;
+    border-radius: 3px !important;
+}
+
+/* Local Files */
+[class*="appproperties_AppProperties_"] .DialogBody [class*="appproperties_BrowseDiskRow_"] [class*="appproperties_BrowseDiskButton_"] {
+    background: var(--color-light) !important;
+}
+
+button.DialogButton {
+    background: var(--color-light) !important;
+}
+
+[class*="appproperties_AppProperties_"] .DialogBody [class*="appproperties_WorkshopGrid_"] {
+    background: var(--color-darker) !important;
+    border-radius: 3px !important;
+}
+
+[class*="appdetailsprimarylinkssection_Anchor_"] [class*="appdetailsprimarylinkssection_Link_"]:hover {
+    background: var(--color-light) !important;
+}
+
+a[class*="appdetailsbroadcastsection_ViewBroadcastOnWeb_"]:hover {
+    background: var(--color-light) !important;
+}
+
+[class*="gamelistentry_Container_"]:hover {
+    background: var(--color-dark) !important;
+}
+[class*="gamelistentry_Container_"][class*="gamelistentry_Selected_"]:hover {
+    background: var(--color-dark) !important;
+}
+
+[class*="gamelistentry_Selected_"][class*="gamelistentry_Container_"]:hover, 
+[class*="gamelistentry_Selected_"][class*="gamelistentry_Container_"][class*="gamelistentry_HoverOverlay_"], 
+[class*="gamelistentry_Selected_"][class*="gamelistentry_Container_"]:hover, .gamelistentry_Selected_1UBpA .gamelistentry_Container_2-O4Z:hover, .gamelistentry_Selected_1UBpA .gamelistentry_Container_2-O4Z.gamelistentry_HoverOverlay_3cMVy, .gamelistentry_Selected_1UBpA .gamelistentry_Container_2-O4Z :hover {
+    background: var(--color-light) !important;
+}

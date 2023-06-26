@@ -996,3 +996,15 @@ div.profile_page.has_profile_background{z-index:0!important}
 
 /* Future Updates and Changes */
 .top_new_releases_background{background-image:none!important;}
+
+[class*="messagelist_MessageListPage_"] {
+    background: #212121 !important;
+}
+
+[class*="image_Btn_"] {
+    background: #353535 !important;
+}
+
+[class*="image_Btn_"]:hover {
+    background: #454545 !important;
+}
