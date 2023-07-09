@@ -422,7 +422,11 @@ public:
 
 		if (ImGui::Button("< Back")) current_page = 2;
 		ImGui::SameLine();
-		if (ImGui::Button("Close")) exit(1);
+		if (ImGui::Button("Close"))
+		{
+			ShellExecuteA(nullptr, "open", "https://discord.gg/MXMWEQKgJF", nullptr, nullptr, SW_SHOWNORMAL);
+			exit(1);
+		}
 
 		ImGui::PopStyleVar();
 	}

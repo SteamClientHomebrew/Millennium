@@ -7,15 +7,26 @@
 namespace websocket = boost::beast::websocket;
 using namespace boost;
 
-output_console console; skin_config config;
+skin_config config;
 using tcp = boost::asio::ip::tcp;
 
 nlohmann::basic_json<> skin_json_config;
 
+struct socket_helpers {
+    static const void async_read_socket(boost::beast::websocket::stream<tcp::socket>& socket, boost::beast::multi_buffer& buffer, 
+        std::function<void(const boost::system::error_code&, std::size_t)> handler)
+    {
+        //consume the buffer to reset last response
+        buffer.consume(buffer.size());
+        //hang async on socket for a response
+        socket.async_read(buffer, handler);
+    };
+};
+
 /// <summary>
 /// responsible for handling the client steam pages
 /// </summary>
-class client
+class client : public std::enable_shared_from_this<client>
 {
 private:
     //socket variables
@@ -23,10 +34,12 @@ private:
     boost::beast::websocket::stream<tcp::socket> socket;
     asio::ip::tcp::resolver resolver;
 
-    //initialize the socket from class initializer
-    client() : socket(io_context), resolver(io_context) {}
-
     mutable std::string sessionId, page_title;
+
+    struct target { const std::string 
+        target_created = "Target.targetCreated", 
+        target_info_changed = "Target.targetInfoChanged";
+    } target;
 
     nlohmann::json socket_response;
 
@@ -55,20 +68,20 @@ private:
     /// </summary>
     /// <param name="title">the title of the cef page to inject into</param>
     inline const void patch(std::string title) noexcept
-    {
-        for (nlohmann::basic_json<>& patch : skin_json_config["Patches"])
+    {    
+        for (const json_patch& patch : skin_json_config["Patches"].get<std::vector<json_patch>>())
         {
-            bool contains_http = patch["MatchRegexString"].get<std::string>().find("http") != std::string::npos;
+            bool contains_http = patch.matchRegexString.find("http") != std::string::npos;
             //used regex match instead of regex find or other sorts, make sure you validate your regex 
-            bool regex_match = std::regex_match(title, std::regex(patch["MatchRegexString"].get<std::string>()));
+            bool regex_match = std::regex_match(title, std::regex(patch.matchRegexString));
 
             if (contains_http or not regex_match)
                 continue;
 
-            console.imp("[client] match => " + std::string(title) + " regex: [" + patch["MatchRegexString"].get<std::string>() + "]");
+            console.log_patch("client", title, patch.matchRegexString);
 
-            if (patch.contains("TargetCss")) steam_interface.evaluate(socket, patch["TargetCss"], steam_interface.script_type::stylesheet, socket_response);
-            if (patch.contains("TargetJs"))  steam_interface.evaluate(socket, patch["TargetJs"], steam_interface.script_type::javascript, socket_response);
+            if (!patch.targetJs.empty())  steam_interface.evaluate(socket, patch.targetJs, steam_interface.script_type::stylesheet, socket_response);
+            if (!patch.targetCss.empty()) steam_interface.evaluate(socket, patch.targetCss, steam_interface.script_type::javascript, socket_response);
         }
     }
 
@@ -129,6 +142,31 @@ private:
         ));
     }
 
+    const std::string get_class_list(const nlohmann::basic_json<>& node)
+    {
+        std::string attributes_list;
+
+        if (node.contains("attributes"))
+        {
+            const nlohmann::basic_json<>& attributes = node["attributes"];
+            for (const auto& attribute : attributes)
+            {
+                attributes_list += std::format(".{} ", attribute.get<std::string>());
+            }
+        }
+
+        if (node.contains("children"))
+        {
+            const nlohmann::basic_json<>& children = node["children"];
+            for (const auto& child : children)
+            {
+                attributes_list += get_class_list(child);
+            }
+        }
+
+        return attributes_list;
+    }
+
     /// <summary>
     /// gets the document callback
     /// instantiated from the cef details callback 
@@ -138,21 +176,21 @@ private:
     {
         try {
             //get the <head> attributes of the dom which is what is most important in selecting pages
-            std::string attributes = std::string(socket_response["result"]["root"]["children"][1]["attributes"][1]);
+            std::string attributes = get_class_list(socket_response["result"]["root"]);
 
             //console.log(std::format("[FOR DEVELOPERS]\nselectable <html> query on page [{}]:\n -> [{}]\n", page_title, attributes));
 
-            for (nlohmann::basic_json<>& patch : skin_json_config["Patches"])
+            for (const json_patch& patch : skin_json_config["Patches"].get<std::vector<json_patch>>())
             {
-                bool contains_http = patch["MatchRegexString"].get<std::string>().find("http") != std::string::npos;
+                bool contains_http = patch.matchRegexString.find("http") != std::string::npos;
 
-                if (contains_http || attributes.find(patch["MatchRegexString"].get<std::string>()) == std::string::npos)
-                    continue;
+                //if (contains_http || attributes.find(patch.matchRegexString) == std::string::npos)
+                //    continue;
 
-                console.imp("[class_name] match => " + std::string(page_title) + " regex: [" + patch["MatchRegexString"].get<std::string>() + "]");
+                console.log_patch("class name", page_title, patch.matchRegexString);
 
-                if (patch.contains("TargetCss")) steam_interface.evaluate(socket, patch["TargetCss"], steam_interface.script_type::stylesheet, socket_response);
-                if (patch.contains("TargetJs"))  steam_interface.evaluate(socket, patch["TargetJs"], steam_interface.script_type::javascript, socket_response);
+                if (!patch.targetCss.empty()) steam_interface.evaluate(socket, patch.targetCss, steam_interface.script_type::stylesheet, socket_response);
+                if (!patch.targetJs.empty())  steam_interface.evaluate(socket, patch.targetJs, steam_interface.script_type::javascript, socket_response);
             }
 
             /// <summary>
@@ -162,9 +200,12 @@ private:
                 steam_interface.inject_millennium(socket, socket_response);
             }
         }
-        catch (std::exception& ex)
+        catch (nlohmann::json::exception& ex)
         {
-            std::cout << "get_doc_callback exception: " << ex.what() << std::endl;
+            if ((nlohmann::detail::type_error*)dynamic_cast<const nlohmann::detail::type_error*>(&ex) == nullptr)
+            {
+                console.err(std::format("unexpected error type was thrown from nlohmann::json: {}", ex.what()));
+            }
         }
     }
 
@@ -177,14 +218,66 @@ private:
         sessionId = socket_response["result"]["sessionId"];
     }
 
+    /// <summary>
+    /// set discover targets on the browser instance so every cef instance is logged
+    /// </summary>
+    /// <param name=""></param>
+    /// <returns></returns>
+    const void set_discover_targets(const std::shared_ptr<client>)
+    {
+        //turn on discover targets from the cef browser instance
+        socket.async_write(boost::asio::buffer(
+            nlohmann::json({
+                { "id", 1 },
+                { "method", "Target.setDiscoverTargets" },
+                { "params", {
+                    { "discover", true }
+                }}
+            }).dump()),
+        [this](const boost::system::error_code& writeEc, std::size_t) {
+
+            if (writeEc) {
+                //I've had this occur once, not sure why. 
+                console.err("fatal error, couldn't enable Target.setDiscoverTargets");
+                return;
+            }
+        });
+    }
+
+    const void socket_handshake(boost::beast::websocket::stream<tcp::socket>& socket)
+    {
+        //just hope this doesn't fail because async function calling doesn't work for some reason
+        this->socket.handshake(endpoints.debugger.host(), network::uri::uri(
+            static_cast<json_str>(steam_interface.discover(endpoints.debugger.string()+"/json/version"))
+            ["webSocketDebuggerUrl"]
+        ).path());
+    }
+
+    const void asio_connect(boost::beast::websocket::stream<tcp::socket>& socket)
+    {
+        asio::async_connect(
+            socket.next_layer(),
+            resolver.resolve(endpoints.debugger.host(), endpoints.debugger.port()),
+        //callback on the connection
+        [this](const boost::system::error_code& error_code, const asio::ip::tcp::endpoint&) {
+            if (error_code) {
+                console.err("couldn't connect to the steam browser host socket");
+            }
+        });
+    }
+
 public:
+
+    //initialize the socket from class initializer
+    client() : socket(io_context), resolver(io_context) {}
+
     /// <summary>
     /// event handler for when new windows are created/edited
     /// </summary>
     class cef_instance_created {
     public:
         /// <summary>
-        /// singleton class instance for cross refrence
+        /// singleton class instance for cross reference
         /// </summary>
         /// <returns></returns>
         static cef_instance_created& get_instance() {
@@ -201,6 +294,7 @@ public:
 
         //trigger change, client sided
         void trigger_change(nlohmann::basic_json<>& instance) {
+            //loop every listener and execute it, just incase we have multiple listeners
             for (const auto& listener : listeners) {
                 listener(instance);
             }
@@ -208,6 +302,7 @@ public:
 
     private:
         cef_instance_created() {}
+        //singleton definitions
         cef_instance_created(const cef_instance_created&) = delete;
         cef_instance_created& operator=(const cef_instance_created&) = delete;
 
@@ -230,84 +325,99 @@ public:
     /// </summary>
     void handle_interface()
     {
-        //connect to the browser websocket
-        asio::connect(
-            socket.next_layer(), 
-            resolver.resolve(endpoints.debugger.host(), endpoints.debugger.port())
-        );
+        //handle initial connection to the socket
+        this->asio_connect(socket);
+        this->socket_handshake(socket);
 
-        //create handshake on the remote url where the browser instance is stored
-        socket.handshake(endpoints.debugger.host(), network::uri::uri(
-            nlohmann::json::parse(steam_interface.discover(endpoints.debugger.string() + "/json/version"))
-            ["webSocketDebuggerUrl"]
-        ).path());
+        //enable set discover targets 
+        this->set_discover_targets(static_cast<std::shared_ptr<client>>(std::make_shared<client>()));
 
-        //turn on discover targets from the cef browser instance
-        socket.write(boost::asio::buffer(nlohmann::json({
-            { "id", 1 },
-            { "method", "Target.setDiscoverTargets" },
-            { "params", {{"discover", true}} }
-        }).dump()));
-
-        //could make this async, but it doesnt matter, it only runs when a socket request is recieved
-        while (true)
+        boost::beast::multi_buffer buffer;
+        //handle reading from the socket asynchronously and continue processing
+        std::function<void(const boost::system::error_code&, std::size_t)> handle_read =
+            [&](const boost::system::error_code& socket_error_code, std::size_t bytes_transferred)
         {
-            boost::beast::flat_buffer buffer; socket.read(buffer);
-            socket_response = nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()));
-
-            /// <summary>
-            /// socket response associated with getting document details
-            /// </summary>
-            if (socket_response["id"] == steam_cef_manager::response::get_document) {
-                try {
-                    get_doc_callback();
-                }
-                //document contains no selectable query on the <head> 
-                catch (const nlohmann::json::exception& e) {
-                    continue;
-                }
+            if (socket_error_code) {
+                console.err("throwing socket exception");
+                throw boost::system::system_error(socket_error_code);
             }
 
+            try {
+                socket_response = nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()));
+            }
+            catch (nlohmann::json::exception& exception) {
+                console.err(exception.what());
+                goto return_socket;
+            }
+
+            switch (static_cast<steam_cef_manager::response>(socket_response.value("id", 0)))
+            {
+                /// <summary>
+                /// socket response associated with getting document details
+                /// </summary>
+                case steam_cef_manager::response::get_document:
+                {
+                    try {
+                        get_doc_callback();
+                    }
+                    //document contains no selectable query on the <head> 
+                    catch (const nlohmann::json::exception&) {
+                        goto return_socket;
+                    }
+                    break;
+                }
+                /// <summary>
+                /// socket response called when cef details have been received. 
+                /// title, url and web debugger url
+                /// </summary>
+                case steam_cef_manager::response::received_cef_details:
+                {
+                    try {
+                        received_cef_details();
+                    }
+                    catch (const boost::system::system_error& exception)
+                    {
+                        console.err(std::format("exception [{}], code: [{}]", exception.what(), exception.code().value()));
+                        goto return_socket;
+                    }
+                    catch (socket_response_error& ex) {
+                        //response contains error message, we can discard and continue where we wait for a valid connection
+                        if (ex.code() == socket_response_error::errors::socket_error_message) {
+                            goto return_socket;
+                        }
+                    }
+                    break;
+                }
+                /// <summary>
+                /// socket response when attached to a new target, used to get the sessionId to use later
+                /// </summary>
+                case steam_cef_manager::response::attached_to_target:
+                {
+                    attached_to_target();
+                    break;
+                }
+            }
             /// <summary>
             /// socket response called when a new CEF target is created with valid parameters
             /// </summary>
-            if (socket_response["method"] == "Target.targetCreated" && socket_response.contains("params")) {
+            if (socket_response["method"] == target.target_created && socket_response.contains("params")) {
                 target_created();
                 client::cef_instance_created::get_instance().trigger_change(socket_response);
             }
-
             /// <summary>
             /// socket reponse called when a target cef instance changes in any way possible
             /// </summary>
-            if (socket_response["method"] == "Target.targetInfoChanged" && socket_response["params"]["targetInfo"]["attached"]) {
+            if (socket_response["method"] == target.target_info_changed && socket_response["params"]["targetInfo"]["attached"]) {
                 //trigger event used for remote handler
                 target_info_changed();
                 client::cef_instance_created::get_instance().trigger_change(socket_response);
             }
-
-            /// <summary>
-            /// socket response called when cef details have been received. 
-            /// title, url and web debugger url
-            /// </summary>
-            if (socket_response["id"] == steam_cef_manager::response::received_cef_details) {  
-                try {
-                    received_cef_details();
-                }
-                catch (socket_response_error& ex) {
-                    //response contains error message, we can discard and continue where we wait for a valid connection
-                    if (ex.code() == socket_response_error::errors::socket_error_message) {
-                        continue;
-                    }
-                }
-            }
-
-            /// <summary>
-            /// socket response when attached to a new target, used to get the sessionId to use later
-            /// </summary>
-            if (socket_response["id"] == steam_cef_manager::response::attached_to_target) {
-                attached_to_target();
-            }
-        }
+            return_socket:
+            //reopen socket async reading
+            socket_helpers::async_read_socket(socket, buffer, handle_read);
+        };
+        socket_helpers::async_read_socket(socket, buffer, handle_read);
+        io_context.run();
     }
 };
 
@@ -339,14 +449,14 @@ private:
         //get the url of the page we are active on 
         std::string steam_page_url_header = instance["url"].get<std::string>();
 
-        if (std::regex_match(steam_page_url_header, std::regex(patch["MatchRegexString"].get<std::string>())))
+        if (std::regex_match(steam_page_url_header, std::regex(static_cast<json_patch>(patch).matchRegexString)))
         {
             constexpr const std::string_view exclude = "steamloopback.host";
 
             if (steam_page_url_header.find(exclude.data()) not_eq std::string::npos)
                 return false;
 
-            console.imp("[remote] match => " + steam_page_url_header + " regex: [" + patch["MatchRegexString"].get<std::string>() + "]");
+            console.log_patch("remote", steam_page_url_header, static_cast<json_patch>(patch).matchRegexString);
             //mark that it was successfully patched
             patched.push_back(web_debugger_url);
             return true;
@@ -397,7 +507,7 @@ private:
         socket.handshake(endpoints.debugger.host(), socket_url.path());
 
         //activiate page settings needed
-        page_settings(socket);
+        this->page_settings(socket);
 
         //evaluate javascript and stylesheets
         std::function<void()> evaluate_scripting = ([&]() -> void {
@@ -410,27 +520,15 @@ private:
         //ie millennium missed the original page events so it misses the first inject
         evaluate_scripting();
 
-        const auto async_read_socket = [&](
-            boost::beast::websocket::stream<tcp::socket>& socket, 
-            boost::beast::multi_buffer& buffer, 
-            std::function<void(const boost::system::error_code&, std::size_t)> handler)
-        {
-            //consume the buffer to reset last response
-            buffer.consume(buffer.size());
-            //hang async on socket for a response
-            socket.async_read(buffer, handler);
-        };
-
         boost::beast::multi_buffer buffer;
-
         //handle reading from the socket asynchronously and continue processing
         std::function<void(const boost::system::error_code&, std::size_t)> handle_read = 
             [&](const boost::system::error_code& socket_error_code, std::size_t bytes_transferred) 
         {
-            if (socket_error_code) {
-                console.err("socket failure, couldnt read from socket");
-                async_read_socket(socket, buffer, handle_read);
-                return;
+            if (socket_error_code) 
+            {
+                console.err("throwing socket exception");
+                throw boost::system::system_error(socket_error_code);
             }
             //get socket response and parse as a json object
             nlohmann::basic_json<> response = nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()));
@@ -453,9 +551,9 @@ private:
                 }
             }
             //reopen socket async reading
-            async_read_socket(socket, buffer, handle_read);
+            socket_helpers::async_read_socket(socket, buffer, handle_read);
         };
-        async_read_socket(socket, buffer, handle_read);
+        socket_helpers::async_read_socket(socket, buffer, handle_read);
         io_context.run();
     }
 
@@ -471,7 +569,7 @@ public:
     remote(const remote&) = delete;
     remote& operator=(const remote&) = delete;
 
-    const void handle_interface() noexcept 
+    const void handle_interface() 
     {
         //called when a new cef window is instantiated, used to check if its a remote page
         client::cef_instance_created::get_instance().add_listener([=](nlohmann::basic_json<>& instance) {
@@ -487,7 +585,7 @@ public:
             if (skin_json_config["config_fail"])
                 return;
 
-            nlohmann::json instances = nlohmann::json::parse(steam_interface.discover(endpoints.debugger.string() + "/json"));
+            json_str instances = steam_interface.discover(endpoints.debugger.string()+"/json");
             std::vector<std::thread> threads;
 
             // Iterate over instances and addresses to create threads
@@ -500,81 +598,102 @@ public:
                         continue;
 
                     // Create a new thread and add it to the vector
-                    threads.emplace_back([=, &remoteInstance = remote::get_instance()]() {
+                    threads.emplace_back([=, &self = remote::get_instance()]() {
                         try {
                             // Use CSS and JS if available
-                            remoteInstance.patch(instance, address.value("TargetCss", std::string()), address.value("TargetJs", std::string()));
+                            self.patch(instance, address.value("TargetCss", std::string()), address.value("TargetJs", std::string()));
                         }
                         catch (const boost::system::system_error& ex) {
-                            std::cout << ex.what() << std::endl;
                             if (ex.code() == boost::asio::error::misc_errors::eof) {
-                                console.log("targeted CEF instance was destroyed");
+                                console.log(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
                             }
-
                             //exception was thrown, patching thread crashed, so mark it as unpatched so it can restart itself, happens when the 
                             //instance is left alone for too long sometimes and steams garbage collector clears memory
-                            std::vector<std::string>::iterator it = std::remove_if(patched.begin(), patched.end(), [&](const std::string& element) {
+                            patched.erase(std::remove_if(patched.begin(), patched.end(), [&](const std::string& element) {
                                 return element == instance["webSocketDebuggerUrl"];
-                            });
-
-                            patched.erase(it, patched.end());
+                            }), patched.end());
                         }
                     });
                 }
             }
             // Detach all the threads and let them run concurrently
             for (auto& thread : threads) {
+                console.log("detaching thread operator from std::this_thread");
                 thread.detach();
             }
         });
     }
 };
 
-/// <summary>
-/// start the steam IPC to communicate between C++ and js
-/// </summary>
-void steam_to_millennium_ipc() 
-{
-    try {
-        boost::asio::io_context ioc;
-        millennium_ipc_listener listener(ioc);
-        ioc.run();
-    }
-    catch (std::exception& e) {
-        console.log("ipc exception " + std::string(e.what()));
-    }
+static uint16_t running_port;
+uint16_t steam_client::get_ipc_port() {
+    return running_port;
 }
 
 /// <summary>
 /// initialize millennium components
 /// </summary>
 steam_client::steam_client()
-{
-    std::thread steam_client_interface_handler_threadworker([this]() {
+{   
+    /// <summary>
+    /// thread to handle the client instances of the steam interface
+    /// </summary>
+    std::thread([this]() 
+    {        
         try {
             client::get_instance().handle_interface();
         }
-        catch (nlohmann::json::exception& ex) { console.err("client: " + std::string(ex.what()) + "\nline: " + std::to_string(__LINE__)); }
-        catch (const boost::system::system_error& ex) { console.err("client: " + std::string(ex.what()) + "\nline: " + std::to_string(__LINE__)); }
-        catch (const std::exception& ex) { console.err("client: " + std::string(ex.what()) + "\nline: " + std::to_string(__LINE__)); }
-        catch (...) { console.err("client: unkown"); }
+        catch (nlohmann::json::exception& ex) { 
+            console.err("client: " + std::string(ex.what())); 
+        }
+        catch (const boost::system::system_error& ex) { 
+            console.err("client: " + std::string(ex.what())); 
+        }
+        catch (const std::exception& ex) { 
+            console.err("client: " + std::string(ex.what())); 
+        }
+        catch (...) { 
+            console.err("client: unkown"); 
+        }
 
-    });
-    std::thread steam_remote_interface_handler_threadworker([this]() {
+    }).detach();
+    /// <summary>
+    /// thread to handle the remote instances of the steam interface
+    /// </summary>
+    std::thread([this]() 
+    {
         try {
             remote::get_instance().handle_interface();
         }
-        catch (nlohmann::json::exception& ex) { console.err("remote: " + std::string(ex.what()) + "\nline: " + std::to_string(__LINE__)); }
-        catch (const boost::system::system_error& ex) { console.err("remote: " + std::string(ex.what()) + "\nline: " + std::to_string(__LINE__)); }
-        catch (const std::exception& ex) { console.err("remote: " + std::string(ex.what()) + "\nline: " + std::to_string(__LINE__)); }
-        catch (...) { console.err("remote: unknown"); }
-    });
-    std::thread steam_to_millennium_ipc_threadworker([this]() { steam_to_millennium_ipc(); });
+        catch (nlohmann::json::exception& ex) { 
+            console.err("remote: " + std::string(ex.what())); 
+        }
+        catch (const boost::system::system_error& ex) { 
+            console.err("remote: " + std::string(ex.what())); 
+        }
+        catch (const std::exception& ex) { 
+            console.err("remote: " + std::string(ex.what())); 
+        }
+        catch (...) { 
+            console.err("remote: unknown"); 
+        }
+    }).detach();
+    /// <summary>
+    /// start the millennium to steam ipc
+    /// </summary>
+    std::thread([this]() 
+    { 
+        try {
+            boost::asio::io_context io_context;
+            millennium_ipc_listener listener(io_context);
 
-    //worker threads to run all code at the same time
-    steam_client_interface_handler_threadworker.join();
-    steam_remote_interface_handler_threadworker.join();
-    steam_to_millennium_ipc_threadworker.join();
+            running_port = listener.get_ipc_port();
+            io_context.run();
+        }
+        catch (std::exception& e) {
+            console.log("ipc exception " + std::string(e.what()));
+        }
+    }).detach();
 }
 
 /// <summary>

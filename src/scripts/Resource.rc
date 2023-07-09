@@ -68,7 +68,7 @@ BEGIN
         BLOCK "100904b0"
         BEGIN
             VALUE "CompanyName", "Millennium"
-            VALUE "FileDescription", "Steam Library CSS Patcher"
+            VALUE "FileDescription", "uses Chrome DevTools Protocol to inject scripts into targetted steam windows."
             VALUE "FileVersion", "1.0.0.1"
             VALUE "InternalName", "User32.dll"
             VALUE "LegalCopyright", "Copyright (C) 2023"

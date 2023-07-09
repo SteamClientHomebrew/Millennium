@@ -31,3 +31,5 @@
 #include <shellapi.h>
 #include <TCHAR.h>
 #include <pdh.h>
+
+#include <include/json.hpp>

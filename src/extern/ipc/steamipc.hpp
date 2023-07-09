@@ -1,4 +1,6 @@
 #pragma once
+#include <include/logger.hpp>
+
 using tcp = boost::asio::ip::tcp;
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -44,23 +46,37 @@ public:
     {
         //get steam skins path
         std::string steam_skin_path = skinConfig.get_steam_skin_path();
-
         nlohmann::json data, skins;
 
         //search all folders in the skins directory and assume they are valid skin
         //it will stop the user if its not valid once they select it
         for (const auto& entry : std::filesystem::directory_iterator(steam_skin_path)) {
             if (entry.is_directory()) {
-                skins.push_back({ {"name", entry.path().filename().string()} });
+                std::filesystem::path skin_json_path = entry.path()/"skin.json";
+
+                if (std::filesystem::exists(skin_json_path)) {
+                    nlohmann::json skin_data; 
+                    {
+                        std::ifstream skin_json_file(skin_json_path.string());
+                        skin_json_file >> skin_data;
+                    }
+                    skins.push_back({ 
+                        {"name", skin_data.value("name", entry.path().filename().string())},
+                        {"description", skin_data.value("description", "no description yet.")},
+                        {"version", skin_data.value("version", "1.0.0")},
+                        {"author", skin_data.value("author", "unknown")},
+                        {"source", skin_data.value("source", "#")},
+
+                        {"native_name", entry.path().filename().string()},
+                    });
+                }
             }
         }
-        //add the default skin virtually
-        skins.push_back({ {"name", "default"} });
 
         data["skins"] = skins;
         //include other information used by the modal
         data["active-skin"] = registry::get_registry("active-skin");
-        data["allow-javascript"] = registry::get_registry("allow-javascript");
+        data["allow-javascript"] = registry::get_registry("allow-javascript") == "true";
 
         ws.write(boost::asio::buffer(data.dump()));
     }
@@ -90,12 +106,15 @@ public:
 /// </summary>
 class millennium_ipc_listener {
 public:
+    uint16_t get_ipc_port() {
+        return acceptor_.local_endpoint().port();
+    }
+
     millennium_ipc_listener(boost::asio::io_context& ioc) :
-        acceptor_(ioc, tcp::endpoint(tcp::v4(), 3242)),
+        acceptor_(ioc, tcp::endpoint(tcp::v4(), 0)),
         socket_(ioc) {
         ipc_do_accept();
     }
-
 private:
     void ipc_do_accept() {
         //start listening for a new message
@@ -127,11 +146,13 @@ private:
             {
                 if (read_error) return;
 
-                functions* skin_helpers = new functions;
+                auto* skin_helpers = new functions;
 
                 //parse the message and convert it to the enum type
                 nlohmann::basic_json<> msg = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
                 ipc_types ipc_message = static_cast<ipc_types>(msg["type"].get<int>());
+
+                console.log(std::format("[{}()] was called with ipc message -> {}", __func__, self->enum_tostr(ipc_message)));
 
                 //msg["content"] contains the payload from js, its a dynamic typing
                 switch (ipc_message)
@@ -149,12 +170,26 @@ private:
                 self->read_request_payload();
             });
         }
-
     private:
         //ipc types, enumerated respectively
         enum ipc_types {
             open_skins_folder, skin_update, open_url, change_javascript, change_console, get_skins, exec_command
         };
+
+        std::string enum_tostr(ipc_types value) 
+        {
+            #define enum_type(type) #type
+            switch (value)
+            {
+                case ipc_types::open_skins_folder: return enum_type(ipc_types::open_skins_folder);
+                case ipc_types::skin_update: return enum_type(ipc_types::skin_update);
+                case ipc_types::open_url: return enum_type(ipc_types::open_url);
+                case ipc_types::change_javascript: return enum_type(ipc_types::change_javascript);
+                case ipc_types::get_skins: return enum_type(ipc_types::get_skins);
+                case ipc_types::exec_command: return enum_type(ipc_types::exec_command);
+                default: return "unknown message typeface";
+            }
+        }
 
         websocket::stream<tcp::socket> ws_;
         boost::beast::multi_buffer buffer_;

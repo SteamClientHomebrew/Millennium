@@ -1,4 +1,4 @@
-#define WIN32_LEAN_AND_MEAN 
+﻿#define WIN32_LEAN_AND_MEAN 
 #define millennium_entry_point int __stdcall
 #pragma warning(disable: 6258)
 #pragma warning(disable: 6387)
@@ -69,10 +69,9 @@ class millennium
 private:
     auto_updater millennium_updater;
     millennium() {}
-
 public:
 
-    //create singleton istance of millennium
+    //create singleton instance of millennium
     static millennium& get_instance()
     {
         static millennium instance;
@@ -117,7 +116,7 @@ public:
 
         constexpr const std::basic_string_view<char> dev_cmd = "-dev";
 
-        if (static_cast<std::string>(GetCommandLineA()).find(dev_cmd) != std::string::npos) 
+        if (static_cast<std::string>(GetCommandLineA()).find(dev_cmd) != std::string::npos)
         {
             if (static_cast<bool>(AllocConsole()))
             {

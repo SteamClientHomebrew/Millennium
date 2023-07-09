@@ -47,7 +47,6 @@ public:
 class skin_config
 {
 private:
-    output_console console;
     std::string steam_skin_path, active_skin;
 
     /// <summary>
@@ -201,7 +200,10 @@ public:
 
     skin_config()
     {
-        steam_skin_path = std::format("{}/steamui/skins", getenv("SteamPath"));
+        char buffer[MAX_PATH];
+        DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
+
+        steam_skin_path = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
     }
 
     std::string get_steam_skin_path() 

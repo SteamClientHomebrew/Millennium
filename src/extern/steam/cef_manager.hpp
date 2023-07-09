@@ -1,14 +1,13 @@
 #pragma once
+#include <extern/injector/inject.hpp>
+
 struct endpoints
 {
 public:
     //used for serving steam/steamui contents, hosted by the steam client
-    boost::network::uri::uri steam_resources = 
-        boost::network::uri::uri("https://steamloopback.host");
-
+    boost::network::uri::uri steam_resources = boost::network::uri::uri("https://steamloopback.host");
     //steam cef remote debugging endpoint
-    boost::network::uri::uri debugger = 
-        boost::network::uri::uri("http://127.0.0.1:8080");
+    boost::network::uri::uri debugger = boost::network::uri::uri("http://127.0.0.1:8080");
 }endpoints;
 
 /// <summary>
@@ -29,7 +28,30 @@ private:
     class runtime {
     public: 
         const std::string evaluate(std::string remote_url) noexcept {
-            return std::format("(() => fetch('{}').then((response) => response.text()).then((data) => eval(data)))()", remote_url);
+            return R"(
+            (() => fetch(')" + remote_url + R"(').then((response) => response.text()).then((data) => { 
+                if (window.usermode === undefined) {
+                    const establishConnection = () => {
+                        const millennium = new WebSocket('ws://localhost:)" + std::to_string(steam_client::get_ipc_port()) + R"(');
+                        millennium.onmessage = (event) => {
+                            if (usermode.ipc && usermode.ipc.onmessage) {
+                                usermode.ipc.onmessage(JSON.parse(event.data));
+                            }
+                        };
+                        return {
+                            send: (message) => {
+                                millennium.send(JSON.stringify(message));
+                            },
+                            onmessage: null
+                        };
+                    };
+                    window.usermode = {
+                        ipc: establishConnection(),
+                        ipc_types: { open_skins_folder: 0, skin_update: 1, open_url: 2, change_javascript: 3, change_console: 4, get_skins: 5 }
+                    };
+                    eval(data);
+                }
+            }))())";
         }
     };
 
@@ -74,7 +96,7 @@ public:
     /// <summary>
     /// response types that are handled by millennium in the client interface handler
     /// </summary>
-    static enum response
+    enum response
     {
         attached_to_target = 420,
         script_inject_evaluate = 69,
@@ -95,29 +117,32 @@ private:
     /// <param name="sessionId">socket identifier, if needed (not required for remote webpages)</param>
     inline void push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId = std::string()) noexcept
     {
-        //include millennium functions
-        const std::string millennium_functions = R"(
-            class millennium{static sharedjscontext_exec(c){const t=new WebSocket(atob('d3M6Ly9sb2NhbGhvc3Q6MzI0Mg==')),r=()=>t.send(JSON.stringify({type:6,content:c}));return new Promise((e,n)=>{t.onopen=r,t.onmessage=t=>(e(JSON.parse(t.data)),t.target.close()),t.onerror=n,t.onclose=()=>n(new Error)})}}window.millennium=millennium;
-        )";
+        try {
+            //include millennium functions
+            const std::string millennium_functions = R"(
+                class millennium{static sharedjscontext_exec(c){const t=new WebSocket(atob('d3M6Ly9sb2NhbGhvc3Q6MzI0Mg==')),r=()=>t.send(JSON.stringify({type:6,content:c}));return new Promise((e,n)=>{t.onopen=r,t.onmessage=t=>(e(JSON.parse(t.data)),t.target.close()),t.onerror=n,t.onclose=()=>n(new Error)})}}window.millennium=millennium;
+            )";
 
-        nlohmann::json evaluate_script = {
-            {"id", response::script_inject_evaluate},
-            {"method", "Runtime.evaluate"},
-            {"params", {{"expression", std::string()}}}
-        };
+            std::function<void(const std::string&)> runtime_evaluate = [&](const std::string& script) -> void {
+                nlohmann::json evaluate_script = {
+                    {"id", response::script_inject_evaluate},
+                    {"method", "Runtime.evaluate"},
+                    {"params", {{"expression", script}}}
+                };
 
-        if (!sessionId.empty())
-            evaluate_script["sessionId"] = sessionId;
+                if (!sessionId.empty()) evaluate_script["sessionId"] = sessionId;
+                socket.write(boost::asio::buffer(evaluate_script.dump(4)));
+            };
 
-        try
-        {
-            evaluate_script["params"]["expression"] = raw_script;
-            socket.write(boost::asio::buffer(evaluate_script.dump(4)));
-
-            evaluate_script["params"]["expression"] = millennium_functions;
-            socket.write(boost::asio::buffer(evaluate_script.dump(4)));
+            //inject the script that the user wants
+            runtime_evaluate(raw_script);
+            //inject millennium class functions to help users interact with SharedJSContext (it probably sucks)
+            runtime_evaluate(millennium_functions);
         }
-        catch (std::exception&) { }
+        catch (const boost::system::system_error & ex) {
+            //commonly occurs if the socket crashes, happened alot, then stopped not sure why
+            console.err(std::format("the requested operation[{}()] could not be completed\n{}", __func__, ex.what()));
+        }
     }
 
 public:
@@ -133,7 +158,8 @@ public:
 
         if (!hUrl || !hInternet)
         {
-            throw std::runtime_error("InternetOpen*A was nullptr");
+            console.err(std::format("the requested operation [{}()] failed. reason: InternetOpen*A was nullptr", __func__));
+            return std::string();
         }
 
         char buffer[1024];
@@ -154,8 +180,8 @@ public:
     /// <returns></returns>
     __declspec(noinline) void __fastcall inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response) noexcept
     {
-        std::string javascript = "https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/source.js";
-        //std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
+        //std::string javascript = "https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/source.js";
+        std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
 
         steam_interface.push_to_socket(
             socket, 
@@ -175,6 +201,7 @@ public:
     inline const void evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL)
     {
         if (type == script_type::javascript && (registry::get_registry("allow-javascript") == "false")) {
+            console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::javascript is prohibited", __func__));
             return;
         }
 
@@ -199,7 +226,7 @@ public:
             steam_interface.push_to_socket(socket, cef_dom::get().stylesheet_handler.add(file).data(), sessionId.value_or(std::string()));
             break;
         default: 
-            throw std::runtime_error("invalid target scripting type");
+            throw std::runtime_error("[debug] invalid target scripting type");
         }
     }
 
@@ -239,7 +266,7 @@ private:
 
         //implicit type converge interrupt_handler
         static_cast<void>(callback());
-        close_socket();
+        this->close_socket();
     }
 
     //prolonging the socket closure causes socket failure and slow exec times all around
@@ -269,9 +296,15 @@ public:
     /// </summary>
     __declspec(noinline) const void restart() noexcept
     {
-        establish_socket_handshake([this]() {
+        establish_socket_handshake([=, this]() {
             //not used anymore, but here in case
-            socket.write(boost::asio::buffer(nlohmann::json({ {"id", 8987}, {"method", "Runtime.evaluate"}, {"params", {{"expression", "setTimeout(() => {SteamClient.User.StartRestart(true)}, 1000)"}, {"userGesture", true}, {"awaitPromise", false}}} }).dump()));
+            socket.write(boost::asio::buffer(nlohmann::json({ 
+                { "id", 8987 }, 
+                { "method", "Runtime.evaluate" }, 
+                { "params", {
+                    { "expression", "setTimeout(() => {SteamClient.User.StartRestart(true)}, 1000)" }
+                }} 
+            }).dump()));
         });
     }
 

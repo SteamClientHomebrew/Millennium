@@ -9,3 +9,5 @@
 dist/
 intermediate/
 .vs/
+obj/
+packages/
