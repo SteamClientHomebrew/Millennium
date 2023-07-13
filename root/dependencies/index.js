@@ -1,6 +1,6 @@
 console.log("millennium VM thread ->")
 
-const repo_url = 'https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/root/dependencies'
+const repo_url = 'https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies'
 
 const 
 	millennium_html = `${repo_url}/index.html`, 
