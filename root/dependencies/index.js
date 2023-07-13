@@ -1,3 +1,5 @@
+console.log("millennium VM thread ->")
+
 const repo_url = 'https://github.com/ShadowMonster99/millennium-steam-patcher/blob/main/root/dependencies/'
 
 const 
