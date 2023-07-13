@@ -22,7 +22,7 @@ private:
 
 public:
     /// <summary>
-    /// create internet handle to connect to the github repo
+    /// create internet handle to connect to the GitHub repo
     /// </summary>
     auto_updater() {
         connection = InternetOpenA("millennium.updater", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);

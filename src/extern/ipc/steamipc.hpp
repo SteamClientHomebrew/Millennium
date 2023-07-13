@@ -60,12 +60,15 @@ public:
                         std::ifstream skin_json_file(skin_json_path.string());
                         skin_json_file >> skin_data;
                     }
+
+                    std::string skin_github_url = skin_data.value("source", "#");
+
                     skins.push_back({ 
                         {"name", skin_data.value("name", entry.path().filename().string())},
                         {"description", skin_data.value("description", "no description yet.")},
                         {"version", skin_data.value("version", "1.0.0")},
                         {"author", skin_data.value("author", "unknown")},
-                        {"source", skin_data.value("source", "#")},
+                        {"source", skin_github_url.find("https://github.com/") == std::string::npos ? "#" : skin_github_url},
 
                         {"native_name", entry.path().filename().string()},
                     });

@@ -3,6 +3,10 @@
 #include <include/config.hpp>
 #include <extern/steam/cef_manager.hpp>
 #include <extern/ipc/steamipc.hpp>
+#include <include/json.hpp>
+
+//create terminate flag accessible from all thread
+std::atomic<bool> thread_terminate_flag(false);
 
 namespace websocket = boost::beast::websocket;
 using namespace boost;
@@ -69,6 +73,15 @@ private:
     /// <param name="title">the title of the cef page to inject into</param>
     inline const void patch(std::string title) noexcept
     {    
+        if (skin_json_config["config_fail"]) {
+            if (registry::get_registry("active-skin") != "default") 
+                console.err("couldn't get config from selected skin");
+            else
+                console.log("default skin is selected. millennium is laying dormant...");
+
+            return;
+        }
+
         for (const json_patch& patch : skin_json_config["Patches"].get<std::vector<json_patch>>())
         {
             bool contains_http = patch.matchRegexString.find("http") != std::string::npos;
@@ -80,8 +93,8 @@ private:
 
             console.log_patch("client", title, patch.matchRegexString);
 
-            if (!patch.targetJs.empty())  steam_interface.evaluate(socket, patch.targetJs, steam_interface.script_type::stylesheet, socket_response);
-            if (!patch.targetCss.empty()) steam_interface.evaluate(socket, patch.targetCss, steam_interface.script_type::javascript, socket_response);
+            if (!patch.targetJs.empty())  steam_interface.evaluate(socket, patch.targetJs, steam_interface.script_type::javascript, socket_response);
+            if (!patch.targetCss.empty()) steam_interface.evaluate(socket, patch.targetCss, steam_interface.script_type::stylesheet, socket_response);
         }
     }
 
@@ -180,24 +193,25 @@ private:
 
             //console.log(std::format("[FOR DEVELOPERS]\nselectable <html> query on page [{}]:\n -> [{}]\n", page_title, attributes));
 
+            /// <summary>
+            /// inject millennium into the settings page, uses query instead of title because title varies between languages
+            /// </summary>
+            if (attributes.find("settings_SettingsModalRoot_") != std::string::npos) {
+                console.log("injecting millennium into settings modal");
+                steam_interface.inject_millennium(socket, socket_response);
+            }
+
             for (const json_patch& patch : skin_json_config["Patches"].get<std::vector<json_patch>>())
             {
                 bool contains_http = patch.matchRegexString.find("http") != std::string::npos;
 
-                //if (contains_http || attributes.find(patch.matchRegexString) == std::string::npos)
-                //    continue;
+                if (contains_http || attributes.find(patch.matchRegexString) == std::string::npos)
+                    continue;
 
                 console.log_patch("class name", page_title, patch.matchRegexString);
 
                 if (!patch.targetCss.empty()) steam_interface.evaluate(socket, patch.targetCss, steam_interface.script_type::stylesheet, socket_response);
                 if (!patch.targetJs.empty())  steam_interface.evaluate(socket, patch.targetJs, steam_interface.script_type::javascript, socket_response);
-            }
-
-            /// <summary>
-            /// inject millennium into the settings page, uses query instead of title because title varies between languages
-            /// </summary>
-            if (attributes.find("settings_SettingsModalRoot_") != std::string::npos) {
-                steam_interface.inject_millennium(socket, socket_response);
             }
         }
         catch (nlohmann::json::exception& ex)
@@ -405,7 +419,7 @@ public:
                 client::cef_instance_created::get_instance().trigger_change(socket_response);
             }
             /// <summary>
-            /// socket reponse called when a target cef instance changes in any way possible
+            /// socket response called when a target cef instance changes in any way possible
             /// </summary>
             if (socket_response["method"] == target.target_info_changed && socket_response["params"]["targetInfo"]["attached"]) {
                 //trigger event used for remote handler
@@ -436,7 +450,7 @@ private:
     /// <returns>should patch</returns>
     std::vector<std::string> patched = {};
 
-    inline bool __cdecl should_patch_interface(nlohmann::json& patch, const nlohmann::json& instance)
+    inline bool __cdecl should_patch_interface(const json_patch& patch, const nlohmann::json& instance)
     {
         const std::string web_debugger_url = instance["webSocketDebuggerUrl"].get<std::string>();
         //check if the current instance was already patched
@@ -449,14 +463,14 @@ private:
         //get the url of the page we are active on 
         std::string steam_page_url_header = instance["url"].get<std::string>();
 
-        if (std::regex_match(steam_page_url_header, std::regex(static_cast<json_patch>(patch).matchRegexString)))
+        if (std::regex_match(steam_page_url_header, std::regex(patch.matchRegexString)))
         {
             constexpr const std::string_view exclude = "steamloopback.host";
 
             if (steam_page_url_header.find(exclude.data()) not_eq std::string::npos)
                 return false;
 
-            console.log_patch("remote", steam_page_url_header, static_cast<json_patch>(patch).matchRegexString);
+            console.log_patch("remote", steam_page_url_header, patch.matchRegexString);
             //mark that it was successfully patched
             patched.push_back(web_debugger_url);
             return true;
@@ -502,21 +516,21 @@ private:
         boost::asio::connect(socket.next_layer(), resolver.resolve(endpoints.debugger.host(), endpoints.debugger.port()));
 
         //connect to the socket associated with the page directly instead of using browser instance.
-        //this way after the first injection we can inject immediatly into the page because we dont need to wait for the title 
+        //this way after the first injection we can inject immediately into the page because we don't need to wait for the title 
         //of the remote page, we can just inject into it in a friendly way
         socket.handshake(endpoints.debugger.host(), socket_url.path());
 
-        //activiate page settings needed
+        //activate page settings needed
         this->page_settings(socket);
 
-        //evaluate javascript and stylesheets
+        //evaluate JavaScript and stylesheets
         std::function<void()> evaluate_scripting = ([&]() -> void {
             if (not js_eval.empty())
                 steam_interface.evaluate(socket, js_eval, steam_interface.script_type::javascript);
             if (not css_eval.empty())
                 steam_interface.evaluate(socket, css_eval, steam_interface.script_type::stylesheet);
         });
-        //try to evaluate immediatly in case of slow initial connection times,
+        //try to evaluate immediately in case of slow initial connection times,
         //ie millennium missed the original page events so it misses the first inject
         evaluate_scripting();
 
@@ -535,7 +549,7 @@ private:
 
             if (response.value("method", std::string()) != "Page.frameResized")
             {
-                //evaluate scripts over and over again until they succeed, because sometimes it doesnt.
+                //evaluate scripts over and over again until they succeed, because sometimes it doesn't.
                 //usually around 2 iterations max
                 while (true)
                 {
@@ -558,7 +572,7 @@ private:
     }
 
 public:
-    //create a singleton instance of the class incase it needs to be refrences elsewhere and
+    //create a singleton instance of the class incase it needs to be references elsewhere and
     //only one instance needs to be running
     static remote& get_instance()
     {
@@ -591,17 +605,17 @@ public:
             // Iterate over instances and addresses to create threads
             for (nlohmann::basic_json<>& instance : instances)
             {
-                for (nlohmann::basic_json<>& address : skin_json_config["Patches"])
+                for (const json_patch& address : skin_json_config["Patches"].get<std::vector<json_patch>>())
                 {
                     // Check if the patch address is a URL (remote) and should be patched
-                    if (address["MatchRegexString"].get<std::string>().find("http") == std::string::npos || !should_patch_interface(address, instance))
+                    if (address.matchRegexString.find("http") == std::string::npos || !should_patch_interface(address, instance))
                         continue;
 
                     // Create a new thread and add it to the vector
                     threads.emplace_back([=, &self = remote::get_instance()]() {
                         try {
                             // Use CSS and JS if available
-                            self.patch(instance, address.value("TargetCss", std::string()), address.value("TargetJs", std::string()));
+                            self.patch(instance, address.targetCss, address.targetJs);
                         }
                         catch (const boost::system::system_error& ex) {
                             if (ex.code() == boost::asio::error::misc_errors::eof) {
@@ -638,62 +652,65 @@ steam_client::steam_client()
     /// <summary>
     /// thread to handle the client instances of the steam interface
     /// </summary>
-    std::thread([this]() 
+    std::make_shared<std::thread>([&, this]() -> void
     {        
-        try {
-            client::get_instance().handle_interface();
-        }
-        catch (nlohmann::json::exception& ex) { 
-            console.err("client: " + std::string(ex.what())); 
-        }
-        catch (const boost::system::system_error& ex) { 
-            console.err("client: " + std::string(ex.what())); 
-        }
-        catch (const std::exception& ex) { 
-            console.err("client: " + std::string(ex.what())); 
-        }
-        catch (...) { 
-            console.err("client: unkown"); 
-        }
+        while (true)
+        {
+            console.log(std::format("starting: client_thread [{}]", __FUNCSIG__));
 
-    }).detach();
+            try {
+                client::get_instance().handle_interface();
+            }
+            catch (nlohmann::json::exception& ex) { console.err(std::format("client: {}", std::string(ex.what()))); continue; }
+            catch (const boost::system::system_error& ex) {  console.err(std::format("client: {}", std::string(ex.what()))); continue; }
+            catch (const std::exception& ex) { console.err(std::format("client: {}", std::string(ex.what()))); continue; }
+            catch (...) { console.err(std::format("client: unknown")); continue; }
+        }
+    })->detach();
+
     /// <summary>
     /// thread to handle the remote instances of the steam interface
     /// </summary>
-    std::thread([this]() 
-    {
-        try {
-            remote::get_instance().handle_interface();
+    std::make_shared<std::thread>([&, this]() -> void
+    {        
+        while (true)
+        {
+            console.log(std::format("starting: remote_thread [{}]", __FUNCSIG__));
+
+            try {
+                remote::get_instance().handle_interface();
+            }
+            catch (nlohmann::json::exception& ex) { console.err(std::format("remote: {}", std::string(ex.what()))); continue; }
+            catch (const boost::system::system_error& ex) {  console.err(std::format("remote: {}", std::string(ex.what()))); continue; }
+            catch (const std::exception& ex) { console.err(std::format("remote: {}", std::string(ex.what()))); continue; }
+            catch (...) { console.err(std::format("remote: unknown")); continue; }
+
+            Sleep(-1);
         }
-        catch (nlohmann::json::exception& ex) { 
-            console.err("remote: " + std::string(ex.what())); 
-        }
-        catch (const boost::system::system_error& ex) { 
-            console.err("remote: " + std::string(ex.what())); 
-        }
-        catch (const std::exception& ex) { 
-            console.err("remote: " + std::string(ex.what())); 
-        }
-        catch (...) { 
-            console.err("remote: unknown"); 
-        }
-    }).detach();
+    })->detach();
+
     /// <summary>
     /// start the millennium to steam ipc
     /// </summary>
-    std::thread([this]() 
+    std::thread ipc_main = std::thread([this]() 
     { 
-        try {
-            boost::asio::io_context io_context;
-            millennium_ipc_listener listener(io_context);
+        while (true)
+        {
+            try {
+                boost::asio::io_context io_context;
+                millennium_ipc_listener listener(io_context);
 
-            running_port = listener.get_ipc_port();
-            io_context.run();
+                running_port = listener.get_ipc_port();
+                io_context.run();
+            }
+            catch (std::exception& e) {
+                console.log("ipc exception " + std::string(e.what()));
+                continue;
+            }
+            std::cout << "thread" << std::endl;
         }
-        catch (std::exception& e) {
-            console.log("ipc exception " + std::string(e.what()));
-        }
-    }).detach();
+    });
+    ipc_main.detach();
 }
 
 /// <summary>
