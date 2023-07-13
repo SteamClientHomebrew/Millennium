@@ -242,8 +242,16 @@ public:
     /// <summary>
     /// setup millennium if it has no configuration types
     /// </summary>
-    inline const void verify_registry() noexcept
+    inline const void setup_millennium() noexcept
     {
+        try {
+            if (!std::filesystem::exists(get_steam_skin_path()))
+                std::filesystem::create_directories(get_steam_skin_path());
+        }
+        catch (const std::filesystem::filesystem_error& e) {
+            console.err(std::format("Error creating 'skins' directory. reason: {}", e.what()));
+        }
+
         //create registry key if it doesnt exist
         std::function<void(std::string, std::string)> create_if_empty = ([this](std::string key, std::string value) {
             if (registry::get_registry(key).empty())

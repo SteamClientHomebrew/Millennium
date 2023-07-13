@@ -720,7 +720,7 @@ steam_client::steam_client()
 /// <returns></returns>
 unsigned long __stdcall Initialize(void*)
 {
-    config.verify_registry();
+    config.setup_millennium();
     skin_json_config = config.get_skin_config();
 
     //skin change event callback functions

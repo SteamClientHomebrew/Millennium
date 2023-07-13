@@ -1,4 +1,8 @@
-const millennium_html = '/skins/index.html', millennium_css = '/skins/styles.css'
+const repo_url = 'https://github.com/ShadowMonster99/millennium-steam-patcher/blob/main/root/dependencies/'
+
+const 
+	millennium_html = `${repo_url}skins/index.html`, 
+	millennium_css = `${repo_url}skins/styles.css`
 
 fetch(millennium_html).then(response => response.text()).then(_data => { 
 	
