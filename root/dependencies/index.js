@@ -1,4 +1,4 @@
-console.log("millennium VM thread ->")
+console.log("millennium settings modal [src] ->")
 
 const repo_url = 'https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies'
 
@@ -28,6 +28,12 @@ fetch(millennium_html).then(response => response.text()).then(_data => {
 				});
 			});
 		},
+		populate_skins_empty: (event) => {	
+			if (event.skins === null && !document.querySelector(".emptyContainer-poti7J")) {
+				document.querySelector('.mllnm-addon-list').innerHTML += no_skins_available();
+				functions.set_event_listeners()
+			}
+		},
 		populate_skins: (event) => {
 			event.skins.forEach((skin) => {
 				document.querySelector('.mllnm-addon-list').innerHTML += createAddonCard(
@@ -35,12 +41,6 @@ fetch(millennium_html).then(response => response.text()).then(_data => {
 					skin.native_name === event["active-skin"] ? true : false, skin.native_name
 				);
 			});
-		},
-		populate_skins_empty: (event) => {		
-			if (event.skins === null && !document.querySelector(".emptyContainer-poti7J")) {
-				document.querySelector('.mllnm-addon-list').innerHTML += no_skins_available();
-				functions.set_event_listeners()
-			}
 		},
 		init_skin_change: () => {
 			Array.from(document.getElementsByClassName("mllnm-switch")).forEach((element, i) => {
@@ -76,7 +76,8 @@ fetch(millennium_html).then(response => response.text()).then(_data => {
 			usermode.ipc.send({type: usermode.ipc_types.get_skins})
 			usermode.ipc.onmessage = function(event) {
 				Object.keys(functions).slice(0, -1).forEach((key) => {
-					functions[key](event);
+					try { functions[key](event); }
+					catch(exception) {}
 				});
 			};
 		}
