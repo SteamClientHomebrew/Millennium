@@ -64,6 +64,10 @@
     padding-top: 0 !important;
 }
 
+[class*="DownloadStatusContent_"] {
+    padding: 0px 0px 2px 0px !important;
+}
+
 [class*="bottombar_BottomBar"] [class*="updatealert_Alert_"] /* need to find out what this is */,
 [class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="DetailedDownloadProgress"] [class*="IconBevel"] {
     display: none !important; 
@@ -75,9 +79,6 @@
 
 [class*="bottombar_BottomBar"] [class*="DownloadStatus_"] {
     order: var(1) !important;
-    flex-grow: 0 !important;
-    padding: 0 6px !important;
-    height: 20px;
 }
 
 [class*="bottombar_BottomBar"] [class*="FriendsButton"] {
