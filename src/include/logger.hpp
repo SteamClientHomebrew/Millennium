@@ -4,7 +4,6 @@
 /// </summary>
 class output_console {
 private:
-	HANDLE consoleHandle;
 	std::ofstream fileStream;
 
 	std::string get_time()
@@ -24,7 +23,6 @@ private:
 public:
 	output_console()
 	{
-		consoleHandle=(GetStdHandle(STD_OUTPUT_HANDLE));
 		fileStream.open("millennium.log", std::ios::trunc);
 	}
 	~output_console() 
@@ -33,20 +31,13 @@ public:
 	}
 
 	void log (std::string val) { log(" [info] ", val); }
-	void err (std::string val) { 
-		SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_INTENSITY);
-		log(" [fail] ", val);
-		SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_GREEN);
-	}
+	void err (std::string val) { log(" [fail] ", val); }
 	void warn(std::string val) { log(" [warn] ", val); }
 	void succ(std::string val) { log(" [okay] ", val); }
 	void imp (std::string val) { log(" [+] ", val); }
 
 	void log_patch(std::string type, std::string what_patched, std::string regex)	{
-
-		SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
 		log(" [patch] ", std::format("[{}] match -> [{}] selector: [{}]", type, what_patched, regex));
-		SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_GREEN);
 	}
 };
 static output_console console;

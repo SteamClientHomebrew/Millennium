@@ -1,12 +1,16 @@
 ﻿#define WIN32_LEAN_AND_MEAN 
+#define _WINSOCKAPI_   
+
 #define millennium_entry_point int __stdcall
 #pragma warning(disable: 6258)
 #pragma warning(disable: 6387)
 
 #include <stdafx.h>
-#include <extern/injector/inject.hpp>
+#include <extern/injector/event_handler.hpp>
+#include <extern/window/win_handler.hpp>
 
-const char* current_app_version = "1.0.1";
+#include <Wininet.h>
+#pragma comment(lib, "Wininet.lib")
 
 /// <summary>
 /// check for updates on the millennium client
@@ -15,22 +19,82 @@ const char* current_app_version = "1.0.1";
 class auto_updater {
 private:
     const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-binaries/releases/latest";
+    const char* installer_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/releases/latest";
 
-    std::string github_response;
+    struct installer {
+        std::string installer_name;
+        std::string cdn_filepath;
+    } installer;
+
+    std::string github_response, installer_response;
     HINTERNET request_buffer = NULL;
     HINTERNET connection = NULL;
-
 public:
     /// <summary>
     /// create internet handle to connect to the GitHub repo
     /// </summary>
     auto_updater() {
         connection = InternetOpenA("millennium.updater", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-        request_buffer = InternetOpenUrlA(connection, repo_url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
 
-        if (!request_buffer || !connection) {
+        if (!connection) {
             InternetCloseHandle(connection);
         }
+    }
+
+    __declspec(noinline) std::string __fastcall get_millennium_installer(void) {
+        request_buffer = InternetOpenUrlA(connection, installer_url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
+
+        const int buffer_size = 4096;
+        char buffer[buffer_size] = {};
+        unsigned long read = 0;
+
+        while (InternetReadFile(request_buffer, buffer, sizeof(buffer), &read) && read > 0) installer_response.append(buffer, read);
+
+        nlohmann::basic_json<> response = nlohmann::json::parse(installer_response);
+
+        for (const auto& item : response["assets"])
+        {
+            if (item["name"].get<std::string>().find(".exe") == std::string::npos)
+                continue;
+
+            installer.installer_name = item["name"].get<std::string>();
+            installer.cdn_filepath = item["browser_download_url"].get<std::string>();
+
+            return item["browser_download_url"].get<std::string>();
+        }
+    }
+
+    void download_installer_and_run(void)
+    {
+        HINTERNET hInternet = InternetOpenA("millennium.installer", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+        HINTERNET hConnect = InternetOpenUrlA(hInternet, installer.cdn_filepath.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+        HANDLE hFile = CreateFileA(std::format("./{}", installer.installer_name).c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+        if (!hConnect || !hInternet)
+            return;
+
+        if (hFile == INVALID_HANDLE_VALUE)
+            return;
+
+        constexpr int bufferSize = 4096;
+        char buffer[bufferSize];
+        DWORD bytesRead = 0;
+
+        while (InternetReadFile(hConnect, buffer, bufferSize, &bytesRead) && bytesRead > 0)
+        {
+            DWORD bytesWritten;
+            WriteFile(hFile, buffer, bytesRead, &bytesWritten, NULL);
+        }
+
+        CloseHandle(hFile);
+
+        STARTUPINFOA startupInfo = { sizeof(startupInfo) };
+        PROCESS_INFORMATION processInfo;
+
+        CreateProcessA(installer.installer_name.c_str(), (LPSTR)"-update", NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, &processInfo);
+
+        InternetCloseHandle(hConnect);
+        InternetCloseHandle(hInternet);
     }
 
     /// <summary>
@@ -39,13 +103,15 @@ public:
     /// <param name=""></param>
     /// <returns></returns>
     __declspec(noinline) bool __fastcall update_required(void) {
+        request_buffer = InternetOpenUrlA(connection, repo_url, NULL, 0, INTERNET_FLAG_RELOAD, 0);
+
         const int buffer_size = 4096;
         char buffer[buffer_size] = {};
         unsigned long read = 0;
 
         while (InternetReadFile(request_buffer, buffer, sizeof(buffer), &read) && read > 0) github_response.append(buffer, read);
 
-        if (github_response.empty() || nlohmann::json::parse(github_response)["tag_name"].get<std::string>() == current_app_version) {
+        if (github_response.empty() || nlohmann::json::parse(github_response)["tag_name"].get<std::string>() == millennium_version) {
             return false;
         }
         return true;
@@ -64,22 +130,54 @@ public:
     }
 };
 
-class millennium
+/// <summary>
+/// thread to display the console header
+/// </summary>
+/// <param name=""></param>
+/// <returns></returns>
+unsigned long long __stdcall console_header(void*)
+{
+    static void* cpuQuery, * cpuTotal;
+
+    PdhOpenQueryA(NULL, NULL, &cpuQuery);
+    PdhAddEnglishCounter(cpuQuery, (LPCSTR)"\\Processor(_Total)\\% Processor Time", NULL, &cpuTotal);
+    PdhCollectQueryData(cpuQuery);
+
+    while (true)
+    {
+        PDH_FMT_COUNTERVALUE counterVal;
+
+        PdhCollectQueryData(cpuQuery);
+        PdhGetFormattedCounterValue(cpuTotal, PDH_FMT_DOUBLE, NULL, &counterVal);
+
+        SetConsoleTitleA((LPCSTR)(
+            std::format(
+                "millennium+prod.client-v{} [steam-ppid-cpu-usage:{}%]",
+                millennium_version,
+                (std::round(counterVal.doubleValue * 100) / 100)
+            )
+            ).c_str());
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
+class main
 {
 private:
     auto_updater millennium_updater;
-    millennium() {}
+    main() {}
 public:
 
     //create singleton instance of millennium
-    static millennium& get_instance()
+    static main& get_instance()
     {
-        static millennium instance;
+        static main instance;
         return instance;
     }
 
-    millennium(const millennium&) = delete;
-    millennium& operator=(const millennium&) = delete;
+    main(const main&) = delete;
+    main& operator=(const main&) = delete;
 
     /// <summary>
     /// check if the cef remote debugging is enabled
@@ -109,8 +207,9 @@ public:
     {
         //if (millennium_updater.update_required())
         //{
-        //    MessageBoxA(GetForegroundWindow(), "A new version of the patcher is available!\nYou are required to download the latest release in order for millennium to load.\nRun the installer on the github page to download the new release", "Millennium - Updater", MB_OK | MB_ICONINFORMATION);
-        //    ShellExecute(NULL, "open", "https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest", NULL, NULL, SW_SHOWNORMAL);
+        //    millennium_updater.get_millennium_installer();
+        //    millennium_updater.download_installer_and_run();
+
         //    return true;
         //}
 
@@ -122,6 +221,8 @@ public:
             {
                 void(freopen("CONOUT$", "w", stdout));
             }
+
+            CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(console_header), NULL, NULL, NULL);
         }
 
         //discard the value of the thread object in stack memory 
@@ -138,44 +239,10 @@ public:
 unsigned long __cdecl thread_callback_wrapper(void* lpParam)
 {
     const auto threadCallback = [](LPVOID lpParam) -> DWORD {
-        return millennium::get_instance().bootstrap(lpParam);
+        return main::get_instance().bootstrap(lpParam);
     };
 
     return threadCallback(lpParam);
-}
-
-/// <summary>
-/// thread to display the console header
-/// </summary>
-/// <param name=""></param>
-/// <returns></returns>
-unsigned long long __stdcall console_header(void*)
-{
-    static void *cpuQuery, *cpuTotal;
-
-    PdhOpenQueryA(NULL, NULL, &cpuQuery);
-    PdhAddEnglishCounter(cpuQuery, (LPCSTR)"\\Processor(_Total)\\% Processor Time", NULL, &cpuTotal);
-    PdhCollectQueryData(cpuQuery);
-    // runs an iteration every 1 second
-    while (true)
-    {
-        PDH_FMT_COUNTERVALUE counterVal;
-
-        PdhCollectQueryData(cpuQuery);
-        PdhGetFormattedCounterValue(cpuTotal, PDH_FMT_DOUBLE, NULL, &counterVal);
-
-        SetConsoleTitleA((LPCSTR)(
-            std::format(
-                "millennium+prod.client-v{} [steam-ppid-cpu-usage:{}%, millennium-cpu:{}%]", 
-                current_app_version, 
-                (std::round(counterVal.doubleValue * 100) / 100),
-                //assume maximum memory allocation on the heap relative to file size which is relative to max friendly cpu usage, (slightly off)
-                ((std::round((counterVal.doubleValue * 100) * 0.18) / 100))
-            )
-        ).c_str());
-
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
 }
 
 /// <summary>
@@ -191,7 +258,7 @@ millennium_entry_point DllMain(void*, DWORD call, void*)
     if (call == DLL_PROCESS_ATTACH)
     {
         //check if the remote debugger is enabled on steam, if not close
-        if (!millennium::check_debugger())
+        if (!main::check_debugger())
         {
             MessageBoxA(GetForegroundWindow(), "Restart Steam", "Millennium", MB_ICONINFORMATION);
             void(__fastfail(false));
@@ -199,7 +266,7 @@ millennium_entry_point DllMain(void*, DWORD call, void*)
 
         //otherwise start millennium
         CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(thread_callback_wrapper), NULL, NULL, NULL);
-        CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(console_header), NULL, NULL, NULL);
+        CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(init_main_window), NULL, NULL, NULL);
     }
 
     return true;

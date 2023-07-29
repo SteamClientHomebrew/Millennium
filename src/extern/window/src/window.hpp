@@ -1,14 +1,23 @@
 #pragma once
 
 #include <d3d9.h>
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/imgui_impl_dx9.h>
-#include <vendor/imgui/imgui_impl_win32.h>
+#include <extern/window/imgui/imgui.h>
+#include <extern/window/imgui/imgui_impl_dx9.h>
+#include <extern/window/imgui/imgui_impl_win32.h>
 
-#include <D3dx9tex.h>
-#include <vendor/imgui/imgui_internal.h>
+//#include <D3dx9tex.h>
+#include <extern/window/imgui/imgui_internal.h>
 #pragma comment(lib, "d3dx9.lib")
 #pragma comment(lib, "d3d9.lib")
+
+extern bool OverlayShowing;
+extern bool InitPos;
+struct icons
+{
+    PDIRECT3DTEXTURE9 store, library, settings, trash_icon, skin_icon, reload_icon, icon_no_results;
+
+    PDIRECT3DTEXTURE9 check_mark_checked, check_mark_unchecked;
+};
 
 class WindowClass
 {
@@ -18,10 +27,13 @@ public:
     static void StartApplication(std::string path);
 
     static LPDIRECT3DDEVICE9 GetDevice();
-    static PDIRECT3DTEXTURE9 GetIcon();
+    static icons GetIcon();
 };
 
 void CenterModal(ImVec2 size);
+
+static ImFont* text_header;
+static ImFont* text_normal;
 
 //GUI helpers
 void Center(float avail_width, float element_width, float padding = 15);
@@ -34,6 +46,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 class Application
 {
 public:
+    static void InitShowWindow();
     static bool Create(std::string& m_window_title, void (*Handler)(void));
     ~Application(); // TODO
 };

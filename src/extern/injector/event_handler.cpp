@@ -1,17 +1,19 @@
+﻿#define _WINSOCKAPI_   
 #include <stdafx.h>
-#include <extern/injector/inject.hpp>
+
+//websocket includes used to listen on sockets
+#include <websocketpp/config/asio_client.hpp>
+#include <websocketpp/client.hpp>
+
+#include <extern/injector/event_handler.hpp>
 #include <include/config.hpp>
 #include <extern/steam/cef_manager.hpp>
 #include <extern/ipc/steamipc.hpp>
 #include <include/json.hpp>
 
-//create terminate flag accessible from all thread
-std::atomic<bool> thread_terminate_flag(false);
-
 namespace websocket = boost::beast::websocket;
 using namespace boost;
 
-skin_config config;
 using tcp = boost::asio::ip::tcp;
 
 nlohmann::basic_json<> skin_json_config;
@@ -73,6 +75,36 @@ private:
     /// <param name="title">the title of the cef page to inject into</param>
     inline const void patch(std::string title) noexcept
     {    
+        //inject millennium in steam context menu (not language dependant)
+        if (title == "Steam Root Menu")
+        {
+            console.log("Injecting millennium into Steam Root Menu");
+
+            std::string ipc_port = std::to_string(steam_client::get_ipc_port());
+
+            std::string javascript = R"(
+            (function() {
+		        new MutationObserver((_, observer) => {
+			        const menu = document.querySelector(`[class*='contextmenu_contextMenuContents_2y2tU']`);
+			        if (menu) {
+                        const millennium = new WebSocket('ws://localhost:)" + ipc_port + R"(');
+
+                        const btn = Array.from(menu.children).slice(-2)[1].cloneNode(true); // true means clone all child nodes
+                        btn.innerText = "Millennium | Steam v)" + millennium_version + R"("
+                        btn.addEventListener('click', () => millennium.send(JSON.stringify({open_millennium: true})));
+
+                        menu.insertBefore(Array.from(menu.children).slice(-2)[0].cloneNode(true), menu.firstChild);
+                        menu.insertBefore(btn, menu.firstChild);
+
+                        observer.disconnect();
+			        }
+		        }).observe(document, { childList: true, subtree: true });
+	        })())";
+
+            //steam_interface.evaluate(socket, javascript, steam_interface.script_type::javascript, socket_response);
+            steam_interface.push_to_socket(socket, javascript, socket_response["sessionId"]);
+        }
+
         if (skin_json_config["config_fail"]) {
             if (registry::get_registry("active-skin") != "default") 
                 console.err("couldn't get config from selected skin");
@@ -261,8 +293,8 @@ private:
     const void socket_handshake(boost::beast::websocket::stream<tcp::socket>& socket)
     {
         //just hope this doesn't fail because async function calling doesn't work for some reason
-        this->socket.handshake(endpoints.debugger.host(), network::uri::uri(
-            static_cast<json_str>(steam_interface.discover(endpoints.debugger.string()+"/json/version"))
+        this->socket.handshake(uri.debugger.host(), network::uri::uri(
+            static_cast<json_str>(steam_interface.discover(uri.debugger.string()+"/json/version"))
             ["webSocketDebuggerUrl"]
         ).path());
     }
@@ -271,7 +303,7 @@ private:
     {
         asio::async_connect(
             socket.next_layer(),
-            resolver.resolve(endpoints.debugger.host(), endpoints.debugger.port()),
+            resolver.resolve(uri.debugger.host(), uri.debugger.port()),
         //callback on the connection
         [this](const boost::system::error_code& error_code, const asio::ip::tcp::endpoint&) {
             if (error_code) {
@@ -431,7 +463,13 @@ public:
             socket_helpers::async_read_socket(socket, buffer, handle_read);
         };
         socket_helpers::async_read_socket(socket, buffer, handle_read);
-        io_context.run();
+        
+        try { 
+            io_context.run(); 
+        }
+        catch (std::exception& ex) {
+            MessageBoxA(0, ex.what(), 0, 0);
+        }           
     }
 };
 
@@ -513,12 +551,12 @@ private:
         asio::ip::tcp::resolver resolver(io_context);
 
         boost::network::uri::uri socket_url(page["webSocketDebuggerUrl"].get<std::string>());
-        boost::asio::connect(socket.next_layer(), resolver.resolve(endpoints.debugger.host(), endpoints.debugger.port()));
+        boost::asio::connect(socket.next_layer(), resolver.resolve(uri.debugger.host(), uri.debugger.port()));
 
         //connect to the socket associated with the page directly instead of using browser instance.
         //this way after the first injection we can inject immediately into the page because we don't need to wait for the title 
         //of the remote page, we can just inject into it in a friendly way
-        socket.handshake(endpoints.debugger.host(), socket_url.path());
+        socket.handshake(uri.debugger.host(), socket_url.path());
 
         //activate page settings needed
         this->page_settings(socket);
@@ -599,7 +637,7 @@ public:
             if (skin_json_config["config_fail"])
                 return;
 
-            json_str instances = steam_interface.discover(endpoints.debugger.string()+"/json");
+            json_str instances = steam_interface.discover(uri.debugger.string()+"/json");
             std::vector<std::thread> threads;
 
             // Iterate over instances and addresses to create threads
@@ -738,5 +776,6 @@ unsigned long __stdcall Initialize(void*)
     //create steamclient object
     steam_client ISteamHandler;
     watcher.join();
+
     return true;
 }

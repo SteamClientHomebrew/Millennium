@@ -1,22 +1,30 @@
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <iostream>
 
+#include <window/memory.h>
 #include <window/window.hpp>
 #include <vendor/imgui/imgui_internal.h>
 #define Region ImGui::GetContentRegionAvail()
+#define VW ImGui::GetWindowWidth()
+#define VH ImGui::GetWindowHeight()
 
 #include <psapi.h>
 #include <filesystem>
 #include <nlohmann/json.hpp>
+#include <DbgHelp.h>
 
 #include <wininet.h>
 #pragma comment(lib, "wininet.lib")
 #include <Shlwapi.h>
+#include <strsafe.h>
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Psapi.lib")
 #pragma comment(lib, "Advapi32.lib")
 #pragma comment(lib, "Shell32.lib")
+#include <Psapi.h>
+#pragma comment(lib, "Psapi.lib")
+#include <TlHelp32.h>
 
 std::stringstream standard_out;
 
@@ -29,6 +37,14 @@ static bool show_accept_tos_popup = false;
 static int selected_option = 0;
 
 const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-steam-binaries/releases/latest";
+bool is_auto_installer = static_cast<std::string>(GetCommandLineA()).find("-update") != std::string::npos;
+static float progress;
+
+int download_iteration = 0;
+int downloads_length = 0;
+
+static std::string current_name;
+
 
 std::string get_steam_install_path()
 {
@@ -67,16 +83,17 @@ public:
 		}
 	}
 
+	inline std::string get_github()
+	{
+		while (InternetReadFile(request_buffer, buffer, sizeof(buffer), &total_bytes_read) && total_bytes_read > 0) {
+			github_response.append(buffer, total_bytes_read);
+		}
+
+		return github_response;
+	}
+
 	inline void download_millennium()
 	{
-		while (InternetReadFile(request_buffer, buffer, sizeof(buffer), &total_bytes_read) && total_bytes_read > 0) { 
-			github_response.append(buffer, total_bytes_read); 
-		}
-
-		if (github_response.empty()) {
-			return;
-		}
-
 		nlohmann::json response = nlohmann::json::parse(github_response);
 
 		if (response.contains("message") && response["message"].get<std::string>() == "Not Found")
@@ -92,9 +109,15 @@ public:
 		std::cout << "Patch notes:\n" << notes << std::endl;
 		std::cout << "Evaluating " << response["assets"].size() << " files to download" << std::endl;
 
+		downloads_length = response["assets"].size();
+
 		for (nlohmann::basic_json<>& item : response["assets"])
 		{
+			download_iteration++;
+
 			auto startTime = std::chrono::high_resolution_clock::now();
+
+			current_name = item["name"].get<std::string>();
 
 			std::string name = item["name"].get<std::string>();
 			std::string download = item["browser_download_url"].get<std::string>();
@@ -120,9 +143,15 @@ public:
 
 			DWORD bytesRead;
 			BYTE buffer[1024];
+			DWORD totalBytesRead = 0;
+			DWORD totalBytesExpected = item["size"].get<int>();
+
 			while (InternetReadFile(hConnection, buffer, sizeof(buffer), &bytesRead) && bytesRead > 0) {
 				DWORD bytesWritten;
 				WriteFile(hFile, buffer, bytesRead, &bytesWritten, NULL);
+				totalBytesRead += bytesRead;
+
+				progress = static_cast<float>(totalBytesRead) / static_cast<float>(totalBytesExpected);
 			}
 
 			CloseHandle(hFile);
@@ -135,6 +164,17 @@ public:
 
 		std::cout << "--------------------------------" << std::endl;
 		std::cout << "Installation completed. You can now start Steam" << std::endl;
+
+		if (is_auto_installer)
+		{
+			STARTUPINFO si = { sizeof(si) };
+			PROCESS_INFORMATION pi;
+
+			if (CreateProcess(NULL, const_cast<char*>(std::format("{}/steam.exe", get_steam_install_path()).c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+			{
+				exit(1);
+			}
+		}
 	}
 
 	~downloader()
@@ -143,6 +183,10 @@ public:
 		InternetCloseHandle(connection);
 	}
 };
+
+downloader download;
+
+static nlohmann::basic_json<> github_data = nlohmann::json::parse(download.get_github());
 
 bool steam_running()
 {
@@ -216,7 +260,6 @@ DWORD __stdcall install_millennium(void*)
 	}
 	else install_success = true;
 
-	downloader download;
 	download.download_millennium();
 }
 
@@ -431,70 +474,247 @@ public:
 		ImGui::PopStyleVar();
 	}
 
-	__declspec(noinline)static void Render(void)
+	__declspec(noinline) static void __fastcall Render(void)
 	{
-		if (current_page == 1)
-			tos_agreement_page();
-		else if (current_page == 2)
-			select_option_page();
-		else if (current_page == 3)
-			console_page();
+		auto center = [](float avail_width, float element_width, float padding = 0) { ImGui::SameLine((avail_width / 2) - (element_width / 2) + padding); };
+		auto center_text = [&](const char* format, float spacing = 15, ImColor color = ImColor(255, 255, 255)) { center(ImGui::GetContentRegionAvail().x, ImGui::CalcTextSize(format).x); ImGui::SetCursorPosY(ImGui::GetCursorPosY() + spacing);	ImGui::TextColored(color.Value, format); };
 
-		CenterModal(ImVec2(200, 125));
-		if (ImGui::BeginPopupModal(" Choose an option", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+		if (is_auto_installer)
 		{
-			ImGui::TextWrapped("You must choose an option to proceed.");
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 
-			ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close").x - 5);
-			ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 23);
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10, 0.10, 0.10, 1.00f));
 
-			if (ImGui::Button("Close")) {
-				ImGui::CloseCurrentPopup();
+			if (ImGui::BeginChild("##left_side", ImVec2(Region.x / 2 - (ImGui::GetStyle().ItemSpacing.x / 2), Region.y), false))
+			{
+				center(ImGui::GetContentRegionAvail().x, 45);
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 45);
+
+				ImGui::Image((void*)WindowClass::GetIcon(), ImVec2(45, 45));
+
+				center_text(std::format("Millennium v{}", github_data["tag_name"].get<std::string>()).c_str(), 55);
+
+				static int button_width = 125;
+
+				center(ImGui::GetContentRegionAvail().x, button_width);
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 25);
+
+				static bool is_downloading = false;
+
+				if (ImGui::Button("Install", ImVec2(button_width, 23)))
+				{
+					is_downloading = true;
+
+					std::make_shared<std::thread>([&] {
+						download.download_millennium();
+					})->detach();
+				}
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("Install the latest version of Millennium to Steam.\nKeeping Millennium up to date is required.");
+					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+				}
+				
+				if (is_downloading)
+				{
+					ImGui::SetCursorPosY(VH - 25);
+
+					if (ImGui::BeginChild("###download_box", ImVec2(Region.x, 25), false))
+					{
+						if (download_iteration == downloads_length)
+						{
+							ImGui::Text("Done! Cleaning up...  ");
+							ImGui::SameLine();
+							ImGui::Spinner("###loading", 5, 2, ImGui::GetColorU32(ImGuiCol_CheckMark));
+						}
+						else
+						{
+							ImGui::Text(std::format("[{} of {} files] {}", download_iteration, downloads_length, current_name).c_str());
+						}
+						ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
+
+						ImGui::ProgressBar(progress, ImVec2(Region.x - 7, 4));
+
+						ImGui::EndChild();
+					}
+				}
+
+				ImGui::EndChild();
 			}
-			ImGui::EndPopup();
-		}
-
-
-		CenterModal(ImVec2(215, 150));
-		if (ImGui::BeginPopupModal(" Reset Warning", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
-		{
-			ImGui::TextWrapped("Resetting your settings will delete everything related to millennium. This means you skins will also be deleted.\n\nProceed?");
-
-			ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Cancel").x - 65);
-			ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 23);
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5, 0));
-
-			if (ImGui::Button("Confirm")) {
-				reset_millennium();
-				ImGui::CloseCurrentPopup();
-				show_accept_tos_popup = false;
-			}
+			ImGui::PopStyleColor();
 			ImGui::SameLine();
-			if (ImGui::Button("Cancel")) {
-				std::cout << "[INFO] Aborting reset..." << std::endl;
-				ImGui::CloseCurrentPopup();
-				show_accept_tos_popup = false;
+
+			if (ImGui::BeginChild("##right_side", Region, true))
+			{
+				ImGui::Text("Patch Notes:");
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5);
+				ImGui::Separator();
+
+				ImGui::TextWrapped(github_data["body"].get<std::string>().c_str());
+
+				ImGui::EndChild();
 			}
+
 			ImGui::PopStyleVar();
-			ImGui::EndPopup();
 		}
+		else
+		{
+			if (current_page == 1)
+				tos_agreement_page();
+			else if (current_page == 2)
+				select_option_page();
+			else if (current_page == 3)
+				console_page();
+
+			CenterModal(ImVec2(200, 125));
+			if (ImGui::BeginPopupModal(" Choose an option", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+			{
+				ImGui::TextWrapped("You must choose an option to proceed.");
+
+				ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close").x - 5);
+				ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 23);
+
+				if (ImGui::Button("Close")) {
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
+
+
+			CenterModal(ImVec2(215, 150));
+			if (ImGui::BeginPopupModal(" Reset Warning", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+			{
+				ImGui::TextWrapped("Resetting your settings will delete everything related to millennium. This means you skins will also be deleted.\n\nProceed?");
+
+				ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Cancel").x - 65);
+				ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 23);
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5, 0));
+
+				if (ImGui::Button("Confirm")) {
+					reset_millennium();
+					ImGui::CloseCurrentPopup();
+					show_accept_tos_popup = false;
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel")) {
+					std::cout << "[INFO] Aborting reset..." << std::endl;
+					ImGui::CloseCurrentPopup();
+					show_accept_tos_popup = false;
+				}
+				ImGui::PopStyleVar();
+				ImGui::EndPopup();
+			}
+		}	
 	}
 };
 
+std::string GetStackTraceString()
+{
+	constexpr int maxFrames = 64;
+	void* frames[maxFrames];
+
+	// Capture the stack trace
+	USHORT numFrames = CaptureStackBackTrace(0, maxFrames, frames, nullptr);
+
+	// Load symbols for the captured addresses
+	SymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_INCLUDE_32BIT_MODULES | SYMOPT_UNDNAME);
+	SymInitialize(GetCurrentProcess(), nullptr, TRUE);
+
+	std::ostringstream oss;
+	oss << "Stack Trace:" << std::endl;
+
+	// Resolve symbols and append to the stack trace string
+	for (USHORT i = 0; i < numFrames; ++i)
+	{
+		DWORD_PTR address = reinterpret_cast<DWORD_PTR>(frames[i]);
+		CHAR symbolBuffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+		SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(symbolBuffer);
+		symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+		symbol->MaxNameLen = MAX_SYM_NAME;
+
+		if (SymFromAddr(GetCurrentProcess(), address, nullptr, symbol))
+		{
+			oss << "[" << i << "] " << symbol->Name << "()" << std::endl;
+		}
+		else
+		{
+			oss << "[" << i << "] <symbol not found>" << std::endl;
+		}
+	}
+
+	SymCleanup(GetCurrentProcess());
+
+	return oss.str();
+}
+
 int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-	std::streambuf* originalCoutBuffer = std::cout.rdbuf();
-	std::cout.rdbuf(standard_out.rdbuf());
+	try
+	{
+		if (is_auto_installer)
+		{
+			const char* processName = "steam.exe";
 
-	terms_of_service terms;
-	terms_and_conditions = terms.get_tos();
+			DWORD processId = 0;
+			HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+			if (hProcessSnap != INVALID_HANDLE_VALUE)
+			{
+				PROCESSENTRY32 pe32;
+				pe32.dwSize = sizeof(PROCESSENTRY32);
 
-	WindowClass::WindowTitle({ (char*)"Project-Millennium" });
-	WindowClass::WindowDimensions(ImVec2({ 450, 300 }));
+				if (Process32First(hProcessSnap, &pe32))
+				{
+					do {
+						if (strcmp(pe32.szExeFile, processName) == 0)
+						{
+							processId = pe32.th32ProcessID;
+							break;
+						}
+					} while (Process32Next(hProcessSnap, &pe32));
+				}
 
-	std::string title = "###";
+				CloseHandle(hProcessSnap);
+			}
 
-	Application::Create(title, &Handler::Render);
+			if (processId != 0)
+			{
+				HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, processId);
+				if (hProcess != NULL)
+				{
+					TerminateProcess(hProcess, 0);
+					CloseHandle(hProcess);
+				}
+			}
+
+			WindowClass::WindowTitle({ (char*)u8"Installer.Millennium.Prod+v1.0.0" });
+			WindowClass::WindowDimensions(ImVec2({ 450, 300 }));
+
+			std::string title = "###";
+
+			Application::Create(title, &Handler::Render);
+		}
+		else
+		{
+			std::streambuf* originalCoutBuffer = std::cout.rdbuf();
+			std::cout.rdbuf(standard_out.rdbuf());
+
+			terms_of_service terms;
+			terms_and_conditions = terms.get_tos();
+
+			WindowClass::WindowTitle({ (char*)"Millennium Installer" });
+			WindowClass::WindowDimensions(ImVec2({ 450, 300 }));
+
+			std::string title = "###";
+
+			Application::Create(title, &Handler::Render);
+		}
+	}
+	catch (std::exception& ex)
+	{
+		MessageBoxA(0, std::format("fatal error occured when trying to run the installer.\n\n[ERROR]{}\n\n[STACK:TRACE]{}\n\nTake a screen shot of the problem and report it in the server if you are stumped\nMy automatic guess would be the download api is unavailable or you dont have internet access", ex.what(), GetStackTraceString().c_str()).c_str(), "Millennium - ERROR", MB_ICONERROR);
+	}
 
 	return true;
 }

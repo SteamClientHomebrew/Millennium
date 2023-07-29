@@ -1,11 +1,12 @@
 #pragma once
 #include <include/logger.hpp>
+#include <shellapi.h>
+#include <extern/window/src/window.hpp>
 
 using tcp = boost::asio::ip::tcp;
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
-skin_config skinConfig;
 namespace websocket = boost::beast::websocket;
 
 /// <summary>
@@ -16,13 +17,14 @@ class functions
 {
 public:
     steam_js_context js_context;
+
     /// <summary>
     /// update skin selection, requires skin name, and it to exist
     /// </summary>
     /// <param name="skin_update_name"></param>
     inline void update_skin(std::string skin_update_name)
     {
-        std::string disk_path = std::format("{}/{}/skin.json", skinConfig.get_steam_skin_path(), skin_update_name);
+        std::string disk_path = std::format("{}/{}/skin.json", config.get_steam_skin_path(), skin_update_name);
 
         //whitelist the default skin
         if (skin_update_name == "default" || std::filesystem::exists(disk_path)) 
@@ -45,7 +47,7 @@ public:
     const inline void respond_skins(websocket::stream<tcp::socket>& ws)
     {
         //get steam skins path
-        std::string steam_skin_path = skinConfig.get_steam_skin_path();
+        std::string steam_skin_path = config.get_steam_skin_path();
         nlohmann::json data, skins;
 
         //search all folders in the skins directory and assume they are valid skin
@@ -89,7 +91,7 @@ public:
     /// </summary>
     inline void open_skin_folder()
     {
-        ShellExecute(NULL, "open", std::string(skinConfig.get_steam_skin_path()).c_str(), NULL, NULL, SW_SHOWNORMAL);
+        ShellExecute(NULL, "open", std::string(config.get_steam_skin_path()).c_str(), NULL, NULL, SW_SHOWNORMAL);
     }
 
     /// <summary>
@@ -149,10 +151,22 @@ private:
             {
                 if (read_error) return;
 
+
+
                 auto* skin_helpers = new functions;
 
                 //parse the message and convert it to the enum type
                 nlohmann::basic_json<> msg = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
+                //bool mill = msg["open_millennium"].get<bool>();
+
+                //if (msg["open_millennium"].get<bool>())
+                //{
+                //    console.log("opening Millennium");
+
+                //    OverlayShowing = true;
+                //    InitPos = false;
+                //}
+
                 ipc_types ipc_message = static_cast<ipc_types>(msg["type"].get<int>());
 
                 console.log(std::format("[{}()] was called with ipc message -> {}", __func__, self->enum_tostr(ipc_message)));
@@ -169,6 +183,8 @@ private:
                 }
 
                 delete skin_helpers;
+
+                //delete skin_helpers;
                 self->buffer_.consume(bytes_transferred);
                 self->read_request_payload();
             });

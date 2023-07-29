@@ -1,9 +1,10 @@
+#include <stdafx.h>
 #include <string>
 
-#include <window/window.hpp>
+#include <extern/window/src/window.hpp>
 
-#include <vendor/imgui/imgui.h>
-#include <vendor/imgui/imgui_internal.h>
+#include <extern/window/imgui/imgui.h>
+#include <extern/window/imgui/imgui_internal.h>
 #include <vector>
 
 #include <iostream>
@@ -13,23 +14,27 @@
 
 //includes default font used by app
 #include <strsafe.h>
-#include <window/memory.h>
+#include <extern/window/src/memory.h>
+
+#include <d3d9.h>
+#include <d3dx9tex.h>
 
 #pragma comment(lib, "winmm.lib")
 
-PDIRECT3DTEXTURE9 icon = NULL;
+bool OverlayShowing = false;
+bool InitPos = false;
+
+icons icons_struct = {};
 static bool is_auto_installer = static_cast<std::string>(GetCommandLineA()).find("-update") != std::string::npos;
 
-PDIRECT3DTEXTURE9 WindowClass::GetIcon()
+icons WindowClass::GetIcon()
 {
-    return icon;
+    return icons_struct;
 }
-
 
 void SetTheme();
 
 static bool WindowOpen = true;
-bool OverlayShowing = true;
 
 struct OverlayWindow {
     WNDCLASSEX WindowClass;
@@ -136,10 +141,10 @@ void Center_Text(const char* format, float spacing, ImColor color) {
 }
 static ImVec2 ScreenRes, WindowPos;
 
-bool LoadTexture(PDIRECT3DTEXTURE9* out_texture, int* out_width, int* out_height)
+bool LoadTexture(PDIRECT3DTEXTURE9* out_texture, LPCVOID data_src, size_t data_size)
 {
     PDIRECT3DTEXTURE9 texture;
-    HRESULT hr = D3DXCreateTextureFromFileInMemory(WindowClass::GetDevice(), Memory::millennium_icon, sizeof Memory::millennium_icon, &texture);
+    HRESULT hr = D3DXCreateTextureFromFileInMemory(WindowClass::GetDevice(), data_src, data_size, &texture);
     if (hr != S_OK) return false;
 
     D3DSURFACE_DESC my_image_desc;
@@ -149,6 +154,40 @@ bool LoadTexture(PDIRECT3DTEXTURE9* out_texture, int* out_width, int* out_height
     return true;
 }
 
+void MoveWindowToCenter()
+{
+    RECT rectClient, rectWindow;
+    HWND hWnd = Overlay.Hwnd;
+    GetClientRect(hWnd, &rectClient);
+    GetWindowRect(hWnd, &rectWindow);
+
+    int width = rectWindow.right - rectWindow.left;
+    int height = rectWindow.bottom - rectWindow.top;
+
+    MoveWindow(
+        hWnd,
+        GetSystemMetrics(SM_CXSCREEN) / 2 - (width) / 2, GetSystemMetrics(SM_CYSCREEN) / 2 - (height) / 2,
+        rectClient.right - rectClient.left, rectClient.bottom - rectClient.top, TRUE);
+}
+
+void Application::InitShowWindow()
+{
+    std::cout << "Application::InitShowWindow()" << std::endl;
+
+    ImVec2 ScreenRes{ 0, 0 };
+
+    RECT ScreenRect;
+    GetWindowRect(GetDesktopWindow(), &ScreenRect);
+    ScreenRes = ImVec2(float(ScreenRect.right), float(ScreenRect.bottom));
+
+    ImGui::SetNextWindowPos(ImVec2(
+        (ScreenRes.x - appinfo.width) * 0.5f, 
+        (ScreenRes.y - appinfo.height) * 0.5f
+    ));
+
+    SetForegroundWindow(Overlay.Hwnd);
+}
+
 bool Application::Create(std::string& m_window_title, void (*Handler)(void))
 {
     Overlay.Name = { appinfo.Title.c_str() };
@@ -156,31 +195,29 @@ bool Application::Create(std::string& m_window_title, void (*Handler)(void))
 
     (ATOM)RegisterClassExA(&Overlay.WindowClass);
 
-    Overlay.Hwnd = CreateWindowA(Overlay.Name, Overlay.Name, WS_POPUP, 0, 0, appinfo.width, appinfo.height, NULL, NULL, Overlay.WindowClass.hInstance, NULL);
+    Overlay.Hwnd = CreateWindowA(Overlay.Name, Overlay.Name, WS_OVERLAPPEDWINDOW, 0, 0, appinfo.width, appinfo.height, NULL, NULL, Overlay.WindowClass.hInstance, NULL);
     if (CreateDeviceD3D(Overlay.Hwnd) == FALSE) { ClearAll(); }
 
-    RECT rc;
-    GetWindowRect(Overlay.Hwnd, &rc);
-
-    int xPos = (GetSystemMetrics(SM_CXSCREEN) - rc.right) / 2;
-    int yPos = (GetSystemMetrics(SM_CYSCREEN) - rc.bottom) / 2;
-
-    SetWindowPos(Overlay.Hwnd, HWND_NOTOPMOST, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-
-    ::ShowWindow(Overlay.Hwnd, SW_SHOW);
-    ::UpdateWindow(Overlay.Hwnd);
+    ::ShowWindow(Overlay.Hwnd, SW_SHOW); ::UpdateWindow(Overlay.Hwnd); ::MoveWindowToCenter();
 
     ImGui::CreateContext();
 
     ImGuiIO* IO = &ImGui::GetIO();
-    IO->Fonts->AddFontFromMemoryTTF(Memory::Poppins, sizeof Memory::Poppins, 16);
+    text_normal = IO->Fonts->AddFontFromMemoryTTF(Memory::Poppins, sizeof Memory::Poppins, 16);
+    text_header = IO->Fonts->AddFontFromMemoryTTF(Memory::Poppins, sizeof Memory::Poppins, 14);
+    IO->Fonts->AddFontFromMemoryTTF(Memory::Poppins, sizeof Memory::Poppins, 20);
+
     IO->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
    
     DirectX9.pParameters.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 	DirectX9.pParameters.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 
-    bool texture = LoadTexture(&icon, 0, 0);
-    IM_ASSERT(texture);
+    LoadTexture(&icons_struct.trash_icon, Memory::trash_icon, sizeof Memory::trash_icon);
+    LoadTexture(&icons_struct.skin_icon, Memory::skin_icon, sizeof Memory::skin_icon);
+    LoadTexture(&icons_struct.check_mark_checked, Memory::icon_check_mark_full, sizeof Memory::icon_check_mark_full);
+    LoadTexture(&icons_struct.check_mark_unchecked, Memory::icon_check_mark_empty, sizeof Memory::icon_check_mark_empty);
+    LoadTexture(&icons_struct.reload_icon, Memory::icon_reload, sizeof Memory::icon_reload);
+    LoadTexture(&icons_struct.icon_no_results, Memory::icon_no_results, sizeof Memory::icon_no_results);
 
     if (ImGui_ImplWin32_Init(Overlay.Hwnd) && ImGui_ImplDX9_Init(DirectX9.pDevice))
     {
@@ -197,19 +234,14 @@ bool Application::Create(std::string& m_window_title, void (*Handler)(void))
             }
 
             ImGui_ImplDX9_NewFrame(); ImGui_ImplWin32_NewFrame();
-
             ImGui::NewFrame();
 
-            if (OverlayShowing)
-            {
-                static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+            static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
 
-                ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
-                ImGui::SetNextWindowSize(ImVec2(appinfo.width, appinfo.height));
+            ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
+            ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
 
-                ImGui::Begin(appinfo.Title.c_str(), is_auto_installer ? nullptr : &OverlayShowing, flags); Handler(); ImGui::End();
-            }
-            else exit(1);
+            ImGui::Begin(appinfo.Title.c_str(), nullptr, flags); Handler(); ImGui::End();
 
             ImGui::EndFrame();
 
@@ -235,31 +267,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_LBUTTONDOWN: {
 
-        if (ImGui::IsAnyItemHovered() == false)
-        {
-            mousedown = true;
-            GetCursorPos(&lastLocation);
-            RECT rect;
-            GetWindowRect(Overlay.Hwnd, &rect);
+        //if (ImGui::IsAnyItemHovered() == false)
+        //{
+        //    mousedown = true;
+        //    GetCursorPos(&lastLocation);
+        //    RECT rect;
+        //    GetWindowRect(Overlay.Hwnd, &rect);
 
-            lastLocation.x = lastLocation.x - rect.left;
-            lastLocation.y = lastLocation.y - rect.top;
-        }
+        //    lastLocation.x = lastLocation.x - rect.left;
+        //    lastLocation.y = lastLocation.y - rect.top;
+        //}
         break;
     }
     case WM_LBUTTONUP: {
-        mousedown = false;
+        //mousedown = false;
         break;
     }
     case WM_MOUSEMOVE: {
-        if (mousedown && ImGui::IsAnyItemHovered() == false) {
-            POINT currentpos;
-            GetCursorPos(&currentpos);
-            int x = currentpos.x - lastLocation.x;
-            int y = currentpos.y - lastLocation.y;
+        //if (mousedown && ImGui::IsAnyItemHovered() == false) {
+        //    POINT currentpos;
+        //    GetCursorPos(&currentpos);
+        //    int x = currentpos.x - lastLocation.x;
+        //    int y = currentpos.y - lastLocation.y;
 
-            MoveWindow(Overlay.Hwnd, x, y, appinfo.width, appinfo.height, false);
-        }
+        //    MoveWindow(Overlay.Hwnd, x, y, appinfo.width, appinfo.height, false);
+        //}
         break;
     }
     case WM_SIZE:
@@ -269,6 +301,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             ResetDevice();
         }
         return 0;
+    case WM_GETMINMAXINFO:
+    {
+        // Set the minimum dimensions when resizing
+        MINMAXINFO* pInfo = (MINMAXINFO*)lParam;
+        pInfo->ptMinTrackSize.x = 750;
+        pInfo->ptMinTrackSize.y = 500;
+        return 0;
+    }
     case WM_SYSCOMMAND:
         if ((wParam & 0xfff0) == SC_KEYMENU)
             return 0;
@@ -283,6 +323,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 void SetTheme()
 {
 	ImGui::GetStyle().FrameRounding = 2.0f;
+	ImGui::GetStyle().ChildRounding = 3.0f;
 	ImGui::GetStyle().GrabRounding = 4.0f;
 	ImGui::GetStyle().ItemSpacing = ImVec2(12, 8);
     ImGui::GetStyle().ScrollbarSize = 8.0f;

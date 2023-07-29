@@ -1,5 +1,17 @@
 #pragma once
-#include <extern/injector/inject.hpp>
+#define _WINSOCKAPI_ // Prevent WinSock.h from being included
+
+#include <winsock2.h>
+
+#include <wininet.h>
+#pragma comment(lib, "Wininet.lib")
+
+//network helpers and other buffer typings to help with socket management
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/network/uri.hpp>
+
+using tcp = boost::asio::ip::tcp;
 
 struct endpoints
 {
@@ -8,7 +20,9 @@ public:
     boost::network::uri::uri steam_resources = boost::network::uri::uri("https://steamloopback.host");
     //steam cef remote debugging endpoint
     boost::network::uri::uri debugger = boost::network::uri::uri("http://127.0.0.1:8080");
-}endpoints;
+};
+
+static endpoints uri;
 
 /// <summary>
 /// javascript helpers when interacting with the DOM
@@ -17,7 +31,8 @@ class cef_dom {
 private:
     class dom_head {
     public:
-        virtual const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string) {
+        virtual const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string)
+        {
             return std::string();
         }
     };
@@ -26,47 +41,18 @@ private:
     /// evaluate scripts from a url host on a js vm
     /// </summary>
     class runtime {
-    public: 
-        const std::string evaluate(std::string remote_url) noexcept {
-            return R"(
-            (() => fetch(')" + remote_url + R"(').then((response) => response.text()).then((data) => { 
-                if (window.usermode === undefined) {
-                    const establishConnection = () => {
-                        const millennium = new WebSocket('ws://localhost:)" + std::to_string(steam_client::get_ipc_port()) + R"(');
-                        millennium.onmessage = (event) => {
-                            if (usermode.ipc && usermode.ipc.onmessage) {
-                                usermode.ipc.onmessage(JSON.parse(event.data));
-                            }
-                        };
-                        return {
-                            send: (message) => {
-                                millennium.send(JSON.stringify(message));
-                            },
-                            onmessage: null
-                        };
-                    };
-                    window.usermode = {
-                        ipc: establishConnection(),
-                        ipc_types: { open_skins_folder: 0, skin_update: 1, open_url: 2, change_javascript: 3, change_console: 4, get_skins: 5 }
-                    };
-                    eval(data);
-                }
-            }))())";
-        }
+    public:
+        const std::string evaluate(std::string remote_url) noexcept;
     };
 
     class stylesheet : public dom_head {
     public:
-        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override {
-            return std::format("!document.querySelectorAll(`link[href='{}']`).length && document.head.appendChild(Object.assign(document.createElement('link'), {{ rel: 'stylesheet', href: '{}' }}));", filename, filename);
-        }
+        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override;
     };
 
     class javascript : public dom_head {
     public:
-        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override {
-            return std::format("!document.querySelectorAll(`script[src='{}'][type='module']`).length && document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module' }}));", filename, filename);
-        }
+        const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override;
     };
 
 public:
@@ -74,10 +60,7 @@ public:
     /// uses a singleton class on the dom for ease of access
     /// </summary>
     /// <returns>cef_dom instance, statically typed</returns>
-    static cef_dom& get() {
-        static cef_dom instance;
-        return instance;
-    }
+    static cef_dom& get();
 
     runtime runtime_handler;
 
@@ -105,8 +88,6 @@ public:
     };
 
     enum script_type { javascript, stylesheet };
-private:
-    const skin_config config;
 
     /// <summary>
     /// https://chromedevtools.github.io/devtools-protocol/tot/Runtime/#method-evaluate
@@ -115,62 +96,14 @@ private:
     /// <param name="socket">steam cef socket, unique to each page</param>
     /// <param name="raw_script">javascript to be executed</param>
     /// <param name="sessionId">socket identifier, if needed (not required for remote webpages)</param>
-    inline void push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId = std::string()) noexcept
-    {
-        try {
-            //include millennium functions
-            const std::string millennium_functions = R"(
-                class millennium{static sharedjscontext_exec(c){const t=new WebSocket(atob('d3M6Ly9sb2NhbGhvc3Q6MzI0Mg==')),r=()=>t.send(JSON.stringify({type:6,content:c}));return new Promise((e,n)=>{t.onopen=r,t.onmessage=t=>(e(JSON.parse(t.data)),t.target.close()),t.onerror=n,t.onclose=()=>n(new Error)})}}window.millennium=millennium;
-            )";
+    void push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId = std::string()) noexcept;
 
-            std::function<void(const std::string&)> runtime_evaluate = [&](const std::string& script) -> void {
-                nlohmann::json evaluate_script = {
-                    {"id", response::script_inject_evaluate},
-                    {"method", "Runtime.evaluate"},
-                    {"params", {{"expression", script}}}
-                };
-
-                if (!sessionId.empty()) evaluate_script["sessionId"] = sessionId;
-                socket.write(boost::asio::buffer(evaluate_script.dump(4)));
-            };
-
-            //inject the script that the user wants
-            runtime_evaluate(raw_script);
-            //inject millennium class functions to help users interact with SharedJSContext (it probably sucks)
-            runtime_evaluate(millennium_functions);
-        }
-        catch (const boost::system::system_error & ex) {
-            //commonly occurs if the socket crashes, happened alot, then stopped not sure why
-            console.err(std::format("the requested operation[{}()] could not be completed\n{}", __func__, ex.what()));
-        }
-    }
-
-public:
     /// <summary>
     /// discover information from remote_endpoint
     /// </summary>
     /// <param name="remote_endpoint">absolute uri</param>
     /// <returns>string value of the result, does not include headers</returns>
-    inline std::string discover(std::basic_string<char, std::char_traits<char>, std::allocator<char>> remote_endpoint)
-    {
-        HINTERNET hInternet = InternetOpenA("millennium.patcher", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-        HINTERNET hUrl = InternetOpenUrlA(hInternet, remote_endpoint.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
-
-        if (!hUrl || !hInternet)
-        {
-            console.err(std::format("the requested operation [{}()] failed. reason: InternetOpen*A was nullptr", __func__));
-            return std::string();
-        }
-
-        char buffer[1024];
-        DWORD total_bytes_read = 0;
-        std::string discovery_result;
-
-        while (InternetReadFile(hUrl, buffer, sizeof(buffer), &total_bytes_read) && total_bytes_read) discovery_result.append(buffer, total_bytes_read);
-        InternetCloseHandle(hUrl); InternetCloseHandle(hInternet);
-
-        return discovery_result;
-    }
+    std::string discover(std::basic_string<char, std::char_traits<char>, std::allocator<char>> remote_endpoint);
 
     /// <summary>
     /// injects millennium into the settings page. its called when the settings page is opened
@@ -178,18 +111,7 @@ public:
     /// <param name="socket">steam socket</param>
     /// <param name="socket_response">used sessionId to target the setting modal</param>
     /// <returns></returns>
-    __declspec(noinline) void __fastcall inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response) noexcept
-    {
-        std::string javascript = "https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/index.js";
-        //std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
-
-        steam_interface.push_to_socket(
-            socket, 
-            //uses js vm to run the javascript code from a url as its too long to send over socket, steamloopbackhost is allowed
-            cef_dom::get().runtime_handler.evaluate(javascript), 
-            socket_response["sessionId"].get<std::string>()
-        );
-    }
+    __declspec(noinline) void __fastcall inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response) noexcept;
 
     /// <summary>
     /// interface to inject js into a cef instance
@@ -198,39 +120,11 @@ public:
     /// <param name="file">the remote or local endpoint to a file</param>
     /// <param name="type">javascript or stylesheet injections from script_type</param>
     /// <param name="socket_response">if not null, its assumed to use sessionId (i.e for client handling)</param>
-    inline const void evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL)
-    {
-        if (type == script_type::javascript && (registry::get_registry("allow-javascript") == "false")) {
-            console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::javascript is prohibited", __func__));
-            return;
-        }
+    const void evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL);
 
-        //calculate endpoint type, if remote url retain info, if local add loopbackhost
-        if (file.compare(0, 4, "http") != 0) {
-            file = std::format("{}/skins/{}/{}", endpoints.steam_resources.string(), std::string(registry::get_registry("active-skin")), file);
-        }
+};
 
-        std::optional<std::string> sessionId;
-
-        if (!socket_response.is_null() && socket_response.contains("sessionId")) {
-            sessionId = socket_response["sessionId"].get<std::string>();
-        }
-
-        //pass in sessionId if available
-        switch (type)
-        {
-        case script_type::javascript:
-            steam_interface.push_to_socket(socket, cef_dom::get().javascript_handler.add(file).data(), sessionId.value_or(std::string()));
-            break;
-        case script_type::stylesheet:
-            steam_interface.push_to_socket(socket, cef_dom::get().stylesheet_handler.add(file).data(), sessionId.value_or(std::string()));
-            break;
-        default: 
-            throw std::runtime_error("[debug] invalid target scripting type");
-        }
-    }
-
-} steam_interface;
+static steam_cef_manager steam_interface;
 
 /// <summary>
 /// interact with SteamJSContext, which is the host of the steam client, includes functions for the entire steam client under
@@ -246,84 +140,28 @@ private:
     /// connect to the socket of SharedJSContext
     /// </summary>
     /// <param name="callback"></param>
-    const void establish_socket_handshake(std::function<void()> callback)
-    {
-        if (callback == nullptr)
-            throw std::runtime_error("callback function was nullptr");
-
-        boost::asio::connect(socket.next_layer(), resolver.resolve(endpoints.debugger.host(), endpoints.debugger.port()));
-
-        nlohmann::basic_json<> instances = nlohmann::json::parse(steam_interface.discover(endpoints.debugger.string() + "/json"));
-
-        //instances contains all pages, filter the correct instance
-        auto itr_impl = std::find_if(instances.begin(), instances.end(), [](const nlohmann::json& instance) { 
-            return instance["title"].get<std::string>() == "SharedJSContext"; 
-        });
-        if (itr_impl == instances.end()) { throw std::runtime_error("SharedJSContext wasn't instantiated"); }
-
-        boost::network::uri::uri socket_url((*itr_impl)["webSocketDebuggerUrl"].get<std::string>());
-        socket.handshake(endpoints.debugger.host(), socket_url.path());
-
-        //implicit type converge interrupt_handler
-        static_cast<void>(callback());
-        this->close_socket();
-    }
+    const void establish_socket_handshake(std::function<void()> callback);
 
     //prolonging the socket closure causes socket failure and slow exec times all around
-    inline const void close_socket() noexcept
-    {
-        boost::system::error_code error_code;
-        socket.close(boost::beast::websocket::close_code::normal, error_code);
-    }
-
+    const void close_socket() noexcept;
 public:
 
-    steam_js_context() : socket(io_context), resolver(io_context) {}
+    steam_js_context();
 
     /// <summary>
     /// reload the SteamJSContext, which will reload the steam interface, but not the app
     /// </summary>
-    __declspec(noinline) const void reload() noexcept
-    {
-        establish_socket_handshake([this]() {
-            //https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-reload
-            socket.write(boost::asio::buffer(nlohmann::json({ {"id", 89}, {"method", "Page.reload"} }).dump()));
-        });
-    }
+    __declspec(noinline) const void reload() noexcept;
 
     /// <summary>
     /// restart the app completely, SharedJsContext and the app intself, cmd args are retained
     /// </summary>
-    __declspec(noinline) const void restart() noexcept
-    {
-        establish_socket_handshake([=, this]() {
-            //not used anymore, but here in case
-            socket.write(boost::asio::buffer(nlohmann::json({ 
-                { "id", 8987 }, 
-                { "method", "Runtime.evaluate" }, 
-                { "params", {
-                    { "expression", "setTimeout(() => {SteamClient.User.StartRestart(true)}, 1000)" }
-                }} 
-            }).dump()));
-        });
-    }
+    __declspec(noinline) const void restart() noexcept;
 
     /// <summary>
     /// execute js on the SharedJSContext, where you can access the SteamClient in full
     /// </summary>
     /// <param name="javascript">code to execute on the page</param>
     /// <returns></returns>
-    std::string exec_command(std::string javascript)
-    {
-        std::promise<std::string> promise;
-
-        establish_socket_handshake([&]() {
-            socket.write(boost::asio::buffer(nlohmann::json({ {"id", 1337}, {"method", "Runtime.evaluate"}, {"params", {{"expression", javascript}, {"awaitPromise", true}}} }).dump()));
-
-            boost::beast::multi_buffer buffer; socket.read(buffer);
-            promise.set_value(nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))["result"].dump());
-        });
-
-        return promise.get_future().get();
-    }
+    std::string exec_command(std::string javascript);
 };
