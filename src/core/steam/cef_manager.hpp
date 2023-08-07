@@ -75,6 +75,9 @@ private:
 
 struct steam_cef_manager
 {
+private:
+    const void calculate_endpoint(std::string& endpoint_unparsed);
+
 public:
     /// <summary>
     /// response types that are handled by millennium in the client interface handler

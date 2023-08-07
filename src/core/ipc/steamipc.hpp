@@ -1,7 +1,8 @@
 #pragma once
-#include <include/logger.hpp>
+#include <utils/cout/logger.hpp>
 #include <shellapi.h>
-#include <extern/window/src/window.hpp>
+#include <core/window/src/window.hpp>
+#include <core/window/win_handler.hpp>
 
 using tcp = boost::asio::ip::tcp;
 using namespace boost::asio;
@@ -153,36 +154,36 @@ private:
 
 
 
-                auto* skin_helpers = new functions;
+                //auto* skin_helpers = new functions;
 
                 //parse the message and convert it to the enum type
                 nlohmann::basic_json<> msg = nlohmann::json::parse(boost::beast::buffers_to_string(self->buffer_.data()));
-                //bool mill = msg["open_millennium"].get<bool>();
 
-                //if (msg["open_millennium"].get<bool>())
-                //{
-                //    console.log("opening Millennium");
 
-                //    OverlayShowing = true;
-                //    InitPos = false;
-                //}
+                bool mill = msg["open_millennium"].get<bool>();
 
-                ipc_types ipc_message = static_cast<ipc_types>(msg["type"].get<int>());
-
-                console.log(std::format("[{}()] was called with ipc message -> {}", __func__, self->enum_tostr(ipc_message)));
-
-                //msg["content"] contains the payload from js, its a dynamic typing
-                switch (ipc_message)
+                if (msg["open_millennium"].get<bool>())
                 {
-                    case ipc_types::open_skins_folder: { skin_helpers->open_skin_folder(); break; }
-                    case ipc_types::open_url: { ShellExecuteA(NULL, "open", msg["content"].get<std::string>().c_str(), 0, 0, 1); break; }
-                    case ipc_types::change_javascript: { skin_helpers->allow_javascript(msg["content"].get<bool>()); break; }
-                    case ipc_types::get_skins: { skin_helpers->respond_skins(self->ws_); break; }
-                    case ipc_types::skin_update: { skin_helpers->update_skin(msg["content"]); break; }
-                    case ipc_types::exec_command: { self->ws_.write(boost::asio::buffer(skin_helpers->js_context.exec_command(msg["content"]))); break; }
+                    console.log("opening Millennium");
+                    init_main_window();
                 }
 
-                delete skin_helpers;
+                //ipc_types ipc_message = static_cast<ipc_types>(msg["type"].get<int>());
+
+                //console.succ(std::format("[{}()] was called with ipc message -> {}", __func__, self->enum_tostr(ipc_message)));
+
+                ////msg["content"] contains the payload from js, its a dynamic typing
+                //switch (ipc_message)
+                //{
+                //    case ipc_types::open_skins_folder: { skin_helpers->open_skin_folder(); break; }
+                //    case ipc_types::open_url: { ShellExecuteA(NULL, "open", msg["content"].get<std::string>().c_str(), 0, 0, 1); break; }
+                //    case ipc_types::change_javascript: { skin_helpers->allow_javascript(msg["content"].get<bool>()); break; }
+                //    case ipc_types::get_skins: { skin_helpers->respond_skins(self->ws_); break; }
+                //    case ipc_types::skin_update: { skin_helpers->update_skin(msg["content"]); break; }
+                //    case ipc_types::exec_command: { self->ws_.write(boost::asio::buffer(skin_helpers->js_context.exec_command(msg["content"]))); break; }
+                //}
+
+                //delete skin_helpers;
 
                 //delete skin_helpers;
                 self->buffer_.consume(bytes_transferred);

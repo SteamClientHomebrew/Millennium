@@ -6,8 +6,8 @@
 #pragma warning(disable: 6387)
 
 #include <stdafx.h>
-#include <extern/injector/event_handler.hpp>
-#include <extern/window/win_handler.hpp>
+#include <core/injector/event_handler.hpp>
+#include <core/window/win_handler.hpp>
 
 #include <Wininet.h>
 #pragma comment(lib, "Wininet.lib")
@@ -220,9 +220,11 @@ public:
             if (static_cast<bool>(AllocConsole()))
             {
                 void(freopen("CONOUT$", "w", stdout));
+
+                console.handle = GetStdHandle(STD_OUTPUT_HANDLE);
             }
 
-            CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(console_header), NULL, NULL, NULL);
+            //CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(console_header), NULL, NULL, NULL);
         }
 
         //discard the value of the thread object in stack memory 
@@ -252,7 +254,7 @@ unsigned long __cdecl thread_callback_wrapper(void* lpParam)
 /// <param name="call">the call type on the library</param>
 /// <param name="">discarded</param>
 /// <returns></returns>
-millennium_entry_point DllMain(void*, DWORD call, void*)
+millennium_entry_point DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 {
     //check for process attach instead of 
     if (call == DLL_PROCESS_ATTACH)
@@ -266,7 +268,6 @@ millennium_entry_point DllMain(void*, DWORD call, void*)
 
         //otherwise start millennium
         CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(thread_callback_wrapper), NULL, NULL, NULL);
-        CreateThread(NULL, NULL, reinterpret_cast<LPTHREAD_START_ROUTINE>(init_main_window), NULL, NULL, NULL);
     }
 
     return true;

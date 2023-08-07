@@ -9,10 +9,13 @@
 #include <filesystem>
 #include <fstream>
 #include <set>
+#include <string>
+#include <core/steam/application.hpp>
 
 //nlohmann's json parser
 #include <nlohmann/json.hpp>
-#include <include/logger.hpp>
+#include <utils/cout/logger.hpp>
+#include <utils/http/http_client.hpp>
 
 //opening folders and interacting with the file system
 #include <TCHAR.h>

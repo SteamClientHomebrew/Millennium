@@ -7,6 +7,8 @@
 #include <boost/beast.hpp>
 #include <boost/network/uri.hpp>
 
+#include <nlohmann/json.hpp>
+
 class steam_client
 {
 public:
@@ -14,4 +16,5 @@ public:
     steam_client();
 };
 
+const void hotreload_wrapper();
 unsigned long __stdcall Initialize(void*);

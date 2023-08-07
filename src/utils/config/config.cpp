@@ -1,11 +1,16 @@
 #define _WINSOCKAPI_   
 #include <stdafx.h>
 
-#include <include/config.hpp>
+#include <utils/config/config.hpp>
 
 #include <windows.h>
 #include <string>
 #include <iostream>
+
+#include <core/steam/cef_manager.hpp>
+#include <utils/http/http_client.hpp>
+
+remote_skin millennium_remote;
 
 const void registry::set_registry(std::string key, std::string value) noexcept
 {
@@ -140,7 +145,7 @@ void __fastcall skin_config::watch_config(const std::string& filePath, void (*ca
 
 skin_config::skin_config()
 {
-    char buffer[MAX_PATH];
+    char buffer[MAX_PATH];  
     DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
     steam_skin_path = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
@@ -151,28 +156,85 @@ std::string skin_config::get_steam_skin_path()
     return steam_skin_path;
 }
 
-const nlohmann::json skin_config::get_skin_config() noexcept
+class config
 {
-    std::ifstream configFile(std::format("{}/{}/skin.json", steam_skin_path, registry::get_registry("active-skin")));
-
-    if (!configFile.is_open() || !configFile) {
-        return { {"config_fail", true} };
-    }
-
-    std::stringstream buffer;
-    buffer << configFile.rdbuf();
-
-    if (nlohmann::json::accept(buffer.str())) {
-        nlohmann::json json_object = nlohmann::json::parse(buffer.str());
-        json_object["config_fail"] = false;
-
-        if (json_object.value("UseDefaultPatches", false)) {
-            decide_overrides(json_object);
+public:
+    static const nlohmann::basic_json<> get_remote(std::basic_ifstream<char, std::char_traits<char>>& remote)
+    {
+        nlohmann::basic_json<> data; 
+        try { 
+            remote >> data; 
+        }
+        catch (nlohmann::json::exception& ex) {
+            return { {"config_fail", true} };
         }
 
-        return json_object;
+        if (!data.contains("gh_username") || !data.contains("gh_repo") || !data.contains("skin-json"))
+        {
+            MessageBoxA(GetForegroundWindow(), "remote skin has invalid formatting. it requires json keys\ngh_username\ngh_repo\nskin-json", "Millennium", 0);
+            return { {"config_fail", true} };
+        }
+
+        millennium_remote = {
+            true, 
+            static_cast<std::filesystem::path>(data["skin-json"].get<std::string>()).parent_path().string(),
+            data["gh_username"].get<std::string>(), data["gh_repo"].get<std::string>()
+        };
+
+        try {
+            data = nlohmann::json::parse(http::get(data["skin-json"]));
+            data["config_fail"] = false;
+        }
+        catch (std::exception& ex) {
+            data["config_fail"] = true;
+        }
+
+        return data;
     }
-    return false;
+    static const nlohmann::basic_json<> get_local(std::basic_ifstream<char, std::char_traits<char>>& local)
+    {
+        std::stringstream buffer;
+        buffer << local.rdbuf();
+
+        if (nlohmann::json::accept(buffer.str())) {
+            nlohmann::json json_object = nlohmann::json::parse(buffer.str());
+            json_object["config_fail"] = false;
+            millennium_remote.is_remote = false;
+
+            return json_object;
+        }
+    }
+};
+
+const nlohmann::json skin_config::get_skin_config() noexcept
+{
+    const std::string active_skin = registry::get_registry("active-skin");
+
+    std::basic_ifstream<char, std::char_traits<char>> local_skin_config(std::format("{}/{}/skin.json", steam_skin_path, active_skin));
+    std::basic_ifstream<char, std::char_traits<char>> remote_skin_config(std::format("{}/{}", steam_skin_path, active_skin));
+
+    if (!local_skin_config.is_open() || !local_skin_config) {
+
+        if (!remote_skin_config.is_open() || !remote_skin_config) {
+            return { { "config_fail", true } };
+        }
+
+        nlohmann::basic_json<> remote = config::get_remote(remote_skin_config); 
+
+        if (remote.value("UseDefaultPatches", false)) { 
+            decide_overrides(remote); 
+        }
+
+        return remote;
+    }
+
+    nlohmann::basic_json<> local = config::get_local(local_skin_config);
+
+    if (local.value("UseDefaultPatches", false)) {
+        decide_overrides(local);
+    }
+
+    return local;
 }
 
 const void skin_config::setup_millennium() noexcept
@@ -189,7 +251,7 @@ const void skin_config::setup_millennium() noexcept
     std::function<void(std::string, std::string)> create_if_empty = ([this](std::string key, std::string value) {
         if (registry::get_registry(key).empty())
             registry::set_registry(key, value);
-        });
+    });
 
     create_if_empty("active-skin", "default");
     create_if_empty("allow-javascript", "false");
@@ -206,6 +268,9 @@ void skin_config::skin_change_events::add_listener(const event_listener& listene
 }
 
 void skin_config::skin_change_events::trigger_change() {
+
+    std::cout << std::format("triggering skin event change, executing {} listener", listeners.size()) << std::endl;
+
     for (const auto& listener : listeners) {
         listener();
     }

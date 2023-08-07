@@ -2,11 +2,13 @@
 #include <stdafx.h>
 #include <random>
 
-#include <extern/window/src/window.hpp>
-#include <extern/window/win_handler.hpp>
-#include <include/config.hpp>
+#include <core/window/src/window.hpp>
+#include <core/window/win_handler.hpp>
+#include <utils/config/config.hpp>
 
-#include <extern/steam/cef_manager.hpp>
+#include <utils/http/http_client.hpp>
+#include <core/steam/cef_manager.hpp>
+#include <core/injector/event_handler.hpp>
 
 #define rx ImGui::GetContentRegionAvail().x
 #define ry ImGui::GetContentRegionAvail().y
@@ -21,6 +23,10 @@ namespace millennium
 	std::vector<nlohmann::basic_json<>> skin_data;
 
 	std::string last_synced = "never";
+	bool showing_patch_log = false;
+
+	nlohmann::json patch_log_data;
+	int missing_skins = 0;
 }
 
 namespace ui
@@ -29,29 +35,23 @@ namespace ui
 
 	namespace region
 	{
-		int x()
-		{
+		inline int x() {
 			return ImGui::GetContentRegionAvail().x;
 		}
-		int y()
-		{
+		inline int y() {
 			return ImGui::GetContentRegionAvail().y;
 		}
 	}
 
 	namespace shift
 	{
-		void x(int value)
-		{
+		inline void x(int value) {
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + value);
 		}
-		void y(int value)
-		{
+		inline void y(int value) {
 			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + value);
 		}
-
-		void right(int item_width)
-		{
+		inline void right(int item_width) {
 			ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - item_width);
 		}
 	}
@@ -73,10 +73,117 @@ namespace ui
 
 		ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), description);
 	};
+
+	void center_modal(ImVec2 size)
+	{
+		RECT rect;
+		GetWindowRect(window_class::get_hwnd(), &rect);
+
+		ImGui::SetNextWindowPos
+		(ImVec2((rect.left + (((rect.right - rect.left) / 2) - (size.x / 2))), (rect.top + (((rect.bottom - rect.top) / 2) - (size.y / 2)))));
+		ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
+	}
+
+	void center(float avail_width, float element_width, float padding = 15.0f)
+	{
+		ImGui::SameLine((avail_width / 2) - (element_width / 2) + padding);
+	}
+
+	void center_text(const char* format, float spacing = 15.0f, ImColor color = 0) {
+		center(ImGui::GetContentRegionAvail().x, ImGui::CalcTextSize(format).x);
+		ui::shift::y(spacing);
+		ImGui::TextColored(color.Value, format);
+	}
+}
+
+std::string GetRelativeTime(const std::string& timeStr) {
+	// Extract date and time components from the time string
+	int year, month, day, hour, minute, second;
+	if (sscanf(timeStr.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &hour, &minute, &second) != 6) {
+		return "Invalid time format";
+	}
+
+	// Convert the components into a std::tm structure
+	std::tm timeStruct = { 0 };
+	timeStruct.tm_year = year - 1900;
+	timeStruct.tm_mon = month - 1;
+	timeStruct.tm_mday = day;
+	timeStruct.tm_hour = hour;
+	timeStruct.tm_min = minute;
+	timeStruct.tm_sec = second;
+
+	// Convert to time_t and calculate the time difference
+	time_t eventTime = mktime(&timeStruct);
+	time_t currentTime = time(nullptr);
+	int timeDiffInSeconds = static_cast<int>(currentTime - eventTime);
+
+	if (timeDiffInSeconds < 60) {
+		return "Just now";
+	}
+	else if (timeDiffInSeconds < 3600) {
+		int minutesAgo = static_cast<int>(timeDiffInSeconds / 60);
+		return std::to_string(minutesAgo) + " minutes ago";
+	}
+	else if (timeDiffInSeconds < 86400) {
+		int hoursAgo = static_cast<int>(timeDiffInSeconds / 3600);
+		return std::to_string(hoursAgo) + " hours ago";
+	}
+	else if (timeDiffInSeconds < 604800) {
+		int daysAgo = static_cast<int>(timeDiffInSeconds / 86400);
+		return std::to_string(daysAgo) + " days ago";
+	}
+	else if (timeDiffInSeconds < 2592000) {
+		int weeksAgo = static_cast<int>(timeDiffInSeconds / 604800);
+		return std::to_string(weeksAgo) + " weeks ago";
+	}
+	else if (timeDiffInSeconds < 31536000) {
+		int monthsAgo = static_cast<int>(timeDiffInSeconds / 2592000);
+		return std::to_string(monthsAgo) + " months ago";
+	}
+	else {
+		int yearsAgo = static_cast<int>(timeDiffInSeconds / 31536000);
+		return std::to_string(yearsAgo) + " years ago";
+	}
+}
+
+
+static void display_event(const nlohmann::json& event) {
+	// Display the event details here
+	//ImGui::Text("Event ID: %s", event["id"].get<std::string>().c_str());
+	//ImGui::Text("Type: %s", event["type"].get<std::string>().c_str());
+	//ImGui::Text("Actor: %s", event["actor"]["login"].get<std::string>().c_str());
+	if (event["payload"].contains("commits"))
+	{
+		ImGui::Text("Patch Notes from release");
+
+		for (const auto& message : event["payload"]["commits"])
+		{
+			ImGui::Text(message["message"].get<std::string>().c_str());
+		}
+	}
+	ImGui::Text("Updated: %s", GetRelativeTime(event["created_at"].get<std::string>()).c_str());
+	// Display other event details as needed
+}
+
+static void display_children(nlohmann::basic_json<>& events) {
+	for (const auto& event : events) {
+
+		int height = 35;
+
+		if (event["payload"].contains("commits"))
+			height += event["payload"]["commits"].size() * 45;
+
+		if (ImGui::BeginChild(event["id"].get<std::string>().c_str(), ImVec2(0, height), true)) {
+			display_event(event);
+		}
+		ImGui::EndChild();
+	}
 }
 
 static void get_millennium_info(void)
 {
+	millennium::missing_skins = 0;
+
 	std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 	std::stringstream ss;
@@ -91,34 +198,45 @@ static void get_millennium_info(void)
 
 	for (const auto& entry : std::filesystem::directory_iterator(config.get_steam_skin_path()))
 	{
-		if (entry.path().filename().string().find(".millennium.json") == std::string::npos)
-			continue;
-
-		nlohmann::json data; {
-			std::ifstream skin_json_file(entry.path().string()); skin_json_file >> data;
-		}
-		nlohmann::basic_json<> result = nlohmann::json::parse(steam_interface.discover(data["skin-json"]));
-
-		result["name"] = result.value("name", entry.path().filename().string()).c_str();
-		result["native-name"] = entry.path().filename().string();
-		result["description"] = result.value("description", "no description yet.").c_str();
-
-		std::cout << result.dump(4) << std::endl;
-
-		// Check if the name already exists in the map
-		if (nameMap.find(result["name"]) != nameMap.end())
+		try
 		{
-			millennium::conflicting_skin = true;
-			millennium::conflict_message = std::format("conflicting skin name [{}] from skin [{}]",
-				result["name"].get<std::string>(),
-				entry.path().filename().string()
-			);
+			if (entry.path().filename().string().find(".millennium.json") == std::string::npos)
+				continue;
 
-			continue;
+			nlohmann::json data; {
+				std::ifstream skin_json_file(entry.path().string()); skin_json_file >> data;
+			}
+
+			nlohmann::basic_json<> result = nlohmann::json::parse(http::get(data["skin-json"]));
+
+			result["github"]["username"] = data["gh_username"];
+			result["github"]["repo"] = data["gh_repo"];
+
+			result["name"] = result.value("name", entry.path().filename().string()).c_str();
+			result["native-name"] = entry.path().filename().string();
+			result["description"] = result.value("description", "no description yet.").c_str();
+			result["remote"] = true;
+
+			// Check if the name already exists in the map
+			if (nameMap.find(result["name"]) != nameMap.end())
+			{
+				millennium::conflicting_skin = true;
+				millennium::conflict_message = std::format("conflicting skin name [{}] from skin [{}]",
+					result["name"].get<std::string>(),
+					entry.path().filename().string()
+				);
+
+				continue;
+			}
+
+			nameMap[result["name"]] = true;
+			temp_json.push_back(result);
 		}
-
-		nameMap[result["name"]] = true;
-		temp_json.push_back(result);
+		catch (std::exception& exception)
+		{
+			std::cout << "no internet connection?" << std::endl;
+			millennium::missing_skins++;
+		}
 	}
 
 	for (const auto& entry : std::filesystem::directory_iterator(config.get_steam_skin_path()))
@@ -139,6 +257,7 @@ static void get_millennium_info(void)
 		data["name"] = data.value("name", entry.path().filename().string()).c_str();
 		data["native-name"] = entry.path().filename().string();
 		data["description"] = data.value("description", "no description yet.").c_str();
+		data["remote"] = false;
 
 		// Check if the name already exists in the map
 		if (nameMap.find(data["name"]) != nameMap.end())
@@ -163,6 +282,8 @@ static void get_millennium_info(void)
 static void change_steam_skin(nlohmann::basic_json<>& skin)
 {
 	std::string queried_skin = skin["native-name"].get<std::string>();
+
+	std::string remote_skin = std::format("{}/{}", config.get_steam_skin_path(), queried_skin);
 	std::string disk_path = std::format("{}/{}/skin.json", config.get_steam_skin_path(), queried_skin);
 
 	if (millennium::current_skin == skin.value("native-name", "null")) {
@@ -170,15 +291,25 @@ static void change_steam_skin(nlohmann::basic_json<>& skin)
 	}
 
 	//whitelist the default skin
-	if (queried_skin == "default" || std::filesystem::exists(disk_path))
-	{
+	if (queried_skin == "default" || (std::filesystem::exists(disk_path) || std::filesystem::exists(remote_skin)))
+	{	
+		std::cout << "updating selected skin." << std::endl;
+
 		//update registry key holding the active-skin selection
 		registry::set_registry("active-skin", queried_skin);
 		skin_config::skin_change_events::get_instance().trigger_change();
 
 		steam_js_context js_context;
 		js_context.reload();
-		get_millennium_info();
+
+		if (steam::get_instance().params.has("-silent"))
+		{
+			MessageBoxA(
+				GetForegroundWindow(),
+				"Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium",
+				MB_ICONINFORMATION
+			);
+		}
 	}
 	else {
 		MessageBoxA(
@@ -244,8 +375,34 @@ public:
 			//display the title bar of the current skin 
 			ImGui::BeginChild(std::format("skin_header{}", index).c_str(), ImVec2(rx, 33), true);
 			{
-				//display the theme icon
-				ImGui::Image((void*)WindowClass::GetIcon().skin_icon, ImVec2(ry - 1, ry - 1));
+				if (skin["remote"])
+				{
+					ImGui::Image((void*)window_class::get_ctx().icon_remote_skin, ImVec2(ry - 1, ry - 1));
+					if (ImGui::IsItemHovered())
+					{
+						ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+						ImGui::BeginTooltip();
+
+						ImGui::Text("This is a remotely hosted Steam Skin, meaning it is not stored on your PC");
+						ImGui::Text("What does this mean?");
+
+						ImGui::Separator();
+
+						ImGui::Text("Skins can be updated and the code can be changed by the developer AT ANY TIME");
+
+						ImGui::TextColored(ImVec4(1, 0, 0, 1), "This means there COULD be potential MALICIOUS updates without you knowing");
+						ImGui::Text("Make sure you trust the skin developer before continuing.");
+
+						ImGui::Separator();
+
+						ImGui::Text("NOTE: remote skins wont be able to load properly offline unless you download them.");
+						ImGui::EndTooltip();
+					}
+				}
+				else
+					ImGui::Image((void*)window_class::get_ctx().skin_icon, ImVec2(ry - 1, ry - 1));
+
 				ImGui::SameLine();
 
 				ui::shift::x(-4);
@@ -255,23 +412,59 @@ public:
 				ImGui::SameLine();
 				ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() - 5, ImGui::GetCursorPosY() + 1));
 
-				//push smaller font interface that we loaded earlier
 				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 				ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), std::format("{} by {}", skin.value("version", "1.0.0"), skin.value("author", "unknown")).c_str());
-				//reset the font interface to default
+
 				ImGui::PopFont();
 
 				ImGui::SameLine();
 
 				ui::shift::y(-4);
 				ui::shift::x(-4);
-				ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 15);
+				if (skin["remote"])
+					ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 45);
+				else
+					ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 17);
+
 				ImGui::PushItemWidth(10);
 				ImGui::PushStyleColor(ImGuiCol_CheckMark, ImVec4(0.18f, 0.64f, 0.29f, 1));
 
+				if (skin["remote"])
+				{
+					ImGui::Image((void*)window_class::get_ctx().more_icon, ImVec2(20, 20));
+					if (ImGui::IsItemHovered())
+					{
+						ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+					}
+					if (ImGui::IsItemClicked())
+					{
+						ImGui::OpenPopup("MorePopup");
+					}
+
+					ImGui::SameLine();
+					ui::shift::x(-5);
+				}
+
+				if (ImGui::BeginPopup("MorePopup")) {
+					// The content inside the drop-down menu goes here
+					if (ImGui::Selectable("View Source")) {
+						ShellExecute(NULL, "open", std::format("https://github.com/{}/{}/", skin["github"]["username"].get<std::string>(), skin["github"]["repo"].get<std::string>()).c_str(), NULL, NULL, SW_SHOWNORMAL);
+					}
+					if (ImGui::Selectable("View Update History")) {
+						ImGui::OpenPopup(" Millennium - Update History");
+						std::make_shared<std::thread>([&]() {			
+							millennium::showing_patch_log = true;
+							std::string url = std::format("https://api.github.com/repos/{}/{}/events", skin["github"]["username"].get<std::string>(), skin["github"]["repo"].get<std::string>());
+							millennium::patch_log_data = nlohmann::json::parse(http::get(url));
+						})->detach();
+					}
+
+					ImGui::EndPopup();
+				}
+
 				if (millennium::current_skin == skin.value("native-name", "null"))
 				{
-					ImGui::Image((void*)WindowClass::GetIcon().check_mark_checked, ImVec2(20, 20));
+					ImGui::Image((void*)window_class::get_ctx().check_mark_checked, ImVec2(20, 20));
 
 					if (ImGui::IsItemHovered())
 					{
@@ -284,7 +477,7 @@ public:
 				}
 				else
 				{
-					ImGui::Image((void*)WindowClass::GetIcon().check_mark_unchecked, ImVec2(20, 20));
+					ImGui::Image((void*)window_class::get_ctx().check_mark_unchecked, ImVec2(20, 20));
 
 					if (ImGui::IsItemHovered())
 					{
@@ -295,7 +488,11 @@ public:
 
 				if (ImGui::IsItemClicked())
 				{
-					change_steam_skin((nlohmann::basic_json<>&)skin);
+					std::cout << ("WAdawdawdawdawdawdawd") << std::endl;
+
+					std::make_shared<std::thread>([=]() {
+						change_steam_skin((nlohmann::basic_json<>&)skin);
+					})->detach();
 				}
 
 				ImGui::PopStyleColor();
@@ -317,7 +514,7 @@ public:
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
 
-			if (ImGui::ImageButton(WindowClass::GetIcon().trash_icon, ImVec2(15, 15)))
+			if (ImGui::ImageButton(window_class::get_ctx().trash_icon, ImVec2(15, 15)))
 			{
 				MessageBoxA(0, 0, 0, 0);
 			}
@@ -333,16 +530,6 @@ public:
 
 		if (!popped)
 			ImGui::PopStyleVar();
-
-		//if (ImGui::IsWindowHovered(ImGui::GetID(std::format("card_child_container_{}", index).c_str())))
-		//{
-		//	//ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-		//}
-
-		//if (current_skin == native_name)
-		//{
-		//	ImGui::PopStyleColor();
-		//}
 
 		ImGui::EndChild();
 	}
@@ -383,12 +570,6 @@ public:
 		ImGui::PopItemWidth();
 
 		ImGui::Separator();
-		// Get the user skins using the function
-
-		//if (conflicting_skin)
-		//{
-		//	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), conflict_message.c_str());
-		//}
 
 		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 		ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, .5f), std::format("({} skins, last from: {} at {})", millennium::skin_data.size(), config.get_steam_skin_path(), millennium::last_synced).c_str());
@@ -397,7 +578,7 @@ public:
 		ImGui::SameLine();
 
 		ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 95);
-		if (ImGui::ImageButton((void*)WindowClass::GetIcon().reload_icon, ImVec2(18, 18)))
+		if (ImGui::ImageButton((void*)window_class::get_ctx().reload_icon, ImVec2(18, 18)))
 		{
 			get_millennium_info();
 		}
@@ -427,6 +608,11 @@ public:
 
 		ImGui::BeginChild("###library_container", ImVec2(rx, ry), false);
 		{
+			if (millennium::missing_skins > 0)
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), std::format("{} missing skin(s) from listings (no connection)", millennium::missing_skins).c_str());
+			}
+
 			static const auto to_lwr = [](std::string str) {
 				std::string result;
 				for (char c : str) {
@@ -461,10 +647,13 @@ public:
 
 		static char text_buffer[150];
 		static bool is_focused = false;
-		if (ImGui::IsItemActive() || ImGui::IsItemFocused())
+
+		if (ImGui::IsItemActive() || ImGui::IsItemFocused()) {
 			is_focused = true;
-		else
+		}
+		else {
 			is_focused = false;
+		}
 
 		auto position = ImGui::GetCursorPos();
 		ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer));
@@ -492,7 +681,7 @@ public:
 
 		if (ImGui::BeginChild("###store_page", ImVec2(width, height), false))
 		{
-			ImGui::Image((void*)WindowClass::GetIcon().icon_no_results, ImVec2(240, 110));	
+			ImGui::Image((void*)window_class::get_ctx().icon_no_results, ImVec2(240, 110));	
 			ImGui::Text("Still in development. Check back later.");
 		}
 		ImGui::EndChild();
@@ -588,6 +777,51 @@ public:
 		ImGui::PopFont();
 	}
 
+	static void console_tab()
+	{
+		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+		ImGui::Text("Output Logs");
+		ImGui::PopFont();
+
+		ImGui::Separator();
+
+		if (ImGui::BeginChild("###console_logs", ImVec2(rx, ry), false))
+		{
+			for (const auto& message : output_log)
+			{
+				//bool is_patch_message = message.find("match") != std::string::npos;
+				bool is_error = message.find("fail") != std::string::npos;
+				//bool is_info = message.find("info") != std::string::npos;
+
+				//if (is_patch_message) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 1.0f, 0.0f, 0.5f));
+				if (is_error) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+				//if (is_info) ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.424f, 0.0f, 1.0f, 0.5f));
+
+				ImGui::TextWrapped(message.c_str());
+				if (is_error) ImGui::PopStyleColor();
+			}
+		}
+		ImGui::EndChild();
+	}
+
+	static void steam_websocket()
+	{
+		ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+		ImGui::Text("Steam Client WebSocket Messages");
+		ImGui::PopFont();
+
+		ImGui::Separator();
+
+		if (ImGui::BeginChild("###websocket_msgs", ImVec2(rx, ry), false))
+		{
+			for (const auto& message : socket_log)
+			{
+				ImGui::TextWrapped(message.c_str());
+			}
+		}
+		ImGui::EndChild();
+	}
+
 	static void content_panel()
 	{
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10, 0.10, 0.10, 1.00f));
@@ -599,6 +833,8 @@ public:
 				case 1: store(); break;	
 				case 2: library(); break;
 				case 3: settings(); break;
+				case 4: console_tab(); break;
+				case 5: steam_websocket(); break;
 			}
 		}
 		ImGui::EndChild();
@@ -611,6 +847,32 @@ public:
 
 		if (ImGui::BeginChild("###sidebar", ImVec2(150, ry), false))
 		{
+			ui::center(rx, 50, 0);
+			ui::shift::y(15);
+			ImGui::Image(window_class::get_ctx().icon, ImVec2(50, 50));
+			ui::shift::y(15);
+
+			//ImGui::Image((void*)WindowClass::GetIcon().close, ImVec2(10, 10));
+			//ImGui::SameLine();
+			//ui::shift::x(-6);
+			//ImGui::Image((void*)WindowClass::GetIcon().max, ImVec2(10, 10));
+
+			//if (ImGui::IsItemClicked())
+			//{
+			//	ShowWindow(WindowClass::GetHWND(), SW_SHOWMAXIMIZED);
+			//	set_mouse_down();
+			//}
+
+			//ImGui::SameLine();
+			//ui::shift::x(-6);
+			//ImGui::Image((void*)WindowClass::GetIcon().min, ImVec2(10, 10));
+
+			//if (ImGui::IsItemClicked())
+			//{
+			//	ShowWindow(WindowClass::GetHWND(), SW_SHOWMINIMIZED);
+			//	set_mouse_down();
+			//}
+
 			const auto check_button = [](const char* name, int index) {
 				static ImU32 col = ImGui::GetColorU32(ImGuiCol_CheckMark);
 
@@ -627,12 +889,37 @@ public:
 				}
 			};
 
+			ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "MILLENNIUM");
+			ImGui::PopFont();
 			check_button("Store", 1);
 			check_button("Library", 2);
 			check_button("Settings", 3);
 
-			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 25);
-			check_button("About", 4);
+			ImGui::Spacing();
+			ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "DEVELOPER");
+			ImGui::PopFont();
+
+			check_button("Console", 4);
+			check_button("Steam:WS", 5);
+
+			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 21);
+
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+
+			if (ImGui::ImageButton(window_class::get_ctx().exit, ImVec2(15, 15)))
+			{
+				PostQuitMessage(0);
+			}
+
+			ImGui::PopStyleColor();
+
+			if (ImGui::IsItemHovered())
+			{
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+				ImGui::SetTooltip("Close Millennium");
+			}
 		}
 		ImGui::EndChild();
 
@@ -659,20 +946,45 @@ public:
 		//	conflicting_skin = false;
 		//}
 
-		CenterModal(ImVec2(250, 125));
-		if (ImGui::BeginPopupModal(" Millennium - Error", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+		if (millennium::showing_patch_log)
 		{
-			ImGui::TextWrapped(millennium::conflict_message.c_str());
+			ImGui::OpenPopup(" Millennium - Update History");
+		}
 
-			ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close").x - 5);
-			ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 65);
-
-			if (ImGui::Button("Close")) {
-				ImGui::CloseCurrentPopup();
-				millennium::conflicting_skin = false;
+		ui::center_modal(ImVec2(ImGui::GetMainViewport()->WorkSize.x / 1.5, ImGui::GetMainViewport()->WorkSize.y / 1.5));
+		if (ImGui::BeginPopupModal(" Millennium - Update History", &millennium::showing_patch_log, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+		{
+			if (millennium::patch_log_data == 0)
+			{
+				ImGui::Text("Loading details...");
+			}
+			else
+			{		
+				try {
+					display_children(millennium::patch_log_data);
+				}
+				catch (nlohmann::json::exception& ex) {
+					console.err(std::format("error occured while trying to display patch log data {}", ex.what()));
+				}
 			}
 			ImGui::EndPopup();
 		}
+
+		//if (millennium::showing_patch_log)
+		//{
+		//	ImGui::Begin("This is details window", &millennium::showing_patch_log);
+
+		//	if (millennium::patch_log_data == 0)
+		//	{
+		//		ImGui::Text("Loading details...");
+		//	}
+		//	else
+		//	{
+		//		display_children(millennium::patch_log_data);
+		//	}
+
+		//	ImGui::End();
+		//}
 	}
 };
 
@@ -680,8 +992,8 @@ void init_main_window()
 {
 	get_millennium_info();
 
-	WindowClass::WindowTitle({ (char*)"Millennium Steam | by ShadowMonster [sm74]" });
-	WindowClass::WindowDimensions(ImVec2({ 850, 600 }));
+	window_class::wnd_title({ (char*)"Valve.Millennium.Client" });
+	window_class::wnd_dimension(ImVec2({ 850, 600 }));
 
 	std::string title = "###";
 

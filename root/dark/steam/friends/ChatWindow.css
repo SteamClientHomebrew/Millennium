@@ -65,3 +65,15 @@ form.chatentry_chatEntryControls_2gP0D {
 .chatWindow .chatEntry {
     background: #212121 !important;
 }
+
+button.chatentry_chatSubmitButton_1IEiK.chatentry_EmoticonPickerButton_K-lPM.Focusable {
+    background: #151515;
+}
+
+.chatentry_chatSubmitButton_1IEiK.chatentry_EmbedButton_24xNx {
+    background: #151515;
+}
+
+button.VoiceToggle.Inactive.Focusable {
+    background: #151515;
+}

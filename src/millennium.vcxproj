@@ -30,7 +30,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -43,7 +43,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -165,40 +165,44 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="extern\injector\event_handler.hpp" />
-    <ClInclude Include="extern\ipc\steamipc.hpp" />
-    <ClInclude Include="extern\steam\cef_manager.hpp" />
-    <ClInclude Include="extern\window\imgui\imconfig.h" />
-    <ClInclude Include="extern\window\imgui\imgui.h" />
-    <ClInclude Include="extern\window\imgui\imgui_impl_dx9.h" />
-    <ClInclude Include="extern\window\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="extern\window\imgui\imgui_internal.h" />
-    <ClInclude Include="extern\window\imgui\imstb_rectpack.h" />
-    <ClInclude Include="extern\window\imgui\imstb_textedit.h" />
-    <ClInclude Include="extern\window\imgui\imstb_truetype.h" />
-    <ClInclude Include="extern\window\src\memory.h" />
-    <ClInclude Include="extern\window\src\window.hpp" />
-    <ClInclude Include="extern\window\win_handler.hpp" />
-    <ClInclude Include="include\config.hpp" />
-    <ClInclude Include="include\json.hpp" />
-    <ClInclude Include="include\logger.hpp" />
+    <ClInclude Include="core\injector\event_handler.hpp" />
+    <ClInclude Include="core\ipc\steamipc.hpp" />
+    <ClInclude Include="core\steam\application.hpp" />
+    <ClInclude Include="core\steam\cef_manager.hpp" />
+    <ClInclude Include="core\window\imgui\imconfig.h" />
+    <ClInclude Include="core\window\imgui\imgui.h" />
+    <ClInclude Include="core\window\imgui\imgui_impl_dx9.h" />
+    <ClInclude Include="core\window\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="core\window\imgui\imgui_internal.h" />
+    <ClInclude Include="core\window\imgui\imstb_rectpack.h" />
+    <ClInclude Include="core\window\imgui\imstb_textedit.h" />
+    <ClInclude Include="core\window\imgui\imstb_truetype.h" />
+    <ClInclude Include="core\window\src\memory.h" />
+    <ClInclude Include="core\window\src\window.hpp" />
+    <ClInclude Include="core\window\win_handler.hpp" />
     <ClInclude Include="scripts\resource.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="utils\config\config.hpp" />
+    <ClInclude Include="utils\http\http_client.hpp" />
+    <ClInclude Include="utils\json.hpp" />
+    <ClInclude Include="utils\cout\logger.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="core\injector\event_handler.cpp" />
+    <ClCompile Include="core\steam\cef_manager.cpp" />
+    <ClCompile Include="core\window\imgui\imgui.cpp" />
+    <ClCompile Include="core\window\imgui\imgui_demo.cpp" />
+    <ClCompile Include="core\window\imgui\imgui_draw.cpp" />
+    <ClCompile Include="core\window\imgui\imgui_impl_dx9.cpp" />
+    <ClCompile Include="core\window\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="core\window\imgui\imgui_tables.cpp" />
+    <ClCompile Include="core\window\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="core\window\src\window.cpp" />
+    <ClCompile Include="core\window\win_handler.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="extern\injector\event_handler.cpp" />
-    <ClCompile Include="extern\steam\cef_manager.cpp" />
-    <ClCompile Include="extern\window\imgui\imgui.cpp" />
-    <ClCompile Include="extern\window\imgui\imgui_demo.cpp" />
-    <ClCompile Include="extern\window\imgui\imgui_draw.cpp" />
-    <ClCompile Include="extern\window\imgui\imgui_impl_dx9.cpp" />
-    <ClCompile Include="extern\window\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="extern\window\imgui\imgui_tables.cpp" />
-    <ClCompile Include="extern\window\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="extern\window\src\window.cpp" />
-    <ClCompile Include="extern\window\win_handler.cpp" />
-    <ClCompile Include="include\config.cpp" />
+    <ClCompile Include="utils\config\config.cpp" />
+    <ClCompile Include="utils\http\http_client.cpp" />
+    <ClCompile Include="utils\cout\logger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="scripts\Resource.rc" />

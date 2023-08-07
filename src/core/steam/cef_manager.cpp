@@ -1,10 +1,10 @@
 #define _WINSOCKAPI_   
 
-#include <extern/injector/event_handler.hpp>
+#include <core/injector/event_handler.hpp>
 
 #include <stdafx.h>
-#include <extern/steam/cef_manager.hpp>
-#include <include/config.hpp>
+#include <core/steam/cef_manager.hpp>
+#include <utils/config/config.hpp>
 
 
 const std::string cef_dom::runtime::evaluate(std::string remote_url) noexcept {
@@ -72,8 +72,11 @@ void steam_cef_manager::push_to_socket(boost::beast::websocket::stream<tcp::sock
         runtime_evaluate(millennium_functions);
     }
     catch (const boost::system::system_error& ex) {
-        //commonly occurs if the socket crashes, happened alot, then stopped not sure why
-        console.err(std::format("the requested operation[{}()] could not be completed\n{}", __func__, ex.what()));
+
+        if (ex.code().value() == boost::asio::error::operation_aborted || ex.code().value() == boost::asio::error::eof)
+        {
+            console.warn("[non-fatal] steam garbage clean-up aborted a connected socket, re-establishing connection");
+        }
     }
 }
 
@@ -84,8 +87,7 @@ inline std::string steam_cef_manager::discover(std::basic_string<char, std::char
 
     if (!hUrl || !hInternet)
     {
-        console.err(std::format("the requested operation [{}()] failed. reason: InternetOpen*A was nullptr", __func__));
-        return std::string();
+        throw std::runtime_error(std::format("the requested operation [{}()] failed. reason: InternetOpen*A was nullptr", __func__));
     }
 
     char buffer[1024];
@@ -103,12 +105,25 @@ __declspec(noinline) void __fastcall steam_cef_manager::inject_millennium(boost:
     std::string javascript = "https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/index.js";
     //std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
 
-    steam_interface.push_to_socket(
-        socket,
-        //uses js vm to run the javascript code from a url as its too long to send over socket, steamloopbackhost is allowed
-        cef_dom::get().runtime_handler.evaluate(javascript),
-        socket_response["sessionId"].get<std::string>()
-    );
+    //deprecated, now using imgui interface
+    //steam_interface.push_to_socket(
+    //    socket,
+    //    //uses js vm to run the javascript code from a url as its too long to send over socket, steamloopbackhost is allowed
+    //    cef_dom::get().runtime_handler.evaluate(javascript),
+    //    socket_response["sessionId"].get<std::string>()
+    //);
+}
+
+const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)
+{
+    //calculate endpoint type, if remote url retain info, if local add loopbackhost
+    if (endpoint_unparsed.compare(0, 4, "http") != 0) {
+
+        //remote skin use the remote skins as a current directory from github
+        if (millennium_remote.is_remote) endpoint_unparsed = std::format("{}/{}", millennium_remote.host, endpoint_unparsed);
+        //just use the default from the skin path
+        else endpoint_unparsed = std::format("{}/skins/{}/{}", uri.steam_resources.string(), std::string(registry::get_registry("active-skin")), endpoint_unparsed);
+    }
 }
 
 const void steam_cef_manager::evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response)
@@ -118,10 +133,7 @@ const void steam_cef_manager::evaluate(boost::beast::websocket::stream<tcp::sock
         return;
     }
 
-    //calculate endpoint type, if remote url retain info, if local add loopbackhost
-    if (file.compare(0, 4, "http") != 0) {
-        file = std::format("{}/skins/{}/{}", uri.steam_resources.string(), std::string(registry::get_registry("active-skin")), file);
-    }
+    this->calculate_endpoint(file);
 
     std::optional<std::string> sessionId;
 
@@ -157,20 +169,18 @@ const void steam_js_context::establish_socket_handshake(std::function<void()> ca
     //instances contains all pages, filter the correct instance
     auto itr_impl = std::find_if(instances.begin(), instances.end(), [](const nlohmann::json& instance) {
         return instance["title"].get<std::string>() == "SharedJSContext";
-        });
+    });
     if (itr_impl == instances.end()) { throw std::runtime_error("SharedJSContext wasn't instantiated"); }
 
     boost::network::uri::uri socket_url((*itr_impl)["webSocketDebuggerUrl"].get<std::string>());
     socket.handshake(uri.debugger.host(), socket_url.path());
 
-    //implicit type converge interrupt_handler
+    //implicit type converge -> interrupt_handler
     static_cast<void>(callback());
     this->close_socket();
 }
 
-steam_js_context::steam_js_context() : socket(io_context), resolver(io_context) { 
-    console.log("steam_js_context() constructing"); 
-}
+steam_js_context::steam_js_context() : socket(io_context), resolver(io_context) { }
 
 inline const void steam_js_context::close_socket() noexcept
 {
@@ -209,7 +219,7 @@ std::string steam_js_context::exec_command(std::string javascript)
 
         boost::beast::multi_buffer buffer; socket.read(buffer);
         promise.set_value(nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))["result"].dump());
-        });
+    });
 
     return promise.get_future().get();
 }

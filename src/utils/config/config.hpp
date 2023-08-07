@@ -1,4 +1,12 @@
 #pragma once
+
+struct remote_skin
+{
+    bool is_remote;
+    std::string host, username, repo;
+};
+extern remote_skin millennium_remote;
+
 class registry {
 public:
     /// <summary>
