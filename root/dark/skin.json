@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "author": "sm74 (ShadowMonster)",
   "description": "basic dark mode for the new steam client, changes just color scheme doesnt change much else. prone to bugs so dont think its perfect. Made with love by shadowmonster",
-  "source": "https://github.com/ShadowMonster99/millennium-steam-patcher/tree/main/root/dark_theme",
+  "source": "https://github.com/ShadowMonster99/millennium-steam-patcher/tree/main/root/dark",
 
   "UseDefaultPatches": true,
   "Patches": [
