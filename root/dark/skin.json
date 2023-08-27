@@ -1,8 +1,8 @@
 {
-  "name": "Shadow's Dark Mode [Remote]",
+  "name": "Simple Dark.",
   "version": "1.0.1",
-  "author": "sm74 (ShadowMonster)",
-  "description": "basic dark mode for the new steam client, changes just color scheme doesnt change much else. prone to bugs so dont think its perfect. Made with love by shadowmonster",
+  "author": "ShadowMonster",
+  "description": "A sleek and elegant theme that brings a darker, more immersive experience to your Steam client. This theme focuses on enhancing your visual comfort during extended gaming sessions, with carefully crafted CSS adjustments that darken the interface without altering its familiar design. While utilizing a touch of JavaScript for specific functionality, the primary focus remains on refining the color scheme to reduce eye strain and create a cozy ambiance.",
   "source": "https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/root/dark",
 
   "UseDefaultPatches": true,
