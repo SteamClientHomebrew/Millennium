@@ -6,7 +6,6 @@
 #include <core/steam/cef_manager.hpp>
 #include <utils/config/config.hpp>
 
-
 const std::string cef_dom::runtime::evaluate(std::string remote_url) noexcept {
     return R"(
     (() => fetch(')" + remote_url + R"(').then((response) => response.text()).then((data) => { 
@@ -47,7 +46,7 @@ cef_dom& cef_dom::get() {
     return instance;
 }
 
-void steam_cef_manager::push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId) noexcept
+void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl hdl, std::string raw_script, std::string sessionId) noexcept
 {
     try {
         //include millennium functions
@@ -63,7 +62,7 @@ void steam_cef_manager::push_to_socket(boost::beast::websocket::stream<tcp::sock
             };
 
             if (!sessionId.empty()) evaluate_script["sessionId"] = sessionId;
-            socket.write(boost::asio::buffer(evaluate_script.dump(4)));
+            c->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
         };
 
         //inject the script that the user wants
@@ -122,13 +121,13 @@ const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)
         //remote skin use the remote skins as a current directory from github
         if (millennium_remote.is_remote) endpoint_unparsed = std::format("{}/{}", millennium_remote.host, endpoint_unparsed);
         //just use the default from the skin path
-        else endpoint_unparsed = std::format("{}/skins/{}/{}", uri.steam_resources.string(), std::string(registry::get_registry("active-skin")), endpoint_unparsed);
+        else endpoint_unparsed = std::format("{}/skins/{}/{}", uri.steam_resources.string(), Settings::Get<std::string>("active-skin"), endpoint_unparsed);
     }
 }
 
-const void steam_cef_manager::evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response)
+const void steam_cef_manager::evaluate(ws_Client* c, websocketpp::connection_hdl hdl, std::string file, script_type type, nlohmann::basic_json<> socket_response)
 {
-    if (type == script_type::javascript && (registry::get_registry("allow-javascript") == "false")) {
+    if (type == script_type::javascript && (!Settings::Get<bool>("allow-javascript"))) {
         console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::javascript is prohibited", __func__));
         return;
     }
@@ -145,10 +144,10 @@ const void steam_cef_manager::evaluate(boost::beast::websocket::stream<tcp::sock
     switch (type)
     {
     case script_type::javascript:
-        steam_interface.push_to_socket(socket, cef_dom::get().javascript_handler.add(file).data(), sessionId.value_or(std::string()));
+        steam_interface.push_to_socket(c, hdl, cef_dom::get().javascript_handler.add(file).data(), sessionId.value_or(std::string()));
         break;
     case script_type::stylesheet:
-        steam_interface.push_to_socket(socket, cef_dom::get().stylesheet_handler.add(file).data(), sessionId.value_or(std::string()));
+        steam_interface.push_to_socket(c, hdl, cef_dom::get().stylesheet_handler.add(file).data(), sessionId.value_or(std::string()));
         break;
     default:
         throw std::runtime_error("[debug] invalid target scripting type");

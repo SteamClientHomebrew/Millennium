@@ -11,3 +11,4 @@ intermediate/
 .vs/
 obj/
 packages/
+src/core/ipc/client_secret.hpp

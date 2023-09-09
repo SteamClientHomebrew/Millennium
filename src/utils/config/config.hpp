@@ -7,63 +7,54 @@ struct remote_skin
 };
 extern remote_skin millennium_remote;
 
-class registry {
-public:
-    /// <summary>
-    /// set registry keys in the millennium hivekey
-    /// </summary>
-    /// <param name="key">name of the key</param>
-    /// <param name="value">the new updated value</param>
-    /// <returns>void, noexcept</returns>
-    static const void set_registry(std::string key, std::string value) noexcept;
+namespace Settings 
+{
+    template<typename T> 
+    void Set(std::string key, T value) noexcept;
 
-    /// <summary>
-    /// get registry value from the millennium hivekey 
-    /// </summary>
-    /// <param name="key">the name of the key</param>
-    /// <returns>explicitly returns string values, read as reg_sz</returns>
-    static const __declspec(noinline) std::string get_registry(std::string key);
+    template<typename T> 
+    T Get(std::string key);
 };
 
-class skin_config
+class themeConfig
 {
 private:
-    std::string steam_skin_path, active_skin;
+    std::string m_themesPath, m_activeSkin;
 
     /// <summary>
     /// append default patches to the patch list if wanted
     /// </summary>
     /// <returns></returns>
-    inline const nlohmann::basic_json<> get_default_patches();
+    inline const nlohmann::basic_json<> defaultPatches();
 
     /// <summary>
     /// if default patches are overridden by the user, use the user prompted patches
     /// </summary>
     /// <param name="json_object"></param>
-    inline void decide_overrides(nlohmann::basic_json<>& json_object);
+    inline void assignOverrides(nlohmann::basic_json<>& json_object);
 
 public:
 
-    skin_config(const skin_config&) = delete;
-    skin_config& operator=(const skin_config&) = delete;
+    themeConfig(const themeConfig&) = delete;
+    themeConfig& operator=(const themeConfig&) = delete;
 
-    static skin_config& getInstance();
+    static themeConfig& getInstance();
 
     /// <summary>
     /// event managers for skin change events
     /// </summary>
-    class skin_change_events {
+    class updateEvents {
     public:
-        static skin_change_events& get_instance();
+        static updateEvents& getInstance();
         using event_listener = std::function<void()>;
 
         void add_listener(const event_listener& listener);
-        void trigger_change();
+        void triggerUpdate();
 
     private:
-        skin_change_events() {}
-        skin_change_events(const skin_change_events&) = delete;
-        skin_change_events& operator=(const skin_change_events&) = delete;
+        updateEvents() {}
+        updateEvents(const updateEvents&) = delete;
+        updateEvents& operator=(const updateEvents&) = delete;
 
         std::vector<event_listener> listeners;
     };
@@ -74,22 +65,22 @@ public:
     /// <param name="filePath">the filepath</param>
     /// <param name="callback">callback function, when the event triggers</param>
     /// <returns>void</returns>
-    static void __fastcall watch_config(const std::string& filePath, void (*callback)());
+    static void __fastcall watchPath(const std::string& directoryPath, std::function<void()> callback);
 
-    skin_config();
+    themeConfig();
 
-    std::string get_steam_skin_path();
+    std::string getSkinDir();
 
     /// <summary>
     /// get the configuration files, as json from the current skin selected
     /// </summary>
     /// <returns>json_object</returns>
-    const nlohmann::json get_skin_config() noexcept;
+    const nlohmann::json getThemeData() noexcept;
 
     /// <summary>
     /// setup millennium if it has no configuration types
     /// </summary>
-    const void setup_millennium() noexcept;
+    const void setupMillennium() noexcept;
 };
 
-static skin_config config;
+static themeConfig config;

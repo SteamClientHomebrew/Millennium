@@ -12,38 +12,76 @@
 
 remote_skin millennium_remote;
 
-const void registry::set_registry(std::string key, std::string value) noexcept
+static constexpr const std::string_view registryPath = "Software\\Millennium";
+
+void setRegistry(std::string key, std::string value) noexcept
 {
     HKEY hKey;
     const LPCWSTR valueData = (LPWSTR)value.c_str();
 
-    if (RegCreateKeyEx(HKEY_CURRENT_USER, "Software\\Millennium", 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL) != ERROR_SUCCESS ||
+    if (RegCreateKeyEx(HKEY_CURRENT_USER, registryPath.data(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL) != ERROR_SUCCESS ||
         RegSetValueEx(hKey, key.c_str(), 0, REG_SZ, reinterpret_cast<const BYTE*>(valueData), (wcslen(valueData) + 1) * sizeof(wchar_t)) != ERROR_SUCCESS)
     {
-        MessageBoxA(GetForegroundWindow(), "registry settings cannot be set from millenniums user-space, try again or ask for help", "error", 0);
+        MsgBox("registry settings cannot be set from millenniums user-space, try again or ask for help", "error", MB_ICONINFORMATION);
     }
 
     RegCloseKey(hKey);
 }
 
-const __declspec(noinline) std::string registry::get_registry(std::string key)
+std::string getRegistry(std::string key)
 {
     HKEY hKey;
-    TCHAR sz_read_value[MAX_PATH];
-    DWORD dwType = REG_SZ, dwSize = sizeof(sz_read_value);
+    TCHAR value[MAX_PATH];
+    DWORD dwType = REG_SZ, dwSize = sizeof(value);
 
-    if (RegOpenKeyExA(HKEY_CURRENT_USER, TEXT("Software\\Millennium"), 0, KEY_READ, &hKey) != ERROR_SUCCESS ||
-        RegGetValueA(hKey, NULL, (LPCSTR)key.c_str(), RRF_RT_REG_SZ, &dwType, sz_read_value, &dwSize) != ERROR_SUCCESS)
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, TEXT(registryPath.data()), 0, KEY_READ, &hKey) != ERROR_SUCCESS ||
+        RegGetValueA(hKey, NULL, (LPCSTR)key.c_str(), RRF_RT_REG_SZ, &dwType, value, &dwSize) != ERROR_SUCCESS)
     {
-        std::cout << "Failed to read " << key << " value" << std::endl;
-        return std::string();
+        console.log(std::format("failed to read {} value from settings, this MAY be fatal.", key));
+        return std::string::basic_string();
     }
 
     RegCloseKey(hKey);
-    return sz_read_value;
+    return value;
 }
 
-inline const nlohmann::basic_json<> skin_config::get_default_patches()
+namespace Settings 
+{
+    template <>
+    void Set(std::string key, bool value) noexcept { setRegistry(key, value ? "true" : "false"); }
+
+    template <>
+    void Set(std::string key, int value) noexcept { setRegistry(key, std::to_string(value)); }
+
+    template <>
+    void Set(std::string key, const char* value) noexcept { setRegistry(key, static_cast<std::string>(value)); }
+
+    template <>
+    void Set(std::string key, std::string value) noexcept { setRegistry(key, static_cast<std::string>(value)); }
+
+    template<>
+    std::string Get<std::string>(std::string key) {    
+
+        std::string registry = getRegistry(key);
+        return static_cast<std::string>(registry);
+    }
+
+    template<>
+    bool Get<bool>(std::string key) {
+
+        std::string registry = getRegistry(key);
+        return registry.empty() ? false : registry == "true";
+    }
+
+    template <>
+    int Get<int>(std::string key) {
+
+        std::string registry = getRegistry(key);
+        return registry.empty() ? 0 : (uint16_t)std::stoi(registry);
+    }
+}
+
+inline const nlohmann::basic_json<> themeConfig::defaultPatches()
 {
     nlohmann::basic_json<> patches = {
         {"Patches", nlohmann::json::array({
@@ -68,9 +106,9 @@ inline const nlohmann::basic_json<> skin_config::get_default_patches()
     return patches;
 }
 
-inline void skin_config::decide_overrides(nlohmann::basic_json<>& json_object)
+inline void themeConfig::assignOverrides(nlohmann::basic_json<>& json_object)
 {
-    nlohmann::basic_json<> default_patches = get_default_patches();
+    nlohmann::basic_json<> default_patches = defaultPatches();
     std::map<std::string, nlohmann::json> patches_map;
 
     for (const auto& patch : default_patches["Patches"]) {
@@ -89,14 +127,17 @@ inline void skin_config::decide_overrides(nlohmann::basic_json<>& json_object)
     json_object["Patches"] = std::move(patches_final);
 }
 
-skin_config& skin_config::getInstance()
+themeConfig& themeConfig::getInstance()
 {
-    static skin_config instance;
+    static themeConfig instance;
     return instance;
 }
 
-void __fastcall skin_config::watch_config(const std::string& filePath, void (*callback)()) {
-    std::string directoryPath = filePath.substr(0, filePath.find_last_of("\\/"));
+void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) {
+    // notification filters, name, folder created, file attributes changed, file size change
+    DWORD notifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE;
+
+    console.log(std::format("[bootstrap] sync file watcher starting on dir: {}", directoryPath));
 
     HANDLE hDirectory = CreateFileA(directoryPath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
     HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -106,7 +147,6 @@ void __fastcall skin_config::watch_config(const std::string& filePath, void (*ca
         return;
     }
 
-    DWORD notifyFilter = FILE_NOTIFY_CHANGE_LAST_WRITE;
     const DWORD bufferSize = sizeof(FILE_NOTIFY_INFORMATION) + MAX_PATH;
     BYTE buffer[bufferSize];
 
@@ -131,8 +171,8 @@ void __fastcall skin_config::watch_config(const std::string& filePath, void (*ca
         while (fileInfo != NULL)
         {
             callback();
-            if (fileInfo->NextEntryOffset == 0) break;
 
+            if (fileInfo->NextEntryOffset == 0) break;
             fileInfo = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(reinterpret_cast<char*>(fileInfo) + fileInfo->NextEntryOffset);
         }
 
@@ -143,17 +183,17 @@ void __fastcall skin_config::watch_config(const std::string& filePath, void (*ca
     CloseHandle(hDirectory);
 }
 
-skin_config::skin_config()
+themeConfig::themeConfig()
 {
     char buffer[MAX_PATH];  
     DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
-    steam_skin_path = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
+    m_themesPath = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
 }
 
-std::string skin_config::get_steam_skin_path()
+std::string themeConfig::getSkinDir()
 {
-    return steam_skin_path;
+    return m_themesPath;
 }
 
 class config
@@ -162,10 +202,12 @@ public:
     static const nlohmann::basic_json<> get_remote(std::basic_ifstream<char, std::char_traits<char>>& remote)
     {
         nlohmann::basic_json<> data; 
-        try { 
-            remote >> data; 
+        try {
+            std::string file_content((std::istreambuf_iterator<char>(remote)), std::istreambuf_iterator<char>());
+            data = nlohmann::json::parse(file_content, nullptr, true, true);
         }
-        catch (nlohmann::json::exception& ex) {
+        catch (const nlohmann::json::exception&) {
+            // Handle parsing errors here
             return { {"config_fail", true} };
         }
 
@@ -185,91 +227,114 @@ public:
             data = nlohmann::json::parse(http::get(data["skin-json"]));
             data["config_fail"] = false;
         }
-        catch (std::exception& ex) {
+        catch (std::exception&) {
             data["config_fail"] = true;
+
+            console.err("tried to get remote skin config but networking is disabled.");
         }
 
         return data;
     }
     static const nlohmann::basic_json<> get_local(std::basic_ifstream<char, std::char_traits<char>>& local)
     {
-        std::stringstream buffer;
-        buffer << local.rdbuf();
-
-        if (nlohmann::json::accept(buffer.str())) {
-            nlohmann::json json_object = nlohmann::json::parse(buffer.str());
-            json_object["config_fail"] = false;
-            millennium_remote.is_remote = false;
-
-            return json_object;
+        nlohmann::basic_json<> data;
+        try {
+            std::string file_content((std::istreambuf_iterator<char>(local)), std::istreambuf_iterator<char>());
+            data = nlohmann::json::parse(file_content, nullptr, true, true);
         }
+        catch (const nlohmann::json::exception&) {
+            // Handle parsing errors here
+            return { {"config_fail", true} };
+        }
+
+        data["config_fail"] = false;
+        millennium_remote.is_remote = false;
+
+        return data;
     }
 };
 
-const nlohmann::json skin_config::get_skin_config() noexcept
+const nlohmann::json themeConfig::getThemeData() noexcept
 {
-    const std::string active_skin = registry::get_registry("active-skin");
+    console.log("[config] fetching theme data");
 
-    std::basic_ifstream<char, std::char_traits<char>> local_skin_config(std::format("{}/{}/skin.json", steam_skin_path, active_skin));
-    std::basic_ifstream<char, std::char_traits<char>> remote_skin_config(std::format("{}/{}", steam_skin_path, active_skin));
+    const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
 
-    if (!local_skin_config.is_open() || !local_skin_config) {
+    std::basic_ifstream<char, std::char_traits<char>> localTheme(std::format("{}/{}/skin.json", m_themesPath, m_activeSkin));
+    std::basic_ifstream<char, std::char_traits<char>> cloudTheme(std::format("{}/{}", m_themesPath, m_activeSkin));
 
-        if (!remote_skin_config.is_open() || !remote_skin_config) {
-            return { { "config_fail", true } };
-        }
+    nlohmann::basic_json<> jsonBuffer;
 
-        nlohmann::basic_json<> remote = config::get_remote(remote_skin_config); 
+    if (localTheme.is_open() && localTheme)
+        jsonBuffer = config::get_local(localTheme);
+    else if (cloudTheme.is_open() && cloudTheme)
+        jsonBuffer = config::get_remote(cloudTheme);
+    else //cloud && remote skin are invalid
+        jsonBuffer = { { "config_fail", true } };
 
-        if (remote.value("UseDefaultPatches", false)) { 
-            decide_overrides(remote); 
-        }
-
-        return remote;
+    if (jsonBuffer.value("UseDefaultPatches", false)) {
+        this->assignOverrides(jsonBuffer);
     }
 
-    nlohmann::basic_json<> local = config::get_local(local_skin_config);
+    bool hasJavaScriptPatch = std::any_of(jsonBuffer["Patches"].begin(), jsonBuffer["Patches"].end(),
+        [](const nlohmann::json& patch) {
+            return patch.contains("TargetJs");
+        });
 
-    if (local.value("UseDefaultPatches", false)) {
-        decide_overrides(local);
+    if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false) {
+        MsgBox(
+            "The selected skin uses JavaScript to enhance your Steam experience.\n"
+            "You have JavaScript disabled in Millennium settings therefor the selected skin may not function properly.\n\n"
+            "ONLY enable JavaScript if you trust the developer or you have manually reviewed the code.", 
+            "Notice", 
+            MB_ICONINFORMATION
+        );
     }
 
-    return local;
+    return jsonBuffer;
 }
 
-const void skin_config::setup_millennium() noexcept
+const void themeConfig::setupMillennium() noexcept
 {
     try {
-        if (!std::filesystem::exists(get_steam_skin_path()))
-            std::filesystem::create_directories(get_steam_skin_path());
+        if (!std::filesystem::exists(this->getSkinDir()))
+            std::filesystem::create_directories(this->getSkinDir());
     }
     catch (const std::filesystem::filesystem_error& e) {
         console.err(std::format("Error creating 'skins' directory. reason: {}", e.what()));
     }
 
     //create registry key if it doesnt exist
-    std::function<void(std::string, std::string)> create_if_empty = ([this](std::string key, std::string value) {
-        if (registry::get_registry(key).empty())
-            registry::set_registry(key, value);
+    const auto nullOverwrite = ([this](std::string key, auto value) {
+        if (Settings::Get<std::string>(key).empty()) {
+            console.log(std::format("[bootstrap] creating settings key: {}", key));
+            Settings::Set(key, value);
+        }
     });
 
-    create_if_empty("active-skin", "default");
-    create_if_empty("allow-javascript", "false");
+    //if the following settings dont already exist, create them
+    nullOverwrite("active-skin", "default");
+
+    nullOverwrite("allow-javascript", false); //disallow js by default on a skin
+    nullOverwrite("allow-store-load", true);
+
+    nullOverwrite("enableUrlBar", true); //default value
+    nullOverwrite("NotificationsPos", 3); //default position i.e bottom right
 }
 
 
-skin_config::skin_change_events& skin_config::skin_change_events::get_instance() {
-    static skin_change_events instance;
+themeConfig::updateEvents& themeConfig::updateEvents::getInstance() {
+    static updateEvents instance;
     return instance;
 }
 
-void skin_config::skin_change_events::add_listener(const event_listener& listener) {
+void themeConfig::updateEvents::add_listener(const event_listener& listener) {
     listeners.push_back(listener);
 }
 
-void skin_config::skin_change_events::trigger_change() {
+void themeConfig::updateEvents::triggerUpdate() {
 
-    std::cout << std::format("triggering skin event change, executing {} listener", listeners.size()) << std::endl;
+    console.log(std::format("triggering skin event change, executing {} listener", listeners.size()));
 
     for (const auto& listener : listeners) {
         listener();

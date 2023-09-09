@@ -24,7 +24,7 @@
     <ClInclude Include="core\injector\event_handler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\ipc\steamipc.hpp">
+    <ClInclude Include="core\ipc\steam_pipe.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\steam\application.hpp">
@@ -33,37 +33,37 @@
     <ClInclude Include="core\steam\cef_manager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imconfig.h">
+    <ClInclude Include="window\imgui\imconfig.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imgui.h">
+    <ClInclude Include="window\imgui\imgui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imgui_impl_dx9.h">
+    <ClInclude Include="window\imgui\imgui_impl_dx9.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imgui_impl_win32.h">
+    <ClInclude Include="window\imgui\imgui_impl_win32.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imgui_internal.h">
+    <ClInclude Include="window\imgui\imgui_internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imstb_rectpack.h">
+    <ClInclude Include="window\imgui\imstb_rectpack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imstb_textedit.h">
+    <ClInclude Include="window\imgui\imstb_textedit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\imgui\imstb_truetype.h">
+    <ClInclude Include="window\imgui\imstb_truetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\src\memory.h">
+    <ClInclude Include="window\core\memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\src\window.hpp">
+    <ClInclude Include="window\core\window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\window\win_handler.hpp">
+    <ClInclude Include="window\win_handler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utils\http\http_client.hpp">
@@ -78,6 +78,21 @@
     <ClInclude Include="utils\cout\logger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="window\api\api.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="window\core\dx9_image.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="window\interface\globals.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\base64.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\thread\thread_handler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -89,31 +104,31 @@
     <ClCompile Include="core\steam\cef_manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\imgui\imgui.cpp">
+    <ClCompile Include="window\imgui\imgui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\imgui\imgui_demo.cpp">
+    <ClCompile Include="window\imgui\imgui_demo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\imgui\imgui_draw.cpp">
+    <ClCompile Include="window\imgui\imgui_draw.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\imgui\imgui_impl_dx9.cpp">
+    <ClCompile Include="window\imgui\imgui_impl_dx9.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\imgui\imgui_impl_win32.cpp">
+    <ClCompile Include="window\imgui\imgui_impl_win32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\imgui\imgui_tables.cpp">
+    <ClCompile Include="window\imgui\imgui_tables.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\imgui\imgui_widgets.cpp">
+    <ClCompile Include="window\imgui\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\src\window.cpp">
+    <ClCompile Include="window\core\window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\window\win_handler.cpp">
+    <ClCompile Include="window\win_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utils\http\http_client.cpp">
@@ -123,6 +138,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utils\cout\logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="window\core\dx9_image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="window\api\api.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="window\interface\globals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\thread\thread_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

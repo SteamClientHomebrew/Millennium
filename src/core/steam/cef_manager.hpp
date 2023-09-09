@@ -11,7 +11,11 @@
 #include <boost/beast.hpp>
 #include <boost/network/uri.hpp>
 
+#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/client.hpp>
+
 using tcp = boost::asio::ip::tcp;
+typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
 struct endpoints
 {
@@ -87,7 +91,8 @@ public:
         attached_to_target = 420,
         script_inject_evaluate = 69,
         received_cef_details = 69420,
-        get_document = 9898
+        get_document = 9898,
+        get_body = 2349
     };
 
     enum script_type { javascript, stylesheet };
@@ -99,7 +104,7 @@ public:
     /// <param name="socket">steam cef socket, unique to each page</param>
     /// <param name="raw_script">javascript to be executed</param>
     /// <param name="sessionId">socket identifier, if needed (not required for remote webpages)</param>
-    void push_to_socket(boost::beast::websocket::stream<tcp::socket>& socket, std::string raw_script, std::string sessionId = std::string()) noexcept;
+    void push_to_socket(ws_Client* c, websocketpp::connection_hdl hdl, std::string raw_script, std::string sessionId = std::string()) noexcept;
 
     /// <summary>
     /// discover information from remote_endpoint
@@ -123,7 +128,7 @@ public:
     /// <param name="file">the remote or local endpoint to a file</param>
     /// <param name="type">javascript or stylesheet injections from script_type</param>
     /// <param name="socket_response">if not null, its assumed to use sessionId (i.e for client handling)</param>
-    const void evaluate(boost::beast::websocket::stream<tcp::socket>& socket, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL);
+    const void evaluate(ws_Client* c, websocketpp::connection_hdl hdl, std::string file, script_type type, nlohmann::basic_json<> socket_response = NULL);
 
 };
 

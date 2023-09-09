@@ -19,7 +19,7 @@ private:
     void log(std::string type, const std::string& message);
 
 public:
-    HANDLE handle;
+    bool consoleAllocated;
 
     output_console();
     ~output_console();
@@ -31,6 +31,7 @@ public:
     void imp(std::string val);
 
     void log_patch(std::string type, std::string what_patched, std::string regex);
+    void log_hook(std::string string);
 
     void log_socket(std::string val);
 };

@@ -1,7 +1,7 @@
 *{box-shadow:none!important}
 
 :root {/* Colors */
-    --scrollbar: #6624e2;
+    --scrollbar: #303030;
     --trans: transparent;
     --black: #000000;
     --black-ish: #2a3f5a00;
@@ -57,8 +57,8 @@
 }
 
 /* Scrollbar */
-body::-webkit-scrollbar-thumb:window-inactive{background-clip: padding-box!important;-webkit-box-shadow:none!important;background:transparent!important;border-radius:var(--border1)!important}
-body::-webkit-scrollbar-thumb{background-clip:padding-box!important;-webkit-box-shadow:none!important;background-color:var(--scrollbar)!important;border:5px solid var(--darkgrey)!important;border-radius:var(--border1)!important;width:25px!important}
+
+body::-webkit-scrollbar-thumb{background-clip:padding-box!important;-webkit-box-shadow:none!important;background-color:var(--scrollbar)!important;border:3px solid var(--darkgrey)!important;border-radius:var(--border1)!important;width:35px!important}
 body::-webkit-scrollbar-track{-webkit-box-shadow:none!important;background:var(--darkgrey)!important}
 body::-webkit-scrollbar{background-clip:padding-box!important;border:5px solid transparent!important;background-color:transparent!important}
 .DialogBody::-webkit-scrollbar{display:none!important;border:5px solid transparent!important}
@@ -1007,4 +1007,12 @@ div.profile_page.has_profile_background{z-index:0!important}
 
 [class*="image_Btn_"]:hover {
     background: #454545 !important;
+}
+
+body.responsive_page {
+    background: #1e1e1f !important;
+}
+
+.responsive_page_frame.no_header {
+    background: #303030 !important;
 }

@@ -16,5 +16,4 @@ public:
     steam_client();
 };
 
-const void hotreload_wrapper();
 unsigned long __stdcall Initialize(void*);

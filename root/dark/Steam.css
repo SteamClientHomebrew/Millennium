@@ -40,20 +40,33 @@
     border-radius: 10px !important;
 }
 
+.steamdesktop_InitContainer_2YwTw {
+    background: #191919;
+}
+
 /* HIDE TOP SHIT IN LIBRARY */
 
 .bottombar_Queue_3wJnT {
     display: none !important;
 }
 
+/* 
 [class*="gamelistdropdown_Bar_"], [class*="gamelistbar_GameListHomeAndSearch_"] {
     display: none !important;
-}
+} */
 
 /* Library Seperator */
 
 [class*="library_LibraryWindowDivider_"] {
     background: var(--color-dark) !important;
+}
+
+.gamelistdropdown_Bar_1ZS_x {
+    background: #191919 !important;
+}
+
+.gamelistdropdown_MenuHeader_2PF_m {
+    background: #212121 !important;
 }
 
 /* [class*="rootmenu_RootMenuButton_"] {
@@ -96,6 +109,11 @@
     background: var(--color-darker) !important;
 }
 
+[class*="smartscrollcontainer_Body_"][class*="collectionview_ContainerScroll_"] {
+  background: var(--color-darker) !important;  
+}
+
+
 [class*="gamelist_Container"] {
     background: var(--color-darker) !important;
 }
@@ -122,6 +140,7 @@
     background-color: var(--color-darkest) !important;
     box-shadow: none !important;
     border-bottom: 2px solid var(--color-darker) !important;
+    display: none !important;
 }
 
 [class*="gamelisthome_Bar_"][class*="gamelisthome_Selected_"],
@@ -318,7 +337,7 @@
 }
 /* Context Menus */
 [class*="menu_MenuPopup"] {
-    background: var(--color-light) !important;
+    background: #191919 !important;
 }
 
 /* Friends List */
@@ -538,7 +557,7 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 }
 
 .contextMenuItem:not(.library_ContextMenuAction_Z5iAX):hover {
-    background: #303030 !important;
+    background: #212121 !important;
     color: #fff !important;
 }
 

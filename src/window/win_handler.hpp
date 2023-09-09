@@ -1,4 +1,4 @@
 #pragma once
-#define _WINSOCKAPI_   
+static HMODULE hCurrentModule;
 
 void init_main_window();

@@ -48,7 +48,7 @@ public:
         std::vector<std::string> args;
     };
 
-    static steam& get_instance() {
+    static steam& get() {
         static steam instance;
         return instance;
     }

@@ -438,6 +438,28 @@ void ImGui::TextWrapped(const char* fmt, ...)
     va_end(args);
 }
 
+void ImGui::TextWrappedUnFormatted(const char* fmt, const char* text_end, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    TextWrappedUnFormattedV(fmt, text_end, args);
+    va_end(args);
+}
+
+void ImGui::TextWrappedUnFormattedV(const char* fmt, const char* text_end, va_list args)
+{
+    ImGuiContext& g = *GImGui;
+    bool need_backup = (g.CurrentWindow->DC.TextWrapPos < 0.0f);  // Keep existing wrap position if one is already set
+    if (need_backup)
+        PushTextWrapPos(0.0f);
+    if (fmt[0] == '%' && fmt[1] == 's' && fmt[2] == 0)
+        TextEx(va_arg(args, const char*), text_end, ImGuiTextFlags_NoWidthForLargeClippedText); // Skip formatting
+    else
+        TextV(fmt, args);
+    if (need_backup)
+        PopTextWrapPos();
+}
+
 void ImGui::TextWrappedV(const char* fmt, va_list args)
 {
     ImGuiContext& g = *GImGui;
@@ -3114,25 +3136,25 @@ bool ImGui::SliderScalar(const char* label, ImGuiDataType data_type, void* p_dat
 
     //animation on click
     if (g.ActiveId == id)
-        if (radius < 15) radius += 0.4;
+        if (radius < 15) radius += 0.4f;
 
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 
     if (g.ActiveId == id || g.LastActiveId == id)
         //todo get median of two colors to display blend properly 
-        window->DrawList->AddCircleFilled(ImVec2(grab_bb.Max.x, grab_bb.Max.y - (8.5)), radius, GetColorU32(ImGuiCol_SliderGrabActive), 50);
+        window->DrawList->AddCircleFilled(ImVec2(grab_bb.Max.x, grab_bb.Max.y - (8.5f)), radius, GetColorU32(ImGuiCol_SliderGrabActive), 50);
 
     ImGui::PopStyleVar();
 
     if (g.ActiveId != id && g.LastActiveId == id)
-        if (radius > 6) radius -= 0.4;
+        if (radius > 6) radius -= 0.4f;
 
 	RenderFrame(frame_bb.Min + erased_height, frame_bb.Max - erased_height, frame_col, true, g.Style.FrameRounding);
 	RenderFrame(frame_bb.Min + erased_height, grab_bb.Max - erased_height + ImVec2(0,3), GetColorU32(g.ActiveId == id ? ImGuiCol_SliderGrabActive : ImGuiCol_SliderGrab), true, g.Style.FrameRounding);
 
     // Render grab
     if (grab_bb.Max.x > grab_bb.Min.x)
-        window->DrawList->AddCircleFilled(ImVec2(grab_bb.Max.x, grab_bb.Max.y - (8.5)), 6, GetColorU32(g.ActiveId == id ? ImGuiCol_SliderGrabActive : ImGuiCol_SliderGrab), 50);
+        window->DrawList->AddCircleFilled(ImVec2(grab_bb.Max.x, grab_bb.Max.y - (8.5f)), 6, GetColorU32(g.ActiveId == id ? ImGuiCol_SliderGrabActive : ImGuiCol_SliderGrab), 50);
 
     // Display value using user-provided display format so user can add prefix/suffix/decorations to the value.
     char value_buf[64];
@@ -3140,14 +3162,14 @@ bool ImGui::SliderScalar(const char* label, ImGuiDataType data_type, void* p_dat
     if (g.LogEnabled)
         LogSetNextTextDecoration("{", "}");
 
-    const size_t text_len = (CalcTextSize(value_buf).x);
+    const size_t text_len = (size_t)(CalcTextSize(value_buf).x);
 
     if (id == (g.ActiveId | g.HoveredId))
     {
         std::cout << grab_bb.Max.x << " || " << grab_bb.Max.y << std::endl;
 
-        RenderFrameOnTop(grab_bb.Min - ImVec2((text_len / 2) - 5, 30), grab_bb.Max + ImVec2((text_len / 2) + 5, -30), frame_col, true, g.Style.FrameRounding);
-        RenderTextClippedOnTop(grab_bb.Min - ImVec2(text_len, 60), grab_bb.Max + ImVec2((text_len + 10), 0), value_buf, value_buf_end, NULL, ImVec2(0.5f, 0.5f));
+        RenderFrameOnTop(grab_bb.Min - ImVec2((text_len / 2) - 5.0f, 30.0f), grab_bb.Max + ImVec2((text_len / 2) + 5.0f, -30.0f), frame_col, true, g.Style.FrameRounding);
+        RenderTextClippedOnTop(grab_bb.Min - ImVec2((float)text_len, 60.0f), grab_bb.Max + ImVec2((text_len + 10.0f), 0.0f), value_buf, value_buf_end, NULL, ImVec2(0.5f, 0.5f));
     }
 
     if (label_size.x > 0.0f)
