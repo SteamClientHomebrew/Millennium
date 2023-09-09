@@ -1,47 +1,22 @@
 {
-    // Hooks enable faster and seamless code injection.
-    // How to hook a code file:
-    // You can hook any file listed in the network tab of the debugger on any website.
-    // It's not sensitive to the URL, so any site loading the listed CSS/JS files will be patched.
-    // In this example, we're hooking 'https://community.cloudflare.steamstatic.com/public/shared/css/shared_responsive.css' which loads on community tab and is cached by default.
-    // We add our WebKit code at the top of that imported file to cache it in memory. depending on the import hierarchy you MAY still need !important so just use it incase :)
-    // We use simplified regex to select a URL, where:
-    // - Wildcards ('*' for zero or more, '?' for exactly one) are allowed.
-    // - The escape character is the backslash.
-    // - Omitting it is equivalent to using '*'.
     "Hooks": [
         {
             "TargetCss": "https://community.cloudflare.steamstatic.com/public/shared/css/shared_responsive.css*",
-            //using @import is illegal.
             "Interpolate": "webkit/webkit.css"
         },
         {
             "TargetCss": "https://store.cloudflare.steamstatic.com/public/shared/css/shared_responsive.css*",
-            //using @import is illegal.
             "Interpolate": "webkit/webkit.css"
         },
         {
-            //hooking JS allows for much much much faster loading times, and you can listen for document load events.
-            //not modular, doesnt support it even if you hook a module therefor require() is illegal
             "TargetJs": "https://store.cloudflare.steamstatic.com/public/shared/javascript/shared_responsive_adapter.js*",
             "Interpolate": "webkit/store.js"
         }
 
     ],
-    //full regex support when selecting a tab.
-    //can either be a window name by regex or class name.
-    //IMPORTANT: class names on the <html> are the only ones accepted. YOU CANNOT query select class names anywhere else, you have to handle what page you are on with your own js 
-    //REASON: the whole page isnt loaded when the window appears, so if we waited for it to load, then got classnames, this would result in slow insertion and you would see the default skin underneath.
 
-    //ILLEGAL CASES (IMPORTANT):
-    //you can ONLY have 1 js and 1 css file PER page, you have to @import other css files and require() other js files
-    //IMPORTANT: @imported files and require()'d files can only be 1 deep. i.e a @imported file CANNOT @import another file from inside itself. 
-    //JS is inserted as type "module" by default
     "Patches": [
         {
-            //load js with the old method. Its still very fast however its data isnt cached because steamloopback.host doesnt allow cache it seems
-            //CASES: can be slow on the initial injection when steam starts, and when garbage collection deletes the cef instance and it needs to be reallocated.
-            //i.e you stay on the library tab for 30 mins, then switch back to the store page, it would be kinda slow
             "MatchRegexString": ".*http.*steam.*",
             "TargetJs": "webkit/store.js"
         },
@@ -134,33 +109,6 @@
 
 
     "UseDefaultPatches": true,
-    //derived from this function in millennium
-    //you can override these manually by just putting it in 'Patches' and changing it
-
-    //inline const nlohmann::basic_json<> themeConfig::defaultPatches()
-    // {
-    //     nlohmann::basic_json<> patches = {
-    //         {"Patches", nlohmann::json::array({
-    //             { {"MatchRegexString", ".*http.*steam.*"}, {"TargetCss", "webkit.css"}, {"TargetJs", "webkit.js"} },
-    //             { {"MatchRegexString", "^Steam$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "^OverlayBrowser_Browser$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "^SP Overlay:"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "Menu$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "Supernav$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "^notificationtoasts_"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "^SteamBrowser_Find$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "^OverlayTab\\d+_Find$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", "^Steam Big Picture Mode$"}, {"TargetCss", "bigpicture.custom.css"}, {"TargetJs", "bigpicture.custom.js"} },
-    //             { {"MatchRegexString", "^QuickAccess_"}, {"TargetCss", "bigpicture.custom.css"}, {"TargetJs", "bigpicture.custom.js"} },
-    //             { {"MatchRegexString", "^MainMenu_"}, {"TargetCss", "bigpicture.custom.css"}, {"TargetJs", "bigpicture.custom.js"} },
-    //             { {"MatchRegexString", ".friendsui-container"}, {"TargetCss", "friends.custom.css"}, {"TargetJs", "friends.custom.js"} },
-    //             { {"MatchRegexString", ".ModalDialogPopup"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
-    //             { {"MatchRegexString", ".FullModalOverlay"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} }
-    //         })}
-    //     };
-
-    //     return patches;
-    // }
 
 
     "author": "ShadowMonster",
