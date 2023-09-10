@@ -80,6 +80,21 @@ private:
 			}
 		}
 
+		for (const auto& hook : skinData["Hooks"])
+		{
+			if (hook.contains("Interpolate"))
+			{
+				const auto interpFile = hook["Interpolate"].get<std::string>();
+
+				if (processedNames.find(interpFile) != processedNames.end()) {
+					continue;
+				}
+
+				fileItems.push_back(interpFile);
+				processedNames.insert(interpFile);
+			}
+		}
+
 		return fileItems;
 	}
 	const void findImportsSync(const std::string& content, std::filesystem::path& githubUrl, std::filesystem::path& parentPath)
@@ -425,20 +440,37 @@ public:
 			if (ImGui::Combo(std::format("Sort").c_str(), &p_sortMethod, items, IM_ARRAYSIZE(items)));
 			ImGui::PopItemWidth();
 
-			for (size_t i = 0; i < m_Client->skinData.size(); ++i)
-			{
-				nlohmann::basic_json<>& skin = m_Client->skinData[i];
+			if (m_Client->skinData.empty()) {
+				ui::shift::y(150);
 
-				if (p_sortMethod == 1 && skin["remote"])
-					continue;
-
-				if (p_sortMethod == 2 && !skin["remote"])
-					continue;
-
-				if (skin["native-name"].get<std::string>() != m_Client->m_currentSkin && 
-					to_lwr(skin["name"].get<std::string>()).find(to_lwr(text_buffer)) != std::string::npos)
+				ui::center(0, 240, 0);
+				ImGui::BeginChild("noResultsContainer", ImVec2(240, 135), false);
 				{
-					createLibraryListing(skin, i);
+					ImGui::Image(Window::iconsObj().icon_no_results, ImVec2(240, 110));
+
+					const char* text = "You don't have any themes!";
+
+					ui::center(0, ImGui::CalcTextSize(text).x, 0);
+					ImGui::Text(text);
+				}
+				ImGui::EndChild();
+			}	
+			else {
+				for (size_t i = 0; i < m_Client->skinData.size(); ++i)
+				{
+					nlohmann::basic_json<>& skin = m_Client->skinData[i];
+
+					if (p_sortMethod == 1 && skin["remote"])
+						continue;
+
+					if (p_sortMethod == 2 && !skin["remote"])
+						continue;
+
+					if (skin["native-name"].get<std::string>() != m_Client->m_currentSkin &&
+						to_lwr(skin["name"].get<std::string>()).find(to_lwr(text_buffer)) != std::string::npos)
+					{
+						createLibraryListing(skin, i);
+					}
 				}
 			}
 		}

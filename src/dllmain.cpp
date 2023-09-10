@@ -28,30 +28,30 @@ namespace Millennium
 
     unsigned long __stdcall Bootstrap(void* lpParam)
     {
-        //try
-        //{
-        //    nlohmann::basic_json<> response = nlohmann::json::parse(http::get(repo));
+        try
+        {
+            nlohmann::basic_json<> response = nlohmann::json::parse(http::get(repo));
 
-        //    if (response["tag_name"] != m_ver)
-        //    {
-        //        OpenURL("https://millennium.web.app/");
-        //        ExitProcess(EXIT_SUCCESS);
-        //    }
-        //}
-        //catch (const http_error& error)
-        //{
-        //    switch (error.code())
-        //    {
-        //        case http_error::errors::couldnt_connect: {
-        //            console.err("Couldn't make a GET request to GitHub to retrieve update information!");
-        //            break;
-        //        }
-        //        case http_error::errors::not_allowed: {
-        //            console.err("Networking disabled. Purged update request.");
-        //            break;
-        //        }
-        //    }
-        //}
+            if (response["tag_name"] != m_ver)
+            {
+                OpenURL("https://millennium.web.app/");
+                ExitProcess(EXIT_SUCCESS);
+            }
+        }
+        catch (const http_error& error)
+        {
+            switch (error.code())
+            {
+                case http_error::errors::couldnt_connect: {
+                    console.err("Couldn't make a GET request to GitHub to retrieve update information!");
+                    break;
+                }
+                case http_error::errors::not_allowed: {
+                    console.err("Networking disabled. Purged update request.");
+                    break;
+                }
+            }
+        }
 
         if (steam::get().params.has("-dev"))
         {
@@ -68,7 +68,6 @@ namespace Millennium
             }
         }
 
-        //discard the value of the thread object in stack memory 
         Initialize(nullptr);
         return true;
     }

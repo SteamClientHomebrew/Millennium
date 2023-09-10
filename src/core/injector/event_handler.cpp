@@ -10,14 +10,7 @@
 #include <core/steam/cef_manager.hpp>
 #include <core/ipc/steam_pipe.hpp>
 #include <utils/json.hpp>
-
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/asio.hpp>
-//#include <window/panels/implement.hpp>
 #include <utils/base64.hpp>
-
 #include <utils/thread/thread_handler.hpp>
 
 //
@@ -201,6 +194,46 @@ public:
         }
     }
 
+    const void update_fetch_hook_status()
+    {
+        nlohmann::json enableFetch = {
+            { "id", 3242 },
+            { "method", "Fetch.enable" },
+            { "params", {
+                { "patterns", nlohmann::json::array() }
+            }}
+        };
+
+        nlohmann::json _buffer = nlohmann::json::array();
+
+        for (const auto& hook : skin_json_config["Hooks"])
+        {
+            if (hook.contains("TargetCss"))
+            {
+                _buffer.push_back({
+                    { "urlPattern", hook["TargetCss"] },
+                    { "resourceType", "Stylesheet" },
+                    { "requestStage", "Response" },
+                    });
+            }
+            else if (hook.contains("TargetJs"))
+            {
+                _buffer.push_back({
+                    { "urlPattern", hook["TargetJs"] },
+                    { "resourceType", "Script" },
+                    { "requestStage", "Response" },
+                    });
+            }
+        }
+
+        enableFetch["params"]["patterns"] = _buffer;
+
+        if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0) {
+            console.log("Enabling CSS Hooks.");
+            steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
+        }
+    }
+
     /// <summary>
     /// set discover targets on the browser instance so every cef instance is logged
     /// </summary>
@@ -223,42 +256,7 @@ public:
 
         steam_client->send(hdl, setDiscoverTargets.dump(), websocketpp::frame::opcode::text);
 
-        nlohmann::json enableFetch = {
-            { "id", 3242 },
-            { "method", "Fetch.enable" },
-            { "params", {
-                { "patterns", nlohmann::json::array() }
-            }}
-        };
-
-        nlohmann::json _buffer = nlohmann::json::array();
-
-        for (const auto& hook : skin_json_config["Hooks"])
-        {
-            if (hook.contains("TargetCss"))
-            {
-                _buffer.push_back({
-                    { "urlPattern", hook["TargetCss"] },
-                    { "resourceType", "Stylesheet" },
-                    { "requestStage", "Response" },
-                });
-            }
-            else if (hook.contains("TargetJs"))
-            {
-                _buffer.push_back({
-                    { "urlPattern", hook["TargetJs"] },
-                    { "resourceType", "Script" },
-                    { "requestStage", "Response" },
-                });
-            }
-        }
-
-        enableFetch["params"]["patterns"] = _buffer;
-
-        if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0) {
-            console.log("Enabling CSS Hooks.");
-            steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
-        }
+        this->update_fetch_hook_status();
     }
 
 private:
@@ -383,55 +381,44 @@ private:
 
         steam_client->send(hdl, fulfillRequest.dump(), websocketpp::frame::opcode::text);
     }
+
+    inline const bool settings_patches(std::string cefctx_title) {
+
+        std::unordered_map<std::string, std::function<void()>> caseActions = {
+            //adjust the client notifications position on every launch because it doesnt save it disk or in memory
+            {"SharedJSContext", [&]() { 
+                uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
+                std::string js = std::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
+
+                steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
+            }},
+            //if the steam root menu is clicked we want to display millennium's popup modal
+            {"Steam Root Menu", [&]() { 
+                steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"]);
+            }},
+            //adjust the url bar depending on what the user wants
+            {"Steam", [&]() { 
+                 m_steamMainSessionId = m_socket_resp["sessionId"];
+
+                if (!Settings::Get<bool>("enableUrlBar")) {
+                    std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".steamdesktop_URLBar_UkR3s { display: none !important; }" })); })())";
+                    steam_interface.push_to_socket(steam_client, hdl, javaScript, m_steamMainSessionId);
+                }
+            }},
+        };
+        (caseActions.find(cefctx_title) != caseActions.end() ? caseActions[cefctx_title] : []() { 
+            return false;
+        })();
+
+        return true;
+    }
     /// <summary>
     /// function responsible for handling css and js injections
     /// </summary>
     /// <param name="title">the title of the cef page to inject into</param>
     inline const void patch(std::string cefctx_title) noexcept
     {    
-        if (cefctx_title == ("SharedJSContext"))
-        {
-            uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
-            std::string js = std::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
-
-            steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
-        }
-        if (cefctx_title == ("Steam Root Menu"))
-        {
-            steam_interface.push_to_socket(steam_client, hdl, R"(
-            (function() {
-                const millennium = new WebSocket('ws://localhost:)" + std::to_string(steam_client::get_ipc_port()) + R"(');
-
-		        new MutationObserver((_, observer) => {
-			        const menu = document.querySelector(`[class*='contextmenu_contextMenuContents_2y2tU']`);
-			        if (menu) {
-                        const btn = Array.from(menu.children).slice(-2)[1].cloneNode(true); // true means clone all child nodes
-                        btn.innerText = "Millennium v)" + m_ver + R"("
-                        btn.addEventListener('click', () => millennium.send(JSON.stringify({open_millennium: true})));
-                        menu.insertBefore(Array.from(menu.children).slice(-2)[0].cloneNode(true), menu.firstChild);
-                        menu.insertBefore(btn, menu.firstChild);
-                        observer.disconnect();
-			        }
-		        }).observe(document, { childList: true, subtree: true });
-	        })())", m_socket_resp["sessionId"]);
-        }
-        if (cefctx_title == ("Steam"))
-        {
-            m_steamMainSessionId = m_socket_resp["sessionId"];
-
-            if (!Settings::Get<bool>("enableUrlBar"))
-            {
-                std::string javaScript = R"(
-                (function() { 
-                    document.head.appendChild(Object.assign(document.createElement("style"), 
-                    { 
-                        textContent: ".steamdesktop_URLBar_UkR3s { display: none !important; }" 
-                    })); 
-                })())";
-
-                steam_interface.push_to_socket(steam_client, hdl, javaScript, m_socket_resp["sessionId"]);
-            }
-        }
+        this->settings_patches(cefctx_title);
 
         if (skin_json_config["config_fail"]) {
             return;
@@ -484,6 +471,15 @@ private:
                 }}
             }).dump()
         , websocketpp::frame::opcode::text);
+
+        //create a get document request, used to get query from the page, where further patching can happen
+        steam_client->send(hdl,
+            nlohmann::json({
+                {"id", steam_cef_manager::response::get_document},
+                {"method", "DOM.getDocument"},
+                {"sessionId", m_sessionId}
+            }).dump(), websocketpp::frame::opcode::text
+        );
     }
 
     /// <summary>
@@ -499,15 +495,6 @@ private:
 
         m_header = m_socket_resp["result"]["result"]["value"]["title"].get<std::string>();
         patch(m_header);
-
-        //create a get document request, used to get query from the page, where further patching can happen
-        steam_client->send(hdl,
-            nlohmann::json({
-                {"id", steam_cef_manager::response::get_document},
-                {"method", "DOM.getDocument"},
-                {"sessionId", m_sessionId}
-            }).dump(), websocketpp::frame::opcode::text
-        );
     }
 
     const std::string get_class_list(const nlohmann::basic_json<>& node)
@@ -519,7 +506,7 @@ private:
             const nlohmann::basic_json<>& attributes = node["attributes"];
             for (const auto& attribute : attributes)
             {
-                attributes_list += attribute.get<std::string>();
+                attributes_list += std::format(".{} ", attribute.get<std::string>());
             }
         }
 
@@ -564,8 +551,12 @@ private:
             {
                 bool contains_http = patch.matchRegexString.find("http") != std::string::npos;
 
-                if (contains_http || attributes.find(patch.matchRegexString) == std::string::npos)
+                if (contains_http)
                     continue;
+
+                if (attributes.find(patch.matchRegexString) == std::string::npos) {
+                    continue;
+                }
 
                 console.log_patch("class name", m_header, patch.matchRegexString);
 
@@ -895,12 +886,14 @@ unsigned long __stdcall Initialize(void*)
     themeConfig::updateEvents::getInstance().add_listener([]() {
         console.imp("skin change event fired, updating skin patch config");
         skin_json_config = config.getThemeData();
+        client::get_instance().update_fetch_hook_status();
     });
 
     //config file watcher callback function 
     std::thread watcher(themeConfig::watchPath, config.getSkinDir(), []() {
         console.log("skins folder has changed, updating required information");
         skin_json_config = config.getThemeData();
+        client::get_instance().update_fetch_hook_status();
 
         //m_Client.parseSkinData();
     });

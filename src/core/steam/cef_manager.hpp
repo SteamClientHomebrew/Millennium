@@ -119,7 +119,7 @@ public:
     /// <param name="socket">steam socket</param>
     /// <param name="socket_response">used sessionId to target the setting modal</param>
     /// <returns></returns>
-    __declspec(noinline) void __fastcall inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response) noexcept;
+    __declspec(noinline) void __fastcall inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept;
 
     /// <summary>
     /// interface to inject js into a cef instance

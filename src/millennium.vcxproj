@@ -82,7 +82,7 @@
     <TargetName>User32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>C:\Users\Admin\Documents\millennium-steam-patcher\dist\millennium-prod.Release-x86Windows\</OutDir>
+    <OutDir>$(SolutionDir)dist\$(ProjectName).$(Configuration)-$(PlatformTarget)-$(OS)\</OutDir>
     <IncludePath>$(IncludePath);.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</IncludePath>
     <IntDir>$(SolutionDir)intermediate\release\</IntDir>
     <TargetName>User32</TargetName>

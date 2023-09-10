@@ -282,13 +282,19 @@ const nlohmann::json themeConfig::getThemeData() noexcept
         });
 
     if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false) {
-        MsgBox(
-            "The selected skin uses JavaScript to enhance your Steam experience.\n"
+        int result = MsgBox(
+            "The selected theme uses JavaScript to enhance your Steam experience.\n"
             "You have JavaScript disabled in Millennium settings therefor the selected skin may not function properly.\n\n"
-            "ONLY enable JavaScript if you trust the developer or you have manually reviewed the code.", 
+            "ONLY enable JavaScript if you trust the developer, manually reviewed the code, or its an official theme.\n\n"
+            "Would you like to enable JavaScript execution?", 
             "Notice", 
-            MB_ICONINFORMATION
+            MB_YESNO | MB_ICONINFORMATION
         );
+        switch (result) {
+            case IDYES: {
+                Settings::Set("allow-javascript", true);
+            }
+        }
     }
 
     return jsonBuffer;

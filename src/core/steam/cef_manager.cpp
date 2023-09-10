@@ -99,18 +99,21 @@ inline std::string steam_cef_manager::discover(std::basic_string<char, std::char
     return discovery_result;
 }
 
-__declspec(noinline) void __fastcall steam_cef_manager::inject_millennium(boost::beast::websocket::stream<tcp::socket>& socket, nlohmann::basic_json<>& socket_response) noexcept
+__declspec(noinline) void __fastcall steam_cef_manager::inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
-    std::string javascript = "https://shadowmonster99.github.io/millennium-steam-patcher/root/dependencies/index.js";
-    //std::string javascript = std::format("{}/skins/index.js", endpoints.steam_resources.string());
+    std::string javaScript = R"(
+    (function() {
+        const millennium = new WebSocket('ws://localhost:)" + std::to_string(steam_client::get_ipc_port()) + R"(');
+        new MutationObserver((_, observer) => {
+            const menu = document.querySelector(`[class*='contextmenu_contextMenuContents_2y2tU']`);
+            const btn = Array.from(menu.children).slice(-2)[1].cloneNode(true); btn.innerText = "Millennium"
+            btn.addEventListener('click', () => millennium.send(JSON.stringify({open_millennium: true})));
+            menu.insertBefore(btn, menu.childNodes[9]);
+            observer.disconnect();
+        }).observe(document, { childList: true, subtree: true });
+    })())";
 
-    //deprecated, now using imgui interface
-    //steam_interface.push_to_socket(
-    //    socket,
-    //    //uses js vm to run the javascript code from a url as its too long to send over socket, steamloopbackhost is allowed
-    //    cef_dom::get().runtime_handler.evaluate(javascript),
-    //    socket_response["sessionId"].get<std::string>()
-    //);
+    steam_interface.push_to_socket(steam_client, hdl, javaScript, sessionId);
 }
 
 const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)

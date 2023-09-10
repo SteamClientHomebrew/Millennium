@@ -50,7 +50,7 @@
             "TargetCss": "Steam.css"
         },
         {
-            "MatchRegexString": ".*Settings$",
+            "MatchRegexString": "settings_SettingsModalRoot_",
             "TargetCss": "Steam.css"
         },
         {
