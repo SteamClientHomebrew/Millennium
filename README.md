@@ -1,6 +1,6 @@
 <div align="center">
 
-[![BetterDiscord Logo](https://cdn.discordapp.com/attachments/923017628367335428/1150460611977826335/Untitled_3.png)](https://millennium.web.app/)
+[![Millennium Logo](https://cdn.discordapp.com/attachments/923017628367335428/1150460611977826335/Untitled_3.png)](https://millennium.web.app/)
 
 [![GitHub Releases][downloads-badge]][downloads-link] [![Discord][discord-badge]][discord-link] [![Website][website-badge]][website-link] [![Docs][docs-badge]][docs-link]
 
@@ -19,7 +19,7 @@
 
 Millennium is a client modification for Steam that brings skins/theming back to the new Steam Client.
 
-[![Theme Split](https://cdn.discordapp.com/attachments/923017628367335428/1150450427645657209/Untitled_design_3_1.png)](https://betterdiscord.app/)
+[![Theme Split](https://cdn.discordapp.com/attachments/923017628367335428/1150450427645657209/Untitled_design_3_1.png)](https://cdn.discordapp.com/attachments/923017628367335428/1150450427645657209/Untitled_design_3_1.png)
 
 </div>
 
