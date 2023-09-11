@@ -1,3 +1,4 @@
+#i was on the verge of killing myself while writing this build script (they have my family please help)
 name: Build Installer
 
 on:
@@ -6,8 +7,7 @@ on:
       - main
 
 env:
-  ACTIONS_ALLOW_UNSECURE_COMMANDS: true  # Enable unsecure command execution
-      
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true  # allow fortnite wallhacks 
 
 jobs:
   build:
@@ -32,33 +32,18 @@ jobs:
         run: |
           ${{ github.workspace }}/vcpkg/vcpkg.exe install nlohmann-json:x86-windows
 
-      - name:  Config
-        run:   echo ::set-env name=DXSDK_DIR::$HOME/cache/
-        shell: bash
-
-      - name: Cache
-        id:   cache
-        uses: actions/cache@v1
-        with:
-          path: ~/cache
-          key:  cache
-
-      - name:  Cache create
-        if:    steps.cache.outputs.cache-hit != 'true'
-        run:   |
-            curl -L https://download.microsoft.com/download/a/e/7/ae743f1f-632b-4809-87a9-aa1bb3458e31/DXSDK_Jun10.exe -o _DX2010_.exe
-            7z x _DX2010_.exe DXSDK/Include -o_DX2010_
-            7z x _DX2010_.exe DXSDK/Lib/x86 -o_DX2010_
-            mv _DX2010_/DXSDK $HOME/cache
-            rm -fR _DX*_ _DX*_.exe
-        shell: bash
-
       - name: Build Installer
         run: |
-          msbuild /p:Configuration=Release /p:Platform=x86 /m installer.sln
+          msbuild /p:Configuration=Release /p:Platform=x86 /p:OutputPath=${{ github.workspace }}/build-output /m installer.sln
         working-directory: ${{ github.workspace }}
 
       - name: Set MSBuild path
         run: |
           echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin" >> $GITHUB_PATH
         shell: cmd
+
+      - name: Create Release Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: ${{ github.workspace }}/build-output  # Use the new build path
