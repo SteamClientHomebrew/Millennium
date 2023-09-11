@@ -109,16 +109,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>./;$(ProjectDir)src;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Include</IncludePath>
-    <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x86;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)dist\millennium-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
+    <IncludePath>./;$(ProjectDir)src;$(ProjectDir)shared\dx9_sdk\Include</IncludePath>
+    <LibraryPath>$(ProjectDir)shared\dx9_sdk\Lib\x86;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
     <TargetName>millennium</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>./;$(ProjectDir)src;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Include</IncludePath>
-    <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x86;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x64;$(LibraryPath)C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x86</LibraryPath>
+    <IncludePath>./;$(ProjectDir)src;$(ProjectDir)shared\dx9_sdk\Include</IncludePath>
+    <LibraryPath>$(ProjectDir)shared\dx9_sdk\Lib\x86;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x64;$(LibraryPath)C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x86</LibraryPath>
     <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
     <TargetName>millennium</TargetName>
@@ -127,15 +127,15 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
-    <IncludePath>./;$(ProjectDir)src;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Include;</IncludePath>
-    <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x64</LibraryPath>
+    <IncludePath>./;$(ProjectDir)src;$(ProjectDir)shared\dx9_sdk\Include;</IncludePath>
+    <LibraryPath>$(ProjectDir)shared\dx9_sdk\Lib\x64</LibraryPath>
     <TargetName>millennium</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
-    <IncludePath>./;$(ProjectDir)src;C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Program Files %28x86%29\Microsoft DirectX SDK %28June 2010%29\Lib\x64</LibraryPath>
+    <IncludePath>./;$(ProjectDir)src;$(ProjectDir)shared\dx9_sdk\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)shared\dx9_sdk\Lib\x64</LibraryPath>
     <TargetName>millennium</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

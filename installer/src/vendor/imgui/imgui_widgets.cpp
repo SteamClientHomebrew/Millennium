@@ -518,8 +518,8 @@ void ImGui::BulletTextV(const char* fmt, va_list args)
 
     // Render
     ImU32 text_col = GetColorU32(ImGuiCol_Text);
-    RenderBullet(window->DrawList, bb.Min + ImVec2(style.FramePadding.x + g.FontSize * 0.5f, g.FontSize * 0.5f), text_col);
-    RenderText(bb.Min + ImVec2(g.FontSize + style.FramePadding.x * 2, 0.0f), text_begin, text_end, false);
+    RenderBullet(window->DrawList, bb.Min + ImVec2( g.FontSize * 0.5f, g.FontSize * 0.5f), text_col);
+    RenderText(bb.Min + ImVec2(g.FontSize + style.FramePadding.x / 2, 0.0f), text_begin, text_end, false);
 }
 
 //-------------------------------------------------------------------------

@@ -32,8 +32,8 @@
     <ClCompile Include="utils\cout\logger.cpp">
       <Filter>utils\cout</Filter>
     </ClCompile>
-    <ClCompile Include="src\installer\installer.cpp" />
     <ClCompile Include="utils\steam\steam_helpers.cpp" />
+    <ClCompile Include="src\installer\installer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\vendor\imgui\imstb_truetype.h">
@@ -75,8 +75,8 @@
     <ClInclude Include="utils\cout\logger.hpp">
       <Filter>utils\cout</Filter>
     </ClInclude>
-    <ClInclude Include="src\installer\installer.hpp" />
     <ClInclude Include="utils\steam\steam_helpers.hpp" />
+    <ClInclude Include="src\installer\installer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">
