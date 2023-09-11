@@ -1,4 +1,4 @@
-name: Build Millennium
+name: Build Installer
 
 on:
   push:
@@ -30,15 +30,11 @@ jobs:
 
       - name: Install Vcpkg dependencies
         run: |
-          ${{ github.workspace }}/vcpkg/vcpkg.exe install boost:x86-windows
-          ${{ github.workspace }}/vcpkg/vcpkg.exe install cpp-netlib:x86-windows
-          ${{ github.workspace }}/vcpkg/vcpkg.exe install rapidjson:x86-windows
           ${{ github.workspace }}/vcpkg/vcpkg.exe install nlohmann-json:x86-windows
-          ${{ github.workspace }}/vcpkg/vcpkg.exe install websocketpp:x86-windows
 
-      - name: Build Millennium
+      - name: Build Installer
         run: |
-          msbuild /p:Configuration=Release /p:Platform=x86 /m millennium.sln
+          msbuild /p:Configuration=Release /p:Platform=x86 /m installer.sln
         working-directory: ${{ github.workspace }}
 
       - name: Set MSBuild path
