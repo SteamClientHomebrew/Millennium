@@ -30,12 +30,11 @@ jobs:
 
       - name: Install Vcpkg dependencies
         run: |
-          .\vcpkg.exe install boost:x86-windows
-          .\vcpkg.exe install cpp-netlib:x86-windows
-          .\vcpkg.exe install rapidjson:x86-windows
-          .\vcpkg.exe install nlohmann-json:x86-windows
-          .\vcpkg.exe install websocketpp:x86-windows
-        working-directory: ${{ github.workspace }}
+          ${{ github.workspace }}/vcpkg/vcpkg.exe install boost:x86-windows
+          ${{ github.workspace }}/vcpkg/vcpkg.exe install cpp-netlib:x86-windows
+          ${{ github.workspace }}/vcpkg/vcpkg.exe install rapidjson:x86-windows
+          ${{ github.workspace }}/vcpkg/vcpkg.exe install nlohmann-json:x86-windows
+          ${{ github.workspace }}/vcpkg/vcpkg.exe install websocketpp:x86-windows
 
       - name: Build Millennium
         run: |
