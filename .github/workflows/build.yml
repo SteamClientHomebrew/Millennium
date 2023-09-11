@@ -1,4 +1,4 @@
-name: Build and Deploy Installer
+name: Build Millennium
 
 on:
   push:
@@ -10,35 +10,30 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up vcpkg
-      uses: vcpkg/setup-vcpkg@v2
-      with:
-        triplet: x86-windows
+      - name: Install MSVC
+        uses: microsoft/setup-msbuild@v1.0.0
 
-    - name: Install required packages
-      run: |
-        vcpkg install boost:x86-windows
-        vcpkg install cpp-netlib:x86-windows
-        vcpkg install nlohmann-json:x86-windows
-        vcpkg install websocketpp:x86-windows
-        if [ $? -ne 0 ]; then
-            echo "Error: Package installation failed."
-            exit 1
-        fi
-  
-    - name: Build the solution
-      run: |
-        msbuild millennium.sln /p:Configuration=Release /p:Platform=x86 /p:OutDir=bin\Release
-        if [ $? -ne 0 ]; then
-          echo "Error: Build failed."
-          exit 1
-        fi
+      - name: Download and install Vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          .\vcpkg.exe integrate install
+        working-directory: ${{ github.workspace }}
 
-    - name: Capture millennium.exe Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: Release-Artifacts
-        path: bin/Release/millennium.exe
+      - name: Install Vcpkg dependencies
+        run: |
+          .\vcpkg.exe install boost:x86-windows
+          .\vcpkg.exe install cpp-netlib:x86-windows
+          .\vcpkg.exe install rapidjson:x86-windows
+          .\vcpkg.exe install nlohmann-json:x86-windows
+          .\vcpkg.exe install websocketpp:x86-windows
+        working-directory: ${{ github.workspace }}
+
+      - name: Build Millennium
+        run: |
+          msbuild /p:Configuration=Release /p:Platform=x86 /m millennium.sln
+        working-directory: ${{ github.workspace }}
