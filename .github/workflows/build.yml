@@ -34,7 +34,7 @@ jobs:
 
       - name: Build Installer
         run: |
-          msbuild /p:Configuration=Release /p:Platform=x86 /p:OutputPath=${{ github.workspace }}/build-output /m installer.sln
+          msbuild /p:Configuration=Release /p:Platform=x86 /m installer.sln
         working-directory: ${{ github.workspace }}
 
       - name: Set MSBuild path
@@ -46,4 +46,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
-          path: ${{ github.workspace }}/build-output  # Use the new build path
+          path: ${{ github.workspace }}/dist/installer-prod.Release-x86Windows/millennium.exe  # Use the new build path
