@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+env:
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true  # Enable unsecure command execution
+      
+
 jobs:
   build:
     runs-on: windows-latest
