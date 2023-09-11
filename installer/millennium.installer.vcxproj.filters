@@ -26,6 +26,14 @@
     <ClCompile Include="src\window\window.cpp">
       <Filter>window</Filter>
     </ClCompile>
+    <ClCompile Include="utils\http\http_client.cpp">
+      <Filter>utils\http</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\cout\logger.cpp">
+      <Filter>utils\cout</Filter>
+    </ClCompile>
+    <ClCompile Include="src\installer\installer.cpp" />
+    <ClCompile Include="utils\steam\steam_helpers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\vendor\imgui\imstb_truetype.h">
@@ -61,6 +69,14 @@
     <ClInclude Include="scripts\resource.h">
       <Filter>scripts</Filter>
     </ClInclude>
+    <ClInclude Include="utils\http\http_client.hpp">
+      <Filter>utils\http</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\cout\logger.hpp">
+      <Filter>utils\cout</Filter>
+    </ClInclude>
+    <ClInclude Include="src\installer\installer.hpp" />
+    <ClInclude Include="utils\steam\steam_helpers.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">
@@ -74,6 +90,15 @@
     </Filter>
     <Filter Include="scripts">
       <UniqueIdentifier>{ae2883b0-2944-4d02-bf58-49baed54a68e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{db7ac5df-d987-4dd6-ac7a-aefe4a64a311}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils\http">
+      <UniqueIdentifier>{e123e3aa-9754-4d26-9570-74b0f9b7e2b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils\cout">
+      <UniqueIdentifier>{1c613dd7-75f8-414e-96ed-8b0dbab3c168}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

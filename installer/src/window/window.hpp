@@ -1,12 +1,14 @@
 #pragma once
 
 #include <d3d9.h>
+#include <d3dx9.h>
 #include <vendor/imgui/imgui.h>
 #include <vendor/imgui/imgui_impl_dx9.h>
 #include <vendor/imgui/imgui_impl_win32.h>
 
 #include <D3dx9tex.h>
 #include <vendor/imgui/imgui_internal.h>
+
 #pragma comment(lib, "d3dx9.lib")
 #pragma comment(lib, "d3d9.lib")
 
@@ -34,7 +36,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 class Application
 {
 public:
-    static bool Create(std::string& m_window_title, void (*Handler)(void));
+    static bool Create(void (*Handler)(void));
     ~Application(); // TODO
 };
 

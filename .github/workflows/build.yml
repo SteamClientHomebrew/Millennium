@@ -1,0 +1,44 @@
+name: Build and Deploy Installer
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up vcpkg
+      uses: vcpkg/setup-vcpkg@v2
+      with:
+        triplet: x86-windows
+
+    - name: Install required packages
+      run: |
+        vcpkg install boost:x86-windows
+        vcpkg install cpp-netlib:x86-windows
+        vcpkg install nlohmann-json:x86-windows
+        vcpkg install websocketpp:x86-windows
+        if [ $? -ne 0 ]; then
+            echo "Error: Package installation failed."
+            exit 1
+        fi
+  
+    - name: Build the solution
+      run: |
+        msbuild millennium.sln /p:Configuration=Release /p:Platform=x86 /p:OutDir=bin\Release
+        if [ $? -ne 0 ]; then
+          echo "Error: Build failed."
+          exit 1
+        fi
+
+    - name: Capture millennium.exe Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: Release-Artifacts
+        path: bin/Release/millennium.exe

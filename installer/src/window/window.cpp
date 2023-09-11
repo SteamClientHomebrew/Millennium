@@ -7,15 +7,7 @@
 #include <vector>
 
 #include <iostream>
-
-//Task bar utility
-#include <ShObjIdl_core.h>
-
-//includes default font used by app
-#include <strsafe.h>
 #include <window/memory.h>
-
-#pragma comment(lib, "winmm.lib")
 
 PDIRECT3DTEXTURE9 icon = NULL;
 static bool is_auto_installer = static_cast<std::string>(GetCommandLineA()).find("-update") != std::string::npos;
@@ -149,7 +141,7 @@ bool LoadTexture(PDIRECT3DTEXTURE9* out_texture, int* out_width, int* out_height
     return true;
 }
 
-bool Application::Create(std::string& m_window_title, void (*Handler)(void))
+bool Application::Create(void (*Handler)(void))
 {
     Overlay.Name = { appinfo.Title.c_str() };
     Overlay.WindowClass = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, Overlay.Name, NULL };
@@ -287,6 +279,8 @@ void SetTheme()
 	ImGui::GetStyle().ItemSpacing = ImVec2(12, 8);
     ImGui::GetStyle().ScrollbarSize = 8.0f;
     ImGui::GetStyle().ScrollbarRounding = 8.0f;
+
+    ImGui::GetIO().IniFilename = nullptr;
 
 	ImGuiStyle* ImGuiWindowStyle = &ImGui::GetStyle();
 
