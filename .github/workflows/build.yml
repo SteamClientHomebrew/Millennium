@@ -42,6 +42,11 @@ jobs:
           echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin" >> $GITHUB_PATH
         shell: cmd
 
+      - name: Calculate SHA-256 Hash
+        run: |
+          hash=$(sha256sum ${{ github.workspace }}/dist/installer-prod.Release-x86Windows/millennium.exe | cut -d ' ' -f 1)
+          echo "::set-output name=hash::$hash"
+
       - name: Create Release Artifact
         uses: actions/upload-artifact@v2
         with:
