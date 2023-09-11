@@ -44,11 +44,17 @@ jobs:
 
       - name: Calculate SHA-256 Hash
         run: |
-          $file = "${{ github.workspace }}\dist\installer-prod.Release-x86Windows\millennium.exe"
+          $file = "D:\a\millennium-steam-patcher\millennium-steam-patcher\dist\installer-prod.Release-x86Windows\millennium.exe"
           $hash = Get-FileHash -Path $file -Algorithm SHA256
           $hashValue = $hash.Hash
-          echo "::set-output name=hash::$hashValue"
-
+          echo "HASH=$hashValue" >> $GITHUB_ENV
+        shell: pwsh
+      
+      - name: Set Output Hash
+        run: |
+          echo "::set-output name=hash::${{ env.HASH }}"
+        shell: pwsh
+        
       - name: Create Release Artifact
         uses: actions/upload-artifact@v2
         with:
