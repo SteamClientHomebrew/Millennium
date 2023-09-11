@@ -42,21 +42,8 @@ jobs:
           echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin" >> $GITHUB_PATH
         shell: cmd
 
-      - name: Calculate SHA-256 Hash
-        run: |
-          $file = "D:\a\millennium-steam-patcher\millennium-steam-patcher\dist\installer-prod.Release-x86Windows\millennium.exe"
-          $hash = Get-FileHash -Path $file -Algorithm SHA256
-          $hashValue = $hash.Hash
-          echo "HASH=$hashValue" >> $GITHUB_ENV
-        shell: pwsh
-      
-      - name: Set Output Hash
-        run: |
-          echo "::set-output name=hash::${{ env.HASH }}"
-        shell: pwsh
-        
       - name: Create Release Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: build-artifacts
+          name: millennium-installer
           path: ${{ github.workspace }}/dist/installer-prod.Release-x86Windows/millennium.exe  # Use the new build path
