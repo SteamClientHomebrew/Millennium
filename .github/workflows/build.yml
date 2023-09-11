@@ -32,6 +32,11 @@ jobs:
         run: |
           ${{ github.workspace }}/vcpkg/vcpkg.exe install nlohmann-json:x86-windows
 
+      - name: Install DirectX SDK
+        run: |
+          choco install -y directx-sdk-june-2010
+        shell: cmd
+
       - name: Build Installer
         run: |
           msbuild /p:Configuration=Release /p:Platform=x86 /m installer.sln
