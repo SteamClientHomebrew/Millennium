@@ -32,10 +32,26 @@ jobs:
         run: |
           ${{ github.workspace }}/vcpkg/vcpkg.exe install nlohmann-json:x86-windows
 
-      - name: Install DirectX SDK
-        run: |
-          choco install -y directx-sdk-june-2010
-        shell: cmd
+      - name:  Config
+        run:   echo ::set-env name=DXSDK_DIR::$HOME/cache/
+        shell: bash
+
+      - name: Cache
+        id:   cache
+        uses: actions/cache@v1
+        with:
+          path: ~/cache
+          key:  cache
+
+      - name:  Cache create
+        if:    steps.cache.outputs.cache-hit != 'true'
+        run:   |
+            curl -L https://download.microsoft.com/download/a/e/7/ae743f1f-632b-4809-87a9-aa1bb3458e31/DXSDK_Jun10.exe -o _DX2010_.exe
+            7z x _DX2010_.exe DXSDK/Include -o_DX2010_
+            7z x _DX2010_.exe DXSDK/Lib/x86 -o_DX2010_
+            mv _DX2010_/DXSDK $HOME/cache
+            rm -fR _DX*_ _DX*_.exe
+        shell: bash
 
       - name: Build Installer
         run: |
