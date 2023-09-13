@@ -229,7 +229,7 @@ public:
         enableFetch["params"]["patterns"] = _buffer;
 
         if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0) {
-            console.log("Enabling CSS Hooks.");
+            console.log(std::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
             steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
         }
     }
