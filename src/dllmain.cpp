@@ -35,6 +35,11 @@ namespace Millennium
             if (response["tag_name"] != m_ver)
             {
                 OpenURL("https://millennium.web.app/");
+
+                MsgBox("A new version of Millennium is available! We opened your browser on the page were you update Millennium.\n"
+                    "Just click the download button and proceed the installer as normal. If the browser didn't open go to the website manually.\n"
+                    "https://millennium.web.app/", "Updater", MB_ICONINFORMATION);
+
                 ExitProcess(EXIT_SUCCESS);
             }
         }

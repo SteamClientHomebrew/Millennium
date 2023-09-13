@@ -285,14 +285,10 @@ public:
 			if (ImGui::IsItemHovered()) m_isHovered = true;
 			if (ImGui::MenuItem("Delete"))
 			{
-				std::string remote_skin = std::format("{}/{}", config.getSkinDir(), skin["native-name"].get<std::string>());
-				std::string disk_path = std::format("{}/{}/skin.json", config.getSkinDir(), skin["native-name"].get<std::string>());
+				std::string disk_path = std::format("{}/{}", config.getSkinDir(), skin["native-name"].get<std::string>());
 
 				if (std::filesystem::exists(disk_path)) {
 					std::filesystem::remove_all(std::filesystem::path(disk_path).parent_path());
-				}
-				if (std::filesystem::exists(remote_skin)) {
-					std::filesystem::remove(remote_skin);
 				}
 
 				m_Client->parseSkinData();
@@ -1107,7 +1103,7 @@ public:
 
 						if (ImGui::Button("Uninstall", ImVec2(rx, 35))) {
 
-							std::string disk_path = std::format("{}/{}/skin.json", config.getSkinDir(), this->sanitizeDirectoryName(m_itemSelectedSource["name"].get<std::string>()));
+							std::string disk_path = std::format("{}/{}", config.getSkinDir(), this->sanitizeDirectoryName(m_itemSelectedSource["name"].get<std::string>()));
 
 							if (std::filesystem::exists(disk_path)) {
 								std::filesystem::remove_all(std::filesystem::path(disk_path).parent_path());
