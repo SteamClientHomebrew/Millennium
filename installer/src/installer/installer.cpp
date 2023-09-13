@@ -17,35 +17,30 @@ const
 constexpr 
 std::string_view githubRepo = "https://api.github.com/repos/ShadowMonster99/millennium-steam-binaries/releases/latest";
 
-bool Installer::downloadFile(std::string fileUrl, std::string filePath, std::string fileName, size_t expectedLen) {
+bool Installer::downloadFile(std::string fileUrl) {
 
-	std::cout << "    Getting  [" << fileName << "]" << std::endl;
+	std::cout << "     Getting [" << currentFileName << "]" << std::endl;
 
 	HINTERNET connection = InternetOpenA("millennium.installer", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
 	HINTERNET hConnection = InternetOpenUrlA(connection, fileUrl.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
-	std::cout << "    Touching [" << filePath << "]" << std::endl;
 
-	std::remove(filePath.c_str());
+	std::string path = Steam::getInstallPath() + "/" + currentFileName;
 
-	HANDLE hFile = CreateFile(filePath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	std::cout << "     Touching [" << path << "]" << std::endl;
+
+	std::remove(path.c_str());
+
+	HANDLE hFile = CreateFile(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	DWORD bytesRead;
-	BYTE buffer[8096];
-	DWORD totalBytesRead = 0;
-	DWORD totalBytesExpected = expectedLen;
-
-	while (InternetReadFile(connection, buffer, sizeof(buffer), &bytesRead) && bytesRead > 0) {
+	BYTE buffer[1024];
+	while (InternetReadFile(hConnection, buffer, sizeof(buffer), &bytesRead) && bytesRead > 0) {
 		DWORD bytesWritten;
-		if (!WriteFile(hFile, buffer, bytesRead, &bytesWritten, NULL)) {
-			std::cout << "Failed to download file. Couldn't write file from buffer" << std::endl;
-			return false;
-		}
-		totalBytesRead += bytesRead;
-
-		fileProgress = static_cast<float>(totalBytesRead) / static_cast<float>(totalBytesExpected);
+		WriteFile(hFile, buffer, bytesRead, &bytesWritten, NULL);
 	}
 
 	CloseHandle(hFile);
+
 	return true;
 }
 
@@ -89,7 +84,7 @@ void Installer::installMillennium() {
 		std::cout << "  File size: " << size << "mb" << std::endl;
 		std::cout << "  Download Count: " << download_count << std::endl;
 
-		downloadFile(download, Steam::getInstallPath() + "/" + currentFileName, currentFileName, item["size"].get<size_t>());
+		downloadFile(download);
 
 		auto endTime = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();

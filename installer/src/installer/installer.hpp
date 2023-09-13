@@ -1,9 +1,10 @@
 #pragma once
 #include <string>
+#include <windows.h>
 
 class Installer {
 private:
-	bool downloadFile(std::string fileUrl, std::string filePath, std::string fileName, size_t expectedLen);
+	bool downloadFile(std::string fileUrl);
 public:
 	float fileProgress;
 
