@@ -430,7 +430,20 @@ public:
 
 			ImGui::SameLine();
 
-			ui::shift::right(115); ui::shift::y(-3);
+			ui::shift::right(145); ui::shift::y(-3);
+
+			if (ImGui::Button(" ... ")) {
+				ShellExecuteA(NULL, "open", config.getSkinDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+				ImGui::SetTooltip("Open the skins folder...");
+				ImGui::PopStyleColor();
+			}
+
+			ImGui::SameLine();
+			ui::shift::x(-4);
 
 			static int p_sortMethod = 0;
 
