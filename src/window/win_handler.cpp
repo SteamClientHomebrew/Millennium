@@ -563,7 +563,24 @@ public:
 		m_Client->m_imageIndex = 0;
 
 		std::thread([=]() {
-			this->m_itemSelectedSource = nlohmann::json::parse(http::get(m_Client->m_resultsSchema.skin_json));
+
+			try
+			{
+				std::string skinJsonResponse = http::get(m_Client->m_resultsSchema.skin_json);
+
+				if (!nlohmann::json::accept(skinJsonResponse))
+				{
+					MsgBox(std::format("Json couldn't be parsed that was received from the remote server\n{}", 
+						m_Client->m_resultsSchema.skin_json).c_str(), "Millennium", MB_ICONERROR);
+					return;
+				}
+
+				this->m_itemSelectedSource = nlohmann::json::parse(skinJsonResponse);
+			}
+			catch (const http_error&) {
+				MsgBox("Couldn't GET the skin data from the remote server", "Millennium", MB_ICONERROR);
+				return;
+			}
 		}).detach();
 	}
 	void create_card(MillenniumAPI::resultsSchema& item, int index)
