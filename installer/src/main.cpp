@@ -32,6 +32,7 @@ const char* repo_url = "https://api.github.com/repos/ShadowMonster99/millennium-
 std::string terms_and_conditions;
 
 std::string millenniumInstallVersion;
+std::string millenniumPatchNotes;
 
 class Handler
 {
@@ -56,38 +57,73 @@ private:
 public:
 	__declspec(noinline) static void tos_agreement_page(void)
 	{
-		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
 		if (ImGui::BeginChild("##agree", ImVec2(Region.x, Region.y - 30), true)) {
 			ImGui::TextWrapped(terms_and_conditions.c_str());
 		}
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
 
-		ImGui::Checkbox("I accept the following argeement", &accepted_tos);
+		ImGui::Checkbox("I accept the following agreement", &accepted_tos);
 		ImGui::SameLine();
 		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Continue >").x - 3); // Align cursor to the right
 
+		const char* header_text = " Millennium - Terms of Service";
+		const char* httpErrorModal = " Oops!";
+
 		if (ImGui::Button("Continue >")) {
-			if (!accepted_tos) show_accept_tos_popup = true;
+			if (!accepted_tos) {
+				ImGui::OpenPopup(header_text);
+			}
 			else
 			{
-				millenniumInstallVersion = nlohmann::json::parse(http::get(repo_url))["tag_name"];
-				current_page = 2;
+				try
+				{
+					const auto info = nlohmann::json::parse(http::get(repo_url));
+
+					millenniumInstallVersion = info["tag_name"];
+					millenniumPatchNotes = info["body"];
+					current_page = 2;
+				}
+				catch (const http_error& error) {
+					ImGui::OpenPopup(httpErrorModal);
+				}
 			}
 		}
 
 		Window::center_modal(ImVec2(325, 200));
-		const char* header_text = " Millennium - Error";
-
-		if (show_accept_tos_popup) ImGui::OpenPopup(header_text);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4.0f);
 		if (ImGui::BeginPopupModal(header_text, nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
 		{
-			ImGui::TextWrapped("You need to agree with the Terms of Service in order to install Millennium.\n\nIf you don't agree with the terms please refrain from using our products.");
+			ImGui::TextWrapped("You need to agree with the Terms of Service in order to install Millennium. If you don't agree with the terms please refrain from using our products.");
 
 			ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close").x - 5);
 			ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 23);
 
+			if (ImGui::Button("Close")) {
+				ImGui::CloseCurrentPopup();
+				show_accept_tos_popup = false;
+			}
+			ImGui::EndPopup();
+		}
+		ImGui::PopStyleVar();
+
+		Window::center_modal(ImVec2(325, 200));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 4.0f);
+		if (ImGui::BeginPopupModal(httpErrorModal, nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+		{
+			ImGui::TextWrapped("There was an error getting build information on Millennium. Check if you have a valid internet connection"
+			" or retry again later. If the problem persists, get help in the discord server.");
+
+
+			ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close").x - 85);
+			ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetStyle().ItemSpacing.y - 23);
+
+			if (ImGui::Button("need help?")) {
+				ShellExecute(0, "open", "https://discord.gg/MXMWEQKgJF", 0, 0, SW_SHOWNORMAL);
+			}
+			ImGui::SameLine();
+			ui::shift::x(-4);
 			if (ImGui::Button("Close")) {
 				ImGui::CloseCurrentPopup();
 				show_accept_tos_popup = false;
@@ -110,40 +146,45 @@ public:
 			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.09f, 0.09f, 0.09f, 1.0f));
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
 
-			ImGui::BeginChild("InstallDetailsPane", ImVec2(rx, 91));
+			ImGui::BeginChild("InstallDetailsPane", ImVec2(rx, 110 + ImGui::CalcTextSize(millenniumPatchNotes.c_str()).y));
 			{
 				if (selected_option == 1) {
-					ImGui::PushStyleColor(ImGuiCol_Button, col);
-					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-					if (ImGui::Button(install, ImVec2(Region.x, 45))) selected_option = 1;
+					//ImGui::PushStyleColor(ImGuiCol_Button, col);
+					//ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+					if (ImGui::Button(std::format(">> {} <<", install).c_str(), ImVec2(Region.x, 45))) selected_option = 1;
 					if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-					ImGui::PopStyleColor(2);
+					//ImGui::PopStyleColor(2);
 				}
 				else {
 					if (ImGui::Button(install, ImVec2(Region.x, 45))) selected_option = 1;
 					if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 				}
 
-				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+				ui::shift::x(10);
+				ImGui::BeginChild("BuildInfo", ImVec2(rx, ry), false);
 				{
-					static const auto path = Steam::getInstallPath();
+					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+					{
+						static const auto path = Steam::getInstallPath();
 
-					ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), 
-						std::format("    Steam Install: {}\n    Installing Millennium Version: v{}", 
-							path, millenniumInstallVersion
-						).c_str());
+						ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f),
+							std::format("Steam Install: {}\nInstalling Millennium Version: v{}\n\nPatch Notes:\n{}",
+								path, millenniumInstallVersion, millenniumPatchNotes
+							).c_str());
+					}
+					ImGui::PopFont();
 				}
-				ImGui::PopFont();
+				ImGui::EndChild();
 			}
 			ImGui::PopStyleColor(2);
 
 			ImGui::EndChild();
 			if (selected_option == 2) {
-				ImGui::PushStyleColor(ImGuiCol_Button, col);
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-				if (ImGui::Button(reset, ImVec2(Region.x, 45))) selected_option = 2;
+				//ImGui::PushStyleColor(ImGuiCol_Button, col);
+				//ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+				if (ImGui::Button(std::format(">> {} <<", reset).c_str(), ImVec2(Region.x, 45))) selected_option = 2;
 				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-				ImGui::PopStyleColor(2);
+				//ImGui::PopStyleColor(2);
 			}
 			else {
 				if (ImGui::Button(reset, ImVec2(Region.x, 45))) selected_option = 2;
@@ -151,11 +192,11 @@ public:
 			}
 			if (selected_option == 3)
 			{
-				ImGui::PushStyleColor(ImGuiCol_Button, col);
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-				if (ImGui::Button(uninstall, ImVec2(Region.x, 45))) selected_option = 3;
+				//ImGui::PushStyleColor(ImGuiCol_Button, col);
+				//ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+				if (ImGui::Button(std::format(">> {} <<", uninstall).c_str(), ImVec2(Region.x, 45))) selected_option = 3;
 				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-				ImGui::PopStyleColor(2);
+				//ImGui::PopStyleColor(2);
 			}
 			else {
 				if (ImGui::Button(uninstall, ImVec2(Region.x, 45))) selected_option = 3;
@@ -165,12 +206,15 @@ public:
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
 
-		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Continue >").x - 53); // Align cursor to the right
+		std::string buttonName = selected_option == 1 ? "Install >" : selected_option == 2 ? "Reset >" : selected_option == 3 ? "Uninstall >" : "";
+
+		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - (selected_option == 0 ? -13 :ImGui::CalcTextSize(buttonName.c_str()).x) - 53); // Align cursor to the right
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5, 0));
 
 		if (ImGui::Button("< Back")) current_page = 1;
 		ImGui::SameLine(0);
-		if (ImGui::Button("Continue >"))
+
+		if (selected_option != 0 && ImGui::Button(buttonName.c_str()))
 		{
 			current_page = 3;
 
@@ -222,22 +266,20 @@ public:
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5, 0));
 
-		if (ImGui::Button("Discord")) 
-		{
+		if (ImGui::Button("Discord")) {
 			ShellExecuteA(nullptr, "open", "https://discord.gg/MXMWEQKgJF", nullptr, nullptr, SW_SHOWNORMAL);
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Github")) 
-		{
+		if (ImGui::Button("Github")) {
 			ShellExecuteA(nullptr, "open", "https://github.com/ShadowMonster99/millennium-steam-patcher", nullptr, nullptr, SW_SHOWNORMAL);
 		}
 
 		ImGui::SameLine();
-		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close").x - 60); // Align cursor to the right
+		ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::GetStyle().ItemSpacing.x - ImGui::CalcTextSize("Close >").x - 60); // Align cursor to the right
 
 		if (ImGui::Button("< Back")) current_page = 2;
 		ImGui::SameLine();
-		if (ImGui::Button("Close"))
+		if (ImGui::Button("Close >"))
 		{
 			ShellExecuteA(nullptr, "open", "https://discord.gg/MXMWEQKgJF", nullptr, nullptr, SW_SHOWNORMAL);
 			exit(1);
@@ -349,7 +391,7 @@ public:
 				ImGui::PopFont();
 
 				listButton(" Terms of Service", 1);
-				listButton(" License Argeement", 2);
+				listButton(" License Agreement", 2);
 
 				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 				{
@@ -358,6 +400,16 @@ public:
 				ImGui::PopFont();
 
 				listButton(" Install Millennium", 3);
+
+				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+				{
+					std::string buildInfo = std::format("Build Date: {}", __DATE__);
+
+					ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - ImGui::CalcTextSize(buildInfo.c_str()).y);
+
+					ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), buildInfo.c_str());
+				}
+				ImGui::PopFont();
 			}
 			ImGui::EndChild();
 		}
@@ -416,7 +468,7 @@ public:
 	}
 };
 
-int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
 	try {
 		//redirect std::cout events
@@ -426,20 +478,15 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			terms_and_conditions = http::get("https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/.terms-of-service");
 		}
 		catch (const http_error& error) {
-			switch (error.code()) {
-				case http_error::errors::couldnt_connect: {
-					terms_and_conditions = 
-						"Couldn't GET Millennium's TOS. Check the Github repository to see the TOS.\n"
-						"Do not proceed the installer if you haven't read the TOS";
-					break;
-				}
-			}
+			terms_and_conditions =
+				"Couldn't GET Millennium's TOS. Check if you have a valid internet connection or try again later. If problem persists, get help in our discord server.\n"
+				"Do not proceed with the installation if you haven't read the TOS";
 		}
 		
 		Window::setTitle((char*)"Millennium Installer");
 		Window::setDimensions(ImVec2({ 450, 300 }));
 
-		Application::Create(&Handler::Render);
+		Application::Create(&Handler::Render, hInstance);
 	}
 	catch (std::exception& ex) {
 		MessageBoxA(0, ex.what(), "Millennium - ERROR", MB_ICONERROR);

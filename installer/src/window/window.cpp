@@ -25,6 +25,8 @@
 #include <windowsx.h>
 #include <functional>
 
+#include <scripts/resource.h>
+
 static bool mousedown = false;
 bool app_open = true;
 
@@ -87,8 +89,14 @@ bool create_device_d3d(HWND hWnd)
 
 void clear_all()
 {
-    if (directx9.device) { directx9.device->Release(); directx9.device = nullptr; }
-    if (directx9.ID3D9) { directx9.ID3D9->Release();  directx9.ID3D9 = nullptr; }
+    if (directx9.device) { 
+        directx9.device->Release(); 
+        directx9.device = nullptr; 
+    }
+    if (directx9.ID3D9) { 
+        directx9.ID3D9->Release();  
+        directx9.ID3D9 = nullptr; 
+    }
 
     UnregisterClassW(overlay.wndex.lpszClassName, overlay.wndex.hInstance);
 }
@@ -168,7 +176,7 @@ HICON GetParentProcessIcon()
     }
 
     HICON hIcon;
-    ExtractIconEx((LPSTR)parentProcessExePath, 0, nullptr, &hIcon, 1);
+    ExtractIconExA((LPSTR)parentProcessExePath, 0, nullptr, &hIcon, 1);
 
     CloseHandle(hParentProcess);
     return hIcon;
@@ -265,7 +273,7 @@ void set_borderless(bool enabled) {
 bool borderless = true;
 bool borderless_shadow = true;
 bool borderless_drag = true;
-bool borderless_resize = true;
+bool borderless_resize = false;
 
 const void Window::center_modal(ImVec2 size) {
     RECT rect;
@@ -318,17 +326,20 @@ auto adjust_maximized_client_rect(HWND window, RECT& rect) -> void {
 
 ImVec2 g_windowPadding = {};
 
-bool Application::Create(std::function<void()> Handler)
+bool Application::Create(std::function<void()> Handler, HINSTANCE hInstance)
 {
     overlay.name = { appinfo.Title.c_str() };
     //RegisterClassExA(&overlay.wndex);
 
+    HICON hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
+
+
     WNDCLASSEXW wcx{};
     wcx.cbSize = sizeof(wcx);
-    wcx.hInstance = nullptr;
+    wcx.hInstance = hInstance;
     wcx.lpfnWndProc = WndProc;
     wcx.lpszClassName = L"Millennium";
-    wcx.hIcon = { GetParentProcessIcon() };
+    //wcx.hIcon = { GetParentProcessIcon() };
     wcx.hCursor = ::LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
     const ATOM result = ::RegisterClassExW(&wcx);
 
@@ -339,6 +350,10 @@ bool Application::Create(std::function<void()> Handler)
         static_cast<DWORD>(Style::aero_borderless), CW_USEDEFAULT, CW_USEDEFAULT,
         450, 325, nullptr, nullptr, nullptr, nullptr
     );
+
+    SendMessage(overlay.hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+    SendMessage(overlay.hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+
 
     ::wnd_center();
     set_borderless(true);
@@ -584,7 +599,7 @@ void set_proc_theme_colors()
     sty->SetTheme[ImGuiCol_Text] = ImVec4(0.80f, 0.80f, 0.83f, 1.00f);
     sty->SetTheme[ImGuiCol_TextDisabled] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
     sty->SetTheme[ImGuiCol_WindowBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-    sty->SetTheme[ImGuiCol_ScrollbarBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
+    sty->SetTheme[ImGuiCol_ScrollbarBg] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
     sty->SetTheme[ImGuiCol_PopupBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
     sty->SetTheme[ImGuiCol_FrameBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
     sty->SetTheme[ImGuiCol_FrameBgHovered] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);

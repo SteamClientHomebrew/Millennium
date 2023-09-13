@@ -126,7 +126,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 class Application
 {
 public:
-    static bool Create(std::function<void()> Handler);
+    static bool Create(std::function<void()> Handler, HINSTANCE hInstance);
     static bool Destroy();
 };
 

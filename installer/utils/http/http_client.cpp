@@ -34,8 +34,8 @@ const std::string http::get(std::string remote_endpoint)
 
         switch (GetLastError())
         {
-        case ERROR_INTERNET_CANNOT_CONNECT: throw http_error(http_error::errors::couldnt_connect); break;
-        default: throw http_error(http_error::errors::miscellaneous);
+            case ERROR_INTERNET_CANNOT_CONNECT: throw http_error(http_error::errors::couldnt_connect); break;
+            default: throw http_error(http_error::errors::miscellaneous);
         }
     }
 

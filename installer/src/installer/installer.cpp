@@ -10,21 +10,20 @@
 
 //interact with disk when uninstalling and installing
 #include <filesystem>
+#include <fstream>
 
 static 
 const 
 constexpr 
 std::string_view githubRepo = "https://api.github.com/repos/ShadowMonster99/millennium-steam-binaries/releases/latest";
 
-HINTERNET getConnection() {
-	static HINTERNET connection = InternetOpenA("millennium.installer", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-	return connection;
-}
+bool Installer::downloadFile(std::string fileUrl, std::string filePath, std::string fileName, size_t expectedLen) {
 
-bool Installer::downloadFile(std::string fileUrl, std::string filePath, size_t expectedLen) {
+	std::cout << "    Getting  [" << fileName << "]" << std::endl;
 
-	HINTERNET hConnection = InternetOpenUrlA(getConnection(), fileUrl.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
-	std::cout << "Downloading to: " << filePath << std::endl;
+	HINTERNET connection = InternetOpenA("millennium.installer", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+	HINTERNET hConnection = InternetOpenUrlA(connection, fileUrl.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+	std::cout << "    Touching [" << filePath << "]" << std::endl;
 
 	std::remove(filePath.c_str());
 
@@ -35,7 +34,7 @@ bool Installer::downloadFile(std::string fileUrl, std::string filePath, size_t e
 	DWORD totalBytesRead = 0;
 	DWORD totalBytesExpected = expectedLen;
 
-	while (InternetReadFile(getConnection(), buffer, sizeof(buffer), &bytesRead) && bytesRead > 0) {
+	while (InternetReadFile(connection, buffer, sizeof(buffer), &bytesRead) && bytesRead > 0) {
 		DWORD bytesWritten;
 		if (!WriteFile(hFile, buffer, bytesRead, &bytesWritten, NULL)) {
 			std::cout << "Failed to download file. Couldn't write file from buffer" << std::endl;
@@ -68,11 +67,10 @@ void Installer::installMillennium() {
 	std::string tag_name = response["tag_name"].get<std::string>();
 	std::string notes = response["body"].get<std::string>();
 
-	std::cout << "Getting latest release of millennium: v" << tag_name << std::endl;
-	std::cout << "Patch notes:\n" << notes << std::endl;
-	std::cout << "Evaluating " << response["assets"].size() << " files to download" << std::endl;
-
 	totalLength = response["assets"].size();
+
+	std::cout << "Bootstrapping Millennium: v" << tag_name << std::endl;
+	std::cout << "Queued " << totalLength << " files to download" << std::endl;
 
 	for (nlohmann::basic_json<>& item : response["assets"])
 	{
@@ -86,23 +84,31 @@ void Installer::installMillennium() {
 		double size = static_cast<double>(item["size"].get<int>()) / 1048576.0;
 		int download_count = item["download_count"].get<int>();
 
-		std::cout << "--------------------------------" << std::endl;
+		std::cout << std::endl;
 
-		std::cout << "Downloading: [" << currentFileName << "] " << std::endl;
-		std::cout << "File size: [" << size << "mb]" << std::endl;
-		std::cout << "Download Count: [" << download_count << "]" << std::endl;
+		std::cout << "  File size: " << size << "mb" << std::endl;
+		std::cout << "  Download Count: " << download_count << std::endl;
 
-		downloadFile(download, Steam::getInstallPath() + "/" + currentFileName, item["size"].get<size_t>());
+		downloadFile(download, Steam::getInstallPath() + "/" + currentFileName, currentFileName, item["size"].get<size_t>());
 
 		auto endTime = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
 
-		std::cout << "Done! " 
+		std::cout << "\n  [+] " 
 			<< std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() 
 			<< " milliseconds elapsed" << std::endl;
 	}
 
-	std::cout << "--------------------------------" << std::endl;
+	std::cout << std::endl;
+
+	std::string filePath = std::format("{}/.cef-enable-remote-debugging", Steam::getInstallPath());
+
+	if (!std::ifstream(filePath))
+	{
+		std::cout << "Creating steam's remote debugging flag as it wasn't previously set." << std::endl;
+		std::ofstream(filePath).close();
+	}
+
 	std::cout << "Installation completed. You can now start Steam" << std::endl;
 }
 

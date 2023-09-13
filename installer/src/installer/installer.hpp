@@ -3,7 +3,7 @@
 
 class Installer {
 private:
-	bool downloadFile(std::string fileUrl, std::string filePath, size_t expectedLen);
+	bool downloadFile(std::string fileUrl, std::string filePath, std::string fileName, size_t expectedLen);
 public:
 	float fileProgress;
 
