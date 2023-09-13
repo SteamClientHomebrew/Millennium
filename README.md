@@ -31,7 +31,7 @@ Install Millennium for Windows. See [this page](https://millennium.gitbook.io/st
 
 [![Windows Installer][windows-badge]][windows-link] 
 
-[windows-link]: https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/millennium.exe
+[windows-link]: https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/Millennium.Installer-Windows.exe
 [windows-badge]: https://img.shields.io/badge/Windows%20(7+)-3a71c1?logo=Windows&logoColor=3a71c1&labelColor=0c0d10&color=3a71c1&style=for-the-badge
 
 # Manual Installation
