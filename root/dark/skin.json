@@ -1,20 +1,18 @@
 {
     "Hooks": [
         {
-            "TargetCss": "https://community.cloudflare.steamstatic.com/public/shared/css/shared_responsive.css*",
-            "Interpolate": "webkit/webkit.css"
+            "Interpolate": "webkit/webkit.css",
+            "TargetCss": "https://community.akamai.steamstatic.com/public/shared/css/shared_responsive.css*"
         },
         {
-            "TargetCss": "https://store.cloudflare.steamstatic.com/public/shared/css/shared_responsive.css*",
-            "Interpolate": "webkit/webkit.css"
+            "Interpolate": "webkit/webkit.css",
+            "TargetCss": "https://store.akamai.steamstatic.com/public/shared/css/shared_responsive.css*"
         },
         {
-            "TargetJs": "https://store.cloudflare.steamstatic.com/public/shared/javascript/shared_responsive_adapter.js*",
-            "Interpolate": "webkit/store.js"
+            "Interpolate": "webkit/store.js",
+            "TargetJs": "https://store.akamai.steamstatic.com/public/shared/javascript/shared_responsive_adapter.js*"
         }
-
     ],
-
     "Patches": [
         {
             "MatchRegexString": ".*http.*steam.*",
@@ -106,11 +104,7 @@
             "TargetCss": "overlay/Browser.css"
         }
     ],
-
-
     "UseDefaultPatches": true,
-
-
     "author": "ShadowMonster",
     "description": "A sleek and elegant theme that brings a darker, more immersive experience to your Steam client. This theme focuses on enhancing your visual comfort during extended gaming sessions, with carefully crafted CSS adjustments that darken the interface without altering its familiar design. While utilizing a touch of JavaScript for specific functionality, the primary focus remains on refining the color scheme to reduce eye strain and create a cozy ambiance.",
     "name": "Simple Dark.",
