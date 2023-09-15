@@ -44,6 +44,35 @@
     background: #191919;
 }
 
+.DialogContent {
+    background: #212121 !important;
+}
+
+.DialogButton {
+    background: #303030 !important;
+}
+
+[class*="launchoptionsdialog_LaunchOptionDialog_"] {
+    background: #212121 !important;
+}
+
+[class*="launchoptionsdialog_ListContainer_"] {
+    background: #171717 !important;
+}
+
+[class*="launchoptionsdialog_ListItem_"] {
+    background: #303030 !important;
+    border-radius: 4px;
+}
+
+[class*="launchoptionsdialog_CancelButton_"] {
+    background: #303030 !important;
+}
+
+img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][class*="libraryassetimage_Visible_"] {
+    border-radius: 4px;
+}
+
 /* HIDE TOP SHIT IN LIBRARY */
 
 .bottombar_Queue_3wJnT {
@@ -82,7 +111,18 @@
     content: "Millennium" !important;
 } */
 
+[class*="apppartnereventspage_CloseButton_"] svg {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 320px !important;
+    max-height: 320px !important;
+}
 /* Search Filter */
+
+[class*="apppartnereventspage_CloseButton_"][class*="apppartnereventspage_AnimIn_"],
+[class*="apppartnereventspage_ScrollButton_"] {
+    background: #212121 !important;
+}
 
 [class*="appfilterpane_Container"] {
     background: var(--color-dark) !important;
@@ -113,6 +153,9 @@
   background: var(--color-darker) !important;  
 }
 
+[class*="partnereventdisplay_LibraryEventTitleContainer_"] {
+    background: #212121 !important;
+}
 
 [class*="gamelist_Container"] {
     background: var(--color-darker) !important;

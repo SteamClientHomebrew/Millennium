@@ -2,11 +2,11 @@
     "Hooks": [
         {
             "Interpolate": "webkit/webkit.css",
-            "TargetCss": "https://community.akamai.steamstatic.com/public/shared/css/shared_responsive.css*"
+            "TargetCss": "https://community.akamai.steamstatic.com/public/shared/css/buttons.css*"
         },
         {
             "Interpolate": "webkit/webkit.css",
-            "TargetCss": "https://store.akamai.steamstatic.com/public/shared/css/shared_responsive.css*"
+            "TargetCss": "https://store.akamai.steamstatic.com/public/shared/css/buttons.css*"
         },
         {
             "Interpolate": "webkit/store.js",
@@ -37,7 +37,7 @@
         },
         {
             "MatchRegexString": "ModalDialogPopup",
-            "TargetCss": "steam/modal/ModalDialog.css"
+            "TargetCss": "Steam.css"
         },
         {
             "MatchRegexString": ".*Supernav$",
@@ -45,10 +45,6 @@
         },
         {
             "MatchRegexString": ".*Menu$",
-            "TargetCss": "Steam.css"
-        },
-        {
-            "MatchRegexString": "settings_SettingsModalRoot_",
             "TargetCss": "Steam.css"
         },
         {
