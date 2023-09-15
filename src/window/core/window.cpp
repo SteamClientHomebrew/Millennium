@@ -251,12 +251,6 @@ auto set_shadow(HWND handle, bool enabled) -> void {
     }
 }
 
-//void set_borderless_shadow(bool enabled) {
-//    if (borderless) {
-//        borderless_shadow = enabled;
-//        set_shadow(handle.get(), enabled);
-//    }
-//}
 
 void set_borderless(bool enabled) {
     Style new_style = (enabled) ? select_borderless_style() : Style::windowed;
@@ -274,13 +268,6 @@ void set_borderless(bool enabled) {
     }
 }
 
-//auto window_class(WNDPROC wndproc) -> const wchar_t* {
-//    static const wchar_t* window_class_name = [&] {
-//
-//    }();
-//    return window_class_name;
-//}
-
 bool borderless = true;
 bool borderless_shadow = true;
 bool borderless_drag = true;
@@ -291,37 +278,6 @@ void set_borderless_shadow(bool enabled) {
         borderless_shadow = enabled;
         set_shadow(Window::getHWND(), enabled);
     }
-}
-
-
-auto maximized(HWND hwnd) -> bool {
-    WINDOWPLACEMENT placement;
-    if (!::GetWindowPlacement(hwnd, &placement)) {
-        return false;
-    }
-
-    return placement.showCmd == SW_MAXIMIZE;
-}
-
-auto adjust_maximized_client_rect(HWND window, RECT& rect) -> void {
-    if (!maximized(window)) {
-        return;
-    }
-
-    auto monitor = ::MonitorFromWindow(window, MONITOR_DEFAULTTONULL);
-    if (!monitor) {
-        return;
-    }
-
-    MONITORINFO monitor_info{};
-    monitor_info.cbSize = sizeof(monitor_info);
-    if (!::GetMonitorInfoW(monitor, &monitor_info)) {
-        return;
-    }
-
-    // when maximized, make the client area fill just the monitor (without task bar) rect,
-    // not the whole window rect which extends beyond the monitor.
-    rect = monitor_info.rcWork;
 }
 
 ImVec2 g_windowPadding = {};
@@ -337,21 +293,19 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> in
     wcx.lpfnWndProc = WndProc;
     wcx.lpszClassName = L"Millennium";
     wcx.hIcon = { GetParentProcessIcon() };
-    wcx.hCursor = ::LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
     const ATOM result = ::RegisterClassExW(&wcx);
 
     overlay.wndex = wcx;
 
     overlay.hwnd = CreateWindowExW(
         0, overlay.wndex.lpszClassName, (LPCWSTR)overlay.name,
-        static_cast<DWORD>(Style::aero_borderless), CW_USEDEFAULT, CW_USEDEFAULT,
+        static_cast<DWORD>(Style::aero_borderless), 0, 0,
         1000, 725, nullptr, nullptr, nullptr, nullptr
     );
 
     ::wnd_center();
     set_borderless(true);
     set_borderless_shadow(true);
-    //set_borderless_shadow(true);
 
     if (!create_device_d3d(overlay.hwnd)) 
     { 
@@ -370,7 +324,7 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> in
 
     Window::bringToFront();
 
-    ImGui::SetCurrentContext(ImGui::CreateContext());
+    ImGui::CreateContext();
 
     ImGuiIO* IO = &ImGui::GetIO();
     initFontAtlas(IO);

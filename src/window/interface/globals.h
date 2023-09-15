@@ -94,7 +94,7 @@ private:
 	bool isInvalidSkin(std::string skin = Settings::Get<std::string>("active-skin"));
 	void resetCollected();
 	void parseRemoteSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer);
-	void parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer);
+	bool parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer);
 
 public:
 	bool b_javascriptEnabled;

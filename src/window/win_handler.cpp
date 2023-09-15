@@ -61,12 +61,13 @@ private:
 				const auto styleSheet = patch["TargetCss"].get<std::string>();
 
 				if (processedNames.find(styleSheet) != processedNames.end()) {
-					continue;
+					goto next;
 				}
 
 				fileItems.push_back(styleSheet);
 				processedNames.insert(styleSheet);
 			}
+			next:
 			if (patch.contains("TargetJs"))
 			{
 				const auto javaScript = patch["TargetJs"].get<std::string>();
@@ -287,8 +288,10 @@ public:
 			{
 				std::string disk_path = std::format("{}/{}", config.getSkinDir(), skin["native-name"].get<std::string>());
 
+				console.log(std::format("deleting skin {}", disk_path));
+
 				if (std::filesystem::exists(disk_path)) {
-					std::filesystem::remove_all(std::filesystem::path(disk_path).parent_path());
+					std::filesystem::remove_all(std::filesystem::path(disk_path));
 				}
 
 				m_Client->parseSkinData();
@@ -399,12 +402,16 @@ public:
 				return result;
 			};
 
+			bool skinSelected = false;
+
 			for (size_t i = 0; i < m_Client->skinData.size(); ++i)
 			{
 				nlohmann::basic_json<>& skin = m_Client->skinData[i];
 
 				if (skin.value("native-name", std::string()) == m_Client->m_currentSkin)
 				{
+					skinSelected = true;
+
 					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 					{
 						ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "SELECTED:");
@@ -426,7 +433,7 @@ public:
 
 			ImGui::SameLine();
 
-			ui::shift::right(145); ui::shift::y(-3);
+			ui::shift::right(145);
 
 			if (ImGui::Button(" ... ")) {
 				ShellExecuteA(NULL, "open", config.getSkinDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
@@ -449,8 +456,8 @@ public:
 			if (ImGui::Combo(std::format("Sort").c_str(), &p_sortMethod, items, IM_ARRAYSIZE(items)));
 			ImGui::PopItemWidth();
 
-			if (m_Client->skinData.empty()) {
-				ui::shift::y(150);
+			if (!skinSelected ? m_Client->skinData.empty() : m_Client->skinData.size() - 1 <= 0) {
+				ui::shift::y(ry / 2 - 135);
 
 				ui::center(0, 240, 0);
 				ImGui::BeginChild("noResultsContainer", ImVec2(240, 135), false);
@@ -1105,8 +1112,17 @@ public:
 
 							std::string disk_path = std::format("{}/{}", config.getSkinDir(), this->sanitizeDirectoryName(m_itemSelectedSource["name"].get<std::string>()));
 
+							console.log(std::format("deleting skin {}", disk_path));
+
 							if (std::filesystem::exists(disk_path)) {
-								std::filesystem::remove_all(std::filesystem::path(disk_path).parent_path());
+								
+								try {
+									std::filesystem::remove_all(std::filesystem::path(disk_path));
+								}
+								catch (const std::exception& ex) {
+									MsgBox(std::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+								}
+
 							}
 
 							m_Client->parseSkinData();
@@ -1331,10 +1347,8 @@ public:
 						ImGui::SameLine();
 						ui::shift::x(-6);
 
-						ImGui::Image(Window::iconsObj().maximize, ImVec2(11, 11));
-						if (ImGui::IsItemClicked()) {
-							ShowWindow(Window::getHWND(), SW_SHOWMAXIMIZED);
-						}
+						//disabled maximize until i figure it out
+						ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
 
 						ImGui::SameLine();
 						ui::shift::x(-6);
@@ -1571,7 +1585,14 @@ void init_main_window()
 	});
 
 	std::thread([&]() {
-		themeConfig::watchPath(config.getSkinDir(), []() { m_Client->parseSkinData(); });
+		themeConfig::watchPath(config.getSkinDir(), []() {
+			try {
+				//m_Client->parseSkinData();
+			}
+			catch (std::exception& ex) {
+				console.log(ex.what());
+			}
+		});
 	}).detach();
 
 	Window::setTitle((char*)"Millennium.Steam.Client");

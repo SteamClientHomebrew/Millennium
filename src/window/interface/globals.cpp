@@ -71,12 +71,12 @@ void millennium::parseRemoteSkin(const std::filesystem::directory_entry& entry, 
 	}
 }
 
-void millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer)
+bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer)
 {
 	std::filesystem::path skin_json_path = entry.path() / "skin.json";
 
 	if (!std::filesystem::exists(skin_json_path))
-		return;
+		return false;
 
 	auto data = this->readFileSync(skin_json_path.string());
 
@@ -88,6 +88,7 @@ void millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 	data["remote"]      = false;
 
 	buffer.push_back(data);
+	return true;
 }
 
 void millennium::getRawImages(std::vector<std::string>& images)
@@ -124,7 +125,8 @@ void millennium::parseSkinData()
 			}
 			else if (entry.is_directory())
 			{
-				this->parseLocalSkin(entry, jsonBuffer);
+				if (!this->parseLocalSkin(entry, jsonBuffer))
+					return;
 			}
 		}
 		//replace the current json with the buffer
