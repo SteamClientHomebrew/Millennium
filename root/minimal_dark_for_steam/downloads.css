@@ -1,0 +1,85 @@
+[class*="appdetailsplaysection_DetailsProgressContainer_"] [class*="appdetailsplaysection_DetailsProgressBar_"] {
+    background-color: var(--minimal_dark_color);
+}
+
+.downloads_SectionItemStatus_1Sygg .downloads_Downloading_33BlY .downloads_State_2ns4w {
+    color: var(--minimal_dark_darker);
+}
+
+body, body.shared_common_v6_3r3Le {
+    color: var(--minimal_dark_white);
+}
+
+[class*="downloads_DownloadsPage_"] {
+    background: var(--minimal_dark_blacker) !important;
+}
+
+[class*="downloadgraph_GraphAndStats_"] {
+    background: transparent !important;
+}
+
+[class*="downloads_TopBar_"] {
+    background: var(--minimal_dark_offline_grey) !important;
+}
+
+[class*="downloadgraph_HeroAndLogo_"][class*="downloadgraph_Empty_"] {
+    background: transparent !important;
+    display: var(--hidedlimage) !important;
+}
+
+[class*="downloadgraph_DownloadGraph_"] {
+    background: var(--minimal_dark_blacker_alt) !important;
+}
+
+[class*="downloads_DownloadGraph_"] [class*="downloads_Gradient_"] {
+    background-image: none !important;
+}
+
+[class*="downloads_SectionItem_"] {
+    background-color: transparent !important;
+}
+
+[class*="downloads_SectionItem_"]:hover,[class*="downloads_SectionItem_"][class*="downloads_Dragging_"] {
+    background-color: transparent !important;
+}
+
+[class*="downloads_SectionItem_"] [class*="downloads_DragHandle_"] {
+    color: var(--minimal_dark_offline_grey) !important;
+}
+
+[class*="downloads_SectionItem_"] [class*="downloads_Button_"][class*="downloads_RemoveFromQueue_"] {
+    border-radius: 2px !important;
+}
+
+[class*="downloads_SectionItemStatus_"] [class*="downloads_State_"][class*="downloads_Downloading_"], [class*="downloads_ProgressDetails_"] [class*="downloads_Value_"][class*="downloads_Active_"] {
+    color: var(--minimal_dark_offline_grey) !important;
+}
+
+[class*="downloads_SectionTitle_"] [class*="downloads_Rule_"] {
+    background: transparent !important;
+}
+
+[class*="downloads_RemoveAllButton_"][class*="downloads_RemoveAllButton_"].DialogButton:enabled {
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+
+[class*="downloads_AutoUpdate_"] {
+    margin-top: 5px !important;
+    margin-left: 10px !important;
+}
+
+button.DialogButton {
+    background: var(--minimal_dark_blacker) !important;
+}
+
+button.DialogButton:not(disabled):hover {
+    background: var(--minimal_dark_grey) !important;
+}
+
+.downloads_SectionItem_1VNuY .downloads_Button_3oavR svg {
+	color: var(--minimal_dark_white);
+}
+
+.downloads_SectionItem_1VNuY .downloads_Button_3oavR svg:hover {
+	color:var(--minimal_dark_color);
+}

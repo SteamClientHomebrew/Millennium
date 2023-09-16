@@ -1,0 +1,83 @@
+[class*="miniprofile_miniProfileVideoBackground_"] {
+    display: none !important;
+}
+
+[class*="miniprofile_miniProfileVideoBackgroundContainer_"] {
+    background-color: var(--minimal_dark_blacker_alt) !important;
+}
+
+[class*="miniprofile_miniProfileBackdropBlur_"] {
+	backdrop-filter: var(--minimal_dark_blur) !important;
+}
+
+[class*="miniprofile_miniProfileBackgroundBlur_"] {
+    display: none !important; 
+}
+
+[class*="miniprofile_miniProfileBackground_"] {
+    background: var(--minimal_dark_night_alt) !important;
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+
+[class*="miniprofile_miniProfile_"] {
+    border: 0 !important;
+    background: var(--minimal_dark_blacker_alt) !important;
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+  
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfileHeader_"] {
+    background: var(--minimal_dark_blacker_alt) !important;
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+
+[class*="miniprofile_miniProfileContent_"][class*="miniprofile_notInOrWatchingGame_"] [class*="miniprofile_miniProfileBottom_"],
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfileGameContainer_"] {
+    background: transparent !important;
+    top: 10px !important;
+}
+
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].in-game [class*="miniprofile_personaName_"]:not([class*="miniprofile_hasNickname_"]) [class*="miniprofile_personaNameLabel_"],
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].in-game [class*="miniprofile_personaName_"][class*="miniprofile_nickName_"] [class*="miniprofile_personaNameLabel_"] {
+    color: var(--minimal_dark_status_green) !important;
+    border-radius: var(--minimal_dark_corner0) !important; 
+}
+
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].online [class*="miniprofile_nickname_"],
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].online [class*="miniprofile_persona_"],
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].online [class*="miniprofile_playerContent_"] [class*="miniprofile_awayStatusLabel_"] {
+    color: var(--online) !important;
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].miniprofile_online [class*="miniprofile_nickname_"],
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].miniprofile_online.online [class*="miniprofile_persona_"],
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].miniprofile_online.online [class*="miniprofile_playerContent_"] [class*="miniprofile_awayStatusLabel_"] {
+    color: var(--online) !important;
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+
+.miniprofile_avatarStatus {
+    display: none !important;
+}
+
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_playerAvatar_"] img {
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_playerAvatar_"] {
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+    
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].online [class*="miniprofile_avatarStatus_"][class*="miniprofile_miniProfileAvatarStatus_"] {
+    background: var(--online) !important;
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+      
+[class*="miniprofile_miniProfileContent_"] [class*="miniprofile_miniProfilePlayer_"].in-game [class*="miniprofile_avatarStatus_"][class*="miniprofile_miniProfileAvatarStatus_"] {
+    background: var(--minimal_dark_status_green) !important;
+    border-radius: var(--minimal_dark_corner0) !important;
+}
+
+[class*="appdetailsfriendssection_PlaytimeSection_"] {
+    background: var(--minimal_dark_blacker_alt) !important;
+}

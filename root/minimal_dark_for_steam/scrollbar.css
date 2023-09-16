@@ -1,0 +1,58 @@
+::-webkit-scrollbar-thumb {
+	background: var(--minimal_dark_invisblegrey) !important;
+	border: 6px solid var(--minimal_dark_transparent) !important;
+	background-clip: padding-box !important;
+	border-radius: 13px !important;
+}
+
+.ReactVirtualized__List::-webkit-scrollbar-track {
+	background: var(--minimal_dark_transparent) !important;
+}
+
+.ReactVirtualized__Grid::-webkit-scrollbar {
+	background-color: (--minimal_dark_transparent) !important;
+	-webkit-box-shadow: none !important;
+}
+
+::-webkit-scrollbar-track {
+	background: (--minimal_dark_transparent) !important;
+}
+
+::-webkit-scrollbar-corner{
+	background-color: var(--minimal_dark_blacker_alt) !important;
+	border-radius: 10px !important;
+}
+
+::-webkit-scrollbar{
+	background-color: var(--minimal_dark_transparent) !important;
+	width:18px !important;
+	border-radius: 10px !important;
+}
+
+.ReactVirtualized__List:hover::-webkit-scrollbar-thumb,
+[class*="gamelist_Container_"]:hover::-webkit-scrollbar-thumb {
+	background: var(--minimal_dark_invisblegrey) !important;
+	background-clip: padding-box!important;
+	-webkit-box-shadow: none !important;
+	border-radius: 10px !important;
+}
+
+.ReactVirtualized__List:hover::-webkit-scrollbar-thumb:hover {
+	background: var(--minimal_dark_invisblegrey) !important;
+	background-clip: padding-box!important;
+	border-radius: 10px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: var(--minimal_dark_invisblegrey) !important;
+}
+
+.ReactVirtualized__List::-webkit-scrollbar-thumb {
+	background: (--minimal_dark_transparent) !important;
+	border-radius: 10px !important;
+}
+
+[class*="library_LeftListSizableContainer_"]::-webkit-scrollbar:horizontal {
+	background-color: (--minimal_dark_transparent) !important;
+	-webkit-box-shadow: none !important;
+}

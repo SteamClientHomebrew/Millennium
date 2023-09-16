@@ -1,0 +1,483 @@
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s {
+	background: var(--minimal_dark_blacker) !important;
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_URLBarText_2m_or:hover .steamdesktop_URL_MZPxE {
+    color: var(--minimal_dark_color);
+    transition: color .15s ease-out;
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_ReloadButton_3KaB9:hover {
+    cursor: pointer;
+    background: #23262e;
+    border-radius: 16px;
+    color: var(--minimal_dark_color);
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_URLBarText_2m_or .steamdesktop_URL_MZPxE {
+    flex-grow: 1;
+    padding: 0 0px;
+    color: var(--minimal_dark_color);
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_URLBarText_2m_or:hover .steamdesktop_StatusIcon_3izqE {
+    color: var(--minimal_dark_browser_overlay_close);
+    transition: color .15s ease-out;
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_ReloadButton_3KaB9 {
+    padding: 2px 0px 2px 4px;
+    transition: background .15s ease-out,color .15s ease-out,border-radius .15s ease-out;
+    color: var(--minimal_dark_topgrey);
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_ReloadButton_3KaB9:hover {
+    padding: 2px 0px 2px 4px;
+    transition: background .15s ease-out,color .15s ease-out,border-radius .15s ease-out;
+    color: var(--minimal_dark_color);
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_ReloadButton_3KaB9:active {
+    padding: 2px 0px 2px 4px;
+    transition: background .15s ease-out,color .15s ease-out,border-radius .15s ease-out;
+    color: var(--minimal_dark_white);
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_LockIcon_3GFlj {
+    height: 16px;
+    padding-bottom: 2px;
+    color: var(--minimal_dark_browser_overlay_close);
+}
+
+.desktopbrowser_URLBar_26Gmf .desktopbrowser_NavigationButton_1oXr_ {
+    padding: 2px 0px 2px 4px;
+    color: var(--minimal_dark_topgrey);
+}
+
+.desktopbrowser_URLBar_26Gmf .desktopbrowser_NavigationButton_1oXr_:hover {
+    cursor: pointer;
+    background: var(--minimal_dark_black);
+    border-radius: 2px;
+    color: var(--minimal_dark_color);
+}
+
+.desktopbrowser_URLBar_26Gmf .desktopbrowser_NavigationButton_1oXr_:active {
+    cursor: pointer;
+    background: var(--minimal_dark_black);
+    border-radius: 2px;
+    color: var(--minimal_dark_white);
+}
+
+.desktopbrowser_URLBar_26Gmf svg {
+    height: 100%;
+    padding-right: 6px;
+    padding-left: 2px;
+    color: var(--minimal_dark_topgrey);
+}
+
+.desktopbrowser_URLBar_26Gmf .desktopbrowser_StatusIcon_2UTNf {
+    height: 18px;
+    color: var(--minimal_dark_browser_overlay_close);
+}
+
+.desktopbrowser_URLBar_26Gmf svg {
+    height: 100%;
+    padding-right: 6px;
+    padding-left: 2px;
+    color: var(--minimal_dark_topgrey);
+}
+
+.desktopbrowser_URLBar_26Gmf .desktopbrowser_URLBarText_1d2NZ:hover {
+    cursor: pointer;
+    background: var(--minimal_dark_greyblack3);
+    border-radius: 5px;
+}
+
+.desktopbrowser_URLBar_26Gmf .desktopbrowser_URLBarText_1d2NZ .desktopbrowser_URL_1W55u .DialogInput_Wrapper {
+    flex-grow: 1;
+    border-radius: 5px;
+}
+
+.desktopbrowser_URLBar_26Gmf .desktopbrowser_URLBarText_1d2NZ .desktopbrowser_URL_1W55u .DialogInput_Wrapper>input.DialogInput {
+    padding: 0px 5px 0px 5px;
+    color: var(--minimal_dark_color);
+}
+
+.steamdesktopoverlay_OverlayPopupBody_1UJDm DesktopUI {
+	background:var(--minimal_dark_blacker) !important;
+}
+
+.steamdesktopoverlay_OverlayPopup_C9tvu {
+    background: var(--minimal_dark_blacker)
+}
+
+.desktopbrowser_URLBar_26Gmf {
+    position: relative;
+    padding: 4px 4px 4px 9px;
+    display: flex;
+    align-items: center;
+    background: var(--minimal_dark_blacker);
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 8px;
+    background-color: var(--minimal_dark_blacker);
+    border: 2px solid var(--minimal_dark_greyblack3);
+	border-radius:5px;
+    cursor: pointer;
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC.desktopbrowser_Active_1W4bb {
+    background-color: var(--minimal_dark_blacker);
+    border-top: 2px solid var(--minimal_dark_color);
+	border-radius:5px;
+}
+
+.steamdesktopoverlay_OverlayPopup_C9tvu .title-area-children {
+	display:none !important;
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC .desktopbrowser_AddTabButton_3j1xD {
+    height: 15px;
+    width: 15px;
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC .desktopbrowser_AddTabButton_3j1xD:hover {
+    height: 15px;
+    width: 15px;
+    color: var(--minimal_dark_browser_overlay_close);
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC .desktopbrowser_CloseTabButton_2DQbo {
+    padding-left: 5px;
+    height: 15px;
+    width: 15px;
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC .desktopbrowser_CloseTabButton_2DQbo:hover {
+    padding-left: 5px;
+    height: 15px;
+    width: 15px;
+    color: var(--minimal_dark_red1);
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC .desktopbrowser_CloseTabButton_2DQbo :hover {
+    color: var(--minimal_dark_red1);
+}
+
+.pagedsettings_PagedSettingsDialog_PageList__EebF {
+    line-height: 16px;
+    white-space: nowrap;
+    overflow-y: overlay;
+    flex-shrink: 1;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.gamepaddialog_Toggle_24G4g.gamepaddialog_On_3ld7T .gamepaddialog_ToggleRail_2JtC3::before {
+    transform: translateX(-11px);
+    background: var(--minimal_dark_color);
+}
+
+.pagedsettings_PagedSettingsDialog_PageListItem_bkfjn .pagedsettings_Active_Myra7 {
+    color: #fff;
+    background-color: var(--minimal_dark_night_alt);
+}
+
+.pagedsettings_Active_Myra7:hover {
+    color: #fff;
+    background-color: var(--minimal_dark_color);
+}
+
+.pagedsettings_PagedSettingsDialog_PageListColumn_RTicB {
+    background: var(--minimal_dark_night_alt);
+}
+
+[class*="pagedsettings_PagedSettingsDialog_PageListColumn_"] {
+    background: var(--minimal_dark_transparent) !important;
+}
+
+.updatealert_Alert_2iJsg {
+    padding: 0 12px;
+    background-color: var(--minimal_dark_color);
+    border-radius: 2px;
+    transition: background-color 200ms ease-in-out;
+}
+
+.title-area {
+    position: absolute;
+    top: -4px;
+    bottom: 0;
+    left: 0;
+    right: 6px;
+    min-height: 18px;
+    -webkit-app-region: drag;
+    z-index: 2;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    padding: 10px 1px 10px 1px;
+}
+
+.title-area-icon:hover .SVGIcon_Button rect, .title-area-icon:hover .SVGIcon_Button line, .title-area-icon:hover .SVGIcon_Button polyline {
+    stroke: var(--minimal_dark_transparent);
+    transition: stroke .15s ease-out;
+}
+
+.title-area-icon .SVGIcon_X_Line line {
+    stroke: var(--minimal_dark_transparent);
+    stroke-width: 24px;
+}
+
+.title-bar-actions .title-area-icon.minimizeButton, .title-bar-actions .title-area-icon.maximizeButton, .title-bar-actions .title-area-icon.restoreButton, .title-bar-actions .title-area-icon.closeButton {
+	color: var(--minimal_dark_transparent);
+}
+
+.title-bar-actions .title-area-icon.minimizeButton:hover, .title-bar-actions .title-area-icon.maximizeButton:hover, .title-bar-actions .title-area-icon.restoreButton:hover, .title-bar-actions .title-area-icon.closeButton:hover {
+	background: var(--minimal_dark_transparent);
+}
+
+.title-bar-actions .title-area-icon.minimizeButton {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_minbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	border: 1px solid yellow;
+    transform: scale(0.52);
+    border-radius: 0px;
+    max-width: 23px;
+}
+
+.title-bar-actions .title-area-icon.minimizeButton:hover {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_minbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	border: 1px solid yellow;
+    transform: scale(0.54);
+    border-radius: 0px;
+    max-width: 23px;
+}
+
+.title-bar-actions .title-area-icon.minimizeButton:active {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_minbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.52);
+    border-radius: 0px;
+    max-width: 23px;
+}
+
+.title-bar-actions .title-area-icon.maximizeButton {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_maxbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.62) translate(4px, 0px);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.maximizeButton:hover {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_maxbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.64) translate(4px, 0px);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.maximizeButton:active {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_maxbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.62) translate(4px, 0px);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.closeButton {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_closebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.60);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.closeButton:hover {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_red);
+    -webkit-mask-image: var(--minimal_dark_closebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.62);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.closeButton:active {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_red1);
+    -webkit-mask-image: var(--minimal_dark_closebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.55);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.restoreButton {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_restorebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.58);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.restoreButton:hover {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_restorebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.60);
+    border-radius: 0px;
+}
+
+.title-bar-actions .title-area-icon.restoreButton:active {
+	color: var(--minimal_dark_transparent);
+	background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_restorebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(0.58);
+    border-radius: 0px;
+}
+
+.artworkmodal_ModalBox_1Lfu7 {
+    display: flex;
+    flex-direction: column;
+    background: var(--minimal_dark_blacker);
+    box-shadow: inset 0 0 0 6px #0003;
+}
+
+.screenshotmanagerdialog_ButtonBox_1FPJY.screenshotmanagerdialog_Secondary_2Wyma:active {
+    background-color: var(--minimal_dark_dark);
+}
+
+.screenshotmanagerdialog_ButtonBox_1FPJY.screenshotmanagerdialog_Secondary_2Wyma {
+    background-color: var(--minimal_dark_dark);
+}
+
+.screenshotmanagerdialog_CaptionField_oQafB {
+    align-self: stretch;
+    background-color: var(--minimal_dark_dark);
+    border-radius: 2px;
+    border: none;
+    overflow: auto;
+    outline: none;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+    resize: none;
+    color: #b8bcbf;
+    font-size: 12px;
+    padding: 8px;
+    font-family: "Motiva Sans",Arial,Helvetica,Sans-serif;
+}
+
+.screenshotmanagerdialog_ButtonBox_1FPJY.screenshotmanagerdialog_Primary_3RXwD:active {
+    background-color: var(--minimal_dark_color);
+}
+.screenshotmanagerdialog_ButtonBox_1FPJY.screenshotmanagerdialog_Primary_3RXwD:hover {
+    background-color: #0bf;
+}
+.screenshotmanagerdialog_ButtonBox_1FPJY.screenshotmanagerdialog_Primary_3RXwD {
+    background-color: #1a9fff;
+}
+
+.screenshotmanagerdialog_IconButton_1lo9D .screenshotmanagerdialog_IconButtonIcon_3xSgI.screenshotmanagerdialog_Active_2eKDz {
+    color: var(--minimal_dark_color);
+}
+
+.appportrait_HoversEnabled_54PuC .appportrait_LibraryItemBox_WYgDg:hover:not(.appportrait_Landscape_3VOR2) {
+    transform: rotateX(3deg) translateZ(-10px);
+    filter: brightness(1.1) contrast(0.95) saturate(1);
+    box-shadow: 0px 14px 12px 0px rgba(0,0,0,.3);
+    z-index: 12;
+}
+
+.console_Console_1fuML, .console_Console_1fuML pre {
+    font-family: "Consolas","Lucida Console",monospace;
+    font-size: 13px;
+    color: var(--minimal_dark_color);
+}
+
+.DialogInput_Wrapper>input.DialogInput {
+    flex: 1;
+    color: var(--minimal_dark_white);
+}
+
+.DialogTextInputBase:not(:disabled) {
+    background: var(--minimal_dark_grey);
+}
+
+.DialogTextInputBase:not(:disabled):hover {
+    background: var(--minimal_dark_grey);
+}
+
+.DialogTextInputBase, ._DialogInputContainer {
+    background: var(--minimal_dark_dark);
+    color: #dfe3e6;
+    font-size: 14px;
+    font-family: "Motiva Sans",Arial,Helvetica,sans-serif;
+    font-weight: 300;
+    margin: 0;
+    border: none;
+    border-radius: 3px;
+    box-shadow: inset 0px 0px 0px #0000;
+}
+
+.console_Console_1fuML, .console_Console_1fuML pre {
+    font-family: "Consolas","Lucida Console",monospace;
+    font-size: 13px;
+    color: var(--minimal_dark_fluogreen);
+}
+
+.console_SpewLine_3jy87 .console_Input_31oMF {
+    color: var(--minimal_dark_fluogreen);
+}
+
+.sharedappdetailsheader_TopCapsule_2meE3 .sharedappdetailsheader_BoxSizerEdge_1pW2c.sharedappdetailsheader_Middle__s3x0 {
+    opacity: 1 !important;
+    background: #e8e7e12e;
+}

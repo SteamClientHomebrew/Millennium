@@ -1,0 +1,68 @@
+{
+    "Hooks": [
+        {
+            "Interpolate": "webkit.css",
+            "TargetCss": "https://community.akamai.steamstatic.com/public/shared/css/buttons.css*"
+        },
+        {
+            "Interpolate": "webkit.css",
+            "TargetCss": "https://store.akamai.steamstatic.com/public/shared/css/buttons.css*"
+        },
+        {
+            "Interpolate": "libraryroot.custom.js",
+            "TargetJs": "https://store.akamai.steamstatic.com/public/shared/javascript/shared_responsive_adapter.js*"
+        }
+    ],
+    "Patches": [
+        {
+            "MatchRegexString": ".*http.*steam.*",
+            "TargetJs": "webkit/store.js"
+        },
+        {
+            "MatchRegexString": "SteamBrowser_Find",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": "^Steam$",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": "Shutdown",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": "friendsui-container",
+            "TargetCss": "friends.custom.css"
+        },
+        {
+            "MatchRegexString": "ModalDialogPopup",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": ".*Supernav$",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": ".*Menu$",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": ".*Properties.*",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": "Special Offers",
+            "TargetCss": "libraryroot.custom.css"
+        },
+        {
+            "MatchRegexString": "Steam Big Picture Mode",
+            "TargetCss": "libraryroot.custom.css"
+        }
+    ],
+    "UseDefaultPatches": true,
+    "author": "Unknown",
+    "description": "A somewhat complicated design for the steam application, adding more color, contrast, and diversity to your Steam experience",
+    "name": "Minimal Dark for Steam",
+    "source": "https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/root/dark",
+    "version": "1.0.0"
+}

@@ -1,0 +1,1282 @@
+@import url('friends.custom.css');
+@import url('config.css');
+@import url('sidebar.css');
+@import url('scrollbar.css');
+@import url('downloads.css');
+@import url('gamepage.css');
+@import url('library.css');
+@import url('miniprofile.css');
+@import url('properties.css');
+@import url('overlay.css');
+@import url('webkit.css');
+
+*{ -webkit-box-shadow: none !important; box-shadow: none !important;  } 
+
+.DesktopUI .DialogHeader, .friendsui-container .DialogHeader {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: unset;
+    text-transform: unset;
+    margin-bottom: 4px;
+    line-height: 28px;
+}
+.DialogHeader {
+    font-weight: 300;
+    font-size: 32px;
+    line-height: 36px;
+    letter-spacing: 2px;
+    color: var(--minimal_dark_color);
+    text-transform: var(--minimal_dark_fontup);
+    flex-shrink: 0;
+    user-select: none;
+    margin-right: 26px;
+    margin-bottom: 12px;
+}
+
+.DialogSubHeader {
+    font-size: 22px;
+    letter-spacing: 0;
+    color: var(--minimal_dark_white);
+    text-transform: none;
+}
+
+.supernav_Arrow_25lBL {
+	margin-top: -13px !important;
+    margin-left: 0px;
+    min-width: 16px;
+    width: 16px;
+    min-height: 16px;
+    height: 16px;
+    color: #67707b;
+    padding: 0px 6px 0px 0px;
+    transition: color .15s ease-out;
+    -webkit-app-region: no-drag;
+}
+
+[class*="supernav_Arrow_"][class*="supernav_Enabled_"] {
+	background-color: var(--minimal_dark_transparent) !important;
+	filter:opacity(0.90);
+	color: #ffffff !important;
+}
+
+[class*="supernav_Arrow_"][class*="supernav_Enabled_"]:hover {
+	background-color: var(--minimal_dark_transparent) !important;
+	filter:opacity(0.75);
+	color: #7D7D7D !important;
+}
+
+[class*="supernav_Arrow_"][class*="supernav_Disabled_"] {
+	filter:opacity(0.50);
+	color: #3d4450 !important;
+}
+
+.gamelistsearchbar_Container_20QAC .gamelistsearchbar_AdvancedSearchContainer_vCCmY .gamelistsearchbar_AdvancedSearchButton_1TxHd svg path {
+    fill: var(--minimal_dark_less_white);
+}
+
+[class*="dropdown_DialogDropDownMenu_"]._DialogInputContainer {
+    background: var(--minimal_dark_invisblegrey);
+}
+
+[class*="contextmenu_contextMenu_"] {
+	background: var(--minimal_dark_context_menu_background) !important;
+	min-width:fit-content !important;
+	color: var(--minimal_dark_white);
+	border-radius: 5px !important;
+}
+
+[class*="contextmenu_contextMenuItem_"][class*="contextmenu_SubMenu_"] {
+	padding-right:0px;
+}
+
+[class*="steamavatar_avatar_"] {
+	transform: translate(0px, 0px);
+	transform: scale(1);
+    border-radius: var(--minimal_dark_corner5) !important;
+    border: 0 !important;
+}
+
+.titlebarcontrols_AccountMenu_3yD46.online {
+    color: var(--minimal_dark_color);
+}
+
+.titlebarcontrols_AccountMenu_3yD46.ingame {
+    color: var(--minimal_dark_color);
+}
+
+.titlebarcontrols_AccountMenu_3yD46.awayOrSnooze {
+    color: var(--minimal_dark_color);
+}
+
+body, body.shared_common_v6_3r3Le {
+    color: var(--minimal_dark_color);
+}
+
+.steamdesktop_TitleBar_39oUC .offline [class*="steamavatar_avatarStatus_"] {
+    width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: grey !important;
+    border-radius: 5px !important;
+    margin-left: 3px !important;
+}
+
+.steamdesktop_TitleBar_39oUC .online [class*="steamavatar_avatarStatus_"] {
+    width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: var(--minimal_dark_status_blue) !important;
+    border-radius: 10px !important;
+    margin-left: 3px !important;
+}
+
+.steamdesktop_TitleBar_39oUC .awayOrSnooze [class*="steamavatar_avatarStatus_"] {
+	width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: var(--minimal_dark_status_orange) !important;
+    border-radius: 10px !important;
+    margin-left: 3px !important;
+    margin-top: 0px;
+}
+
+.awayOrSnooze .steamavatar_avatarStatus_1yIzy {
+    -webkit-mask: none;
+    -webkit-mask-size: none;
+    mask: none;
+    mask-size: none;
+    opacity: .95;
+}
+
+.steamdesktop_TitleBar_39oUC .ingame [class*="steamavatar_avatarStatus_"] {
+	width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: var(--minimal_dark_status_green) !important;
+    border-radius: 10px !important;
+    margin-left: 3px !important;
+    margin-top: 0px;
+}
+
+.steamavatar_avatar_1p_Qr {
+	border-radius: 5px 0 5px 5px;
+	margin-left: 0px !important;
+    margin-top: 1px;
+    height: calc(100% - 4px);
+    width: calc(100% - 4px);
+    transform: translate(1px, 0px);
+}
+
+.steamdesktop_LocalContentContainer_RGNMW .steamdesktop_URLBarReplacement_2Cmrn {
+	display: none !important;
+}
+
+.supernav_SuperNavMenu_7AlhC.supernav_Selected_1gqEj:not(.supernav_Disabled_2cO0H) .supernav_MenuButton_19axK::after {
+	content: "";
+	margin-top: 4px !important;
+    height: 1px !important;
+    background: var(--minimal_dark_transparent);
+    border-radius: 10px;
+    display: block;
+    width: 100%;
+    height: 3px;
+    background: var(--minimal_dark_color);
+    animation: supernav_slide_2wrHk .4s;
+}
+
+.supernav_SuperNavMenu_7AlhC:hover {
+	border-radius:2.5px;
+	margin-top:3px;
+} 
+
+.steamdesktop_TitleBar_39oUC {
+	height: 45px !important;
+	background: var(--minimal_dark_blacker) !important;
+}
+
+.steamdesktop_SuperNavBar_3Z3oh {
+	margin-top: -34px !important;
+	width: 40% !important;
+	margin-left: 303px !important;
+}
+
+.titlebarcontrols_AnnouncementsButton_5wILZ {
+	display: none !important;
+}
+
+.window_resize_grip {
+	background-image: none !important;
+}
+
+.titlebarcontrols_GamepadUIToggle_3LKQ3 {
+	display: none !important;
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_URLBarText_2m_or .steamdesktop_URL_MZPxE {
+    flex-grow: 1;
+    padding: 0 0px;
+    color: var(--minimal_dark_color);
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bottombar_BottomBar_3vCzS {
+	background: var(--minimal_dark_transparent) !important;
+	right: 0 !important;
+	margin-right: var(--minimal_dark_alignment) !important;
+	position: fixed;top: 7px !important;
+	border-radius: 5px !important;
+	border: 1px solid var(--minimal_dark_greyblack);
+	align-content: center !important;
+	display: block;
+	max-height: 25px;
+    max-width: 18px;
+    margin-top: 2px;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk {
+    background-color: rgba(103,112,123,.2);
+    border-radius: 5px;
+    margin-top: -4px;
+    margin-right: 2px;
+    padding: 0px 0px;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_HasNew_3L1c8 {
+    background-color: var(--minimal_dark_transparent);
+    color: var(--minimal_dark_color);
+    border-radius: 5px;
+    margin-top: -4px;
+    margin-right: 2px;
+    padding: 0px 0px;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3:hover {
+	border-radius: 5px;
+    margin-top: -4px;
+    padding: 0px 0px;
+	margin-right: 2px;
+    color: var(--minimal_dark_white);
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I .titlebarcontrols_Icon_34bQc, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk .titlebarcontrols_Icon_34bQc {
+    color: var(--minimal_dark_less_white);
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_HasNew_3L1c8:not(.titlebarcontrols_Disabled_1QQWj):hover {
+    color: var(--minimal_dark_color);
+    background: var(--minimal_dark_black);
+    border-radius: 5px;
+    margin-top: -4px;
+    margin-right: 2px;
+    padding: 0px 0px;
+    transition: background-color .15s ease-out;
+    transform: scale(1.1);
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I:not(.titlebarcontrols_Disabled_1QQWj):hover, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk:not(.titlebarcontrols_Disabled_1QQWj):hover {
+    background-color: var(--minimal_dark_black);
+    transition: background-color .15s ease-out;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I .titlebarcontrols_Icon_34bQc, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk .titlebarcontrols_Icon_34bQc {
+    color: var(--minimal_dark_topgrey);
+}
+
+.titlebarcontrols_AnnouncementsButton_5wILZ.titlebarcontrols_Active_1oEwi:hover {
+    background-color: var(--minimal_dark_white);
+    transition: background-color .15s ease-out;
+}
+
+.bottombar_FriendsButton_1TdaA {
+	display:none;
+}
+
+.bottombar_AddGameButton_2foCk {
+	display:none;
+}
+
+.bottombar_DetailedDownloadProgress_2VtAq {
+	margin-top: -2px;
+}
+
+.bottombar_ProgressBarWrapper_2_Fom .bottombar_Status_1sCy- {
+    flex-grow: 1;
+    text-transform: none;
+}
+
+.bottombar_DownloadStatusContent_ip-YZ .bottombar_Status_1sCy- {
+    font-size: 12px;
+    color: transparent;
+    font-weight: 400;
+}
+
+.bottombar_ProgressBarWrapper_2_Fom .bottombar_Percentage_1-TLi {
+    flex-grow: 0;
+    color: var(--minimal_dark_browser_overlay_close);
+	transform: translate(-27px, 1px);
+}
+
+.bottombar_Icon_1KrJ3 {
+	width: 17px !important;
+	height: 17px !important;
+}
+
+.bottombar_ProgressBarWrapper_2_Fom { 
+	margin-top: -3px !important;
+}
+
+.bottombar_DetailedDownloadProgress_2VtAq {
+	max-width: 30px !important;
+	border-radius: var(--minimal_dark_corner5) !important;
+}
+
+.bottombar_DetailedDownloadProgress_2VtAq .bottombar_IconBevel_21vPQ {
+	background-image: none !important;
+}
+
+[class*="bottombar_DownloadStatusContent_"] {
+	display:block;
+	max-width:11px;
+	width:16px;
+	padding:12px 8px;
+	overflow:visible;
+	height:14px;
+}
+
+[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Icon_"],[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Status_"] {
+	background-repeat: no-repeat;
+    background-position: center;
+    width: 14px;
+    height: 14px;
+    margin-bottom: 0px;
+    margin-top: -2px;
+}
+
+.bottombar_DownloadStatusContent_ip-YZ {
+    flex-grow: 1;
+    height: fit-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: 30vw;
+    gap: 10px;
+    padding: 6px 6px 6px 6px;
+    color: rgba(255,255,255,.8);
+    cursor: pointer;
+    transition-duration: .1s;
+    -webkit-app-region: none;
+}
+
+[class*="bottombar_ProgressBarWrapper_"] [class*="bottombar_ProgressBar_"] {
+	height: 4px;
+    --color-progress-bar-background: var(--minimal_dark_greyblack4) !important;
+    --color-progress-bar-foreground: var(--minimal_dark_status_green) !important;
+	transform: translate(-18px, 3px);
+}
+
+.bottombar_ProgressBarWrapper_2_Fom .bottombar_ProgressBar_wi0pD {
+    height: 4px;
+    --color-progress-bar-foreground: var(--minimal_dark_blue);
+    --color-progress-bar-background: var(--minimal_dark_greyblack4);
+	transform: translate(-16px, 2px);
+}
+
+.gamelistentry_AppIconDownloading_2kzMb svg.gamelistentry_DownloadProgressSVG_f6-7- circle {
+    stroke-width: 60px;
+    stroke: var(--minimal_dark_status_green);
+    transition-property: stroke-dashoffset;
+    transition-duration: .2s;
+    transition-timing-function: linear;
+}
+
+.bottombar_AddGameButton_2foCk .bottombar_Icon_1KrJ3, .bottombar_Icon_1KrJ3, .bottombar_FriendsButton_1TdaA .bottombar_Text_3OhUx {
+	margin-bottom: 2px !important;
+}
+
+.bottombar_AddGameButton_2foCk .bottombar_Text_3OhUx, .bottombar_FriendsButton_1TdaA .bottombar_Text_3OhUx, .bottombar_DownloadStatusContent_ip-YZ .bottombar_Queue_3wJnT{
+	display: none !important;
+} 
+
+.libraryassetimage_Container_1R9r2 {
+	margin-top: 0px !important;
+}
+
+.steamdesktop_TitleBar_39oUC .steamdesktop_TitleBarControls_1-9si {
+    margin-right: 58px;
+}
+
+.bottombar_DownloadStatus_2EQ7g {
+	margin-top: 2px !important;
+	margin-right: auto !important;
+	position: relative !important;
+	-webkit-app-region: no-drag !important;
+} 
+
+.bottombar_DownloadStatus_2EQ7g {
+	margin-top: -1px !important;
+	margin-right: auto !important;
+	position: relative !important;
+	-webkit-app-region: no-drag !important;
+} 
+
+[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Icon_"] svg {
+	transform:scale(1);
+	color: var(--minimal_dark_blacker);
+	background: #d2d2d2;
+	display:none;
+}
+
+[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Icon_"] svg:hover {
+	transform:scale(1);
+	color: var(--minimal_dark_blacker);
+	background: var(--minimal_dark_color);
+	display:none;
+}
+
+.bottombar_Icon_1KrJ3 {
+    transform: scale(1);
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_download);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+}
+
+.bottombar_Icon_1KrJ3:hover {
+    transform: scale(1);
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_download);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+}
+
+.bottombar_Icon_1KrJ3:active {
+    transform: scale(1);
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_download);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+}
+
+[class*="contextmenu_contextMenuContents_"] {
+	font-size:12px;
+}
+
+/* add game popup */
+[class*="contextmenu_contextMenuItem_"] {
+	padding:4px 8px !important;
+	line-height:fit-content;
+	color:var(--minimal_dark_white) !important;
+}
+/* en fix add game popup */
+
+.DesktopUI [class*="contextmenu_contextMenuItem_"]:hover,.DesktopUI [class*="contextmenu_contextMenuItem_"][class*="contextmenu_active_"],[class*="contextmenu_ForceDesktop_"] [class*="contextmenu_contextMenuItem_"]:hover,[class*="contextmenu_ForceDesktop_"] [class*="contextmenu_contextMenuItem_"][class*="contextmenu_active_"] {
+	color: var(--minimal_dark_color) !important;
+	margin-left:-2px;
+	font-size:13px;
+	background: var(--minimal_dark_invisblegrey) !important;
+}
+
+html.contextmenu_ContextMenuPopup_2GpKT .contextmenu_contextMenuItem_pFo3k:hover {
+	color: var(--minimal_dark_color) !important;
+	background: var(--minimal_dark_invisblegrey) !important;
+	border-radius: 5px !important;
+}
+
+.menu_MenuPopup_3pofG {
+    background: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_transparent);
+	border-radius: 5px !important;
+}
+
+.DesktopUI .contextmenu_contextMenu_LQkrb {
+    background: var(--minimal_dark_context_menu_background) !important;
+}
+
+html.client_chat_frame body, html.web_chat_frame body {
+    background: var(--minimal_dark_transparent) !important;
+}
+
+[class*="popup_target"] {
+    background: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_transparent);
+}
+
+html.contextmenu_ContextMenuPopup_2GpKT body {
+    background: var(--minimal_dark_transparent);
+}
+
+.rootmenu_SteamButton_bSKGl .rootmenu_Logo_GG9wV {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    transform: scale(1.2);
+}
+
+.rootmenu_RootMenuButton_2UyOB {
+    color: var(--minimal_dark_topgrey);
+    font-size: 12px;
+    padding: 11px 11px;
+    transition: color .15s ease-out;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    height: 100%;
+    margin-top: 1px;
+    margin-left: -7px;
+}
+
+.rootmenu_SteamButton_bSKGl {
+	display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    color: var(--minimal_dark_topgrey);
+    background-image: var(--minimal_dark_logo);
+    background-repeat: no-repeat;
+    background-position-x: 0px;
+    background-position-y: 6px;
+    margin: 9px 0px 9px -4px;
+    padding: 10px 71px 10px 6px;
+}
+
+.rootmenu_SteamButton_bSKGl:hover {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    color: var(--minimal_dark_color);
+	background-image: var(--minimal_dark_logo_hover);
+    background-repeat: no-repeat;
+    background-position-x: 0px;
+    background-position-y: 6px;
+    margin: 9px 0px 9px -4px;
+    padding: 10px 71px 10px 6px;
+}
+
+.rootmenu_SteamButton_bSKGl:active {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    color: var(--minimal_dark_white);
+	background-image: var(--minimal_dark_logo_active);
+    background-repeat: no-repeat;
+    background-position-x: 0px;
+    background-position-y: 6px;
+    margin: 9px 0px 9px -4px;
+    padding: 10px 71px 10px 6px;
+}
+
+.steamdesktop_TitleBar_39oUC .steamdesktop_RootMenuBar_3s0lk {
+    flex: 0 0 auto;
+    margin-top: -1px;
+}
+
+.steamdesktop_SuperNavBar_3Z3oh {
+    margin-top: -34px !important;
+    width: 40% !important;
+    margin-left: 200px !important;
+	text-transform: var(--minimal_dark_fontdown);
+	letter-spacing: 1px;
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(2) {
+	color: var(--minimal_dark_transparent);
+    width: 19px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 6px;
+    margin-top: 4px;
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_display);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.95);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(2):hover {
+	color: var(--minimal_dark_transparent);
+    width: 19px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 6px;
+    margin-top: 4px;
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_display);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.95);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(2):active {
+	color: var(--minimal_dark_transparent);
+    width: 19px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 6px;
+    margin-top: 4px;
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_display);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.85);
+}
+
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(3) {
+	color: var(--minimal_dark_transparent);
+    width: 19px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 14px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_contact);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(1.1);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(3):hover {
+    color: var(--minimal_dark_transparent);
+    width: 19px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 14px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_contact);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(1.1);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(3):active {
+    color: var(--minimal_dark_transparent);
+    width: 19px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 14px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_contact);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(1);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(4) {
+    color: var(--minimal_dark_transparent);
+    width: 16px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 12px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_game);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(1.1);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(4):hover {
+    color: var(--minimal_dark_transparent);
+    width: 16px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 12px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_game);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(1.1);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(4):active {
+    color: var(--minimal_dark_transparent);
+    width: 16px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 12px;
+    margin-top: 4px;
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_game);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(1);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(5) {
+    color: var(--minimal_dark_transparent);
+    width: 17px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 13px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_help);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(1.11);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(5):hover {
+    color: var(--minimal_dark_transparent);
+    width: 17px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 13px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_help);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(1.11);
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(5):active {
+    color: var(--minimal_dark_transparent);
+    width: 17px;
+    padding: 10px 0px 10px 0px;
+    margin-left: 13px;
+    margin-top: 3px;
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_help);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+	transform: scale(1);
+}
+
+.supernav_SuperNavMenu_7AlhC {
+	font-size: 12px !important;
+	height: inherit;
+	font-size: 18px;
+	font-family: Helvetica,sans-serif;
+	text-transform: inherit;
+	overflow-x: visible;
+	cursor: pointer;
+	padding: 0px 0px 0px 18px;
+	margin-top: 6px;
+}
+
+.supernav_SuperNav_2D64j {
+	margin-top: 0px !important;
+}
+
+.supernav_SuperNavMenu_7AlhC .supernav_MenuButton_19axK:active {
+    color: var(--minimal_dark_topgrey) !important;
+    font-weight: 400;
+}
+
+.supernav_SuperNavMenu_7AlhC:last-child {
+    padding-right: 11px;
+}
+
+.supernav_SuperNavMenu_7AlhC.supernav_Selected_1gqEj:not(.supernav_Disabled_2cO0H) .supernav_MenuButton_19axK {
+	color: var(--minimal_dark_white) !important;
+    text-shadow: 0px 0px 20px var(--minimal_dark_color);
+    transition: text-shadow .15s ease-out;
+    font-weight: 500;
+    cursor: pointer;
+	text-transform: initial;
+}
+
+.supernav_SuperNavMenu_7AlhC .supernav_MenuButton_19axK {
+	color: var(--minimal_dark_topgrey) !important;
+	font-weight: 400;
+}
+
+.supernav_SuperNavMenu_7AlhC .supernav_MenuButton_19axK:hover {
+    color: var(--minimal_dark_color) !important;
+	font-weight: 400;
+}
+
+.supernav_SuperNavMenu_7AlhC .supernav_MenuButton_19axK:active {
+    color: var(--minimal_dark_color) !important;
+	font-weight: 500;
+}
+
+html.client_chat_frame body, html.web_chat_frame body {
+	background: var(--minimal_dark_dark) !important;
+}
+
+.menu_MenuItem_2jXHP.menu_Separator_21GPY {
+	color: var(--minimal_dark_topgrey);
+    opacity: 0.2;
+}
+
+.DesktopUI .contextmenu_contextMenu_LQkrb {
+	background: var(--minimal_dark_dark) !important;
+}
+
+.pagedsettings_PagedSettingsDialog_PageListColumn_RTicB {
+	background: var(--minimal_dark_dark) !important;
+}
+
+.pagedsettings_PagedSettingsDialog_PageContent_1I3Ni.DesktopUI,
+.DesktopUI .pagedsettings_PagedSettingsDialog_PageContent_1I3Ni {
+	background: var(--minimal_dark_dark) !important;
+}
+
+.gamepaddialog_Field_S-_La.gamepaddialog_WithBottomSeparatorStandard_3s1Rk::after {
+	background: var(--minimal_dark_dark) !important;
+}
+
+.console_Console_1fuML {
+	background-color: var(--minimal_dark_blacker_alt) !important;
+}
+
+.titlebarcontrols_AccountMenu_3yD46 .titlebarcontrols_WalletBalance_2jphj {
+	color: var(--minimal_dark_currency) !important;
+	font-weight: lighter !important;
+}
+
+.titlebarcontrols_TitleBarControls_3cykd {
+    margin-top: 5px;
+    display: inherit;
+	flex-direction: row;
+	align-items: center;
+}
+
+.steamdesktop_TitleBar_39oUC .titlebarcontrols_AccountMenu_3yD46 {
+	background: linear-gradient(0deg, rgba(21,21,21,1) 0%, rgba(38,38,38,1) 100%);
+	font-size: 16px !important;
+	border:1px solid rgba(15,15,15,1);
+	border-radius: 5px !important;
+	margin-top: -5px !important;
+	font-weight: normal !important;
+	font-size: smaller !important;
+}
+
+.steamdesktop_TitleBar_39oUC .titlebarcontrols_AccountMenu_3yD46:hover {
+	background: linear-gradient(0deg, rgba(21,21,21,1) 0%, rgba(38,38,38,1) 100%);
+	font-size: 16px !important;
+	border:1px solid rgba(15,15,15,1);
+	border-radius: 5px !important;
+	margin-top: -5px !important;
+	font-weight: normal !important;
+	font-size: smaller !important;
+}
+
+.steamdesktop_TitleBar_39oUC .titlebarcontrols_AccountMenu_3yD46:active {
+	background: linear-gradient(0deg, rgba(38,38,38,1) 0%, rgba(21,21,21,1) 100%);
+	font-size: 16px !important;
+	border:1px solid rgba(15,15,15,1);
+	border-radius: 5px !important;
+	margin-top: -5px !important;
+	font-weight: normal !important;
+	font-size: smaller !important;
+}
+
+/* hide arrow next to avatar name */
+/* .titlebarcontrols_AccountMenu_3yD46 .titlebarcontrols_Chevron_3x51w {
+  display: none !important;
+} */
+
+[class*="steamavatar_avatar_"] {
+	transform: translate(0px, 0px);
+	transform: scale(1);
+    border-radius: var(--minimal_dark_corner5) !important;
+    border: 0 !important;
+}
+
+.titlebarcontrols_AccountMenu_3yD46.online {
+    color: var(--minimal_dark_color);
+}
+
+.titlebarcontrols_AccountMenu_3yD46.ingame {
+    color: var(--minimal_dark_color);
+}
+
+.titlebarcontrols_AccountMenu_3yD46.awayOrSnooze {
+    color: var(--minimal_dark_color);
+}
+
+body, body.shared_common_v6_3r3Le {
+    color: var(--minimal_dark_color);
+}
+
+.steamdesktop_TitleBar_39oUC .offline [class*="steamavatar_avatarStatus_"] {
+    width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: grey !important;
+    border-radius: 5px !important;
+    margin-left: 3px !important;
+}
+
+.steamdesktop_TitleBar_39oUC .online [class*="steamavatar_avatarStatus_"] {
+    width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: var(--minimal_dark_status_blue) !important;
+    border-radius: 10px !important;
+    margin-left: 3px !important;
+}
+
+.steamdesktop_TitleBar_39oUC .awayOrSnooze [class*="steamavatar_avatarStatus_"] {
+	width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: var(--minimal_dark_status_orange) !important;
+    border-radius: 10px !important;
+    margin-left: 3px !important;
+    margin-top: 0px;
+}
+
+.awayOrSnooze .steamavatar_avatarStatus_1yIzy {
+    -webkit-mask: none;
+    -webkit-mask-size: none;
+    mask: none;
+    mask-size: none;
+    opacity: .95;
+}
+
+.steamdesktop_TitleBar_39oUC .ingame [class*="steamavatar_avatarStatus_"] {
+	width: 8px !important;
+    height: 8px !important;
+    left: 13px !important;
+    top: 16px !important;
+    z-index: 1 !important;
+    border: 1px solid var(--minimal_dark_dark) !important;
+    background: var(--minimal_dark_status_green) !important;
+    border-radius: 10px !important;
+    margin-left: 3px !important;
+    margin-top: 0px;
+}
+
+.steamavatar_avatar_1p_Qr {
+	border-radius: 5px 0 5px 5px;
+	margin-left: 0px !important;
+    margin-top: 1px;
+    height: calc(100% - 4px);
+    width: calc(100% - 4px);
+    transform: translate(1px, 0px);
+}
+
+.steamdesktop_LocalContentContainer_RGNMW .steamdesktop_URLBarReplacement_2Cmrn {
+	display: none !important;
+}
+
+.supernav_SuperNavMenu_7AlhC.supernav_Selected_1gqEj:not(.supernav_Disabled_2cO0H) .supernav_MenuButton_19axK::after {
+	content: "";
+	margin-top: 4px !important;
+    height: 1px !important;
+    background: var(--minimal_dark_transparent);
+    border-radius: 10px;
+    display: block;
+    width: 100%;
+    height: 3px;
+    background: var(--minimal_dark_color);
+    animation: supernav_slide_2wrHk .4s;
+}
+
+.supernav_SuperNavMenu_7AlhC:hover {
+	border-radius:2.5px;
+	margin-top:3px;
+} 
+
+.steamdesktop_TitleBar_39oUC {
+	height: 45px !important;
+	background: var(--minimal_dark_blacker) !important;
+}
+
+.steamdesktop_SuperNavBar_3Z3oh {
+	margin-top: -34px !important;
+	width: 40% !important;
+	margin-left: 303px !important;
+}
+
+.titlebarcontrols_AnnouncementsButton_5wILZ {
+	display: none !important;
+}
+
+.window_resize_grip {
+	background-image: none !important;
+}
+
+.titlebarcontrols_GamepadUIToggle_3LKQ3 {
+	display: none !important;
+}
+
+.steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_URLBarText_2m_or .steamdesktop_URL_MZPxE {
+    flex-grow: 1;
+    padding: 0 0px;
+    color: var(--minimal_dark_color);
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bottombar_BottomBar_3vCzS {
+	background: var(--minimal_dark_transparent) !important;
+	right: 0 !important;
+	margin-right: var(--minimal_dark_alignment) !important;
+	position: fixed;top: 7px !important;
+	border-radius: 5px !important;
+	border: 1px solid var(--minimal_dark_greyblack);
+	align-content: center !important;
+	display: block;
+	max-height: 25px;
+    max-width: 18px;
+    margin-top: 2px;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk {
+    background-color: rgba(103,112,123,.2);
+    border-radius: 5px;
+    margin-top: -4px;
+    margin-right: 2px;
+    padding: 0px 0px;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_HasNew_3L1c8 {
+    background-color: var(--minimal_dark_transparent);
+    color: var(--minimal_dark_color);
+    border-radius: 5px;
+    margin-top: -4px;
+    margin-right: 2px;
+    padding: 0px 0px;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3:hover {
+	border-radius: 5px;
+    margin-top: -4px;
+    padding: 0px 0px;
+	margin-right: 2px;
+    color: var(--minimal_dark_white);
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I .titlebarcontrols_Icon_34bQc, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk .titlebarcontrols_Icon_34bQc {
+    color: var(--minimal_dark_less_white);
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_HasNew_3L1c8:not(.titlebarcontrols_Disabled_1QQWj):hover {
+    color: var(--minimal_dark_color);
+    background: var(--minimal_dark_black);
+    border-radius: 5px;
+    margin-top: -4px;
+    margin-right: 2px;
+    padding: 0px 0px;
+    transition: background-color .15s ease-out;
+    transform: scale(1.1);
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I:not(.titlebarcontrols_Disabled_1QQWj):hover, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk:not(.titlebarcontrols_Disabled_1QQWj):hover {
+    background-color: var(--minimal_dark_black);
+    transition: background-color .15s ease-out;
+}
+
+.titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_WasNew_9YK5I .titlebarcontrols_Icon_34bQc, .titlebarcontrols_NotificationsButton_RtSv3.titlebarcontrols_NoNew_3qhGk .titlebarcontrols_Icon_34bQc {
+    color: var(--minimal_dark_topgrey);
+}
+
+.titlebarcontrols_AnnouncementsButton_5wILZ.titlebarcontrols_Active_1oEwi:hover {
+    background-color: var(--minimal_dark_white);
+    transition: background-color .15s ease-out;
+}
+
+.bottombar_FriendsButton_1TdaA {
+	display:none;
+}
+
+.bottombar_AddGameButton_2foCk {
+	display:none;
+}
+
+.bottombar_DetailedDownloadProgress_2VtAq {
+	margin-top: -2px;
+}
+
+.bottombar_ProgressBarWrapper_2_Fom .bottombar_Status_1sCy- {
+    flex-grow: 1;
+    text-transform: none;
+}
+
+.bottombar_DownloadStatusContent_ip-YZ .bottombar_Status_1sCy- {
+    font-size: 12px;
+    color: transparent;
+    font-weight: 400;
+}
+
+.bottombar_ProgressBarWrapper_2_Fom .bottombar_Percentage_1-TLi {
+    flex-grow: 0;
+    color: var(--minimal_dark_browser_overlay_close);
+	transform: translate(-27px, 1px);
+}
+
+.bottombar_Icon_1KrJ3 {
+	width: 17px !important;
+	height: 17px !important;
+}
+
+.bottombar_ProgressBarWrapper_2_Fom { 
+	margin-top: -3px !important;
+}
+
+.bottombar_DetailedDownloadProgress_2VtAq {
+	max-width: 30px !important;
+	border-radius: var(--minimal_dark_corner5) !important;
+}
+
+.bottombar_DetailedDownloadProgress_2VtAq .bottombar_IconBevel_21vPQ {
+	background-image: none !important;
+}
+
+[class*="bottombar_DownloadStatusContent_"] {
+	display:block;
+	max-width:11px;
+	width:16px;
+	padding:12px 8px;
+	overflow:visible;
+	height:14px;
+}
+
+[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Icon_"],[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Status_"] {
+	background-repeat: no-repeat;
+    background-position: center;
+    width: 14px;
+    height: 14px;
+    margin-bottom: 0px;
+    margin-top: -2px;
+}
+
+.bottombar_DownloadStatusContent_ip-YZ {
+    flex-grow: 1;
+    height: fit-content;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: 30vw;
+    gap: 10px;
+    padding: 6px 6px 6px 6px;
+    color: rgba(255,255,255,.8);
+    cursor: pointer;
+    transition-duration: .1s;
+    -webkit-app-region: none;
+}
+
+[class*="bottombar_ProgressBarWrapper_"] [class*="bottombar_ProgressBar_"] {
+	height: 4px;
+    --color-progress-bar-background: var(--minimal_dark_greyblack4) !important;
+    --color-progress-bar-foreground: var(--minimal_dark_status_green) !important;
+	transform: translate(-18px, 3px);
+}
+
+.bottombar_ProgressBarWrapper_2_Fom .bottombar_ProgressBar_wi0pD {
+    height: 4px;
+    --color-progress-bar-foreground: var(--minimal_dark_blue);
+    --color-progress-bar-background: var(--minimal_dark_greyblack4);
+	transform: translate(-16px, 2px);
+}
+
+.gamelistentry_AppIconDownloading_2kzMb svg.gamelistentry_DownloadProgressSVG_f6-7- circle {
+    stroke-width: 60px;
+    stroke: var(--minimal_dark_status_green);
+    transition-property: stroke-dashoffset;
+    transition-duration: .2s;
+    transition-timing-function: linear;
+}
+
+.bottombar_AddGameButton_2foCk .bottombar_Icon_1KrJ3, .bottombar_Icon_1KrJ3, .bottombar_FriendsButton_1TdaA .bottombar_Text_3OhUx {
+	margin-bottom: 2px !important;
+}
+
+.bottombar_AddGameButton_2foCk .bottombar_Text_3OhUx, .bottombar_FriendsButton_1TdaA .bottombar_Text_3OhUx, .bottombar_DownloadStatusContent_ip-YZ .bottombar_Queue_3wJnT{
+	display: none !important;
+} 
+
+.libraryassetimage_Container_1R9r2 {
+	margin-top: 0px !important;
+}
+
+.steamdesktop_TitleBar_39oUC .steamdesktop_TitleBarControls_1-9si {
+    margin-right: 58px;
+}
+
+.bottombar_DownloadStatus_2EQ7g {
+	margin-top: 2px !important;
+	margin-right: auto !important;
+	position: relative !important;
+	-webkit-app-region: no-drag !important;
+} 
+
+.bottombar_DownloadStatus_2EQ7g {
+	margin-top: -1px !important;
+	margin-right: auto !important;
+	position: relative !important;
+	-webkit-app-region: no-drag !important;
+} 
+
+[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Icon_"] svg {
+	transform:scale(1);
+	color: var(--minimal_dark_blacker);
+	background: #d2d2d2;
+	display:none;
+}
+
+[class*="bottombar_DownloadStatusContent_"] [class*="bottombar_Icon_"] svg:hover {
+	transform:scale(1);
+	color: var(--minimal_dark_blacker);
+	background: var(--minimal_dark_color);
+	display:none;
+}
+
+.bottombar_Icon_1KrJ3 {
+    transform: scale(1);
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_download);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+}
+
+.bottombar_Icon_1KrJ3:hover {
+    transform: scale(1);
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_download);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+}
+
+.bottombar_Icon_1KrJ3:active {
+    transform: scale(1);
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_download);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+}

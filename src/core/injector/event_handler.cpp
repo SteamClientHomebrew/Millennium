@@ -807,9 +807,10 @@ steam_client::steam_client()
         console.succ(std::format("starting: client_thread [{}]", __FUNCSIG__));
 
         ws_Client c;
-        std::string url = json::parse(http::get(uri.debugger.string() + "/json/version"))["webSocketDebuggerUrl"];
-
+        
         try {
+            std::string url = json::parse(http::get(uri.debugger.string() + "/json/version"))["webSocketDebuggerUrl"];
+
             c.set_access_channels  (websocketpp::log::alevel::none);
             c.clear_access_channels(websocketpp::log::alevel::all);
             c.init_asio();
@@ -827,6 +828,9 @@ steam_client::steam_client()
             }
 
             c.connect(con); c.run();
+        }
+        catch (const http_error& error) {
+            MsgBox(std::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str(), "Bootstrap Error", 0);
         }
         catch (websocketpp::exception const& e) {
             console.err(std::format("Error occurred on client websocket thread: {}", e.what()));

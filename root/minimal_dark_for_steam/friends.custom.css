@@ -1,0 +1,2325 @@
+@import url('config.css');
+
+:root {
+	--avatar-radius: 20%
+}
+
+.friendsui-container .title-area-icon:hover .SVGIcon_Button rect, .title-area-icon:hover .SVGIcon_Button line, .title-area-icon:hover .SVGIcon_Button polyline {
+    stroke: var(--minimal_dark_transparent);
+    transition: stroke .15s ease-out;
+}
+
+.friendsui-container .title-area-icon .SVGIcon_X_Line line {
+    stroke: var(--minimal_dark_transparent);
+    stroke-width: 24px;
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.minimizeButton, .title-bar-actions .title-area-icon.maximizeButton, .title-bar-actions .title-area-icon.restoreButton, .title-bar-actions .title-area-icon.closeButton {
+	color: var(--minimal_dark_transparent);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.minimizeButton:hover, .title-bar-actions .title-area-icon.maximizeButton:hover, .title-bar-actions .title-area-icon.restoreButton:hover, .title-bar-actions .title-area-icon.closeButton:hover {
+	background: var(--minimal_dark_transparent);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.closeButton {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_closebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.6);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.closeButton:hover {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_red);
+    -webkit-mask-image: var(--minimal_dark_closebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.62);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.closeButton:active {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_red1);
+    -webkit-mask-image: var(--minimal_dark_closebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.55);
+}
+
+
+.friendsui-container .title-bar-actions .title-area-icon.maximizeButton {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_maxbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.60);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.maximizeButton:hover {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_maxbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.62);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.maximizeButton:active {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_maxbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.60);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.minimizeButton {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_minbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.44);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.minimizeButton:hover {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_minbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.46);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.minimizeButton:active {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_minbutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.44);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.restoreButton {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_topgrey);
+    -webkit-mask-image: var(--minimal_dark_restorebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.48);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.restoreButton:hover {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_color);
+    -webkit-mask-image: var(--minimal_dark_restorebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.52);
+}
+
+.friendsui-container .title-bar-actions .title-area-icon.restoreButton:active {
+    color: var(--minimal_dark_transparent);
+    background-color: var(--minimal_dark_white);
+    -webkit-mask-image: var(--minimal_dark_restorebutton);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    transform: scale(0.48);
+}
+
+.friendsui-container .PopupFullWindow .DialogContent {
+	background:rgb(var(--header))
+}
+
+.friendsui-container .PopupFullWindow .DialogContent .DialogTextInputBase {
+	background:rgb(var(--friendlist))
+}
+
+.friendsui-container .PopupFullWindow .DialogContent .DialogTextInputBase:focus,.friendsui-container .PopupFullWindow .DialogContent .DialogTextInputBase:focus-within{box-shadow:unset}.friendsui-container .PopupFullWindow .DialogContent .DialogFooter .DialogButton {
+	background:rgb(var(--button-off)) !important;
+	border-radius:4px !important;
+	color:rgb(var(--text)) !important;
+}
+
+.friendsui-container .PopupFullWindow .DialogContent .DialogFooter .DialogButton.Disabled {
+	background:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .PopupFullWindow .DialogContent .DialogFooter .DialogButton:hover,.friendsui-container .PopupFullWindow .DialogContent .DialogFooter .DialogButton:focus {
+	background:rgb(var(--button-on)) !important;
+}
+
+.friendsui-container .friendListFooter {
+	display:none !important;
+}
+
+.friendsui-container .window_resize_grip {
+	margin-right:-50px !important;
+}
+
+.friendsui-container .AvatarAndUser {
+	padding-top:16px !important;
+}
+
+.friendsui-container .AvatarAndUser .avatarStatus {
+	display:none !important;
+}
+
+.friendsui-container .currentUserContainer .labelHolder {
+	margin:auto 0 auto 8px !important;
+}
+
+.friendsui-container .currentUserContainer .avatar {
+	z-index:0 !important;
+}
+
+.friendsui-container .friendListHeaderContainer {
+	background-color:rgb(var(--header)) !important;
+	border-bottom:0 !important;
+}
+
+.friendsui-container .avatarHolder .avatar,.friendsui-container .ChatRoomGroupAvatar,.friendsui-container .currentUserAvatar,.friendsui-container .ChatRoomSpeaker .speaker .speakerAvatar,.friendsui-container .ChatMsgSlashEmote .speaker .speakerAvatar,.friendsui-container .Dialog_EditNickName .friend .avatarMedium,.friendsui-container .Dialog_ChangePersonaName .friend .avatarMedium,.friendsui-container .miniprofile_miniProfileContent_25Sge .miniprofile_playerAvatar_1dzWG,.friendsui-container .voiceChatGroup,.friendsui-container .groupName .gameGroupContainer .groupIcon {
+	border-radius:var(--avatar-radius) !important;
+}
+
+.friendsui-container .friendlistListContainer .ContextMenuButton {
+	z-index:8 !important;
+}
+
+.friendsui-container .friendlistListContainer .ContextMenuButton {
+	height:100%;
+	padding-right:6px;
+	position:absolute;
+	right:0;
+	top:0;
+	width:auto;
+}
+
+.friendsui-container .ChatRoomListGroupItem .ContextMenuButton {
+	z-index:8 !important;
+}
+
+.friendsui-container .ChatRoomListGroupItem .ContextMenuButton {
+	height:42px;
+	padding-right:6px;
+	position:absolute;
+	right:0;
+	top:0;
+	width:auto;
+}
+
+.friendsui-container .friendlistListContainer .friend:hover .ContextMenuButton {
+	background:rgb(var(--header));
+	border-radius:4px;
+	padding-left:6px;
+}
+
+.friendsui-container .ContextMenuButton .SVGIcon_DownArrowContextMenu {
+	fill:rgb(var(--icon)) !important;
+	height:100% !important;
+	padding-left:0 !important;
+	padding-top:0 !important;
+}
+
+.friendsui-container .ContextMenuButton {
+	margin-top:0;
+}
+
+.friendsui-container .ContextMenuButton:hover .SVGIcon_DownArrowContextMenu {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container [class*=contextmenu_contextMenu_] {
+	min-width:9em !important;
+}
+
+.friendsui-container [class*=contextmenu_contextMenu_] {
+	background:rgb(var(--header));
+}
+
+.friendsui-container .contextMenuItem {
+	border-top:0 !important;
+	color:rgb(var(--listtext)) !important;
+}
+
+.friendsui-container .contextMenuGameName {
+	color:rgb(var(--text)) !important;
+}
+
+.friendsui-container .recentName {
+	color:rgb(var(--listtext));
+}
+
+.friendsui-container .contextMenuItem:hover,.friendsui-container .contextMenuItem[class*=contextmenu_active] {
+	background:rgb(var(--friendlist)) !important;
+	border-radius:4px !important;
+}
+
+.friendsui-container .contextMenuItem:hover .SVGIcon_Button {
+	fill:rgb(var(--iconhover)) !important;
+	stroke:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .contextMenuGameTitle,.friendsui-container .contextMenuSectionContent,.friendsui-container .contextMenuGameOptions {
+	background:rgb(var(--header)) !important;
+}
+
+.friendsui-container .contextMenu .contextMenuItem {
+	border-top:0 !important;
+}
+
+.friendsui-container .contextMenuContents.ChatTabs .contextMenuItem {
+	min-height:42px !important;
+}
+
+.friendsui-container .contextMenuContents.ChatTabs.CompactFriendsList .friend .labelHolder {
+	margin-left:-2px !important;
+	margin-top:20px !important;
+}
+
+.friendsui-container .contextMenuContents .chatTab .ChatTabContent {
+	min-height:50px !important;
+}
+
+.friendsui-container .ChatRoomListGroupItem .openGroupButton {
+	margin-right:24px;
+}
+
+.friendsui-container .currentUserContainer {
+	border-bottom:0 !important;
+}
+
+.friendsui-container .personaContextMenuItem {
+	display:block;
+}
+
+.friendsui-container .DNDCheckBox {
+	flex-direction:row-reverse !important;
+}
+
+.friendsui-container .DNDCheckBox .DialogToggle_Label {
+	width:100% !important;
+}
+
+.friendsui-container .persona_menu_dnd_descriptor {
+	padding-left:0 !important;
+}
+
+.friendsui-container .DialogCheckbox_Container.DNDCheckBox {
+	margin-top:0 !important;
+}
+
+.friendsui-container .DNDCheckBox .DialogCheckbox {
+	position:absolute;
+	top:calc(50% - 8px);
+}
+
+.friendsui-container .contextMenuItem.menuChecked {
+	color:rgb(var(--button-on));
+}
+
+.friendsui-container .friendGroup.taggedGroup,.friendsui-container .friendGroup.gameGroup {
+	border-top:0 !important;
+	margin-top:0 !important;
+}
+
+.friendsui-container .FriendsListContent .friendlistListContainer .friendGroup.onlineFriends,.friendsui-container .FriendsListContent .friendlistListContainer .friendGroup.offlineFriends {
+	border-top:0 !important;
+	margin-top:0 !important;
+}
+
+.friendsui-container .CompactFriendsList .friend,.friendsui-container .CompactFriendsList .friendGroup .friend {
+	height:auto !important;
+}
+
+.friendsui-container .friendGroup .friend {
+	border-radius:4px !important;
+	margin-left:8px !important;
+	padding-left:4px !important;
+}
+
+.friendsui-container .friendGroup .groupName {
+	margin-left:12px !important;
+	margin-top:4px !important;
+}
+
+.friendsui-container .friendGroup.gameGroup:not(.OtherGamesGroup) .SteamPlayerGroupFooter,.friendsui-container .friendGroup.gameGroup:not(.OtherGamesGroup) .friend {
+	padding:6px 0 6px 12px !important;
+}
+
+.friendsui-container .friendGroup.gameGroup:not(.OtherGamesGroup) .SteamPlayerGroupFooter,.friendsui-container .friendGroup.gameGroup:not(.OtherGamesGroup) .friend {
+	margin-left:8px;
+}
+
+.friendsui-container .CompactFriendsList .friendGroup.gameGroup:not(.OtherGamesGroup) .SteamPlayerGroupFooter {
+	margin-left:0;
+}
+
+.friendsui-container .friendGroup.gameGroup:not(.OtherGamesGroup) .SteamPlayerGroupFooter {
+	margin-top:-6px !important;
+}
+
+.friendsui-container .friendGroup .groupName .groupCount {
+	display:none !important;
+}
+
+.friendsui-container .ExpandPlusMinus {
+	display:none !important;
+}
+
+.friendsui-container .gameGroupContainer {
+	margin-right:0 !important;
+	width:auto !important;
+}
+
+.friendsui-container .groupName {
+	color:rgb(var(--text)) !important;
+	-webkit-mask:linear-gradient(to right, #000 calc(100% - 6px), rgba(0, 0, 0, 0.15) 100%) !important;
+	mask:linear-gradient(to right, #000 calc(100% - 6px), rgba(0, 0, 0, 0.15) 100%) !important;
+}
+
+.friendsui-container .socialListTab .tabLabel {
+	color:rgb(var(--text)) !important;
+}
+
+.friendsui-container .socialListTab {
+	background:rgb(var(--header)) !important;
+}
+
+.friendsui-container .TabSearchButton .ColorSelector {
+	fill:rgb(var(--icon)) !important;
+	stroke:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .friendsTabButtonsContainer .TabSearchButton {
+	border-radius:50px;
+}
+
+.friendsui-container .friendSearchClear .SVGIcon_X_Line line {
+	stroke:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendBodyFull,.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendHead,.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendArm,.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendBody,.friendsui-container .addFriendButton .SVGIcon_AddFriend .friendHead,.friendsui-container .addFriendButton .SVGIcon_AddFriend .friendBody,.friendsui-container .addFriendButton .SVGIcon_AddFriend .plusCircle {
+	fill:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendBodyFull,.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendHead,.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendArm,.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendBody,.friendsui-container .addFriendButton:hover .SVGIcon_AddFriend .friendHead,.friendsui-container .addFriendButton:hover .SVGIcon_AddFriend .friendBody,.friendsui-container .addFriendButton:hover .SVGIcon_AddFriend .plusCircle {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .friendSearchInput {
+	background-color:rgb(var(--friendlist)) !important;
+	background-image:none !important;
+	border-radius:50px !important;
+	padding-left:12px !important;
+}
+
+.friendsui-container .friendSearchClear .SVGIcon_X_Line {
+	margin:auto !important;
+}
+
+.friendsui-container .TabSearchButton:hover {
+	background:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .friendsListSectionTitle.chatSectionTitle .groupChatSectionTitle {
+	padding-left:12px !important;
+}
+
+.friendsui-container .friendsListSectionTitle.chatSectionTitle .groupChatSectionTitle {
+	color:rgb(var(--text));
+}
+
+.friendsui-container .friendsListSectionTitle {
+	background-color:rgb(var(--footer)) !important;
+	border-top-left-radius:0 !important;
+	border-top-right-radius:0 !important;
+}
+
+.friendsui-container .ToggleGroupChatList {
+	display:inline-block !important;
+	height:90% !important;
+	position:absolute !important;
+	width:100% !important;
+	z-index:11 !important;
+}
+
+.friendsui-container .ToggleGroupChatList {
+	bottom:0;
+}
+
+.friendsui-container .ToggleGroupChatList svg {
+	display:none !important;
+}
+
+.friendsui-container .createChatRoomButton {
+	z-index:12;
+}
+
+.friendsui-container .chatRoomListContainer {
+	background:rgb(var(--footer)) !important;
+	width:100% !important;
+}
+
+.friendsui-container .chatRoomListContainer {
+	z-index:20;
+}
+
+.friendsui-container .ChatRoomListGroupItem .groupNameStatusContainer .chatRoomName {
+	color:rgb(var(--text)) !important;
+}
+
+.friendsui-container .friendsListSectionTitle .SVGIcon_NewChatGroup line {
+	stroke:rgb(var(--footer)) !important;
+}
+
+.friendsui-container .friendsListSectionTitle .SVGIcon_NewChatGroup .Bubble {
+	fill:rgb(var(--icon));
+}
+
+.friendsui-container .friendsListSectionTitle .SVGIcon_NewChatGroup .Bubble:hover {
+	fill:rgb(var(--iconhover));
+}
+
+.friendsui-container .chatRoomTextChannel .chatUnreadCircle {
+	left:8px !important;
+	top:auto !important;
+}
+
+.friendsui-container .ChatRoomListGroupItemChatRooms {
+	margin-left:16px;
+}
+
+.friendsui-container .chatRoomVoiceChannel {
+	border:0 !important;
+	box-shadow:none !important;
+}
+
+.friendsui-container .chatRoomVoiceChannel {
+	background:rgba(0,0,0,0);
+}
+
+.friendsui-container .chatRoomVoiceChannel,.friendsui-container .ChatRoomListGroupItem .detailsView,.friendsui-container .chatRoomVoiceChannel.ActiveVoiceChannel,.friendsui-container .chatRoomVoiceChannel.ActiveVoiceChannel .activeVoiceButtons {
+	background:none !important;
+}
+
+.friendsui-container .ChatRoomListGroupItem:hover {
+	background:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .ChatRoomListGroupItem:hover {
+	border-radius:4px;
+}
+
+.friendsui-container .ChatRoomListGroupItem {
+	margin-left:8px;
+	padding:var(--padding-sm) 0 var(--padding-sm) 0;
+}
+
+.friendsui-container .ChatRoomListGroupItem_header {
+	padding:0;
+}
+
+.friendsui-container .ChatRoomListGroupItem .membersInVoice .voiceChatGroup {
+	background:none;
+	border:0;
+	box-shadow:none;
+}
+
+.friendsui-container .HoverPopup [class*=miniprofile_miniProfile] {
+	border:0 !important;
+	border-radius:0 !important;
+}
+
+.friendsui-container .HoverPopup [class*=miniprofile_miniProfileContent] [class*=miniprofile_miniProfileHeader],.friendsui-container .HoverPopup [class*=miniprofile_miniProfileContent] [class*=miniprofile_miniProfileGameContainer] [class*=miniprofile_gameLogo_2B0di] {
+	border-radius:4px;
+}
+
+.friendsui-container .HoverPopup [class*=miniprofile_hasNickname] [class*=miniprofile_personaNameLabel] {
+	color:rgb(var(--listtext)) !important;
+}
+
+.friendsui-container .HoverPopup [class*=miniprofile_richPresence],.friendsui-container .HoverPopup [class*=miniprofile_gameState],.friendsui-container .HoverPopup [class*=miniprofile_miniProfileGameContainer] [class*=miniprofile_ingame] {
+	color:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container .HoverPopup [class*=miniprofile_miniProfileContent] [class*=miniprofile_playerAvatar] {
+	height:90px !important;
+}
+
+.friendsui-container .HoverPopup .miniProfileHoverInner .watchingbroadcastThumbnail,.friendsui-container .HoverPopup .miniProfileHoverInner .watchingbroadcastThumbnail .crossfade {
+	border-radius:4px;
+}
+
+.friendsui-container .SVGIcon_Button {
+	fill:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .SVGIcon_Button:hover {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .friendSettingsButton .SVGIcon_Settings {
+	fill:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .friendSettingsButton .SVGIcon_Settings:hover {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .ModalPosition_TopBar {
+	display:none;
+}
+
+.friendsui-container .friendlistListContainer {
+	background:rgb(var(--friendlist)) !important;
+	min-height:0 !important;
+}
+
+.friendsui-container .friendlistListContainer {
+	padding-top:4px;
+}
+
+.friendsui-container [class*=personanameandstatus_compactView_] [class*=personanameandstatus_playerName_],.friendsui-container [class*=personanameandstatus_compactView_] [class*=personanameandstatus_playerNickname_] {
+	margin-bottom:0;
+}
+
+.friendsui-container .FriendInGameIcon {
+	display:none !important;
+}
+
+.friendsui-container .CompactFriendsList .friendlistListContainer .friend.ingame .labelHolder {
+	margin-top:-4px !important;
+}
+
+.friendsui-container .SteamPlayerGroupLines {
+	border-color:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .CompactFriendsList .SteamPlayerGroupFooterLabel {
+	align-self:end;
+}
+
+.friendsui-container .MemberListColumn .friend .chatMemberFriendIcon svg {
+	bottom:0;
+	left:-5px;
+	top:9px;
+}
+
+.friendsui-container .MemberListColumn .friend .rankIcon.isFriend .SVGIcon_Crown {
+	margin-top:0;
+}
+
+.friendsui-container .ChatSpeaker.ChatRoomSpeaker .speaker .rankIcon>*,.friendsui-container .MemberListColumn .friend .rankIcon>* {
+	left:-3px;
+	margin-top:0;
+	top:0;
+}
+
+.friendsui-container .CompactFriendsList .friend .labelHolder {
+	margin-top:0;
+}
+
+.friendsui-container .avatarStatus {
+	transition:none !important;
+}
+
+.friendsui-container .steamavatar_avatar_f2laR {
+	border:0;
+	height:100%;
+	width:auto;
+}
+
+.friendsui-container .SVGIcon_VoiceRoom .Microphone {
+	fill:rgb(var(--footer));
+}
+
+.friendsui-container .groupHeaderContainer .SortByRecent .SVGIcon_SortBy {
+	stroke:rgb(var(--icon));
+}
+
+.friendsui-container .groupHeaderContainer .SortByRecent:hover .SVGIcon_SortBy {
+	stroke:rgb(var(--iconhover));
+}
+
+.friendsui-container .SteamPlayerGroupFooterLabel {
+	color:rgb(var(--ingame));
+}
+
+.friendsui-container .DialogInput {
+	border:0;
+}
+
+.friendsui-container .DialogTextInputBase,.friendsui-container ._DialogInputContainer {
+	color:rgb(var(--text));
+}
+
+.friendsui-container .friend .labelHolder {
+	height:auto;
+}
+
+.friendsui-container .friendlistListContainer .friend.ingame .labelHolder {
+	margin-top:0;
+}
+
+.friendsui-container .unreadMessageViolator {
+	background:rgb(var(--header)) !important;
+	border:0 !important;
+	border-radius:40px !important;color:rgb(var(--unreadmessage)) !important;height:20px !important;line-height:20px !important;margin-bottom:4px !important;margin-top:5px !important;
+	width:150px !important;
+}
+
+.friendsui-container .unreadFriend .FriendMessageCount {
+	background:rgba(0,0,0,0) !important;
+	border-radius:40px !important;
+	color:rgb(var(--unreadmessage)) !important;
+}
+
+.friendsui-container .unreadFriend .FriendMessageCount {
+	box-shadow:0 0 14px 1px rgb(var(--unreadmessage) 0.5);
+	padding:0;
+	top:0;
+}
+
+.friendsui-container .TradeOffer_NoteFromFriend_QuoteArrow {
+	display:none !important;
+}
+
+.friendsui-container .TradeOffer_NoteFromFriend {
+	background-color:rgb(var(--header)) !important;
+	border:0 !important;
+}
+
+.friendsui-container .confirmInviteRequestContainer .confirmInviteButton {
+	border-radius:4px !important;
+}
+
+.friendsui-container .confirmInviteRequestContainer .cancelAddFriends {
+	border-radius:4px !important;
+}
+
+.friendsui-container .confirmInviteRequestContainer .cancelAddFriends .SVGIcon_Arrow polyline {
+	border-radius:4px !important;
+}
+
+.friendsui-container .confirmInviteRequestContainer .cancelAddFriends:hover .SVGIcon_Arrow polyline {
+	border-radius:4px !important;
+}
+
+.friendsui-container .confirmInviteRequestContainer {
+	border-radius:4px !important;
+}
+
+.friendsui-container .clanInviteContainer:hover {
+	background-color:rgb(var(--header)) !important;
+}
+
+.friendsui-container .ChatUnreadMessageIndicator {
+	align-items:center !important;
+	background:none !important;
+	display:flex !important;
+	height:100% !important;
+	left:0 !important;
+	top:0 !important;
+}
+
+.friendsui-container .ChatUnreadMessageIndicator {
+	padding-left:3px;
+}
+
+.friendsui-container .ChatRoomList .ChatUnreadMessageIndicator {
+	position:relative;
+}
+
+.friendsui-container .chatUnreadCircle,.friendsui-container .chattabs_UnreadCircle_2goOD {
+	background:rgb(var(--unreadmessage)) !important;
+	border:2px solid rgb(var(--unreadmessage)) !important;
+	border-radius:100% !important;
+	color:rgba(0,0,0,0) !important;
+	display:block !important;
+	height:2px !important;
+	width:2px !important;
+}
+
+.friendsui-container .chatUnreadCircle,.friendsui-container .chattabs_UnreadCircle_2goOD {
+	bottom:unset;
+	box-shadow:0 0 10px 3px rgb(var(--unreadmessage));
+	margin:0;
+	position:relative;
+	right:unset;
+}
+
+.friendsui-container .UnreadGlow {
+	display:none !important;
+}
+
+.friendsui-container .chatTab .chatTabUnreadBadge,.friendsui-container .FriendMessageCount {
+	background:rgb(var(--unreadmessage) 0.2);
+	border-radius:50%;
+	color:rgb(var(--unreadmessage));
+	height:22px;
+	padding:0;
+	text-align:center;
+	width:22px;
+}
+
+.friendsui-container .ChatTabsContextMenu.compactView .ChatTabContextMenuItem .TabRightContainer .chatTabUnreadBadge::before {
+	background-color:rgb(var(--unreadmessage));
+}
+
+.friendsui-container .ChatTabsContextMenu.compactView .ChatTabContextMenuItem .TabRightContainer .chatTabUnreadBadge {
+	bottom:50%;
+	height:16px;
+	margin-right:4px;
+	margin-top:-8px;
+	top:50%;
+}
+
+.friendsui-container .ScrollToBottomButton.UnreadMessages>span {
+	color:rgb(var(--unreadmessage));
+}
+
+.friendsui-container .chattabs_UnreadGlow_30PFd {
+	background:none;
+	bottom:unset;
+	height:auto;
+	left:0;
+	position:absolute;
+	right:unset;
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] {
+	background:rgb(var(--friendlist));
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] [class*=summaryText] {
+	color:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] [class*=summaryText] {
+	border-bottom:2px rgb(var(--away)) solid;
+	font-size:12px;
+	font-weight:bold;
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] [class*=detailText] {
+	color:rgb(var(--text)) !important;
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] [class*=detailText] {
+	text-align:center;
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] [class*=retryButton] {
+	background:rgb(var(--button-off)) !important;
+	border-radius:4px !important;
+	color:rgb(var(--text)) !important;
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] [class*=retryButton] {
+	box-shadow:none;
+}
+
+.friendsui-container [class*=friendslist_OfflineContainer_] [class*=retryButton]:hover {
+	box-shadow:0 0 0 2px rgb(var(--button-on)) inset !important;
+}
+
+.friendsui-container .quickAccessFriends .quickAccessFriend .playerNameQuickAccessContainer {
+	display:none !important;
+}
+
+.friendsui-container .quickAccessFriends .quickAccessFriend.awayOrSnooze .avatarHolder img {
+	opacity:1 !important;
+}
+
+.friendsui-container .quickAccessFriends .quickAccessFriend .avatarHolder:hover {
+	transform:scale(1.05, 1.05);
+}
+
+.friendsui-container .quickAccessFriends .favoriteElement {
+	height:auto !important;
+}
+
+.friendsui-container .quickAccessFriends .ChatUnreadMessageIndicator .chatUnreadCircle {
+	bottom:-60% !important;
+	right:0 !important;
+}
+
+.friendsui-container .quickAccessFriends .ChatUnreadMessageIndicator .chatUnreadCircle {
+	box-shadow:0 0 14px 1px rgb(var(--unreadmessage)),0 0 32px 1px rgb(var(--unreadmessage));
+	margin:0 auto;
+	position:relative;
+	z-index:3;
+}
+
+.friendsui-container [class*=ingame] [class*=personanameandstatus] {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] [class*=personanameandstatus] {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] [class*=personanameandstatus] {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] [class*=personanameandstatus] {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] [class*=personanameandstatus] {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] [class*=personanameandstatus] {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] [class*=miniprofile_awayStatusLabel] {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] [class*=miniprofile_awayStatusLabel] {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] [class*=miniprofile_awayStatusLabel] {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] [class*=miniprofile_awayStatusLabel] {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] [class*=miniprofile_awayStatusLabel] {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] [class*=miniprofile_awayStatusLabel] {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] [class*=miniprofile_personaNameLabel] {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] [class*=miniprofile_personaNameLabel] {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] [class*=miniprofile_personaNameLabel] {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] [class*=miniprofile_personaNameLabel] {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] [class*=miniprofile_personaNameLabel] {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] [class*=miniprofile_personaNameLabel] {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] [class*=miniprofile_richPresence] {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] [class*=miniprofile_richPresence] {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] [class*=miniprofile_richPresence] {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] [class*=miniprofile_richPresence] {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] [class*=miniprofile_richPresence] {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] [class*=miniprofile_richPresence] {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] [class*=friendsnooze_SnoozeZ] {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] [class*=friendsnooze_SnoozeZ] {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] [class*=friendsnooze_SnoozeZ] {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] [class*=friendsnooze_SnoozeZ] {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] [class*=friendsnooze_SnoozeZ] {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] [class*=friendsnooze_SnoozeZ] {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] [class*=personanameandstatus] path {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] [class*=personanameandstatus] path {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] [class*=personanameandstatus] path {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] [class*=personanameandstatus] path {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] [class*=personanameandstatus] path {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] [class*=personanameandstatus] path {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] .speakerName {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] .speakerName {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] .speakerName {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] .speakerName {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] .speakerName {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] .speakerName {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] .SVGIcon_MobilePhone path {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] .SVGIcon_MobilePhone path {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] .SVGIcon_MobilePhone path {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] .SVGIcon_MobilePhone path {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] .SVGIcon_MobilePhone path {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] .SVGIcon_MobilePhone path {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=personanameandstatus_playerNickname] {
+	color:rgb(var(--nickname)) !important;
+}
+
+.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendBodyFull,.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendHead,.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendArm,.friendsui-container .friendRequestButton .SVGIcon_FriendRequest .friendBody {
+	fill:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendBodyFull,.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendHead,.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendArm,.friendsui-container .friendRequestButton:hover .SVGIcon_FriendRequest .friendBody {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .friendStatusHover:not(.quickAccessFriend):hover,.friendsui-container .friendStatusHover.Friend_ContextMenuActive {
+	background-color:rgb(var(--header)) !important;
+}
+
+.friendsui-container .friend.awayOrSnooze,.friendsui-container .friend.awayOrSnooze .labelHolder {
+	filter:none !important;
+	opacity:1 !important;
+}
+
+.friendsui-container [class*=chattabs_ChatTab_] {
+	border-radius:4px;
+	padding-right:4px;
+}
+
+.friendsui-container .chatTabSetContainer [class*=chattabs_ChatTab_][class*=chattabs_Active] {
+	background:rgb(var(--friendlist));
+}
+
+.friendsui-container [class*=chattabs_ChatTab_]:hover:not([class*=chattabs_Active]) {
+	background:rgb(var(--header)) !important;
+}
+
+.friendsui-container [class*=chattabs_ChatTab_]:hover .friend.offline .avatarHolder .avatar,.friendsui-container [class*=chattabs_ChatTab_][class*=chattabs_Active] .friend.offline .avatarHolder .avatar {
+	filter:none;
+}
+
+.friendsui-container [class*=chattabs_CloseButton] {
+	margin-left:2px;
+	margin-right:2px;
+}
+
+.friendsui-container [class*=chattabs_CloseButton]:hover .SVGIcon_Button {
+	background:var(--window-control-exit-bg-color-hover);
+	border-radius:50%;
+}
+
+.friendsui-container [class*=chattabs_CloseButton] .SVGIcon_Button {
+	padding:1px;
+}
+
+.friendsui-container [class*=chattabs_ChatTabContent_Friend] {
+	margin-right:4px;
+}
+
+.friendsui-container [class*=chattabs_Active] [class*=chattabs_ChatTabContent_ChatRoomName] {
+	color:rgb(var(--text));
+}
+
+.friendsui-container [class*=chattabs_ChatTabContent_ChatRoomName] {
+	color:rgb(var(--listtext));
+}
+
+.friendsui-container .ChatRoomMultiFriendAvatar {
+	margin:0;
+}
+
+.friendsui-container .ChatTabsContextMenu [class*=chattabs_ChatTab_][class*=chattabs_Active] {
+	background:rgb(var(--header));
+}
+
+.friendsui-container .ChatTabsContextMenu [class*=chattabs_ChatTab_][class*=chattabs_Active]:hover {
+	background:rgb(var(--friendlist));
+}
+
+.friendsui-container .ChatTabsContextMenu [class*=friendsnooze_SnoozeContainer] {
+	display:none;
+}
+
+.friendsui-container .ChatTabsContextMenu .ChatUnreadMessageIndicator {
+	margin-left:90% !important;
+}
+
+.friendsui-container .ChatTabsContextMenu [class*=chattabs_ChatTab_] {
+	padding-left:4px;
+}
+
+.friendsui-container .ChatTabsContextMenu.CompactFriendsList .friend,.friendsui-container .ChatTabsContextMenu.CompactFriendsList .friendGroup .friend,.friendsui-container .ChatTabsContextMenu.CompactFriendsList .friendGroup .SteamPlayerGroupFooter,.friendsui-container .ChatTabsContextMenu.CompactFriendsList .friendGroup.gameGroup:not(.OtherGamesGroup) .friend {
+	padding:0;
+}
+
+.friendsui-container .ChatTabsContextMenu [class*=chattabs_Active] [class*=chattabs_ChatTabContent_ChatRoomName] {
+	color:rgb(var(--listtext));
+}
+
+.friendsui-container .ChatRoomSpeaker .speaker .speakerName {
+	margin:auto 0 auto 8px;
+}
+
+.friendsui-container .ChatRoomSpeaker .speaker .speakerStatus {
+	align-self:auto;
+	margin:0;
+}
+
+.friendsui-container .speakerHoverArea {
+	height:fit-content;
+}
+
+.friendsui-container .ChatTabContent.ChatRoom .ChatRoomGroupAvatar,.friendsui-container .ChatTabs.compactView .ChatTabContent.ChatRoom .ChatRoomGroupAvatar {
+	margin-left:0 !important;
+	margin-top:0 !important;
+}
+
+.friendsui-container .chatTabGroupName,.friendsui-container .ChatTabs.compactView .chatTabGroupName {
+	margin:auto 0 !important;
+}
+
+.friendsui-container [class*=chattabs_ChatTab] [class*=chattabs_ChatTabContent_Friend] {
+	align-items:center !important;
+	padding:var(--padding-sm) !important;
+}
+
+.friendsui-container .ChatTabContextMenuItem [class*=personanameandstatus_richPresenceLabel]:not([class*=personanameandstatus_gameName]) {
+	display:none;
+}
+
+.friendsui-container .msg.timeDivision {
+	display:none !important;
+}
+
+.friendsui-container .ChatHistoryContainer {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .MemberListColumn,.friendsui-container .chatRoomGroupNavColumn {
+	box-shadow:none;
+	z-index:0;
+}
+
+.friendsui-container .MemberListColumn {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .chatRoomGroupNavColumn {
+	background-color:rgb(var(--header)) !important;
+}
+
+.friendsui-container .chatTabSelector {
+	background:none !important;
+	border:0 !important;
+	border-radius:50% !important;
+	height:32px !important;
+	width:32px !important;
+}
+
+.friendsui-container .chatTabSelector {
+	align-items:center;
+	display:flex;
+	margin-left:12px;
+}
+
+.friendsui-container .chatTabSelector.UnreadMessages .SVGIcon_DownArrowContextMenu {
+	fill:rgb(var(--unreadmessage)) !important;
+}
+
+.friendsui-container .compactView .chatTabSelector {
+	height:32px !important;
+	width:32px !important;
+}
+
+.friendsui-container .chatTabSelector:hover {
+	background:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .chatTabSelector .SVGIcon_DownArrowContextMenu {
+	margin:0 auto !important;
+}
+
+.friendsui-container .chatTabSelector .SVGIcon_DownArrowContextMenu {
+	padding-left:4px;
+	padding-top:4px;
+}
+
+.friendsui-container .CompactFriendsList .friendGroup.gameGroup:not(.OtherGamesGroup) .SteamPlayerGroupFooter {
+	height:0 !important;
+}
+
+.friendsui-container .SingleWindowFocusBar {
+	background:none !important;
+}
+
+.friendsui-container .ScrollToBottomButton>span {
+	background:rgb(var(--footer)) !important;
+	border-radius:8px !important;
+}
+
+.friendsui-container .ScrollToBottomButton {
+	color:rgb(var(--listtext));
+	padding:8px;
+}
+
+.friendsui-container .ScrollToBottomButton:hover {
+	color:rgb(var(--text));
+}
+
+.friendsui-container .inviteAnotherFriendButton {
+	background-color:rgba(0,0,0,0) !important;
+}
+
+.friendsui-container .inviteAnotherFriendButton .SVGIcon_Button line,.friendsui-container .chatRoomButton .SVGIcon_Button line {
+	stroke:rgb(var(--icon)) !important;
+}
+
+.friendsui-container .titleBarContainer.ChatTabs {
+	background:rgb(var(--header)) !important;
+}
+
+.friendsui-container .titleBarContainer.ChatTabs {
+	padding:4px;
+}
+
+.friendsui-container .speakerTimeStamp {
+	color:#087f23 !important;
+	line-height:25px !important;
+}
+
+.friendsui-container .MultiUserChat .isCurrentUser .msgText {
+	color:rgb(var(--listtext)) !important;
+}
+
+.friendsui-container .chatWindow .chatHeader {
+	background:rgb(var(--header)) !important;
+	min-height:0 !important;
+}
+
+.friendsui-container .chatWindow .chatHeader {
+	z-index:1;
+}
+
+.friendsui-container .chatWindow {
+	background:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .chatWindow .chatEntry {
+	background-color:rgb(var(--header)) !important;
+	height:auto !important;
+}
+
+.friendsui-container .chatEntry {
+	padding-bottom:0 !important;
+}
+
+.friendsui-container .chatentry_chatEntryControls_2O_X7 {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .emoticon_NewEmoticonIndicator_3NVON {
+	background:#c62828 !important;
+	height:1px !important;
+	top:41px !important;
+	right:0 !important;
+	bottom:0 !important;
+	left:0 !important;
+}
+
+.friendsui-container .ChatTabsBackButton {
+	background:rgb(var(--friendlist)) !important;
+	border:0 !important;
+	border-radius:4px !important;
+	margin-left:2px !important;
+}
+
+.friendsui-container .chatRoomGroupHeader {
+	border-bottom:0 solid rgba(23,24,29,.75) !important;
+}
+
+.friendsui-container .chatRoomMembers {
+	border-left:0 solid #22252b !important;
+	border-right:0 solid rgba(34,37,43,0) !important;
+	height:auto !important;
+}
+
+.friendsui-container .chatRoomMembers {
+	user-select:none;
+}
+
+.friendsui-container .inputContainer {
+	border-radius:4px !important;
+	overflow:visible !important;
+}
+
+.friendsui-container .displayRow {
+	height:100% !important;
+}
+
+.friendsui-container .ChatRoomListGroupItemChatRooms .chatRoomVoiceChannel.ActiveVoiceChannel {
+	border-radius:4px !important;
+}
+
+.friendsui-container .chatRoomVoiceChannel.ActiveVoiceChannel .VoiceControlPanelButton.chatEndVoiceChat {
+	border-left:0 !important;
+	border-radius:4px !important;
+}
+
+.friendsui-container .chatRoomVoiceChannel .chatRoomTextChannel {
+	border-left:0 !important;
+}
+
+.friendsui-container .chatRoomVoiceChannel .chatRoomTextChannel {
+	border-radius:4px;
+}
+
+.friendsui-container .ChatRoomListGroupItem .chatRoomVoiceChannel.ActiveVoiceChannel .chatRoomTextChannel {
+	border-radius:4px !important;
+	bottom:1px !important;
+}
+
+.friendsui-container .chatRoomTextChannel,.friendsui-container .chatRoomTextChannelName {
+	transition:none;
+}
+
+.friendsui-container .singleWindowDivider {
+	background-color:rgb(var(--header)) !important;
+	border:0 !important;
+	border-bottom:0 !important;
+	border-top:0 !important;
+	min-width:1px !important;
+	width:1px !important;
+}
+
+.friendsui-container .chatDialogs {
+	background:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container .AssignCategoriesDialog_Friend {
+	background:#2e2e2f !important;
+	border-radius:4px !important;
+}
+
+.friendsui-container .active .friend.offline .avatarHolder .avatar {
+	filter:none !important;
+}
+
+.friendsui-container .ActiveTextChannel {
+	background-color:rgb(var(--header)) !important;
+	border-radius:2px !important;
+	margin-left:4px !important;
+}
+
+.friendsui-container .chatRoomGroupNavColumn line,.friendsui-container .chatRoomGroupNavColumn path,.friendsui-container .chatRoomGroupNavColumn polyline,.friendsui-container .chatRoomGroupNavColumn circle,.friendsui-container .SVGIcon_Pin .head,.friendsui-container .SVGIcon_Pin .ground,.friendsui-container .chatRoomVoiceChannel .SVGIcon_TextRoom .TextLines {
+	stroke:rgb(var(--icon));
+}
+
+.friendsui-container .chatRoomVoiceChannel:hover {
+	background-color:none !important;
+}
+
+.friendsui-container .msgText {
+	color:rgb(var(--text)) !important;
+}
+
+.friendsui-container .MemberListColumn.MemberListViewCompact .friend .avatarHolder .avatarStatus {
+	transform:none !important;
+}
+
+.friendsui-container [class*=chatentry_chatEntryActionsGroup] {
+	background:unset !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton][class*=chatentry_EmbedButton],.friendsui-container .VoiceToggle,.friendsui-container .VoiceToggle.Active {
+	background:none !important;
+	border:0 !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton][class*=chatentry_EmbedButton],.friendsui-container .VoiceToggle,.friendsui-container .VoiceToggle.Active {
+	border-radius:50%;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton][class*=chatentry_EmoticonPickerButton]:hover,.friendsui-container [class*=chatentry_chatSubmitButton][class*=chatentry_EmbedButton]:hover,.friendsui-container .VoiceToggle:hover,.friendsui-container .VoiceToggle.Inactive:hover {
+	background-color:rgb(var(--friendlist));
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton] circle,.friendsui-container [class*=chatentry_chatSubmitButton] path,.friendsui-container [class*=chatentry_chatSubmitButton] line,.friendsui-container .VoiceToggleIconCtn path,.friendsui-container .VoiceToggleIconCtn polyline,.friendsui-container .ToggleMemberListView polyline {
+	stroke:rgb(var(--icon)) !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton]:hover circle,.friendsui-container [class*=chatentry_chatSubmitButton]:hover path,.friendsui-container [class*=chatentry_chatSubmitButton]:hover line,.friendsui-container .VoiceToggle:hover path,.friendsui-container .VoiceToggle:hover polyline,.friendsui-container .ToggleMemberListView:hover polyline {
+	stroke:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .VoiceToggleIconCtn,.friendsui-container .SVGIcon_VoiceRoom .Bubble {
+	fill:rgb(var(--icon));
+}
+
+.friendsui-container .VoiceToggleIconCtn .Bubble {
+	display:none;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton] {
+	background-color:rgba(0,0,0,0) !important;
+	border:0 !important;
+	margin:0 !important;
+	max-height:none !important;
+	padding:0 !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton]:not([class*=chatentry_disabled]):hover {
+	background-color:rgb(var(--friendlist));
+}
+
+.friendsui-container .MicStatus .SVGIcon_Button {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .chatRoomGroupNavColumn polyline {
+	stroke:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .ChannelTypeTitle {
+	color:rgb(var(--listtext));
+}
+
+.friendsui-container .ChannelTypeTitle:hover,.friendsui-container .ChannelTypeTitle .ChannelTypeLabel:hover:not(.NoPermission) {
+	color:rgb(var(--text));
+}
+
+.friendsui-container .FriendChatTypingNotification {
+	background:rgb(var(--header));
+	border-radius:8px;
+	box-shadow:0 0 8px rgba(0,0,0,.5333333333);
+	color:rgb(var(--text));
+	font-size:12px;
+	margin:8px;
+	padding:4px 8px 4px 8px;
+	width:auto;
+}
+
+.friendsui-container .msg .ChatMessageOpenGraph,.friendsui-container .msg .SteamPublishedFile {
+	background:linear-gradient(to right, rgb(var(--header) 0.5) 40%, rgb(var(--header) 1) 100%);
+}
+
+.friendsui-container .msg .OpenGraphMessageURL {
+	background:linear-gradient(to right, rgb(var(--header) 0.2) 0%, rgb(var(--header) 0.5) 40%, rgb(var(--header) 1) 100%);
+}
+
+.friendsui-container .SVGIcon_Button.SVGIcon_CopyToClipboard {
+	stroke:rgb(var(--icon));
+}
+
+.friendsui-container .OpenGraphFooter .OpenGraphURLButton:hover .SVGIcon_CopyToClipboard,.friendsui-container .copyInviteLink:hover .SVGIcon_CopyToClipboard {
+	stroke:rgb(var(--iconhover));
+}
+
+.friendsui-container .ChatMessageInvite {
+	background:rgb(var(--header)) !important;
+}
+
+.friendsui-container .ChatMessageBlock .ChatSpeaker.ChatRoomSpeaker .speaker .rankIcon>* {
+	left:5px;
+	top:-10px;
+}
+
+.friendsui-container .ChatTabContent.ChatRoom .ChatRoomMultiFriendAvatar.Small {
+	margin-left:4px;
+	margin-top:6px;
+}
+
+.friendsui-container .ChatTabs.compactView .ChatTabContent.ChatRoom .ChatRoomMultiFriendAvatar,.friendsui-container .ChatTabs.compactView .ChatTabContent.ChatRoom .ChatRoomGroupAvatar {
+	margin-top:6px;
+}
+
+.friendsui-container .MemberListViewCompact .ReactVirtualized__Grid__innerScrollContainer>*:not(.chatroomBucket_regular) {
+	height:0 !important;
+}
+
+.friendsui-container .MemberListViewCompact .ReactVirtualized__Grid__innerScrollContainer>*:not(.chatroomBucket_regular) {
+	display:none;
+}
+
+.friendsui-container .chatWindow .chatEntry {
+	border-radius:16px;
+	margin-bottom:8px;
+	margin-left:8px;
+	margin-right:8px;
+	padding:0;
+}
+
+.friendsui-container [class*=chatentry_chatEntryActionsContainer] {
+	margin:auto !important;
+}
+
+.friendsui-container [class*=chatentry_chatTextarea] {
+	box-shadow:none !important;
+}
+
+.friendsui-container [class*=chatentry_chatEntryControls] {
+	background-color:unset !important;
+}
+
+.friendsui-container [class*=chatentry_chatEntryControls] {
+	padding:10px;
+}
+
+.friendsui-container .chatStack [class*=insetshadow_FriendListInsetShadowBottom] {
+	display:none;
+}
+
+.friendsui-container [class*=chatentry_chatEntryControls],.friendsui-container [class*=chatentry_chatEntryActionsGroup],.friendsui-container .ChatMessageEntryVoice {
+	box-shadow:none !important;
+}
+
+.friendsui-container [class*=chatentry_EmoticonPickerButton] .SVGIcon_Emoticon {
+	filter:grayscale(1) !important;
+	height:100% !important;
+	width:100% !important;
+}
+
+.friendsui-container [class*=chatentry_EmoticonPickerButton] .SVGIcon_Emoticon {
+	background-image:url(data:image/svg+xml;base64,PHN2ZyBpZD0iZW1vamkiIHZpZXdCb3g9IjAgMCA3MiA3MiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZyBpZD0iY29sb3IiPgogICAgPGNpcmNsZSBjeD0iMzYiIGN5PSIzNiIgcj0iMjMiIGZpbGw9IiNmY2VhMmIiLz4KICAgIDxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik01MC41OTUsNDEuNjRhMTEuNTU1NCwxMS41NTU0LDAsMCwxLS44Nyw0LjQ5Yy0xMi40OSwzLjAzLTI1LjQzLjM0LTI3LjQ5LS4xM2ExMS40MzQ3LDExLjQzNDcsMCwwLDEtLjgzLTQuMzZoLjExczE0LjgsMy41OSwyOC44OS4wN1oiLz4KICAgIDxwYXRoIGZpbGw9IiNlYTVhNDciIGQ9Ik00OS43MjUxLDQ2LjEzYy0xLjc5LDQuMjctNi4zNSw3LjIzLTEzLjY5LDcuMjMtNy40MSwwLTEyLjAzLTMuMDMtMTMuOC03LjM2QzI0LjI5NTEsNDYuNDcsMzcuMjM1LDQ5LjE2LDQ5LjcyNTEsNDYuMTNaIi8+CiAgPC9nPgogIDxnIGlkPSJsaW5lIj4KICAgIDxjaXJjbGUgY3g9IjM2IiBjeT0iMzYiIHI9IjIzIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8ZWxsaXBzZSBjeD0iMjguNTY4NCIgY3k9IjMwLjgxOCIgcng9IjMiIHJ5PSI1LjQwMzgiLz4KICAgIDxlbGxpcHNlIGN4PSI0My40MzE2IiBjeT0iMzAuODIxNiIgcng9IjMiIHJ5PSI1LjQwMzgiLz4KICAgIDxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjIiIGQ9Ik01MC41OTUsNDEuNjRhMTEuNTU1NCwxMS41NTU0LDAsMCwxLS44Nyw0LjQ5Yy0xMi40OSwzLjAzLTI1LjQzLjM0LTI3LjQ5LS4xM2ExMS40MzQ3LDExLjQzNDcsMCwwLDEtLjgzLTQuMzZoLjExczE0LjgsMy41OSwyOC44OS4wN1oiLz4KICAgIDxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2Utd2lkdGg9IjIiIGQ9Ik00OS43MjUxLDQ2LjEzYy0xLjc5LDQuMjctNi4zNSw3LjIzLTEzLjY5LDcuMjMtNy40MSwwLTEyLjAzLTMuMDMtMTMuOC03LjM2QzI0LjI5NTEsNDYuNDcsMzcuMjM1LDQ5LjE2LDQ5LjcyNTEsNDYuMTNaIi8+CiAgPC9nPgo8L3N2Zz4K);
+	background-repeat:no-repeat;
+	background-size:auto;
+	transition:filter .2s linear;
+}
+
+.friendsui-container [class*=chatentry_EmoticonPickerButton] circle,.friendsui-container [class*=chatentry_EmoticonPickerButton] path,.friendsui-container [class*=chatentry_EmoticonPickerButton] line {
+	display:none;
+}
+
+.friendsui-container [class*=chatentry_EmoticonPickerButton]:hover .SVGIcon_Emoticon {
+	filter:none !important;
+}
+
+.friendsui-container [class*=chatentry_EmoticonPickerButton] [class*=shared_svg_library_EmoticonBow] {
+	bottom:unset;
+	left:unset;
+	right:unset;
+	top:-2px;
+}
+
+.friendsui-container [class*=emoticon_NewEmoticonIndicator] {
+	background:none !important;
+}
+
+.friendsui-container [class*=emoticon_NewEmoticonCircle] {
+	background-color:rgb(var(--unreadmessage)) !important;
+}
+
+.friendsui-container [class*=chatentry_EmbedButton] .SVGIcon_Paperclip {
+	filter:grayscale(1) !important;
+	height:100% !important;
+	width:100% !important;
+}
+
+.friendsui-container [class*=chatentry_EmbedButton] .SVGIcon_Paperclip {
+	background-image:url(data:image/svg+xml;base64,PHN2ZyBpZD0iZW1vamkiIHZpZXdCb3g9IjAgMCA3MiA3MiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZyBpZD0iY29sb3IiPgogICAgPGNpcmNsZSBjeD0iMzYuMDczMSIgY3k9IjM1Ljk1MTgiIHI9IjIyLjc3MDIiIGZpbGw9IiNCMUNDMzMiIHN0cm9rZT0ibm9uZSIvPgogIDwvZz4KICA8ZyBpZD0ibGluZSI+CiAgICA8bGluZSB4MT0iMzYuMDczMSIgeDI9IjM2LjA3MzEiIHkxPSIyMi4zMjY3IiB5Mj0iNDkuNTc2OSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8bGluZSB4MT0iNDkuNjk4MiIgeDI9IjIyLjQ0NzkiIHkxPSIzNS45NTE4IiB5Mj0iMzUuOTUxOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwMDAwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS1taXRlcmxpbWl0PSIxMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgICA8Y2lyY2xlIGN4PSIzNi4wNzMxIiBjeT0iMzUuOTUxOCIgcj0iMjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMDAwMCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBzdHJva2UtbWl0ZXJsaW1pdD0iMTAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDwvZz4KPC9zdmc+Cg==);
+	background-repeat:no-repeat;
+	background-size:auto;
+	transition:filter .2s linear;
+}
+
+.friendsui-container [class*=chatentry_EmbedButton] .SVGIcon_Paperclip circle,.friendsui-container [class*=chatentry_EmbedButton] .SVGIcon_Paperclip path,.friendsui-container [class*=chatentry_EmbedButton] .SVGIcon_Paperclip line {
+	display:none;
+}
+
+.friendsui-container [class*=chatentry_EmbedButton]:hover .SVGIcon_Paperclip {
+	filter:none !important;
+}
+
+.friendsui-container [class*=chatentry_EmbedButton] [class*=chatentry_chatEntryActionsGroup] {
+	background-color:unset !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton] {
+	background-color:unset !important;
+	border:0 !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton][class*=chatentry_disabled] .SVGIcon_Submit {
+	opacity:0;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton] .SVGIcon_Submit {
+	transition:.2s linear;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton] .SVGIcon_Submit path {
+	stroke:rgb(var(--icon)) !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton] .SVGIcon_Submit path {
+	stroke-width:6px;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton]:hover .SVGIcon_Submit path {
+	stroke:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container [class*=chatentry_chatSubmitButton] svg {
+	vertical-align:middle;
+}
+
+@media only screen and (max-width: 480px) {
+	.friendsui-container .chatWindow .chatEntry {
+		flex-direction:column;
+}
+
+.friendsui-container [class*=chatentry_chatEntryControl] {
+	border-bottom:2px solid rgb(var(--friendlist));
+}
+}
+
+.friendsui-container .singlewindow .title-area .title-bar-actions {
+	background:rgb(var(--header));
+	z-index:99;
+}
+
+.friendsui-container .singlewindow .AvatarAndUser {
+	padding-top:8px;
+}
+
+.friendsui-container .singlewindow .friendListButtons {
+	top:8px;
+}
+
+.friendsui-container .friendListCollapse {
+	margin-right:4px;
+	margin-top:2px;
+	transform:translateX(-50%);
+}
+
+.friendsui-container .chatTabOpenFriendsList {
+	background-color:rgb(var(--friendlist)) !important;
+	border-radius:4px !important;
+	height:44px !important;
+}
+
+.friendsui-container .chatTabOpenFriendsList:hover {
+	background-color:rgb(var(--button-on)) !important;
+}
+
+.friendsui-container .chatTabOpenFriendsList:hover .SVGIcon_Button {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_FilterInputContainer] [class*=addonpicker_FilterInput] {
+	background-color:rgb(var(--header)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_FilterInputContainer] [class*=addonpicker_FilterInput] {
+	border-radius:8px;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_FilterInputContainer] [class*=addonpicker_FilterInput]:hover,.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_FilterInputContainer] [class*=addonpicker_FilterInput]:focus {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab] [class*=emoticon_PickerTab]:not([class*=emoticon_Clock]) path,.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab] [class*=emoticon_PickerTab] circle,.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab] [class*=emoticon_PickerTab] line {
+	stroke:rgb(var(--icon)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab][class*=addonpicker_Active] {
+	border-bottom-color:rgb(var(--button-on));
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab]:not([class*=addonpicker_Active]):hover {
+	border-bottom-color:rgb(var(--button-off));
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab]:hover [class*=addonpicker_TabContent] {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab]:hover [class*=emoticon_PickerTab] circle,.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab]:hover [class*=emoticon_PickerTab] line {
+	fill:rgb(var(--iconhover)) !important;
+	stroke:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_Tabs] [class*=addonpicker_Tab]:hover [class*=emoticon_PickerTab] path {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=addonpicker_ItemList] [class*=addonpicker_Item]:hover {
+	background-color:rgb(var(--friendlist));
+	border-radius:5px;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=emoticon_EmoticonHover] {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container [class*=addonpicker_Picker] [class*=emoticon_StickerButton]:hover {
+	transform:none;
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] {
+	margin-top:2px;
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_MessageReaction] {
+	background-color:rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_MessageReaction] {
+	border:0;
+	border-radius:0;
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_MessageReaction]:hover {
+	box-shadow:0 2px 0 0 rgb(var(--close-button));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_OpenPickerButton] {
+	opacity:1;
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_OpenPickerButton] path {
+	stroke:rgb(var(--icon));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_OpenPickerButton] ellipse {
+	fill:rgb(var(--icon));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_OpenPickerButton]:hover path {
+	stroke:rgb(var(--iconhover));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=reactions_MessageReactions] [class*=reactions_OpenPickerButton]:hover ellipse {
+	fill:rgb(var(--iconhover));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=messages_Addons] {
+	background-color:rgb(var(--header)) !important;
+	border:1px solid rgb(var(--friendlist)) !important;
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=messages_Addons] [class*=messages_Emoticon] {
+	stroke:rgb(var(--icon));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=messages_Addons] [class*=messages_Emoticon] path {
+	stroke:rgb(var(--icon));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=messages_Addons] [class*=messages_Emoticon] ellipse {
+	fill:rgb(var(--icon));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=messages_Addons] [class*=messages_Emoticon]:hover {
+	stroke:rgb(var(--iconhover));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=messages_Addons] [class*=messages_Emoticon]:hover path {
+	stroke:rgb(var(--iconhover));
+}
+
+.friendsui-container [class*=messages_MsgWithAddons] [class*=messages_Addons] [class*=messages_Emoticon]:hover ellipse {
+	fill:rgb(var(--iconhover));
+}
+
+.friendsui-container .ChatMessageEntryVoice {
+	background:none !important;
+}
+
+.friendsui-container .ChatMessageEntryVoice {
+	border-left:solid rgb(var(--friendlist)) 1px;
+	margin:0;
+	padding:0;
+}
+
+.friendsui-container .ChatMessageEntryVoice .buttonsContainer {
+	margin:auto;
+	padding-right:12px;
+}
+
+.friendsui-container .buttonsContainer,.friendsui-container .VoiceToggle,.friendsui-container .activeVoiceControls {
+	background:none !important;
+	border:0 !important;
+}
+
+.friendsui-container .ChatMessageEntryVoice.Active {
+	padding-right:24px;
+}
+
+.friendsui-container .ChatMessageEntryVoice.Disabled {
+	border:0;
+	outline:0;
+}
+
+.friendsui-container .ChatMessageEntryVoice.Inactive .activeVoiceControls {
+	display:none;
+}
+
+.friendsui-container .activeVoiceButtons .friendSettingsButton .SVGIcon_Settings,.friendsui-container .activeVoiceButtons .friendSettingsButton {
+	height:15px;
+	width:15px;
+}
+
+.friendsui-container .activeVoiceButtons .friendSettingsButton {
+	margin:auto 0 auto 2px;
+}
+
+.friendsui-container .VoiceControlPanelButton.ToggleVoiceOutputButton .SVGIcon_Headphones,.friendsui-container .VoiceControlPanelButton.ToggleMicrophoneButton .SVGIcon_Microphone {
+	padding-top:0;
+	vertical-align:middle;
+}
+
+.friendsui-container .VoiceToggleIconCtn {
+	left:0;
+	margin:auto;
+	position:relative;
+	top:0;
+}
+
+.friendsui-container .client_chat_frame .chatWindow .chatEntry {
+	padding-right:0;
+}
+
+.friendsui-container .SVGIcon_Button.SVGIcon_Shadow {
+	display:none !important;
+}
+
+.friendsui-container .VoiceToggleIconCtn .SVGIcon_VoiceRoom {
+	height:100% !important;
+	width:100% !important;
+}
+
+.friendsui-container .VoiceToggleIconCtn .SVGIcon_VoiceRoom .Microphone {
+	fill:rgb(var(--icon));
+}
+
+.friendsui-container .VoiceControlPanelButton:hover .SVGIcon_Button {
+	fill:rgb(var(--iconhover)) !important;
+}
+
+.friendsui-container .OneOnOneVoiceRoomControls .VoiceToggleIconCtn {
+	top:0;
+}
+
+.friendsui-container .OneOnOneVoice-anim-enter-done,.friendsui-container .WaitingForPartner,.friendsui-container .OneOnOneVoiceRoomControls {
+	background:rgb(var(--header));
+}
+
+.friendsui-container .OneOnOneVoiceRoomControls {
+	box-shadow:none;
+}
+
+.friendsui-container .OneOnOneVoiceRoomControls .friend .avatarHolder .avatar {
+	border:0 !important;
+}
+
+.friendsui-container .OneOnOneVoiceClose {
+	background-color:rgb(var(--friendlist));
+}
+
+.friendsui-container .OneOnOneVoiceClose:hover {
+	background-color:rgb(var(--close-button));
+}
+
+.friendsui-container .inviteAnotherFriendButton {
+	margin-top:4px;
+	top:unset;
+}
+
+.friendsui-container .FriendPicker_ChosenFriend {
+	background:rgb(var(--button-off));
+}
+
+.friendsui-container .FriendPicker_ChosenFriend:hover,.friendsui-container .FriendPicker_ChosenFriend:focus {
+	background:rgb(var(--button-on));
+}
+
+.friendsui-container .FriendPicker_ChosenFriend .SVGIcon_X_Line line {
+	stroke:rgb(var(--icon));
+}
+
+.friendsui-container .FriendPickerScrollPanel {
+	background:rgb(var(--friendlist));
+	border-radius:4px;
+	-webkit-mask-image:unset;
+	mask-image:unset;
+	padding:4px;
+}
+
+.friendsui-container ::-webkit-scrollbar {
+	background:rgba(0,0,0,0);
+	height:10px;
+	overflow:visible;
+	width:10px;
+}
+
+.friendsui-container ::-webkit-scrollbar-button:vertical:increment,.friendsui-container ::-webkit-scrollbar-button:vertical:decrement {
+	display:none !important;
+}
+
+.friendsui-container ::-webkit-scrollbar-thumb {
+	background-color:rgba(0,0,0,0);
+	border-radius:8px;
+	border-width:2px;
+	margin:4px;
+	min-height:32px;
+	min-width:32px;
+	width:14px;
+}
+
+.friendsui-container [class*=scrollpanel_ScrollPanel]:hover::-webkit-scrollbar-thumb,.friendsui-container .chatRoomListContainer:hover::-webkit-scrollbar-thumb,.friendsui-container .friendlistListContainer:hover::-webkit-scrollbar-thumb,.friendsui-container .DialogBody:hover::-webkit-scrollbar-thumb,.friendsui-container .FriendPicker_Suggestions_List:hover::-webkit-scrollbar-thumb,.friendsui-container .chatHistoryScroll:hover::-webkit-scrollbar-thumb {
+	border-radius:20px !important;
+}
+
+.friendsui-container [class*=scrollpanel_ScrollPanel]:hover::-webkit-scrollbar-thumb,.friendsui-container .chatRoomListContainer:hover::-webkit-scrollbar-thumb,.friendsui-container .friendlistListContainer:hover::-webkit-scrollbar-thumb,.friendsui-container .DialogBody:hover::-webkit-scrollbar-thumb,.friendsui-container .FriendPicker_Suggestions_List:hover::-webkit-scrollbar-thumb,.friendsui-container .chatHistoryScroll:hover::-webkit-scrollbar-thumb {
+	background-color:rgb(var(--scrollbar-primary));
+}
+
+.friendsui-container ::-webkit-scrollbar-thumb:hover {
+	background-color:rgb(var(--scrollbar-primary-hover)) !important;
+	border-radius:20px !important;
+}
+
+.friendsui-container .chatentry_chatTextarea_3e__5::-webkit-scrollbar-thumb {
+	background-color:rgb(var(--scrollbar-secondary));
+}
+
+.friendsui-container .chatentry_chatTextarea_3e__5::-webkit-scrollbar-thumb:hover {
+	background-color:rgb(var(--scrollbar-secondary-hover)) !important;
+}
+
+.friendsui-container .friend:not(.quickAccessFriend) .avatarHolder:not(.offline):not(.awayOrSnooze):not(.ingame) :nth-last-child(2).avatar,.friendsui-container .friend:not(.quickAccessFriend) .avatarHolder:not(.offline).awayOrSnooze :nth-last-child(3).avatar,.friendsui-container .friend:not(.quickAccessFriend) .avatarHolder:not(.offline).ingame :nth-last-child(2).avatar,.friendsui-container .friendlistListContainer .avatarHolder:not(.offline) :nth-last-child(2).avatar,.friendsui-container .quickAccessFriend .avatarHolder.online:not(.ingame):not(.awayOrSnooze) :nth-last-child(2).avatar,.friendsui-container .quickAccessFriend .avatarHolder.ingame:not(.awayOrSnooze) :nth-last-child(3).avatar,.friendsui-container .quickAccessFriend .avatarHolder.ingame.awayOrSnooze :nth-last-child(4).avatar,.friendsui-container .quickAccessFriend .avatarHolder:not(.ingame).awayOrSnooze :nth-last-child(3).avatar,.friendsui-container .miniProfileHover .avatarHolder:not(.offline):not(.awayOrSnooze):not(.ingame) :nth-last-child(2).avatar,.friendsui-container .miniProfileHover .avatarHolder:not(.offline).ingame :nth-last-child(2).avatar,.friendsui-container .miniProfileHover .avatarHolder:not(.offline).awayOrSnooze :nth-last-child(2).avatar,.friendsui-container .currentUserAvatar .avatarHolder:not(.offline):not(.awayOrSnooze):not(.ingame) :nth-last-child(2).avatar,.friendsui-container .currentUserAvatar .avatarHolder:not(.offline).ingame :nth-last-child(2).avatar,.friendsui-container .currentUserAvatar .avatarHolder:not(.offline).awayOrSnooze :nth-last-child(2).avatar {
+	border:0 !important;
+	border-radius:0 !important;
+}
+
+.friendsui-container .quickAccessFriend .avatarHolder.ingame:not(.awayOrSnooze) :nth-child(3).avatarFrame,.friendsui-container .quickAccessFriend .avatarHolder.ingame.awayOrSnooze :nth-child(4).avatarFrame {
+	display:none;
+}
+
+.friendsui-container .avatarFrame {
+	transform:scale(1.111) !important;
+}
+
+.friendsui-container .friendlistListContainer .friend .avatarHolder {
+	padding-bottom:2px;
+}
+
+.friendsui-container .avatarHolder.offline .avatarFrame,.friendsui-container .avatarHolder.offline [class*=miniprofile_Frame] {
+	display:none;
+}
+
+.friendsui-container .ChatMessageBlock .avatarFrame img {
+	margin:2px 0 0 2px;
+}
+
+.friendsui-container {
+	
+--header: 17, 17, 17;
+--friendlist: 19, 19, 19;
+--footer: var(--header);
+--text: 255, 255, 255;
+--listtext: 206, 212, 218;
+--unreadmessage: 8, 127, 35;
+--nickname: 173, 181, 189;
+--icon: 173, 181, 189;
+--iconhover: 255, 255, 255;
+--ingame: 130, 186, 0;
+--online: 93, 178, 254;
+--away: 250, 166, 26;
+--away-in-game: var(--away);
+--watching: 149, 117, 205;
+--offline: 145, 145, 145;
+--button-on: 45, 115, 255;
+--button-off: 73, 80, 87;
+--scrollbar-primary: 37, 37, 37;
+--scrollbar-primary-hover: 41, 41, 41;
+--scrollbar-secondary: var(--scrollbar-primary);
+--scrollbar-secondary-hover: var(--scrollbar-primary-hover);
+--window-control-icon-color: var(--icon);
+--window-control-icon-color-hover: var(--iconhover);
+--window-control-bg-color-hover: #343a40;
+--window-control-exit-bg-color-hover: #f04747;
+--window-control-exit-icon-color-hover: #fff
+
+}
+
+:root {
+	
+--avatar-border: 2px currentColor solid;
+
+}
+
+.friendsui-container .avatarStatus,.friendsui-container .speakerStatus,.friendsui-container [class*=steamavatar_avatarHolder] [class*=steamavatar_avatarStatus].bottom {
+	display:none !important;
+}
+
+.friendsui-container .avatarHolder .avatar {
+	border:var(--avatar-border) !important;
+}
+
+.friendsui-container .avatarFrame img,.friendsui-container .miniprofile_Frame_3MZRj {
+	border-radius:2px;
+	box-shadow:inset 0 0 4px 2px currentcolor;
+}
+
+.friendsui-container [class*=ingame] .avatar {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] .avatar {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] .avatar {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] .avatar {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] .avatar {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] .avatar {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] .avatarFrame img {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] .avatarFrame img {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] .avatarFrame img {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] .avatarFrame img {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] .avatarFrame img {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] .avatarFrame img {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container [class*=ingame] [class*=miniprofile_Frame_] {
+	color:rgb(var(--ingame)) !important;
+	fill:rgb(var(--ingame)) !important;
+}
+
+.friendsui-container [class*=online] [class*=miniprofile_Frame_] {
+	color:rgb(var(--online)) !important;
+	fill:rgb(var(--online)) !important;
+}
+
+.friendsui-container [class*=offline] [class*=miniprofile_Frame_] {
+	color:rgb(var(--offline)) !important;
+	fill:rgb(var(--offline)) !important;
+}
+
+.friendsui-container [class*=away] [class*=miniprofile_Frame_] {
+	color:rgb(var(--away)) !important;
+	fill:rgb(var(--away)) !important;
+}
+
+.friendsui-container [class*=watchingbroadcast] [class*=miniprofile_Frame_] {
+	color:rgb(var(--watching)) !important;
+	fill:rgb(var(--watching)) !important;
+}
+
+.friendsui-container .ingame[class*=away] [class*=miniprofile_Frame_] {
+	color:rgb(var(--away-in-game)) !important;
+	fill:rgb(var(--away-in-game)) !important;
+}
+
+.friendsui-container .avatarHolder:not(.awayOrSnooze) :last-child.avatar,.friendsui-container .avatarHolder.awayOrSnooze :nth-last-child(2).avatar {
+	margin:calc(-1 * 2px);
+}
+
+.friendsui-container [class*=miniprofile_miniProfileContent] [class*=miniprofile_miniProfileHeader] {
+	background:rgb(var(--friendlist) 0.5) !important;
+}
+
+.friendsui-container [class*=miniprofile_miniProfileContent][class*=miniprofile_notInOrWatchingGame] [class*=miniprofile_miniProfileBottom],.friendsui-container [class*=miniprofile_miniProfileContent] [class*=miniprofile_miniProfileGameContainer] {
+	background:linear-gradient(to bottom, rgb(var(--header) 0.7) 5%, rgb(var(--header) 0.4) 95%) !important;
+}
+
+.friendsui-container .statusHeaderGlow {
+	opacity:.4;
+}
+
+.friendsui-container [class*=ingame] .statusHeaderGlow stop:first-child {
+	stop-color:rgb(var(--ingame));
+	stop-opacity:.4;
+}
+
+.friendsui-container [class*=ingame] .statusHeaderGlow stop:last-child {
+	stop-color:rgb(var(--ingame));
+}
+
+.friendsui-container [class*=online] .statusHeaderGlow stop:first-child {
+	stop-color:rgb(var(--online));
+	stop-opacity:.4;
+}
+
+.friendsui-container [class*=online] .statusHeaderGlow stop:last-child {
+	stop-color:rgb(var(--online));
+}
+
+.friendsui-container [class*=offline] .statusHeaderGlow stop:first-child {
+	stop-color:rgb(var(--offline));
+	stop-opacity:.4;
+}
+
+.friendsui-container [class*=offline] .statusHeaderGlow stop:last-child {
+	stop-color:rgb(var(--offline));
+}
+
+.friendsui-container [class*=away] .statusHeaderGlow stop:first-child {
+	stop-color:rgb(var(--away));
+	stop-opacity:.4;
+}
+
+.friendsui-container [class*=away] .statusHeaderGlow stop:last-child {
+	stop-color:rgb(var(--away));
+}
+
+.friendsui-container * {
+	text-shadow:none !important;
+}
+
+.friendsui-container [class*=insetshadow_FriendListInsetShadowTop] {
+	background:linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0) 100%);
+	height:20px;
+}
+
+.friendsui-container [class*=insetshadow_FriendListInsetShadowBottom] {
+	background:linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.1) 25%, rgba(0, 0, 0, 0) 100%);
+	height:20px;
+}
+
+.friendsui-container .currentUserAvatar {
+	box-shadow:none !important;
+}
+
+.friendsui-container .activeTab,.friendsui-container .DialogButton::before,.friendsui-container .DialogButton,.friendsui-container .DialogSlider_Slider,.friendsui-container [class*=radio_Group],.friendsui-container .avatar,.friendsui-container [class*=miniprofile_playerAvatar],.friendsui-container .ChatRoomGroupAvatar,.friendsui-container .ChatMessageEntryVoice,.friendsui-container [class*=chatentry_chatEntryControls],.friendsui-container .chatTabOpenFriendsList,.friendsui-container .chatTabList .chatTab,.friendsui-container .chatTabSelector,.friendsui-container .friendSearchInput {
+	box-shadow:none !important;
+}
+
+.friendsui-container .ChatRoomListContainerParent [class*=insetshadow_FriendsListInsetShadowCtn],.friendsui-container .insetShadow {
+	display:none !important;
+}
+
+.friendsui-container [class*=chatentry_chatTextarea] {
+	margin-right:0 !important;
+}
+
+.friendsui-container [class*=chatentry_chatTextarea] {
+	border-radius:4px;
+}
+
+.friendsui-container .ChatMessageInvite {
+	box-shadow:0 0 6px rgba(0,0,0,.1) !important;
+}
+
+.friendsui-container .ChatMessageInvite {
+	margin:4px;
+}
+
+.friendsui-container .ModalDialogPopup .DialogContentTransition .DialogBody {
+	-webkit-mask:none !important;
+	mask:none !important;
+}
+
+.friendsui-container .DialogTextInputBase:focus {
+	box-shadow:none;
+}
+
+.friendsui-container .chatWindow .chatEntry {
+	box-shadow:0 0 8px rgba(0,0,0,.3);
+}
+
+.friendsui-container .avatarHolder .avatarFrame,.friendsui-container .avatarHolder [class*=miniprofile_Frame_] {
+	display:none;
+}
+
+.friendsui-container .friend:not(.quickAccessFriend) .avatarHolder:not(.offline):not(.awayOrSnooze):not(.ingame) :nth-last-child(2).avatar,.friendsui-container .friend:not(.quickAccessFriend) .avatarHolder:not(.offline).awayOrSnooze :nth-last-child(3).avatar,.friendsui-container .friend:not(.quickAccessFriend) .avatarHolder:not(.offline).ingame :nth-last-child(2).avatar,.friendsui-container .friendlistListContainer .avatarHolder:not(.offline) :nth-last-child(2).avatar,.friendsui-container .quickAccessFriend .avatarHolder.online:not(.ingame):not(.awayOrSnooze) :nth-last-child(2).avatar,.friendsui-container .quickAccessFriend .avatarHolder.ingame:not(.awayOrSnooze) :nth-last-child(3).avatar,.friendsui-container .quickAccessFriend .avatarHolder.ingame.awayOrSnooze :nth-last-child(4).avatar,.friendsui-container .quickAccessFriend .avatarHolder:not(.ingame).awayOrSnooze :nth-last-child(3).avatar,.friendsui-container .miniProfileHover .avatarHolder:not(.offline):not(.awayOrSnooze):not(.ingame) :nth-last-child(2).avatar,.friendsui-container .miniProfileHover .avatarHolder:not(.offline).ingame :nth-last-child(2).avatar,.friendsui-container .miniProfileHover .avatarHolder:not(.offline).awayOrSnooze :nth-last-child(2).avatar,.friendsui-container .currentUserAvatar .avatarHolder:not(.offline):not(.awayOrSnooze):not(.ingame) :nth-last-child(2).avatar,.friendsui-container .currentUserAvatar .avatarHolder:not(.offline).ingame :nth-last-child(2).avatar,.friendsui-container .currentUserAvatar .avatarHolder:not(.offline).awayOrSnooze :nth-last-child(2).avatar {
+	border:var(--avatar-border) !important;
+	border-radius:var(--avatar-radius) !important;
+}
+
+.friendsui-container .avatarHolder:not(.awayOrSnooze) :last-child.avatar,.friendsui-container .avatarHolder.awayOrSnooze :nth-last-child(2).avatar {
+	margin:0;
+}

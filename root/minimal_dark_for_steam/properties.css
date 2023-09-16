@@ -1,0 +1,127 @@
+[class*="pagedsettings_PagedSettingsDialog_PageListColumn_"] {
+    background: var(--minimal_dark_blacker_alt) !important;
+}
+
+.DialogContent, .DialogContentTransition {
+    background: var(--minimal_dark_blacker_alt) !important;
+}
+
+.ModalPosition_TopBar {
+    background: var(--minimal_dark_offline_grey) !important;
+}
+
+[class*="pagedsettings_PagedSettingsDialog_Title_"] {
+    color: var(--minimal_dark_offline_grey) !important;
+}
+
+[class*="appproperties_AppProperties_"] [class*="appproperties_Checkbox_"] {
+    background: var(--minimal_dark_transparent) !important;
+}
+
+.DialogTextInputBase:disabled:hover {
+    background: var(--minimal_dark_blacker_alt) !important;
+}
+
+[class*="appproperties_AppProperties_"] [class*="appproperties_Page_"] [class*="appproperties_BlueHighlight_"] {
+    color: var(--minimal_dark_offline_grey) !important;
+}
+
+.ModalDialogPopup .DialogDropDown {
+    background: var(--minimal_dark_blacker_alt) !important;
+}
+
+[class*="dropdown_DialogDropDownMenu_"]._DialogInputContainer {
+    background: var(--minimal_dark_blacker_alt) !important;
+}
+
+[class*="appproperties_AppProperties_"] [class*="appproperties_Page_"] [class*="appproperties_SteamInputStatusGrid_"] {
+    background-color: var(--minimal_dark_transparent) !important;
+}
+
+[class*="appproperties_AppProperties_"] [class*="appproperties_Page_"] [class*="appproperties_SteamInputStatus_"] {
+    color: white !important;
+}
+
+[class*="appproperties_AppProperties_"] [class*="appproperties_Page_"] [class*="appproperties_DlcGrid_"] [class*="appproperties_DlcHeader_"] {
+    background: var(--minimal_dark_transparent) !important;
+}
+
+[class*="appproperties_AppProperties_"] [class*="appproperties_Page_"] [class*="appproperties_DlcGrid_"] [class*="appproperties_DlcHeader_"]:hover {
+    background: var(--minimal_dark_transparent) !important;
+}
+
+[class*="metro_offline_greynewupdates_WhatsNewSettingsContainer_"] {
+    background: var(--minimal_dark_blacker_alt) !important;
+}
+
+[class*="metro_offline_greynewupdates_WhatsNewSettings_"] ._DialogInputContainer, ._DialogInputContainer[class*="metro_offline_greynewupdates_WhatsNewPriorityContainer_"] {
+    background: var(--minimal_dark_blacker_alt) !important;
+    border-radius: 8px !important;
+}
+
+[class*="toggle_Toggle_"] [class*="toggle_ToggleRail_"] {
+    background-color: var(--minimal_dark_blacker_alt) !important;
+    border-radius: 8px !important;
+    top: 0 !important;
+    height: 16px !important;
+}
+
+[class*="toggle_Toggle_"] [class*="toggle_ToggleRail_"][class*="toggle_Highlight_"] {
+    background-color: var(--minimal_dark_blacker_alt) !important;
+}
+
+[class*="toggle_Toggle_"] {
+	background: var(--minimal_dark_blacker_alt) !important;
+	border-radius: 8px !important;
+}
+
+[class*="toggle_Toggle_"] [class*="toggle_ToggleSwitch_"][class*="toggle_On_"] {
+	background-color: var(--minimal_dark_offline_grey) !important;
+	background-image: none !important;
+}
+
+[class*="contentmanagement_ContentManagement_"] {
+    background: transparent !important;
+}
+
+[class*="contentmanagement_LibraryContent_"] {
+    background: var(--downloadspagebg) !important;
+}
+
+[class*="contentmanagement_AppActionBar_"] {
+    background: var(--downloadspagebg) !important;
+}
+
+[class*="contentmanagement_IsSelected_"] {
+    border-top: 1px solid var(--minimal_dark_offline_grey) !important;
+    border-top-left-radius: var(--minimal_dark_corner10) !important;
+    border-top-right-radius: var(--minimal_dark_corner10) !important;
+}
+
+button.DialogButton:disabled {
+    border-radius: var(--minimal_dark_corner10) !important;
+}
+
+button.DialogButton:disabled:hover {
+    border-radius: var(--minimal_dark_corner10) !important;
+    color: var(--minimal_dark_white) !important; 
+}
+
+[class*="contentmanagement_DriveSettingsButton_"], [class*="contentmanagement_DriveSettingsButton_"]:hover {
+    background-color: none !important;
+}
+
+[class*="contentmanagement_AppsGrid_"] [class*="contentmanagement_AppHeader_"] [class*="contentmanagement_Rule_"] {
+    display: none !important;
+}
+
+[class*="appgrid_SortingDropDown_"] {
+    margin-left: 10px !important;
+    margin-top: 5px !important;
+}
+ 
+[class*="contentmanagement_AppsGrid_"] [class*="contentmanagement_AppBody_"]:hover {
+    background: transparent !important;
+    border-radius: var(--minimal_dark_corner10) !important;
+    margin-bottom: 3px !important;
+}
