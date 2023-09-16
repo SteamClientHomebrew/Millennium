@@ -59,10 +59,10 @@
             "TargetCss": "libraryroot.custom.css"
         }
     ],
-    "UseDefaultPatches": true,
+    "UseDefaultPatches": false,
     "author": "Unknown",
     "description": "A somewhat complicated design for the steam application, adding more color, contrast, and diversity to your Steam experience",
     "name": "Minimal Dark for Steam",
-    "source": "https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/root/dark",
+    "source": "https://raw.githubusercontent.com/ShadowMonster99/millennium-steam-patcher/main/root/minimal_dark_for_steam",
     "version": "1.0.0"
 }
