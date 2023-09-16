@@ -1,14 +1,14 @@
-@import url('friends.custom.css');
-@import url('config.css');
-@import url('sidebar.css');
-@import url('scrollbar.css');
-@import url('downloads.css');
-@import url('gamepage.css');
-@import url('library.css');
-@import url('miniprofile.css');
-@import url('properties.css');
-@import url('overlay.css');
-@import url('webkit.css');
+@import url("friends.custom.css");
+@import url("config.css");
+@import url("sidebar.css");
+@import url("scrollbar.css");
+@import url("downloads.css");
+@import url("gamepage.css");
+@import url("library.css");
+@import url("miniprofile.css");
+@import url("properties.css");
+@import url("overlay.css");
+@import url("webkit.css");
 
 *{ -webkit-box-shadow: none !important; box-shadow: none !important;  } 
 

@@ -1,4 +1,4 @@
-@import url('config.css');
+@import url("config.css");
 
 *{box-shadow:none!important;}
 
@@ -699,7 +699,7 @@ body.v6 #footer_nav .popup_block_new .popup_body,body.v6 .store_nav .popup_block
 	background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(32,32,32,1) 100%) !important;
 }
 
-.searchbox input{color: var(--minimal_dark_installed_games); !important; margin-top:0!important;}
+.searchbox input{color: var(--minimal_dark_installed_games) !important; margin-top:0!important;}
 .search_suggest .match{border-top:0!important;}
 .game_hover_box {
 	background:var(--minimal_dark_night)!important;
@@ -2774,7 +2774,7 @@ span.invite_action_txt {
 
 input[type=number],input[type=password],input[type=text],select {
 	border:2px solid transparent!important;
-	border-radius:var(--minimal_dark_corner5) margin-left:10px !important;
+	border-radius:var(--minimal_dark_corner5) !important; margin-left: 10px !important;
 }
 
 #search_players_form input[type=submit] {
