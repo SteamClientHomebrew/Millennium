@@ -144,10 +144,10 @@ private:
 		using namespace std::filesystem;
 
 		path githubUrl = skinData["source"].get<std::string>();
-		path dirName   = path("steamui") / "skins" / this->sanitizeDirectoryName(skinData["name"].get<std::string>());
+		path dirName = path(config.getSkinDir()) / this->sanitizeDirectoryName(skinData["name"].get<std::string>());
+		create_directory(dirName);
 
 		path originalDir = current_path();
-		create_directory(dirName);
 		current_path(dirName);
 
 		this->writeFileSync("skin.json", skinData.dump(4));
@@ -173,6 +173,7 @@ private:
 
 			this->findImportsSync(content, githubUrl, parentPath);
 
+			console.log(std::format("[DEBUG] writing file contents to: {}", fileName));
 			this->writeFileSync(fileName, content);
 		}
 

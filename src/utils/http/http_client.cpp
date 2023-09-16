@@ -21,7 +21,10 @@ const void http::close(HINTERNET sentinel, ...)
 
 const bool valid_request(std::string url)
 {
-    return !Settings::Get<bool>("allow-store-load") ? url.find("steamloopback.host") != std::string::npos : true;
+    bool isDevToolsRequest = url.find("127.0.0.1:8080") != std::string::npos;
+    bool isSteamLoopBack = url.find("steamloopback.host") != std::string::npos;
+
+    return !Settings::Get<bool>("allow-store-load") ? (isDevToolsRequest || isSteamLoopBack) : true;
 }
 
 const std::string http::get(std::string remote_endpoint)

@@ -75,11 +75,14 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 {
 	std::filesystem::path skin_json_path = entry.path() / "skin.json";
 
+	console.log(std::format("local skin parser: {}", skin_json_path.string()));
+
 	if (!std::filesystem::exists(skin_json_path))
 		return false;
 
 	auto data = this->readFileSync(skin_json_path.string());
 
+	console.log(std::format("[DEBUG] found a skin: {}", entry.path().filename().string()));
 	const std::string fileName = entry.path().filename().string();
 
 	data["name"]        = data.value("name", fileName).c_str();
@@ -110,6 +113,8 @@ void millennium::parseSkinData()
 {
 	const std::string steamPath = config.getSkinDir();
 
+	console.log(std::format("[DEBUG] searching for steam skins at: {}", steamPath));
+
 	try
 	{
 		this->resetCollected();
@@ -119,14 +124,17 @@ void millennium::parseSkinData()
 
 		for (const auto& entry : std::filesystem::directory_iterator(steamPath))
 		{
-			if (entry.path().filename().string().find(".millennium.json") != std::string::npos)
+			console.log("found a folder in skins folder, checking if its a valid skin.");
+
+			// not supported anymore, not sure if ill add it back
+			/*if (entry.path().filename().string().find(".millennium.json") != std::string::npos)
 			{
 				this->parseRemoteSkin(entry, jsonBuffer);
 			}
-			else if (entry.is_directory())
+			else */if (entry.is_directory())
 			{
 				if (!this->parseLocalSkin(entry, jsonBuffer))
-					return;
+					continue;
 			}
 		}
 		//replace the current json with the buffer

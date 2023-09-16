@@ -16,6 +16,8 @@ extern bool g_headerHovered;
 extern bool g_headerHovered_1;
 extern ImVec2 g_windowPadding;
 
+extern bool g_initReady;
+
 struct icons
 {
     PDIRECT3DTEXTURE9 

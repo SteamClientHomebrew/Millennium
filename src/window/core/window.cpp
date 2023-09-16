@@ -32,6 +32,7 @@ bool g_headerHovered = false;
 bool g_headerHovered_1 = false;
 
 bool g_windowOpen = false;
+bool g_initReady = false;
 
 icons icons_struct = {};
 icons Window::iconsObj() { return icons_struct; }
@@ -85,7 +86,7 @@ bool create_device_d3d(HWND hWnd)
     return true;
 }
  
-void clear_all()
+void ClearAll()
 {
     if (directx9.device) { directx9.device->Release(); directx9.device = nullptr; }
     if (directx9.ID3D9)  { directx9.ID3D9->Release();  directx9.ID3D9 = nullptr;  }
@@ -221,7 +222,7 @@ bool Application::Destroy()
     ImGui_ImplWin32_Shutdown();
     //ImGui::DestroyContext();
 
-    clear_all();
+    ClearAll();
     ::DestroyWindow(overlay.hwnd);
     ::UnregisterClassW(overlay.wndex.lpszClassName, overlay.wndex.hInstance);
 
@@ -280,12 +281,12 @@ void set_borderless_shadow(bool enabled) {
     }
 }
 
+bool initCreated = false;
 ImVec2 g_windowPadding = {};
 
-bool Application::Create(std::function<void()> Handler, std::function<void()> init_call_back)
+bool Application::Create(std::function<void()> Handler, std::function<void()> callBack)
 {
     overlay.name        = { appinfo.Title.c_str() };
-    //RegisterClassExA(&overlay.wndex);
 
     WNDCLASSEXW wcx{};
     wcx.cbSize = sizeof(wcx);
@@ -309,15 +310,9 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> in
 
     if (!create_device_d3d(overlay.hwnd)) 
     { 
-        clear_all(); 
+        ClearAll(); 
     }
 
-    //alow window border-radius windows 11 specific.
-    //DWMNCRENDERINGPOLICY ncrp = DWMNCRP_ENABLED;
-    //MARGINS margins           = { -1 };
-
-    //DwmSetWindowAttribute(overlay.hwnd, DWMWA_NCRENDERING_POLICY, &ncrp, sizeof(ncrp));
-    //DwmExtendFrameIntoClientArea(overlay.hwnd, &margins);
     ::ShowWindow(overlay.hwnd, SW_SHOW);::UpdateWindow(overlay.hwnd);
 
     SetWindowPos(overlay.hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -326,15 +321,18 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> in
 
     ImGui::CreateContext();
 
-    ImGuiIO* IO = &ImGui::GetIO();
-    initFontAtlas(IO);
+    if (!initCreated) {
+        ImGuiIO* IO = &ImGui::GetIO();
+        initFontAtlas(IO);
+        IO->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-    IO->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-   
+        initCreated = true;
+    }
+
     directx9.params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;
 	directx9.params.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 
-    init_call_back();
+    callBack(); 
     initTextures();
 
     g_windowOpen = true;
@@ -390,16 +388,12 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> in
                 reset_device();
             }
         }
-
-        IO->Fonts->ClearFonts();
-
         ImGui_ImplDX9_Shutdown();
         ImGui_ImplWin32_Shutdown();
 
-        clear_all();
-        ::DestroyWindow(overlay.hwnd);
-
+        ClearAll();::DestroyWindow(overlay.hwnd);
     }
+
     return false;
 }
 
@@ -468,11 +462,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         case WM_SIZE:
         {
-            if (wParam == SIZE_MAXIMIZED) {        
-                g_windowPadding = ImVec2(10, 10);
-            }
-            else {
-                g_windowPadding = ImVec2(0, 0);
+            switch (wParam)
+            {
+                case SIZE_MAXIMIZED: {
+                    g_windowPadding = ImVec2(10, 10);
+                }
+                default: {
+                    g_windowPadding = ImVec2(0, 0);
+                }
             }
 
             if (directx9.device != NULL && wParam != SIZE_MINIMIZED)
@@ -497,8 +494,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             return 0;
         }
         case WM_NCHITTEST: {
-            // When we have no border or title bar, we need to perform our
-            // own hit testing to allow resizing and moving.
             if (borderless) {
                 return hit_test(POINT{
                     GET_X_LPARAM(lParam),
@@ -508,19 +503,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             break;
         }
         case WM_NCACTIVATE: {
-            //if (!composition_enabled()) {
-            //    // Prevents window frame reappearing on window activation
-            //    // in "basic" theme, where no aero shadow is present.
-            //    return 1;
-            //}
             return 1;
         }
-
         case WM_CLOSE: {
             ::DestroyWindow(hWnd);
             return 0;
         }
-
         case WM_DESTROY: {
             PostQuitMessage(0);
             return 0;

@@ -28,6 +28,15 @@ namespace Millennium
 
     unsigned long __stdcall Bootstrap(void* lpParam)
     {
+        if (steam::get().params.has("-dev"))
+        {
+            if (static_cast<bool>(AllocConsole()))
+            {
+                void(freopen("CONOUT$", "w", stdout));
+                console.consoleAllocated = true;
+            }
+        }
+
         try
         {
             nlohmann::basic_json<> response = nlohmann::json::parse(http::get(repo));
@@ -58,20 +67,11 @@ namespace Millennium
             }
         }
 
-        if (steam::get().params.has("-dev"))
-        {
-            if (static_cast<bool>(AllocConsole()))
-            {
-                void(freopen("CONOUT$", "w", stdout));
-                console.consoleAllocated = true;
-
-                std::cout << "Millennium Dev Tools v" << m_ver << std::endl;
-                std::cout << "Developed by ShadowMonster (discord: sm74)" << std::endl;
-                std::cout << "Need help? Check the docs: https://millennium.gitbook.io/steam-patcher/guides/developers" << std::endl;
-                std::cout << "Still need help? ask the discord server: https://discord.gg/MXMWEQKgJF, or DM me if you really cant figure it out" << std::endl;
-                std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
-            }
-        }
+        std::cout << "Millennium Dev Tools v" << m_ver << std::endl;
+        std::cout << "Developed by ShadowMonster (discord: sm74)" << std::endl;
+        std::cout << "Need help? Check the docs: https://millennium.gitbook.io/steam-patcher/guides/developers" << std::endl;
+        std::cout << "Still need help? ask the discord server: https://discord.gg/MXMWEQKgJF, or DM me if you really cant figure it out" << std::endl;
+        std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
 
         Initialize(nullptr);
         return true;
