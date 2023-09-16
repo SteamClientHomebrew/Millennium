@@ -579,6 +579,8 @@ public:
 		m_Client->b_showingDetails = true;
 		m_Client->m_imageIndex = 0;
 
+		console.log(item.skin_json);
+
 		std::thread([=]() {
 
 			try
@@ -1017,20 +1019,6 @@ public:
 					bool installed = false;
 					bool local_installed = false;
 
-					//nlohmann::json skin = {
-					//	{"gh_username", m_Client->m_resultsSchema.gh_username},
-					//	{"gh_repo", m_Client->m_resultsSchema.gh_repo},
-					//	{"skin-json", m_Client->m_resultsSchema.skin_json}
-					//};
-
-					//for (const auto _item : m_Client->remoteSkinData)
-					//{
-					//	std::cout << _item.dump(4) << std::endl;
-
-					//	if (_item == skin)
-					//		installed = true;
-					//}
-
 					for (const auto item : m_Client->skinData)
 					{
 						if (this->m_itemSelectedSource.empty())
@@ -1038,47 +1026,16 @@ public:
 
 
 						if (item.value("source", std::string()) == this->m_itemSelectedSource["source"]) {
+
+							console.log(std::format("local installed: {}", this->m_itemSelectedSource["source"].get<std::string>()));
 							local_installed = true;
 						}
 					}
-
-					//if (installed)
-					//{
-					//	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, .5f));
-					//	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.0f, 0.0f, .5f));
-
-					//	if (ImGui::Button("Remove", ImVec2(rx, 35))) {
-
-					//		std::cout << skin.dump(4) << std::endl;
-
-					//		m_Client->dropLibraryItem(m_Client->m_resultsSchema, skin);
-					//		m_Client->parseSkinData();
-					//	}
-					//}
-					//else
-					//{
-					//	ImGui::PushStyleColor(ImGuiCol_Button, col);
-					//	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-
-					//	if (ImGui::Button("Download", ImVec2(rx, 35))) {
-
-					//		std::cout << m_Client->m_resultsSchema.id << std::endl;
-
-					//		api->iterate_download_count(m_Client->m_resultsSchema.id);
-
-					//		m_Client->m_resultsSchema.download_count++;
-
-					//		m_Client->concatLibraryItem(m_Client->m_resultsSchema, skin);
-					//		m_Client->parseSkinData();
-					//	}
-					//}
 
 					if (!local_installed)
 					{
 						ImGui::PushStyleColor(ImGuiCol_Button, col);
 						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-
-						//std::cout << (installed ? "true" : "false") << std::endl;
 
 						if (m_downloadInProgess)
 							ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
