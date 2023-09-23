@@ -133,14 +133,32 @@ themeConfig& themeConfig::getInstance()
     return instance;
 }
 
+class HandleWrapper {
+public:
+    HandleWrapper(HANDLE handle) : handle(handle) {}
+
+    ~HandleWrapper() {
+        if (handle != INVALID_HANDLE_VALUE && handle != NULL) {
+            CloseHandle(handle);
+        }
+    }
+
+    operator HANDLE() const {
+        return handle;
+    }
+
+private:
+    HANDLE handle;
+};
+
 void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) {
     // notification filters, name, folder created, file attributes changed, file size change
     DWORD notifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE;
 
     console.log(std::format("[bootstrap] sync file watcher starting on dir: {}", directoryPath));
 
-    HANDLE hDirectory = CreateFileA(directoryPath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-    HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    HandleWrapper hDirectory = CreateFileA(directoryPath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    HandleWrapper hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
     if (hDirectory == INVALID_HANDLE_VALUE || hEvent == NULL) {
         CloseHandle(hDirectory);

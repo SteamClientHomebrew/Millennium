@@ -284,6 +284,96 @@ void set_borderless_shadow(bool enabled) {
 bool initCreated = false;
 ImVec2 g_windowPadding = {};
 
+bool g_fileDropQueried = false;
+
+class MillenniumTarget : public IDropTarget {
+public:
+    MillenniumTarget(HWND hwnd) : hwnd(hwnd) {
+        GetClientRect(hwnd, &clientRect);
+    }
+
+    // IDropTarget methods
+    STDMETHOD(QueryInterface)(REFIID, void**) override {
+        // Implement the QueryInterface method here
+        return E_NOTIMPL;
+    }
+
+    STDMETHOD_(ULONG, AddRef)() override {
+        // Implement the AddRef method here
+        return 1;
+    }
+
+    STDMETHOD_(ULONG, Release)() override {
+        // Implement the Release method here
+        return 1;
+    }
+
+    STDMETHOD(DragEnter)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+        POINT cursorPoint = { pt.x, pt.y };
+        LogFilePresence(true);
+
+        //*pdwEffect = DROPEFFECT_COPY;
+        return S_OK;
+    }
+
+    STDMETHOD(DragOver)(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+        POINT cursorPoint = { pt.x, pt.y };
+        LogFilePresence(true);
+
+        //*pdwEffect = DROPEFFECT_COPY;
+        return S_OK;
+    }
+
+    STDMETHOD(DragLeave)() override {
+        // File drag operation has left the window
+        LogFilePresence(false);
+        return S_OK;
+    }
+
+    STDMETHOD(Drop)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+
+        FORMATETC fmt = { CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+        STGMEDIUM medium;
+
+        // Try to get the dropped files in CF_HDROP format
+        if (pDataObj->GetData(&fmt, &medium) == S_OK) {
+            HDROP hDrop = static_cast<HDROP>(medium.hGlobal);
+            UINT numFiles = DragQueryFile(hDrop, 0xFFFFFFFF, nullptr, 0);
+
+            for (UINT i = 0; i < numFiles; ++i) {
+                TCHAR filePath[MAX_PATH];
+                if (DragQueryFile(hDrop, i, filePath, MAX_PATH) > 0) {
+                    // Handle the file path (e.g., log or process it)
+                    std::wcout << L"Dropped file: " << filePath << std::endl;
+                }
+            }
+
+            ReleaseStgMedium(&medium); // Release the allocated resources
+        }
+
+        LogFilePresence(false);
+        return S_OK;
+    }
+
+    void SetClientRect(RECT rect) {
+        clientRect = rect;
+    }
+
+private:
+    HWND hwnd; // The window handle
+    RECT clientRect; // The client area of the window
+
+    // Function to log file presence in the client area
+    void LogFilePresence(bool presence) {
+        if (presence) {
+            g_fileDropQueried = true;
+        }
+        else {
+            g_fileDropQueried = false;
+        }
+    }
+};
+
 bool Application::Create(std::function<void()> Handler, std::function<void()> callBack)
 {
     overlay.name        = { appinfo.Title.c_str() };
@@ -331,6 +421,10 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
 
     directx9.params.PresentationInterval       = D3DPRESENT_INTERVAL_ONE;
 	directx9.params.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
+
+    MillenniumTarget dropTarget(overlay.hwnd);
+    RegisterDragDrop(overlay.hwnd, &dropTarget);
+    DragAcceptFiles(overlay.hwnd, TRUE);
 
     callBack(); 
     initTextures();
@@ -466,9 +560,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 case SIZE_MAXIMIZED: {
                     g_windowPadding = ImVec2(10, 10);
+                    break;
                 }
                 default: {
                     g_windowPadding = ImVec2(0, 0);
+                    break;
                 }
             }
 

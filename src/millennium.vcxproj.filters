@@ -93,6 +93,15 @@
     <ClInclude Include="utils\thread\thread_handler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="window\interface\notify\imnotify.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="window\interface\notify\font_awesome_5.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="window\interface\notify\fa_solid_900.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

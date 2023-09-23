@@ -85,6 +85,51 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 	console.log(std::format("[DEBUG] found a skin: {}", entry.path().filename().string()));
 	const std::string fileName = entry.path().filename().string();
 
+	if (data.contains("source"))
+	{
+		std::filesystem::path cloudData = std::filesystem::path(data["source"].get<std::string>()) / "skin.json";
+
+		try {
+			nlohmann::basic_json<> cloudResponse = nlohmann::json::parse(http::get(cloudData.string()));
+
+			if (cloudResponse.contains("download_url")) {
+				cloudResponse = nlohmann::json::parse(http::get(cloudResponse["download_url"].get<std::string>()));
+			}
+
+			std::cout << "checking current version: " << data["version"].get<std::string>() << std::endl;
+			std::cout << "checking repo version: " << cloudResponse["version"].get<std::string>() << std::endl;
+
+			if (data["version"] == cloudResponse["version"]) {
+				console.log(std::format("{} is currently up-to-date", skin_json_path.string()));
+				data["update_required"] = false;
+			} else {
+				console.log(std::format("{} needs an update", skin_json_path.string()));
+				data["update_required"] = true;
+
+				if (cloudResponse.contains("patch-notes")) 
+				{		
+					try
+					{
+						std::string patchNotes = nlohmann::json::parse(http::get(cloudResponse["patch-notes"]))["body"];
+
+						console.log(std::format("Got patch notes for skin that needed an update:\n{}", patchNotes));
+
+						data["patch-notes"] = patchNotes;
+					}
+					catch (nlohmann::detail::exception& excep) {
+						console.log(std::format("Exception while getting patch notes (json parser): {}", excep.what()));
+					}
+					catch (const http_error& error) {
+						console.log(std::format("Exception while getting patch notes (http error): {}", error.what()));
+					}
+				}
+			}
+		}
+		catch (const http_error& error) {
+			console.log(std::format("An error occured while checking for updates on skin {}", skin_json_path.string()));
+		}
+	}
+
 	data["name"]        = data.value("name", fileName).c_str();
 	data["native-name"] = fileName;
 	data["description"] = data.value("description", "no description yet.").c_str();
@@ -94,10 +139,23 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 	return true;
 }
 
+void millennium::releaseImages() {
+	for (auto& item : v_rawImageList) {
+		if (item.texture) item.texture->Release();
+	}
+
+	v_rawImageList.clear();
+}
+
 void millennium::getRawImages(std::vector<std::string>& images)
 {
 	for (auto& item : v_rawImageList) {
-		if (item.texture) item.texture->Release();
+		std::cout << "Iterating over texture" << std::endl;
+		if (item.texture)
+		{
+			std::cout << "Releasing a texture" << std::endl;
+			item.texture->Release();
+		}
 	}
 
 	v_rawImageList.clear();
@@ -111,39 +169,30 @@ void millennium::getRawImages(std::vector<std::string>& images)
 
 void millennium::parseSkinData()
 {
-	const std::string steamPath = config.getSkinDir();
-
-	console.log(std::format("[DEBUG] searching for steam skins at: {}", steamPath));
-
-	try
-	{
-		this->resetCollected();
-
-		//create a buffer so we dont clear the buffer displaying on screen else it could cause visual bugs or crashes
-		std::vector<nlohmann::basic_json<>> jsonBuffer;
-
-		for (const auto& entry : std::filesystem::directory_iterator(steamPath))
+	std::thread([&]() {
+		const std::string steamPath = config.getSkinDir();
+		console.log(std::format("[DEBUG] searching for steam skins at: {}", steamPath));
+		try
 		{
-			console.log("found a folder in skins folder, checking if its a valid skin.");
+			this->resetCollected();
+			std::vector<nlohmann::basic_json<>> jsonBuffer;
 
-			// not supported anymore, not sure if ill add it back
-			/*if (entry.path().filename().string().find(".millennium.json") != std::string::npos)
+			for (const auto& entry : std::filesystem::directory_iterator(steamPath))
 			{
-				this->parseRemoteSkin(entry, jsonBuffer);
+				console.log("found a folder in skins folder, checking if its a valid skin.");
+
+				if (entry.is_directory())
+				{
+					if (!this->parseLocalSkin(entry, jsonBuffer))
+						continue;
+				}
 			}
-			else */if (entry.is_directory())
-			{
-				if (!this->parseLocalSkin(entry, jsonBuffer))
-					continue;
-			}
+			skinData = jsonBuffer;
 		}
-		//replace the current json with the buffer
-		skinData = jsonBuffer;
-	}
-	catch (std::exception& ex)
-	{
-		console.err(std::format("Error getting user settings. Message: {}", ex.what()));
-	}
+		catch (std::exception& ex) {
+			console.err(std::format("Error getting user settings. Message: {}", ex.what()));
+		}
+	}).detach();
 }
 
 void millennium::changeSkin(nlohmann::basic_json<>& skin)

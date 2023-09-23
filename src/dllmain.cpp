@@ -8,8 +8,55 @@
 #include <window/core/window.hpp>
 
 #include <utils/thread/thread_handler.hpp>
+#include <Psapi.h>
+#include <pdh.h>
+
+#pragma comment(lib, "pdh.lib")
 
 HMODULE hCurrentModule = nullptr;
+
+FILETIME prevSysIdle, prevSysKernel, prevSysUser;
+
+// TIME DIFF FUNC
+ULONGLONG SubtractTimes(const FILETIME one, const FILETIME two)
+{
+    LARGE_INTEGER a, b;
+    a.LowPart = one.dwLowDateTime;
+    a.HighPart = one.dwHighDateTime;
+
+    b.LowPart = two.dwLowDateTime;
+    b.HighPart = two.dwHighDateTime;
+
+    return a.QuadPart - b.QuadPart;
+}
+
+int getUsage(double& val)
+{
+    FILETIME sysIdle, sysKernel, sysUser;
+    // sysKernel include IdleTime
+    if (GetSystemTimes(&sysIdle, &sysKernel, &sysUser) == 0) // GetSystemTimes func FAILED return value is zero;
+        return 0;
+
+    if (prevSysIdle.dwLowDateTime != 0 && prevSysIdle.dwHighDateTime != 0)
+    {
+        ULONGLONG sysIdleDiff, sysKernelDiff, sysUserDiff;
+        sysIdleDiff = SubtractTimes(sysIdle, prevSysIdle);
+        sysKernelDiff = SubtractTimes(sysKernel, prevSysKernel);
+        sysUserDiff = SubtractTimes(sysUser, prevSysUser);
+
+        ULONGLONG sysTotal = sysKernelDiff + sysUserDiff;
+        ULONGLONG kernelTotal = sysKernelDiff - sysIdleDiff; // kernelTime - IdleTime = kernelTime, because sysKernel include IdleTime
+
+        if (sysTotal > 0) // sometimes kernelTime > idleTime
+            val = (double)(((kernelTotal + sysUserDiff) * 100.0) / sysTotal);
+    }
+
+    prevSysIdle = sysIdle;
+    prevSysKernel = sysKernel;
+    prevSysUser = sysUser;
+
+    return 1;
+}
 
 namespace Millennium
 {
@@ -24,6 +71,33 @@ namespace Millennium
         }
 
         return true;
+    }
+
+    unsigned long __stdcall getConsoleHeader(void* lpParam) {
+
+        while (true) {
+            PROCESS_MEMORY_COUNTERS_EX pmc;
+            HANDLE hProcess = GetCurrentProcess();
+
+            double cpuLoad;
+            getUsage(cpuLoad);
+
+            if (GetProcessMemoryInfo(hProcess, (PPROCESS_MEMORY_COUNTERS)&pmc, sizeof(pmc))) {
+                SIZE_T privateBytes = pmc.PrivateUsage;
+                double privateMB = static_cast<double>(privateBytes) / (1024 * 1024);
+
+                SetConsoleTitle(std::format("Millennium.Patcher-v{} [Threads: {}, Processor: {}%, Private-Bytes {} MB]", 
+                    m_ver, 
+                    threadContainer::getInstance().runningThreads.size(), 
+                    std::round(cpuLoad * 100.0) / 100.0,
+                    std::round(privateMB * 100.0) / 100.0
+                ).c_str());
+            }
+            else {
+                std::cout << "Error: GetProcessMemoryInfo failed." << std::endl;
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
     }
 
     unsigned long __stdcall Bootstrap(void* lpParam)
@@ -73,7 +147,9 @@ namespace Millennium
         std::cout << "Still need help? ask the discord server: https://discord.gg/MXMWEQKgJF, or DM me if you really cant figure it out" << std::endl;
         std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
 
-        Initialize(nullptr);
+        threadContainer::getInstance().addThread(CreateThread(0, 0, getConsoleHeader, 0, 0, 0));
+        threadContainer::getInstance().addThread(CreateThread(0, 0, Initialize, 0, 0, 0));
+
         return true;
     }
 }

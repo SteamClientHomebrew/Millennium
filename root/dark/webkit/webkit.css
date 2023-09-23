@@ -680,11 +680,11 @@ body.v6 #footer .rule{border-top:0 solid var(--littlegrey)!important}
 .short_header:hover{background-color:var(--begrey)!important;border-top-left-radius:var(--border0)!important;border-top-right-radius:var(--border0)!important}
 .discount_block.no_discount .bundle_base_discount{border-right:0!important}
 .queue_controls_description{color:var(--gold)!important;background:0 0!important;margin-top:-28px!important}
-.btn_next_in_queue .next_in_queue_content{padding:25px 15% 0 28%!important}
+/* .btn_next_in_queue .next_in_queue_content{padding:25px 15% 0 28%!important}
 .btn_next_in_queue{background:0 0!important;background-color:#584d31!important;width:230px!important;height:80px!important;margin-bottom:-10px!important;margin-right:-15px!important;margin-top:-35px!important;border-radius:var(--border5)!important}
 .btn_next_in_queue{background:0 0!important;background-color:var(--bronze)!important;width:230px!important;height:80px!important;margin-bottom:-10px!important;margin-right:-15px!important;margin-top:20px!important;border-radius:var(--border5)!important}
 .btn_next_in_queue span{color:var(--gold)!important}
-.btn_next_in_queue:hover span{color:var(--gold)!important}
+.btn_next_in_queue:hover span{color:var(--gold)!important} */
 .game_area_comingsoon{border-radius:var(--border0)!important}
 .game_page_autocollapse_fade{background:0 0!important}
 .game_purchase_action_bg > *{border-radius:var(--border0)!important}
@@ -1015,4 +1015,16 @@ body.responsive_page {
 
 .responsive_page_frame.no_header {
     background: #303030 !important;
+}
+
+div#tab_filters {
+    background: #252525 !important;
+}
+
+div#dropdown_sort {
+    background: #252525 !important;
+}
+
+body.v6 .game_page_background {
+    background: none !important;
 }

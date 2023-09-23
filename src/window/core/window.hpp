@@ -18,6 +18,8 @@ extern ImVec2 g_windowPadding;
 
 extern bool g_initReady;
 
+extern bool g_fileDropQueried;
+
 struct icons
 {
     PDIRECT3DTEXTURE9 

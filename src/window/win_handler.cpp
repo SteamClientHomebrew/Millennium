@@ -13,6 +13,8 @@
 #include <utils/http/http_client.hpp>
 #include <utils/thread/thread_handler.hpp>
 
+#include <window/interface/notify/imnotify.h>
+
 struct render
 {
 private:
@@ -37,149 +39,77 @@ private:
 			ImGui::PopStyleColor(1);
 		}
 	};
-	const void writeFileSync(const std::filesystem::path& filePath, const std::string& fileContent)
+
+	void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
 	{
-		std::ofstream fileStream(filePath);
-		fileStream << fileContent;
+		console.log(std::format("writing file to: {}", filePath.string()));
+
+		std::ofstream fileStream(filePath, std::ios::binary);
+		if (!fileStream)
+		{
+			console.log(std::format("Failed to open file for writing: {}", filePath.string()));
+			return;
+		}
+
+		fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
+
+		if (!fileStream)
+		{
+			console.log(std::format("Error writing to file: {}", filePath.string()));
+		}
+
 		fileStream.close();
 	}
+
 	std::string sanitizeDirectoryName(const std::string& input) {
-		// Regular expression to match characters that are not URL-encoded
-		std::regex invalidCharRegex("[^a-zA-Z0-9-_.~]");
-		// Replace invalid characters with an empty string
-		return std::regex_replace(input, invalidCharRegex, "");
+		return std::regex_replace(input, std::regex("[^a-zA-Z0-9-_.~]"), "");
 	}
-	std::vector<std::string> queryThemeData(nlohmann::basic_json<>& skinData)
+	
+	void downloadFolder(const nlohmann::json& folderData, const std::filesystem::path& currentDir) 
 	{
-		std::vector<std::string> fileItems;
-		std::set<std::string> processedNames;
+		std::filesystem::create_directories(currentDir);
 
-		for (const auto& patch : skinData["Patches"])
+		for (const auto& item : folderData) 
 		{
-			if (patch.contains("TargetCss"))
+			if (item["type"] == "dir") 
 			{
-				const auto styleSheet = patch["TargetCss"].get<std::string>();
+				std::filesystem::path dirPath = currentDir / item["name"];
+				std::filesystem::create_directories(dirPath);
 
-				if (processedNames.find(styleSheet) != processedNames.end()) {
-					goto next;
-				}
-
-				fileItems.push_back(styleSheet);
-				processedNames.insert(styleSheet);
+				downloadFolder(nlohmann::json::parse(http::get(item["url"])), dirPath);
 			}
-			next:
-			if (patch.contains("TargetJs"))
+			else if (item["type"] == "file" && !item["download_url"].is_null()) 
 			{
-				const auto javaScript = patch["TargetJs"].get<std::string>();
+				const std::string fileName = item["name"].get<std::string>();
+				const std::filesystem::path filePath = currentDir / fileName;
 
-				if (processedNames.find(javaScript) != processedNames.end()) {
-					continue;
-				}
-
-				fileItems.push_back(javaScript);
-				processedNames.insert(javaScript);
+				m_downloadStatus = std::format("downloading {}", fileName);
+				this->writeFileBytesSync(filePath, http::get_bytes(item["download_url"].get<std::string>().c_str()));
 			}
-		}
-
-		for (const auto& hook : skinData["Hooks"])
-		{
-			if (hook.contains("Interpolate"))
-			{
-				const auto interpFile = hook["Interpolate"].get<std::string>();
-
-				if (processedNames.find(interpFile) != processedNames.end()) {
-					continue;
-				}
-
-				fileItems.push_back(interpFile);
-				processedNames.insert(interpFile);
-			}
-		}
-
-		return fileItems;
-	}
-	const void findImportsSync(const std::string& content, std::filesystem::path& githubUrl, std::filesystem::path& parentPath)
-	{
-		using namespace std::filesystem;
-
-		std::smatch matches;
-		std::string::const_iterator searchStart(content.cbegin());
-
-		std::regex importRegex("@import\\s+url\\(([^\)]+)\\);");
-
-		while (std::regex_search(searchStart, content.cend(), matches, importRegex))
-		{
-			if (matches.size() <= 1) {
-				continue;
-			}
-
-			const auto importedFileName = matches[1].str();
-			console.log(std::format("# Import: {}", importedFileName));
-			m_downloadStatus = std::format("GET {}", importedFileName);
-
-			path importUrl = githubUrl / parentPath / importedFileName;
-			path resolvedPath = parentPath / importedFileName;
-
-			try {
-				if (resolvedPath.has_parent_path()) {
-					create_directories(resolvedPath.parent_path());
-				}
-				this->writeFileSync(resolvedPath, http::get(importUrl.string()));
-			}
-			catch (const http_error& error)
-			{
-				switch (error.code())
-				{
-				case http_error::errors::couldnt_connect: {
-					MsgBox(std::format("A file couldn't be downloaded {}", importUrl.string()).c_str(), "Millennium", MB_ICONERROR); break;
-				}
-				default: { MsgBox("The selected theme seems to be malformed", "Error", MB_ICONERROR); }
-				}
-			}
-			searchStart = matches.suffix().first;
 		}
 	}
-	const void createThemeSync(nlohmann::basic_json<> skinData)
-	{
-		using namespace std::filesystem;
 
-		path githubUrl = skinData["source"].get<std::string>();
-		path dirName = path(config.getSkinDir()) / this->sanitizeDirectoryName(skinData["name"].get<std::string>());
-		create_directory(dirName);
+	void downloadTheme(const nlohmann::json& skinData) {
+		std::filesystem::path skinDir = std::filesystem::path(config.getSkinDir()) / sanitizeDirectoryName(skinData["name"].get<std::string>());
 
-		path originalDir = current_path();
-		current_path(dirName);
-
-		this->writeFileSync("skin.json", skinData.dump(4));
-
-		std::vector<std::string> fileItems = this->queryThemeData(skinData);
-
-		for (const auto& fileName : fileItems)
-		{
-			path parentPath;
-			path relativeUrlPath = githubUrl / fileName;
-
-			const auto p_fileName = path(fileName);
-			if (p_fileName.has_parent_path())
-			{
-				create_directories(p_fileName.parent_path());
-				parentPath = p_fileName.parent_path();
-			}
-
-			console.log(std::format("GET {}", fileName));
-			m_downloadStatus = std::format("GET {}", fileName);
-
-			const auto content = http::get(relativeUrlPath.string());
-
-			this->findImportsSync(content, githubUrl, parentPath);
-
-			console.log(std::format("[DEBUG] writing file contents to: {}", fileName));
-			this->writeFileSync(fileName, content);
+		try {
+			nlohmann::json folderData = nlohmann::json::parse(http::get(skinData["source"]));
+			downloadFolder(folderData, skinDir);
 		}
-
-		current_path(originalDir);
+		catch (const http_error& exception) {
+			console.log(std::format("download theme exception: {}", exception.what()));
+		}
 	}
+
 public:
+
+	struct updateItem
+	{
+		std::string status;
+		int id = -1;
+	};
+
+	updateItem updatingItem;
 
 	void createLibraryListing(nlohmann::basic_json<>& skin, int index)
 	{
@@ -201,52 +131,27 @@ public:
 		}
 		else ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.13f, 0.13f, 1.0f));
 
+		static bool updateButtonHovered = false;
 
 		if (m_Client->m_currentSkin == m_skinName)
 			ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
 		else
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.25f, 0.25f, 0.25f, 0.0f));
 
-		ImGui::BeginChild(std::format("card_child_container_{}", index).c_str(), ImVec2(rx, 50 + desc_height), true, ImGuiWindowFlags_ChildWindow);
+		bool requiresUpdate = skin["update_required"].get<bool>();
+
+		ImGui::BeginChild(std::format("card_child_container_{}", index).c_str(), ImVec2(rx, (requiresUpdate ? 80 : 50) + desc_height), true, ImGuiWindowFlags_ChildWindow);
 		{
 			//reset the window padding rules
 			ImGui::PopStyleVar();
 			popped = true;
-
 			ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6);
-
 			ImGui::PopStyleColor();
 
 			//display the title bar of the current skin 
 			ImGui::BeginChild(std::format("skin_header{}", index).c_str(), ImVec2(rx, 33), true);
 			{
-				if (skin["remote"])
-				{
-					ImGui::Image((void*)Window::iconsObj().icon_remote_skin, ImVec2(ry - 1, ry - 1));
-					if (ImGui::IsItemHovered())
-					{
-						ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-						ImGui::BeginTooltip();
-
-						ImGui::Text("This is a remotely hosted Steam Skin, meaning it is not stored on your PC");
-						ImGui::Text("What does this mean?");
-
-						ImGui::Separator();
-
-						ImGui::Text("Skins can be updated and the code can be changed by the developer AT ANY TIME");
-
-						ImGui::TextColored(ImVec4(1, 0, 0, 1), "This means there COULD be potential MALICIOUS updates without you knowing");
-						ImGui::Text("Make sure you trust the skin developer before continuing.");
-
-						ImGui::Separator();
-
-						ImGui::Text("NOTE: remote skins wont be able to load properly offline unless you download them.");
-						ImGui::EndTooltip();
-					}
-				}
-				else
-					ImGui::Image((void*)Window::iconsObj().skin_icon, ImVec2(ry - 1, ry - 1));
+				ImGui::Image((void*)Window::iconsObj().skin_icon, ImVec2(ry - 1, ry - 1));
 
 				ImGui::SameLine();
 
@@ -260,6 +165,10 @@ public:
 				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 				ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), std::format("{} by {}", skin.value("version", "1.0.0"), skin.value("author", "unknown")).c_str());
 
+				ImGui::SameLine();
+				ui::shift::right(35);
+				ui::shift::y(-3);
+
 				ImGui::PopFont();
 			}
 			ImGui::EndChild();
@@ -267,13 +176,38 @@ public:
 
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10);
 
-			ImGui::BeginChild("###description_child", ImVec2(rx - 45, ry), false);
+			ImGui::BeginChild("###description_child", ImVec2(rx - 10, (requiresUpdate ? (ry - 33) : ry)), false);
 			{
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5, 0.5, 0.5, 1.0));
 				ImGui::TextWrapped(skin.value("description", "null").c_str());
 				ImGui::PopStyleColor();
 			}
 			ImGui::EndChild();
+
+			if (requiresUpdate) 
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+
+				if (ImGui::Button(updatingItem.id == index ? updatingItem.status.c_str() : "Update Now!", ImVec2(rx, 25))) {
+					updatingItem.id = index;
+					updatingItem.status = "Updating...";
+
+					std::thread([&]() { 
+						this->downloadTheme(skin);
+						m_Client->parseSkinData(); 
+
+						updatingItem.id = -1;
+					}).detach();
+				}
+				if (ImGui::IsItemHovered()) {
+					updateButtonHovered = true;
+				}
+				else {
+					updateButtonHovered = false;
+				}
+				ImGui::PopStyleColor(2);
+			}
 		}
 
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
@@ -292,7 +226,13 @@ public:
 				console.log(std::format("deleting skin {}", disk_path));
 
 				if (std::filesystem::exists(disk_path)) {
-					std::filesystem::remove_all(std::filesystem::path(disk_path));
+
+					try {
+						std::filesystem::remove_all(std::filesystem::path(disk_path));
+					}
+					catch (const std::exception& ex) {
+						MsgBox(std::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+					}
 				}
 
 				m_Client->parseSkinData();
@@ -311,7 +251,12 @@ public:
 		if (!m_isHovered && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
 		{
 			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-			hovering = index;
+			if (!updateButtonHovered) {
+				hovering = index;
+			} else {
+				hovering = -1;
+			}
+
 			push_popped = false;
 		}
 		else if (push_popped) hovering = -1;
@@ -471,7 +416,7 @@ public:
 					ImGui::Text(text);
 				}
 				ImGui::EndChild();
-			}	
+			}
 			else {
 				for (size_t i = 0; i < m_Client->skinData.size(); ++i)
 				{
@@ -574,6 +519,8 @@ public:
 	}
 	void loadSelection(MillenniumAPI::resultsSchema& item)
 	{
+		//m_Client->releaseImages();
+
 		m_Client->m_resultsSchema = item;
 		m_Client->getRawImages(item.v_images);
 		m_Client->b_showingDetails = true;
@@ -851,7 +798,7 @@ public:
 				ImGui::Spacing();
 				ImGui::Spacing();
 
-				skin_details_panel();
+				communityPaneDetails();
 			}
 		}
 	}
@@ -876,7 +823,7 @@ public:
 			}
 		}
 	}
-	void skin_details_panel()
+	void communityPaneDetails()
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 10);
 
@@ -893,6 +840,8 @@ public:
 				if (ImGui::Button(" < Back "))
 				{
 					m_Client->b_showingDetails = false;
+
+					//m_Client->releaseImages();
 				}
 
 
@@ -1015,24 +964,25 @@ public:
 
 					static ImU32 col = ImGui::GetColorU32(ImGuiCol_CheckMark);
 
-
-					bool installed = false;
-					bool local_installed = false;
+					bool isInstalled = false;
+					bool requiresUpdate = false;
 
 					for (const auto item : m_Client->skinData)
 					{
 						if (this->m_itemSelectedSource.empty())
 							continue;
 
+						if (item.value("source", std::string()) == this->m_itemSelectedSource.value("source", std::string())) {
 
-						if (item.value("source", std::string()) == this->m_itemSelectedSource["source"]) {
+							//console.log(std::format("local installed: {}", this->m_itemSelectedSource["source"].get<std::string>()));
+							isInstalled = true;
 
-							console.log(std::format("local installed: {}", this->m_itemSelectedSource["source"].get<std::string>()));
-							local_installed = true;
+							if (item["version"] != this->m_itemSelectedSource["version"])
+								requiresUpdate = true;
 						}
 					}
 
-					if (!local_installed)
+					if (requiresUpdate || !isInstalled)
 					{
 						ImGui::PushStyleColor(ImGuiCol_Button, col);
 						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
@@ -1042,7 +992,7 @@ public:
 						else
 							ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
 
-						if (ImGui::Button((m_downloadInProgess ? m_downloadStatus.c_str() : "Download"), ImVec2(rx, 35))) {
+						if (ImGui::Button((m_downloadInProgess ? m_downloadStatus.c_str() : requiresUpdate ? "Update" : "Download"), ImVec2(rx, 35))) {
 
 							std::cout << m_Client->m_resultsSchema.id << std::endl;
 
@@ -1051,7 +1001,10 @@ public:
 								api->iterate_download_count(m_Client->m_resultsSchema.id);
 								m_Client->m_resultsSchema.download_count++;
 
-								this->createThemeSync(m_itemSelectedSource);
+								std::cout << m_itemSelectedSource.dump(4) << std::endl;
+								this->downloadTheme(m_itemSelectedSource);
+
+								//this->createThemeSync(m_itemSelectedSource);
 
 								m_Client->parseSkinData();
 								m_downloadInProgess = false;
@@ -1073,14 +1026,13 @@ public:
 							console.log(std::format("deleting skin {}", disk_path));
 
 							if (std::filesystem::exists(disk_path)) {
-								
+
 								try {
 									std::filesystem::remove_all(std::filesystem::path(disk_path));
 								}
 								catch (const std::exception& ex) {
 									MsgBox(std::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
 								}
-
 							}
 
 							m_Client->parseSkinData();
@@ -1091,39 +1043,6 @@ public:
 
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
 					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
-
-					//if (installed)
-					//{
-					//	if (ImGui::Button("Add to Library", ImVec2(rx, 35)))
-					//	{
-					//		std::cout << m_Client->m_resultsSchema.id << std::endl;
-
-					//		api->iterate_download_count(m_Client->m_resultsSchema.id);
-
-					//		m_Client->m_resultsSchema.download_count++;
-
-					//		m_Client->concatLibraryItem(m_Client->m_resultsSchema, skin);
-					//		m_Client->parseSkinData();
-					//	}
-					//	if (ImGui::IsItemHovered())
-					//	{
-					//		ImGui::SetTooltip(
-					//			"Link the cloud version of the skin to your library.\n"
-					//			"This means updates to the skin will be automatically be added to your client when they come.\n"
-					//			"However locally installing the theme will perform better and the theme will also work offline.\n\n"
-					//			"Keep in mind that as new updates come, if there is malicious code added to the skin you may not notice it\n"
-					//			"if you use the cloud version.\n\n"
-					//			"Only use cloud skins from millennium developers or other developers you trust."
-					//		);
-					//	}
-					//}
-					//else
-					//{
-					//	if (ImGui::Button("Remove from Library", ImVec2(rx, 35))) {
-					//		m_Client->dropLibraryItem(m_Client->m_resultsSchema, skin);
-					//		m_Client->parseSkinData();
-					//	}
-					//}
 
 					if (ImGui::Button("View Source", ImVec2(rx, 35))) {
 
@@ -1404,6 +1323,8 @@ public:
 				}
 				ImGui::PopStyleColor();
 
+				//ImGui::InsertNotification({ ImGuiToastType_Error, 3000, "Hello World! This is an error!" });
+
 				//if (ImGui::Button("Unload Millennium")) {
 				//	FreeConsole();
 				//	MsgBox("Unloading Millennium from Steam", "Error", 0);
@@ -1527,6 +1448,37 @@ public:
 	}
 } RendererProc;
 
+void handleFileDrop()
+{
+	if (g_fileDropQueried) {
+		ImGui::OpenPopup("###FileDropPopup");
+	}
+
+	ui::center_modal(ImVec2(ImGui::GetMainViewport()->WorkSize.x / 2.3, ImGui::GetMainViewport()->WorkSize.y / 2.4));
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
+
+	ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+	if (ImGui::BeginPopupModal("###FileDropPopup", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
+	{
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+		
+		ImGui::PopStyleColor();
+
+		if (!g_fileDropQueried) {
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar();
+}
+
 void init_main_window()
 {
 	// GET information on initial load
@@ -1540,6 +1492,8 @@ void init_main_window()
 		RendererProc.renderSideBar();
 		ImGui::SameLine(); ui::shift::x(-10);
 		RendererProc.renderContentPanel();
+
+		handleFileDrop();
 	});
 
 	std::thread([&]() {

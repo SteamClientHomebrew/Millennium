@@ -190,6 +190,9 @@
     <ClInclude Include="window\core\memory.h" />
     <ClInclude Include="window\core\window.hpp" />
     <ClInclude Include="window\interface\globals.h" />
+    <ClInclude Include="window\interface\notify\fa_solid_900.h" />
+    <ClInclude Include="window\interface\notify\font_awesome_5.h" />
+    <ClInclude Include="window\interface\notify\imnotify.h" />
     <ClInclude Include="window\win_handler.hpp" />
     <ClInclude Include="scripts\resource.h" />
     <ClInclude Include="stdafx.h" />

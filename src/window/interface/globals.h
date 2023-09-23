@@ -124,6 +124,8 @@ public:
 	void concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
 	void dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
 
+	void releaseImages();
+
 	~millennium() noexcept
 	{
 		for (auto& item : v_rawImageList) {

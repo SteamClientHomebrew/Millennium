@@ -192,6 +192,8 @@ public:
             this->target_info_changed();
             client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
         }
+
+        msg->recycle();
     }
 
     const void update_fetch_hook_status()
@@ -222,7 +224,7 @@ public:
                     { "urlPattern", hook["TargetJs"] },
                     { "resourceType", "Script" },
                     { "requestStage", "Response" },
-                    });
+                });
             }
         }
 
@@ -493,8 +495,15 @@ private:
             throw socket_response_error(socket_response_error::errors::socket_error_message);
         }
 
-        m_header = m_socket_resp["result"]["result"]["value"]["title"].get<std::string>();
-        patch(m_header);
+        try
+        {
+            m_header = m_socket_resp["result"]["result"]["value"]["title"].get<std::string>();
+            this->patch(m_header);
+        }
+        catch (const nlohmann::detail::exception& error) {
+            console.err(std::format("Error patching page or getting page title, message: {}, socket message: {}", error.what(), m_socket_resp.dump(4)));
+        }
+
     }
 
     const std::string get_class_list(const nlohmann::basic_json<>& node)
@@ -531,20 +540,17 @@ private:
     {
         try {
 
-            //get the <head> attributes of the dom which is what is most important in selecting pages
+            //get the <html> attributes of the dom which is what is most important in selecting pages
             std::string attributes = get_class_list(m_socket_resp["result"]["root"]);
 
-            console.log(std::format("[DEVELOPER] valid QUERY from page {}", nlohmann::json({
-                {"pageTitle", m_header},
-                {"querySelector", attributes}
-            }).dump(4)));
+            //console.log(std::format("[DEVELOPER] valid QUERY from page {}", nlohmann::json({
+            //    {"pageTitle", m_header},
+            //    {"querySelector", attributes}
+            //}).dump(4)));
 
-            /// <summary>
-            /// inject millennium into the settings page, uses query instead of title because title varies between languages
-            /// </summary>
-            if (attributes.find("settings_SettingsModalRoot_") != std::string::npos) {
-                console.succ("injecting millennium into settings modal");
-                //steam_interface.inject_millennium(c, m_socket_resp);
+
+            if (!skin_json_config.contains("Patches")) {
+                return;
             }
 
             for (const json_patch& patch : skin_json_config["Patches"].get<std::vector<json_patch>>())
@@ -670,25 +676,17 @@ private:
 
             nlohmann::basic_json<> response = json::parse(msg->get_payload());
 
-            if (response.value("method", std::string()) != "Page.frameResized")
-            {
-                evaluate_scripting(c, hdl);
+            const auto method = response.value("method", "millennium::empty");
 
-                //evaluate scripts over and over again until they succeed, because sometimes it doesn't.
-                //usually around 2 iterations max
-                //while (true)
-                //{
-                //    //evaluating scripting
-                //    evaluate_scripting(c, hdl);
-                //    //create a new response buffer but on the same socket stream to prevent shared memory usage
-                //    boost::beast::multi_buffer buffer; socket.read(buffer);
-                //    //the js evaluation was successful so we can break.
-                //    if (nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))
-                //        ["result"]["exceptionDetails"]["exception"]["className"] not_eq "TypeError") {
-                //        break;
-                //    }
-                //}
+            if (method.find("Page") != std::string::npos)
+            {
+                if (method != "Page.frameResized"
+                &&  method != "Page.navigatedWithinDocument")
+                {
+                    evaluate_scripting(c, hdl);
+                }
             }
+            msg->recycle();
         };
 
         try {
