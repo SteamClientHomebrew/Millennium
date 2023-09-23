@@ -7,17 +7,9 @@
         {
             "Interpolate": "webkit/webkit.css",
             "TargetCss": "https://store.akamai.steamstatic.com/public/shared/css/buttons.css*"
-        },
-        {
-            "Interpolate": "webkit/store.js",
-            "TargetJs": "https://store.akamai.steamstatic.com/public/shared/javascript/shared_responsive_adapter.js*"
         }
     ],
     "Patches": [
-        {
-            "MatchRegexString": ".*http.*steam.*",
-            "TargetJs": "webkit/store.js"
-        },
         {
             "MatchRegexString": "SteamBrowser_Find",
             "TargetCss": "Steam.css"
@@ -106,5 +98,5 @@
     "name": "Simple Dark.",
     "source": "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/contents/root/dark",
     "patch-notes": "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/releases/latest",
-    "version": "1.0.1"
+    "version": "1.0.2"
 }
