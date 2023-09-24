@@ -26,13 +26,15 @@ private:
     int errorCode_;
 };
 
-//no information is transfered from the client to elsewhere.
+//no information is transfered from the client to elsewhere other than download count on skins.
 //this is specifically for get requests to the steam socket and remotely hosted skins (getting skin info)
 class http
 {
 public:
     static const void close(HINTERNET sentinel, ...);
 	static const std::string get(std::string remote_endpoint);
+	static const nlohmann::json getJson(std::string remote_endpoint);
+
     static const std::vector<unsigned char> get_bytes(const char* url);
     static const std::string post(std::string remote_endpoint, const char* data);
 

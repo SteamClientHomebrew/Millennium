@@ -66,6 +66,11 @@ const std::string http::get(std::string remote_endpoint)
     return discovery_result;
 }
 
+const nlohmann::json http::getJson(std::string remote_endpoint)
+{
+    return nlohmann::json::parse(http::get(remote_endpoint));
+}
+
 const std::string http::post(std::string remote_endpoint, const char* data)
 {
     if (!valid_request(remote_endpoint))

@@ -70,21 +70,31 @@ private:
 		std::filesystem::create_directories(currentDir);
 
 		for (const auto& item : folderData) 
-		{
-			if (item["type"] == "dir") 
-			{
-				std::filesystem::path dirPath = currentDir / item["name"];
-				std::filesystem::create_directories(dirPath);
+		{		
+			try {
+				if (item["type"] == "dir")
+				{
+					std::filesystem::path dirPath = currentDir / item["name"];
+					std::filesystem::create_directories(dirPath);
 
-				downloadFolder(nlohmann::json::parse(http::get(item["url"])), dirPath);
+					downloadFolder(nlohmann::json::parse(http::get(item["url"])), dirPath);
+				}
+				else if (item["type"] == "file" && !item["download_url"].is_null())
+				{
+					const std::string fileName = item["name"].get<std::string>();
+					const std::filesystem::path filePath = currentDir / fileName;
+
+					m_downloadStatus = std::format("downloading {}", fileName);
+					this->writeFileBytesSync(filePath, http::get_bytes(item["download_url"].get<std::string>().c_str()));
+				}
 			}
-			else if (item["type"] == "file" && !item["download_url"].is_null()) 
-			{
-				const std::string fileName = item["name"].get<std::string>();
-				const std::filesystem::path filePath = currentDir / fileName;
+			catch (const nlohmann::detail::exception& excep) {
+				if (item.contains("message")) {
+					const auto message = item["message"].get<std::string>();
+					MsgBox(std::format("Message:\n", message).c_str(), "Error contacting GitHub API", MB_ICONERROR);
+				}
 
-				m_downloadStatus = std::format("downloading {}", fileName);
-				this->writeFileBytesSync(filePath, http::get_bytes(item["download_url"].get<std::string>().c_str()));
+				console.err(std::format("Error downloading/updating a skin. message: {}", excep.what()));
 			}
 		}
 	}

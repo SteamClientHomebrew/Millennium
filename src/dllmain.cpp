@@ -115,6 +115,10 @@ namespace Millennium
         {
             nlohmann::basic_json<> response = nlohmann::json::parse(http::get(repo));
 
+            if (response.contains("message")) {
+                throw http_error(http_error::errors::not_allowed);
+            }
+
             if (response["tag_name"] != m_ver)
             {
                 OpenURL("https://millennium.web.app/");

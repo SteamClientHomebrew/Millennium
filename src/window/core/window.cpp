@@ -602,10 +602,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             return 1;
         }
         case WM_CLOSE: {
+            g_windowOpen = false;
             ::DestroyWindow(hWnd);
             return 0;
         }
         case WM_DESTROY: {
+            g_windowOpen = false;
             PostQuitMessage(0);
             return 0;
         }
