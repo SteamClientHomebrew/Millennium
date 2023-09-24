@@ -1,0 +1,79 @@
+@import url(../../titlebar.css);
+
+.chatWindow .chatHeader {
+    min-height: 0px !important;
+}
+.chatTabList>div {
+    margin-left: 7px !important;
+}
+.chatTabSetContainer.inclient {
+    margin-bottom: 7px !important;
+}
+.chattabs_ChatTab_2Vrcp {
+    border-radius: 3px !important;
+}
+
+.titleBarContainer.ChatTabs {
+    background: #212121 !important;
+}
+
+.chattabs_ChatTab_2Vrcp.chattabs_Active_Lrqoj {
+    background-color: #303030 !important;
+}
+
+.displayRow.minHeightZero.Panel.Focusable {
+    background: #181818 !important;
+}
+
+html.client_chat_frame .chatWindow .chatEntry {
+    padding-right: 0px !important;
+}
+
+.chatentry_chatEntryControls_2gP0D {
+    background-color: #1b1c20 !important;
+    height: 40px !important;
+    box-shadow: none !important;
+}
+
+/* .chatentry_chatSubmitButton_1IEiK {
+    min-height: 0px !important;
+}
+.chatentry_chatSubmitButton_1IEiK {
+    max-width: 100px !important;
+    max-height: 40px !important;
+    min-width: 0px !important;
+} */
+
+.chatentry_chatSubmitButton_1IEiK.chatentry_disabled_2GM2k {
+    background: none !important;
+}
+
+.chatentry_chatTextarea_pewyB {
+    height: 25px !important;
+    padding: 10px 4px 4px 8px !important;
+}
+
+form.chatentry_chatEntryControls_2gP0D {
+    border-radius: 4px !important;
+    background: #151515 !important;
+}
+
+.chatEntry.Panel.Focusable {
+    height: 46px !important;
+}
+
+.chatWindow .chatEntry {
+    background: #212121 !important;
+}
+
+button.chatentry_chatSubmitButton_1IEiK.chatentry_EmoticonPickerButton_K-lPM.Focusable {
+    background: #151515;
+}
+
+.chatentry_chatSubmitButton_1IEiK.chatentry_EmbedButton_24xNx {
+    background: #151515;
+}
+
+button.VoiceToggle.Inactive.Focusable {
+    background: #151515;
+}

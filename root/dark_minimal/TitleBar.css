@@ -1,0 +1,32 @@
+.title-area-icon.maximizeButton.windowControlButton svg line {
+	display:none;
+}
+
+/* .DesktopUI .title-area-icon .SVGIcon_Maximize {
+    height: 15px !important;
+    width: 15px !important;
+} */
+
+.SVGIcon_X_Line, .SVGIcon_Minimize, .SVGIcon_Maximize {
+    height: 13px !important;
+    width: 13px !important;
+}
+
+/* Hide the View menu and other stuff */
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(2), [class*="rootmenu_RootMenuButton_"]:nth-of-type(3), 
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(4), [class*="rootmenu_RootMenuButton_"]:nth-of-type(5) {
+    display: none !important;
+}
+
+[class*="steamdesktop_RootMenuBar_"]:hover,
+[class*="steamdesktop_RootMenuBar_"]:hover > div,
+
+/* [class*="rootmenu_RootMenuButton_"]:nth-of-type(2):hover, [class*="rootmenu_RootMenuButton_"]:nth-of-type(3):hover, 
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(4):hover, [class*="rootmenu_RootMenuButton_"]:nth-of-type(5):hover, */
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2),
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3),
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(4),
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(4) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(5)  {
+    opacity: 1;
+}

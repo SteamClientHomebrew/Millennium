@@ -1,0 +1,28 @@
+.DialogContent {
+    background: #212121 !important;
+}
+
+.DialogButton {
+    background: #303030 !important;
+}
+
+[class*="launchoptionsdialog_LaunchOptionDialog_"] {
+    background: #212121 !important;
+}
+
+[class*="launchoptionsdialog_ListContainer_"] {
+    background: #171717 !important;
+}
+
+[class*="launchoptionsdialog_ListItem_"] {
+    background: #303030 !important;
+    border-radius: 4px;
+}
+
+[class*="launchoptionsdialog_CancelButton_"] {
+    background: #303030 !important;
+}
+
+img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][class*="libraryassetimage_Visible_"] {
+    border-radius: 4px;
+}

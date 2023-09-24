@@ -1,0 +1,59 @@
+.steamdesktopoverlay_OverlayPopup_C9tvu.PopupFullWindow.steamdesktopoverlay_Resizable_290hv.GameOverview {
+    background: #212121 !important;
+}
+
+.steamdesktopoverlay_GameOverview_27m9Q {
+    background: #212121 !important;
+}
+
+.steamdesktopoverlay_GameOverviewSectionHeader_2wBK7 {
+    background: #191919 !important;
+}
+
+.steamdesktopoverlay_GameOverviewSectionChildren_17TJ4.steamdesktopoverlay_ContainChildren_3WMiI {
+    background: #303030 !important;
+}
+
+.steamdesktopoverlay_GuideListItem_2OwqX {
+    background: #303030 !important;
+}
+
+.desktopbrowser_URLBar_26Gmf {
+    background: #191919 !important;
+}
+
+.steamdesktopoverlay_OverlayPopup_C9tvu.PopupFullWindow.steamdesktopoverlay_Resizable_290hv[class*="OverlayBrowser_"] {
+    background: #191919 !important;
+}
+
+.desktopbrowser_BrowserViewHost_22LPP {
+    background: #212121 !important;
+}
+
+.steamdesktopoverlay_OverlayPopup_C9tvu.PopupFullWindow.steamdesktopoverlay_Resizable_290hv.OverlayBrowser_Browser {
+    background: #191919 !important;
+}
+
+.desktopbrowser_BrowserTabs_aqvbk {
+    background: #151515 !important;
+    border-bottom: 1px solid #272727 !important;
+}
+
+.desktopbrowser_BrowserTab_TSlxC.desktopbrowser_Active_1W4bb {
+    background: #303030 !important;
+    border: none !important;
+}
+
+.desktopbrowser_TabTitle_2RI6o {
+    font-size: 13px !important;
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC {
+    background: none !important; 
+    border: none !important;
+    border-radius: 3px !important;
+}
+
+.desktopbrowser_BrowserTabs_aqvbk .desktopbrowser_BrowserTab_TSlxC:hover {
+    background: #212121 !important;
+}

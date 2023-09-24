@@ -1,0 +1,113 @@
+@import url(../../TitleBar.css);
+@import url(ChatWindow.css);
+
+.friendListHeaderContainer {
+    background: #212121 !important;
+}
+
+.friend.quickAccessFriend .avatarHolder .avatar {
+    border: 1px solid #383c43 !important;
+    border-radius: 6px !important;
+}
+
+.steamavatar_avatar_1p_Qr {
+    border-radius: 6px !important;
+}
+
+.friendsListSectionTitle {
+    background: #303030 !important;
+}
+
+.friendListFooter {
+    display: none !important;
+}
+
+.window_resize_grip {
+    height: 0px !important;
+    width: 0px !important;
+}
+
+/* .friendsListSectionTitle {
+    display: none !important;
+} */
+
+.FriendsListContent .friendlistListContainer .friendGroup.onlineFriends {
+    border-top: .5px solid rgba(143,143,143,.25);
+}
+
+.friendslist_RemotePlayInviteLinkSection_3J8nN {
+    display: none !important;
+}
+
+/* Hide avatar borders */
+img.steamavatar_avatarFrameImg_338kJ {
+    display: none !important;
+}
+
+/* Hide the activity status (looks like shit) */
+.steamavatar_avatarStatus_1yIzy.avatarStatus {
+    display: none !important;
+}
+
+/* Hide glow */
+.statusHeaderGlow {
+    display: none !important;
+}
+
+/* color of the user status */
+.ingame.awayOrSnooze .personanameandstatus_richPresenceLabel_1k82N, .ingame .personanameandstatus_richPresenceLabel_1k82N, .ingame .personanameandstatus_richPresenceLabel_1k82N a, .ingame .personanameandstatus_richPresenceLabel_1k82N a:hover, .ingame .personanameandstatus_richPresenceLabel_1k82N a:active, .ingame .personanameandstatus_richPresenceLabel_1k82N a:visited {
+    color: #666 !important;
+}
+
+.ingame .personanameandstatus_playerName_r62qz {
+    color: #6dcff6 !important;
+}
+
+:not(.friendInviteContainer) .ingame .ContextMenuButton .SVGIcon_DownArrowContextMenu {
+    fill: #6dcff6 !important;
+}
+
+.friendStatusHover.ingame:hover, .friendStatusHover.ingame.Friend_ContextMenuActive {
+    background-color: #303030 !important;
+}
+
+.friendlistListContainer {
+    background: #212121 !important;
+}
+
+.activeTab {
+    background: none !important; 
+    box-shadow: none !important;
+}
+
+.tabLabel {
+    width: 0px !important;
+}
+
+.friendTab.socialListTab.activeTab {
+    padding-left: 10px !important;
+    padding-bottom: 5px !important ;
+    padding-right: 5px !important;
+}
+
+.friendsTabButtonsContainer {
+    padding-right: 0px !important;
+    padding-left: 0px !important;
+}
+
+.activeTab .TabSearchButton {
+    background: #303030 !important;
+}
+
+.tabSearchTransitionGroup::after {
+    position: absolute !important;
+    padding-left: 5px !important;
+    content: "Search for a friend...";
+    text-transform: none !important;
+    font-weight: 400 !important;
+    color: #666 !important;
+}
+
+.chatRoomListContainer {
+    background: #212121 !important;
+}

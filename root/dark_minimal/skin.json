@@ -1,0 +1,102 @@
+{
+    "Hooks": [
+        {
+            "Interpolate": "webkit/webkit.css",
+            "TargetCss": "https://community.akamai.steamstatic.com/public/shared/css/buttons.css*"
+        },
+        {
+            "Interpolate": "webkit/webkit.css",
+            "TargetCss": "https://store.akamai.steamstatic.com/public/shared/css/buttons.css*"
+        }
+    ],
+    "Patches": [
+        {
+            "MatchRegexString": "SteamBrowser_Find",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": "^Steam$",
+            "TargetCss": "Steam.css",
+            "TargetJs": "steam.js"
+        },
+        {
+            "MatchRegexString": "Shutdown",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": "friendsui-container",
+            "TargetCss": "steam/friends/FriendsList.css"
+        },
+        {
+            "MatchRegexString": "ModalDialogPopup",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": ".*Supernav$",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": ".*Menu$",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": ".*Properties.*",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": "Special Offers",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": "Steam Big Picture Mode",
+            "TargetCss": "bigpicture.custom.css"
+        },
+        {
+            "MatchRegexString": ".*SP Overlay:.*",
+            "TargetCss": "overlay/Overlay.css"
+        },
+        {
+            "MatchRegexString": "Achievements",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": "GameNotes",
+            "TargetCss": "overlay/GameNotes.css"
+        },
+        {
+            "MatchRegexString": "ScreenshotManager",
+            "TargetCss": "overlay/ScreenshotManager.css"
+        },
+        {
+            "MatchRegexString": "GameOverview",
+            "TargetCss": "overlay/GameOverview.css"
+        },
+        {
+            "MatchRegexString": "SoundtrackPlayer",
+            "TargetCss": "Steam.css"
+        },
+        {
+            "MatchRegexString": "OverlayBrowser_(?!.*_Find$).*",
+            "TargetCss": "overlay/Browser.css"
+        },
+        {
+            "MatchRegexString": "OverlayBrowser_.*_Find",
+            "TargetCss": "overlay/Browser.css"
+        },
+        {
+            "MatchRegexString": "OverlayTab\\d+_Find",
+            "TargetCss": "overlay/Browser.css"
+        },
+        {
+            "MatchRegexString": "OverlayBrowser_Browser",
+            "TargetCss": "overlay/Browser.css"
+        }
+    ],
+    "UseDefaultPatches": true,
+    "author": "ShadowMonster",
+    "description": "A more minimal version of Simple Dark.",
+    "name": "Simple Dark (Minimal)",
+    "source": "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/contents/root/dark_minimal",
+    "patch-notes": "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/releases/latest",
+    "version": "1.0.0"
+}
