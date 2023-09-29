@@ -253,7 +253,7 @@ public:
 
         return data;
     }
-    static const nlohmann::basic_json<> get_local(std::basic_ifstream<char, std::char_traits<char>>& local)
+    static const nlohmann::basic_json<> get_local(std::basic_ifstream<char, std::char_traits<char>>& local, bool raw = false)
     {
         nlohmann::basic_json<> data;
         try {
@@ -265,14 +265,15 @@ public:
             return { {"config_fail", true} };
         }
 
-        data["config_fail"] = false;
-        millennium_remote.is_remote = false;
-
+        if (!raw) {
+            data["config_fail"] = false;
+            millennium_remote.is_remote = false;
+        }
         return data;
     }
 };
 
-const nlohmann::json themeConfig::getThemeData() noexcept
+const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 {
     console.log("[config] fetching theme data");
 
@@ -282,6 +283,10 @@ const nlohmann::json themeConfig::getThemeData() noexcept
     std::basic_ifstream<char, std::char_traits<char>> cloudTheme(std::format("{}/{}", m_themesPath, m_activeSkin));
 
     nlohmann::basic_json<> jsonBuffer;
+
+    if (raw == true) {
+        return config::get_local(localTheme, true);
+    }
 
     if (localTheme.is_open() && localTheme)
         jsonBuffer = config::get_local(localTheme);

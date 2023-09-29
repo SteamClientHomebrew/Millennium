@@ -20,15 +20,16 @@
     opacity: 0;
 }
 
+/*
 [class*="steamdesktop_RootMenuBar_"]:hover,
 [class*="steamdesktop_RootMenuBar_"]:hover > div,
 
-/* [class*="rootmenu_RootMenuButton_"]:nth-of-type(2):hover, [class*="rootmenu_RootMenuButton_"]:nth-of-type(3):hover, 
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(2):hover, [class*="rootmenu_RootMenuButton_"]:nth-of-type(3):hover, 
 [class*="rootmenu_RootMenuButton_"]:nth-of-type(4):hover, [class*="rootmenu_RootMenuButton_"]:nth-of-type(5):hover, */
 
-[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2),
+/* [class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2),
 [class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3),
 [class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(4),
 [class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(4) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(5)  {
     opacity: 1;
-}
+} */

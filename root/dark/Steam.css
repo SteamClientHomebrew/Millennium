@@ -8,14 +8,8 @@
 @import url(steam/Properties.css);
 @import url(steam/TopBar.css);
 @import url(TitleBar.css);
-@import url(MillenniumColors.css);
+@import url(Colors.css);
 
-:root {
-    --color-light: #303030;
-    --color-dark: #212121;
-    --color-darker: #191919;
-    --color-darkest: #141414;
-}
 ::-webkit-scrollbar{
     background-color: transparent !important;
     border-radius: 10px !important;
@@ -395,19 +389,11 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
 [class*="activeTab"] {
     background: var(--color-light) !important;
 }
-.steamdesktop_TitleBar_39oUC .steamdesktop_TitleBarControls_1-9si {
-    position: fixed !important;
-    top: 35px !important;
-    right: 0 !important;
-}
 
 .steamdesktop_SuperNavBar_3Z3oh {
     -webkit-app-region: no-drag !important;
 }
 
-.steamdesktop_TitleBar_39oUC {
-    background: var(--color-dark) !important;
-}
 
 .titlebarcontrols_GamepadUIToggle_3LKQ3 {
     display: none !important;
@@ -433,10 +419,6 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
     height: auto !important;
 }
 
-.steamdesktop_SuperNavBar_3Z3oh {
-    height: 37px !important; 
-    min-height: 37px !important;
-}
 
 .supernav_Arrow_25lBL {
     padding: 0px 10px 0px 0px !important;
@@ -481,13 +463,8 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
     color: var(--color-light) !important;
 }
 
-.supernav_Arrow_25lBL {
-    color: #8b929a !important;
-}
 
-.rootmenu_RootMenuButton_2UyOB {
-    padding: 0px 0px 4px !important;
-}
+
 
 .appdetailsplaysection_InnerContainer_3Y87Y {
     background: #191919 !important;

@@ -75,7 +75,7 @@ public:
     /// get the configuration files, as json from the current skin selected
     /// </summary>
     /// <returns>json_object</returns>
-    const nlohmann::json getThemeData() noexcept;
+    const nlohmann::json getThemeData(bool raw = false) noexcept;
 
     /// <summary>
     /// setup millennium if it has no configuration types

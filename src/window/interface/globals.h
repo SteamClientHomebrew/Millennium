@@ -94,7 +94,7 @@ private:
 	bool isInvalidSkin(std::string skin = Settings::Get<std::string>("active-skin"));
 	void resetCollected();
 	void parseRemoteSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer);
-	bool parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer);
+	bool parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer, bool checkForUpdates = false);
 
 public:
 	bool b_javascriptEnabled;
@@ -120,6 +120,7 @@ public:
 
 	void getRawImages(std::vector<std::string>& images);
 	void parseSkinData();
+	nlohmann::basic_json<> bufferSkinData();
 	void changeSkin(nlohmann::basic_json<>& skin);
 	void concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
 	void dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);

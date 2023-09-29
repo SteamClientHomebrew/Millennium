@@ -13,6 +13,7 @@
 #include <utils/base64.hpp>
 #include <utils/thread/thread_handler.hpp>
 
+#include <window/interface/globals.h>
 //
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -279,6 +280,8 @@ private:
 
     std::vector<getBodyCallbackInfo> v_bodyCallback;
 
+    bool m_checkedForUpdates = false;
+
     /// <summary>
     /// socket response errors
     /// </summary>
@@ -384,6 +387,49 @@ private:
         steam_client->send(hdl, fulfillRequest.dump(), websocketpp::frame::opcode::text);
     }
 
+    inline const void check_for_updates()
+    {
+        if (!m_checkedForUpdates) {
+            m_checkedForUpdates = true;
+        }
+        else return;
+
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+
+        const auto data = m_Client->bufferSkinData();
+
+        steam_js_context SharedJSContext;
+
+        for (const auto item : data)
+        {
+            if (item["update_required"])
+            {
+                console.log("Queuing notification popup for skin: " + item["native-name"].get<std::string>());
+
+                std::string notificationPopup =
+                R"(
+                    SteamClient.ClientNotifications.DisplayClientNotification(
+                        2,
+                        JSON.stringify({
+                            title: 'Library Auto-Updater',
+                            body: 'an update is available for )" + item["native-name"].get<std::string>() + R"(! Check your library for info.',
+                            state: 'invisible',
+                            steamid: '76561199145821858'
+                        }),
+                        e => console.log(e)
+                    )
+                    var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    var audioElement = new Audio("https://steamloopback.host/sounds/desktop_toast_default.wav");
+
+                    audioContext.createMediaElementSource(audioElement).connect(audioContext.destination);
+                    audioElement.play();
+                )";
+
+                console.log(SharedJSContext.exec_command(notificationPopup));
+            }
+        }
+    }
+
     inline const bool settings_patches(std::string cefctx_title) {
 
         std::unordered_map<std::string, std::function<void()>> caseActions = {
@@ -400,7 +446,9 @@ private:
             }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
-                 m_steamMainSessionId = m_socket_resp["sessionId"];
+                m_steamMainSessionId = m_socket_resp["sessionId"];
+
+                std::thread([&]() { check_for_updates(); }).detach();
 
                 if (!Settings::Get<bool>("enableUrlBar")) {
                     std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".steamdesktop_URLBar_UkR3s { display: none !important; }" })); })())";
@@ -414,6 +462,91 @@ private:
 
         return true;
     }
+
+    struct statementReturn
+    {
+        bool fail;
+        steam_cef_manager::script_type scriptType = steam_cef_manager::script_type::javascript;
+        const std::string itemRefrence = std::string();
+    };
+
+    inline const std::vector<statementReturn> check_statement(const nlohmann::basic_json<>& patch)
+    {
+        std::vector<statementReturn> returnVal;
+
+        if (!patch.contains("Statement")) {
+            return { {true} };
+        }
+
+        const auto statement = patch["Statement"];
+
+        if (!statement.contains("If")) {
+            console.err("Invalid statement structure: 'If' is missing.");
+            return { {true} };
+        }
+        if (!statement.contains("Equals")) {
+            console.err("Invalid statement structure: 'Equals' is missing.");
+            return { {true} };
+        }
+        if (!skin_json_config.contains("Configuration")) {
+            console.err("Invalid statement structure: 'Configuration' is missing from JSON storage.");
+            return { {true} };
+        }
+
+        const auto settingsName = statement["If"].get<std::string>();
+        bool isFound = false;
+
+        for (const auto& item : skin_json_config["Configuration"]) {
+            if (item.contains("Name") && item["Name"] == settingsName) {
+                isFound = true;
+                const auto& selectedItem = item["Value"];
+
+                if (selectedItem == statement["Equals"]) {
+                    console.log(std::format("Configuration key: {} Equals {}. Executing 'True' statement", settingsName, statement["Equals"].dump()));
+
+                    if (statement.contains("True")) {
+                        const auto& trueStatement = statement["True"];
+                        if (trueStatement.contains("TargetCss")) {
+                            console.log("inserting CSS module: " + trueStatement["TargetCss"].get<std::string>());
+                            returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, trueStatement["TargetCss"] });
+                        }
+                        if (trueStatement.contains("TargetJs")) {
+                            console.log("inserting JS module: " + trueStatement["TargetJs"].get<std::string>());
+                            returnVal.push_back({ false, steam_cef_manager::script_type::javascript, trueStatement["TargetJs"] });
+                        }
+                    }
+                    else {
+                        console.err("Can't execute 'True' statement as it doesn't exist.");
+                    }
+                }
+                else {
+                    console.log(std::format("Configuration key: {} NOT Equal {}. Executing 'False' statement", settingsName, statement["Equals"].dump()));
+
+                    if (statement.contains("False")) {
+                        const auto& falseStatement = statement["False"];
+                        if (falseStatement.contains("TargetCss")) {
+                            console.log("inserting CSS module: " + falseStatement["TargetCss"].get<std::string>());
+                            returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, falseStatement["TargetCss"] });
+                        }
+                        if (falseStatement.contains("TargetJs")) {
+                            console.log("inserting JS module: " + falseStatement["TargetJs"].get<std::string>());
+                            returnVal.push_back({ false, steam_cef_manager::script_type::javascript, falseStatement["TargetJs"] });
+                        }
+                    }
+                    else {
+                        console.err("Can't execute 'False' statement as it doesn't exist.");
+                    }
+                }
+            }
+        }
+
+        if (!isFound) {
+            console.err("Couldn't find config key with Name = " + settingsName);
+        }
+
+        return returnVal.empty() ? std::vector<statementReturn>{ {true} } : returnVal;
+    }
+
     /// <summary>
     /// function responsible for handling css and js injections
     /// </summary>
@@ -426,19 +559,39 @@ private:
             return;
         }
 
-        for (const json_patch& patch : skin_json_config["Patches"].get<std::vector<json_patch>>())
+        for (const nlohmann::basic_json<>& patch : skin_json_config["Patches"].get<std::vector<nlohmann::basic_json<>>>())
         {
-            bool contains_http = patch.matchRegexString.find("http") != std::string::npos;
+            bool contains_http = patch["MatchRegexString"].get<std::string>().find("http") != std::string::npos;
             //used regex match instead of regex find or other sorts, make sure you validate your regex 
-            bool regex_match = std::regex_match(cefctx_title, std::regex(patch.matchRegexString));
+            bool regex_match = std::regex_match(cefctx_title, std::regex(patch["MatchRegexString"].get<std::string>()));
 
             if (contains_http or not regex_match)
                 continue;
 
-            console.log_patch("client", cefctx_title, patch.matchRegexString);
+            console.log_patch("client", cefctx_title, patch["MatchRegexString"].get<std::string>());
 
-            if (!patch.targetJs.empty())  steam_interface.evaluate(steam_client, hdl, patch.targetJs, steam_interface.script_type::javascript,  m_socket_resp);
-            if (!patch.targetCss.empty()) steam_interface.evaluate(steam_client, hdl, patch.targetCss, steam_interface.script_type::stylesheet, m_socket_resp);
+            const auto result = check_statement(patch);
+
+            if (!result[0].fail)
+            {
+                for (const auto statementItem : result)
+                {
+                    steam_interface.evaluate(steam_client, hdl, statementItem.itemRefrence, statementItem.scriptType, m_socket_resp);
+                }
+            }
+            else
+            {
+                console.err("Couldn't check item statement");
+            }
+
+            if (patch.contains("TargetJs"))
+            {
+                steam_interface.evaluate(steam_client, hdl, patch["TargetJs"].get<std::string>(), steam_interface.script_type::javascript, m_socket_resp);
+            }
+            if (patch.contains("TargetCss"))
+            {
+                steam_interface.evaluate(steam_client, hdl, patch["TargetCss"].get<std::string>(), steam_interface.script_type::stylesheet, m_socket_resp);
+            }
         }
     }
 

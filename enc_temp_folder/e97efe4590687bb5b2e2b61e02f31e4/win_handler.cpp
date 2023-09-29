@@ -1768,13 +1768,8 @@ void handleEdit()
 
 					if (obj.contains("source") && obj.contains("GlobalsColors"))
 					{
-						const auto original = http::getJson(std::format("{}/{}",
+						const auto original = http::get(std::format("{}/{}",
 							obj["source"].get<std::string>(), obj["GlobalsColors"].get<std::string>()));
-
-						if (original.contains("message"))
-						{
-							MsgBox(std::format("Can't GET the original colors from source.\nMessage:\n{}", original["message"].get<std::string>()).c_str(), "Error", MB_ICONERROR);
-						}
 
 						// need to finish this when im not rate limited
 						console.log(original);

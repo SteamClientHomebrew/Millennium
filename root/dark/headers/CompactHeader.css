@@ -1,0 +1,64 @@
+	
+.steamdesktop_TitleBar_39oUC {
+    height: 40px !important;
+}
+.steamdesktop_TitleBar_39oUC .steamdesktop_RootMenuBar_3s0lk {
+    margin-top: 0px !important;
+}
+
+.supernav_Arrow_25lBL {
+    color: #dcdedf !important;
+}
+.rootmenu_RootMenuButton_2UyOB {
+    /* padding: 0px 0px 4px !important; */
+}
+
+.steamdesktop_SuperNavBar_3Z3oh {
+    /* height: 0px !important; */
+    /* min-height: 0px !important; */
+    /* padding-left: 40px; */
+    padding-top: 5px;
+    left: 40px;
+    position: absolute;
+    padding-left: 0px;
+}
+
+.steamdesktop_TitleBar_39oUC {
+    background: #191919 !important;
+}
+
+.steamdesktop_TitleBar_39oUC .steamdesktop_TitleBarControls_1-9si {
+    position: fixed !important;
+    /* top: 35px !important; */
+    right: 90px !important;
+    /* padding-top: 2.5px; */
+    top: 3px;
+}
+
+[class*="rootmenu_SteamButton_"] {
+    font-size: 0px;
+}
+
+[class*="bottombar_BottomBarContainer"] {
+    padding: 0 !important;
+    position: absolute !important;
+    --steam-control-width: 242px !important;
+    right: 170px !important;
+    top: 8px !important;
+}
+
+[class*="bottombar_BottomBar_"] {
+    width: fit-content !important;
+    box-shadow: none !important;
+    background: none !important;
+    gap: 8px !important;
+    flex: 0 !important;
+    -webkit-app-region: no-drag;
+}
+
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2),
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3),
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(4),
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(1):hover + [class*="rootmenu_RootMenuButton_"]:nth-of-type(2) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(3) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(4) + [class*="rootmenu_RootMenuButton_"]:nth-of-type(5)  {
+    opacity: 0;
+}

@@ -1,4 +1,13 @@
 {
+    "Configuration": [
+        {
+            "Name": "Compacted Header",
+            "ToolTip": "Use a more compact header bar on Steam (everything is on 1 row)",
+            "Type": "CheckBox",
+            "Value": true
+        }
+    ],
+    "GlobalsColors": "Colors.css",
     "Hooks": [
         {
             "Interpolate": "webkit/webkit.css",
@@ -16,8 +25,19 @@
         },
         {
             "MatchRegexString": "^Steam$",
-            "TargetCss": "Steam.css",
-            "TargetJs": "steam.js"
+            "Statement": {
+                "Equals": true,
+                "False": {
+                    "TargetCss": "headers/NormalHeader.css",
+                    "TargetJs": "headers/NormalHeader.js"
+                },
+                "If": "Compacted Header",
+                "True": {
+                    "TargetCss": "headers/CompactHeader.css",
+                    "TargetJs": "headers/CompactHeader.js"
+                }
+            },
+            "TargetCss": "Steam.css"
         },
         {
             "MatchRegexString": "Shutdown",
@@ -96,7 +116,7 @@
     "author": "ShadowMonster",
     "description": "A sleek and elegant theme that brings a darker, more immersive experience to your Steam client. This theme focuses on enhancing your visual comfort during extended gaming sessions, with carefully crafted CSS adjustments that darken the interface without altering its familiar design. While utilizing a touch of JavaScript for specific functionality, the primary focus remains on refining the color scheme to reduce eye strain and create a cozy ambiance.",
     "name": "Simple Dark.",
-    "source": "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/contents/root/dark",
     "patch-notes": "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/releases/latest",
-    "version": "1.0.2"
+    "source": "https://api.github.com/repos/ShadowMonster99/millennium-steam-patcher/contents/root/dark",
+    "version": "1.0.0"
 }

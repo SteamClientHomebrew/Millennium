@@ -112,7 +112,7 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 	}
 }
 
-bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer)
+bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer, bool _checkForUpdates)
 {
 	std::filesystem::path skin_json_path = entry.path() / "skin.json";
 
@@ -126,7 +126,10 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 	console.log(std::format("[DEBUG] found a skin: {}", entry.path().filename().string()));
 	const std::string fileName = entry.path().filename().string();
 
-	data["update_required"] = checkForUpdates(data, skin_json_path);
+	if (_checkForUpdates) {
+		data["update_required"] = checkForUpdates(data, skin_json_path);
+	}
+	else data["update_required"] = false;
 
 	data["name"]        = data.value("name", fileName).c_str();
 	data["native-name"] = fileName;
@@ -163,6 +166,27 @@ void millennium::getRawImages(std::vector<std::string>& images)
 	for (int i = 0; i < (int)images.size(); i++) {
 		std::thread([=]() { v_rawImageList[i] = image::make_shared_image(images[i].c_str(), image::quality::high); }).detach();
 	}
+}
+
+nlohmann::basic_json<> millennium::bufferSkinData()
+{
+	const std::string steamPath = config.getSkinDir();
+	console.log(std::format("[DEBUG] searching for steam skins at: {}", steamPath));
+
+	this->resetCollected();
+	std::vector<nlohmann::basic_json<>> jsonBuffer;
+
+	for (const auto& entry : std::filesystem::directory_iterator(steamPath))
+	{
+		console.log("found a folder in skins folder, checking if its a valid skin.");
+
+		if (entry.is_directory())
+		{
+			if (!this->parseLocalSkin(entry, jsonBuffer, true))
+				continue;
+		}
+	}
+	return jsonBuffer;
 }
 
 void millennium::parseSkinData()
