@@ -1775,9 +1775,29 @@ void handleEdit()
 						{
 							MsgBox(std::format("Can't GET the original colors from source.\nMessage:\n{}", original["message"].get<std::string>()).c_str(), "Error", MB_ICONERROR);
 						}
+						else
+						{
+							console.log(original.dump(4));
 
-						// need to finish this when im not rate limited
-						console.log(original);
+							if (original.contains("download_url"))
+							{
+								const auto fileContents = http::get(original["download_url"].get<std::string>());
+
+								std::vector<unsigned char> byteVector;
+
+								for (char c : fileContents) {
+									byteVector.push_back(static_cast<unsigned char>(c));
+								}
+
+								RendererProc.writeFileBytesSync(RendererProc.colorFilePathBuffer, byteVector);
+
+								console.log("Wrote original file buffer back to: " + RendererProc.colorFilePathBuffer);
+							}
+							else
+							{
+								MsgBox("Can't GET the original colors from source as the API endpoint doesn't include a download_url", "Error", MB_ICONERROR);
+							}
+						}
 					}
 					else {
 						console.err("Can't retrieve original colors because the selected skin doesn't have 'source' key or 'GlobalsColors'");

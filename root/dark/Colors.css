@@ -1,6 +1,6 @@
 :root {
-    --color-light: #131313; /* BackGroundColor */
-    --color-dark: #0f0f0f; /* BackGroundColor1 */
-    --color-darker: #101010; /* BackGroundColor2 */
-    --color-darkest: #000000; /* BackGroundColor3 */
+    --color-light: #303030; /* BackGroundColor */
+    --color-dark: #212121; /* BackGroundColor1 */
+    --color-darker: #191919; /* BackGroundColor2 */
+    --color-darkest: #141414; /* BackGroundColor3 */
 }
