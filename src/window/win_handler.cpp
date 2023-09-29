@@ -1757,8 +1757,7 @@ void handleEdit()
 					ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
 
 					if (ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x), ImGuiColorEditFlags_NoLabel) {
-						// The user has selected a color; 'color' now contains the selected color.
-						// You can choose to ignore the alpha channel if needed.
+
 					}
 				}
 
@@ -1792,6 +1791,8 @@ void handleEdit()
 								RendererProc.writeFileBytesSync(RendererProc.colorFilePathBuffer, byteVector);
 
 								console.log("Wrote original file buffer back to: " + RendererProc.colorFilePathBuffer);
+
+								RendererProc.openPopupMenu(RendererProc.m_editObj);
 							}
 							else
 							{

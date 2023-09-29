@@ -1,6 +1,6 @@
 :root {
-    --color-light: #303030; /* BackGroundColor */
-    --color-dark: #212121; /* BackGroundColor1 */
-    --color-darker: #191919; /* BackGroundColor2 */
-    --color-darkest: #141414; /* BackGroundColor3 */
+    --color-light: #303030; /* Button Colors */
+    --color-dark: #212121; /* TitleBar, TitleBar Buttons, Library <div> background, Scrollbar  */
+    --color-darker: #191919; /* Main Background, Library and TitleBar accent */
+    --color-darkest: #141414; /* Low priority accent color */
 }
