@@ -76,6 +76,7 @@ public:
     /// </summary>
     /// <returns>json_object</returns>
     const nlohmann::json getThemeData(bool raw = false) noexcept;
+    const void setThemeData(nlohmann::json& object) noexcept;
 
     /// <summary>
     /// setup millennium if it has no configuration types

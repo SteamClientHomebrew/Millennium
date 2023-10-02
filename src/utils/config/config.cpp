@@ -273,10 +273,27 @@ public:
     }
 };
 
+const void themeConfig::setThemeData(nlohmann::json& object) noexcept
+{
+    const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
+
+    std::string filePath = std::format("{}/{}/skin.json", m_themesPath, m_activeSkin);
+
+    std::ofstream outputFile(filePath);
+
+    if (outputFile.is_open())
+    {
+        outputFile << object.dump(4);
+        outputFile.close();
+    }
+    else
+    {
+        console.log("Couldn't setThemeData. Couldn't Open the file");
+    }
+}
+
 const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 {
-    console.log("[config] fetching theme data");
-
     const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
 
     std::basic_ifstream<char, std::char_traits<char>> localTheme(std::format("{}/{}/skin.json", m_themesPath, m_activeSkin));
@@ -345,6 +362,11 @@ const void themeConfig::setupMillennium() noexcept
     nullOverwrite("active-skin", "default");
 
     nullOverwrite("allow-javascript", false); //disallow js by default on a skin
+
+    nullOverwrite("allow-stylesheet", true); 
+    nullOverwrite("allow-auto-updates", true); 
+    nullOverwrite("allow-auto-updates-sound", true); 
+
     nullOverwrite("allow-store-load", true);
 
     nullOverwrite("enableUrlBar", true); //default value

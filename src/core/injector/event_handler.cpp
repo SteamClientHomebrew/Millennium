@@ -211,20 +211,14 @@ public:
 
         for (const auto& hook : skin_json_config["Hooks"])
         {
-            if (hook.contains("TargetCss"))
-            {
+            if (hook.contains("TargetCss")) {
                 _buffer.push_back({
-                    { "urlPattern", hook["TargetCss"] },
-                    { "resourceType", "Stylesheet" },
-                    { "requestStage", "Response" },
-                    });
+                    { "urlPattern", hook["TargetCss"] }, { "resourceType", "Stylesheet" }, { "requestStage", "Response" },
+                });
             }
-            else if (hook.contains("TargetJs"))
-            {
+            else if (hook.contains("TargetJs")) {
                 _buffer.push_back({
-                    { "urlPattern", hook["TargetJs"] },
-                    { "resourceType", "Script" },
-                    { "requestStage", "Response" },
+                    { "urlPattern", hook["TargetJs"] }, { "resourceType", "Script" }, { "requestStage", "Response" },
                 });
             }
         }
@@ -233,7 +227,12 @@ public:
 
         if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0) {
             console.log(std::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
-            steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
+            try {
+                steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
+            }
+            catch (const websocketpp::exception& ex) {
+                console.err("Couldn't send 'Hook' socket message to Steam");
+            }
         }
     }
 
@@ -380,7 +379,7 @@ private:
             { "params", {
                 { "requestId", item.requestId },
                 { "responseCode", 200 },
-                { "body", base64_encode(std::format("/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nEND INJECTION\n*/\n{}", g_fileResponse, base64_decode(m_socket_resp["result"]["body"]))) }
+                { "body", base64_encode(std::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse)) }
             }}
         };
 
@@ -394,6 +393,10 @@ private:
         }
         else return;
 
+        if (!Settings::Get<bool>("allow-auto-updates")) {
+            return;
+        }
+
         std::this_thread::sleep_for(std::chrono::seconds(10));
 
         const auto data = m_Client->bufferSkinData();
@@ -405,6 +408,8 @@ private:
             if (item["update_required"])
             {
                 console.log("Queuing notification popup for skin: " + item["native-name"].get<std::string>());
+
+                bool allowSound = Settings::Get<bool>("allow-auto-updates-sound");
 
                 std::string notificationPopup =
                 R"(
@@ -418,12 +423,18 @@ private:
                         }),
                         e => console.log(e)
                     )
-                    var audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    var audioElement = new Audio("https://steamloopback.host/sounds/desktop_toast_default.wav");
-
-                    audioContext.createMediaElementSource(audioElement).connect(audioContext.destination);
-                    audioElement.play();
                 )";
+
+                if (allowSound)
+                {
+                    notificationPopup += R"(
+                        var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        var audioElement = new Audio("https://steamloopback.host/sounds/desktop_toast_default.wav");
+
+                        audioContext.createMediaElementSource(audioElement).connect(audioContext.destination);
+                        audioElement.play();
+                    )";
+                }
 
                 console.log(SharedJSContext.exec_command(notificationPopup));
             }
@@ -578,10 +589,6 @@ private:
                 {
                     steam_interface.evaluate(steam_client, hdl, statementItem.itemRefrence, statementItem.scriptType, m_socket_resp);
                 }
-            }
-            else
-            {
-                console.err("Couldn't check item statement");
             }
 
             if (patch.contains("TargetJs"))

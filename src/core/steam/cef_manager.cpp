@@ -49,11 +49,6 @@ cef_dom& cef_dom::get() {
 void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl hdl, std::string raw_script, std::string sessionId) noexcept
 {
     try {
-        //include millennium functions
-        const std::string millennium_functions = R"(
-                class millennium{static sharedjscontext_exec(c){const t=new WebSocket(atob('d3M6Ly9sb2NhbGhvc3Q6MzI0Mg==')),r=()=>t.send(JSON.stringify({type:6,content:c}));return new Promise((e,n)=>{t.onopen=r,t.onmessage=t=>(e(JSON.parse(t.data)),t.target.close()),t.onerror=n,t.onclose=()=>n(new Error)})}}window.millennium=millennium;
-            )";
-
         std::function<void(const std::string&)> runtime_evaluate = [&](const std::string& script) -> void {
             nlohmann::json evaluate_script = {
                 {"id", response::script_inject_evaluate},
@@ -64,6 +59,40 @@ void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl
             if (!sessionId.empty()) evaluate_script["sessionId"] = sessionId;
             c->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
         };
+
+        //include millennium functions
+        const std::string millennium_functions = R"(
+            class millennium{static sharedjscontext_exec(c){const t=new WebSocket(atob('d3M6Ly9sb2NhbGhvc3Q6MzI0Mg==')),r=()=>t.send(JSON.stringify({type:6,content:c}));return new Promise((e,n)=>{t.onopen=r,t.onmessage=t=>(e(JSON.parse(t.data)),t.target.close()),t.onerror=n,t.onclose=()=>n(new Error)})}}window.millennium=millennium;
+        )";
+
+        const auto data = config.getThemeData();
+
+        if (data.contains("GlobalsColors") && data.is_object())
+        {
+            std::string header = ":root { ";
+
+            for (const auto& color : data["GlobalsColors"])
+            {
+                if (!color.contains("ColorName") || !color.contains("HexColorCode") || !color.contains("Description"))
+                {
+                    console.err("Couldn't add global color to array. 'ColorName' or 'HexColorCode' or 'Description' doesn't exist");
+                    continue;
+                }
+
+                std::string name        = color["ColorName"];
+                std::string col         = color["HexColorCode"];
+                std::string description = color["Description"];
+
+                header += std::format("{}: {}; ", name, col, description);
+            }
+
+            header += "}";
+
+            runtime_evaluate(std::format("(document.querySelector('#globalColors') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'globalColors' }}))).innerText = `{}`;", header));
+        }
+        else {
+            console.log("Cannot add custom global colors to page. 'GlobalColors' either doesn't exist, or it isn't a valid object");
+        }
 
         //inject the script that the user wants
         runtime_evaluate(raw_script);
@@ -132,6 +161,11 @@ const void steam_cef_manager::evaluate(ws_Client* c, websocketpp::connection_hdl
 {
     if (type == script_type::javascript && (!Settings::Get<bool>("allow-javascript"))) {
         console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::javascript is prohibited", __func__));
+        return;
+    }
+
+    if (type == script_type::stylesheet && (!Settings::Get<bool>("allow-stylesheet"))) {
+        console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::stylesheet is prohibited", __func__));
         return;
     }
 

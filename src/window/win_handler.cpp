@@ -15,64 +15,13 @@
 
 #include <window/interface/notify/imnotify.h>
 
-ImVec4 HexToImVec4(const char* hexColor) {
-	ImVec4 result(0.0f, 0.0f, 0.0f, 1.0f); // Default to black with full opacity
-
-	if (hexColor[0] == '#' && (strlen(hexColor) == 7 || strlen(hexColor) == 9)) {
-		unsigned int hexValue = 0;
-		int numParsed = sscanf(hexColor + 1, "%x", &hexValue);
-
-		if (numParsed == 1) {
-			if (strlen(hexColor) == 7) {
-				result.x = static_cast<float>((hexValue >> 16) & 0xFF) / 255.0f;
-				result.y = static_cast<float>((hexValue >> 8) & 0xFF) / 255.0f;
-				result.z = static_cast<float>(hexValue & 0xFF) / 255.0f;
-			}
-			else if (strlen(hexColor) == 9) {
-				result.x = static_cast<float>((hexValue >> 24) & 0xFF) / 255.0f;
-				result.y = static_cast<float>((hexValue >> 16) & 0xFF) / 255.0f;
-				result.z = static_cast<float>((hexValue >> 8) & 0xFF) / 255.0f;
-				result.w = static_cast<float>(hexValue & 0xFF) / 255.0f;
-			}
-		}
-	}
-
-	return result;
-}
-
-std::string ImVec4ToHex(const ImVec4& color) {
-	// Clamp the color values to the valid range [0, 1]
-	ImVec4 clampedColor;
-	clampedColor.x = ImClamp(color.x, 0.0f, 1.0f);
-	clampedColor.y = ImClamp(color.y, 0.0f, 1.0f);
-	clampedColor.z = ImClamp(color.z, 0.0f, 1.0f);
-	clampedColor.w = ImClamp(color.w, 0.0f, 1.0f);
-
-	// Convert the clamped color values to hexadecimal
-	unsigned char r = static_cast<unsigned char>(clampedColor.x * 255.0f);
-	unsigned char g = static_cast<unsigned char>(clampedColor.y * 255.0f);
-	unsigned char b = static_cast<unsigned char>(clampedColor.z * 255.0f);
-	unsigned char a = static_cast<unsigned char>(clampedColor.w * 255.0f);
-
-	std::stringstream ss;
-	ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(r);
-	ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(g);
-	ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
-
-	// Optionally, include the alpha channel if it's not fully opaque
-	if (a < 255) {
-		ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(a);
-	}
-
-	return ss.str();
-}
+#include <window/api/installer.hpp>
+#include <window/core/colors.hpp>
 
 struct render
 {
 private:
-	bool m_downloadInProgess = false;
-	std::string m_downloadStatus;
-	
+
 	nlohmann::basic_json<> m_itemSelectedSource;
 
 	const void listButton(const char* name, int index) {
@@ -91,79 +40,7 @@ private:
 			ImGui::PopStyleColor(1);
 		}
 	};
-
-	std::string sanitizeDirectoryName(const std::string& input) {
-		return std::regex_replace(input, std::regex("[^a-zA-Z0-9-_.~]"), "");
-	}
-	
-	void downloadFolder(const nlohmann::json& folderData, const std::filesystem::path& currentDir) 
-	{
-		std::filesystem::create_directories(currentDir);
-
-		for (const auto& item : folderData) 
-		{		
-			try {
-				if (item["type"] == "dir")
-				{
-					std::filesystem::path dirPath = currentDir / item["name"];
-					std::filesystem::create_directories(dirPath);
-
-					downloadFolder(nlohmann::json::parse(http::get(item["url"])), dirPath);
-				}
-				else if (item["type"] == "file" && !item["download_url"].is_null())
-				{
-					const std::string fileName = item["name"].get<std::string>();
-					const std::filesystem::path filePath = currentDir / fileName;
-
-					m_downloadStatus = std::format("downloading {}", fileName);
-					this->writeFileBytesSync(filePath, http::get_bytes(item["download_url"].get<std::string>().c_str()));
-				}
-			}
-			catch (const nlohmann::detail::exception& excep) {
-				if (item.contains("message")) {
-					const auto message = item["message"].get<std::string>();
-					MsgBox(std::format("Message:\n", message).c_str(), "Error contacting GitHub API", MB_ICONERROR);
-				}
-
-				console.err(std::format("Error downloading/updating a skin. message: {}", excep.what()));
-			}
-		}
-	}
-
-	void downloadTheme(const nlohmann::json& skinData) {
-		std::filesystem::path skinDir = std::filesystem::path(config.getSkinDir()) / sanitizeDirectoryName(skinData["name"].get<std::string>());
-
-		try {
-			nlohmann::json folderData = nlohmann::json::parse(http::get(skinData["source"]));
-			downloadFolder(folderData, skinDir);
-		}
-		catch (const http_error& exception) {
-			console.log(std::format("download theme exception: {}", exception.what()));
-		}
-	}
-
 public:
-
-	void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
-	{
-		console.log(std::format("writing file to: {}", filePath.string()));
-
-		std::ofstream fileStream(filePath, std::ios::binary);
-		if (!fileStream)
-		{
-			console.log(std::format("Failed to open file for writing: {}", filePath.string()));
-			return;
-		}
-
-		fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
-
-		if (!fileStream)
-		{
-			console.log(std::format("Error writing to file: {}", filePath.string()));
-		}
-
-		fileStream.close();
-	}
 
 	struct updateItem
 	{
@@ -178,85 +55,36 @@ public:
 	struct ColorInfo {
 		std::string name;
 		ImVec4 color;
+		ImVec4 original;
 		std::string comment;
 	};
-
 	std::vector<ColorInfo> colorList;
-	std::string colorFileBuffer;
-	std::string colorFilePathBuffer;
-
-	std::vector<ColorInfo> parseColors(const std::string& input) {
-		std::vector<ColorInfo> colors;
-
-		// Define a regular expression pattern to match color definitions
-		std::regex pattern("--([a-zA-Z-]+):\\s*#([0-9a-fA-F]+);\\s*/\\*([^*]*)\\*/");
-
-		// Create an iterator to search for matches in the input string
-		std::sregex_iterator iter(input.begin(), input.end(), pattern);
-		std::sregex_iterator end;
-
-		while (iter != end) {
-			ColorInfo color;
-			color.name = (*iter)[1].str();
-			color.color = ImVec4(HexToImVec4(std::format("#{}", (*iter)[2].str()).c_str()));
-			color.comment = (*iter)[3].str();
-			colors.push_back(color);
-			++iter;
-		}
-
-		return colors;
-	}
-
-	void updateColor(std::string& input, const std::string& colorName, const std::string& newColorCode) {
-		std::regex pattern("--" + colorName + ":\\s*#([0-9a-fA-F]+);");
-		std::smatch match;
-
-		if (std::regex_search(input, match, pattern)) {
-			// Replace the existing color code with the new color code
-			input.replace(match.position(1), match.length(1), newColorCode);
-		}
-	}
-
-	const std::string readFileSync(std::string path)
-	{
-		std::basic_ifstream<char, std::char_traits<char>> filePath(path);
-
-		std::string file_content((std::istreambuf_iterator<char>(filePath)), std::istreambuf_iterator<char>());
-
-		return file_content;
-	}
 
 	void openPopupMenu(nlohmann::basic_json<>& skin)
 	{
+		colorList.clear();
+
 		//try to parse colors from the skin object
-		if (skin.contains("GlobalsColors"))
+		if (skin.contains("GlobalsColors") && skin.is_object())
 		{
-			const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
-
-			colorFilePathBuffer = std::format("{}/{}/{}", config.getSkinDir(), m_activeSkin, skin["GlobalsColors"].get<std::string>());
-
-			if (std::filesystem::exists(colorFilePathBuffer))
+			for (const auto& color : skin["GlobalsColors"])
 			{
-				console.succ("Color file was found. Trying to parse.");
-
-				colorFileBuffer = this->readFileSync(colorFilePathBuffer);
-				colorList = parseColors(colorFileBuffer);
-
-				for (const ColorInfo& color : colorList) {
-					std::cout << "Name: " << color.name << std::endl;
-					std::cout << "Code: " << color.color.x << std::endl;
-
-
-					std::cout << "Comment: " << color.comment << std::endl;
+				if (!color.contains("ColorName") || !color.contains("HexColorCode") || !color.contains("OriginalColorCode") || !color.contains("Description"))
+				{
+					console.err("Couldn't collect global color. 'ColorName' or 'HexColorCode' or 'OriginalColorCode' or 'Description' doesn't exist");
+					continue;
 				}
-			}
-			else {
-				console.err(std::format("Color file '{}' couldn't be located. Tried path: '{}'",
-					skin["GlobalsColors"].get<std::string>(), colorFilePathBuffer));
+
+				colorList.push_back({
+					color["ColorName"],
+					colors::HexToImVec4(color["HexColorCode"]),
+					colors::HexToImVec4(color["OriginalColorCode"]),
+					color["Description"]
+				});
 			}
 		}
 		else {
-			console.log("Theme doesn't have a GlobalColors file");
+			console.log("Theme doesn't have GlobalColors");
 		}
 
 		m_editObj = skin;
@@ -364,7 +192,9 @@ public:
 					updatingItem.status = "Updating...";
 
 					std::thread([&]() { 
-						this->downloadTheme(skin);
+						community::_installer->downloadTheme(skin);
+
+
 						m_Client->parseSkinData(); 
 
 						updatingItem.id = -1;
@@ -530,8 +360,16 @@ public:
 
 		static float contentHeight = 100.0f; // Initialize with a minimum height
 
+		if (g_fileDropQueried) {
+			ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
+		}
+
 		ImGui::BeginChild("###library_container", ImVec2(child_width, contentHeight), true, ImGuiWindowFlags_AlwaysAutoResize);
 		{
+			if (g_fileDropQueried) {
+				ImGui::PopStyleColor();
+			}
+
 			static const auto to_lwr = [](std::string str) {
 				std::string result;
 				for (char c : str) {
@@ -652,10 +490,28 @@ public:
 		auto worksize = ImGui::GetMainViewport()->WorkSize;
 		float child_width = (float)(worksize.x < 800 ? rx : worksize.x < 1400 ? rx / 1.2 : worksize.x < 1800 ? rx / 1.4 : rx / 1.5);
 
+		static float windowHeight = 0;
+
 		ui::center(rx, child_width, -1);
-		ImGui::BeginChild("settings_panel", ImVec2(child_width, ry), false);
+
+		ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 15);
+
+		ImGui::BeginChild("settings_panel", ImVec2(child_width, windowHeight), false);
 		{
 			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+
+			static bool enable_css = Settings::Get<bool>("allow-stylesheet");
+
+			ui::render_setting(
+				"StyleSheet Insertion", "Allow CSS (StyleSheet) insertions in the skins you use. In case you only want the JavaScript features of the theme and don't want the CSS customizations",
+				enable_css, false,
+				[=]() {
+					Settings::Set("allow-stylesheet", enable_css);
+					SteamJSContext.reload();
+				}
+			);
+
+			ImGui::Spacing(); ImGui::Spacing();
 
 			static bool enable_js = Settings::Get<bool>("allow-javascript");
 
@@ -708,8 +564,39 @@ public:
 					SteamJSContext.reload();
 				}
 			);
+
+			ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing(); ImGui::Spacing();
+
+			static bool checkForUpdates = Settings::Get<bool>("allow-auto-updates");
+
+			ui::render_setting(
+				"Auto check for Updates", "Millennium will periodically check for updates in the background and prompt to update if one is found.\nThis doesn't effect Steams performance.",
+				checkForUpdates, true,
+				[=]() {
+					Settings::Set("allow-auto-updates", checkForUpdates);
+					//SteamJSContext.reload();
+				}
+			);
+
+			ImGui::Spacing(); ImGui::Spacing();
+
+			static bool updateSound = Settings::Get<bool>("allow-auto-updates-sound");
+
+			ui::render_setting(
+				"Enable Notification Sounds", "Millennium will play a notification sound to help direct the attention to the notification displayed. The volume of the sound is the same as normal Steam notifications.\nThis does NOT effect actual Steam notification sounds.",
+				updateSound, true,
+				[=]() {
+					Settings::Set("allow-auto-updates-sound", updateSound);
+					//SteamJSContext.reload();
+				}
+			);
+			windowHeight = ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y;
 		}
 		ImGui::EndChild();
+
+		ImGui::PopStyleVar();
 	}
 	void loadSelection(MillenniumAPI::resultsSchema& item)
 	{
@@ -898,45 +785,6 @@ public:
 			{
 				g_headerHovered = false;
 			}
-
-			ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 150);
-			ImGui::PushItemWidth(150);
-
-			static char text_buffer[150];
-
-			auto position = ImGui::GetCursorPos();
-			if (ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer), ImGuiInputTextFlags_EnterReturnsTrue))
-			{
-				if (strlen(text_buffer) > 0)
-					api->retrieve_search(text_buffer);
-			}
-			static const auto after = ImGui::GetCursorPos();
-
-			if (ImGui::IsItemHovered()) {
-				g_headerHovered = false;
-			}
-
-			static bool is_focused = false;
-
-			if (ImGui::IsItemActive() || ImGui::IsItemFocused()) {
-				is_focused = true;
-			}
-			else {
-				is_focused = false;
-			}
-
-			if (!is_focused && text_buffer[0] == '\0')
-			{
-				ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
-
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-				ImGui::TextUnformatted("Search for themes...");
-				ImGui::PopStyleColor();
-
-				ImGui::SetCursorPos(after);
-			}
-
-			ImGui::PopItemWidth();
 		}
 		ImGui::EndChild();
 
@@ -979,10 +827,106 @@ public:
 
 				ImGui::BeginChild("##store_page_child", ImVec2(child_width, ry), false);
 				{
-					for (int i = 0; i < (int)api->get_query().size(); i++)
+					//ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 150);
+					ImGui::PushItemWidth(150);
+
+					if (ImGui::ImageButton(Window::iconsObj().reload_icon, ImVec2(16, 16)))
 					{
-						create_card(api->get_query()[i], i);
+						api->retrieve_featured();
 					}
+					ImGui::SameLine();
+					ui::shift::x(-4);
+
+					static char text_buffer[150];
+					auto position = ImGui::GetCursorPos();
+
+					if (ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+					{
+						if (strlen(text_buffer) > 0) api->retrieve_search(text_buffer);
+					}
+
+					static const auto after = ImGui::GetCursorPos();
+
+					if (!(ImGui::IsItemActive() || ImGui::IsItemFocused()) && text_buffer[0] == '\0')
+					{
+						ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
+
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+						ImGui::TextUnformatted("Search for themes...");
+						ImGui::PopStyleColor();
+
+						ImGui::SetCursorPos(after);
+					}
+
+					ImGui::PopItemWidth();
+
+					ImGui::SameLine();
+
+					ui::shift::right(225);
+
+					auto query = api->get_query();
+
+					static int sortByIndex = 4;
+					static const char* sortByArray[] = { "Recently Added", "Alphabetical (A - Z)", "Alphabetical (Z - A)",  "Least Downloaded", "Most Downloaded" };
+
+					ImGui::PushItemWidth(120);
+
+					ImGui::Combo("###SortBy", &sortByIndex, sortByArray, IM_ARRAYSIZE(sortByArray));
+
+					switch (sortByIndex)
+					{
+						using schema = MillenniumAPI::resultsSchema;
+
+						case 0: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { try { return std::stoi(a.date_added) > std::stoi(b.date_added); } catch (std::exception& ex) { return a.name < b.name; } }); break; }
+						case 1: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.name < b.name; }); break; }
+						case 2: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.name > b.name; }); break; }
+						case 3: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.download_count < b.download_count; }); break; }
+						case 4: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.download_count > b.download_count; }); break; }
+					}
+
+					ImGui::PopItemWidth();
+
+					ImGui::SameLine();
+
+					static std::set<std::string> categories = { "All" };
+					std::vector<std::string> v_categories(categories.begin(), categories.end());
+
+					ImGui::PushItemWidth(90);
+
+					static int selectedItem = 0;
+
+					if (ImGui::BeginCombo("###Category", selectedItem >= 0 ? v_categories[selectedItem].c_str() : nullptr)) {
+						for (int i = 0; i < v_categories.size(); ++i) {
+							bool isSelected = (i == selectedItem);
+							if (ImGui::Selectable(v_categories[i].c_str(), isSelected)) {
+								selectedItem = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					ImGui::PopItemWidth();
+
+					int j = 0;
+					for (auto& item : query)
+					{
+						for (const auto& tag : item.tags)
+						{
+							if (categories.find(tag) == categories.end()) {
+								categories.insert(tag);
+							}
+						}
+
+						if (v_categories[selectedItem] == "All") {
+							create_card(item, j++);
+						}
+						else if (std::find(item.tags.begin(), item.tags.end(), v_categories[selectedItem]) != item.tags.end()) {
+							create_card(item, j++);
+						}
+					}
+
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+					ui::center_text(std::format("{} results found.", j).c_str());
+					ImGui::PopStyleColor();
 				}
 				ImGui::EndChild();
 			}
@@ -1026,8 +970,10 @@ public:
 		//set constraints on the children
 		float child_width = (float)(worksize.x < 800 ? rx : worksize.x < 1400 ? rx / 1.2 : worksize.x < 1800 ? rx / 1.4 : rx / 1.5);
 
+		static float windowHeight = 0;
+
 		ui::center(rx, child_width, 8);
-		ImGui::BeginChild("store_details", ImVec2(child_width, ry), false);
+		ImGui::BeginChild("store_details", ImVec2(child_width, windowHeight), false);
 		{
 			ImGui::BeginChild("left_side", ImVec2(rx / 1.5f, ry), true);
 			{
@@ -1102,6 +1048,61 @@ public:
 						if (m_Client->v_rawImageList[m_Client->m_imageIndex].texture != nullptr && m_Client->v_rawImageList[m_Client->m_imageIndex].texture->AddRef())
 						{
 							ImGui::Image(m_Client->v_rawImageList[m_Client->m_imageIndex].texture, ImVec2((float)result.width, ab_height));
+							
+							static bool imagePopupOpen = false;
+
+							if (ImGui::IsItemClicked()) {
+								imagePopupOpen = true;
+							}
+
+							ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.5f, 0.5f, 0.5f, 0.1f));
+
+							if (ImGui::IsItemHovered())
+							{
+								ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(7, 7));
+								ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+								ImGui::SetTooltip("Click to enlarge image.");
+								ImGui::PopStyleVar();
+							}
+
+							if (imagePopupOpen && ImGui::Begin("Image Viewer", &imagePopupOpen, ImGuiWindowFlags_NoCollapse))
+							{
+								ImVec2 size = ImGui::GetWindowSize();
+
+								image::size result = image::maintain_aspect_ratio(width, height, (int)size.x, (int)size.y);
+
+								ImGui::SetCursorPosX((rx - result.width) / 2);
+								ImGui::SetCursorPosY((ry - result.height) / 2);
+
+								ImGui::Image(m_Client->v_rawImageList[m_Client->m_imageIndex].texture, ImVec2((float)result.width, result.height));
+
+								ui::center(rx, 90.0f, -1);
+
+								ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 10);
+								ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+								ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
+								ImGui::BeginChild("carousel1", ImVec2(90, 20), true);
+								{
+									if (ImGui::Button(" < ", ImVec2(0, 17))) {
+										if (m_Client->m_imageIndex - 1 >= 0) m_Client->m_imageIndex--;
+									}
+									ImGui::SameLine();
+									ImGui::Text(std::format("{} of {}", m_Client->m_imageIndex + 1, m_Client->v_rawImageList.size()).c_str());
+									ImGui::SameLine();
+									ui::shift::right(20);
+									if (ImGui::Button(" > ", ImVec2(0, 17)))
+									{
+										if (m_Client->m_imageIndex < ((int)m_Client->v_rawImageList.size() - 1))
+											m_Client->m_imageIndex++;
+									}
+								}
+								ImGui::EndChild();
+								ImGui::PopStyleColor();
+
+								ImGui::PopStyleVar(2);
+								ImGui::End();
+							}
+							ImGui::PopStyleColor();
 						}
 					}
 					ImGui::EndChild();
@@ -1138,6 +1139,8 @@ public:
 				ImGui::Spacing();
 
 				parse_text(m_Client->m_resultsSchema.description.c_str());
+
+				windowHeight = max(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y, windowHeight);
 			}
 			ImGui::EndChild();
 
@@ -1163,16 +1166,25 @@ public:
 
 					for (const auto item : m_Client->skinData)
 					{
-						if (this->m_itemSelectedSource.empty())
-							continue;
+						try
+						{
+							if (this->m_itemSelectedSource.empty())
+								continue;
 
-						if (item.value("source", std::string()) == this->m_itemSelectedSource.value("source", std::string())) {
+							if (item.value("source", std::string()) == this->m_itemSelectedSource.value("source", std::string())) {
 
-							//console.log(std::format("local installed: {}", this->m_itemSelectedSource["source"].get<std::string>()));
-							isInstalled = true;
+								//console.log(std::format("local installed: {}", this->m_itemSelectedSource["source"].get<std::string>()));
+								isInstalled = true;
 
-							if (item["version"] != this->m_itemSelectedSource["version"])
-								requiresUpdate = true;
+								if (item["version"] != this->m_itemSelectedSource["version"])
+									requiresUpdate = true;
+							}
+						}
+						catch (const nlohmann::detail::exception& err) {
+							console.err(std::format("error thrown checking if skin needs update on store page:\n{}", err.what()));
+						}
+						catch (const std::exception& err) {
+							console.err(std::format("error thrown checking if skin needs update on store page:\n{}", err.what()));
 						}
 					}
 
@@ -1181,27 +1193,27 @@ public:
 						ImGui::PushStyleColor(ImGuiCol_Button, col);
 						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
 
-						if (m_downloadInProgess)
+						if (community::_installer->m_downloadInProgess)
 							ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 						else
 							ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
 
-						if (ImGui::Button((m_downloadInProgess ? m_downloadStatus.c_str() : requiresUpdate ? "Update" : "Download"), ImVec2(rx, 35))) {
+						if (ImGui::Button((community::_installer->m_downloadInProgess ? community::_installer->m_downloadStatus.c_str() : requiresUpdate ? "Update" : "Download"), ImVec2(rx, 35))) {
 
 							std::cout << m_Client->m_resultsSchema.id << std::endl;
 
 							std::thread([this]() {
-								m_downloadInProgess = true;
+								community::_installer->m_downloadInProgess = true;
 								api->iterate_download_count(m_Client->m_resultsSchema.id);
 								m_Client->m_resultsSchema.download_count++;
 
 								std::cout << m_itemSelectedSource.dump(4) << std::endl;
-								this->downloadTheme(m_itemSelectedSource);
+								community::_installer->downloadTheme(m_itemSelectedSource);
 
 								//this->createThemeSync(m_itemSelectedSource);
 
 								m_Client->parseSkinData();
-								m_downloadInProgess = false;
+								community::_installer->m_downloadInProgess = false;
 							}).detach();
 						}
 
@@ -1215,7 +1227,7 @@ public:
 
 						if (ImGui::Button("Uninstall", ImVec2(rx, 35))) {
 
-							std::string disk_path = std::format("{}/{}", config.getSkinDir(), this->sanitizeDirectoryName(m_itemSelectedSource["name"].get<std::string>()));
+							std::string disk_path = std::format("{}/{}", config.getSkinDir(), community::_installer->sanitizeDirectoryName(m_itemSelectedSource["name"].get<std::string>()));
 
 							console.log(std::format("deleting skin {}", disk_path));
 
@@ -1370,6 +1382,8 @@ public:
 					ImGui::EndChild();
 				}
 				ImGui::EndChild();
+
+				windowHeight = max(ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y, windowHeight);
 			}
 			ImGui::EndChild();
 		}
@@ -1382,6 +1396,9 @@ public:
 	{
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
 		{
+			ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 10);
+			ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+
 			if (ImGui::BeginChild("ChildContentPane", ImVec2(rx, ry), true))
 			{
 				switch (ui::current_tab_page)
@@ -1392,6 +1409,9 @@ public:
 				}
 			}
 			ImGui::EndChild();
+
+			ImGui::PopStyleColor();
+			ImGui::PopStyleVar();
 		}
 		ImGui::PopStyleColor();
 	}
@@ -1645,221 +1665,178 @@ public:
 void handleFileDrop()
 {
 	if (g_fileDropQueried) {
-		ImGui::OpenPopup("###FileDropPopup");
+		ui::current_tab_page = 2;
 	}
-
-	ui::center_modal(ImVec2(ImGui::GetMainViewport()->WorkSize.x / 2.3, ImGui::GetMainViewport()->WorkSize.y / 2.4));
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
-
-	ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-
-	if (ImGui::BeginPopupModal("###FileDropPopup", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar))
-	{
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-
-		
-		ImGui::PopStyleColor();
-
-		if (!g_fileDropQueried) {
-			ImGui::CloseCurrentPopup();
-		}
-
-		ImGui::EndPopup();
-	}
-
-	ImGui::PopStyleColor(2);
-	ImGui::PopStyleVar();
 }
 
 void handleEdit()
 {
 	const std::string name = RendererProc.m_editObj.empty() ? "" : (RendererProc.m_editObj.contains("name") ? RendererProc.m_editObj["name"] : RendererProc.m_editObj["native-name"]);
 
-
-	if (RendererProc.m_editMenuOpen) {
-		ImGui::OpenPopup(std::format(" Settings for {}", name).c_str());
-	}
-
-	ui::center_modal(ImVec2(ImGui::GetMainViewport()->WorkSize.x / 2, ImGui::GetMainViewport()->WorkSize.y / 1.5));
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
-
-	ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.2f, 0.2f, 1.0f));
-	ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-
-
-	if (ImGui::BeginPopupModal(std::format(" Settings for {}", name).c_str(), &RendererProc.m_editMenuOpen, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+	if (RendererProc.m_editMenuOpen)
 	{
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-		ImGui::BeginChild("###ConfigContainer", ImVec2(rx, ry - 32), false);
+		//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
+
+		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.2f, 0.2f, 1.0f));
+		//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+
+		ImGui::SetNextWindowSize(ImVec2(450, 550), ImGuiCond_Once);
+
+		if (ImGui::Begin(std::format(" Settings for {}", name).c_str(), &RendererProc.m_editMenuOpen, ImGuiWindowFlags_NoCollapse))
 		{
-			if (RendererProc.m_editObj.contains("Configuration"))
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+			ImGui::BeginChild("###ConfigContainer", ImVec2(rx, ry - 32), false);
 			{
-				ImGui::Spacing();
-				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+				const bool hasConfiguration = RendererProc.m_editObj.contains("Configuration");
+				const bool hasColors = !RendererProc.colorList.empty();
 
-				ImGui::Text(" Configuration Settings");
-				ImGui::Separator();
-				ImGui::Spacing();
+				if (!hasConfiguration && !hasColors) {
+					ImGui::Text("No Settings Available");
+				}
 
-				ImGui::PopFont();
-
-				for (auto& setting : RendererProc.m_editObj["Configuration"])
+				if (hasConfiguration)
 				{
-					if (!setting.contains("Name"))
+					ImGui::Spacing();
+					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+
+					ImGui::Text(" Configuration Settings");
+					ImGui::Separator();
+					ImGui::Spacing();
+
+					ImGui::PopFont();
+
+					for (auto& setting : RendererProc.m_editObj["Configuration"])
 					{
-						continue;
+						if (!setting.contains("Name"))
+							continue;
+						if (!setting.contains("Type"))
+							continue;
+
+						const std::string name = setting["Name"];
+						const std::string toolTip = setting.value("ToolTip", std::string());
+						const std::string type = setting["Type"];
+
+						if (type == "CheckBox") {
+							bool value = setting.value("Value", false);
+
+							ui::render_setting(
+								name.c_str(), toolTip.c_str(),
+								value, false,
+								[&]() { setting["Value"] = value; }
+							);
+						}
 					}
-					if (!setting.contains("Type"))
+				}
+
+				if (hasColors)
+				{
+					ImGui::Spacing();
+					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+					ImGui::Text(" Color Settings:");
+					ImGui::Separator();
+					ImGui::Spacing();
+
+					ImGui::PopFont();
+
+					auto& colors = RendererProc.colorList;
+
+					for (int i = 0; i < RendererProc.colorList.size(); i++)
 					{
-						continue;
+						ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
+
+						ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x, ImGuiColorEditFlags_NoLabel | ImGuiWindowFlags_NoDocking);
 					}
 
-					const std::string name = setting["Name"];
-					const std::string toolTip = setting.value("ToolTip", std::string());
-					const std::string type = setting["Type"];
-
-
-
-					if (type == "CheckBox")
+					if (ImGui::Button("Reset Colors"))
 					{
-						bool value = setting.value("Value", false);
+						auto& obj = RendererProc.m_editObj;
 
-						ui::render_setting(
-							name.c_str(), toolTip.c_str(),
-							value, false,
-							[&]() {
-								std::cout << "callback" << std::endl;
+						if (obj.contains("GlobalsColors") && obj.is_object())
+						{
+							for (auto& color : obj["GlobalsColors"])
+							{
+								if (!color.contains("HexColorCode") || !color.contains("OriginalColorCode"))
+								{
+									console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
+									continue;
+								}
 
-								setting["Value"] = value;
+								color["HexColorCode"] = color["OriginalColorCode"];
 							}
-						);
+						}
+						else {
+							console.log("Theme doesn't have GlobalColors");
+						}
+
+						config.setThemeData(obj);
+						RendererProc.openPopupMenu(obj);
 					}
 				}
 			}
+			ImGui::EndChild();
+			ImGui::PopStyleColor();
 
-			if (!RendererProc.colorList.empty())
+			if (ImGui::Button("Save and Update", ImVec2(rx, 24)))
 			{
-				ImGui::Spacing();
-				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
-				ImGui::Text(" Color Settings:");
-				ImGui::Separator();
-				ImGui::Spacing();
+				const auto json = RendererProc.m_editObj;
 
-				ImGui::PopFont();
+				nlohmann::json buffer = config.getThemeData(true);
 
-				auto& colors = RendererProc.colorList;
-
-				for (int i = 0; i < RendererProc.colorList.size(); i++)
-				{
-					ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
-
-					if (ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x), ImGuiColorEditFlags_NoLabel) {
-
-					}
+				if (buffer.contains("config_fail")) {
+					MsgBox("Unable to save and update config. Millennium couldn't get theme data", "Error", MB_ICONERROR);
 				}
+				else {
 
-				if (ImGui::Button("Reset Colors"))
-				{
-					auto& obj = RendererProc.m_editObj;
-
-					if (obj.contains("source") && obj.contains("GlobalsColors"))
+					if (buffer.contains("Configuration") && json.contains("Configuration"))
 					{
-						const auto original = http::getJson(std::format("{}/{}",
-							obj["source"].get<std::string>(), obj["GlobalsColors"].get<std::string>()));
+						buffer["Configuration"] = json["Configuration"];
+						config.setThemeData(buffer);
 
-						if (original.contains("message"))
-						{
-							MsgBox(std::format("Can't GET the original colors from source.\nMessage:\n{}", original["message"].get<std::string>()).c_str(), "Error", MB_ICONERROR);
-						}
-						else
-						{
-							console.log(original.dump(4));
+						auto& colors = RendererProc.colorList;
+						auto& obj = RendererProc.m_editObj;
 
-							if (original.contains("download_url"))
+						if (obj.contains("GlobalsColors") && obj.is_object())
+						{
+							for (int i = 0; i < obj["GlobalsColors"].size(); i++)
 							{
-								const auto fileContents = http::get(original["download_url"].get<std::string>());
+								auto& global = obj["GlobalsColors"][i];
 
-								std::vector<unsigned char> byteVector;
-
-								for (char c : fileContents) {
-									byteVector.push_back(static_cast<unsigned char>(c));
+								if (!global.contains("HexColorCode"))
+								{
+									console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
+									continue;
 								}
 
-								RendererProc.writeFileBytesSync(RendererProc.colorFilePathBuffer, byteVector);
-
-								console.log("Wrote original file buffer back to: " + RendererProc.colorFilePathBuffer);
-
-								RendererProc.openPopupMenu(RendererProc.m_editObj);
+								if (global["ColorName"] == colors[i].name) {
+									global["HexColorCode"] = "#" + colors::ImVec4ToHex(colors[i].color);
+								}
+								else {
+									console.err(std::format("Color at index {} was a mismatch", i));
+								}
 							}
-							else
-							{
-								MsgBox("Can't GET the original colors from source as the API endpoint doesn't include a download_url", "Error", MB_ICONERROR);
-							}
+
+							config.setThemeData(obj);
+
+							themeConfig::updateEvents::getInstance().triggerUpdate();
+
+							steam_js_context SharedJsContext;
+							SharedJsContext.reload();
+						}
+						else {
+							console.log("Theme doesn't have GlobalColors");
 						}
 					}
 					else {
-						console.err("Can't retrieve original colors because the selected skin doesn't have 'source' key or 'GlobalsColors'");
+						console.log("json buffer or editing object doesn't have a 'Configuration' key");
 					}
 				}
 			}
+			ImGui::End();
 		}
-		ImGui::EndChild();
+
 		ImGui::PopStyleColor();
-
-		if (ImGui::Button("Save and Update", ImVec2(rx, 24)))
-		{
-			const auto json = RendererProc.m_editObj;
-
-			std::vector<unsigned char> byteVector;
-
-			nlohmann::json buffer = config.getThemeData(true);
-
-			if (buffer.contains("config_fail")) {
-				MsgBox("Unable to save and update config. Millennium couldn't get theme data", "Error", MB_ICONERROR);
-			}
-			else {
-				buffer["Configuration"] = json["Configuration"];
-
-				for (char c : buffer.dump(4)) {
-					byteVector.push_back(static_cast<unsigned char>(c));
-				}
-
-				std::cout << buffer.dump(4) << std::endl;
-
-				RendererProc.writeFileBytesSync(
-					std::filesystem::path(config.getSkinDir()) / json["native-name"] / "skin.json", byteVector
-				);
-
-				auto& colors = RendererProc.colorList;
-
-				for (auto color : colors)
-				{
-					RendererProc.updateColor(RendererProc.colorFileBuffer, color.name, ImVec4ToHex(color.color));
-
-					std::vector<unsigned char> byteVector;
-
-					for (char c : RendererProc.colorFileBuffer) {
-						byteVector.push_back(static_cast<unsigned char>(c));
-					}
-
-					RendererProc.writeFileBytesSync(RendererProc.colorFilePathBuffer, byteVector);
-				}
-
-				themeConfig::updateEvents::getInstance().triggerUpdate();
-
-				steam_js_context SharedJsContext;
-				SharedJsContext.reload();
-			}
-		}
-
-		ImGui::EndPopup();
+		//ImGui::PopStyleVar();
 	}
-
-	ImGui::PopStyleColor(2);
-	ImGui::PopStyleVar();
 }
 
 void init_main_window()
@@ -1883,7 +1860,7 @@ void init_main_window()
 	std::thread([&]() {
 		themeConfig::watchPath(config.getSkinDir(), []() {
 			try {
-				//m_Client->parseSkinData();
+				m_Client->parseSkinData();
 			}
 			catch (std::exception& ex) {
 				console.log(ex.what());

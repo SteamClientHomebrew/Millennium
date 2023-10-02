@@ -79,8 +79,8 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 		try 
 		{
 			nlohmann::basic_json<> cloudResponse = http::getJson(cloudData.string());
-			if (cloudResponse.contains("download_url"))
-			{
+
+			if (cloudResponse.contains("download_url")) {
 				nlohmann::basic_json<> jsonResponse = http::getJson(cloudResponse["download_url"]);
 
 				const auto localVersion = data["version"].get<std::string>();
@@ -88,25 +88,22 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 
 				bool needsUpdate = localVersion != cloudVersion;
 
-				console.imp(std::format("installed version: {}, cloud version: {}", localVersion, cloudVersion));
-				console.log(std::format("{} -> {}", skin_json_path.string(), needsUpdate ? "needs update" : "is up-to-date"));
+				console.imp(std::format("  > Installed version: {}, Cloud version: {}", localVersion, cloudVersion));
+				console.log(std::format("  > {} -> {}", skin_json_path.string(), needsUpdate ? "needs update" : "is up-to-date"));
 
 				return needsUpdate;
 			}
-			else 
-			{
-				console.err("Invalid source key inside of skin. Can't use it to check for updates");
+			else {
+				console.err("  > Invalid source key inside of skin. Can't use it to check for updates");
 				return false;
 			}
 		}
-		catch (const http_error& error) 
-		{
-			console.log(std::format("An HTTP error occurred while checking for updates on skin {}", skin_json_path.string()));
+		catch (const http_error& error) {
+			console.log(std::format("  > An HTTP error occurred while checking for updates on skin {}", skin_json_path.string()));
 			return false;
 		}
 	}
-	else 
-	{
+	else {
 		console.log("there is no source for this theme, can't check for updates...");
 		return false;
 	}
@@ -116,14 +113,14 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 {
 	std::filesystem::path skin_json_path = entry.path() / "skin.json";
 
-	console.log(std::format("local skin parser: {}", skin_json_path.string()));
+	console.log(std::format(" > Local skin parser: {}", skin_json_path.string()));
 
 	if (!std::filesystem::exists(skin_json_path))
 		return false;
 
 	auto data = this->readFileSync(skin_json_path.string());
 
-	console.log(std::format("[DEBUG] found a skin: {}", entry.path().filename().string()));
+	console.log(std::format(" > Found a skin: {}", entry.path().filename().string()));
 	const std::string fileName = entry.path().filename().string();
 
 	if (_checkForUpdates) {
@@ -171,14 +168,14 @@ void millennium::getRawImages(std::vector<std::string>& images)
 nlohmann::basic_json<> millennium::bufferSkinData()
 {
 	const std::string steamPath = config.getSkinDir();
-	console.log(std::format("[DEBUG] searching for steam skins at: {}", steamPath));
+	console.log(std::format("Searching for steam skins at -> [{}]", steamPath));
 
 	this->resetCollected();
 	std::vector<nlohmann::basic_json<>> jsonBuffer;
 
 	for (const auto& entry : std::filesystem::directory_iterator(steamPath))
 	{
-		console.log("found a folder in skins folder, checking if its a valid skin.");
+		console.log(std::format("Folder -> [{}]", entry.path().filename().string()));
 
 		if (entry.is_directory())
 		{
@@ -193,27 +190,22 @@ void millennium::parseSkinData()
 {
 	std::thread([&]() {
 		const std::string steamPath = config.getSkinDir();
-		console.log(std::format("[DEBUG] searching for steam skins at: {}", steamPath));
-		//try
-		//{
-			this->resetCollected();
-			std::vector<nlohmann::basic_json<>> jsonBuffer;
+		console.log(std::format("Searching for steam skins at -> [{}]", steamPath));
 
-			for (const auto& entry : std::filesystem::directory_iterator(steamPath))
+		this->resetCollected();
+		std::vector<nlohmann::basic_json<>> jsonBuffer;
+
+		for (const auto& entry : std::filesystem::directory_iterator(steamPath))
+		{
+			console.log(std::format("Folder -> [{}]", entry.path().filename().string()));
+
+			if (entry.is_directory())
 			{
-				console.log("found a folder in skins folder, checking if its a valid skin.");
-
-				if (entry.is_directory())
-				{
-					if (!this->parseLocalSkin(entry, jsonBuffer))
-						continue;
-				}
+				if (!this->parseLocalSkin(entry, jsonBuffer))
+					continue;
 			}
-			skinData = jsonBuffer;
-		//}
-		//catch (std::exception& ex) {
-		//	console.err(std::format("Error getting user settings. Message: {}", ex.what()));
-		//}
+		}
+		skinData = jsonBuffer;
 	}).detach();
 }
 

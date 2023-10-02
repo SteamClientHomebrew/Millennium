@@ -102,6 +102,12 @@
     <ClInclude Include="window\interface\notify\fa_solid_900.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="window\api\installer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="window\core\colors.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -159,6 +165,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utils\thread\thread_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="window\api\installer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="window\core\colors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

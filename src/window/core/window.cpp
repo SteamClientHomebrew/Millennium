@@ -24,6 +24,7 @@
 
 #include <Windows.h>
 #include <windowsx.h>
+#include <utils/config/config.hpp>
 
 static bool mousedown = false;
 bool app_open = true;
@@ -212,6 +213,7 @@ void initTextures()
     createRawImage(&icons_struct.close, Memory::close, sizeof Memory::close);
 
     createRawImage(&icons_struct.greyed_out, Memory::greyed_out, sizeof Memory::greyed_out);
+    createRawImage(&icons_struct.reload_icon, Memory::reloadIcon, sizeof Memory::reloadIcon);
 }
 
 bool Application::Destroy()
@@ -330,6 +332,27 @@ public:
         return S_OK;
     }
 
+    const void HandleDrop(const char* _filePath)
+    {
+        std::cout << "Dropped file: " << _filePath << std::endl;
+
+        try {
+            std::filesystem::path filePath(_filePath);
+
+            if (!std::filesystem::exists(filePath) || !std::filesystem::exists(filePath / "skin.json") || !std::filesystem::is_directory(filePath))
+            {
+                MsgBox("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
+                    "Make sure the skin isn't archived, and it exists on your disk", "Can't Add Skin", MB_ICONERROR);
+                return;
+            }
+
+            std::filesystem::rename(filePath, std::filesystem::path(config.getSkinDir()) / filePath.filename().string());
+        }
+        catch (const std::filesystem::filesystem_error& error) {
+            MsgBox(std::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
+        }
+    }
+
     STDMETHOD(Drop)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
 
         FORMATETC fmt = { CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
@@ -344,7 +367,7 @@ public:
                 TCHAR filePath[MAX_PATH];
                 if (DragQueryFile(hDrop, i, filePath, MAX_PATH) > 0) {
                     // Handle the file path (e.g., log or process it)
-                    std::wcout << L"Dropped file: " << filePath << std::endl;
+                    this->HandleDrop(filePath);
                 }
             }
 

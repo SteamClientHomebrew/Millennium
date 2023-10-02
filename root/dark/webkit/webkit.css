@@ -1028,3 +1028,7 @@ div#dropdown_sort {
 body.v6 .game_page_background {
     background: none !important;
 }
+
+div#home_gutter_recentlyviewed {
+    background: none !important;
+}

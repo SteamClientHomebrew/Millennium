@@ -178,6 +178,8 @@
     <ClInclude Include="utils\base64.hpp" />
     <ClInclude Include="utils\thread\thread_handler.hpp" />
     <ClInclude Include="window\api\api.hpp" />
+    <ClInclude Include="window\api\installer.hpp" />
+    <ClInclude Include="window\core\colors.hpp" />
     <ClInclude Include="window\core\dx9_image.hpp" />
     <ClInclude Include="window\imgui\imconfig.h" />
     <ClInclude Include="window\imgui\imgui.h" />
@@ -206,6 +208,8 @@
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="utils\thread\thread_handler.cpp" />
     <ClCompile Include="window\api\api.cpp" />
+    <ClCompile Include="window\api\installer.cpp" />
+    <ClCompile Include="window\core\colors.cpp" />
     <ClCompile Include="window\core\dx9_image.cpp" />
     <ClCompile Include="window\imgui\imgui.cpp" />
     <ClCompile Include="window\imgui\imgui_demo.cpp" />
