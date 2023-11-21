@@ -111,6 +111,8 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 
 bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer, bool _checkForUpdates)
 {
+	console.log(std::format("checkForUpdates? -> {}", _checkForUpdates));
+
 	std::filesystem::path skin_json_path = entry.path() / "skin.json";
 
 	console.log(std::format(" > Local skin parser: {}", skin_json_path.string()));
@@ -124,13 +126,22 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 	const std::string fileName = entry.path().filename().string();
 
 	if (_checkForUpdates) {
+		console.log("checking for updates for skin");
 		data["update_required"] = checkForUpdates(data, skin_json_path);
 	}
-	else data["update_required"] = false;
+	else
+	{
+		console.log("skipping update check on a skin");
+		data["update_required"] = false;
+	}
 
 	data["name"]        = data.value("name", fileName).c_str();
 	data["native-name"] = fileName;
-	data["description"] = data.value("description", "no description yet.").c_str();
+
+	if (!data.contains("description")) {
+		data["description"] = "no description yet.";
+	}
+
 	data["remote"]      = false;
 
 	buffer.push_back(data);
@@ -186,9 +197,11 @@ nlohmann::basic_json<> millennium::bufferSkinData()
 	return jsonBuffer;
 }
 
-void millennium::parseSkinData()
+void millennium::parseSkinData(bool checkForUpdates)
 {
-	std::thread([&]() {
+	console.log(std::format("Calling {} with param -> {}", __func__, checkForUpdates));
+
+	std::thread([this, checkForUpdates]() {
 		const std::string steamPath = config.getSkinDir();
 		console.log(std::format("Searching for steam skins at -> [{}]", steamPath));
 
@@ -201,11 +214,17 @@ void millennium::parseSkinData()
 
 			if (entry.is_directory())
 			{
-				if (!this->parseLocalSkin(entry, jsonBuffer))
+				console.log(std::format("calling with param -> {}", checkForUpdates));
+
+				if (!this->parseLocalSkin(entry, jsonBuffer, checkForUpdates))
 					continue;
 			}
 		}
+		
+		skinDataReady = false;
 		skinData = jsonBuffer;
+		skinDataReady = true;
+
 	}).detach();
 }
 
@@ -237,7 +256,7 @@ void millennium::changeSkin(nlohmann::basic_json<>& skin)
 		MsgBox("the selected skin was not found, therefor can't be loaded.", "Millennium", MB_ICONINFORMATION);
 	}
 
-	parseSkinData();
+	parseSkinData(false);
 }
 
 void millennium::concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin)

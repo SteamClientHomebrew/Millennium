@@ -77,6 +77,9 @@ private:
     cef_dom& operator=(const cef_dom&) = delete;
 };
 
+std::string injectSystemColors();
+std::string injectGlobalColor();
+
 struct steam_cef_manager
 {
 private:
@@ -120,6 +123,7 @@ public:
     /// <param name="socket_response">used sessionId to target the setting modal</param>
     /// <returns></returns>
     __declspec(noinline) void __fastcall inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept;
+    __declspec(noinline) void __fastcall render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept;
 
     /// <summary>
     /// interface to inject js into a cef instance

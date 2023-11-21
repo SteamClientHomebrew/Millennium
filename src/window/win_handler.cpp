@@ -28,13 +28,13 @@ private:
 		static ImU32 col = ImGui::GetColorU32(ImGuiCol_CheckMark);
 
 		if (ui::current_tab_page == index) {
-			if (ImGui::Selectable(std::format(" {}", name).c_str())) ui::current_tab_page = index;
+			if (ImGui::Button(name)) ui::current_tab_page = index;
 			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 			if (ImGui::IsItemClicked(1)) ImGui::OpenPopup(std::format("selectable_{}", index).c_str());
 		}
 		else {
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-			if (ImGui::Selectable(name)) ui::current_tab_page = index;
+			if (ImGui::Button(name)) ui::current_tab_page = index;
 			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 			if (ImGui::IsItemClicked(1)) ImGui::OpenPopup(std::format("selectable_{}", index).c_str());
 			ImGui::PopStyleColor(1);
@@ -63,6 +63,7 @@ public:
 	void openPopupMenu(nlohmann::basic_json<>& skin)
 	{
 		colorList.clear();
+		//const auto skin = config.getThemeData(false);
 
 		//try to parse colors from the skin object
 		if (skin.contains("GlobalsColors") && skin.is_object())
@@ -131,7 +132,7 @@ public:
 			ImGui::PopStyleColor();
 
 			//display the title bar of the current skin 
-			ImGui::BeginChild(std::format("skin_header{}", index).c_str(), ImVec2(rx, 33), true);
+			ImGui::BeginChild(std::format("skin_header{}", index).c_str(), ImVec2(rx, 35), true);
 			{
 				ImGui::Image((void*)Window::iconsObj().skin_icon, ImVec2(ry - 1, ry - 1));
 
@@ -169,12 +170,12 @@ public:
 			if (requiresUpdate) 
 			{
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetColorU32(ImGuiCol_CheckMark));
 
 				ui::shift::y(-5);
-				ui::shift::right(190);
+				ui::shift::right(197);
 
-				if (ImGui::Button("Edit", ImVec2(50, 25)))
+				if (ImGui::ImageButton(Window::iconsObj().editIcon, ImVec2(16, 16)))
 				{
 					this->openPopupMenu(skin);
 				}
@@ -184,8 +185,47 @@ public:
 				else {
 					updateButtonHovered = false;
 				}
+				ImGui::SameLine(0);
+				ui::shift::x(-4);
+				ImGui::PopStyleColor(2);
+
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
+				if (ImGui::ImageButton(Window::iconsObj().deleteIcon, ImVec2(16, 16)))
+				{
+					int result = MessageBoxA(GetForegroundWindow(), std::format("Are you sure you want to delete {}?\nThis cannot be undone.", skin["native-name"].get<std::string>()).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
+
+					if (result == IDYES)
+					{
+						std::string disk_path = std::format("{}/{}", config.getSkinDir(), skin["native-name"].get<std::string>());
+
+						console.log(std::format("deleting skin {}", disk_path));
+
+						if (std::filesystem::exists(disk_path)) {
+
+							try {
+								std::filesystem::remove_all(std::filesystem::path(disk_path));
+							}
+							catch (const std::exception& ex) {
+								MsgBox(std::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+							}
+						}
+
+						//m_Client->parseSkinData(false);
+					}
+				}
+				if (ImGui::IsItemHovered()) {
+					updateButtonHovered = true;
+				}
+				else {
+					updateButtonHovered = false;
+				}
+				ImGui::PopStyleColor(2);
 				ImGui::SameLine();
 				ui::shift::x(-4);
+
+				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetColorU32(ImGuiCol_CheckMark));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetColorU32(ImGuiCol_CheckMark));
 
 				if (ImGui::Button(updatingItem.id == index ? updatingItem.status.c_str() : "Update Now!", ImVec2(125, 25))) {
 					updatingItem.id = index;
@@ -195,7 +235,7 @@ public:
 						community::_installer->downloadTheme(skin);
 
 
-						m_Client->parseSkinData(); 
+						m_Client->parseSkinData(false); 
 
 						updatingItem.id = -1;
 					}).detach();
@@ -211,15 +251,50 @@ public:
 			else
 			{
 				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetColorU32(ImGuiCol_CheckMark));
 
 				ui::shift::y(-5);
-				ui::shift::right(55);
+				ui::shift::right(62);
 
-				if (ImGui::Button("Edit", ImVec2(50, 25)))
+				if (ImGui::ImageButton(Window::iconsObj().editIcon, ImVec2(16, 16)))
 				{
 					this->openPopupMenu(skin);
 				}	
+				if (ImGui::IsItemHovered()) {
+					updateButtonHovered = true;
+				}
+				else {
+					updateButtonHovered = false;
+				}
+				ImGui::SameLine(0);
+				ui::shift::x(-4);
+				ImGui::PopStyleColor(2);
+
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
+				if (ImGui::ImageButton(Window::iconsObj().deleteIcon, ImVec2(16, 16)))
+				{
+					int result = MessageBoxA(GetForegroundWindow(), std::format("Are you sure you want to delete {}?\nThis cannot be undone.", skin["native-name"].get<std::string>()).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
+
+					if (result == IDYES)
+					{
+						std::string disk_path = std::format("{}/{}", config.getSkinDir(), skin["native-name"].get<std::string>());
+
+						console.log(std::format("deleting skin {}", disk_path));
+
+						if (std::filesystem::exists(disk_path)) {
+
+							try {
+								std::filesystem::remove_all(std::filesystem::path(disk_path));
+							}
+							catch (const std::exception& ex) {
+								MsgBox(std::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+							}
+						}
+
+						//m_Client->parseSkinData(false);
+					}
+				}
 				if (ImGui::IsItemHovered()) {
 					updateButtonHovered = true;
 				}
@@ -230,7 +305,7 @@ public:
 			}	
 		}
 
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+		/*if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
 			ImGui::OpenPopup("MB2 Context Menu");
 		}
 
@@ -255,20 +330,20 @@ public:
 					}
 				}
 
-				m_Client->parseSkinData();
+				m_Client->parseSkinData(false);
 			}
 			if (ImGui::IsItemHovered()) m_isHovered = true;
 
 			ImGui::EndPopup();
 		}
 
-		else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+		else */if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
 			std::thread([=]() {
 				m_Client->changeSkin((nlohmann::basic_json<>&)skin);
 			}).detach();
 		}
 
-		if (!m_isHovered && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+		if (/*!m_isHovered && */ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
 		{
 			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 			if (!updateButtonHovered) {
@@ -304,57 +379,26 @@ public:
 
 		static char text_buffer[150];
 
-		ImGui::BeginChild("HeaderDrag", ImVec2(rx, 35), false);
-		{
-			if (ImGui::IsWindowHovered())
-			{
-				g_headerHovered = true;
-			}
-			else
-			{
-				g_headerHovered = false;
-			}
-
-			ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 150);
-			ImGui::PushItemWidth(150);
-
-			auto position = ImGui::GetCursorPos();
-			ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer));
-			static const auto after = ImGui::GetCursorPos();
-
-			if (ImGui::IsItemHovered()) {
-				g_headerHovered = false;
-			}
-
-
-			static bool is_focused = false;
-			if (ImGui::IsItemActive() || ImGui::IsItemFocused())
-				is_focused = true;
-			else
-				is_focused = false;
-
-			if (!is_focused && text_buffer[0] == '\0')
-			{
-				ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
-
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-				ImGui::TextUnformatted("Search Library...");
-				ImGui::PopStyleColor();
-
-				ImGui::SetCursorPos(after);
-			}
-
-			ImGui::PopItemWidth();
-		}
-		ImGui::EndChild();
+		//ImGui::BeginChild("HeaderDrag", ImVec2(rx, 35), false);
+		//{
+		//	if (ImGui::IsWindowHovered())
+		//	{
+		//		g_headerHovered = true;
+		//	}
+		//	else
+		//	{
+		//		g_headerHovered = false;
+		//	}
+		//}
+		//ImGui::EndChild();
 
 		auto worksize = ImGui::GetMainViewport()->WorkSize;
 
 		float child_width = (float)(worksize.x < 800 ? rx : worksize.x < 1400 ? rx / 1.2 : worksize.x < 1800 ? rx / 1.4 : rx / 1.5);
 
-		ImGui::Spacing();
-		ImGui::Spacing();
-		ImGui::Spacing();
+		//ImGui::Spacing();
+		//ImGui::Spacing();
+		//ImGui::Spacing();
 
 		ui::center(rx, child_width, 8);
 
@@ -388,11 +432,11 @@ public:
 				{
 					skinSelected = true;
 
-					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-					{
-						ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "SELECTED:");
-					}
-					ImGui::PopFont();
+					//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+					//{
+					//	ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "SELECTED:");
+					//}
+					//ImGui::PopFont();
 
 					createLibraryListing(skin, i);
 
@@ -409,9 +453,22 @@ public:
 
 			ImGui::SameLine();
 
-			ui::shift::right(145);
+			ui::shift::right(216);
 
-			if (ImGui::Button(" ... ")) {
+			if (ImGui::ImageButton(Window::iconsObj().reload_icon, ImVec2(17, 17))) {
+				m_Client->parseSkinData(true);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+				ImGui::SetTooltip("Check for updates.");
+				ImGui::PopStyleColor();
+			}
+
+			ImGui::SameLine(); 
+			ui::shift::x(-4);
+
+			if (ImGui::ImageButton(Window::iconsObj().foldericon, ImVec2(17, 17))) {
 				ShellExecuteA(NULL, "open", config.getSkinDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
 			}
 			if (ImGui::IsItemHovered())
@@ -426,14 +483,35 @@ public:
 
 			static int p_sortMethod = 0;
 
-			static const char* items[] = { "All Items", "Installed", "Cloud" };
+			//static const char* items[] = { "All Items", "Installed", "Cloud" };
 
-			ImGui::PushItemWidth(115);
-			if (ImGui::Combo(std::format("Sort").c_str(), &p_sortMethod, items, IM_ARRAYSIZE(items)));
+			//ImGui::PushItemWidth(115);
+			//if (ImGui::Combo(std::format("Sort").c_str(), &p_sortMethod, items, IM_ARRAYSIZE(items)));
+			//ImGui::PopItemWidth();
+
+			ImGui::PushItemWidth(150);
+
+			auto position = ImGui::GetCursorPos();
+			ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer));
+			static const auto after = ImGui::GetCursorPos();
+
+			static bool is_focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
+
+			if (!is_focused && text_buffer[0] == '\0')
+			{
+				ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
+
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+				ImGui::TextUnformatted("Search Library...");
+				ImGui::PopStyleColor();
+			}
+
+			//ImGui::SetCursorPos(after);
 			ImGui::PopItemWidth();
+			ui::shift::y(5);
 
 			if (!skinSelected ? m_Client->skinData.empty() : m_Client->skinData.size() - 1 <= 0) {
-				ui::shift::y(ry / 2 - 135);
+				ui::shift::y(ry / 2 - 25);
 
 				ui::center(0, 240, 0);
 				ImGui::BeginChild("noResultsContainer", ImVec2(240, 135), false);
@@ -448,6 +526,22 @@ public:
 				ImGui::EndChild();
 			}
 			else {
+
+				std::sort(m_Client->skinData.begin(), m_Client->skinData.end(), ([&](const nlohmann::json& a, const nlohmann::json& b) {
+					bool downloadA = a.value("update_required", false);
+					bool downloadB = b.value("update_required", false);
+
+					if (downloadA && !downloadB) {
+						return true;
+					}
+					else if (!downloadA && downloadB) {
+						return false;
+					}
+					else {
+						return a < b;
+					}
+				}));
+
 				for (size_t i = 0; i < m_Client->skinData.size(); ++i)
 				{
 					nlohmann::basic_json<>& skin = m_Client->skinData[i];
@@ -472,23 +566,23 @@ public:
 	}
 	void settings_panel()
 	{
-		ImGui::BeginChild("HeaderDrag", ImVec2(rx, 35), false);
-		{
-			if (ImGui::IsWindowHovered())
-			{
-				g_headerHovered = true;
-			}
-			else
-			{
-				g_headerHovered = false;
-			}
-		}
-		ImGui::EndChild();
+		//ImGui::BeginChild("HeaderDrag", ImVec2(rx, 35), false);
+		//{
+		//	if (ImGui::IsWindowHovered())
+		//	{
+		//		g_headerHovered = true;
+		//	}
+		//	else
+		//	{
+		//		g_headerHovered = false;
+		//	}
+		//}
+		//ImGui::EndChild();
 
 		static steam_js_context SteamJSContext;
 
 		auto worksize = ImGui::GetMainViewport()->WorkSize;
-		float child_width = (float)(worksize.x < 800 ? rx : worksize.x < 1400 ? rx / 1.2 : worksize.x < 1800 ? rx / 1.4 : rx / 1.5);
+		float child_width = (float)(worksize.x < 800 ? rx - 20 : worksize.x < 1400 ? rx / 1.2 : worksize.x < 1800 ? rx / 1.4 : rx / 1.5);
 
 		static float windowHeight = 0;
 
@@ -498,7 +592,7 @@ public:
 
 		ImGui::BeginChild("settings_panel", ImVec2(child_width, windowHeight), false);
 		{
-			ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+			//ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
 
 			static bool enable_css = Settings::Get<bool>("allow-stylesheet");
 
@@ -775,168 +869,176 @@ public:
 	}
 	void store_panel()
 	{
-		ImGui::BeginChild("HeaderDrag", ImVec2(rx, 35), false);
-		{
-			if (ImGui::IsWindowHovered())
-			{
-				g_headerHovered = true;
-			}
-			else
-			{
-				g_headerHovered = false;
-			}
-		}
-		ImGui::EndChild();
+		//ImGui::BeginChild("HeaderDrag", ImVec2(rx, 35), false);
+		//{
+		//	if (ImGui::IsWindowHovered())
+		//	{
+		//		g_headerHovered = true;
+		//	}
+		//	else
+		//	{
+		//		g_headerHovered = false;
+		//	}
+		//}
+		//ImGui::EndChild();
 
 		auto worksize = ImGui::GetMainViewport()->WorkSize;
+		static float windowHeight = 0;
 
 		float child_width = (float)(worksize.x < 800 ? rx : worksize.x < 1400 ? rx / 1.2 : worksize.x < 1800 ? rx / 1.4 : rx / 1.5);
 
-		if (api->get_query().size() == 0)
-		{
-			static const int width = 240;
-			static const int height = 80;
-
-			ImGui::SetCursorPos(ImVec2((rx / 2) - (width / 2), (ry / 2) - (height / 2)));
-
-			if (ImGui::BeginChild("###store_page", ImVec2(width, height), false))
-			{
-				static int r = ImClamp(35, 0, 255);
-				static int g = ImClamp(35, 0, 255);
-				static int b = ImClamp(35, 0, 255);
-				static int a = ImClamp(255, 0, 255);
-
-				static ImU32 packedColor = static_cast<ImU32>((a << 24) | (b << 16) | (g << 8) | r);
-
-				ImGui::Spacing();
-				ui::center(rx, 30.0f, -9);
-				ImGui::Spinner("###loading_spinner", 25.0f, 7, packedColor);
-
-			}
-			ImGui::EndChild();
+		if (api->isDown) {
+			ImGui::Text("Oops!\nCommunity tab is currently down for maintenance. Check back later.");
 		}
-		else
-		{
-			if (!m_Client->b_showingDetails)
+		else {
+			if (api->get_query().size() == 0)
 			{
-				ImGui::Spacing();
-				ImGui::Spacing();
-				ImGui::Spacing();
+				static const int width = 240;
+				static const int height = 80;
 
-				ui::center(rx, child_width, 8);
+				ImGui::SetCursorPos(ImVec2((rx / 2) - (width / 2), (ry / 2) - (height / 2)));
 
-				ImGui::BeginChild("##store_page_child", ImVec2(child_width, ry), false);
+				if (ImGui::BeginChild("###store_page", ImVec2(width, height), false))
 				{
-					//ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 150);
-					ImGui::PushItemWidth(150);
+					static int r = ImClamp(35, 0, 255);
+					static int g = ImClamp(35, 0, 255);
+					static int b = ImClamp(35, 0, 255);
+					static int a = ImClamp(255, 0, 255);
 
-					if (ImGui::ImageButton(Window::iconsObj().reload_icon, ImVec2(16, 16)))
+					static ImU32 packedColor = static_cast<ImU32>((a << 24) | (b << 16) | (g << 8) | r);
+
+					ImGui::Spacing();
+					ui::center(rx, 30.0f, -9);
+					ImGui::Spinner("###loading_spinner", 25.0f, 7, packedColor);
+
+				}
+				ImGui::EndChild();
+			}
+			else
+			{
+				if (!m_Client->b_showingDetails)
+				{
+					//ImGui::Spacing();
+					//ImGui::Spacing();
+					//ImGui::Spacing();
+
+					ui::center(rx, child_width, 8);
+
+					ImGui::BeginChild("##store_page_child", ImVec2(child_width, windowHeight), false);
 					{
-						api->retrieve_featured();
-					}
-					ImGui::SameLine();
-					ui::shift::x(-4);
+						//ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - 150);
+						ImGui::PushItemWidth(150);
 
-					static char text_buffer[150];
-					auto position = ImGui::GetCursorPos();
+						if (ImGui::ImageButton(Window::iconsObj().reload_icon, ImVec2(16, 16)))
+						{
+							api->retrieve_featured();
+						}
+						ImGui::SameLine();
+						ui::shift::x(-4);
 
-					if (ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer), ImGuiInputTextFlags_EnterReturnsTrue))
-					{
-						if (strlen(text_buffer) > 0) api->retrieve_search(text_buffer);
-					}
+						static char text_buffer[150];
+						auto position = ImGui::GetCursorPos();
 
-					static const auto after = ImGui::GetCursorPos();
+						if (ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer), ImGuiInputTextFlags_EnterReturnsTrue))
+						{
+							if (strlen(text_buffer) > 0) api->retrieve_search(text_buffer);
+						}
 
-					if (!(ImGui::IsItemActive() || ImGui::IsItemFocused()) && text_buffer[0] == '\0')
-					{
-						ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
+						static const auto after = ImGui::GetCursorPos();
 
-						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-						ImGui::TextUnformatted("Search for themes...");
-						ImGui::PopStyleColor();
+						if (!(ImGui::IsItemActive() || ImGui::IsItemFocused()) && text_buffer[0] == '\0')
+						{
+							ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
 
-						ImGui::SetCursorPos(after);
-					}
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+							ImGui::TextUnformatted("Search for themes...");
+							ImGui::PopStyleColor();
 
-					ImGui::PopItemWidth();
+							ImGui::SetCursorPos(after);
+						}
 
-					ImGui::SameLine();
+						ImGui::PopItemWidth();
 
-					ui::shift::right(225);
+						ImGui::SameLine();
 
-					auto query = api->get_query();
+						ui::shift::right(250);
 
-					static int sortByIndex = 4;
-					static const char* sortByArray[] = { "Recently Added", "Alphabetical (A - Z)", "Alphabetical (Z - A)",  "Least Downloaded", "Most Downloaded" };
+						auto query = api->get_query();
 
-					ImGui::PushItemWidth(120);
+						static int sortByIndex = 4;
+						static const char* sortByArray[] = { "Recently Added", "Alphabetical (A - Z)", "Alphabetical (Z - A)",  "Least Downloaded", "Most Downloaded" };
 
-					ImGui::Combo("###SortBy", &sortByIndex, sortByArray, IM_ARRAYSIZE(sortByArray));
+						ImGui::PushItemWidth(145);
 
-					switch (sortByIndex)
-					{
-						using schema = MillenniumAPI::resultsSchema;
+						ImGui::Combo("###SortBy", &sortByIndex, sortByArray, IM_ARRAYSIZE(sortByArray));
+
+						switch (sortByIndex)
+						{
+							using schema = MillenniumAPI::resultsSchema;
 
 						case 0: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { try { return std::stoi(a.date_added) > std::stoi(b.date_added); } catch (std::exception& ex) { return a.name < b.name; } }); break; }
 						case 1: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.name < b.name; }); break; }
 						case 2: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.name > b.name; }); break; }
 						case 3: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.download_count < b.download_count; }); break; }
 						case 4: { std::sort(query.begin(), query.end(), [&](const schema& a, const schema& b) { return a.download_count > b.download_count; }); break; }
-					}
-
-					ImGui::PopItemWidth();
-
-					ImGui::SameLine();
-
-					static std::set<std::string> categories = { "All" };
-					std::vector<std::string> v_categories(categories.begin(), categories.end());
-
-					ImGui::PushItemWidth(90);
-
-					static int selectedItem = 0;
-
-					if (ImGui::BeginCombo("###Category", selectedItem >= 0 ? v_categories[selectedItem].c_str() : nullptr)) {
-						for (int i = 0; i < v_categories.size(); ++i) {
-							bool isSelected = (i == selectedItem);
-							if (ImGui::Selectable(v_categories[i].c_str(), isSelected)) {
-								selectedItem = i;
-							}
 						}
-						ImGui::EndCombo();
-					}
-					ImGui::PopItemWidth();
 
-					int j = 0;
-					for (auto& item : query)
-					{
-						for (const auto& tag : item.tags)
+						ImGui::PopItemWidth();
+
+						ImGui::SameLine();
+
+						static std::set<std::string> categories = { "All" };
+						std::vector<std::string> v_categories(categories.begin(), categories.end());
+
+						ImGui::PushItemWidth(90);
+
+						static int selectedItem = 0;
+
+						if (ImGui::BeginCombo("###Category", selectedItem >= 0 ? v_categories[selectedItem].c_str() : nullptr)) {
+							for (int i = 0; i < v_categories.size(); ++i) {
+								bool isSelected = (i == selectedItem);
+								if (ImGui::Selectable(v_categories[i].c_str(), isSelected)) {
+									selectedItem = i;
+								}
+							}
+							ImGui::EndCombo();
+						}
+						ImGui::PopItemWidth();
+
+						int j = 0;
+						for (auto& item : query)
 						{
-							if (categories.find(tag) == categories.end()) {
-								categories.insert(tag);
+							for (const auto& tag : item.tags)
+							{
+								if (categories.find(tag) == categories.end()) {
+									categories.insert(tag);
+								}
+							}
+
+							if (v_categories[selectedItem] == "All") {
+								create_card(item, j++);
+							}
+							else if (std::find(item.tags.begin(), item.tags.end(), v_categories[selectedItem]) != item.tags.end()) {
+								create_card(item, j++);
 							}
 						}
 
-						if (v_categories[selectedItem] == "All") {
-							create_card(item, j++);
-						}
-						else if (std::find(item.tags.begin(), item.tags.end(), v_categories[selectedItem]) != item.tags.end()) {
-							create_card(item, j++);
-						}
+						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+						ui::center_text(std::format("{} results found.", j).c_str());
+						ImGui::PopStyleColor();
+
+						windowHeight = ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y;
 					}
-
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-					ui::center_text(std::format("{} results found.", j).c_str());
-					ImGui::PopStyleColor();
+					ImGui::EndChild();
 				}
-				ImGui::EndChild();
-			}
-			else
-			{
-				ImGui::Spacing();
-				ImGui::Spacing();
-				ImGui::Spacing();
+				else
+				{
+					//ImGui::Spacing();
+					//ImGui::Spacing();
+					//ImGui::Spacing();
 
-				communityPaneDetails();
+					communityPaneDetails();
+				}
 			}
 		}
 	}
@@ -1026,7 +1128,7 @@ public:
 				).height;
 
 				//set max height barrier on the image node
-				ab_height = ab_height > (int)ry / 2 - 50 ? (int)ry / 2 - 50 : ab_height;
+				//ab_height = ab_height > (int)ry / 2 - 50 ? (int)ry / 2 - 50 : ab_height;
 
 				//get width and height of the current image
 				int height = m_Client->v_rawImageList[m_Client->m_imageIndex].height;
@@ -1034,7 +1136,7 @@ public:
 
 				image::size result = image::maintain_aspect_ratio(width, height, (int)rx, (int)ab_height);
 
-				float parent_width = rx - 30.0f;
+				float parent_width = rx - 20.0f;
 
 				ui::center(rx, parent_width, 10);
 				ImGui::BeginChild("image_parent_container", ImVec2(parent_width, (float)(ab_height + 40)), true);
@@ -1150,7 +1252,7 @@ public:
 			{
 				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.13f, 0.13f, 1.0f));
 
-				ImGui::BeginChild("actions_and_about", ImVec2(rx, 325), true);
+				ImGui::BeginChild("actions_and_about", ImVec2(rx, 330), true);
 				{
 					ImGui::PopStyleColor();
 
@@ -1163,28 +1265,33 @@ public:
 
 					bool isInstalled = false;
 					bool requiresUpdate = false;
-
-					for (const auto item : m_Client->skinData)
+	
+					if (m_Client->skinDataReady)
 					{
-						try
+						for (const auto item : m_Client->skinData)
 						{
-							if (this->m_itemSelectedSource.empty())
-								continue;
+							try
+							{
+								if (this->m_itemSelectedSource.empty())
+									continue;
 
-							if (item.value("source", std::string()) == this->m_itemSelectedSource.value("source", std::string())) {
+								std::string val = this->m_itemSelectedSource.contains("source") ? this->m_itemSelectedSource["source"] : "";
 
-								//console.log(std::format("local installed: {}", this->m_itemSelectedSource["source"].get<std::string>()));
-								isInstalled = true;
+								if (item.value("source", std::string()) == val) {
 
-								if (item["version"] != this->m_itemSelectedSource["version"])
-									requiresUpdate = true;
+									//console.log(std::format("local installed: {}", this->m_itemSelectedSource["source"].get<std::string>()));
+									isInstalled = true;
+
+									if (item.value("version", "") != this->m_itemSelectedSource.value("version", ""))
+										requiresUpdate = true;
+								}
 							}
-						}
-						catch (const nlohmann::detail::exception& err) {
-							console.err(std::format("error thrown checking if skin needs update on store page:\n{}", err.what()));
-						}
-						catch (const std::exception& err) {
-							console.err(std::format("error thrown checking if skin needs update on store page:\n{}", err.what()));
+							catch (const nlohmann::detail::exception& err) {
+								console.err(std::format("error thrown checking if skin needs update on store page:\n{}", err.what()));
+							}
+							catch (const std::exception& err) {
+								console.err(std::format("error thrown checking if skin needs update on store page:\n{}", err.what()));
+							}
 						}
 					}
 
@@ -1212,7 +1319,7 @@ public:
 
 								//this->createThemeSync(m_itemSelectedSource);
 
-								m_Client->parseSkinData();
+								m_Client->parseSkinData(false);
 								community::_installer->m_downloadInProgess = false;
 							}).detach();
 						}
@@ -1241,7 +1348,8 @@ public:
 								}
 							}
 
-							m_Client->parseSkinData();
+							Sleep(1000);
+							m_Client->parseSkinData(false);
 						}
 
 						ImGui::PopStyleColor(2);
@@ -1286,7 +1394,7 @@ public:
 					ImGui::Spacing();
 					ImGui::Spacing();
 
-					ImGui::BeginChild("author", ImVec2(rx, 45), true);
+					ImGui::BeginChild("author", ImVec2(rx, 47), true);
 					{
 						ImGui::BeginChild("author_image", ImVec2(25, 25), false);
 						{
@@ -1392,6 +1500,107 @@ public:
 		ImGui::PopStyleVar();
 	}
 
+	void millennium_tab() {
+		//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+		//{
+		//	ui::center_text("About Millennium");
+		//}
+		//ImGui::PopFont();
+		//ImGui::Spacing();
+
+		//ui::center_text(std::format("Build: {}", __DATE__).c_str());
+		//ui::center_text(std::format("Millennium API Version: {}", "v1").c_str());
+		//ui::center_text(std::format("Client Version: {}", "1.0.0").c_str());
+		//ui::center_text(std::format("Patcher Version: {}", m_ver).c_str());
+
+		//ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 100);
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.13f, 0.13f, 1.0f));
+
+		ImGui::BeginChild("support_server", ImVec2((rx * .5f) - 10, 100), true);
+		{
+			ImGui::BeginChild("support_image", ImVec2(45, 45), false);
+			{
+				ImGui::Image(Window::iconsObj().support, ImVec2(45, 45));
+			}
+			ImGui::EndChild();
+
+			ImGui::SameLine();
+
+			ImGui::BeginChild("support_desc", ImVec2(rx, 45), false);
+			{
+				ui::shift::y(7);
+				ImGui::Text("Millennium");
+				ui::shift::y(-5);
+				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+				ImGui::Text("Need Help? Found a bug?");
+				ImGui::PopFont();
+			}
+			ImGui::EndChild();
+
+
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.23f, 0.44f, 0.76f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.36f, 0.62f, 1.0f));
+
+			if (ImGui::Button("Join Server", ImVec2(rx, ry)))
+			{
+				ShellExecute(NULL, "open", "https://discord.gg/MXMWEQKgJF", NULL, NULL, SW_SHOWNORMAL);
+			}
+
+			ImGui::PopStyleColor(2);
+		}
+		ImGui::EndChild();
+
+		ImGui::SameLine();
+
+		ImGui::BeginChild("kofi_child", ImVec2(rx, 100), true);
+		{
+			ImGui::BeginChild("kofi_image", ImVec2(45, 45), false);
+			{
+				ImGui::Image(Window::iconsObj().KofiLogo, ImVec2(45, 45));
+			}
+			ImGui::EndChild();
+
+			ImGui::SameLine();
+
+			ImGui::BeginChild("kofi_desc", ImVec2(rx, 45), false);
+			{
+				ui::shift::y(7);
+				ImGui::Text("ShadowMonster");
+				ui::shift::y(-5);
+				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+				ImGui::Text("Support me and the project on Kofi!");
+				ImGui::PopFont();
+			}
+			ImGui::EndChild();
+
+
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.23f, 0.44f, 0.76f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.36f, 0.62f, 1.0f));
+
+			if (ImGui::Button("More details", ImVec2(rx, ry)))
+			{
+				ShellExecute(NULL, "open", "https://ko-fi.com/shadowmonster", NULL, NULL, SW_SHOWNORMAL);
+			}
+
+			ImGui::PopStyleColor(2);
+		}
+		ImGui::EndChild();
+
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		ui::center_text(std::format("Build: {}", __DATE__).c_str());
+		ui::center_text(std::format("Millennium API Version: {}", "v1").c_str());
+		ui::center_text(std::format("Client Version: {}", "1.0.0").c_str());
+		ui::center_text(std::format("Patcher Version: {}", m_ver).c_str());
+
+
+		ImGui::PopStyleColor();
+	}
+
 	void renderContentPanel()
 	{
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
@@ -1406,6 +1615,7 @@ public:
 					case 1: store_panel();    break;
 					case 2: library_panel();  break;
 					case 3: settings_panel(); break;
+					case 4: millennium_tab(); break;
 				}
 			}
 			ImGui::EndChild();
@@ -1420,66 +1630,66 @@ public:
 	{
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.13f, 0.13f, 1.00f));
 
-		ImGui::BeginChild("LeftSideBar", ImVec2(200, ry), false);
+		ImGui::BeginChild("LeftSideBar", ImVec2(rx, 40), false);
 		{
 			ImGui::PopStyleVar();
 			ImGui::BeginChild("ChildFrameParent", ImVec2(rx, ry), true);
 			{
-				ImGui::BeginChild("HeaderOptions", ImVec2(rx, 25));
-				{
-					if (ImGui::IsWindowHovered())
-					{
-						ImGui::Image(Window::iconsObj().close, ImVec2(11, 11));
-						if (ImGui::IsItemClicked()) {
-							g_windowOpen = false;
-							PostQuitMessage(0);
-						}
+				//ImGui::BeginChild("HeaderOptions", ImVec2(rx, 25));
+				//{
+				//	if (ImGui::IsWindowHovered())
+				//	{
+				//		ImGui::Image(Window::iconsObj().close, ImVec2(11, 11));
+				//		if (ImGui::IsItemClicked()) {
+				//			g_windowOpen = false;
+				//			PostQuitMessage(0);
+				//		}
 
-						ImGui::SameLine();
-						ui::shift::x(-6);
+				//		ImGui::SameLine();
+				//		ui::shift::x(-6);
 
-						//disabled maximize until i figure it out
-						ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
+				//		//disabled maximize until i figure it out
+				//		ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
 
-						ImGui::SameLine();
-						ui::shift::x(-6);
+				//		ImGui::SameLine();
+				//		ui::shift::x(-6);
 
-						ImGui::Image(Window::iconsObj().minimize, ImVec2(11, 11));
-						if (ImGui::IsItemClicked()) {
-							ShowWindow(Window::getHWND(), SW_MINIMIZE);
-						}
-					}
-					else
-					{
-						ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
+				//		ImGui::Image(Window::iconsObj().minimize, ImVec2(11, 11));
+				//		if (ImGui::IsItemClicked()) {
+				//			ShowWindow(Window::getHWND(), SW_MINIMIZE);
+				//		}
+				//	}
+				//	else
+				//	{
+				//		ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
 
-						ImGui::SameLine();
-						ui::shift::x(-6);
-						ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
+				//		ImGui::SameLine();
+				//		ui::shift::x(-6);
+				//		ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
 
-						ImGui::SameLine();
-						ui::shift::x(-6);
-						ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
-					}
+				//		ImGui::SameLine();
+				//		ui::shift::x(-6);
+				//		ImGui::Image(Window::iconsObj().greyed_out, ImVec2(11, 11));
+				//	}
 
-					ImGui::SameLine();
+				//	ImGui::SameLine();
 
-					ImGui::BeginChild("HeaderDragArea", ImVec2(rx, ry));
-					{
-						if (ImGui::IsWindowHovered()) {
-							g_headerHovered_1 = true;
-						}
-						else {
-							g_headerHovered_1 = false;
-						}
-					}
-					ImGui::EndChild();
-				}
-				ImGui::EndChild();
+				//	ImGui::BeginChild("HeaderDragArea", ImVec2(rx, ry));
+				//	{
+				//		if (ImGui::IsWindowHovered()) {
+				//			g_headerHovered_1 = true;
+				//		}
+				//		else {
+				//			g_headerHovered_1 = false;
+				//		}
+				//	}
+				//	ImGui::EndChild();
+				//}
+				//ImGui::EndChild();
 
-				ImGui::Spacing();
+				//ImGui::SameLine();
 
-				ImGui::BeginChild("ChildHeaderParent", ImVec2(rx, 70), true);
+				/*ImGui::BeginChild("ChildHeaderParent", ImVec2(rx, 70), true);
 				{
 					ImGui::BeginChild("ChildImageContainer", ImVec2(50, 50), false);
 					{
@@ -1501,41 +1711,80 @@ public:
 					ImGui::EndChild();
 				}
 				ImGui::EndChild();
-				ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();
+				ImGui::Spacing(); ImGui::Spacing(); ImGui::Spacing();*/
 
-				if (ImGui::BeginPopupContextItem("selectable_1")) 
-				{
-					if (ImGui::MenuItem("Reload")) { api->retrieve_featured(); }
-					ImGui::EndPopup();
+				//if (ImGui::BeginPopupContextItem("selectable_1")) 
+				//{
+				//	if (ImGui::MenuItem("Reload")) { api->retrieve_featured(); }
+				//	ImGui::EndPopup();
+				//}
+				//if (ImGui::BeginPopupContextItem("selectable_2")) 
+				//{
+				//	if (ImGui::MenuItem("Reload")) { m_Client->parseSkinData(false); }
+				//	ImGui::EndPopup();
+				//}
+
+				//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+				//{
+				//	ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "MILLENNIUM");
+				//}
+				//ImGui::PopFont();
+
+				if (ImGui::IsWindowHovered()) {
+					g_headerHovered_1 = true;
 				}
-				if (ImGui::BeginPopupContextItem("selectable_2")) 
-				{
-					if (ImGui::MenuItem("Reload")) { m_Client->parseSkinData(); }
-					ImGui::EndPopup();
+				else {
+					g_headerHovered_1 = false;
 				}
 
-				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-				{
-					ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "MILLENNIUM");
+
+				//ImGui::ImageButton(Window::iconsObj().planetLogo20, ImVec2(18, 18));
+
+
+
+				//ImGui::SameLine();
+				//ui::shift::x(-4);
+				//ImGui::Text(std::format("Millennium v{} •", m_ver).c_str());
+				//ImGui::SameLine();
+
+				//listButton(" Millennium ", 4);
+				//if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
+				//ImGui::SameLine();
+				//ui::shift::x(-4);
+
+				listButton(" Library ", 2);
+				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
+				ImGui::SameLine();
+				ui::shift::x(-4);
+				listButton(" Community ", 1);
+				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
+				ImGui::SameLine();
+				ui::shift::x(-4);
+				//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+				//{
+				//	ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "GENERAL");
+				//}
+				//ImGui::PopFont();
+
+				listButton(" Settings ", 3);
+				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
+				//ImGui::SameLine();
+				//ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+
+				ImGui::SameLine();
+
+				ui::shift::right(25);
+
+				if (ImGui::ImageButton(Window::iconsObj().xbtn, ImVec2(16, 16))) {
+					g_windowOpen = false;
+					PostQuitMessage(0);
 				}
-				ImGui::PopFont();
+				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
 
-				listButton(" Library", 2);
-				listButton(" Community", 1);
-
-				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-				{
-					ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.4f), "GENERAL");
-				}
-				ImGui::PopFont();
-
-				listButton(" Settings", 3);
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-
-				if (ImGui::Selectable(" About")) {
-					ImGui::OpenPopup(" About Millennium");
-				}
-				ImGui::PopStyleColor();
+				//if (ImGui::Selectable(" About")) {
+				//	ImGui::OpenPopup(" About Millennium");
+				//}
+				//ImGui::PopStyleColor();
 
 				//ImGui::InsertNotification({ ImGuiToastType_Error, 3000, "Hello World! This is an error!" });
 
@@ -1671,151 +1920,139 @@ void handleFileDrop()
 
 void handleEdit()
 {
-	const std::string name = RendererProc.m_editObj.empty() ? "" : (RendererProc.m_editObj.contains("name") ? RendererProc.m_editObj["name"] : RendererProc.m_editObj["native-name"]);
+	//std::cout << RendererProc.m_editObj.dump(4) << std::endl;
+
+	const std::string name = RendererProc.m_editObj.empty() ? 
+		"Nothing Selected" : 
+		(RendererProc.m_editObj.contains("name") ? RendererProc.m_editObj["name"] : 
+			RendererProc.m_editObj.contains("native_name") ? RendererProc.m_editObj["native_name"] : "Null");
 
 	if (RendererProc.m_editMenuOpen)
 	{
-		//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
+		ImGui::OpenPopup(std::format(" Settings for {}", name).c_str());
+	}
 
-		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.2f, 0.2f, 1.0f));
-		//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+	//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
 
-		ImGui::SetNextWindowSize(ImVec2(450, 550), ImGuiCond_Once);
+	ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.20f, 0.2f, 0.2f, 1.0f));
+	//ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
 
-		if (ImGui::Begin(std::format(" Settings for {}", name).c_str(), &RendererProc.m_editMenuOpen, ImGuiWindowFlags_NoCollapse))
+	ImGui::SetNextWindowSize(ImVec2(450, 550), ImGuiCond_Once);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10, 10));
+	if (ImGui::BeginPopupModal(std::format(" Settings for {}", name).c_str(), &RendererProc.m_editMenuOpen, ImGuiWindowFlags_NoCollapse))
+	{
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+		ImGui::BeginChild("###ConfigContainer", ImVec2(rx, ry - 32), false);
 		{
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-			ImGui::BeginChild("###ConfigContainer", ImVec2(rx, ry - 32), false);
+			const bool hasConfiguration = RendererProc.m_editObj.contains("Configuration");
+			const bool hasColors = !RendererProc.colorList.empty();
+
+			if (!hasConfiguration && !hasColors) {
+				ImGui::Text("No Settings Available");
+			}
+
+			if (hasConfiguration)
 			{
-				const bool hasConfiguration = RendererProc.m_editObj.contains("Configuration");
-				const bool hasColors = !RendererProc.colorList.empty();
+				ImGui::Spacing();
+				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
 
-				if (!hasConfiguration && !hasColors) {
-					ImGui::Text("No Settings Available");
-				}
+				ImGui::Text(" Configuration Settings");
+				ImGui::Separator();
+				ImGui::Spacing();
 
-				if (hasConfiguration)
+				ImGui::PopFont();
+
+				for (auto& setting : RendererProc.m_editObj["Configuration"])
 				{
-					ImGui::Spacing();
-					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+					if (!setting.contains("Name"))
+						continue;
+					if (!setting.contains("Type"))
+						continue;
 
-					ImGui::Text(" Configuration Settings");
-					ImGui::Separator();
-					ImGui::Spacing();
+					const std::string name = setting["Name"];
+					const std::string toolTip = setting.value("ToolTip", std::string());
+					const std::string type = setting["Type"];
 
-					ImGui::PopFont();
+					if (type == "CheckBox") {
+						bool value = setting.value("Value", false);
 
-					for (auto& setting : RendererProc.m_editObj["Configuration"])
-					{
-						if (!setting.contains("Name"))
-							continue;
-						if (!setting.contains("Type"))
-							continue;
-
-						const std::string name = setting["Name"];
-						const std::string toolTip = setting.value("ToolTip", std::string());
-						const std::string type = setting["Type"];
-
-						if (type == "CheckBox") {
-							bool value = setting.value("Value", false);
-
-							ui::render_setting(
-								name.c_str(), toolTip.c_str(),
-								value, false,
-								[&]() { setting["Value"] = value; }
-							);
-						}
-					}
-				}
-
-				if (hasColors)
-				{
-					ImGui::Spacing();
-					ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
-					ImGui::Text(" Color Settings:");
-					ImGui::Separator();
-					ImGui::Spacing();
-
-					ImGui::PopFont();
-
-					auto& colors = RendererProc.colorList;
-
-					for (int i = 0; i < RendererProc.colorList.size(); i++)
-					{
-						ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
-
-						ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x, ImGuiColorEditFlags_NoLabel | ImGuiWindowFlags_NoDocking);
-					}
-
-					if (ImGui::Button("Reset Colors"))
-					{
-						auto& obj = RendererProc.m_editObj;
-
-						if (obj.contains("GlobalsColors") && obj.is_object())
-						{
-							for (auto& color : obj["GlobalsColors"])
-							{
-								if (!color.contains("HexColorCode") || !color.contains("OriginalColorCode"))
-								{
-									console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
-									continue;
-								}
-
-								color["HexColorCode"] = color["OriginalColorCode"];
-							}
-						}
-						else {
-							console.log("Theme doesn't have GlobalColors");
-						}
-
-						config.setThemeData(obj);
-						RendererProc.openPopupMenu(obj);
+						ui::render_setting(
+							name.c_str(), toolTip.c_str(),
+							value, false,
+							[&]() { setting["Value"] = value; }
+						);
 					}
 				}
 			}
-			ImGui::EndChild();
-			ImGui::PopStyleColor();
 
-			if (ImGui::Button("Save and Update", ImVec2(rx, 24)))
+			if (hasColors)
 			{
-				const auto json = RendererProc.m_editObj;
+				ImGui::Spacing();
+				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+				ImGui::Text(" Color Settings:");
+				ImGui::Separator();
+				ImGui::Spacing();
 
-				nlohmann::json buffer = config.getThemeData(true);
+				ImGui::PopFont();
 
-				if (buffer.contains("config_fail")) {
-					MsgBox("Unable to save and update config. Millennium couldn't get theme data", "Error", MB_ICONERROR);
-				}
-				else {
+				if (ImGui::Button("Reset Colors"))
+				{
+					auto& obj = RendererProc.m_editObj;
 
-					if (buffer.contains("Configuration") && json.contains("Configuration"))
+					if (obj.contains("GlobalsColors") && obj.is_object())
 					{
-						buffer["Configuration"] = json["Configuration"];
-						config.setThemeData(buffer);
+						for (auto& color : obj["GlobalsColors"])
+						{
+							if (!color.contains("HexColorCode") || !color.contains("OriginalColorCode"))
+							{
+								console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
+								continue;
+							}
 
-						auto& colors = RendererProc.colorList;
+							color["HexColorCode"] = color["OriginalColorCode"];
+						}
+					}
+					else {
+						console.log("Theme doesn't have GlobalColors");
+					}
+
+					config.setThemeData(obj);
+					RendererProc.openPopupMenu(obj);
+				}
+
+				auto& colors = RendererProc.colorList;
+
+				for (int i = 0; i < RendererProc.colorList.size(); i++)
+				{
+					if (ImGui::Button("Reset"))
+					{
 						auto& obj = RendererProc.m_editObj;
 
 						if (obj.contains("GlobalsColors") && obj.is_object())
 						{
-							for (int i = 0; i < obj["GlobalsColors"].size(); i++)
-							{
-								auto& global = obj["GlobalsColors"][i];
+							auto& global = obj["GlobalsColors"][i];
 
-								if (!global.contains("HexColorCode"))
-								{
-									console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
-									continue;
-								}
+							console.log(std::format("global colors: {}", global.dump(4)));
+							console.log(std::format("color name: {}", colors[i].name));
 
-								if (global["ColorName"] == colors[i].name) {
-									global["HexColorCode"] = "#" + colors::ImVec4ToHex(colors[i].color);
-								}
-								else {
-									console.err(std::format("Color at index {} was a mismatch", i));
-								}
+							if (global["ColorName"] == colors[i].name) {
+
+								console.log(std::format("Color match. Setting color {} from {} to {}",
+									global["ColorName"].get<std::string>(),
+									global["HexColorCode"].get<std::string>(),
+									global["OriginalColorCode"].get<std::string>()));
+
+								global["HexColorCode"] = global["OriginalColorCode"];
+							}
+							else {
+								MsgBox(std::format("Couldn't Set color at index {} because the buffer was mismatching.", i).c_str(), "Error", MB_ICONERROR);
 							}
 
 							config.setThemeData(obj);
+							m_Client->parseSkinData(false);
+
+							RendererProc.openPopupMenu(obj);
 
 							themeConfig::updateEvents::getInstance().triggerUpdate();
 
@@ -1826,41 +2063,115 @@ void handleEdit()
 							console.log("Theme doesn't have GlobalColors");
 						}
 					}
-					else {
-						console.log("json buffer or editing object doesn't have a 'Configuration' key");
-					}
+
+					ImGui::SameLine();
+					ui::shift::x(-8);
+
+					ImGui::PushItemWidth(90);
+					ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x, ImGuiColorEditFlags_DisplayHex);
+					ImGui::PopItemWidth();
+
+					ImGui::SameLine();
+					ui::shift::x(-4);
+
+					ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
+
 				}
 			}
-			ImGui::End();
 		}
-
+		ImGui::EndChild();
 		ImGui::PopStyleColor();
-		//ImGui::PopStyleVar();
+
+		if (ImGui::Button("Save and Update", ImVec2(rx, 24)))
+		{
+			const auto json = RendererProc.m_editObj;
+
+			nlohmann::json buffer = config.getThemeData(true);
+
+			console.log(buffer.dump(4));
+
+			if (buffer.contains("config_fail") && buffer["config_fail"]) {
+				MsgBox("Unable to save and update config. Millennium couldn't get theme data", "Error", MB_ICONERROR);
+			}
+			else {
+
+				if (buffer.contains("Configuration") && json.contains("Configuration"))
+				{
+					buffer["Configuration"] = json["Configuration"];
+					config.setThemeData(buffer);
+
+					auto& colors = RendererProc.colorList;
+					auto& obj = RendererProc.m_editObj;
+
+					if (obj.contains("GlobalsColors") && obj.is_object())
+					{
+						for (int i = 0; i < obj["GlobalsColors"].size(); i++)
+						{
+							auto& global = obj["GlobalsColors"][i];
+
+							if (!global.contains("HexColorCode"))
+							{
+								console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
+								continue;
+							}
+
+							if (global["ColorName"] == colors[i].name) {
+								global["HexColorCode"] = "#" + colors::ImVec4ToHex(colors[i].color);
+							}
+							else {
+								console.err(std::format("Color at index {} was a mismatch", i));
+							}
+						}
+
+						config.setThemeData(obj);
+						m_Client->parseSkinData(false);
+
+						themeConfig::updateEvents::getInstance().triggerUpdate();
+
+						steam_js_context SharedJsContext;
+						SharedJsContext.reload();
+					}
+					else {
+						console.log("Theme doesn't have GlobalColors");
+					}
+				}
+				else {
+					console.log("json buffer or editing object doesn't have a 'Configuration' key");
+				}
+			}
+		}
+		ImGui::EndPopup();
 	}
+	ImGui::PopStyleVar();
+
+	ImGui::PopStyleColor();
+	//ImGui::PopStyleVar();
 }
 
 void init_main_window()
 {
 	// GET information on initial load
 	const auto initCallback = ([=](void) -> void {
-		m_Client->parseSkinData();
+		m_Client->parseSkinData(true);
 		api->retrieve_featured();
 	});
 
 	// window callback 
 	const auto wndProcCallback = ([=](void) -> void {
-		RendererProc.renderSideBar();
-		ImGui::SameLine(); ui::shift::x(-10);
-		RendererProc.renderContentPanel();
 
 		handleFileDrop();
 		handleEdit();
+
+		RendererProc.renderSideBar();
+		//ImGui::SameLine(); 
+		ui::shift::y(-8);
+		RendererProc.renderContentPanel();
 	});
 
 	std::thread([&]() {
 		themeConfig::watchPath(config.getSkinDir(), []() {
 			try {
-				m_Client->parseSkinData();
+				m_Client->parseSkinData(false);
 			}
 			catch (std::exception& ex) {
 				console.log(ex.what());
@@ -1869,7 +2180,7 @@ void init_main_window()
 	}).detach();
 
 	Window::setTitle((char*)"Millennium.Steam.Client");
-	Window::setDimensions(ImVec2({ 1050, 800 }));
+	Window::setDimensions(ImVec2({ 750, 500 }));
 
 	Application::Create(wndProcCallback, initCallback);
 }

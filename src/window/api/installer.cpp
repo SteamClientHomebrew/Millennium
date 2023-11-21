@@ -31,12 +31,15 @@ namespace community
 				}
 			}
 			catch (const nlohmann::detail::exception& excep) {
-				if (item.contains("message")) {
-					const auto message = item["message"].get<std::string>();
-					MsgBox(std::format("Message:\n", message).c_str(), "Error contacting GitHub API", MB_ICONERROR);
+				if (folderData.contains("message")) {
+					const auto message = folderData["message"].get<std::string>();
+					MsgBox("Github seems to have rate limited you from downloading to many themes in a short period of time."
+						"Try again later (maximum 1 hour)", "GitHub API", MB_ICONERROR);
+					return;
 				}
 
 				console.err(std::format("Error downloading/updating a skin. message: {}", excep.what()));
+				MsgBox(std::format("Error downloading/updating a skin. message: {}", excep.what()).c_str(), "Error", MB_ICONERROR);
 			}
 		}
 	}

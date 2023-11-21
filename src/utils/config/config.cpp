@@ -152,6 +152,9 @@ private:
 };
 
 void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) {
+
+    return;
+
     // notification filters, name, folder created, file attributes changed, file size change
     DWORD notifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE;
 
@@ -206,12 +209,126 @@ themeConfig::themeConfig()
     char buffer[MAX_PATH];  
     DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
+    m_steamPath = std::string(buffer, bufferSize);
     m_themesPath = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
 }
 
 std::string themeConfig::getSkinDir()
 {
     return m_themesPath;
+}
+
+const std::string themeConfig::getRootColors()
+{
+    const auto data = config.getThemeData();
+
+    if (data.contains("GlobalsColors") && data.is_object())
+    {
+        std::string header = ":root { ";
+
+        for (const auto& color : data["GlobalsColors"])
+        {
+            if (!color.contains("ColorName") || !color.contains("HexColorCode") || !color.contains("Description"))
+            {
+                console.err("Couldn't add global color to array. 'ColorName' or 'HexColorCode' or 'Description' doesn't exist");
+                continue;
+            }
+
+            std::string name = color["ColorName"];
+            std::string col = color["HexColorCode"];
+            std::string description = color["Description"];
+
+            header += std::format("{}: {}; ", name, col, description);
+        }
+
+        header += "}";
+
+        return header;
+    }
+    else {
+        return "[NoColors]";
+    }
+}
+
+const void themeConfig::installFonts()
+{
+    const auto config = this->getThemeData();
+
+    if (config.contains("Fonts")) 
+    {
+        if (!config["Fonts"].is_array())
+        {
+            console.err("Can't install Fonts. Reason: 'Fonts' key is not an object");
+            return;
+        }
+
+        for (const auto& font : config["Fonts"])
+        {
+            if (!font.contains("FileName") || !font.contains("Download"))
+            {
+                console.err("Font entry doesn't contain 'FileName' or 'Download'");
+                continue;
+            }
+
+            static std::vector<std::string> fileTypes = { ".ttf", ".oft", ".woff", ".woff2", ".eot", ".svg", "cff", "pfb" };
+
+            auto fileDetails = std::filesystem::path(font["Download"].get<std::string>());
+
+            if (std::find(fileTypes.begin(), fileTypes.end(), fileDetails.extension().string()) != fileTypes.end())
+            {
+                console.log(std::format("Trying to download font [{}]", font["FileName"].get<std::string>()));
+
+                auto filePath = std::filesystem::path(this->m_steamPath) / "steamui" / "fonts" / font["FileName"];
+
+                if (std::filesystem::exists(filePath)) {
+                    console.log(std::format("Font {} is already installed, skipping...", font["FileName"].get<std::string>()));
+                    continue;
+                }
+                
+                try {
+                    const std::vector<unsigned char> fileContent = http::get_bytes(font["Download"].get<std::string>().c_str());
+
+                    console.log(filePath.string());
+                    console.log(std::format("{}", fileContent.size()));
+
+                    std::ofstream fileStream(filePath, std::ios::binary);
+
+                    if (!fileStream) {
+                        console.log(std::format("Failed to open file for writing: {}", filePath.string()));
+                        return;
+                    }
+
+                    fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
+
+                    if (!fileStream) {
+                        console.log(std::format("Error writing to file: {}", filePath.string()));
+                    }
+                    fileStream.close();
+                }
+                catch (const http_error& err) {
+                    switch (err.code())
+                    {
+                        case http_error::errors::couldnt_connect: {
+                            console.err("Couldn't install font, no internet?");
+                            break;
+                        }
+                        case http_error::errors::miscellaneous: {
+                            console.err("Couldn't install font, miscellaneous error.");
+                            break;
+                        }
+                        case http_error::errors::not_allowed: {
+                            console.err("Couldn't install font, HTTP requests disabled.");
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                console.err("Can't download font because it is an unverified/unallowed file type");
+            }
+        }
+    }
 }
 
 class config
@@ -260,12 +377,13 @@ public:
             std::string file_content((std::istreambuf_iterator<char>(local)), std::istreambuf_iterator<char>());
             data = nlohmann::json::parse(file_content, nullptr, true, true);
         }
-        catch (const nlohmann::json::exception&) {
+        catch (const nlohmann::json::exception& err) {
             // Handle parsing errors here
+            console.err(std::format("Error while parsing file contents in {}, Message: {}", __func__, err.what()));
             return { {"config_fail", true} };
         }
 
-        if (!raw) {
+        if (raw == false) {
             data["config_fail"] = false;
             millennium_remote.is_remote = false;
         }
@@ -297,19 +415,28 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
     const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
 
     std::basic_ifstream<char, std::char_traits<char>> localTheme(std::format("{}/{}/skin.json", m_themesPath, m_activeSkin));
-    std::basic_ifstream<char, std::char_traits<char>> cloudTheme(std::format("{}/{}", m_themesPath, m_activeSkin));
+    //std::basic_ifstream<char, std::char_traits<char>> cloudTheme(std::format("{}/{}", m_themesPath, m_activeSkin));
 
     nlohmann::basic_json<> jsonBuffer;
 
-    if (raw == true) {
-        return config::get_local(localTheme, true);
+    if (raw == true) 
+    {
+        nlohmann::basic_json<> data;
+        try {
+            std::string file_content((std::istreambuf_iterator<char>(localTheme)), std::istreambuf_iterator<char>());
+            data = nlohmann::json::parse(file_content, nullptr, true, true);
+        }
+        catch (const nlohmann::json::exception& err) {
+            return { {"config_fail", true} };
+        }
+
+        console.log(data.dump(4));
+        return data;
     }
 
     if (localTheme.is_open() && localTheme)
         jsonBuffer = config::get_local(localTheme);
-    else if (cloudTheme.is_open() && cloudTheme)
-        jsonBuffer = config::get_remote(cloudTheme);
-    else //cloud && remote skin are invalid
+    else
         jsonBuffer = { { "config_fail", true } };
 
     if (jsonBuffer.value("UseDefaultPatches", false)) {

@@ -14,6 +14,9 @@
 #include <utils/thread/thread_handler.hpp>
 
 #include <window/interface/globals.h>
+#include "startup/welcome_modal.hpp"
+#include <core/ipc/ipc_main.hpp>
+
 //
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -97,7 +100,6 @@ public:
 
     client(const client&) = delete;
     client& operator=(const client&) = delete;
-
 
     /// <summary>
     /// base derivative, handles all socket responses
@@ -194,6 +196,21 @@ public:
             client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
         }
 
+        if (m_socket_resp["method"] == "Console.messageAdded") {
+
+            std::string input = m_socket_resp["params"]["message"]["text"];
+            std::string prefix = "millennium.user.message: ";
+
+            if (input.find(prefix) == 0) {
+                input.erase(0, prefix.length());
+                try {
+                    json j = json::parse(input);
+                    IPC::handleMessage(j, m_socket_resp, steam_client, hdl);
+                }
+                catch (const std::exception& e) { }
+            }
+        }
+
         msg->recycle();
     }
 
@@ -208,6 +225,19 @@ public:
         };
 
         nlohmann::json _buffer = nlohmann::json::array();
+
+        if (skin_json_config.contains("Steam-WebKit")) {
+            skin_json_config["Hooks"] = {
+                {
+                    {"TargetCss", "https://store.*.steamstatic.com/public/css/v6/wishlist.css*"},
+                    {"Interpolate", skin_json_config["Steam-WebKit"] }
+                },
+                {
+                    {"TargetCss", "https://*.*.com/public/shared/css/buttons.css*"},
+                    {"Interpolate", skin_json_config["Steam-WebKit"] }
+                }
+            };
+        }
 
         for (const auto& hook : skin_json_config["Hooks"])
         {
@@ -225,7 +255,8 @@ public:
 
         enableFetch["params"]["patterns"] = _buffer;
 
-        if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0) {
+        if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0 ||
+            skin_json_config.contains("Steam-WebKit") && skin_json_config["Steam-WebKit"]) {
             console.log(std::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
             try {
                 steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
@@ -309,6 +340,8 @@ private:
         static int id = 0;
         id++;
 
+        //std::cout << m_socket_resp.dump(4) << std::endl;
+
         std::string requestId = m_socket_resp["params"]["requestId"],
             requestUrl = m_socket_resp["params"]["request"]["url"];
 
@@ -330,11 +363,16 @@ private:
     inline const void get_body_callback(const getBodyCallbackInfo& item) {
 
         std::string g_fileResponse = "/*Couldn't Interpolate the file, millennium is working however your config is off*/\n";
+        bool isCss = false;
 
         const auto checkRegex = [&](nlohmann::json& hook, steam_cef_manager::script_type _type) -> void
         {
             if (!std::regex_search(item.requestUrl, std::regex(hook[_type == steam_cef_manager::script_type::stylesheet ? "TargetCss" : "TargetJs"].get<std::string>()))) {
                 return;
+            }
+
+            if (_type == steam_cef_manager::script_type::stylesheet) {
+                isCss = true;
             }
 
             //the absolute path to the file we want to interpolate
@@ -373,13 +411,24 @@ private:
                 checkRegex(hook, steam_cef_manager::script_type::javascript);
         }
 
+        const auto colors = config.getRootColors();
+        std::string responseBody;
+
+        // if the hooked file is a css file, we want to add the colors structure.
+        if (isCss) {
+            responseBody = base64_encode(std::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nBEGIN COLOR INSERTION\n*/\n{}\n/*\nEND COLORS\n*/\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse, colors == "[NoColors]" ? std::string() : colors));
+        }
+        else {
+            responseBody = base64_encode(std::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse));
+        }
+
         nlohmann::json fulfillRequest = {
             { "id", 6346 },
             { "method", "Fetch.fulfillRequest" },
             { "params", {
                 { "requestId", item.requestId },
                 { "responseCode", 200 },
-                { "body", base64_encode(std::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse)) }
+                { "body", responseBody }
             }}
         };
 
@@ -403,10 +452,14 @@ private:
 
         steam_js_context SharedJSContext;
 
+        bool forceStartupCheck = false;
+
         for (const auto item : data)
         {
             if (item["update_required"])
             {
+                forceStartupCheck = true;
+
                 console.log("Queuing notification popup for skin: " + item["native-name"].get<std::string>());
 
                 bool allowSound = Settings::Get<bool>("allow-auto-updates-sound");
@@ -439,6 +492,10 @@ private:
                 console.log(SharedJSContext.exec_command(notificationPopup));
             }
         }
+
+        if (forceStartupCheck) {
+            m_Client->parseSkinData(true);
+        }
     }
 
     inline const bool settings_patches(std::string cefctx_title) {
@@ -450,10 +507,17 @@ private:
                 std::string js = std::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
 
                 steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
+
+                nlohmann::json evaluate_script = {
+                    {"id", 5393},
+                    {"method", "Console.enable"},
+                    {"sessionId", m_socket_resp["sessionId"]}
+                };
+                steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
             }},
             //if the steam root menu is clicked we want to display millennium's popup modal
             {"Steam Root Menu", [&]() { 
-                steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"]);
+                //steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"]);
             }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
@@ -464,6 +528,15 @@ private:
                 if (!Settings::Get<bool>("enableUrlBar")) {
                     std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".steamdesktop_URLBar_UkR3s { display: none !important; }" })); })())";
                     steam_interface.push_to_socket(steam_client, hdl, javaScript, m_steamMainSessionId);
+                }
+
+                static bool shownPopup = false;
+
+                if (steam::get().params.has("-updated") && !shownPopup) {
+                    std::string message = popupModal::getSnippet("Welcome to Millennium!", "To get started, click the 'Steam' button on the top left of steam and find the Millennium button!<br>Dont forget to join our discord server if you need help!");
+
+                    steam_interface.push_to_socket(steam_client, hdl, message, m_steamMainSessionId);
+                    shownPopup = true;
                 }
             }},
         };
@@ -558,6 +631,55 @@ private:
         return returnVal.empty() ? std::vector<statementReturn>{ {true} } : returnVal;
     }
 
+    struct item {
+        std::string filePath;
+        steam_cef_manager::script_type type;
+    };
+
+    inline const void evaluateList(std::vector<item> items) {
+
+        std::string raw_script;
+
+        for (const auto& item : items) {
+            const auto relativeItem = std::format("{}/skins/{}/{}", uri.steam_resources.string(), Settings::Get<std::string>("active-skin"), item.filePath);
+
+            if (item.type == steam_cef_manager::script_type::javascript) {
+                raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
+                raw_script += "\n\n\n";
+            }
+            if (item.type == steam_cef_manager::script_type::stylesheet) {
+                raw_script += cef_dom::get().stylesheet_handler.add(relativeItem).data();
+                raw_script += "\n\n\n";
+            }
+        }
+
+        try {
+            std::function<void(const std::string&)> runtime_evaluate = [&](const std::string& script) -> void {
+                nlohmann::json evaluate_script = {
+                    {"id", steam_cef_manager::response::script_inject_evaluate},
+                    {"method", "Runtime.evaluate"},
+                    {"params", {{"expression", script}}}
+                };
+
+                if (m_socket_resp.contains("sessionId")) {
+                    evaluate_script["sessionId"] = m_socket_resp["sessionId"];
+                }          
+
+                steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
+            };
+
+            //inject the script that the user wants
+            runtime_evaluate(injectGlobalColor() + "\n\n\n" + injectSystemColors() + "\n\n\n" + raw_script);
+        }
+        catch (const boost::system::system_error& ex) {
+
+            if (ex.code().value() == boost::asio::error::operation_aborted || ex.code().value() == boost::asio::error::eof)
+            {
+                console.warn("[non-fatal] steam garbage clean-up aborted a connected socket, re-establishing connection");
+            }
+        }
+    }
+
     /// <summary>
     /// function responsible for handling css and js injections
     /// </summary>
@@ -583,22 +705,20 @@ private:
 
             const auto result = check_statement(patch);
 
-            if (!result[0].fail)
-            {
-                for (const auto statementItem : result)
-                {
-                    steam_interface.evaluate(steam_client, hdl, statementItem.itemRefrence, statementItem.scriptType, m_socket_resp);
+            std::vector<item> itemQuery;
+
+            if (!result[0].fail) {
+                for (const auto statementItem : result) {
+                    itemQuery.push_back({ statementItem.itemRefrence, statementItem.scriptType });
                 }
             }
 
             if (patch.contains("TargetJs"))
-            {
-                steam_interface.evaluate(steam_client, hdl, patch["TargetJs"].get<std::string>(), steam_interface.script_type::javascript, m_socket_resp);
-            }
+                itemQuery.push_back({ patch["TargetJs"].get<std::string>(), steam_interface.script_type::javascript });
             if (patch.contains("TargetCss"))
-            {
-                steam_interface.evaluate(steam_client, hdl, patch["TargetCss"].get<std::string>(), steam_interface.script_type::stylesheet, m_socket_resp);
-            }
+                itemQuery.push_back({ patch["TargetCss"].get<std::string>(), steam_interface.script_type::stylesheet });
+
+            evaluateList(itemQuery);
         }
     }
 
@@ -671,11 +791,12 @@ private:
         std::string attributes_list;
 
         if (node.contains("attributes"))
-        {
+        { 
             const nlohmann::basic_json<>& attributes = node["attributes"];
+
             for (const auto& attribute : attributes)
             {
-                attributes_list += std::format(".{} ", attribute.get<std::string>());
+                attributes_list += " ." + std::regex_replace(attribute.get<std::string>(), std::regex(" "), " .");
             }
         }
 
@@ -709,6 +830,14 @@ private:
             //}).dump(4)));
 
 
+            if (attributes.find("ModalDialogPopup") != std::string::npos) {
+                console.log("injecting millennium into settings modal");
+
+                //steam_interface.render_settings_modal(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
+                steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
+            }
+
+
             if (!skin_json_config.contains("Patches")) {
                 return;
             }
@@ -719,17 +848,20 @@ private:
 
                 if (contains_http)
                     continue;
-
                 if (attributes.find(patch.matchRegexString) == std::string::npos) {
                     continue;
                 }
 
                 console.log_patch("class name", m_header, patch.matchRegexString);
 
-                //cef_target_patched_list.push_back()
+                std::vector<item> itemQuery;
 
-                if (!patch.targetCss.empty()) steam_interface.evaluate(steam_client, hdl, patch.targetCss, steam_interface.script_type::stylesheet, m_socket_resp);
-                if (!patch.targetJs.empty())  steam_interface.evaluate(steam_client, hdl, patch.targetJs, steam_interface.script_type::javascript, m_socket_resp);
+                if (!patch.targetCss.empty())
+                    itemQuery.push_back({ patch.targetCss, steam_interface.script_type::stylesheet });
+                if (!patch.targetJs.empty())  
+                    itemQuery.push_back({ patch.targetJs, steam_interface.script_type::javascript });
+
+                evaluateList(itemQuery);
             }
         }
         catch (nlohmann::json::exception& ex)
@@ -1017,19 +1149,19 @@ steam_client::steam_client()
         return false;
     }, 0, 0, 0));
 
-    threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
-        try {
-            boost::asio::io_context io_context;
-            millennium_ipc_listener listener(io_context);
+    //threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
+    //    try {
+    //        boost::asio::io_context io_context;
+    //        millennium_ipc_listener listener(io_context);
 
-            running_port = listener.get_ipc_port();
-            io_context.run();
-        }
-        catch (std::exception& e) {
-            console.err("ipc exception: " + std::string(e.what()));
-        }
-        return false;
-    }, 0, 0, 0));
+    //        running_port = listener.get_ipc_port();
+    //        io_context.run();
+    //    }
+    //    catch (std::exception& e) {
+    //        console.err("ipc exception: " + std::string(e.what()));
+    //    }
+    //    return false;
+    //}, 0, 0, 0));
 }
 
 /// <summary>
@@ -1041,6 +1173,7 @@ unsigned long __stdcall Initialize(void*)
 {
     config.setupMillennium();
     skin_json_config = config.getThemeData();
+    config.installFonts();
 
     //std::cout << skin_json_config.dump(4) << std::endl;
 
@@ -1049,6 +1182,7 @@ unsigned long __stdcall Initialize(void*)
         console.imp("skin change event fired, updating skin patch config");
         skin_json_config = config.getThemeData();
         client::get_instance().update_fetch_hook_status();
+        config.installFonts();
     });
 
     //config file watcher callback function 
@@ -1056,7 +1190,7 @@ unsigned long __stdcall Initialize(void*)
         console.log("skins folder has changed, updating required information");
         skin_json_config = config.getThemeData();
         client::get_instance().update_fetch_hook_status();
-
+        config.installFonts();
         //m_Client.parseSkinData();
     });
 

@@ -31,6 +31,8 @@ public:
 		std::vector<std::string> tags;
 	};
 
+	bool isDown = false;
+
 	std::string_view endpoint = "https://millennium.web.app/api/v1";
 
 	//create a get request to populate the featured array

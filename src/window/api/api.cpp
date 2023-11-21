@@ -50,6 +50,8 @@ void MillenniumAPI::retrieve_featured(void)
 			nlohmann::basic_json<> response = nlohmann::json::parse(http::get(std::format("{}/featured", endpoint.data())));
 
 			populate_array(response);
+
+			//this->isDown = true;
 		}
 		catch (const http_error& ex)
 		{

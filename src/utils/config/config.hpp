@@ -19,7 +19,7 @@ namespace Settings
 class themeConfig
 {
 private:
-    std::string m_themesPath, m_activeSkin;
+    std::string m_themesPath, m_steamPath, m_activeSkin;
 
     /// <summary>
     /// append default patches to the patch list if wanted
@@ -70,6 +70,8 @@ public:
     themeConfig();
 
     std::string getSkinDir();
+    const std::string getRootColors();
+    const void installFonts();
 
     /// <summary>
     /// get the configuration files, as json from the current skin selected

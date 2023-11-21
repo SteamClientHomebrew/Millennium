@@ -108,6 +108,15 @@
     <ClInclude Include="window\core\colors.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\steam\colors\accent_colors.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\injector\startup\welcome_modal.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ipc\ipc_main.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -171,6 +180,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="window\core\colors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="core\injector\startup\welcome_modal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="core\ipc\ipc_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

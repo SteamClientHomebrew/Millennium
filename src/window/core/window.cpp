@@ -179,9 +179,9 @@ HICON GetParentProcessIcon()
 
 void initFontAtlas(ImGuiIO* IO)
 {
-    IO->Fonts->AddFontFromMemoryTTF(Memory::Poppins, sizeof Memory::Poppins, 16);
-    IO->Fonts->AddFontFromMemoryTTF(Memory::Poppins, sizeof Memory::Poppins, 13);
-    IO->Fonts->AddFontFromMemoryTTF(Memory::Poppins, sizeof Memory::Poppins, 20);
+    IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 17);
+    IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 13);
+    IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 20);
 
     IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 14);
     IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 30);
@@ -193,7 +193,7 @@ void initTextures()
     createRawImage(&icons_struct.icon, Memory::logo, sizeof Memory::logo);
 
     createRawImage(&icons_struct.trash_icon, Memory::trash_icon, sizeof Memory::trash_icon);
-    createRawImage(&icons_struct.skin_icon, Memory::skin_icon, sizeof Memory::skin_icon);
+    createRawImage(&icons_struct.skin_icon, Memory::themeIcon, sizeof Memory::themeIcon);
     createRawImage(&icons_struct.check_mark_checked, Memory::icon_check_mark_full, sizeof Memory::icon_check_mark_full);
     createRawImage(&icons_struct.check_mark_unchecked, Memory::icon_check_mark_empty, sizeof Memory::icon_check_mark_empty);
     createRawImage(&icons_struct.reload_icon, Memory::icon_reload, sizeof Memory::icon_reload);
@@ -214,6 +214,16 @@ void initTextures()
 
     createRawImage(&icons_struct.greyed_out, Memory::greyed_out, sizeof Memory::greyed_out);
     createRawImage(&icons_struct.reload_icon, Memory::reloadIcon, sizeof Memory::reloadIcon);
+    createRawImage(&icons_struct.foldericon, Memory::foldericon, sizeof Memory::foldericon);
+
+    createRawImage(&icons_struct.editIcon, Memory::editIcon, sizeof Memory::editIcon);
+    createRawImage(&icons_struct.deleteIcon, Memory::deleteIcon, sizeof Memory::deleteIcon);
+
+    createRawImage(&icons_struct.homeIcon, Memory::homeBtn, sizeof Memory::homeBtn);
+    createRawImage(&icons_struct.xbtn, Memory::xbtn, sizeof Memory::xbtn);
+
+    createRawImage(&icons_struct.planetLogo20, Memory::planetLogo20, sizeof Memory::planetLogo20);
+    createRawImage(&icons_struct.KofiLogo, Memory::KofiLogo, sizeof Memory::KofiLogo);
 }
 
 bool Application::Destroy()
@@ -414,7 +424,7 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
     overlay.hwnd = CreateWindowExW(
         0, overlay.wndex.lpszClassName, (LPCWSTR)overlay.name,
         static_cast<DWORD>(Style::aero_borderless), 0, 0,
-        1000, 725, nullptr, nullptr, nullptr, nullptr
+        750, 500, nullptr, nullptr, nullptr, nullptr
     );
 
     ::wnd_center();
@@ -521,8 +531,8 @@ auto hit_test(POINT cursor) -> LRESULT {
     // allow resizing outside the visible window frame.
     // This implementation does not replicate that behavior.
     const POINT border{
-        ::GetSystemMetrics(SM_CXFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER),
-        ::GetSystemMetrics(SM_CYFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER)
+        2,
+        2
     };
     RECT window;
     if (!::GetWindowRect(Window::getHWND(), &window)) {
@@ -546,14 +556,14 @@ auto hit_test(POINT cursor) -> LRESULT {
         bottom * (cursor.y >= (window.bottom - border.y));
 
     switch (result) {
-        case left: return borderless_resize ? HTLEFT : drag;
-        case right: return borderless_resize ? HTRIGHT : drag;
-        case top: return borderless_resize ? HTTOP : drag;
-        case bottom: return borderless_resize ? HTBOTTOM : drag;
-        case top | left: return borderless_resize ? HTTOPLEFT : drag;
-        case top | right: return borderless_resize ? HTTOPRIGHT : drag;
-        case bottom | left: return borderless_resize ? HTBOTTOMLEFT : drag;
-        case bottom | right: return borderless_resize ? HTBOTTOMRIGHT : drag;
+        //case left: return borderless_resize ? HTLEFT : drag;
+        //case right: return borderless_resize ? HTRIGHT : drag;
+        //case top: return borderless_resize ? HTTOP : drag;
+        //case bottom: return borderless_resize ? HTBOTTOM : drag;
+        //case top | left: return borderless_resize ? HTTOPLEFT : drag;
+        //case top | right: return borderless_resize ? HTTOPRIGHT : drag;
+        //case bottom | left: return borderless_resize ? HTBOTTOMLEFT : drag;
+        //case bottom | right: return borderless_resize ? HTBOTTOMRIGHT : drag;
         case client: {
             if (g_headerHovered || g_headerHovered_1) {
                 return drag;
@@ -657,6 +667,7 @@ void set_proc_theme_colors()
 	sty->SetTheme[ImGuiCol_TextDisabled]         = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
 	sty->SetTheme[ImGuiCol_WindowBg]             = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
 	sty->SetTheme[ImGuiCol_ScrollbarBg]          = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+	sty->SetTheme[ImGuiCol_ScrollbarGrab]        = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
 	sty->SetTheme[ImGuiCol_PopupBg]              = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
 	sty->SetTheme[ImGuiCol_FrameBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
 	sty->SetTheme[ImGuiCol_FrameBgHovered]       = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);

@@ -34,32 +34,32 @@
 }
 
 .steamdesktop_InitContainer_2YwTw {
-    background: #191919;
+    background: var(--color-darker);
 }
 
 .DialogContent {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 .DialogButton {
-    background: #303030 !important;
+    background: var(--color-light) !important;
 }
 
 [class*="launchoptionsdialog_LaunchOptionDialog_"] {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 [class*="launchoptionsdialog_ListContainer_"] {
-    background: #171717 !important;
+    background: var(--color-darkest) !important;
 }
 
 [class*="launchoptionsdialog_ListItem_"] {
-    background: #303030 !important;
+    background: var(--color-light) !important;
     border-radius: 4px;
 }
 
 [class*="launchoptionsdialog_CancelButton_"] {
-    background: #303030 !important;
+    background: var(--color-light) !important;
 }
 
 img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][class*="libraryassetimage_Visible_"] {
@@ -84,11 +84,11 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
 }
 
 .gamelistdropdown_Bar_1ZS_x {
-    background: #191919 !important;
+    background: var(--color-darker) !important;
 }
 
 .gamelistdropdown_MenuHeader_2PF_m {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 /* [class*="rootmenu_RootMenuButton_"] {
@@ -114,7 +114,7 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
 
 [class*="apppartnereventspage_CloseButton_"][class*="apppartnereventspage_AnimIn_"],
 [class*="apppartnereventspage_ScrollButton_"] {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 [class*="appfilterpane_Container"] {
@@ -147,7 +147,7 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
 }
 
 [class*="partnereventdisplay_LibraryEventTitleContainer_"] {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 [class*="gamelist_Container"] {
@@ -373,7 +373,7 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
 }
 /* Context Menus */
 [class*="menu_MenuPopup"] {
-    background: #191919 !important;
+    background: var(--color-darker) !important;
 }
 
 /* Friends List */
@@ -466,19 +466,19 @@ img[class*="libraryassetimage_Image_"][class*="libraryassetimage_Visibility_"][c
 
 
 .appdetailsplaysection_InnerContainer_3Y87Y {
-    background: #191919 !important;
+    background: var(--color-darker) !important;
 }
 
 div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
-    background: #191919 !important;
+    background: var(--color-darker) !important;
 }
 
 .appdetailsoverview_Glassy_2OOzY .appdetailsoverview_ColumnContainer_OhSdL {
-    background: #191919 !important;
+    background: var(--color-darker) !important;
 }
 
 .appdetailsoverview_Glassy_2OOzY>div {
-    background: #191919 !important;
+    background: var(--color-darker) !important;
 }
 
 .gamepaddialog_Field_S-_La.gamepaddialog_WithBottomSeparatorStandard_3s1Rk::after {
@@ -501,11 +501,11 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 }
 
 .steamdesktop_BrowserWrapper_1bGew .steamdesktop_URLBar_UkR3s .steamdesktop_URLBarText_2m_or:hover {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 .console_Console_1fuML, .console_Console_1fuML pre {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 .insetshadow_FriendsListInsetShadowCtn_17ewz {
@@ -513,7 +513,7 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 }
 
 .friendListHeaderContainer {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 .statusHeaderGlow {
@@ -538,7 +538,7 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 }
 
 .friendsListSectionTitle {
-    background: #303030 !important;
+    background: var(--color-light) !important;
 }
 
 .friendListFooter {
@@ -554,7 +554,7 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 }
 
 .contextmenu_contextMenuContents_2y2tU.contextmenu_ForceDesktop_7K1n9 {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
     border: 1px solid #353535 !important;
     padding: 0 !important;
 }
@@ -572,16 +572,16 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 }
 
 .contextmenu_contextMenu_LQkrb {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 .contextMenuItem:not(.library_ContextMenuAction_Z5iAX):hover {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
     color: #fff !important;
 }
 
 .gamelistentry_Selected_1UBpA.gamelistentry_Container_2-O4Z:hover, .gamelistentry_Selected_1UBpA.gamelistentry_Container_2-O4Z.gamelistentry_HoverOverlay_3cMVy, .gamelistentry_Selected_1UBpA.gamelistentry_Container_2-O4Z :hover, .gamelistentry_Selected_1UBpA .gamelistentry_Container_2-O4Z:hover, .gamelistentry_Selected_1UBpA .gamelistentry_Container_2-O4Z.gamelistentry_HoverOverlay_3cMVy, .gamelistentry_Selected_1UBpA .gamelistentry_Container_2-O4Z :hover {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 .appdetailsoverview_Glassy_2OOzY .appdetailsoverview_BackdropGlass_Jbe-- {
@@ -589,7 +589,7 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 }
 
 .appactivityday_GameCarouselWrapper_3jFOA {
-    background: #212121 !important;
+    background: var(--color-dark) !important;
 }
 
 .appactivityday_Event_UVeN0 .appactivityday_EventBody_NEMXh {
@@ -610,5 +610,5 @@ div.NarrowRightPanel .appdetailsprimarylinkssection_LinksSection_3-V8v {
 button.mllnm-button,
 button.mllnm-button.mllnm-button-title,
 .mllnm-search-wrapper {
-    background: #303030 !important;
+    background: var(--color-light) !important;
 }

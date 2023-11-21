@@ -31,20 +31,250 @@
             "Description": "Low priority accent color",
             "HexColorCode": "#141414",
             "OriginalColorCode": "#141414"
+        },
+        {
+            "ColorName": "--scrollbar",
+            "Description": "Webkit Scrollbar",
+            "HexColorCode": "#303030",
+            "OriginalColorCode": "#303030"
+        },
+        {
+            "ColorName": "--scrollbar",
+            "Description": "Webkit Scrollbar",
+            "HexColorCode": "#303030",
+            "OriginalColorCode": "#303030"
+        },
+        {
+            "ColorName": "--black",
+            "Description": "Webkit",
+            "HexColorCode": "#000000",
+            "OriginalColorCode": "#000000"
+        },
+        {
+            "ColorName": "--black-ish",
+            "Description": "Webkit",
+            "HexColorCode": "#2a3f5a00",
+            "OriginalColorCode": "#2a3f5a00"
+        },
+        {
+            "ColorName": "--realblack",
+            "Description": "Webkit",
+            "HexColorCode": "#101010",
+            "OriginalColorCode": "#101010"
+        },
+        {
+            "ColorName": "--blacker-ish",
+            "Description": "Webkit",
+            "HexColorCode": "#1b1b1b",
+            "OriginalColorCode": "#1b1b1b"
+        },
+        {
+            "ColorName": "--blacker",
+            "Description": "Webkit",
+            "HexColorCode": "#1c1c1c",
+            "OriginalColorCode": "#1c1c1c"
+        },
+        {
+            "ColorName": "--lightblack",
+            "Description": "Webkit",
+            "HexColorCode": "#121212",
+            "OriginalColorCode": "#121212"
+        },
+        {
+            "ColorName": "--darkergrey",
+            "Description": "Webkit",
+            "HexColorCode": "#151515",
+            "OriginalColorCode": "#151515"
+        },
+        {
+            "ColorName": "--bedarkgrey",
+            "Description": "Webkit",
+            "HexColorCode": "#161616",
+            "OriginalColorCode": "#161616"
+        },
+        {
+            "ColorName": "--thegrey",
+            "Description": "Webkit",
+            "HexColorCode": "#181818",
+            "OriginalColorCode": "#181818"
+        },
+        {
+            "ColorName": "--begrey",
+            "Description": "Webkit",
+            "HexColorCode": "#262627",
+            "OriginalColorCode": "#262627"
+        },
+        {
+            "ColorName": "--littlegrey",
+            "Description": "Webkit",
+            "HexColorCode": "#282828",
+            "OriginalColorCode": "#282828"
+        },
+        {
+            "ColorName": "--darkgrey",
+            "Description": "Webkit",
+            "HexColorCode": "#1e1e1f",
+            "OriginalColorCode": "#1e1e1f"
+        },
+        {
+            "ColorName": "--grey",
+            "Description": "Webkit",
+            "HexColorCode": "#2e2e2f",
+            "OriginalColorCode": "#2e2e2f"
+        },
+        {
+            "ColorName": "--lightgrey",
+            "Description": "Webkit",
+            "HexColorCode": "#3e3e3f",
+            "OriginalColorCode": "#3e3e3f"
+        },
+        {
+            "ColorName": "--lightergrey",
+            "Description": "Webkit",
+            "HexColorCode": "#353535",
+            "OriginalColorCode": "#353535"
+        },
+        {
+            "ColorName": "--grey-ish",
+            "Description": "Webkit",
+            "HexColorCode": "#454545",
+            "OriginalColorCode": "#454545"
+        },
+        {
+            "ColorName": "--dakerwhite",
+            "Description": "Webkit",
+            "HexColorCode": "#b8b6b4",
+            "OriginalColorCode": "#b8b6b4"
+        },
+        {
+            "ColorName": "--darkwhite",
+            "Description": "Webkit",
+            "HexColorCode": "#d9dadd",
+            "OriginalColorCode": "#d9dadd"
+        },
+        {
+            "ColorName": "--white",
+            "Description": "Webkit",
+            "HexColorCode": "#ffffff",
+            "OriginalColorCode": "#ffffff"
+        },
+        {
+            "ColorName": "--darkblue",
+            "Description": "Webkit",
+            "HexColorCode": "#0e5984",
+            "OriginalColorCode": "#0e5984"
+        },
+        {
+            "ColorName": "--blue",
+            "Description": "Webkit",
+            "HexColorCode": "#4f95bd",
+            "OriginalColorCode": "#4f95bd"
+        },
+        {
+            "ColorName": "--blu",
+            "Description": "Webkit",
+            "HexColorCode": "#67c1f5",
+            "OriginalColorCode": "#67c1f5"
+        },
+        {
+            "ColorName": "--blue-ish",
+            "Description": "Webkit",
+            "HexColorCode": "#7cbef8",
+            "OriginalColorCode": "#7cbef8"
+        },
+        {
+            "ColorName": "--blue-er",
+            "Description": "Webkit",
+            "HexColorCode": "#a4d7f5",
+            "OriginalColorCode": "#a4d7f5"
+        },
+        {
+            "ColorName": "--lightblue",
+            "Description": "Webkit",
+            "HexColorCode": "#c4e4f2",
+            "OriginalColorCode": "#c4e4f2"
+        },
+        {
+            "ColorName": "--darkgreen",
+            "Description": "Webkit",
+            "HexColorCode": "#5c7e10",
+            "OriginalColorCode": "#5c7e10"
+        },
+        {
+            "ColorName": "--green",
+            "Description": "Webkit",
+            "HexColorCode": "#d2e885",
+            "OriginalColorCode": "#d2e885"
+        },
+        {
+            "ColorName": "--ingame",
+            "Description": "Webkit",
+            "HexColorCode": "#90ba3c",
+            "OriginalColorCode": "#90ba3c"
+        },
+        {
+            "ColorName": "--online",
+            "Description": "Webkit",
+            "HexColorCode": "#57cbde",
+            "OriginalColorCode": "#57cbde"
+        },
+        {
+            "ColorName": "--offline",
+            "Description": "Webkit",
+            "HexColorCode": "#898989",
+            "OriginalColorCode": "#898989"
+        },
+        {
+            "ColorName": "--gold",
+            "Description": "Webkit",
+            "HexColorCode": "#ffcc6a",
+            "OriginalColorCode": "#ffcc6a"
+        },
+        {
+            "ColorName": "--bronze",
+            "Description": "Webkit",
+            "HexColorCode": "#695833",
+            "OriginalColorCode": "#695833"
+        },
+        {
+            "ColorName": "--purple",
+            "Description": "Webkit",
+            "HexColorCode": "#6624e2",
+            "OriginalColorCode": "#6624e2"
+        },
+        {
+            "ColorName": "--pink",
+            "Description": "Webkit",
+            "HexColorCode": "#ff00ff",
+            "OriginalColorCode": "#FF00FF"
+        },
+        {
+            "ColorName": "--red",
+            "Description": "Webkit",
+            "HexColorCode": "#ff0000",
+            "OriginalColorCode": "#FF0000"
+        },
+        {
+            "ColorName": "--orange",
+            "Description": "Webkit",
+            "HexColorCode": "#ff6600",
+            "OriginalColorCode": "#FF6600"
+        },
+        {
+            "ColorName": "--yellow",
+            "Description": "Webkit",
+            "HexColorCode": "#ffff00",
+            "OriginalColorCode": "#FFFF00"
         }
     ],
     "Hooks": [
         {
             "Interpolate": "webkit/webkit.css",
-            "TargetCss": "https://community.akamai.steamstatic.com/public/shared/css/buttons.css*"
+            "TargetCss": "https://*.*.steamstatic.com/public/shared/css/buttons.css*"
         },
         {
             "Interpolate": "webkit/webkit.css",
-            "TargetCss": "https://store.akamai.steamstatic.com/public/shared/css/buttons.css*"
-        },
-        {
-            "Interpolate": "webkit/webkit.css",
-            "TargetCss": "https://store.akamai.steamstatic.com/public/css/v6/wishlist.css*"
+            "TargetCss": "https://store.*.steamstatic.com/public/css/v6/wishlist.css*"
         }
     ],
     "Patches": [
@@ -141,8 +371,9 @@
             "TargetCss": "overlay/Browser.css"
         }
     ],
-    "UseDefaultPatches": true,
+    "UseDefaultPatches": false,
     "author": "ShadowMonster",
+    "config_fail": false,
     "description": "A sleek and elegant theme that brings a darker, more immersive experience to your Steam client. This theme focuses on enhancing your visual comfort during extended gaming sessions, with carefully crafted CSS adjustments that darken the interface without altering its familiar design. While utilizing a touch of JavaScript for specific functionality, the primary focus remains on refining the color scheme to reduce eye strain and create a cozy ambiance.",
     "name": "Simple Dark.",
     "native-name": "SimpleDark",

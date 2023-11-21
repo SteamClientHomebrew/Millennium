@@ -45,6 +45,13 @@ struct icons
     github, 
     support,
     greyed_out,
+    foldericon,
+    editIcon,
+    deleteIcon,
+    homeIcon,
+    xbtn,
+    planetLogo20,
+    KofiLogo,
     planet;
 };
 

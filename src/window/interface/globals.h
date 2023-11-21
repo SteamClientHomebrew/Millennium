@@ -91,12 +91,12 @@ class millennium
 private:
 	nlohmann::basic_json<> readFileSync(std::string path);
 
-	bool isInvalidSkin(std::string skin = Settings::Get<std::string>("active-skin"));
 	void resetCollected();
 	void parseRemoteSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer);
-	bool parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer, bool checkForUpdates = false);
 
 public:
+	bool skinDataReady;
+
 	bool b_javascriptEnabled;
 	bool b_networkingEnabled;
 	std::string m_currentSkin;
@@ -119,12 +119,15 @@ public:
 	std::vector<image::image_t> v_rawImageList;
 
 	void getRawImages(std::vector<std::string>& images);
-	void parseSkinData();
+	void parseSkinData(bool checkForUpdates);
 	nlohmann::basic_json<> bufferSkinData();
 	void changeSkin(nlohmann::basic_json<>& skin);
 	void concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
 	void dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
 
+	bool isInvalidSkin(std::string skin = Settings::Get<std::string>("active-skin"));
+
+	bool parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer, bool checkForUpdates = false);
 	void releaseImages();
 
 	~millennium() noexcept
