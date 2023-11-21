@@ -121,11 +121,23 @@ namespace Millennium
 
             if (response["tag_name"] != m_ver)
             {
-                OpenURL("https://millennium.web.app/");
+                const char* url = "https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/Millennium.Installer-Windows.exe";
 
-                MsgBox("A new version of Millennium is available! We opened your browser on the page were you update Millennium.\n"
-                    "Just click the download button and proceed the installer as normal. If the browser didn't open go to the website manually.\n"
-                    "https://millennium.web.app/", "Updater", MB_ICONINFORMATION);
+                try {
+                    std::vector<unsigned char> result = http::get_bytes(url);
+
+                    const char* filePath = "millennium.installer.exe";
+
+                    std::ofstream outputFile(filePath, std::ios::binary);
+                    outputFile.write(reinterpret_cast<const char*>(result.data()), result.size());
+                    outputFile.close();
+
+                    ShellExecute(NULL, "open", "millennium.installer.exe", NULL, NULL, SW_SHOWDEFAULT);
+
+                }
+                catch (const std::exception& e) {
+                    MsgBox(std::format("Can't update millennium! Ask support for help.\n\nTrace:\n{}", e.what()).c_str(), "Error", MB_ICONERROR);
+                }
 
                 ExitProcess(EXIT_SUCCESS);
             }
