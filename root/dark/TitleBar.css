@@ -13,8 +13,8 @@
 }
 
 /* Hide the View menu and other stuff */
-[class*="rootmenu_RootMenuButton_"]:nth-of-type(2), [class*="rootmenu_RootMenuButton_"]:nth-of-type(3), 
-[class*="rootmenu_RootMenuButton_"]:nth-of-type(4), [class*="rootmenu_RootMenuButton_"]:nth-of-type(5) {
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(3), [class*="rootmenu_RootMenuButton_"]:nth-of-type(5), 
+[class*="rootmenu_RootMenuButton_"]:nth-of-type(7), [class*="rootmenu_RootMenuButton_"]:nth-of-type(9) {
     margin-left: 7px !important;
     transition: opacity 0.3s ease-out;
     opacity: 0;

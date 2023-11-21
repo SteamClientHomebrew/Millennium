@@ -1,6 +1,46 @@
 *{box-shadow:none!important}
 
-:root {
+:root {/* Colors */
+    /* --scrollbar: #303030;
+    --trans: transparent;
+    --black: #000000;
+    --black-ish: #2a3f5a00;
+    --realblack: #101010;
+    --blacker-ish: #1b1b1b;
+    --blacker: #1c1c1c;
+    --lightblack: #121212;
+    --darkergrey: #151515;
+    --bedarkgrey: #161616;
+    --thegrey: #181818;
+    --begrey: #262627;
+    --littlegrey: #282828;
+    --darkgrey: #1e1e1f;
+    --grey: #2e2e2f;
+    --lightgrey: #3e3e3f;
+    --lightergrey: #353535;
+    --grey-ish: #454545;
+    --dakerwhite: #b8b6b4;
+    --darkwhite: #d9dadd;
+    --white: #ffffff;
+    --darkblue: #0e5984;
+    --blue: #4f95bd;
+    --blu: #67c1f5;
+    --blue-ish: #7cbef8;
+    --blue-er: #a4d7f5;
+    --lightblue: #c4e4f2;
+    --darkgreen: #5c7e10;
+    --green: #d2e885;
+    --ingame: #90ba3c;
+    --online: #57cbde;
+    --offline: #898989;
+    --gold: #ffcc6a;
+    --bronze: #695833;
+    --purple: #6624e2;
+    --pink: #FF00FF;
+    --red: #FF0000;
+    --orange: #FF6600;
+    --yellow: #FFFF00; */
+
     /* Profile Blur */
     --blur: blur(10px); /* default 10px */
 
