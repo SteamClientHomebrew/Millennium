@@ -20,7 +20,7 @@
 [docs-link]: https://millennium.gitbook.io/steam-patcher/
 
 
-Millennium is a client modification for Steam that brings skins/theming back to the new Steam Client.
+Millennium is an integrated client modification (requiring no external apps) for Steam that brings skins/theming back to the new Steam Client.
 
 [![Theme Split](https://cdn.discordapp.com/attachments/923017628367335428/1150450427645657209/Untitled_design_3_1.png)](https://cdn.discordapp.com/attachments/923017628367335428/1150450427645657209/Untitled_design_3_1.png)
 
