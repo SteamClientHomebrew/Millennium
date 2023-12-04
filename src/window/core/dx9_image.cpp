@@ -75,7 +75,7 @@ image::image_t image::make_shared_image(const char* file_name, quality quality)
 	int height = 0;
 	int width = 0;
 
-	bool success;
+	bool success = false; 
 
 	try
 	{

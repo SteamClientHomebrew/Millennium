@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\vendor\imgui\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_impl_dx9.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_impl_win32.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_tables.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vendor\imgui\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\window\window.cpp">
+      <Filter>window</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\http\http_client.cpp">
+      <Filter>utils\http</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\cout\logger.cpp">
+      <Filter>utils\cout</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\steam\steam_helpers.cpp" />
+    <ClCompile Include="src\installer\installer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\vendor\imgui\imstb_truetype.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imconfig.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui_impl_dx9.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui_impl_win32.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imgui_internal.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imstb_textedit.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\imgui\imstb_rectpack.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\window\window.hpp">
+      <Filter>window</Filter>
+    </ClInclude>
+    <ClInclude Include="src\window\memory.h">
+      <Filter>window</Filter>
+    </ClInclude>
+    <ClInclude Include="scripts\resource.h">
+      <Filter>scripts</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\http\http_client.hpp">
+      <Filter>utils\http</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\cout\logger.hpp">
+      <Filter>utils\cout</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\steam\steam_helpers.hpp" />
+    <ClInclude Include="src\installer\installer.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{f85be3ef-e293-4764-90c8-821366cac855}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="window">
+      <UniqueIdentifier>{ffa7f4d1-73e2-4d36-907c-63d81436fc8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui\custom">
+      <UniqueIdentifier>{cb79cb6a-9fa6-494a-a53b-86948aa3f3ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scripts">
+      <UniqueIdentifier>{ae2883b0-2944-4d02-bf58-49baed54a68e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{db7ac5df-d987-4dd6-ac7a-aefe4a64a311}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils\http">
+      <UniqueIdentifier>{e123e3aa-9754-4d26-9570-74b0f9b7e2b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils\cout">
+      <UniqueIdentifier>{1c613dd7-75f8-414e-96ed-8b0dbab3c168}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="scripts\millennium.installer.rc">
+      <Filter>scripts</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="scripts\icon1.ico">
+      <Filter>scripts</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

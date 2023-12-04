@@ -167,6 +167,7 @@ const init = {
                 const classList = Array.from(setting[5].classList);
 
                 if (classList.some(className => (/pagedsettings_Active_*/).test(className)) === true) {
+                    console.log("Interface tab is selected")
                     if (!init.isActive) {
                         renderer.modal()
                         init.isActive = true

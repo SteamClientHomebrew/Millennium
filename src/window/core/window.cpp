@@ -26,6 +26,9 @@
 #include <windowsx.h>
 #include <utils/config/config.hpp>
 
+#include <filesystem>
+#include <iostream>
+
 static bool mousedown = false;
 bool app_open = true;
 
@@ -461,8 +464,6 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
 
     callBack(); 
     initTextures();
-
-    g_windowOpen = true;
 
     if (ImGui_ImplWin32_Init(overlay.hwnd) && ImGui_ImplDX9_Init(directx9.device))
     {

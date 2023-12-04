@@ -1,6 +1,8 @@
 #include <window/api/installer.hpp>
 #include <stdafx.h>
 
+#include <regex>
+
 namespace community
 {
 	std::string installer::sanitizeDirectoryName(const std::string& input) {
@@ -66,14 +68,50 @@ namespace community
 	}
 
 	void installer::downloadTheme(const nlohmann::json& skinData) {
-		std::filesystem::path skinDir = std::filesystem::path(config.getSkinDir()) / sanitizeDirectoryName(skinData["name"].get<std::string>());
 
-		try {
-			nlohmann::json folderData = nlohmann::json::parse(http::get(skinData["source"]));
-			downloadFolder(folderData, skinDir);
+		if (skinData.contains("github")) {
+
+			if (!skinData["github"].contains("repo_name") || !skinData["github"].contains("owner")) {
+				MsgBox("Unable to update skin [can't find github repo info]. Contact the developer.", "Millennium", MB_ICONERROR);
+				return;
+			}
+
+			std::string repo = skinData["github"]["repo_name"];
+			std::string owner = skinData["github"]["owner"];
+
+			nlohmann::json post = {
+				{"repo", repo},
+				{"owner", owner}
+			};
+
+			std::string raw;
+
+			try {
+				raw = http::post("http://localhost:3000/get-update", post.dump(4).c_str());
+			}
+			catch (const http_error error) {
+				MsgBox(std::format("Couldn't contact API to get update...\nCode: {}", error.code()).c_str(), "Millennium", MB_ICONERROR);
+			}
+		
+			if (!nlohmann::json::accept(raw)) {
+				MsgBox(std::format("Received malformed message from API.\nResponse: {}\n\nContact developers", raw).c_str(), "Millennium", MB_ICONERROR);
+			}
+
+			nlohmann::json response = nlohmann::json::parse(raw);
+
+			std::cout << response.dump(4) << std::endl;
+
+			
 		}
-		catch (const http_error& exception) {
-			console.log(std::format("download theme exception: {}", exception.what()));
-		}
+
+		//std::filesystem::path skinDir = std::filesystem::path(config.getSkinDir()) / sanitizeDirectoryName(skinData["name"].get<std::string>());
+
+		//try {
+		//	nlohmann::json folderData = nlohmann::json::parse(http::get(skinData["source"]));
+		//	downloadFolder(folderData, skinDir);
+		//}
+		//catch (const http_error& exception) {
+		//	console.log(std::format("download theme exception: {}", exception.what()));
+		//}
 	}
 }

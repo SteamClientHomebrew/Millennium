@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerCommand>C:\Program Files (x86)\Steam\steam.exe</LocalDebuggerCommand>
-    <LocalDebuggerCommandArguments>-noverifyfiles  -dev -skipinitialbootstrap -nobootstrapperupdate</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-noverifyfiles  -dev -skipinitialbootstrap -nobootstrapperupdate -vgui</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

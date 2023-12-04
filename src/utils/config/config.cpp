@@ -10,6 +10,9 @@
 #include <core/steam/cef_manager.hpp>
 #include <utils/http/http_client.hpp>
 
+#include <format>
+#include <filesystem>
+
 remote_skin millennium_remote;
 
 static constexpr const std::string_view registryPath = "Software\\Millennium";
@@ -426,7 +429,7 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
             std::string file_content((std::istreambuf_iterator<char>(localTheme)), std::istreambuf_iterator<char>());
             data = nlohmann::json::parse(file_content, nullptr, true, true);
         }
-        catch (const nlohmann::json::exception& err) {
+        catch (const nlohmann::json::exception&) {
             return { {"config_fail", true} };
         }
 
@@ -491,8 +494,8 @@ const void themeConfig::setupMillennium() noexcept
     nullOverwrite("allow-javascript", false); //disallow js by default on a skin
 
     nullOverwrite("allow-stylesheet", true); 
-    nullOverwrite("allow-auto-updates", true); 
-    nullOverwrite("allow-auto-updates-sound", true); 
+    nullOverwrite("allow-auto-updates", false); 
+    nullOverwrite("allow-auto-updates-sound", false);
 
     nullOverwrite("allow-store-load", true);
 
@@ -512,7 +515,7 @@ void themeConfig::updateEvents::add_listener(const event_listener& listener) {
 
 void themeConfig::updateEvents::triggerUpdate() {
 
-    console.log(std::format("triggering skin event change, executing {} listener", listeners.size()));
+    //console.log(std::format("triggering skin event change, executing {} listener", listeners.size()));
 
     for (const auto& listener : listeners) {
         listener();

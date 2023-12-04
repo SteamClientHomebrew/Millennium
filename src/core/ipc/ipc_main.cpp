@@ -45,9 +45,10 @@ void sendMessage(std::string message, const nlohmann::basic_json<> socket, ws_Cl
     steam_client->send(hdl, response.dump(), websocketpp::frame::opcode::text);
 }
 
-
 void IPC::handleMessage(const nlohmann::basic_json<> message, const nlohmann::basic_json<> socket, ws_Client* steam_client, websocketpp::connection_hdl hdl)
 {
+    std::cout << "incoming IPC message: " << message.dump(4) << std::endl;
+
     if (message["id"] == "[update-theme-select]") {
 
         std::string prevName = Settings::Get<std::string>("active-skin");

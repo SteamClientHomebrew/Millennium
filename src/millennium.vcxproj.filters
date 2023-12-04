@@ -93,15 +93,6 @@
     <ClInclude Include="utils\thread\thread_handler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="window\interface\notify\imnotify.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\interface\notify\font_awesome_5.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\interface\notify\fa_solid_900.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="window\api\installer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -115,6 +106,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\ipc\ipc_main.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="metrics.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="auto-updater.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -186,6 +183,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core\ipc\ipc_main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="metrics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="auto-updater.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

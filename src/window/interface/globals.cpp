@@ -98,7 +98,7 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 				return false;
 			}
 		}
-		catch (const http_error& error) {
+		catch (const http_error&) {
 			console.log(std::format("  > An HTTP error occurred while checking for updates on skin {}", skin_json_path.string()));
 			return false;
 		}
@@ -111,29 +111,30 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 
 bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer, bool _checkForUpdates)
 {
-	console.log(std::format("checkForUpdates? -> {}", _checkForUpdates));
+	//console.log(std::format("checkForUpdates? -> {}", _checkForUpdates));
 
 	std::filesystem::path skin_json_path = entry.path() / "skin.json";
 
-	console.log(std::format(" > Local skin parser: {}", skin_json_path.string()));
+	//console.log(std::format(" > Local skin parser: {}", skin_json_path.string()));
 
 	if (!std::filesystem::exists(skin_json_path))
 		return false;
 
 	auto data = this->readFileSync(skin_json_path.string());
 
-	console.log(std::format(" > Found a skin: {}", entry.path().filename().string()));
+	//console.log(std::format(" > Found a skin: {}", entry.path().filename().string()));
 	const std::string fileName = entry.path().filename().string();
 
-	if (_checkForUpdates) {
-		console.log("checking for updates for skin");
-		data["update_required"] = checkForUpdates(data, skin_json_path);
-	}
-	else
-	{
-		console.log("skipping update check on a skin");
-		data["update_required"] = false;
-	}
+	//if (_checkForUpdates) {
+	//	//console.log("checking for updates for skin");
+	//	data["update_required"] = checkForUpdates(data, skin_json_path);
+	//}
+	//else
+	//{
+	//	//console.log("skipping update check on a skin");
+	//	data["update_required"] = false;
+	//}
+	//data["update_required"] = false;
 
 	data["name"]        = data.value("name", fileName).c_str();
 	data["native-name"] = fileName;
@@ -158,8 +159,10 @@ void millennium::releaseImages() {
 
 void millennium::getRawImages(std::vector<std::string>& images)
 {
+	std::cout << "getRawImages called" << std::endl;
+	
 	for (auto& item : v_rawImageList) {
-		std::cout << "Iterating over texture" << std::endl;
+		//std::cout << "Iterating over texture" << std::endl;
 		if (item.texture)
 		{
 			std::cout << "Releasing a texture" << std::endl;
@@ -170,10 +173,17 @@ void millennium::getRawImages(std::vector<std::string>& images)
 	v_rawImageList.clear();
 	v_rawImageList.resize((int)images.size(), { nullptr, 0, 0 });
 
+	static bool got = false;
+
+	if (got)
+		return;
 	// use threading to load the images on their own thread synchronously
 	for (int i = 0; i < (int)images.size(); i++) {
-		std::thread([=]() { v_rawImageList[i] = image::make_shared_image(images[i].c_str(), image::quality::high); }).detach();
+		std::thread([=]() { 
+			v_rawImageList[i] = image::make_shared_image(images[i].c_str(), image::quality::high); 
+		}).detach();
 	}
+	got = true;
 }
 
 nlohmann::basic_json<> millennium::bufferSkinData()
@@ -197,63 +207,242 @@ nlohmann::basic_json<> millennium::bufferSkinData()
 	return jsonBuffer;
 }
 
-void millennium::parseSkinData(bool checkForUpdates)
+
+bool alreadyExists(const nlohmann::json& data, const std::string& targetOwner) {
+	// Use std::any_of to check if any object has the specified owner
+	return std::any_of(data.begin(), data.end(),
+		[targetOwner](const nlohmann::json& item) {
+			return item.contains("owner") && item["owner"] == targetOwner;
+		});
+}
+
+std::vector<nlohmann::basic_json<>> add_update_status_to_client(
+	std::vector<nlohmann::basic_json<>>& buffer, nlohmann::json nativeName, bool needsUpdate) {
+
+	bool found = false;
+
+	std::cout << __func__ << " param: " << nativeName["name"] << ", " << needsUpdate << std::endl;
+
+	for (auto& item : buffer) {
+		if (item["native-name"] == nativeName["name"]) {
+			std::cout << "Setting == " << needsUpdate << std::endl;
+			item["update_required"] = needsUpdate;
+			item["git"]["url"] = nativeName["url"];
+			item["git"]["date"] = nativeName["date"];
+			item["git"]["commit"] = nativeName["commit"];
+			item["git"]["message"] = nativeName["message"];
+			found = true;
+		}
+	}
+
+	std::cout << "Found: " << found << std::endl;
+
+
+	return buffer;
+}
+
+nlohmann::json get_versions_json() {
+
+	nlohmann::json parsedData;
+
+	std::ifstream inputFile("update_list.json");
+
+	if (inputFile.is_open()) {
+		std::string fileContent((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
+
+		parsedData = nlohmann::json::accept(fileContent) ? nlohmann::json::parse(fileContent) : nlohmann::json();
+		inputFile.close();
+	}
+
+	return parsedData;
+}
+
+nlohmann::json get_versions_from_disk(std::vector<nlohmann::basic_json<>>& buffer) {
+	nlohmann::json parsedData = get_versions_json();
+
+	for (const auto& item : buffer) {
+
+		if (!item.contains("github") || !item["github"].is_object() ||
+			!item["github"].contains("owner") || !item["github"].contains("repo_name"))
+			continue;
+
+		if (!alreadyExists(parsedData, item["github"]["owner"])) {
+			parsedData.push_back({
+				{"owner", item["github"]["owner"]},
+				{"repo", item["github"]["repo_name"]},
+				{"name", item["native-name"]}
+			});
+		}
+		else {
+			console.log("Already exists, skipping...");
+
+			for (auto& data : parsedData) {
+				if (data.value("owner", "null") == item["github"]["owner"]) {
+					data["repo"] = item["github"]["repo_name"];
+					data["name"] = item["native-name"];
+				}
+			}
+		}
+	}
+
+	return parsedData;
+}
+
+std::vector<nlohmann::basic_json<>> get_update_list(
+	std::vector<nlohmann::basic_json<>>& buffer,
+	bool reset_version,
+	std::string reset_name
+) {
+
+	nlohmann::json parsedData = get_versions_from_disk(buffer);
+
+	std::cout << parsedData.dump(4) << std::endl;
+
+	if (parsedData.is_null()) {
+		return buffer;
+	}
+
+	auto cloud_versions = nlohmann::json();
+
+	try {
+		cloud_versions = nlohmann::json::parse(http::post("http://localhost:3000/check-updates", parsedData.dump(4).c_str()));
+	}
+	catch (const http_error ex) {
+		switch (ex.code()) {
+		case http_error::couldnt_connect:
+			console.err("No internet connection, can't check for updates on themes");
+		}
+	}
+	catch (nlohmann::detail::exception&) {}
+
+	console.log(std::format("Response data from API: {}", cloud_versions.dump(4)));
+
+	for (const auto& cloud : cloud_versions) {
+		for (auto& local : parsedData) {
+
+			if (local["repo"] != cloud["name"]) 
+				continue;
+
+			//std::cout << cloud.dump(4) << std::endl;
+
+			if (!local.contains("commit") || !local.contains("date") || !local.contains("url") || !local.contains("message")) {
+				console.log("Setting update hash as it was previously unset.");
+
+				local["commit"] = cloud["commit"];
+				buffer = add_update_status_to_client(buffer, local, false);
+				continue;
+			}
+			// When the skin is done updating we set the commit hash to the latest version
+			else if (reset_version) {
+				if (local["name"] == reset_name) {
+					local["commit"] = cloud["commit"];
+				}
+			}
+
+			local["url"] = cloud["url"];
+			local["date"] = cloud["date"];
+			local["message"] = cloud["message"];
+
+			if (local["commit"] == cloud["commit"]) {
+				console.log("Theme is up-to-date");
+				buffer = add_update_status_to_client(buffer, local, false);
+				local["up-to-date"] = true;
+
+			}
+			else {
+				console.log("Not up-to-date, getting latest update...");
+				buffer = add_update_status_to_client(buffer, local, true);
+				local["up-to-date"] = false;
+			}
+		}
+	}
+
+	std::ofstream outputFile("update_list.json");
+
+	if (outputFile.is_open()) {
+		outputFile << std::setw(4) << parsedData;
+		outputFile.close();
+	}
+
+	return buffer;
+}
+
+std::vector<nlohmann::basic_json<>>
+	use_local_update_cache(std::vector<nlohmann::basic_json<>>& buffer) {
+
+	std::cout << "using local update cache... " << std::endl;
+
+	const auto& local = get_versions_from_disk(buffer);
+
+	for (auto& item : buffer) {
+		for (auto& update_listing : local) {
+			if (update_listing["name"] == item["native-name"]) {
+				item["update_required"] = !update_listing.value("up-to-date", true);
+
+				item["git"]["url"]     = update_listing.value("url", "null");
+				item["git"]["date"]    = update_listing.value("date", "null");
+				item["git"]["commit"]  = update_listing.value("commit", "null");
+				item["git"]["message"] = update_listing.value("message", "null");
+			}
+		}
+	}
+
+	return buffer;
+}
+
+void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string newCommit)
 {
 	console.log(std::format("Calling {} with param -> {}", __func__, checkForUpdates));
 
-	std::thread([this, checkForUpdates]() {
-		const std::string steamPath = config.getSkinDir();
-		console.log(std::format("Searching for steam skins at -> [{}]", steamPath));
+	const std::string steamPath = config.getSkinDir();
 
-		this->resetCollected();
-		std::vector<nlohmann::basic_json<>> jsonBuffer;
+	this->resetCollected();
+	std::vector<nlohmann::basic_json<>> jsonBuffer;
 
-		for (const auto& entry : std::filesystem::directory_iterator(steamPath))
-		{
-			console.log(std::format("Folder -> [{}]", entry.path().filename().string()));
-
-			if (entry.is_directory())
-			{
-				console.log(std::format("calling with param -> {}", checkForUpdates));
-
-				if (!this->parseLocalSkin(entry, jsonBuffer, checkForUpdates))
-					continue;
-			}
+	for (const auto& entry : std::filesystem::directory_iterator(steamPath)) {
+		if (entry.is_directory()) {
+			if (!this->parseLocalSkin(entry, jsonBuffer, false))
+				continue;
 		}
-		
-		skinDataReady = false;
-		skinData = jsonBuffer;
-		skinDataReady = true;
+	}
 
-	}).detach();
+	switch (checkForUpdates) {
+		case true:
+			try {
+				jsonBuffer = get_update_list(jsonBuffer, setCommit, newCommit);
+			}
+			catch (const http_error ex) {
+				switch (ex.code()) {
+					case http_error::couldnt_connect: 
+						console.err("No internet connection, can't check for updates on themes");
+				}
+			}
+			break;
+		case false:
+			jsonBuffer = use_local_update_cache(jsonBuffer);
+			break;
+	}
+
+	skinData = jsonBuffer;
 }
 
 void millennium::changeSkin(nlohmann::basic_json<>& skin)
 {
 	std::string skinName = skin["native-name"].get<std::string>();
 
-	// the selected skin was clicked (i.e to deselect)
-	if (m_currentSkin._Equal(skinName)) {
-		skinName = "default";
-	}
+	std::cout << "Current Skin: " << m_currentSkin << std::endl;
+	std::cout << "Requested Skin: " << skinName << std::endl;
 
-	//whitelist the default skin
-	if (skinName == "default" || !this->isInvalidSkin(skinName))
-	{
-		console.log("updating selected skin.");
+	console.log(std::format("updating selected skin -> {}", skinName == m_currentSkin ? "default" : skinName));
 
-		Settings::Set("active-skin", skinName);
-		themeConfig::updateEvents::getInstance().triggerUpdate();
+	Settings::Set("active-skin", skinName == m_currentSkin ? "default" : skinName);
+	themeConfig::updateEvents::getInstance().triggerUpdate();
 
-		steam_js_context js_context;
-		js_context.reload();
+	steam_js_context js_context;
+	js_context.reload();
 
-		if (steam::get().params.has("-silent")) {
-			MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
-		}
-	}
-	else {
-		MsgBox("the selected skin was not found, therefor can't be loaded.", "Millennium", MB_ICONINFORMATION);
+	if (steam::get().params.has("-silent")) {
+		MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
 	}
 
 	parseSkinData(false);

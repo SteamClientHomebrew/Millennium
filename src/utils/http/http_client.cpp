@@ -1,6 +1,7 @@
 #include <stdafx.h>
 #include <utils/config/config.hpp>
 #include <boost/network/uri.hpp>
+#include <format>
 
 static constexpr const std::string_view user_agent = "millennium.patcher";
 

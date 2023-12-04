@@ -9,6 +9,9 @@
 #include <utils/config/config.hpp>
 #include <core/steam/cef_manager.hpp>
 
+#include <nlohmann/json.hpp>
+#include <filesystem>
+
 //macros for getting available [x, y]
 #define rx ImGui::GetContentRegionAvail().x
 #define ry ImGui::GetContentRegionAvail().y
@@ -119,7 +122,7 @@ public:
 	std::vector<image::image_t> v_rawImageList;
 
 	void getRawImages(std::vector<std::string>& images);
-	void parseSkinData(bool checkForUpdates);
+	void parseSkinData(bool checkForUpdates = false, bool setCommit = false, std::string newCommit = "");
 	nlohmann::basic_json<> bufferSkinData();
 	void changeSkin(nlohmann::basic_json<>& skin);
 	void concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
@@ -139,5 +142,5 @@ public:
 	}
 };
 
-static millennium* m_Client = new millennium;
+static millennium m_Client;
 

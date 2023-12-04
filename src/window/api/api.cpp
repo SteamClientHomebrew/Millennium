@@ -2,6 +2,7 @@
 
 #include <stdafx.h>
 #include <window/api/api.hpp>
+#include <format>
 
 std::vector<MillenniumAPI::resultsSchema> v_result_schema;
 
@@ -69,6 +70,10 @@ void MillenniumAPI::retrieve_featured(void)
 				}
 			}
 		}
+		catch (nlohmann::detail::exception&) {
+			console.err("Couldn't get featured community listings");
+		}
+
 	})->detach();
 }
 

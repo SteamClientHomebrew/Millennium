@@ -120,5 +120,6 @@ namespace ImGui {
         }
 
         window->DrawList->PathStroke(color, false, (float)thickness);
+        return true;
     }
 }

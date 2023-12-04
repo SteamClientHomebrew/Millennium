@@ -17,7 +17,8 @@
 #include "startup/welcome_modal.hpp"
 #include <core/ipc/ipc_main.hpp>
 
-//
+#include <regex>
+
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
 using websocketpp::lib::placeholders::_1;
@@ -26,7 +27,6 @@ using websocketpp::lib::bind;
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
-// pull out the type of messages sent by our config
 typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
 
 using boost::asio::ip::tcp;
@@ -199,6 +199,9 @@ public:
         if (m_socket_resp["method"] == "Console.messageAdded") {
 
             std::string input = m_socket_resp["params"]["message"]["text"];
+
+            //console.log(std::format("[STEAM] {}", input));
+
             std::string prefix = "millennium.user.message: ";
 
             if (input.find(prefix) == 0) {
@@ -207,7 +210,7 @@ public:
                     json j = json::parse(input);
                     IPC::handleMessage(j, m_socket_resp, steam_client, hdl);
                 }
-                catch (const std::exception& e) { }
+                catch (const std::exception&) { }
             }
         }
 
@@ -257,11 +260,11 @@ public:
 
         if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0 ||
             skin_json_config.contains("Steam-WebKit") && skin_json_config["Steam-WebKit"]) {
-            console.log(std::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
+            //console.log(std::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
             try {
                 steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
             }
-            catch (const websocketpp::exception& ex) {
+            catch (const websocketpp::exception&) {
                 console.err("Couldn't send 'Hook' socket message to Steam");
             }
         }
@@ -435,68 +438,68 @@ private:
         steam_client->send(hdl, fulfillRequest.dump(), websocketpp::frame::opcode::text);
     }
 
-    inline const void check_for_updates()
-    {
-        if (!m_checkedForUpdates) {
-            m_checkedForUpdates = true;
-        }
-        else return;
+    //inline const void check_for_updates()
+    //{
+    //    if (!m_checkedForUpdates) {
+    //        m_checkedForUpdates = true;
+    //    }
+    //    else return;
 
-        if (!Settings::Get<bool>("allow-auto-updates")) {
-            return;
-        }
+    //    if (!Settings::Get<bool>("allow-auto-updates")) {
+    //        return;
+    //    }
 
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+    //    std::this_thread::sleep_for(std::chrono::seconds(10));
 
-        const auto data = m_Client->bufferSkinData();
+    //    const auto data = m_Client->bufferSkinData();
 
-        steam_js_context SharedJSContext;
+    //    steam_js_context SharedJSContext;
 
-        bool forceStartupCheck = false;
+    //    bool forceStartupCheck = false;
 
-        for (const auto item : data)
-        {
-            if (item["update_required"])
-            {
-                forceStartupCheck = true;
+    //    for (const auto item : data)
+    //    {
+    //        if (item["update_required"])
+    //        {
+    //            forceStartupCheck = true;
 
-                console.log("Queuing notification popup for skin: " + item["native-name"].get<std::string>());
+    //            console.log("Queuing notification popup for skin: " + item["native-name"].get<std::string>());
 
-                bool allowSound = Settings::Get<bool>("allow-auto-updates-sound");
+    //            bool allowSound = Settings::Get<bool>("allow-auto-updates-sound");
 
-                std::string notificationPopup =
-                R"(
-                    SteamClient.ClientNotifications.DisplayClientNotification(
-                        2,
-                        JSON.stringify({
-                            title: 'Library Auto-Updater',
-                            body: 'an update is available for )" + item["native-name"].get<std::string>() + R"(! Check your library for info.',
-                            state: 'invisible',
-                            steamid: '76561199145821858'
-                        }),
-                        e => console.log(e)
-                    )
-                )";
+    //            std::string notificationPopup =
+    //            R"(
+    //                SteamClient.ClientNotifications.DisplayClientNotification(
+    //                    2,
+    //                    JSON.stringify({
+    //                        title: 'Library Auto-Updater',
+    //                        body: 'an update is available for )" + item["native-name"].get<std::string>() + R"(! Check your library for info.',
+    //                        state: 'invisible',
+    //                        steamid: '76561199145821858'
+    //                    }),
+    //                    e => console.log(e)
+    //                )
+    //            )";
 
-                if (allowSound)
-                {
-                    notificationPopup += R"(
-                        var audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        var audioElement = new Audio("https://steamloopback.host/sounds/desktop_toast_default.wav");
+    //            if (allowSound)
+    //            {
+    //                notificationPopup += R"(
+    //                    var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    //                    var audioElement = new Audio("https://steamloopback.host/sounds/desktop_toast_default.wav");
 
-                        audioContext.createMediaElementSource(audioElement).connect(audioContext.destination);
-                        audioElement.play();
-                    )";
-                }
+    //                    audioContext.createMediaElementSource(audioElement).connect(audioContext.destination);
+    //                    audioElement.play();
+    //                )";
+    //            }
 
-                console.log(SharedJSContext.exec_command(notificationPopup));
-            }
-        }
+    //            console.log(SharedJSContext.exec_command(notificationPopup));
+    //        }
+    //    }
 
-        if (forceStartupCheck) {
-            m_Client->parseSkinData(true);
-        }
-    }
+    //    if (forceStartupCheck) {
+    //        m_Client->parseSkinData(true);
+    //    }
+    //}
 
     inline const bool settings_patches(std::string cefctx_title) {
 
@@ -523,7 +526,7 @@ private:
             {"Steam", [&]() { 
                 m_steamMainSessionId = m_socket_resp["sessionId"];
 
-                std::thread([&]() { check_for_updates(); }).detach();
+                //std::thread([&]() { check_for_updates(); }).detach();
 
                 if (!Settings::Get<bool>("enableUrlBar")) {
                     std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".steamdesktop_URLBar_UkR3s { display: none !important; }" })); })())";
@@ -1094,7 +1097,7 @@ uint16_t steam_client::get_ipc_port() {
 steam_client::steam_client()
 {   
     threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
-        console.succ(std::format("starting: client_thread [{}]", __FUNCSIG__));
+        //console.succ(std::format("starting: client_thread [{}]", __FUNCSIG__));
 
         ws_Client c;
         
@@ -1125,11 +1128,25 @@ steam_client::steam_client()
         catch (websocketpp::exception const& e) {
             console.err(std::format("Error occurred on client websocket thread: {}", e.what()));
         }
+        catch (const boost::system::system_error& ex) {
+            if (ex.code() == boost::asio::error::misc_errors::eof) {
+				console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
+			}
+		}
+        catch (const nlohmann::detail::exception& ex) {
+            console.err(std::format("Received malformed JSON response from websocket: {}", ex.what()));
+        }
+        catch (const std::exception& ex) {
+			console.err(std::format("Error occurred on client websocket thread: {}", ex.what()));
+		}
+        catch (...) {
+			console.err(std::format("Error occurred on client websocket thread: unknown"));
+		}
         return false;
     }, 0, 0, 0));
 
     threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {  
-        console.succ(std::format("starting: remote_thread [{}]", __FUNCSIG__));
+        //console.succ(std::format("starting: remote_thread [{}]", __FUNCSIG__));
 
         try {
             remote::get_instance().handle_interface();
@@ -1179,10 +1196,10 @@ unsigned long __stdcall Initialize(void*)
 
     //skin change event callback functions
     themeConfig::updateEvents::getInstance().add_listener([]() {
-        console.imp("skin change event fired, updating skin patch config");
-        skin_json_config = config.getThemeData();
-        client::get_instance().update_fetch_hook_status();
-        config.installFonts();
+        //console.imp("skin change event fired, updating skin patch config");
+        //skin_json_config = config.getThemeData();
+        //client::get_instance().update_fetch_hook_status();
+        //config.installFonts();
     });
 
     //config file watcher callback function 
