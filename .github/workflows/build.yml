@@ -30,7 +30,7 @@ jobs:
 
       - name: Install Vcpkg dependencies
         run: |
-          ${{ github.workspace }}/vcpkg/vcpkg.exe install nlohmann-json:x64-windows
+          ${{ github.workspace }}/vcpkg/vcpkg.exe install nlohmann-json:x86-windows
 
       - name: Build Installer
         run: |
