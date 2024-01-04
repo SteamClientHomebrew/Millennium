@@ -20,6 +20,8 @@
 #include <filesystem>
 #include <set>
 
+#include <core/steam/cef_manager.hpp>
+
 struct render
 {
 private:
@@ -482,20 +484,25 @@ public:
 			}
 			else {
 
-				std::sort(m_Client.skinData.begin(), m_Client.skinData.end(), ([&](const nlohmann::json& a, const nlohmann::json& b) {
-					bool downloadA = a.value("update_required", false);
-					bool downloadB = b.value("update_required", false);
+				try {
+					std::sort(m_Client.skinData.begin(), m_Client.skinData.end(), ([&](const nlohmann::json& a, const nlohmann::json& b) {
+						bool downloadA = a.value("update_required", false);
+						bool downloadB = b.value("update_required", false);
 
-					if (downloadA && !downloadB) {
-						return true;
-					}
-					else if (!downloadA && downloadB) {
-						return false;
-					}
-					else {
-						return a < b;
-					}
-				}));
+						if (downloadA && !downloadB) {
+							return true;
+						}
+						else if (!downloadA && downloadB) {
+							return false;
+						}
+						else {
+							return a < b;
+						}
+						}));
+				}
+				catch (std::exception&) {
+
+				}
 
 				for (size_t i = 0; i < m_Client.skinData.size(); ++i)
 				{
@@ -1713,7 +1720,19 @@ public:
 				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
 				ImGui::SameLine();
 				ui::shift::x(-4);
-				listButton(" Community ", 1);
+
+				static ImU32 col = ImGui::GetColorU32(ImGuiCol_CheckMark);
+
+				if (ImGui::Button("Community")) {
+					steam_js_context SharedJsContext;
+
+					std::string url = "https://bettersteam.web.app/themes";
+					std::string loadUrl = std::format("SteamUIStore.Navigate('/browser', MainWindowBrowserManager.LoadURL('{}'));", url);
+
+					SharedJsContext.exec_command(loadUrl);
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
 				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
 				ImGui::SameLine();
 				ui::shift::x(-4);
@@ -2091,6 +2110,8 @@ void handleEdit()
 					else {
 						console.log("Theme doesn't have GlobalColors");
 					}
+
+					m_Client.parseSkinData(false);
 				}
 				else {
 					console.log("json buffer or editing object doesn't have a 'Configuration' key");
@@ -2110,17 +2131,18 @@ void init_main_window()
 {
 	g_windowOpen = true;
 
-	m_Client.parseSkinData(true);
-
 	//get_update_list();
-	api->retrieve_featured();
-
 	// GET information on initial load
 	const auto initCallback = ([=](void) -> void {
 		//m_Client.parseSkinData(true);
 
 		//get_update_list();
 		//api->retrieve_featured();
+		api->retrieve_featured();
+
+		std::thread([&]() {
+			m_Client.parseSkinData(true);
+		}).detach();
 	});
 
 	// window callback 
@@ -2136,19 +2158,19 @@ void init_main_window()
 		RendererProc.renderContentPanel();
 	});
 
-	std::thread([&]() {
-		themeConfig::watchPath(config.getSkinDir(), []() {
-			try {
-				m_Client.parseSkinData(false, false, "");
-			}
-			catch (std::exception& ex) {
-				console.log(ex.what());
-			}
-		});
-	}).detach();
+	//std::thread([&]() {
+	//	themeConfig::watchPath(config.getSkinDir(), []() {
+	//		try {
+	//			m_Client.parseSkinData(false, false, "");
+	//		}
+	//		catch (std::exception& ex) {
+	//			console.log(ex.what());
+	//		}
+	//	});
+	//}).detach();
 
 	Window::setTitle((char*)"Millennium.Steam.Client");
-	Window::setDimensions(ImVec2({ 750, 500 }));
+	Window::setDimensions(ImVec2({ 450, 500 }));
 
 	Application::Create(wndProcCallback, initCallback);
 }

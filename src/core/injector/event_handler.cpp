@@ -1196,10 +1196,10 @@ unsigned long __stdcall Initialize(void*)
 
     //skin change event callback functions
     themeConfig::updateEvents::getInstance().add_listener([]() {
-        //console.imp("skin change event fired, updating skin patch config");
-        //skin_json_config = config.getThemeData();
-        //client::get_instance().update_fetch_hook_status();
-        //config.installFonts();
+        console.imp("skin change event fired, updating skin patch config");
+        skin_json_config = config.getThemeData();
+        client::get_instance().update_fetch_hook_status();
+        config.installFonts();
     });
 
     //config file watcher callback function 
@@ -1208,7 +1208,7 @@ unsigned long __stdcall Initialize(void*)
         skin_json_config = config.getThemeData();
         client::get_instance().update_fetch_hook_status();
         config.installFonts();
-        //m_Client.parseSkinData();
+        m_Client.parseSkinData();
     });
 
     //create steamclient object

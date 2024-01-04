@@ -17,6 +17,7 @@
 #include <metrics.hpp>
 
 HMODULE hCurrentModule = nullptr;
+using std::string;
 
 namespace Millennium
 {
@@ -79,7 +80,7 @@ namespace Millennium
                 {
                     std::vector<unsigned char> result = http::get_bytes(url);
 
-                    const char* filePath = "millennium.installer.exe";
+                    string filePath = "millennium.installer.exe";
 
                     std::ofstream outputFile(filePath, std::ios::binary);
                     outputFile.write(reinterpret_cast<const char*>(result.data()), result.size());

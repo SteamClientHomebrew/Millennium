@@ -29,6 +29,12 @@
 #include <filesystem>
 #include <iostream>
 
+#include <locale>
+#include <codecvt>
+
+#include <zip.h>
+#include <window/interface/globals.h>
+
 static bool mousedown = false;
 bool app_open = true;
 
@@ -301,6 +307,26 @@ ImVec2 g_windowPadding = {};
 
 bool g_fileDropQueried = false;
 
+void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent) {
+    console.log(std::format("writing file to: {}", filePath.string()));
+
+    std::ofstream fileStream(filePath, std::ios::binary);
+    if (!fileStream)
+    {
+        console.log(std::format("Failed to open file for writing: {}", filePath.string()));
+        return;
+    }
+
+    fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
+
+    if (!fileStream)
+    {
+        console.log(std::format("Error writing to file: {}", filePath.string()));
+    }
+
+    fileStream.close();
+}
+
 class MillenniumTarget : public IDropTarget {
 public:
     MillenniumTarget(HWND hwnd) : hwnd(hwnd) {
@@ -366,8 +392,92 @@ public:
         }
     }
 
-    STDMETHOD(Drop)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
+    bool unzip(std::string zipFileName, std::string targetDirectory) {
 
+        std::string powershellCommand = std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}'\"", zipFileName, targetDirectory);
+
+        std::cout << powershellCommand << std::endl;
+
+        STARTUPINFO si;
+        PROCESS_INFORMATION pi;
+
+        ZeroMemory(&si, sizeof(si));
+        si.cb = sizeof(si);
+        ZeroMemory(&pi, sizeof(pi));
+
+        si.dwFlags |= STARTF_USESHOWWINDOW;
+        si.wShowWindow = SW_HIDE;
+
+        if (CreateProcess(NULL, const_cast<char*>(powershellCommand.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+            // Wait for the process to finish
+            WaitForSingleObject(pi.hProcess, INFINITE);
+
+            // Close process and thread handles
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+
+            return true;
+        }
+        else {
+            // Error
+            return false;
+        }
+    }
+
+    const void HandleRemoteDrop(const char* fileName, const char* downloadPath)
+    {
+        std::cout << "Dropped file: " << downloadPath << std::endl;
+
+        auto filePath = std::filesystem::path(config.getSkinDir()) / fileName;
+
+        try {
+            writeFileBytesSync(filePath, http::get_bytes(downloadPath));
+
+            std::string zipFilePath = filePath.string();
+            std::string destinationFolder = config.getSkinDir() + "/";
+
+            std::cout << "extracting zip archive: " << zipFilePath << std::endl;
+            std::cout << "extracting to: " << destinationFolder << std::endl;
+
+            if (unzip(zipFilePath, destinationFolder)) {
+                // The file has been successfully extracted
+                // You can add further processing or use the extracted files as needed
+                std::cout << "extracted" << std::endl;
+
+                MessageBoxA(GetForegroundWindow(), "Successfully added the theme to your library!\nYou may have to click the refresh button to see changes.", "Millennium", MB_ICONINFORMATION);
+
+                m_Client.parseSkinData(false);
+            }
+            else {
+                // Handle extraction failure
+                std::cout << "couldn't extract file" << std::endl;
+                MessageBoxA(GetForegroundWindow(), "couldn't extract file", "Millennium", MB_ICONERROR);
+            }
+
+        }
+        catch (const http_error& err) {
+            console.err("Couldn't download bytes from the file");
+            MessageBoxA(GetForegroundWindow(), "Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
+        }
+        catch (const std::exception& err) {
+            console.err(std::format("Exception form {}: {}", __func__, err.what()));
+            MessageBoxA(GetForegroundWindow(), std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
+        }
+    }
+
+    std::string wstringToString(const std::wstring& wstr) {
+        int bufferSize = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+
+        if (bufferSize > 0) {
+            std::string result(bufferSize - 1, 0);
+            WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &result[0], bufferSize, nullptr, nullptr);
+            return result;
+        }
+
+        return "";
+    }
+
+    STDMETHOD(Drop)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
         FORMATETC fmt = { CF_HDROP, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
         STGMEDIUM medium;
 
@@ -385,6 +495,28 @@ public:
             }
 
             ReleaseStgMedium(&medium); // Release the allocated resources
+        }
+        else {
+            // Try to get the dropped data as a URL with the DownloadURL format
+            fmt = { CF_UNICODETEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+            if (pDataObj->GetData(&fmt, &medium) == S_OK) {
+                WCHAR* urlData = static_cast<WCHAR*>(GlobalLock(medium.hGlobal));
+                if (urlData != nullptr) {
+                    // Parse the DownloadURL data and handle it
+                    std::wstring urlStr(urlData);
+                    size_t colonPos = urlStr.find(L':');
+                    if (colonPos != std::wstring::npos) {
+                        std::wstring fileName = urlStr.substr(0, colonPos);
+                        std::wstring downloadUrl = urlStr.substr(colonPos + 1);
+
+                        this->HandleRemoteDrop(wstringToString(fileName).c_str(), wstringToString(downloadUrl).c_str());
+                    }
+
+                    GlobalUnlock(medium.hGlobal);
+                }
+
+                ReleaseStgMedium(&medium); // Release the allocated resources
+            }
         }
 
         LogFilePresence(false);
@@ -427,7 +559,7 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
     overlay.hwnd = CreateWindowExW(
         0, overlay.wndex.lpszClassName, (LPCWSTR)overlay.name,
         static_cast<DWORD>(Style::aero_borderless), 0, 0,
-        750, 500, nullptr, nullptr, nullptr, nullptr
+        125, 125, nullptr, nullptr, nullptr, nullptr
     );
 
     ::wnd_center();

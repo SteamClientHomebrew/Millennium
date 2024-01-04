@@ -173,17 +173,12 @@ void millennium::getRawImages(std::vector<std::string>& images)
 	v_rawImageList.clear();
 	v_rawImageList.resize((int)images.size(), { nullptr, 0, 0 });
 
-	static bool got = false;
-
-	if (got)
-		return;
 	// use threading to load the images on their own thread synchronously
 	for (int i = 0; i < (int)images.size(); i++) {
 		std::thread([=]() { 
 			v_rawImageList[i] = image::make_shared_image(images[i].c_str(), image::quality::high); 
 		}).detach();
 	}
-	got = true;
 }
 
 nlohmann::basic_json<> millennium::bufferSkinData()
@@ -305,13 +300,12 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 	auto cloud_versions = nlohmann::json();
 
 	try {
-		cloud_versions = nlohmann::json::parse(http::post("http://localhost:3000/check-updates", parsedData.dump(4).c_str()));
+		std::cout << "making request to -> " << std::format("{}/check-updates", api->endpointV2) << std::endl;
+
+		cloud_versions = nlohmann::json::parse(http::post(std::format("{}/check-updates", api->endpointV2), parsedData.dump(4).c_str()));
 	}
 	catch (const http_error ex) {
-		switch (ex.code()) {
-		case http_error::couldnt_connect:
-			console.err("No internet connection, can't check for updates on themes");
-		}
+		console.err("No internet connection, can't check for updates on themes");
 	}
 	catch (nlohmann::detail::exception&) {}
 

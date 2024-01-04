@@ -173,7 +173,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ws2_32.lib;Pdh.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;winhttp.lib;Pdh.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AddModuleNamesToAssembly>%(AddModuleNamesToAssembly)</AddModuleNamesToAssembly>
     </Link>
   </ItemDefinitionGroup>
@@ -266,6 +266,7 @@
     <ClInclude Include="core\steam\colors\accent_colors.hpp" />
     <ClInclude Include="metrics.hpp" />
     <ClInclude Include="utils\base64.hpp" />
+    <ClInclude Include="utils\file\zip.hpp" />
     <ClInclude Include="utils\thread\thread_handler.hpp" />
     <ClInclude Include="window\api\api.hpp" />
     <ClInclude Include="window\api\installer.hpp" />
@@ -297,6 +298,7 @@
     <ClCompile Include="core\ipc\ipc_main.cpp" />
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="metrics.cpp" />
+    <ClCompile Include="utils\file\zip.cpp" />
     <ClCompile Include="utils\thread\thread_handler.cpp" />
     <ClCompile Include="window\api\api.cpp" />
     <ClCompile Include="window\api\installer.cpp" />

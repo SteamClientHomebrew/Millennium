@@ -10,7 +10,7 @@ public:
                 if (document.querySelector('.ModalOverlayContent.active') != null)
                     return
 
-                window.opener.settingsStore.m_ClientSettings.start_page = "library"
+                MainWindowBrowserManager.m_browser.SetVisible(false)
 
                 const modalOverlayContent = `
                 <div class="ModalOverlayContent active">

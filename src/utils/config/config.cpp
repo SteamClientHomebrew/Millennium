@@ -84,6 +84,8 @@ namespace Settings
     }
 }
 
+
+
 inline const nlohmann::basic_json<> themeConfig::defaultPatches()
 {
     nlohmann::basic_json<> patches = {
@@ -156,7 +158,6 @@ private:
 
 void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) {
 
-    return;
 
     // notification filters, name, folder created, file attributes changed, file size change
     DWORD notifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE;
@@ -415,9 +416,9 @@ const void themeConfig::setThemeData(nlohmann::json& object) noexcept
 
 const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 {
-    const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
+    const std::string ACTIVE_ITEM = Settings::Get<std::string>("active-skin");
 
-    std::basic_ifstream<char, std::char_traits<char>> localTheme(std::format("{}/{}/skin.json", m_themesPath, m_activeSkin));
+    std::basic_ifstream<char, std::char_traits<char>> localTheme(std::format("{}/{}/skin.json", m_themesPath, ACTIVE_ITEM));
     //std::basic_ifstream<char, std::char_traits<char>> cloudTheme(std::format("{}/{}", m_themesPath, m_activeSkin));
 
     nlohmann::basic_json<> jsonBuffer;
@@ -515,7 +516,7 @@ void themeConfig::updateEvents::add_listener(const event_listener& listener) {
 
 void themeConfig::updateEvents::triggerUpdate() {
 
-    //console.log(std::format("triggering skin event change, executing {} listener", listeners.size()));
+    console.log(std::format("triggering skin event change, executing {} listener", listeners.size()));
 
     for (const auto& listener : listeners) {
         listener();

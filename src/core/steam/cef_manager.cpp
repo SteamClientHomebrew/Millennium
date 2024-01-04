@@ -455,7 +455,7 @@ std::string steam_js_context::exec_command(std::string javascript)
 
         boost::beast::multi_buffer buffer; socket.read(buffer);
         promise.set_value(nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))["result"].dump());
-    });
+        });
 
     return promise.get_future().get();
 }

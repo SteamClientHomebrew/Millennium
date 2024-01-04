@@ -76,6 +76,7 @@
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CLRSupport>false</CLRSupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -113,7 +114,7 @@
     <LibraryPath>$(SolutionDir)shared\dx9_sdk\Lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
-    <TargetName>millennium</TargetName>
+    <TargetName>Millennium-Installer</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -121,7 +122,7 @@
     <LibraryPath>$(SolutionDir)shared\dx9_sdk\Lib\x86;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)dist\installer-prod.$(Configuration)-$(PlatformTarget)$(SDKIdentifier)</OutDir>
     <IntDir>$(SolutionDir)intermediate</IntDir>
-    <TargetName>millennium</TargetName>
+    <TargetName>Millennium-Installer</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -149,7 +150,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
       <UACExecutionLevel>AsInvoker</UACExecutionLevel>
@@ -167,6 +168,10 @@
       <SDLCheck>true</SDLCheck>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <WholeProgramOptimization>false</WholeProgramOptimization>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <PreprocessKeepComments>true</PreprocessKeepComments>
+      <StringPooling>true</StringPooling>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
