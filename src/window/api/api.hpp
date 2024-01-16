@@ -34,7 +34,7 @@ public:
 	bool isDown = false;
 
 	std::string_view endpoint = "https://millennium.web.app/api/v1";
-	std::string_view endpointV2 = "https://millennium.web.app/api/v2";
+	std::string_view endpoint_V2 = "https://us-central1-bettersteam-87b59.cloudfunctions.net/api_v2";
 
 	//create a get request to populate the featured array
 	void retrieve_featured(void);

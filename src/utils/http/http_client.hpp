@@ -36,7 +36,7 @@ public:
 	static const nlohmann::json getJson(std::string remote_endpoint);
 
     static const std::vector<unsigned char> get_bytes(const char* url);
-    static const std::string post(std::string remote_endpoint, const char* data);
+    static const std::string post(std::string remote_endpoint, std::string data);
 
     static const std::string replicateGet(std::string remote_endpoint, std::string userAgent, nlohmann::json& headers);
 };

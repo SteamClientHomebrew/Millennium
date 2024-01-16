@@ -19,40 +19,22 @@ extern ImVec2 g_windowPadding;
 extern bool g_initReady;
 
 extern bool g_fileDropQueried;
+extern bool g_processingFileDrop;
+extern bool g_openSuccessPopup;
+extern std::string g_fileDropStatus;
 
 struct icons
 {
-    PDIRECT3DTEXTURE9 
-
-    icon, 
-    store, 
-    library, 
-    settings, 
-    trash_icon, 
-    skin_icon,
-    reload_icon, 
-    icon_no_results, 
-    icon_remote_skin, 
-    more_icon,
-    icon_saved, 
-    download, 
-    check_mark_checked, 
-    check_mark_unchecked, 
-    close, 
-    minimize, 
-    maximize, 
-    exit,
-    github, 
-    support,
-    greyed_out,
-    foldericon,
-    editIcon,
-    deleteIcon,
-    homeIcon,
-    xbtn,
-    planetLogo20,
-    KofiLogo,
-    planet;
+    PDIRECT3DTEXTURE9 trash_icon;
+    PDIRECT3DTEXTURE9 skin_icon;
+    PDIRECT3DTEXTURE9 reload_icon;
+    PDIRECT3DTEXTURE9 icon_no_results;
+    PDIRECT3DTEXTURE9 close;
+    PDIRECT3DTEXTURE9 foldericon;
+    PDIRECT3DTEXTURE9 editIcon;
+    PDIRECT3DTEXTURE9 deleteIcon;
+    PDIRECT3DTEXTURE9 xbtn;
+    PDIRECT3DTEXTURE9 planet;
 };
 
 class Window

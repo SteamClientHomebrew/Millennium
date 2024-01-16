@@ -17,10 +17,9 @@ ULONGLONG Metrics::SubtractTimes(const FILETIME one, const FILETIME two)
 double Metrics::getCpuUsage()
 {
     auto cpuUsage = 0.0;
-
     FILETIME sysIdle, sysKernel, sysUser;
 
-    if (GetSystemTimes(&sysIdle, &sysKernel, &sysUser) == 0) // GetSystemTimes func FAILED return value is zero;
+    if (GetSystemTimes(&sysIdle, &sysKernel, &sysUser) == 0)
         return 0;
 
     if (prevSysIdle.dwLowDateTime != 0 && prevSysIdle.dwHighDateTime != 0)
@@ -37,9 +36,9 @@ double Metrics::getCpuUsage()
             cpuUsage = (double)(((kernelTotal + sysUserDiff) * 100.0) / sysTotal);
     }
 
-    prevSysIdle = sysIdle;
+    prevSysIdle   = sysIdle;
     prevSysKernel = sysKernel;
-    prevSysUser = sysUser;
+    prevSysUser   = sysUser;
 
     return cpuUsage;
 }

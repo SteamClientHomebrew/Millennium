@@ -186,6 +186,8 @@ public:
         if (m_socket_resp["method"] == "Target.targetCreated" && m_socket_resp.contains("params")) {
             this->target_created();
             client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
+
+            //console.log(m_socket_resp.dump(4));
         }
         /// <summary>
         /// socket response called when a target cef instance changes in any way possible
@@ -194,6 +196,8 @@ public:
             //trigger event used for remote handler
             this->target_info_changed();
             client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
+
+            //console.log(m_socket_resp.dump(4));
         }
 
         if (m_socket_resp["method"] == "Console.messageAdded") {
@@ -438,69 +442,6 @@ private:
         steam_client->send(hdl, fulfillRequest.dump(), websocketpp::frame::opcode::text);
     }
 
-    //inline const void check_for_updates()
-    //{
-    //    if (!m_checkedForUpdates) {
-    //        m_checkedForUpdates = true;
-    //    }
-    //    else return;
-
-    //    if (!Settings::Get<bool>("allow-auto-updates")) {
-    //        return;
-    //    }
-
-    //    std::this_thread::sleep_for(std::chrono::seconds(10));
-
-    //    const auto data = m_Client->bufferSkinData();
-
-    //    steam_js_context SharedJSContext;
-
-    //    bool forceStartupCheck = false;
-
-    //    for (const auto item : data)
-    //    {
-    //        if (item["update_required"])
-    //        {
-    //            forceStartupCheck = true;
-
-    //            console.log("Queuing notification popup for skin: " + item["native-name"].get<std::string>());
-
-    //            bool allowSound = Settings::Get<bool>("allow-auto-updates-sound");
-
-    //            std::string notificationPopup =
-    //            R"(
-    //                SteamClient.ClientNotifications.DisplayClientNotification(
-    //                    2,
-    //                    JSON.stringify({
-    //                        title: 'Library Auto-Updater',
-    //                        body: 'an update is available for )" + item["native-name"].get<std::string>() + R"(! Check your library for info.',
-    //                        state: 'invisible',
-    //                        steamid: '76561199145821858'
-    //                    }),
-    //                    e => console.log(e)
-    //                )
-    //            )";
-
-    //            if (allowSound)
-    //            {
-    //                notificationPopup += R"(
-    //                    var audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    //                    var audioElement = new Audio("https://steamloopback.host/sounds/desktop_toast_default.wav");
-
-    //                    audioContext.createMediaElementSource(audioElement).connect(audioContext.destination);
-    //                    audioElement.play();
-    //                )";
-    //            }
-
-    //            console.log(SharedJSContext.exec_command(notificationPopup));
-    //        }
-    //    }
-
-    //    if (forceStartupCheck) {
-    //        m_Client->parseSkinData(true);
-    //    }
-    //}
-
     inline const bool settings_patches(std::string cefctx_title) {
 
         std::unordered_map<std::string, std::function<void()>> caseActions = {
@@ -699,7 +640,7 @@ private:
         {
             bool contains_http = patch["MatchRegexString"].get<std::string>().find("http") != std::string::npos;
             //used regex match instead of regex find or other sorts, make sure you validate your regex 
-            bool regex_match = std::regex_match(cefctx_title, std::regex(patch["MatchRegexString"].get<std::string>()));
+            bool regex_match = std::regex_search(cefctx_title, std::regex(patch["MatchRegexString"].get<std::string>()));
 
             if (contains_http or not regex_match)
                 continue;
@@ -780,6 +721,8 @@ private:
 
         try
         {
+            //std::cout << m_socket_resp.dump(4) << std::endl;
+
             m_header = m_socket_resp["result"]["result"]["value"]["title"].get<std::string>();
             this->patch(m_header);
         }
@@ -832,14 +775,12 @@ private:
             //    {"querySelector", attributes}
             //}).dump(4)));
 
-
             if (attributes.find("ModalDialogPopup") != std::string::npos) {
                 console.log("injecting millennium into settings modal");
 
                 //steam_interface.render_settings_modal(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
                 steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
             }
-
 
             if (!skin_json_config.contains("Patches")) {
                 return;
@@ -914,7 +855,7 @@ private:
         //get the url of the page we are active on 
         std::string steam_page_url_header = instance["url"].get<std::string>();
 
-        if (std::regex_match(steam_page_url_header, std::regex(patch.matchRegexString)))
+        if (std::regex_search(steam_page_url_header, std::regex(patch.matchRegexString)))
         {
             if (steam_page_url_header.find(uri.steam_resources.host()) != std::string::npos)
                 return false;
@@ -1165,20 +1106,6 @@ steam_client::steam_client()
         }
         return false;
     }, 0, 0, 0));
-
-    //threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
-    //    try {
-    //        boost::asio::io_context io_context;
-    //        millennium_ipc_listener listener(io_context);
-
-    //        running_port = listener.get_ipc_port();
-    //        io_context.run();
-    //    }
-    //    catch (std::exception& e) {
-    //        console.err("ipc exception: " + std::string(e.what()));
-    //    }
-    //    return false;
-    //}, 0, 0, 0));
 }
 
 /// <summary>

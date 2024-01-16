@@ -114,9 +114,6 @@
     <ClInclude Include="auto-updater.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="utils\file\zip.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -192,9 +189,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="auto-updater.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="utils\file\zip.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

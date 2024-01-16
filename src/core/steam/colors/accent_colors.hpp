@@ -39,21 +39,21 @@ std::string getColorStr() {
 
     return std::format(
         ":root {{ "
-        "--SystemAccentColor: {}; " 
-        "--SystemAccentColorLight1: {}; "
-        "--SystemAccentColorLight2: {}; "
-        "--SystemAccentColorLight3: {}; "
-        "--SystemAccentColorDark1: {}; "
-        "--SystemAccentColorDark2: {}; "
-        "--SystemAccentColorDark3: {}; "
+            "--SystemAccentColor: {}; " 
+            "--SystemAccentColorLight1: {}; "
+            "--SystemAccentColorLight2: {}; "
+            "--SystemAccentColorLight3: {}; "
+            "--SystemAccentColorDark1: {}; "
+            "--SystemAccentColorDark2: {}; "
+            "--SystemAccentColorDark3: {}; "
 
-        "--SystemAccentColor-RGB: {}; "
-        "--SystemAccentColorLight1-RGB: {}; "
-        "--SystemAccentColorLight2-RGB: {}; "
-        "--SystemAccentColorLight3-RGB: {}; "
-        "--SystemAccentColorDark1-RGB: {}; "
-        "--SystemAccentColorDark2-RGB: {}; "
-        "--SystemAccentColorDark3-RGB: {}; "
+            "--SystemAccentColor-RGB: {}; "
+            "--SystemAccentColorLight1-RGB: {}; "
+            "--SystemAccentColorLight2-RGB: {}; "
+            "--SystemAccentColorLight3-RGB: {}; "
+            "--SystemAccentColorDark1-RGB: {}; "
+            "--SystemAccentColorDark2-RGB: {}; "
+            "--SystemAccentColorDark3-RGB: {}; "
         "}}",
         hex(UIColorType::Accent),
         hex(UIColorType::AccentLight1),

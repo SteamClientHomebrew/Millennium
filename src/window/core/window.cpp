@@ -192,47 +192,47 @@ void initFontAtlas(ImGuiIO* IO)
     IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 13);
     IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 20);
 
-    IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 14);
-    IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 30);
-    IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 16);
+    //IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 14);
+    //IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 30);
+    //IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 16);
 }
 
 void initTextures()
 {
-    createRawImage(&icons_struct.icon, Memory::logo, sizeof Memory::logo);
+    //createRawImage(&icons_struct.icon, Memory::logo, sizeof Memory::logo);
 
     createRawImage(&icons_struct.trash_icon, Memory::trash_icon, sizeof Memory::trash_icon);
     createRawImage(&icons_struct.skin_icon, Memory::themeIcon, sizeof Memory::themeIcon);
-    createRawImage(&icons_struct.check_mark_checked, Memory::icon_check_mark_full, sizeof Memory::icon_check_mark_full);
-    createRawImage(&icons_struct.check_mark_unchecked, Memory::icon_check_mark_empty, sizeof Memory::icon_check_mark_empty);
+    //createRawImage(&icons_struct.check_mark_checked, Memory::icon_check_mark_full, sizeof Memory::icon_check_mark_full);
+    //createRawImage(&icons_struct.check_mark_unchecked, Memory::icon_check_mark_empty, sizeof Memory::icon_check_mark_empty);
     createRawImage(&icons_struct.reload_icon, Memory::icon_reload, sizeof Memory::icon_reload);
     createRawImage(&icons_struct.icon_no_results, Memory::icon_no_results, sizeof Memory::icon_no_results);
-    createRawImage(&icons_struct.icon_remote_skin, Memory::online_skin_icon, sizeof Memory::online_skin_icon);
-    createRawImage(&icons_struct.more_icon, Memory::more_icon, sizeof Memory::more_icon);
-    createRawImage(&icons_struct.icon_saved, Memory::icon_is_saved, sizeof Memory::icon_is_saved);
+    //createRawImage(&icons_struct.icon_remote_skin, Memory::online_skin_icon, sizeof Memory::online_skin_icon);
+    //createRawImage(&icons_struct.more_icon, Memory::more_icon, sizeof Memory::more_icon);
+    //createRawImage(&icons_struct.icon_saved, Memory::icon_is_saved, sizeof Memory::icon_is_saved);
 
-    createRawImage(&icons_struct.download, Memory::download, sizeof Memory::download);
-    createRawImage(&icons_struct.github, Memory::github, sizeof Memory::github);
+    //createRawImage(&icons_struct.download, Memory::download, sizeof Memory::download);
+    //createRawImage(&icons_struct.github, Memory::github, sizeof Memory::github);
 
-    createRawImage(&icons_struct.support, Memory::support, sizeof Memory::support);
-    createRawImage(&icons_struct.planet, Memory::planet, sizeof Memory::planet);
+    //createRawImage(&icons_struct.support, Memory::support, sizeof Memory::support);
+    //createRawImage(&icons_struct.planet, Memory::planet, sizeof Memory::planet);
 
-    createRawImage(&icons_struct.maximize, Memory::maximize, sizeof Memory::maximize);
-    createRawImage(&icons_struct.minimize, Memory::minimize, sizeof Memory::minimize);
-    createRawImage(&icons_struct.close, Memory::close, sizeof Memory::close);
+    //createRawImage(&icons_struct.maximize, Memory::maximize, sizeof Memory::maximize);
+    //createRawImage(&icons_struct.minimize, Memory::minimize, sizeof Memory::minimize);
+    //createRawImage(&icons_struct.close, Memory::close, sizeof Memory::close);
 
-    createRawImage(&icons_struct.greyed_out, Memory::greyed_out, sizeof Memory::greyed_out);
+    //createRawImage(&icons_struct.greyed_out, Memory::greyed_out, sizeof Memory::greyed_out);
     createRawImage(&icons_struct.reload_icon, Memory::reloadIcon, sizeof Memory::reloadIcon);
     createRawImage(&icons_struct.foldericon, Memory::foldericon, sizeof Memory::foldericon);
 
     createRawImage(&icons_struct.editIcon, Memory::editIcon, sizeof Memory::editIcon);
     createRawImage(&icons_struct.deleteIcon, Memory::deleteIcon, sizeof Memory::deleteIcon);
 
-    createRawImage(&icons_struct.homeIcon, Memory::homeBtn, sizeof Memory::homeBtn);
+    //createRawImage(&icons_struct.homeIcon, Memory::homeBtn, sizeof Memory::homeBtn);
     createRawImage(&icons_struct.xbtn, Memory::xbtn, sizeof Memory::xbtn);
 
-    createRawImage(&icons_struct.planetLogo20, Memory::planetLogo20, sizeof Memory::planetLogo20);
-    createRawImage(&icons_struct.KofiLogo, Memory::KofiLogo, sizeof Memory::KofiLogo);
+    //createRawImage(&icons_struct.planetLogo20, Memory::planetLogo20, sizeof Memory::planetLogo20);
+    //createRawImage(&icons_struct.KofiLogo, Memory::KofiLogo, sizeof Memory::KofiLogo);
 }
 
 bool Application::Destroy()
@@ -306,6 +306,10 @@ bool initCreated = false;
 ImVec2 g_windowPadding = {};
 
 bool g_fileDropQueried = false;
+
+bool g_processingFileDrop = false;
+bool g_openSuccessPopup = false;
+std::string g_fileDropStatus = "";
 
 void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent) {
     console.log(std::format("writing file to: {}", filePath.string()));
@@ -394,7 +398,7 @@ public:
 
     bool unzip(std::string zipFileName, std::string targetDirectory) {
 
-        std::string powershellCommand = std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}'\"", zipFileName, targetDirectory);
+        std::string powershellCommand = std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
 
         std::cout << powershellCommand << std::endl;
 
@@ -424,14 +428,20 @@ public:
         }
     }
 
-    const void HandleRemoteDrop(const char* fileName, const char* downloadPath)
+    const void HandleRemoteDrop(std::string fileName, std::string downloadPath)
     {
+        g_processingFileDrop = true;
         std::cout << "Dropped file: " << downloadPath << std::endl;
 
         auto filePath = std::filesystem::path(config.getSkinDir()) / fileName;
 
         try {
-            writeFileBytesSync(filePath, http::get_bytes(downloadPath));
+
+            g_fileDropStatus = std::format("Downloading {}...", fileName);
+
+            writeFileBytesSync(filePath, http::get_bytes(downloadPath.c_str()));
+
+            g_fileDropStatus = "Processing Theme Information...";
 
             std::string zipFilePath = filePath.string();
             std::string destinationFolder = config.getSkinDir() + "/";
@@ -439,12 +449,18 @@ public:
             std::cout << "extracting zip archive: " << zipFilePath << std::endl;
             std::cout << "extracting to: " << destinationFolder << std::endl;
 
+            g_fileDropStatus = "Installing Theme...";
+
             if (unzip(zipFilePath, destinationFolder)) {
                 // The file has been successfully extracted
                 // You can add further processing or use the extracted files as needed
                 std::cout << "extracted" << std::endl;
 
-                MessageBoxA(GetForegroundWindow(), "Successfully added the theme to your library!\nYou may have to click the refresh button to see changes.", "Millennium", MB_ICONINFORMATION);
+                g_fileDropStatus = "Done!";
+
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+
+                g_openSuccessPopup = true;
 
                 m_Client.parseSkinData(false);
             }
@@ -463,6 +479,8 @@ public:
             console.err(std::format("Exception form {}: {}", __func__, err.what()));
             MessageBoxA(GetForegroundWindow(), std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
         }
+
+        g_processingFileDrop = false;
     }
 
     std::string wstringToString(const std::wstring& wstr) {
@@ -509,7 +527,12 @@ public:
                         std::wstring fileName = urlStr.substr(0, colonPos);
                         std::wstring downloadUrl = urlStr.substr(colonPos + 1);
 
-                        this->HandleRemoteDrop(wstringToString(fileName).c_str(), wstringToString(downloadUrl).c_str());
+                        std::string fileNameStr = wstringToString(fileName);
+                        std::string downloadUrlStr = wstringToString(downloadUrl);
+
+                        std::thread([=] {
+                            this->HandleRemoteDrop(fileNameStr, downloadUrlStr);
+                        }).detach();
                     }
 
                     GlobalUnlock(medium.hGlobal);

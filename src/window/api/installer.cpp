@@ -5,47 +5,6 @@
 
 namespace community
 {
-	std::string installer::sanitizeDirectoryName(const std::string& input) {
-		return std::regex_replace(input, std::regex("[^a-zA-Z0-9-_.~]"), "");
-	}
-
-	void installer::downloadFolder(const nlohmann::json& folderData, const std::filesystem::path& currentDir)
-	{
-		std::filesystem::create_directories(currentDir);
-
-		for (const auto& item : folderData)
-		{
-			try {
-				if (item["type"] == "dir")
-				{
-					std::filesystem::path dirPath = currentDir / item["name"];
-					std::filesystem::create_directories(dirPath);
-
-					downloadFolder(nlohmann::json::parse(http::get(item["url"])), dirPath);
-				}
-				else if (item["type"] == "file" && !item["download_url"].is_null())
-				{
-					const std::string fileName = item["name"].get<std::string>();
-					const std::filesystem::path filePath = currentDir / fileName;
-
-					m_downloadStatus = std::format("downloading {}", fileName);
-					this->writeFileBytesSync(filePath, http::get_bytes(item["download_url"].get<std::string>().c_str()));
-				}
-			}
-			catch (const nlohmann::detail::exception& excep) {
-				if (folderData.contains("message")) {
-					const auto message = folderData["message"].get<std::string>();
-					MsgBox("Github seems to have rate limited you from downloading to many themes in a short period of time."
-						"Try again later (maximum 1 hour)", "GitHub API", MB_ICONERROR);
-					return;
-				}
-
-				console.err(std::format("Error downloading/updating a skin. message: {}", excep.what()));
-				MsgBox(std::format("Error downloading/updating a skin. message: {}", excep.what()).c_str(), "Error", MB_ICONERROR);
-			}
-		}
-	}
-
 	void installer::writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
 	{
 		console.log(std::format("writing file to: {}", filePath.string()));
@@ -67,51 +26,71 @@ namespace community
 		fileStream.close();
 	}
 
-	void installer::downloadTheme(const nlohmann::json& skinData) {
+	bool unzip(std::string zipFileName, std::string targetDirectory) {
 
-		if (skinData.contains("github")) {
+		const std::string powershellCommand = 
+			std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
 
-			if (!skinData["github"].contains("repo_name") || !skinData["github"].contains("owner")) {
-				MsgBox("Unable to update skin [can't find github repo info]. Contact the developer.", "Millennium", MB_ICONERROR);
-				return;
-			}
+		STARTUPINFO si;
+		PROCESS_INFORMATION pi;
 
-			std::string repo = skinData["github"]["repo_name"];
-			std::string owner = skinData["github"]["owner"];
+		ZeroMemory(&si, sizeof(si));
+		si.cb = sizeof(si);
+		ZeroMemory(&pi, sizeof(pi));
 
-			nlohmann::json post = {
-				{"repo", repo},
-				{"owner", owner}
-			};
+		si.dwFlags |= STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_HIDE;
 
-			std::string raw;
+		if (CreateProcess(NULL, const_cast<char*>(powershellCommand.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+			WaitForSingleObject(pi.hProcess, INFINITE);
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
 
-			try {
-				raw = http::post("http://localhost:3000/get-update", post.dump(4).c_str());
-			}
-			catch (const http_error error) {
-				MsgBox(std::format("Couldn't contact API to get update...\nCode: {}", error.code()).c_str(), "Millennium", MB_ICONERROR);
-			}
-		
-			if (!nlohmann::json::accept(raw)) {
-				MsgBox(std::format("Received malformed message from API.\nResponse: {}\n\nContact developers", raw).c_str(), "Millennium", MB_ICONERROR);
-			}
-
-			nlohmann::json response = nlohmann::json::parse(raw);
-
-			std::cout << response.dump(4) << std::endl;
-
-			
+			return true;
 		}
+		else {
+			return false;
+		}
+	}
 
-		//std::filesystem::path skinDir = std::filesystem::path(config.getSkinDir()) / sanitizeDirectoryName(skinData["name"].get<std::string>());
+	void installer::installUpdate(const nlohmann::json& skinData)
+	{
+		const std::string nativeName = skinData["native-name"];
+		std::cout << skinData.dump(4) << std::endl;
 
-		//try {
-		//	nlohmann::json folderData = nlohmann::json::parse(http::get(skinData["source"]));
-		//	downloadFolder(folderData, skinDir);
-		//}
-		//catch (const http_error& exception) {
-		//	console.log(std::format("download theme exception: {}", exception.what()));
-		//}
+		g_processingFileDrop = true;
+
+		auto filePath = std::filesystem::path(config.getSkinDir()) / std::format("{}.zip", nativeName);
+
+		try {
+			g_fileDropStatus = std::format("Downloading {}...", std::format("{}.zip", nativeName));
+			writeFileBytesSync(filePath, http::get_bytes(skinData["git"]["download"].get<std::string>().c_str()));
+
+			g_fileDropStatus = "Processing Theme Information...";
+
+
+			std::string zipFilePath = filePath.string();
+			std::string destinationFolder = config.getSkinDir() + "/";
+
+			g_fileDropStatus = "Installing Theme...";
+
+			if (unzip(zipFilePath, destinationFolder)) {
+				g_fileDropStatus = "Done!";
+				g_openSuccessPopup = true;
+			}
+			else {
+				MessageBoxA(GetForegroundWindow(), "couldn't extract file", "Millennium", MB_ICONERROR);
+			}
+
+		}
+		catch (const http_error& err) {
+			console.err("Couldn't download bytes from the file");
+			MessageBoxA(GetForegroundWindow(), "Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
+		}
+		catch (const std::exception& err) {
+			console.err(std::format("Exception form {}: {}", __func__, err.what()));
+			MessageBoxA(GetForegroundWindow(), std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
+		}
+		g_processingFileDrop = false;
 	}
 }

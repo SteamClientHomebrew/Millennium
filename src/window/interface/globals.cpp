@@ -9,8 +9,15 @@ nlohmann::basic_json<> millennium::readFileSync(std::string path)
 	nlohmann::basic_json<> data;
 
 	std::string file_content((std::istreambuf_iterator<char>(skin_json_file)), std::istreambuf_iterator<char>());
-	data = nlohmann::json::parse(file_content, nullptr, true, true);
 
+
+	if (!nlohmann::json::accept(file_content))
+	{
+		MessageBoxA(GetForegroundWindow(), std::format("Invalid JSON file -> [{}]\nIf you can't fix it, remove the folder.\nExiting...", path).c_str(), "Error", MB_ICONERROR);
+		ExitProcess(0);
+	}
+
+	data = nlohmann::json::parse(file_content, nullptr, true, true);
 	return data;
 }
 
@@ -226,6 +233,7 @@ std::vector<nlohmann::basic_json<>> add_update_status_to_client(
 			item["git"]["date"] = nativeName["date"];
 			item["git"]["commit"] = nativeName["commit"];
 			item["git"]["message"] = nativeName["message"];
+			item["git"]["download"] = nativeName["download"];
 			found = true;
 		}
 	}
@@ -300,9 +308,9 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 	auto cloud_versions = nlohmann::json();
 
 	try {
-		std::cout << "making request to -> " << std::format("{}/check-updates", api->endpointV2) << std::endl;
+		std::cout << "fetching update query from -> " << std::format("{}/api_v2/check-updates", api->endpoint_V2) << std::endl;
 
-		cloud_versions = nlohmann::json::parse(http::post(std::format("{}/check-updates", api->endpointV2), parsedData.dump(4).c_str()));
+		cloud_versions = nlohmann::json::parse(http::post(std::format("{}/api_v2/check-updates", api->endpoint_V2), parsedData.dump(4).c_str()));
 	}
 	catch (const http_error ex) {
 		console.err("No internet connection, can't check for updates on themes");
@@ -318,8 +326,13 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 				continue;
 
 			//std::cout << cloud.dump(4) << std::endl;
+			
+			local["url"] = cloud["url"];
+			local["date"] = cloud["date"];
+			local["message"] = cloud["message"];
+			local["download"] = cloud["download"];
 
-			if (!local.contains("commit") || !local.contains("date") || !local.contains("url") || !local.contains("message")) {
+			if (!local.contains("commit")) {
 				console.log("Setting update hash as it was previously unset.");
 
 				local["commit"] = cloud["commit"];
@@ -332,10 +345,6 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 					local["commit"] = cloud["commit"];
 				}
 			}
-
-			local["url"] = cloud["url"];
-			local["date"] = cloud["date"];
-			local["message"] = cloud["message"];
 
 			if (local["commit"] == cloud["commit"]) {
 				console.log("Theme is up-to-date");
@@ -377,11 +386,18 @@ std::vector<nlohmann::basic_json<>>
 				item["git"]["date"]    = update_listing.value("date", "null");
 				item["git"]["commit"]  = update_listing.value("commit", "null");
 				item["git"]["message"] = update_listing.value("message", "null");
+				item["git"]["download"] = update_listing.value("download", "null");
 			}
 		}
 	}
 
 	return buffer;
+}
+
+bool compareByLastWriteTime(const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) {
+	return 
+		std::filesystem::last_write_time(a).time_since_epoch() 
+		> std::filesystem::last_write_time(b).time_since_epoch();
 }
 
 void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string newCommit)
@@ -391,14 +407,32 @@ void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string
 	const std::string steamPath = config.getSkinDir();
 
 	this->resetCollected();
-	std::vector<nlohmann::basic_json<>> jsonBuffer;
 
+
+	std::vector<std::filesystem::directory_entry> directories;
+
+	// Iterate over the directories and store them in the vector
 	for (const auto& entry : std::filesystem::directory_iterator(steamPath)) {
 		if (entry.is_directory()) {
-			if (!this->parseLocalSkin(entry, jsonBuffer, false))
-				continue;
+			directories.push_back(entry);
 		}
 	}
+
+	// Sort the vector based on last write time in descending order
+	std::sort(directories.begin(), directories.end(), compareByLastWriteTime);
+
+
+	std::vector<nlohmann::basic_json<>> jsonBuffer;
+
+	for (const auto& entry : directories) {
+		// Process the directory entry and populate the jsonBuffer
+		if (!this->parseLocalSkin(entry, jsonBuffer, false)) {
+			continue;
+		}
+	}
+
+	// check for updates on the current skin. 
+	// disabled, to lazy to implement right now :)
 
 	switch (checkForUpdates) {
 		case true:

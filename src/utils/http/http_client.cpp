@@ -75,137 +75,47 @@ const nlohmann::json http::getJson(std::string remote_endpoint)
 using json = nlohmann::json;
 
 
-std::string PerformHttpPost(const std::string& url, const std::string& postData) {
-
-    boost::network::uri::uri endpoint(url);
-
-    HINTERNET hInternet = InternetOpenA("HTTP POST Example", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-    if (!hInternet) {
-        std::cerr << "InternetOpen failed: " << GetLastError() << std::endl;
-        return "";
-    }
-
-    HINTERNET hConnect = InternetOpenUrlA(hInternet, url.c_str(), NULL, 0, INTERNET_FLAG_RELOAD | INTERNET_FLAG_KEEP_CONNECTION | INTERNET_FLAG_SECURE, 0);
-    if (!hConnect) {
-        std::cerr << "InternetOpenUrl failed: " << GetLastError() << std::endl;
-        InternetCloseHandle(hInternet);
-        return "";
-    }
-
-    //HINTERNET hRequest = HttpOpenRequestA(hConnect, "POST", endpoint.path().c_str(), NULL, NULL, NULL, INTERNET_FLAG_RELOAD, 0);
-
-    //if (!hRequest) {
-    //    http::close(hConnect, hInternet);
-    //    throw http_error(http_error::errors::couldnt_connect);
-    //}
-
-    // Set request headers
-    std::string headers = "Content-Type: application/json\r\n";
-    if (!HttpSendRequestA(hConnect, headers.c_str(), headers.length(), (LPVOID)postData.c_str(), postData.length())) {
-        std::cerr << "HttpSendRequest failed: " << GetLastError() << std::endl;
-        InternetCloseHandle(hConnect);
-        InternetCloseHandle(hInternet);
-        return "";
-    }
-
-    // Read the response
-    std::string response;
-    const int bufferSize = 4096;
-    char buffer[bufferSize];
-    DWORD bytesRead;
-    while (InternetReadFile(hConnect, buffer, bufferSize, &bytesRead) && bytesRead > 0) {
-        response.append(buffer, bytesRead);
-    }
-
-    InternetCloseHandle(hConnect);
-    InternetCloseHandle(hInternet);
-
-    return response;
-}
-
-
-const std::string http::post(std::string remote_endpoint, const char* data)
+const std::string http::post(std::string remote_endpoint, std::string data)
 {
-    //bufferFunc();
-    // JSON data
-    json jsonData = {
-        { "name", "SimplyDark" },
-        { "owner", "ShadowMonster99" },
-        { "repo", "Simply-Dark" }
-    };
+    static CHAR hdrs[] = "Content-Type: application/json";
 
-    // Convert JSON data to a string
-    std::string postData = jsonData.dump();
+    HINTERNET hSession = InternetOpenA("MyAgent", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+    HINTERNET hConnect = InternetConnect(hSession, "us-central1-bettersteam-87b59.cloudfunctions.net", 443, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 1);
+    HINTERNET hRequest = HttpOpenRequestA(hConnect, "POST", "/api_v2/api_v2/check-updates", NULL, NULL, NULL, INTERNET_FLAG_SECURE, 1);
+    HttpSendRequestA(hRequest, hdrs, strlen(hdrs), const_cast<char*>(data.c_str()), strlen(data.c_str()));
 
-    // Replace this URL with your actual server URL
-    std::string url = "https://millennium.web.app/api/v2/check-updates";
+    DWORD dwContentLen;
+    DWORD dwBufLen = sizeof(dwContentLen);
+    if (HttpQueryInfo(hRequest,
+        HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER,
+        (LPVOID)&dwContentLen,
+        &dwBufLen,
+        0))
+    {
+        char* pData = (char*)GlobalAlloc(GMEM_FIXED, dwContentLen + 1);
+        DWORD dwReadSize = dwContentLen / 10;   // We will read 10% of data
+        // with each read.
 
-    std::string response1 = PerformHttpPost(url, postData);
+        DWORD cReadCount;
+        DWORD dwBytesRead;
+        char* pCopyPtr = pData;
+        for (cReadCount = 0; cReadCount < 10; cReadCount++)
+        {
+            InternetReadFile(hRequest, pCopyPtr, dwReadSize, &dwBytesRead);
+            pCopyPtr = pCopyPtr + dwBytesRead;
+        }
+        // extra read to account for integer division round off
+        InternetReadFile(hRequest,
+            pCopyPtr,
+            dwContentLen - (pCopyPtr - pData),
+            &dwBytesRead);
+        // Null terminate data
+        pData[dwContentLen] = 0;
 
-    if (!response1.empty()) {
-        std::cout << "Response:\n" << response1 << std::endl;
-    }
-    else {
-        std::cout << "Failed to perform HTTP POST request" << std::endl;
+        return pData;
     }
 
     return std::string();
-
-    if (!valid_request(remote_endpoint))
-    {
-        console.err(std::format("un-allowed to make requests to outside of local context"));
-        throw http_error(http_error::errors::not_allowed);
-    }
-
-
-    boost::network::uri::uri endpoint(remote_endpoint);
-
-    HINTERNET hInternet = InternetOpenA(user_agent.data(), INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-
-    if (!hInternet) {
-        throw http_error(http_error::errors::couldnt_connect);
-    }
-
-    const int PORT = endpoint.port().empty() ? INTERNET_DEFAULT_HTTPS_PORT : stoi(endpoint.port());
-
-    HINTERNET hConnect = InternetConnectA(hInternet, endpoint.host().c_str(), PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
-
-    if (!hConnect) {
-        http::close(hInternet);
-    }
-
-    HINTERNET hRequest = HttpOpenRequestA(hConnect, "POST", endpoint.path().c_str(), NULL, NULL, NULL, INTERNET_FLAG_RELOAD, 0);
-
-    if (!hRequest) {
-        http::close(hConnect, hInternet);
-        throw http_error(http_error::errors::couldnt_connect);
-    }
-
-    const char* headers = "Content-Type: application/json\r\n";
-
-    if (!HttpSendRequestA(hRequest, headers, strlen(headers), const_cast<char*>(data), strlen(data))) 
-    {
-        console.err(std::format("HttpSendRequest failed: {}", GetLastError()));
-
-        throw http_error(http_error::errors::couldnt_connect);
-    }
-
-
-    // Read the response from the server
-    std::string response;
-    char buffer[4096];
-    DWORD bytesRead;
-
-    while (InternetReadFile(hRequest, buffer, sizeof(buffer), &bytesRead) && bytesRead > 0)
-    {
-        response.append(buffer, bytesRead);
-    }
-
-    console.log(std::format("Server response: {}", response));
-
-    http::close(hRequest, hConnect, hInternet);
-
-    return response;
 }
 
 const std::string http::replicateGet(std::string remote_endpoint, std::string userAgent, nlohmann::json& headers)
