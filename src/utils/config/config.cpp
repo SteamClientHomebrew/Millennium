@@ -455,7 +455,7 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
     if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false) {
         int result = MsgBox(
             "The selected theme may be using JavaScript to enhance your Steam experience.\n"
-            "You have JavaScript disabled in Millennium settings, therefore the selected skin may not function properly.\n\n"
+            "You have JavaScript disabled in Millennium settings, therefore, the selected skin may not function properly.\n\n"
             "Enable JavaScript ONLY IF you trust the developer, have manually reviewed the code, or it's an official theme.\n\n"
             "Would you like to enable JavaScript execution?",
             "Notice", 
