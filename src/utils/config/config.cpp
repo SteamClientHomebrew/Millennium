@@ -448,13 +448,22 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
     }
 
     bool hasJavaScriptPatch = std::any_of(jsonBuffer["Patches"].begin(), jsonBuffer["Patches"].end(),
-        [](const nlohmann::json& patch) {
-            return patch.contains("TargetJs");
+        [&](const nlohmann::json& patch) {
+            if (patch.contains("TargetJs")) {
+
+                const std::string fileName = patch["TargetJs"].get<std::string>();
+                std::string filePath = std::format("{}/{}/{}", m_themesPath, ACTIVE_ITEM, fileName);
+
+                if (std::filesystem::exists(filePath)) {
+                    return true;
+                }
+            }
+            return false;
         });
 
-    if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false && !Settings::Get<bool>("prompted-js")) {
+    if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false) {
         int result = MsgBox(
-            "The selected theme may be using JavaScript to enhance your Steam experience.\n"
+            "The selected theme is using JavaScript to enhance your Steam experience.\n"
             "You have JavaScript disabled in Millennium settings, therefore, the selected skin may not function properly.\n\n"
             "Enable JavaScript ONLY IF you trust the developer, have manually reviewed the code, or it's an official theme.\n\n"
             "Would you like to enable JavaScript execution?",

@@ -256,7 +256,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="auto-updater.hpp" />
     <ClInclude Include="core\injector\event_handler.hpp" />
     <ClInclude Include="core\injector\startup\welcome_modal.hpp" />
     <ClInclude Include="core\ipc\ipc_main.hpp" />
@@ -291,7 +290,6 @@
     <ClInclude Include="utils\cout\logger.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="auto-updater.cpp" />
     <ClCompile Include="core\injector\event_handler.cpp" />
     <ClCompile Include="core\injector\startup\welcome_modal.cpp" />
     <ClCompile Include="core\ipc\ipc_main.cpp" />

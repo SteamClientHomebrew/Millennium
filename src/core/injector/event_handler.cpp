@@ -423,7 +423,14 @@ private:
 
         // if the hooked file is a css file, we want to add the colors structure.
         if (isCss) {
-            responseBody = base64_encode(std::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nBEGIN COLOR INSERTION\n*/\n{}\n/*\nEND COLORS\n*/\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse, colors == "[NoColors]" ? std::string() : colors));
+            responseBody = base64_encode(std::format(
+                "{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/"
+                "\n\n{}\n\n"
+                "/*\nBEGIN COLOR INSERTION\n*/"
+                "\n{}\n"
+                "/*\nEND COLORS\n*/\n"
+                "/*\nEND INJECTION\n*/", 
+            base64_decode(m_socket_resp["result"]["body"]), g_fileResponse, colors == "[NoColors]" ? std::string() : colors));
         }
         else {
             responseBody = base64_encode(std::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse));
@@ -507,7 +514,6 @@ private:
         }
 
         // parse if statement is array object or single
-
         std::vector<nlohmann::basic_json<>> statements;
 
         if (patch["Statement"].is_object())
@@ -586,8 +592,6 @@ private:
                 console.err("Couldn't find config key with Name = " + settingsName);
             }
         }
-
-
 
         return returnVal.empty() ? std::vector<statementReturn>{ {true} } : returnVal;
     }
