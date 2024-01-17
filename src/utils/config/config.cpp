@@ -461,7 +461,7 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
             return false;
         });
 
-    if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false) {
+    if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false && !Settings::Get<bool>("prompted-js")) {
         int result = MsgBox(
             "The selected theme is using JavaScript to enhance your Steam experience.\n"
             "You have JavaScript disabled in Millennium settings, therefore, the selected skin may not function properly.\n\n"
