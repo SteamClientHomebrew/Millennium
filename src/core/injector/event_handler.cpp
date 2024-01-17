@@ -506,71 +506,88 @@ private:
             return { {true} };
         }
 
-        const auto statement = patch["Statement"];
+        // parse if statement is array object or single
 
-        if (!statement.contains("If")) {
-            console.err("Invalid statement structure: 'If' is missing.");
-            return { {true} };
-        }
-        if (!statement.contains("Equals")) {
-            console.err("Invalid statement structure: 'Equals' is missing.");
-            return { {true} };
-        }
-        if (!skin_json_config.contains("Configuration")) {
-            console.err("Invalid statement structure: 'Configuration' is missing from JSON storage.");
-            return { {true} };
+        std::vector<nlohmann::basic_json<>> statements;
+
+        if (patch["Statement"].is_object())
+            statements.push_back(patch["Statement"]);
+        else if (patch["Statement"].is_array()) {
+            for (auto& statement : patch["Statement"]) {
+				statements.push_back(statement);
+			}
         }
 
-        const auto settingsName = statement["If"].get<std::string>();
-        bool isFound = false;
+        for (auto& statement : statements) {
 
-        for (const auto& item : skin_json_config["Configuration"]) {
-            if (item.contains("Name") && item["Name"] == settingsName) {
-                isFound = true;
-                const auto& selectedItem = item["Value"];
+            std::cout << statement.dump(4) << std::endl;
 
-                if (selectedItem == statement["Equals"]) {
-                    console.log(std::format("Configuration key: {} Equals {}. Executing 'True' statement", settingsName, statement["Equals"].dump()));
+            if (!statement.contains("If")) {
+                console.err("Invalid statement structure: 'If' is missing.");
+                return { {true} };
+            }
+            if (!statement.contains("Equals")) {
+                console.err("Invalid statement structure: 'Equals' is missing.");
+                return { {true} };
+            }
+            if (!skin_json_config.contains("Configuration")) {
+                console.err("Invalid statement structure: 'Configuration' is missing from JSON storage.");
+                return { {true} };
+            }
 
-                    if (statement.contains("True")) {
-                        const auto& trueStatement = statement["True"];
-                        if (trueStatement.contains("TargetCss")) {
-                            console.log("inserting CSS module: " + trueStatement["TargetCss"].get<std::string>());
-                            returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, trueStatement["TargetCss"] });
+            const auto settingsName = statement["If"].get<std::string>();
+            bool isFound = false;
+
+            for (const auto& item : skin_json_config["Configuration"]) {
+                if (item.contains("Name") && item["Name"] == settingsName) {
+                    isFound = true;
+                    const auto& selectedItem = item["Value"];
+
+                    if (selectedItem == statement["Equals"]) {
+                        console.log(std::format("Configuration key: {} Equals {}. Executing 'True' statement", settingsName, statement["Equals"].dump()));
+
+                        if (statement.contains("True")) {
+                            const auto& trueStatement = statement["True"];
+                            if (trueStatement.contains("TargetCss")) {
+                                console.log("inserting CSS module: " + trueStatement["TargetCss"].get<std::string>());
+                                returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, trueStatement["TargetCss"] });
+                            }
+                            if (trueStatement.contains("TargetJs")) {
+                                console.log("inserting JS module: " + trueStatement["TargetJs"].get<std::string>());
+                                returnVal.push_back({ false, steam_cef_manager::script_type::javascript, trueStatement["TargetJs"] });
+                            }
                         }
-                        if (trueStatement.contains("TargetJs")) {
-                            console.log("inserting JS module: " + trueStatement["TargetJs"].get<std::string>());
-                            returnVal.push_back({ false, steam_cef_manager::script_type::javascript, trueStatement["TargetJs"] });
+                        else {
+                            console.err("Can't execute 'True' statement as it doesn't exist.");
                         }
                     }
                     else {
-                        console.err("Can't execute 'True' statement as it doesn't exist.");
-                    }
-                }
-                else {
-                    console.log(std::format("Configuration key: {} NOT Equal {}. Executing 'False' statement", settingsName, statement["Equals"].dump()));
+                        console.log(std::format("Configuration key: {} NOT Equal {}. Executing 'False' statement", settingsName, statement["Equals"].dump()));
 
-                    if (statement.contains("False")) {
-                        const auto& falseStatement = statement["False"];
-                        if (falseStatement.contains("TargetCss")) {
-                            console.log("inserting CSS module: " + falseStatement["TargetCss"].get<std::string>());
-                            returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, falseStatement["TargetCss"] });
+                        if (statement.contains("False")) {
+                            const auto& falseStatement = statement["False"];
+                            if (falseStatement.contains("TargetCss")) {
+                                console.log("inserting CSS module: " + falseStatement["TargetCss"].get<std::string>());
+                                returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, falseStatement["TargetCss"] });
+                            }
+                            if (falseStatement.contains("TargetJs")) {
+                                console.log("inserting JS module: " + falseStatement["TargetJs"].get<std::string>());
+                                returnVal.push_back({ false, steam_cef_manager::script_type::javascript, falseStatement["TargetJs"] });
+                            }
                         }
-                        if (falseStatement.contains("TargetJs")) {
-                            console.log("inserting JS module: " + falseStatement["TargetJs"].get<std::string>());
-                            returnVal.push_back({ false, steam_cef_manager::script_type::javascript, falseStatement["TargetJs"] });
+                        else {
+                            console.err("Can't execute 'False' statement as it doesn't exist.");
                         }
-                    }
-                    else {
-                        console.err("Can't execute 'False' statement as it doesn't exist.");
                     }
                 }
             }
+
+            if (!isFound) {
+                console.err("Couldn't find config key with Name = " + settingsName);
+            }
         }
 
-        if (!isFound) {
-            console.err("Couldn't find config key with Name = " + settingsName);
-        }
+
 
         return returnVal.empty() ? std::vector<statementReturn>{ {true} } : returnVal;
     }
@@ -584,10 +601,12 @@ private:
 
         std::string raw_script;
 
+        const auto jsAllowed = Settings::Get<bool>("allow-javascript");
+
         for (const auto& item : items) {
             const auto relativeItem = std::format("{}/skins/{}/{}", uri.steam_resources.string(), Settings::Get<std::string>("active-skin"), item.filePath);
 
-            if (item.type == steam_cef_manager::script_type::javascript) {
+            if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
                 raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
                 raw_script += "\n\n\n";
             }
@@ -902,7 +921,9 @@ private:
         std::string url = page["webSocketDebuggerUrl"];
 
         std::function<void(ws_Client*, websocketpp::connection_hdl)> evaluate_scripting = ([&](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
-            if (not js_eval.empty())
+            const auto jsAllowed = Settings::Get<bool>("allow-javascript");
+            
+            if (not js_eval.empty() && jsAllowed)
                 steam_interface.evaluate(c, hdl, js_eval, steam_interface.script_type::javascript);
             if (not css_eval.empty())
                 steam_interface.evaluate(c, hdl, css_eval, steam_interface.script_type::stylesheet);

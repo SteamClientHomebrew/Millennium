@@ -471,7 +471,7 @@ public:
             }
 
         }
-        catch (const http_error& err) {
+        catch (const http_error&) {
             console.err("Couldn't download bytes from the file");
             MessageBoxA(GetForegroundWindow(), "Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
         }

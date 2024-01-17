@@ -16,5 +16,5 @@
 #define MsgBox(text, header, icon) MessageBoxA(FindWindow(nullptr, "Steam"), text, header, icon);
 #define OpenURL(url) ShellExecute(0, "open", url, 0, 0, SW_SHOWNORMAL);
 
-static const char* m_ver = "1.0.9";
+extern const char* m_ver;
 static const char* repo = "https://api.github.com/repos/ShadowMonster99/millennium-steam-binaries/releases/latest";

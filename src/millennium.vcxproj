@@ -297,6 +297,7 @@
     <ClCompile Include="core\ipc\ipc_main.cpp" />
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="metrics.cpp" />
+    <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="utils\thread\thread_handler.cpp" />
     <ClCompile Include="window\api\api.cpp" />
     <ClCompile Include="window\api\installer.cpp" />

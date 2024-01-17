@@ -461,9 +461,17 @@ public:
 		ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 15);
 		ImGui::BeginChild("settings_panel", ImVec2(child_width, windowHeight), false);
 		{
+			static bool enable_store = Settings::Get<bool>("allow-store-load");
+			ui::render_setting(
+				"Auto Update Themes", "Controls whether skins will automatically update when steam starts.",
+				enable_store, false,
+				[=]() { Settings::Set("allow-store-load", enable_store); }
+			);
+			ImGui::Spacing(); ImGui::Spacing();
+
 			static bool enable_css = Settings::Get<bool>("allow-stylesheet");
 			ui::render_setting(
-				"StyleSheet Insertion", "Allow CSS (StyleSheet) insertions in the skins you use. In case you only want the JavaScript features of the theme and don't want the CSS customizations",
+				"StyleSheet Insertion", "Allow CSS (StyleSheet) insertions in the skins you use. CSS is always safe.",
 				enable_css, false,
 				[=]() {
 					Settings::Set("allow-stylesheet", enable_css);
@@ -474,7 +482,7 @@ public:
 
 			static bool enable_js = Settings::Get<bool>("allow-javascript");
 			ui::render_setting(
-				"JavaScript Execution", "Allow JavaScript executions in the skins you use.\nJS can help with plethora of things inside Steam especially when customizing Steams look.\n\nJavascript can be malicious in many ways so\nonly allow JS execution on skins of authors you trust, or have manually reviewed the code",
+				"JavaScript Execution", "Allow JavaScript executions in the skins you use.\nOnly allow JS execution on skins of authors you trust.",
 				enable_js, false,
 				[=]() {
 					Settings::Set("allow-javascript", enable_js);
@@ -483,13 +491,6 @@ public:
 			);
 			ImGui::Spacing(); ImGui::Spacing();
 
-			static bool enable_store = Settings::Get<bool>("allow-store-load");
-			ui::render_setting(
-				"Enable Networking", "Controls whether HTTP requests are allowed which affects the Millennium Store and cloud hosted themes in case you want to opt out.\nThe store/millennium collects no identifiable data on the user, in fact, it ONLY collects download count.\n\nMillennium stays completely offline with this disabled.",
-				enable_store, false,
-				[=]() { Settings::Set("allow-store-load", enable_store); }
-			);
-			ImGui::Spacing(); ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::Spacing(); ImGui::Spacing();
 
@@ -497,7 +498,7 @@ public:
 			static int notificationPos = nlohmann::json::parse(SteamJSContext.exec_command("SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position"))["result"]["value"];
 
 			ui::render_setting_list(
-				"Client Notifications Position", "Adjusts the position of the client location instead of using its native coordinates. Displaying in the top corners is slightly broken",
+				"Client Notifications Position", "Adjusts the position of the client location instead of using its native coordinates.",
 				notificationPos, items, IM_ARRAYSIZE(items), false,
 				[=]() {
 					Settings::Set("NotificationsPos", nlohmann::json::parse(SteamJSContext.exec_command(std::format("SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {}", notificationPos)))["result"]["value"].get<int>());
@@ -599,6 +600,8 @@ public:
 
 				static ImU32 col = ImGui::GetColorU32(ImGuiCol_CheckMark);
 
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+
 				if (ImGui::Button("Community")) {
 					steam_js_context SharedJsContext;
 
@@ -607,20 +610,37 @@ public:
 
 					SharedJsContext.exec_command(loadUrl);
 				}
-				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); 
+				ImGui::PopStyleColor();
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
+					g_headerHovered_1 = false;
+					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+					ImGui::SetTooltip("Opens in Steam browser.");
+					ImGui::PopStyleColor();
+					ImGui::PopStyleVar();
+				}
 
-				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+
 				ImGui::SameLine();
 				ui::shift::x(-4);
 
 				if (ImGui::Button("Help")) {
 					ShellExecute(NULL, "open", "https://discord.gg/MXMWEQKgJF", NULL, NULL, SW_SHOWNORMAL);
 				}
+				ImGui::PopStyleColor();
 				if (ImGui::IsItemHovered()) 
 				{
+					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
 					g_headerHovered_1 = false;
 					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-					ImGui::SetTooltip("Click to join Discord server...");
+					ImGui::SetTooltip("Join the Discord server...");
+					ImGui::PopStyleColor();
+					ImGui::PopStyleVar();
 				}
 
 				ImGui::SameLine();
