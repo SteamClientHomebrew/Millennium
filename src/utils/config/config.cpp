@@ -222,10 +222,8 @@ std::string themeConfig::getSkinDir()
     return m_themesPath;
 }
 
-const std::string themeConfig::getRootColors()
+const std::string themeConfig::getRootColors(nlohmann::basic_json<> data)
 {
-    const auto data = config.getThemeData();
-
     if (data.contains("GlobalsColors") && data.is_object())
     {
         std::string header = ":root { ";
@@ -416,6 +414,8 @@ const void themeConfig::setThemeData(nlohmann::json& object) noexcept
 
 const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 {
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     const std::string ACTIVE_ITEM = Settings::Get<std::string>("active-skin");
 
     std::basic_ifstream<char, std::char_traits<char>> localTheme(std::format("{}/{}/skin.json", m_themesPath, ACTIVE_ITEM));
@@ -479,6 +479,14 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 			}
         }
     }
+
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+    std::cout << "Elapsed time: " << duration.count() << " ms" << '\n';
+
 
     return jsonBuffer;
 }

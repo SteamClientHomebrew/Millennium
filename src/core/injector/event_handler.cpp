@@ -418,7 +418,7 @@ private:
                 checkRegex(hook, steam_cef_manager::script_type::javascript);
         }
 
-        const auto colors = config.getRootColors();
+        const auto colors = config.getRootColors(skin_json_config);
         std::string responseBody;
 
         // if the hooked file is a css file, we want to add the colors structure.
@@ -1142,7 +1142,7 @@ unsigned long __stdcall Initialize(void*)
 {
     config.setupMillennium();
     skin_json_config = config.getThemeData();
-    config.installFonts();
+    //config.installFonts();
 
     //std::cout << skin_json_config.dump(4) << std::endl;
 
@@ -1151,7 +1151,7 @@ unsigned long __stdcall Initialize(void*)
         console.imp("skin change event fired, updating skin patch config");
         skin_json_config = config.getThemeData();
         client::get_instance().update_fetch_hook_status();
-        config.installFonts();
+        //config.installFonts();
     });
 
     //config file watcher callback function 
@@ -1159,7 +1159,7 @@ unsigned long __stdcall Initialize(void*)
         console.log("skins folder has changed, updating required information");
         skin_json_config = config.getThemeData();
         client::get_instance().update_fetch_hook_status();
-        config.installFonts();
+        //config.installFonts();
         m_Client.parseSkinData();
     });
 

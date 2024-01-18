@@ -70,7 +70,7 @@ public:
     themeConfig();
 
     std::string getSkinDir();
-    const std::string getRootColors();
+    const std::string getRootColors(nlohmann::basic_json<> data);
     const void installFonts();
 
     /// <summary>

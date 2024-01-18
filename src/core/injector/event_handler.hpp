@@ -15,4 +15,6 @@ public:
     steam_client();
 };
 
+extern nlohmann::basic_json<> skin_json_config;
+
 unsigned long __stdcall Initialize(void*);

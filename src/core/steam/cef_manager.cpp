@@ -51,7 +51,8 @@ std::string injectSystemColors() {
     return std::format("(document.querySelector('#SystemAccentColorInject') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'SystemAccentColorInject' }}))).innerText = `{}`;", getColorStr());
 }
 std::string injectGlobalColor() {
-    const auto colors = config.getRootColors();
+    const auto colors = config.getRootColors(skin_json_config);
+
     return colors != "[NoColors]" ? std::format("(document.querySelector('#globalColors') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'globalColors' }}))).innerText = `{}`;", colors) : "";
 }
 
