@@ -218,16 +218,13 @@ bool alreadyExists(const nlohmann::json& data, const std::string& targetOwner) {
 		});
 }
 
-std::vector<nlohmann::basic_json<>> add_update_status_to_client(
+std::vector<nlohmann::basic_json<>> millennium::add_update_status_to_client(
 	std::vector<nlohmann::basic_json<>>& buffer, nlohmann::json nativeName, bool needsUpdate) {
 
 	bool found = false;
 
-	std::cout << __func__ << " param: " << nativeName["name"] << ", " << needsUpdate << std::endl;
-
 	for (auto& item : buffer) {
 		if (item["native-name"] == nativeName["name"]) {
-			std::cout << "Setting == " << needsUpdate << std::endl;
 			item["update_required"] = needsUpdate;
 			item["git"]["url"] = nativeName["url"];
 			item["git"]["date"] = nativeName["date"];
@@ -237,9 +234,6 @@ std::vector<nlohmann::basic_json<>> add_update_status_to_client(
 			found = true;
 		}
 	}
-
-	std::cout << "Found: " << found << std::endl;
-
 
 	return buffer;
 }
@@ -260,7 +254,7 @@ nlohmann::json get_versions_json() {
 	return parsedData;
 }
 
-nlohmann::json get_versions_from_disk(std::vector<nlohmann::basic_json<>>& buffer) {
+nlohmann::json millennium::get_versions_from_disk(std::vector<nlohmann::basic_json<>>& buffer) {
 	nlohmann::json parsedData = get_versions_json();
 
 	for (const auto& item : buffer) {
@@ -277,8 +271,6 @@ nlohmann::json get_versions_from_disk(std::vector<nlohmann::basic_json<>>& buffe
 			});
 		}
 		else {
-			console.log("Already exists, skipping...");
-
 			for (auto& data : parsedData) {
 				if (data.value("owner", "null") == item["github"]["owner"]) {
 					data["repo"] = item["github"]["repo_name"];
@@ -291,15 +283,14 @@ nlohmann::json get_versions_from_disk(std::vector<nlohmann::basic_json<>>& buffe
 	return parsedData;
 }
 
-std::vector<nlohmann::basic_json<>> get_update_list(
+std::vector<nlohmann::basic_json<>> millennium::get_update_list(
 	std::vector<nlohmann::basic_json<>>& buffer,
 	bool reset_version,
 	std::string reset_name
 ) {
+	auto start_time = std::chrono::high_resolution_clock::now();
 
 	nlohmann::json parsedData = get_versions_from_disk(buffer);
-
-	std::cout << parsedData.dump(4) << std::endl;
 
 	if (parsedData.is_null()) {
 		return buffer;
@@ -308,16 +299,14 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 	auto cloud_versions = nlohmann::json();
 
 	try {
-		std::cout << "fetching update query from -> " << std::format("{}/api_v2/check-updates", api->endpoint_V2) << std::endl;
+		console.log("Checking themes for updates...");
 
-		cloud_versions = nlohmann::json::parse(http::post(std::format("{}/api_v2/check-updates", api->endpoint_V2), parsedData.dump(4).c_str()));
+		cloud_versions = nlohmann::json::parse(http::post("/api_v2/api_v2/check-updates", parsedData.dump(4).c_str()));
 	}
 	catch (const http_error ex) {
 		console.err("No internet connection, can't check for updates on themes");
 	}
 	catch (nlohmann::detail::exception&) {}
-
-	console.log(std::format("Response data from API: {}", cloud_versions.dump(4)));
 
 	for (const auto& cloud : cloud_versions) {
 		for (auto& local : parsedData) {
@@ -325,8 +314,6 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 			if (local["repo"] != cloud["name"]) 
 				continue;
 
-			//std::cout << cloud.dump(4) << std::endl;
-			
 			local["url"] = cloud["url"];
 			local["date"] = cloud["date"];
 			local["message"] = cloud["message"];
@@ -347,7 +334,7 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 			}
 
 			if (local["commit"] == cloud["commit"]) {
-				console.log("Theme is up-to-date");
+				console.log(std::format("[{}] is up-to-date", local["name"].get<std::string>()));
 				buffer = add_update_status_to_client(buffer, local, false);
 				local["up-to-date"] = true;
 
@@ -367,13 +354,18 @@ std::vector<nlohmann::basic_json<>> get_update_list(
 		outputFile.close();
 	}
 
+	auto end_time = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+	console.log(std::format("Update check -> {} elapsed ms", duration.count()));
+
 	return buffer;
 }
 
 std::vector<nlohmann::basic_json<>>
-	use_local_update_cache(std::vector<nlohmann::basic_json<>>& buffer) {
+	millennium::use_local_update_cache(std::vector<nlohmann::basic_json<>>& buffer) {
 
-	std::cout << "using local update cache... " << std::endl;
+	console.log("Opting to use local update cache");
 
 	const auto& local = get_versions_from_disk(buffer);
 
@@ -457,9 +449,6 @@ void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string
 void millennium::changeSkin(nlohmann::basic_json<>& skin)
 {
 	std::string skinName = skin["native-name"].get<std::string>();
-
-	std::cout << "Current Skin: " << m_currentSkin << std::endl;
-	std::cout << "Requested Skin: " << skinName << std::endl;
 
 	console.log(std::format("updating selected skin -> {}", skinName == m_currentSkin ? "default" : skinName));
 

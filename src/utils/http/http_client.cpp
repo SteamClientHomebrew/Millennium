@@ -75,13 +75,13 @@ const nlohmann::json http::getJson(std::string remote_endpoint)
 using json = nlohmann::json;
 
 
-const std::string http::post(std::string remote_endpoint, std::string data)
+const std::string http::post(std::string path, std::string data)
 {
     static CHAR hdrs[] = "Content-Type: application/json";
 
     HINTERNET hSession = InternetOpenA("MyAgent", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
     HINTERNET hConnect = InternetConnect(hSession, "us-central1-bettersteam-87b59.cloudfunctions.net", 443, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 1);
-    HINTERNET hRequest = HttpOpenRequestA(hConnect, "POST", "/api_v2/api_v2/check-updates", NULL, NULL, NULL, INTERNET_FLAG_SECURE, 1);
+    HINTERNET hRequest = HttpOpenRequestA(hConnect, "POST", path.c_str(), NULL, NULL, NULL, INTERNET_FLAG_SECURE, 1);
     HttpSendRequestA(hRequest, hdrs, strlen(hdrs), const_cast<char*>(data.c_str()), strlen(data.c_str()));
 
     DWORD dwContentLen;

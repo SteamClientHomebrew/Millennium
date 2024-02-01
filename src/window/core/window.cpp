@@ -113,7 +113,7 @@ void reset_device()
 
 static ImVec2 ScreenRes, WindowPos;
 
-bool createRawImage(PDIRECT3DTEXTURE9* out_texture, LPCVOID data_src, size_t data_size)
+bool create_texture(PDIRECT3DTEXTURE9* out_texture, LPCVOID data_src, size_t data_size)
 {
     PDIRECT3DTEXTURE9 texture;
     HRESULT hr = D3DXCreateTextureFromFileInMemory(*Window::getDevice(), data_src, data_size, &texture);
@@ -191,48 +191,17 @@ void initFontAtlas(ImGuiIO* IO)
     IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 17);
     IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 13);
     IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 20);
-
-    //IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 14);
-    //IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 30);
-    //IO->Fonts->AddFontFromMemoryTTF(Memory::cascadia, sizeof Memory::cascadia, 16);
 }
 
 void initTextures()
 {
-    //createRawImage(&icons_struct.icon, Memory::logo, sizeof Memory::logo);
-
-    createRawImage(&icons_struct.trash_icon, Memory::trash_icon, sizeof Memory::trash_icon);
-    createRawImage(&icons_struct.skin_icon, Memory::themeIcon, sizeof Memory::themeIcon);
-    //createRawImage(&icons_struct.check_mark_checked, Memory::icon_check_mark_full, sizeof Memory::icon_check_mark_full);
-    //createRawImage(&icons_struct.check_mark_unchecked, Memory::icon_check_mark_empty, sizeof Memory::icon_check_mark_empty);
-    createRawImage(&icons_struct.reload_icon, Memory::icon_reload, sizeof Memory::icon_reload);
-    createRawImage(&icons_struct.icon_no_results, Memory::icon_no_results, sizeof Memory::icon_no_results);
-    //createRawImage(&icons_struct.icon_remote_skin, Memory::online_skin_icon, sizeof Memory::online_skin_icon);
-    //createRawImage(&icons_struct.more_icon, Memory::more_icon, sizeof Memory::more_icon);
-    //createRawImage(&icons_struct.icon_saved, Memory::icon_is_saved, sizeof Memory::icon_is_saved);
-
-    //createRawImage(&icons_struct.download, Memory::download, sizeof Memory::download);
-    //createRawImage(&icons_struct.github, Memory::github, sizeof Memory::github);
-
-    //createRawImage(&icons_struct.support, Memory::support, sizeof Memory::support);
-    //createRawImage(&icons_struct.planet, Memory::planet, sizeof Memory::planet);
-
-    //createRawImage(&icons_struct.maximize, Memory::maximize, sizeof Memory::maximize);
-    //createRawImage(&icons_struct.minimize, Memory::minimize, sizeof Memory::minimize);
-    //createRawImage(&icons_struct.close, Memory::close, sizeof Memory::close);
-
-    //createRawImage(&icons_struct.greyed_out, Memory::greyed_out, sizeof Memory::greyed_out);
-    createRawImage(&icons_struct.reload_icon, Memory::reloadIcon, sizeof Memory::reloadIcon);
-    createRawImage(&icons_struct.foldericon, Memory::foldericon, sizeof Memory::foldericon);
-
-    createRawImage(&icons_struct.editIcon, Memory::editIcon, sizeof Memory::editIcon);
-    createRawImage(&icons_struct.deleteIcon, Memory::deleteIcon, sizeof Memory::deleteIcon);
-
-    //createRawImage(&icons_struct.homeIcon, Memory::homeBtn, sizeof Memory::homeBtn);
-    createRawImage(&icons_struct.xbtn, Memory::xbtn, sizeof Memory::xbtn);
-
-    //createRawImage(&icons_struct.planetLogo20, Memory::planetLogo20, sizeof Memory::planetLogo20);
-    //createRawImage(&icons_struct.KofiLogo, Memory::KofiLogo, sizeof Memory::KofiLogo);
+    create_texture(&icons_struct.skin_icon, Memory::themeIcon, sizeof Memory::themeIcon);
+    create_texture(&icons_struct.reload_icon, Memory::icon_reload, sizeof Memory::icon_reload);
+    create_texture(&icons_struct.icon_no_results, Memory::icon_no_results, sizeof Memory::icon_no_results);
+    create_texture(&icons_struct.foldericon, Memory::foldericon, sizeof Memory::foldericon);
+    create_texture(&icons_struct.editIcon, Memory::editIcon, sizeof Memory::editIcon);
+    create_texture(&icons_struct.deleteIcon, Memory::deleteIcon, sizeof Memory::deleteIcon);
+    create_texture(&icons_struct.xbtn, Memory::xbtn, sizeof Memory::xbtn);
 }
 
 bool Application::Destroy()
@@ -290,6 +259,7 @@ void set_borderless(bool enabled) {
     }
 }
 
+// window prefrerences
 bool borderless = true;
 bool borderless_shadow = true;
 bool borderless_drag = true;
@@ -582,7 +552,7 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
     overlay.hwnd = CreateWindowExW(
         0, overlay.wndex.lpszClassName, (LPCWSTR)overlay.name,
         static_cast<DWORD>(Style::aero_borderless), 0, 0,
-        125, 125, nullptr, nullptr, nullptr, nullptr
+        750, 500, nullptr, nullptr, nullptr, nullptr
     );
 
     ::wnd_center();
@@ -808,12 +778,12 @@ void set_proc_theme_colors()
 {
 	ImGuiStyle* sty = (ImGuiStyle*)(void*) & ImGui::GetStyle();
 
-    sty->FrameRounding     = 2.0f;
-    sty->ChildRounding     = 3.0f;
-    sty->GrabRounding      = 4.0f;
+    sty->FrameRounding     = 0.0f;
+    sty->ChildRounding     = 0.0f;
+    sty->GrabRounding      = 0.0f;
     sty->ItemSpacing       = ImVec2(12, 8);
     sty->ScrollbarSize     = 8.0f;
-    sty->ScrollbarRounding = 8.0f;
+    sty->ScrollbarRounding = 0.0f;
     sty->AntiAliasedFill = true;
 
 	sty->SetTheme[ImGuiCol_ChildBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);

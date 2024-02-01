@@ -5,7 +5,7 @@
 #include <utils/config/config.hpp>
 #include <nlohmann/json.hpp>
 
-namespace community
+namespace Community
 {
 	class installer
 	{
@@ -20,5 +20,5 @@ namespace community
 		void installUpdate(const nlohmann::json& skinData);
 	};
 
-	static installer* _installer = new installer;
+	static installer* Themes = new installer;
 }

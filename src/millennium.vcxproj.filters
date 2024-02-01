@@ -111,7 +111,10 @@
     <ClInclude Include="metrics.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="auto-updater.hpp">
+    <ClInclude Include="core\injector\startup\bootstrap.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\updater\update.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -188,10 +191,13 @@
     <ClCompile Include="metrics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="auto-updater.cpp">
+    <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stdafx.cpp">
+    <ClCompile Include="core\injector\startup\bootstrap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\updater\update.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

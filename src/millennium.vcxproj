@@ -257,6 +257,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="core\injector\event_handler.hpp" />
+    <ClInclude Include="core\injector\startup\bootstrap.hpp" />
     <ClInclude Include="core\injector\startup\welcome_modal.hpp" />
     <ClInclude Include="core\ipc\ipc_main.hpp" />
     <ClInclude Include="core\ipc\steam_pipe.hpp" />
@@ -266,6 +267,7 @@
     <ClInclude Include="metrics.hpp" />
     <ClInclude Include="utils\base64.hpp" />
     <ClInclude Include="utils\thread\thread_handler.hpp" />
+    <ClInclude Include="utils\updater\update.hpp" />
     <ClInclude Include="window\api\api.hpp" />
     <ClInclude Include="window\api\installer.hpp" />
     <ClInclude Include="window\core\colors.hpp" />
@@ -291,12 +293,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\injector\event_handler.cpp" />
+    <ClCompile Include="core\injector\startup\bootstrap.cpp" />
     <ClCompile Include="core\injector\startup\welcome_modal.cpp" />
     <ClCompile Include="core\ipc\ipc_main.cpp" />
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="metrics.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="utils\thread\thread_handler.cpp" />
+    <ClCompile Include="utils\updater\update.cpp" />
     <ClCompile Include="window\api\api.cpp" />
     <ClCompile Include="window\api\installer.cpp" />
     <ClCompile Include="window\core\colors.cpp" />

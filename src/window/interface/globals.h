@@ -48,6 +48,8 @@ namespace ui
 		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+		ImGui::Bullet();
+		ImGui::SameLine();
 		ImGui::TextWrapped(description);
 		ImGui::PopStyleColor();
 	}
@@ -92,12 +94,26 @@ namespace ui
 class millennium
 {
 private:
-	nlohmann::basic_json<> readFileSync(std::string path);
-
 	void resetCollected();
 	void parseRemoteSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer);
 
 public:
+
+	std::vector<nlohmann::basic_json<>> add_update_status_to_client(
+		std::vector<nlohmann::basic_json<>>& buffer, nlohmann::json nativeName, bool needsUpdate);
+
+	nlohmann::json get_versions_from_disk(std::vector<nlohmann::basic_json<>>& buffer);
+
+	std::vector<nlohmann::basic_json<>> get_update_list(
+		std::vector<nlohmann::basic_json<>>& buffer,
+		bool reset_version,
+		std::string reset_name
+	);
+
+	std::vector<nlohmann::basic_json<>> use_local_update_cache(std::vector<nlohmann::basic_json<>>& buffer);
+
+	nlohmann::basic_json<> readFileSync(std::string path);
+
 	bool skinDataReady;
 
 	bool b_javascriptEnabled;

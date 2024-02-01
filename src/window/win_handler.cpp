@@ -26,6 +26,46 @@
 bool updateLibrary = false;
 void handleEdit();
 
+struct ComboBoxItem
+{
+	std::string name;
+	int value;
+};
+
+std::vector<ComboBoxItem> comboBoxItems;
+
+bool comboAlreadyExists(const std::string& name)
+{
+	for (const auto& item : comboBoxItems)
+	{
+		if (item.name == name)
+			return true;
+	}
+	return false;
+}	
+
+int getComboValue(const std::string name)
+{
+	for (const auto& item : comboBoxItems)
+	{
+		if (item.name == name)
+			return item.value;
+	}
+	return -1;
+}
+
+void setComboValue(const std::string name, int value)
+{
+	for (auto& item : comboBoxItems)
+	{
+		if (item.name == name)
+		{
+			item.value = value;
+			return;
+		}
+	}
+}	
+
 struct render
 {
 private:
@@ -85,6 +125,7 @@ public:
 			console.log("Theme doesn't have GlobalColors");
 		}
 		m_editObj = skin;
+		comboBoxItems.clear();
 		m_editMenuOpen = true;
 	}
 
@@ -128,7 +169,7 @@ public:
 		static bool btn3hover = false;
 
 		if (m_Client.m_currentSkin == m_skinName)
-			ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.27f, 0.27f, 0.27f, 1.0f));
 		else
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.25f, 0.25f, 0.25f, 0.0f));
 
@@ -138,15 +179,15 @@ public:
 		{
 			ImGui::PopStyleVar();
 			popped = true;
-			ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6);
+			//ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6);
 			ImGui::PopStyleColor();
 
 
 			ImGui::BeginChild(std::format("skin_header{}", index).c_str(), ImVec2(rx, 37), true, ImGuiWindowFlags_NoScrollbar);
 			{
-				ImGui::Image((void*)Window::iconsObj().skin_icon, ImVec2(ry - 1, ry - 1));
-				ImGui::SameLine();
-				ui::shift::x(-4);
+				//ImGui::Image((void*)Window::iconsObj().skin_icon, ImVec2(ry - 1, ry - 1));
+				//ImGui::SameLine();
+				//ui::shift::x(-4);
 				ImGui::Text(skin.value("name", "null").c_str());
 				ImGui::SameLine();
 				ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() - 5, ImGui::GetCursorPosY() + 1));
@@ -210,7 +251,7 @@ public:
 
 					if (ImGui::Button("UPDATE", ImVec2(rx, 0))) {
 						std::thread([=] {
-							community::_installer->installUpdate(skin);
+							Community::Themes->installUpdate(skin);
 							updateSkinData = true;
 						}).detach();
 					}
@@ -274,7 +315,7 @@ public:
 				}
 			}
 			ImGui::EndChild();
-			ImGui::PopStyleVar();		
+			//ImGui::PopStyleVar();		
 		}
 
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
@@ -349,12 +390,12 @@ public:
 				}
 			}
 
-			ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-			{
-				ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "LIBRARY:");
-			}
-			ImGui::PopFont();
-			ImGui::SameLine();
+			//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
+			//{
+			//	ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "LIBRARY:");
+			//}
+			//ImGui::PopFont();
+			//ImGui::SameLine();
 			ui::shift::right(216);
 
 			if (ImGui::ImageButton(Window::iconsObj().reload_icon, ImVec2(17, 17))) {
@@ -461,13 +502,40 @@ public:
 		ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 15);
 		ImGui::BeginChild("settings_panel", ImVec2(child_width, windowHeight), false);
 		{
-			static bool enable_store = Settings::Get<bool>("allow-store-load");
-			ui::render_setting(
-				"Auto Update Themes", "Controls whether skins will automatically update when steam starts.",
-				enable_store, false,
-				[=]() { Settings::Set("allow-store-load", enable_store); }
-			);
+			static bool enable_store = Settings::Get<bool>("auto-update-themes");
+			static bool enable_notifs = Settings::Get<bool>("auto-update-themes-notifs");
+
+			ImGui::Text("Auto Updater"); 
 			ImGui::Spacing(); ImGui::Spacing();
+
+			ui::shift::x(25);
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+			ImGui::TextWrapped("Auto Update Themes - Controls whether skins will automatically update when steam starts.");
+			ImGui::PopStyleColor();
+			ImGui::SameLine();
+			ui::shift::right(15); ui::shift::y(-3);
+			if (ImGui::Checkbox(std::format("###{}", "Auto Update Themes").c_str(), &enable_store)) {
+				Settings::Set("auto-update-themes", enable_store);
+			}
+
+			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+			ui::shift::x(25);
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+			ImGui::TextWrapped("Display Notifications - Auto Update will still function, just no notification.");
+			ImGui::PopStyleColor();
+			ImGui::SameLine();
+			ui::shift::right(15); ui::shift::y(-3);
+			if (ImGui::Checkbox(std::format("###{}", "Display Notifications").c_str(), &enable_notifs)) {
+				Settings::Set("auto-update-themes-notifs", enable_notifs);
+			}
+
+			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+
+
+			ImGui::Spacing(); ImGui::Spacing();
+
 
 			static bool enable_css = Settings::Get<bool>("allow-stylesheet");
 			ui::render_setting(
@@ -478,6 +546,7 @@ public:
 					SteamJSContext.reload();
 				}
 			);
+
 			ImGui::Spacing(); ImGui::Spacing();
 
 			static bool enable_js = Settings::Get<bool>("allow-javascript");
@@ -586,6 +655,17 @@ public:
 			{
 				g_headerHovered_1 = ImGui::IsWindowHovered();
 
+				ui::shift::x(5);
+				ui::shift::y(3);
+
+				std::string headerText = std::format("Millennium v{}", m_ver);
+				const int headerWidth = ImGui::CalcTextSize(headerText.c_str()).x;
+
+				ImGui::Text(headerText.c_str());
+				ImGui::SameLine();
+				ui::shift::y(-3);
+				ui::shift::x(220 - headerWidth);
+
 				listButton(" Library ", 2);
 				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
 				ImGui::SameLine();
@@ -615,12 +695,12 @@ public:
 				if (ImGui::IsItemHovered())
 				{
 					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-					ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
+					//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
 					g_headerHovered_1 = false;
 					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 					ImGui::SetTooltip("Opens in Steam browser.");
 					ImGui::PopStyleColor();
-					ImGui::PopStyleVar();
+					//ImGui::PopStyleVar();
 				}
 
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
@@ -635,12 +715,12 @@ public:
 				if (ImGui::IsItemHovered()) 
 				{
 					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-					ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
+					//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
 					g_headerHovered_1 = false;
 					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 					ImGui::SetTooltip("Join the Discord server...");
 					ImGui::PopStyleColor();
-					ImGui::PopStyleVar();
+					//ImGui::PopStyleVar();
 				}
 
 				ImGui::SameLine();
@@ -703,6 +783,59 @@ void handleEdit()
 						value, false,
 						[&]() { setting["Value"] = value; }
 					);
+					ui::shift::y(15);
+				}
+				else if (type == "ComboBox") {
+
+					std::string value = setting.value("Value", std::string());
+
+					if (!comboAlreadyExists(name)) {
+
+						int out = -1;
+
+						for (int i = 0; i < setting["Items"].size(); i++) {
+							if (setting["Items"][i] == value) {
+								out = i;
+							}
+						}
+						comboBoxItems.push_back({ name, out });
+					}
+
+
+					const auto items = setting["Items"].get<std::vector<std::string>>();
+
+					ImGui::Text(name.c_str());
+
+					ImGui::SameLine();
+					ui::shift::right(120);
+					ImGui::PushItemWidth(120);
+					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
+
+					if (ImGui::BeginCombo(std::format("###{}", name).c_str(), items[getComboValue(name)].c_str())) {
+						for (int i = 0; i < items.size(); i++) {
+							const bool isSelected = (getComboValue(name) == i);
+
+							if (ImGui::Selectable(items[i].c_str(), isSelected))
+							{
+								setComboValue(name, i);
+								std::cout << items[i] << " selected" << std::endl;
+								setting["Value"] = items[i];
+							}
+							if (isSelected) ImGui::SetItemDefaultFocus();
+						}
+						ImGui::EndCombo();
+					}
+
+					ImGui::PopStyleColor();
+					ImGui::PopItemWidth();
+
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+					ImGui::Bullet();
+					ImGui::SameLine();
+					ImGui::TextWrapped(toolTip.c_str());
+					ImGui::PopStyleColor();
+
+					ui::shift::y(15);
 				}
 			}
 		}

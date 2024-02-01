@@ -3,7 +3,7 @@
 
 #include <regex>
 
-namespace community
+namespace Community
 {
 	void installer::writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
 	{
@@ -63,11 +63,32 @@ namespace community
 		auto filePath = std::filesystem::path(config.getSkinDir()) / std::format("{}.zip", nativeName);
 
 		try {
+
+			try {
+				std::string message = nlohmann::json({
+					{
+						{"owner", skinData["github"]["owner"]},
+						{"repo", skinData["github"]["repo_name"]}
+					}
+				}).dump(4);
+
+				std::cout << message << std::endl;
+
+				const auto response = http::post("/api_v2/api_v2/get-download", message);
+
+				std::cout << response << std::endl;
+			}
+			catch (nlohmann::detail::exception&) {
+				console.err("Couldn't send download count to server, error getting github keys from json");
+			}
+			catch (const http_error&) {
+				console.err("Couldn't send download count to server");
+			}
+
 			g_fileDropStatus = std::format("Downloading {}...", std::format("{}.zip", nativeName));
 			writeFileBytesSync(filePath, http::get_bytes(skinData["git"]["download"].get<std::string>().c_str()));
 
 			g_fileDropStatus = "Processing Theme Information...";
-
 
 			std::string zipFilePath = filePath.string();
 			std::string destinationFolder = config.getSkinDir() + "/";

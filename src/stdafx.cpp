@@ -1,1 +1,1 @@
-const char* m_ver = "1.1.0";
+const char* m_ver = "1.1.4";

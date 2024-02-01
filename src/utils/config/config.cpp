@@ -90,7 +90,7 @@ inline const nlohmann::basic_json<> themeConfig::defaultPatches()
 {
     nlohmann::basic_json<> patches = {
         {"Patches", nlohmann::json::array({
-            { {"MatchRegexString", ".*http.*steam.*"}, {"TargetCss", "webkit.css"}, {"TargetJs", "webkit.js"} },
+            //{ {"MatchRegexString", ".*http.*steam.*"}, {"TargetCss", "webkit.css"}, {"TargetJs", "webkit.js"} },
             { {"MatchRegexString", "^Steam$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
             { {"MatchRegexString", "^OverlayBrowser_Browser$"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
             { {"MatchRegexString", "^SP Overlay:"}, {"TargetCss", "libraryroot.custom.css"}, {"TargetJs", "libraryroot.custom.js"} },
@@ -482,11 +482,9 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 
 
     auto end_time = std::chrono::high_resolution_clock::now();
-
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
-    std::cout << "Elapsed time: " << duration.count() << " ms" << '\n';
-
+    console.log(std::format("Theme data collection -> {} elapsed ms", duration.count()));
 
     return jsonBuffer;
 }
@@ -522,6 +520,11 @@ const void themeConfig::setupMillennium() noexcept
 
     nullOverwrite("enableUrlBar", true); //default value
     nullOverwrite("NotificationsPos", 3); //default position i.e bottom right
+
+    nullOverwrite("auto-update-themes", true); 
+    nullOverwrite("auto-update-themes-notifs", true); 
+
+    nullOverwrite("shownNewUserPrompt", false); 
 }
 
 

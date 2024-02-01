@@ -46,10 +46,22 @@ void output_console::log_hook(std::string val) {
 	log(" [hook] ", val);
 }
 void output_console::err(std::string val) {
+
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+
 	log(" [fail] ", val);
+
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 }
 void output_console::warn(std::string val) {
+
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
+
 	log(" [warn] ", val);
+
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 }
 void output_console::succ(std::string val) {
 	log(" [okay] ", val);
@@ -62,7 +74,7 @@ void output_console::log_patch(std::string type, std::string what_patched, std::
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 
-	const auto message = std::format("[{}] match -> [windowName: '{}'][Regex: '{}']", type, what_patched, regex);
+	const auto message = std::format(" [{}] match -> [windowName: '{}'][Regex: '{}']", type, what_patched, regex);
 
 	//output_log.push_back(message);
 	fileStream << get_time() << message << std::endl;

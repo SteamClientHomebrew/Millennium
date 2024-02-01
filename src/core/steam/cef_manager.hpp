@@ -17,6 +17,14 @@
 using tcp = boost::asio::ip::tcp;
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
+using websocketpp::lib::placeholders::_1;
+using websocketpp::lib::placeholders::_2;
+using websocketpp::lib::bind;
+using json = nlohmann::json;
+
+typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
+
+
 struct endpoints
 {
 public:
@@ -77,8 +85,8 @@ private:
     cef_dom& operator=(const cef_dom&) = delete;
 };
 
-std::string injectSystemColors();
-std::string injectGlobalColor();
+std::string system_color_script();
+std::string theme_colors();
 
 struct steam_cef_manager
 {
@@ -153,6 +161,7 @@ private:
     /// </summary>
     /// <param name="callback"></param>
     const void establish_socket_handshake(std::function<void()> callback);
+
 
     //prolonging the socket closure causes socket failure and slow exec times all around
     const void close_socket() noexcept;

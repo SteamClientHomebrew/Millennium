@@ -5,8 +5,20 @@
 //network helpers and other buffer typings to help with socket management
 
 #include <boost/network/uri.hpp>
-
 #include <nlohmann/json.hpp>
+
+#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/client.hpp>
+
+typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
+
+using websocketpp::lib::placeholders::_1;
+using websocketpp::lib::placeholders::_2;
+using websocketpp::lib::bind;
+using json = nlohmann::json;
+namespace fs = std::filesystem;
+
+typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
 
 class steam_client
 {
@@ -18,3 +30,5 @@ public:
 extern nlohmann::basic_json<> skin_json_config;
 
 unsigned long __stdcall Initialize(void*);
+
+const void hot_reload();

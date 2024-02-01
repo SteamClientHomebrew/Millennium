@@ -7,6 +7,8 @@
 #include <utils/config/config.hpp>
 #include "colors/accent_colors.hpp"
 
+#include <filesystem>
+
 const std::string cef_dom::runtime::evaluate(std::string remote_url) noexcept {
     return R"(
     (() => fetch(')" + remote_url + R"(').then((response) => response.text()).then((data) => { 
@@ -35,11 +37,11 @@ const std::string cef_dom::runtime::evaluate(std::string remote_url) noexcept {
 }
 
 const std::basic_string<char, std::char_traits<char>, std::allocator<char>> cef_dom::stylesheet::add(std::string filename) noexcept {
-    return std::format("!document.querySelectorAll(`link[href='{}']`).length && document.head.appendChild(Object.assign(document.createElement('link'), {{ rel: 'stylesheet', href: '{}' }}));", filename, filename);
+    return std::format("if (document.querySelectorAll(`link[href='{}']`).length) {{ console.log('millennium stylesheet already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('link'), {{ rel: 'stylesheet', href: '{}', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
 const std::basic_string<char, std::char_traits<char>, std::allocator<char>> cef_dom::javascript::add(std::string filename) noexcept {
-    return std::format("!document.querySelectorAll(`script[src='{}'][type='module']`).length && document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module' }}));", filename, filename);
+    return std::format("if (document.querySelectorAll(`script[src='{}'][type='module']`).length) {{ console.log('millennium already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
 cef_dom& cef_dom::get() {
@@ -47,10 +49,10 @@ cef_dom& cef_dom::get() {
     return instance;
 }
 
-std::string injectSystemColors() {
+std::string system_color_script() {
     return std::format("(document.querySelector('#SystemAccentColorInject') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'SystemAccentColorInject' }}))).innerText = `{}`;", getColorStr());
 }
-std::string injectGlobalColor() {
+std::string theme_colors() {
     const auto colors = config.getRootColors(skin_json_config);
 
     return colors != "[NoColors]" ? std::format("(document.querySelector('#globalColors') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'globalColors' }}))).innerText = `{}`;", colors) : "";
@@ -71,7 +73,7 @@ void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl
         };
 
         //inject the script that the user wants
-        runtime_evaluate(injectGlobalColor() + "\n\n\n" + injectSystemColors() + "\n\n\n" + raw_script);
+        runtime_evaluate(theme_colors() + "\n\n\n" + system_color_script() + "\n\n\n" + raw_script);
     }
     catch (const boost::system::system_error& ex) {
 

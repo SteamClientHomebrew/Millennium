@@ -7,7 +7,7 @@ std::string popupModal::getSnippet(std::string header, std::string body) {
                 if (document.querySelector('.ModalOverlayContent.active') != null)
                     return
 
-                MainWindowBrowserManager.m_browser.SetVisible(false)
+                window.opener.MainWindowBrowserManager.m_browser.SetVisible(false)
 
                 const modalOverlayContent = `
                 <div class="ModalOverlayContent active">

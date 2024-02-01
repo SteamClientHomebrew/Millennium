@@ -3,7 +3,7 @@
 class json_str : public nlohmann::json {
 public:
     // Overloaded constructor that parses the string internally
-    json_str(const std::string& str) : nlohmann::json(nlohmann::json::parse(str)) {}
+    inline json_str(const std::string& str) : nlohmann::json(nlohmann::json::parse(str)) {}
 };
 
 class json_patch {
@@ -13,7 +13,7 @@ public:
     std::string targetJs;
 };
 
-void from_json(const nlohmann::json& json, json_patch& patch) 
+inline void from_json(const nlohmann::json& json, json_patch& patch) 
 {
     patch = {
         json.value("MatchRegexString", std::string()),

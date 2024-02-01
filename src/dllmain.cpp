@@ -12,9 +12,12 @@
 #include <pdh.h>
 
 #include <format>
+#include <core/injector/startup/bootstrap.hpp>
 
 #pragma comment(lib, "pdh.lib")
 #include <metrics.hpp>
+
+#include <utils/updater/update.hpp>
 
 HMODULE hCurrentModule = nullptr;
 using std::string;
@@ -72,38 +75,10 @@ namespace Millennium
                 throw http_error(http_error::errors::not_allowed);
             }
 
+            //updater::start_update();
             if (response["tag_name"] != m_ver)
             {
-                const char* url = "https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/Millennium.Installer-Windows.exe";
-
-                try 
-                {
-                    std::vector<unsigned char> result = http::get_bytes(url);
-
-                    string filePath = "millennium.installer.exe";
-
-                    std::ofstream outputFile(filePath, std::ios::binary);
-                    outputFile.write(reinterpret_cast<const char*>(result.data()), result.size());
-                    outputFile.close();
-
-                    STARTUPINFO si;
-                    PROCESS_INFORMATION pi;
-
-                    ZeroMemory(&si, sizeof(si));
-                    si.cb = sizeof(si);
-                    ZeroMemory(&pi, sizeof(pi));
-
-                    if (CreateProcess("millennium.installer.exe", (LPSTR)"-silent", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-                        CloseHandle(pi.hProcess);
-                        CloseHandle(pi.hThread);
-                    }
-
-                }
-                catch (const std::exception& e) {
-                    MsgBox(std::format("Can't update millennium! Ask support for help.\n\nTrace:\n{}", e.what()).c_str(), "Error", MB_ICONERROR);
-                }
-
-                ExitProcess(EXIT_SUCCESS);
+                updater::start_update();
             }
         }
         catch (const http_error& error)
@@ -121,14 +96,16 @@ namespace Millennium
             }
         }
 
-        //std::cout << "Millennium Dev Tools v" << m_ver << std::endl;
-        //std::cout << "Developed by ShadowMonster (discord: sm74)" << std::endl;
-        //std::cout << "Need help? Check the docs: https://millennium.gitbook.io/steam-patcher/guides/developers" << std::endl;
-        //std::cout << "Still need help? ask the discord server: https://discord.gg/MXMWEQKgJF, or DM me if you really cant figure it out" << std::endl;
-        //std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
+        std::cout << " Millennium Dev Tools v" << m_ver << std::endl;
+        std::cout << " Developed by ShadowMonster (discord: sm74)" << std::endl;
+        std::cout << " Need help? Check the docs: https://millennium.gitbook.io/steam-patcher/guides/developers" << std::endl;
+        std::cout << " Still need help? Join the discord server: https://discord.gg/MXMWEQKgJF" << std::endl;
+        std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
 
         threadContainer::getInstance().addThread(CreateThread(0, 0, getConsoleHeader, 0, 0, 0));
         threadContainer::getInstance().addThread(CreateThread(0, 0, Initialize, 0, 0, 0));
+
+        threadContainer::getInstance().addThread(CreateThread(0, 0, warm_boot, 0, 0, 0));
 
         return true;
     }
