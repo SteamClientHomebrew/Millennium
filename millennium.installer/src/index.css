@@ -1,0 +1,460 @@
+@import url('https://rsms.me/inter/inter.css');
+
+body {
+  font-family: 'Inter', sans-serif;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  user-select: none;
+  overflow-y: hidden;
+}
+
+html {
+  background-color: #111214;
+  color: white;
+}
+
+.titlebar .logo {
+  margin-left: 15px;
+  margin-top: 15px;
+  height: 15px;
+}
+
+.titlebar {
+  display: flex;
+  position: absolute;
+  width: 100%;
+  height: 32px;
+  -webkit-app-region: drag;
+  top: 0;
+
+}
+.closebtn {
+  width: 16px;
+}
+.closebtn-container {
+  -webkit-app-region: no-drag;
+  width: 48px;
+  height: 32px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.1s;
+}
+.closebtn-container:hover {
+  background-color: #e62b2b;
+
+}
+.name {
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  margin-left: 15px;
+  margin-top: 15px;
+
+}
+
+.version {
+  font-size: 10px;
+  font-weight: 500;
+  color: darkgray;
+  margin-left: 5px;
+  margin-top: 17px;
+}
+
+h1 {
+  font-size: 18px;
+}
+
+.flexbox {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  height: 100%;
+}
+
+.next {
+  background-color: #ffffff;
+  border-radius: 4px;
+  height: 35px;
+  padding: 5px 15px;
+  width: 120px;
+  margin-right: 30px;
+}
+
+.next:hover {
+  background-color: #dfdfdf;
+}
+
+.footer-content {
+  float: right;
+  position: absolute;
+  width: 100%;
+  height: 75px;
+  bottom: 0;
+  border-top: 1px solid #2E2F31;
+  display: flex;
+  align-items: center;
+  background: #141517;
+  justify-content: space-between;
+}
+
+.btn {
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid #5F5F61;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: .15s ease background,.15s ease box-shadow,.15s ease color,.15s ease border;
+  cursor: pointer;
+  padding: 8px 15px;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: black;
+  font-family: 'Inter', sans-serif;
+}
+
+.container {
+  display: flex;
+  justify-content: space-between;
+  padding: 0px 35px 35px 35px;
+}
+
+
+
+.description {
+  font-size: 12px;
+  color: #8E8E8E;
+}
+
+.header {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.left-div {
+  margin-right: 10px;
+}
+
+.right-div {
+  margin-left: 10px;
+}
+
+.left-div, .right-div {
+  box-sizing: border-box;
+  width: 50%;
+  border: 1px solid #2B2C2E;
+  padding: 25px;
+  border-radius: 10px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.right-div.selected, .left-div.selected {
+  border: 1px solid rgb(196, 196, 196);
+} 
+.right-div.selected:hover, .left-div.selected:hover {
+  border: 1px solid white;
+} 
+
+.right-div:hover, .left-div:hover {
+  transform: translateY(-3px);
+}
+
+
+.left-div:hover, .right-div:hover {
+  border: 1px solid #5F5F61;
+}
+
+.tooltip {
+  font-size: 12px;
+  color: #525357;
+  margin-left: 30px;
+  /* max-width: 264px; */
+  margin-right: 90px;
+}
+
+
+.spinner {
+  box-sizing: border-box;
+  width: 25px;
+  height: 25px;
+  padding: 3px;
+  overflow: visible;
+}
+
+.spinner > circle {
+    fill: none;
+    stroke: currentColor;
+    cx: 50%;
+    cy: 50%;
+    r: 50%;
+    stroke-width: 3px;
+    stroke-linecap: round;
+    transform-origin: center; 
+}
+
+
+.content-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  min-width: 100%;
+  transition: all .5s;
+}
+
+div#root {
+  height: 195px;
+}
+
+.installer-box {
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.installer-text {
+  font-size: 12px;
+}
+
+.winder {
+  display: flex;
+  overflow-x: hidden;
+}
+
+img.back-btn {
+  height: 15px;
+  pointer-events: none;
+}
+
+.back-btn-container {
+  border-radius: 4px;
+  margin-top: 5px;
+  margin-left: 5px;
+  height: 32px;
+  width: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: -6px;
+  -webkit-app-region: no-drag;
+}
+.back-btn-container.busy:hover {
+  cursor: not-allowed;
+}
+.back-btn-container:not(.busy):hover {
+  background: #1c1d21;
+}
+
+#uninstall {
+  width: 80%;
+}
+
+.reason {
+  background: #141517;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #2E2F31;
+  font-size: 11px;
+  /* min-width: 92%; */
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.delete-icon {
+  width: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.delete-icon img {
+  width: 137px;
+}
+
+.uninstall-container {
+  width: 100%;
+}
+
+.options .description {
+  margin-bottom: 15px;
+}
+
+.options .header {
+  margin: 0;
+}
+
+.reason:hover {
+  border: 1px solid rgb(164, 164, 164);
+  cursor: pointer;
+}
+
+.reason {
+  transition: all 0.1s;
+}
+
+.reason.selected {
+  border: 1px solid #7a7afb;
+}
+
+.reason.selected:hover {
+  border: 1px solid #8f8ff3;
+}
+
+.btn.next.disabled {
+  cursor: not-allowed;
+  background: gray;
+  /* pointer-events: visiblestroke; */
+}
+
+div#install-success {
+  flex-direction: column;
+  align-items: center;
+}
+
+.options-container {
+  padding: 0px 35px 35px 35px;
+}
+
+.container-inner {
+  display: flex;
+  justify-content: space-between; 
+}
+
+.installer-header {
+  font-size: 13px;
+}
+
+.installer-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.installer-text {
+  color: gray;
+}
+
+div#install-success .description {
+  text-wrap: wrap;
+  overflow: overlay;
+}
+
+.status-info {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+.status-info-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  /* background: green; */
+}
+
+.color.not-installed {
+  background: #815454;
+}
+
+.color.installed {
+  background: #3f456f;
+}
+
+img.closebtn {
+  pointer-events: none;
+}
+
+a {
+  color: #474783;
+}
+
+.container.uninstall-container {max-height: 59.5%;overflow-y: auto;}
+
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 6px solid rgba(0, 0, 0, 0);
+  background-clip: padding-box;
+  border-radius: 9999px;
+  background-color: #21232a;
+    transition: all 0.2s;
+    
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: white;
+}
+
+.tooltip img {
+    height: 18px;
+}
+
+p.tooltip {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    justify-content: center;
+}
+
+.info-container {
+  display: flex;
+  gap: 15px;
+  margin-right: 15px;
+}
+
+svg.social-icon-inner {
+  width: 18px;
+  color: white;
+  
+}
+
+:root {
+  --rt-opacity: 1 !important;
+  --rt-color-dark: #25272b !important;
+}
+
+.react-tooltip {
+  outline: 1px solid #2d3034 !important;
+  font-size: 12px !important;
+  padding: 5px 12px !important;
+}
+
+.react-tooltip-arrow.core-styles-module_arrow__cvMwQ.styles-module_arrow__K0L3T {
+  border-bottom: 1px solid #2d3034;
+  border-right: 1px solid #2d3034;
+}
+
+.flex-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
