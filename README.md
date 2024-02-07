@@ -1,8 +1,9 @@
 <div align="center">
 
-[![Millennium Logo](https://cdn.discordapp.com/attachments/923017628367335428/1150460611977826335/Untitled_3.png)](https://millennium.web.app/)
 
-[![CI Status][build-badge]][build-link] [![GitHub Releases][downloads-badge]][downloads-link] [![Discord][discord-badge]][discord-link] [![Website][website-badge]][website-link] [![Docs][docs-badge]][docs-link]
+## Millennium Steam Patcher
+
+[![GitHub Releases][downloads-badge]][downloads-link] [![Discord][discord-badge]][discord-link] [![Website][website-badge]][website-link] [![Docs][docs-badge]][docs-link]
 
 [downloads-badge]: https://img.shields.io/github/downloads/shadowmonster99/millennium-steam-binaries/total?labelColor=0c0d10&color=3a71c1&style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyLjI1IDM4LjVIMzUuNzVDMzYuNzE2NSAzOC41IDM3LjUgMzkuMjgzNSAzNy41IDQwLjI1QzM3LjUgNDEuMTY4MiAzNi43OTI5IDQxLjkyMTIgMzUuODkzNSA0MS45OTQyTDM1Ljc1IDQySDEyLjI1QzExLjI4MzUgNDIgMTAuNSA0MS4yMTY1IDEwLjUgNDAuMjVDMTAuNSAzOS4zMzE4IDExLjIwNzEgMzguNTc4OCAxMi4xMDY1IDM4LjUwNThMMTIuMjUgMzguNUgzNS43NUgxMi4yNVpNMjMuNjA2NSA2LjI1NThMMjMuNzUgNi4yNUMyNC42NjgyIDYuMjUgMjUuNDIxMiA2Ljk1NzExIDI1LjQ5NDIgNy44NTY0N0wyNS41IDhWMjkuMzMzTDMwLjI5MzEgMjQuNTQwN0MzMC45NzY1IDIzLjg1NzMgMzIuMDg0NiAyMy44NTczIDMyLjc2OCAyNC41NDA3QzMzLjQ1MTQgMjUuMjI0MiAzMy40NTE0IDI2LjMzMjIgMzIuNzY4IDI3LjAxNTZMMjQuOTg5OCAzNC43OTM4QzI0LjMwNjQgMzUuNDc3MiAyMy4xOTg0IDM1LjQ3NzIgMjIuNTE1IDM0Ljc5MzhMMTQuNzM2OCAyNy4wMTU2QzE0LjA1MzQgMjYuMzMyMiAxNC4wNTM0IDI1LjIyNDIgMTQuNzM2OCAyNC41NDA3QzE1LjQyMDIgMjMuODU3MyAxNi41MjgyIDIzLjg1NzMgMTcuMjExNyAyNC41NDA3TDIyIDI5LjMyOVY4QzIyIDcuMDgxODMgMjIuNzA3MSA2LjMyODgxIDIzLjYwNjUgNi4yNTU4TDIzLjc1IDYuMjVMMjMuNjA2NSA2LjI1NThaIiBmaWxsPSIjM2E3MWMxIi8+Cjwvc3ZnPgo=
 [downloads-link]: #auto-installers
@@ -20,9 +21,19 @@
 [docs-link]: https://millennium.gitbook.io/steam-patcher/
 
 
-Millennium is an integrated client modification (requiring no external apps) for Steam that brings skins/theming back to the new Steam Client.
 
-[![Theme Split](https://cdn.discordapp.com/attachments/923017628367335428/1194399486080979166/thumb.png?ex=65b03634&is=659dc134&hm=f18c098ab0961b45c6ea3a8d71f5123a379dcb3bca592ee83814b92401b1699e&)](https://cdn.discordapp.com/attachments/923017628367335428/1194399486080979166/thumb.png?ex=65b03634&is=659dc134&hm=f18c098ab0961b45c6ea3a8d71f5123a379dcb3bca592ee83814b92401b1699e&)
+<div align="center" style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+  
+  #### Millennium is an open source mod integrated directly into Steam® that allows the use of skins/theme's after Steam's latest UI overhaul.
+
+  <br>
+  <div style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
+    <img alt="Preview" width="524" alt="Hero image" src="https://cdn.discordapp.com/attachments/923017628367335428/1204647406503858206/userlmn_1acb9f0b3d950b73c87275f151b1ad06.png?ex=65d57e52&is=65c30952&hm=ed54a1aae9a94a707f05443d001d54caed8ac60fc28147b744a29b2559c43bfe&"/>
+  </div>
+
+</div>
+
+<br><br>
 
 </div>
 
@@ -45,7 +56,7 @@ For normal users, installing via the installers makes the most sense. However wh
 
 # Addons
 
-Installing addons--like plugins and themes--is easy. All you need to do is select and download an addon/theme from the community tab inside the Millennium app.
+Installing addons--like plugins and themes--is easy. All you need to do is select and download an addon/theme from the [community](https://millennium.web.app/themes). 
 
 
 
