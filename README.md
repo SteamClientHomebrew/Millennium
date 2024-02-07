@@ -12,7 +12,7 @@
 [build-link]: https://github.com/shadowmonster99/millennium-steam-patcher/actions/workflows/build.yml
 
 [discord-badge]: https://img.shields.io/badge/discord-green?labelColor=0c0d10&color=7289da&style=for-the-badge&logo=discord&logoColor=7289da
-[discord-link]: https://discord.gg/MXMWEQKgJF
+[discord-link]: https://millennium.web.app/discord
 
 [website-badge]: https://img.shields.io/badge/website-green?labelColor=0c0d10&color=3a71c1&style=for-the-badge&logo=firefoxbrowser&logoColor=3a71c1
 [website-link]: https://millennium.web.app/
