@@ -1,7 +1,7 @@
 <div align="center">
 
 
-## Millennium Steam Patcher
+## Millennium Steam Patcher ™
 
 [![GitHub Releases][downloads-badge]][downloads-link] [![Discord][discord-badge]][discord-link] [![Website][website-badge]][website-link] [![Docs][docs-badge]][docs-link]
 
