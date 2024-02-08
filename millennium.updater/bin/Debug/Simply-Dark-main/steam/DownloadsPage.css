@@ -1,0 +1,42 @@
+
+/* Downloads Area */
+
+[class*="downloadgraph_GraphAndStats_"] {
+    background: var(--color-darkest) !important;
+}
+
+[class*="downloads_ItemLists_"]{
+    background: #1E1E1E !important;
+}
+
+[class*="downloadgraph_Button_"][class*="downloadgraph_Button_"], 
+[class*="downloadgraph_Button_"][class*="downloadgraph_Button_"]:enabled, 
+[class*="downloadgraph_Button_"][class*="downloadgraph_Button_"]:active, 
+[class*="downloadgraph_Button_"][class*="downloadgraph_Button_"]:hover, 
+[class*="downloadgraph_Button_"][class*="downloadgraph_Button_"]:enabled:active:hover, 
+[class*="downloadgraph_Button_"][class*="downloadgraph_Button_"].DialogButton:enabled {
+    background: #1E1E1E !important;
+}
+
+[class*="downloads_SectionItem_"] [class*="downloads_Button_"], 
+[class*="downloads_SectionItem_"] [class*="downloads_Button_"]:enabled, 
+[class*="downloads_SectionItem_"] [class*="downloads_Button_"]:active, 
+[class*="downloads_SectionItem_"] [class*="downloads_Button_"]:hover, 
+[class*="downloads_SectionItem_"] [class*="downloads_Button_"]:enabled:active:hover, 
+[class*="downloads_SectionItem_"] [class*="downloads_Button_"]:enabled { 
+    background: var(--color-light) !important;
+}
+
+[class*="downloads_SectionItem_"]:hover, 
+[class*="downloads_SectionItem_"][class*="downloads_Dragging_"] {
+    background: var(--color-light) !important;
+}
+
+.downloads_SectionItem_1VNuY.downloads_Active_IbePL {
+    background: var(--color-dark) !important;
+}
+
+.downloads_Active_IbePL .downloads_SectionList_OINnO {
+    background: var(--color-light) !important;
+}
+

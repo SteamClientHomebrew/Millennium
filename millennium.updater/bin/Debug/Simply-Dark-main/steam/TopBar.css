@@ -1,0 +1,94 @@
+/* got this from laser */
+
+[class*="titlebarcontrols_AccountMenu_"] div:nth-of-type(2) {
+    display: none !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="FriendsButton_"],
+[class*="bottombar_BottomBar"] [class*="AddGameButton_"],
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] {
+    background-color: var(--color-dark) !important;
+    padding: 0px 12px !important;
+    border-radius: 2px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    display: flex !important;
+    height: 100% !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="FriendsButton"]:hover,
+[class*="bottombar_BottomBar"] [class*="AddGameButton"]:hover,
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"]:hover {
+    background-color: var(--color-light) !important;
+    transition: background-color .15s ease-out !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="DetailedDownloadProgress"] {
+    max-width: 180px !important;
+    align-items: center !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="DetailedDownloadProgress"] [class*="bottombar_Icon"] {
+    margin: 0 !important;
+    margin-top: 2px !important;
+    box-shadow: none !important;
+    height: 20px !important;
+    width: 20px !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="DetailedDownloadProgress"] [class*="ProgressBarWrapper"] {
+    margin: 0 !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="DetailedDownloadProgress"] [class*="Status"],
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="DownloadStatusContent_"] [class*="Queue_"] {
+    padding-top: 0 !important;
+}
+
+[class*="DownloadStatusContent_"] {
+    padding: 0px 0px 2px 0px !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="updatealert_Alert_"] /* need to find out what this is */,
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] [class*="DetailedDownloadProgress"] [class*="IconBevel"] {
+    display: none !important; 
+}
+
+[class*="bottombar_BottomBar"] [class*="AddGameButton"] {
+    order: var(2) !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="DownloadStatus_"] {
+    order: var(1) !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="FriendsButton"] {
+    order: var(3) !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="AddGameButton"] [class*="bottombar_Text"],
+[class*="bottombar_BottomBar"] [class*="FriendsButton"] [class*="bottombar_Text"] {
+    position: absolute !important;
+    top: 32px !important;
+    opacity: 0 !important;
+    transition: opacity .25s !important;
+    pointer-events: none !important;
+    box-sizing: border-box !important;
+    font-size: 13px !important;
+    background-color: var(--grey-ish) !important;
+    border-radius: 2px !important;
+    padding: 6px 8px !important;
+    box-shadow: 1px 1px 8px #0005, 2px 2px 16px 1px #0005 !important;
+    width: fit-content !important;
+    user-select: none !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+[class*="bottombar_BottomBar"] [class*="AddGameButton"]:hover [class*="bottombar_Text"],
+[class*="bottombar_BottomBar"] [class*="FriendsButton"]:hover [class*="bottombar_Text"] {
+    opacity: 1 !important;
+}

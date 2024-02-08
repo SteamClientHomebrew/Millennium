@@ -4,29 +4,61 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.3.32819.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "millennium", "src\millennium.vcxproj", "{52400E65-4477-40E6-8859-D1AE4F99014D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF} = {06D78D6D-0224-44CB-BAAC-99C3390056EF}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "millennium.updater", "millennium.updater\millennium.updater.csproj", "{06D78D6D-0224-44CB-BAAC-99C3390056EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
+		ReleaseSteam|Any CPU = ReleaseSteam|Any CPU
 		ReleaseSteam|x64 = ReleaseSteam|x64
 		ReleaseSteam|x86 = ReleaseSteam|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{52400E65-4477-40E6-8859-D1AE4F99014D}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{52400E65-4477-40E6-8859-D1AE4F99014D}.Debug|Any CPU.Build.0 = Debug|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Debug|x64.ActiveCfg = Debug|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Debug|x64.Build.0 = Debug|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Debug|x86.ActiveCfg = Debug|Win32
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Debug|x86.Build.0 = Debug|Win32
+		{52400E65-4477-40E6-8859-D1AE4F99014D}.Release|Any CPU.ActiveCfg = Release|x64
+		{52400E65-4477-40E6-8859-D1AE4F99014D}.Release|Any CPU.Build.0 = Release|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Release|x64.ActiveCfg = Release|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Release|x64.Build.0 = Release|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Release|x86.ActiveCfg = Release|Win32
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.Release|x86.Build.0 = Release|Win32
+		{52400E65-4477-40E6-8859-D1AE4F99014D}.ReleaseSteam|Any CPU.ActiveCfg = ReleaseSteam|x64
+		{52400E65-4477-40E6-8859-D1AE4F99014D}.ReleaseSteam|Any CPU.Build.0 = ReleaseSteam|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.ReleaseSteam|x64.ActiveCfg = ReleaseSteam|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.ReleaseSteam|x64.Build.0 = ReleaseSteam|x64
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.ReleaseSteam|x86.ActiveCfg = ReleaseSteam|Win32
 		{52400E65-4477-40E6-8859-D1AE4F99014D}.ReleaseSteam|x86.Build.0 = ReleaseSteam|Win32
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Debug|x64.Build.0 = Debug|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Debug|x86.Build.0 = Debug|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Release|x64.ActiveCfg = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Release|x64.Build.0 = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Release|x86.ActiveCfg = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.Release|x86.Build.0 = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.ReleaseSteam|Any CPU.ActiveCfg = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.ReleaseSteam|Any CPU.Build.0 = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.ReleaseSteam|x64.ActiveCfg = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.ReleaseSteam|x64.Build.0 = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.ReleaseSteam|x86.ActiveCfg = Release|Any CPU
+		{06D78D6D-0224-44CB-BAAC-99C3390056EF}.ReleaseSteam|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
