@@ -23,6 +23,8 @@
 #include <core/steam/cef_manager.hpp>
 #include "core/memory.h"
 
+#include <window/interface_v2/editor.hpp>
+
 bool updateLibrary = false;
 void handleEdit();
 
@@ -102,6 +104,10 @@ public:
 
 	void openPopupMenu(nlohmann::basic_json<>& skin)
 	{
+		editor* skin_editor = new editor;
+		skin_editor->create();
+		delete skin_editor;
+
 		colorList.clear();
 
 		if (skin.contains("GlobalsColors") && skin.is_object())

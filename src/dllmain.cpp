@@ -18,6 +18,7 @@
 #include <metrics.hpp>
 
 #include <utils/updater/update.hpp>
+#include <utils/clr/platform.hpp>
 
 HMODULE hCurrentModule = nullptr;
 using std::string;
@@ -102,10 +103,31 @@ namespace Millennium
         std::cout << " Still need help? Join the discord server: https://discord.gg/MXMWEQKgJF" << std::endl;
         std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
 
+
+
+        //clr_interop::clr_base::instance().start_update(nlohmann::json({
+        //    {"owner", "SaiyajinK"},
+        //    {"repo", "Minimal-Dark-for-Steam"}
+        //}).dump(4));
+
+        //clr_interop::clr_base::instance().start_update(nlohmann::json({
+        //    {"owner", "ShadowMonster99"},
+        //    {"repo", "Simply-Dark"}
+        //}).dump(4));
+
+
+        //clr_interop::clr_base::instance().start_update(nlohmann::json({
+        //    {"owner", "RoseTheFlower"},
+        //    {"repo", "MetroSteam"}
+        //}).dump(4));
+
+        //clr_interop::clr_base::instance().cleanup_clr();
+
+
         threadContainer::getInstance().addThread(CreateThread(0, 0, getConsoleHeader, 0, 0, 0));
         threadContainer::getInstance().addThread(CreateThread(0, 0, Initialize, 0, 0, 0));
 
-        threadContainer::getInstance().addThread(CreateThread(0, 0, warm_boot, 0, 0, 0));
+        threadContainer::getInstance().addThread(CreateThread(0, 0, queryThemeUpdates, 0, 0, 0));
 
         return true;
     }

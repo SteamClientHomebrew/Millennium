@@ -17,7 +17,7 @@ public:
 private:
 };
 
-static unsigned long __stdcall warm_boot(void*) {
+static unsigned long __stdcall queryThemeUpdates(void*) {
 	
 	std::unique_ptr<bootstrapper> bootstrapper_module = std::make_unique<bootstrapper>();
 

@@ -149,7 +149,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ws2_32.lib;Pdh.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -173,7 +173,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ws2_32.lib;winhttp.lib;Pdh.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;winhttp.lib;Pdh.lib;d3dx9.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AddModuleNamesToAssembly>%(AddModuleNamesToAssembly)</AddModuleNamesToAssembly>
     </Link>
   </ItemDefinitionGroup>
@@ -266,12 +266,14 @@
     <ClInclude Include="core\steam\colors\accent_colors.hpp" />
     <ClInclude Include="metrics.hpp" />
     <ClInclude Include="utils\base64.hpp" />
+    <ClInclude Include="utils\clr\platform.hpp" />
     <ClInclude Include="utils\thread\thread_handler.hpp" />
     <ClInclude Include="utils\updater\update.hpp" />
     <ClInclude Include="window\api\api.hpp" />
     <ClInclude Include="window\api\installer.hpp" />
     <ClInclude Include="window\core\colors.hpp" />
     <ClInclude Include="window\core\dx9_image.hpp" />
+    <ClInclude Include="window\interface_v2\editor.hpp" />
     <ClInclude Include="window\imgui\imconfig.h" />
     <ClInclude Include="window\imgui\imgui.h" />
     <ClInclude Include="window\imgui\imgui_impl_dx9.h" />
@@ -283,6 +285,7 @@
     <ClInclude Include="window\core\memory.h" />
     <ClInclude Include="window\core\window.hpp" />
     <ClInclude Include="window\interface\globals.h" />
+    <ClInclude Include="window\interface_v2\settings.hpp" />
     <ClInclude Include="window\win_handler.hpp" />
     <ClInclude Include="scripts\resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -299,12 +302,14 @@
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="metrics.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="utils\clr\platform.cpp" />
     <ClCompile Include="utils\thread\thread_handler.cpp" />
     <ClCompile Include="utils\updater\update.cpp" />
     <ClCompile Include="window\api\api.cpp" />
     <ClCompile Include="window\api\installer.cpp" />
     <ClCompile Include="window\core\colors.cpp" />
     <ClCompile Include="window\core\dx9_image.cpp" />
+    <ClCompile Include="window\interface_v2\editor.cpp" />
     <ClCompile Include="window\imgui\imgui.cpp" />
     <ClCompile Include="window\imgui\imgui_demo.cpp" />
     <ClCompile Include="window\imgui\imgui_draw.cpp" />
@@ -317,6 +322,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="window\interface_v2\settings.cpp" />
     <ClCompile Include="window\win_handler.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="utils\config\config.cpp" />

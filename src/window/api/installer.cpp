@@ -2,6 +2,7 @@
 #include <stdafx.h>
 
 #include <regex>
+#include <utils/clr/platform.hpp>
 
 namespace Community
 {
@@ -55,6 +56,28 @@ namespace Community
 
 	void installer::installUpdate(const nlohmann::json& skinData)
 	{
+		g_processingFileDrop = true;
+
+		g_fileDropStatus = "Updating Theme...";
+
+		bool success = clr_interop::clr_base::instance().start_update(nlohmann::json({
+			{"owner", skinData["github"]["owner"]},
+			{"repo", skinData["github"]["repo_name"]}
+		}).dump(4));
+
+		if (success) {
+			std::cout << "successfully updated a theme" << std::endl;
+			g_fileDropStatus = "Updated Successfully!";
+		}
+		else {
+			std::cout << "failed to update a theme" << std::endl;
+			g_fileDropStatus = "Failed to update theme...";
+		}
+
+		Sleep(1500);
+		g_processingFileDrop = false;
+		return;
+
 		const std::string nativeName = skinData["native-name"];
 		std::cout << skinData.dump(4) << std::endl;
 
