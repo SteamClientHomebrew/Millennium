@@ -39,7 +39,7 @@
     "axios": "^1.6.6",
     "child_process": "^1.0.2",
     "electron-webpack": "^2.8.2",
-    "framer-motion": "^11.0.3",
+    "framer-motion": "^11.0.5",
     "is-running": "^2.1.0",
     "ps-list": "^8.1.1",
     "react": "^18.2.0",

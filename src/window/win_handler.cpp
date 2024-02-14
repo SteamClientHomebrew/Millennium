@@ -24,6 +24,7 @@
 #include "core/memory.h"
 
 #include <window/interface_v2/editor.hpp>
+#include <core/steam/window/manager.hpp>
 
 bool updateLibrary = false;
 void handleEdit();
@@ -104,9 +105,9 @@ public:
 
 	void openPopupMenu(nlohmann::basic_json<>& skin)
 	{
-		editor* skin_editor = new editor;
-		skin_editor->create();
-		delete skin_editor;
+		//editor* skin_editor = new editor;
+		//skin_editor->create();
+		//delete skin_editor;
 
 		colorList.clear();
 
@@ -153,194 +154,6 @@ public:
 		}
 	}
 
-	void createLibraryListing(nlohmann::basic_json<> skin, int index, bool deselect = false)
-	{
-		const std::string m_skinName = skin.value("native-name", std::string());
-		static bool push_popped = false;
-		static int hovering;
-
-		bool popped = false;
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-
-		float desc_height = ImGui::CalcTextSize(skin["description"].get<std::string>().c_str(), 0, false, ImGui::GetContentRegionAvail().x - 50).y;
-
-		if (hovering == index) {
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-			push_popped = true;
-		}
-		else ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.13f, 0.13f, 1.0f));
-
-		static bool btn1hover = false;
-		static bool btn2hover = false;
-		static bool btn3hover = false;
-
-		if (m_Client.m_currentSkin == m_skinName)
-			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.27f, 0.27f, 0.27f, 1.0f));
-		else
-			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.25f, 0.25f, 0.25f, 0.0f));
-
-		bool requiresUpdate = skin.value("update_required", false);
-
-		ImGui::BeginChild(std::format("card_child_container_{}", index).c_str(), ImVec2(rx, 37), true, ImGuiWindowFlags_ChildWindow);
-		{
-			ImGui::PopStyleVar();
-			popped = true;
-			//ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6);
-			ImGui::PopStyleColor();
-
-
-			ImGui::BeginChild(std::format("skin_header{}", index).c_str(), ImVec2(rx, 37), true, ImGuiWindowFlags_NoScrollbar);
-			{
-				//ImGui::Image((void*)Window::iconsObj().skin_icon, ImVec2(ry - 1, ry - 1));
-				//ImGui::SameLine();
-				//ui::shift::x(-4);
-				ImGui::Text(skin.value("name", "null").c_str());
-				ImGui::SameLine();
-				ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() - 5, ImGui::GetCursorPosY() + 1));
-				ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
-				ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), std::format("{} by {}", skin.value("version", "1.0.0"), skin.value("author", "unknown")).c_str());
-				ImGui::SameLine();
-				ui::shift::right(35);
-				ImGui::SameLine();
-				ui::shift::y(1);
-				ImGui::PopFont();
-
-				if (requiresUpdate)
-				{
-					if (hovering == index)
-					{
-						ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
-						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetColorU32(ImGuiCol_CheckMark));
-
-						ui::shift::y(-3);
-						ui::shift::right(159);
-
-						ImGui::ImageButton(Window::iconsObj().editIcon, ImVec2(16, 16));
-						btn1hover = ImGui::IsItemHovered();
-
-						if (ImGui::IsItemClicked()) {
-							this->openPopupMenu(skin);
-						}
-
-						ImGui::SameLine(0);
-						ui::shift::x(-4);
-						ImGui::PopStyleColor(2);
-
-						ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
-						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
-						ImGui::ImageButton(Window::iconsObj().deleteIcon, ImVec2(16, 16));
-
-						btn2hover = ImGui::IsItemHovered();
-
-						if (ImGui::IsItemClicked()) {
-							deleteListing(skin);
-						}
-
-						ImGui::PopStyleColor(2);
-						ImGui::SameLine();
-						ui::shift::x(-4);
-					}
-					else {
-						ui::shift::y(-3);
-						ui::shift::right(95);
-					}
-
-					ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetColorU32(ImGuiCol_CheckMark));
-					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetColorU32(ImGuiCol_CheckMark));
-
-					static bool updateSkinData = false;
-
-					if (updateSkinData) {
-						m_Client.parseSkinData(true, true, skin["native-name"]);
-						updateSkinData = false;
-					}
-
-					if (ImGui::Button("UPDATE", ImVec2(rx, 0))) {
-						std::thread([=] {
-							Community::Themes->installUpdate(skin);
-							updateSkinData = true;
-						}).detach();
-					}
-					if (ImGui::IsItemHovered()) {
-						btn3hover = true;
-
-						std::string message = skin.contains("git") 
-							&& skin["git"].contains("message") 
-							&& !skin["git"]["message"].is_null() ? 
-								skin["git"].value("message", "null") : "null";
-
-						std::string date = skin.contains("git") 
-							&& skin["git"].contains("date") 
-							&& !skin["git"]["date"].is_null() ? 
-								skin["git"].value("date", "null") : "null";
-
-						std::string text = std::format("{} was updated on {}.\n\nReason:\n{}\n\nMiddle click to see more details...", skin.value("native-name", "null"), date, message);
-
-						ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
-						ImGui::SetTooltip(text.c_str());
-						ImGui::PopStyleColor();
-					}
-					else {
-						btn3hover = false;
-					}
-
-					if (ImGui::IsItemClicked(ImGuiMouseButton_Middle)) {
-						OpenURL((skin.contains("git") && skin["git"].contains("url") && !skin["git"]["url"].is_null() ? skin["git"]["url"].get<std::string>() : "null").c_str());
-					}
-
-					ImGui::PopStyleColor(2);
-				}
-				else if (hovering == index)
-				{
-					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
-					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetColorU32(ImGuiCol_CheckMark));
-
-					ui::shift::y(-3);
-					ui::shift::right(55);
-
-					ImGui::ImageButton(Window::iconsObj().editIcon, ImVec2(16, 16));
-					btn1hover = ImGui::IsItemHovered();
-
-
-					if (ImGui::IsItemClicked()) 
-						this->openPopupMenu(skin);
-
-					ImGui::SameLine(0);
-					ui::shift::x(-4);
-					ImGui::PopStyleColor(2);
-
-					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.20f, 0.20f, 1.0f));
-					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
-					ImGui::ImageButton(Window::iconsObj().deleteIcon, ImVec2(16, 16));
-
-					btn2hover = ImGui::IsItemHovered();
-					
-					if (ImGui::IsItemClicked()) this->deleteListing(skin);
-					
-					ImGui::PopStyleColor(2);
-				}
-			}
-			ImGui::EndChild();
-			//ImGui::PopStyleVar();		
-		}
-
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
-			std::cout << "calling to change skin..." << std::endl;
-			m_Client.changeSkin((nlohmann::basic_json<>&)skin);
-		}
-
-		if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-		{
-			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-			hovering = index;
-			push_popped = false;
-		}
-		else if (push_popped) hovering = -1;
-
-		ImGui::PopStyleColor();
-		ImGui::EndChild();
-	}
 	void library_panel()
 	{
 		if (m_Client.m_missingSkins > 0) {
@@ -367,19 +180,12 @@ public:
 
 		ImGui::BeginChild("###library_container", ImVec2(child_width, contentHeight), true, ImGuiWindowFlags_AlwaysAutoResize);
 		{
-			if (g_fileDropQueried) {
-				ImGui::PopStyleColor();
-			}
 
-			static const auto to_lwr = [](std::string str) {
-				std::string result;
-				for (char c : str) {
-					result += std::tolower(c);
-				}
-				return result;
-			};
+			int selectedItem = 0;
 
-			bool skinSelected = false;
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+
+			std::string currentTheme = m_Client.skinData.size() == 0 ? m_Client.skinDataReady ? "Nothing here..." : "One Moment..." : "< default >";
 
 			for (size_t i = 0; i < m_Client.skinData.size(); ++i)
 			{
@@ -387,22 +193,121 @@ public:
 
 				if (skin.value("native-name", std::string()) == m_Client.m_currentSkin)
 				{
-					skinSelected = true;
-
-					createLibraryListing(skin, i, true);
-
-					ImGui::Spacing();
-					ImGui::Spacing();
+					currentTheme = skin.value("name", "null");
 				}
 			}
+
+			ImGui::Text("Select a theme:");
+
+			ImGui::PushItemWidth(225);
+
+			if (ImGui::BeginCombo("###SelectTheme", currentTheme.c_str())) {
+				for (int i = 0; i < m_Client.skinData.size(); i++) {
+					bool isSelected = (selectedItem == i);
+
+					//ImGui::PushItemWidth(300);
+					//ImGui::SetNextWindowSize(ImVec2(350, 450));
+					//createLibraryListing(m_Client.skinData[i], i + (m_Client.skinData.size() + 1));
+					//ImGui::PopItemWidth();
+
+					//ui::shift::y(-3);
+
+					// dont display the active skin
+					if (m_Client.skinData[i].value("native-name", "null") == m_Client.m_currentSkin) {
+						continue;
+					}
+
+					// get cursor height before rendering selectable
+					const auto height = ImGui::GetCursorPosY() - ImGui::GetScrollY();
+
+					if (ImGui::Selectable(m_Client.skinData[i].value("name", "null").c_str()))
+					{
+						selectedItem = i;
+						m_Client.changeSkin((nlohmann::basic_json<>&)m_Client.skinData[i]);
+					}
+					if (ImGui::IsItemHovered()) {
+						
+						const auto pos = ImGui::GetWindowPos();
+						const auto width = ImGui::GetWindowWidth();
+
+						std::string version = std::format("version: {}", m_Client.skinData[i].value("version", "1.0.0"));
+						std::string author = std::format("author: {}", m_Client.skinData[i].value("author", "anonymous"));
+
+						ImGui::SetNextWindowPos(ImVec2(pos.x + width, pos.y + height));
+						ImGui::SetNextWindowSize(ImVec2(max(ImGui::CalcTextSize(version.c_str()).x, ImGui::CalcTextSize(author.c_str()).x) + 25.0f, 0));
+
+
+						ImGui::BeginTooltip();
+
+						ImGui::Text(version.c_str());
+						ImGui::TextWrapped(author.c_str());
+
+						ImGui::EndTooltip();
+					}
+
+					// Set the initial focus when opening the combo
+					//if (isSelected)
+					//	ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::PopStyleColor();
+
+			ImGui::SameLine();
+			ui::shift::x(-4);
+
+			if (ImGui::Button("Reset")) {
+
+				Settings::Set("active-skin", "default");
+				themeConfig::updateEvents::getInstance().triggerUpdate();
+
+				steam_js_context js_context;
+				js_context.reload();
+
+				if (steam::get().params.has("-silent")) {
+					MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
+				}
+
+				m_Client.parseSkinData(false);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+				ImGui::SetTooltip("Go back to default.");
+				ImGui::PopStyleColor();
+			}
+
+			if (g_fileDropQueried) {
+				ImGui::PopStyleColor();
+			}
+
+			ImGui::PopItemWidth();
+
+			bool skinSelected = false;
+
+			//for (size_t i = 0; i < m_Client.skinData.size(); ++i)
+			//{
+			//	nlohmann::basic_json<>& skin = m_Client.skinData[i];
+
+			//	if (skin.value("native-name", std::string()) == m_Client.m_currentSkin)
+			//	{
+			//		skinSelected = true;
+
+			//		createLibraryListing(skin, i, true);
+
+			//		ImGui::Spacing();
+			//		ImGui::Spacing();
+			//	}
+			//}
 
 			//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[1]);
 			//{
 			//	ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "LIBRARY:");
 			//}
 			//ImGui::PopFont();
-			//ImGui::SameLine();
-			ui::shift::right(216);
+			/*ImGui::SameLine();
+			ui::shift::x(-4);
 
 			if (ImGui::ImageButton(Window::iconsObj().reload_icon, ImVec2(17, 17))) {
 				m_Client.parseSkinData(false);
@@ -425,71 +330,91 @@ public:
 				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
 				ImGui::SetTooltip("Open the skins folder...");
 				ImGui::PopStyleColor();
-			}
+			}*/
 
-			ImGui::SameLine();
-			ui::shift::x(-4);
+			ImGui::TextColored(ImVec4(0.451f, 0.569f, 1.0f, 1.0f), "Get more themes ->");
 
-			ImGui::PushItemWidth(150);
-
-			auto position = ImGui::GetCursorPos();
-			ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer));
-			static const auto after = ImGui::GetCursorPos();
-
-			static bool is_focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
-
-			if (!is_focused && text_buffer[0] == '\0')
+			if (ImGui::IsItemHovered())
 			{
-				ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
+				ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-				ImGui::TextUnformatted("Search Library...");
+				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+				ImGui::SetTooltip("opens in the main Steam browser...");
 				ImGui::PopStyleColor();
 			}
 
-			ImGui::PopItemWidth();
-			ui::shift::y(5);
+			if (ImGui::IsItemClicked()) {
+				steam_js_context SharedJsContext;
 
-			if (!skinSelected ? m_Client.skinData.empty() : m_Client.skinData.size() - 1 <= 0) {
-				ui::shift::y((int)(ry / 2 - 25));
+				std::string url = "https://millennium.web.app/themes";
+				std::string loadUrl = std::format("SteamUIStore.Navigate('/browser', MainWindowBrowserManager.LoadURL('{}'));", url);
 
-				ui::center(0, 240, 0);
-				ImGui::BeginChild("noResultsContainer", ImVec2(240, 135), false);
-				{
-					ImGui::Image(Window::iconsObj().icon_no_results, ImVec2(240, 110));
-					const char* text = "You don't have any themes!";
-
-					ui::center(0, ImGui::CalcTextSize(text).x, 0);
-					ImGui::Text(text);
-				}
-				ImGui::EndChild();
+				SharedJsContext.exec_command(loadUrl);
 			}
-			else {
-				try {
-					std::sort(m_Client.skinData.begin(), m_Client.skinData.end(), ([&](const nlohmann::json& a, const nlohmann::json& b) 
-					{
-						bool downloadA = a.value("update_required", false);
-						bool downloadB = b.value("update_required", false);
 
-						if (downloadA && !downloadB)       return true;		
-						else if (!downloadA && downloadB)  return false;
-						else                               return a < b;
-						
-					}));
-				}
-				catch (nlohmann::detail::exception&) { }
+			//ImGui::SameLine();
+			//ui::shift::x(-4);
 
-				for (size_t i = 0; i < m_Client.skinData.size(); ++i)
-				{
-					nlohmann::basic_json<>& skin = m_Client.skinData[i];
+			//ImGui::PushItemWidth(150);
 
-					if (skin.value("native-name", std::string()) != m_Client.m_currentSkin &&
-						to_lwr(skin["name"].get<std::string>()).find(to_lwr(text_buffer)) != std::string::npos)
-					{
-						createLibraryListing(skin, i + (m_Client.skinData.size() + 1));
-					}
-				}
-			}
+			//auto position = ImGui::GetCursorPos();
+			//ImGui::InputText("##myInput", text_buffer, sizeof(text_buffer));
+			//static const auto after = ImGui::GetCursorPos();
+
+			//static bool is_focused = ImGui::IsItemActive() || ImGui::IsItemFocused();
+
+			//if (!is_focused && text_buffer[0] == '\0')
+			//{
+			//	ImGui::SetCursorPos(ImVec2(position.x + 5, position.y + 2));
+
+			//	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+			//	ImGui::TextUnformatted("Search Library...");
+			//	ImGui::PopStyleColor();
+			//}
+
+			//ImGui::PopItemWidth();
+			//ui::shift::y(5);
+
+			//if (!skinSelected ? m_Client.skinData.empty() : m_Client.skinData.size() - 1 <= 0) {
+			//	ui::shift::y((int)(ry / 2 - 25));
+
+			//	ui::center(0, 240, 0);
+			//	ImGui::BeginChild("noResultsContainer", ImVec2(240, 135), false);
+			//	{
+			//		ImGui::Image(Window::iconsObj().icon_no_results, ImVec2(240, 110));
+			//		const char* text = "You don't have any themes!";
+
+			//		ui::center(0, ImGui::CalcTextSize(text).x, 0);
+			//		ImGui::Text(text);
+			//	}
+			//	ImGui::EndChild();
+			//}
+			//else {
+			//	try {
+			//		std::sort(m_Client.skinData.begin(), m_Client.skinData.end(), ([&](const nlohmann::json& a, const nlohmann::json& b) 
+			//		{
+			//			bool downloadA = a.value("update_required", false);
+			//			bool downloadB = b.value("update_required", false);
+
+			//			if (downloadA && !downloadB)       return true;		
+			//			else if (!downloadA && downloadB)  return false;
+			//			else                               return a < b;
+			//			
+			//		}));
+			//	}
+			//	catch (nlohmann::detail::exception&) { }
+
+			//	//for (size_t i = 0; i < m_Client.skinData.size(); ++i)
+			//	//{
+			//	//	nlohmann::basic_json<>& skin = m_Client.skinData[i];
+
+			//	//	if (skin.value("native-name", std::string()) != m_Client.m_currentSkin &&
+			//	//		to_lwr(skin["name"].get<std::string>()).find(to_lwr(text_buffer)) != std::string::npos)
+			//	//	{
+			//	//		createLibraryListing(skin, i + (m_Client.skinData.size() + 1));
+			//	//	}
+			//	//}
+			//}
 
 			contentHeight = ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y;
 		}
@@ -508,40 +433,119 @@ public:
 		ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 15);
 		ImGui::BeginChild("settings_panel", ImVec2(child_width, windowHeight), false);
 		{
+			static const char* corner_prefs[] = { "Default"/*0*/, "Force Rounded"/*0*/, "Square"/*1*/, "Slightly Rounded"/*2*/ };
+			static int corner_pref = Settings::Get<int>("corner-preference");
+
+			static bool applyMica = Settings::Get<bool>("mica-effect");
+
+
+			ImGui::Text("Window Borders");
+
+			ImGui::SameLine();
+
+			ui::shift::x(-3);
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.2f, 0.2f, 1.0f));
+			ImGui::TextWrapped("(?)");
+			ImGui::PopStyleColor();
+
+			if (ImGui::IsItemHovered()) {
+
+				ImGui::BeginTooltip();
+
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.2f, 0.2f, 1.0f));
+				ImGui::TextWrapped("WINDOWS 11 ONLY, WIP RESULTS MAY VARY");
+				ImGui::PopStyleColor();
+				ImGui::Text("Custom border radius options for the Steam windows");
+
+				ImGui::EndTooltip();
+
+			}
+
+			ImGui::SameLine();
+
+			int width = ImGui::CalcTextSize(corner_prefs[corner_pref]).x + 50;
+
+			ui::shift::right(width); ui::shift::y(-3);
+
+			ImGui::PushItemWidth(width);
+			if (ImGui::Combo("###{}Window Borders", &corner_pref, corner_prefs, IM_ARRAYSIZE(corner_prefs))) {
+				Settings::Set("corner-preference", corner_pref);
+
+				updateHook();
+
+				if (corner_pref == 0) {
+					SteamJSContext.reload();
+				}
+			}
+			ImGui::PopItemWidth();
+
+			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+
+			ImGui::Spacing();
+
+
+			ImGui::Text("Mica Drop Shadow");
+
+			ImGui::SameLine();
+
+			ui::shift::x(-3);
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.2f, 0.2f, 1.0f));
+			ImGui::TextWrapped("(?)");
+			ImGui::PopStyleColor();
+
+			if (ImGui::IsItemHovered()) {
+
+				ImGui::BeginTooltip();
+
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.2f, 0.2f, 1.0f));
+				ImGui::TextWrapped("WINDOWS 11 ONLY, WIP RESULTS MAY VARY");
+				ImGui::PopStyleColor();
+				ImGui::Text("Use Mica effect on all applicable Steam windows");
+
+				ImGui::EndTooltip();
+			}
+
+			ImGui::SameLine();
+
+			ui::shift::right(15); ui::shift::y(-3);
+			if (ImGui::Checkbox("###Mica Drop Shadow", &applyMica)) {
+				Settings::Set("mica-effect", applyMica);
+				SteamJSContext.reload();
+			}
+
+			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+
+
+
+			ImGui::Spacing(); 
+			ImGui::Separator();
+			ImGui::Spacing();
+
 			static bool enable_store = Settings::Get<bool>("auto-update-themes");
 			static bool enable_notifs = Settings::Get<bool>("auto-update-themes-notifs");
 
-			ImGui::Text("Auto Updater"); 
-			ImGui::Spacing(); ImGui::Spacing();
+			ui::render_setting(
+				"Auto Update Themes", "Controls whether skins will automatically update when steam starts.",
+				enable_store, false,
+				[=]() {
+					Settings::Set("auto-update-themes", enable_store);
+				}
+			);
+			ImGui::Spacing();
 
-			ui::shift::x(25);
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-			ImGui::TextWrapped("Auto Update Themes - Controls whether skins will automatically update when steam starts.");
-			ImGui::PopStyleColor();
-			ImGui::SameLine();
-			ui::shift::right(15); ui::shift::y(-3);
-			if (ImGui::Checkbox(std::format("###{}", "Auto Update Themes").c_str(), &enable_store)) {
-				Settings::Set("auto-update-themes", enable_store);
-			}
+			ui::render_setting(
+				"Auto Update Notifs", "Auto Update will still function, just no notifications.",
+				enable_notifs, false,
+				[=]() {
+					Settings::Set("auto-update-themes-notifs", enable_notifs);
+				}
+			);
 
-			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-			ui::shift::x(25);
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-			ImGui::TextWrapped("Display Notifications - Auto Update will still function, just no notification.");
-			ImGui::PopStyleColor();
-			ImGui::SameLine();
-			ui::shift::right(15); ui::shift::y(-3);
-			if (ImGui::Checkbox(std::format("###{}", "Display Notifications").c_str(), &enable_notifs)) {
-				Settings::Set("auto-update-themes-notifs", enable_notifs);
-			}
-
-			if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-
-
-			ImGui::Spacing(); ImGui::Spacing();
-
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
 
 			static bool enable_css = Settings::Get<bool>("allow-stylesheet");
 			ui::render_setting(
@@ -553,7 +557,7 @@ public:
 				}
 			);
 
-			ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Spacing();
 
 			static bool enable_js = Settings::Get<bool>("allow-javascript");
 			ui::render_setting(
@@ -564,22 +568,20 @@ public:
 					SteamJSContext.reload();
 				}
 			);
-			ImGui::Spacing(); ImGui::Spacing();
-
+			ImGui::Spacing();
 			ImGui::Separator();
-			ImGui::Spacing(); ImGui::Spacing();
+			ImGui::Spacing();
 
 			static const char* items[] = { "Top Left"/*0*/, "Top Right"/*1*/, "Bottom Left"/*2*/, "Bottom Right"/*3*/ };
 			static int notificationPos = nlohmann::json::parse(SteamJSContext.exec_command("SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position"))["result"]["value"];
 
 			ui::render_setting_list(
-				"Client Notifications Position", "Adjusts the position of the client location instead of using its native coordinates.",
+				"Notifications Position", "Adjusts the position of the client notifications instead of using its native coordinates.",
 				notificationPos, items, IM_ARRAYSIZE(items), false,
 				[=]() {
 					Settings::Set("NotificationsPos", nlohmann::json::parse(SteamJSContext.exec_command(std::format("SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {}", notificationPos)))["result"]["value"].get<int>());
 				}
 			);
-			ImGui::Spacing();
 			ImGui::Spacing();
 
 			static bool enableUrlBar = Settings::Get<bool>("enableUrlBar");
@@ -592,6 +594,8 @@ public:
 				}
 			);
 			windowHeight = ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y;
+
+			ui::shift::y(-6);
 		}
 		ImGui::EndChild();
 		ImGui::PopStyleVar();
@@ -606,10 +610,10 @@ public:
 
 			if (ImGui::BeginChild("ChildContentPane", ImVec2(rx, ry), true))
 			{
-				if (RendererProc.m_editMenuOpen) {
+				/*if (RendererProc.m_editMenuOpen) {
 					handleEdit();
 				}
-				else if (g_fileDropQueried) {
+				else */if (g_fileDropQueried) {
 					ui::shift::y((ry / 2) - 20);
 					ui::center_text("Drop theme here to install...");
 				}
@@ -652,98 +656,127 @@ public:
 
 	void renderSideBar()
 	{
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.13f, 0.13f, 1.00f));
+		static bool showingAbout = false, showingSettings = false, editingTheme = false;
 
-		ImGui::BeginChild("LeftSideBar", ImVec2(rx, 40), false);
-		{
-			ImGui::PopStyleVar();
-			ImGui::BeginChild("ChildFrameParent", ImVec2(rx, ry), true);
-			{
-				g_headerHovered_1 = ImGui::IsWindowHovered();
+		if (ImGui::BeginMenuBar()) {
 
-				ui::shift::x(5);
-				ui::shift::y(3);
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
 
-				std::string headerText = std::format("Millennium v{}", m_ver);
-				const int headerWidth = ImGui::CalcTextSize(headerText.c_str()).x;
-
-				ImGui::Text(headerText.c_str());
-				ImGui::SameLine();
-				ui::shift::y(-3);
-				ui::shift::x(220 - headerWidth);
-
-				listButton(" Library ", 2);
-				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
-				ImGui::SameLine();
-				ui::shift::x(-4);
-
-
-				listButton(" Settings ", 3);
-				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
-
-				ImGui::SameLine();
-				ui::shift::x(-4);
-
-				static ImU32 col = ImGui::GetColorU32(ImGuiCol_CheckMark);
-
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-
-				if (ImGui::Button("Community")) {
-					steam_js_context SharedJsContext;
-
-					std::string url = "https://millennium.web.app/themes";
-					std::string loadUrl = std::format("SteamUIStore.Navigate('/browser', MainWindowBrowserManager.LoadURL('{}'));", url);
-
-					SharedJsContext.exec_command(loadUrl);
+			if (ImGui::BeginMenu("File")) {
+				if (ImGui::MenuItem("Reload")) {
+					m_Client.parseSkinData(false);
 				}
-				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand); 
+				if (ImGui::MenuItem("Open skins folder...")) {
+					ShellExecuteA(NULL, "open", config.getSkinDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Edit")) {
+				if (ImGui::MenuItem("Settings")) {
+
+					showingSettings = !showingSettings;
+				}
+				if (ImGui::MenuItem("Edit Theme")) {
+
+					this->openPopupMenu(skin_json_config);
+					editingTheme = !editingTheme;
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Help")) {
+				if (ImGui::MenuItem("About")) {
+					showingAbout = !showingAbout;
+				}
+				if (ImGui::MenuItem("Discord")) {
+					ShellExecute(NULL, "open", "https://millennium.web.app/discord", NULL, NULL, SW_SHOWNORMAL);
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("Join the discord server...");
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Donate")) {
+
+				if (ImGui::MenuItem("Help support Millennium!")) {
+					ShellExecute(NULL, "open", "https://ko-fi.com/shadowmonster", NULL, NULL, SW_SHOWNORMAL);
+				}
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenuBar();
+
+			ImGui::PopStyleColor();
+		}
+
+		if (editingTheme) {
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+
+			//ImGui::SetNextWindowSize(ImVec2(455, 360));
+			ImGui::SetNextWindowSize(ImVec2(325, 250), ImGuiCond_Once);
+
+			ImGui::Begin("Editing a theme", &editingTheme, ImGuiWindowFlags_NoCollapse);
+			{
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
+				handleEdit();
 				ImGui::PopStyleColor();
+			}
+			ImGui::End();
+			ImGui::PopStyleColor();
+		}
+
+		if (showingSettings) {
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+
+			//ImGui::SetNextWindowSize(ImVec2(455, 360));
+			ImGui::SetNextWindowSize(ImVec2(382, 288), ImGuiCond_Once);
+
+			ImGui::Begin("Settings", &showingSettings, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+			{
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.10f, 0.10f, 1.00f));
+				settings_panel();
+				ImGui::PopStyleColor();
+			}
+			ImGui::End();
+			ImGui::PopStyleColor();
+		}
+
+		if (showingAbout) {
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+
+			ImGui::SetNextWindowSize(ImVec2(255, 160));
+
+			ImGui::Begin("About Millennium", &showingAbout, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+			{
+				std::string version = std::format("Version: {}", m_ver);
+				std::string built = std::format("Built: {}", __DATE__);
+
+
+				ImGui::Text("Made with love by ShadowMonster.");
+				ImGui::Text(version.c_str());
+				ImGui::Text(built.c_str());
+
+				ImGui::TextColored(ImVec4(0.451f, 0.569f, 1.0f, 1.0f), "View source code");
+
 				if (ImGui::IsItemHovered())
 				{
-					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-					//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
-					g_headerHovered_1 = false;
 					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-					ImGui::SetTooltip("Opens in Steam browser.");
-					ImGui::PopStyleColor();
-					//ImGui::PopStyleVar();
+
+					ImGui::SetTooltip("https://github.com/ShadowMonster99/millennium-steam-patcher/");
 				}
 
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-
-				ImGui::SameLine();
-				ui::shift::x(-4);
-
-				if (ImGui::Button("Help")) {
-					ShellExecute(NULL, "open", "https://discord.gg/MXMWEQKgJF", NULL, NULL, SW_SHOWNORMAL);
-				}
-				ImGui::PopStyleColor();
-				if (ImGui::IsItemHovered()) 
-				{
-					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-					//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6);
-					g_headerHovered_1 = false;
-					ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-					ImGui::SetTooltip("Join the Discord server...");
-					ImGui::PopStyleColor();
-					//ImGui::PopStyleVar();
+				if (ImGui::IsItemClicked()) {
+					OpenURL("https://github.com/ShadowMonster99/millennium-steam-patcher/");
 				}
 
-				ImGui::SameLine();
+				ImGui::Text("Don't forget to star the project :)");
 
-				ui::shift::right(25);
-
-				if (ImGui::ImageButton(Window::iconsObj().xbtn, ImVec2(16, 16))) {
-					g_windowOpen = false;
-					PostQuitMessage(0);
-				}
-				if (ImGui::IsItemHovered()) g_headerHovered_1 = false;
-				if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 			}
-			ImGui::EndChild();
+			ImGui::End();
+			ImGui::PopStyleColor();
 		}
-		ImGui::EndChild();
-		ImGui::PopStyleColor();
+
 	}
 } RendererProc;
 
@@ -761,14 +794,14 @@ void handleEdit()
 
 		if (hasConfiguration)
 		{
-			ImGui::Spacing();
-			ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+			//ImGui::Spacing();
+			//ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
 
-			ImGui::Text(" Configuration Settings");
-			ImGui::Separator();
-			ImGui::Spacing();
+			//ImGui::Text(" Configuration Settings");
+			//ImGui::Separator();
+			//ImGui::Spacing();
 
-			ImGui::PopFont();
+			//ImGui::PopFont();
 
 			for (auto& setting : RendererProc.m_editObj["Configuration"])
 			{
@@ -789,7 +822,7 @@ void handleEdit()
 						value, false,
 						[&]() { setting["Value"] = value; }
 					);
-					ui::shift::y(15);
+					ImGui::Spacing();
 				}
 				else if (type == "ComboBox") {
 
@@ -813,6 +846,18 @@ void handleEdit()
 					ImGui::Text(name.c_str());
 
 					ImGui::SameLine();
+
+					ui::shift::x(-3);
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+					ImGui::TextWrapped("(?)");
+					ImGui::PopStyleColor();
+
+					if (ImGui::IsItemHovered()) {
+						ImGui::SetTooltip(toolTip.c_str());
+					}
+
+					ImGui::SameLine();
+
 					ui::shift::right(120);
 					ImGui::PushItemWidth(120);
 					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
@@ -835,13 +880,13 @@ void handleEdit()
 					ImGui::PopStyleColor();
 					ImGui::PopItemWidth();
 
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-					ImGui::Bullet();
-					ImGui::SameLine();
-					ImGui::TextWrapped(toolTip.c_str());
-					ImGui::PopStyleColor();
+					//ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+					//ImGui::Bullet();
+					//ImGui::SameLine();
+					//ImGui::TextWrapped(toolTip.c_str());
+					//ImGui::PopStyleColor();
 
-					ui::shift::y(15);
+					ImGui::Spacing();
 				}
 			}
 		}
@@ -1020,9 +1065,9 @@ void init_main_window()
 			m_Client.parseSkinData(false, false, "");
 			updateLibrary = false;
 		}
+		ImGui::PopStyleVar();
 
 		RendererProc.renderSideBar();
-		ui::shift::y(-8);
 		RendererProc.renderContentPanel();
 	});
 
@@ -1037,7 +1082,7 @@ void init_main_window()
 		});
 	}).detach();
 
-	Window::setTitle((char*)"Millennium.Steam.Client");
+	Window::setTitle((char*)" Millennium.");
 	Window::setDimensions(ImVec2({ 450, 500 }));
 
 	Application::Create(wndProcCallback, initCallback);

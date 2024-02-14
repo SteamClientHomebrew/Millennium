@@ -81,7 +81,7 @@ const installer = {
 				send_message('install-message', JSON.stringify({success: false, message: `Failed to connect: ${error.message}. Ensure a proper internet connection.`}));
 			})
     },
-    start: (force_close: boolean) => {
+    start: (_: boolean) => {
 		log('Checking if Steam is running...');
 
 		steam.kill().then(async (message: any) => {

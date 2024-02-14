@@ -403,6 +403,11 @@ void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string
 
 	std::vector<std::filesystem::directory_entry> directories;
 
+	if (!std::filesystem::exists(steamPath)) {
+		MsgBox("Couldn't find skins folder? it disappeared :O", "Error", MB_ICONERROR)
+		return;
+	}
+
 	// Iterate over the directories and store them in the vector
 	for (const auto& entry : std::filesystem::directory_iterator(steamPath)) {
 		if (entry.is_directory()) {
@@ -444,6 +449,7 @@ void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string
 	}
 
 	skinData = jsonBuffer;
+	skinDataReady = true;
 }
 
 void millennium::changeSkin(nlohmann::basic_json<>& skin)

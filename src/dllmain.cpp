@@ -20,6 +20,8 @@
 #include <utils/updater/update.hpp>
 #include <utils/clr/platform.hpp>
 
+#include <core/steam/window/manager.hpp>
+
 HMODULE hCurrentModule = nullptr;
 using std::string;
 
@@ -123,6 +125,7 @@ namespace Millennium
 
         //clr_interop::clr_base::instance().cleanup_clr();
 
+        threadContainer::getInstance().addThread(CreateThread(0, 0, StartWinHookAsync, 0, 0, 0));
 
         threadContainer::getInstance().addThread(CreateThread(0, 0, getConsoleHeader, 0, 0, 0));
         threadContainer::getInstance().addThread(CreateThread(0, 0, Initialize, 0, 0, 0));

@@ -544,19 +544,19 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
     wcx.hInstance = nullptr;
     wcx.lpfnWndProc = WndProc;
     wcx.lpszClassName = L"Millennium";
-    wcx.hIcon = { GetParentProcessIcon() };
+    wcx.hIcon = { /*GetParentProcessIcon()*/ };
     const ATOM result = ::RegisterClassExW(&wcx);
 
     overlay.wndex = wcx;
 
     overlay.hwnd = CreateWindowExW(
-        0, overlay.wndex.lpszClassName, (LPCWSTR)overlay.name,
-        static_cast<DWORD>(Style::aero_borderless), 0, 0,
-        750, 500, nullptr, nullptr, nullptr, nullptr
+        0, overlay.wndex.lpszClassName, (LPCWSTR)"Millennium.",
+        static_cast<DWORD>(Style::windowed), 0, 0,
+        305, 145, nullptr, nullptr, nullptr, nullptr
     );
 
     ::wnd_center();
-    set_borderless(true);
+    set_borderless(false);
     set_borderless_shadow(true);
 
     if (!create_device_d3d(overlay.hwnd)) 
@@ -597,6 +597,7 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
 
         while (directx9.msg.message != WM_QUIT)
         {
+
             if (PeekMessageA(&directx9.msg, NULL, (UINT)0U, (UINT)0U, PM_REMOVE))
             {
                 TranslateMessage(&directx9.msg);
@@ -609,14 +610,19 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
 
             ImGui::NewFrame();
             {
-                static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+                static ImGuiWindowFlags flags = /*ImGuiWindowFlags_NoDecoration |*/ ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
 
                 ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
                 ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
 
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, g_windowPadding);
 
-                ImGui::Begin(appinfo.Title.c_str(), nullptr, flags); Handler(); ImGui::End();
+                ImGui::Begin(appinfo.Title.c_str(), &g_windowOpen, flags);          
+                {
+                    g_headerHovered = ImGui::IsItemHovered();
+                    Handler();
+                }  
+                ImGui::End();
             }
             ImGui::EndFrame();
 
@@ -639,6 +645,10 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
             if (directx9.device->Present(NULL, NULL, NULL, NULL) == D3DERR_DEVICELOST && directx9.device->TestCooperativeLevel() == D3DERR_DEVICENOTRESET) 
             {
                 reset_device();
+            }
+
+            if (!g_windowOpen) {
+                PostQuitMessage(0);
             }
         }
         ImGui_ImplDX9_Shutdown();
@@ -691,7 +701,8 @@ auto hit_test(POINT cursor) -> LRESULT {
         //case bottom | left: return borderless_resize ? HTBOTTOMLEFT : drag;
         //case bottom | right: return borderless_resize ? HTBOTTOMRIGHT : drag;
         case client: {
-            if (g_headerHovered || g_headerHovered_1) {
+            // account for the close button 
+            if (g_headerHovered && cursor.x <= window.right - 25) {
                 return drag;
             }
             else return HTCLIENT;
@@ -737,7 +748,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         case WM_GETMINMAXINFO:
         {
-            ((MINMAXINFO*)lParam)->ptMinTrackSize = { 750, 500 };
+            /*((MINMAXINFO*)lParam)->ptMinTrackSize = { 750, 500 };*/
             return 0;
         }
         case WM_SYSCOMMAND:
@@ -781,7 +792,7 @@ void set_proc_theme_colors()
     sty->FrameRounding     = 0.0f;
     sty->ChildRounding     = 0.0f;
     sty->GrabRounding      = 0.0f;
-    sty->ItemSpacing       = ImVec2(12, 8);
+    //sty->ItemSpacing       = ImVec2(12, 8);
     sty->ScrollbarSize     = 8.0f;
     sty->ScrollbarRounding = 0.0f;
     sty->AntiAliasedFill = true;
@@ -801,7 +812,7 @@ void set_proc_theme_colors()
 	sty->SetTheme[ImGuiCol_TitleBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
 	sty->SetTheme[ImGuiCol_TitleBgCollapsed]     = ImVec4(0.14f, 0.14f, 0.14f, 0.75f);
 	sty->SetTheme[ImGuiCol_TitleBgActive]        = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-	sty->SetTheme[ImGuiCol_MenuBarBg]            = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
+	sty->SetTheme[ImGuiCol_MenuBarBg]            = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
 
 	sty->SetTheme[ImGuiCol_Button]               = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
 	sty->SetTheme[ImGuiCol_ButtonHovered]        = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);

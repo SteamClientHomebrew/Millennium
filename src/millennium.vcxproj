@@ -264,6 +264,10 @@
     <ClInclude Include="core\steam\application.hpp" />
     <ClInclude Include="core\steam\cef_manager.hpp" />
     <ClInclude Include="core\steam\colors\accent_colors.hpp" />
+    <ClInclude Include="core\steam\window\manager.hpp" />
+    <ClInclude Include="core\steam\window\types\accent_api.hpp" />
+    <ClInclude Include="core\steam\window\types\corners.hpp" />
+    <ClInclude Include="core\steam\window\types\system_backdrop_type.hpp" />
     <ClInclude Include="metrics.hpp" />
     <ClInclude Include="utils\base64.hpp" />
     <ClInclude Include="utils\clr\platform.hpp" />
@@ -300,6 +304,7 @@
     <ClCompile Include="core\injector\startup\welcome_modal.cpp" />
     <ClCompile Include="core\ipc\ipc_main.cpp" />
     <ClCompile Include="core\steam\cef_manager.cpp" />
+    <ClCompile Include="core\steam\window\manager.cpp" />
     <ClCompile Include="metrics.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="utils\clr\platform.cpp" />

@@ -103,6 +103,10 @@ const void bootstrapper::init(bool setCommit, std::string newCommit) {
 
 	std::vector<nlohmann::basic_json<>> jsonBuffer;
 
+	if (!std::filesystem::exists(steamPath)) {
+		return;
+	}
+
 	for (const auto& entry : std::filesystem::directory_iterator(steamPath)) {
 		if (!entry.is_directory() || !this->parseLocalSkin(entry, jsonBuffer, false)) {
 			continue;

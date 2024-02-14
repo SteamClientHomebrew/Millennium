@@ -41,32 +41,52 @@ namespace ui
 	}
 
 	static const void render_setting(const char* name, const char* description, bool& setting, bool requires_restart, std::function<void()> call_back) {
-		ImGui::Text(name); ImGui::SameLine(); ImGui::SameLine();
+		ImGui::Text(name); 
+
+		ImGui::SameLine(); 
+
+		ui::shift::x(-3);
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+		ImGui::TextWrapped("(?)");
+		ImGui::PopStyleColor();
+
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip(description);
+		}
+
+		ImGui::SameLine();
+
 		ui::shift::right(15); ui::shift::y(-3);
 		if (ImGui::Checkbox(std::format("###{}", name).c_str(), &setting)) call_back();
 
 		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-		ImGui::Bullet();
-		ImGui::SameLine();
-		ImGui::TextWrapped(description);
-		ImGui::PopStyleColor();
 	}
 
 	static const void render_setting_list(const char* name, const char* description, int& setting, const char* items[], size_t items_size, bool requires_restart, std::function<void()> call_back) {
-		ImGui::Text(name); ImGui::SameLine(); ImGui::SameLine();
-		ui::shift::right(115); ui::shift::y(-3);
+		ImGui::Text(name);
 
-		ImGui::PushItemWidth(115);
+		ImGui::SameLine();
+
+		ui::shift::x(-3);
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+		ImGui::TextWrapped("(?)");
+		ImGui::PopStyleColor();
+
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip(description);
+		}
+
+		ImGui::SameLine();
+
+		int width = ImGui::CalcTextSize(items[setting]).x + 50;
+
+		ui::shift::right(width); ui::shift::y(-3);
+
+		ImGui::PushItemWidth(width);
 		if (ImGui::Combo(std::format("###{}", name).c_str(), &setting, items, items_size)) call_back();
 		ImGui::PopItemWidth();
 
 		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-		ImGui::TextWrapped(description);
-		ImGui::PopStyleColor();
 	}
 
 	static const void center_modal(ImVec2 size) {

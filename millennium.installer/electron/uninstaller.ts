@@ -101,6 +101,11 @@ const uninstaller = {
   start: () => {
     log('Checking if Steam is running...');
 
+		steam.kill().then(async (message: any) => {
+			log(message);	
+			await delay(1000)
+		});
+
     uninstaller.check_steam().then(() => { 
       log('Warming Unintaller Core...');
       uninstaller.uninstall()    
