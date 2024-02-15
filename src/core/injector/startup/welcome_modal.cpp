@@ -2,12 +2,28 @@
 
 std::string popupModal::getSnippet(std::string header, std::string body) {
     return R"(
+
+        var millenniumClosedPopup = false;
+
+        function disableBrowser() {
+            window.opener.MainWindowBrowserManager.m_browser.SetVisible(false)
+
+            if (millenniumClosedPopup) 
+            {
+                console.log("stopping set visibility")
+                window.opener.MainWindowBrowserManager.m_browser.SetVisible(true)
+                return
+            }
+
+            setTimeout(() => { disableBrowser() }, 100)
+        } 
+
             (async () => {
 
                 if (document.querySelector('.ModalOverlayContent.active') != null)
                     return
 
-                window.opener.MainWindowBrowserManager.m_browser.SetVisible(false)
+                disableBrowser()
 
                 const modalOverlayContent = `
                 <div class="ModalOverlayContent active">
@@ -48,6 +64,7 @@ std::string popupModal::getSnippet(std::string header, std::string body) {
                         element.insertAdjacentHTML('beforeend', modalOverlayContent)
 
                         document.querySelector('.ModalPosition_Dismiss .closeButton').addEventListener('click', () => {
+                            millenniumClosedPopup = true;
                             element.style.display = "none"
                         })
                         element.style.display = "block"

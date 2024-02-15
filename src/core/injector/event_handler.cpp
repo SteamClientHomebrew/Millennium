@@ -479,10 +479,6 @@ private:
                 };
                 steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
             }},
-            //if the steam root menu is clicked we want to display millennium's popup modal
-            {"Steam Root Menu", [&]() { 
-                //steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"]);
-            }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
                 m_steamMainSessionId = m_socket_resp["sessionId"];
@@ -498,16 +494,22 @@ private:
 
                 if (firstInstance) {
 
-                    if (!Settings::Get<bool>("shownNewUserPrompt")) {
+                    static bool hasShown = false;
 
-                        std::string message = popupModal::getSnippet("Welcome to Millennium!",
-                            "Hey, Seems you're new here!<br>Head over to Settings -> Interface -> Open Millennium. "
+                    if (!hasShown) {
+
+                        std::string message = popupModal::getSnippet
+                        (
+                            "Welcome to Millennium!",
+
+                            "Hey, it seems you're new here!<br>Head over to Settings -> Interface -> Open Millennium. "
                             "From there you can install, manage, and edit themes! "
-                            "Having problems? Join the Discord Server!");
+                            "Having problems? Join the Discord Server!"
+                        );
 
                         steam_interface.push_to_socket(steam_client, hdl, message, m_steamMainSessionId);
 
-                        Settings::Set<bool>("shownNewUserPrompt", true);
+                        hasShown = true;
                     }
                 }
 

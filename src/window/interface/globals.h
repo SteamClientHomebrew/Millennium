@@ -23,6 +23,46 @@ enum tabPages
 	settingsTab = 3
 };
 
+struct ComboBoxItem
+{
+	std::string name;
+	int value;
+};
+
+static std::vector<ComboBoxItem> comboBoxItems;
+
+inline bool comboAlreadyExists(const std::string& name)
+{
+	for (const auto& item : comboBoxItems)
+	{
+		if (item.name == name)
+			return true;
+	}
+	return false;
+}
+
+inline int getComboValue(const std::string name)
+{
+	for (const auto& item : comboBoxItems)
+	{
+		if (item.name == name)
+			return item.value;
+	}
+	return -1;
+}
+
+inline void setComboValue(const std::string name, int value)
+{
+	for (auto& item : comboBoxItems)
+	{
+		if (item.name == name)
+		{
+			item.value = value;
+			return;
+		}
+	}
+}
+
 namespace ui
 {
 	static int current_tab_page = 2;
