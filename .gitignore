@@ -18,5 +18,5 @@ millennium.installer/dist/
 millennium.installer/dist-electron/
 
 # Ignore IDE config
-.vscode
-.intermediate
+.vscode/
+.idea/
