@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14' # or specify your desired Node.js version
+          node-version: '18' # or specify your desired Node.js version
         
       - name: Install Dependencies
         working-directory: millennium.installer
