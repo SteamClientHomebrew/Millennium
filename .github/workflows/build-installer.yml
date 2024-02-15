@@ -25,12 +25,6 @@ jobs:
         working-directory: millennium.installer
         run: npm run build # Run the build script in package.json
         
-      - name: Upload Build Artifact # Upload the binary artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: Millennium.Installer.Prod
-          path: millennium.installer/build/output/Millennium.Installer-Windows.exe
-
       - name: Calculate Artifact Hash
         id: calculate-hash
         run: |
