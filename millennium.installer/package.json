@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "compile": "electron-webpack",
-    "dist": "yarn compile && electron-builder -p never",
     "build": "tsc && vite build && electron-builder -p never",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -66,8 +65,7 @@
     "typescript": "^5.2.2",
     "vite": "^4.4.9",
     "vite-plugin-electron": "^0.14.0",
-    "vite-plugin-electron-renderer": "^0.14.5",
-    "webpack": "^5.90.2"
+    "vite-plugin-electron-renderer": "^0.14.5"
   },
   "main": "dist-electron/main.js"
 }
