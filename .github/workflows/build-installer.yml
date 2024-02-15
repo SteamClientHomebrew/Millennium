@@ -32,12 +32,12 @@ jobs:
           
       - name: Create Checksum File
         run: |
-            echo "${{ steps.calculate-hash.outputs.hash }}" > checksum.txt
-        working-directory: millennium.installer/build/output/artifact/
+            mkdir -p millennium.installer/build/output/artifact
+            echo "${{ steps.calculate-hash.outputs.hash }}" > artifact/checksum.txt
+        working-directory: millennium.installer/build/output
   
       - name: Create Artifact Directory
         run: |
-          mkdir -p millennium.installer/build/output/artifact
           mv Millennium.Installer-Windows.exe artifact/
         working-directory: millennium.installer/build/output/
 
