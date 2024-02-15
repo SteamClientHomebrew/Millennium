@@ -19,7 +19,7 @@ jobs:
         
       - name: Install Dependencies
         working-directory: millennium.installer
-        run: yarn install # Install dependecies in package.json
+        run: npm install # Install dependecies in package.json
         
       - name: Compile and Build Installer
         working-directory: millennium.installer
