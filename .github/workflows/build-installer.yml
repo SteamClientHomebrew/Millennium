@@ -1,0 +1,32 @@
+name: Compile and Build Installer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Installer
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14' # or specify your desired Node.js version
+        
+      - name: Install Dependencies
+        working-directory: millennium.installer
+        run: yarn install
+        
+      - name: Compile and Build Installer
+        working-directory: millennium.installer
+        run: yarn compile && yarn electron-builder -p never
+        
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Millennium_Installer
+          path: millennium.installer/build/output/Millennium.Installer-Windows.exe
