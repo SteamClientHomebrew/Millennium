@@ -30,7 +30,7 @@ jobs:
         with:
           name: Millennium.Installer.Prod
           path: millennium.installer/build/output/Millennium.Installer-Windows.exe
-          zip-ignore: true
+
       - name: Calculate Artifact Hash
         id: calculate-hash
         run: |
