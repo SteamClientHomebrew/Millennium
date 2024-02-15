@@ -44,8 +44,8 @@ jobs:
       - name: Create Artifact Directory
         run: |
           mkdir -p millennium.installer/build/output/artifact
-          mv millennium.installer/build/output/Millennium.Installer-Windows.exe millennium.installer/build/output/artifact/
-          mv millennium.installer/build/output/checksum.txt millennium.installer/build/output/artifact/
+          mv Millennium.Installer-Windows.exe artifact/
+          mv checksum.txt artifact/
         working-directory: millennium.installer/build/output/
 
       - name: Upload Artifacts
