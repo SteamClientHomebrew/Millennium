@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     name: Build Installer
-    runs-on: windows-latest
+    runs-on: windows-latest # Run script on windows system
     
     steps:
       - name: Checkout Repository
@@ -15,18 +15,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18' # or specify your desired Node.js version
+          node-version: '20' # Use NodeJs 20
         
       - name: Install Dependencies
         working-directory: millennium.installer
-        run: yarn install
+        run: yarn install # Install dependecies in package.json
         
       - name: Compile and Build Installer
         working-directory: millennium.installer
-        run: npm run build
+        run: npm run build # Run the build script in package.json
         
-      - name: Upload Build Artifact
+      - name: Upload Build Artifact # Upload the binary artifact
         uses: actions/upload-artifact@v2
         with:
-          name: Millennium_Installer
+          name: Millennium.Installer.Prod
           path: millennium.installer/build/output/Millennium.Installer-Windows.exe
