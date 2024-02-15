@@ -30,3 +30,14 @@ jobs:
         with:
           name: Millennium.Installer.Prod
           path: millennium.installer/build/output/Millennium.Installer-Windows.exe
+      - name: Calculate Artifact Hash
+        uses: actions/github-script@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+              const fs = require('fs');
+              const crypto = require('crypto');
+              const artifactPath = 'millennium.installer/build/output/Millennium.Installer-Windows.exe';
+              const artifactData = fs.readFileSync(artifactPath);
+              const hash = crypto.createHash('sha256').update(artifactData).digest('hex');
+              console.log('Artifact Hash:', hash);
