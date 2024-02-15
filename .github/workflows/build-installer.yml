@@ -23,7 +23,7 @@ jobs:
         
       - name: Compile and Build Installer
         working-directory: millennium.installer
-        run: yarn compile && yarn electron-builder -p never
+        run: npm run build
         
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v2
