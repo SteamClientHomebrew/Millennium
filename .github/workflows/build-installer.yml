@@ -41,8 +41,15 @@ jobs:
             echo "${{ steps.calculate-hash.outputs.hash }}" > checksum.txt
         working-directory: millennium.installer/build/output/
   
-      - name: Upload Checksum File
+      - name: Create Artifact Directory
+        run: |
+          mkdir -p millennium.installer/build/output/artifact
+          mv millennium.installer/build/output/Millennium.Installer-Windows.exe millennium.installer/build/output/artifact/
+          mv millennium.installer/build/output/checksum.txt millennium.installer/build/output/artifact/
+        working-directory: millennium.installer/build/output/
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: Millennium_Installer_Checksum
-          path: millennium.installer/build/output/checksum.txt
+          name: Millennium.Installer.Prod
+          path: millennium.installer/build/output/artifact/
