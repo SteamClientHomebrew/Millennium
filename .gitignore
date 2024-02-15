@@ -16,7 +16,3 @@ millennium.installer/node_modules/
 millennium.installer/build/
 millennium.installer/dist/
 millennium.installer/dist-electron/
-
-# Ignore IDE config
-.vscode/
-.idea/
