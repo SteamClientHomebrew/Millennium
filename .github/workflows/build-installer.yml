@@ -30,14 +30,19 @@ jobs:
         with:
           name: Millennium.Installer.Prod
           path: millennium.installer/build/output/Millennium.Installer-Windows.exe
+          zip-ignore: true
       - name: Calculate Artifact Hash
-        uses: actions/github-script@v5
+        id: calculate-hash
+        run: |
+            echo "::set-output name=hash::$(sha256sum millennium.installer/build/output/Millennium.Installer-Windows.exe | cut -d ' ' -f 1)"
+          
+      - name: Create Checksum File
+        run: |
+            echo "${{ steps.calculate-hash.outputs.hash }}" > checksum.txt
+        working-directory: millennium.installer/build/output/
+  
+      - name: Upload Checksum File
+        uses: actions/upload-artifact@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-              const fs = require('fs');
-              const crypto = require('crypto');
-              const artifactPath = 'millennium.installer/build/output/Millennium.Installer-Windows.exe';
-              const artifactData = fs.readFileSync(artifactPath);
-              const hash = crypto.createHash('sha256').update(artifactData).digest('hex');
-              console.log('Artifact Hash:', hash);
+          name: Millennium_Installer_Checksum
+          path: millennium.installer/build/output/checksum.txt
