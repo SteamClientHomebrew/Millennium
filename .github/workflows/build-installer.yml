@@ -33,8 +33,8 @@ jobs:
       - name: Create Checksum File
         run: |
             mkdir -p millennium.installer/build/output/artifact
-            echo "${{ steps.calculate-hash.outputs.hash }}" > artifact/checksum.txt
-        working-directory: millennium.installer/build/output
+            echo "${{ steps.calculate-hash.outputs.hash }}" > checksum.txt
+        working-directory: millennium.installer/build/output/artifact
   
       - name: Create Artifact Directory
         run: |
