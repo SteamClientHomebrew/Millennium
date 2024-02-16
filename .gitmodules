@@ -1,3 +1,6 @@
 [submodule "vendor/websocketpp"]
 	path = vendor/websocketpp
 	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "vendor/nlohmann"]
+	path = vendor/nlohmann
+	url = https://github.com/nlohmann/json.git
