@@ -14,6 +14,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
 
     - name: Install MSVC
       uses: microsoft/setup-msbuild@v1.0.0
