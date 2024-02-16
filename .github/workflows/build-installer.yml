@@ -36,26 +36,6 @@ jobs:
             echo "${{ steps.calculate-hash.outputs.hash }}" > checksum.sha256
         working-directory: millennium.installer/build/output/
   
-      - name: Determine Next Release Tag
-        id: determine_tag
-        run: |
-          $latest_tag = git describe --tags --abbrev=0
-          $tag_parts = $latest_tag -split '\.'
-          $major = $tag_parts[0]
-          $minor = $tag_parts[1]
-          $patch = $tag_parts[2]
-          if (-not $major) {
-            echo "::set-output name=next_tag::v1.0.0"
-          } else {
-            if ($patch -lt 9) {
-              $next_patch = $patch + 1
-              echo "::set-output name=next_tag::v$major.$minor.$next_patch"
-            } else {
-              $next_minor = $minor + 1
-              echo "::set-output name=next_tag::v$major.$next_minor.0"
-            }
-          }
-
       - name: Create Release Draft
         id: create_release
         uses: actions/create-release@v1
