@@ -1,3 +1,4 @@
+permissions: write-all
 name: Build Installer
 
 on:
