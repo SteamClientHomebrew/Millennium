@@ -11,6 +11,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Install MSVC
+      uses: microsoft/setup-msbuild@v1.0.0
+
+
     - name: Install vcpkg
       run: |
         git clone https://github.com/microsoft/vcpkg.git
@@ -18,13 +22,13 @@ jobs:
 
     - name: Install required packages with vcpkg
       run: |
-        .\vcpkg\vcpkg install nlohmann-json:x86-windows boost:x86-windows websocketpp:x86-windows
+        .\vcpkg\vcpkg install nlohmann-json:x86-windows websocketpp:x86-windows
 
 
-    - name: Set up MSVC environment
-      shell: cmd
+    - name: Set MSBuild path
       run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars32.bat"
+        echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin" >> $GITHUB_PATH 
+        shell: cmd
 
     - name: Build project
       run: |
