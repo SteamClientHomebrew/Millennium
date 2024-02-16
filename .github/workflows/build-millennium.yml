@@ -18,22 +18,11 @@ jobs:
     - name: Install MSVC
       uses: microsoft/setup-msbuild@v1.0.0
 
-
-    - name: Install vcpkg
+    - name: Build project
       run: |
-        git clone https://github.com/microsoft/vcpkg.git
-        .\vcpkg\bootstrap-vcpkg.bat
-
-    - name: Install required packages with vcpkg
-      run: |
-        .\vcpkg\vcpkg install nlohmann-json:x86-windows websocketpp:x86-windows
-
+        msbuild millennium.sln /p:Configuration=Release /p:Platform=x86
 
     - name: Set MSBuild path
       run: |
         echo "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin" >> $GITHUB_PATH 
       shell: cmd
-
-    - name: Build project
-      run: |
-        msbuild millennium.sln /p:Configuration=Release /p:Platform=x86
