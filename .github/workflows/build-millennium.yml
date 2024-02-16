@@ -18,6 +18,14 @@ jobs:
     - name: Install MSVC
       uses: microsoft/setup-msbuild@v1.0.0
 
+    - name: Setup .NET Framework
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '4.7.2'
+
+    - name: Restore NuGet packages
+      run: nuget restore
+
     - name: Build project
       run: |
         msbuild millennium.sln /p:Configuration=Release /p:Platform=x86
