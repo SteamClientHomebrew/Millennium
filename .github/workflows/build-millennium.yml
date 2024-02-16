@@ -3,6 +3,10 @@ name: Build Millennium
 on:
   workflow_dispatch:
 
+env:
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true  # allow fortnite wallhacks 
+      
+
 jobs:
   build:
     runs-on: windows-latest
