@@ -1,0 +1,31 @@
+name: Build Project
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Install vcpkg
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
+
+    - name: Install required packages with vcpkg
+      run: |
+        .\vcpkg\vcpkg install nlohmann-json:x86-windows boost:x86-windows websocketpp:x86-windows
+
+
+    - name: Set up MSVC environment
+      shell: cmd
+      run: |
+        "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+
+    - name: Build project
+      run: |
+        msbuild millennium.sln /p:Configuration=Release

@@ -107,17 +107,17 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\</OutDir>
-    <IncludePath>.\;$(IncludePath);C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</IncludePath>
-    <LibraryPath>.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>./$(SolutionDir)vendor\directx\Include;.\;$(IncludePath);C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</IncludePath>
+    <LibraryPath>.\;./$(SolutionDir)vendor\directx\Lib\x86;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)intermediate\debug\</IntDir>
     <TargetName>User32</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)dist\$(ProjectName).$(Configuration)-$(PlatformTarget)-$(OS)\</OutDir>
-    <IncludePath>$(IncludePath);.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</IncludePath>
+    <IncludePath>./$(SolutionDir)vendor\directx\Include;$(IncludePath);.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</IncludePath>
     <IntDir>$(SolutionDir)intermediate\release\</IntDir>
     <TargetName>User32</TargetName>
-    <LibraryPath>.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
+    <LibraryPath>./$(SolutionDir)vendor\directx\Lib\x86;.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\</OutDir>
