@@ -62,8 +62,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.determine_tag.outputs.next_tag }} # You can specify your version here
-          release_name: Millennium.Installer v${{ steps.determine_tag.outputs.next_tag }} # You can specify your release name here
+          tag_name: 1.0.0 # You can specify your version here
+          release_name: Millennium.Installer v1.0.0 # You can specify your release name here
           draft: true
           prerelease: false # Change to true if it's a pre-release
           body: |
