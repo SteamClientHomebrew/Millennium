@@ -33,17 +33,34 @@ jobs:
           
       - name: Create Checksum File
         run: |
-            echo "${{ steps.calculate-hash.outputs.hash }}" > checksum.txt
+            echo "${{ steps.calculate-hash.outputs.hash }}" > checksum.sha256
         working-directory: millennium.installer/build/output/
   
+      - name: Determine Next Release Tag
+        id: determine_tag
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0)
+          IFS='.' read -r major minor patch <<< "$latest_tag"
+          if [ -z "$major" ]; then
+            echo "::set-output name=next_tag::v1.0.0"
+          else
+            if [ "$patch" -lt 9 ]; then
+              next_patch=$((patch + 1))
+              echo "::set-output name=next_tag::v$major.$minor.$next_patch"
+            else
+              next_minor=$((minor + 1))
+              echo "::set-output name=next_tag::v$major.$next_minor.0"
+            fi
+          fi
+
       - name: Create Release Draft
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v1.0.0 # You can specify your version here
-          release_name: Release v1.0.0 # You can specify your release name here
+          tag_name: ${{ steps.determine_tag.outputs.next_tag }} # You can specify your version here
+          release_name: Millennium.Installer v${{ steps.determine_tag.outputs.next_tag }} # You can specify your release name here
           draft: true
           prerelease: false # Change to true if it's a pre-release
           body: |
@@ -66,6 +83,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: millennium.installer/build/output/checksum.txt
-          asset_name: checksum.txt
+          asset_path: millennium.installer/build/output/checksum.sha256
+          asset_name: checksum.sha256
           asset_content_type: text/plain
