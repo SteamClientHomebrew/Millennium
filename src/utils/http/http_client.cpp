@@ -1,6 +1,5 @@
 #include <stdafx.h>
 #include <utils/config/config.hpp>
-#include <boost/network/uri.hpp>
 #include <format>
 
 static constexpr const std::string_view user_agent = "millennium.patcher";
@@ -116,43 +115,6 @@ const std::string http::post(std::string path, std::string data)
     }
 
     return std::string();
-}
-
-const std::string http::replicateGet(std::string remote_endpoint, std::string userAgent, nlohmann::json& headers)
-{
-    std::string response;
-    boost::network::uri::uri remoteAddress = boost::network::uri::uri(remote_endpoint);
-
-    HINTERNET hInternet = InternetOpen(userAgent.c_str(), INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-    if (hInternet) {
-        HINTERNET hConnect = InternetConnect(hInternet, remoteAddress.host().c_str(), INTERNET_DEFAULT_HTTPS_PORT, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
-        if (hConnect) {
-            HINTERNET hRequest = HttpOpenRequest(hConnect, "GET", remote_endpoint.c_str(), NULL, NULL, NULL, INTERNET_FLAG_RELOAD, 0);
-            if (hRequest) {
-                std::string headersStr;
-                for (auto it = headers.begin(); it != headers.end(); ++it) {
-                    headersStr += it.key() + ": " + it.value().get<std::string>() + "\r\n";
-                }
-
-                HttpAddRequestHeaders(hRequest, headersStr.c_str(), headersStr.length(), HTTP_ADDREQ_FLAG_REPLACE);
-
-                BOOL sendRequest = HttpSendRequest(hRequest, NULL, 0, NULL, 0);
-                if (sendRequest) {
-                    CHAR buffer[4096];
-                    DWORD bytesRead = 0;
-
-                    while (InternetReadFile(hRequest, buffer, sizeof(buffer), &bytesRead) && bytesRead > 0) {
-                        response.append(buffer, bytesRead);
-                    }
-                }
-                InternetCloseHandle(hRequest);
-            }
-            InternetCloseHandle(hConnect);
-        }
-        InternetCloseHandle(hInternet);
-    }
-
-    return response;
 }
 
 const std::vector<unsigned char> http::get_bytes(const char* url)

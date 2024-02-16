@@ -118,11 +118,11 @@ namespace ui
 
 		ImGui::SameLine();
 
-		int width = ImGui::CalcTextSize(items[setting]).x + 50;
+		int width = (int)ImGui::CalcTextSize(items[setting]).x + 50;
 
 		ui::shift::right(width); ui::shift::y(-3);
 
-		ImGui::PushItemWidth(width);
+		ImGui::PushItemWidth((float)width);
 		if (ImGui::Combo(std::format("###{}", name).c_str(), &setting, items, items_size)) call_back();
 		ImGui::PopItemWidth();
 

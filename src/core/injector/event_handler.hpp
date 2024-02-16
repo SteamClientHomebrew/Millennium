@@ -4,7 +4,6 @@
 
 //network helpers and other buffer typings to help with socket management
 
-#include <boost/network/uri.hpp>
 #include <nlohmann/json.hpp>
 
 #include <websocketpp/config/asio_no_tls_client.hpp>

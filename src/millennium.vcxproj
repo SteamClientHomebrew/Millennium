@@ -126,15 +126,14 @@
     <TargetName>User32</TargetName>
     <LibraryPath>.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <VcpkgUseStatic>false</VcpkgUseStatic>
-  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <VcpkgUseStatic>false</VcpkgUseStatic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'" Label="Vcpkg">
     <VcpkgUseStatic>false</VcpkgUseStatic>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -260,7 +259,6 @@
     <ClInclude Include="core\injector\startup\bootstrap.hpp" />
     <ClInclude Include="core\injector\startup\welcome_modal.hpp" />
     <ClInclude Include="core\ipc\ipc_main.hpp" />
-    <ClInclude Include="core\ipc\steam_pipe.hpp" />
     <ClInclude Include="core\steam\application.hpp" />
     <ClInclude Include="core\steam\cef_manager.hpp" />
     <ClInclude Include="core\steam\colors\accent_colors.hpp" />

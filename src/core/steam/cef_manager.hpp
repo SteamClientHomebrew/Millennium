@@ -7,14 +7,10 @@
 #pragma comment(lib, "Wininet.lib")
 
 //network helpers and other buffer typings to help with socket management
-#include <boost/asio.hpp>
-#include <boost/beast.hpp>
-#include <boost/network/uri.hpp>
 
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 
-using tcp = boost::asio::ip::tcp;
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
 using websocketpp::lib::placeholders::_1;
@@ -29,9 +25,9 @@ struct endpoints
 {
 public:
     //used for serving steam/steamui contents, hosted by the steam client
-    boost::network::uri::uri steam_resources = boost::network::uri::uri("https://steamloopback.host");
-    //steam cef remote debugging endpoint
-    boost::network::uri::uri debugger = boost::network::uri::uri("http://127.0.0.1:8080");
+
+    std::string steam_resources = "https://steamloopback.host";
+    std::string debugger = "http://127.0.0.1:8080";
 };
 
 static endpoints uri;
@@ -152,9 +148,8 @@ static steam_cef_manager steam_interface;
 /// </summary>
 struct steam_js_context {
 private:
-    boost::asio::io_context io_context;
-    boost::beast::websocket::stream<tcp::socket> socket;
-    tcp::resolver resolver;
+    websocketpp::client<websocketpp::config::asio_client>* c;
+    websocketpp::connection_hdl hdl;
 
     /// <summary>
     /// connect to the socket of SharedJSContext

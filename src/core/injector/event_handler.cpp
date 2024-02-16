@@ -8,7 +8,6 @@
 #include <core/injector/event_handler.hpp>
 #include <utils/config/config.hpp>
 #include <core/steam/cef_manager.hpp>
-#include <core/ipc/steam_pipe.hpp>
 #include <utils/json.hpp>
 #include <utils/base64.hpp>
 #include <utils/thread/thread_handler.hpp>
@@ -29,18 +28,7 @@ namespace fs = std::filesystem;
 
 typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
 
-using boost::asio::ip::tcp;
-
 nlohmann::basic_json<> skin_json_config;
-
-struct socket_helpers {
-    static const void async_read_socket(boost::beast::websocket::stream<tcp::socket>& socket, boost::beast::multi_buffer& buffer, 
-        std::function<void(const boost::system::error_code&, std::size_t)> handler)
-    {
-        buffer.consume(buffer.size());
-        socket.async_read(buffer, handler);
-    };
-};
 
 /// <summary>
 /// responsible for handling the client steam pages
@@ -657,7 +645,7 @@ private:
         const auto jsAllowed = Settings::Get<bool>("allow-javascript");
 
         for (const auto& item : items) {
-            const auto relativeItem = std::format("{}/skins/{}/{}", uri.steam_resources.string(), Settings::Get<std::string>("active-skin"), item.filePath);
+            const auto relativeItem = std::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), item.filePath);
 
             if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
                 raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
@@ -942,7 +930,7 @@ private:
         try {
             if (std::regex_search(steam_page_url_header, std::regex(patch.matchRegexString)))
             {
-                if (steam_page_url_header.find(uri.steam_resources.host()) != std::string::npos)
+                if (steam_page_url_header.find("steamloopback.host") != std::string::npos)
                     return false;
 
                 console.log_patch("remote", steam_page_url_header, patch.matchRegexString);
@@ -1072,14 +1060,14 @@ public:
 
             //check if the updated CEF instance is remotely hosted.
             if (instance_url.find("http") == std::string::npos || 
-                instance_url.find(uri.steam_resources.host()) != std::string::npos)
+                instance_url.find("steamloopback.host") != std::string::npos)
                 return;
 
             //check if there is a valid skin currently active
             if (skin_json_config["config_fail"])
                 return;
 
-            json_str instances = steam_interface.discover(uri.debugger.string()+"/json");
+            json_str instances = steam_interface.discover(uri.debugger + "/json");
             std::vector<std::thread> threads;
 
             // Iterate over instances and addresses to create threads
@@ -1137,7 +1125,7 @@ steam_client::steam_client()
         ws_Client c;
         
         try {
-            std::string url = json::parse(http::get(uri.debugger.string() + "/json/version"))["webSocketDebuggerUrl"];
+            std::string url = json::parse(http::get(uri.debugger + "/json/version"))["webSocketDebuggerUrl"];
 
             c.set_access_channels  (websocketpp::log::alevel::all);
             c.clear_access_channels(websocketpp::log::alevel::all);

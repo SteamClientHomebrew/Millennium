@@ -24,9 +24,6 @@
     <ClInclude Include="core\injector\event_handler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\ipc\steam_pipe.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="core\steam\application.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

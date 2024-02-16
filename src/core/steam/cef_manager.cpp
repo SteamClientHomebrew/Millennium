@@ -107,7 +107,7 @@ inline std::string steam_cef_manager::discover(std::basic_string<char, std::char
 
 __declspec(noinline) void __fastcall steam_cef_manager::render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
-    std::string path = std::format("{}/{}", uri.steam_resources.string(), "modal.js");
+    std::string path = std::format("{}/{}", uri.steam_resources, "modal.js");
 
     steam_interface.push_to_socket(steam_client, hdl, cef_dom::get().javascript_handler.add(path), sessionId);
 }
@@ -130,7 +130,7 @@ const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)
         //remote skin use the remote skins as a current directory from github
         if (millennium_remote.is_remote) endpoint_unparsed = std::format("{}/{}", millennium_remote.host, endpoint_unparsed);
         //just use the default from the skin path
-        else endpoint_unparsed = std::format("{}/skins/{}/{}", uri.steam_resources.string(), Settings::Get<std::string>("active-skin"), endpoint_unparsed);
+        else endpoint_unparsed = std::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), endpoint_unparsed);
     }
 }
 
@@ -168,6 +168,56 @@ const void steam_cef_manager::evaluate(ws_Client* c, websocketpp::connection_hdl
     }
 }
 
+
+using EventHandler = std::function<void(const nlohmann::json& event_msg, int listenerId)>;
+
+class MessageEmitter {
+private:
+    MessageEmitter() {}
+    // Map to store event handlers for each event
+    std::unordered_map<std::string, std::vector<std::pair<int, EventHandler>>> events;
+    int nextListenerId = 0;
+
+public:
+    MessageEmitter(const MessageEmitter&) = delete;
+    MessageEmitter& operator=(const MessageEmitter&) = delete;
+
+    // Get the singleton instance
+    static MessageEmitter& getInstance() {
+        static MessageEmitter instance; // Static instance
+        return instance;
+    }
+
+    // Register an event handler for a given event
+    int on(const std::string& event, EventHandler handler) {
+        int listenerId = nextListenerId++;
+        events[event].push_back(std::make_pair(listenerId, handler));
+        return listenerId;
+    }
+
+    // Remove an event handler for a given event
+    void off(const std::string& event, int listenerId) {
+        auto it = events.find(event);
+        if (it != events.end()) {
+            auto& handlers = it->second;
+            handlers.erase(std::remove_if(handlers.begin(), handlers.end(), [listenerId](const auto& handler) {
+                return handler.first == listenerId;
+                }), handlers.end());
+        }
+    }
+
+    // Emit an event, invoking all registered handlers
+    void emit(const std::string& event, const nlohmann::json& data) {
+        auto it = events.find(event);
+        if (it != events.end()) {
+            const auto& handlers = it->second;
+            for (const auto& handler : handlers) {
+                handler.second(data, handler.first); // Invoke the handler
+            }
+        }
+    }
+};
+
 const void steam_js_context::establish_socket_handshake(std::function<void()> callback)
 {
     console.log("attempting to create a connection to SteamJSContext");
@@ -175,37 +225,89 @@ const void steam_js_context::establish_socket_handshake(std::function<void()> ca
     if (callback == nullptr)
         throw std::runtime_error("callback function was nullptr");
 
-    boost::asio::connect(socket.next_layer(), resolver.resolve(uri.debugger.host(), uri.debugger.port()));
+    std::string sharedContextUrl;
 
-    nlohmann::basic_json<> instances = nlohmann::json::parse(steam_interface.discover(uri.debugger.string() + "/json"));
+    try {
+        nlohmann::basic_json<> instances = nlohmann::json::parse(steam_interface.discover(uri.debugger + "/json"));
 
-    //instances contains all pages, filter the correct instance
-    auto itr_impl = std::find_if(instances.begin(), instances.end(), [](const nlohmann::json& instance) {
-        return instance["title"].get<std::string>() == "SharedJSContext";
-    });
-    if (itr_impl == instances.end()) { throw std::runtime_error("SharedJSContext wasn't instantiated"); }
+        for (const auto instance : instances) {
+            if (instance["title"] == "SharedJSContext") {
+                sharedContextUrl = instance["webSocketDebuggerUrl"];
+            }
+        }
 
-    boost::network::uri::uri socket_url((*itr_impl)["webSocketDebuggerUrl"].get<std::string>());
-    socket.handshake(uri.debugger.host(), socket_url.path());
+        if (sharedContextUrl.empty()) {
+            console.err("Couldn't find SharedJSContext webSocketDebuggerUrl");
+        }
+    }
+    catch (const http_error& ex) {
+        console.err(ex.what());
+        return;
+    }
+    catch (nlohmann::detail::exception& ex) {
+        console.err(ex.what());
+        return;
+    }
 
-    //implicit type converge -> interrupt_handler
-    static_cast<void>(callback());
-    this->close_socket();
+    try {
+
+        websocketpp::client<websocketpp::config::asio_client> cl;
+
+        std::cout << sharedContextUrl << std::endl;
+
+        cl.set_access_channels(websocketpp::log::alevel::all);
+        cl.clear_access_channels(websocketpp::log::alevel::all);
+        cl.init_asio();
+
+        cl.set_open_handler(bind([&](ws_Client* _c, websocketpp::connection_hdl _hdl) -> void {
+            hdl = _hdl;
+            c = _c;
+            static_cast<void>(callback());
+            //c->close(hdl, websocketpp::close::status::normal, "Successful connection");
+        }, & cl, ::_1));
+        cl.set_message_handler(bind([&](ws_Client* c, websocketpp::connection_hdl hdl, message_ptr msg) -> void {
+
+            std::string message = msg->get_payload();
+
+            std::cout << "Received a message from websocket" << std::endl;
+
+            MessageEmitter::getInstance().emit("msg", nlohmann::json::parse(msg->get_payload()));
+
+        }, & cl, ::_1, ::_2));
+
+        websocketpp::lib::error_code ec;
+        ws_Client::connection_ptr con = cl.get_connection(sharedContextUrl, ec);
+        if (ec) {
+            console.err(std::format("could not create connection because: {}", ec.message()));
+            return;
+        }
+
+        cl.connect(con); cl.run();
+    }
+    catch (websocketpp::exception& ex) {
+        console.err("Failed to connect to SharedJSContext");
+        console.err(ex.what());
+    }
+
 }
 
-steam_js_context::steam_js_context() : socket(io_context), resolver(io_context) { }
+steam_js_context::steam_js_context() { }
 
 inline const void steam_js_context::close_socket() noexcept
 {
-    boost::system::error_code error_code;
-    socket.close(boost::beast::websocket::close_code::normal, error_code);
+    //boost::system::error_code error_code;
+    //socket.close(boost::beast::websocket::close_code::normal, error_code);
 }
 
 __declspec(noinline) const void steam_js_context::reload() noexcept
 {
     establish_socket_handshake([this]() {
         //https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-reload
-        socket.write(boost::asio::buffer(nlohmann::json({ {"id", 89}, {"method", "Page.reload"} }).dump()));
+        c->send(hdl,
+            nlohmann::json({ {"id", 89}, {"method", "Page.reload"} }).dump(), 
+            websocketpp::frame::opcode::text
+        );
+        c->close(hdl, websocketpp::close::status::normal, "Successful connection");
     });
 }
 
@@ -213,13 +315,17 @@ __declspec(noinline) const void steam_js_context::restart() noexcept
 {
     establish_socket_handshake([=, this]() {
         //not used anymore, but here in case
-        socket.write(boost::asio::buffer(nlohmann::json({
-            { "id", 8987 },
-            { "method", "Runtime.evaluate" },
-            { "params", {
-                { "expression", "setTimeout(() => {SteamClient.User.StartRestart(true)}, 1000)" }
-            }}
-        }).dump()));
+        c->send(hdl,
+            nlohmann::json({
+                { "id", 8987 },
+                { "method", "Runtime.evaluate" },
+                { "params", {
+                    { "expression", "setTimeout(() => {SteamClient.User.StartRestart(true)}, 1000)" }
+                }}
+            }).dump(),
+            websocketpp::frame::opcode::text
+        );
+    c->close(hdl, websocketpp::close::status::normal, "Successful connection");
     });
 }
 
@@ -228,11 +334,26 @@ std::string steam_js_context::exec_command(std::string javascript)
     std::promise<std::string> promise;
 
     establish_socket_handshake([&]() {
-        socket.write(boost::asio::buffer(nlohmann::json({ {"id", 1337}, {"method", "Runtime.evaluate"}, {"params", {{"expression", javascript}, {"awaitPromise", true}}} }).dump()));
+        c->send(hdl,
+            nlohmann::json({ {"id", 1337}, {"method", "Runtime.evaluate"}, {"params", {{"expression", javascript}, {"awaitPromise", true}}} }).dump(),
+            websocketpp::frame::opcode::text
+        );
 
-        boost::beast::multi_buffer buffer; socket.read(buffer);
-        promise.set_value(nlohmann::json::parse(boost::beast::buffers_to_string(buffer.data()))["result"].dump());
+        MessageEmitter::getInstance().on("msg", [&](const json& event_msg, int listenerId) {
+            try {
+                console.log("MessageEmitter.on() received a message");
+
+                console.log(event_msg.dump(4));
+                promise.set_value(event_msg["result"].dump());
+
+                c->close(hdl, websocketpp::close::status::normal, "Successful connection");
+                MessageEmitter::getInstance().off("msg", listenerId);
+            }
+            catch (std::future_error& ex) {
+                console.err(ex.what());
+            }
         });
+    });
 
     return promise.get_future().get();
 }
