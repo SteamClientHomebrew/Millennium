@@ -52,6 +52,8 @@ jobs:
 
       - name: Upload Installer Executable
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: millennium.installer/build/output/Millennium.Installer-Windows.exe
@@ -60,6 +62,8 @@ jobs:
 
       - name: Upload Checksum File
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: millennium.installer/build/output/checksum.txt
