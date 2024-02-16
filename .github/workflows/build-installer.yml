@@ -1,4 +1,3 @@
-permissions: write-all
 name: Build Installer
 
 on:
@@ -6,6 +5,7 @@ on:
 
 jobs:
   build:
+    permissions: write-all
     name: Build Installer
     runs-on: windows-latest # Run script on windows system
     
