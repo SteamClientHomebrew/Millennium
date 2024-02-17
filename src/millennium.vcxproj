@@ -138,7 +138,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ASIO_STANDALONE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WEBSOCKETPP_CPP11_TYPE_TRAITS_;_WEBSOCKETPP_CPP11_RANDOM_DEVICE_;ASIO_STANDALONE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
@@ -157,7 +157,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WEBSOCKETPP_CPP11_TYPE_TRAITS_;_WEBSOCKETPP_CPP11_RANDOM_DEVICE_;ASIO_STANDALONE;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
