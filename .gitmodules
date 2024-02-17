@@ -4,3 +4,9 @@
 [submodule "vendor/nlohmann"]
 	path = vendor/nlohmann
 	url = https://github.com/nlohmann/json.git
+[submodule "vendor/asio"]
+	path = vendor/asio
+	url = https://github.com/chriskohlhoff/asio.git
+[submodule "vendor/boost2"]
+	path = vendor/boost2
+	url = https://github.com/boostorg/boost.git

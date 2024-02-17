@@ -6,7 +6,6 @@
 #include <d3dx9.h>
 
 #include <window/core/window.hpp>
-#include <window/core/dx9_image.hpp>
 #include <window/win_handler.hpp>
 #include <window/interface/globals.h>
 

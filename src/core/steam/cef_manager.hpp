@@ -1,4 +1,5 @@
 #pragma once
+#define ASIO_STANDALONE
 #define _WINSOCKAPI_ // Prevent WinSock.h from being included
 
 #include <winsock2.h>
@@ -7,7 +8,6 @@
 #pragma comment(lib, "Wininet.lib")
 
 //network helpers and other buffer typings to help with socket management
-
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 
