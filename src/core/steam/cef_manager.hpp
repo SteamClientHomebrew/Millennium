@@ -1,5 +1,4 @@
 #pragma once
-#define ASIO_STANDALONE
 #define _WINSOCKAPI_ // Prevent WinSock.h from being included
 
 #include <winsock2.h>

@@ -76,9 +76,9 @@ void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl
         //inject the script that the user wants
         runtime_evaluate(theme_colors() + "\n\n\n" + system_color_script() + "\n\n\n" + raw_script);
     }
-    catch (const boost::system::system_error& ex) {
+    catch (const asio::system_error& ex) {
 
-        if (ex.code().value() == boost::asio::error::operation_aborted || ex.code().value() == boost::asio::error::eof)
+        if (ex.code().value() == asio::error::operation_aborted || ex.code().value() == asio::error::eof)
         {
             console.warn("[non-fatal] steam garbage clean-up aborted a connected socket, re-establishing connection");
         }

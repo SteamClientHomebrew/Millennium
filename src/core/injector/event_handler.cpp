@@ -103,7 +103,7 @@ public:
             console.err(std::format("Exception caught on line {} of function {}. Message: {}", __LINE__, __FUNCTION__, exception.what()));
             return;
         }
-        catch (const boost::system::system_error& exception) {
+        catch (const asio::system_error& exception) {
             console.err(std::format("Exception caught on line {} of function {}. Message: {}", __LINE__, __FUNCTION__, exception.what()));
             return;
         }
@@ -133,7 +133,7 @@ public:
                 try {
                     this->received_cef_details();
                 }
-                catch (const boost::system::system_error& exception)
+                catch (const asio::system_error& exception)
                 {
                     console.err(std::format("exception [{}], code: [{}]", exception.what(), exception.code().value()));
                     return;
@@ -675,9 +675,9 @@ private:
             //inject the script that the user wants
             runtime_evaluate(theme_colors() + "\n\n\n" + system_color_script() + "\n\n\n" + raw_script);
         }
-        catch (const boost::system::system_error& ex) {
+        catch (const asio::system_error& ex) {
 
-            if (ex.code().value() == boost::asio::error::operation_aborted || ex.code().value() == boost::asio::error::eof)
+            if (ex.code().value() == asio::error::operation_aborted || ex.code().value() == asio::error::eof)
             {
                 console.warn("[non-fatal] steam garbage clean-up aborted a connected socket, re-establishing connection");
             }
@@ -1086,8 +1086,8 @@ public:
                             // Use CSS and JS if available
                             self.patch(instance, address.targetCss, address.targetJs);
                         }
-                        catch (const boost::system::system_error& ex) {
-                            if (ex.code() == boost::asio::error::misc_errors::eof) {
+                        catch (const asio::system_error& ex) {
+                            if (ex.code() == asio::error::misc_errors::eof) {
                                 console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
                             }
 
@@ -1151,8 +1151,8 @@ steam_client::steam_client()
         catch (websocketpp::exception const& e) {
             console.err(std::format("Error occurred on client websocket thread: {}", e.what()));
         }
-        catch (const boost::system::system_error& ex) {
-            if (ex.code() == boost::asio::error::misc_errors::eof) {
+        catch (const asio::system_error& ex) {
+            if (ex.code() == asio::error::misc_errors::eof) {
 				console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
 			}
 		}
@@ -1177,7 +1177,7 @@ steam_client::steam_client()
         catch (nlohmann::json::exception& ex) { 
             console.err(std::format("remote: {}", std::string(ex.what()))); 
         }
-        catch (const boost::system::system_error& ex) { 
+        catch (const asio::system_error& ex) { 
             console.err(std::format("remote: {}", std::string(ex.what()))); 
         }
         catch (const std::exception& ex) { 
