@@ -63,6 +63,8 @@ const void toastNotification(std::string title, std::string message, std::string
 
 const void check_updates(nlohmann::basic_json<> theme) {
 
+	std::string nativeName = theme["native-name"];
+
 	if (!theme.contains("update_required") || !theme["update_required"]) {
 		return;
 	}
@@ -72,10 +74,10 @@ const void check_updates(nlohmann::basic_json<> theme) {
 	m_Client.parseSkinData(
 		/*checkForUpdates*/ true, 
 		/*setNewCommit?*/true, 
-		/*Specify Theme to reset*/theme["native-name"]
+		/*Specify Theme to reset*/nativeName
 	);
 
-	if (Settings::Get<std::string>("active-skin") == theme["native-name"]) {
+	if (Settings::Get<std::string>("active-skin") == nativeName) {
 
 		// The current selected skin was updated so refresh the skin
 		steam_js_context SteamJSContext;

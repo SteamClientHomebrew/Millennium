@@ -1094,7 +1094,7 @@ public:
                             //exception was thrown, patching thread crashed, so mark it as unpatched so it can restart itself, happens when the 
                             //instance is left alone for too long sometimes and steams garbage collector clears memory
                             patched.erase(std::remove_if(patched.begin(), patched.end(), [&](const std::string& element) {
-                                return element == instance["webSocketDebuggerUrl"];
+                                return element == instance.value("webSocketDebuggerUrl", "_null_");
                             }), patched.end());
                         }
                     });

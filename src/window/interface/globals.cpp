@@ -272,7 +272,7 @@ nlohmann::json millennium::get_versions_from_disk(std::vector<nlohmann::basic_js
 		}
 		else {
 			for (auto& data : parsedData) {
-				if (data.value("owner", "null") == item["github"]["owner"]) {
+				if (data.value("owner", "null") == item["github"].value("owner", "_null")) {
 					data["repo"] = item["github"]["repo_name"];
 					data["name"] = item["native-name"];
 				}
