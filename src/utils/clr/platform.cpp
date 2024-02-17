@@ -4,7 +4,7 @@
 #include <format>
 #include <regex>
 
-LPCWSTR StringToLPCWSTR(const std::string& str) {
+LPCWSTR s_lpcwstr(const std::string& str) {
     int size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
     wchar_t* wideStr = new wchar_t[size];
     MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, wideStr, size);
@@ -88,11 +88,17 @@ namespace clr_interop {
         DWORD out;
 
         try {
+
+            char buffer[MAX_PATH];
+            DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
+
+            std::string path = std::format("{}/millennium.updater.dll", std::string(buffer, bufferSize));
+
             const auto hr = pClrRuntimeHost->ExecuteInDefaultAppDomain(
-                L"C:\\Users\\Admin\\Documents\\millennium-steam-patcher\\millennium.updater\\bin\\Debug\\millennium.updater.dll",
+                s_lpcwstr(path),
                 L"updater.Entry",
                 L"Bootstrapper",
-                StringToLPCWSTR(param),
+                s_lpcwstr(param),
                 &out
             );
 
