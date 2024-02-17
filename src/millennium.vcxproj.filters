@@ -75,12 +75,6 @@
     <ClInclude Include="utils\cout\logger.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="window\api\api.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\core\dx9_image.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="window\interface\globals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -180,12 +174,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utils\cout\logger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\core\dx9_image.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\api\api.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="window\interface\globals.cpp">

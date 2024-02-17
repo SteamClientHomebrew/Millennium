@@ -156,37 +156,37 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 	return true;
 }
 
-void millennium::releaseImages() {
-	for (auto& item : v_rawImageList) {
-		if (item.texture) item.texture->Release();
-	}
+//void millennium::releaseImages() {
+//	for (auto& item : v_rawImageList) {
+//		if (item.texture) item.texture->Release();
+//	}
+//
+//	v_rawImageList.clear();
+//}
 
-	v_rawImageList.clear();
-}
-
-void millennium::getRawImages(std::vector<std::string>& images)
-{
-	std::cout << "getRawImages called" << std::endl;
-	
-	for (auto& item : v_rawImageList) {
-		//std::cout << "Iterating over texture" << std::endl;
-		if (item.texture)
-		{
-			std::cout << "Releasing a texture" << std::endl;
-			item.texture->Release();
-		}
-	}
-
-	v_rawImageList.clear();
-	v_rawImageList.resize((int)images.size(), { nullptr, 0, 0 });
-
-	// use threading to load the images on their own thread synchronously
-	for (int i = 0; i < (int)images.size(); i++) {
-		std::thread([=]() { 
-			v_rawImageList[i] = image::make_shared_image(images[i].c_str(), image::quality::high); 
-		}).detach();
-	}
-}
+//void millennium::getRawImages(std::vector<std::string>& images)
+//{
+//	std::cout << "getRawImages called" << std::endl;
+//	
+//	for (auto& item : v_rawImageList) {
+//		//std::cout << "Iterating over texture" << std::endl;
+//		if (item.texture)
+//		{
+//			std::cout << "Releasing a texture" << std::endl;
+//			item.texture->Release();
+//		}
+//	}
+//
+//	v_rawImageList.clear();
+//	v_rawImageList.resize((int)images.size(), { nullptr, 0, 0 });
+//
+//	// use threading to load the images on their own thread synchronously
+//	for (int i = 0; i < (int)images.size(); i++) {
+//		std::thread([=]() { 
+//			v_rawImageList[i] = image::make_shared_image(images[i].c_str(), image::quality::high); 
+//		}).detach();
+//	}
+//}
 
 nlohmann::basic_json<> millennium::bufferSkinData()
 {
@@ -471,21 +471,21 @@ void millennium::changeSkin(nlohmann::basic_json<>& skin)
 	parseSkinData(false);
 }
 
-void millennium::concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin)
-{
-	std::ofstream file(std::format("{}/{}", config.getSkinDir(), item.file_name));
-
-	if (file.is_open()) {
-		file << skin.dump(4); file.close();
-	}
-	else {
-		console.err("unable to add skin to library");
-	}
-}
-
-void millennium::dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin)
-{
-	if (!std::filesystem::remove(std::format("{}/{}", config.getSkinDir(), item.file_name))) {
-		console.err("couldn't remove skin from library");
-	}
-}
+//void millennium::concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin)
+//{
+//	std::ofstream file(std::format("{}/{}", config.getSkinDir(), item.file_name));
+//
+//	if (file.is_open()) {
+//		file << skin.dump(4); file.close();
+//	}
+//	else {
+//		console.err("unable to add skin to library");
+//	}
+//}
+//
+//void millennium::dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin)
+//{
+//	if (!std::filesystem::remove(std::format("{}/{}", config.getSkinDir(), item.file_name))) {
+//		console.err("couldn't remove skin from library");
+//	}
+//}

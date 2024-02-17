@@ -5,7 +5,6 @@
 #include <window/imgui/imgui_internal.h>
 
 #include <window/core/window.hpp>
-#include <window/api/api.hpp>
 #include <utils/config/config.hpp>
 #include <core/steam/cef_manager.hpp>
 
@@ -191,18 +190,18 @@ public:
 	//index of the showing image on the details page
 	int m_imageIndex = 0;
 
-	MillenniumAPI::resultsSchema m_resultsSchema;
+	//MillenniumAPI::resultsSchema m_resultsSchema;
 
 	bool b_noConnection = false;
 	bool b_showingDetails = false;
-	std::vector<image::image_t> v_rawImageList;
+	//std::vector<image::image_t> v_rawImageList;
 
 	void getRawImages(std::vector<std::string>& images);
 	void parseSkinData(bool checkForUpdates = false, bool setCommit = false, std::string newCommit = "");
 	nlohmann::basic_json<> bufferSkinData();
 	void changeSkin(nlohmann::basic_json<>& skin);
-	void concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
-	void dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
+	//void concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
+	//void dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin);
 
 	bool isInvalidSkin(std::string skin = Settings::Get<std::string>("active-skin"));
 
@@ -211,10 +210,10 @@ public:
 
 	~millennium() noexcept
 	{
-		for (auto& item : v_rawImageList) {
-			if (item.texture) item.texture->Release();
-		}
-		v_rawImageList.clear();
+		//for (auto& item : v_rawImageList) {
+		//	if (item.texture) item.texture->Release();
+		//}
+		//v_rawImageList.clear();
 	}
 };
 

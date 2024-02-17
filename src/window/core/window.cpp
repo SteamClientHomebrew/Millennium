@@ -32,7 +32,6 @@
 #include <locale>
 #include <codecvt>
 
-#include <zip.h>
 #include <window/interface/globals.h>
 
 static bool mousedown = false;
