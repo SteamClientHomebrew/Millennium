@@ -13,7 +13,7 @@ public class HashObject
 
 internal class HashManager
 {
-    private static readonly string filePath = "millennium.updater.hashes.json";
+    private static readonly string filePath = ".millennium/manager/hashes-backend.json";
 
     private static bool isValid(string s)
     {
@@ -71,6 +71,16 @@ internal class HashManager
 
             // Serialize the list back to JSON
             string updatedJsonContent = JsonConvert.SerializeObject(hashObjects, Formatting.Indented);
+
+            try
+            {
+                // Create directories recursively
+                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error: {e.Message}");
+            }
 
             // Write to the file (create if it doesn't exist)
             File.WriteAllText(filePath, updatedJsonContent);
