@@ -61,76 +61,30 @@ namespace Millennium
 
     unsigned long __stdcall Bootstrap(void* lpParam)
     {
-        if (steam::get().params.has("-dev"))
+        if (steam::get().params.has("-dev") && static_cast<bool>(AllocConsole()))
         {
-            if (static_cast<bool>(AllocConsole()))
-            {
-                void(freopen("CONOUT$", "w", stdout));
-                console.consoleAllocated = true;
-            }
+            void(freopen("CONOUT$", "w", stdout));
+            console.consoleAllocated = true;
         }
 
-        try
+        threadContainer::getInstance().hookAllThreads();
         {
-            nlohmann::basic_json<> response = nlohmann::json::parse(http::get(repo));
+            updater::check_for_updates();
 
-            if (response.contains("message")) {
-                throw http_error(http_error::errors::not_allowed);
-            }
+            std::cout << " Millennium Dev Tools v" << m_ver << std::endl;
+            std::cout << " Developed by ShadowMonster (discord: sm74)" << std::endl;
+            std::cout << " Need help? Check the docs: https://millennium.gitbook.io/steam-patcher/guides/developers" << std::endl;
+            std::cout << " Still need help? Join the discord server: https://millennium.web.app/discord" << std::endl;
+            std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
 
-            //updater::start_update();
-            if (response["tag_name"] != m_ver)
-            {
-                updater::start_update();
-            }
+            threadContainer::getInstance().addThread(CreateThread(0, 0, StartWinHookAsync, 0, 0, 0));
+            threadContainer::getInstance().addThread(CreateThread(0, 0, getConsoleHeader, 0, 0, 0));
+            threadContainer::getInstance().addThread(CreateThread(0, 0, Initialize, 0, 0, 0));
+
+            // synchronously run theme updater 
+            queryThemeUpdates(nullptr);
         }
-        catch (const http_error& error)
-        {
-            switch (error.code())
-            {
-                case http_error::errors::couldnt_connect: {
-                    console.err("Couldn't make a GET request to GitHub to retrieve update information!");
-                    break;
-                }
-                case http_error::errors::not_allowed: {
-                    console.err("Networking disabled. Purged update request.");
-                    break;
-                }
-            }
-        }
-
-        std::cout << " Millennium Dev Tools v" << m_ver << std::endl;
-        std::cout << " Developed by ShadowMonster (discord: sm74)" << std::endl;
-        std::cout << " Need help? Check the docs: https://millennium.gitbook.io/steam-patcher/guides/developers" << std::endl;
-        std::cout << " Still need help? Join the discord server: https://discord.gg/MXMWEQKgJF" << std::endl;
-        std::cout << "-------------------------------------------------------------------------------------\n" << std::endl;
-
-
-
-        //clr_interop::clr_base::instance().start_update(nlohmann::json({
-        //    {"owner", "SaiyajinK"},
-        //    {"repo", "Minimal-Dark-for-Steam"}
-        //}).dump(4));
-
-        //clr_interop::clr_base::instance().start_update(nlohmann::json({
-        //    {"owner", "ShadowMonster99"},
-        //    {"repo", "Simply-Dark"}
-        //}).dump(4));
-
-
-        //clr_interop::clr_base::instance().start_update(nlohmann::json({
-        //    {"owner", "RoseTheFlower"},
-        //    {"repo", "MetroSteam"}
-        //}).dump(4));
-
-        //clr_interop::clr_base::instance().cleanup_clr();
-
-        threadContainer::getInstance().addThread(CreateThread(0, 0, StartWinHookAsync, 0, 0, 0));
-
-        threadContainer::getInstance().addThread(CreateThread(0, 0, getConsoleHeader, 0, 0, 0));
-        threadContainer::getInstance().addThread(CreateThread(0, 0, Initialize, 0, 0, 0));
-
-        threadContainer::getInstance().addThread(CreateThread(0, 0, queryThemeUpdates, 0, 0, 0));
+        threadContainer::getInstance().unhookAllThreads();
 
         return true;
     }

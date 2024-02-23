@@ -187,9 +187,13 @@ HICON GetParentProcessIcon()
 
 void initFontAtlas(ImGuiIO* IO)
 {
-    IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 17);
-    IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 13);
-    IO->Fonts->AddFontFromMemoryTTF(Memory::aptosFont, sizeof Memory::aptosFont, 20);
+    auto inter = Memory::Inter;
+    auto poppins = Memory::Poppins;
+    auto aptos = Memory::aptosFont;
+
+    IO->Fonts->AddFontFromMemoryTTF(aptos, sizeof aptos, 17);
+    IO->Fonts->AddFontFromMemoryTTF(aptos, sizeof aptos, 13);
+    IO->Fonts->AddFontFromMemoryTTF(aptos, sizeof aptos, 20);
 }
 
 void initTextures()
@@ -410,7 +414,7 @@ public:
 
             writeFileBytesSync(filePath, http::get_bytes(downloadPath.c_str()));
 
-            g_fileDropStatus = "Processing Theme Information...";
+            g_fileDropStatus = "Processing Theme Information";
 
             std::string zipFilePath = filePath.string();
             std::string destinationFolder = config.getSkinDir() + "/";
@@ -418,14 +422,14 @@ public:
             std::cout << "extracting zip archive: " << zipFilePath << std::endl;
             std::cout << "extracting to: " << destinationFolder << std::endl;
 
-            g_fileDropStatus = "Installing Theme...";
+            g_fileDropStatus = "Installing Theme and Verifying";
 
             if (unzip(zipFilePath, destinationFolder)) {
                 // The file has been successfully extracted
                 // You can add further processing or use the extracted files as needed
                 std::cout << "extracted" << std::endl;
 
-                g_fileDropStatus = "Done!";
+                g_fileDropStatus = "Done! Cleaning up...";
 
                 std::this_thread::sleep_for(std::chrono::seconds(2));
 
@@ -788,21 +792,22 @@ void set_proc_theme_colors()
 {
 	ImGuiStyle* sty = (ImGuiStyle*)(void*) & ImGui::GetStyle();
 
-    sty->FrameRounding     = 0.0f;
+    sty->FrameRounding     = 4.0f;
     sty->ChildRounding     = 0.0f;
-    sty->GrabRounding      = 0.0f;
+    sty->GrabRounding      = 4.0f;
+    sty->WindowRounding    = 4.0f;
     //sty->ItemSpacing       = ImVec2(12, 8);
-    sty->ScrollbarSize     = 8.0f;
-    sty->ScrollbarRounding = 0.0f;
+    sty->ScrollbarSize     = 10.0f;
+    sty->ScrollbarRounding = 4.0f;
     sty->AntiAliasedFill = true;
 
 	sty->SetTheme[ImGuiCol_ChildBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
 	sty->SetTheme[ImGuiCol_Border]               = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
       
-	sty->SetTheme[ImGuiCol_Text]                 = ImVec4(0.80f, 0.80f, 0.83f, 1.00f);
-	sty->SetTheme[ImGuiCol_TextDisabled]         = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
+	sty->SetTheme[ImGuiCol_Text]                 = ImVec4(1.f, 1.f, 1.f, 1.00f);
+	sty->SetTheme[ImGuiCol_TextDisabled]         = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
 	sty->SetTheme[ImGuiCol_WindowBg]             = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
-	sty->SetTheme[ImGuiCol_ScrollbarBg]          = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+	sty->SetTheme[ImGuiCol_ScrollbarBg]          = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
 	sty->SetTheme[ImGuiCol_ScrollbarGrab]        = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
 	sty->SetTheme[ImGuiCol_PopupBg]              = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
 	sty->SetTheme[ImGuiCol_FrameBg]              = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);

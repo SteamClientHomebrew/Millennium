@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 
 struct remote_skin
 {
@@ -72,6 +73,8 @@ public:
     std::string getSkinDir();
     const std::string getRootColors(nlohmann::basic_json<> data);
     const void installFonts();
+
+    void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);
 
     /// <summary>
     /// get the configuration files, as json from the current skin selected

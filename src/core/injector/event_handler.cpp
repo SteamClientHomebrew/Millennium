@@ -17,6 +17,7 @@
 #include <core/ipc/ipc_main.hpp>
 
 #include <regex>
+#include "conditions/conditionals.hpp"
 
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -527,7 +528,7 @@ private:
 
     inline const void evauluateStatement(evalStatement ev) {
 
-        std::cout << ev.statement.dump(4) << std::endl;
+        //std::cout << ev.statement.dump(4) << std::endl;
 
         if (ev.statement.contains("Equals") && ev.selectedItem == ev.statement["Equals"]) {
             console.log(std::format("Configuration key: [{}] Equals [{}]. Executing 'True' statement", ev.settingsName, ev.statement["Equals"].dump()));
@@ -588,7 +589,7 @@ private:
 
         for (auto& statement : statements) {
 
-            std::cout << statement.dump(4) << std::endl;
+            //std::cout << statement.dump(4) << std::endl;
 
             if (!statement.contains("If")) {
                 console.err("Invalid statement structure: 'If' is missing.");
@@ -702,22 +703,24 @@ private:
 
         for (const nlohmann::basic_json<>& patch : skin_json_config["Patches"].get<std::vector<nlohmann::basic_json<>>>())
         {
-            bool contains_http = patch["MatchRegexString"].get<std::string>().find("http") != std::string::npos;
+            auto matchRegexString = patch.value("MatchRegexString", "_null_");
+
+            bool contains_http = matchRegexString.find("http") != std::string::npos;
             //used regex match instead of regex find or other sorts, make sure you validate your regex 
             bool regex_match = false;
 
             try {
-                regex_match = std::regex_search(cefctx_title, std::regex(patch["MatchRegexString"].get<std::string>()));
+                regex_match = std::regex_search(cefctx_title, std::regex(matchRegexString));
             }
             catch (std::regex_error& e) {
-                console.err(std::format("Invalid regex selector: '{}' is invalid {}", patch["MatchRegexString"].get<std::string>(), e.what()));
+                console.err(std::format("Invalid regex selector: '{}' is invalid {}", matchRegexString, e.what()));
             }
 
 
             if (contains_http or not regex_match)
                 continue;
 
-            console.log_patch("client", cefctx_title, patch["MatchRegexString"].get<std::string>());
+            console.log_patch("client", cefctx_title, matchRegexString);
 
             const auto result = check_statement(patch);
 
@@ -729,9 +732,37 @@ private:
                 }
             }
 
-            if (patch.contains("TargetJs"))
+            try {
+                auto conditional = conditionals::has_patch(skin_json_config, skin_json_config["native-name"], cefctx_title);
+
+                for (auto condition : conditional)
+                {
+                    itemQuery.push_back({ condition.item_src, condition.type });
+                }
+            }
+            catch (const nlohmann::detail::exception& ex)
+            {
+                console.err(std::format("Error getting conditionals {}", ex.what()));
+            }
+
+            if (patch.contains("TargetJsList"))
+            {
+                for (const auto item : patch["TargetJsList"])
+                {
+                    itemQuery.push_back({ item, steam_interface.script_type::javascript });
+                }
+            }
+            if (patch.contains("TargetCssList"))
+            {
+                for (const auto item : patch["TargetCssList"])
+                {
+                    itemQuery.push_back({ item, steam_interface.script_type::stylesheet });
+                }
+            }
+
+            if (patch.contains("TargetJs") && patch["TargetJs"].is_string())
                 itemQuery.push_back({ patch["TargetJs"].get<std::string>(), steam_interface.script_type::javascript });
-            if (patch.contains("TargetCss"))
+            if (patch.contains("TargetCss") && patch["TargetCss"].is_string())
                 itemQuery.push_back({ patch["TargetCss"].get<std::string>(), steam_interface.script_type::stylesheet });
 
             inject_items(itemQuery);
@@ -858,24 +889,63 @@ private:
                 return;
             }
 
-            for (const json_patch& patch : skin_json_config["Patches"].get<std::vector<json_patch>>())
+            for (const auto& patch : skin_json_config["Patches"].get<std::vector<nlohmann::basic_json<>>>())
             {
-                bool contains_http = patch.matchRegexString.find("http") != std::string::npos;
+                auto matchRegexString = patch.value("MatchRegexString", "_null_");
+
+
+                bool contains_http = matchRegexString.find("http") != std::string::npos;
 
                 if (contains_http)
                     continue;
-                if (attributes.find(patch.matchRegexString) == std::string::npos) {
+                if (attributes.find(matchRegexString) == std::string::npos) {
                     continue;
                 }
 
-                console.log_patch("class name", m_header, patch.matchRegexString);
+                console.log_patch("class name", m_header, matchRegexString);
+
+                const auto result = check_statement(patch);
 
                 std::vector<item> itemQuery;
 
-                if (!patch.targetCss.empty())
-                    itemQuery.push_back({ patch.targetCss, steam_interface.script_type::stylesheet });
-                if (!patch.targetJs.empty())  
-                    itemQuery.push_back({ patch.targetJs, steam_interface.script_type::javascript });
+                if (!result[0].fail) {
+                    for (const auto statementItem : result) {
+                        itemQuery.push_back({ statementItem.itemRefrence, statementItem.scriptType });
+                    }
+                }
+
+                try {
+                    auto conditional = conditionals::has_patch(skin_json_config, skin_json_config["native-name"], m_header);
+
+                    for (auto condition : conditional)
+                    {
+                        itemQuery.push_back({ condition.item_src, condition.type });
+                    }
+                }
+                catch (const nlohmann::detail::exception& ex)
+                {
+                    console.err(std::format("Error getting conditionals {}", ex.what()));
+                }
+
+                if (patch.contains("TargetJsList"))
+                {
+                    for (const auto item : patch["TargetJsList"])
+                    {
+                        itemQuery.push_back({ item, steam_interface.script_type::javascript });
+                    }
+                }
+                if (patch.contains("TargetCssList"))
+                {
+                    for (const auto item : patch["TargetCssList"])
+                    {
+                        itemQuery.push_back({ item, steam_interface.script_type::stylesheet });
+                    }
+                }
+
+                if (patch.contains("TargetJs"))
+                    itemQuery.push_back({ patch["TargetJs"].get<std::string>(), steam_interface.script_type::javascript });
+                if (patch.contains("TargetCss"))
+                    itemQuery.push_back({ patch["TargetCss"].get<std::string>(), steam_interface.script_type::stylesheet });
 
                 inject_items(itemQuery);
             }
@@ -1215,6 +1285,7 @@ unsigned long __stdcall Initialize(void*)
         //config.installFonts();
     });
 
+    std::cout << "starting file watcher" << std::endl;
     //config file watcher callback function 
     std::thread watcher(themeConfig::watchPath, config.getSkinDir(), []() {
         console.log("skins folder has changed, updating required information");

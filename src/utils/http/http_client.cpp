@@ -117,7 +117,7 @@ const std::string http::post(std::string path, std::string data)
     return std::string();
 }
 
-const std::vector<unsigned char> http::get_bytes(const char* url)
+const std::vector<unsigned char> http::get_bytes(const char* url, std::function<void(int)> callback)
 {
     //console.log(std::format("making GET request to retrieve bytes from {}", url));
 
@@ -143,12 +143,17 @@ const std::vector<unsigned char> http::get_bytes(const char* url)
         }
     }
 
-    unsigned char buffer[1024];
+    unsigned char buffer[104857];
     unsigned long bytes_read;
+    unsigned long total_bytes_read = 0;
 
     while (InternetReadFile(hUrl, buffer, sizeof(buffer), &bytes_read) && bytes_read > 0)
     {
+        total_bytes_read += bytes_read;
         image_bytes.insert(image_bytes.end(), buffer, buffer + bytes_read);
+
+        if (callback != nullptr)
+            callback(total_bytes_read);
     }
 
     InternetCloseHandle(hUrl); InternetCloseHandle(hInternet);

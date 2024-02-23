@@ -62,68 +62,70 @@ void EnableBlurBehind(HWND target)
 }
 
 
-//struct DWMCOLORIZATIONPARAMS {
-//	DWORD dwColor;
-//	DWORD dwAfterglow;
-//	DWORD dwColorBalance;
-//	DWORD dwAfterglowBalance;
-//	DWORD dwBlurBalance;
-//	DWORD dwGlassReflectionIntensity;
-//	DWORD dwOpaqueBlend;
-//};
-//
-//struct IMMERSIVE_COLOR_PREFERENCE {
-//	COLORREF color1;
-//	COLORREF color2;
-//};
-//
-//static HRESULT(WINAPI* DwmSetColorizationParameters)(DWMCOLORIZATIONPARAMS* color, UINT unknown);
-//
-//void SetWindowBorder(HWND hwnd) {
-//	HMODULE hDwmApi = LoadLibrary("dwmapi.dll");
-//	if (hDwmApi == NULL) {
-//		std::cout << "Failed to load dwmapi.dll" << std::endl;
-//		return;
-//	}
-//
-//	auto pfnSetColorizationParams = reinterpret_cast<decltype(DwmSetColorizationParameters)>(GetProcAddress(hDwmApi, (LPCSTR)131));
-//
-//	if (pfnSetColorizationParams == NULL) {
-//		std::cout << "Failed to get address of DwmSetColorizationParameters" << std::endl;
-//		FreeLibrary(hDwmApi);
-//		return;
-//	}
-//	else {
-//		std::cout << "Found DwmSetColorizationParameters" << std::endl;
-//	}
-//
-//	HRESULT hr;
-//
-//	DWMCOLORIZATIONPARAMS dwmColor;
-//
-//	DWORD dwNewColor = (((0xC4) << 24) | ((GetRValue(0x0000B9FF)) << 16) | ((GetGValue(0x0000B9FF)) << 8) | (GetBValue(0x0000B9FF)));
-//	dwmColor.dwColor = dwNewColor;
-//	dwmColor.dwAfterglow = dwNewColor;
-//
-//	hr = pfnSetColorizationParams(&dwmColor, 0);
-//
-//	if (FAILED(hr)) {
-//		std::cout << "DwmSetColorizationParameters failed with HRESULT 0x" << std::hex << hr << std::endl;
-//		FreeLibrary(hDwmApi);
-//		return;
-//	}
-//
-//	// Release the loaded library
-//	FreeLibrary(hDwmApi);
-//	return;
-//}
+struct DWMCOLORIZATIONPARAMS {
+	DWORD dwColor;
+	DWORD dwAfterglow;
+	DWORD dwColorBalance;
+	DWORD dwAfterglowBalance;
+	DWORD dwBlurBalance;
+	DWORD dwGlassReflectionIntensity;
+	DWORD dwOpaqueBlend;
+};
+
+struct IMMERSIVE_COLOR_PREFERENCE {
+	COLORREF color1;
+	COLORREF color2;
+};
+
+static HRESULT(WINAPI* DwmSetColorizationParameters)(DWMCOLORIZATIONPARAMS* color, UINT unknown);
+
+void SetWindowBorder(HWND hwnd) {
+	HMODULE hDwmApi = LoadLibrary("dwmapi.dll");
+	if (hDwmApi == NULL) {
+		std::cout << "Failed to load dwmapi.dll" << std::endl;
+		return;
+	}
+
+	auto pfnSetColorizationParams = reinterpret_cast<decltype(DwmSetColorizationParameters)>(GetProcAddress(hDwmApi, (LPCSTR)131));
+
+	if (pfnSetColorizationParams == NULL) {
+		std::cout << "Failed to get address of DwmSetColorizationParameters" << std::endl;
+		FreeLibrary(hDwmApi);
+		return;
+	}
+	else {
+		std::cout << "Found DwmSetColorizationParameters" << std::endl;
+	}
+
+	HRESULT hr;
+
+	DWMCOLORIZATIONPARAMS dwmColor;
+
+	DWORD dwNewColor = (((0xC4) << 24) | ((GetRValue(0x0000B9FF)) << 16) | ((GetGValue(0x0000B9FF)) << 8) | (GetBValue(0x0000B9FF)));
+	dwmColor.dwColor = dwNewColor;
+	dwmColor.dwAfterglow = dwNewColor;
+
+	hr = pfnSetColorizationParams(&dwmColor, 0);
+
+	if (FAILED(hr)) {
+		std::cout << "DwmSetColorizationParameters failed with HRESULT 0x" << std::hex << hr << std::endl;
+		FreeLibrary(hDwmApi);
+		return;
+	}
+
+	// Release the loaded library
+	FreeLibrary(hDwmApi);
+	return;
+}
 
 void patchWindow(HWND hwnd)
 {
+	//ShowWindow(hwnd, SW_HIDE);
+
 	int enable_dark_mode = true;
 	int SYSTEMBACKDROP_TYPE = (int)SystemBackdropType::Acrylic;
 
-	CornerPreference pref;
+	CornerPreference pref{};
 	int cornerPref = Settings::Get<int>("corner-preference");
 	int enableMica = Settings::Get<bool>("mica-effect");
 
@@ -134,7 +136,7 @@ void patchWindow(HWND hwnd)
 	}
 
 	DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &enable_dark_mode, sizeof(int));
-	DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &SYSTEMBACKDROP_TYPE, sizeof(int));
+	//DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &SYSTEMBACKDROP_TYPE, sizeof(int));
 
 	if (cornerPref != NULL) {
 		DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(int));
@@ -144,6 +146,7 @@ void patchWindow(HWND hwnd)
 	}
 
 	//SetWindowBorder(hwnd);
+	//ShowWindow(hwnd, SW_SHOW);
 }
 
 std::string GetProcName(DWORD processId) {

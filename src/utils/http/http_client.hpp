@@ -35,6 +35,6 @@ public:
 	static const std::string get(std::string remote_endpoint);
 	static const nlohmann::json getJson(std::string remote_endpoint);
 
-    static const std::vector<unsigned char> get_bytes(const char* url);
+    static const std::vector<unsigned char> get_bytes(const char* url, std::function<void(int)> callback = nullptr);
     static const std::string post(std::string remote_endpoint, std::string data);
 };

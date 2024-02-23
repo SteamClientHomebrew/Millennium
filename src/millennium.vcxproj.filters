@@ -129,6 +129,12 @@
     <ClInclude Include="core\steam\window\types\accent_api.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\injector\conditions\conditionals.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\injector\injector.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -216,6 +222,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core\steam\window\manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="core\injector\conditions\conditionals.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="core\injector\injector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

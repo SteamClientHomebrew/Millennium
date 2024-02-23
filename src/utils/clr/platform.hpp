@@ -15,6 +15,7 @@ namespace clr_interop {
         bool initialize_clr();
         void cleanup_clr();
         bool start_update(const std::string& param);
+        bool check_millennium_updates();
 
         // Other methods or members can be added if needed
 

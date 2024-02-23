@@ -1,6 +1,7 @@
 #pragma once
 #define _WINSOCKAPI_ // Prevent WinSock.h from being included
 
+#include <nlohmann/json.hpp>
 #include <winsock2.h>
 
 #include <wininet.h>

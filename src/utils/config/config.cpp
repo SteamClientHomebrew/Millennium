@@ -12,6 +12,7 @@
 
 #include <format>
 #include <filesystem>
+#include <core/injector/conditions/conditionals.hpp>
 
 remote_skin millennium_remote;
 
@@ -156,56 +157,57 @@ private:
     HANDLE handle;
 };
 
-void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) {
-
-
-    // notification filters, name, folder created, file attributes changed, file size change
-    DWORD notifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE;
-
+void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) 
+{
     console.log(std::format("[bootstrap] sync file watcher starting on dir: {}", directoryPath));
 
-    HandleWrapper hDirectory = CreateFileA(directoryPath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-    HandleWrapper hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+   
+    HANDLE hDir = CreateFile(directoryPath.c_str(),FILE_LIST_DIRECTORY,FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,nullptr);
 
-    if (hDirectory == INVALID_HANDLE_VALUE || hEvent == NULL) {
-        CloseHandle(hDirectory);
+    if (hDir == INVALID_HANDLE_VALUE) {
+        std::cout << "Error: Unable to open directory " << directoryPath << std::endl;
         return;
     }
 
-    const DWORD bufferSize = sizeof(FILE_NOTIFY_INFORMATION) + MAX_PATH;
-    BYTE buffer[bufferSize];
-
-    OVERLAPPED overlapped;
-    memset(&overlapped, 0, sizeof(overlapped));
-    overlapped.hEvent = hEvent;
-
-    if (!ReadDirectoryChangesW(hDirectory, buffer, bufferSize, FALSE, notifyFilter, NULL, &overlapped, NULL)) {
-        CloseHandle(hEvent);
-        CloseHandle(hDirectory);
-        return;
-    }
+    DWORD dwBytesReturned;
+    FILE_NOTIFY_INFORMATION buffer[1024];
 
     while (true) {
-        DWORD waitResult = WaitForSingleObject(hEvent, INFINITE);
-        if (waitResult != WAIT_OBJECT_0) return;
+        ReadDirectoryChangesW(
+            hDir,
+            buffer,
+            sizeof(buffer),
+            TRUE,
+            FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES |
+            FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SECURITY,
+            &dwBytesReturned,
+            nullptr,
+            nullptr
+        );
 
-        DWORD bytesTransferred;
-        if (!GetOverlappedResult(hDirectory, &overlapped, &bytesTransferred, FALSE)) break;
+        FILE_NOTIFY_INFORMATION* pNotifyInfo = buffer;
+        do {
+            std::wstring filename(pNotifyInfo->FileName, pNotifyInfo->FileNameLength / sizeof(WCHAR));
 
-        FILE_NOTIFY_INFORMATION* fileInfo = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(buffer);
-        while (fileInfo != NULL)
-        {
-            callback();
+            if (filename != L"." && filename != L"..") {
 
-            if (fileInfo->NextEntryOffset == 0) break;
-            fileInfo = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(reinterpret_cast<char*>(fileInfo) + fileInfo->NextEntryOffset);
-        }
+                std::wcout << L"[+][File-Mon] Change detected: " << filename << std::endl;
 
-        ResetEvent(overlapped.hEvent);
-        if (!ReadDirectoryChangesW(hDirectory, buffer, bufferSize, FALSE, notifyFilter, NULL, &overlapped, NULL)) break;
+                if (filename.find(L"\\skin.json") != std::wstring::npos)
+                {
+                    callback();
+                }
+            }
+            pNotifyInfo = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(
+                reinterpret_cast<BYTE*>(pNotifyInfo) + pNotifyInfo->NextEntryOffset
+            );
+
+        } while (pNotifyInfo->NextEntryOffset != 0);
+
+        Sleep(1000); // Adjust sleep duration as needed
     }
-    CloseHandle(hEvent);
-    CloseHandle(hDirectory);
+
+    CloseHandle(hDir);
 }
 
 themeConfig::themeConfig()
@@ -332,6 +334,37 @@ const void themeConfig::installFonts()
         }
     }
 }
+
+void themeConfig::writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
+{
+    console.log(std::format("writing file to: {}", filePath.string()));
+
+    try {
+        // Create parent directories if they don't exist
+        std::filesystem::create_directories(filePath.parent_path());
+        std::cout << "Directories created successfully." << std::endl;
+    }
+    catch (const std::exception& ex) {
+        std::cout << "Error creating directories: " << ex.what() << std::endl;
+    }
+
+    std::ofstream fileStream(filePath, std::ios::binary);
+    if (!fileStream)
+    {
+        console.log(std::format("Failed to open file for writing: {}", filePath.string()));
+        return;
+    }
+
+    fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
+
+    if (!fileStream)
+    {
+        console.log(std::format("Error writing to file: {}", filePath.string()));
+    }
+
+    fileStream.close();
+}
+
 
 class config
 {
@@ -479,6 +512,11 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 			}
         }
     }
+
+    jsonBuffer["native-name"] = ACTIVE_ITEM;
+
+    std::cout << "Requesting to setup theme -> " << ACTIVE_ITEM << std::endl;
+    conditionals::setup(jsonBuffer, ACTIVE_ITEM);
 
 
     auto end_time = std::chrono::high_resolution_clock::now();

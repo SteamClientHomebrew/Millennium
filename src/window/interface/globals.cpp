@@ -238,11 +238,13 @@ std::vector<nlohmann::basic_json<>> millennium::add_update_status_to_client(
 	return buffer;
 }
 
+static const std::filesystem::path fileName = ".millennium/manager/hashes-frontend.json";
+
 nlohmann::json get_versions_json() {
 
 	nlohmann::json parsedData;
 
-	std::ifstream inputFile("update_list.json");
+	std::ifstream inputFile(fileName);
 
 	if (inputFile.is_open()) {
 		std::string fileContent((std::istreambuf_iterator<char>(inputFile)), std::istreambuf_iterator<char>());
@@ -347,7 +349,14 @@ std::vector<nlohmann::basic_json<>> millennium::get_update_list(
 		}
 	}
 
-	std::ofstream outputFile("update_list.json");
+	try {
+		std::filesystem::create_directories(fileName.parent_path());
+	}
+	catch (const std::exception& e) {
+		std::cout << "Error: " << e.what() << std::endl;
+	}
+
+	std::ofstream outputFile(fileName);
 
 	if (outputFile.is_open()) {
 		outputFile << std::setw(4) << parsedData;

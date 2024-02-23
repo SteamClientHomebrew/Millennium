@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -148,7 +148,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -172,7 +172,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ws2_32.lib;winhttp.lib;Pdh.lib;d3dx9.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;ws2_32.lib;winhttp.lib;Pdh.lib;d3dx9.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AddModuleNamesToAssembly>%(AddModuleNamesToAssembly)</AddModuleNamesToAssembly>
     </Link>
   </ItemDefinitionGroup>
@@ -197,7 +197,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>ws2_32.lib;Pdh.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>version.lib;ws2_32.lib;Pdh.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AddModuleNamesToAssembly>%(AddModuleNamesToAssembly)</AddModuleNamesToAssembly>
     </Link>
   </ItemDefinitionGroup>
@@ -255,7 +255,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="core\injector\conditions\conditionals.hpp" />
     <ClInclude Include="core\injector\event_handler.hpp" />
+    <ClInclude Include="core\injector\injector.hpp" />
     <ClInclude Include="core\injector\startup\bootstrap.hpp" />
     <ClInclude Include="core\injector\startup\welcome_modal.hpp" />
     <ClInclude Include="core\ipc\ipc_main.hpp" />
@@ -295,7 +297,9 @@
     <ClInclude Include="utils\cout\logger.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="core\injector\conditions\conditionals.cpp" />
     <ClCompile Include="core\injector\event_handler.cpp" />
+    <ClCompile Include="core\injector\injector.cpp" />
     <ClCompile Include="core\injector\startup\bootstrap.cpp" />
     <ClCompile Include="core\injector\startup\welcome_modal.cpp" />
     <ClCompile Include="core\ipc\ipc_main.cpp" />

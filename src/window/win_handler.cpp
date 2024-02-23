@@ -25,6 +25,8 @@
 #include <window/interface_v2/editor.hpp>
 #include <core/steam/window/manager.hpp>
 
+#include <core/injector/conditions/conditionals.hpp>
+
 bool updateLibrary = false;
 void handleEdit();
 
@@ -41,6 +43,8 @@ public:
 		std::string comment;
 	};
 	std::vector<ColorInfo> colorList;
+
+	nlohmann::basic_json<> g_conditionals;
 
 	void openPopupMenu(nlohmann::basic_json<>& skin)
 	{
@@ -66,6 +70,9 @@ public:
 		else {
 			console.log("Theme doesn't have GlobalColors");
 		}
+
+		g_conditionals = conditionals::get_conditionals(skin["native-name"]);
+
 		m_editObj = skin;
 		comboBoxItems.clear();
 		m_editMenuOpen = true;
@@ -251,6 +258,8 @@ public:
 
 			static bool applyMica = Settings::Get<bool>("mica-effect");
 
+			ui::shift::y(3);
+
 			ImGui::Text("Window Borders");
 			ImGui::SameLine();
 			ui::shift::x(-3);
@@ -290,7 +299,7 @@ public:
 			ImGui::Spacing();
 
 
-			ImGui::Text("Mica Drop Shadow");
+			ImGui::Text("Acrylic Drop Shadow");
 
 			ImGui::SameLine();
 
@@ -306,7 +315,7 @@ public:
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.2f, 0.2f, 1.0f));
 					ImGui::TextWrapped("WINDOWS 11 ONLY, WIP RESULTS MAY VARY");
 					ImGui::PopStyleColor();
-					ImGui::Text("Use Mica effect on all applicable Steam windows");
+					ImGui::Text("Use Acrylic effect on all applicable Steam windows");
 				}
 				ImGui::EndTooltip();
 			}
@@ -417,19 +426,23 @@ public:
 				}
 				else if (g_processingFileDrop) {
 
-					const int width = ImGui::CalcTextSize(g_fileDropStatus.c_str()).x;
+					static float contentHeight = 100.0f; // Initialize with a minimum height
 
-					ui::shift::y((ry / 2) - 45);
-					ui::center(rx, width, 1);
+					if (g_fileDropQueried) {
+						ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
+					}
 
-					if (ImGui::BeginChild("DropFileStatus", ImVec2(rx, 35), true)) 
+					ImGui::BeginChild("###library_container", ImVec2(rx, contentHeight), true, ImGuiWindowFlags_AlwaysAutoResize);
 					{
-						ImGui::Text(g_fileDropStatus.c_str());
+						ui::shift::y(-8);
+						ImGui::Text("One Moment...");
+						ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.4f, 1.f), g_fileDropStatus.c_str());
+						ui::shift::y(6);
+						ImGui::Spinner("##spinner", 10, 2, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
+
+						contentHeight = ImGui::GetCursorPosY() + ImGui::GetStyle().ItemSpacing.y;
 					}
 					ImGui::EndChild();
-					ui::center(rx, 10, 1);
-
-					ImGui::Spinner("##spinner", 10, 2, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
 
 					if (g_openSuccessPopup) {
 						m_Client.parseSkinData(false);
@@ -456,6 +469,8 @@ public:
 	{
 		static bool showingAbout = false, showingSettings = false, editingTheme = false;
 
+		ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
+
 		if (ImGui::BeginMenuBar()) {
 
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
@@ -470,7 +485,7 @@ public:
 				{
 					ImGui::SetTooltip("Check for new themes added");
 				}
-				if (ImGui::MenuItem("Peek Themes...")) 
+				if (ImGui::MenuItem("Themes")) 
 				{
 					ShellExecuteA(NULL, "open", config.getSkinDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
 				}
@@ -484,11 +499,29 @@ public:
 				{
 					showingSettings = !showingSettings;
 				}
+				if (ImGui::MenuItem("User-Config"))
+				{
+					std::string path = std::filesystem::current_path().string() + "/.millennium/config/";
+
+					std::cout << path << std::endl;
+
+					ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
+				}
+				if (ImGui::MenuItem("Logs"))
+				{
+					std::string path = std::filesystem::current_path().string() + "/.millennium/logs/";
+
+					std::cout << path << std::endl;
+
+					ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
+				}
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Edit"))
 			{
-				if (ImGui::MenuItem("Edit Theme")) 
+				bool enabled = skin_json_config.contains("Conditions");
+
+				if (ImGui::MenuItem("Edit Theme", 0, false, enabled))
 				{
 					this->openPopupMenu(skin_json_config);
 					editingTheme = !editingTheme;
@@ -518,7 +551,7 @@ public:
 
 			if (ImGui::BeginMenu("Donate")) 
 			{
-				if (ImGui::MenuItem("Help support Millennium!")) 
+				if (ImGui::MenuItem("Support Millennium!")) 
 				{
 					ShellExecute(NULL, "open", "https://ko-fi.com/shadowmonster", NULL, NULL, SW_SHOWNORMAL);
 				}
@@ -531,7 +564,7 @@ public:
 		if (editingTheme) 
 		{
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-			ImGui::SetNextWindowSize(ImVec2(325, 250), ImGuiCond_Once);
+			ImGui::SetNextWindowSize(ImVec2(450, 350), ImGuiCond_Once);
 
 			ImGui::Begin("Editing a theme", &editingTheme, ImGuiWindowFlags_NoCollapse);
 			{
@@ -589,194 +622,323 @@ public:
 				ImGui::Text("Don't forget to star the project :)");
 			}
 
-
 			ImGui::End();
 			ImGui::PopStyleColor();
 		}
+
+		ImGui::PopStyleVar();
 	}
 } RendererProc;
+
+void render_conditionals()
+{
+	enum type
+	{
+		checkbox,
+		combobox
+	};
+
+	for (auto& [key, condition] : RendererProc.m_editObj["Conditions"].items()) {
+
+		if (!condition.contains("values")) {
+			continue;
+		}
+
+		const std::string description = condition.value("description", "Nothing here...");
+
+		const auto get_type = ([&](void) -> type 
+		{
+			bool is_bool = condition["values"].contains("yes") && condition["values"].contains("no");
+			return is_bool ? checkbox : combobox;
+		});
+
+		const std::string theme_name = RendererProc.m_editObj["native-name"];
+
+		switch (get_type())
+		{
+			case checkbox:
+			{
+				const std::string str_val = RendererProc.g_conditionals[key];
+
+				bool value = str_val == "yes" ? true : false;
+
+				ui::render_setting(
+					key.c_str(), description.c_str(), value, false, [&]() 
+					{
+						const auto new_val = value ? "yes" : "no";
+
+						RendererProc.g_conditionals[key] = new_val;
+						if (!conditionals::update(theme_name, key, new_val))
+						{
+							std::cout << "failed to update config setting" << std::endl;
+						}
+					}
+				);
+				ImGui::Spacing();
+				break;
+			}
+			case combobox:
+			{
+				const std::string value = RendererProc.g_conditionals[key];
+				const int combo_size = condition["values"].size();
+
+				if (!comboAlreadyExists(key))
+				{
+					int out = -1;
+					int i = 0;
+					for (auto& [_val, options] : condition["values"].items())
+					{
+						if (_val == value) { out = i; }
+						i++;
+					}
+					comboBoxItems.push_back({ key, out });
+				}
+
+				std::vector<std::string> items;
+
+				for (auto& el : condition["values"].items()) 
+				{
+					items.push_back(el.key());
+				}
+
+				ImGui::Text(key.c_str());
+				ImGui::SameLine();
+
+				ui::shift::x(-3);
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+				ImGui::TextWrapped("(?)");
+				ImGui::PopStyleColor();
+
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip(description.c_str());
+				}
+
+				ImGui::SameLine();
+
+				ui::shift::right(120);
+				ImGui::PushItemWidth(120);
+				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
+
+				if (ImGui::BeginCombo(std::format("###{}", key).c_str(), items[getComboValue(key)].c_str())) 
+				{
+					for (int i = 0; i < items.size(); i++) 
+					{
+						const bool isSelected = (getComboValue(key) == i);
+						if (ImGui::Selectable(items[i].c_str(), isSelected))
+						{
+							setComboValue(key, i);
+							conditionals::update(theme_name, key, items[i]);
+						}
+						if (isSelected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				ImGui::PopStyleColor();
+				ImGui::PopItemWidth();
+				ImGui::Spacing();
+
+				break;
+			}
+		}
+
+
+	}
+}
 
 void handleEdit()
 {
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-	ImGui::BeginChild("###ConfigContainer", ImVec2(rx, ry - 32), false);
+	ImGui::BeginChild("###ConfigContainer", ImVec2(rx, ry - 27), false);
 	{
 		const bool hasConfiguration = RendererProc.m_editObj.contains("Configuration");
 		const bool hasColors = !RendererProc.colorList.empty();
 
-		if (!hasConfiguration && !hasColors) {
-			ImGui::Text("No Settings Available");
-		}
+		//if (!hasConfiguration && !hasColors) {
+		//	ImGui::Text("No Settings Available");
+		//}
 
-		if (hasConfiguration)
-		{
-			for (auto& setting : RendererProc.m_editObj["Configuration"])
-			{
-				if (!setting.contains("Name"))
-					continue;
-				if (!setting.contains("Type"))
-					continue;
+		render_conditionals();
 
-				const std::string name = setting["Name"];
-				const std::string toolTip = setting.value("ToolTip", std::string());
-				const std::string type = setting["Type"];
+		//if (hasConfiguration)
+		//{
+		//	for (auto& setting : RendererProc.m_editObj["Configuration"])
+		//	{
+		//		if (!setting.contains("Name"))
+		//			continue;
+		//		if (!setting.contains("Type"))
+		//			continue;
 
-				if (type == "CheckBox") {
-					bool value = setting.value("Value", false);
+		//		const std::string name = setting["Name"];
+		//		const std::string toolTip = setting.value("ToolTip", std::string());
+		//		const std::string type = setting["Type"];
 
-					ui::render_setting(
-						name.c_str(), toolTip.c_str(), value, false, [&]() { setting["Value"] = value; }
-					);
-					ImGui::Spacing();
-				}
-				else if (type == "ComboBox") 
-				{
-					std::string value = setting.value("Value", std::string());
+		//		if (type == "CheckBox") {
+		//			bool value = setting.value("Value", false);
 
-					if (!comboAlreadyExists(name)) 
-					{
-						int out = -1;
-						for (int i = 0; i < setting["Items"].size(); i++) {
-							if (setting["Items"][i] == value) {
-								out = i;
-							}
-						}
-						comboBoxItems.push_back({ name, out });
-					}
-					const auto items = setting["Items"].get<std::vector<std::string>>();
+		//			ui::render_setting(
+		//				name.c_str(), toolTip.c_str(), value, false, [&]() { setting["Value"] = value; }
+		//			);
+		//			ImGui::Spacing();
+		//		}
+		//		else if (type == "ComboBox") 
+		//		{
+		//			std::string value = setting.value("Value", std::string());
 
-					ImGui::Text(name.c_str());
-					ImGui::SameLine();
+		//			if (!comboAlreadyExists(name)) 
+		//			{
+		//				int out = -1;
+		//				for (int i = 0; i < setting["Items"].size(); i++) {
+		//					if (setting["Items"][i] == value) {
+		//						out = i;
+		//					}
+		//				}
+		//				comboBoxItems.push_back({ name, out });
+		//			}
+		//			const auto items = setting["Items"].get<std::vector<std::string>>();
 
-					ui::shift::x(-3);
-					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-					ImGui::TextWrapped("(?)");
-					ImGui::PopStyleColor();
+		//			ImGui::Text(name.c_str());
+		//			ImGui::SameLine();
 
-					if (ImGui::IsItemHovered()) 
-					{
-						ImGui::SetTooltip(toolTip.c_str());
-					}
-					ImGui::SameLine();
+		//			ui::shift::x(-3);
+		//			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+		//			ImGui::TextWrapped("(?)");
+		//			ImGui::PopStyleColor();
 
-					ui::shift::right(120);
-					ImGui::PushItemWidth(120);
-					ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
+		//			if (ImGui::IsItemHovered()) 
+		//			{
+		//				ImGui::SetTooltip(toolTip.c_str());
+		//			}
+		//			ImGui::SameLine();
 
-					if (ImGui::BeginCombo(std::format("###{}", name).c_str(), items[getComboValue(name)].c_str())) {
-						for (int i = 0; i < items.size(); i++) {
-							const bool isSelected = (getComboValue(name) == i);
-							if (ImGui::Selectable(items[i].c_str(), isSelected))
-							{
-								setComboValue(name, i);
-								std::cout << items[i] << " selected" << std::endl;
-								setting["Value"] = items[i];
-							}
-							if (isSelected) ImGui::SetItemDefaultFocus();
-						}
-						ImGui::EndCombo();
-					}
+		//			ui::shift::right(120);
+		//			ImGui::PushItemWidth(120);
+		//			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
 
-					ImGui::PopStyleColor();
-					ImGui::PopItemWidth();
-					ImGui::Spacing();
-				}
-			}
-		}
-		if (hasColors)
-		{
-			ImGui::Spacing();
-			ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
-			ImGui::Text(" Color Settings:");
-			ImGui::Separator();
-			ImGui::Spacing();
+		//			if (ImGui::BeginCombo(std::format("###{}", name).c_str(), items[getComboValue(name)].c_str())) {
+		//				for (int i = 0; i < items.size(); i++) {
+		//					const bool isSelected = (getComboValue(name) == i);
+		//					if (ImGui::Selectable(items[i].c_str(), isSelected))
+		//					{
+		//						setComboValue(name, i);
+		//						std::cout << items[i] << " selected" << std::endl;
+		//						setting["Value"] = items[i];
+		//					}
+		//					if (isSelected) ImGui::SetItemDefaultFocus();
+		//				}
+		//				ImGui::EndCombo();
+		//			}
 
-			ImGui::PopFont();
+		//			ImGui::PopStyleColor();
+		//			ImGui::PopItemWidth();
+		//			ImGui::Spacing();
+		//		}
+		//	}
+		//}
+		//if (hasColors)
+		//{
+		//	ImGui::Spacing();
+		//	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
+		//	ImGui::Text(" Color Settings:");
+		//	ImGui::Separator();
+		//	ImGui::Spacing();
 
-			if (ImGui::Button("Reset Colors"))
-			{
-				auto& obj = RendererProc.m_editObj;
-				if (obj.contains("GlobalsColors") && obj.is_object())
-				{
-					for (auto& color : obj["GlobalsColors"])
-					{
-						if (!color.contains("HexColorCode") || !color.contains("OriginalColorCode"))
-						{
-							console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
-							continue;
-						}
-						color["HexColorCode"] = color["OriginalColorCode"];
-					}
-				}
-				else 
-				{
-					console.log("Theme doesn't have GlobalColors");
-				}
-				config.setThemeData(obj);
-				RendererProc.openPopupMenu(obj);
-			}
+		//	ImGui::PopFont();
 
-			auto& colors = RendererProc.colorList;
+		//	if (ImGui::Button("Reset Colors"))
+		//	{
+		//		auto& obj = RendererProc.m_editObj;
+		//		if (obj.contains("GlobalsColors") && obj.is_object())
+		//		{
+		//			for (auto& color : obj["GlobalsColors"])
+		//			{
+		//				if (!color.contains("HexColorCode") || !color.contains("OriginalColorCode"))
+		//				{
+		//					console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
+		//					continue;
+		//				}
+		//				color["HexColorCode"] = color["OriginalColorCode"];
+		//			}
+		//		}
+		//		else 
+		//		{
+		//			console.log("Theme doesn't have GlobalColors");
+		//		}
+		//		config.setThemeData(obj);
+		//		RendererProc.openPopupMenu(obj);
+		//	}
 
-			for (size_t i = 0; i < RendererProc.colorList.size(); i++)
-			{
-				if (ImGui::Button("Reset"))
-				{
-					auto& obj = RendererProc.m_editObj;
+		//	auto& colors = RendererProc.colorList;
 
-					if (obj.contains("GlobalsColors") && obj.is_object())
-					{
-						auto& global = obj["GlobalsColors"][i];
+		//	for (size_t i = 0; i < RendererProc.colorList.size(); i++)
+		//	{
+		//		if (ImGui::Button("Reset"))
+		//		{
+		//			auto& obj = RendererProc.m_editObj;
 
-						console.log(std::format("global colors: {}", global.dump(4)));
-						console.log(std::format("color name: {}", colors[i].name));
+		//			if (obj.contains("GlobalsColors") && obj.is_object())
+		//			{
+		//				auto& global = obj["GlobalsColors"][i];
 
-						if (global["ColorName"] == colors[i].name) {
+		//				console.log(std::format("global colors: {}", global.dump(4)));
+		//				console.log(std::format("color name: {}", colors[i].name));
 
-							console.log(std::format("Color match. Setting color {} from {} to {}",
-								global["ColorName"].get<std::string>(),
-								global["HexColorCode"].get<std::string>(),
-								global["OriginalColorCode"].get<std::string>()));
+		//				if (global["ColorName"] == colors[i].name) {
 
-							global["HexColorCode"] = global["OriginalColorCode"];
-						}
-						else {
-							MsgBox(std::format("Couldn't Set color at index {} because the buffer was mismatching.", i).c_str(), "Error", MB_ICONERROR);
-						}
-					}
-					else {
-						console.log("Theme doesn't have GlobalColors");
-					}
+		//					console.log(std::format("Color match. Setting color {} from {} to {}",
+		//						global["ColorName"].get<std::string>(),
+		//						global["HexColorCode"].get<std::string>(),
+		//						global["OriginalColorCode"].get<std::string>()));
 
-					config.setThemeData(obj);
-					m_Client.parseSkinData(false);
-					RendererProc.openPopupMenu(obj);
-					themeConfig::updateEvents::getInstance().triggerUpdate();
-					steam_js_context SharedJsContext;
-					SharedJsContext.reload();
-				}
+		//					global["HexColorCode"] = global["OriginalColorCode"];
+		//				}
+		//				else {
+		//					MsgBox(std::format("Couldn't Set color at index {} because the buffer was mismatching.", i).c_str(), "Error", MB_ICONERROR);
+		//				}
+		//			}
+		//			else {
+		//				console.log("Theme doesn't have GlobalColors");
+		//			}
 
-				ImGui::SameLine();
-				ui::shift::x(-8);
+		//			config.setThemeData(obj);
+		//			m_Client.parseSkinData(false);
+		//			RendererProc.openPopupMenu(obj);
+		//			themeConfig::updateEvents::getInstance().triggerUpdate();
+		//			steam_js_context SharedJsContext;
+		//			SharedJsContext.reload();
+		//		}
 
-				ImGui::PushItemWidth(90);
-				ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x, ImGuiColorEditFlags_DisplayHex);
-				ImGui::PopItemWidth();
+		//		ImGui::SameLine();
+		//		ui::shift::x(-8);
 
-				ImGui::SameLine();
-				ui::shift::x(-4);
+		//		ImGui::PushItemWidth(90);
+		//		ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x, ImGuiColorEditFlags_DisplayHex);
+		//		ImGui::PopItemWidth();
 
-				ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
-			}
-		}
+		//		ImGui::SameLine();
+		//		ui::shift::x(-4);
+
+		//		ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
+		//	}
+		//}
 	}
 	ImGui::EndChild();
 	ImGui::PopStyleColor();
 
-	ui::shift::right(100);
+	ui::shift::right(75);
 
-	if (ImGui::Button(" Save "))
+	if (ImGui::Button("Save", ImVec2(75, 0)))
 	{
+		m_Client.parseSkinData(false);
+		skin_json_config = config.getThemeData();
+
+		themeConfig::updateEvents::getInstance().triggerUpdate();
+
+		steam_js_context js_context;
+		js_context.reload();
+		return;
+
 		const auto json = RendererProc.m_editObj;
 		nlohmann::json buffer = config.getThemeData(true);
 
@@ -827,11 +989,11 @@ void handleEdit()
 			}
 		}
 	}
-	ImGui::SameLine();
-	ui::shift::x(-4);
-	if (ImGui::Button(" Close ")) {
-		RendererProc.m_editMenuOpen = false;
-	}
+	//ImGui::SameLine();
+	//ui::shift::x(-4);
+	//if (ImGui::Button(" Close ")) {
+	//	RendererProc.m_editMenuOpen = false;
+	//}
 }
 
 void init_main_window()

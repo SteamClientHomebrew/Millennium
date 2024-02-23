@@ -18,7 +18,13 @@ public:
 
     bool killAllThreads(uint16_t exitCode);
 
+    bool hookAllThreads();
+    bool unhookAllThreads();
+
 private:
+    bool isMillenniumThread(DWORD id);
+    std::vector<DWORD> getProcThreads();
+
     threadContainer();
 
     threadContainer(const threadContainer&) = delete;

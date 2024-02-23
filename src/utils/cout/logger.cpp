@@ -5,6 +5,8 @@
 #include <string>
 #include <iostream>
 
+#include <filesystem>
+
 //std::vector<std::string> output_log = {};
 std::vector<std::string> socket_log = {};
 
@@ -24,15 +26,27 @@ void output_console::log(std::string type, const std::string& message)
 	//output_log.push_back(std::format("{}{}{}", get_time(), type, message));
 
 	fileStream << get_time() << type << message << std::endl;
-	std::cout << get_time() << type << message << std::endl;
+
+	if (consoleAllocated)
+		std::cout << get_time() << type << message << std::endl;
 }
 
 void output_console::log_socket(std::string val) {
 	socket_log.push_back(std::format("{} {}", get_time(), val));
 }
 
-output_console::output_console() {
-	fileStream.open("millennium.log", std::ios::trunc);
+output_console::output_console() 
+{
+	std::filesystem::path fileName = ".millennium/logs/millennium.log";
+
+	try {
+		std::filesystem::create_directories(fileName.parent_path());
+	}
+	catch (const std::exception& e) {
+		std::cout << "Error: " << e.what() << std::endl;
+	}
+
+	fileStream.open(fileName.string(), std::ios::trunc);
 }
 output_console::~output_console() {
 	fileStream.close();
