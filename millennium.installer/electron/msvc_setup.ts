@@ -1,5 +1,5 @@
 // import https from 'https';
-import { http, https } from 'follow-redirects';
+import { https } from 'follow-redirects';
 import fs from 'fs';
 import { exec } from 'child_process';
 import { send_message } from './main.ts';
@@ -22,7 +22,7 @@ async function install_msvc() {
         
         // Download the file
         const file = fs.createWriteStream(filePath);
-        const request = https.get(url, function(response) {
+        const _ = https.get(url, function(response) {
             response.on('data', (chunk) => {
                 file.write(chunk);
             });
@@ -35,7 +35,7 @@ async function install_msvc() {
                     const command = `"${filePath}" /quiet /norestart /log "C:\\temp\\log.txt"`;
                     const child = exec(command, { cwd: tempFolderPath });
                     
-                    child.on('exit', (code, signal) => {
+                    child.on('exit', (code, _) => {
                         console.log(`Child process exited with code ${code}`);
                         resolve(true);
                     });

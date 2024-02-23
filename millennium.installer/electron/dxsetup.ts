@@ -11,7 +11,7 @@ const tempFolderPath = 'C:\\temp';
 // Download the file
 
 async function install_dx() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _) => {
         send_message('message-update', `Installing Direct X9. This might take a moment...`)
         
         // Ensure the temp folder exists
@@ -23,7 +23,7 @@ async function install_dx() {
         
         // Download the file
         const file = fs.createWriteStream(filePath);
-        const request = https.get(url, function(response: any) {
+        const _ = https.get(url, function(response: any) {
             response.pipe(file);
             file.on('finish', function() {
             file.close(() => {
@@ -34,7 +34,7 @@ async function install_dx() {
                 const child = exec(command, { cwd: tempFolderPath });
                 
                 // Listen for the exit event
-                child.on('exit', (code: any, signal: any) => {
+                child.on('exit', (code: any, _: any) => {
                     console.log(`Child process exited with code ${code}`);
                     resolve(true);
                 // Here you can continue your code logic after the executable has finished running.
