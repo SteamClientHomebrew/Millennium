@@ -22,7 +22,7 @@ async function install_msvc() {
         
         // Download the file
         const file = fs.createWriteStream(filePath);
-        const _ = https.get(url, function(response) {
+        https.get(url, function(response) {
             response.on('data', (chunk) => {
                 file.write(chunk);
             });

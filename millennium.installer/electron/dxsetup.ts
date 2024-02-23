@@ -11,7 +11,7 @@ const tempFolderPath = 'C:\\temp';
 // Download the file
 
 async function install_dx() {
-    return new Promise((resolve, _) => {
+    return new Promise((resolve) => {
         send_message('message-update', `Installing Direct X9. This might take a moment...`)
         
         // Ensure the temp folder exists
@@ -23,7 +23,7 @@ async function install_dx() {
         
         // Download the file
         const file = fs.createWriteStream(filePath);
-        const _ = https.get(url, function(response: any) {
+        https.get(url, function(response: any) {
             response.pipe(file);
             file.on('finish', function() {
             file.close(() => {
