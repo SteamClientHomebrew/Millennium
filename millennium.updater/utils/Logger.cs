@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 internal class Logger
 {
-    private static readonly string LogFilePath = "updater.log";
+    public static readonly string LogFilePath = ".millennium/logs/theme-updater.log";
     public static void LogToConsole(string message, bool dontWriteLine)
     {
         if (dontWriteLine)

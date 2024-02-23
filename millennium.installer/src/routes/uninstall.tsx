@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from "framer-motion"
+import packageJson from '../../package.json';
+
 
 const closeApp = () => {
     window.ipcRenderer.send('close');
@@ -77,7 +79,7 @@ function uninstall_panel() {
         </div>
         <img className='logo' src="https://cdn.discordapp.com/attachments/923017628367335428/1192310092683554816/logo.png?ex=65a89c4e&is=6596274e&hm=a6b3bfda83c4ca8f23e5e58866471f09c1adfa5b096607d3f83258fba9da0437&" alt=""/>
         <div className="name">Millennium Installer</div>
-        <div className="version">v1.0.6</div>
+        <div className="version">v{packageJson.version}</div>
         <div className="closebtn-container" onClick={_ => closeApp()}>
           <img className="closebtn" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAABJUlEQVR4nO2Y2wqCUBBF7Qe7UfRQ315QJEWXHzBYIRQFWuk5Z8aRZr31smev9OhUljmO4zhSAHPgDOyBseLcCXAArsAiNGQAnHhRBIe1m7t4zHpyKbuEhh3fgsQlqJYvOcYETmsCRSSoL19+nsYGz2qCb8Aq8VkramYsUw0Qk0C6vKQEWuUlJNTLp5TorHwKic7Lx0iYKR8iYa58Gwmz5ZtImC/fYBVQWUUkr4Ttb76FhP3yJR/u+crB7lt5+xL0+RDz5VGp8XsiiibPebMStHhJmZMg4A1rRoKI9aBzCRLsNp1JkHAxU5dAYKtES0JyJUZaQmOfR0oCGBn4a3EUE7rTKP9DYpuFAuRa5b9I5FnkLbQF1lGXMmzu5jF7qDXXcRznD7kDEjZgdJknwowAAAAASUVORK5CYII="/>
         </div>

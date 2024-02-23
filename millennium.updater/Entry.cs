@@ -127,7 +127,18 @@ namespace updater
         [ComVisible(true)]
         public static int Bootstrapper(string args)
         {
-            File.WriteAllText("updater.log", string.Empty);
+            try
+            {
+                // Create directories recursively
+                Directory.CreateDirectory(Path.GetDirectoryName(Logger.LogFilePath));
+                Console.WriteLine($"Directories created successfully: {Path.GetDirectoryName(Logger.LogFilePath)}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error: {e.Message}");
+            }
+
+            File.WriteAllText(Logger.LogFilePath, string.Empty);
 
             ServicePointManager.Expect100Continue = true;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;

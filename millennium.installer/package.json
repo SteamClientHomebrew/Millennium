@@ -2,7 +2,7 @@
   "name": "millennium.installer.prod",
   "description": "Manages the installation of Millennium and its dependencies.",
   "private": true,
-  "version": "1.0.6",
+  "version": "1.0.8",
   "scripts": {
     "dev": "vite",
     "compile": "electron-webpack",
@@ -34,6 +34,7 @@
     }
   },
   "dependencies": {
+    "@types/follow-redirects": "^1.14.4",
     "@types/ps-list": "^6.2.1",
     "axios": "^1.6.6",
     "child_process": "^1.0.2",
