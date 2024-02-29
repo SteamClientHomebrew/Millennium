@@ -33,6 +33,7 @@
 #include <codecvt>
 
 #include <window/interface/globals.h>
+#include <window/api/installer.hpp>
 
 static bool mousedown = false;
 bool app_open = true;
@@ -284,25 +285,6 @@ bool g_processingFileDrop = false;
 bool g_openSuccessPopup = false;
 std::string g_fileDropStatus = "";
 
-void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent) {
-    console.log(std::format("writing file to: {}", filePath.string()));
-
-    std::ofstream fileStream(filePath, std::ios::binary);
-    if (!fileStream)
-    {
-        console.log(std::format("Failed to open file for writing: {}", filePath.string()));
-        return;
-    }
-
-    fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
-
-    if (!fileStream)
-    {
-        console.log(std::format("Error writing to file: {}", filePath.string()));
-    }
-
-    fileStream.close();
-}
 
 class MillenniumTarget : public IDropTarget {
 public:
@@ -310,162 +292,27 @@ public:
         GetClientRect(hwnd, &clientRect);
     }
 
-    // IDropTarget methods
     STDMETHOD(QueryInterface)(REFIID, void**) override {
-        // Implement the QueryInterface method here
         return E_NOTIMPL;
     }
-
     STDMETHOD_(ULONG, AddRef)() override {
-        // Implement the AddRef method here
         return 1;
     }
-
     STDMETHOD_(ULONG, Release)() override {
-        // Implement the Release method here
         return 1;
     }
-
     STDMETHOD(DragEnter)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
         POINT cursorPoint = { pt.x, pt.y };
         LogFilePresence(true);
-
-        //*pdwEffect = DROPEFFECT_COPY;
         return S_OK;
     }
-
     STDMETHOD(DragOver)(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
         POINT cursorPoint = { pt.x, pt.y };
         LogFilePresence(true);
-
-        //*pdwEffect = DROPEFFECT_COPY;
         return S_OK;
     }
-
-    STDMETHOD(DragLeave)() override {
-        // File drag operation has left the window
-        LogFilePresence(false);
-        return S_OK;
-    }
-
-    const void HandleDrop(const char* _filePath)
-    {
-        std::cout << "Dropped file: " << _filePath << std::endl;
-
-        try {
-            std::filesystem::path filePath(_filePath);
-
-            if (!std::filesystem::exists(filePath) || !std::filesystem::exists(filePath / "skin.json") || !std::filesystem::is_directory(filePath))
-            {
-                MsgBox("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
-                    "Make sure the skin isn't archived, and it exists on your disk", "Can't Add Skin", MB_ICONERROR);
-                return;
-            }
-
-            std::filesystem::rename(filePath, std::filesystem::path(config.getSkinDir()) / filePath.filename().string());
-        }
-        catch (const std::filesystem::filesystem_error& error) {
-            MsgBox(std::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
-        }
-    }
-
-    bool unzip(std::string zipFileName, std::string targetDirectory) {
-
-        std::string powershellCommand = std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
-
-        std::cout << powershellCommand << std::endl;
-
-        STARTUPINFO si;
-        PROCESS_INFORMATION pi;
-
-        ZeroMemory(&si, sizeof(si));
-        si.cb = sizeof(si);
-        ZeroMemory(&pi, sizeof(pi));
-
-        si.dwFlags |= STARTF_USESHOWWINDOW;
-        si.wShowWindow = SW_HIDE;
-
-        if (CreateProcess(NULL, const_cast<char*>(powershellCommand.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-            // Wait for the process to finish
-            WaitForSingleObject(pi.hProcess, INFINITE);
-
-            // Close process and thread handles
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
-
-            return true;
-        }
-        else {
-            // Error
-            return false;
-        }
-    }
-
-    const void HandleRemoteDrop(std::string fileName, std::string downloadPath)
-    {
-        g_processingFileDrop = true;
-        std::cout << "Dropped file: " << downloadPath << std::endl;
-
-        auto filePath = std::filesystem::path(config.getSkinDir()) / fileName;
-
-        try {
-
-            g_fileDropStatus = std::format("Downloading {}...", fileName);
-
-            writeFileBytesSync(filePath, http::get_bytes(downloadPath.c_str()));
-
-            g_fileDropStatus = "Processing Theme Information";
-
-            std::string zipFilePath = filePath.string();
-            std::string destinationFolder = config.getSkinDir() + "/";
-
-            std::cout << "extracting zip archive: " << zipFilePath << std::endl;
-            std::cout << "extracting to: " << destinationFolder << std::endl;
-
-            g_fileDropStatus = "Installing Theme and Verifying";
-
-            if (unzip(zipFilePath, destinationFolder)) {
-                // The file has been successfully extracted
-                // You can add further processing or use the extracted files as needed
-                std::cout << "extracted" << std::endl;
-
-                g_fileDropStatus = "Done! Cleaning up...";
-
-                std::this_thread::sleep_for(std::chrono::seconds(2));
-
-                g_openSuccessPopup = true;
-
-                m_Client.parseSkinData(false);
-            }
-            else {
-                // Handle extraction failure
-                std::cout << "couldn't extract file" << std::endl;
-                MessageBoxA(GetForegroundWindow(), "couldn't extract file", "Millennium", MB_ICONERROR);
-            }
-
-        }
-        catch (const http_error&) {
-            console.err("Couldn't download bytes from the file");
-            MessageBoxA(GetForegroundWindow(), "Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
-        }
-        catch (const std::exception& err) {
-            console.err(std::format("Exception form {}: {}", __func__, err.what()));
-            MessageBoxA(GetForegroundWindow(), std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
-        }
-
-        g_processingFileDrop = false;
-    }
-
-    std::string wstringToString(const std::wstring& wstr) {
-        int bufferSize = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
-
-        if (bufferSize > 0) {
-            std::string result(bufferSize - 1, 0);
-            WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, &result[0], bufferSize, nullptr, nullptr);
-            return result;
-        }
-
-        return "";
+    STDMETHOD(DragLeave)() override { 
+        LogFilePresence(false); return S_OK; 
     }
 
     STDMETHOD(Drop)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect) override {
@@ -481,7 +328,7 @@ public:
                 TCHAR filePath[MAX_PATH];
                 if (DragQueryFile(hDrop, i, filePath, MAX_PATH) > 0) {
                     // Handle the file path (e.g., log or process it)
-                    this->HandleDrop(filePath);
+                    Community::Themes->handleFileDrop(filePath);
                 }
             }
 
@@ -491,20 +338,17 @@ public:
             // Try to get the dropped data as a URL with the DownloadURL format
             fmt = { CF_UNICODETEXT, nullptr, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
             if (pDataObj->GetData(&fmt, &medium) == S_OK) {
-                WCHAR* urlData = static_cast<WCHAR*>(GlobalLock(medium.hGlobal));
+                char* urlData = static_cast<char*>(GlobalLock(medium.hGlobal));
                 if (urlData != nullptr) {
                     // Parse the DownloadURL data and handle it
-                    std::wstring urlStr(urlData);
-                    size_t colonPos = urlStr.find(L':');
-                    if (colonPos != std::wstring::npos) {
-                        std::wstring fileName = urlStr.substr(0, colonPos);
-                        std::wstring downloadUrl = urlStr.substr(colonPos + 1);
-
-                        std::string fileNameStr = wstringToString(fileName);
-                        std::string downloadUrlStr = wstringToString(downloadUrl);
+                    std::string urlStr(urlData);
+                    size_t colonPos = urlStr.find(':');
+                    if (colonPos != std::string::npos) {
+                        std::string fileName = urlStr.substr(0, colonPos);
+                        std::string downloadUrl = urlStr.substr(colonPos + 1);
 
                         std::thread([=] {
-                            this->HandleRemoteDrop(fileNameStr, downloadUrlStr);
+                            Community::Themes->handleThemeInstall(fileName, downloadUrl);
                         }).detach();
                     }
 
@@ -529,12 +373,7 @@ private:
 
     // Function to log file presence in the client area
     void LogFilePresence(bool presence) {
-        if (presence) {
-            g_fileDropQueried = true;
-        }
-        else {
-            g_fileDropQueried = false;
-        }
+        g_fileDropQueried = presence;
     }
 };
 

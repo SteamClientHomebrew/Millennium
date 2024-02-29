@@ -126,6 +126,4 @@ bool threadContainer::unhookAllThreads()
     return true;
 }
 
-threadContainer::threadContainer()
-{
-}
+threadContainer::threadContainer() { }

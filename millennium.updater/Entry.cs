@@ -16,7 +16,7 @@ namespace updater
     [ComVisible(true)]
     public class Entry
     {
-        static readonly string API_ENDPOINT = "https://us-central1-bettersteam-87b59.cloudfunctions.net";
+        static readonly string API_ENDPOINT = "https://millennium.web.app";
         static readonly string API_GITHUB = "https://api.github.com";
 
         static private string GetHash(dynamic data, string hash)
@@ -62,7 +62,7 @@ namespace updater
 
         static async Task<string> BootstrapUpdate(string args)
         {
-            string apiUrl = Uri.Build(API_ENDPOINT, "api_v2", "api_v2", "get-updatev2");
+            string apiUrl = Uri.Build(API_ENDPOINT, "api", "v2", "update");
 
             try
             {

@@ -11,22 +11,37 @@
 
 #include <window/interface/globals.h>
 
+/**
+ * Escapes special characters within a JSON value.
+ *
+ * This function traverses the JSON value recursively and escapes special characters
+ * within string values. Special characters such as newline (\n), backslash (\\), and
+ * double quote (") are replaced with their escape sequences (\n, \\, \").
+ *
+ * @param value The JSON value to escape special characters within.
+ */
 void escapeSpecialChars(nlohmann::json& value) {
+    // Check if the value is a string.
     if (value.is_string()) {
+        // Retrieve the string value.
         std::string escapedStr = value.get<std::string>();
-        for (size_t i = 0; i < escapedStr.length(); ++i) 
-        {
-            if (escapedStr[i] == '\n')      { escapedStr.replace(i, 1, "\\n");  i++; }
+        // Iterate through the characters of the string.
+        for (size_t i = 0; i < escapedStr.length(); ++i) {
+            // Check for special characters and replace them with escape sequences.
+            if (escapedStr[i] == '\n') { escapedStr.replace(i, 1, "\\n");  i++; }
             else if (escapedStr[i] == '\\') { escapedStr.replace(i, 1, "\\\\"); i++; }
-            else if (escapedStr[i] == '"')  { escapedStr.replace(i, 1, "\\\""); i++; }
+            else if (escapedStr[i] == '"') { escapedStr.replace(i, 1, "\\\""); i++; }
         }
+        // Update the JSON value with the escaped string.
         value = escapedStr;
     }
+    // If the value is an object, recursively call escapeSpecialChars on each key-value pair.
     else if (value.is_object()) {
         for (auto& pair : value.items()) {
             escapeSpecialChars(pair.value());
         }
     }
+    // If the value is an array, recursively call escapeSpecialChars on each element.
     else if (value.is_array()) {
         for (nlohmann::json& element : value) {
             escapeSpecialChars(element);
@@ -34,18 +49,50 @@ void escapeSpecialChars(nlohmann::json& value) {
     }
 }
 
-void sendMessage(std::string message, const nlohmann::basic_json<> socket, ws_Client* steam_client, websocketpp::connection_hdl hdl) {
+/**
+ * Sends a message to a WebSocket server through a WebSocket client.
+ *
+ * This function constructs a JSON message containing the provided message content
+ * and necessary parameters, such as message ID, method, and session ID. The message
+ * is then sent to the WebSocket server using the specified WebSocket client and connection handle.
+ *
+ * @param message The message content to be sent.
+ * @param socket The JSON object representing the WebSocket session information.
+ * @param steam_client A pointer to the WebSocket client used to send the message.
+ * @param hdl The connection handle identifying the WebSocket connection.
+ */
+void sendMessage(std::string message, const nlohmann::basic_json<>& socket, ws_Client* steam_client, websocketpp::connection_hdl hdl) {
+    // Construct the JSON message to be sent.
     const nlohmann::json response = {
-        { "id", 8987 },
-        { "method", "Runtime.evaluate" },
-        { "params", {{ "expression", message }}},
-        { "sessionId", socket["sessionId"] }
+        { "id", 8987 },                            // Message ID.
+        { "method", "Runtime.evaluate" },          // Method for message evaluation.
+        { "params", {{ "expression", message }}},  // Parameters containing the message expression.
+        { "sessionId", socket["sessionId"] }      // Session ID associated with the WebSocket.
     };
 
+    // Send the JSON message to the WebSocket server using the WebSocket client.
     steam_client->send(hdl, response.dump(), websocketpp::frame::opcode::text);
 }
 
-void IPC::handleMessage(const nlohmann::basic_json<> message, const nlohmann::basic_json<> socket, ws_Client* steam_client, websocketpp::connection_hdl hdl)
+/**
+ * Handles incoming IPC (Inter-Process Communication) messages.
+ *
+ * This method processes incoming IPC messages received from the WebSocket server.
+ * It performs different actions based on the message ID, such as updating the selected skin,
+ * opening the Millennium application, retrieving the theme list, or getting the active theme.
+ * Additionally, it interacts with various components, such as theme configurations, UI updates,
+ * and WebSocket communication, to fulfill the requested actions.
+ *
+ * @param message The JSON object representing the incoming IPC message.
+ * @param socket The JSON object representing the WebSocket session information.
+ * @param steam_client A pointer to the WebSocket client used for communication.
+ * @param hdl The connection handle identifying the WebSocket connection.
+ */
+
+void IPC::handleMessage(const nlohmann::basic_json<> message, 
+    const nlohmann::basic_json<> socket,
+    ws_Client* steam_client, 
+    websocketpp::connection_hdl hdl)
 {
     std::cout << "incoming IPC message: " << message.dump(4) << std::endl;
 

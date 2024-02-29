@@ -10,55 +10,76 @@
 #include <filesystem>
 #include <window/interface_v2/settings.hpp>
 
-const std::string cef_dom::runtime::evaluate(std::string remote_url) noexcept {
-    return R"(
-    (() => fetch(')" + remote_url + R"(').then((response) => response.text()).then((data) => { 
-        if (window.usermode === undefined) {
-            const establishConnection = () => {
-                const millennium = new WebSocket('ws://localhost:)" + std::to_string(steam_client::get_ipc_port()) + R"(');
-                millennium.onmessage = (event) => {
-                    if (usermode.ipc && usermode.ipc.onmessage) {
-                        usermode.ipc.onmessage(JSON.parse(event.data));
-                    }
-                };
-                return {
-                    send: (message) => {
-                        millennium.send(JSON.stringify(message));
-                    },
-                    onmessage: null
-                };
-            };
-            window.usermode = {
-                ipc: establishConnection(),
-                ipc_types: { open_skins_folder: 0, skin_update: 1, open_url: 2, change_javascript: 3, change_console: 4, get_skins: 5 }
-            };
-            eval(data);
-        }
-    }))())";
-}
-
+/**
+ * @brief Adds a stylesheet to the DOM.
+ *
+ * This function generates a JavaScript script to add a stylesheet to the DOM if it's not already injected.
+ *
+ * @param filename The filename of the stylesheet.
+ * @return A string containing the JavaScript script.
+ */
 const std::basic_string<char, std::char_traits<char>, std::allocator<char>> cef_dom::stylesheet::add(std::string filename) noexcept {
     return std::format("if (document.querySelectorAll(`link[href='{}']`).length) {{ console.log('millennium stylesheet already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('link'), {{ rel: 'stylesheet', href: '{}', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
+/**
+ * @brief Adds a JavaScript file to the DOM.
+ *
+ * This function generates a JavaScript script to add a JavaScript file to the DOM if it's not already injected.
+ *
+ * @param filename The filename of the JavaScript file.
+ * @return A string containing the JavaScript script.
+ */
 const std::basic_string<char, std::char_traits<char>, std::allocator<char>> cef_dom::javascript::add(std::string filename) noexcept {
     return std::format("if (document.querySelectorAll(`script[src='{}'][type='module']`).length) {{ console.log('millennium already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
-cef_dom& cef_dom::get() {
+/**
+ * @brief Gets the singleton instance of the CEF DOM.
+ *
+ * @return A reference to the singleton instance of the CEF DOM.
+ */
+cef_dom& cef_dom::get() 
+{
     static cef_dom instance;
     return instance;
 }
 
-std::string system_color_script() {
+/**
+ * @brief Generates a JavaScript script to set the system accent color.
+ *
+ * This function generates a JavaScript script to set the system accent color.
+ *
+ * @return A string containing the JavaScript script.
+ */
+std::string system_color_script() 
+{
     return std::format("(document.querySelector('#SystemAccentColorInject') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'SystemAccentColorInject' }}))).innerText = `{}`;", getColorStr());
 }
-std::string theme_colors() {
-    const auto colors = config.getRootColors(skin_json_config);
 
+/**
+ * @brief Generates a JavaScript script to set the theme colors.
+ *
+ * This function generates a JavaScript script to set the theme colors.
+ *
+ * @return A string containing the JavaScript script.
+ */
+std::string theme_colors() 
+{
+    const auto colors = config.getRootColors(skin_json_config);
     return colors != "[NoColors]" ? std::format("(document.querySelector('#globalColors') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'globalColors' }}))).innerText = `{}`;", colors) : "";
 }
 
+/**
+ * @brief Pushes a raw script to the WebSocket for execution.
+ *
+ * This function pushes a raw script to the WebSocket for execution using the Runtime.evaluate method.
+ *
+ * @param c Pointer to the WebSocket client.
+ * @param hdl WebSocket connection handle.
+ * @param raw_script The raw script to be executed.
+ * @param sessionId The session ID associated with the WebSocket connection.
+ */
 void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl hdl, std::string raw_script, std::string sessionId) noexcept
 {
     try {
@@ -84,7 +105,15 @@ void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl
         }
     }
 }
-
+/**
+ * @brief Discovers resources from a remote endpoint.
+ * DEPRECATED AND NEEDS TO BE MOVED TO HTTP::GET FOR CONSISTENCY
+ *
+ * This function discovers resources from a remote endpoint by making an HTTP request.
+ *
+ * @param remote_endpoint The remote endpoint to discover resources from.
+ * @return A string containing the discovered resources.
+ */
 inline std::string steam_cef_manager::discover(std::basic_string<char, std::char_traits<char>, std::allocator<char>> remote_endpoint)
 {
     HINTERNET hInternet = InternetOpenA("millennium.patcher", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
@@ -105,6 +134,16 @@ inline std::string steam_cef_manager::discover(std::basic_string<char, std::char
     return discovery_result;
 }
 
+/**
+ * @brief Renders the settings modal in the Steam CEF manager.
+ *
+ * This function renders the settings modal in the Steam CEF manager by pushing the JavaScript code
+ * of the modal script to the WebSocket for execution.
+ *
+ * @param steam_client Pointer to the WebSocket client.
+ * @param hdl WebSocket connection handle.
+ * @param sessionId The session ID associated with the WebSocket connection.
+ */
 __declspec(noinline) void __fastcall steam_cef_manager::render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
     std::string path = std::format("{}/{}", uri.steam_resources, "modal.js");
@@ -112,16 +151,30 @@ __declspec(noinline) void __fastcall steam_cef_manager::render_settings_modal(ws
     steam_interface.push_to_socket(steam_client, hdl, cef_dom::get().javascript_handler.add(path), sessionId);
 }
 
-
+/**
+ * @brief Injects Millennium UI into the Steam CEF manager.
+ *
+ * This function injects Millennium UI into the Steam CEF manager by pushing the JavaScript code
+ * generated by the settings page renderer to the WebSocket for execution.
+ *
+ * @param steam_client Pointer to the WebSocket client.
+ * @param hdl WebSocket connection handle.
+ * @param sessionId The session ID associated with the WebSocket connection.
+ */
 __declspec(noinline) void __fastcall steam_cef_manager::inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
     std::string javaScript = ui_interface::settings_page_renderer();
-
-    std::cout << "Pushing script to ClientInterface" << std::endl;
-
     steam_interface.push_to_socket(steam_client, hdl, javaScript, sessionId);
 }
 
+/**
+ * @brief Calculates the endpoint for a given script file path.
+ *
+ * This function calculates the endpoint for a script file path. If the path is a remote URL,
+ * it retains the information. If it is a local path, it adds the loopback host.
+ *
+ * @param endpoint_unparsed The unparsed endpoint to calculate.
+ */
 const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)
 {
     //calculate endpoint type, if remote url retain info, if local add loopbackhost
@@ -134,68 +187,104 @@ const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)
     }
 }
 
+/**
+ * @brief Evaluates a script file or code block on the CEF (Chromium Embedded Framework) manager.
+ *
+ * This function evaluates a script file or code block on the CEF manager. It checks whether the
+ * operation is allowed based on the script type and user settings. Then, it calculates the endpoint
+ * for the script file, optionally extracts the session ID from the WebSocket response, and pushes
+ * the script to the WebSocket for execution.
+ *
+ * @param c Pointer to the WebSocket client.
+ * @param hdl WebSocket connection handle.
+ * @param file The script file to evaluate.
+ * @param type The type of the script (JavaScript or stylesheet).
+ * @param socket_response The JSON response received from the WebSocket.
+ */
 const void steam_cef_manager::evaluate(ws_Client* c, websocketpp::connection_hdl hdl, std::string file, script_type type, nlohmann::basic_json<> socket_response)
 {
+    // Check if JavaScript execution is allowed
     if (type == script_type::javascript && (!Settings::Get<bool>("allow-javascript"))) {
         console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::javascript is prohibited", __func__));
         return;
     }
 
+    // Check if stylesheet execution is allowed
     if (type == script_type::stylesheet && (!Settings::Get<bool>("allow-stylesheet"))) {
         console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::stylesheet is prohibited", __func__));
         return;
     }
 
+    // Calculate the endpoint for the script file on the local system
     this->calculate_endpoint(file);
 
     std::optional<std::string> sessionId;
 
+    // Extract sessionId from socket_response if available
     if (!socket_response.is_null() && socket_response.contains("sessionId")) {
         sessionId = socket_response["sessionId"].get<std::string>();
     }
 
-    //pass in sessionId if available
+    // Pass in sessionId if available and push the script to the WebSocket for execution
     switch (type)
     {
-    case script_type::javascript:
-        steam_interface.push_to_socket(c, hdl, cef_dom::get().javascript_handler.add(file).data(), sessionId.value_or(std::string()));
-        break;
-    case script_type::stylesheet:
-        steam_interface.push_to_socket(c, hdl, cef_dom::get().stylesheet_handler.add(file).data(), sessionId.value_or(std::string()));
-        break;
-    default:
-        throw std::runtime_error("[debug] invalid target scripting type");
+        case script_type::javascript:
+            steam_interface.push_to_socket(c, hdl, cef_dom::get().javascript_handler.add(file).data(), sessionId.value_or(std::string()));
+            break;
+        case script_type::stylesheet:
+            steam_interface.push_to_socket(c, hdl, cef_dom::get().stylesheet_handler.add(file).data(), sessionId.value_or(std::string()));
+            break;
+        default:
+            throw std::runtime_error("[debug] invalid target scripting type");
     }
 }
 
 
 using EventHandler = std::function<void(const nlohmann::json& event_msg, int listenerId)>;
 
+/**
+ * @brief Singleton class for managing message events and their handlers.
+ */
 class MessageEmitter {
 private:
-    MessageEmitter() {}
+    MessageEmitter() {} /**< Private constructor to prevent direct instantiation. */
     // Map to store event handlers for each event
     std::unordered_map<std::string, std::vector<std::pair<int, EventHandler>>> events;
-    int nextListenerId = 0;
+    int nextListenerId = 0; /**< Next available listener ID. */
 
 public:
-    MessageEmitter(const MessageEmitter&) = delete;
-    MessageEmitter& operator=(const MessageEmitter&) = delete;
+    MessageEmitter(const MessageEmitter&) = delete; /**< Deleted copy constructor. */
+    MessageEmitter& operator=(const MessageEmitter&) = delete; /**< Deleted copy assignment operator. */
 
-    // Get the singleton instance
+    /**
+     * @brief Get the singleton instance of MessageEmitter.
+     *
+     * @return The singleton instance of MessageEmitter.
+     */
     static MessageEmitter& getInstance() {
         static MessageEmitter instance; // Static instance
         return instance;
     }
 
-    // Register an event handler for a given event
+    /**
+     * @brief Register an event handler for a given event.
+     *
+     * @param event The event name.
+     * @param handler The event handler function.
+     * @return The listener ID associated with the registered handler.
+     */
     int on(const std::string& event, EventHandler handler) {
         int listenerId = nextListenerId++;
         events[event].push_back(std::make_pair(listenerId, handler));
         return listenerId;
     }
 
-    // Remove an event handler for a given event
+    /**
+     * @brief Remove an event handler for a given event.
+     *
+     * @param event The event name.
+     * @param listenerId The listener ID associated with the handler to remove.
+     */
     void off(const std::string& event, int listenerId) {
         auto it = events.find(event);
         if (it != events.end()) {
@@ -206,7 +295,12 @@ public:
         }
     }
 
-    // Emit an event, invoking all registered handlers
+    /**
+     * @brief Emit an event, invoking all registered handlers.
+     *
+     * @param event The event name.
+     * @param data The data associated with the event.
+     */
     void emit(const std::string& event, const nlohmann::json& data) {
         auto it = events.find(event);
         if (it != events.end()) {
@@ -218,6 +312,15 @@ public:
     }
 };
 
+/**
+ * @brief Establishes a WebSocket handshake with the SteamJSContext server.
+ *
+ * This function attempts to establish a WebSocket connection with the SteamJSContext server
+ * using the provided callback function. It retrieves the WebSocket URL from the discovered
+ * instances and initializes the WebSocket client to connect to it.
+ *
+ * @param callback The callback function to be invoked upon successful connection.
+ */
 const void steam_js_context::establish_socket_handshake(std::function<void()> callback)
 {
     console.log("attempting to create a connection to SteamJSContext");
@@ -263,14 +366,8 @@ const void steam_js_context::establish_socket_handshake(std::function<void()> ca
             hdl = _hdl;
             c = _c;
             static_cast<void>(callback());
-            //c->close(hdl, websocketpp::close::status::normal, "Successful connection");
         }, & cl, ::_1));
         cl.set_message_handler(bind([&](ws_Client* c, websocketpp::connection_hdl hdl, message_ptr msg) -> void {
-
-            std::string message = msg->get_payload();
-
-            std::cout << "Received a message from websocket" << std::endl;
-
             MessageEmitter::getInstance().emit("msg", nlohmann::json::parse(msg->get_payload()));
 
         }, & cl, ::_1, ::_2));
@@ -293,12 +390,18 @@ const void steam_js_context::establish_socket_handshake(std::function<void()> ca
 
 steam_js_context::steam_js_context() { }
 
-inline const void steam_js_context::close_socket() noexcept
-{
-    //boost::system::error_code error_code;
-    //socket.close(boost::beast::websocket::close_code::normal, error_code);
-}
+/// <summary>
+/// deprecated
+/// </summary>
+/// <returns></returns>
+inline const void steam_js_context::close_socket() noexcept { }
 
+/**
+ * @brief Reloads the SteamJSContext by establishing a new WebSocket handshake and triggering a reload.
+ *
+ * This function establishes a new WebSocket handshake with the SteamJSContext server and triggers
+ * a reload using the DevTools Protocol method Page.reload().
+ */
 __declspec(noinline) const void steam_js_context::reload() noexcept
 {
     establish_socket_handshake([this]() {
@@ -311,8 +414,15 @@ __declspec(noinline) const void steam_js_context::reload() noexcept
     });
 }
 
+/**
+ * @brief Restarts the SteamJSContext by establishing a new WebSocket handshake.
+ *
+ * This function establishes a new WebSocket handshake with the SteamJSContext server.
+ * It may contain legacy code for restarting the context, which is not used anymore.
+ */
 __declspec(noinline) const void steam_js_context::restart() noexcept
 {
+    // this function is not tested as of 2024-02-15 since the websocket dependecy switch
     establish_socket_handshake([=, this]() {
         //not used anymore, but here in case
         c->send(hdl,
@@ -325,27 +435,38 @@ __declspec(noinline) const void steam_js_context::restart() noexcept
             }).dump(),
             websocketpp::frame::opcode::text
         );
-    c->close(hdl, websocketpp::close::status::normal, "Successful connection");
+        c->close(hdl, websocketpp::close::status::normal, "Successful connection");
     });
 }
 
+/**
+ * @brief Executes a JavaScript command on the SteamJSContext and returns the result.
+ *
+ * This function sends a JavaScript command to the SteamJSContext via WebSocket, evaluates it,
+ * and returns the result.
+ *
+ * @param javascript The JavaScript command to execute.
+ * @return The result of executing the JavaScript command.
+ */
 std::string steam_js_context::exec_command(std::string javascript)
 {
+    // Create a promise to store the result
     std::promise<std::string> promise;
 
+    // Establish WebSocket handshake and send the JavaScript command
     establish_socket_handshake([&]() {
         c->send(hdl,
             nlohmann::json({ {"id", 1337}, {"method", "Runtime.evaluate"}, {"params", {{"expression", javascript}, {"awaitPromise", true}}} }).dump(),
             websocketpp::frame::opcode::text
         );
 
+        // Register message handler to capture the result
         MessageEmitter::getInstance().on("msg", [&](const json& event_msg, int listenerId) {
             try {
                 console.log("MessageEmitter.on() received a message");
-
-                console.log(event_msg.dump(4));
                 promise.set_value(event_msg["result"].dump());
 
+                // Set the value of the promise with the result
                 c->close(hdl, websocketpp::close::status::normal, "Successful connection");
                 MessageEmitter::getInstance().off("msg", listenerId);
             }
@@ -355,5 +476,6 @@ std::string steam_js_context::exec_command(std::string javascript)
         });
     });
 
+    // Return the result obtained from the promise
     return promise.get_future().get();
 }

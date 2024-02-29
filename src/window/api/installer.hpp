@@ -9,15 +9,14 @@ namespace Community
 {
 	class installer
 	{
-	private:
-
-		void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);
-
 	public:
 		bool m_downloadInProgess = false;
 		std::string m_downloadStatus;
 
 		void installUpdate(const nlohmann::json& skinData);
+
+		const void handleFileDrop(const char* _filePath);
+		const void handleThemeInstall(std::string fileName, std::string downloadPath);
 	};
 
 	static installer* Themes = new installer;

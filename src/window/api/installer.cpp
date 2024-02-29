@@ -3,61 +3,13 @@
 
 #include <regex>
 #include <utils/clr/platform.hpp>
+#include <utils/io/input-output.hpp>
 
 namespace Community
 {
-	void installer::writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
-	{
-		console.log(std::format("writing file to: {}", filePath.string()));
-
-		std::ofstream fileStream(filePath, std::ios::binary);
-		if (!fileStream)
-		{
-			console.log(std::format("Failed to open file for writing: {}", filePath.string()));
-			return;
-		}
-
-		fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
-
-		if (!fileStream)
-		{
-			console.log(std::format("Error writing to file: {}", filePath.string()));
-		}
-
-		fileStream.close();
-	}
-
-	bool unzip(std::string zipFileName, std::string targetDirectory) {
-
-		const std::string powershellCommand = 
-			std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
-
-		STARTUPINFO si;
-		PROCESS_INFORMATION pi;
-
-		ZeroMemory(&si, sizeof(si));
-		si.cb = sizeof(si);
-		ZeroMemory(&pi, sizeof(pi));
-
-		si.dwFlags |= STARTF_USESHOWWINDOW;
-		si.wShowWindow = SW_HIDE;
-
-		if (CreateProcess(NULL, const_cast<char*>(powershellCommand.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-			WaitForSingleObject(pi.hProcess, INFINITE);
-			CloseHandle(pi.hProcess);
-			CloseHandle(pi.hThread);
-
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-
 	void installer::installUpdate(const nlohmann::json& skinData)
 	{
 		g_processingFileDrop = true;
-
 		g_fileDropStatus = "Updating Theme...";
 
 		bool success = clr_interop::clr_base::instance().start_update(nlohmann::json({
@@ -66,75 +18,91 @@ namespace Community
 		}).dump(4));
 
 		if (success) {
-			std::cout << "successfully updated a theme" << std::endl;
 			g_fileDropStatus = "Updated Successfully!";
 		}
 		else {
-			std::cout << "failed to update a theme" << std::endl;
 			g_fileDropStatus = "Failed to update theme...";
 		}
-
 		Sleep(1500);
 		g_processingFileDrop = false;
-		return;
-
-		const std::string nativeName = skinData["native-name"];
-		std::cout << skinData.dump(4) << std::endl;
-
-		g_processingFileDrop = true;
-
-		auto filePath = std::filesystem::path(config.getSkinDir()) / std::format("{}.zip", nativeName);
-
-		try {
-
-			try {
-				std::string message = nlohmann::json({
-					{
-						{"owner", skinData["github"]["owner"]},
-						{"repo", skinData["github"]["repo_name"]}
-					}
-				}).dump(4);
-
-				std::cout << message << std::endl;
-
-				const auto response = http::post("/api_v2/api_v2/get-download", message);
-
-				std::cout << response << std::endl;
-			}
-			catch (nlohmann::detail::exception&) {
-				console.err("Couldn't send download count to server, error getting github keys from json");
-			}
-			catch (const http_error&) {
-				console.err("Couldn't send download count to server");
-			}
-
-			g_fileDropStatus = std::format("Downloading {}...", std::format("{}.zip", nativeName));
-			writeFileBytesSync(filePath, http::get_bytes(skinData["git"]["download"].get<std::string>().c_str()));
-
-			g_fileDropStatus = "Processing Theme Information...";
-
-			std::string zipFilePath = filePath.string();
-			std::string destinationFolder = config.getSkinDir() + "/";
-
-			g_fileDropStatus = "Installing Theme...";
-
-			if (unzip(zipFilePath, destinationFolder)) {
-				g_fileDropStatus = "Done!";
-				g_openSuccessPopup = true;
-			}
-			else {
-				MessageBoxA(GetForegroundWindow(), "couldn't extract file", "Millennium", MB_ICONERROR);
-			}
-
-		}
-		catch (const http_error&) {
-			console.err("Couldn't download bytes from the file");
-			MessageBoxA(GetForegroundWindow(), "Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
-		}
-		catch (const std::exception& err) {
-			console.err(std::format("Exception form {}: {}", __func__, err.what()));
-			MessageBoxA(GetForegroundWindow(), std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
-		}
-		g_processingFileDrop = false;
 	}
+
+    const void installer::handleFileDrop(const char* _filePath)
+    {
+        std::cout << "Dropped file: " << _filePath << std::endl;
+        try {
+            std::filesystem::path filePath(_filePath);
+
+            if (!std::filesystem::exists(filePath) || !std::filesystem::exists(filePath / "skin.json") || !std::filesystem::is_directory(filePath))
+            {
+                MsgBox("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
+                    "Make sure the skin isn't archived, and it exists on your disk", "Can't Add Skin", MB_ICONERROR);
+                return;
+            }
+
+            std::filesystem::rename(filePath, std::filesystem::path(config.getSkinDir()) / filePath.filename().string());
+        }
+        catch (const std::filesystem::filesystem_error& error) {
+            MsgBox(std::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
+        }
+    }
+
+    bool unzip(std::string zipFileName, std::string targetDirectory) {
+
+        std::string powershellCommand = std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
+
+        STARTUPINFO si;
+        PROCESS_INFORMATION pi;
+
+        ZeroMemory(&si, sizeof(si));
+        si.cb = sizeof(si);
+        ZeroMemory(&pi, sizeof(pi));
+
+        si.dwFlags |= STARTF_USESHOWWINDOW;
+        si.wShowWindow = SW_HIDE;
+
+        if (CreateProcess(NULL, const_cast<char*>(powershellCommand.c_str()), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+            WaitForSingleObject(pi.hProcess, INFINITE);
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+
+            return true;
+        }
+        return false;
+    }
+
+    const void installer::handleThemeInstall(std::string fileName, std::string downloadPath)
+    {
+        g_processingFileDrop = true;
+        auto filePath = std::filesystem::path(config.getSkinDir()) / fileName;
+
+        try 
+        {
+            g_fileDropStatus = std::format("Downloading {}...", fileName);
+            file::writeFileBytesSync(filePath, http::get_bytes(downloadPath.c_str()));
+            g_fileDropStatus = "Installing Theme and Verifying";
+
+            if (unzip(filePath.string(), config.getSkinDir() + "/"))
+            {
+                g_fileDropStatus = "Done! Cleaning up...";
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+
+                g_openSuccessPopup = true;
+                m_Client.parseSkinData(false);
+            }
+            else {
+                std::cout << "couldn't extract file" << std::endl;
+                MessageBoxA(GetForegroundWindow(), "couldn't extract file", "Millennium", MB_ICONERROR);
+            }
+        }
+        catch (const http_error&) {
+            console.err("Couldn't download bytes from the file");
+            MessageBoxA(GetForegroundWindow(), "Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
+        }
+        catch (const std::exception& err) {
+            console.err(std::format("Exception form {}: {}", __func__, err.what()));
+            MessageBoxA(GetForegroundWindow(), std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
+        }
+        g_processingFileDrop = false;
+    }
 }

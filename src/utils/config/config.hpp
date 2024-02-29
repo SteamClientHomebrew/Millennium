@@ -72,7 +72,6 @@ public:
 
     std::string getSkinDir();
     const std::string getRootColors(nlohmann::basic_json<> data);
-    const void installFonts();
 
     void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);
 

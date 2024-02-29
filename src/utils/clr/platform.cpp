@@ -4,6 +4,14 @@
 #include <format>
 #include <regex>
 
+/**
+ * @brief Converts a UTF-8 encoded std::string to an LPCWSTR.
+ *
+ * This function converts a UTF-8 encoded std::string to an LPCWSTR (wide-character string).
+ *
+ * @param str The input std::string to be converted.
+ * @return An LPCWSTR representing the converted string. The caller is responsible for freeing the memory.
+ */
 LPCWSTR s_lpcwstr(const std::string& str) {
     int size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
     wchar_t* wideStr = new wchar_t[size];
@@ -23,6 +31,15 @@ namespace clr_interop {
         cleanup_clr();
     }
 
+    /**
+     * @brief Initializes the Common Language Runtime (CLR).
+     *
+     * This function initializes the CLR by creating an instance of the CLRMetaHost,
+     * obtaining the runtime information for the specified version, checking if the runtime
+     * is loadable, and starting the CLR runtime host.
+     *
+     * @return true if the CLR initialization succeeds, false otherwise.
+     */
     bool clr_base::initialize_clr() {
         HRESULT hr = CLRCreateInstance(CLSID_CLRMetaHost, IID_ICLRMetaHost, (LPVOID*)&pMetaHost);
 
@@ -77,8 +94,20 @@ namespace clr_interop {
         return true;
     }
 
+    /**
+     * @brief Starts the update process using the CLR runtime host.
+     *
+     * This function starts the update process by executing the specified assembly in the
+     * default application domain of the CLR runtime host. It first checks if the CLR runtime host
+     * is initialized, and if not, initializes it. Then, it executes the assembly specified by the
+     * path parameter, passing the provided parameters to the entry point method.
+     *
+     * @param param Additional parameters to be passed to the entry point method.
+     * @return true if the update process starts successfully, false otherwise.
+     */
     bool clr_base::start_update(const std::string& param) {
 
+        // Check if the CLR runtime host is initialized, and initialize if not
         if (!pClrRuntimeHost) {
             if (!initialize_clr()) {
                 return false;
@@ -92,6 +121,7 @@ namespace clr_interop {
             char buffer[MAX_PATH];
             DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
+            // Construct the path to the updater assembly
             std::string path = std::format("{}/millennium.updater.dll", std::string(buffer, bufferSize));
 
             const auto hr = pClrRuntimeHost->ExecuteInDefaultAppDomain(
@@ -115,6 +145,12 @@ namespace clr_interop {
         return (bool)out;
     }
 
+    /**
+     * @brief Cleans up the CLR resources.
+     *
+     * This function stops the CLR runtime host, releases the allocated resources, and sets the pointers to nullptr
+     * to indicate that the CLR is not initialized.
+     */
     void clr_base::cleanup_clr() {
         if (pClrRuntimeHost) {
             // Stop the CLR
@@ -131,5 +167,4 @@ namespace clr_interop {
             pMetaHost = nullptr;
         }
     }
-
 }

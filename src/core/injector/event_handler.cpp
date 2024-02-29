@@ -873,16 +873,14 @@ private:
             //get the <html> attributes of the dom which is what is most important in selecting pages
             std::string attributes = get_class_list(m_socket_resp["result"]["root"]);
 
-            //console.log(std::format("[DEVELOPER] valid QUERY from page {}", nlohmann::json({
-            //    {"pageTitle", m_header},
-            //    {"querySelector", attributes}
-            //}).dump(4)));
 
             if (attributes.find("ModalDialogPopup") != std::string::npos) {
                 console.log("injecting millennium into settings modal");
 
-                //steam_interface.render_settings_modal(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
-                steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
+                // inject millennium on a different thread to prevent it from interfering with the theme injection
+                std::thread([&] {
+                    steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
+                }).detach();
             }
 
             if (!skin_json_config.contains("Patches")) {
@@ -893,14 +891,12 @@ private:
             {
                 auto matchRegexString = patch.value("MatchRegexString", "_null_");
 
-
                 bool contains_http = matchRegexString.find("http") != std::string::npos;
 
                 if (contains_http)
                     continue;
-                if (attributes.find(matchRegexString) == std::string::npos) {
+                if (attributes.find(matchRegexString) == std::string::npos) 
                     continue;
-                }
 
                 console.log_patch("class name", m_header, matchRegexString);
 
@@ -1025,9 +1021,6 @@ private:
         //remove CSP on the remote page to allow cross origin scripting, specifically
         //from the steamloopbackhost
         //https://chromedevtools.github.io/devtools-protocol/
-
-        std::cout << "callinghghhhh" << std::endl;
-
         c->send(hdl, nlohmann::json({
                 {"id", 8},
                 {"method", "Page.setBypassCSP"},
@@ -1063,7 +1056,6 @@ private:
         const auto on_message = [&](ws_Client* c, websocketpp::connection_hdl hdl, message_ptr msg) -> void {
 
             nlohmann::basic_json<> response = json::parse(msg->get_payload());
-
             const auto method = response.value("method", "millennium::empty");
 
             if (method.find("Page") != std::string::npos)
@@ -1078,20 +1070,14 @@ private:
         };
 
         try {
-            c.set_access_channels(
-                websocketpp::log::alevel::none);
-            c.clear_access_channels(
-                websocketpp::log::alevel::all);
-
+            c.set_access_channels(websocketpp::log::alevel::none);
+            c.clear_access_channels(websocketpp::log::alevel::all);
             c.init_asio();
 
-            c.set_message_handler(
-                bind(on_message, &c, ::_1, ::_2));
-
-            c.set_open_handler(
-                bind([this, &c](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
-                    this->page_settings(c, hdl);
-                }, &c, ::_1));
+            c.set_message_handler(bind(on_message, &c, ::_1, ::_2));
+            c.set_open_handler(bind([this, &c](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
+                this->page_settings(c, hdl);
+            }, &c, ::_1));
 
             websocketpp::lib::error_code ec;
             ws_Client::connection_ptr con = c.get_connection(url, ec);
@@ -1100,8 +1086,7 @@ private:
                 return;
             }
 
-            c.connect(con);
-            c.run();
+            c.connect(con); c.run();
         }
         catch (websocketpp::exception const& e) {
             console.err(std::format("remote exception: {}", e.what()));
@@ -1187,80 +1172,7 @@ uint16_t steam_client::get_ipc_port() {
 /// <summary>
 /// initialize millennium components
 /// </summary>
-steam_client::steam_client()
-{   
-    threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
-        //console.succ(std::format("starting: client_thread [{}]", __FUNCSIG__));
-
-        ws_Client c;
-        
-        try {
-            std::string url = json::parse(http::get(uri.debugger + "/json/version"))["webSocketDebuggerUrl"];
-
-            c.set_access_channels  (websocketpp::log::alevel::all);
-            c.clear_access_channels(websocketpp::log::alevel::all);
-            c.init_asio();
-
-            c.set_message_handler(bind([&c](ws_Client* c, websocketpp::connection_hdl hdl, message_ptr msg) -> void {
-                client::get_instance().on_message(c, hdl, msg); }, &c, ::_1, ::_2));
-            c.set_open_handler(bind([&c](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
-                client::get_instance().on_connection(c, hdl); }, &c, ::_1));
-
-            websocketpp::lib::error_code ec;
-            ws_Client::connection_ptr con = c.get_connection(url, ec);
-            if (ec) {
-                console.err(std::format("could not create connection because: {}", ec.message()));
-                return false;
-            }
-
-            c.connect(con); c.run();
-        }
-        catch (const http_error& error) {
-            MsgBox(std::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str(), "Bootstrap Error", 0);
-        }
-        catch (websocketpp::exception const& e) {
-            console.err(std::format("Error occurred on client websocket thread: {}", e.what()));
-        }
-        catch (const asio::system_error& ex) {
-            if (ex.code() == asio::error::misc_errors::eof) {
-				console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
-			}
-		}
-        catch (const nlohmann::detail::exception& ex) {
-            console.err(std::format("Received malformed JSON response from websocket: {}", ex.what()));
-        }
-        catch (const std::exception& ex) {
-			console.err(std::format("Error occurred on client websocket thread: {}", ex.what()));
-		}
-        catch (...) {
-			console.err(std::format("Error occurred on client websocket thread: unknown"));
-		}
-        return false;
-    }, 0, 0, 0));
-
-    threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {  
-        //console.succ(std::format("starting: remote_thread [{}]", __FUNCSIG__));
-
-        try {
-            remote::get_instance().handle_interface();
-        }
-        catch (nlohmann::json::exception& ex) { 
-            console.err(std::format("remote: {}", std::string(ex.what()))); 
-        }
-        catch (const asio::system_error& ex) { 
-            console.err(std::format("remote: {}", std::string(ex.what()))); 
-        }
-        catch (const std::exception& ex) { 
-            console.err(std::format("remote: {}", std::string(ex.what())));
-        }
-        catch (...) { 
-            console.err(std::format("remote: unknown")); 
-        }
-        return false;
-    }, 0, 0, 0));
-}
-
-
+steam_client::steam_client() { }
 
 /// <summary>
 /// yet another initializer
@@ -1271,11 +1183,6 @@ unsigned long __stdcall Initialize(void*)
 {
     config.setupMillennium();
     skin_json_config = config.getThemeData();
-    //config.installFonts();
-
-
-
-    //std::cout << skin_json_config.dump(4) << std::endl;
 
     //skin change event callback functions
     themeConfig::updateEvents::getInstance().add_listener([]() {
@@ -1285,7 +1192,7 @@ unsigned long __stdcall Initialize(void*)
         //config.installFonts();
     });
 
-    std::cout << "starting file watcher" << std::endl;
+
     //config file watcher callback function 
     std::thread watcher(themeConfig::watchPath, config.getSkinDir(), []() {
         console.log("skins folder has changed, updating required information");
@@ -1295,9 +1202,80 @@ unsigned long __stdcall Initialize(void*)
         m_Client.parseSkinData();
     });
 
-    //create steamclient object
-    steam_client ISteamHandler;
-    watcher.join();
 
+    threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
+
+        while (true)
+        {
+            ws_Client c;
+
+            try {
+                std::string url = json::parse(http::get(uri.debugger + "/json/version"))["webSocketDebuggerUrl"];
+
+                c.set_access_channels(websocketpp::log::alevel::all);
+                c.clear_access_channels(websocketpp::log::alevel::all);
+                c.init_asio();
+
+                c.set_message_handler(bind([&c](ws_Client* c, websocketpp::connection_hdl hdl, message_ptr msg) -> void {
+                    client::get_instance().on_message(c, hdl, msg); }, &c, ::_1, ::_2));
+                c.set_open_handler(bind([&c](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
+                    client::get_instance().on_connection(c, hdl); }, &c, ::_1));
+
+                websocketpp::lib::error_code ec;
+                ws_Client::connection_ptr con = c.get_connection(url, ec);
+                if (ec) {
+                    console.err(std::format("could not create connection because: {}", ec.message()));
+                    return false;
+                }
+
+                c.connect(con); c.run();
+            }
+            catch (const http_error& error) {
+                MsgBox(std::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str(), "Bootstrap Error", 0);
+            }
+            catch (websocketpp::exception const& e) {
+                console.err(std::format("Error occurred on client websocket thread: {}", e.what()));
+            }
+            catch (const asio::system_error& ex) {
+                if (ex.code() == asio::error::misc_errors::eof) {
+                    console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
+                }
+            }
+            catch (const nlohmann::detail::exception& ex) {
+                console.err(std::format("Received malformed JSON response from websocket: {}", ex.what()));
+            }
+            catch (const std::exception& ex) {
+                console.err(std::format("Error occurred on client websocket thread: {}", ex.what()));
+            }
+            catch (...) {
+                console.err(std::format("Error occurred on client websocket thread: unknown"));
+            }
+            console.err("client interface handler exited unexpectedly. attempting to restart...");
+        }
+        return false;
+    }, 0, 0, 0));
+
+    threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
+
+        try {
+            remote::get_instance().handle_interface();
+        }
+        catch (nlohmann::json::exception& ex) {
+            console.err(std::format("remote: {}", std::string(ex.what())));
+        }
+        catch (const asio::system_error& ex) {
+            console.err(std::format("remote: {}", std::string(ex.what())));
+        }
+        catch (const std::exception& ex) {
+            console.err(std::format("remote: {}", std::string(ex.what())));
+        }
+        catch (...) {
+            console.err(std::format("remote: unknown"));
+        }
+
+        return false;
+    }, 0, 0, 0));
+
+    Sleep(-1);
     return true;
 }

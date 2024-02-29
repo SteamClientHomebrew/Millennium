@@ -27,6 +27,16 @@ using std::string;
 
 namespace Millennium
 {
+    /**
+     * @brief Checks for the presence of a file indicating remote debugging.
+     *
+     * @return unsigned long Returns true if the file indicating remote debugging is found; otherwise, false.
+     *
+     * @remarks
+     * - Checks for the presence of a file named ".cef-enable-remote-debugging".
+     * - If the file does not exist, creates it and returns false.
+     * - If the file exists, returns true.
+     */
     unsigned long __stdcall checkRemoteDebugging(void)
     {
         constexpr const std::basic_string_view<char> filePath = ".cef-enable-remote-debugging";
@@ -40,7 +50,26 @@ namespace Millennium
         return true;
     }
 
+    /**
+     * @brief Updates the console title with relevant information.
+     *
+     * @param lpParam A pointer to the parameters (not used in this function).
+     *
+     * @return unsigned long Always returns 0.
+     *
+     * @remarks
+     * - Updates the console title periodically with information such as the version, number of running threads,
+     *   and memory usage of the application.
+     * - Uses a Metrics object to retrieve memory usage.
+     * - Sleeps for 1 second between updates.
+     */
     unsigned long __stdcall getConsoleHeader(void* lpParam) {
+
+        // only update the console header if the console is actually visible
+        if (!steam::get().params.has("-dev"))
+        {
+            return 0;
+        }
 
         while (true) {
 
@@ -64,6 +93,7 @@ namespace Millennium
         if (steam::get().params.has("-dev") && static_cast<bool>(AllocConsole()))
         {
             void(freopen("CONOUT$", "w", stdout));
+            void(freopen("CONOUT$", "w", stderr));
             console.consoleAllocated = true;
         }
 
@@ -90,6 +120,21 @@ namespace Millennium
     }
 }
 
+/**
+ * @brief Entry point that is accidentally called by the Steam Client
+ *
+ * @param hinstDLL A handle to the DLL module.
+ * @param call     The reason code that indicates why the DLL entry-point function is being called.
+ * @param lpReserved Reserved parameter; must be NULL.
+ *
+ * @return BOOL For DLL_PROCESS_ATTACH, returns true to indicate success.
+ *              For other cases, returns true.
+ *
+ * @remarks
+ * - This function is called by the system when processes and threads are initialized and terminated, or when modules are loaded and unloaded.
+ * - In this implementation, it disables thread notifications for the DLL and starts the Millennium Bootstrap thread if remote debugging is not active.
+ * - If remote debugging is active, it displays a message box and exits the process.
+ */
 int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 {
     if (call == DLL_PROCESS_ATTACH)
@@ -97,12 +142,16 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
         DisableThreadLibraryCalls(hinstDLL);
         hCurrentModule = hinstDLL;
 
+        // check if remote debugging is enabled on the client.
+        // required in order for millennium to work
         if (!Millennium::checkRemoteDebugging())
         {
             MsgBox("Initialization complete! Restart Steam for changed to take effect.", "Millennium", MB_ICONINFORMATION);
             ExitProcess(EXIT_SUCCESS);
         }
 
+        // start bootstrapper thread disjoined from the main thread 
+        // to prevent it from freezing itself when it hooks
         threadContainer::getInstance().addThread(CreateThread(0, 0, Millennium::Bootstrap, 0, 0, 0));
     }
 

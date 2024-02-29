@@ -28,6 +28,5 @@ public:
 
 extern nlohmann::basic_json<> skin_json_config;
 
+/// <summary>/// /// </summary>/// <param name=""></param>/// <returns></returns>
 unsigned long __stdcall Initialize(void*);
-
-const void hot_reload();

@@ -4,10 +4,31 @@
 
 static std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ""abcdefghijklmnopqrstuvwxyz""0123456789+/";
 
+/**
+ * @brief Checks if a character is a valid base64 character.
+ *
+ * @param c The character to be checked.
+ *
+ * @return true if the character is a valid base64 character, false otherwise.
+ *
+ * @remarks
+ * - A character is considered a valid base64 character if it is alphanumeric or one of the following: '+', '/'.
+ */
 bool is_base64(unsigned char c) {
     return (isalnum(c) || (c == '+') || (c == '/'));
 }
 
+/**
+ * @brief Decodes a base64 encoded string.
+ *
+ * @param input The base64 encoded input string.
+ *
+ * @return std::string The decoded string.
+ *
+ * @remarks
+ * - Decodes the input string into its original form.
+ * - Removes padding characters ('=') if present.
+ */
 static std::string base64_decode(const std::string& input) {
 
     std::vector<unsigned char> decoded_bytes;
@@ -31,6 +52,17 @@ static std::string base64_decode(const std::string& input) {
     return std::string(decoded_bytes.begin(), decoded_bytes.end());
 }
 
+/**
+ * @brief Encodes a string into base64 format.
+ *
+ * @param input The input string to be encoded.
+ *
+ * @return std::string The base64 encoded string.
+ *
+ * @remarks
+ * - Encodes the input string into base64 format.
+ * - Adds padding characters ('=') if necessary to make the length a multiple of 4.
+ */
 static std::string base64_encode(const std::string& input) {
 
     std::string encoded_string;

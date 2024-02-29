@@ -118,30 +118,14 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 
 bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, std::vector<nlohmann::basic_json<>>& buffer, bool _checkForUpdates)
 {
-	//console.log(std::format("checkForUpdates? -> {}", _checkForUpdates));
-
 	std::filesystem::path skin_json_path = entry.path() / "skin.json";
-
-	//console.log(std::format(" > Local skin parser: {}", skin_json_path.string()));
 
 	if (!std::filesystem::exists(skin_json_path))
 		return false;
 
 	auto data = this->readFileSync(skin_json_path.string());
 
-	//console.log(std::format(" > Found a skin: {}", entry.path().filename().string()));
 	const std::string fileName = entry.path().filename().string();
-
-	//if (_checkForUpdates) {
-	//	//console.log("checking for updates for skin");
-	//	data["update_required"] = checkForUpdates(data, skin_json_path);
-	//}
-	//else
-	//{
-	//	//console.log("skipping update check on a skin");
-	//	data["update_required"] = false;
-	//}
-	//data["update_required"] = false;
 
 	data["name"]        = data.value("name", fileName).c_str();
 	data["native-name"] = fileName;
@@ -155,38 +139,6 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 	buffer.push_back(data);
 	return true;
 }
-
-//void millennium::releaseImages() {
-//	for (auto& item : v_rawImageList) {
-//		if (item.texture) item.texture->Release();
-//	}
-//
-//	v_rawImageList.clear();
-//}
-
-//void millennium::getRawImages(std::vector<std::string>& images)
-//{
-//	std::cout << "getRawImages called" << std::endl;
-//	
-//	for (auto& item : v_rawImageList) {
-//		//std::cout << "Iterating over texture" << std::endl;
-//		if (item.texture)
-//		{
-//			std::cout << "Releasing a texture" << std::endl;
-//			item.texture->Release();
-//		}
-//	}
-//
-//	v_rawImageList.clear();
-//	v_rawImageList.resize((int)images.size(), { nullptr, 0, 0 });
-//
-//	// use threading to load the images on their own thread synchronously
-//	for (int i = 0; i < (int)images.size(); i++) {
-//		std::thread([=]() { 
-//			v_rawImageList[i] = image::make_shared_image(images[i].c_str(), image::quality::high); 
-//		}).detach();
-//	}
-//}
 
 nlohmann::basic_json<> millennium::bufferSkinData()
 {
@@ -303,7 +255,9 @@ std::vector<nlohmann::basic_json<>> millennium::get_update_list(
 	try {
 		console.log("Checking themes for updates...");
 
-		cloud_versions = nlohmann::json::parse(http::post("/api_v2/api_v2/check-updates", parsedData.dump(4).c_str()));
+		const auto response = http::post("/api/v2/checkupdates", parsedData.dump(4).c_str());
+
+		cloud_versions = nlohmann::json::parse(response);
 	}
 	catch (const http_error ex) {
 		console.err("No internet connection, can't check for updates on themes");
@@ -479,22 +433,3 @@ void millennium::changeSkin(nlohmann::basic_json<>& skin)
 
 	parseSkinData(false);
 }
-
-//void millennium::concatLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin)
-//{
-//	std::ofstream file(std::format("{}/{}", config.getSkinDir(), item.file_name));
-//
-//	if (file.is_open()) {
-//		file << skin.dump(4); file.close();
-//	}
-//	else {
-//		console.err("unable to add skin to library");
-//	}
-//}
-//
-//void millennium::dropLibraryItem(MillenniumAPI::resultsSchema item, nlohmann::json& skin)
-//{
-//	if (!std::filesystem::remove(std::format("{}/{}", config.getSkinDir(), item.file_name))) {
-//		console.err("couldn't remove skin from library");
-//	}
-//}

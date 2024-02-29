@@ -4,6 +4,11 @@
 
 namespace conditionals 
 {
+	/// <summary>
+	/// setup a new theme, documentation in the source file.
+	/// </summary>
+	/// <param name="data"></param>
+	/// <param name="folderName"></param>
 	void setup(const nlohmann::basic_json<>& data, const std::string folderName);
 
 	/// <summary>
@@ -16,6 +21,9 @@ namespace conditionals
 
 	nlohmann::basic_json<> get_conditionals(const std::string themeName);
 
+	/// <summary>
+	/// conditional result schema refrenced solely in 'has_patch' and its precursors
+	/// </summary>
 	struct conditional_item
 	{
 		steam_cef_manager::script_type type;

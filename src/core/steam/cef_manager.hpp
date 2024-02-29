@@ -11,15 +11,21 @@
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 
+// Define a WebSocket client type
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
+// Alias placeholders for easier readability
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
+
+// Alias for std::bind for easier usage with placeholders
 using websocketpp::lib::bind;
+
+// Alias for nlohmann::json for easier usage
 using json = nlohmann::json;
 
+// Define a pointer type for WebSocket messages
 typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
-
 
 struct endpoints
 {
@@ -46,18 +52,16 @@ private:
     };
 
     /// <summary>
-    /// evaluate scripts from a url host on a js vm
+    /// stylesheet handler for the cef instance
     /// </summary>
-    class runtime {
-    public:
-        const std::string evaluate(std::string remote_url) noexcept;
-    };
-
     class stylesheet : public dom_head {
     public:
         const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override;
     };
 
+    /// <summary>
+    /// javascript handler for the cef instance
+    /// </summary>
     class javascript : public dom_head {
     public:
         const std::basic_string<char, std::char_traits<char>, std::allocator<char>> add(std::string filename) noexcept override;
@@ -70,8 +74,6 @@ public:
     /// <returns>cef_dom instance, statically typed</returns>
     static cef_dom& get();
 
-    runtime runtime_handler;
-
     javascript javascript_handler;
     stylesheet stylesheet_handler;
 
@@ -81,7 +83,22 @@ private:
     cef_dom& operator=(const cef_dom&) = delete;
 };
 
+/**
+ * @brief Generates a JavaScript script to set the system color.
+ *
+ * This function generates a JavaScript script to set the system color based on the current configuration.
+ *
+ * @return A string containing the JavaScript script.
+ */
 std::string system_color_script();
+
+/**
+ * @brief Generates a JavaScript script to set the theme colors.
+ *
+ * This function generates a JavaScript script to set the theme colors based on the current configuration.
+ *
+ * @return A string containing the JavaScript script.
+ */
 std::string theme_colors();
 
 struct steam_cef_manager

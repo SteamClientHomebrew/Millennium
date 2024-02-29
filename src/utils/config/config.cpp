@@ -254,87 +254,6 @@ const std::string themeConfig::getRootColors(nlohmann::basic_json<> data)
     }
 }
 
-const void themeConfig::installFonts()
-{
-    const auto config = this->getThemeData();
-
-    if (config.contains("Fonts")) 
-    {
-        if (!config["Fonts"].is_array())
-        {
-            console.err("Can't install Fonts. Reason: 'Fonts' key is not an object");
-            return;
-        }
-
-        for (const auto& font : config["Fonts"])
-        {
-            if (!font.contains("FileName") || !font.contains("Download"))
-            {
-                console.err("Font entry doesn't contain 'FileName' or 'Download'");
-                continue;
-            }
-
-            static std::vector<std::string> fileTypes = { ".ttf", ".oft", ".woff", ".woff2", ".eot", ".svg", "cff", "pfb" };
-
-            auto fileDetails = std::filesystem::path(font["Download"].get<std::string>());
-
-            if (std::find(fileTypes.begin(), fileTypes.end(), fileDetails.extension().string()) != fileTypes.end())
-            {
-                console.log(std::format("Trying to download font [{}]", font["FileName"].get<std::string>()));
-
-                auto filePath = std::filesystem::path(this->m_steamPath) / "steamui" / "fonts" / font["FileName"];
-
-                if (std::filesystem::exists(filePath)) {
-                    console.log(std::format("Font {} is already installed, skipping...", font["FileName"].get<std::string>()));
-                    continue;
-                }
-                
-                try {
-                    const std::vector<unsigned char> fileContent = http::get_bytes(font["Download"].get<std::string>().c_str());
-
-                    console.log(filePath.string());
-                    console.log(std::format("{}", fileContent.size()));
-
-                    std::ofstream fileStream(filePath, std::ios::binary);
-
-                    if (!fileStream) {
-                        console.log(std::format("Failed to open file for writing: {}", filePath.string()));
-                        return;
-                    }
-
-                    fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
-
-                    if (!fileStream) {
-                        console.log(std::format("Error writing to file: {}", filePath.string()));
-                    }
-                    fileStream.close();
-                }
-                catch (const http_error& err) {
-                    switch (err.code())
-                    {
-                        case http_error::errors::couldnt_connect: {
-                            console.err("Couldn't install font, no internet?");
-                            break;
-                        }
-                        case http_error::errors::miscellaneous: {
-                            console.err("Couldn't install font, miscellaneous error.");
-                            break;
-                        }
-                        case http_error::errors::not_allowed: {
-                            console.err("Couldn't install font, HTTP requests disabled.");
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                console.err("Can't download font because it is an unverified/unallowed file type");
-            }
-        }
-    }
-}
-
 void themeConfig::writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
 {
     console.log(std::format("writing file to: {}", filePath.string()));
@@ -445,8 +364,40 @@ const void themeConfig::setThemeData(nlohmann::json& object) noexcept
     }
 }
 
+/**
+ * @brief Retrieves theme data from local or cloud storage.
+ *
+ * This function retrieves theme data from the local storage file 'skin.json'
+ * corresponding to the active skin. Optionally, it can return the raw JSON
+ * data or processed JSON data depending on the 'raw' parameter.
+ *
+ * @param raw Flag indicating whether to return raw JSON data.
+ *
+ * @return nlohmann::json JSON data representing the theme configuration.
+ *
+ * @throws None This function does not throw exceptions directly, but it may return
+ *              JSON data indicating configuration failure.
+ *
+ * @note This function utilizes various settings from the Settings class and
+ *       performs filesystem operations.
+ *
+ * @note If 'raw' is true, the function reads and returns raw JSON data from the
+ *       'skin.json' file. Otherwise, it processes the JSON data, applies patches,
+ *       and checks for JavaScript usage in the theme.
+ *
+ * @details
+ * - Retrieves the active skin name from the settings.
+ * - Attempts to open and read the 'skin.json' file corresponding to the active skin.
+ * - If 'raw' is true, parses the raw JSON data from the file and returns it.
+ * - If 'raw' is false, processes the JSON data, applies patches, and checks for JavaScript usage.
+ * - If JavaScript usage is detected and not allowed in settings, prompts the user to enable JavaScript.
+ * - Records the elapsed time for theme data collection.
+ *
+ * @see Settings::Get, config::get_local, MsgBox, conditionals::setup
+ */
 const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 {
+    // simple timer to create a basis on how long the function took to resolve
     auto start_time = std::chrono::high_resolution_clock::now();
 
     const std::string ACTIVE_ITEM = Settings::Get<std::string>("active-skin");
@@ -456,6 +407,8 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 
     nlohmann::basic_json<> jsonBuffer;
 
+    // deprecated, only used to configuration that wrote directly into the skin.json
+    // but has been migrated to use conditionals
     if (raw == true) 
     {
         nlohmann::basic_json<> data;
@@ -474,12 +427,15 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
     if (localTheme.is_open() && localTheme)
         jsonBuffer = config::get_local(localTheme);
     else
+        // set config fail to tell millennium to ignore parsing it further
         jsonBuffer = { { "config_fail", true } };
 
     if (jsonBuffer.value("UseDefaultPatches", false)) {
         this->assignOverrides(jsonBuffer);
     }
 
+    // check if the selected theme uses javascript and the javascript isnt a null pointer because
+    // of use default patches causing false positives
     bool hasJavaScriptPatch = std::any_of(jsonBuffer["Patches"].begin(), jsonBuffer["Patches"].end(),
         [&](const nlohmann::json& patch) {
             if (patch.contains("TargetJs")) {
@@ -515,9 +471,8 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 
     jsonBuffer["native-name"] = ACTIVE_ITEM;
 
-    std::cout << "Requesting to setup theme -> " << ACTIVE_ITEM << std::endl;
+    console.log(std::format("Requestion to setup theme -> {}", ACTIVE_ITEM));
     conditionals::setup(jsonBuffer, ACTIVE_ITEM);
-
 
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
@@ -527,6 +482,50 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
     return jsonBuffer;
 }
 
+/**
+ * @brief Configures theme settings for Millennium theme.
+ *
+ * This function sets up necessary configurations for the Millennium theme,
+ * including creating directories, setting default values for various settings,
+ * and creating registry keys if they do not exist.
+ *
+ * @note This function assumes that the theme directory has already been set.
+ *
+ * @note The default values set here are tailored for the Millennium theme.
+ *
+ * @note If any errors occur during filesystem operations, they are caught
+ * and logged using the console.err method.
+ *
+ * @details
+ * - Creates 'skins' directory if it does not exist.
+ * - Sets default values for various settings if they do not already exist.
+ *
+ * @tparam themeConfig The class containing the theme configuration methods.
+ *
+ * @param void No input parameters.
+ *
+ * @return void No return value.
+ *
+ * @throws None This function does not throw exceptions.
+ *
+ * @remarks
+ * - The nullOverwrite lambda function is used to set default values for settings
+ *   only if they do not already exist in the settings registry.
+ * - The default settings include:
+ *   - active-skin: "default"
+ *   - allow-javascript: false
+ *   - allow-stylesheet: true
+ *   - allow-auto-updates: false
+ *   - allow-auto-updates-sound: false
+ *   - allow-store-load: true
+ *   - enableUrlBar: true
+ *   - NotificationsPos: 3 (bottom right)
+ *   - auto-update-themes: true
+ *   - auto-update-themes-notifs: true
+ *   - shownNewUserPrompt: false
+ *
+ * @see console.err, Settings::Get, Settings::Set
+ */
 const void themeConfig::setupMillennium() noexcept
 {
     try {
@@ -564,7 +563,6 @@ const void themeConfig::setupMillennium() noexcept
 
     nullOverwrite("shownNewUserPrompt", false); 
 }
-
 
 themeConfig::updateEvents& themeConfig::updateEvents::getInstance() {
     static updateEvents instance;

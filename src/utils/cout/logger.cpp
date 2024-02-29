@@ -27,8 +27,7 @@ void output_console::log(std::string type, const std::string& message)
 
 	fileStream << get_time() << type << message << std::endl;
 
-	if (consoleAllocated)
-		std::cout << get_time() << type << message << std::endl;
+	std::cout << get_time() << type << message << std::endl;
 }
 
 void output_console::log_socket(std::string val) {
