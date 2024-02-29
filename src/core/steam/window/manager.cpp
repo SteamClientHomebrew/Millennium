@@ -213,20 +213,19 @@ void patchWindow(HWND hwnd)
 std::string GetProcName(DWORD processId) {
 	// Open the process with PROCESS_QUERY_LIMITED_INFORMATION access rights.
 	HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
-	if (hProcess) {
-		CHAR processName[MAX_PATH];
-		// Get the process image file name.
-		if (GetProcessImageFileNameA(hProcess, processName, MAX_PATH) > 0) {
-			// Extract the file name from the full path.
-			CHAR* fileName = PathFindFileNameA(processName);
-			// Return the file name as the process name.
-			return fileName;
-		}
-		// Close the handle to the process.
-		CloseHandle(hProcess);
-	}
-	// Return an empty string if the process name cannot be retrieved.
-	return "";
+	if (!hProcess) return {};
+
+	char processName[MAX_PATH];
+	bool success = GetProcessImageFileNameA(hProcess, processName, MAX_PATH) > 0;
+
+	// Close the handle to the process.
+	CloseHandle(hProcess);
+	if (!success) return {};
+
+	char* fileName = PathFindFileNameA(processName);
+
+	// Return the file name as the process name.
+	return fileName;
 }
 
 /**
