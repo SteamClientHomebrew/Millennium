@@ -58,7 +58,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -260,6 +260,7 @@
     <ClInclude Include="core\injector\injector.hpp" />
     <ClInclude Include="core\injector\startup\bootstrap.hpp" />
     <ClInclude Include="core\injector\startup\welcome_modal.hpp" />
+    <ClInclude Include="core\ipc\handlers\types.hpp" />
     <ClInclude Include="core\ipc\ipc_main.hpp" />
     <ClInclude Include="core\steam\application.hpp" />
     <ClInclude Include="core\steam\cef_manager.hpp" />
@@ -303,7 +304,9 @@
     <ClCompile Include="core\injector\injector.cpp" />
     <ClCompile Include="core\injector\startup\bootstrap.cpp" />
     <ClCompile Include="core\injector\startup\welcome_modal.cpp" />
+    <ClCompile Include="core\ipc\handlers\cor.cpp" />
     <ClCompile Include="core\ipc\ipc_main.cpp" />
+    <ClCompile Include="core\sdk\sdk.cpp" />
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="core\steam\window\manager.cpp" />
     <ClCompile Include="metrics.cpp" />

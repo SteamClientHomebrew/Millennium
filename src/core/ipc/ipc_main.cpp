@@ -10,6 +10,7 @@
 #include <filesystem>
 
 #include <window/interface/globals.h>
+#include "handlers/types.hpp"
 
 /**
  * Escapes special characters within a JSON value.
@@ -49,30 +50,6 @@ void escapeSpecialChars(nlohmann::json& value) {
     }
 }
 
-/**
- * Sends a message to a WebSocket server through a WebSocket client.
- *
- * This function constructs a JSON message containing the provided message content
- * and necessary parameters, such as message ID, method, and session ID. The message
- * is then sent to the WebSocket server using the specified WebSocket client and connection handle.
- *
- * @param message The message content to be sent.
- * @param socket The JSON object representing the WebSocket session information.
- * @param steam_client A pointer to the WebSocket client used to send the message.
- * @param hdl The connection handle identifying the WebSocket connection.
- */
-void sendMessage(std::string message, const nlohmann::basic_json<>& socket, ws_Client* steam_client, websocketpp::connection_hdl hdl) {
-    // Construct the JSON message to be sent.
-    const nlohmann::json response = {
-        { "id", 8987 },                            // Message ID.
-        { "method", "Runtime.evaluate" },          // Method for message evaluation.
-        { "params", {{ "expression", message }}},  // Parameters containing the message expression.
-        { "sessionId", socket["sessionId"] }      // Session ID associated with the WebSocket.
-    };
-
-    // Send the JSON message to the WebSocket server using the WebSocket client.
-    steam_client->send(hdl, response.dump(), websocketpp::frame::opcode::text);
-}
 
 /**
  * Handles incoming IPC (Inter-Process Communication) messages.
@@ -94,41 +71,35 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
     ws_Client* steam_client, 
     websocketpp::connection_hdl hdl)
 {
-    std::cout << "incoming IPC message: " << message.dump(4) << std::endl;
 
-    if (message["id"] == "[update-theme-select]") {
 
-        std::string prevName = Settings::Get<std::string>("active-skin");
-        std::string skinName = message["data"];
+    /**
+     * Sends a message to a WebSocket server through a WebSocket client.
+     *
+     * This function constructs a JSON message containing the provided message content
+     * and necessary parameters, such as message ID, method, and session ID. The message
+     * is then sent to the WebSocket server using the specified WebSocket client and connection handle.
+     *
+     * @param message The message content to be sent.
+     * @param socket The JSON object representing the WebSocket session information.
+     * @param steam_client A pointer to the WebSocket client used to send the message.
+     * @param hdl The connection handle identifying the WebSocket connection.
+     */
+    const auto respond = [&](std::string type, std::string message) {
+        std::string content = std::format("console.log({{ returnId: '{}', message: `{}` }})", type, message);
+        // Construct the JSON message to be sent.
+        const nlohmann::json response = {
+            { "id", 8987 },                            // Message ID.
+            { "method", "Runtime.evaluate" },          // Method for message evaluation.
+            { "params", {{ "expression", content }}},  // Parameters containing the message expression.
+            { "sessionId", socket["sessionId"] }      // Session ID associated with the WebSocket.
+        };
 
-        // the selected skin was clicked (i.e to deselect)
-        if (prevName == skinName) {
-            skinName = "default";
-        }
+        // Send the JSON message to the WebSocket server using the WebSocket client.
+        steam_client->send(hdl, response.dump(), websocketpp::frame::opcode::text);
+    };
 
-        static millennium client;
-
-        //whitelist the default skin
-        if (skinName == "default" || !client.isInvalidSkin(skinName))
-        {
-            console.log("updating selected skin.");
-
-            Settings::Set("active-skin", skinName);
-            themeConfig::updateEvents::getInstance().triggerUpdate();
-
-            steam_js_context js_context;
-            js_context.reload();
-
-            if (steam::get().params.has("-silent")) {
-                MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
-            }
-        }
-        else {
-            MsgBox("the selected skin was not found, therefor can't be loaded.", "Millennium", MB_ICONINFORMATION);
-        }
-
-        std::cout << message.dump(4) << std::endl;
-    }
+    console.log(std::format("handling message: {}", message.dump(4)));
 
     if (message["id"] == "[open-millennium]") {
         std::cout << "requested to open millennium" << std::endl;
@@ -141,31 +112,34 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
             PlaySoundA("SystemExclamation", NULL, SND_ALIAS);
         }
     }
-    if (message["id"] == "[get-theme-list]") {
+    if (message["id"] == "[get-request]")
+    {
+        console.log("received a get cor query");
 
-        const std::string steamPath = config.getSkinDir();
-        std::vector<nlohmann::basic_json<>> jsonBuffer;
-
-        for (const auto& entry : std::filesystem::directory_iterator(steamPath))
-        {
-            static millennium client;
-            if (entry.is_directory())
-            {
-                if (!client.parseLocalSkin(entry, jsonBuffer, false)) continue;
-            }
+        if (!message.contains("url") || !message.contains("user_agent")) {
+            respond("[get-request]", nlohmann::json({
+                {"success", false},
+                {"message", "you must provide 'url' and 'user_agent' in request"}
+            }).dump());
+            return;
         }
-        nlohmann::json buffer;
 
-        for (auto& item : jsonBuffer) { buffer.push_back(item); }
+        auto url = message["url"].get<std::string>();
+        auto user_agent = message["user_agent"].get<std::string>();
 
-        escapeSpecialChars(buffer);
-        sendMessage(std::format("console.log({{ returnId: '[get-theme-list]', message: `{}` }})", nlohmann::json::parse(buffer.dump()).dump()), socket, steam_client, hdl);
+        const auto http_response = ipc_handler::cor_request(url, user_agent);
+
+        respond("[get-request]", nlohmann::json({
+            {"success", http_response.success},
+            {"content", http_response.content}
+        }).dump());
     }
+
     if (message["id"] == "[get-active]") 
     {
         auto resp = config.getThemeData();
         std::string name = resp.contains("name") ? resp["name"].get<std::string>() : Settings::Get<std::string>("active-skin");
 
-        sendMessage(std::format("console.log({{ returnId: '[get-active]', message: `{}` }})", name), socket, steam_client, hdl);
+        respond("[get-active]", name);
     }
 }

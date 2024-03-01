@@ -562,6 +562,10 @@ const void themeConfig::setupMillennium() noexcept
     nullOverwrite("auto-update-themes-notifs", true); 
 
     nullOverwrite("shownNewUserPrompt", false); 
+
+    nullOverwrite("corner-preference", 0); 
+    nullOverwrite("mica-effect", false); 
+
 }
 
 themeConfig::updateEvents& themeConfig::updateEvents::getInstance() {

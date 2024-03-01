@@ -7,6 +7,8 @@
 #include <wininet.h>
 #pragma comment(lib, "Wininet.lib")
 
+#include <nlohmann/json.hpp>
+
 class http_error : public std::exception
 {
 public:
