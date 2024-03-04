@@ -28,7 +28,7 @@
 
   <br>
   <div style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-    <img alt="Preview" width="524" alt="Hero image" src="https://cdn.discordapp.com/attachments/923017628367335428/1204647406503858206/userlmn_1acb9f0b3d950b73c87275f151b1ad06.png?ex=65d57e52&is=65c30952&hm=ed54a1aae9a94a707f05443d001d54caed8ac60fc28147b744a29b2559c43bfe&"/>
+    <img alt="Preview" width="524" alt="Hero image" src="https://i.imgur.com/cfPZJot.png"/>
   </div>
 
 </div>
