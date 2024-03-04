@@ -1,7 +1,9 @@
 #include "thread_handler.hpp"
 #include <utils/cout/logger.hpp>
 #include <format>
+#ifdef _WIN32
 #include <TlHelp32.h>
+#endif
 #include <iostream>
 
 void c_threads::add(std::thread newThread) {
@@ -36,6 +38,7 @@ bool c_threads::isMillenniumThread(DWORD id)
     return false;
 }
 
+#ifdef _WIN32
 std::vector<DWORD> c_threads::getProcThreads() {
 
     std::vector<DWORD> out;
@@ -67,9 +70,11 @@ std::vector<DWORD> c_threads::getProcThreads() {
 
     return out;
 }
+#endif
 
 bool c_threads::hookAllThreads()
 {
+#ifdef _WIN32
     std::vector<DWORD> threads = this->getProcThreads();
 
     for (const auto& thread : threads) {
@@ -88,12 +93,14 @@ bool c_threads::hookAllThreads()
         }
         break;
     }
+#endif
 
     return true;
 }
 
 bool c_threads::unhookAllThreads()
 {
+#ifdef _WIN32
     std::vector<DWORD> threads = this->getProcThreads();
 
     for (const auto& thread : threads) {
@@ -109,6 +116,7 @@ bool c_threads::unhookAllThreads()
             CloseHandle(hThread);
         }
     }
+#endif
 
     return true;
 }

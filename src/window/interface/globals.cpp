@@ -13,7 +13,7 @@ nlohmann::basic_json<> millennium::readFileSync(std::string path)
 
 	if (!nlohmann::json::accept(file_content))
 	{
-		MessageBoxA(GetForegroundWindow(), std::format("Invalid JSON file -> [{}]\nIf you can't fix it, remove the folder.\nExiting...", path).c_str(), "Error", MB_ICONERROR);
+		MsgBox(std::format("Invalid JSON file -> [{}]\nIf you can't fix it, remove the folder.\nExiting...", path).c_str(), "Error", MB_ICONERROR);
 		ExitProcess(0);
 	}
 

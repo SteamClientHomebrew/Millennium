@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include <utils/io/metrics.hpp>
 #include <Psapi.h>
 #include <iostream>
@@ -55,3 +56,4 @@ double Metrics::getMemoryUsage()
 
     return static_cast<double>((double)pmc.PrivateUsage) / (1024 * 1024);
 }
+#endif

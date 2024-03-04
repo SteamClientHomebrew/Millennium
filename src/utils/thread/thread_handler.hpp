@@ -1,5 +1,7 @@
 #pragma once
+#ifdef _WIN32
 #include <Windows.h>
+#endif
 #include <vector>
 #include <thread>
 
@@ -20,8 +22,10 @@ public:
     bool unhookAllThreads();
 
 private:
+#ifdef _WIN32
     bool isMillenniumThread(DWORD id);
     std::vector<DWORD> getProcThreads();
+#endif
 
     c_threads();
 

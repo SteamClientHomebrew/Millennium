@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include <Windows.h>
 
 class Metrics {
@@ -13,3 +14,4 @@ private:
 
     ULONGLONG SubtractTimes(const FILETIME one, const FILETIME two);
 };
+#endif

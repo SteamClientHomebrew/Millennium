@@ -47,6 +47,7 @@ namespace Community
         }
     }
 
+#ifdef _WIN32
     bool unzip(std::string zipFileName, std::string targetDirectory) {
 
         std::string powershellCommand = std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
@@ -70,6 +71,7 @@ namespace Community
         }
         return false;
     }
+#endif
 
     const void installer::handleThemeInstall(std::string fileName, std::string downloadPath)
     {
@@ -95,16 +97,16 @@ namespace Community
             }
             else {
                 std::cout << "couldn't extract file" << std::endl;
-                MessageBoxA(GetForegroundWindow(), "couldn't extract file", "Millennium", MB_ICONERROR);
+                MsgBox("couldn't extract file", "Millennium", MB_ICONERROR);
             }
         }
         catch (const http_error&) {
             console.err("Couldn't download bytes from the file");
-            MessageBoxA(GetForegroundWindow(), "Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
+            MsgBox("Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
         }
         catch (const std::exception& err) {
             console.err(std::format("Exception form {}: {}", __func__, err.what()));
-            MessageBoxA(GetForegroundWindow(), std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
+            MsgBox(std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
         }
         g_processingFileDrop = false;
     }

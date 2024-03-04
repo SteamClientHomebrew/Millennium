@@ -36,6 +36,7 @@ endlocal
 
 void updater::start_update(std::string url)
 {
+#ifdef _WIN32
     std::filesystem::path fileName = std::format("{}/.millennium/bootstrapper/updater.bat", config.getSteamRoot());
 
     std::cout << fileName << std::endl;
@@ -71,6 +72,9 @@ void updater::start_update(std::string url)
     // Close process and thread handles.
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
+#elif __linux__
+    console.err("updater::start_update() DOES NOT HAVE IMPLEMENTATION");
+#endif
 }
 
 
