@@ -1,4 +1,9 @@
 #include <core/injector/startup/bootstrap.hpp>
+
+#include <utils/thread/thread_handler.hpp>
+#include <window/win_handler.hpp>
+
+#ifdef _WIN32
 #include <Windows.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Data.Xml.Dom.h>
@@ -8,13 +13,12 @@
 #include <winrt/windows.foundation.collections.h>
 #include <winrt/windows.applicationmodel.h>
 
-#include <utils/thread/thread_handler.hpp>
-#include <window/win_handler.hpp>
 
 using namespace winrt;
 using namespace Windows::Data::Xml::Dom;
 using namespace Windows::UI::Notifications;
 using namespace Windows::UI::Popups;
+#endif
 
 /**
  * Parses a local skin directory for skin configuration data.
@@ -49,6 +53,7 @@ const bool bootstrapper::parseLocalSkin(const std::filesystem::directory_entry& 
 	return true;
 }
 
+#ifdef _WIN32
 /**
  * Handles the activation event of a toast notification.
  *
@@ -106,6 +111,7 @@ const void toastNotification(std::string title, std::string message, std::string
 	toastNotification.Activated({ &OnToastActivated });
 	toastNotifier.Show(toastNotification);
 }
+#endif
 
 /**
  * Checks for updates for a given theme and performs necessary actions.
@@ -154,8 +160,11 @@ const void check_updates(nlohmann::basic_json<> theme) {
 	std::string themeName = theme["name"].get<std::string>();
 	std::string url = theme["git"]["url"].get<std::string>();
 
+
+#ifdef _WIN32
 	// display the windows toast 
 	toastNotification("Millennium", std::format("{} was successfully updated!", themeName), url);
+#endif
 }
 
 /**

@@ -71,6 +71,8 @@ public:
     themeConfig();
 
     std::string getSkinDir();
+    std::string getSteamRoot();
+
     const std::string getRootColors(nlohmann::basic_json<> data);
 
     void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);

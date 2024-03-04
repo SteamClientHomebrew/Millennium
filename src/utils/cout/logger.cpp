@@ -1,4 +1,3 @@
-#pragma once
 #include <utils/cout/logger.hpp>
 
 #include <chrono>
@@ -6,6 +5,7 @@
 #include <iostream>
 
 #include <filesystem>
+#include <format>
 
 //std::vector<std::string> output_log = {};
 std::vector<std::string> socket_log = {};

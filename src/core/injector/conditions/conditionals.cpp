@@ -6,6 +6,7 @@
 #include <regex>
 #include <utils/config/config.hpp>
 #include <core/injector/event_handler.hpp>
+#include <format>
 
 /// <summary>
 /// config file that stores all saved user conditionals
@@ -279,7 +280,7 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 			continue;
 		}
 
-		const auto current_value = local[condition];
+		const std::string current_value = local[condition];
 
 		for (auto& [value, data] : object["values"].items())
 		{	

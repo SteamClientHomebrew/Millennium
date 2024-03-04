@@ -1,5 +1,5 @@
 #include <window/core/colors.hpp>
-#include <window/imgui/imgui_internal.h>
+#include <imgui_internal.h>
 #include <stdafx.h>
 
 namespace colors

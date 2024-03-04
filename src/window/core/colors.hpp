@@ -1,5 +1,5 @@
 #pragma once
-#include <window/imgui/imgui.h>
+#include <imgui.h>
 #include <string>
 
 namespace colors

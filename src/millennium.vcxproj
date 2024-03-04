@@ -5,14 +5,6 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseSteam|Win32">
-      <Configuration>ReleaseSteam</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseSteam|x64">
-      <Configuration>ReleaseSteam</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -48,13 +40,6 @@
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -62,13 +47,6 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -86,29 +64,20 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>C:\Program Files (x86)\Steam</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|x64'">
-    <OutDir>C:\Program Files (x86)\Steam</OutDir>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\</OutDir>
-    <IncludePath>$(SolutionDir)vendor\boost;$(SolutionDir)vendor\asio\asio\include;$(SolutionDir)vendor;$(SolutionDir)vendor\nlohmann\include;$(SolutionDir)vendor\websocketpp;$(SolutionDir)vendor\websocketpp\websocketpp;$(SolutionDir)vendor\directx\Include;.\;$(IncludePath);C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</IncludePath>
-    <LibraryPath>.\;$(SolutionDir)vendor\directx\Lib\x86;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)vendor\cpr;$(SolutionDir)src\deps\imgui;$(SolutionDir)vendor\glfw;$(SolutionDir)vendor\asio\asio\include;$(SolutionDir)vendor\nlohmann\include;$(SolutionDir)vendor\websocketpp;$(SolutionDir)vendor\websocketpp\websocketpp;$(ProjectDir);$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)vendor\cpr\lib;$(SolutionDir)vendor\libcurl\lib;$(SolutionDir)src\deps\glfw;.\;$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)intermediate\debug\</IntDir>
     <TargetName>User32</TargetName>
   </PropertyGroup>
@@ -119,36 +88,29 @@
     <TargetName>User32</TargetName>
     <LibraryPath>$(SolutionDir)vendor\directx\Lib\x86;.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'">
-    <OutDir>C:\Program Files (x86)\Steam\</OutDir>
-    <IncludePath>$(IncludePath);.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include</IncludePath>
-    <IntDir>$(SolutionDir)intermediate\release\</IntDir>
-    <TargetName>User32</TargetName>
-    <LibraryPath>.\;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <VcpkgUseStatic>false</VcpkgUseStatic>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'" Label="Vcpkg">
-    <VcpkgUseStatic>false</VcpkgUseStatic>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>true</VcpkgEnabled>
   </PropertyGroup>
-  <PropertyGroup Label="Vcpkg" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WEBSOCKETPP_CPP11_TYPE_TRAITS_;_WEBSOCKETPP_CPP11_RANDOM_DEVICE_;ASIO_STANDALONE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>CURL_STATICLIB;ASIO_HAS_STD_INVOKE_RESULT;_WEBSOCKETPP_CPP11_TYPE_TRAITS_;_WEBSOCKETPP_CPP11_RANDOM_DEVICE_;ASIO_STANDALONE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ShowIncludes>false</ShowIncludes>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>version.lib;ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cpr.lib;opengl32.lib;glfw3.lib;version.lib;ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -165,6 +127,7 @@
       <DebugInformationFormat>None</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <ShowIncludes>false</ShowIncludes>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -173,31 +136,6 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>version.lib;ws2_32.lib;winhttp.lib;Pdh.lib;d3dx9.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AddModuleNamesToAssembly>%(AddModuleNamesToAssembly)</AddModuleNamesToAssembly>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <DebugInformationFormat>None</DebugInformationFormat>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <ShowIncludes>false</ShowIncludes>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>version.lib;ws2_32.lib;Pdh.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AddModuleNamesToAssembly>%(AddModuleNamesToAssembly)</AddModuleNamesToAssembly>
     </Link>
   </ItemDefinitionGroup>
@@ -235,29 +173,9 @@
       <EnableUAC>false</EnableUAC>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableUAC>false</EnableUAC>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="core\injector\conditions\conditionals.hpp" />
     <ClInclude Include="core\injector\event_handler.hpp" />
-    <ClInclude Include="core\injector\injector.hpp" />
     <ClInclude Include="core\injector\startup\bootstrap.hpp" />
     <ClInclude Include="core\injector\startup\welcome_modal.hpp" />
     <ClInclude Include="core\ipc\handlers\types.hpp" />
@@ -269,7 +187,17 @@
     <ClInclude Include="core\steam\window\types\accent_api.hpp" />
     <ClInclude Include="core\steam\window\types\corners.hpp" />
     <ClInclude Include="core\steam\window\types\system_backdrop_type.hpp" />
-    <ClInclude Include="metrics.hpp" />
+    <ClInclude Include="deps\imgui\imconfig.h" />
+    <ClInclude Include="deps\imgui\imgui.h" />
+    <ClInclude Include="deps\imgui\imgui_impl_glfw.h" />
+    <ClInclude Include="deps\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="deps\imgui\imgui_impl_opengl3_loader.h" />
+    <ClInclude Include="deps\imgui\imgui_internal.h" />
+    <ClInclude Include="deps\imgui\imstb_rectpack.h" />
+    <ClInclude Include="deps\imgui\imstb_textedit.h" />
+    <ClInclude Include="deps\imgui\imstb_truetype.h" />
+    <ClInclude Include="utils\io\metrics.hpp" />
+    <ClInclude Include="scripts\sdk\sdk.hpp" />
     <ClInclude Include="utils\base64.hpp" />
     <ClInclude Include="utils\clr\platform.hpp" />
     <ClInclude Include="utils\io\input-output.hpp" />
@@ -278,14 +206,6 @@
     <ClInclude Include="window\api\installer.hpp" />
     <ClInclude Include="window\core\colors.hpp" />
     <ClInclude Include="window\interface_v2\editor.hpp" />
-    <ClInclude Include="window\imgui\imconfig.h" />
-    <ClInclude Include="window\imgui\imgui.h" />
-    <ClInclude Include="window\imgui\imgui_impl_dx9.h" />
-    <ClInclude Include="window\imgui\imgui_impl_win32.h" />
-    <ClInclude Include="window\imgui\imgui_internal.h" />
-    <ClInclude Include="window\imgui\imstb_rectpack.h" />
-    <ClInclude Include="window\imgui\imstb_textedit.h" />
-    <ClInclude Include="window\imgui\imstb_truetype.h" />
     <ClInclude Include="window\core\memory.h" />
     <ClInclude Include="window\core\window.hpp" />
     <ClInclude Include="window\interface\globals.h" />
@@ -301,44 +221,50 @@
   <ItemGroup>
     <ClCompile Include="core\injector\conditions\conditionals.cpp" />
     <ClCompile Include="core\injector\event_handler.cpp" />
-    <ClCompile Include="core\injector\injector.cpp" />
     <ClCompile Include="core\injector\startup\bootstrap.cpp" />
     <ClCompile Include="core\injector\startup\welcome_modal.cpp" />
     <ClCompile Include="core\ipc\handlers\cor.cpp" />
     <ClCompile Include="core\ipc\ipc_main.cpp" />
-    <ClCompile Include="core\sdk\sdk.cpp" />
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="core\steam\window\manager.cpp" />
-    <ClCompile Include="metrics.cpp" />
+    <ClCompile Include="deps\imgui\imgui.cpp" />
+    <ClCompile Include="deps\imgui\imgui_demo.cpp" />
+    <ClCompile Include="deps\imgui\imgui_draw.cpp" />
+    <ClCompile Include="deps\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="deps\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="deps\imgui\imgui_tables.cpp" />
+    <ClCompile Include="deps\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="utils\io\metrics.cpp" />
+    <ClCompile Include="scripts\sdk\sdk.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="utils\clr\platform.cpp" />
     <ClCompile Include="utils\io\input-output.cpp" />
     <ClCompile Include="utils\thread\thread_handler.cpp" />
     <ClCompile Include="utils\updater\update.cpp" />
     <ClCompile Include="window\api\installer.cpp" />
+    <ClCompile Include="window\core\aptos.cpp" />
     <ClCompile Include="window\core\colors.cpp" />
     <ClCompile Include="window\interface_v2\editor.cpp" />
-    <ClCompile Include="window\imgui\imgui.cpp" />
-    <ClCompile Include="window\imgui\imgui_demo.cpp" />
-    <ClCompile Include="window\imgui\imgui_draw.cpp" />
-    <ClCompile Include="window\imgui\imgui_impl_dx9.cpp" />
-    <ClCompile Include="window\imgui\imgui_impl_win32.cpp" />
-    <ClCompile Include="window\imgui\imgui_tables.cpp" />
-    <ClCompile Include="window\imgui\imgui_widgets.cpp" />
     <ClCompile Include="window\core\window.cpp" />
     <ClCompile Include="window\interface\globals.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="window\interface_v2\settings.cpp" />
     <ClCompile Include="window\win_handler.cpp" />
-    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="utils\config\config.cpp" />
     <ClCompile Include="utils\http\http_client.cpp" />
     <ClCompile Include="utils\cout\logger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="scripts\Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scripts\html1.htm">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="scripts\resource.bin" />
+    <None Include="scripts\sdk_ref1.bin" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

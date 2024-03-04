@@ -1,8 +1,8 @@
 #pragma once
 #include <stdafx.h>
 
-#include <window/imgui/imgui.h>
-#include <window/imgui/imgui_internal.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 
 #include <window/core/window.hpp>
 #include <utils/config/config.hpp>
@@ -95,7 +95,7 @@ namespace ui
 
 		ImGui::SameLine();
 
-		ui::shift::right(15); ui::shift::y(-3);
+		ui::shift::right(25); ui::shift::y(-3);
 		if (ImGui::Checkbox(std::format("###{}", name).c_str(), &setting)) call_back();
 
 		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
@@ -129,14 +129,14 @@ namespace ui
 	}
 
 	static const void center_modal(ImVec2 size) {
-		RECT rect;
-		GetWindowRect(Window::getHWND(), &rect);
+		//RECT rect;
+		//GetWindowRect(Window::getHWND(), &rect);
 
-		float xPos = rect.left + (rect.right - rect.left - size.x) / 2;
-		float yPos = rect.top + (rect.bottom - rect.top - size.y) / 2;
+		//float xPos = rect.left + (rect.right - rect.left - size.x) / 2;
+		//float yPos = rect.top + (rect.bottom - rect.top - size.y) / 2;
 
-		ImGui::SetNextWindowPos(ImVec2(xPos, yPos));
-		ImGui::SetNextWindowSize(size);
+		//ImGui::SetNextWindowPos(ImVec2(xPos, yPos));
+		//ImGui::SetNextWindowSize(size);
 	}
 
 	static const void center(float, float element_width, float) {

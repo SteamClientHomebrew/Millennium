@@ -1,10 +1,12 @@
-#pragma once
+#pragma once 
 #define _WINSOCKAPI_   
-
 #include <string>
-#include <Windows.h>
 #include <vector>
+
+#ifdef _WIN32
+#include <Windows.h>
 #include <shellapi.h>
+#endif
 
 /**
  * @brief Class representing Steam application.
@@ -21,8 +23,8 @@ public:
          *
          * @param commandLine The command line string.
          */
-        parameters(LPSTR commandLine) {
-            parse_outlet(commandLine);
+        parameters() {
+            parse_outlet();
         }
 
         /**
@@ -46,9 +48,10 @@ public:
          *
          * @param commandLine The command line string.
          */
-        void parse_outlet(LPSTR commandLine) {
+        void parse_outlet() {
+#ifdef _WIN32
             int argc = 0;
-            LPWSTR* argvW = CommandLineToArgvW(GetCommandLineW(), &argc);
+            wchar_t** argvW = CommandLineToArgvW(GetCommandLineW(), &argc);
 
             if (!argvW)
                 return;
@@ -65,6 +68,7 @@ public:
                 args.emplace_back(buffer.data());
             }
             LocalFree(argvW);
+#endif
         }
 
         std::vector<std::string> args; /**< Vector to store command line arguments. */
@@ -88,7 +92,7 @@ private:
      *
      * @param commandLine The command line string.
      */
-    steam() : params(GetCommandLineA()) {}
+    steam() : params() {}
 
     steam(const steam&) = delete; /**< Deleted copy constructor. */
     steam& operator=(const steam&) = delete; /**< Deleted copy assignment operator. */

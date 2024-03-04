@@ -266,8 +266,8 @@ public:
             enableFetch["params"]["patterns"] = _buffer;
         }
 
-        if (skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0 ||
-            skin_json_config.contains("Steam-WebKit") && skin_json_config["Steam-WebKit"]) {
+        if ((skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0) ||
+            (skin_json_config.contains("Steam-WebKit") && skin_json_config["Steam-WebKit"])) {
             //console.log(std::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
             try {
                 steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
@@ -453,6 +453,13 @@ private:
 
     inline const bool settings_patches(std::string cefctx_title) {
 
+        nlohmann::json evaluate_script = {
+            {"id", 5393},
+            {"method", "Console.enable"},
+            {"sessionId", m_socket_resp["sessionId"]}
+        };
+        steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
+
         std::unordered_map<std::string, std::function<void()>> caseActions = {
             //adjust the client notifications position on every launch because it doesnt save it disk or in memory
             {"SharedJSContext", [&]() { 
@@ -460,13 +467,6 @@ private:
                 std::string js = std::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
 
                 steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
-
-                nlohmann::json evaluate_script = {
-                    {"id", 5393},
-                    {"method", "Console.enable"},
-                    {"sessionId", m_socket_resp["sessionId"]}
-                };
-                steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
             }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
@@ -481,12 +481,12 @@ private:
 
                 static bool firstInstance = false;
 
-                if (firstInstance) {
-
+                // first instance is nullptr for some reason, wait for 2nd instance
+                if (firstInstance) 
+                {
                     static bool hasShown = false;
-
-                    if (!hasShown) {
-
+                    if (!hasShown && !Settings::Get<bool>("shownNewUserPrompt")) 
+                    {
                         std::string message = popupModal::getSnippet
                         (
                             "Welcome to Millennium!",
@@ -497,11 +497,10 @@ private:
                         );
 
                         steam_interface.push_to_socket(steam_client, hdl, message, m_steamMainSessionId);
-
+                        Settings::Set<bool>("shownNewUserPrompt", true);
                         hasShown = true;
                     }
                 }
-
                 firstInstance = true;
             }},
         };
@@ -717,7 +716,7 @@ private:
             }
 
 
-            if (contains_http or not regex_match)
+            if (contains_http || !regex_match)
                 continue;
 
             console.log_patch("client", cefctx_title, matchRegexString);
@@ -961,7 +960,14 @@ private:
     /// </summary>
     const void attached_to_target() noexcept
     {
-        m_sessionId = m_socket_resp["result"]["sessionId"];
+        try
+        {
+            m_sessionId = m_socket_resp["result"]["sessionId"];
+        }
+        catch (nlohmann::detail::exception& ex)
+        {
+            console.err(std::format("Error getting session Id: {}", ex.what()));
+        }
     }
 };
 
@@ -1047,9 +1053,9 @@ private:
         std::function<void(ws_Client*, websocketpp::connection_hdl)> evaluate_scripting = ([&](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
             const auto jsAllowed = Settings::Get<bool>("allow-javascript");
             
-            if (not js_eval.empty() && jsAllowed)
+            if (!js_eval.empty() && jsAllowed)
                 steam_interface.evaluate(c, hdl, js_eval, steam_interface.script_type::javascript);
-            if (not css_eval.empty())
+            if (!css_eval.empty())
                 steam_interface.evaluate(c, hdl, css_eval, steam_interface.script_type::stylesheet);
         });
 
@@ -1075,7 +1081,7 @@ private:
             c.init_asio();
 
             c.set_message_handler(bind(on_message, &c, ::_1, ::_2));
-            c.set_open_handler(bind([this, &c](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
+            c.set_open_handler(bind([this](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
                 this->page_settings(c, hdl);
             }, &c, ::_1));
 
@@ -1145,6 +1151,9 @@ public:
                             if (ex.code() == asio::error::misc_errors::eof) {
                                 console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
                             }
+                            else {
+                                console.err(std::format("exception in {}, message: {}", __func__, ex.what()));
+                            }
 
                             //exception was thrown, patching thread crashed, so mark it as unpatched so it can restart itself, happens when the 
                             //instance is left alone for too long sometimes and steams garbage collector clears memory
@@ -1203,7 +1212,7 @@ unsigned long __stdcall Initialize(void*)
     });
 
 
-    threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
+    c_threads::get().add(std::thread([&] {
 
         while (true)
         {
@@ -1216,9 +1225,9 @@ unsigned long __stdcall Initialize(void*)
                 c.clear_access_channels(websocketpp::log::alevel::all);
                 c.init_asio();
 
-                c.set_message_handler(bind([&c](ws_Client* c, websocketpp::connection_hdl hdl, message_ptr msg) -> void {
+                c.set_message_handler(bind([&](ws_Client* c, websocketpp::connection_hdl hdl, message_ptr msg) -> void {
                     client::get_instance().on_message(c, hdl, msg); }, &c, ::_1, ::_2));
-                c.set_open_handler(bind([&c](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
+                c.set_open_handler(bind([&](ws_Client* c, websocketpp::connection_hdl hdl) -> void {
                     client::get_instance().on_connection(c, hdl); }, &c, ::_1));
 
                 websocketpp::lib::error_code ec;
@@ -1253,9 +1262,9 @@ unsigned long __stdcall Initialize(void*)
             console.err("client interface handler exited unexpectedly. attempting to restart...");
         }
         return false;
-    }, 0, 0, 0));
+    }));
 
-    threadContainer::getInstance().addThread(CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {
+    c_threads::get().add(std::thread([&] {
 
         try {
             remote::get_instance().handle_interface();
@@ -1274,7 +1283,9 @@ unsigned long __stdcall Initialize(void*)
         }
 
         return false;
-    }, 0, 0, 0));
+    }));
+
+    //CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {}, 0, 0, 0);
 
     Sleep(-1);
     return true;

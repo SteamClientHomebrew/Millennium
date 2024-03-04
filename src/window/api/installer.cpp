@@ -79,7 +79,10 @@ namespace Community
         try 
         {
             g_fileDropStatus = std::format("Downloading {}...", fileName);
-            file::writeFileBytesSync(filePath, http::get_bytes(downloadPath.c_str()));
+
+ /*           file::writeFileBytesSync(filePath, http::to_disk(downloadPath.c_str()));*/
+            http::to_disk(downloadPath.c_str(), filePath.string().c_str());
+
             g_fileDropStatus = "Installing Theme and Verifying";
 
             if (unzip(filePath.string(), config.getSkinDir() + "/"))

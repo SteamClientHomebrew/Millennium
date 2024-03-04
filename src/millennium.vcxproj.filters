@@ -30,30 +30,6 @@
     <ClInclude Include="core\steam\cef_manager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="window\imgui\imconfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\imgui\imgui.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\imgui\imgui_impl_dx9.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\imgui\imgui_impl_win32.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\imgui\imgui_internal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\imgui\imstb_rectpack.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\imgui\imstb_textedit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\imgui\imstb_truetype.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="window\core\memory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -99,7 +75,7 @@
     <ClInclude Include="core\ipc\ipc_main.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="metrics.hpp">
+    <ClInclude Include="utils\io\metrics.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\injector\startup\bootstrap.hpp">
@@ -132,45 +108,51 @@
     <ClInclude Include="core\injector\conditions\conditionals.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\injector\injector.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="utils\io\input-output.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\ipc\handlers\types.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="scripts\sdk\sdk.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_impl_glfw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_impl_opengl3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imgui_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imstb_rectpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="deps\imgui\imstb_textedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core\injector\event_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core\steam\cef_manager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\imgui\imgui.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\imgui\imgui_demo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\imgui\imgui_draw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\imgui\imgui_impl_dx9.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\imgui\imgui_impl_win32.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\imgui\imgui_tables.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\imgui\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="window\core\window.cpp">
@@ -206,7 +188,7 @@
     <ClCompile Include="core\ipc\ipc_main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="metrics.cpp">
+    <ClCompile Include="utils\io\metrics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
@@ -233,16 +215,37 @@
     <ClCompile Include="core\injector\conditions\conditionals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\injector\injector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utils\io\input-output.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core\ipc\handlers\cor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\sdk\sdk.cpp">
+    <ClCompile Include="scripts\sdk\sdk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_impl_glfw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="deps\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="window\core\aptos.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -250,5 +253,14 @@
     <ResourceCompile Include="scripts\Resource.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scripts\html1.htm" />
+    <None Include="scripts\resource.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="scripts\sdk_ref1.bin">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

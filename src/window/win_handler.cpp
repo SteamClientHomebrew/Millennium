@@ -2,9 +2,6 @@
 #include <stdafx.h>
 #include <core/injector/event_handler.hpp>
 
-#include <d3dx9tex.h>
-#include <d3dx9.h>
-
 #include <window/core/window.hpp>
 #include <window/win_handler.hpp>
 #include <window/interface/globals.h>
@@ -76,6 +73,8 @@ public:
 		m_editObj = skin;
 		comboBoxItems.clear();
 		m_editMenuOpen = true;
+
+		//editor::create();
 	}
 
 	void deleteListing(std::string fileName) {
@@ -104,7 +103,7 @@ public:
 			ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
 		}
 
-		ImGui::BeginChild("###library_container", ImVec2(rx, contentHeight), true, ImGuiWindowFlags_AlwaysAutoResize);
+		ImGui::BeginChild("###library_container", ImVec2(rx, contentHeight), true);
 		{
 			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
 			std::string currentTheme = m_Client.skinData.size() == 0 ? m_Client.skinDataReady ? "Nothing here..." : "One Moment..." : "< default >";
@@ -122,7 +121,7 @@ public:
 
 			if (ImGui::BeginCombo("###SelectTheme", currentTheme.c_str())) 
 			{
-				for (int i = 0; i < m_Client.skinData.size(); i++) 
+				for (int i = 0; i < (int)m_Client.skinData.size(); i++) 
 				{
 					static std::string contextName;
 
@@ -229,7 +228,7 @@ public:
 				std::thread([] {
 					steam_js_context SharedJsContext;
 
-					std::string url = "https://millennium.web.app/themes";
+					std::string url = "http://localhost:3000/themes";
 					std::string loadUrl = std::format("SteamUIStore.Navigate('/browser', MainWindowBrowserManager.LoadURL('{}'));", url);
 
 					SharedJsContext.exec_command(loadUrl);
@@ -260,6 +259,8 @@ public:
 
 			ui::shift::y(3);
 
+#ifdef _WIN32
+
 			ImGui::Text("Window Borders");
 			ImGui::SameLine();
 			ui::shift::x(-3);
@@ -281,8 +282,8 @@ public:
 
 			ImGui::SameLine();
 
-			int width = ImGui::CalcTextSize(corner_prefs[corner_pref]).x + 50;
-			ui::shift::right(width); ui::shift::y(-3);
+			float width = ImGui::CalcTextSize(corner_prefs[corner_pref]).x + 50;
+			ui::shift::right((int)width); ui::shift::y(-3);
 
 			ImGui::PushItemWidth(width);
 			if (ImGui::Combo("###{}Window Borders", &corner_pref, corner_prefs, IM_ARRAYSIZE(corner_prefs))) {
@@ -322,7 +323,7 @@ public:
 
 			ImGui::SameLine();
 
-			ui::shift::right(15); ui::shift::y(-3);
+			ui::shift::right(25); ui::shift::y(-3);
 			if (ImGui::Checkbox("###Mica Drop Shadow", &applyMica)) {
 				Settings::Set("mica-effect", applyMica);
 				SteamJSContext.reload();
@@ -333,6 +334,7 @@ public:
 			ImGui::Spacing(); 
 			ImGui::Separator();
 			ImGui::Spacing();
+#endif
 
 			static bool enable_store = Settings::Get<bool>("auto-update-themes");
 			static bool enable_notifs = Settings::Get<bool>("auto-update-themes-notifs");
@@ -421,7 +423,7 @@ public:
 			if (ImGui::BeginChild("ChildContentPane", ImVec2(rx, ry), true))
 			{
 				if (g_fileDropQueried) {
-					ui::shift::y((ry / 2) - 20);
+					ui::shift::y((int)((ry / 2) - 20));
 					ui::center_text("Drop theme here to install...");
 				}
 				else if (g_processingFileDrop) {
@@ -432,7 +434,7 @@ public:
 						ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetColorU32(ImGuiCol_CheckMark));
 					}
 
-					ImGui::BeginChild("###library_container", ImVec2(rx, contentHeight), true, ImGuiWindowFlags_AlwaysAutoResize);
+					ImGui::BeginChild("###library_container", ImVec2(rx, contentHeight), true);
 					{
 						ui::shift::y(-8);
 						ImGui::Text("One Moment...");
@@ -563,7 +565,7 @@ public:
 
 		if (editingTheme) 
 		{
-			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
 			ImGui::SetNextWindowSize(ImVec2(450, 350), ImGuiCond_Once);
 
 			ImGui::Begin("Editing a theme", &editingTheme, ImGuiWindowFlags_NoCollapse);
@@ -576,8 +578,8 @@ public:
 			ImGui::PopStyleColor();
 		}
 		if (showingSettings) {
-			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
-			ImGui::SetNextWindowSize(ImVec2(382, 288), ImGuiCond_Once);
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
+			ImGui::SetNextWindowSize(ImVec2(382, 290), ImGuiCond_Once);
 
 			ImGui::Begin("Settings", &showingSettings, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 			{
@@ -597,7 +599,7 @@ public:
 			ImGui::SetNextWindowClass(&window_class1);
 
 
-			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.16f, 0.16f, 0.16f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
 			ImGui::SetNextWindowSize(ImVec2(255, 160));
 
 			ImGui::Begin("About Millennium", &showingAbout, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
@@ -722,7 +724,7 @@ void render_conditionals()
 
 				if (ImGui::BeginCombo(std::format("###{}", key).c_str(), items[getComboValue(key)].c_str())) 
 				{
-					for (int i = 0; i < items.size(); i++) 
+					for (int i = 0; i < (int)items.size(); i++) 
 					{
 						const bool isSelected = (getComboValue(key) == i);
 						if (ImGui::Selectable(items[i].c_str(), isSelected))
@@ -752,176 +754,8 @@ void handleEdit()
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
 	ImGui::BeginChild("###ConfigContainer", ImVec2(rx, ry - 27), false);
 	{
-		const bool hasConfiguration = RendererProc.m_editObj.contains("Configuration");
-		const bool hasColors = !RendererProc.colorList.empty();
-
-		//if (!hasConfiguration && !hasColors) {
-		//	ImGui::Text("No Settings Available");
-		//}
-
+		ui::shift::y(5);
 		render_conditionals();
-
-		//if (hasConfiguration)
-		//{
-		//	for (auto& setting : RendererProc.m_editObj["Configuration"])
-		//	{
-		//		if (!setting.contains("Name"))
-		//			continue;
-		//		if (!setting.contains("Type"))
-		//			continue;
-
-		//		const std::string name = setting["Name"];
-		//		const std::string toolTip = setting.value("ToolTip", std::string());
-		//		const std::string type = setting["Type"];
-
-		//		if (type == "CheckBox") {
-		//			bool value = setting.value("Value", false);
-
-		//			ui::render_setting(
-		//				name.c_str(), toolTip.c_str(), value, false, [&]() { setting["Value"] = value; }
-		//			);
-		//			ImGui::Spacing();
-		//		}
-		//		else if (type == "ComboBox") 
-		//		{
-		//			std::string value = setting.value("Value", std::string());
-
-		//			if (!comboAlreadyExists(name)) 
-		//			{
-		//				int out = -1;
-		//				for (int i = 0; i < setting["Items"].size(); i++) {
-		//					if (setting["Items"][i] == value) {
-		//						out = i;
-		//					}
-		//				}
-		//				comboBoxItems.push_back({ name, out });
-		//			}
-		//			const auto items = setting["Items"].get<std::vector<std::string>>();
-
-		//			ImGui::Text(name.c_str());
-		//			ImGui::SameLine();
-
-		//			ui::shift::x(-3);
-		//			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-		//			ImGui::TextWrapped("(?)");
-		//			ImGui::PopStyleColor();
-
-		//			if (ImGui::IsItemHovered()) 
-		//			{
-		//				ImGui::SetTooltip(toolTip.c_str());
-		//			}
-		//			ImGui::SameLine();
-
-		//			ui::shift::right(120);
-		//			ImGui::PushItemWidth(120);
-		//			ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
-
-		//			if (ImGui::BeginCombo(std::format("###{}", name).c_str(), items[getComboValue(name)].c_str())) {
-		//				for (int i = 0; i < items.size(); i++) {
-		//					const bool isSelected = (getComboValue(name) == i);
-		//					if (ImGui::Selectable(items[i].c_str(), isSelected))
-		//					{
-		//						setComboValue(name, i);
-		//						std::cout << items[i] << " selected" << std::endl;
-		//						setting["Value"] = items[i];
-		//					}
-		//					if (isSelected) ImGui::SetItemDefaultFocus();
-		//				}
-		//				ImGui::EndCombo();
-		//			}
-
-		//			ImGui::PopStyleColor();
-		//			ImGui::PopItemWidth();
-		//			ImGui::Spacing();
-		//		}
-		//	}
-		//}
-		//if (hasColors)
-		//{
-		//	ImGui::Spacing();
-		//	ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[2]);
-		//	ImGui::Text(" Color Settings:");
-		//	ImGui::Separator();
-		//	ImGui::Spacing();
-
-		//	ImGui::PopFont();
-
-		//	if (ImGui::Button("Reset Colors"))
-		//	{
-		//		auto& obj = RendererProc.m_editObj;
-		//		if (obj.contains("GlobalsColors") && obj.is_object())
-		//		{
-		//			for (auto& color : obj["GlobalsColors"])
-		//			{
-		//				if (!color.contains("HexColorCode") || !color.contains("OriginalColorCode"))
-		//				{
-		//					console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
-		//					continue;
-		//				}
-		//				color["HexColorCode"] = color["OriginalColorCode"];
-		//			}
-		//		}
-		//		else 
-		//		{
-		//			console.log("Theme doesn't have GlobalColors");
-		//		}
-		//		config.setThemeData(obj);
-		//		RendererProc.openPopupMenu(obj);
-		//	}
-
-		//	auto& colors = RendererProc.colorList;
-
-		//	for (size_t i = 0; i < RendererProc.colorList.size(); i++)
-		//	{
-		//		if (ImGui::Button("Reset"))
-		//		{
-		//			auto& obj = RendererProc.m_editObj;
-
-		//			if (obj.contains("GlobalsColors") && obj.is_object())
-		//			{
-		//				auto& global = obj["GlobalsColors"][i];
-
-		//				console.log(std::format("global colors: {}", global.dump(4)));
-		//				console.log(std::format("color name: {}", colors[i].name));
-
-		//				if (global["ColorName"] == colors[i].name) {
-
-		//					console.log(std::format("Color match. Setting color {} from {} to {}",
-		//						global["ColorName"].get<std::string>(),
-		//						global["HexColorCode"].get<std::string>(),
-		//						global["OriginalColorCode"].get<std::string>()));
-
-		//					global["HexColorCode"] = global["OriginalColorCode"];
-		//				}
-		//				else {
-		//					MsgBox(std::format("Couldn't Set color at index {} because the buffer was mismatching.", i).c_str(), "Error", MB_ICONERROR);
-		//				}
-		//			}
-		//			else {
-		//				console.log("Theme doesn't have GlobalColors");
-		//			}
-
-		//			config.setThemeData(obj);
-		//			m_Client.parseSkinData(false);
-		//			RendererProc.openPopupMenu(obj);
-		//			themeConfig::updateEvents::getInstance().triggerUpdate();
-		//			steam_js_context SharedJsContext;
-		//			SharedJsContext.reload();
-		//		}
-
-		//		ImGui::SameLine();
-		//		ui::shift::x(-8);
-
-		//		ImGui::PushItemWidth(90);
-		//		ImGui::ColorEdit3(std::format("##colorpicker_{}", i).c_str(), &colors[i].color.x, ImGuiColorEditFlags_DisplayHex);
-		//		ImGui::PopItemWidth();
-
-		//		ImGui::SameLine();
-		//		ui::shift::x(-4);
-
-		//		ImGui::Text(std::format("{} [{}]", colors[i].comment, colors[i].name).c_str());
-		//	}
-		//}
 	}
 	ImGui::EndChild();
 	ImGui::PopStyleColor();
@@ -938,62 +772,7 @@ void handleEdit()
 		steam_js_context js_context;
 		js_context.reload();
 		return;
-
-		const auto json = RendererProc.m_editObj;
-		nlohmann::json buffer = config.getThemeData(true);
-
-		if (buffer.contains("config_fail") && buffer["config_fail"]) {
-			MsgBox("Unable to save and update config. Millennium couldn't get theme data", "Error", MB_ICONERROR);
-		}
-		else {
-
-			if (buffer.contains("Configuration") && json.contains("Configuration"))
-			{
-				buffer["Configuration"] = json["Configuration"];
-				config.setThemeData(buffer);
-
-				auto& colors = RendererProc.colorList;
-				auto& obj = RendererProc.m_editObj;
-
-				if (obj.contains("GlobalsColors") && obj.is_object())
-				{
-					for (size_t i = 0; i < obj["GlobalsColors"].size(); i++)
-					{
-						auto& global = obj["GlobalsColors"][i];
-
-						if (!global.contains("HexColorCode")) {
-							console.err("Couldn't reset colors. 'HexColorCode' or 'OriginalColorCode' doesn't exist");
-							continue;
-						}
-						if (global["ColorName"] == colors[i].name) {
-							global["HexColorCode"] = "#" + colors::ImVec4ToHex(colors[i].color);
-						}
-						else {
-							console.err(std::format("Color at index {} was a mismatch", i));
-						}
-					}
-				}
-				else {
-					console.log("Theme doesn't have GlobalColors");
-				}
-				config.setThemeData(obj);
-				m_Client.parseSkinData(false);
-
-				themeConfig::updateEvents::getInstance().triggerUpdate();
-
-				steam_js_context SharedJsContext;
-				SharedJsContext.reload();
-			}
-			else {
-				console.log("json buffer or editing object doesn't have a 'Configuration' key");
-			}
-		}
 	}
-	//ImGui::SameLine();
-	//ui::shift::x(-4);
-	//if (ImGui::Button(" Close ")) {
-	//	RendererProc.m_editMenuOpen = false;
-	//}
 }
 
 void init_main_window()
@@ -1031,7 +810,7 @@ void init_main_window()
 	}).detach();
 
 	Window::setTitle((char*)" Millennium.");
-	Window::setDimensions(ImVec2({ 450, 500 }));
+	Window::setDimensions(ImVec2({ 305, 145 }));
 
 	Application::Create(wndProcCallback, initCallback);
 }

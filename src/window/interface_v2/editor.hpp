@@ -3,5 +3,5 @@
 
 class editor {
 public:
-	void create();
+	static void create();
 };

@@ -1,4 +1,3 @@
-#pragma once
 #include <stdafx.h>
 #include <format>
 #include <iostream>
@@ -15,6 +14,7 @@
 #include "types/system_backdrop_type.hpp"
 #include "types/corners.hpp"
 #include "types/accent_api.hpp"
+#include <format>
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -143,7 +143,7 @@ void SetWindowBorder(HWND hwnd)
 	HRESULT hr;
 	DWMCOLORIZATIONPARAMS dwmColor;
 
-	// bit shift the color from rgb to a unsigned long
+	// bit shift the color from rgb to an unsigned long
 	DWORD dwNewColor = (((0xC4) << 24) | ((GetRValue(0x0000B9FF)) << 16) | ((GetGValue(0x0000B9FF)) << 8) | (GetBValue(0x0000B9FF)));
 	dwmColor.dwColor = dwNewColor;
 	dwmColor.dwAfterglow = dwNewColor;
@@ -190,7 +190,7 @@ void patchWindow(HWND hwnd)
 	}
 
 	// Set window corner preference if specified.
-	if (cornerPref != NULL) {
+	if (cornerPref != 0) {
 		DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(int));
 	}
 
@@ -269,7 +269,7 @@ void CALLBACK OnEvent(HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd,
  * @param processName The name of the process to search for.
  * @return The process ID of the found process, or 0 if the process is not found.
  */
-DWORD GetProcessIdFromName(const std::wstring& processName) {
+DWORD GetProcessIdFromName(const std::string& processName) {
 	DWORD pid = 0;
 
 	// Create a snapshot of the system processes.
@@ -284,11 +284,9 @@ DWORD GetProcessIdFromName(const std::wstring& processName) {
 	pe32.dwSize = sizeof(PROCESSENTRY32);
 	if (Process32First(hSnapshot, &pe32)) {
 		do {
-			// Convert the process name to a narrow string for comparison.
-			std::string narrowProcessName(processName.begin(), processName.end());
 
 			// Compare the process name (case-insensitive) with the name of the current process.
-			if (_stricmp(pe32.szExeFile, narrowProcessName.c_str()) == 0) {
+			if (_stricmp(pe32.szExeFile, processName.c_str()) == 0) {
 				pid = pe32.th32ProcessID;
 				break;
 			}
@@ -342,7 +340,7 @@ void GetAllWindowsFromProcessID(DWORD dwProcessID, std::vector<HWND>& vhWnds)
 void updateHook()
 {
 	// Get the process ID of the target process by name (e.g., "steamwebhelper.exe").
-	DWORD processId = GetProcessIdFromName(L"steamwebhelper.exe");
+	DWORD processId = GetProcessIdFromName("steamwebhelper.exe");
 
 	// Retrieve all windows associated with the target process.
 	std::vector<HWND> windows;

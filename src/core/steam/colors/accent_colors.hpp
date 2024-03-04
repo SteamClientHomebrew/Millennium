@@ -1,8 +1,10 @@
 #pragma once
 #include <string>
 #include <iostream>
-#include "winrt/Windows.UI.ViewManagement.h"
+#include <minmax.h>
 
+#ifdef _WIN32 
+#include "winrt/Windows.UI.ViewManagement.h"
 using namespace winrt;
 using namespace Windows::UI::ViewManagement;
 
@@ -92,3 +94,10 @@ std::string getColorStr() {
         "--SystemAccentColorDark3-RGB: " + rgb(UIColorType::AccentDark3) + "; "
     "}");
 }
+#elif __linux__
+std::string getColorStr() {
+
+    // TODO
+    return (":root {}");
+}
+#endif

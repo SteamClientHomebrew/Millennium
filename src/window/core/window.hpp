@@ -1,67 +1,37 @@
 #pragma once
+#include <imgui.h>
+#include <imgui_internal.h>
 
-#include <d3d9.h>
-#include <window/imgui/imgui.h>
-#include <window/imgui/imgui_impl_dx9.h>
-#include <window/imgui/imgui_impl_win32.h>
-
-//#include <D3dx9tex.h>
-#include <window/imgui/imgui_internal.h>
-#pragma comment(lib, "d3dx9.lib")
-#pragma comment(lib, "d3d9.lib")
-
-extern bool app_open;
 extern bool g_windowOpen;
 extern bool g_headerHovered;
-extern bool g_headerHovered_1;
 extern ImVec2 g_windowPadding;
-
-extern bool g_initReady;
 
 extern bool g_fileDropQueried;
 extern bool g_processingFileDrop;
 extern bool g_openSuccessPopup;
 extern std::string g_fileDropStatus;
 
-struct icons
-{
-    PDIRECT3DTEXTURE9 trash_icon;
-    PDIRECT3DTEXTURE9 skin_icon;
-    PDIRECT3DTEXTURE9 reload_icon;
-    PDIRECT3DTEXTURE9 icon_no_results;
-    PDIRECT3DTEXTURE9 close;
-    PDIRECT3DTEXTURE9 foldericon;
-    PDIRECT3DTEXTURE9 editIcon;
-    PDIRECT3DTEXTURE9 deleteIcon;
-    PDIRECT3DTEXTURE9 xbtn;
-    PDIRECT3DTEXTURE9 planet;
-};
 
 class Window
 {
 public:
     static void setTitle(char* name);
     static void setDimensions(ImVec2 dimensions);
-
-    static LPDIRECT3DDEVICE9* getDevice();
-    static icons iconsObj();
-
-    static HWND getHWND();
-
-    static void bringToFront();
+    //static icons iconsObj();
+    //static HWND getHWND();
+    //static void bringToFront();
 };
 
 //Process handler, ie window destroying, changing size and other commands
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+//extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+//LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 class Application
 {
-    public: 
-        static bool Create(std::function<void()> Handler, std::function<void()> init_call_back);
-        static bool Destroy();
+public: 
+    static bool Create(std::function<void()> Handler, std::function<void()> init_call_back);
+    //static bool Destroy();
 };
-
 
 /// <summary>
 /// extend the ImGui namespace with a spinner function

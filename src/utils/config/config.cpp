@@ -13,6 +13,7 @@
 #include <format>
 #include <filesystem>
 #include <core/injector/conditions/conditionals.hpp>
+#include <window/core/window.hpp>
 
 remote_skin millennium_remote;
 
@@ -42,7 +43,7 @@ std::string getRegistry(std::string key)
         RegGetValueA(hKey, NULL, (LPCSTR)key.c_str(), RRF_RT_REG_SZ, &dwType, value, &dwSize) != ERROR_SUCCESS)
     {
         console.log(std::format("failed to read {} value from settings, this MAY be fatal.", key));
-        return std::string::basic_string();
+        return std::string();
     }
 
     RegCloseKey(hKey);
@@ -195,7 +196,9 @@ void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::fu
 
                 if (filename.find(L"\\skin.json") != std::wstring::npos)
                 {
-                    callback();
+                    if (!g_processingFileDrop) {
+                        callback();
+                    }
                 }
             }
             pNotifyInfo = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(
@@ -217,6 +220,11 @@ themeConfig::themeConfig()
 
     m_steamPath = std::string(buffer, bufferSize);
     m_themesPath = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
+}
+
+std::string themeConfig::getSteamRoot()
+{
+    return m_steamPath;
 }
 
 std::string themeConfig::getSkinDir()

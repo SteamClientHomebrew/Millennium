@@ -4,44 +4,39 @@
 #include <TlHelp32.h>
 #include <iostream>
 
-threadContainer* threadContainer::instance = nullptr;
-
-void threadContainer::addThread(HANDLE threadPool) {
-
-    if (console.consoleAllocated) {
-        console.log(std::format("[thread_pool] Thread created 0x{}, total count: {}", threadPool, runningThreads.size()));
-    }
-
-    runningThreads.push_back(threadPool);
+void c_threads::add(std::thread newThread) {
+    newThread.detach();
+    runningThreads.push_back(std::move(newThread));
 }
 
-//killing thread doesn't allow proper cleanup (dont give a fuck)
-#pragma warning(disable:6258)
-bool threadContainer::killAllThreads(uint16_t exitCode) {
-    bool success = true;
-    for (const auto thread : runningThreads) {
-        if (!TerminateThread(thread, exitCode)) {
-            success = false;
+bool c_threads::killAllThreads(uint16_t exitCode) {
+    for (auto& thread : runningThreads) {
+        if (thread.joinable()) {
+            // Terminate the thread
+            // Note: Terminating threads abruptly is generally not recommended
+            thread.detach(); // Detach the thread from the container
         }
     }
-    return success;
+    // Clear the container
+    runningThreads.clear();
+    return true; // Indicate success
 }
 
-bool threadContainer::isMillenniumThread(DWORD id) 
+bool c_threads::isMillenniumThread(DWORD id) 
 {
-    for (const auto& thread : runningThreads) 
-    {
-        const DWORD procThread = GetThreadId(thread);
+    //for (const auto& thread : runningThreads) 
+    //{
+    //    const DWORD procThread = GetThreadId(thread);
 
-        if (procThread == id)
-        {
-            return true;
-        }
-    }
+    //    if (procThread == id)
+    //    {
+    //        return true;
+    //    }
+    //}
     return false;
 }
 
-std::vector<DWORD> threadContainer::getProcThreads() {
+std::vector<DWORD> c_threads::getProcThreads() {
 
     std::vector<DWORD> out;
 
@@ -64,14 +59,7 @@ std::vector<DWORD> threadContainer::getProcThreads() {
 
     do {
         if (te32.th32OwnerProcessID == processId) {
-
-            if (!isMillenniumThread(te32.th32ThreadID)) {
-                out.push_back(te32.th32ThreadID);
-                break;
-            }
-            else {
-                std::cout << te32.th32ThreadID << " is owned by millennium" << std::endl;
-            }
+            out.push_back(te32.th32ThreadID);
         }
     } while (Thread32Next(hThreadSnap, &te32));
 
@@ -80,10 +68,9 @@ std::vector<DWORD> threadContainer::getProcThreads() {
     return out;
 }
 
-bool threadContainer::hookAllThreads()
+bool c_threads::hookAllThreads()
 {
     std::vector<DWORD> threads = this->getProcThreads();
-
 
     for (const auto& thread : threads) {
         HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, thread);
@@ -99,15 +86,15 @@ bool threadContainer::hookAllThreads()
             std::cout << "Failed to suspend thread." << std::endl;
             CloseHandle(hThread);
         }
+        break;
     }
 
     return true;
 }
 
-bool threadContainer::unhookAllThreads()
+bool c_threads::unhookAllThreads()
 {
     std::vector<DWORD> threads = this->getProcThreads();
-
 
     for (const auto& thread : threads) {
         HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, thread);
@@ -126,4 +113,4 @@ bool threadContainer::unhookAllThreads()
     return true;
 }
 
-threadContainer::threadContainer() { }
+c_threads::c_threads() { }

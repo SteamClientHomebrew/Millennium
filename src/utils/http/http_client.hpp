@@ -1,12 +1,6 @@
 #pragma once
-
 #include <string>
 #include <vector>
-
-#include <winsock2.h>
-#include <wininet.h>
-#pragma comment(lib, "Wininet.lib")
-
 #include <nlohmann/json.hpp>
 
 class http_error : public std::exception
@@ -33,10 +27,9 @@ private:
 class http
 {
 public:
-    static const void close(HINTERNET sentinel, ...);
 	static const std::string get(std::string remote_endpoint);
 	static const nlohmann::json getJson(std::string remote_endpoint);
 
-    static const std::vector<unsigned char> get_bytes(const char* url, std::function<void(int)> callback = nullptr);
+    static const bool to_disk(const char* url, const char* path);
     static const std::string post(std::string remote_endpoint, std::string data);
 };

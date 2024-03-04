@@ -10,11 +10,6 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArguments>-dev -noverifyfiles -skippatchcheck</LocalDebuggerCommandArguments>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseSteam|Win32'">
-    <LocalDebuggerCommand>C:\Program Files (x86)\Steam\steam.exe</LocalDebuggerCommand>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-noverifyfiles -skippatchcheck</LocalDebuggerCommandArguments>
-  </PropertyGroup>
   <PropertyGroup>
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>

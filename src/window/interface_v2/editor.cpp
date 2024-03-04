@@ -3,6 +3,8 @@
 #include <utils/config/config.hpp>
 #include <core/injector/event_handler.hpp>
 #include <core/steam/cef_manager.hpp>
+#include <core/injector/conditions/conditionals.hpp>
+#include <window/interface/globals.h>
 
 const std::string get_button_description(std::string title, std::string description, std::string buttonText) {
     return R"(
@@ -22,15 +24,15 @@ const std::string get_button_description(std::string title, std::string descript
     )";
 }
 
-const std::string get_drop_down_description() {
+const std::string get_drop_down_description(std::string name, std::string current, std::string desc, std::vector<std::string> options) {
     return R"(
 		<div class="gamepaddialog_Field_S-_La gamepaddialog_WithFirstRow_qFXi6 gamepaddialog_VerticalAlignCenter_3XNvA gamepaddialog_WithDescription_3bMIS gamepaddialog_WithBottomSeparatorStandard_3s1Rk gamepaddialog_ChildrenWidthFixed_1ugIU gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ gamepaddialog_StandardPadding_XRBFu gamepaddialog_HighlightOnFocus_wE4V6 Panel" tabindex="-1" style="--indent-level:0;">
 			<div class="gamepaddialog_FieldLabelRow_H9WOq">
-				<div class="gamepaddialog_FieldLabel_3b0U-">Steam Client Language</div>
+				<div class="gamepaddialog_FieldLabel_3b0U-">)"+ name +R"(</div>
 				<div class="gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
 					<div class="gamepaddialog_FieldChildrenInner_3N47t">
 						<div class="DialogDropDown _DialogInputContainer  Panel" tabindex="-1">
-							<div class="DialogDropDown_CurrentDisplay">English</div>
+							<div class="DialogDropDown_CurrentDisplay">)" + current + R"(</div>
 							<div class="DialogDropDown_Arrow">
 								<svg xmlns="http://www.w3.org/2000/svg" class="SVGIcon_Button SVGIcon_DownArrowContextMenu" data-name="Layer 1" viewBox="0 0 128 128" x="0px" y="0px">
 									<polygon points="50 59.49 13.21 22.89 4.74 31.39 50 76.41 95.26 31.39 86.79 22.89 50 59.49"></polygon>
@@ -40,7 +42,7 @@ const std::string get_drop_down_description() {
 					</div>
 				</div>
 			</div>
-			<div class="gamepaddialog_FieldDescription_2OJfk">Select the language you want Steam to use (requires restart)</div>
+			<div class="gamepaddialog_FieldDescription_2OJfk">)"+ desc +R"(</div>
 		</div>    
     )";
 }
@@ -102,6 +104,7 @@ const std::string get(std::string title, std::vector<std::string> options) {
     }
 
 	return R"(
+console.log("creating a window")
 function CreateWindow(strURL, browserViewOptions, windowOptions) {
 
     let wnd = window.open(
@@ -118,7 +121,7 @@ function CreateWindow(strURL, browserViewOptions, windowOptions) {
     <link href="/css/library.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="/css/libraries/libraries~2dcc5aaf7.css">
     <link rel="stylesheet" type="text/css" href="/css/chunk~2dcc5aaf7.css">
-    <title>Millennium &#x2022 Editing )" + title + R"(</title>
+    <title>Millennium &#x2022 )" + title + R"(</title>
   </head>
   <body class="fullheight ModalDialogBody DesktopUI">
     <div id="popup_target" class="fullheight">
@@ -195,6 +198,12 @@ function CreateWindow(strURL, browserViewOptions, windowOptions) {
         SteamClient.Window.Minimize()
     })
   </script>
+
+<style>
+.DialogContent_InnerWidth {
+    margin-top: 25px !important;
+}
+</style>
     
 </html>`)
 
@@ -202,17 +211,14 @@ function CreateWindow(strURL, browserViewOptions, windowOptions) {
 	wnd.SteamClient.Window.SetResizeGrip(8, 8)
 }
 
-var width = 850
-var height = 600
-
-var x = (screen.width / 2) - (700 / 2);
-var y = (screen.height / 2) - (450 / 2);
+let width = 850
+let height = 600
 
 let wnd = CreateWindow('https://google.com', {}, {
     width: width,
     height: height,
-    top: x,
-    left: y,
+    top: (screen.width / 2) - (width / 2),
+    left: (screen.height / 2) - (height / 2),
     createflags: 274,
     resizable: false,
     status: false,
@@ -225,34 +231,92 @@ let wnd = CreateWindow('https://google.com', {}, {
 
 void editor::create()
 {
+    std::cout << "Calling edit function" << std::endl;
     const auto themeData = skin_json_config;
-
-    const bool HAS_CONFIG = themeData.contains("Configuration");
-    const bool HAS_COLORS = themeData.contains("GlobalsColors");
-
-    if (!HAS_CONFIG && !HAS_COLORS)
-        return;
 
     std::vector<std::string> output;
 
-    if (HAS_CONFIG) {
-        for (const auto& config : themeData["Configuration"]) {
-            auto type = config.value("Type", "__null__");
+    enum type
+    {
+        checkbox,
+        combobox
+    };
 
-            if (type == "CheckBox") {
-
-                auto name = config.value("Name", "empty");
-                auto description = config.value("ToolTip", "empty");
-                auto value = config.value("Value", false);
-
-                output.push_back(get_toggle_description(name, description, value));
-            }
-        }
+    if (!skin_json_config.contains("Conditions"))
+    {
+        return;
     }
-    if (HAS_COLORS) {
-        for (const auto& color : themeData["GlobalsColors"]) {
 
+    nlohmann::basic_json<> g_conditionals = conditionals::get_conditionals(skin_json_config["native-name"]);
+
+    for (auto& [key, condition] : skin_json_config["Conditions"].items()) {
+
+        if (!condition.contains("values")) {
+            continue;
         }
+
+        const std::string description = condition.value("description", "Nothing here...");
+
+        const auto get_type = ([&](void) -> type
+            {
+                bool is_bool = condition["values"].contains("yes") && condition["values"].contains("no");
+                return is_bool ? checkbox : combobox;
+            });
+
+        const std::string theme_name = skin_json_config["native-name"];
+
+        switch (get_type())
+        {
+        case checkbox:
+        {
+            const std::string str_val = g_conditionals[key];
+
+            bool value = str_val == "yes" ? true : false;
+
+            output.push_back(get_toggle_description(key.c_str(), description, value));
+
+            break;
+        }
+        case combobox:
+        {
+            const std::string value = g_conditionals[key];
+            const int combo_size = condition["values"].size();
+
+            std::vector<ComboBoxItem> comboBoxItems;
+
+            if (!comboAlreadyExists(key))
+            {
+                int out = -1;
+                int i = 0;
+                for (auto& [_val, options] : condition["values"].items())
+                {
+                    if (_val == value) { out = i; }
+                    i++;
+                }
+                comboBoxItems.push_back({ key, out });
+            }
+
+            int out = 0;
+
+            for (const auto& item : comboBoxItems)
+            {
+                if (item.name == key)
+                    out = item.value;
+            }
+
+            std::vector<std::string> items;
+
+            for (auto& el : condition["values"].items())
+            {
+                items.push_back(el.key());
+            }
+
+            output.push_back(get_drop_down_description(key.c_str(), items[out], description, {}));
+
+            break;
+        }
+        }
+
     }
 
     steam_js_context context;

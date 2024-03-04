@@ -1,20 +1,18 @@
 #pragma once
 #include <Windows.h>
 #include <vector>
+#include <thread>
 
-class threadContainer {
+class c_threads {
 public:
-    std::vector<HANDLE> runningThreads;
+    std::vector<std::thread> runningThreads;
 
-    static threadContainer& getInstance() {
-        // Create the instance if it doesn't exist
-        if (!instance) {
-            instance = new threadContainer();
-        }
-        return *instance;
+    static c_threads& get() {
+        static c_threads instance; // This is now thread-safe in C++11 and later
+        return instance;
     }
 
-    void addThread(HANDLE threadPool);
+    void add(std::thread threadPool);
 
     bool killAllThreads(uint16_t exitCode);
 
@@ -25,10 +23,8 @@ private:
     bool isMillenniumThread(DWORD id);
     std::vector<DWORD> getProcThreads();
 
-    threadContainer();
+    c_threads();
 
-    threadContainer(const threadContainer&) = delete;
-    threadContainer& operator=(const threadContainer&) = delete;
-
-    static threadContainer* instance;
+    c_threads(const c_threads&) = delete;
+    c_threads& operator=(const c_threads&) = delete;
 };
