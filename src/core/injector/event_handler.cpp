@@ -491,9 +491,10 @@ private:
                         (
                             "Welcome to Millennium!",
 
-                            "Hey, it seems you're new here!<br>Head over to Settings -> Interface -> Open Millennium. "
+                            "Millennium has updated and your settings have been reset as a result."
+                            "<br>Head over to Settings -> Interface -> Open Millennium. "
                             "From there you can install, manage, and edit themes! "
-                            "Having problems? Join the Discord Server!"
+                            "<br>Having problems? Join the Discord Server!"
                         );
 
                         steam_interface.push_to_socket(steam_client, hdl, message, m_steamMainSessionId);

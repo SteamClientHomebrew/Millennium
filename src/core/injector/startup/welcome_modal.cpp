@@ -46,7 +46,7 @@ std::string popupModal::getSnippet(std::string header, std::string body) {
                                             <div class="DialogBodyText">)" + body + R"(</div>
                                             <div class="DialogFooter">
                                                 <div class="DialogTwoColLayout _DialogColLayout Panel">             
-                                                    <button type="button" onclick='window.open("https://discord.gg/MXMWEQKgJF")' class="DialogButton _DialogLayout Secondary Focusable" tabindex="0">Join Discord</button>
+                                                    <button type="button" onclick='window.open("https://millennium.web.app/discord")' class="DialogButton _DialogLayout Secondary Focusable" tabindex="0">Join Discord</button>
                                                 </div>
                                             </div>
                                         </div>

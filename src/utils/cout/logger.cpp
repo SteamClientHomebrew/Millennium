@@ -60,21 +60,27 @@ void output_console::log_hook(std::string val) {
 }
 void output_console::err(std::string val) {
 
+#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+#endif
 
 	log(" [fail] ", val);
 
+#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+#endif
 }
 void output_console::warn(std::string val) {
 
+#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
-
+#endif
 	log(" [warn] ", val);
-
+#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+#endif
 }
 void output_console::succ(std::string val) {
 	log(" [okay] ", val);

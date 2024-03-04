@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include <stdafx.h>
 #include "platform.hpp"
 #include <iostream>
@@ -168,3 +169,4 @@ namespace clr_interop {
         }
     }
 }
+#endif

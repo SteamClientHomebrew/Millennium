@@ -19,7 +19,7 @@ namespace file {
         // Open the file
         std::ifstream file(filename);
         if (!file.is_open()) {
-            throw io_except("Failed to open file: " + filename);
+            //console.err("failed to open file [readJsonSync]");
         }
 
         // Read the content of the file into a string
@@ -31,18 +31,28 @@ namespace file {
             return jsonData;
         }
         catch (const std::exception& e) {
-            throw io_except("Failed to parse JSON from file: " + filename + ". Error: " + e.what());
+            return {};
         }
     }
 
     std::string readFileSync(const std::string& filename) {
         std::ifstream file(filename);
         if (!file.is_open()) {
-            throw io_except("Failed to open file: " + filename);
+            console.err("failed to open file [readJsonSync]");
+            return {};
         }
 
         std::string fileContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         return fileContent;
+    }
+
+    void writeFileSync(const std::filesystem::path& filePath, std::string content) {
+        std::ofstream outFile(filePath);
+
+        if (outFile.is_open()) {
+            outFile << content;
+            outFile.close();
+        }
     }
 
     void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent) {

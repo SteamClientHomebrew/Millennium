@@ -1,7 +1,9 @@
 #pragma once
 #include <fstream>
 #include <vector>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include <mutex> 
 
 extern std::vector<std::string> output_log;

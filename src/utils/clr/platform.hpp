@@ -1,4 +1,5 @@
 #pragma once
+#ifdef _WIN32
 #include <windows.h>
 #include <metahost.h>
 #include <mscoree.h>
@@ -63,3 +64,4 @@ namespace clr_interop {
         ICLRRuntimeHost* pClrRuntimeHost;   /**< Pointer to the CLR runtime host interface. */
     };
 }
+#endif

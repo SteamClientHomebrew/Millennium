@@ -1,53 +1,51 @@
 #define _WINSOCKAPI_   
 #include <stdafx.h>
-
-#include <utils/config/config.hpp>
-
-#include <windows.h>
 #include <string>
 #include <iostream>
+#include <format>
+#include <filesystem>
 
 #include <core/steam/cef_manager.hpp>
 #include <utils/http/http_client.hpp>
-
-#include <format>
-#include <filesystem>
-#include <core/injector/conditions/conditionals.hpp>
 #include <window/core/window.hpp>
+#include <core/injector/conditions/conditionals.hpp>
+#include <utils/config/config.hpp>
+#include <utils/io/input-output.hpp>
 
 remote_skin millennium_remote;
 
-static constexpr const std::string_view registryPath = "Software\\Millennium";
+static const std::string settings_path = "./.millennium/config/client.json";
+
+void ensure()
+{
+    auto path = std::filesystem::path(settings_path);
+
+    try {
+        // Create parent directories if they don't exist
+        std::filesystem::create_directories(path.parent_path());
+        std::cout << "created client json" << std::endl;
+
+        if (!std::filesystem::exists(path)) {
+            std::ofstream fileStream(path);
+            fileStream.close();
+        }
+    }
+    catch (const std::exception& ex) {
+        std::cout << "Error creating directories: " << ex.what() << std::endl;
+    }
+}
 
 void setRegistry(std::string key, std::string value) noexcept
 {
-    HKEY hKey;
-    const LPCWSTR valueData = (LPWSTR)value.c_str();
-
-    if (RegCreateKeyEx(HKEY_CURRENT_USER, registryPath.data(), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, NULL) != ERROR_SUCCESS ||
-        RegSetValueEx(hKey, key.c_str(), 0, REG_SZ, reinterpret_cast<const BYTE*>(valueData), (wcslen(valueData) + 1) * sizeof(wchar_t)) != ERROR_SUCCESS)
-    {
-        MsgBox("registry settings cannot be set from millenniums user-space, try again or ask for help", "error", MB_ICONINFORMATION);
-    }
-
-    RegCloseKey(hKey);
+    auto json = file::readJsonSync(settings_path);
+    json[key] = value;
+    file::writeFileSync(settings_path, json.dump(4));
 }
 
 std::string getRegistry(std::string key)
 {
-    HKEY hKey;
-    TCHAR value[MAX_PATH];
-    DWORD dwType = REG_SZ, dwSize = sizeof(value);
-
-    if (RegOpenKeyExA(HKEY_CURRENT_USER, TEXT(registryPath.data()), 0, KEY_READ, &hKey) != ERROR_SUCCESS ||
-        RegGetValueA(hKey, NULL, (LPCSTR)key.c_str(), RRF_RT_REG_SZ, &dwType, value, &dwSize) != ERROR_SUCCESS)
-    {
-        console.log(std::format("failed to read {} value from settings, this MAY be fatal.", key));
-        return std::string();
-    }
-
-    RegCloseKey(hKey);
-    return value;
+    auto json = file::readJsonSync(settings_path);
+    return json.contains(key) ? json[key].get<std::string>() : std::string();
 }
 
 namespace Settings 
@@ -140,28 +138,10 @@ themeConfig& themeConfig::getInstance()
     return instance;
 }
 
-class HandleWrapper {
-public:
-    HandleWrapper(HANDLE handle) : handle(handle) {}
-
-    ~HandleWrapper() {
-        if (handle != INVALID_HANDLE_VALUE && handle != NULL) {
-            CloseHandle(handle);
-        }
-    }
-
-    operator HANDLE() const {
-        return handle;
-    }
-
-private:
-    HANDLE handle;
-};
-
 void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) 
 {
+#ifdef _WIN32
     console.log(std::format("[bootstrap] sync file watcher starting on dir: {}", directoryPath));
-
    
     HANDLE hDir = CreateFile(directoryPath.c_str(),FILE_LIST_DIRECTORY,FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,nullptr);
 
@@ -211,15 +191,20 @@ void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::fu
     }
 
     CloseHandle(hDir);
+#endif
 }
 
 themeConfig::themeConfig()
 {
+#ifdef _WIN32
     char buffer[MAX_PATH];  
     DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
     m_steamPath = std::string(buffer, bufferSize);
     m_themesPath = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
+#elif __linux__
+    console.err("themeConfig::themeConfig() HAS NOT BEEN IMPLEMENTED");
+#endif
 }
 
 std::string themeConfig::getSteamRoot()
@@ -543,6 +528,7 @@ const void themeConfig::setupMillennium() noexcept
     catch (const std::filesystem::filesystem_error& e) {
         console.err(std::format("Error creating 'skins' directory. reason: {}", e.what()));
     }
+    ensure();
 
     //create registry key if it doesnt exist
     const auto nullOverwrite = ([this](std::string key, auto value) {
