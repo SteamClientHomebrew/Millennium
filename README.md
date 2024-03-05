@@ -57,6 +57,7 @@ For normal users, installing via the installers makes the most sense. However wh
 
 Installing addons/themes is easy. All you need to do is select and download an addon/theme from the [community](https://millennium.web.app/themes). 
 
+<br>
 
 ## Platform Support
 
