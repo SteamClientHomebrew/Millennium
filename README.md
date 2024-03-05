@@ -39,7 +39,7 @@
 
 
 
-# Installation
+## Installation
 
 Install Millennium for Windows. See [this page](https://millennium.gitbook.io/steam-patcher/getting-started/installation) for a more detailed guide.
 
@@ -48,33 +48,21 @@ Install Millennium for Windows. See [this page](https://millennium.gitbook.io/st
 [windows-link]: https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/Millennium.Installer-Windows.exe
 [windows-badge]: https://img.shields.io/badge/Windows%20(7+)-3a71c1?logo=Windows&logoColor=3a71c1&labelColor=0c0d10&color=3a71c1&style=for-the-badge
 
-# Manual Installation
+## Manual Installation
 
 For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Please see our [detailed documentation](https://millennium.gitbook.io/steam-patcher/getting-started/installation#manual-installation) for a guide on how to do this.
 
 
+## Themes & Addons
 
-# Addons
-
-Installing addons--like plugins and themes--is easy. All you need to do is select and download an addon/theme from the [community](https://millennium.web.app/themes). 
-
+Installing addons/themes is easy. All you need to do is select and download an addon/theme from the [community](https://millennium.web.app/themes). 
 
 
-# Platform Support
+## Platform Support
 
-Millennium currently only supports standard Windows NT builds. This includes ARM based processors and x86 based processors. However, Linux and Mac are NOT currently supported and support isn't currently planned. For a more details see our [ documentation](https://millennium.gitbook.io/steam-patcher/)
+Millennium currently only supports standard Windows NT builds. This includes ARM based processors and x86 based processors. However, Linux and Mac are NOT currently supported BUT support is currently in development for linux. For a more details see our [ documentation](https://millennium.gitbook.io/steam-patcher/)
 
-Examples of supported platforms:
+Supported Platforms:
 - Windows 7 and newer
 - Windows (x86/x64/ARM) NT
-
-
-
-# Contributors
-
-For information on contributing to this project, please see [CONTRIBUTING.md](/CONTRIBUTING.md).
-
-[![Contributors][contributors-image]][contributors-link]
-
-[contributors-image]: https://contrib.rocks/image?repo=shadowmonster99/millennium-steam-patcher
-[contributors-link]: https://github.com/shadowmonster99/millennium-steam-patcher/graphs/contributors
+- Linux (WIP, in development)
