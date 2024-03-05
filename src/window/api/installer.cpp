@@ -24,7 +24,7 @@ namespace Community
 			g_fileDropStatus = "Failed to update theme...";
 		}
 #elif __linux__
-        console.err("installer::installUpdate HAS NO IMPLEMENTATION")
+        console.err("installer::installUpdate HAS NO IMPLEMENTATION");
 #endif
         std::this_thread::sleep_for(std::chrono::seconds(2));
 		g_processingFileDrop = false;
@@ -46,14 +46,14 @@ namespace Community
             std::filesystem::rename(filePath, std::filesystem::path(config.getSkinDir()) / filePath.filename().string());
         }
         catch (const std::filesystem::filesystem_error& error) {
-            MsgBox(std::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
+            MsgBox(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
         }
     }
 
 #ifdef _WIN32
     bool unzip(std::string zipFileName, std::string targetDirectory) {
 
-        std::string powershellCommand = std::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
+        std::string powershellCommand = fmt::format("powershell.exe -Command \"Expand-Archive '{}' -DestinationPath '{}' -Force\"", zipFileName, targetDirectory);
 
         STARTUPINFO si;
         PROCESS_INFORMATION pi;
@@ -87,7 +87,7 @@ namespace Community
 
         try 
         {
-            g_fileDropStatus = std::format("Downloading {}...", fileName);
+            g_fileDropStatus = fmt::format("Downloading {}...", fileName);
 
  /*           file::writeFileBytesSync(filePath, http::to_disk(downloadPath.c_str()));*/
             http::to_disk(downloadPath.c_str(), filePath.string().c_str());
@@ -112,8 +112,9 @@ namespace Community
             MsgBox("Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
         }
         catch (const std::exception& err) {
-            console.err(std::format("Exception form {}: {}", __func__, err.what()));
-            MsgBox(std::format("Exception form {}: {}", __func__, err.what()).c_str(), "Millennium", MB_ICONERROR);
+            console.err(fmt::format("Exception form {}: {}", __func__, err.what()));
+            auto error = fmt::format("Exception form {}: {}", __func__, err.what()).c_str();
+            MsgBox(error, "Millennium", MB_ICONERROR);
         }
         g_processingFileDrop = false;
     }

@@ -46,13 +46,13 @@ namespace clr_interop {
 
         if (FAILED(hr)) {
 
-            console.log(std::format("[-] CLRCreateInstance failed: -> {}", hr));
+            console.log(fmt::format("[-] CLRCreateInstance failed: -> {}", hr));
             return false;
         }
 
         hr = pMetaHost->GetRuntime(L"v4.0.30319", IID_ICLRRuntimeInfo, (LPVOID*)&pRuntimeInfo);
         if (FAILED(hr)) {
-            console.log(std::format("[-] pMetaHost->GetRuntime failed: -> {}", hr));
+            console.log(fmt::format("[-] pMetaHost->GetRuntime failed: -> {}", hr));
             pMetaHost->Release();
             return false;
         }
@@ -60,14 +60,14 @@ namespace clr_interop {
         BOOL loadable;
         hr = pRuntimeInfo->IsLoadable(&loadable);
         if (FAILED(hr)) {
-            console.log(std::format("[-] pRuntimeInfo->IsLoadable failed: -> {}", hr));
+            console.log(fmt::format("[-] pRuntimeInfo->IsLoadable failed: -> {}", hr));
             pRuntimeInfo->Release();
             pMetaHost->Release();
             return false;
         }
 
         if (!loadable) {
-            console.log(std::format("[-] CLR is not loadable: -> {}", hr));
+            console.log(fmt::format("[-] CLR is not loadable: -> {}", hr));
             pRuntimeInfo->Release();
             pMetaHost->Release();
             return false;
@@ -76,7 +76,7 @@ namespace clr_interop {
         hr = pRuntimeInfo->GetInterface(CLSID_CLRRuntimeHost, IID_ICLRRuntimeHost, (LPVOID*)&pClrRuntimeHost);
         if (FAILED(hr)) {
             std::cout << "Failed to get CLR runtime host interface. Error code: 0x" << std::hex << hr << std::endl;
-            console.log(std::format("[-] pRuntimeInfo->GetInterface() failed: -> {}", hr));
+            console.log(fmt::format("[-] pRuntimeInfo->GetInterface() failed: -> {}", hr));
             pRuntimeInfo->Release();
             pMetaHost->Release();
             return false;
@@ -85,7 +85,7 @@ namespace clr_interop {
         hr = pClrRuntimeHost->Start();
         if (FAILED(hr)) {
             std::cout << "Failed to start CLR. Error code: 0x" << std::hex << hr << std::endl;
-            console.log(std::format("[-] pClrRuntimeHost->Start() failed: -> {}", hr));
+            console.log(fmt::format("[-] pClrRuntimeHost->Start() failed: -> {}", hr));
             pClrRuntimeHost->Release();
             pRuntimeInfo->Release();
             pMetaHost->Release();
@@ -123,7 +123,7 @@ namespace clr_interop {
             DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
             // Construct the path to the updater assembly
-            std::string path = std::format("{}/millennium.updater.dll", std::string(buffer, bufferSize));
+            std::string path = fmt::format("{}/millennium.updater.dll", std::string(buffer, bufferSize));
 
             const auto hr = pClrRuntimeHost->ExecuteInDefaultAppDomain(
                 s_lpcwstr(path),
@@ -135,13 +135,13 @@ namespace clr_interop {
 
             if (FAILED(hr))
             {
-                console.log(std::format("[+] clr_base->start_update() > can't host app context : -> {}", hr));
+                console.log(fmt::format("[+] clr_base->start_update() > can't host app context : -> {}", hr));
             }
 
-            console.log(std::format("[+] pClrRuntimeHost->ExecuteInDefaultAppDomain().result : -> {}", out));
+            console.log(fmt::format("[+] pClrRuntimeHost->ExecuteInDefaultAppDomain().result : -> {}", out));
         }
         catch (std::exception& ex) {
-            console.log(std::format("[+] pClrRuntimeHost->ExecuteInDefaultAppDomain() exception : -> {}", ex.what()));
+            console.log(fmt::format("[+] pClrRuntimeHost->ExecuteInDefaultAppDomain() exception : -> {}", ex.what()));
         }
         return (bool)out;
     }

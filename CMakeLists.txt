@@ -1,13 +1,18 @@
 cmake_minimum_required(VERSION 3.14)
 project(millennium-linux LANGUAGES CXX)
 
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    add_compile_options(-Wno-format-security)
+endif()
+
 # Specify C++ standard globally
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include directories for all configurations
 include_directories(
     "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/vendor/fmt/include"
     "${CMAKE_SOURCE_DIR}/vendor/cpr"
     "${CMAKE_SOURCE_DIR}/src/deps/imgui"
     "${CMAKE_SOURCE_DIR}/vendor/glfw"

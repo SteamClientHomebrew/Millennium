@@ -3,12 +3,17 @@
 #include <nlohmann/json.hpp>
 #include <utils/cout/logger.hpp>
 #include <utils/http/http_client.hpp>
+#include <fmt/core.h>
 
 #ifdef _WIN32
 #define MsgBox(text, header, icon) MessageBoxA(FindWindow(nullptr, "Steam"), text, header, icon);
 #define OpenURL(url) ShellExecute(0, "open", url, 0, 0, SW_SHOWNORMAL);
 #elif __linux__
-#define MsgBox(text, header, icon) system("zenity --info --text='" text "' --title='" header "' &");
+
+#define MB_ICONINFORMATION 1
+#define MB_ICONERROR 2
+
+#define MsgBox(text, header, icon) system("zenity --info --text=\"" text "\" --title=\"" header "\" &");
 #define OpenURL(url) system("xdg-open " url " &");
 #endif
 

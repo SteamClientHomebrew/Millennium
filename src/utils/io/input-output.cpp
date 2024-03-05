@@ -3,7 +3,6 @@
 #include <windows.h>
 #endif
 #include "input-output.hpp"
-#include <format>
 
 namespace file {
 
@@ -58,12 +57,12 @@ namespace file {
     }
 
     void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent) {
-        console.log(std::format("writing file to: {}", filePath.string()));
+        console.log(fmt::format("writing file to: {}", filePath.string()));
 
         std::ofstream fileStream(filePath, std::ios::binary);
         if (!fileStream)
         {
-            console.log(std::format("Failed to open file for writing: {}", filePath.string()));
+            console.log(fmt::format("Failed to open file for writing: {}", filePath.string()));
             return;
         }
 
@@ -71,7 +70,7 @@ namespace file {
 
         if (!fileStream)
         {
-            console.log(std::format("Error writing to file: {}", filePath.string()));
+            console.log(fmt::format("Error writing to file: {}", filePath.string()));
         }
 
         fileStream.close();

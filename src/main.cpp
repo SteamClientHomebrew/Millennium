@@ -5,8 +5,6 @@
 #include <window/core/window.hpp>
 
 #include <utils/thread/thread_handler.hpp>
-
-#include <format>
 #include <core/injector/startup/bootstrap.hpp>
 
 #pragma comment(lib, "pdh.lib")
@@ -36,7 +34,7 @@ namespace Millennium
      * - If the file does not exist, creates it and returns false.
      * - If the file exists, returns true.
      */
-    unsigned long __stdcall checkRemoteDebugging(void)
+    unsigned long checkRemoteDebugging(void)
     {
         constexpr const std::basic_string_view<char> filePath = ".cef-enable-remote-debugging";
 
@@ -62,7 +60,7 @@ namespace Millennium
      * - Uses a Metrics object to retrieve memory usage.
      * - Sleeps for 1 second between updates.
      */
-    unsigned long __stdcall getConsoleHeader(void* lpParam) {
+    unsigned long getConsoleHeader(void* lpParam) {
 
         // only update the console header if the console is actually visible
         if (!steam::get().params.has("-dev"))
@@ -77,7 +75,7 @@ namespace Millennium
             //double cpu = metrics->getCpuUsage();
             double ram = metrics->getMemoryUsage();
 
-            SetConsoleTitle(std::format("Millennium.Patcher-v{} [Threads: {}, Private-Bytes {} MB]",
+            SetConsoleTitle(fmt::format("Millennium.Patcher-v{} [Threads: {}, Private-Bytes {} MB]",
                 m_ver,
                 c_threads::get().runningThreads.size(),
                 std::round(ram * 100.0) / 100.0
@@ -87,7 +85,7 @@ namespace Millennium
         }
     }
 
-    unsigned long __stdcall Bootstrap(void* lpParam)
+    unsigned long Bootstrap(void* lpParam)
     {
         if (steam::get().params.has("-dev") && 
             !steam::get().params.has("-mllm-no-stdout"))

@@ -1,5 +1,5 @@
-#define _WINSOCKAPI_   
-
+#define _WINSOCKAPI_
+#include <optional>
 #include <core/injector/event_handler.hpp>
 
 #include <stdafx.h>
@@ -19,7 +19,7 @@
  * @return A string containing the JavaScript script.
  */
 const std::basic_string<char, std::char_traits<char>, std::allocator<char>> cef_dom::stylesheet::add(std::string filename) noexcept {
-    return std::format("if (document.querySelectorAll(`link[href='{}']`).length) {{ console.log('millennium stylesheet already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('link'), {{ rel: 'stylesheet', href: '{}', id: 'millennium-injected' }})); }}", filename, filename);
+    return fmt::format("if (document.querySelectorAll(`link[href='{}']`).length) {{ console.log('millennium stylesheet already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('link'), {{ rel: 'stylesheet', href: '{}', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
 /**
@@ -31,7 +31,7 @@ const std::basic_string<char, std::char_traits<char>, std::allocator<char>> cef_
  * @return A string containing the JavaScript script.
  */
 const std::basic_string<char, std::char_traits<char>, std::allocator<char>> cef_dom::javascript::add(std::string filename) noexcept {
-    return std::format("if (document.querySelectorAll(`script[src='{}'][type='module']`).length) {{ console.log('millennium already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module', id: 'millennium-injected' }})); }}", filename, filename);
+    return fmt::format("if (document.querySelectorAll(`script[src='{}'][type='module']`).length) {{ console.log('millennium already injected'); }} else {{ document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
 /**
@@ -54,7 +54,12 @@ cef_dom& cef_dom::get()
  */
 std::string system_color_script() 
 {
-    return std::format("(document.querySelector('#SystemAccentColorInject') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'SystemAccentColorInject' }}))).innerText = `{}`;", getColorStr());
+#ifdef _WIN32
+    return fmt::format("(document.querySelector('#SystemAccentColorInject') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'SystemAccentColorInject' }}))).innerText = `{}`;", getColorStr());
+#elif __linux__
+    console.err("system_color_script HAS NO IMPLEMENTATION");
+    return "";
+#endif
 }
 
 /**
@@ -67,7 +72,7 @@ std::string system_color_script()
 std::string theme_colors() 
 {
     const auto colors = config.getRootColors(skin_json_config);
-    return colors != "[NoColors]" ? std::format("(document.querySelector('#globalColors') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'globalColors' }}))).innerText = `{}`;", colors) : "";
+    return colors != "[NoColors]" ? fmt::format("(document.querySelector('#globalColors') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'globalColors' }}))).innerText = `{}`;", colors) : "";
 }
 
 /**
@@ -107,7 +112,7 @@ void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl
 }
 /**
  * @brief Discovers resources from a remote endpoint.
- * DEPRECATED AND NEEDS TO BE MOVED TO HTTP::GET FOR CONSISTENCY
+ * ~~DEPRECATED AND NEEDS TO BE MOVED TO HTTP::GET FOR CONSISTENCY~~
  *
  * This function discovers resources from a remote endpoint by making an HTTP request.
  *
@@ -116,22 +121,7 @@ void steam_cef_manager::push_to_socket(ws_Client* c, websocketpp::connection_hdl
  */
 inline std::string steam_cef_manager::discover(std::basic_string<char, std::char_traits<char>, std::allocator<char>> remote_endpoint)
 {
-    HINTERNET hInternet = InternetOpenA("millennium.patcher", INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
-    HINTERNET hUrl = InternetOpenUrlA(hInternet, remote_endpoint.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
-
-    if (!hUrl || !hInternet)
-    {
-        throw std::runtime_error(std::format("the requested operation [{}()] failed. reason: InternetOpen*A was nullptr", __func__));
-    }
-
-    char buffer[1024];
-    DWORD total_bytes_read = 0;
-    std::string discovery_result;
-
-    while (InternetReadFile(hUrl, buffer, sizeof(buffer), &total_bytes_read) && total_bytes_read) discovery_result.append(buffer, total_bytes_read);
-    InternetCloseHandle(hUrl); InternetCloseHandle(hInternet);
-
-    return discovery_result;
+    return http::get(remote_endpoint);
 }
 
 /**
@@ -146,7 +136,7 @@ inline std::string steam_cef_manager::discover(std::basic_string<char, std::char
  */
 void steam_cef_manager::render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
-    std::string path = std::format("{}/{}", uri.steam_resources, "modal.js");
+    std::string path = fmt::format("{}/{}", uri.steam_resources, "modal.js");
 
     steam_interface.push_to_socket(steam_client, hdl, cef_dom::get().javascript_handler.add(path), sessionId);
 }
@@ -181,9 +171,9 @@ const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)
     if (endpoint_unparsed.compare(0, 4, "http") != 0) {
 
         //remote skin use the remote skins as a current directory from github
-        if (millennium_remote.is_remote) endpoint_unparsed = std::format("{}/{}", millennium_remote.host, endpoint_unparsed);
+        if (millennium_remote.is_remote) endpoint_unparsed = fmt::format("{}/{}", millennium_remote.host, endpoint_unparsed);
         //just use the default from the skin path
-        else endpoint_unparsed = std::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), endpoint_unparsed);
+        else endpoint_unparsed = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), endpoint_unparsed);
     }
 }
 
@@ -205,13 +195,13 @@ const void steam_cef_manager::evaluate(ws_Client* c, websocketpp::connection_hdl
 {
     // Check if JavaScript execution is allowed
     if (type == script_type::javascript && (!Settings::Get<bool>("allow-javascript"))) {
-        console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::javascript is prohibited", __func__));
+        console.err(fmt::format("the requested operation [{}()] was cancelled. reason: script_type::javascript is prohibited", __func__));
         return;
     }
 
     // Check if stylesheet execution is allowed
     if (type == script_type::stylesheet && (!Settings::Get<bool>("allow-stylesheet"))) {
-        console.err(std::format("the requested operation [{}()] was cancelled. reason: script_type::stylesheet is prohibited", __func__));
+        console.err(fmt::format("the requested operation [{}()] was cancelled. reason: script_type::stylesheet is prohibited", __func__));
         return;
     }
 
@@ -375,7 +365,7 @@ const void steam_js_context::establish_socket_handshake(std::function<void()> ca
         websocketpp::lib::error_code ec;
         ws_Client::connection_ptr con = cl.get_connection(sharedContextUrl, ec);
         if (ec) {
-            console.err(std::format("could not create connection because: {}", ec.message()));
+            console.err(fmt::format("could not create connection because: {}", ec.message()));
             return;
         }
 
@@ -423,7 +413,7 @@ const void steam_js_context::reload() noexcept
 const void steam_js_context::restart() noexcept
 {
     // this function is not tested as of 2024-02-15 since the websocket dependecy switch
-    establish_socket_handshake([=, this]() {
+    establish_socket_handshake([this]() {
         //not used anymore, but here in case
         c->send(hdl,
             nlohmann::json({

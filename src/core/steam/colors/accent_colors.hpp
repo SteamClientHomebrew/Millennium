@@ -1,7 +1,9 @@
 #pragma once
 #include <string>
 #include <iostream>
+#ifdef _WIN32
 #include <minmax.h>
+#endif
 
 #ifdef _WIN32 
 #include "winrt/Windows.UI.ViewManagement.h"
@@ -62,7 +64,7 @@ std::string rgb(UIColorType code) {
     auto col = ui_settings.GetColorValue(code);
 
     // Return the RGB components as a string.
-    return std::format("{}, {}, {}", col.R, col.G, col.B);
+    return fmt::format("{}, {}, {}", col.R, col.G, col.B);
 }
 
 /**

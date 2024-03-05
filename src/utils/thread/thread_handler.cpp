@@ -1,6 +1,5 @@
 #include "thread_handler.hpp"
 #include <utils/cout/logger.hpp>
-#include <format>
 #ifdef _WIN32
 #include <TlHelp32.h>
 #endif
@@ -23,8 +22,8 @@ bool c_threads::killAllThreads(uint16_t exitCode) {
     runningThreads.clear();
     return true; // Indicate success
 }
-
-bool c_threads::isMillenniumThread(DWORD id) 
+#ifdef _WIN32
+bool c_threads::isMillenniumThread(DWORD id)
 {
     //for (const auto& thread : runningThreads) 
     //{
@@ -38,7 +37,6 @@ bool c_threads::isMillenniumThread(DWORD id)
     return false;
 }
 
-#ifdef _WIN32
 std::vector<DWORD> c_threads::getProcThreads() {
 
     std::vector<DWORD> out;

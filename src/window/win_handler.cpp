@@ -78,21 +78,25 @@ public:
 	}
 
 	void deleteListing(std::string fileName) {
-		int result = MsgBox(std::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
+#ifdef _WIN32
+		int result = MsgBox(fmt::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
 		if (result == IDYES)
 		{
-			std::string disk_path = std::format("{}/{}", config.getSkinDir(), fileName);
+			std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), fileName);
 			if (std::filesystem::exists(disk_path)) {
 
 				try {
 					std::filesystem::remove_all(std::filesystem::path(disk_path));
 				}
 				catch (const std::exception& ex) {
-					MsgBox(std::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+					MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
 				}
 			}
 			m_Client.parseSkinData(false);
 		}
+#elif __linux__
+        console.err("deleteListing HAS NO IMPLEMENTATION");
+#endif
 	}
 
 	void library_panel()
@@ -144,11 +148,11 @@ public:
 						const auto pos = ImGui::GetWindowPos();
 						const auto width = ImGui::GetWindowWidth();
 
-						std::string version = std::format("version: {}", m_Client.skinData[i].value("version", "1.0.0"));
-						std::string author = std::format("author: {}", m_Client.skinData[i].value("author", "anonymous"));
+						std::string version = fmt::format("version: {}", m_Client.skinData[i].value("version", "1.0.0"));
+						std::string author = fmt::format("author: {}", m_Client.skinData[i].value("author", "anonymous"));
 
 						ImGui::SetNextWindowPos(ImVec2(pos.x + width, pos.y + height));
-						ImGui::SetNextWindowSize(ImVec2(max(ImGui::CalcTextSize(version.c_str()).x, ImGui::CalcTextSize(author.c_str()).x) + 25.0f, 0));
+						ImGui::SetNextWindowSize(ImVec2(std::max(ImGui::CalcTextSize(version.c_str()).x, ImGui::CalcTextSize(author.c_str()).x) + 25.0f, 0));
 
 						ImGui::BeginTooltip();
 						{
@@ -172,7 +176,7 @@ public:
 							ImGui::Separator();
 							if (ImGui::MenuItem("Show in folder...")) 
 							{
-								auto path = std::format("{}/{}", config.getSkinDir(), contextName);
+								auto path = fmt::format("{}/{}", config.getSkinDir(), contextName);
 								OpenURL(path.c_str())
 							}
 							if (ImGui::MenuItem("Delete...")) {
@@ -229,7 +233,7 @@ public:
 					steam_js_context SharedJsContext;
 
 					std::string url = "http://localhost:3000/themes";
-					std::string loadUrl = std::format("SteamUIStore.Navigate('/browser', MainWindowBrowserManager.LoadURL('{}'));", url);
+					std::string loadUrl = fmt::format("SteamUIStore.Navigate('/browser', MainWindowBrowserManager.LoadURL('{}'));", url);
 
 					SharedJsContext.exec_command(loadUrl);
 				}).detach();
@@ -392,7 +396,7 @@ public:
 				"Notifications Position", "Adjusts the position of the client notifications instead of using its native coordinates.",
 				notificationPos, items, IM_ARRAYSIZE(items), false,
 				[=]() {
-					Settings::Set("NotificationsPos", nlohmann::json::parse(SteamJSContext.exec_command(std::format("SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {}", notificationPos)))["result"]["value"].get<int>());
+					Settings::Set("NotificationsPos", nlohmann::json::parse(SteamJSContext.exec_command(fmt::format("SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {}", notificationPos)))["result"]["value"].get<int>());
 				}
 			);
 			ImGui::Spacing();
@@ -495,7 +499,7 @@ public:
 				{
 					static std::string skinDir = config.getSkinDir().c_str();
 
-					ImGui::SetTooltip(std::format("Open the themes folder\n{}", skinDir).c_str());
+					ImGui::SetTooltip(fmt::format("Open the themes folder\n{}", skinDir).c_str());
 				}
 				if (ImGui::MenuItem("Settings"))
 				{
@@ -602,8 +606,8 @@ public:
 
 			ImGui::Begin("About Millennium", &showingAbout, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
 			{
-				std::string version = std::format("Version: {}", m_ver);
-				std::string built = std::format("Built: {}", __DATE__);
+				std::string version = fmt::format("Version: {}", m_ver);
+				std::string built = fmt::format("Built: {}", __DATE__);
 
 				ImGui::Text("Made with love by ShadowMonster.");
 				ImGui::Text(version.c_str());
@@ -720,7 +724,7 @@ void render_conditionals()
 				ImGui::PushItemWidth(120);
 				ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(.15f, .15f, .15f, 1.f));
 
-				if (ImGui::BeginCombo(std::format("###{}", key).c_str(), items[getComboValue(key)].c_str())) 
+				if (ImGui::BeginCombo(fmt::format("###{}", key).c_str(), items[getComboValue(key)].c_str())) 
 				{
 					for (int i = 0; i < (int)items.size(); i++) 
 					{

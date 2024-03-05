@@ -13,8 +13,9 @@ nlohmann::basic_json<> millennium::readFileSync(std::string path)
 
 	if (!nlohmann::json::accept(file_content))
 	{
-		MsgBox(std::format("Invalid JSON file -> [{}]\nIf you can't fix it, remove the folder.\nExiting...", path).c_str(), "Error", MB_ICONERROR);
-		ExitProcess(0);
+        auto message = fmt::format("Invalid JSON file -> [{}]\nIf you can't fix it, remove the folder.\nExiting...", path).c_str();
+		MsgBox(message, "Error", MB_ICONERROR);
+		exit(0);
 	}
 
 	data = nlohmann::json::parse(file_content, nullptr, true, true);
@@ -25,8 +26,8 @@ bool millennium::isInvalidSkin(std::string skin)
 {
 	const std::string steamPath = config.getSkinDir();
 
-	if (!std::filesystem::exists(std::format("{}/{}/skin.json", steamPath, skin))
-		&& !std::filesystem::exists(std::format("{}/{}", steamPath, skin)))
+	if (!std::filesystem::exists(fmt::format("{}/{}/skin.json", steamPath, skin))
+		&& !std::filesystem::exists(fmt::format("{}/{}", steamPath, skin)))
 	{
 		return true;
 	}
@@ -95,8 +96,8 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 
 				bool needsUpdate = localVersion != cloudVersion;
 
-				console.imp(std::format("  > Installed version: {}, Cloud version: {}", localVersion, cloudVersion));
-				console.log(std::format("  > {} -> {}", skin_json_path.string(), needsUpdate ? "needs update" : "is up-to-date"));
+				console.imp(fmt::format("  > Installed version: {}, Cloud version: {}", localVersion, cloudVersion));
+				console.log(fmt::format("  > {} -> {}", skin_json_path.string(), needsUpdate ? "needs update" : "is up-to-date"));
 
 				return needsUpdate;
 			}
@@ -106,7 +107,7 @@ bool checkForUpdates(nlohmann::basic_json<>& data, std::filesystem::path skin_js
 			}
 		}
 		catch (const http_error&) {
-			console.log(std::format("  > An HTTP error occurred while checking for updates on skin {}", skin_json_path.string()));
+			console.log(fmt::format("  > An HTTP error occurred while checking for updates on skin {}", skin_json_path.string()));
 			return false;
 		}
 	}
@@ -143,14 +144,14 @@ bool millennium::parseLocalSkin(const std::filesystem::directory_entry& entry, s
 nlohmann::basic_json<> millennium::bufferSkinData()
 {
 	const std::string steamPath = config.getSkinDir();
-	console.log(std::format("Searching for steam skins at -> [{}]", steamPath));
+	console.log(fmt::format("Searching for steam skins at -> [{}]", steamPath));
 
 	this->resetCollected();
 	std::vector<nlohmann::basic_json<>> jsonBuffer;
 
 	for (const auto& entry : std::filesystem::directory_iterator(steamPath))
 	{
-		console.log(std::format("Folder -> [{}]", entry.path().filename().string()));
+		console.log(fmt::format("Folder -> [{}]", entry.path().filename().string()));
 
 		if (entry.is_directory())
 		{
@@ -290,7 +291,7 @@ std::vector<nlohmann::basic_json<>> millennium::get_update_list(
 			}
 
 			if (local["commit"] == cloud["commit"]) {
-				console.log(std::format("[{}] is up-to-date", local["name"].get<std::string>()));
+				console.log(fmt::format("[{}] is up-to-date", local["name"].get<std::string>()));
 				buffer = add_update_status_to_client(buffer, local, false);
 				local["up-to-date"] = true;
 
@@ -320,7 +321,7 @@ std::vector<nlohmann::basic_json<>> millennium::get_update_list(
 	auto end_time = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
-	console.log(std::format("Update check -> {} elapsed ms", duration.count()));
+	console.log(fmt::format("Update check -> {} elapsed ms", duration.count()));
 
 	return buffer;
 }
@@ -357,7 +358,7 @@ bool compareByLastWriteTime(const std::filesystem::directory_entry& a, const std
 
 void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string newCommit)
 {
-	console.log(std::format("Calling {} with param -> {}", __func__, checkForUpdates));
+	console.log(fmt::format("Calling {} with param -> {}", __func__, checkForUpdates));
 
 	const std::string steamPath = config.getSkinDir();
 
@@ -419,7 +420,7 @@ void millennium::changeSkin(nlohmann::basic_json<>& skin)
 {
 	std::string skinName = skin["native-name"].get<std::string>();
 
-	console.log(std::format("updating selected skin -> {}", skinName == m_currentSkin ? "default" : skinName));
+	console.log(fmt::format("updating selected skin -> {}", skinName == m_currentSkin ? "default" : skinName));
 
 	Settings::Set("active-skin", skinName == m_currentSkin ? "default" : skinName);
 	themeConfig::updateEvents::getInstance().triggerUpdate();

@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include <filesystem>
-#include <format>
+#include <fmt/color.h>
 
 //std::vector<std::string> output_log = {};
 std::vector<std::string> socket_log = {};
@@ -16,14 +16,14 @@ std::string output_console::get_time()
 
 	std::stringstream ss;
 	ss << std::put_time(&*std::localtime(&time), "%H:%M:%S");
-	return std::format("[{}]", ss.str());
+	return fmt::format("[{}]", ss.str());
 }
 
 void output_console::log(std::string type, const std::string& message)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 
-	//output_log.push_back(std::format("{}{}{}", get_time(), type, message));
+	//output_log.push_back(fmt::format("{}{}{}", get_time(), type, message));
 
 	fileStream << get_time() << type << message << std::endl;
 
@@ -31,7 +31,7 @@ void output_console::log(std::string type, const std::string& message)
 }
 
 void output_console::log_socket(std::string val) {
-	socket_log.push_back(std::format("{} {}", get_time(), val));
+	socket_log.push_back(fmt::format("{} {}", get_time(), val));
 }
 
 output_console::output_console() 
@@ -93,7 +93,7 @@ void output_console::log_patch(std::string type, std::string what_patched, std::
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 
-	const auto message = std::format(" [{}] match -> [windowName: '{}'][Regex: '{}']", type, what_patched, regex);
+	const auto message = fmt::format(" [{}] match -> [windowName: '{}'][Regex: '{}']", type, what_patched, regex);
 
 	//output_log.push_back(message);
 	fileStream << get_time() << message << std::endl;

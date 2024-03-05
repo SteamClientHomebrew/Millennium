@@ -20,5 +20,6 @@ millennium.installer/dist-electron/
 millennium.updater/bin
 
 cmake-build-debug
+build
 # Ignore Clion config
 .idea

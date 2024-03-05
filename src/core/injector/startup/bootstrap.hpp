@@ -2,8 +2,6 @@
 
 #include <window/api/installer.hpp>
 #include <window/interface/globals.h>
-#include <format>
-
 #include <stdafx.h>
 
 /**
@@ -42,7 +40,7 @@ private:
  * @param data Unused parameter (required for thread function signature).
  * @return Always returns 0.
  */
-static unsigned long __stdcall queryThemeUpdates(void* data) {
+static unsigned long queryThemeUpdates(void* data) {
     // Create a unique pointer to a bootstrapper instance.
     std::unique_ptr<bootstrapper> bootstrapper_module = std::make_unique<bootstrapper>();
 

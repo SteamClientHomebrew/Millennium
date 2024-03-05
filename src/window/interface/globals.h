@@ -96,7 +96,7 @@ namespace ui
 		ImGui::SameLine();
 
 		ui::shift::right(25); ui::shift::y(-3);
-		if (ImGui::Checkbox(std::format("###{}", name).c_str(), &setting)) call_back();
+		if (ImGui::Checkbox(fmt::format("###{}", name).c_str(), &setting)) call_back();
 
 		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
 	}
@@ -122,7 +122,7 @@ namespace ui
 		ui::shift::right(width); ui::shift::y(-3);
 
 		ImGui::PushItemWidth((float)width);
-		if (ImGui::Combo(std::format("###{}", name).c_str(), &setting, items, items_size)) call_back();
+		if (ImGui::Combo(fmt::format("###{}", name).c_str(), &setting, items, items_size)) call_back();
 		ImGui::PopItemWidth();
 
 		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);

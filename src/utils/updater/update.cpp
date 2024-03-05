@@ -37,7 +37,7 @@ endlocal
 void updater::start_update(std::string url)
 {
 #ifdef _WIN32
-    std::filesystem::path fileName = std::format("{}/.millennium/bootstrapper/updater.bat", config.getSteamRoot());
+    std::filesystem::path fileName = fmt::format("{}/.millennium/bootstrapper/updater.bat", config.getSteamRoot());
 
     std::cout << fileName << std::endl;
 
@@ -87,9 +87,9 @@ void updater::check_for_updates()
 
         if (api["up"] != true)
         {
-            std::string message = api["message"];
+            auto message = api["message"].get<std::string>().c_str();
 
-            MsgBox(message.c_str(), "Bootstrap Error", MB_ICONINFORMATION);
+            MsgBox(message, "Bootstrap Error", MB_ICONINFORMATION);
             return;
         }
 
@@ -110,7 +110,7 @@ void updater::check_for_updates()
     }
     catch (nlohmann::detail::exception& ex)
     {
-        console.err(std::format("JSON error occurred while checking for updates. {}", ex.what()));
+        console.err(fmt::format("JSON error occurred while checking for updates. {}", ex.what()));
     }
     catch (const http_error& error)
     {

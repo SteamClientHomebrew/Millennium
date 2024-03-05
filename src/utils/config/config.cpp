@@ -2,7 +2,6 @@
 #include <stdafx.h>
 #include <string>
 #include <iostream>
-#include <format>
 #include <filesystem>
 
 #include <core/steam/cef_manager.hpp>
@@ -141,7 +140,7 @@ themeConfig& themeConfig::getInstance()
 void themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) 
 {
 #ifdef _WIN32
-    console.log(std::format("[bootstrap] sync file watcher starting on dir: {}", directoryPath));
+    console.log(fmt::format("[bootstrap] sync file watcher starting on dir: {}", directoryPath));
    
     HANDLE hDir = CreateFile(directoryPath.c_str(),FILE_LIST_DIRECTORY,FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,nullptr);
 
@@ -201,7 +200,7 @@ themeConfig::themeConfig()
     DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
     m_steamPath = std::string(buffer, bufferSize);
-    m_themesPath = std::format("{}/steamui/skins", std::string(buffer, bufferSize));
+    m_themesPath = fmt::format("{}/steamui/skins", std::string(buffer, bufferSize));
 #elif __linux__
     console.err("themeConfig::themeConfig() HAS NOT BEEN IMPLEMENTED");
 #endif
@@ -235,7 +234,7 @@ const std::string themeConfig::getRootColors(nlohmann::basic_json<> data)
             std::string col = color["HexColorCode"];
             std::string description = color["Description"];
 
-            header += std::format("{}: {}; ", name, col, description);
+            header += fmt::format("{}: {}; ", name, col, description);
         }
 
         header += "}";
@@ -249,7 +248,7 @@ const std::string themeConfig::getRootColors(nlohmann::basic_json<> data)
 
 void themeConfig::writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
 {
-    console.log(std::format("writing file to: {}", filePath.string()));
+    console.log(fmt::format("writing file to: {}", filePath.string()));
 
     try {
         // Create parent directories if they don't exist
@@ -263,7 +262,7 @@ void themeConfig::writeFileBytesSync(const std::filesystem::path& filePath, cons
     std::ofstream fileStream(filePath, std::ios::binary);
     if (!fileStream)
     {
-        console.log(std::format("Failed to open file for writing: {}", filePath.string()));
+        console.log(fmt::format("Failed to open file for writing: {}", filePath.string()));
         return;
     }
 
@@ -271,7 +270,7 @@ void themeConfig::writeFileBytesSync(const std::filesystem::path& filePath, cons
 
     if (!fileStream)
     {
-        console.log(std::format("Error writing to file: {}", filePath.string()));
+        console.log(fmt::format("Error writing to file: {}", filePath.string()));
     }
 
     fileStream.close();
@@ -326,7 +325,7 @@ public:
         }
         catch (const nlohmann::json::exception& err) {
             // Handle parsing errors here
-            console.err(std::format("Error while parsing file contents in {}, Message: {}", __func__, err.what()));
+            console.err(fmt::format("Error while parsing file contents in {}, Message: {}", __func__, err.what()));
             return { {"config_fail", true} };
         }
 
@@ -342,7 +341,7 @@ const void themeConfig::setThemeData(nlohmann::json& object) noexcept
 {
     const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
 
-    std::string filePath = std::format("{}/{}/skin.json", m_themesPath, m_activeSkin);
+    std::string filePath = fmt::format("{}/{}/skin.json", m_themesPath, m_activeSkin);
 
     std::ofstream outputFile(filePath);
 
@@ -395,8 +394,8 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 
     const std::string ACTIVE_ITEM = Settings::Get<std::string>("active-skin");
 
-    std::basic_ifstream<char, std::char_traits<char>> localTheme(std::format("{}/{}/skin.json", m_themesPath, ACTIVE_ITEM));
-    //std::basic_ifstream<char, std::char_traits<char>> cloudTheme(std::format("{}/{}", m_themesPath, m_activeSkin));
+    std::basic_ifstream<char, std::char_traits<char>> localTheme(fmt::format("{}/{}/skin.json", m_themesPath, ACTIVE_ITEM));
+    //std::basic_ifstream<char, std::char_traits<char>> cloudTheme(fmt::format("{}/{}", m_themesPath, m_activeSkin));
 
     nlohmann::basic_json<> jsonBuffer;
 
@@ -434,7 +433,7 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
             if (patch.contains("TargetJs")) {
 
                 const std::string fileName = patch["TargetJs"].get<std::string>();
-                std::string filePath = std::format("{}/{}/{}", m_themesPath, ACTIVE_ITEM, fileName);
+                std::string filePath = fmt::format("{}/{}/{}", m_themesPath, ACTIVE_ITEM, fileName);
 
                 if (std::filesystem::exists(filePath)) {
                     return true;
@@ -464,13 +463,13 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
 
     jsonBuffer["native-name"] = ACTIVE_ITEM;
 
-    console.log(std::format("Requestion to setup theme -> {}", ACTIVE_ITEM));
+    console.log(fmt::format("Requestion to setup theme -> {}", ACTIVE_ITEM));
     conditionals::setup(jsonBuffer, ACTIVE_ITEM);
 
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
-    console.log(std::format("Theme data collection -> {} elapsed ms", duration.count()));
+    console.log(fmt::format("Theme data collection -> {} elapsed ms", duration.count()));
 
     return jsonBuffer;
 }
@@ -526,14 +525,14 @@ const void themeConfig::setupMillennium() noexcept
             std::filesystem::create_directories(this->getSkinDir());
     }
     catch (const std::filesystem::filesystem_error& e) {
-        console.err(std::format("Error creating 'skins' directory. reason: {}", e.what()));
+        console.err(fmt::format("Error creating 'skins' directory. reason: {}", e.what()));
     }
     ensure();
 
     //create registry key if it doesnt exist
     const auto nullOverwrite = ([this](std::string key, auto value) {
         if (Settings::Get<std::string>(key).empty()) {
-            console.log(std::format("[bootstrap] creating settings key: {}", key));
+            console.log(fmt::format("[bootstrap] creating settings key: {}", key));
             Settings::Set(key, value);
         }
     });
@@ -573,7 +572,7 @@ void themeConfig::updateEvents::add_listener(const event_listener& listener) {
 
 void themeConfig::updateEvents::triggerUpdate() {
 
-    console.log(std::format("triggering skin event change, executing {} listener", listeners.size()));
+    console.log(fmt::format("triggering skin event change, executing {} listener", listeners.size()));
 
     for (const auto& listener : listeners) {
         listener();

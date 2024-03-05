@@ -76,7 +76,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>C:\Program Files (x86)\Steam\</OutDir>
-    <IncludePath>$(SolutionDir)vendor\cpr;$(SolutionDir)src\deps\imgui;$(SolutionDir)vendor\glfw;$(SolutionDir)vendor\asio\asio\include;$(SolutionDir)vendor\nlohmann\include;$(SolutionDir)vendor\websocketpp;$(SolutionDir)vendor\websocketpp\websocketpp;$(ProjectDir);$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)vendor\fmt\include;$(SolutionDir)vendor\cpr;$(SolutionDir)src\deps\imgui;$(SolutionDir)vendor\glfw;$(SolutionDir)vendor\asio\asio\include;$(SolutionDir)vendor\nlohmann\include;$(SolutionDir)vendor\websocketpp;$(SolutionDir)vendor\websocketpp\websocketpp;$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)vendor\cpr\lib;$(SolutionDir)vendor\libcurl\lib;$(SolutionDir)src\deps\glfw;.\;$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)intermediate\debug\</IntDir>
     <TargetName>User32</TargetName>
@@ -99,7 +99,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>CURL_STATICLIB;ASIO_HAS_STD_INVOKE_RESULT;_WEBSOCKETPP_CPP11_TYPE_TRAITS_;_WEBSOCKETPP_CPP11_RANDOM_DEVICE_;ASIO_STANDALONE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING;CURL_STATICLIB;ASIO_HAS_STD_INVOKE_RESULT;_WEBSOCKETPP_CPP11_TYPE_TRAITS_;_WEBSOCKETPP_CPP11_RANDOM_DEVICE_;ASIO_STANDALONE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;USER32_EXPORTS;_WINDOWS;_USRDLL</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>

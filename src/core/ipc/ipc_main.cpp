@@ -45,7 +45,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
      * @param hdl The connection handle identifying the WebSocket connection.
      */
     const auto respond = [&](std::string type, std::string message) {
-        std::string content = std::format("console.log({{ returnId: '{}', message: `{}` }})", type, message);
+        std::string content = fmt::format("console.log({{ returnId: '{}', message: `{}` }})", type, message);
         // Construct the JSON message to be sent.
         const nlohmann::json response = {
             { "id", 8987 },                            // Message ID.
@@ -58,7 +58,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         steam_client->send(hdl, response.dump(), websocketpp::frame::opcode::text);
     };
 
-    console.log(std::format("handling message: {}", message.dump(4)));
+    console.log(fmt::format("handling message: {}", message.dump(4)));
 
     if (message["id"] == "[open-millennium]") {
         console.log("requested to open millennium interface");

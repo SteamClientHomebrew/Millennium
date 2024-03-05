@@ -6,7 +6,6 @@
 #include <regex>
 #include <utils/config/config.hpp>
 #include <core/injector/event_handler.hpp>
-#include <format>
 
 /// <summary>
 /// config file that stores all saved user conditionals
@@ -26,7 +25,7 @@ void save_config(std::string theme, std::string option, std::string value)
 		std::filesystem::create_directories(fileName.parent_path());
 	}
 	catch (const std::exception& e) {
-		console.err(std::format("Error: {}", e.what()));
+		console.err(fmt::format("Error: {}", e.what()));
 	}
 
 	nlohmann::basic_json<> conditionals;
@@ -230,7 +229,7 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 			regex_match = std::regex_search(window, std::regex(regex));
 		}
 		catch (std::regex_error& e) {
-			console.err(std::format("Invalid regex selector: '{}' is invalid {}", regex, e.what()));
+			console.err(fmt::format("Invalid regex selector: '{}' is invalid {}", regex, e.what()));
 		}
 
 		// return the match state. 

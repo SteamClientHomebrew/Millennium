@@ -1,5 +1,5 @@
+#ifdef _WIN32
 #include <stdafx.h>
-#include <format>
 #include <iostream>
 #include <regex>
 #include <windows.h>
@@ -67,7 +67,7 @@ void EnableBlurBehind(HWND target)
 	HRESULT hr = SetWindowCompositionAttribute(target, &data);
 
 	if (FAILED(hr)) {
-		console.err(std::format("SetWindowCompositionAttribute failed with error code: {}", hr));
+		console.err(fmt::format("SetWindowCompositionAttribute failed with error code: {}", hr));
 		FreeLibrary(hUser32);
 		return;
 	}
@@ -375,3 +375,4 @@ unsigned long __stdcall StartWinHookAsync(void* lpParam) {
 	// Return true to indicate that the hook was successfully initiated.
 	return true;
 }
+#endif

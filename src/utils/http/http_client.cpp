@@ -6,7 +6,6 @@
 
 #include <stdafx.h>
 #include <utils/config/config.hpp>
-#include <format>
 #include <cpr/include/cpr.h>
 
 static constexpr const std::string_view user_agent = "millennium.patcher";
@@ -22,7 +21,7 @@ const bool valid_request(std::string url)
 const std::string http::get(std::string remote_endpoint)
 {
     if (!valid_request(remote_endpoint)) {
-        console.err(std::format("un-allowed to make requests to outside of local context"));
+        console.err(fmt::format("un-allowed to make requests to outside of local context"));
         throw http_error(http_error::errors::not_allowed);
     }
 
@@ -53,7 +52,7 @@ const bool http::to_disk(const char* url, const char* path)
 {
     if (!valid_request(url))
     {
-        console.err(std::format("un-allowed to make requests to outside of local context"));
+        console.err(fmt::format("un-allowed to make requests to outside of local context"));
         throw http_error(http_error::errors::not_allowed);
     }
 

@@ -101,11 +101,11 @@ public:
             //console.log(m_socket_resp.dump(4));
         }
         catch (const nlohmann::json::exception& exception) {
-            console.err(std::format("Exception caught on line {} of function {}. Message: {}", __LINE__, __FUNCTION__, exception.what()));
+            console.err(fmt::format("Exception caught on line {} of function {}. Message: {}", __LINE__, __FUNCTION__, exception.what()));
             return;
         }
         catch (const asio::system_error& exception) {
-            console.err(std::format("Exception caught on line {} of function {}. Message: {}", __LINE__, __FUNCTION__, exception.what()));
+            console.err(fmt::format("Exception caught on line {} of function {}. Message: {}", __LINE__, __FUNCTION__, exception.what()));
             return;
         }
 
@@ -136,7 +136,7 @@ public:
                 }
                 catch (const asio::system_error& exception)
                 {
-                    console.err(std::format("exception [{}], code: [{}]", exception.what(), exception.code().value()));
+                    console.err(fmt::format("exception [{}], code: [{}]", exception.what(), exception.code().value()));
                     return;
                 }
                 catch (socket_response_error& ex) {
@@ -195,7 +195,7 @@ public:
 
             std::string input = m_socket_resp["params"]["message"]["text"];
 
-            //console.log(std::format("[STEAM] {}", input));
+            //console.log(fmt::format("[STEAM] {}", input));
 
             std::string prefix = "millennium.user.message: ";
 
@@ -268,7 +268,7 @@ public:
 
         if ((skin_json_config.contains("Hooks") && skin_json_config["Hooks"].size() > 0) ||
             (skin_json_config.contains("Steam-WebKit") && skin_json_config["Steam-WebKit"])) {
-            //console.log(std::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
+            //console.log(fmt::format("Enabling CSS Hooks with config: \n{}", enableFetch.dump(4)));
             try {
                 steam_client->send(hdl, enableFetch.dump(), websocketpp::frame::opcode::text);
             }
@@ -358,7 +358,7 @@ private:
 
         v_bodyCallback.push_back({ requestId, requestUrl, id });
 
-        console.log_hook(std::format("[starting] {{ requestId: {}, requestId: {} }}", requestUrl, id));
+        console.log_hook(fmt::format("[starting] {{ requestId: {}, requestId: {} }}", requestUrl, id));
 
         nlohmann::json getBody = {
             { "id", id },
@@ -406,7 +406,7 @@ private:
                 {"fileIntep", filePath.string()}
             };
 
-            console.log_hook(std::format("[receive] hooked! DEBUG:{}", debugInfo.dump(4)));
+            console.log_hook(fmt::format("[receive] hooked! DEBUG:{}", debugInfo.dump(4)));
 
             std::stringstream buffer; buffer << localTheme.rdbuf(); localTheme.close();
             g_fileResponse = buffer.str();
@@ -425,7 +425,7 @@ private:
 
         // if the hooked file is a css file, we want to add the colors structure.
         if (isCss) {
-            responseBody = base64_encode(std::format(
+            responseBody = base64_encode(fmt::format(
                 "{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/"
                 "\n\n{}\n\n"
                 "/*\nBEGIN COLOR INSERTION\n*/"
@@ -435,7 +435,7 @@ private:
             base64_decode(m_socket_resp["result"]["body"]), g_fileResponse, colors == "[NoColors]" ? std::string() : colors));
         }
         else {
-            responseBody = base64_encode(std::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse));
+            responseBody = base64_encode(fmt::format("{}\n\n/*\nTHE FOLLOWING WAS INJECTED BY MILLENNIUM\n*/\n\n{}\n\n/*\nEND INJECTION\n*/", base64_decode(m_socket_resp["result"]["body"]), g_fileResponse));
         }
 
         nlohmann::json fulfillRequest = {
@@ -464,7 +464,7 @@ private:
             //adjust the client notifications position on every launch because it doesnt save it disk or in memory
             {"SharedJSContext", [&]() { 
                 uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
-                std::string js = std::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
+                std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
 
                 steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
             }},
@@ -531,7 +531,7 @@ private:
         //std::cout << ev.statement.dump(4) << std::endl;
 
         if (ev.statement.contains("Equals") && ev.selectedItem == ev.statement["Equals"]) {
-            console.log(std::format("Configuration key: [{}] Equals [{}]. Executing 'True' statement", ev.settingsName, ev.statement["Equals"].dump()));
+            console.log(fmt::format("Configuration key: [{}] Equals [{}]. Executing 'True' statement", ev.settingsName, ev.statement["Equals"].dump()));
 
             if (ev.statement.contains("True")) {
                 const auto& trueStatement = ev.statement["True"];
@@ -549,7 +549,7 @@ private:
             }
         }
         else {
-            console.log(std::format("Configuration key: [{}] does NOT Equal [{}]. Executing 'False' statement", ev.settingsName, ev.statement["Equals"].dump()));
+            console.log(fmt::format("Configuration key: [{}] does NOT Equal [{}]. Executing 'False' statement", ev.settingsName, ev.statement["Equals"].dump()));
 
             if (ev.statement.contains("False")) {
                 const auto& falseStatement = ev.statement["False"];
@@ -646,7 +646,7 @@ private:
         const auto jsAllowed = Settings::Get<bool>("allow-javascript");
 
         for (const auto& item : items) {
-            const auto relativeItem = std::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), item.filePath);
+            const auto relativeItem = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), item.filePath);
 
             if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
                 raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
@@ -713,7 +713,7 @@ private:
                 regex_match = std::regex_search(cefctx_title, std::regex(matchRegexString));
             }
             catch (std::regex_error& e) {
-                console.err(std::format("Invalid regex selector: '{}' is invalid {}", matchRegexString, e.what()));
+                console.err(fmt::format("Invalid regex selector: '{}' is invalid {}", matchRegexString, e.what()));
             }
 
 
@@ -742,7 +742,7 @@ private:
             }
             catch (const nlohmann::detail::exception& ex)
             {
-                console.err(std::format("Error getting conditionals {}", ex.what()));
+                console.err(fmt::format("Error getting conditionals {}", ex.what()));
             }
 
             if (patch.contains("TargetJsList"))
@@ -830,7 +830,7 @@ private:
             this->patch(m_header);
         }
         catch (const nlohmann::detail::exception& error) {
-            console.err(std::format("Error patching page or getting page title, message: {}, socket message: {}", error.what(), m_socket_resp.dump(4)));
+            console.err(fmt::format("Error patching page or getting page title, message: {}, socket message: {}", error.what(), m_socket_resp.dump(4)));
         }
 
     }
@@ -920,7 +920,7 @@ private:
                 }
                 catch (const nlohmann::detail::exception& ex)
                 {
-                    console.err(std::format("Error getting conditionals {}", ex.what()));
+                    console.err(fmt::format("Error getting conditionals {}", ex.what()));
                 }
 
                 if (patch.contains("TargetJsList"))
@@ -950,7 +950,7 @@ private:
         {
             if ((nlohmann::detail::type_error*)dynamic_cast<const nlohmann::detail::type_error*>(&ex) == nullptr)
             {
-                console.err(std::format("unexpected error type was thrown from nlohmann::json: {}", ex.what()));
+                console.err(fmt::format("unexpected error type was thrown from nlohmann::json: {}", ex.what()));
             }
         }
     }
@@ -967,7 +967,7 @@ private:
         }
         catch (nlohmann::detail::exception& ex)
         {
-            console.err(std::format("Error getting session Id: {}", ex.what()));
+            console.err(fmt::format("Error getting session Id: {}", ex.what()));
         }
     }
 };
@@ -1013,7 +1013,7 @@ private:
             }
         }
         catch (std::regex_error& e) {
-            console.err(std::format("Invalid regex selector: '{}' is invalid{}", patch.matchRegexString, e.what()));
+            console.err(fmt::format("Invalid regex selector: '{}' is invalid{}", patch.matchRegexString, e.what()));
         }
 
         return false;
@@ -1089,14 +1089,14 @@ private:
             websocketpp::lib::error_code ec;
             ws_Client::connection_ptr con = c.get_connection(url, ec);
             if (ec) {
-                console.err(std::format("could not create connection because: {}", ec.message()));
+                console.err(fmt::format("could not create connection because: {}", ec.message()));
                 return;
             }
 
             c.connect(con); c.run();
         }
         catch (websocketpp::exception const& e) {
-            console.err(std::format("remote exception: {}", e.what()));
+            console.err(fmt::format("remote exception: {}", e.what()));
         }
     }
 
@@ -1150,10 +1150,10 @@ public:
                         }
                         catch (const asio::system_error& ex) {
                             if (ex.code() == asio::error::misc_errors::eof) {
-                                console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
+                                console.err(fmt::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
                             }
                             else {
-                                console.err(std::format("exception in {}, message: {}", __func__, ex.what()));
+                                console.err(fmt::format("exception in {}, message: {}", __func__, ex.what()));
                             }
 
                             //exception was thrown, patching thread crashed, so mark it as unpatched so it can restart itself, happens when the 
@@ -1234,31 +1234,32 @@ void Initialize()
                 websocketpp::lib::error_code ec;
                 ws_Client::connection_ptr con = c.get_connection(url, ec);
                 if (ec) {
-                    console.err(std::format("could not create connection because: {}", ec.message()));
+                    console.err(fmt::format("could not create connection because: {}", ec.message()));
                     return false;
                 }
 
                 c.connect(con); c.run();
             }
             catch (const http_error& error) {
-                MsgBox(std::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str(), "Bootstrap Error", 0);
+                auto error = fmt::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str();
+                MsgBox(error, "Bootstrap Error", 0);
             }
             catch (websocketpp::exception const& e) {
-                console.err(std::format("Error occurred on client websocket thread: {}", e.what()));
+                console.err(fmt::format("Error occurred on client websocket thread: {}", e.what()));
             }
             catch (const asio::system_error& ex) {
                 if (ex.code() == asio::error::misc_errors::eof) {
-                    console.err(std::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
+                    console.err(fmt::format("thread operation aborted and marked for re-establishment. reason: CEF instance was destroyed", __func__));
                 }
             }
             catch (const nlohmann::detail::exception& ex) {
-                console.err(std::format("Received malformed JSON response from websocket: {}", ex.what()));
+                console.err(fmt::format("Received malformed JSON response from websocket: {}", ex.what()));
             }
             catch (const std::exception& ex) {
-                console.err(std::format("Error occurred on client websocket thread: {}", ex.what()));
+                console.err(fmt::format("Error occurred on client websocket thread: {}", ex.what()));
             }
             catch (...) {
-                console.err(std::format("Error occurred on client websocket thread: unknown"));
+                console.err(fmt::format("Error occurred on client websocket thread: unknown"));
             }
             console.err("client interface handler exited unexpectedly. attempting to restart...");
         }
@@ -1271,16 +1272,16 @@ void Initialize()
             remote::get_instance().handle_interface();
         }
         catch (nlohmann::json::exception& ex) {
-            console.err(std::format("remote: {}", std::string(ex.what())));
+            console.err(fmt::format("remote: {}", std::string(ex.what())));
         }
         catch (const asio::system_error& ex) {
-            console.err(std::format("remote: {}", std::string(ex.what())));
+            console.err(fmt::format("remote: {}", std::string(ex.what())));
         }
         catch (const std::exception& ex) {
-            console.err(std::format("remote: {}", std::string(ex.what())));
+            console.err(fmt::format("remote: {}", std::string(ex.what())));
         }
         catch (...) {
-            console.err(std::format("remote: unknown"));
+            console.err(fmt::format("remote: unknown"));
         }
 
         return false;

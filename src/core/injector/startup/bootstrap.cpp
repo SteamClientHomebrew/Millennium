@@ -82,7 +82,7 @@ void OnToastActivated(ToastNotification const& sender, winrt::Windows::Foundatio
 const void toastNotification(std::string title, std::string message, std::string url) {
 
 	// Construct the XML content for the toast notification, including the message and URL.
-	hstring xml = winrt::to_hstring(std::format(R"(
+	hstring xml = winrt::to_hstring(fmt::format(R"(
 		<toast>
 			<visual>
 				<binding template='ToastText02'>
@@ -163,7 +163,7 @@ const void check_updates(nlohmann::basic_json<> theme) {
 
 #ifdef _WIN32
 	// display the windows toast 
-	toastNotification("Millennium", std::format("{} was successfully updated!", themeName), url);
+	toastNotification("Millennium", fmt::format("{} was successfully updated!", themeName), url);
 #endif
 }
 
