@@ -78,7 +78,7 @@ public:
 	}
 
 	void deleteListing(std::string fileName) {
-		int result = MessageBoxA(GetForegroundWindow(), std::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
+		int result = MsgBox(std::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
 		if (result == IDYES)
 		{
 			std::string disk_path = std::format("{}/{}", config.getSkinDir(), fileName);
@@ -489,7 +489,7 @@ public:
 				}
 				if (ImGui::MenuItem("Themes")) 
 				{
-					ShellExecuteA(NULL, "open", config.getSkinDir().c_str(), NULL, NULL, SW_SHOWNORMAL);
+					OpenURL(config.getSkinDir().c_str())
 				}
 				if (ImGui::IsItemHovered())
 				{
@@ -504,18 +504,16 @@ public:
 				if (ImGui::MenuItem("User-Config"))
 				{
 					std::string path = std::filesystem::current_path().string() + "/.millennium/config/";
-
 					std::cout << path << std::endl;
 
-					ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
+					OpenURL(path.c_str())
 				}
 				if (ImGui::MenuItem("Logs"))
 				{
 					std::string path = std::filesystem::current_path().string() + "/.millennium/logs/";
-
 					std::cout << path << std::endl;
 
-					ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
+					OpenURL(path.c_str())
 				}
 				ImGui::EndMenu();
 			}
@@ -542,7 +540,7 @@ public:
 				}
 				if (ImGui::MenuItem("Discord")) 
 				{
-					ShellExecute(NULL, "open", "https://millennium.web.app/discord", NULL, NULL, SW_SHOWNORMAL);
+					OpenURL("https://millennium.web.app/discord")
 				}
 				if (ImGui::IsItemHovered()) 
 				{
@@ -555,7 +553,7 @@ public:
 			{
 				if (ImGui::MenuItem("Support Millennium!")) 
 				{
-					ShellExecute(NULL, "open", "https://ko-fi.com/shadowmonster", NULL, NULL, SW_SHOWNORMAL);
+					OpenURL("https://ko-fi.com/shadowmonster")
 				}
 				ImGui::EndMenu();
 			}

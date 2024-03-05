@@ -144,7 +144,7 @@ inline std::string steam_cef_manager::discover(std::basic_string<char, std::char
  * @param hdl WebSocket connection handle.
  * @param sessionId The session ID associated with the WebSocket connection.
  */
-__declspec(noinline) void __fastcall steam_cef_manager::render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
+void steam_cef_manager::render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
     std::string path = std::format("{}/{}", uri.steam_resources, "modal.js");
 
@@ -161,7 +161,7 @@ __declspec(noinline) void __fastcall steam_cef_manager::render_settings_modal(ws
  * @param hdl WebSocket connection handle.
  * @param sessionId The session ID associated with the WebSocket connection.
  */
-__declspec(noinline) void __fastcall steam_cef_manager::inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
+void steam_cef_manager::inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
     std::string javaScript = ui_interface::settings_page_renderer();
     steam_interface.push_to_socket(steam_client, hdl, javaScript, sessionId);
@@ -402,7 +402,7 @@ inline const void steam_js_context::close_socket() noexcept { }
  * This function establishes a new WebSocket handshake with the SteamJSContext server and triggers
  * a reload using the DevTools Protocol method Page.reload().
  */
-__declspec(noinline) const void steam_js_context::reload() noexcept
+const void steam_js_context::reload() noexcept
 {
     establish_socket_handshake([this]() {
         //https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-reload
@@ -420,7 +420,7 @@ __declspec(noinline) const void steam_js_context::reload() noexcept
  * This function establishes a new WebSocket handshake with the SteamJSContext server.
  * It may contain legacy code for restarting the context, which is not used anymore.
  */
-__declspec(noinline) const void steam_js_context::restart() noexcept
+const void steam_js_context::restart() noexcept
 {
     // this function is not tested as of 2024-02-15 since the websocket dependecy switch
     establish_socket_handshake([=, this]() {

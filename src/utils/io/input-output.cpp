@@ -1,5 +1,7 @@
 #include <stdafx.h>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include "input-output.hpp"
 #include <format>
 

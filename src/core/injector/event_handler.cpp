@@ -987,7 +987,7 @@ private:
     /// <returns>should patch</returns>
     std::vector<std::string> patched = {};
 
-    inline bool __cdecl should_patch_interface(const json_patch& patch, const nlohmann::json& instance)
+    inline bool should_patch_interface(const json_patch& patch, const nlohmann::json& instance)
     {
         const std::string web_debugger_url = instance["webSocketDebuggerUrl"].get<std::string>();
         //check if the current instance was already patched
@@ -1189,7 +1189,7 @@ steam_client::steam_client() { }
 /// </summary>
 /// <param name=""></param>
 /// <returns></returns>
-unsigned long __stdcall Initialize(void*)
+void Initialize()
 {
     config.setupMillennium();
     skin_json_config = config.getThemeData();

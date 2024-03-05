@@ -15,7 +15,7 @@ namespace ipc_handler
 	/// <param name="uri"></param>
 	/// <param name="user_agent"></param>
 	/// <returns></returns>
-	__declspec(noinline) const cor_response cor_request(std::string uri,
+	const cor_response cor_request(std::string uri,
         std::string user_agent)
 	{
         //bool success = false;

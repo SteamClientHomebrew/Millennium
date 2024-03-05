@@ -129,7 +129,7 @@ namespace Millennium
             c_threads::get().add(std::thread([&] { StartWinHookAsync(nullptr); }));
 #endif
             c_threads::get().add(std::thread([&] { getConsoleHeader(nullptr); }));
-            c_threads::get().add(std::thread([&] { Initialize(nullptr); }));
+            c_threads::get().add(std::thread([&] { Initialize(); }));
 
             // synchronously run theme updater 
             queryThemeUpdates(nullptr);

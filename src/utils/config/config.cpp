@@ -138,7 +138,7 @@ themeConfig& themeConfig::getInstance()
     return instance;
 }
 
-void __fastcall themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) 
+void themeConfig::watchPath(const std::string& directoryPath, std::function<void()> callback) 
 {
 #ifdef _WIN32
     console.log(std::format("[bootstrap] sync file watcher starting on dir: {}", directoryPath));

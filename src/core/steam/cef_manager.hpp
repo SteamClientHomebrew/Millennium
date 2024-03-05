@@ -2,10 +2,11 @@
 #define _WINSOCKAPI_ // Prevent WinSock.h from being included
 
 #include <nlohmann/json.hpp>
+#ifdef _WIN32
 #include <winsock2.h>
-
 #include <wininet.h>
 #pragma comment(lib, "Wininet.lib")
+#endif
 
 //network helpers and other buffer typings to help with socket management
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -143,8 +144,8 @@ public:
     /// <param name="socket">steam socket</param>
     /// <param name="socket_response">used sessionId to target the setting modal</param>
     /// <returns></returns>
-    __declspec(noinline) void __fastcall inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept;
-    __declspec(noinline) void __fastcall render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept;
+    void inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept;
+    void render_settings_modal(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept;
 
     /// <summary>
     /// interface to inject js into a cef instance
@@ -184,12 +185,12 @@ public:
     /// <summary>
     /// reload the SteamJSContext, which will reload the steam interface, but not the app
     /// </summary>
-    __declspec(noinline) const void reload() noexcept;
+    const void reload() noexcept;
 
     /// <summary>
     /// restart the app completely, SharedJsContext and the app intself, cmd args are retained
     /// </summary>
-    __declspec(noinline) const void restart() noexcept;
+    const void restart() noexcept;
 
     /// <summary>
     /// execute js on the SharedJSContext, where you can access the SteamClient in full

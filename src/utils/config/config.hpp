@@ -66,7 +66,7 @@ public:
     /// <param name="filePath">the filepath</param>
     /// <param name="callback">callback function, when the event triggers</param>
     /// <returns>void</returns>
-    static void __fastcall watchPath(const std::string& directoryPath, std::function<void()> callback);
+    static void watchPath(const std::string& directoryPath, std::function<void()> callback);
 
     themeConfig();
 

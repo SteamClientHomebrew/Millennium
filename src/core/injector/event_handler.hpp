@@ -1,5 +1,7 @@
 #pragma once
+#ifdef _WIN32
 #include <winsock2.h>
+#endif
 #include <nlohmann/json.hpp>
 
 #include <websocketpp/config/asio_no_tls_client.hpp>

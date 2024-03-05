@@ -11,7 +11,7 @@ namespace Community
 	{
 		g_processingFileDrop = true;
 		g_fileDropStatus = "Updating Theme...";
-
+#ifdef _WIN32
 		bool success = clr_interop::clr_base::instance().start_update(nlohmann::json({
 			{"owner", skinData["github"]["owner"]},
 			{"repo", skinData["github"]["repo_name"]}
@@ -23,7 +23,10 @@ namespace Community
 		else {
 			g_fileDropStatus = "Failed to update theme...";
 		}
-		Sleep(1500);
+#elif __linux__
+        console.err("installer::installUpdate HAS NO IMPLEMENTATION")
+#endif
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 		g_processingFileDrop = false;
 	}
 
@@ -70,6 +73,10 @@ namespace Community
             return true;
         }
         return false;
+    }
+#elif __linux__
+    bool unzip(std::string zipFileName, std::string targetDirectory) {
+        console.err("__linux__ unzip DOES NOT HAVE AN IMPLEMENTATION");
     }
 #endif
 

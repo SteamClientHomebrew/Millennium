@@ -9,6 +9,6 @@ namespace ipc_handler
 		bool success;
 	};
 
-	__declspec(noinline) const cor_response cor_request(std::string uri,
+	const cor_response cor_request(std::string uri,
 		std::string user_agent);
 }
