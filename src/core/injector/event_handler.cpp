@@ -1288,6 +1288,5 @@ void Initialize()
 
     //CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {}, 0, 0, 0);
 
-    Sleep(-1);
-    return true;
+    std::promise<void>().get_future().wait();
 }
