@@ -14,7 +14,17 @@ nlohmann::basic_json<> millennium::readFileSync(std::string path)
 	if (!nlohmann::json::accept(file_content))
 	{
         auto message = fmt::format("Invalid JSON file -> [{}]\nIf you can't fix it, remove the folder.\nExiting...", path).c_str();
-		MsgBox(message, "Error", MB_ICONERROR);
+		//MsgBox(message, "Error", MB_ICONERROR);
+
+		MsgBox("Error", [&](auto open) {
+
+			ImGui::TextWrapped(message);
+
+			if (ImGui::Button("Close")) {
+
+			}
+		});
+
 		exit(0);
 	}
 
@@ -368,7 +378,11 @@ void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string
 	std::vector<std::filesystem::directory_entry> directories;
 
 	if (!std::filesystem::exists(steamPath)) {
-		MsgBox("Couldn't find skins folder? it disappeared :O", "Error", MB_ICONERROR)
+		//MsgBox("Couldn't find skins folder? it disappeared :O", "Error", MB_ICONERROR);
+
+		MsgBox("Error", [&](auto open) {
+			ImGui::TextWrapped("Couldn't find skins folder? it disappeared :O");
+		});
 		return;
 	}
 
@@ -428,9 +442,9 @@ void millennium::changeSkin(nlohmann::basic_json<>& skin)
 	steam_js_context js_context;
 	js_context.reload();
 
-	if (steam::get().params.has("-silent")) {
-		MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
-	}
+	//if (steam::get().params.has("-silent")) {
+	//	MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
+	//}
 
 	parseSkinData(false);
 }

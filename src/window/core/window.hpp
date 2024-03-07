@@ -2,6 +2,11 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32 
+#endif
+
+
 extern bool g_windowOpen;
 extern bool g_headerHovered;
 extern ImVec2 g_windowPadding;
@@ -11,6 +16,12 @@ extern bool g_processingFileDrop;
 extern bool g_openSuccessPopup;
 extern std::string g_fileDropStatus;
 
+void set_proc_theme_colors();
+#ifdef _WIN32
+void bringToFront(HWND hwnd);
+void wnd_center(void* hwnd);
+#endif
+void initFontAtlas();
 
 class Window
 {

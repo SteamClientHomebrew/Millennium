@@ -66,7 +66,9 @@ public:
         void triggerUpdate(nlohmann::basic_json<>& instance) {
             //loop every listener and execute it, just incase we have multiple listeners
             for (const auto& listener : listeners) {
-                listener(instance);
+                std::thread([&]() {
+                    listener(instance);
+                });
             }
         }
 
@@ -117,7 +119,7 @@ public:
             case steam_cef_manager::response::get_document:
             {
                 try {
-                    this->get_doc_callback();
+                    this->get_doc_callback(); 
                 }
                 //document contains no selectable query on the <head> 
                 catch (const nlohmann::json::exception&) {
@@ -176,7 +178,8 @@ public:
         /// </summary>
         if (m_socket_resp["method"] == "Target.targetCreated" && m_socket_resp.contains("params")) {
             this->target_created();
-            client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
+            //client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
+
 
             //console.log(m_socket_resp.dump(4));
         }
@@ -186,7 +189,7 @@ public:
         if (m_socket_resp["method"] == "Target.targetInfoChanged" && m_socket_resp["params"]["targetInfo"]["attached"]) {
             //trigger event used for remote handler
             this->target_info_changed();
-            client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
+            //client::cef_instance_created::get_instance().triggerUpdate(m_socket_resp);
 
             //console.log(m_socket_resp.dump(4));
         }
@@ -1184,6 +1187,21 @@ uint16_t steam_client::get_ipc_port() {
 /// </summary>
 steam_client::steam_client() { }
 
+#ifdef _WIN32
+std::string exec_cmd(const char* cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
+    return result;
+}
+#endif
+
 /// <summary>
 /// yet another initializer
 /// </summary>
@@ -1218,6 +1236,25 @@ void Initialize()
         while (true)
         {
             ws_Client c;
+#ifdef _WIN32 // TODO: Compat with linux
+            std::string output = exec_cmd(R"(for /f "tokens=5" %a in ('netstat -aon ^| findstr 8080') do wmic process where processId=%a get name)");
+            std::string conflictPath = exec_cmd(R"(for /f "tokens=5" %a in ('netstat -aon ^| findstr 8080') do wmic process where processId=%a get ExecutablePath)");
+
+            if (output.find("steamwebhelper.exe") == std::string::npos) {
+                MsgBox("Bootstrap Error", [&](auto open) {
+
+                    ImGui::TextWrapped("Millennium couldn't start because another application is using port 8080, "
+                        "which is vital for the functionality of the main app."
+                        "\nEither uninstall this conflicting app, uninstall millennium, or disable the conflicting application\n\nConfliction Detected:\n");
+
+                    ImGui::TextWrapped(conflictPath.c_str());
+
+                    if (ImGui::Button("Exit Steam")) {
+                        exit(0);
+                    }
+                });
+            }
+#endif
 
             try {
                 std::string url = json::parse(http::get(uri.debugger + "/json/version"))["webSocketDebuggerUrl"];
@@ -1241,8 +1278,17 @@ void Initialize()
                 c.connect(con); c.run();
             }
             catch (const http_error& error) {
-                auto error = fmt::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str();
-                MsgBox(error, "Bootstrap Error", 0);
+                auto message = fmt::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str();
+                
+                
+                MsgBox("Bootstrap Error", [&](auto open) {
+
+                    ImGui::TextWrapped(message);
+
+                    if (ImGui::Button("Close")) {
+                        *open = false;
+                    }
+                });
             }
             catch (websocketpp::exception const& e) {
                 console.err(fmt::format("Error occurred on client websocket thread: {}", e.what()));

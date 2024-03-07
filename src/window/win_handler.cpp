@@ -79,21 +79,47 @@ public:
 
 	void deleteListing(std::string fileName) {
 #ifdef _WIN32
-		int result = MsgBox(fmt::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
-		if (result == IDYES)
-		{
-			std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), fileName);
-			if (std::filesystem::exists(disk_path)) {
 
-				try {
-					std::filesystem::remove_all(std::filesystem::path(disk_path));
+		MsgBox("Confirmation", [&](auto open) {
+			ImGui::TextWrapped(fmt::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str());
+
+
+			if (ImGui::Button("Yes")) 
+			{
+				std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), fileName);
+				if (std::filesystem::exists(disk_path)) {
+
+					try {
+						std::filesystem::remove_all(std::filesystem::path(disk_path));
+					}
+					catch (const std::exception& ex) {
+						//MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+						console.err(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str());
+					}
 				}
-				catch (const std::exception& ex) {
-					MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
-				}
+				m_Client.parseSkinData(false);
 			}
-			m_Client.parseSkinData(false);
-		}
+			if (ImGui::Button("No")) {
+				*open = false;
+			}
+		});
+
+
+		//int result = MsgBox(fmt::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);
+		//if (result == IDYES)
+		//{
+		//	std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), fileName);
+		//	if (std::filesystem::exists(disk_path)) {
+
+		//		try {
+		//			std::filesystem::remove_all(std::filesystem::path(disk_path));
+		//		}
+		//		catch (const std::exception& ex) {
+		//			MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+		//		}
+		//	}
+		//	m_Client.parseSkinData(false);
+		//}
 #elif __linux__
         console.err("deleteListing HAS NO IMPLEMENTATION");
 #endif
@@ -152,7 +178,12 @@ public:
 						std::string author = fmt::format("author: {}", m_Client.skinData[i].value("author", "anonymous"));
 
 						ImGui::SetNextWindowPos(ImVec2(pos.x + width, pos.y + height));
+						
+#ifdef _WIN32
+						ImGui::SetNextWindowSize(ImVec2(max(ImGui::CalcTextSize(version.c_str()).x, ImGui::CalcTextSize(author.c_str()).x) + 25.0f, 0));
+#elif __linux__
 						ImGui::SetNextWindowSize(ImVec2(std::max(ImGui::CalcTextSize(version.c_str()).x, ImGui::CalcTextSize(author.c_str()).x) + 25.0f, 0));
+#endif
 
 						ImGui::BeginTooltip();
 						{
@@ -177,7 +208,7 @@ public:
 							if (ImGui::MenuItem("Show in folder...")) 
 							{
 								auto path = fmt::format("{}/{}", config.getSkinDir(), contextName);
-								OpenURL(path.c_str())
+								OpenURL(path.c_str());
 							}
 							if (ImGui::MenuItem("Delete...")) {
 								this->deleteListing(contextName);
@@ -200,9 +231,9 @@ public:
 				steam_js_context js_context;
 				js_context.reload();
 
-				if (steam::get().params.has("-silent")) {
-					MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
-				}
+				//if (steam::get().params.has("-silent")) {
+				//	MsgBox("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium", MB_ICONINFORMATION);
+				//}
 
 				m_Client.parseSkinData(false);
 			}
@@ -232,7 +263,7 @@ public:
 				std::thread([] {
 					steam_js_context SharedJsContext;
 
-					std::string url = "http://localhost:3000/themes";
+					std::string url = "https://millennium.web.app/themes";
 					std::string loadUrl = fmt::format("SteamUIStore.Navigate('/browser', MainWindowBrowserManager.LoadURL('{}'));", url);
 
 					SharedJsContext.exec_command(loadUrl);
@@ -493,7 +524,7 @@ public:
 				}
 				if (ImGui::MenuItem("Themes")) 
 				{
-					OpenURL(config.getSkinDir().c_str())
+					OpenURL(config.getSkinDir().c_str());
 				}
 				if (ImGui::IsItemHovered())
 				{
@@ -510,14 +541,14 @@ public:
 					std::string path = std::filesystem::current_path().string() + "/.millennium/config/";
 					std::cout << path << std::endl;
 
-					OpenURL(path.c_str())
+					OpenURL(path.c_str());
 				}
 				if (ImGui::MenuItem("Logs"))
 				{
 					std::string path = std::filesystem::current_path().string() + "/.millennium/logs/";
 					std::cout << path << std::endl;
 
-					OpenURL(path.c_str())
+					OpenURL(path.c_str());
 				}
 				ImGui::EndMenu();
 			}
@@ -544,7 +575,7 @@ public:
 				}
 				if (ImGui::MenuItem("Discord")) 
 				{
-					OpenURL("https://millennium.web.app/discord")
+					OpenURL("https://millennium.web.app/discord");
 				}
 				if (ImGui::IsItemHovered()) 
 				{
@@ -557,7 +588,7 @@ public:
 			{
 				if (ImGui::MenuItem("Support Millennium!")) 
 				{
-					OpenURL("https://ko-fi.com/shadowmonster")
+					OpenURL("https://ko-fi.com/shadowmonster");
 				}
 				ImGui::EndMenu();
 			}

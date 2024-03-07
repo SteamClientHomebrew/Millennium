@@ -38,15 +38,31 @@ namespace Community
 
             if (!std::filesystem::exists(filePath) || !std::filesystem::exists(filePath / "skin.json") || !std::filesystem::is_directory(filePath))
             {
-                MsgBox("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
-                    "Make sure the skin isn't archived, and it exists on your disk", "Can't Add Skin", MB_ICONERROR);
+                //MsgBox("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
+                //    "Make sure the skin isn't archived, and it exists on your disk", "Can't Add Skin", MB_ICONERROR);
+                //
+                MsgBox("Can't Add Skin", [&](auto open) {
+
+                    ImGui::TextWrapped("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
+                        "Make sure the skin isn't archived, and it exists on your disk");
+
+                    if (ImGui::Button("Close")) {
+
+                    }
+                });
+
                 return;
             }
 
             std::filesystem::rename(filePath, std::filesystem::path(config.getSkinDir()) / filePath.filename().string());
         }
         catch (const std::filesystem::filesystem_error& error) {
-            MsgBox(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
+            //MsgBox(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
+
+            MsgBox("Can't Add Skin", [&](auto open) {
+
+                ImGui::TextWrapped(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str());
+            });
         }
     }
 
@@ -104,17 +120,43 @@ namespace Community
             }
             else {
                 std::cout << "couldn't extract file" << std::endl;
-                MsgBox("couldn't extract file", "Millennium", MB_ICONERROR);
+                //MsgBox("couldn't extract file", "Millennium", MB_ICONERROR);
+
+                MsgBox("Can't Add Skin", [&](auto open) {
+
+                    ImGui::TextWrapped("couldn't extract file");
+
+                    if (ImGui::Button("Close")) {
+
+                    }
+                });
             }
         }
         catch (const http_error&) {
             console.err("Couldn't download bytes from the file");
-            MsgBox("Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
+            //MsgBox("Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
+
+            MsgBox("Millennium", [&](auto open) {
+
+                ImGui::TextWrapped("Couldn't download bytes from the file");
+
+                if (ImGui::Button("Close")) {
+
+                }
+                });
         }
         catch (const std::exception& err) {
             console.err(fmt::format("Exception form {}: {}", __func__, err.what()));
             auto error = fmt::format("Exception form {}: {}", __func__, err.what()).c_str();
-            MsgBox(error, "Millennium", MB_ICONERROR);
+            //MsgBox(error, "Millennium", MB_ICONERROR);
+            MsgBox("Millennium", [&](auto open) {
+
+                ImGui::TextWrapped(error);
+
+                if (ImGui::Button("Close")) {
+
+                }
+            });
         }
         g_processingFileDrop = false;
     }

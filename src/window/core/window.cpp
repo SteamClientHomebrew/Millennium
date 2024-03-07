@@ -19,6 +19,7 @@
 #ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32 // expose window handles [glfwGetWin32Window] 
 #include <Windows.h> // include windows library on windows
+#include <windowsx.h>
 #endif
 
 #define GL_SILENCE_DEPRECATION
@@ -28,8 +29,6 @@
 
 bool g_headerHovered = false; 
 bool g_windowOpen = false;
-
-void set_proc_theme_colors();
 
 struct app_ctx { 
     std::string Title; 
@@ -49,6 +48,10 @@ void Window::setDimensions(ImVec2 dimensions) {
 //
 
 #ifdef _WIN32
+
+HWND _hWnd;
+WNDPROC original_proc;
+
 void bringToFront(HWND hwnd)
 {
     DWORD threadId  = ::GetCurrentThreadId();
@@ -79,6 +82,84 @@ void wnd_center(void* hwnd)
         rectClient.right - rectClient.left, rectClient.bottom - rectClient.top, TRUE
     );
 }
+
+auto hit_test(POINT cursor) -> LRESULT {
+    // identify borders and corners to allow resizing the window.
+    // Note: On Windows 10, windows behave differently and
+    // allow resizing outside the visible window frame.
+    // This implementation does not replicate that behavior.
+    const POINT border{
+        2,
+        2
+    };
+
+    RECT window;
+    if (!::GetWindowRect(_hWnd, &window)) {
+        return HTNOWHERE;
+    }
+
+    const auto drag = HTCAPTION;
+
+    enum region_mask {
+        client = 0b0000,
+        left = 0b0001,
+        right = 0b0010,
+        top = 0b0100,
+        bottom = 0b1000,
+    };
+
+    const auto result =
+        left * (cursor.x < (window.left + border.x)) |
+        right * (cursor.x >= (window.right - border.x)) |
+        top * (cursor.y < (window.top + border.y)) |
+        bottom * (cursor.y >= (window.bottom - border.y));
+
+    switch (result) {
+        case client: {
+            if (g_headerHovered && cursor.x <= window.right - 25) {
+                return drag;
+            }
+            else {
+                return HTCLIENT;
+            }
+        }
+        default: return HTNOWHERE;
+    }
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    static tagPOINT last_loc;
+
+    switch (msg)
+    {
+        case WM_NCCALCSIZE: {
+            return 0;
+        }
+        case WM_NCHITTEST: {
+            return hit_test(POINT{
+                GET_X_LPARAM(lParam),
+                GET_Y_LPARAM(lParam)
+            });
+            break;
+        }
+        case WM_NCACTIVATE: {
+            return 1;
+        }
+        case WM_CLOSE: {
+            g_windowOpen = false;
+            ::DestroyWindow(hWnd);
+            return 0;
+        }
+        case WM_DESTROY: {
+            g_windowOpen = false;
+            PostQuitMessage(0);
+            return 0;
+        }
+    }
+    return CallWindowProc(original_proc, hWnd, msg, wParam, lParam);
+}
+
 #endif
 
 void initFontAtlas()
@@ -130,24 +211,45 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(appinfo.width, appinfo.height, "Millennium HostWND", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(appinfo.width, appinfo.height, "Millennium", nullptr, nullptr);
     if (window == nullptr)
         return 1;
 
     glfwMakeContextCurrent(window);
     glfwSetDropCallback(window, drop_callback);
 
+#ifdef _WIN32
     glfwSetWindowAttrib(window, GLFW_DECORATED, GLFW_FALSE);
 
-#ifdef _WIN32
-    HWND hwnd = glfwGetWin32Window(window);
-    wnd_center(hwnd);
+    _hWnd = glfwGetWin32Window(window);
+    bringToFront(_hWnd);
+    wnd_center(_hWnd);
 
-    //set_borderless(false, hwnd);
-    ////set_borderless_shadow(true, hwnd);
-    //set_shadow((HWND)hwnd, true);
+    original_proc = (WNDPROC)GetWindowLongPtr(_hWnd, GWLP_WNDPROC);
+    SetWindowLongPtr(_hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WndProc));
+    SetWindowPos(_hWnd, NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE);
+
+    SendMessage(_hWnd, WM_SYSCOMMAND, SC_RESTORE, 0); // restore the minimize window
+    SetForegroundWindow(_hWnd);
+    SetActiveWindow(_hWnd);
+    SetWindowPos(_hWnd, HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOMOVE | SWP_NOSIZE);
+    //redraw to prevent the window blank.
+    RedrawWindow(_hWnd, NULL, 0, RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+
+    FLASHWINFO fi;
+    fi.cbSize = sizeof(FLASHWINFO);
+    fi.hwnd = _hWnd;
+    fi.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
+    fi.uCount = 0;
+    fi.dwTimeout = 0;
+    FlashWindowEx(&fi);
 #endif 
     glfwSwapInterval(1); // Enable vsync
+
+    //glfwSetWindowPosCallback(window, windowDragCallback);
+
+    //// Set mouse button callback
+    //glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -175,42 +277,29 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
     initFontAtlas();
     set_proc_theme_colors();
 
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    bool set_top_most = false;
+    ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 0.00f);
 
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
 
-        // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         {
             static ImGuiWindowFlags flags = /*ImGuiWindowFlags_NoDecoration |*/ ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar /*| ImGuiWindowFlags_NoMove  */ | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking;
 
-            ImGui::SetNextWindowSize(ImVec2((float)appinfo.width, (float)appinfo.height));
-            //ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
+            //ImGui::SetNextWindowSize(ImVec2((float)appinfo.width, (float)appinfo.height));
+
+            ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
+            ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
+
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, g_windowPadding);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.26f, 0.26f, 0.26f, 1.0f));
 
             ImGui::Begin(appinfo.Title.c_str(), &g_windowOpen, flags);
             {
-#ifdef _WIN32
-                if (!set_top_most) {
-                    HWND hwnd = FindWindowA(appinfo.Title.c_str(), appinfo.Title.c_str());
-
-                    std::cout << hwnd << std::endl;
-
-                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-                    bringToFront(hwnd);
-
-                    set_top_most = true;
-                }
-#endif
-
                 ImGui::PopStyleColor();
                 g_headerHovered = ImGui::IsItemHovered();
                 Handler();
@@ -223,8 +312,10 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

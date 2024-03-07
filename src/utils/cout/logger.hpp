@@ -14,7 +14,7 @@ extern std::vector<std::string> socket_log;
 /// </summary>
 class output_console {
 private:
-    std::ofstream fileStream;
+    std::ofstream fileStream{};
     std::mutex logMutex;
 
     std::string get_time();

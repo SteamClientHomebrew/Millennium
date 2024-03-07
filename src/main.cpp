@@ -61,7 +61,7 @@ namespace Millennium
      * - Sleeps for 1 second between updates.
      */
     unsigned long getConsoleHeader(void* lpParam) {
-
+#ifdef _WIN32
         // only update the console header if the console is actually visible
         if (!steam::get().params.has("-dev"))
         {
@@ -83,6 +83,8 @@ namespace Millennium
 
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
+#endif
+       return 0;
     }
 
     unsigned long Bootstrap(void* lpParam)
@@ -114,6 +116,23 @@ namespace Millennium
 
         c_threads::get().hookAllThreads();
         {
+            // check if remote debugging is enabled on the client.
+            // required in order for millennium to work
+            if (!Millennium::checkRemoteDebugging())
+            {
+                //MsgBox("Initialization complete! Restart Steam for changed to take effect.", "Millennium", MB_ICONINFORMATION);
+                MsgBox("Millennium", [&](auto open) {
+
+                    ImGui::TextWrapped("Initialization complete! Restart Steam for changed to take effect.");
+
+                    if (ImGui::Button("Close")) {
+                        *open = false;
+                    }
+                });
+
+                exit(0);
+            }
+
             updater::check_for_updates();
 
             std::cout << " Millennium Dev Tools v" << m_ver << std::endl;
@@ -134,7 +153,7 @@ namespace Millennium
         }
         c_threads::get().unhookAllThreads();
 
-        return true;
+        return 0;
     }
 }
 
@@ -156,21 +175,9 @@ namespace Millennium
 #ifdef _WIN32
 int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 {
-    //MsgBox("","",0)
-
-
     if (call == DLL_PROCESS_ATTACH)
     {
         DisableThreadLibraryCalls(hinstDLL);
-
-        // check if remote debugging is enabled on the client.
-        // required in order for millennium to work
-        if (!Millennium::checkRemoteDebugging())
-        {
-            MsgBox("Initialization complete! Restart Steam for changed to take effect.", "Millennium", MB_ICONINFORMATION);
-            ExitProcess(EXIT_SUCCESS);
-        }
-
         // start bootstrapper thread disjoined from the main thread 
         // to prevent it from freezing itself when it hooks
         c_threads::get().add(std::thread([&] { Millennium::Bootstrap(nullptr); }));
@@ -178,5 +185,10 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 
     return true;
 }
-#endif
+#elif __linux__
+int main() {
+    std::cout << "This is just a test! Millennium for linux is up!" << std::endl;
 
+    return 0;
+}
+#endif

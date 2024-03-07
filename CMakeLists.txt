@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(millennium-linux LANGUAGES CXX)
+project(millennium LANGUAGES CXX)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wno-format-security)
@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(
     "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/vendor/fmt/include"
-    "${CMAKE_SOURCE_DIR}/vendor/cpr"
+#    "${CMAKE_SOURCE_DIR}/vendor/cpr"
     "${CMAKE_SOURCE_DIR}/src/deps/imgui"
     "${CMAKE_SOURCE_DIR}/vendor/glfw"
     "${CMAKE_SOURCE_DIR}/vendor/asio/asio/include"
@@ -24,7 +24,7 @@ include_directories(
 
 # Library directories, adjust paths as necessary
 link_directories(
-    "${CMAKE_SOURCE_DIR}/vendor/cpr/lib"
+#    "${CMAKE_SOURCE_DIR}/vendor/cpr/lib"
     "${CMAKE_SOURCE_DIR}/vendor/libcurl/lib"
     "${CMAKE_SOURCE_DIR}/src/deps/glfw"
     "${CMAKE_SOURCE_DIR}/vendor/directx/Lib/x86"
@@ -35,7 +35,7 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 # Define preprocessor definitions
 add_compile_definitions(
-    __linux__
+    FMT_HEADER_ONLY
     _WEBSOCKETPP_CPP11_THREAD_
     CURL_STATICLIB
     ASIO_HAS_STD_INVOKE_RESULT
@@ -46,7 +46,7 @@ add_compile_definitions(
 )
 
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cpr
+#    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cpr
     ${CMAKE_CURRENT_SOURCE_DIR}/src/deps/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/glfw
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/asio/asio/include
@@ -58,7 +58,7 @@ include_directories(
 )
 
 link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cpr/lib
+#    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cpr/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/libcurl/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/src/deps/glfw
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -167,11 +167,23 @@ set(HEADER_FILES
 # Define the executable or library
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
-# Link libraries
-target_link_libraries(${PROJECT_NAME}
-    "cpr.lib;opengl32.lib;glfw3.lib;version.lib;ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib"
-)
+find_package(cpr CONFIG REQUIRED)
+#target_link_libraries(millennium PRIVATE cpr::cpr)
 
+find_package(OpenGL REQUIRED) # Finds the OpenGL library
+find_package(glfw3 REQUIRED) # Assumes you have installed GLFW on your system
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${OPENGL_LIBRARIES} glfw
+    cpr::cpr
+#    opengl32.lib
+#    glfw3.lib
+#    version.lib
+#    ws2_32.lib
+#    Pdh.lib
+#    wininet.lib
+#    mscoree.lib
+)
 # Set output directory for binaries
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/${CMAKE_SYSTEM_NAME}/${PROJECT_NAME}"

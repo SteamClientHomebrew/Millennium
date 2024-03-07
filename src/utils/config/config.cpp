@@ -294,7 +294,7 @@ public:
 
         if (!data.contains("gh_username") || !data.contains("gh_repo") || !data.contains("skin-json"))
         {
-            MessageBoxA(GetForegroundWindow(), "remote skin has invalid formatting. it requires json keys\ngh_username\ngh_repo\nskin-json", "Millennium", 0);
+            //MessageBoxA(GetForegroundWindow(), "remote skin has invalid formatting. it requires json keys\ngh_username\ngh_repo\nskin-json", "Millennium", 0);
             return { {"config_fail", true} };
         }
 
@@ -443,22 +443,40 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
         });
 
     if (hasJavaScriptPatch && Settings::Get<bool>("allow-javascript") == false && !Settings::Get<bool>("prompted-js")) {
-        int result = MsgBox(
-            "The selected theme is using JavaScript to enhance your Steam experience.\n"
-            "You have JavaScript disabled in Millennium settings, therefore, the selected skin may not function properly.\n\n"
-            "Enable JavaScript ONLY IF you trust the developer, have manually reviewed the code, or it's an official theme.\n\n"
-            "Would you like to enable JavaScript execution?",
-            "Notice", 
-            MB_YESNO | MB_ICONINFORMATION
-        );
-        switch (result) {
-            case IDYES: {
+        
+        MsgBox("Information", [&](auto open) {
+
+            ImGui::TextWrapped("The selected theme is using JavaScript to enhance your Steam experience.\n"
+                "You have JavaScript disabled in Millennium settings, therefore, the selected skin may not function properly.\n\n"
+                "Enable JavaScript ONLY IF you trust the developer, have manually reviewed the code, or it's an official theme.\n\n"
+                "Would you like to enable JavaScript execution?");
+
+            if (ImGui::Button("Yes")) {
                 Settings::Set("allow-javascript", true);
             }
-            case IDNO: {
-				Settings::Set("prompted-js", true);
-			}
-        }
+            if (ImGui::Button("No")) {
+                Settings::Set("prompted-js", true);
+            }
+
+        });
+        
+        
+   //     int result = MsgBox(
+   //         "The selected theme is using JavaScript to enhance your Steam experience.\n"
+   //         "You have JavaScript disabled in Millennium settings, therefore, the selected skin may not function properly.\n\n"
+   //         "Enable JavaScript ONLY IF you trust the developer, have manually reviewed the code, or it's an official theme.\n\n"
+   //         "Would you like to enable JavaScript execution?",
+   //         "Notice", 
+   //         MB_YESNO | MB_ICONINFORMATION
+   //     );
+   //     switch (result) {
+   //         case IDYES: {
+   //             Settings::Set("allow-javascript", true);
+   //         }
+   //         case IDNO: {
+			//	Settings::Set("prompted-js", true);
+			//}
+   //     }
     }
 
     jsonBuffer["native-name"] = ACTIVE_ITEM;

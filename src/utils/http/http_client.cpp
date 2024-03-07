@@ -6,7 +6,7 @@
 
 #include <stdafx.h>
 #include <utils/config/config.hpp>
-#include <cpr/include/cpr.h>
+#include <cpr/cpr.h>
 
 static constexpr const std::string_view user_agent = "millennium.patcher";
 
