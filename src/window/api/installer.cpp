@@ -93,6 +93,7 @@ namespace Community
 #elif __linux__
     bool unzip(std::string zipFileName, std::string targetDirectory) {
         console.err("__linux__ unzip DOES NOT HAVE AN IMPLEMENTATION");
+        return false;
     }
 #endif
 

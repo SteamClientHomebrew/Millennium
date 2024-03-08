@@ -25,7 +25,11 @@ void output_console::log(std::string type, const std::string& message)
 
 	//output_log.push_back(fmt::format("{}{}{}", get_time(), type, message));
 
+    // segmentation fault on linux? not sure why
+#ifdef _WIN32
 	fileStream << get_time() << type << message << std::endl;
+#endif
+
 
 	std::cout << get_time() << type << message << std::endl;
 }

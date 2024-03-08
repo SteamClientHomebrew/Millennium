@@ -7,6 +7,7 @@
 
 # Ignore directories
 dist/
+bin/
 intermediate/
 .vs/
 obj/
@@ -21,5 +22,6 @@ millennium.updater/bin
 
 cmake-build-debug
 build
+bin/
 # Ignore Clion config
 .idea
