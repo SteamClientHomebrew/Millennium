@@ -604,7 +604,6 @@ const void themeConfig::setupMillennium() noexcept
 
     // sets the default accent color to a blue-ish value
     nullOverwrite("accent-col", "#42B3F6");
-
 }
 
 themeConfig::updateEvents& themeConfig::updateEvents::getInstance() {
