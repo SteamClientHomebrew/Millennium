@@ -182,10 +182,7 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 //public:
 //
 //    static inline void start() {
-//        while (true) {
-//            console.log("WARMING MILLENNIUM (LINUX)");
-//            std::this_thread::sleep_for(std::chrono::seconds(1));
-//        }
+//        Millennium::Bootstrap(nullptr);
 //    }
 //
 //    bootstrap_wrap()

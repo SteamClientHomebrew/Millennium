@@ -299,8 +299,11 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
         ImGui::NewFrame();
 
         {
-            static ImGuiWindowFlags flags = /*ImGuiWindowFlags_NoDecoration |*/ ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar /*| ImGuiWindowFlags_NoMove  */ | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking;
-
+#ifdef _WIN32
+            static ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking;
+#elif __linux__
+            static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking;
+#endif
             //ImGui::SetNextWindowSize(ImVec2((float)appinfo.width, (float)appinfo.height));
 
             ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
