@@ -3,6 +3,8 @@
 #include <iostream>
 #ifdef _WIN32
 #include <minmax.h>
+#elif __linux__
+#include <window/core/colors.hpp>
 #endif
 
 #ifdef _WIN32 
@@ -97,9 +99,60 @@ std::string getColorStr() {
     "}");
 }
 #elif __linux__
+
+struct RGB {
+    unsigned int r, g, b;
+};
+
+RGB hex_to_rgb(std::string& hexColor)
+{
+    if (hexColor[0] == '#') {
+        hexColor.erase(0, 1);
+    }
+
+    std::stringstream ss;
+    ss << std::hex << hexColor;
+    unsigned int hexValue;
+    ss >> hexValue;
+
+    RGB rgbColor = {
+        (hexValue >> 16) & 0xFF, (hexValue >> 8) & 0xFF, hexValue & 0xFF
+    };
+    return rgbColor;
+}
+
+std::string rgb_to_hex(unsigned int red, unsigned int green, unsigned int blue) {
+    std::stringstream ss;
+    ss << std::setfill('0') << std::setw(2) << std::hex << red
+       << std::setw(2) << std::hex << green << std::setw(2) << std::hex << blue;
+    return "#" + ss.str();
+}
+
+std::string adjust_bright(std::string hexColor, int percentChange) {
+
+    RGB rgb = hex_to_rgb(hexColor);
+
+    double factor = (100.0 + percentChange) / 100.0;
+    rgb.r = std::min(255, static_cast<int>(rgb.r * factor));
+    rgb.g = std::min(255, static_cast<int>(rgb.g * factor));
+    rgb.b = std::min(255, static_cast<int>(rgb.b * factor));
+
+    return rgb_to_hex(rgb.r, rgb.g, rgb.b);
+}
+
 std::string getColorStr() {
 
-    // TODO
-    return (":root {}");
+    auto col = Settings::Get<std::string>("accent-col");
+
+    std::string colors = (":root { "
+        "--SystemAccentColor: " + col + "; "
+        "--SystemAccentColorLight1: " + adjust_bright(col, 25) + "; "
+        "--SystemAccentColorLight2: " + adjust_bright(col, 50) + "; "
+        "--SystemAccentColorLight3: " + adjust_bright(col, 75) + "; "
+        "--SystemAccentColorDark1: " + adjust_bright(col, -25) + "; "
+        "--SystemAccentColorDark2: " + adjust_bright(col, -50) + "; "
+        "--SystemAccentColorDark3: " + adjust_bright(col, -75) + "; "
+    "}");
+    return colors;
 }
 #endif

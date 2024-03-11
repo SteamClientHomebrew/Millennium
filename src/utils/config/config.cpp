@@ -600,7 +600,10 @@ const void themeConfig::setupMillennium() noexcept
     nullOverwrite("shownNewUserPrompt", false); 
 
     nullOverwrite("corner-preference", 0); 
-    nullOverwrite("mica-effect", false); 
+    nullOverwrite("mica-effect", false);
+
+    // sets the default accent color to a blue-ish value
+    nullOverwrite("accent-col", "#42B3F6");
 
 }
 

@@ -371,6 +371,41 @@ public:
 			ImGui::Spacing();
 #endif
 
+#ifdef __linux__
+            static std::string accent_col = Settings::Get<std::string>("accent-col");
+
+            ImGui::Text("Linux Accent Color");
+
+            ImGui::SameLine();
+
+            ui::shift::x(-3);
+            ImGui::TextWrapped("(?)");
+
+            if (ImGui::IsItemHovered()) {
+                ImGui::SetTooltip("Custom set a accent color for steam windows on Linux");
+            }
+
+            ImGui::SameLine();
+
+            static ImVec4 color = colors::HexToImVec4(accent_col);
+
+            //ImGui::ColorPicker3("###AccentCol", &color);
+            ImGui::PushItemWidth(90);
+            ImGui::ColorEdit3("###AccentCol", &color.x, ImGuiColorEditFlags_DisplayHex);
+            ImGui::PopItemWidth();
+
+            if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+
+            if (ImGui::Button("Save Color")) {
+                Settings::Set<std::string>("accent-col", "#" + colors::ImVec4ToHex(color));
+                SteamJSContext.reload();
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+#endif
+
 			static bool enable_store = Settings::Get<bool>("auto-update-themes");
 			static bool enable_notifs = Settings::Get<bool>("auto-update-themes-notifs");
 

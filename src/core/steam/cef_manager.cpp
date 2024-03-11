@@ -54,12 +54,7 @@ cef_dom& cef_dom::get()
  */
 std::string system_color_script() 
 {
-#ifdef _WIN32
     return fmt::format("(document.querySelector('#SystemAccentColorInject') || document.head.appendChild(Object.assign(document.createElement('style'), {{ id: 'SystemAccentColorInject' }}))).innerText = `{}`;", getColorStr());
-#elif __linux__
-    console.err("system_color_script HAS NO IMPLEMENTATION");
-    return "";
-#endif
 }
 
 /**

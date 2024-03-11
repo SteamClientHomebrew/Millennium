@@ -22,7 +22,7 @@ void OpenURL(std::string url) {
 #ifdef _WIN32
     ShellExecute(0, "open", url.c_str(), 0, 0, SW_SHOWNORMAL);
 #elif __linux__
-    system(fmt::format("xdg-open {} &", url.c_str() ).c_str());
+    int _ = system(fmt::format("xdg-open {} &", url.c_str() ).c_str());
 #endif
 }
 
