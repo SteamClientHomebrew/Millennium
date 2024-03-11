@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <fmt/color.h>
 
-//std::vector<std::string> output_log = {};
+std::vector<std::string> output_log = {};
 std::vector<std::string> socket_log = {};
 
 std::string output_console::get_time()
@@ -23,13 +23,12 @@ void output_console::log(std::string type, const std::string& message)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 
-	//output_log.push_back(fmt::format("{}{}{}", get_time(), type, message));
+	output_log.push_back(fmt::format("{}{}{}", get_time(), type, message));
 
     // segmentation fault on linux? not sure why
-#ifdef _WIN32
+//#ifdef _WIN32
 	fileStream << get_time() << type << message << std::endl;
-#endif
-
+//#endif
 
 	std::cout << get_time() << type << message << std::endl;
 }
@@ -102,4 +101,8 @@ void output_console::log_patch(std::string type, std::string what_patched, std::
 	//output_log.push_back(message);
 	fileStream << get_time() << message << std::endl;
 	std::cout << get_time() << message << std::endl;
+}
+
+std::vector<std::string> output_console::get_log() {
+    return output_log;
 }

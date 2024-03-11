@@ -13,7 +13,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(
     "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/vendor/fmt/include"
-#    "${CMAKE_SOURCE_DIR}/vendor/cpr"
     "${CMAKE_SOURCE_DIR}/src/deps/imgui"
     "${CMAKE_SOURCE_DIR}/vendor/glfw"
     "${CMAKE_SOURCE_DIR}/vendor/asio/asio/include"
@@ -24,7 +23,6 @@ include_directories(
 
 # Library directories, adjust paths as necessary
 link_directories(
-#    "${CMAKE_SOURCE_DIR}/vendor/cpr/lib"
     "${CMAKE_SOURCE_DIR}/vendor/libcurl/lib"
     "${CMAKE_SOURCE_DIR}/src/deps/glfw"
     "${CMAKE_SOURCE_DIR}/vendor/directx/Lib/x86"
@@ -46,7 +44,6 @@ add_compile_definitions(
 )
 
 include_directories(
-#    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cpr
     ${CMAKE_CURRENT_SOURCE_DIR}/src/deps/imgui
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/glfw
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/asio/asio/include
@@ -58,27 +55,11 @@ include_directories(
 )
 
 link_directories(
-#    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cpr/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/libcurl/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/src/deps/glfw
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/your_additional_library_path
 )
-
-# target_link_libraries(your_target_name PRIVATE
-#     cpr
-#     opengl32
-#     glfw3
-#     version
-#     ws2_32
-#     Pdh
-#     wininet
-#     mscoree
-#     ${CMAKE_DL_LIBS}  # This is required for some platforms, include if necessary
-#     ${CMAKE_THREAD_LIBS_INIT}  # This is required for threading libraries, include if necessary
-#     ${CMAKE_SYSTEM_LIBRARIES}  # This includes system-specific libraries, include if necessary
-# )
-
 
 # Source and header files
 set(SOURCE_FILES
@@ -163,9 +144,27 @@ set(HEADER_FILES
     src/utils/json.hpp
     src/utils/cout/logger.hpp
 )
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+
+include_directories(${GTK3_INCLUDE_DIRS})
+link_directories(${GTK3_LIBRARY_DIRS})
+add_definitions(${GTK3_CFLAGS_OTHER})
+
+# Find GTKmm package
+find_package(PkgConfig)
+pkg_check_modules(GTKMM gtkmm-3.0)
+
+# Include GTKmm headers
+include_directories(${GTKMM_INCLUDE_DIRS})
 
 # Define the executable or library
+#add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+
+#set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+#set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "libxcb")
+#set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".so.1")
 
 find_package(cpr CONFIG REQUIRED)
 #target_link_libraries(millennium PRIVATE cpr::cpr)
@@ -174,20 +173,16 @@ find_package(OpenGL REQUIRED) # Finds the OpenGL library
 find_package(glfw3 REQUIRED) # Assumes you have installed GLFW on your system
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    ${OPENGL_LIBRARIES} glfw
+    ${OPENGL_LIBRARIES}
+    ${GTK3_LIBRARIES}
+    ${GTKMM_LIBRARIES}
+    glfw
     cpr::cpr
-#    opengl32.lib
-#    glfw3.lib
-#    version.lib
-#    ws2_32.lib
-#    Pdh.lib
-#    wininet.lib
-#    mscoree.lib
 )
 # Set output directory for binaries
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/${CMAKE_SYSTEM_NAME}/${PROJECT_NAME}"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/lib/${CMAKE_BUILD_TYPE}/${CMAKE_SYSTEM_NAME}/${PROJECT_NAME}"
+    LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"
 )
 
 # Additional configurations for include directories and definitions can be added here as needed.

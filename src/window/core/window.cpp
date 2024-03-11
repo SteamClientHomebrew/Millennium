@@ -9,6 +9,7 @@
 #include <utils/config/config.hpp>
 #include <window/interface/globals.h>
 #include <window/api/installer.hpp>
+#include "memory.h"
 
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "glfw3.lib")
@@ -166,6 +167,7 @@ void initFontAtlas()
 {
     ImGuiIO IO = ImGui::GetIO();
     IO.Fonts->AddFontFromMemoryCompressedTTF(aptos_compressed_data, aptos_compressed_size, 17.0f);
+    //IO.Fonts->AddFontFromMemoryCompressedTTF(Memory::cascadia, sizeof Memory::cascadia, 17.0f);
 }
 
 //void initTextures()
@@ -186,8 +188,15 @@ bool g_processingFileDrop = false;
 bool g_openSuccessPopup = false;
 std::string g_fileDropStatus = "";
 
+#define INVALID_WND_ATTR 65539
+
 static void glfw_error_callback(int error, const char* description)
 {
+    // no idea what causes this error
+    if (error == INVALID_WND_ATTR) {
+        return;
+    }
+
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
@@ -208,7 +217,9 @@ bool Application::Create(std::function<void()> Handler, std::function<void()> ca
     const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+#ifdef _WIN32
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+#endif
 
     // Create window with graphics context
     GLFWwindow* window = glfwCreateWindow(appinfo.width, appinfo.height, "Millennium", nullptr, nullptr);

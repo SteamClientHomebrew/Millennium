@@ -6,7 +6,6 @@
 #endif
 #include <mutex> 
 
-extern std::vector<std::string> output_log;
 extern std::vector<std::string> socket_log;
 
 /// <summary>
@@ -25,6 +24,8 @@ public:
 
     output_console();
     ~output_console();
+
+    std::vector<std::string> get_log();
 
     void log(std::string val);
     void err(std::string val);

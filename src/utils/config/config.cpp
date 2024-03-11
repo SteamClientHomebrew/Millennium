@@ -13,10 +13,15 @@
 
 remote_skin millennium_remote;
 
+#ifdef _WIN32
 static const std::string settings_path = "./.millennium/config/client.json";
+#elif __linux__
+static const std::string settings_path = fmt::format("{}/.steam/millennium/config/client.json", std::getenv("HOME"));
+#endif
 
 void ensure()
 {
+    std::cout << "ensuring validity of client settings" << std::endl;
     auto path = std::filesystem::path(settings_path);
 
     try {
@@ -202,7 +207,10 @@ themeConfig::themeConfig()
     m_steamPath = std::string(buffer, bufferSize);
     m_themesPath = fmt::format("{}/steamui/skins", std::string(buffer, bufferSize));
 #elif __linux__
-    console.err("themeConfig::themeConfig() HAS NOT BEEN IMPLEMENTED");
+
+    m_steamPath = fmt::format("{}/.steam/steam", std::getenv("HOME"));;
+    m_themesPath = fmt::format("{}/steamui/skins", m_steamPath);
+    //console.err("themeConfig::themeConfig() HAS NOT BEEN IMPLEMENTED");
 #endif
 }
 
@@ -554,7 +562,10 @@ const void themeConfig::setupMillennium() noexcept
 {
     try {
         if (!std::filesystem::exists(this->getSkinDir()))
+        {
+            console.log(fmt::format("setting up 'skins' directory @ {}", this->getSkinDir()));
             std::filesystem::create_directories(this->getSkinDir());
+        }
     }
     catch (const std::filesystem::filesystem_error& e) {
         console.err(fmt::format("Error creating 'skins' directory. reason: {}", e.what()));

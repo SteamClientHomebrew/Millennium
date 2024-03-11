@@ -6,20 +6,14 @@
 
 #include <utils/thread/thread_handler.hpp>
 #include <core/injector/startup/bootstrap.hpp>
-
-#pragma comment(lib, "pdh.lib")
 #include <utils/io/metrics.hpp>
-
 #include <utils/updater/update.hpp>
 #include <utils/clr/platform.hpp>
-
 #ifdef _WIN32
 #include <Psapi.h>
 #include <pdh.h>
 #include <core/steam/window/manager.hpp>
-#elif __linux__
-#include <fcntl.h>
-#include <unistd.h>
+#pragma comment(lib, "pdh.lib")
 #endif
 
 namespace Millennium
@@ -36,6 +30,9 @@ namespace Millennium
      */
     unsigned long checkRemoteDebugging(void)
     {
+        console.log("setting remote debugger flag");
+
+#ifdef _WIN32
         constexpr const std::basic_string_view<char> filePath = ".cef-enable-remote-debugging";
 
         if (!std::ifstream(filePath.data()))
@@ -43,7 +40,18 @@ namespace Millennium
             std::ofstream(filePath.data()).close();
             return false;
         }
+#elif __linux__
+        const std::string filePath =
+            fmt::format("{}/.local/share/Steam/.cef-enable-remote-debugging", std::getenv("HOME"));
 
+        console.log(fmt::format("writing flag to -> {}", filePath));
+
+        if (!std::ifstream(filePath))
+        {
+            std::ofstream(filePath).close();
+            return false;
+        }
+#endif
         return true;
     }
 
@@ -97,19 +105,6 @@ namespace Millennium
             static_cast<bool>(AllocConsole());
             void(freopen("CONOUT$", "w", stdout));
             void(freopen("CONOUT$", "w", stderr));
-
-#elif __linux__
-            // This is untested and unverified 
-            int fd_console;
-            fd_console = open("/dev/tty", O_RDWR);
-
-            if (fd_console == -1) {
-                perror("Error opening console");
-                return 1;
-            }
-            dup2(fd_console, STDIN_FILENO);
-            dup2(fd_console, STDOUT_FILENO);
-            dup2(fd_console, STDERR_FILENO);
 #endif
             console.consoleAllocated = true;
         }
@@ -122,7 +117,6 @@ namespace Millennium
             {
                 //MsgBox("Initialization complete! Restart Steam for changed to take effect.", "Millennium", MB_ICONINFORMATION);
                 msg::show("Initialization complete! Restart Steam for changed to take effect.", "Millennium");
-
                 exit(0);
             }
 
@@ -137,10 +131,11 @@ namespace Millennium
 #ifdef _WIN32
             // adjust the steam client windows.
             c_threads::get().add(std::thread([&] { StartWinHookAsync(nullptr); }));
-#endif
             c_threads::get().add(std::thread([&] { getConsoleHeader(nullptr); }));
             c_threads::get().add(std::thread([&] { Initialize(); }));
-
+#elif __linux__
+            Initialize();
+#endif
             // synchronously run theme updater 
             queryThemeUpdates(nullptr);
         }
@@ -179,9 +174,39 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
     return true;
 }
 #elif __linux__
-int main() {
-    std::cout << "This is just a test! Millennium for linux is up!" << std::endl;
+
+
+//static bool instantiated = false;
+//
+//class bootstrap_wrap {
+//public:
+//
+//    static inline void start() {
+//        while (true) {
+//            console.log("WARMING MILLENNIUM (LINUX)");
+//            std::this_thread::sleep_for(std::chrono::seconds(1));
+//        }
+//    }
+//
+//    bootstrap_wrap()
+//    {
+//        if (instantiated) {
+//            return;
+//        }
+//
+//        start();
+//        instantiated = true;
+//    }
+//};
+//
+//bootstrap_wrap wrapper;
+
+int main()
+{
+    console.log("WARMING MILLENNIUM (LINUX)");
+    Millennium::Bootstrap(nullptr);
 
     return 0;
 }
+
 #endif
