@@ -9,22 +9,45 @@ nlohmann::basic_json<> millennium::readFileSync(std::string path)
 	nlohmann::basic_json<> data;
 
 	std::string file_content((std::istreambuf_iterator<char>(skin_json_file)), std::istreambuf_iterator<char>());
-
+	skin_json_file.close();
 
 	if (!nlohmann::json::accept(file_content))
 	{
-        auto message = fmt::format("Invalid JSON file -> [{}]\nIf you can't fix it, remove the folder.\nExiting...", path).c_str();
+		std::string name = std::filesystem::path(path).parent_path().filename().string();
+		std::string message = fmt::format("A theme named [{}] was detected as broken, specifically the skin.json is invalid. If you can't fix it, remove the theme from the themes folder.\n\n\nWould you like to automatically delete this theme?\nYou have to restart Steam after.", name);
 		//MsgBox(message, "Error", MB_ICONERROR);
 
-		MsgBox("Error", [&](auto open) {
+		//MsgBox("Error", [&](auto open) {
 
-			ImGui::TextWrapped(message);
+		//	ImGui::TextWrapped(message.c_str());
 
-			if (ImGui::Button("Close")) {
+		//	if (ImGui::Button("Delete Theme"))
+		//	{
+		//		auto parent = std::filesystem::path(path).parent_path();
+		//		std::filesystem::remove_all(std::filesystem::path(parent));
+		//	}
+		//	ImGui::SameLine();
+		//	ui::shift::x(-4);
+		//	if (ImGui::Button("Close")) {
+		//		*open = false;
+		//	}
+		//});
 
+		auto selection = msg::show(message.c_str(), "Oops!", Buttons::YesNo);
+
+		std::cout << std::filesystem::path(path).parent_path().string() << std::endl;
+
+		if (selection == Selection::Yes)
+		{
+			try {
+				auto parent = std::filesystem::path(path).parent_path();
+				std::filesystem::remove_all(std::filesystem::path(parent));
 			}
-		});
-
+			catch (const std::filesystem::filesystem_error& ex)
+			{
+				msg::show(fmt::format("couldn't delete the conflicting theme:\n\n{}", ex.what()).c_str(), "Another Oops :(");
+			}
+		}
 		exit(0);
 	}
 
@@ -380,9 +403,8 @@ void millennium::parseSkinData(bool checkForUpdates, bool setCommit, std::string
 	if (!std::filesystem::exists(steamPath)) {
 		//MsgBox("Couldn't find skins folder? it disappeared :O", "Error", MB_ICONERROR);
 
-		MsgBox("Error", [&](auto open) {
-			ImGui::TextWrapped("Couldn't find skins folder? it disappeared :O");
-		});
+
+		auto selection = msg::show("Couldn't find skins folder? it disappeared :O", "Error", Buttons::OK);
 		return;
 	}
 

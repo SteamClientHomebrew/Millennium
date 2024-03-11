@@ -41,15 +41,18 @@ namespace Community
                 //MsgBox("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
                 //    "Make sure the skin isn't archived, and it exists on your disk", "Can't Add Skin", MB_ICONERROR);
                 //
-                MsgBox("Can't Add Skin", [&](auto open) {
+                //MsgBox("Can't Add Skin", [&](auto open) {
 
-                    ImGui::TextWrapped("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
-                        "Make sure the skin isn't archived, and it exists on your disk");
+                //    ImGui::TextWrapped("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
+                //        "Make sure the skin isn't archived, and it exists on your disk");
 
-                    if (ImGui::Button("Close")) {
+                //    if (ImGui::Button("Close")) {
 
-                    }
-                });
+                //    }
+                //});
+
+                auto selection = msg::show("The dropped skin either doesn't exist, isn't a folder, or doesn't have a skin.json inside. "
+                    "Make sure the skin isn't archived, and it exists on your disk", "Bootstrap Error", Buttons::OK);
 
                 return;
             }
@@ -59,10 +62,12 @@ namespace Community
         catch (const std::filesystem::filesystem_error& error) {
             //MsgBox(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Fatal Error", MB_ICONERROR);
 
-            MsgBox("Can't Add Skin", [&](auto open) {
+            //MsgBox("Can't Add Skin", [&](auto open) {
 
-                ImGui::TextWrapped(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str());
-            });
+            //    ImGui::TextWrapped(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str());
+            //});
+
+            auto selection = msg::show(fmt::format("An error occured while adding the dropped skin to your library.\nError:\n{}", error.what()).c_str(), "Can't Add Skin", Buttons::OK);
         }
     }
 
@@ -123,41 +128,45 @@ namespace Community
                 std::cout << "couldn't extract file" << std::endl;
                 //MsgBox("couldn't extract file", "Millennium", MB_ICONERROR);
 
-                MsgBox("Can't Add Skin", [&](auto open) {
+                //MsgBox("Can't Add Skin", [&](auto open) {
 
-                    ImGui::TextWrapped("couldn't extract file");
+                //    ImGui::TextWrapped("couldn't extract file");
 
-                    if (ImGui::Button("Close")) {
+                //    if (ImGui::Button("Close")) {
 
-                    }
-                });
+                //    }
+                //});
+                auto selection = msg::show("couldn't extract file", "Can't Add Skin", Buttons::OK);
             }
         }
         catch (const http_error&) {
             console.err("Couldn't download bytes from the file");
             //MsgBox("Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
 
-            MsgBox("Millennium", [&](auto open) {
+            //MsgBox("Millennium", [&](auto open) {
 
-                ImGui::TextWrapped("Couldn't download bytes from the file");
+            //    ImGui::TextWrapped("Couldn't download bytes from the file");
 
-                if (ImGui::Button("Close")) {
+            //    if (ImGui::Button("Close")) {
 
-                }
-                });
+            //    }
+            //    });
+
+            auto selection = msg::show("Couldn't download bytes from the file", "Can't Add Skin", Buttons::OK);
         }
         catch (const std::exception& err) {
             console.err(fmt::format("Exception form {}: {}", __func__, err.what()));
-            auto error = fmt::format("Exception form {}: {}", __func__, err.what()).c_str();
+            std::string error = fmt::format("Exception form {}: {}", __func__, err.what());
             //MsgBox(error, "Millennium", MB_ICONERROR);
-            MsgBox("Millennium", [&](auto open) {
+            //MsgBox("Millennium", [&](auto open) {
 
-                ImGui::TextWrapped(error);
+            //    ImGui::TextWrapped(error);
 
-                if (ImGui::Button("Close")) {
+            //    if (ImGui::Button("Close")) {
 
-                }
-            });
+            //    }
+            //});
+            auto selection = msg::show(error.c_str(), "Can't Add Skin", Buttons::OK);
         }
         g_processingFileDrop = false;
     }

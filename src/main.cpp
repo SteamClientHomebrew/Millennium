@@ -121,14 +121,7 @@ namespace Millennium
             if (!Millennium::checkRemoteDebugging())
             {
                 //MsgBox("Initialization complete! Restart Steam for changed to take effect.", "Millennium", MB_ICONINFORMATION);
-                MsgBox("Millennium", [&](auto open) {
-
-                    ImGui::TextWrapped("Initialization complete! Restart Steam for changed to take effect.");
-
-                    if (ImGui::Button("Close")) {
-                        *open = false;
-                    }
-                });
+                msg::show("Initialization complete! Restart Steam for changed to take effect.", "Millennium");
 
                 exit(0);
             }

@@ -80,29 +80,29 @@ public:
 	void deleteListing(std::string fileName) {
 #ifdef _WIN32
 
-		MsgBox("Confirmation", [&](auto open) {
-			ImGui::TextWrapped(fmt::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str());
+		//MsgBox("Confirmation", [&](auto open) {
+		//	ImGui::TextWrapped(fmt::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str());
 
 
-			if (ImGui::Button("Yes")) 
-			{
-				std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), fileName);
-				if (std::filesystem::exists(disk_path)) {
+		//	if (ImGui::Button("Yes")) 
+		//	{
+		//		std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), fileName);
+		//		if (std::filesystem::exists(disk_path)) {
 
-					try {
-						std::filesystem::remove_all(std::filesystem::path(disk_path));
-					}
-					catch (const std::exception& ex) {
-						//MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
-						console.err(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str());
-					}
-				}
-				m_Client.parseSkinData(false);
-			}
-			if (ImGui::Button("No")) {
-				*open = false;
-			}
-		});
+		//			try {
+		//				std::filesystem::remove_all(std::filesystem::path(disk_path));
+		//			}
+		//			catch (const std::exception& ex) {
+		//				//MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+		//				console.err(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str());
+		//			}
+		//		}
+		//		m_Client.parseSkinData(false);
+		//	}
+		//	if (ImGui::Button("No")) {
+		//		*open = false;
+		//	}
+		//});
 
 
 		//int result = MsgBox(fmt::format("Are you sure you want to delete {}?\nThis cannot be undone.", fileName).c_str(), "Confirmation", MB_YESNO | MB_ICONINFORMATION);

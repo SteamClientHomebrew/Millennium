@@ -89,15 +89,19 @@ void updater::check_for_updates()
         {
             auto message = api["message"].get<std::string>().c_str();
 
-            //MsgBox(message, "Bootstrap Error", MB_ICONINFORMATION);
-            MsgBox("Bootstrap Error", [&](auto open) {
+            ////MsgBox(message, "Bootstrap Error", MB_ICONINFORMATION);
+            //MsgBox("Bootstrap Error", [&](auto open) {
 
-                ImGui::TextWrapped(message);
+            //    ImGui::TextWrapped(message);
 
-                if (ImGui::Button("Close")) {
+            //    if (ImGui::Button("Close")) {
 
-                }
-            });
+            //    }
+            //});
+
+
+            auto selection = msg::show(message, "Bootstrap Error", Buttons::OK);
+
 
             return;
         }

@@ -1,6 +1,6 @@
 #include "settings.hpp"
 
-std::string ui_interface::settings_page_renderer() 
+std::string ui_interface::settings_page_renderer()
 {
     std::string javaScript = R"(
 function waitForElement(querySelector, timeout) {
@@ -124,6 +124,8 @@ const renderer = {
     init: () => {     
         waitForElement('[class*="settings_DesktopPopup_"]').then(({matchedElements}) => {
             init.settings()
+        }, 5000).catch(err => {
+            window.opener.console.log("millennium.user.message:", JSON.stringify({id: '[open-millennium]'}))
         });
     }
 }

@@ -18,6 +18,7 @@
 
 #include <regex>
 #include "conditions/conditionals.hpp"
+#include <utils/io/input-output.hpp>
 
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -470,6 +471,11 @@ private:
                 std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
 
                 steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
+
+
+                //std::string normalizer = file::readFileSync(fmt::format("{}/steamui/unmangler.js", config.getSteamRoot()));
+
+                //steam_interface.push_to_socket(steam_client, hdl, normalizer, m_socket_resp["sessionId"]);
             }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
@@ -1237,23 +1243,32 @@ void Initialize()
         {
             ws_Client c;
 #ifdef _WIN32 // TODO: Compat with linux
-            std::string output = exec_cmd(R"(for /f "tokens=5" %a in ('netstat -aon ^| findstr 8080') do wmic process where processId=%a get name)");
-            std::string conflictPath = exec_cmd(R"(for /f "tokens=5" %a in ('netstat -aon ^| findstr 8080') do wmic process where processId=%a get ExecutablePath)");
+            //std::string output = exec_cmd(R"(for /f "tokens=5" %a in ('netstat -aon ^| findstr 8080') do wmic process where processId=%a get name)");
+            //std::string conflictPath = exec_cmd(R"(for /f "tokens=5" %a in ('netstat -aon ^| findstr 8080') do wmic process where processId=%a get ExecutablePath)");
 
-            if (output.find("steamwebhelper.exe") == std::string::npos) {
-                MsgBox("Bootstrap Error", [&](auto open) {
+            //std::cout << output << std::endl;
 
-                    ImGui::TextWrapped("Millennium couldn't start because another application is using port 8080, "
-                        "which is vital for the functionality of the main app."
-                        "\nEither uninstall this conflicting app, uninstall millennium, or disable the conflicting application\n\nConfliction Detected:\n");
+            //if (output.find("steamwebhelper.exe") == std::string::npos && output.find("steam.exe") == std::string::npos) {
+            //    //MsgBox("Bootstrap Error", [&](auto open) {
 
-                    ImGui::TextWrapped(conflictPath.c_str());
+            //    //    ImGui::TextWrapped("Millennium couldn't start because another application is using port 8080, "
+            //    //        "which is vital for the functionality of the main app."
+            //    //        "\nEither uninstall this conflicting app, uninstall millennium, or disable the conflicting application\n\nConfliction Detected:\n");
 
-                    if (ImGui::Button("Exit Steam")) {
-                        exit(0);
-                    }
-                });
-            }
+            //    //    ImGui::TextWrapped(conflictPath.c_str());
+
+            //    //    if (ImGui::Button("Exit Steam")) {
+            //    //        exit(0);
+            //    //    }
+            //    //});
+            //    auto selection = msg::show(fmt::format("Millennium couldn't start because another application is using port 8080, "
+            //            "which is vital for the functionality of the main app."
+            //        "\nEither uninstall this conflicting app, uninstall millennium, or disable the conflicting application\n\nConfliction Detected:\n{}\n\nMillennium will now close...", conflictPath).c_str(), "Millennium");
+
+            //    if (selection == Selection::OK) {
+            //        exit(0);
+            //    }
+            //}
 #endif
 
             try {
@@ -1280,15 +1295,7 @@ void Initialize()
             catch (const http_error& error) {
                 auto message = fmt::format("Error getting Steams webSocketDebuggerUrl: {}", error.what()).c_str();
                 
-                
-                MsgBox("Bootstrap Error", [&](auto open) {
-
-                    ImGui::TextWrapped(message);
-
-                    if (ImGui::Button("Close")) {
-                        *open = false;
-                    }
-                });
+                auto selection = msg::show(message, "Bootstrap Error");
             }
             catch (websocketpp::exception const& e) {
                 console.err(fmt::format("Error occurred on client websocket thread: {}", e.what()));
