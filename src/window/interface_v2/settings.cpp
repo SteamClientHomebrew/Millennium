@@ -101,14 +101,14 @@ const renderer = {
     modal: async () => {
 
         var htmlContent = 
-        `<div class="gamepaddialog_Field_S-_La gamepaddialog_WithFirstRow_qFXi6 gamepaddialog_VerticalAlignCenter_3XNvA gamepaddialog_WithDescription_3bMIS gamepaddialog_WithBottomSeparatorStandard_3s1Rk gamepaddialog_ChildrenWidthFixed_1ugIU gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ gamepaddialog_StandardPadding_XRBFu gamepaddialog_HighlightOnFocus_wE4V6 Panel" tabindex="-1" style="--indent-level:0">
-            <div class="gamepaddialog_FieldLabelRow_H9WOq">
-                <div class="gamepaddialog_FieldLabel_3b0U-">Steam Skin</div>
-                <div class="gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
-                    <div class="gamepaddialog_FieldChildrenInner_3N47t"><button id="openMillennium" type="type" class="settings_SettingsDialogButton_3epr8 DialogButton _DialogLayout Secondary Focusable" tabindex="-1">Open Millennium</button></div>
+        `<div class="S-_LaQG5eEOM2HWZ-geJI gamepaddialog_Field_S-_La qFXi6I-Cs0mJjTjqGXWZA gamepaddialog_WithFirstRow_qFXi6 _3XNvAmJ9bv_xuKx5YUkP-5 gamepaddialog_VerticalAlignCenter_3XNvA _3bMISJvxiSHPx1ol-0Aswn gamepaddialog_WithDescription_3bMIS _3s1Rkl6cFOze_SdV2g-AFo gamepaddialog_WithBottomSeparatorStandard_3s1Rk _1ugIUbowxDg0qM0pJUbBRM gamepaddialog_ChildrenWidthFixed_1ugIU _5UO-_VhgFhDWlkDIOZcn_ gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ XRBFu6jAfd5kH9a3V8q_x gamepaddialog_StandardPadding_XRBFu wE4V6Ei2Sy2qWDo_XNcwn gamepaddialog_HighlightOnFocus_wE4V6 Panel" tabindex="-1" style="--indent-level:0">
+            <div class="H9WOq6bV_VhQ4QjJS_Bxg gamepaddialog_FieldLabelRow_H9WOq">
+                <div class="_3b0U-QDD-uhFpw6xM716fw gamepaddialog_FieldLabel_3b0U-">Steam Skin</div>
+                <div class="_2ZQ9wHACVFqZcufK_WRGPM gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
+                    <div class="_3N47t_-VlHS8JAEptE5rlR gamepaddialog_FieldChildrenInner_3N47t"><button id="openMillennium" type="type" class="_3epr8QYWw_FqFgMx38YEEm settings_SettingsDialogButton_3epr8 DialogButton _DialogLayout Secondary Focusable" tabindex="-1">Open Millennium</button></div>
                 </div>
             </div>
-            <div class="gamepaddialog_FieldDescription_2OJfk">
+            <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk">
                 <div>Select the skin you wish Steam to use (requires reload) </div>
             </div>
         </div>`
@@ -116,6 +116,7 @@ const renderer = {
         document.querySelector('.DialogBody.settings_SettingsDialogBodyFade_aFxOa').insertAdjacentHTML('afterbegin', htmlContent);
 
         waitForElement('#openMillennium').then(({matchedElements}) => {
+            console.log("[DEBUG] listening on button")
             matchedElements[0].addEventListener('click', () => {
                 window.opener.console.log("millennium.user.message:", JSON.stringify({id: '[open-millennium]'}))
             })

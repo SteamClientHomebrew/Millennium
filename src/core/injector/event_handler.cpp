@@ -464,6 +464,9 @@ private:
         };
         steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
 
+        std::string normalizer = file::readFileSync(fmt::format("{}/steamui/testing/index.js", config.getSteamRoot()));
+        steam_interface.push_to_socket(steam_client, hdl, normalizer, m_socket_resp["sessionId"]);
+
         std::unordered_map<std::string, std::function<void()>> caseActions = {
             //adjust the client notifications position on every launch because it doesnt save it disk or in memory
             {"SharedJSContext", [&]() { 
@@ -471,11 +474,6 @@ private:
                 std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
 
                 steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
-
-
-                //std::string normalizer = file::readFileSync(fmt::format("{}/steamui/unmangler.js", config.getSteamRoot()));
-
-                //steam_interface.push_to_socket(steam_client, hdl, normalizer, m_socket_resp["sessionId"]);
             }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
