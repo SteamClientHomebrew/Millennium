@@ -66,4 +66,4 @@ Millennium currently only supports standard Windows NT builds. This includes ARM
 Supported Platforms:
 - Windows 7 and newer
 - Windows (x86/x64/ARM) NT
-- Linux (WIP, in development)
+- Linux (WIP, in development. Build from source to test)
