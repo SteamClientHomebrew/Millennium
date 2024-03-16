@@ -9,6 +9,8 @@
 #include <utils/io/metrics.hpp>
 #include <utils/updater/update.hpp>
 #include <utils/clr/platform.hpp>
+#include "window/win_handler.hpp"
+
 #ifdef _WIN32
 #include <Psapi.h>
 #include <pdh.h>
@@ -175,35 +177,38 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 }
 #elif __linux__
 
+#ifdef _MILLENNIUM_INTEGRATED_
 
-//static bool instantiated = false;
-//
-//class bootstrap_wrap {
+//class SteamLaunchNotifier {
 //public:
-//
-//    static inline void start() {
-//        Millennium::Bootstrap(nullptr);
-//    }
-//
-//    bootstrap_wrap()
-//    {
-//        if (instantiated) {
-//            return;
+//    SteamLaunchNotifier() {
+//        while (true) {
+//            std::cout << "Millennium Started" << std::endl;
+//            std::this_thread::sleep_for(std::chrono::seconds(1));
 //        }
-//
-//        start();
-//        instantiated = true;
 //    }
 //};
 //
-//bootstrap_wrap wrapper;
+//// Global instance of SteamLaunchNotifier, its constructor will be called when the library is loaded
+//SteamLaunchNotifier notifier;
 
+void uint_entry_point() {
+    printf("Hello from millennium!\n");
+}
+
+#elif _MILLENNIUM_STANDALONE_
 int main()
 {
     console.log("WARMING MILLENNIUM (LINUX)");
+
+    if (!g_windowOpen) {
+        c_threads::get().add(std::thread([&] { init_main_window(); }));
+    }
+
     Millennium::Bootstrap(nullptr);
 
     return 0;
 }
+#endif
 
 #endif

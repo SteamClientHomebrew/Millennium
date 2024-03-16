@@ -18,14 +18,12 @@ include_directories(
     "${CMAKE_SOURCE_DIR}/vendor/asio/asio/include"
     "${CMAKE_SOURCE_DIR}/vendor/nlohmann/include"
     "${CMAKE_SOURCE_DIR}/vendor/websocketpp"
-    "${CMAKE_SOURCE_DIR}/vendor/directx/Include"
 )
 
 # Library directories, adjust paths as necessary
 link_directories(
     "${CMAKE_SOURCE_DIR}/vendor/libcurl/lib"
     "${CMAKE_SOURCE_DIR}/src/deps/glfw"
-    "${CMAKE_SOURCE_DIR}/vendor/directx/Lib/x86"
 )
 
 # Set up configurations
@@ -51,14 +49,12 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/websocketpp
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/websocketpp/websocketpp
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/your_additional_include_path
 )
 
 link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/libcurl/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/src/deps/glfw
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/your_additional_library_path
 )
 
 # Source and header files
@@ -143,6 +139,7 @@ set(HEADER_FILES
     src/utils/http/http_client.hpp
     src/utils/json.hpp
     src/utils/cout/logger.hpp
+    src/core/injector/compatability/lexer.hpp
 )
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
@@ -158,13 +155,19 @@ pkg_check_modules(GTKMM gtkmm-3.0)
 # Include GTKmm headers
 include_directories(${GTKMM_INCLUDE_DIRS})
 
-# Define the executable or library
-#add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
-
+#add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 #set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 #set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "libxcb")
 #set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".so.1")
+
+get_target_property(target_type ${PROJECT_NAME} TYPE)
+if (target_type STREQUAL "EXECUTABLE")
+    add_definitions(-D_MILLENNIUM_STANDALONE_)
+endif ()
+if (target_type STREQUAL "SHARED_LIBRARY")
+    add_definitions(-D_MILLENNIUM_INTEGRATED_)
+endif ()
 
 find_package(cpr CONFIG REQUIRED)
 #target_link_libraries(millennium PRIVATE cpr::cpr)
@@ -184,5 +187,3 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/${CMAKE_SYSTEM_NAME}/${PROJECT_NAME}"
     LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"
 )
-
-# Additional configurations for include directories and definitions can be added here as needed.
