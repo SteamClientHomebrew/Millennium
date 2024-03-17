@@ -16,7 +16,7 @@ remote_skin millennium_remote;
 #ifdef _WIN32
 static const std::string settings_path = "./.millennium/config/client.json";
 #elif __linux__
-static const std::string settings_path = fmt::format("{}/.steam/millennium/config/client.json", std::getenv("HOME"));
+static const std::string settings_path = fmt::format("{}/.steam/steam/millennium/config/client.json", std::getenv("HOME"));
 #endif
 
 void ensure()
@@ -207,6 +207,8 @@ themeConfig::themeConfig()
     m_steamPath = std::string(buffer, bufferSize);
     m_themesPath = fmt::format("{}/steamui/skins", std::string(buffer, bufferSize));
 #elif __linux__
+
+    console.log("trying to get steam directory");
 
     m_steamPath = fmt::format("{}/.steam/steam", std::getenv("HOME"));;
     m_themesPath = fmt::format("{}/steamui/skins", m_steamPath);
