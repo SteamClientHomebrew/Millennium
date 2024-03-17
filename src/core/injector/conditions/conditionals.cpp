@@ -10,11 +10,7 @@
 /// <summary>
 /// config file that stores all saved user conditionals
 /// </summary>
-#ifdef _WIN32
 const static std::filesystem::path fileName = "./.millennium/config/conditionals.json";
-#elif __linux__
-const static std::filesystem::path fileName = fmt::format("{}/.steam/steam/.millennium/config/conditionals.json", std::getenv("HOME"));;
-#endif
 
 /// <summary>
 /// updates a single conditional in the conditions store. 

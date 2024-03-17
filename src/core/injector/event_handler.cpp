@@ -19,7 +19,6 @@
 #include <regex>
 #include "conditions/conditionals.hpp"
 #include <utils/io/input-output.hpp>
-#include <core/injector/compatability/lexer.hpp>
 
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -465,10 +464,8 @@ private:
         };
         steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
 
-        // interop with lexer for backwards compatability
-//        std::string content = file::readFileSync(fmt::format("{}/steamui/index.js", config.getSteamRoot()));
-//
-//        steam_interface.push_to_socket(steam_client, hdl, content, m_socket_resp["sessionId"]);
+        std::string normalizer = file::readFileSync(fmt::format("{}/steamui/testing/index.js", config.getSteamRoot()));
+        steam_interface.push_to_socket(steam_client, hdl, normalizer, m_socket_resp["sessionId"]);
 
         std::unordered_map<std::string, std::function<void()>> caseActions = {
             //adjust the client notifications position on every launch because it doesnt save it disk or in memory
