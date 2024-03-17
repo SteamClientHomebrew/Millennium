@@ -12,29 +12,6 @@
 #include <window/core/window.hpp>
 #include <window/api/installer.hpp>
 
-void escapeSpecialChars(nlohmann::json& value) {
-    if (value.is_string()) {
-        std::string escapedStr = value.get<std::string>();
-        for (size_t i = 0; i < escapedStr.length(); ++i)
-        {
-            if (escapedStr[i] == '\n')      { escapedStr.replace(i, 1, "\\n");  i++; }
-            else if (escapedStr[i] == '\\') { escapedStr.replace(i, 1, "\\\\"); i++; }
-            else if (escapedStr[i] == '"')  { escapedStr.replace(i, 1, "\\\""); i++; }
-        }
-        value = escapedStr;
-    }
-    else if (value.is_object()) {
-        for (auto& pair : value.items()) {
-            escapeSpecialChars(pair.value());
-        }
-    }
-    else if (value.is_array()) {
-        for (nlohmann::json& element : value) {
-            escapeSpecialChars(element);
-        }
-    }
-}
-
 /**
  * Handles incoming IPC (Inter-Process Communication) messages.
  *
@@ -96,25 +73,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 #endif
         }
     }
-    if (message["id"] == "[open-theme-folder]")
-    {
-        OpenURL(config.getSkinDir());
-    }
-    else if (message["id"] == "[set-StyleSheet Insertion-status]" )
-    {
-        bool status = message["value"];
-
-        Settings::Set("allow-stylesheet", status);
-        console.log(fmt::format("set css usage -> {}", status));
-    }
-    else if (message["id"] == "[set-Javascript Insertion-status]")
-    {
-        bool status = message["value"];
-
-        Settings::Set("allow-javascript", status);
-        console.log(fmt::format("set js usage -> {}", status));
-    }
-    else if (message["id"] == "[install-theme]")
+    if (message["id"] == "[install-theme]")
     {
         console.log("received a theme install message");
 
@@ -123,7 +82,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 
         Community::Themes->handleThemeInstall(file_name, download);
     }
-    else if (message["id"] == "[get-request]")
+    if (message["id"] == "[get-request]")
     {
         console.log("received a get cor query");
 
@@ -144,62 +103,5 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
             {"success", http_response.success},
             {"content", http_response.content}
         }).dump());
-    }
-    else if (message["id"] == "[get-theme-list]") {
-
-        const std::string steamPath = config.getSkinDir();
-        std::vector<nlohmann::basic_json<>> jsonBuffer;
-
-        for (const auto& entry : std::filesystem::directory_iterator(steamPath))
-        {
-            static millennium client;
-            if (entry.is_directory())
-            {
-                if (!client.parseLocalSkin(entry, jsonBuffer, false)) continue;
-            }
-        }
-        nlohmann::json buffer;
-
-        for (auto& item : jsonBuffer) { buffer.push_back(item); }
-
-        escapeSpecialChars(buffer);
-        respond("[get-theme-list]", nlohmann::json::parse(buffer.dump()).dump());
-    }
-    else if (message["id"] == "[get-active]")
-    {
-        auto resp = config.getThemeData();
-        std::string name = resp.contains("name") ? resp["name"].get<std::string>() : Settings::Get<std::string>("active-skin");
-
-        respond("[get-active]", name);
-    }
-    else if (message["id"] == "[update-theme-select]") {
-
-        std::string prevName = Settings::Get<std::string>("active-skin");
-        std::string skinName = message["data"];
-
-        // the selected skin was clicked (i.e to deselect)
-        if (prevName == skinName) { skinName = "default"; }
-
-        static millennium client;
-
-        //whitelist the default skin
-        if (skinName == "default" || !client.isInvalidSkin(skinName))
-        {
-            console.log("updating selected skin.");
-            Settings::Set("active-skin", skinName);
-            themeConfig::updateEvents::getInstance().triggerUpdate();
-
-            steam_js_context js_context;
-            js_context.reload();
-
-            if (steam::get().params.has("-silent")) {
-                msg::show("Steam is launched in -silent mode so you need to open steam again from the task tray for it to re-open", "Millennium");
-            }
-        }
-        else {
-            msg::show("the selected skin was not found, therefor can't be loaded.", "Millennium");
-        }
-
-        std::cout << message.dump(4) << std::endl;
     }
 }
