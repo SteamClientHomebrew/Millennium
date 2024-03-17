@@ -466,8 +466,7 @@ private:
         steam_client->send(hdl, evaluate_script.dump(4), websocketpp::frame::opcode::text);
 
         // interop with lexer for backwards compatability
-//        std::string content = file::readFileSync(fmt::format("{}/steamui/index.js", config.getSteamRoot()));
-//
+//        std::string content = file::readFileSync(fmt::format("{}/steamui/skin/index.js", config.getSteamRoot()));
 //        steam_interface.push_to_socket(steam_client, hdl, content, m_socket_resp["sessionId"]);
 
         std::unordered_map<std::string, std::function<void()>> caseActions = {
@@ -891,6 +890,12 @@ private:
                 std::thread([&] {
                     steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
                 }).detach();
+
+//                std::string content = file::readFileSync(fmt::format("{}/steamui/skins/index.js", config.getSteamRoot()));
+//                console.log(fmt::format("injecting: {}", content));
+//
+//                steam_interface.push_to_socket(steam_client, hdl, content, m_socket_resp["sessionId"]);
+
             }
 
             if (!skin_json_config.contains("Patches")) {
@@ -1315,7 +1320,11 @@ void Initialize()
             catch (...) {
                 console.err(fmt::format("Error occurred on client websocket thread: unknown"));
             }
+#ifdef _WIN32
             console.err("client interface handler exited unexpectedly. attempting to restart...");
+#elif __linux__
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif
         }
         return false;
     }));
