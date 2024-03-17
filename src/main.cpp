@@ -201,9 +201,9 @@ int main()
 {
     console.log("WARMING MILLENNIUM (LINUX)");
 
-    if (!g_windowOpen) {
-        c_threads::get().add(std::thread([&] { init_main_window(); }));
-    }
+//    if (!g_windowOpen) {
+//        c_threads::get().add(std::thread([&] { init_main_window(); }));
+//    }
 
     Millennium::Bootstrap(nullptr);
 

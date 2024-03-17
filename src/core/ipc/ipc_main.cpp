@@ -165,12 +165,24 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         escapeSpecialChars(buffer);
         respond("[get-theme-list]", nlohmann::json::parse(buffer.dump()).dump());
     }
-    else if (message["id"] == "[get-active]")
+    else if (message["id"] == "[get-themetab-data]")
     {
         auto resp = config.getThemeData();
         std::string name = resp.contains("name") ? resp["name"].get<std::string>() : Settings::Get<std::string>("active-skin");
 
-        respond("[get-active]", name);
+        const auto data = nlohmann::json({
+           {"active", name},
+           {"stylesheet", Settings::Get<bool>("allow-stylesheet")},
+           {"javascript", Settings::Get<bool>("allow-javascript")},
+           {"color", Settings::Get<std::string>("accent-col")},
+           {"auto_update", Settings::Get<bool>("auto-update-themes")},
+           {"update_notifs", Settings::Get<bool>("auto-update-themes-notifs")},
+           {"url_bar", Settings::Get<bool>("enableUrlBar")},
+           //"Top Left"/*0*/, "Top Right"/*1*/, "Bottom Left"/*2*/, "Bottom Right"/*3*/
+           {"notifs_pos", Settings::Get<int>("NotificationsPos")}
+        });
+
+        respond("[get-themetab-data]", data.dump());
     }
     else if (message["id"] == "[update-theme-select]") {
 
@@ -201,5 +213,40 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         }
 
         std::cout << message.dump(4) << std::endl;
+    }
+    else if (message["id"] == "[set-Auto-Update Themes-status]") {
+
+        bool status = message["value"];
+
+        Settings::Set("auto-update-themes", status);
+        console.log(fmt::format("set auto-update themes -> {}", status));
+    }
+    else if (message["id"] == "[set-Auto-Update Notifications-status]") {
+
+        bool status = message["value"];
+
+        Settings::Set("auto-update-themes-notifs", status);
+        console.log(fmt::format("set auto-update notifs -> {}", status));
+    }
+    else if (message["id"] == "[set-Hide Browser URL Bar-status]") {
+
+        bool status = message["value"];
+
+        Settings::Set("enableUrlBar", status);
+        console.log(fmt::format("set hide url bar -> {}", status));
+    }
+    else if (message["id"] == "[set-color-scheme]") {
+
+        std::string status = message["value"];
+
+        Settings::Set("accent-col", status);
+        console.log(fmt::format("set accent col -> {}", status));
+    }
+    else if (message["id"] == "[set-notifs-pos]") {
+
+        int status = message["value"];
+
+        Settings::Set("NotificationsPos", status);
+        console.log(fmt::format("set notifs pos -> {}", status));
     }
 }
