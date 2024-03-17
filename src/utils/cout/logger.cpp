@@ -26,9 +26,9 @@ void output_console::log(std::string type, const std::string& message)
 	output_log.push_back(fmt::format("{}{}{}", get_time(), type, message));
 
     // segmentation fault on linux? not sure why
-//#ifdef _WIN32
+#ifdef _WIN32
 	fileStream << get_time() << type << message << std::endl;
-//#endif
+#endif
 
 	std::cout << get_time() << type << message << std::endl;
 }
@@ -39,9 +39,13 @@ void output_console::log_socket(std::string val) {
 
 output_console::output_console() 
 {
+#ifdef _WIN32
 	std::filesystem::path fileName = ".millennium/logs/millennium.log";
+#elif __linux__
+    std::filesystem::path fileName =  fmt::format("{}/.steam/steam/.millennium/logs/millennium.log", std::getenv("HOME"));
+#endif
 
-	try {
+    try {
 		std::filesystem::create_directories(fileName.parent_path());
 	}
 	catch (const std::exception& e) {
