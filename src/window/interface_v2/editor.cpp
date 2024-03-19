@@ -25,13 +25,24 @@ const std::string get_button_description(std::string title, std::string descript
 }
 
 const std::string get_drop_down_description(std::string name, std::string current, std::string desc, std::vector<std::string> options) {
+
+    static int number = 0;
+    number += 1;
+
+    std::string options_html;
+
+    for (const auto item : options)
+    {
+        options_html += fmt::format("<div class=\"_1R-DVEa2yqX0no8BYLtn9N\">{}</div>", item);
+    }
+
     return R"(
 		<div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" tabindex="-1" style="--indent-level:0;">
 			<div class="H9WOq6bV_VhQ4QjJS_Bxg">
 				<div class="_3b0U-QDD-uhFpw6xM716fw">)"+ name +R"(</div>
 				<div class="_2ZQ9wHACVFqZcufK_WRGPM">
 					<div class="_3N47t_-VlHS8JAEptE5rlR">
-						<div class="DialogDropDown _DialogInputContainer  Panel" tabindex="-1">
+						<div class="DialogDropDown _DialogInputContainer  Panel" tabindex="-1" id="drop_down_)"+ std::to_string(number) +R"(" onclick="drop_down_f_)"+ std::to_string(number) +R"(() ">
 							<div class="DialogDropDown_CurrentDisplay">)" + current + R"(</div>
 							<div class="DialogDropDown_Arrow">
 								<svg xmlns="http://www.w3.org/2000/svg" class="SVGIcon_Button SVGIcon_DownArrowContextMenu" data-name="Layer 1" viewBox="0 0 128 128" x="0px" y="0px">
@@ -43,7 +54,34 @@ const std::string get_drop_down_description(std::string name, std::string curren
 				</div>
 			</div>
 			<div class="_2OJfkxlD3X9p8Ygu1vR7Lr">)"+ desc +R"(</div>
-		</div>    
+		</div>
+
+        <script>
+            async function drop_down_f_)"+ std::to_string(number) +R"(() {
+                let el = document.getElementById('drop_down_)"+ std::to_string(number) +R"(')
+                console.log('clicked a dropdown', el)
+
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                document.body.insertAdjacentHTML('afterbegin', \`<div class="dialog_overlay"></div>
+                    <div class="DialogMenuPosition visible _2qyBZV8YvxstXuSKiYDF19" tabindex="0" style="position: absolute; visibility: visible; top: ${el.getBoundingClientRect().top}px; right: 26px; height: fit-content;">
+                      <div class="_1tiuYeMmTc9DMG4mhgaQ5w _DialogInputContainer" id="millennium-dropdown">
+                        )" + options_html + R"(
+                      </div>
+                    </div>
+                \`);
+
+                const dialog = document.querySelector("._2qyBZV8YvxstXuSKiYDF19")
+                dialog.style.top = rect.top - dialog.clientHeight + "px"
+                dialog.focus()
+
+                document.querySelectorAll('._1R-DVEa2yqX0no8BYLtn9N').forEach(item => {
+                  item.addEventListener('click', function(event) {
+
+                  });
+                });
+            }
+        </script>
     )";
 }
 
@@ -105,16 +143,12 @@ const std::string get(std::string title, std::vector<std::string> options) {
 
 	return R"(
 console.log("creating a window")
-function CreateWindow(strURL, browserViewOptions, windowOptions) {
-
+function CreateWindow(browserViewOptions, windowOptions) {
     let wnd = window.open(
         'about:blank?createflags=274&minwidth=850&minheight=600',
-        undefined,
-		Object.entries(windowOptions).map(e => e.join('=')).join(','),
-        false
+        undefined, Object.entries(windowOptions).map(e => e.join('=')).join(','), false
     );
 
-    wnd.location = strURL;
     wnd.document.write(`
 <html class="client_chat_frame fullheight ModalDialogPopup millennium_editor" lang="en">
   <head>
@@ -206,15 +240,14 @@ function CreateWindow(strURL, browserViewOptions, windowOptions) {
 </style>
     
 </html>`)
-
     wnd.SteamClient.Window.ShowWindow()
 	wnd.SteamClient.Window.SetResizeGrip(8, 8)
 }
 
-let width = 850
-let height = 600
+let width = 650
+let height = 400
 
-let wnd = CreateWindow('https://google.com', {}, {
+let wnd = CreateWindow({}, {
     width: width,
     height: height,
     top: (screen.width / 2) - (width / 2),
@@ -311,7 +344,7 @@ std::string editor::create()
                 items.push_back(el.key());
             }
 
-            output.push_back(get_drop_down_description(key.c_str(), items[out], description, {}));
+            output.push_back(get_drop_down_description(key.c_str(), items[out], description, items));
 
             break;
         }
@@ -322,5 +355,6 @@ std::string editor::create()
 //    steam_js_context context;
 //    context.exec_command(get(themeData.value("name", "null"), output));
 //
+
     return get(themeData.value("name", "null"), output);
 }

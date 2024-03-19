@@ -254,6 +254,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
     else if (message["id"] == "[edit-theme]") {
         std::string editor_data = editor::create();
 
+        std::cout << editor_data << std::endl;
         respond("[edit-theme]", base64_encode(editor_data));
     }
 }
