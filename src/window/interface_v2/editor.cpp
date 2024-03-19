@@ -43,7 +43,7 @@ const std::string get_drop_down_description(std::string name, std::string curren
 				<div class="_2ZQ9wHACVFqZcufK_WRGPM">
 					<div class="_3N47t_-VlHS8JAEptE5rlR">
 						<div class="DialogDropDown _DialogInputContainer  Panel" tabindex="-1" id="drop_down_)"+ std::to_string(number) +R"(" onclick="drop_down_f_)"+ std::to_string(number) +R"(() ">
-							<div class="DialogDropDown_CurrentDisplay">)" + current + R"(</div>
+							<div class="DialogDropDown_CurrentDisplay" id="drop_down_current)"+ std::to_string(number) +R"(">)" + current + R"(</div>
 							<div class="DialogDropDown_Arrow">
 								<svg xmlns="http://www.w3.org/2000/svg" class="SVGIcon_Button SVGIcon_DownArrowContextMenu" data-name="Layer 1" viewBox="0 0 128 128" x="0px" y="0px">
 									<polygon points="50 59.49 13.21 22.89 4.74 31.39 50 76.41 95.26 31.39 86.79 22.89 50 59.49"></polygon>
@@ -60,11 +60,12 @@ const std::string get_drop_down_description(std::string name, std::string curren
             async function drop_down_f_)"+ std::to_string(number) +R"(() {
                 let el = document.getElementById('drop_down_)"+ std::to_string(number) +R"(')
                 console.log('clicked a dropdown', el)
+                const rect = el.getBoundingClientRect();
 
                 await new Promise(resolve => setTimeout(resolve, 100));
 
                 document.body.insertAdjacentHTML('afterbegin', \`<div class="dialog_overlay"></div>
-                    <div class="DialogMenuPosition visible _2qyBZV8YvxstXuSKiYDF19" tabindex="0" style="position: absolute; visibility: visible; top: ${el.getBoundingClientRect().top}px; right: 26px; height: fit-content;">
+                    <div class="DialogMenuPosition visible _2qyBZV8YvxstXuSKiYDF19" tabindex="0" style="position: absolute; visibility: visible; height: fit-content;">
                       <div class="_1tiuYeMmTc9DMG4mhgaQ5w _DialogInputContainer" id="millennium-dropdown">
                         )" + options_html + R"(
                       </div>
@@ -72,12 +73,14 @@ const std::string get_drop_down_description(std::string name, std::string curren
                 \`);
 
                 const dialog = document.querySelector("._2qyBZV8YvxstXuSKiYDF19")
-                dialog.style.top = rect.top - dialog.clientHeight + "px"
+                dialog.style.top = rect.bottom + "px"
+                dialog.style.left = rect.right - dialog.clientWidth + "px"
                 dialog.focus()
 
                 document.querySelectorAll('._1R-DVEa2yqX0no8BYLtn9N').forEach(item => {
                   item.addEventListener('click', function(event) {
-
+                    console.log(')" + name + R"( set to ', event.target.innerText)
+                    document.querySelector('#drop_down_current)"+ std::to_string(number) +R"(').innerText = event.target.innerText
                   });
                 });
             }
