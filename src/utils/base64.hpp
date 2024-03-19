@@ -14,7 +14,7 @@ static std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ""abcdefghijklmnopq
  * @remarks
  * - A character is considered a valid base64 character if it is alphanumeric or one of the following: '+', '/'.
  */
-bool is_base64(unsigned char c) {
+static bool is_base64(unsigned char c) {
     return (isalnum(c) || (c == '+') || (c == '/'));
 }
 

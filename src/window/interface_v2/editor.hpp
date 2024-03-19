@@ -3,5 +3,5 @@
 
 class editor {
 public:
-	static void create();
+	static std::string create();
 };

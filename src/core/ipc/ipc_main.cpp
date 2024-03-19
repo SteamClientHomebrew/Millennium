@@ -1,5 +1,6 @@
 #include "ipc_main.hpp"
 #include "handlers/types.hpp"
+#include "window/interface_v2/editor.hpp"
 
 #include <utils/config/config.hpp>
 #include <utils/cout/logger.hpp>
@@ -11,6 +12,7 @@
 #include <window/interface/globals.h>
 #include <window/core/window.hpp>
 #include <window/api/installer.hpp>
+#include <utils/base64.hpp>
 
 void escapeSpecialChars(nlohmann::json& value) {
     if (value.is_string()) {
@@ -248,5 +250,10 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 
         Settings::Set("NotificationsPos", status);
         console.log(fmt::format("set notifs pos -> {}", status));
+    }
+    else if (message["id"] == "[edit-theme]") {
+        std::string editor_data = editor::create();
+
+        respond("[edit-theme]", base64_encode(editor_data));
     }
 }
