@@ -149,10 +149,10 @@ void steam_cef_manager::render_settings_modal(ws_Client* steam_client, websocket
  */
 void steam_cef_manager::inject_millennium(ws_Client* steam_client, websocketpp::connection_hdl& hdl, std::string sessionId) noexcept
 {
-    //std::string javaScript = ui_interface::settings_page_renderer();
-    std::string javaScript = file::readFileSync(fmt::format("{}/index.js", config.getSkinDir()));
+    steam_interface.push_to_socket(steam_client, hdl, ui_interface::settings_page_renderer(), sessionId);
 
-    steam_interface.push_to_socket(steam_client, hdl, javaScript, sessionId);
+//    steam_interface.push_to_socket(steam_client, hdl, cef_dom::get().javascript_handler.add(
+//            fmt::format("{}/interface/{}", uri.steam_resources, "index.js")), sessionId);
 }
 
 /**

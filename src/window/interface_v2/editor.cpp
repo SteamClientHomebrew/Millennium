@@ -243,8 +243,10 @@ function CreateWindow(browserViewOptions, windowOptions) {
 </style>
     
 </html>`)
-    wnd.SteamClient.Window.ShowWindow()
-	wnd.SteamClient.Window.SetResizeGrip(8, 8)
+    setTimeout(() => {
+	    wnd.SteamClient.Window.SetResizeGrip(8, 8)
+        wnd.SteamClient.Window.ShowWindow()
+    }, 500);
 }
 
 let width = 650
