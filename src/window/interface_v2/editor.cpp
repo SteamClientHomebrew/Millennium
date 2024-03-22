@@ -81,6 +81,7 @@ const std::string get_drop_down_description(std::string name, std::string curren
                   item.addEventListener('click', function(event) {
                     console.log(')" + name + R"( set to ', event.target.innerText)
                     document.querySelector('#drop_down_current)"+ std::to_string(number) +R"(').innerText = event.target.innerText
+                    console.log("millennium.user.message:", JSON.stringify({type: "config", id: ")" + name + R"(", value: event.target.innerText}))
                   });
                 });
             }
@@ -113,6 +114,7 @@ const std::string get_toggle_description(std::string name, std::string descripti
             function toggle_desc_)" + std::to_string(number) + R"(() {
                 const result = document.getElementById('toggle_desc_)" + std::to_string(number) + R"(').classList.toggle('_3ld7THBuSMiFtcB_Wo165i')
                 console.log('updated a checkbox:', result)
+                console.log("millennium.user.message:", JSON.stringify({type: "config", id: ")" + name + R"(", value: result}))
             }
         </script>
 	)";
@@ -211,7 +213,9 @@ function CreateWindow(browserViewOptions, windowOptions) {
                 <div class="DialogContent _DialogLayout _1I3NifxqTHCkE-2DeritAs " style="padding: 24px !important;">
                   <div class="DialogContent_InnerWidth">
                     <div class="DialogHeader">Editing )" + title + R"(</div>
+                      <div class="inner_scroll_region">
                         )" + concat + R"(
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -238,7 +242,12 @@ function CreateWindow(browserViewOptions, windowOptions) {
 
 <style>
 .DialogContent_InnerWidth {
-    margin-top: 25px !important;
+    margin-top: 0px !important;
+    overflow: hidden !important;
+}
+.inner_scroll_region {
+    overflow: scroll;
+    margin-bottom: 100px;
 }
 </style>
     

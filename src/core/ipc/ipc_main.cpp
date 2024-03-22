@@ -1,6 +1,8 @@
 #include "ipc_main.hpp"
 #include "handlers/types.hpp"
 #include "window/interface_v2/editor.hpp"
+#include "core/injector/event_handler.hpp"
+#include "core/injector/conditions/conditionals.hpp"
 
 #include <utils/config/config.hpp>
 #include <utils/cout/logger.hpp>
@@ -174,6 +176,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 
         const auto data = nlohmann::json({
            {"active", name},
+           {"is_editable", skin_json_config.contains("Conditions")},
            {"stylesheet", Settings::Get<bool>("allow-stylesheet")},
            {"javascript", Settings::Get<bool>("allow-javascript")},
            {"color", Settings::Get<std::string>("accent-col")},
@@ -230,7 +233,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         Settings::Set("auto-update-themes-notifs", status);
         console.log(fmt::format("set auto-update notifs -> {}", status));
     }
-    else if (message["id"] == "[set-Hide Browser URL Bar-status]") {
+    else if (message["id"] == "[set-Browser URL Bar-status]") {
 
         bool status = message["value"];
 
@@ -250,11 +253,24 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 
         Settings::Set("NotificationsPos", status);
         console.log(fmt::format("set notifs pos -> {}", status));
+
+        std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", status);
+        steam_js_context js_context;
+        js_context.exec_command(js);
     }
     else if (message["id"] == "[edit-theme]") {
         std::string editor_data = editor::create();
-
-        std::cout << editor_data << std::endl;
         respond("[edit-theme]", base64_encode(editor_data));
+    }
+    else if (message["type"] == "config")
+    {
+        std::string id = message["id"];
+        std::string new_value = message["value"].is_boolean() ? (message["value"] ? "yes" : "no") : message["value"];
+
+        bool success = conditionals::update(Settings::Get<std::string>("active-skin"), id, new_value);
+
+        console.log(fmt::format("result: {}", success));
+        steam_js_context js_context;
+        js_context.reload();
     }
 }

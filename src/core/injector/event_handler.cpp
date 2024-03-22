@@ -471,20 +471,27 @@ private:
 
         std::unordered_map<std::string, std::function<void()>> caseActions = {
             //adjust the client notifications position on every launch because it doesnt save it disk or in memory
-            {"SharedJSContext", [&]() { 
-                uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
-                std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
-
-                steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
-            }},
+//            {"SharedJSContext", [&]() {
+//                uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
+//                std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
+//
+//                std::cout << "setting notifs pos -> " << js << std::endl;
+//                steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
+//            }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
                 m_steamMainSessionId = m_socket_resp["sessionId"];
 
+                uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
+                std::string js = fmt::format(R"((() => window.opener.SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
+
+                std::cout << "setting notifs pos -> " << js << std::endl;
+                steam_interface.push_to_socket(steam_client, hdl, js, m_steamMainSessionId);
+
                 //std::thread([&]() { check_for_updates(); }).detach();
 
                 if (!Settings::Get<bool>("enableUrlBar")) {
-                    std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".steamdesktop_URLBar_UkR3s { display: none !important; }" })); })())";
+                    std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".UkR3sY319PuaUNuUWks2K { display: none !important; }" })); })())";
                     steam_interface.push_to_socket(steam_client, hdl, javaScript, m_steamMainSessionId);
                 }
 
@@ -538,17 +545,19 @@ private:
     inline const void evauluateStatement(evalStatement ev) {
 
         //std::cout << ev.statement.dump(4) << std::endl;
+        const bool css_allowed = Settings::Get<bool>("allow-stylesheet");
+        const bool js_allowed = Settings::Get<bool>("allow-javascript");
 
         if (ev.statement.contains("Equals") && ev.selectedItem == ev.statement["Equals"]) {
             console.log(fmt::format("Configuration key: [{}] Equals [{}]. Executing 'True' statement", ev.settingsName, ev.statement["Equals"].dump()));
 
             if (ev.statement.contains("True")) {
                 const auto& trueStatement = ev.statement["True"];
-                if (trueStatement.contains("TargetCss")) {
+                if (trueStatement.contains("TargetCss") && css_allowed) {
                     console.log("inserting CSS module: " + trueStatement["TargetCss"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, trueStatement["TargetCss"] });
                 }
-                if (trueStatement.contains("TargetJs")) {
+                if (trueStatement.contains("TargetJs") && js_allowed) {
                     console.log("inserting JS module: " + trueStatement["TargetJs"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::javascript, trueStatement["TargetJs"] });
                 }
@@ -562,11 +571,11 @@ private:
 
             if (ev.statement.contains("False")) {
                 const auto& falseStatement = ev.statement["False"];
-                if (falseStatement.contains("TargetCss")) {
+                if (falseStatement.contains("TargetCss") && css_allowed) {
                     console.log("inserting CSS module: " + falseStatement["TargetCss"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, falseStatement["TargetCss"] });
                 }
-                if (falseStatement.contains("TargetJs")) {
+                if (falseStatement.contains("TargetJs") && js_allowed) {
                     console.log("inserting JS module: " + falseStatement["TargetJs"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::javascript, falseStatement["TargetJs"] });
                 }
@@ -653,6 +662,8 @@ private:
         std::string raw_script;
 
         const auto jsAllowed = Settings::Get<bool>("allow-javascript");
+        const bool cssAllowed = Settings::Get<bool>("allow-stylesheet");
+
 
         for (const auto& item : items) {
             const auto relativeItem = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), item.filePath);
@@ -661,7 +672,7 @@ private:
                 raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
                 raw_script += "\n\n\n";
             }
-            if (item.type == steam_cef_manager::script_type::stylesheet) {
+            if (item.type == steam_cef_manager::script_type::stylesheet && cssAllowed) {
                 raw_script += cef_dom::get().stylesheet_handler.add(relativeItem).data();
                 raw_script += "\n\n\n";
             }

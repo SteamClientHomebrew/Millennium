@@ -16,7 +16,7 @@ remote_skin millennium_remote;
 #ifdef _WIN32
 static const std::string settings_path = "./.millennium/config/client.json";
 #elif __linux__
-static const std::string settings_path = fmt::format("{}/.steam/steam/millennium/config/client.json", std::getenv("HOME"));
+static const std::string settings_path = fmt::format("{}/.steam/steam/.millennium/config/client.json", std::getenv("HOME"));
 #endif
 
 void ensure()
@@ -473,7 +473,7 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
         auto selection = msg::show("The selected theme is using JavaScript to enhance your Steam experience.\n"
                 "You have JavaScript disabled in Millennium settings, therefore, the selected skin may not function properly.\n\n"
                 "Enable JavaScript ONLY IF you trust the developer, have manually reviewed the code, or it's an official theme.\n\n"
-            "Would you like to enable JavaScript execution?", "Bootstrap Error", Buttons::YesNo);
+            "Would you like to enable JavaScript execution?", "Potential Conflict", Buttons::YesNo);
 
         if (selection == Selection::Yes) {
             Settings::Set("allow-javascript", true);
