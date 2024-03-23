@@ -665,7 +665,7 @@ private:
 
     inline const void inject_items(std::vector<item> items) {
 
-        std::string raw_script;
+        std::string raw_script = "(() => {\nconsole.log('thread_ctx')\n";
 
         const auto jsAllowed = Settings::Get<bool>("allow-javascript");
         const bool cssAllowed = Settings::Get<bool>("allow-stylesheet");
@@ -683,6 +683,8 @@ private:
                 raw_script += "\n\n\n";
             }
         }
+
+        raw_script += "\n})()";
 
         try {
             std::function<void(const std::string&)> runtime_evaluate = [&](const std::string& script) -> void {

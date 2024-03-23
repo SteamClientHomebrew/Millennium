@@ -258,21 +258,25 @@ function CreateWindow(browserViewOptions, windowOptions) {
     }, 500);
 }
 
-let width = 650
-let height = 400
+let width = 850
+let height = 600
 
-let wnd = CreateWindow({}, {
-    width: width,
-    height: height,
-    top: (screen.width / 2) - (width / 2),
-    left: (screen.height / 2) - (height / 2),
-    createflags: 274,
-    resizable: false,
-    status: false,
-    toolbar: true,
-    menubar: false,
-    location: true,
-});
+SteamClient.Window.GetDefaultMonitorDimensions().then(res => {
+  
+    const vw = res.nUsableWidth;
+    const vh = res.nUsableHeight;
+
+    console.log("vw", vw, "vh", vh)
+    console.log("left", (vw / 2) - (width / 2), "top", (vh / 2) - (height / 2))
+
+    let wnd = CreateWindow({}, {
+        width: width,
+        height: height,
+        left: (vw / 2) - (width / 2),
+        top: (vh / 2) - (height / 2),
+        createflags: 274
+    });
+})
 )";
 }
 
