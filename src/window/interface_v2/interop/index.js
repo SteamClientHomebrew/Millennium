@@ -77,6 +77,34 @@ async function theme_tab() {
     "Auto-Update Notifications", json.update_notifs, 
     "Let Millennium push notifications when a theme is updated."
   )}
+  <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ">Client Utilities</div>
+  ${navigator.userAgent.includes("Linux") ? `<div class="DialogBodyText _3fPiC9QRyT5oJ6xePCVYz8">We've detected you're on Linux; the following settings do not work, and will not work on Linux.</div>` : ``}
+  
+  ${create_checkbox(
+    "Acrylic Drop Shadow", json.acrylic, 
+    "Make steam use Windows 11 acrylic windows; Only works for supporting themes. This is currently still in development and may be unstable.<br><b>(Requires Restart & Windows 11)</b>"
+  )}
+
+  <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" style="--indent-level:0;">
+    <div class="H9WOq6bV_VhQ4QjJS_Bxg">
+      <div class="_3b0U-QDD-uhFpw6xM716fw">Window Borders</div>
+      <div class="_2ZQ9wHACVFqZcufK_WRGPM">
+        <div class="_3N47t_-VlHS8JAEptE5rlR">
+          <div class="DialogDropDown _DialogInputContainer  Panel" tabindex="0" id="corner-pref-dropdown" onclick="border_radius_list()">
+            <div class="DialogDropDown_CurrentDisplay" id="corner-pref">${corner_prefs.find(item => item.data === json.corner_pref).name || "Unknown Position"}</div>
+            <div class="DialogDropDown_Arrow">
+              <svg xmlns="http://www.w3.org/2000/svg" class="SVGIcon_Button SVGIcon_DownArrowContextMenu" data-name="Layer 1" viewBox="0 0 128 128" x="0px" y="0px">
+                <polygon points="50 59.49 13.21 22.89 4.74 31.39 50 76.41 95.26 31.39 86.79 22.89 50 59.49"></polygon>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr">
+      <div>Custom border radius options for all the Steam windows. Currently still in development and has only been tested on Windows 11.</div>
+    </div>
+  </div>
   <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ">Miscellaneous</div>
 
   <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" style="--indent-level:0;">
@@ -142,7 +170,6 @@ function initialize() {
   Millennium.waitFor(".ModalPosition_Content").then(_ => {
       stylesheets.insert()
       hooks.create_seperator()
-
       hooks.create_tab("Themes", icons.themeTab, () => theme_tab())
       hooks.create_tab("Plugins", icons.pluginsTab, () => plugins_tab())
       hooks.start()

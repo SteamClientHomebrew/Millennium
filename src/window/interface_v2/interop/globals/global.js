@@ -8,6 +8,14 @@ window.notifications = [
     { name: "Bottom Right", data: 3 }
 ];
 
+window.corner_prefs = [
+    { name: "Default", data: 0 },
+    { name: "Force Rounded", data: 1 },
+    { name: "Square", data: 2 },
+    { name: "Slightly Rounded", data: 3 }
+];
+//"Default"/*0*/, "Force Rounded"/*0*/, "Square"/*1*/, "Slightly Rounded"/*2*/
+
 window.save_col = () => {
     console.log("millennium.user.message:", JSON.stringify({id: `[set-color-scheme]`, value: document.querySelector("#favcolor").value}))
     window.opener.window.location.reload();
@@ -42,6 +50,18 @@ window.open_notif_pos = async () => {
 
             console.log("millennium.user.message:", JSON.stringify({id: `[set-notifs-pos]`, value: pos}))
             document.getElementById("notifs-pos-current").innerText = notifications.find(item => item.data === pos).name
+        }
+    )
+}
+
+window.border_radius_list = async () => {
+    combo.show(
+        document.getElementById("corner-pref-dropdown"), corner_prefs,
+        (event) => {
+            const pos = parseInt(event.target.getAttribute('data'))
+
+            console.log("millennium.user.message:", JSON.stringify({id: `[set-corner-pref]`, value: pos}))
+            document.getElementById("corner-pref").innerText = corner_prefs.find(item => item.data === pos).name
         }
     )
 }

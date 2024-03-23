@@ -15,6 +15,7 @@
 #include <window/core/window.hpp>
 #include <window/api/installer.hpp>
 #include <utils/base64.hpp>
+#include <core/steam/window/manager.hpp>
 
 void escapeSpecialChars(nlohmann::json& value) {
     if (value.is_string()) {
@@ -231,7 +232,9 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
            {"update_notifs", Settings::Get<bool>("auto-update-themes-notifs")},
            {"url_bar", Settings::Get<bool>("enableUrlBar")},
            //"Top Left"/*0*/, "Top Right"/*1*/, "Bottom Left"/*2*/, "Bottom Right"/*3*/
-           {"notifs_pos", Settings::Get<int>("NotificationsPos")}
+           {"notifs_pos", Settings::Get<int>("NotificationsPos")},
+           {"acrylic", Settings::Get<bool>("mica-effect")},
+           {"corner_pref", Settings::Get<int>("corner-preference")}
         });
 
         respond("[get-themetab-data]", data.dump());
@@ -293,6 +296,23 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 
         Settings::Set("accent-col", status);
         console.log(fmt::format("set accent col -> {}", status));
+    }
+    else if (message["id"] == "[set-corner-pref]") {
+        int pref = message["value"];
+        Settings::Set("corner-preference", pref);
+
+        updateHook();
+
+        if (pref == 0) {
+            steam_js_context js_context;
+            js_context.reload();
+        }
+    }
+    else if (message["id"] == "[set-Acrylic Drop Shadow-status]") {
+        bool pref = message["value"];
+        Settings::Set("mica-effect", pref);
+
+        console.log(fmt::format("set acrylic -> {}", pref));
     }
     else if (message["id"] == "[set-notifs-pos]") {
 
