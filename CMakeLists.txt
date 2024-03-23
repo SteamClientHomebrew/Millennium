@@ -139,7 +139,6 @@ set(HEADER_FILES
     src/utils/http/http_client.hpp
     src/utils/json.hpp
     src/utils/cout/logger.hpp
-    src/core/injector/compatability/lexer.hpp
 )
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
