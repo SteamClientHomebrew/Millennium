@@ -47,7 +47,7 @@ fs.readFile('vendor/out/bundle.js', (err, data) => {
     file = file.replace(/%{}/g, bytes)
     fs.writeFile(out_file, file, (err) => {
         if (err) throw err;
-        console.log('[+] bytes written to output.cpp');
+        console.log('\x1b[32m%s\x1b[0m', '[millennium] bytes written to → output.cpp');
     });
 
     const removeFolderRecursive = folderPath => {

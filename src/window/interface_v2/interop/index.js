@@ -10,7 +10,7 @@ async function theme_tab() {
   const json = JSON.parse((await Millennium.IPC.getMessage('[get-themetab-data]')).message)
 
   document.querySelector(".DialogContent_InnerWidth").innerHTML = `
-<div class="DialogHeader">Millennium &bull; Themes</div>
+<div class="DialogHeader">Themes</div>
 <div class="DialogBody aFxOaYcllWYkCfVYQJFs0">
   <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" style="--indent-level:0;">
   <div class="H9WOq6bV_VhQ4QjJS_Bxg">
@@ -42,7 +42,7 @@ async function theme_tab() {
   </div>
   <div class="_2OJfkxlD3X9p8Ygu1vR7Lr">
     <div>Select a skin you want your Steam Client to use!</div>
-    <a href="#" class="RmxP90Yut4EIwychIEg51" onclick="open_theme_store()">Find more themes...</a>
+    <a href="#" class="RmxP90Yut4EIwychIEg51" onclick="open_theme_store()">Browse community themes...</a>
   </div>
   </div>
   ${create_checkbox(
@@ -119,7 +119,7 @@ async function theme_tab() {
 
 function plugins_tab() {
   document.querySelector(".DialogContent_InnerWidth").innerHTML = `
-    <div class="DialogHeader">Millennium &bull; Plugins</div>
+    <div class="DialogHeader">Plugins</div>
     <div class="DialogBody aFxOaYcllWYkCfVYQJFs0">
       <div class="cdiv">
         ${icons.nothingHere}

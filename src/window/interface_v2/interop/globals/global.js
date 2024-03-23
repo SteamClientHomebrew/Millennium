@@ -24,7 +24,8 @@ window.open_theme_store = () => {
     // navigate the store to the millennium theme page
     window.opener.SteamUIStore.Navigate(
       '/browser', 
-      window.opener.MainWindowBrowserManager.LoadURL('https://millennium.web.app/themes')
+      window.opener.MainWindowBrowserManager.LoadURL('http://localhost:3000/themes')
+      //window.opener.MainWindowBrowserManager.LoadURL('https://millennium.web.app/themes')
     )
 }
 

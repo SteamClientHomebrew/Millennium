@@ -82,7 +82,7 @@ const stylesheets = {
         justify-content: center;
         display: flex
     }
-    ._1tiuYeMmTc9DMG4mhgaQ5w._DialogInputContainer {
+    .DialogMenuPosition.visible._2qyBZV8YvxstXuSKiYDF19 {
         max-height: 300px !important;
     }`,
     

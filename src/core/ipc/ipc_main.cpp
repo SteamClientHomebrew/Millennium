@@ -118,14 +118,61 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         Settings::Set("allow-javascript", status);
         console.log(fmt::format("set js usage -> {}", status));
     }
+    else if (message["id"] == "[remove-theme]")
+    {
+        std::string status = "kept";
+        const auto resp = msg::show(
+            "Are you sure you want to delete this theme? You cannot undo this.", 
+            "Warning", 
+            Buttons::YesNo
+        );
+
+        if (resp == Selection::Yes) {
+            std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), message["name"].get<std::string>());
+            if (std::filesystem::exists(disk_path)) {
+
+                try {
+                    std::filesystem::remove_all(std::filesystem::path(disk_path));
+                }
+                catch (const std::exception& ex) {
+                    //MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+                    console.err(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str());
+                }
+            }
+            m_Client.parseSkinData(false);
+            status = "removed";
+        }
+
+        respond("[remove-theme-result]", status);
+    }
+    else if (message["id"] == "[millenniumweb-is-installed]")
+    {
+        const std::string steamPath = config.getSkinDir();
+        std::string status = "false";
+
+        for (const auto& entry : std::filesystem::directory_iterator(steamPath))
+        {
+            static millennium client;
+            if (entry.is_directory() && message["name"] == entry.path().filename().string())
+            {
+                status = "true";
+            }
+        }
+        respond("[is-installed]", status);
+    }
     else if (message["id"] == "[install-theme]")
     {
         console.log("received a theme install message");
-
         std::string file_name = message["file"];
         std::string download = message["url"];
 
-        Community::Themes->handleThemeInstall(file_name, download);
+        Community::Themes->handleThemeInstall(file_name, download, [&](std::string status) {
+            if (status == "success") {
+                respond("[install-message]", status);
+            } else {
+                respond("[install-message]", "fail");
+            }
+        });
     }
     else if (message["id"] == "[get-request]")
     {
@@ -262,7 +309,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         std::string editor_data = editor::create();
         respond("[edit-theme]", base64_encode(editor_data));
     }
-    else if (message["type"] == "config")
+    else if (message.contains("type") && message["type"] == "config")
     {
         std::string id = message["id"];
         std::string new_value = message["value"].is_boolean() ? (message["value"] ? "yes" : "no") : message["value"];

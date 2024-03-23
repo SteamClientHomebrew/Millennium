@@ -19,7 +19,6 @@
 #include <regex>
 #include "conditions/conditionals.hpp"
 #include <utils/io/input-output.hpp>
-#include <core/injector/compatability/lexer.hpp>
 
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -501,20 +500,27 @@ private:
                 if (firstInstance) 
                 {
                     static bool hasShown = false;
-                    if (!hasShown && !Settings::Get<bool>("shownNewUserPrompt")) 
+                    if (!hasShown && !Settings::Get<bool>("shownMarchBetaMsg")) 
                     {
                         std::string message = popupModal::getSnippet
                         (
-                            "Welcome to Millennium!",
+                            "Welcome to back, please read!",
 
-                            "Millennium has updated and your settings have been reset as a result."
-                            "<br>Head over to Settings -> Interface -> Open Millennium. "
+                            "<br><b>Overview:</b><br>Steam has made some recent updates that directly effect Millennium and the themes it enables. "
+                            "As a result Millennium has been hot-fixed (it's not entirely ready) to work with these new updates. This means it MAY be prone to specific "
+                            "bugs, or it may not function at all for specific users. Please be patient with developers and refrain from reporting visual "
+                            "bugs in themes as they are already known. By the time you're seeing this it's possible the current theme you are using "
+                            "will load up and look like isn't working even though it is selected, but just give it a few days and it will auto-update itself and work properly! "
+                            "<br><br><b>Millennium Specifics:</b><br>As for Millennium specific updates, your settings have unfortunately been reset and you will need to reconfigure them."
+                            "<br>Millennium has also moved from its previous location in settings."
+                            "<br>Head over to <code>Steam -> Settings -> Themes</code> to see these new changes.<br>"
                             "From there you can install, manage, and edit themes! "
-                            "<br>Having problems? Join the Discord Server!"
+                            "<br><br>Having problems? Join the Discord Server, and remember to be lenient with bugs! <br><br>Enjoy!<br><b>Millennium Developers</b>"
                         );
 
                         steam_interface.push_to_socket(steam_client, hdl, message, m_steamMainSessionId);
-                        Settings::Set<bool>("shownNewUserPrompt", true);
+
+                        Settings::Set<bool>("shownMarchBetaMsg", true);
                         hasShown = true;
                     }
                 }
