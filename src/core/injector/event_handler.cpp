@@ -676,6 +676,7 @@ private:
             const auto relativeItem = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), item.filePath);
 
             if (item.m_inline) {
+                raw_script += item.filePath + "\n\n\n";
             }
             else {
                 if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
