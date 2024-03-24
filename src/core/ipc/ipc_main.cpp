@@ -301,7 +301,9 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         int pref = message["value"];
         Settings::Set("corner-preference", pref);
 
+#ifdef _WIN32
         updateHook();
+#endif
 
         if (pref == 0) {
             steam_js_context js_context;

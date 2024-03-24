@@ -295,7 +295,8 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 				std::string root = ":root {";
 				for (auto& [var_name, var_data] : data["vars"].items()) 
 				{
-					root += fmt::format("\n\t{}: {};", var_name, var_data);
+                    std::string root_name = var_name, variable = var_data;
+					root += fmt::format("\n\t{}: {};", root_name, variable);
 				}
 				root += "\n}";
 
