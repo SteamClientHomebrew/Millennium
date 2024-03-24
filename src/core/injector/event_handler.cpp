@@ -661,6 +661,7 @@ private:
     struct item {
         std::string filePath;
         steam_cef_manager::script_type type;
+        bool m_inline = false;
     };
 
     inline const void inject_items(std::vector<item> items) {
@@ -674,13 +675,17 @@ private:
         for (const auto& item : items) {
             const auto relativeItem = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), item.filePath);
 
-            if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
-                raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
-                raw_script += "\n\n\n";
+            if (item.m_inline) {
             }
-            if (item.type == steam_cef_manager::script_type::stylesheet && cssAllowed) {
-                raw_script += cef_dom::get().stylesheet_handler.add(relativeItem).data();
-                raw_script += "\n\n\n";
+            else {
+                if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
+                    raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
+                    raw_script += "\n\n\n";
+                }
+                if (item.type == steam_cef_manager::script_type::stylesheet && cssAllowed) {
+                    raw_script += cef_dom::get().stylesheet_handler.add(relativeItem).data();
+                    raw_script += "\n\n\n";
+                }
             }
         }
 
@@ -765,7 +770,7 @@ private:
 
                 for (auto condition : conditional)
                 {
-                    itemQuery.push_back({ condition.item_src, condition.type });
+                    itemQuery.push_back({ condition.item_src, condition.type, condition.m_inline });
                 }
             }
             catch (const nlohmann::detail::exception& ex)
@@ -949,7 +954,7 @@ private:
 
                     for (auto condition : conditional)
                     {
-                        itemQuery.push_back({ condition.item_src, condition.type });
+                        itemQuery.push_back({ condition.item_src, condition.type, condition.m_inline });
                     }
                 }
                 catch (const nlohmann::detail::exception& ex)

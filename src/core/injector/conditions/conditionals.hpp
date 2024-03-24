@@ -28,6 +28,7 @@ namespace conditionals
 	{
 		steam_cef_manager::script_type type;
 		std::string item_src;
+		bool m_inline = false;
 	};
 
 	std::vector<conditional_item> has_patch(const nlohmann::basic_json<>& data, const std::string name, std::string windowName);
