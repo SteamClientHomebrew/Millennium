@@ -1,0 +1,11 @@
+{
+  "name": "interface",
+  "version": "1.0.0",
+  "description": "millenniums settings modal renderer",
+  "scripts": {
+    "build": "rollup index.js -o vendor/out/bundle.js -f cjs && node vendor/byte.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

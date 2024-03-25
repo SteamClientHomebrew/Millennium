@@ -16,7 +16,7 @@ namespace Community
 		void installUpdate(const nlohmann::json& skinData);
 
 		const void handleFileDrop(const char* _filePath);
-		const void handleThemeInstall(std::string fileName, std::string downloadPath);
+		const void handleThemeInstall(std::string fileName, std::string downloadPath, std::function<void(std::string)> cb);
 	};
 
 	static installer* Themes = new installer;

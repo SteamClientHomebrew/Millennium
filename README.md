@@ -46,7 +46,7 @@ Install Millennium for Windows. See [this page](https://millennium.gitbook.io/st
 [![Windows Installer][windows-badge]][windows-link] 
 
 [windows-link]: https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/Millennium.Installer-Windows.exe
-[windows-badge]: https://img.shields.io/badge/Windows%20(7+)-3a71c1?logo=Windows&logoColor=3a71c1&labelColor=0c0d10&color=3a71c1&style=for-the-badge
+[windows-badge]: https://img.shields.io/badge/Windows%20(10+)-3a71c1?logo=Windows&logoColor=3a71c1&labelColor=0c0d10&color=3a71c1&style=for-the-badge
 
 ## Manual Installation
 
@@ -64,6 +64,6 @@ Installing addons/themes is easy. All you need to do is select and download an a
 Millennium currently only supports standard Windows NT builds. This includes ARM based processors and x86 based processors. Linux and Mac are NOT currently supported BUT support is currently in development for linux. For a more details see our [ documentation](https://millennium.gitbook.io/steam-patcher/)
 
 Supported Platforms:
-- Windows 7 and newer
+- Windows 10 and newer
 - Windows (x86/x64/ARM) NT
 - Linux (WIP, in development. Build from source to test)

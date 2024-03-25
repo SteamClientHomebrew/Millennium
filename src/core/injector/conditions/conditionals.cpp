@@ -290,6 +290,27 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 			if (value != current_value)
 				continue;
 
+			if (data.contains("vars")) 
+			{
+				std::string root = ":root {";
+				for (auto& [var_name, var_data] : data["vars"].items()) 
+				{
+                    std::string root_name = var_name, variable = var_data;
+					root += fmt::format("\n\t{}: {};", root_name, variable);
+				}
+				root += "\n}";
+
+				std::string css = R"(	 
+					document.head.appendChild(Object.assign(document.createElement("style"), { textContent: `)" + root + R"(` })); 
+				)";
+
+				result.push_back({
+					steam_cef_manager::script_type::stylesheet,
+					css,
+					true //inline script
+				});
+			}
+
 			// try to evaluate the target css and the target js against the active window
 			evaluate_type(data, "TargetCss", steam_cef_manager::script_type::stylesheet);
 			evaluate_type(data, "TargetJs", steam_cef_manager::script_type::javascript);

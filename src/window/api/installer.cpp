@@ -99,7 +99,7 @@ namespace Community
     }
 #endif
 
-    const void installer::handleThemeInstall(std::string fileName, std::string downloadPath)
+    const void installer::handleThemeInstall(std::string fileName, std::string downloadPath, std::function<void(std::string)> cb)
     {
         auto filePath = std::filesystem::path(config.getSkinDir()) / fileName;
 
@@ -114,6 +114,7 @@ namespace Community
                 m_Client.parseSkinData(false);
             }
             else {
+                cb("fail");
                 std::cout << "couldn't extract file" << std::endl;
                 //MsgBox("couldn't extract file", "Millennium", MB_ICONERROR);
 
@@ -125,10 +126,12 @@ namespace Community
 
                 //    }
                 //});
-                auto selection = msg::show("couldn't extract file", "Can't Add Skin", Buttons::OK);
+                cb("Couldn't extract theme...");
+                //auto selection = msg::show("couldn't extract file", "Can't Add Skin", Buttons::OK);
             }
         }
         catch (const http_error&) {
+            cb("Couldn't download bytes from the file");
             console.err("Couldn't download bytes from the file");
             //MsgBox("Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
 
@@ -141,7 +144,7 @@ namespace Community
             //    }
             //    });
 
-            auto selection = msg::show("Couldn't download bytes from the file", "Can't Add Skin", Buttons::OK);
+            //auto selection = msg::show("Couldn't download bytes from the file", "Can't Add Skin", Buttons::OK);
         }
         catch (const std::exception& err) {
             console.err(fmt::format("Exception form {}: {}", __func__, err.what()));

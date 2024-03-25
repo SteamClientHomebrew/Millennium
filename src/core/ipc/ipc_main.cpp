@@ -1,5 +1,8 @@
 #include "ipc_main.hpp"
 #include "handlers/types.hpp"
+#include "window/interface_v2/editor.hpp"
+#include "core/injector/event_handler.hpp"
+#include "core/injector/conditions/conditionals.hpp"
 
 #include <utils/config/config.hpp>
 #include <utils/cout/logger.hpp>
@@ -8,6 +11,8 @@
 #include <utils/thread/thread_handler.hpp>
 #include <window/interface/globals.h>
 #include <window/api/installer.hpp>
+#include <utils/base64.hpp>
+#include <core/steam/window/manager.hpp>
 
 void escapeSpecialChars(nlohmann::json& value) {
     if (value.is_string()) {
@@ -111,14 +116,61 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         Settings::Set("allow-javascript", status);
         console.log(fmt::format("set js usage -> {}", status));
     }
+    else if (message["id"] == "[remove-theme]")
+    {
+        std::string status = "kept";
+        const auto resp = msg::show(
+            "Are you sure you want to delete this theme? You cannot undo this.", 
+            "Warning", 
+            Buttons::YesNo
+        );
+
+        if (resp == Selection::Yes) {
+            std::string disk_path = fmt::format("{}/{}", config.getSkinDir(), message["name"].get<std::string>());
+            if (std::filesystem::exists(disk_path)) {
+
+                try {
+                    std::filesystem::remove_all(std::filesystem::path(disk_path));
+                }
+                catch (const std::exception& ex) {
+                    //MsgBox(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str(), "Non-fatal Error", MB_ICONERROR);
+                    console.err(fmt::format("Couldn't remove the selected skin.\nError:{}", ex.what()).c_str());
+                }
+            }
+            m_Client.parseSkinData(false);
+            status = "removed";
+        }
+
+        respond("[remove-theme-result]", status);
+    }
+    else if (message["id"] == "[millenniumweb-is-installed]")
+    {
+        const std::string steamPath = config.getSkinDir();
+        std::string status = "false";
+
+        for (const auto& entry : std::filesystem::directory_iterator(steamPath))
+        {
+            static millennium client;
+            if (entry.is_directory() && message["name"] == entry.path().filename().string())
+            {
+                status = "true";
+            }
+        }
+        respond("[is-installed]", status);
+    }
     else if (message["id"] == "[install-theme]")
     {
         console.log("received a theme install message");
-
         std::string file_name = message["file"];
         std::string download = message["url"];
 
-        Community::Themes->handleThemeInstall(file_name, download);
+        Community::Themes->handleThemeInstall(file_name, download, [&](std::string status) {
+            if (status == "success") {
+                respond("[install-message]", status);
+            } else {
+                respond("[install-message]", "fail");
+            }
+        });
     }
     else if (message["id"] == "[get-request]")
     {
@@ -169,6 +221,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 
         const auto data = nlohmann::json({
            {"active", name},
+           {"is_editable", skin_json_config.contains("Conditions")},
            {"stylesheet", Settings::Get<bool>("allow-stylesheet")},
            {"javascript", Settings::Get<bool>("allow-javascript")},
            {"color", Settings::Get<std::string>("accent-col")},
@@ -176,7 +229,9 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
            {"update_notifs", Settings::Get<bool>("auto-update-themes-notifs")},
            {"url_bar", Settings::Get<bool>("enableUrlBar")},
            //"Top Left"/*0*/, "Top Right"/*1*/, "Bottom Left"/*2*/, "Bottom Right"/*3*/
-           {"notifs_pos", Settings::Get<int>("NotificationsPos")}
+           {"notifs_pos", Settings::Get<int>("NotificationsPos")},
+           {"acrylic", Settings::Get<bool>("mica-effect")},
+           {"corner_pref", Settings::Get<int>("corner-preference")}
         });
 
         respond("[get-themetab-data]", data.dump());
@@ -225,7 +280,7 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         Settings::Set("auto-update-themes-notifs", status);
         console.log(fmt::format("set auto-update notifs -> {}", status));
     }
-    else if (message["id"] == "[set-Hide Browser URL Bar-status]") {
+    else if (message["id"] == "[set-Browser URL Bar-status]") {
 
         bool status = message["value"];
 
@@ -239,11 +294,49 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
         Settings::Set("accent-col", status);
         console.log(fmt::format("set accent col -> {}", status));
     }
+    else if (message["id"] == "[set-corner-pref]") {
+        int pref = message["value"];
+        Settings::Set("corner-preference", pref);
+
+#ifdef _WIN32
+        updateHook();
+#endif
+
+        if (pref == 0) {
+            steam_js_context js_context;
+            js_context.reload();
+        }
+    }
+    else if (message["id"] == "[set-Acrylic Drop Shadow-status]") {
+        bool pref = message["value"];
+        Settings::Set("mica-effect", pref);
+
+        console.log(fmt::format("set acrylic -> {}", pref));
+    }
     else if (message["id"] == "[set-notifs-pos]") {
 
         int status = message["value"];
 
         Settings::Set("NotificationsPos", status);
         console.log(fmt::format("set notifs pos -> {}", status));
+
+        std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", status);
+        steam_js_context js_context;
+        js_context.exec_command(js);
+    }
+    else if (message["id"] == "[edit-theme]") {
+        std::string editor_data = editor::create();
+        respond("[edit-theme]", base64_encode(editor_data));
+    }
+    else if (message.contains("type") && message["type"] == "config")
+    {
+        std::string id = message["id"];
+        std::string new_value = message["value"].is_boolean() ? (message["value"] ? "yes" : "no") : message["value"];
+
+        bool success = conditionals::update(Settings::Get<std::string>("active-skin"), id, new_value);
+
+        console.log(fmt::format("result: {}", success));
+        steam_js_context js_context;
+        js_context.reload();
     }
 }

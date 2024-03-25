@@ -19,7 +19,6 @@
 #include "conditions/conditionals.hpp"
 #include "window/interface/globals.h"
 #include <utils/io/input-output.hpp>
-#include <utils/http/http_client.hpp>
 
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -471,20 +470,27 @@ private:
 
         std::unordered_map<std::string, std::function<void()>> caseActions = {
             //adjust the client notifications position on every launch because it doesnt save it disk or in memory
-            {"SharedJSContext", [&]() { 
-                uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
-                std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
-
-                steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
-            }},
+//            {"SharedJSContext", [&]() {
+//                uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
+//                std::string js = fmt::format(R"((() => SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
+//
+//                std::cout << "setting notifs pos -> " << js << std::endl;
+//                steam_interface.push_to_socket(steam_client, hdl, js, m_socket_resp["sessionId"]);
+//            }},
             //adjust the url bar depending on what the user wants
             {"Steam", [&]() { 
                 m_steamMainSessionId = m_socket_resp["sessionId"];
 
+                uint16_t notificationsPos = Settings::Get<int>("NotificationsPos");
+                std::string js = fmt::format(R"((() => window.opener.SteamUIStore.WindowStore.SteamUIWindows[0].m_notificationPosition.position = {})())", notificationsPos);
+
+                std::cout << "setting notifs pos -> " << js << std::endl;
+                steam_interface.push_to_socket(steam_client, hdl, js, m_steamMainSessionId);
+
                 //std::thread([&]() { check_for_updates(); }).detach();
 
                 if (!Settings::Get<bool>("enableUrlBar")) {
-                    std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".steamdesktop_URLBar_UkR3s { display: none !important; }" })); })())";
+                    std::string javaScript = R"((function() { document.head.appendChild(Object.assign(document.createElement("style"), { textContent: ".UkR3sY319PuaUNuUWks2K { display: none !important; }" })); })())";
                     steam_interface.push_to_socket(steam_client, hdl, javaScript, m_steamMainSessionId);
                 }
 
@@ -494,20 +500,27 @@ private:
                 if (firstInstance) 
                 {
                     static bool hasShown = false;
-                    if (!hasShown && !Settings::Get<bool>("shownNewUserPrompt")) 
+                    if (!hasShown && !Settings::Get<bool>("shownMarchBetaMsg")) 
                     {
                         std::string message = popupModal::getSnippet
                         (
-                            "Welcome to Millennium!",
+                            "Welcome to back, please read!",
 
-                            "Millennium has updated and your settings have been reset as a result."
-                            "<br>Head over to Settings -> Interface -> Open Millennium. "
+                            "<br><b>Overview:</b><br>Steam has made some recent updates that directly effect Millennium and the themes it enables. "
+                            "As a result Millennium has been hot-fixed (it's not entirely ready) to work with these new updates. This means it MAY be prone to specific "
+                            "bugs, or it may not function at all for specific users. Please be patient with developers and refrain from reporting visual "
+                            "bugs in themes as they are already known. By the time you're seeing this it's possible the current theme you are using "
+                            "will load up and look like isn't working even though it is selected, but just give it a few days and it will auto-update itself and work properly! "
+                            "<br><br><b>Millennium Specifics:</b><br>As for Millennium specific updates, your settings have unfortunately been reset and you will need to reconfigure them."
+                            "<br>Millennium has also moved from its previous location in settings."
+                            "<br>Head over to <code>Steam -> Settings -> Themes</code> to see these new changes.<br>"
                             "From there you can install, manage, and edit themes! "
-                            "<br>Having problems? Join the Discord Server!"
+                            "<br><br>Having problems? Join the Discord Server, and remember to be lenient with bugs! <br><br>Enjoy!<br><b>Millennium Developers</b>"
                         );
 
                         steam_interface.push_to_socket(steam_client, hdl, message, m_steamMainSessionId);
-                        Settings::Set<bool>("shownNewUserPrompt", true);
+
+                        Settings::Set<bool>("shownMarchBetaMsg", true);
                         hasShown = true;
                     }
                 }
@@ -538,17 +551,19 @@ private:
     inline const void evauluateStatement(evalStatement ev) {
 
         //std::cout << ev.statement.dump(4) << std::endl;
+        const bool css_allowed = Settings::Get<bool>("allow-stylesheet");
+        const bool js_allowed = Settings::Get<bool>("allow-javascript");
 
         if (ev.statement.contains("Equals") && ev.selectedItem == ev.statement["Equals"]) {
             console.log(fmt::format("Configuration key: [{}] Equals [{}]. Executing 'True' statement", ev.settingsName, ev.statement["Equals"].dump()));
 
             if (ev.statement.contains("True")) {
                 const auto& trueStatement = ev.statement["True"];
-                if (trueStatement.contains("TargetCss")) {
+                if (trueStatement.contains("TargetCss") && css_allowed) {
                     console.log("inserting CSS module: " + trueStatement["TargetCss"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, trueStatement["TargetCss"] });
                 }
-                if (trueStatement.contains("TargetJs")) {
+                if (trueStatement.contains("TargetJs") && js_allowed) {
                     console.log("inserting JS module: " + trueStatement["TargetJs"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::javascript, trueStatement["TargetJs"] });
                 }
@@ -562,11 +577,11 @@ private:
 
             if (ev.statement.contains("False")) {
                 const auto& falseStatement = ev.statement["False"];
-                if (falseStatement.contains("TargetCss")) {
+                if (falseStatement.contains("TargetCss") && css_allowed) {
                     console.log("inserting CSS module: " + falseStatement["TargetCss"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::stylesheet, falseStatement["TargetCss"] });
                 }
-                if (falseStatement.contains("TargetJs")) {
+                if (falseStatement.contains("TargetJs") && js_allowed) {
                     console.log("inserting JS module: " + falseStatement["TargetJs"].get<std::string>());
                     ev.returnVal.push_back({ false, steam_cef_manager::script_type::javascript, falseStatement["TargetJs"] });
                 }
@@ -646,26 +661,36 @@ private:
     struct item {
         std::string filePath;
         steam_cef_manager::script_type type;
+        bool m_inline = false;
     };
 
     inline const void inject_items(std::vector<item> items) {
 
-        std::string raw_script;
+        std::string raw_script = "(() => {\nconsole.log('thread_ctx')\n";
 
         const auto jsAllowed = Settings::Get<bool>("allow-javascript");
+        const bool cssAllowed = Settings::Get<bool>("allow-stylesheet");
+
 
         for (const auto& item : items) {
             const auto relativeItem = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), item.filePath);
 
-            if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
-                raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
-                raw_script += "\n\n\n";
+            if (item.m_inline) {
+                raw_script += item.filePath + "\n\n\n";
             }
-            if (item.type == steam_cef_manager::script_type::stylesheet) {
-                raw_script += cef_dom::get().stylesheet_handler.add(relativeItem).data();
-                raw_script += "\n\n\n";
+            else {
+                if (item.type == steam_cef_manager::script_type::javascript && jsAllowed) {
+                    raw_script += cef_dom::get().javascript_handler.add(relativeItem).data();
+                    raw_script += "\n\n\n";
+                }
+                if (item.type == steam_cef_manager::script_type::stylesheet && cssAllowed) {
+                    raw_script += cef_dom::get().stylesheet_handler.add(relativeItem).data();
+                    raw_script += "\n\n\n";
+                }
             }
         }
+
+        raw_script += "\n})()";
 
         try {
             std::function<void(const std::string&)> runtime_evaluate = [&](const std::string& script) -> void {
@@ -746,7 +771,7 @@ private:
 
                 for (auto condition : conditional)
                 {
-                    itemQuery.push_back({ condition.item_src, condition.type });
+                    itemQuery.push_back({ condition.item_src, condition.type, condition.m_inline });
                 }
             }
             catch (const nlohmann::detail::exception& ex)
@@ -930,7 +955,7 @@ private:
 
                     for (auto condition : conditional)
                     {
-                        itemQuery.push_back({ condition.item_src, condition.type });
+                        itemQuery.push_back({ condition.item_src, condition.type, condition.m_inline });
                     }
                 }
                 catch (const nlohmann::detail::exception& ex)

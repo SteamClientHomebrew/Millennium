@@ -127,7 +127,6 @@ set(HEADER_FILES
     src/utils/http/http_client.hpp
     src/utils/json.hpp
     src/utils/cout/logger.hpp
-    src/core/injector/compatability/lexer.hpp
     src/utils/config/config.hpp
     src/window/interface/globals.h
 )
@@ -166,5 +165,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME}-${CMAKE_BUILD_TYPE}"
     LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"
-#    LIBRARY_OUTPUT_DIRECTORY "/home/shadow_monster/.steam/steam/"
 )

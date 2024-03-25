@@ -8,16 +8,16 @@
 
 const std::string get_button_description(std::string title, std::string description, std::string buttonText) {
     return R"(
-        <div class="gamepaddialog_Field_S-_La gamepaddialog_WithFirstRow_qFXi6 gamepaddialog_VerticalAlignCenter_3XNvA gamepaddialog_WithDescription_3bMIS gamepaddialog_WithBottomSeparatorStandard_3s1Rk gamepaddialog_ChildrenWidthFixed_1ugIU gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ gamepaddialog_StandardPadding_XRBFu gamepaddialog_HighlightOnFocus_wE4V6 Panel" tabindex="-1" style="--indent-level:0">
-            <div class="gamepaddialog_FieldLabelRow_H9WOq">
-                <div class="gamepaddialog_FieldLabel_3b0U-">Steam Skin</div>
-                    <div class="gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
-                        <div class="gamepaddialog_FieldChildrenInner_3N47t">
+        <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" tabindex="-1" style="--indent-level:0">
+            <div class="H9WOq6bV_VhQ4QjJS_Bxg">
+                <div class="_3b0U-QDD-uhFpw6xM716fw">Steam Skin</div>
+                    <div class="_2ZQ9wHACVFqZcufK_WRGPM">
+                        <div class="_3N47t_-VlHS8JAEptE5rlR">
                             <button id="openMillennium" type="type" class="settings_SettingsDialogButton_3epr8 DialogButton _DialogLayout Secondary Focusable" tabindex="-1">Open Millennium</button>
                         </div>
                     </div>
                 </div>
-                <div class="gamepaddialog_FieldDescription_2OJfk">
+                <div class="_2OJfkxlD3X9p8Ygu1vR7Lr">
                 <div>Select the skin you wish Steam to use (requires reload) </div>
             </div>
         </div>
@@ -25,14 +25,25 @@ const std::string get_button_description(std::string title, std::string descript
 }
 
 const std::string get_drop_down_description(std::string name, std::string current, std::string desc, std::vector<std::string> options) {
+
+    static int number = 0;
+    number += 1;
+
+    std::string options_html;
+
+    for (const auto item : options)
+    {
+        options_html += fmt::format("<div class=\"_1R-DVEa2yqX0no8BYLtn9N\">{}</div>", item);
+    }
+
     return R"(
-		<div class="gamepaddialog_Field_S-_La gamepaddialog_WithFirstRow_qFXi6 gamepaddialog_VerticalAlignCenter_3XNvA gamepaddialog_WithDescription_3bMIS gamepaddialog_WithBottomSeparatorStandard_3s1Rk gamepaddialog_ChildrenWidthFixed_1ugIU gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ gamepaddialog_StandardPadding_XRBFu gamepaddialog_HighlightOnFocus_wE4V6 Panel" tabindex="-1" style="--indent-level:0;">
-			<div class="gamepaddialog_FieldLabelRow_H9WOq">
-				<div class="gamepaddialog_FieldLabel_3b0U-">)"+ name +R"(</div>
-				<div class="gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
-					<div class="gamepaddialog_FieldChildrenInner_3N47t">
-						<div class="DialogDropDown _DialogInputContainer  Panel" tabindex="-1">
-							<div class="DialogDropDown_CurrentDisplay">)" + current + R"(</div>
+		<div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" tabindex="-1" style="--indent-level:0;">
+			<div class="H9WOq6bV_VhQ4QjJS_Bxg">
+				<div class="_3b0U-QDD-uhFpw6xM716fw">)"+ name +R"(</div>
+				<div class="_2ZQ9wHACVFqZcufK_WRGPM">
+					<div class="_3N47t_-VlHS8JAEptE5rlR">
+						<div class="DialogDropDown _DialogInputContainer  Panel" tabindex="-1" id="drop_down_)"+ std::to_string(number) +R"(" onclick="drop_down_f_)"+ std::to_string(number) +R"(() ">
+							<div class="DialogDropDown_CurrentDisplay" id="drop_down_current)"+ std::to_string(number) +R"(">)" + current + R"(</div>
 							<div class="DialogDropDown_Arrow">
 								<svg xmlns="http://www.w3.org/2000/svg" class="SVGIcon_Button SVGIcon_DownArrowContextMenu" data-name="Layer 1" viewBox="0 0 128 128" x="0px" y="0px">
 									<polygon points="50 59.49 13.21 22.89 4.74 31.39 50 76.41 95.26 31.39 86.79 22.89 50 59.49"></polygon>
@@ -42,8 +53,39 @@ const std::string get_drop_down_description(std::string name, std::string curren
 					</div>
 				</div>
 			</div>
-			<div class="gamepaddialog_FieldDescription_2OJfk">)"+ desc +R"(</div>
-		</div>    
+			<div class="_2OJfkxlD3X9p8Ygu1vR7Lr">)"+ desc +R"(</div>
+		</div>
+
+        <script>
+            async function drop_down_f_)"+ std::to_string(number) +R"(() {
+                let el = document.getElementById('drop_down_)"+ std::to_string(number) +R"(')
+                console.log('clicked a dropdown', el)
+                const rect = el.getBoundingClientRect();
+
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                document.body.insertAdjacentHTML('afterbegin', \`<div class="dialog_overlay"></div>
+                    <div class="DialogMenuPosition visible _2qyBZV8YvxstXuSKiYDF19" tabindex="0" style="position: absolute; visibility: visible; height: fit-content;">
+                      <div class="_1tiuYeMmTc9DMG4mhgaQ5w _DialogInputContainer" id="millennium-dropdown">
+                        )" + options_html + R"(
+                      </div>
+                    </div>
+                \`);
+
+                const dialog = document.querySelector("._2qyBZV8YvxstXuSKiYDF19")
+                dialog.style.top = rect.bottom + "px"
+                dialog.style.left = rect.right - dialog.clientWidth + "px"
+                dialog.focus()
+
+                document.querySelectorAll('._1R-DVEa2yqX0no8BYLtn9N').forEach(item => {
+                  item.addEventListener('click', function(event) {
+                    console.log(')" + name + R"( set to ', event.target.innerText)
+                    document.querySelector('#drop_down_current)"+ std::to_string(number) +R"(').innerText = event.target.innerText
+                    console.log("millennium.user.message:", JSON.stringify({type: "config", id: ")" + name + R"(", value: event.target.innerText}))
+                  });
+                });
+            }
+        </script>
     )";
 }
 
@@ -53,25 +95,26 @@ const std::string get_toggle_description(std::string name, std::string descripti
     number += 1;
 
 	return R"(
-		<div class="gamepaddialog_Field_S-_La gamepaddialog_WithFirstRow_qFXi6 gamepaddialog_VerticalAlignCenter_3XNvA gamepaddialog_WithDescription_3bMIS gamepaddialog_WithBottomSeparatorStandard_3s1Rk gamepaddialog_ChildrenWidthFixed_1ugIU gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ gamepaddialog_StandardPadding_XRBFu gamepaddialog_HighlightOnFocus_wE4V6 Panel" tabindex="-1" style="--indent-level:0;">
-			<div class="gamepaddialog_FieldLabelRow_H9WOq">
-				<div class="gamepaddialog_FieldLabel_3b0U-">)" + name + R"(</div>
-				<div class="gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
-					<div class="gamepaddialog_FieldChildrenInner_3N47t">
-						<div class="gamepaddialog_Toggle_24G4g )" + (enabled ? "gamepaddialog_On_3ld7T" : "") + R"( Focusable" id='toggle_desc_)" + std::to_string(number) + R"(' tabindex="-1" onclick='toggle_desc_)" + std::to_string(number) + R"(()'>
-							<div class="gamepaddialog_ToggleRail_2JtC3"></div>
-							<div class="gamepaddialog_ToggleSwitch_3__OD"></div>
+		<div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" tabindex="-1" style="--indent-level:0;">
+			<div class="H9WOq6bV_VhQ4QjJS_Bxg">
+				<div class="_3b0U-QDD-uhFpw6xM716fw">)" + name + R"(</div>
+				<div class="_2ZQ9wHACVFqZcufK_WRGPM">
+					<div class="_3N47t_-VlHS8JAEptE5rlR">
+						<div class="_24G4gV0rYtRbebXM44GkKk )" + (enabled ? "_3ld7THBuSMiFtcB_Wo165i" : "") + R"( Focusable" id='toggle_desc_)" + std::to_string(number) + R"(' tabindex="-1" onclick='toggle_desc_)" + std::to_string(number) + R"(()'>
+							<div class="_2JtC3JSLKaOtdpAVEACsG1"></div>
+							<div class="_3__ODLQXuoDAX41pQbgHf9"></div>
 						</div>
 					</div>
 				</div>
 			</div>
-			<div class="gamepaddialog_FieldDescription_2OJfk">)" + description + R"(</div>
+			<div class="_2OJfkxlD3X9p8Ygu1vR7Lr">)" + description + R"(</div>
 		</div>
 
         <script>
             function toggle_desc_)" + std::to_string(number) + R"(() {
-                const result = document.getElementById('toggle_desc_)" + std::to_string(number) + R"(').classList.toggle('gamepaddialog_On_3ld7T')
+                const result = document.getElementById('toggle_desc_)" + std::to_string(number) + R"(').classList.toggle('_3ld7THBuSMiFtcB_Wo165i')
                 console.log('updated a checkbox:', result)
+                console.log("millennium.user.message:", JSON.stringify({type: "config", id: ")" + name + R"(", value: result}))
             }
         </script>
 	)";
@@ -79,14 +122,14 @@ const std::string get_toggle_description(std::string name, std::string descripti
 
 const std::string get_toggle() {
     return R"(
-        <div class="gamepaddialog_Field_S-_La gamepaddialog_WithFirstRow_qFXi6 gamepaddialog_VerticalAlignCenter_3XNvA gamepaddialog_WithBottomSeparatorStandard_3s1Rk gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ gamepaddialog_StandardPadding_XRBFu gamepaddialog_HighlightOnFocus_wE4V6 Panel" tabindex="-1" style="--indent-level:0;">
-            <div class="gamepaddialog_FieldLabelRow_H9WOq">
-                <div class="gamepaddialog_FieldLabel_3b0U-">Scale text and icons to match monitor settings (requires restart)</div>
-                    <div class="gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
-                        <div class="gamepaddialog_FieldChildrenInner_3N47t">
-                            <div class="gamepaddialog_Toggle_24G4g  Focusable" tabindex="-1">
-                                <div class="gamepaddialog_ToggleRail_2JtC3"></div>
-                            <div class="gamepaddialog_ToggleSwitch_3__OD"></div>
+        <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3s1Rkl6cFOze_SdV2g-AFo _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" tabindex="-1" style="--indent-level:0;">
+            <div class="H9WOq6bV_VhQ4QjJS_Bxg">
+                <div class="_3b0U-QDD-uhFpw6xM716fw">Scale text and icons to match monitor settings (requires restart)</div>
+                    <div class="_2ZQ9wHACVFqZcufK_WRGPM">
+                        <div class="_3N47t_-VlHS8JAEptE5rlR">
+                            <div class="_24G4gV0rYtRbebXM44GkKk  Focusable" tabindex="-1">
+                                <div class="_2JtC3JSLKaOtdpAVEACsG1"></div>
+                            <div class="_3__ODLQXuoDAX41pQbgHf9"></div>
                         </div>
                     </div>
                 </div>
@@ -105,16 +148,12 @@ const std::string get(std::string title, std::vector<std::string> options) {
 
 	return R"(
 console.log("creating a window")
-function CreateWindow(strURL, browserViewOptions, windowOptions) {
-
+function CreateWindow(browserViewOptions, windowOptions) {
     let wnd = window.open(
         'about:blank?createflags=274&minwidth=850&minheight=600',
-        undefined,
-		Object.entries(windowOptions).map(e => e.join('=')).join(','),
-        false
+        undefined, Object.entries(windowOptions).map(e => e.join('=')).join(','), false
     );
 
-    wnd.location = strURL;
     wnd.document.write(`
 <html class="client_chat_frame fullheight ModalDialogPopup millennium_editor" lang="en">
   <head>
@@ -169,12 +208,14 @@ function CreateWindow(strURL, browserViewOptions, windowOptions) {
                 </svg>
               </div>
             </div>
-            <div class="pagedsettings_PagedSettingsDialog_3I6h_ settings_SettingsModal_3few7 settings_DesktopPopup_Mzjwf Panel" tabindex="-1">
+            <div class="_3I6h_oySuLmmLY9TjIKT9s _3few7361SOf4k_YuKCmM62 MzjwfxXSiSauz8kyEuhYO Panel" tabindex="-1">
               <div class="DialogContentTransition Panel" tabindex="-1" style="width: 100vw !important; min-width: 100vw !important;">
-                <div class="DialogContent _DialogLayout pagedsettings_PagedSettingsDialog_PageContent_1I3Ni " style="padding: 24px !important;">
+                <div class="DialogContent _DialogLayout _1I3NifxqTHCkE-2DeritAs " style="padding: 24px !important;">
                   <div class="DialogContent_InnerWidth">
                     <div class="DialogHeader">Editing )" + title + R"(</div>
+                      <div class="inner_scroll_region">
                         )" + concat + R"(
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -201,35 +242,45 @@ function CreateWindow(strURL, browserViewOptions, windowOptions) {
 
 <style>
 .DialogContent_InnerWidth {
-    margin-top: 25px !important;
+    margin-top: 0px !important;
+    overflow: hidden !important;
+}
+.inner_scroll_region {
+    overflow: scroll;
+    margin-bottom: 100px;
 }
 </style>
     
 </html>`)
-
-    wnd.SteamClient.Window.ShowWindow()
-	wnd.SteamClient.Window.SetResizeGrip(8, 8)
+    setTimeout(() => {
+	    wnd.SteamClient.Window.SetResizeGrip(8, 8)
+        wnd.SteamClient.Window.ShowWindow()
+    }, 500);
 }
 
 let width = 850
 let height = 600
 
-let wnd = CreateWindow('https://google.com', {}, {
-    width: width,
-    height: height,
-    top: (screen.width / 2) - (width / 2),
-    left: (screen.height / 2) - (height / 2),
-    createflags: 274,
-    resizable: false,
-    status: false,
-    toolbar: true,
-    menubar: false,
-    location: true,
-});
+SteamClient.Window.GetDefaultMonitorDimensions().then(res => {
+  
+    const vw = res.nUsableWidth;
+    const vh = res.nUsableHeight;
+
+    console.log("vw", vw, "vh", vh)
+    console.log("left", (vw / 2) - (width / 2), "top", (vh / 2) - (height / 2))
+
+    let wnd = CreateWindow({}, {
+        width: width,
+        height: height,
+        left: (vw / 2) - (width / 2),
+        top: (vh / 2) - (height / 2),
+        createflags: 274
+    });
+})
 )";
 }
 
-void editor::create()
+std::string editor::create()
 {
     std::cout << "Calling edit function" << std::endl;
     const auto themeData = skin_json_config;
@@ -244,7 +295,7 @@ void editor::create()
 
     if (!skin_json_config.contains("Conditions"))
     {
-        return;
+        return "console.err('nothing to edit')";
     }
 
     nlohmann::basic_json<> g_conditionals = conditionals::get_conditionals(skin_json_config["native-name"]);
@@ -311,7 +362,7 @@ void editor::create()
                 items.push_back(el.key());
             }
 
-            output.push_back(get_drop_down_description(key.c_str(), items[out], description, {}));
+            output.push_back(get_drop_down_description(key.c_str(), items[out], description, items));
 
             break;
         }
@@ -319,6 +370,9 @@ void editor::create()
 
     }
 
-    steam_js_context context;
-    context.exec_command(get(themeData.value("name", "null"), output));
+//    steam_js_context context;
+//    context.exec_command(get(themeData.value("name", "null"), output));
+//
+
+    return get(themeData.value("name", "null"), output);
 }
