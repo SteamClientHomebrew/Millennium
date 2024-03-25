@@ -9,8 +9,6 @@ namespace Community
 {
 	void installer::installUpdate(const nlohmann::json& skinData)
 	{
-		g_processingFileDrop = true;
-		g_fileDropStatus = "Updating Theme...";
 #ifdef _WIN32
 		bool success = clr_interop::clr_base::instance().start_update(nlohmann::json({
 			{"owner", skinData["github"]["owner"]},
@@ -27,7 +25,6 @@ namespace Community
         console.err("installer::installUpdate HAS NO IMPLEMENTATION");
 #endif
         std::this_thread::sleep_for(std::chrono::seconds(2));
-		g_processingFileDrop = false;
 	}
 
     const void installer::handleFileDrop(const char* _filePath)
@@ -104,25 +101,16 @@ namespace Community
 
     const void installer::handleThemeInstall(std::string fileName, std::string downloadPath, std::function<void(std::string)> cb)
     {
-        g_processingFileDrop = true;
         auto filePath = std::filesystem::path(config.getSkinDir()) / fileName;
 
         try 
         {
-            g_fileDropStatus = fmt::format("Downloading {}...", fileName);
-
- /*           file::writeFileBytesSync(filePath, http::to_disk(downloadPath.c_str()));*/
             http::to_disk(downloadPath.c_str(), filePath.string().c_str());
-
-            g_fileDropStatus = "Installing Theme and Verifying";
-
             if (unzip(filePath.string(), config.getSkinDir() + "/"))
             {
-                g_fileDropStatus = "Done! Cleaning up...";
                 cb("success");
                 std::this_thread::sleep_for(std::chrono::seconds(2));
 
-                g_openSuccessPopup = true;
                 m_Client.parseSkinData(false);
             }
             else {
@@ -172,6 +160,5 @@ namespace Community
             //});
             auto selection = msg::show(error.c_str(), "Can't Add Skin", Buttons::OK);
         }
-        g_processingFileDrop = false;
     }
 }

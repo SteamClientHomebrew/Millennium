@@ -6,23 +6,22 @@
 
 #include <core/steam/cef_manager.hpp>
 #include <utils/http/http_client.hpp>
-#include <window/core/window.hpp>
 #include <core/injector/conditions/conditionals.hpp>
 #include <utils/config/config.hpp>
 #include <utils/io/input-output.hpp>
 
-remote_skin millennium_remote;
 
+std::string get_settings_path() {
 #ifdef _WIN32
-static const std::string settings_path = "./.millennium/config/client.json";
+    return "./.millennium/config/client.json";
 #elif __linux__
-static const std::string settings_path = fmt::format("{}/.steam/steam/.millennium/config/client.json", std::getenv("HOME"));
+    return fmt::format("{}/.steam/steam/.millennium/config/client.json", std::getenv("HOME"));
 #endif
+}
 
 void ensure()
 {
-    std::cout << "ensuring validity of client settings" << std::endl;
-    auto path = std::filesystem::path(settings_path);
+    auto path = std::filesystem::path(get_settings_path());
 
     try {
         // Create parent directories if they don't exist
@@ -41,14 +40,14 @@ void ensure()
 
 void setRegistry(std::string key, std::string value) noexcept
 {
-    auto json = file::readJsonSync(settings_path);
+    auto json = file::readJsonSync(get_settings_path());
     json[key] = value;
-    file::writeFileSync(settings_path, json.dump(4));
+    file::writeFileSync(get_settings_path(), json.dump(4));
 }
 
 std::string getRegistry(std::string key)
 {
-    auto json = file::readJsonSync(settings_path);
+    auto json = file::readJsonSync(get_settings_path());
     return json.contains(key) ? json[key].get<std::string>() : std::string();
 }
 
@@ -308,11 +307,11 @@ public:
             return { {"config_fail", true} };
         }
 
-        millennium_remote = {
-            true, 
-            static_cast<std::filesystem::path>(data["skin-json"].get<std::string>()).parent_path().string(),
-            data["gh_username"].get<std::string>(), data["gh_repo"].get<std::string>()
-        };
+//        millennium_remote = {
+//            true,
+//            static_cast<std::filesystem::path>(data["skin-json"].get<std::string>()).parent_path().string(),
+//            data["gh_username"].get<std::string>(), data["gh_repo"].get<std::string>()
+//        };
 
         try {
             data = nlohmann::json::parse(http::get(data["skin-json"]));
@@ -341,7 +340,7 @@ public:
 
         if (raw == false) {
             data["config_fail"] = false;
-            millennium_remote.is_remote = false;
+            //millennium_remote.is_remote = false;
         }
         return data;
     }
@@ -572,6 +571,7 @@ const void themeConfig::setupMillennium() noexcept
     catch (const std::filesystem::filesystem_error& e) {
         console.err(fmt::format("Error creating 'skins' directory. reason: {}", e.what()));
     }
+    std::cout << "calling ensure()" << std::endl;
     ensure();
 
     //create registry key if it doesnt exist

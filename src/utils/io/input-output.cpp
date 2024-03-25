@@ -1,4 +1,6 @@
 #include <stdafx.h>
+#include <iostream>
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -20,7 +22,7 @@ namespace file {
         // Open the file
         std::ifstream file(filename);
         if (!file.is_open()) {
-            //console.err("failed to open file [readJsonSync]");
+            console.err("failed to open file [readJsonSync]");
         }
 
         // Read the content of the file into a string
@@ -32,6 +34,7 @@ namespace file {
             return jsonData;
         }
         catch (const std::exception& e) {
+            console.err("failed parse file object [readJsonSync]");
             return {};
         }
     }

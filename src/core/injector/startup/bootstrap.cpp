@@ -1,7 +1,8 @@
 #include <core/injector/startup/bootstrap.hpp>
 
 #include <utils/thread/thread_handler.hpp>
-#include <window/win_handler.hpp>
+#include "utils/io/input-output.hpp"
+#include <nlohmann/json.hpp>
 
 #ifdef _WIN32
 #include <Windows.h>

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <window/api/installer.hpp>
-#include <window/interface/globals.h>
 #include <stdafx.h>
 
 /**
