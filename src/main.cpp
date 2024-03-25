@@ -2,14 +2,12 @@
 #include <core/injector/event_handler.hpp>
 
 #include <core/steam/application.hpp>
-#include <window/core/window.hpp>
 
 #include <utils/thread/thread_handler.hpp>
 #include <core/injector/startup/bootstrap.hpp>
 #include <utils/io/metrics.hpp>
 #include <utils/updater/update.hpp>
 #include <utils/clr/platform.hpp>
-#include "window/win_handler.hpp"
 
 #ifdef _WIN32
 #include <Psapi.h>
@@ -99,11 +97,11 @@ namespace Millennium
 
     unsigned long Bootstrap(void* lpParam)
     {
-        if (steam::get().params.has("-dev") && 
+        if (steam::get().params.has("-dev") &&
             !steam::get().params.has("-mllm-no-stdout"))
         {
 #ifdef _WIN32
-            // windows allocation 
+            // windows allocation
             static_cast<bool>(AllocConsole());
             void(freopen("CONOUT$", "w", stdout));
             void(freopen("CONOUT$", "w", stderr));
@@ -117,12 +115,19 @@ namespace Millennium
             // required in order for millennium to work
             if (!Millennium::checkRemoteDebugging())
             {
+                std::cout << "millennium wasn't previously setup" << std::endl;
+
                 //MsgBox("Initialization complete! Restart Steam for changed to take effect.", "Millennium", MB_ICONINFORMATION);
                 msg::show("Initialization complete! Restart Steam for changed to take effect.", "Millennium");
                 exit(0);
             }
 
+            std::cout << "checking for updates" << std::endl;
+#ifdef _WIN32
             updater::check_for_updates();
+#endif
+            std::cout << "done" << std::endl;
+
 
             std::cout << " Millennium Dev Tools v" << m_ver << std::endl;
             std::cout << " Developed by ShadowMonster (discord: sm74)" << std::endl;
@@ -138,7 +143,7 @@ namespace Millennium
 #elif __linux__
             Initialize();
 #endif
-            // synchronously run theme updater 
+            // synchronously run theme updater
             queryThemeUpdates(nullptr);
         }
         c_threads::get().unhookAllThreads();
@@ -168,7 +173,7 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
     if (call == DLL_PROCESS_ATTACH)
     {
         DisableThreadLibraryCalls(hinstDLL);
-        // start bootstrapper thread disjoined from the main thread 
+        // start bootstrapper thread disjoined from the main thread
         // to prevent it from freezing itself when it hooks
         c_threads::get().add(std::thread([&] { Millennium::Bootstrap(nullptr); }));
     }
@@ -189,21 +194,16 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 //    }
 //};
 //
-//// Global instance of SteamLaunchNotifier, its constructor will be called when the library is loaded
 //SteamLaunchNotifier notifier;
-
-void uint_entry_point() {
-    printf("Hello from millennium!\n");
+static void __attribute__((constructor)) initialize_millennium() {
+    std::cout << "starting millennium core..." << std::endl;
+    Millennium::Bootstrap(nullptr);
 }
 
 #elif _MILLENNIUM_STANDALONE_
 int main()
 {
     console.log("WARMING MILLENNIUM (LINUX)");
-
-//    if (!g_windowOpen) {
-//        c_threads::get().add(std::thread([&] { init_main_window(); }));
-//    }
 
     Millennium::Bootstrap(nullptr);
 

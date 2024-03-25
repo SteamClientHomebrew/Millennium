@@ -1,10 +1,9 @@
 #pragma once
 #include <stdafx.h>
+//
+//#include <imgui.h>
+//#include <imgui_internal.h>
 
-#include <imgui.h>
-#include <imgui_internal.h>
-
-#include <window/core/window.hpp>
 #include <utils/config/config.hpp>
 #include <core/steam/cef_manager.hpp>
 
@@ -61,94 +60,94 @@ inline void setComboValue(const std::string name, int value)
 		}
 	}
 }
-
-namespace ui
-{
-	static int current_tab_page = 2;
-
-	namespace shift
-	{
-		static void x(int value) {
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + value);
-		}
-		static void y(int value) {
-			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + value);
-		}
-		static void right(int item_width) {
-			ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - item_width);
-		}
-	}
-
-	static const void render_setting(const char* name, const char* description, bool& setting, bool requires_restart, std::function<void()> call_back) {
-		ImGui::Text(name); 
-
-		ImGui::SameLine(); 
-
-		ui::shift::x(-3);
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-		ImGui::TextWrapped("(?)");
-		ImGui::PopStyleColor();
-
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip(description);
-		}
-
-		ImGui::SameLine();
-
-		ui::shift::right(25); ui::shift::y(-3);
-		if (ImGui::Checkbox(fmt::format("###{}", name).c_str(), &setting)) call_back();
-
-		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-	}
-
-	static const void render_setting_list(const char* name, const char* description, int& setting, const char* items[], size_t items_size, bool requires_restart, std::function<void()> call_back) {
-		ImGui::Text(name);
-
-		ImGui::SameLine();
-
-		ui::shift::x(-3);
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-		ImGui::TextWrapped("(?)");
-		ImGui::PopStyleColor();
-
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip(description);
-		}
-
-		ImGui::SameLine();
-
-		int width = (int)ImGui::CalcTextSize(items[setting]).x + 50;
-
-		ui::shift::right(width); ui::shift::y(-3);
-
-		ImGui::PushItemWidth((float)width);
-		if (ImGui::Combo(fmt::format("###{}", name).c_str(), &setting, items, items_size)) call_back();
-		ImGui::PopItemWidth();
-
-		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
-	}
-
-	static const void center_modal(ImVec2 size) {
-		//RECT rect;
-		//GetWindowRect(Window::getHWND(), &rect);
-
-		//float xPos = rect.left + (rect.right - rect.left - size.x) / 2;
-		//float yPos = rect.top + (rect.bottom - rect.top - size.y) / 2;
-
-		//ImGui::SetNextWindowPos(ImVec2(xPos, yPos));
-		//ImGui::SetNextWindowSize(size);
-	}
-
-	static const void center(float, float element_width, float) {
-		//take available region and the element width and subtract to there, and then account for framepadding causing displacement
-		ImGui::SetCursorPosX((rx - element_width) / 2 + (ImGui::GetStyle().FramePadding.x * 2));
-	}
-
-	static const void center_text(const char* format) {
-		center(0, ImGui::CalcTextSize(format).x, 0);
-		ImGui::Text(format);
-	}
-}
+//
+//namespace ui
+//{
+//	static int current_tab_page = 2;
+//
+//	namespace shift
+//	{
+//		static void x(int value) {
+//			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + value);
+//		}
+//		static void y(int value) {
+//			ImGui::SetCursorPosY(ImGui::GetCursorPosY() + value);
+//		}
+//		static void right(int item_width) {
+//			ImGui::SetCursorPosX(ImGui::GetContentRegionMax().x - item_width);
+//		}
+//	}
+//
+//	static const void render_setting(const char* name, const char* description, bool& setting, bool requires_restart, std::function<void()> call_back) {
+//		ImGui::Text(name);
+//
+//		ImGui::SameLine();
+//
+//		ui::shift::x(-3);
+//		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+//		ImGui::TextWrapped("(?)");
+//		ImGui::PopStyleColor();
+//
+//		if (ImGui::IsItemHovered()) {
+//			ImGui::SetTooltip(description);
+//		}
+//
+//		ImGui::SameLine();
+//
+//		ui::shift::right(25); ui::shift::y(-3);
+//		if (ImGui::Checkbox(fmt::format("###{}", name).c_str(), &setting)) call_back();
+//
+//		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+//	}
+//
+//	static const void render_setting_list(const char* name, const char* description, int& setting, const char* items[], size_t items_size, bool requires_restart, std::function<void()> call_back) {
+//		ImGui::Text(name);
+//
+//		ImGui::SameLine();
+//
+//		ui::shift::x(-3);
+//		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+//		ImGui::TextWrapped("(?)");
+//		ImGui::PopStyleColor();
+//
+//		if (ImGui::IsItemHovered()) {
+//			ImGui::SetTooltip(description);
+//		}
+//
+//		ImGui::SameLine();
+//
+//		int width = (int)ImGui::CalcTextSize(items[setting]).x + 50;
+//
+//		ui::shift::right(width); ui::shift::y(-3);
+//
+//		ImGui::PushItemWidth((float)width);
+//		if (ImGui::Combo(fmt::format("###{}", name).c_str(), &setting, items, items_size)) call_back();
+//		ImGui::PopItemWidth();
+//
+//		if (ImGui::IsItemHovered()) ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+//	}
+//
+//	static const void center_modal(ImVec2 size) {
+//		//RECT rect;
+//		//GetWindowRect(Window::getHWND(), &rect);
+//
+//		//float xPos = rect.left + (rect.right - rect.left - size.x) / 2;
+//		//float yPos = rect.top + (rect.bottom - rect.top - size.y) / 2;
+//
+//		//ImGui::SetNextWindowPos(ImVec2(xPos, yPos));
+//		//ImGui::SetNextWindowSize(size);
+//	}
+//
+//	static const void center(float, float element_width, float) {
+//		//take available region and the element width and subtract to there, and then account for framepadding causing displacement
+//		ImGui::SetCursorPosX((rx - element_width) / 2 + (ImGui::GetStyle().FramePadding.x * 2));
+//	}
+//
+//	static const void center_text(const char* format) {
+//		center(0, ImGui::CalcTextSize(format).x, 0);
+//		ImGui::Text(format);
+//	}
+//}
 
 class millennium
 {

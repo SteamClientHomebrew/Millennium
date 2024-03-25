@@ -166,9 +166,10 @@ const void steam_cef_manager::calculate_endpoint(std::string& endpoint_unparsed)
     if (endpoint_unparsed.compare(0, 4, "http") != 0) {
 
         //remote skin use the remote skins as a current directory from github
-        if (millennium_remote.is_remote) endpoint_unparsed = fmt::format("{}/{}", millennium_remote.host, endpoint_unparsed);
-        //just use the default from the skin path
-        else endpoint_unparsed = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), endpoint_unparsed);
+//        if (millennium_remote.is_remote) endpoint_unparsed = fmt::format("{}/{}", millennium_remote.host, endpoint_unparsed);
+//        //just use the default from the skin path
+//        else
+            endpoint_unparsed = fmt::format("{}/skins/{}/{}", uri.steam_resources, Settings::Get<std::string>("active-skin"), endpoint_unparsed);
     }
 }
 

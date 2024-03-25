@@ -12,14 +12,14 @@
 #include <utils/base64.hpp>
 #include <utils/thread/thread_handler.hpp>
 
-#include <window/interface/globals.h>
 #include "startup/welcome_modal.hpp"
 #include <core/ipc/ipc_main.hpp>
 
 #include <regex>
 #include "conditions/conditionals.hpp"
+#include "window/interface/globals.h"
 #include <utils/io/input-output.hpp>
-#include <core/injector/compatability/lexer.hpp>
+#include <utils/http/http_client.hpp>
 
 typedef websocketpp::client<websocketpp::config::asio_client> ws_Client;
 
@@ -1221,6 +1221,11 @@ std::string exec_cmd(const char* cmd) {
 /// <returns></returns>
 void Initialize()
 {
+#ifdef __linux__
+    std::promise<bool> m_keep_alive;
+    bool initial_start = false;
+#endif
+
     config.setupMillennium();
     skin_json_config = config.getThemeData();
 
@@ -1296,6 +1301,7 @@ void Initialize()
                     return false;
                 }
 
+                initial_start = true;
                 c.connect(con); c.run();
             }
             catch (const http_error& error) {
@@ -1323,7 +1329,15 @@ void Initialize()
 #ifdef _WIN32
             console.err("client interface handler exited unexpectedly. attempting to restart...");
 #elif __linux__
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            if (!initial_start) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            else {
+                console.err("steam is exiting, millennium is shutting down...");
+                m_keep_alive.set_value(false);
+                break;
+            }
 #endif
         }
         return false;
@@ -1352,5 +1366,6 @@ void Initialize()
 
     //CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {}, 0, 0, 0);
 
-    std::promise<void>().get_future().wait();
+    m_keep_alive.get_future().wait();
+    console.log("unhooking millennium...");
 }

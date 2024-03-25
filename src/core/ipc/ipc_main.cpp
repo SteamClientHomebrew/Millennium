@@ -6,10 +6,7 @@
 
 /* create and manage the interface thread */
 #include <utils/thread/thread_handler.hpp>
-
-#include <window/win_handler.hpp>
 #include <window/interface/globals.h>
-#include <window/core/window.hpp>
 #include <window/api/installer.hpp>
 
 void escapeSpecialChars(nlohmann::json& value) {
@@ -86,15 +83,15 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
     if (message["id"] == "[open-millennium]") {
         console.log("requested to open millennium interface");
 
-        if (!g_windowOpen) {
-            c_threads::get().add(std::thread([&] { init_main_window(); }));
-        }
-        else {
+//        if (!g_windowOpen) {
+//            c_threads::get().add(std::thread([&] { init_main_window(); }));
+//        }
+//        else {
             //Window::bringToFront();
 #ifdef _WIN32
             PlaySoundA("SystemExclamation", NULL, SND_ALIAS);
 #endif
-        }
+        //}
     }
     if (message["id"] == "[open-theme-folder]")
     {

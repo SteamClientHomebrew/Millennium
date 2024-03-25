@@ -9,6 +9,18 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_library(mprhost SHARED vendor/linux-wrapper/mpr-hoster.cpp)
+
+set_target_properties(mprhost PROPERTIES PREFIX "")
+set_target_properties(mprhost PROPERTIES OUTPUT_NAME "libxcb")
+set_target_properties(mprhost PROPERTIES SUFFIX ".so.1")
+
+set_target_properties(mprhost PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"
+)
+message("built millennium pr-hoster")
+
+
 # Include directories for all configurations
 include_directories(
     "${CMAKE_SOURCE_DIR}/src"
@@ -52,8 +64,6 @@ include_directories(
 )
 
 link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/libcurl/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/deps/glfw
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
@@ -67,13 +77,6 @@ set(SOURCE_FILES
     src/core/ipc/ipc_main.cpp
     src/core/steam/cef_manager.cpp
     src/core/steam/window/manager.cpp
-    src/deps/imgui/imgui.cpp
-    src/deps/imgui/imgui_demo.cpp
-    src/deps/imgui/imgui_draw.cpp
-    src/deps/imgui/imgui_impl_glfw.cpp
-    src/deps/imgui/imgui_impl_opengl3.cpp
-    src/deps/imgui/imgui_tables.cpp
-    src/deps/imgui/imgui_widgets.cpp
     src/utils/io/metrics.cpp
     src/scripts/sdk/sdk.cpp
     src/stdafx.cpp
@@ -82,17 +85,15 @@ set(SOURCE_FILES
     src/utils/thread/thread_handler.cpp
     src/utils/updater/update.cpp
     src/window/api/installer.cpp
-    src/window/core/aptos.cpp
     src/window/core/colors.cpp
     src/window/interface_v2/editor.cpp
-    src/window/core/window.cpp
-    src/window/interface/globals.cpp
     src/window/interface_v2/settings.cpp
-    src/window/win_handler.cpp
     src/main.cpp
+    src/utils/cout/logger.cpp
     src/utils/config/config.cpp
     src/utils/http/http_client.cpp
-    src/utils/cout/logger.cpp
+    src/window/interface/globals.cpp
+        vendor/linux-wrapper/mpr-hoster.cpp
 )
 
 set(HEADER_FILES
@@ -109,15 +110,6 @@ set(HEADER_FILES
     src/core/steam/window/types/accent_api.hpp
     src/core/steam/window/types/corners.hpp
     src/core/steam/window/types/system_backdrop_type.hpp
-    src/deps/imgui/imconfig.h
-    src/deps/imgui/imgui.h
-    src/deps/imgui/imgui_impl_glfw.h
-    src/deps/imgui/imgui_impl_opengl3.h
-    src/deps/imgui/imgui_impl_opengl3_loader.h
-    src/deps/imgui/imgui_internal.h
-    src/deps/imgui/imstb_rectpack.h
-    src/deps/imgui/imstb_textedit.h
-    src/deps/imgui/imstb_truetype.h
     src/utils/io/metrics.hpp
     src/scripts/sdk/sdk.hpp
     src/utils/base64.hpp
@@ -128,11 +120,7 @@ set(HEADER_FILES
     src/window/api/installer.hpp
     src/window/core/colors.hpp
     src/window/interface_v2/editor.hpp
-    src/window/core/memory.h
-    src/window/core/window.hpp
-    src/window/interface/globals.h
     src/window/interface_v2/settings.hpp
-    src/window/win_handler.hpp
     src/scripts/resource.h
     src/stdafx.h
     src/utils/config/config.hpp
@@ -140,23 +128,21 @@ set(HEADER_FILES
     src/utils/json.hpp
     src/utils/cout/logger.hpp
     src/core/injector/compatability/lexer.hpp
+    src/utils/config/config.hpp
+    src/window/interface/globals.h
 )
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+#pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+#
+#include_directories(${GTK3_INCLUDE_DIRS})
+#link_directories(${GTK3_LIBRARY_DIRS})
+#add_definitions(${GTK3_CFLAGS_OTHER})
+#
+#pkg_check_modules(GTKMM gtkmm-3.0)
+#include_directories(${GTKMM_INCLUDE_DIRS})
 
-include_directories(${GTK3_INCLUDE_DIRS})
-link_directories(${GTK3_LIBRARY_DIRS})
-add_definitions(${GTK3_CFLAGS_OTHER})
-
-# Find GTKmm package
-find_package(PkgConfig)
-pkg_check_modules(GTKMM gtkmm-3.0)
-
-# Include GTKmm headers
-include_directories(${GTKMM_INCLUDE_DIRS})
-
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
-#add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
+#add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
 #set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 #set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "libxcb")
 #set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".so.1")
@@ -170,20 +156,15 @@ if (target_type STREQUAL "SHARED_LIBRARY")
 endif ()
 
 find_package(cpr CONFIG REQUIRED)
-#target_link_libraries(millennium PRIVATE cpr::cpr)
-
-find_package(OpenGL REQUIRED) # Finds the OpenGL library
-find_package(glfw3 REQUIRED) # Assumes you have installed GLFW on your system
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    ${OPENGL_LIBRARIES}
-    ${GTK3_LIBRARIES}
-    ${GTKMM_LIBRARIES}
-    glfw
+#    ${GTK3_LIBRARIES}
+#    ${GTKMM_LIBRARIES}
     cpr::cpr
 )
 # Set output directory for binaries
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}/${CMAKE_SYSTEM_NAME}/${PROJECT_NAME}"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME}-${CMAKE_BUILD_TYPE}"
     LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"
+#    LIBRARY_OUTPUT_DIRECTORY "/home/shadow_monster/.steam/steam/"
 )

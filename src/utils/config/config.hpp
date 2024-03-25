@@ -1,12 +1,12 @@
 #pragma once
 #include <filesystem>
+#include <stdafx.h>
 
 struct remote_skin
 {
     bool is_remote;
     std::string host, username, repo;
 };
-extern remote_skin millennium_remote;
 
 namespace Settings 
 {

@@ -12,10 +12,11 @@ static constexpr const std::string_view user_agent = "millennium.patcher";
 
 const bool valid_request(std::string url)
 {
-    bool isDevToolsRequest = url.find("127.0.0.1:8080") != std::string::npos;
-    bool isSteamLoopBack = url.find("steamloopback.host") != std::string::npos;
-
-    return !Settings::Get<bool>("allow-store-load") ? (isDevToolsRequest || isSteamLoopBack) : true;
+//    bool isDevToolsRequest = url.find("127.0.0.1:8080") != std::string::npos;
+//    bool isSteamLoopBack = url.find("steamloopback.host") != std::string::npos;
+//
+//    return !Settings::Get<bool>("allow-store-load") ? (isDevToolsRequest || isSteamLoopBack) : true;
+    return true;
 }
 
 const std::string http::get(std::string remote_endpoint)
