@@ -16,33 +16,24 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(mprhost SHARED vendor/linux-wrapper/mpr-hoster.cpp)
+add_library(mprhost SHARED vendor/wrapper/host.cpp)
 
 set_target_properties(mprhost PROPERTIES PREFIX "")
-set_target_properties(mprhost PROPERTIES OUTPUT_NAME "libxcb")
+set_target_properties(mprhost PROPERTIES OUTPUT_NAME "libmount")
 set_target_properties(mprhost PROPERTIES SUFFIX ".so.1")
 
 set_target_properties(mprhost PROPERTIES
-        LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"
+        LIBRARY_OUTPUT_DIRECTORY "~/.steam/steam/ubuntu12_64/"
 )
 message("built millennium pr-hoster")
-
 
 # Include directories for all configurations
 include_directories(
     "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/vendor/fmt/include"
-    "${CMAKE_SOURCE_DIR}/src/deps/imgui"
-    "${CMAKE_SOURCE_DIR}/vendor/glfw"
     "${CMAKE_SOURCE_DIR}/vendor/asio/asio/include"
     "${CMAKE_SOURCE_DIR}/vendor/nlohmann/include"
     "${CMAKE_SOURCE_DIR}/vendor/websocketpp"
-)
-
-# Library directories, adjust paths as necessary
-link_directories(
-    "${CMAKE_SOURCE_DIR}/vendor/libcurl/lib"
-    "${CMAKE_SOURCE_DIR}/src/deps/glfw"
 )
 
 # Set up configurations
@@ -74,7 +65,6 @@ link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Source and header files
 set(SOURCE_FILES
     src/core/injector/conditions/conditionals.cpp
     src/core/injector/event_handler.cpp
@@ -100,7 +90,6 @@ set(SOURCE_FILES
     src/utils/config/config.cpp
     src/utils/http/http_client.cpp
     src/window/interface/globals.cpp
-        vendor/linux-wrapper/mpr-hoster.cpp
 )
 
 set(HEADER_FILES
@@ -137,15 +126,6 @@ set(HEADER_FILES
     src/utils/config/config.hpp
     src/window/interface/globals.h
 )
-find_package(PkgConfig REQUIRED)
-#pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-#
-#include_directories(${GTK3_INCLUDE_DIRS})
-#link_directories(${GTK3_LIBRARY_DIRS})
-#add_definitions(${GTK3_CFLAGS_OTHER})
-#
-#pkg_check_modules(GTKMM gtkmm-3.0)
-#include_directories(${GTKMM_INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 #add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
@@ -162,11 +142,8 @@ if (target_type STREQUAL "SHARED_LIBRARY")
 endif ()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-#    ${GTK3_LIBRARIES}
-#    ${GTKMM_LIBRARIES}
     cpr::cpr
 )
-# Set output directory for binaries
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME}-${CMAKE_BUILD_TYPE}"
     LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"

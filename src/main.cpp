@@ -30,8 +30,6 @@ namespace Millennium
      */
     unsigned long checkRemoteDebugging(void)
     {
-        console.log("setting remote debugger flag");
-
 #ifdef _WIN32
         constexpr const std::basic_string_view<char> filePath = ".cef-enable-remote-debugging";
 
@@ -44,12 +42,14 @@ namespace Millennium
         const std::string filePath =
             fmt::format("{}/.local/share/Steam/.cef-enable-remote-debugging", std::getenv("HOME"));
 
-        console.log(fmt::format("writing flag to -> {}", filePath));
+        if (!std::filesystem::exists(filePath)) {
+            console.log(fmt::format("writing flag to -> {}", filePath));
 
-        if (!std::ifstream(filePath))
-        {
-            std::ofstream(filePath).close();
-            return false;
+            if (!std::ifstream(filePath))
+            {
+                std::ofstream(filePath).close();
+                return false;
+            }
         }
 #endif
         return true;
@@ -121,13 +121,9 @@ namespace Millennium
                 msg::show("Initialization complete! Restart Steam for changed to take effect.", "Millennium");
                 exit(0);
             }
-
-            std::cout << "checking for updates" << std::endl;
 #ifdef _WIN32
             updater::check_for_updates();
 #endif
-            std::cout << "done" << std::endl;
-
 
             std::cout << " Millennium Dev Tools v" << m_ver << std::endl;
             std::cout << " Developed by ShadowMonster (discord: sm74)" << std::endl;
@@ -239,20 +235,9 @@ std::string get_distro() {
 }
 
 #ifdef _MILLENNIUM_INTEGRATED_
-
-//class SteamLaunchNotifier {
-//public:
-//    SteamLaunchNotifier() {
-//        while (true) {
-//            std::cout << "Millennium Started" << std::endl;
-//            std::this_thread::sleep_for(std::chrono::seconds(1));
-//        }
-//    }
-//};
-//
-//SteamLaunchNotifier notifier;
 static void __attribute__((constructor)) initialize_millennium() {
-    std::cout << "starting millennium core..." << std::endl;
+    console.log(fmt::format("starting millennium [linux][{}|{}]", get_distro(), get_arch()));
+
     Millennium::Bootstrap(nullptr);
 }
 

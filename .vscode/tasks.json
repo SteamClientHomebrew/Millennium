@@ -5,14 +5,13 @@
 			"type": "cmake",
 			"label": "build",
 			"command": "build",
-			"targets": [
-				"all"
-			],
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": [],
+			"problemMatcher": [
+				"$gcc"
+			],
 			"detail": "build millennium"
 		}
 	]
