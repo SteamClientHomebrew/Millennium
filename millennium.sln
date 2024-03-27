@@ -8,7 +8,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "millennium", "src\millenniu
 		{06D78D6D-0224-44CB-BAAC-99C3390056EF} = {06D78D6D-0224-44CB-BAAC-99C3390056EF}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "millennium.updater", "millennium.updater\millennium.updater.csproj", "{06D78D6D-0224-44CB-BAAC-99C3390056EF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "millennium.updater", "interop\millennium.updater.csproj", "{06D78D6D-0224-44CB-BAAC-99C3390056EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
