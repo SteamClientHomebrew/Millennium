@@ -4,7 +4,6 @@
 #include <utils/cout/logger.hpp>
 #include <utils/http/http_client.hpp>
 #include <fmt/core.h>
-#include <imgui.h>
 
 
 void OpenURL(std::string url);

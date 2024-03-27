@@ -1,5 +1,4 @@
 #include <window/core/colors.hpp>
-#include <imgui_internal.h>
 #include <stdafx.h>
 
 namespace colors
@@ -34,10 +33,10 @@ namespace colors
 	std::string ImVec4ToHex(const ImVec4& color) {
 
 		ImVec4 clampedColor;
-		clampedColor.x = ImClamp(color.x, 0.0f, 1.0f);
-		clampedColor.y = ImClamp(color.y, 0.0f, 1.0f);
-		clampedColor.z = ImClamp(color.z, 0.0f, 1.0f);
-		clampedColor.w = ImClamp(color.w, 0.0f, 1.0f);
+		clampedColor.x = std::clamp(color.x, 0.0f, 1.0f);
+		clampedColor.y = std::clamp(color.y, 0.0f, 1.0f);
+		clampedColor.z = std::clamp(color.z, 0.0f, 1.0f);
+		clampedColor.w = std::clamp(color.w, 0.0f, 1.0f);
 
 		unsigned char r = static_cast<unsigned char>(clampedColor.x * 255.0f);
 		unsigned char g = static_cast<unsigned char>(clampedColor.y * 255.0f);

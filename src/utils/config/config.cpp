@@ -26,7 +26,7 @@ void ensure()
     try {
         // Create parent directories if they don't exist
         std::filesystem::create_directories(path.parent_path());
-        std::cout << "created client json" << std::endl;
+        console.log("initialized settings repository");
 
         if (!std::filesystem::exists(path)) {
             std::ofstream fileStream(path);
@@ -206,12 +206,8 @@ themeConfig::themeConfig()
     m_steamPath = std::string(buffer, bufferSize);
     m_themesPath = fmt::format("{}/steamui/skins", std::string(buffer, bufferSize));
 #elif __linux__
-
-    console.log("trying to get steam directory");
-
     m_steamPath = fmt::format("{}/.steam/steam", std::getenv("HOME"));;
     m_themesPath = fmt::format("{}/steamui/skins", m_steamPath);
-    //console.err("themeConfig::themeConfig() HAS NOT BEEN IMPLEMENTED");
 #endif
 }
 
@@ -571,7 +567,6 @@ const void themeConfig::setupMillennium() noexcept
     catch (const std::filesystem::filesystem_error& e) {
         console.err(fmt::format("Error creating 'skins' directory. reason: {}", e.what()));
     }
-    std::cout << "calling ensure()" << std::endl;
     ensure();
 
     //create registry key if it doesnt exist

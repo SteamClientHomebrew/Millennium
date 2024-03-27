@@ -1343,7 +1343,9 @@ void Initialize()
                 }
             }
             catch (const nlohmann::detail::exception& ex) {
+#ifdef _WIN32
                 console.err(fmt::format("Received malformed JSON response from websocket: {}", ex.what()));
+#endif
             }
             catch (const std::exception& ex) {
                 console.err(fmt::format("Error occurred on client websocket thread: {}", ex.what()));
@@ -1357,6 +1359,12 @@ void Initialize()
 
             if (!initial_start) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                static bool logged = false;
+
+                if (!logged) {
+                    console.log("waiting for steam to be ready...");
+                    logged = true;
+                }
             }
             else {
                 console.err("steam is exiting, millennium is shutting down...");
