@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 project(millennium LANGUAGES CXX)
 
+include(FetchContent)
+FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
+        GIT_TAG 3b15fa82ea74739b574d705fea44959b58142eb8)
+
+set(CPR_ENABLE_SSL OFF)
+FetchContent_MakeAvailable(cpr)
+
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     add_compile_options(-Wno-format-security)
 endif()
@@ -153,8 +160,6 @@ endif ()
 if (target_type STREQUAL "SHARED_LIBRARY")
     add_definitions(-D_MILLENNIUM_INTEGRATED_)
 endif ()
-
-find_package(cpr CONFIG REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 #    ${GTK3_LIBRARIES}
