@@ -182,6 +182,62 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD call, void*)
 }
 #elif __linux__
 
+#include <sys/utsname.h>
+
+std::string get_arch() {
+    struct utsname unameData;
+    if (uname(&unameData) != 0) {
+        std::cerr << "Error getting system information" << std::endl;
+        return "Unknown";
+    }
+    
+    return unameData.machine;
+}
+
+std::map<std::string, std::string> parse_relase(const std::string& filename) {
+    std::map<std::string, std::string> info;
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return info;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        size_t pos = line.find('=');
+        if (pos != std::string::npos) {
+            std::string key = line.substr(0, pos);
+            std::string value = line.substr(pos + 1);
+            // Remove surrounding quotes if present
+            if (!value.empty() && (value.front() == '"' || value.front() == '\''))
+                value = value.substr(1, value.size() - 2);
+            info[key] = value;
+        }
+    }
+
+    file.close();
+    return info;
+}
+
+std::string get_distro() {
+    const std::string osReleasePath = "/etc/os-release";
+    std::map<std::string, std::string> osInfo = parse_relase(osReleasePath);
+    if (osInfo.empty()) {
+        return "Unknown";
+    } else {
+        // Check if distribution ID is available
+        if (osInfo.find("ID") != osInfo.end()) {
+            return osInfo["ID"];
+        }
+        // If not, fallback to the NAME field
+        else if (osInfo.find("NAME") != osInfo.end()) {
+            return osInfo["NAME"];
+        } else {
+            return "Unknown";
+        }
+    }
+}
+
 #ifdef _MILLENNIUM_INTEGRATED_
 
 //class SteamLaunchNotifier {
@@ -203,10 +259,9 @@ static void __attribute__((constructor)) initialize_millennium() {
 #elif _MILLENNIUM_STANDALONE_
 int main()
 {
-    console.log("WARMING MILLENNIUM (LINUX)");
+    console.log(fmt::format("starting millennium [linux][{}|{}]", get_distro(), get_arch()));
 
     Millennium::Bootstrap(nullptr);
-
     return 0;
 }
 #endif
