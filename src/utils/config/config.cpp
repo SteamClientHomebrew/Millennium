@@ -10,7 +10,6 @@
 #include <utils/config/config.hpp>
 #include <utils/io/input-output.hpp>
 
-
 std::string get_settings_path() {
 #ifdef _WIN32
     return "./.millennium/config/client.json";
@@ -69,7 +68,7 @@ namespace Settings
     std::string Get<std::string>(std::string key) {    
 
         std::string registry = getRegistry(key);
-        return static_cast<std::string>(registry);
+        return registry;
     }
 
     template<>
@@ -179,7 +178,8 @@ void themeConfig::watchPath(const std::string& directoryPath, std::function<void
 
                 if (filename.find(L"\\skin.json") != std::wstring::npos)
                 {
-                    if (!g_processingFileDrop) {
+                    //if (!is_installing) {
+                    if (true) {
                         callback();
                     }
                 }

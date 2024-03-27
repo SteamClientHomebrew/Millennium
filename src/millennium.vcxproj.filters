@@ -30,12 +30,6 @@
     <ClInclude Include="core\steam\cef_manager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="window\core\memory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="window\core\window.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="window\win_handler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -117,33 +111,6 @@
     <ClInclude Include="scripts\sdk\sdk.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="deps\imgui\imconfig.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imstb_truetype.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imgui.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imgui_impl_glfw.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imgui_impl_opengl3.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imgui_impl_opengl3_loader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imgui_internal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imstb_rectpack.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="deps\imgui\imstb_textedit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -153,12 +120,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="core\steam\cef_manager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\core\window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\win_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="utils\http\http_client.cpp">
@@ -224,30 +185,6 @@
     <ClCompile Include="scripts\sdk\sdk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="deps\imgui\imgui.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="deps\imgui\imgui_demo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="deps\imgui\imgui_draw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="deps\imgui\imgui_impl_glfw.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="deps\imgui\imgui_impl_opengl3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="deps\imgui\imgui_tables.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="deps\imgui\imgui_widgets.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="window\core\aptos.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="scripts\Resource.rc">
@@ -255,11 +192,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="scripts\html1.htm" />
     <None Include="scripts\resource.bin">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="scripts\sdk_ref1.bin">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

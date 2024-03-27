@@ -5,6 +5,8 @@
 #include <utils/clr/platform.hpp>
 #include <utils/io/input-output.hpp>
 
+extern bool is_installing = false;
+
 namespace Community
 {
 	void installer::installUpdate(const nlohmann::json& skinData)
@@ -16,10 +18,10 @@ namespace Community
 		}).dump(4));
 
 		if (success) {
-			g_fileDropStatus = "Updated Successfully!";
+			//g_fileDropStatus = "Updated Successfully!";
 		}
 		else {
-			g_fileDropStatus = "Failed to update theme...";
+			//g_fileDropStatus = "Failed to update theme...";
 		}
 #elif __linux__
         console.err("installer::installUpdate HAS NO IMPLEMENTATION");
@@ -114,50 +116,17 @@ namespace Community
                 m_Client.parseSkinData(false);
             }
             else {
-                cb("fail");
-                std::cout << "couldn't extract file" << std::endl;
-                //MsgBox("couldn't extract file", "Millennium", MB_ICONERROR);
-
-                //MsgBox("Can't Add Skin", [&](auto open) {
-
-                //    ImGui::TextWrapped("couldn't extract file");
-
-                //    if (ImGui::Button("Close")) {
-
-                //    }
-                //});
                 cb("Couldn't extract theme...");
-                //auto selection = msg::show("couldn't extract file", "Can't Add Skin", Buttons::OK);
             }
         }
         catch (const http_error&) {
             cb("Couldn't download bytes from the file");
             console.err("Couldn't download bytes from the file");
-            //MsgBox("Couldn't download bytes from the file", "Millennium", MB_ICONERROR);
-
-            //MsgBox("Millennium", [&](auto open) {
-
-            //    ImGui::TextWrapped("Couldn't download bytes from the file");
-
-            //    if (ImGui::Button("Close")) {
-
-            //    }
-            //    });
-
-            //auto selection = msg::show("Couldn't download bytes from the file", "Can't Add Skin", Buttons::OK);
         }
         catch (const std::exception& err) {
             console.err(fmt::format("Exception form {}: {}", __func__, err.what()));
             std::string error = fmt::format("Exception form {}: {}", __func__, err.what());
-            //MsgBox(error, "Millennium", MB_ICONERROR);
-            //MsgBox("Millennium", [&](auto open) {
 
-            //    ImGui::TextWrapped(error);
-
-            //    if (ImGui::Button("Close")) {
-
-            //    }
-            //});
             auto selection = msg::show(error.c_str(), "Can't Add Skin", Buttons::OK);
         }
     }

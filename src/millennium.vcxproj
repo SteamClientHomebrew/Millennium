@@ -110,7 +110,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>cpr.lib;opengl32.lib;glfw3.lib;version.lib;ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cpr.lib;version.lib;ws2_32.lib;Pdh.lib;wininet.lib;mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -184,15 +184,6 @@
     <ClInclude Include="core\steam\window\types\accent_api.hpp" />
     <ClInclude Include="core\steam\window\types\corners.hpp" />
     <ClInclude Include="core\steam\window\types\system_backdrop_type.hpp" />
-    <ClInclude Include="deps\imgui\imconfig.h" />
-    <ClInclude Include="deps\imgui\imgui.h" />
-    <ClInclude Include="deps\imgui\imgui_impl_glfw.h" />
-    <ClInclude Include="deps\imgui\imgui_impl_opengl3.h" />
-    <ClInclude Include="deps\imgui\imgui_impl_opengl3_loader.h" />
-    <ClInclude Include="deps\imgui\imgui_internal.h" />
-    <ClInclude Include="deps\imgui\imstb_rectpack.h" />
-    <ClInclude Include="deps\imgui\imstb_textedit.h" />
-    <ClInclude Include="deps\imgui\imstb_truetype.h" />
     <ClInclude Include="utils\io\metrics.hpp" />
     <ClInclude Include="scripts\sdk\sdk.hpp" />
     <ClInclude Include="utils\base64.hpp" />
@@ -203,8 +194,6 @@
     <ClInclude Include="window\api\installer.hpp" />
     <ClInclude Include="window\core\colors.hpp" />
     <ClInclude Include="window\interface_v2\editor.hpp" />
-    <ClInclude Include="window\core\memory.h" />
-    <ClInclude Include="window\core\window.hpp" />
     <ClInclude Include="window\interface\globals.h" />
     <ClInclude Include="window\interface_v2\settings.hpp" />
     <ClInclude Include="window\win_handler.hpp" />
@@ -224,13 +213,6 @@
     <ClCompile Include="core\ipc\ipc_main.cpp" />
     <ClCompile Include="core\steam\cef_manager.cpp" />
     <ClCompile Include="core\steam\window\manager.cpp" />
-    <ClCompile Include="deps\imgui\imgui.cpp" />
-    <ClCompile Include="deps\imgui\imgui_demo.cpp" />
-    <ClCompile Include="deps\imgui\imgui_draw.cpp" />
-    <ClCompile Include="deps\imgui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="deps\imgui\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="deps\imgui\imgui_tables.cpp" />
-    <ClCompile Include="deps\imgui\imgui_widgets.cpp" />
     <ClCompile Include="utils\io\metrics.cpp" />
     <ClCompile Include="scripts\sdk\sdk.cpp" />
     <ClCompile Include="stdafx.cpp" />
@@ -239,15 +221,10 @@
     <ClCompile Include="utils\thread\thread_handler.cpp" />
     <ClCompile Include="utils\updater\update.cpp" />
     <ClCompile Include="window\api\installer.cpp" />
-    <ClCompile Include="window\core\aptos.cpp" />
     <ClCompile Include="window\core\colors.cpp" />
     <ClCompile Include="window\interface_v2\editor.cpp" />
-    <ClCompile Include="window\core\window.cpp" />
-    <ClCompile Include="window\interface\globals.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="window\interface\globals.cpp" />
     <ClCompile Include="window\interface_v2\settings.cpp" />
-    <ClCompile Include="window\win_handler.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="utils\config\config.cpp" />
     <ClCompile Include="utils\http\http_client.cpp" />
@@ -257,11 +234,7 @@
     <ResourceCompile Include="scripts\Resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="scripts\html1.htm">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
     <None Include="scripts\resource.bin" />
-    <None Include="scripts\sdk_ref1.bin" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

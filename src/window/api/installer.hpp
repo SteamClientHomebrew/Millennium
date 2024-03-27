@@ -5,6 +5,8 @@
 #include <utils/config/config.hpp>
 #include <nlohmann/json.hpp>
 
+static bool is_installing;
+
 namespace Community
 {
 	class installer

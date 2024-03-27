@@ -1,9 +1,5 @@
 #include <stdafx.h>
 #include <iostream>
-
-#ifdef _WIN32
-#include <windows.h>
-#endif
 #include "input-output.hpp"
 
 namespace file {
@@ -33,7 +29,7 @@ namespace file {
             nlohmann::json jsonData = nlohmann::json::parse(fileContent);
             return jsonData;
         }
-        catch (const std::exception& e) {
+        catch (const std::exception&) {
             console.err("failed parse file object [readJsonSync]");
             return {};
         }

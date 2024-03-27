@@ -69,7 +69,7 @@ public:
             for (const auto& listener : listeners) {
                 std::thread([&]() {
                     listener(instance);
-                });
+                }).detach();
             }
         }
 
@@ -1246,10 +1246,8 @@ std::string exec_cmd(const char* cmd) {
 /// <returns></returns>
 void Initialize()
 {
-#ifdef __linux__
     std::promise<bool> m_keep_alive;
     bool initial_start = false;
-#endif
 
     config.setupMillennium();
     skin_json_config = config.getThemeData();
@@ -1399,6 +1397,10 @@ void Initialize()
 
     //CreateThread(0, 0, [](LPVOID lpParam) -> DWORD {}, 0, 0, 0);
 
+#ifdef _WIN32
+    std::promise<void>().get_future().wait();
+#elif __linux__
     m_keep_alive.get_future().wait();
+#endif
     console.log("unhooking millennium...");
 }

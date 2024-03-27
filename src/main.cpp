@@ -109,7 +109,7 @@ namespace Millennium
             console.consoleAllocated = true;
         }
 
-        c_threads::get().hookAllThreads();
+        //c_threads::get().hookAllThreads();
         {
             // check if remote debugging is enabled on the client.
             // required in order for millennium to work
@@ -142,7 +142,7 @@ namespace Millennium
             // synchronously run theme updater
             queryThemeUpdates(nullptr);
         }
-        c_threads::get().unhookAllThreads();
+        //c_threads::get().unhookAllThreads();
 
         return 0;
     }

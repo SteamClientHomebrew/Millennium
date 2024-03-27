@@ -1,8 +1,8 @@
 #include "ipc_main.hpp"
 #include "handlers/types.hpp"
-#include "window/interface_v2/editor.hpp"
-#include "core/injector/event_handler.hpp"
-#include "core/injector/conditions/conditionals.hpp"
+#include <window/interface_v2/editor.hpp>
+#include <core/injector/event_handler.hpp>
+#include <core/injector/conditions/conditionals.hpp>
 
 #include <utils/config/config.hpp>
 #include <utils/cout/logger.hpp>
@@ -93,9 +93,9 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 //        }
 //        else {
             //Window::bringToFront();
-#ifdef _WIN32
-            PlaySoundA("SystemExclamation", NULL, SND_ALIAS);
-#endif
+//#ifdef _WIN32
+//            PlaySoundA("SystemExclamation", NULL, SND_ALIAS);
+//#endif
         //}
     }
     if (message["id"] == "[open-theme-folder]")
