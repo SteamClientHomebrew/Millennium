@@ -1,7 +1,7 @@
-<div align="center">
+<div align="">
 
 
-## Millennium Steam Patcher ™
+## Millennium for Steam
 
 [![GitHub Releases][downloads-badge]][downloads-link] [![Discord][discord-badge]][discord-link] [![Website][website-badge]][website-link] [![Docs][docs-badge]][docs-link]
 
@@ -21,14 +21,12 @@
 [docs-link]: https://millennium.gitbook.io/steam-patcher/
 
 
+Millennium is an **open-source low-code modding framework** to create, manage and use extensions for the desktop Steam Client without any low-level internal interaction or overhead. It approaches modding by non-agressively modifying pseudo-state data inside the steamwebhelper and therfor doesn't modify any internal memory, permanently alter the state of the client, or pose as an internal threat. The engine fundamentally draws upon CEF debugging strategies, enabling the seamless integration of user-scripts into a CEF browser instance without the need for direct modifications to the client.
 
-<div align="center" style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-  
-  #### Millennium is an open source mod integrated directly into Steam® that allows the use of skins/theme's after Steam's latest UI overhaul.
-
+<div align="" style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
   <br>
   <div style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-    <img alt="Preview" width="524" alt="Hero image" src="https://i.imgur.com/cfPZJot.png"/>
+    <img alt="Preview" alt="Hero image" src="https://i.imgur.com/cfPZJot.png"/>
   </div>
 
 </div>
@@ -37,27 +35,36 @@
 
 </div>
 
-
-
 ## Installation
+### Automatic Installation (Recommended)
+  Install Millennium for Windows. See [this page](https://millennium.gitbook.io/steam-patcher/getting-started/installation) for a more detailed guide.
 
-Install Millennium for Windows. See [this page](https://millennium.gitbook.io/steam-patcher/getting-started/installation) for a more detailed guide.
+  [![Windows Installer][windows-badge]][windows-link] 
 
-[![Windows Installer][windows-badge]][windows-link] 
+  [windows-link]: https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/Millennium.Installer-Windows.exe
+  [windows-badge]: https://img.shields.io/badge/Windows%20(10+)-3a71c1?logo=Windows&logoColor=3a71c1&labelColor=0c0d10&color=3a71c1&style=for-the-badge
 
-[windows-link]: https://github.com/ShadowMonster99/millennium-steam-patcher/releases/latest/download/Millennium.Installer-Windows.exe
-[windows-badge]: https://img.shields.io/badge/Windows%20(10+)-3a71c1?logo=Windows&logoColor=3a71c1&labelColor=0c0d10&color=3a71c1&style=for-the-badge
-
-## Manual Installation
+###  Manual Installation
 
 For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Please see our [detailed documentation](https://millennium.gitbook.io/steam-patcher/getting-started/installation#manual-installation) for a guide on how to do this.
 
-
-## Themes & Addons
-
-Installing addons/themes is easy. All you need to do is select and download an addon/theme from the [community](https://millennium.web.app/themes). 
-
 <br>
+
+## Core  Features
+- CSS Overrides
+  - Client Area CSS Overrides
+  - Webkit CSS Overrides
+- JavaScript Overrides
+  - high-level interation with React in Client area.
+  - Interation with any aspect of the Client with native JS.
+
+## RoadMap
+- Linux Support
+- Faster patching algorithm for Settings Modal
+- Plugin Support
+  - Backends written in python
+  - Frontend written with React or native JS
+  - IPC between usermode and JS vm.
 
 ## Platform Support
 
