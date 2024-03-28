@@ -22,7 +22,7 @@
 [docs-link]: https://millennium.gitbook.io/steam-patcher/
 
 
-Millennium is an **open-source low-code modding framework** to create, manage and use extensions for the desktop Steam Client without any low-level internal interaction or overhead. It approaches modding by non-agressively modifying pseudo-state data inside the steamwebhelper and therfor doesn't modify any internal memory, permanently alter the state of the client, or pose as an internal threat. The engine fundamentally draws upon CEF debugging strategies, enabling the seamless integration of user-scripts into a CEF browser instance without the need for direct modifications to the client.
+Millennium is an **open-source low-code modding framework** to create, manage and use themes for the desktop Steam Client without any low-level internal interaction or overhead.
 
 If you enjoy this tool, please consider starring the project ⭐
 
