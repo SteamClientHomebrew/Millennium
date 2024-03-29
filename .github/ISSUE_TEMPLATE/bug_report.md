@@ -1,38 +1,54 @@
----
-name: Bug report
-about: Create a report to help us improve
-title: "[BUG]"
-labels: bug
-assignees: ''
+name: Bug Report
+description: Create a bug report to help us find and fix bugs!
+title: "[Bug]"
+labels: [bug]
+body:
+- type: checkboxes
+  attributes:
+    label: Before Reporting
+    description: "I have double checked and agree with the following:"
+    options:
+    - label: I found no existing issues matching my bug
+      required: true
+    - label: My issue is not caused by a theme
+      required: true
+- type: textarea
+  attributes:
+    label: Describe the Bug
+    description: A clear and concise description of what you're experiencing. If applicable, add screenshots to help explain your problem.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Expected Behavior
+    description: A clear and concise description of what you expected to happen.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Steps To Reproduce
+    description: Steps to reproduce the behavior.
+    placeholder: |
+      1. In this environment...
+      2. With this config...
+      3. Run '...'
+      4. See error...
+  validations:
+    required: true
+- type: dropdown
+  attributes:
+    label: Operating System
+    options:
+      - Windows
+      - Linux
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Anything else?
+    description: |
+      Links? References? Anything that will give us more context about the issue you are encountering!
 
----
-
-**Describe the bug**
-A clear and concise description of what the bug is.
-
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+      Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
+  validations:
+    required: false
