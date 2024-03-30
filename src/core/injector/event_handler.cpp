@@ -702,8 +702,8 @@ private:
     console.log("%c Millennium ", "background: black; color: white", 'injection thread -> ', start_time, 'took',  end - start, 'milliseconds');
 })())";
 
-        static int inject_cout = 0;
-        console.log(fmt::format("injecting into cef [{}]", inject_cout++));
+        //static int inject_cout = 0;
+        //console.log(fmt::format("injecting into cef [{}]", inject_cout++));
 
         try {
             std::function<void(const std::string&)> runtime_evaluate = [&](const std::string& script) -> void {
@@ -733,7 +733,7 @@ private:
     }
 
     inline const void rollup_query(std::string type, std::string title) {
-
+        // TODO
     }
 
     /// <summary>
