@@ -9,6 +9,7 @@
 #include <core/injector/conditions/conditionals.hpp>
 #include <utils/config/config.hpp>
 #include <utils/io/input-output.hpp>
+#include <window/interface_v2/settings.hpp>
 
 std::string get_settings_path() {
 #ifdef _WIN32
@@ -511,6 +512,38 @@ const nlohmann::json themeConfig::getThemeData(bool raw) noexcept
     return jsonBuffer;
 }
 
+void setup_cache() {
+
+    std::string modal_path = fmt::format("{}/steamui/millennium", config.getSteamRoot());
+
+    try {
+
+        if (!std::filesystem::exists(modal_path))
+        {
+            console.log(fmt::format("setting up 'millennium' directory @ {}", modal_path));
+            std::filesystem::create_directories(modal_path);
+        }
+    }
+    catch (const std::filesystem::filesystem_error& e) {
+        console.err(fmt::format("Error creating 'millennium' directory. reason: {}", e.what()));
+    }
+
+    if (std::filesystem::exists(modal_path)) {
+
+        std::ofstream outputFile(fmt::format("{}/settings.js", modal_path));
+
+        if (!outputFile.is_open()) {
+            console.err("Failed to open the file for writing.");
+            return;
+        }
+
+        outputFile << ui_interface::settings_page_renderer();
+        outputFile.close();
+
+        console.log("successfully cached settings modal repository");
+    }
+}
+
 /**
  * @brief Configures theme settings for Millennium theme.
  *
@@ -567,6 +600,8 @@ const void themeConfig::setupMillennium() noexcept
     catch (const std::filesystem::filesystem_error& e) {
         console.err(fmt::format("Error creating 'skins' directory. reason: {}", e.what()));
     }
+    
+    setup_cache();
     ensure();
 
     //create registry key if it doesnt exist

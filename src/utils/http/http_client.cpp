@@ -23,13 +23,18 @@ const std::string http::get(std::string remote_endpoint)
 {
     if (!valid_request(remote_endpoint)) {
         console.err(fmt::format("un-allowed to make requests to outside of local context"));
-        throw http_error(http_error::errors::not_allowed);
+        throw http_error(http_error::errors::not_allowed, "request is not allowed");
     }
 
     cpr::Header header;
     header["User-Agent"] = user_agent.data();
 
     cpr::Response r = cpr::Get(cpr::Url{ remote_endpoint }, header);
+
+    if (r.error) {
+        throw http_error(http_error::errors::couldnt_connect, r.error.message.c_str());
+    }
+
     return r.text;
 }
 
@@ -54,7 +59,7 @@ const bool http::to_disk(const char* url, const char* path)
     if (!valid_request(url))
     {
         console.err(fmt::format("un-allowed to make requests to outside of local context"));
-        throw http_error(http_error::errors::not_allowed);
+        throw http_error(http_error::errors::not_allowed, "request is not allowed");
     }
 
     cpr::Header header;

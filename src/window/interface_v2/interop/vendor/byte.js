@@ -57,5 +57,5 @@ fs.readFile('vendor/out/bundle.js', (err, data) => {
         });
         fs.rmdirSync(folderPath);
     };
-    removeFolderRecursive("vendor/out/");
+    //removeFolderRecursive("vendor/out/");
 });

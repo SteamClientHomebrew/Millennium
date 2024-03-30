@@ -12,10 +12,13 @@ std::vector<std::string> socket_log = {};
 
 std::string output_console::get_time()
 {
-	std::time_t time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	auto now = std::chrono::system_clock::now();
+	auto time = std::chrono::system_clock::to_time_t(now);
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
 	std::stringstream ss;
-	ss << std::put_time(&*std::localtime(&time), "%H:%M:%S");
+	ss << std::put_time(std::localtime(&time), "%H:%M:%S");
+	ss << fmt::format(".{:03}", ms.count());
 	return fmt::format("[{}]", ss.str());
 }
 

@@ -189,6 +189,7 @@
     <ClInclude Include="utils\base64.hpp" />
     <ClInclude Include="utils\clr\platform.hpp" />
     <ClInclude Include="utils\io\input-output.hpp" />
+    <ClInclude Include="utils\io\ports.hpp" />
     <ClInclude Include="utils\thread\thread_handler.hpp" />
     <ClInclude Include="utils\updater\update.hpp" />
     <ClInclude Include="window\api\installer.hpp" />
@@ -218,6 +219,7 @@
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="utils\clr\platform.cpp" />
     <ClCompile Include="utils\io\input-output.cpp" />
+    <ClCompile Include="utils\io\ports.cpp" />
     <ClCompile Include="utils\thread\thread_handler.cpp" />
     <ClCompile Include="utils\updater\update.cpp" />
     <ClCompile Include="window\api\installer.cpp" />

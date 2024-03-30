@@ -12,14 +12,19 @@ public:
         miscellaneous,
     };
 
-    http_error(int errorCode) : errorCode_(errorCode) {}
+    http_error(int errorCode, std::string message) : errorCode_(errorCode), message_(message) {}
 
     int code() const {
         return errorCode_;
     }
 
+    std::string message() const {
+        return message_;
+    }
+
 private:
     int errorCode_;
+    std::string message_;
 };
 
 //no information is transfered from the client to elsewhere other than download count on skins.

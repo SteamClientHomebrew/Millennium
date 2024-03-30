@@ -7,7 +7,6 @@
 
 #include <core/injector/event_handler.hpp>
 #include <utils/config/config.hpp>
-#include <core/steam/cef_manager.hpp>
 #include <utils/json.hpp>
 #include <utils/base64.hpp>
 #include <utils/thread/thread_handler.hpp>

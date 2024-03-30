@@ -16,6 +16,8 @@ const static std::filesystem::path fileName = "./.millennium/config/conditionals
 const static std::filesystem::path fileName = fmt::format("{}/.steam/steam/.millennium/config/conditionals.json", std::getenv("HOME"));;
 #endif
 
+static nlohmann::basic_json<> conditional_data_store;
+
 /// <summary>
 /// updates a single conditional in the conditions store. 
 /// </summary>
@@ -66,7 +68,7 @@ void save_config(std::string theme, std::string option, std::string value)
 /// <param name="name">the folder name of the theme in /steamui/skins</param>
 void conditionals::setup(const nlohmann::basic_json<>& data, const std::string name)
 {
-	auto local = conditionals::get_conditionals(name);
+	conditional_data_store = conditionals::get_conditionals(name);
 
 	// only check themes that have conditional queries
 	if (!data.contains("Conditions"))
@@ -101,7 +103,7 @@ void conditionals::setup(const nlohmann::basic_json<>& data, const std::string n
 
 		// fix invalid conditionals if they aren't found in the values array.
 		// ex the theme gets an update and the current selection goes out of scope
-		if (local.contains(key) && !find_value(local[key]))
+		if (conditional_data_store.contains(key) && !find_value(conditional_data_store[key]))
 		{
 			if (option.contains("default") && find_value(option["default"]))
 			{
@@ -119,7 +121,7 @@ void conditionals::setup(const nlohmann::basic_json<>& data, const std::string n
 
 
 		// setup the conditional defaults for a theme if they dont exist in the store. 
-		if (!local.contains(key))
+		if (!conditional_data_store.contains(key))
 		{
 			if (option.contains("default") && find_value(option["default"]))
 			{
@@ -223,6 +225,8 @@ nlohmann::basic_json<> conditionals::get_conditionals(const std::string themeNam
 std::vector<conditionals::conditional_item> 
 conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string name, std::string windowName)
 {
+	auto start_time = std::chrono::high_resolution_clock::now();
+
 	// local lambda function simply for resuability applied in the same scope
 	const auto check_match = [&](std::string window, std::string regex)
 	{
@@ -240,8 +244,6 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 		return regex_match;
 	};
 
-	// get all the conditionals from the disk 
-	auto local = conditionals::get_conditionals(name);
 
 	std::vector<conditionals::conditional_item> result;
 
@@ -283,7 +285,7 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 			continue;
 		}
 
-		const std::string current_value = local[condition];
+		const std::string current_value = conditional_data_store[condition];
 
 		for (auto& [value, data] : object["values"].items())
 		{	
@@ -316,6 +318,11 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 			evaluate_type(data, "TargetJs", steam_cef_manager::script_type::javascript);
 		}
 	}
+
+	auto end_time = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+	//console.log(fmt::format("[{}][ordinal] -> {} elapsed ms", __func__, duration.count()));
 
 	return result;
 }

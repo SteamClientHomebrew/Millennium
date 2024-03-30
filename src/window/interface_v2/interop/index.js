@@ -174,7 +174,12 @@ function initialize() {
       hooks.create_tab("Plugins", icons.pluginsTab, () => plugins_tab())
       hooks.start()
   })
+
+  window.millennium_loaded = true
 }
 
 //SteamClient.Browser.OpenDevTools()
-initialize()
+
+if (!window.millennium_loaded) {
+  initialize()
+}

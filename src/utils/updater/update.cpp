@@ -87,22 +87,9 @@ void updater::check_for_updates()
 
         if (api["up"] != true)
         {
-            auto message = api["message"].get<std::string>().c_str();
+            std::string message = api["message"];
 
-            ////MsgBox(message, "Bootstrap Error", MB_ICONINFORMATION);
-            //MsgBox("Bootstrap Error", [&](auto open) {
-
-            //    ImGui::TextWrapped(message);
-
-            //    if (ImGui::Button("Close")) {
-
-            //    }
-            //});
-
-
-            auto selection = msg::show(message, "Bootstrap Error", Buttons::OK);
-
-
+            auto selection = msg::show(message.c_str(), "Bootstrap Error", Buttons::OK);
             return;
         }
 
@@ -112,7 +99,7 @@ void updater::check_for_updates()
         nlohmann::basic_json<> response = nlohmann::json::parse(http::get(url));
 
         if (response.contains("message")) {
-            throw http_error(http_error::errors::not_allowed);
+            throw http_error(http_error::errors::not_allowed, "request is not allowed");
         }
 
         if (response["tag_name"] != m_ver)
