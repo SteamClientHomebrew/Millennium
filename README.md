@@ -71,7 +71,7 @@ For normal users, installing via the installers makes the most sense. However wh
 
 ## Platform Support
 
-Millennium currently only supports standard Windows NT builds. This includes ARM based processors and x86 based processors. Linux and Mac are NOT currently supported BUT support is currently in development for linux. For a more details see our [ documentation](https://millennium.gitbook.io/steam-patcher/)
+Millennium currently only supports standard Windows NT builds. This includes ARM based processors and x86 based processors. Linux and Mac are NOT currently supported BUT support is currently in development for linux. For a more details see our [wiki](https://github.com/SteamClientHomebrew/Millennium/wiki/Platform-Support)
 
 Supported Platforms:
 - Windows 10 and newer
