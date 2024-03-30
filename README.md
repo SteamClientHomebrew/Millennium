@@ -76,4 +76,4 @@ Millennium currently only supports standard Windows NT builds. This includes ARM
 Supported Platforms:
 - Windows 10 and newer
 - Windows (x86/x64/ARM) NT
-- Linux (WIP, in development. Build from source to test)
+- Linux (WIP, [Learn more](https://github.com/SteamClientHomebrew/Millennium/wiki/Platform-Support))
