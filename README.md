@@ -40,7 +40,7 @@ If you enjoy this tool, please consider starring the project ⭐
 
 ## Installation
 ### Automatic Installation (Recommended)
-  Install Millennium for Windows. See [this page](https://millennium.gitbook.io/steam-patcher/getting-started/installation) for a more detailed guide.
+  Install Millennium for Windows. See [this page](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#automatic) for a more detailed guide.
 
   [![Windows Installer][windows-badge]][windows-link] 
 
@@ -49,7 +49,7 @@ If you enjoy this tool, please consider starring the project ⭐
 
 ###  Manual Installation
 
-For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Please see our [detailed documentation](https://millennium.gitbook.io/steam-patcher/getting-started/installation#manual-installation) for a guide on how to do this.
+For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Please see our [detailed documentation](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#manual) for a guide on how to do this.
 
 <br>
 
