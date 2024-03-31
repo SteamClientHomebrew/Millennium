@@ -925,6 +925,18 @@ private:
 
             std::vector<item> itemQuery;
 
+            if (attributes.find("ModalDialogPopup") != std::string::npos) {
+                console.log("injecting millennium into settings modal");
+
+                steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
+
+                //itemQuery.push_back({
+                //    ui_interface::settings_page_renderer(),
+                //    steam_interface.script_type::javascript,
+                //    true
+                //});
+            }
+
             if (!skin_json_config.contains("Patches")) {
                 return;
             }
@@ -976,18 +988,6 @@ private:
                     itemQuery.push_back({ patch["TargetJs"].get<std::string>(), steam_interface.script_type::javascript });
                 if (patch.contains("TargetCss"))
                     itemQuery.push_back({ patch["TargetCss"].get<std::string>(), steam_interface.script_type::stylesheet });
-            }
-
-            if (attributes.find("ModalDialogPopup") != std::string::npos) {
-                console.log("injecting millennium into settings modal");
-
-                steam_interface.inject_millennium(steam_client, hdl, m_socket_resp["sessionId"].get<std::string>());
-
-                //itemQuery.push_back({
-                //    ui_interface::settings_page_renderer(),
-                //    steam_interface.script_type::javascript,
-                //    true
-                //});
             }
 
             if (itemQuery.size() > 0) {

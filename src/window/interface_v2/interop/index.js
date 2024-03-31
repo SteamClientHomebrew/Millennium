@@ -11,13 +11,13 @@ async function theme_tab() {
 
   document.querySelector(".DialogContent_InnerWidth").innerHTML = `
 <div class="DialogHeader">Themes</div>
-<div class="DialogBody aFxOaYcllWYkCfVYQJFs0">
-  <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" style="--indent-level:0;">
-  <div class="H9WOq6bV_VhQ4QjJS_Bxg">
-    <div class="_3b0U-QDD-uhFpw6xM716fw">Steam Skin</div>
-    <div class="_2ZQ9wHACVFqZcufK_WRGPM">
-      <button type="button" class="_3epr8QYWw_FqFgMx38YEEm DialogButton _DialogLayout Secondary Focusable" tabindex="0" style="margin: 0px; margin-right: 10px;" onclick="open_theme_folder()">...</button>
-      <button type="button" class="_3epr8QYWw_FqFgMx38YEEm DialogButton _DialogLayout Secondary Focusable" tabindex="0" style="margin: 0px; margin-right: 10px; justify-content: center; display: flex; align-items: center; padding-left: 10px; padding-right: 10px;" onclick="edit_theme()">
+<div class="DialogBody aFxOaYcllWYkCfVYQJFs0 settings_SettingsDialogBodyFade_aFxOa">
+  <div class="S-_LaQG5eEOM2HWZ-geJI gamepaddialog_Field_S-_La qFXi6I-Cs0mJjTjqGXWZA gamepaddialog_WithFirstRow_qFXi6 _3XNvAmJ9bv_xuKx5YUkP-5 gamepaddialog_VerticalAlignCenter_3XNvA _3bMISJvxiSHPx1ol-0Aswn gamepaddialog_WithDescription_3bMIS _3s1Rkl6cFOze_SdV2g-AFo gamepaddialog_WithBottomSeparatorStandard_3s1Rk _1ugIUbowxDg0qM0pJUbBRM gamepaddialog_ChildrenWidthFixed_1ugIU _5UO-_VhgFhDWlkDIOZcn_ gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ XRBFu6jAfd5kH9a3V8q_x gamepaddialog_StandardPadding_XRBFu wE4V6Ei2Sy2qWDo_XNcwn gamepaddialog_HighlightOnFocus_wE4V6 Panel" style="--indent-level:0;">
+  <div class="H9WOq6bV_VhQ4QjJS_Bxg gamepaddialog_FieldLabelRow_H9WOq">
+    <div class="_3b0U-QDD-uhFpw6xM716fw gamepaddialog_FieldLabel_3b0U-">Steam Skin</div>
+    <div class="_2ZQ9wHACVFqZcufK_WRGPM gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
+      <button type="button" class="_3epr8QYWw_FqFgMx38YEEm settings_SettingsDialogButton_3epr8 DialogButton _DialogLayout Secondary Focusable" tabindex="0" style="margin: 0px; margin-right: 10px;" onclick="open_theme_folder()">...</button>
+      <button type="button" class="_3epr8QYWw_FqFgMx38YEEm settings_SettingsDialogButton_3epr8 DialogButton _DialogLayout Secondary Focusable" tabindex="0" style="margin: 0px; margin-right: 10px; justify-content: center; display: flex; align-items: center; padding-left: 10px; padding-right: 10px;" onclick="edit_theme()">
         <svg width="16px" height="15px" viewBox="0 0 19 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
             <g id="Page-1" stroke="none" stroke-width="1"  fill="currentColor" fill-rule="evenodd">
                 <g id="Dribbble-Light-Preview" transform="translate(-419.000000, -359.000000)" fill="#000000">
@@ -28,7 +28,7 @@ async function theme_tab() {
             </g>
         </svg>
       </button>
-      <div class="_3N47t_-VlHS8JAEptE5rlR">
+      <div class="_3N47t_-VlHS8JAEptE5rlR gamepaddialog_FieldChildrenInner_3N47t">
         <div class="DialogDropDown _DialogInputContainer  Panel" tabindex="0" id="theme-dropdown" onclick="open_theme_list()">
           <div class="DialogDropDown_CurrentDisplay" id="current_theme_dialog">${json.active}</div>
           <div class="DialogDropDown_Arrow">
@@ -40,9 +40,9 @@ async function theme_tab() {
       </div>
     </div>
   </div>
-  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr">
+  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk">
     <div>Select a skin you want your Steam Client to use!</div>
-    <a href="#" class="RmxP90Yut4EIwychIEg51" onclick="open_theme_store()">Browse community themes...</a>
+    <a href="#" class="RmxP90Yut4EIwychIEg51 settings_SettingsLink_RmxP9" onclick="open_theme_store()">Browse community themes...</a>
   </div>
   </div>
   ${create_checkbox(
@@ -54,20 +54,20 @@ async function theme_tab() {
     "Allow custom user-scripts to run in your Steam Client. JS can be malicious so only enable JS on themes you trust, or have gotten from the official community.<br><b>(Requires Restart)</b>"
   )}
   ${ navigator.userAgent.includes("Linux") ?
-    `<div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" style="--indent-level:0;">
-      <div class="H9WOq6bV_VhQ4QjJS_Bxg">
-        <div class="_3b0U-QDD-uhFpw6xM716fw">Color Scheme</div>
-        <div class="_2ZQ9wHACVFqZcufK_WRGPM">
-          <button type="button" class="_3epr8QYWw_FqFgMx38YEEm DialogButton _DialogLayout Secondary Focusable" tabindex="0" style="margin: 0px; margin-right: 10px;" onclick="save_col()">Save</button><div class="_3N47t_-VlHS8JAEptE5rlR">
+    `<div class="S-_LaQG5eEOM2HWZ-geJI gamepaddialog_Field_S-_La qFXi6I-Cs0mJjTjqGXWZA gamepaddialog_WithFirstRow_qFXi6 _3XNvAmJ9bv_xuKx5YUkP-5 gamepaddialog_VerticalAlignCenter_3XNvA _3bMISJvxiSHPx1ol-0Aswn gamepaddialog_WithDescription_3bMIS _3s1Rkl6cFOze_SdV2g-AFo gamepaddialog_WithBottomSeparatorStandard_3s1Rk _1ugIUbowxDg0qM0pJUbBRM gamepaddialog_ChildrenWidthFixed_1ugIU _5UO-_VhgFhDWlkDIOZcn_ gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ XRBFu6jAfd5kH9a3V8q_x gamepaddialog_StandardPadding_XRBFu wE4V6Ei2Sy2qWDo_XNcwn gamepaddialog_HighlightOnFocus_wE4V6 Panel" style="--indent-level:0;">
+      <div class="H9WOq6bV_VhQ4QjJS_Bxg gamepaddialog_FieldLabelRow_H9WOq">
+        <div class="_3b0U-QDD-uhFpw6xM716fw gamepaddialog_FieldLabel_3b0U-">Color Scheme</div>
+        <div class="_2ZQ9wHACVFqZcufK_WRGPM gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
+          <button type="button" class="_3epr8QYWw_FqFgMx38YEEm settings_SettingsDialogButton_3epr8 DialogButton _DialogLayout Secondary Focusable" tabindex="0" style="margin: 0px; margin-right: 10px;" onclick="save_col()">Save</button><div class="_3N47t_-VlHS8JAEptE5rlR gamepaddialog_FieldChildrenInner_3N47t">
             <input type="color" id="favcolor" name="favcolor" value="${json.color}">
           </div>
         </div>
       </div>
-      <div class="_2OJfkxlD3X9p8Ygu1vR7Lr">As Linux doesn't currently have a set-in-stone way of accessing system accent color on all distros, you have to manually set it here.</div>
+      <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk">As Linux doesn't currently have a set-in-stone way of accessing system accent color on all distros, you have to manually set it here.</div>
     </div>`
   : ""}
-  <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ">Advanced Options</div>
-  ${navigator.userAgent.includes("Linux") ? `<div class="DialogBodyText _3fPiC9QRyT5oJ6xePCVYz8">We've detected you're on Linux; the following settings do not work as intended on Linux yet.<br>Check back later...</div>` : ``}
+  <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ settings_SettingsDialogSubHeader_2rK4Y">Advanced Options</div>
+  ${navigator.userAgent.includes("Linux") ? `<div class="DialogBodyText _3fPiC9QRyT5oJ6xePCVYz8 notificationssettings_FriendsDescription_3fPiC">We've detected you're on Linux; the following settings do not work as intended on Linux yet.<br>Check back later...</div>` : ``}
   
   ${create_checkbox(
     "Auto-Update Themes", json.auto_update, 
@@ -77,19 +77,19 @@ async function theme_tab() {
     "Auto-Update Notifications", json.update_notifs, 
     "Let Millennium push notifications when a theme is updated."
   )}
-  <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ">Client Utilities</div>
-  ${navigator.userAgent.includes("Linux") ? `<div class="DialogBodyText _3fPiC9QRyT5oJ6xePCVYz8">We've detected you're on Linux; the following settings do not work, and will not work on Linux.</div>` : ``}
+  <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ settings_SettingsDialogSubHeader_2rK4Y">Client Utilities</div>
+  ${navigator.userAgent.includes("Linux") ? `<div class="DialogBodyText _3fPiC9QRyT5oJ6xePCVYz8 notificationssettings_FriendsDescription_3fPiC">We've detected you're on Linux; the following settings do not work, and will not work on Linux.</div>` : ``}
   
   ${create_checkbox(
     "Acrylic Drop Shadow", json.acrylic, 
     "Make steam use Windows 11 acrylic windows; Only works for supporting themes. This is currently still in development and may be unstable.<br><b>(Requires Restart & Windows 11)</b>"
   )}
 
-  <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" style="--indent-level:0;">
-    <div class="H9WOq6bV_VhQ4QjJS_Bxg">
-      <div class="_3b0U-QDD-uhFpw6xM716fw">Window Borders</div>
-      <div class="_2ZQ9wHACVFqZcufK_WRGPM">
-        <div class="_3N47t_-VlHS8JAEptE5rlR">
+  <div class="S-_LaQG5eEOM2HWZ-geJI gamepaddialog_Field_S-_La qFXi6I-Cs0mJjTjqGXWZA gamepaddialog_WithFirstRow_qFXi6 _3XNvAmJ9bv_xuKx5YUkP-5 gamepaddialog_VerticalAlignCenter_3XNvA _3bMISJvxiSHPx1ol-0Aswn gamepaddialog_WithDescription_3bMIS _3s1Rkl6cFOze_SdV2g-AFo gamepaddialog_WithBottomSeparatorStandard_3s1Rk _1ugIUbowxDg0qM0pJUbBRM gamepaddialog_ChildrenWidthFixed_1ugIU _5UO-_VhgFhDWlkDIOZcn_ gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ XRBFu6jAfd5kH9a3V8q_x gamepaddialog_StandardPadding_XRBFu wE4V6Ei2Sy2qWDo_XNcwn gamepaddialog_HighlightOnFocus_wE4V6 Panel" style="--indent-level:0;">
+    <div class="H9WOq6bV_VhQ4QjJS_Bxg gamepaddialog_FieldLabelRow_H9WOq">
+      <div class="_3b0U-QDD-uhFpw6xM716fw gamepaddialog_FieldLabel_3b0U-">Window Borders</div>
+      <div class="_2ZQ9wHACVFqZcufK_WRGPM gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
+        <div class="_3N47t_-VlHS8JAEptE5rlR gamepaddialog_FieldChildrenInner_3N47t">
           <div class="DialogDropDown _DialogInputContainer  Panel" tabindex="0" id="corner-pref-dropdown" onclick="border_radius_list()">
             <div class="DialogDropDown_CurrentDisplay" id="corner-pref">${corner_prefs.find(item => item.data === json.corner_pref).name || "Unknown Position"}</div>
             <div class="DialogDropDown_Arrow">
@@ -101,17 +101,17 @@ async function theme_tab() {
         </div>
       </div>
     </div>
-    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr">
+    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk">
       <div>Custom border radius options for all the Steam windows. Currently still in development and has only been tested on Windows 11.</div>
     </div>
   </div>
-  <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ">Miscellaneous</div>
+  <div class="DialogSubHeader _2rK4YqGvSzXLj1bPZL8xMJ settings_SettingsDialogSubHeader_2rK4Y">Miscellaneous</div>
 
-  <div class="S-_LaQG5eEOM2HWZ-geJI qFXi6I-Cs0mJjTjqGXWZA _3XNvAmJ9bv_xuKx5YUkP-5 _3bMISJvxiSHPx1ol-0Aswn _3s1Rkl6cFOze_SdV2g-AFo _1ugIUbowxDg0qM0pJUbBRM _5UO-_VhgFhDWlkDIOZcn_ XRBFu6jAfd5kH9a3V8q_x wE4V6Ei2Sy2qWDo_XNcwn Panel" style="--indent-level:0;">
-    <div class="H9WOq6bV_VhQ4QjJS_Bxg">
-      <div class="_3b0U-QDD-uhFpw6xM716fw">Steam Notifications</div>
-      <div class="_2ZQ9wHACVFqZcufK_WRGPM">
-        <div class="_3N47t_-VlHS8JAEptE5rlR">
+  <div class="S-_LaQG5eEOM2HWZ-geJI gamepaddialog_Field_S-_La qFXi6I-Cs0mJjTjqGXWZA gamepaddialog_WithFirstRow_qFXi6 _3XNvAmJ9bv_xuKx5YUkP-5 gamepaddialog_VerticalAlignCenter_3XNvA _3bMISJvxiSHPx1ol-0Aswn gamepaddialog_WithDescription_3bMIS _3s1Rkl6cFOze_SdV2g-AFo gamepaddialog_WithBottomSeparatorStandard_3s1Rk _1ugIUbowxDg0qM0pJUbBRM gamepaddialog_ChildrenWidthFixed_1ugIU _5UO-_VhgFhDWlkDIOZcn_ gamepaddialog_ExtraPaddingOnChildrenBelow_5UO-_ XRBFu6jAfd5kH9a3V8q_x gamepaddialog_StandardPadding_XRBFu wE4V6Ei2Sy2qWDo_XNcwn gamepaddialog_HighlightOnFocus_wE4V6 Panel" style="--indent-level:0;">
+    <div class="H9WOq6bV_VhQ4QjJS_Bxg gamepaddialog_FieldLabelRow_H9WOq">
+      <div class="_3b0U-QDD-uhFpw6xM716fw gamepaddialog_FieldLabel_3b0U-">Steam Notifications</div>
+      <div class="_2ZQ9wHACVFqZcufK_WRGPM gamepaddialog_FieldChildrenWithIcon_2ZQ9w">
+        <div class="_3N47t_-VlHS8JAEptE5rlR gamepaddialog_FieldChildrenInner_3N47t">
           <div class="DialogDropDown _DialogInputContainer  Panel" tabindex="0" id="notifs-dropdown" onclick="open_notif_pos()">
             <div class="DialogDropDown_CurrentDisplay" id="notifs-pos-current">${notifications.find(item => item.data === json.notifs_pos).name || "Unknown Position"}</div>
             <div class="DialogDropDown_Arrow">
@@ -123,7 +123,7 @@ async function theme_tab() {
         </div>
       </div>
     </div>
-    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr">
+    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk">
       <div>Add a little extra spice to the positioning of Steam's notifications</div>
     </div>
   </div>
@@ -133,14 +133,14 @@ async function theme_tab() {
     "Hide the browser url bar that appears on the steam store, and other locations across the client!"
   )}
   </div>
-  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center"></div>
-  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center">Copyright &copy; Project-Millennium 2020-2024</div>
-  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center" style="margin-top: 0px;">
-    <a class="RmxP90Yut4EIwychIEg51" href="https://millennium.web.app/discord" target="_blank">Discord</a>  &nbsp; &bull; &nbsp;
-    <a class="RmxP90Yut4EIwychIEg51" href="https://ko-fi.com/shadowmonster" target="_blank">Donate</a>  &nbsp; &bull; &nbsp;
-    <a class="RmxP90Yut4EIwychIEg51" href="https://github.com/ShadowMonster99/millennium-steam-patcher" target="_blank">Github</a>
+  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center"></div>
+  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center">Copyright &copy; Project-Millennium 2020-2024</div>
+  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center" style="margin-top: 0px;">
+    <a class="RmxP90Yut4EIwychIEg51 settings_SettingsLink_RmxP9" href="https://millennium.web.app/discord" target="_blank">Discord</a>  &nbsp; &bull; &nbsp;
+    <a class="RmxP90Yut4EIwychIEg51 settings_SettingsLink_RmxP9" href="https://ko-fi.com/shadowmonster" target="_blank">Donate</a>  &nbsp; &bull; &nbsp;
+    <a class="RmxP90Yut4EIwychIEg51 settings_SettingsLink_RmxP9" href="https://github.com/ShadowMonster99/millennium-steam-patcher" target="_blank">Github</a>
   </div>
-  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center"></div>
+  <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center"></div>
   </div>
   `
 }
@@ -148,21 +148,21 @@ async function theme_tab() {
 function plugins_tab() {
   document.querySelector(".DialogContent_InnerWidth").innerHTML = `
     <div class="DialogHeader">Plugins</div>
-    <div class="DialogBody aFxOaYcllWYkCfVYQJFs0">
+    <div class="DialogBody aFxOaYcllWYkCfVYQJFs0 settings_SettingsDialogBodyFade_aFxOa">
       <div class="cdiv">
         ${icons.nothingHere}
-        <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center">Coming Soon! Check back later...</div>
-        <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center">Join the &nbsp;<a href="https://millennium.web.app/discord" target="_blank">discord</a>&nbsp;for progress updates</div>
+        <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center">Coming Soon! Check back later...</div>
+        <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center">Join the &nbsp;<a href="https://millennium.web.app/discord" target="_blank">discord</a>&nbsp;for progress updates</div>
       </div>
     </div>
-    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center"></div>
-    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center">Copyright &copy; Project-Millennium 2020-2024</div>
-    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center" style="margin-top: 0px;">
-    <a class="RmxP90Yut4EIwychIEg51" href="https://millennium.web.app/discord" target="_blank">Discord</a>  &nbsp; &bull; &nbsp;
-    <a class="RmxP90Yut4EIwychIEg51" href="https://ko-fi.com/shadowmonster" target="_blank">Donate</a>  &nbsp; &bull; &nbsp;
-    <a class="RmxP90Yut4EIwychIEg51" href="https://github.com/ShadowMonster99/millennium-steam-patcher" target="_blank">Github</a>
+    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center"></div>
+    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center">Copyright &copy; Project-Millennium 2020-2024</div>
+    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center" style="margin-top: 0px;">
+    <a class="RmxP90Yut4EIwychIEg51 settings_SettingsLink_RmxP9" href="https://millennium.web.app/discord" target="_blank">Discord</a>  &nbsp; &bull; &nbsp;
+    <a class="RmxP90Yut4EIwychIEg51 settings_SettingsLink_RmxP9" href="https://ko-fi.com/shadowmonster" target="_blank">Donate</a>  &nbsp; &bull; &nbsp;
+    <a class="RmxP90Yut4EIwychIEg51 settings_SettingsLink_RmxP9" href="https://github.com/ShadowMonster99/millennium-steam-patcher" target="_blank">Github</a>
     </div>
-    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr desc-text-center">
+    <div class="_2OJfkxlD3X9p8Ygu1vR7Lr gamepaddialog_FieldDescription_2OJfk desc-text-center">
   `
 }
 

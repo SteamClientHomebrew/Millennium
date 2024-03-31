@@ -2,6 +2,7 @@ document.body.addEventListener('click', function(event) {
   if (!event.target.classList.contains("_1tiuYeMmTc9DMG4mhgaQ5w")) {
     try {
       const element = document.querySelector("._1tiuYeMmTc9DMG4mhgaQ5w")
+
       if (element.id == "millennium-dropdown") {
         element.remove()
         document.querySelectorAll(".dialog_overlay").forEach(el => {
@@ -23,6 +24,7 @@ const modal = {
         );
       }
       const dialog = document.querySelector("._2qyBZV8YvxstXuSKiYDF19")
+
       const set_top = () => {
         dialog.style.top = rect.top - dialog.clientHeight + "px"
         dialog.style.left = rect.right - dialog.clientWidth + "px"

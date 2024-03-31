@@ -1,5 +1,16 @@
 let tab_store = []
 
+function get_listbox() {
+    const ret = document.querySelector("._EebF_xe4DGRZ9a0XkyDj")
+
+    if (ret != null) {
+        return ret
+    }
+    else {
+        return document.querySelector(".pagedsettings_PagedSettingsDialog_PageList__EebF")
+    }
+}
+
 const hooks = {
     start: () => {
         const elements = document.querySelectorAll('.bkfjn0yka2uHNqEvWZaTJ');
@@ -28,10 +39,10 @@ const hooks = {
     },
     create_tab: (name, icon, callback) => {
 
-        document.querySelector("._EebF_xe4DGRZ9a0XkyDj").insertAdjacentHTML('afterbegin', `
+        get_listbox().insertAdjacentHTML('afterbegin', `
         <div class="settings_item " id="${name}">
-            <div class="U6HcKswXzjmWtFxbjxuz4 settings_item_icon">${icon}</div>
-            <div class="_2X9_IsQsEJDpAd2JGrHdJI settings_item_name">${name}</div>
+            <div class="U6HcKswXzjmWtFxbjxuz4 pagedsettings_PageListItem_Icon_U6HcK settings_item_icon">${icon}</div>
+            <div class="_2X9_IsQsEJDpAd2JGrHdJI pagedsettings_PageListItem_Title_2X9_I settings_item_name">${name}</div>
         </div>`)
 
         tab_store.push(name)
@@ -41,12 +52,14 @@ const hooks = {
 
             // handle unselecting other tabs
             document.querySelectorAll('.bkfjn0yka2uHNqEvWZaTJ').forEach(element => { element.classList.remove("Myra7iGjzCdMPzitboVfh")})
+            document.querySelectorAll('.pagedsettings_PagedSettingsDialog_PageListItem_bkfjn').forEach(element => { element.classList.remove("pagedsettings_Active_Myra7")})
+
             tab_store.forEach(tab => tab != name && document.getElementById(tab).classList.remove("selected"))
             document.getElementById(name).classList.add("selected")
         })
     },
     create_seperator: () => {
-        document.querySelector("._EebF_xe4DGRZ9a0XkyDj").insertAdjacentHTML('afterbegin', `<div class="_1UEEmNDZ7Ta3enwTf5T0O0 " id="topsep"></div>`);
+        get_listbox().insertAdjacentHTML('afterbegin', `<div class="_1UEEmNDZ7Ta3enwTf5T0O0 pagedsettings_PageListSeparator_1UEEm" id="topsep"></div>`);
     }
 }
 

@@ -8,9 +8,9 @@ const combo = {
 
         document.body.insertAdjacentHTML('afterbegin', `
             <div class="dialog_overlay"></div>
-            <div class="DialogMenuPosition visible _2qyBZV8YvxstXuSKiYDF19" tabindex="0" style="position: absolute; visibility: visible; height: fit-content;">
-                <div class="_1tiuYeMmTc9DMG4mhgaQ5w _DialogInputContainer" id="millennium-dropdown">
-                    ${items.map(item => `<div class="_1R-DVEa2yqX0no8BYLtn9N" data="${item.data}">${item.name}</div>`).join('')}
+            <div class="DialogMenuPosition visible _2qyBZV8YvxstXuSKiYDF19 contextmenu_ContextMenuFocusContainer_2qyBZ" tabindex="0" style="position: absolute; visibility: visible; height: fit-content;">
+                <div class="_1tiuYeMmTc9DMG4mhgaQ5w dropdown_DialogDropDownMenu_1tiuY _DialogInputContainer" id="millennium-dropdown">
+                    ${items.map(item => `<div class="_1R-DVEa2yqX0no8BYLtn9N dropdown_DialogDropDownMenu_Item_1R-DV" data="${item.data}">${item.name}</div>`).join('')}
                 </div>
             </div>
         `);
