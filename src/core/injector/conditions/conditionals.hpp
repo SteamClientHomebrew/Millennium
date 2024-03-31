@@ -31,5 +31,6 @@ namespace conditionals
 		bool m_inline = false;
 	};
 
-	std::vector<conditional_item> has_patch(const nlohmann::basic_json<>& data, const std::string name, std::string windowName);
+	std::vector<conditional_item> has_wnd_patch(const nlohmann::basic_json<>& data, const std::string name, std::string windowName);
+	std::vector<conditional_item> has_class_patch(const nlohmann::basic_json<>& data, const std::string classList, std::string query);
 }

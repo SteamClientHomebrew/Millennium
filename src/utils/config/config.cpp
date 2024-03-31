@@ -224,28 +224,13 @@ std::string themeConfig::getSkinDir()
 
 const std::string themeConfig::getRootColors(nlohmann::basic_json<> data)
 {
-    if (data.contains("GlobalsColors") && data.is_object())
+    const std::string m_activeSkin = Settings::Get<std::string>("active-skin");
+
+    if (data.contains("GlobalVariables") && data["GlobalVariables"].is_string())
     {
-        std::string header = ":root { ";
+        std::string variables = file::readFileSync(fmt::format("{}/{}/{}", m_themesPath, m_activeSkin, data["GlobalVariables"]));
 
-        for (const auto& color : data["GlobalsColors"])
-        {
-            if (!color.contains("ColorName") || !color.contains("HexColorCode") || !color.contains("Description"))
-            {
-                console.err("Couldn't add global color to array. 'ColorName' or 'HexColorCode' or 'Description' doesn't exist");
-                continue;
-            }
-
-            std::string name = color["ColorName"];
-            std::string col = color["HexColorCode"];
-            std::string description = color["Description"];
-
-            header += fmt::format("{}: {}; ", name, col, description);
-        }
-
-        header += "}";
-
-        return header;
+        return variables;
     }
     else {
         return "[NoColors]";

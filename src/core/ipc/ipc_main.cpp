@@ -335,6 +335,8 @@ void IPC::handleMessage(const nlohmann::basic_json<> message,
 
         bool success = conditionals::update(Settings::Get<std::string>("active-skin"), id, new_value);
 
+        themeConfig::updateEvents::getInstance().triggerUpdate();
+
         console.log(fmt::format("result: {}", success));
         steam_js_context js_context;
         js_context.reload();

@@ -23,4 +23,5 @@ millennium.updater/bin
 cmake-build-debug
 build
 # Ignore Clion config
-.idea
+.idea/
+.vscode/

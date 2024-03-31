@@ -692,6 +692,7 @@ private:
         }
 
         std::string raw_script = R"(
+// The following code was injected by millennium.
 (() => {
     const getTime = () => `[${new Date().toLocaleTimeString('en-US', { hour12: false })}.${String(new Date().getMilliseconds()).padStart(3, '0')}]`;
 
@@ -699,7 +700,7 @@ private:
     var start = performance.now();
 )" + interpolate + R"(
     var end = performance.now();
-    console.log("%c Millennium ", "background: black; color: white", 'injection thread -> ', start_time, 'took',  end - start, 'milliseconds');
+    console.log(`%c ${start_time} Millennium `, "background: black; color: white", 'injection took',  (end - start).toFixed(2), 'milliseconds');
 })())";
 
         //static int inject_cout = 0;
@@ -784,7 +785,7 @@ private:
             }
 
             try {
-                auto conditional = conditionals::has_patch(skin_json_config, skin_json_config["native-name"], cefctx_title);
+                auto conditional = conditionals::has_wnd_patch(skin_json_config, skin_json_config["native-name"], cefctx_title);
 
                 for (auto condition : conditional)
                 {
@@ -950,7 +951,7 @@ private:
                 }
 
                 try {
-                    auto conditional = conditionals::has_patch(skin_json_config, skin_json_config["native-name"], m_header);
+                    auto conditional = conditionals::has_wnd_patch(skin_json_config, skin_json_config["native-name"], attributes);
 
                     for (auto condition : conditional) {
                         itemQuery.push_back({ condition.item_src, condition.type, condition.m_inline });
@@ -1230,21 +1231,6 @@ uint16_t steam_client::get_ipc_port() {
 /// initialize millennium components
 /// </summary>
 steam_client::steam_client() { }
-
-#ifdef _WIN32
-std::string exec_cmd(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
-    std::unique_ptr<FILE, decltype(&_pclose)> pipe(_popen(cmd, "r"), _pclose);
-    if (!pipe) {
-        throw std::runtime_error("popen() failed!");
-    }
-    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr) {
-        result += buffer.data();
-    }
-    return result;
-}
-#endif
 
 /// <summary>
 /// yet another initializer

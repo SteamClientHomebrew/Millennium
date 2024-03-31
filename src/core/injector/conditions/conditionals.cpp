@@ -213,6 +213,109 @@ nlohmann::basic_json<> conditionals::get_conditionals(const std::string themeNam
 	return nlohmann::basic_json<>();
 }
 
+
+std::vector<conditionals::conditional_item>
+conditionals::has_class_patch(const nlohmann::basic_json<>& data, const std::string classList, std::string query) {
+
+	auto start_time = std::chrono::high_resolution_clock::now();
+
+	const auto check_match = [&](std::string classList, std::string query)
+	{
+		bool regex_match = false;
+
+		try {
+			regex_match = classList.find(query) != std::string::npos;
+		}
+		catch (std::regex_error& e) {
+			console.err(fmt::format("Invalid regex selector: '{}' is invalid {}", query, e.what()));
+		}
+
+		// return the match state. 
+		return regex_match;
+	};
+
+	std::vector<conditionals::conditional_item> result;
+
+	const auto evaluate_type = [&](const nlohmann::basic_json<>& cond, std::string type, steam_cef_manager::script_type script_type)
+	{
+		// check if the queried conditionals contains either css or js
+		if (!cond.contains(type))
+		{
+			// abort if it doesn't
+			return;
+		}
+
+		// ensure the css or js has an effect on a window and if not skip it. 
+		if (cond[type].contains("affects") && cond[type]["affects"].is_array())
+		{
+			// itrate through the items in the affects array and match them against the current window 
+			for (const auto& window_regex : cond[type]["affects"])
+			{
+				if (check_match(classList, window_regex) && cond[type].contains("src"))
+				{
+					// push back into the result schema that is evaluated in the event_handler.cpp
+					result.push_back({ script_type, cond[type]["src"] });
+				}
+			}
+		}
+	};
+
+	// ensure the theme has conditions
+	if (!data.contains("Conditions"))
+	{
+		return result;
+	}
+
+	// loop over the conditional object / dictionary
+	for (auto& [condition, object] : data["Conditions"].items()) {
+
+		// check if it has values 
+		if (!object.contains("values")) {
+			continue;
+		}
+
+		const std::string current_value = conditional_data_store[condition];
+
+		for (auto& [value, data] : object["values"].items())
+		{
+			if (value != current_value)
+				continue;
+
+			if (data.contains("vars"))
+			{
+				std::string root = ":root {";
+				for (auto& [var_name, var_data] : data["vars"].items())
+				{
+					std::string root_name = var_name, variable = var_data;
+					root += fmt::format("\n\t{}: {};", root_name, variable);
+				}
+				root += "\n}";
+
+				std::string css = R"(	 
+					document.head.appendChild(Object.assign(document.createElement("style"), { textContent: `)" + root + R"(` })); 
+				)";
+
+				result.push_back({
+					steam_cef_manager::script_type::stylesheet,
+					css,
+					true //inline script
+				});
+			}
+
+			// try to evaluate the target css and the target js against the active window
+			evaluate_type(data, "TargetCss", steam_cef_manager::script_type::stylesheet);
+			evaluate_type(data, "TargetJs", steam_cef_manager::script_type::javascript);
+		}
+	}
+
+	auto end_time = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+	//console.log(fmt::format("[{}][ordinal] -> {} elapsed ms", __func__, duration.count()));
+
+	return result;
+}
+
 /// <summary>
 /// checks a specific theme if any conditionals have matches
 /// and returns the conditional item structure through a vector
@@ -223,11 +326,10 @@ nlohmann::basic_json<> conditionals::get_conditionals(const std::string themeNam
 /// <param name="windowName">the window/class we want to express</param>
 /// <returns>std::vector<conditionals::conditional_item></returns>
 std::vector<conditionals::conditional_item> 
-conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string name, std::string windowName)
+conditionals::has_wnd_patch(const nlohmann::basic_json<>& data, const std::string name, std::string windowName)
 {
 	auto start_time = std::chrono::high_resolution_clock::now();
 
-	// local lambda function simply for resuability applied in the same scope
 	const auto check_match = [&](std::string window, std::string regex)
 	{
 		bool regex_match = false;
@@ -243,7 +345,6 @@ conditionals::has_patch(const nlohmann::basic_json<>& data, const std::string na
 		// return the match state. 
 		return regex_match;
 	};
-
 
 	std::vector<conditionals::conditional_item> result;
 

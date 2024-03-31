@@ -107,6 +107,9 @@ void updater::check_for_updates()
             console.log("Starting updater...");
             updater::start_update(url);
         }
+        else {
+            console.log(fmt::format("Millennium {} is up-to-date!", m_ver));
+        }
     }
     catch (nlohmann::detail::exception& ex)
     {
