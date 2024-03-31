@@ -10,6 +10,8 @@ body:
     options:
     - label: I found no existing issue matching my feature request
       required: true
+    - label: This request is related to Millennium, and not a request for a specific theme/addon
+      required: true
 - type: textarea
   attributes:
     label: Describe the feature you'd like!
