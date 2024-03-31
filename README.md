@@ -2,7 +2,7 @@
 
 <img src="https://i.imgur.com/9qYPFSA.png" alt="Alt text" width="40">
 
-## [SCH] Millennium for Steam
+## Millennium for Steam
 
 [![GitHub Releases][downloads-badge]][downloads-link] [![Discord][discord-badge]][discord-link] [![Website][website-badge]][website-link] [![Docs][docs-badge]][docs-link]
 
