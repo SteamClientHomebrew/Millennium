@@ -1,4 +1,4 @@
-$${\color{red} IMPORTANT NOTICE }$$
+$${\color{red} IMPORTANT\space NOTICE }$$
 # YOU MUST USE STEAM STABLE UNTIL FURTHER NOTICE
 
 Steam has made some changes to the beta client which has messed up how themes work. 
