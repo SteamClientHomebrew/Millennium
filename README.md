@@ -1,9 +1,8 @@
-$${\color{red} IMPORTANT\space NOTICE }$$
-# YOU MUST USE STEAM STABLE UNTIL FURTHER NOTICE
-
-Steam has made some changes to the beta client which has messed up how themes work. 
-As of now, you must use Steam stable in Settings -> Interface -> Beta.
-Support is coming, and will be released when steam beta becomes public (date is unknown and in the hands of Steam)
+> [!CAUTION]
+> ### YOU MUST USE STEAM STABLE UNTIL FURTHER NOTICE
+> Steam has made some changes to the beta client which has messed up how themes work. 
+> As of now, you must use Steam stable in Settings -> Interface -> Beta.
+> Support is coming, and will be released when steam beta becomes public (date is unknown and in the hands of Steam)
 
 <br>
 
