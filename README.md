@@ -1,9 +1,12 @@
 > [!CAUTION]
 > ### YOU MUST USE STEAM STABLE UNTIL FURTHER NOTICE
-> Steam has made some changes to the beta client which has messed up how themes work. 
-> As of now, you must use Steam stable in Settings -> Interface -> Beta.
+> Steam has made some changes to the beta client which has messed up how themes work, resulting in Millennium being borked
+> As of now, you must use Steam stable (no beta) in Settings -> Interface -> Beta.
 > Support is coming, and will be released when steam beta becomes public (date is unknown and in the hands of Steam)
 
+> [!IMPORTANT]
+> ### END-USER SUPPORT
+> If you face any issues installing and/or using Millennium, please refer to [our wiki](https://github.com/SteamClientHomebrew/Millennium/wiki), or check current/closed [issues here](https://github.com/SteamClientHomebrew/Millennium/issues) before asking us on discord!
 <br>
 
 
