@@ -31,7 +31,7 @@
 [website-link]: https://millennium.web.app/
 
 [docs-badge]: https://img.shields.io/badge/docs-green?labelColor=0c0d10&color=3a71c1&style=for-the-badge&logo=readthedocs&logoColor=3a71c1
-[docs-link]: https://millennium.gitbook.io/steam-patcher/
+[docs-link]: https://github.com/SteamClientHomebrew/Millennium/wiki
 
 
 Millennium is an **open-source low-code modding framework** to create, manage and use themes for the desktop Steam Client without any low-level internal interaction or overhead.
