@@ -30,7 +30,7 @@
 [website-badge]: https://img.shields.io/badge/website-green?labelColor=0c0d10&color=3a71c1&style=for-the-badge&logo=firefoxbrowser&logoColor=3a71c1
 [website-link]: https://millennium.web.app/
 
-[docs-badge]: https://img.shields.io/badge/docs-green?labelColor=0c0d10&color=3a71c1&style=for-the-badge&logo=readthedocs&logoColor=3a71c1
+[docs-badge]: https://img.shields.io/badge/wiki-green?labelColor=0c0d10&color=3a71c1&style=for-the-badge&logo=readthedocs&logoColor=3a71c1
 [docs-link]: https://github.com/SteamClientHomebrew/Millennium/wiki
 
 Millennium is an **open-source low-code modding framework** to create, manage and use themes for the desktop Steam Client without any low-level internal interaction or overhead.
@@ -62,7 +62,7 @@ If you enjoy this tool, please consider starring the project ⭐
 
 ### Manual Installation
 
-For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Please see our [detailed documentation](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#manual) for a guide on how to do this.
+For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Check our [wiki](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#manual) for a guide on how to do this.
 
 <br>
 
