@@ -1,12 +1,18 @@
-[submodule "vendor/websocketpp"]
-	path = vendor/websocketpp
-	url = https://github.com/zaphoyd/websocketpp.git
 [submodule "vendor/nlohmann"]
 	path = vendor/nlohmann
 	url = https://github.com/nlohmann/json.git
+[submodule "vendor/websocketpp"]
+	path = vendor/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git
 [submodule "vendor/asio"]
 	path = vendor/asio
 	url = https://github.com/chriskohlhoff/asio.git
 [submodule "vendor/fmt"]
 	path = vendor/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "vendor/boxer"]
+	path = vendor/boxer
+	url = https://github.com/aaronmjacobs/Boxer.git
+[submodule "vendor/gumbo"]
+	path = vendor/gumbo
+	url = https://github.com/google/gumbo-parser.git
