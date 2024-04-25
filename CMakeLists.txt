@@ -7,7 +7,7 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options(-Wno-format-security) 
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -lz -std=c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Og -lz -std=c++17")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 23)
@@ -19,9 +19,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/fmt/include
   ${CMAKE_SOURCE_DIR}/vendor/asio/asio/include
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
-  ${CMAKE_SOURCE_DIR}/vendor/fmt/include
   ${CMAKE_SOURCE_DIR}/vendor/websocketpp
-  ${CMAKE_SOURCE_DIR}/vendor/http
 )
 
 add_compile_definitions(
@@ -35,16 +33,33 @@ add_compile_definitions(
   _CRT_SECURE_NO_WARNINGS
 )
 
-find_package(CURL REQUIRED)
-message(STATUS "CURL include directory: ${CURL_INCLUDE_DIR}")
-message(STATUS "CURL libraries: ${CURL_LIBRARIES}")
+# if cmake can't find python, set the path manually. 
+# set(Python_ROOT_DIR "C:/Program Files (x86)/Python311-32")
+# set(Python_FIND_STRATEGY LOCATION)
+find_package(Python COMPONENTS Development)
 
-# include python and libcurl statically.
+if (Python_FOUND)
+  message(STATUS "PYTHON  include directory: ${Python_INCLUDE_DIRS}")
+  message(STATUS "PYTHON  libraries: ${Python_LIBRARIES}")
+else()
+  message("Python was not found. download & install here: https://www.python.org/ftp/python/3.11.8/python-3.11.8.exe")
+endif()
+
+find_package(PkgConfig REQUIRED)
+pkg_search_module(LIBGIT2 REQUIRED libgit2)
+
+message(STATUS "LIBGIT  include directory: ${LIBGIT2_INCLUDE_DIRS}")
+message(STATUS "LIBGIT  libraries: ${LIBGIT2_LIBRARIES}")
+
+find_package(CURL REQUIRED)
+message(STATUS "LIBCURL include directory: ${CURL_INCLUDE_DIR}")
+message(STATUS "LIBCURL libraries: ${CURL_LIBRARIES}")
+
+# include python libcurl statically.
 include_directories(
-  "C:\\Program Files (x86)\\Python311-32\\include"
+  ${Python_INCLUDE_DIRS}
   ${CURL_INCLUDE_DIR}
-  ${LIBXML2_INCLUDE_DIR}
-  "C:/msys64/usr/include"
+  ${LIBGIT2_INCLUDE_DIRS}
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
@@ -60,7 +75,7 @@ add_library(Millennium SHARED
   "src/core/ipc/pipe.cpp"
   "src/generic/stream_parser.cc"
   "src/__builtins__/executor.cc"
-  "src/deps/python.cc"
+  "src/deps/module.cc"
   "src/core/hooks/web_load.cc"
 )
 
@@ -69,15 +84,16 @@ add_library(Millennium SHARED
 
 set_target_properties(Millennium PROPERTIES OUTPUT_NAME "User32")
 set_target_properties(Millennium PROPERTIES PREFIX "")
-set_target_properties(Millennium PROPERTIES LINK_FLAGS "-static-libstdc++")
+# set_target_properties(Millennium PROPERTIES LINK_FLAGS "-static-libstdc++")
+
+if(WIN32)
+  # link windows defined socket headers
+  target_link_libraries(Millennium "Ws2_32.lib" "wsock32")
+endif()
 
 target_link_libraries(Millennium
-  "Ws2_32.lib" "wsock32"
-  # ${Python_LIBRARIES}
-  "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
-  "C:/msys64/mingw32/lib/libminizip.dll.a"
-  ${CURL_LIBRARIES} # link curl
-  ${LIBXML2_LIBRARIES}
-  "C:/msys64/usr/lib/libmyhtml_static.a"
+  ${Python_LIBRARIES}
+  ${CURL_LIBRARIES}
+  ${LIBGIT2_LIBRARIES}
   Boxer
 ) 

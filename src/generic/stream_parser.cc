@@ -4,6 +4,7 @@
 #include <fmt/core.h>
 #include <iostream>
 #include <windows.h>
+#include "base.h"
 
 namespace fs = std::filesystem;
 
@@ -23,6 +24,22 @@ namespace stream_buffer
         std::vector<plugin_mgr::plugin_t> plugins;
 
         try {
+            const auto json = file::readJsonSync(fmt::format("{}/plugin.json", millennium_modules_path));
+            
+            stream_buffer::plugin_mgr::plugin_t plugin;
+            plugin.base_dir     = millennium_modules_path;
+            plugin.backend_abs  = fmt::format("{}/backend/main.py", millennium_modules_path);
+            plugin.name         = "millennium__internal";
+            plugin.frontend_abs = fmt::format(".millennium_modules/dist/index.js");
+            plugin.pjson        = json;
+
+            plugins.push_back(plugin);
+        }
+        catch (file::io_except& ex) {
+            console.err(ex.what());
+        }
+
+        try {
             for (const auto& entry : std::filesystem::directory_iterator(plugin_path)) 
             {
                 if (entry.is_directory()) 
@@ -36,13 +53,14 @@ namespace stream_buffer
                     try {
                         const auto json = file::readJsonSync(skin_json.string());
                         
-                        plugins.push_back({
-                            entry.path(),
-                            entry.path() / "backend" / "main.py",
-                            (json.contains("name") && json["name"].is_string() ? json["name"].get<std::string>() : entry.path().filename().string()),
-                            fmt::format("plugins/{}/dist/index.js", entry.path().filename().string()),
-                            json
-                        });
+                        stream_buffer::plugin_mgr::plugin_t plugin;
+                        plugin.base_dir     = entry.path();
+                        plugin.backend_abs  = entry.path() / "backend" / "main.py";
+                        plugin.name         = (json.contains("name") && json["name"].is_string() ? json["name"].get<std::string>() : entry.path().filename().string());
+                        plugin.frontend_abs = fmt::format("plugins/{}/dist/index.js", entry.path().filename().string());
+                        plugin.pjson        = json;
+
+                        plugins.push_back(plugin);
                     }
                     catch (file::io_except& ex) {
                         console.err(ex.what());

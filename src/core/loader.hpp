@@ -1,7 +1,6 @@
 #pragma once
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
-#define _WINSOCKAPI_
 #include <string>
 #include <nlohmann/json.hpp>
 #include <winsock2.h>

@@ -10,27 +10,20 @@
 unsigned long enable_debugger(void)
 {
 #ifdef _WIN32
-    constexpr const std::basic_string_view<char> filePath = ".cef-enable-remote-debugging";
-
-    if (!std::ifstream(filePath.data()))
-    {
-        std::ofstream(filePath.data()).close();
-        return false;
-    }
+    const std::string filePath = ".cef-enable-remote-debugging";
 #elif __linux__
     const std::string filePath =
         fmt::format("{}/.local/share/Steam/.cef-enable-remote-debugging", std::getenv("HOME"));
+#endif
 
-    if (!std::filesystem::exists(filePath)) {
-        console.log(fmt::format("writing flag to -> {}", filePath));
-
+    if (!std::filesystem::exists(filePath)) 
+    {
         if (!std::ifstream(filePath))
         {
             std::ofstream(filePath).close();
             return false;
         }
     }
-#endif
     return true;
 }
 
@@ -47,12 +40,9 @@ const void bootstrap()
     void(freopen("CONOUT$", "w", stderr));
 #endif
 
-    const bool success = dependencies::embed_python();
-
-    if (!success) {
+    if (!dependencies::clone_millennium_module()) {
         return;
     }
-
 	plugin::get().bootstrap();
 }
 

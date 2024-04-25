@@ -1,5 +1,5 @@
 #pragma once
 
 namespace dependencies {
-    bool embed_python();
+    bool clone_millennium_module();
 }

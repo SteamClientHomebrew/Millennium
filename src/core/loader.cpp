@@ -9,6 +9,7 @@
 #include <utilities/http.h>
 #include <socket/await_pipe.h>
 #include <core/hooks/web_load.h>
+#include <generic/base.h>
 
 websocketpp::client<websocketpp::config::asio_client>* plugin_client;
 websocketpp::connection_hdl plugin_handle;
@@ -147,8 +148,8 @@ void localize_python_runtime(stream_buffer::plugin_mgr::plugin_t plugin) {
 
         std::vector<std::string> sys_paths = { 
             fmt::format("{}/backend", base),
-            (stream_buffer::steam_path()/".millennium"/"python"/"python311.zip").generic_string(),
-            (stream_buffer::steam_path()/".millennium"/"python").generic_string(),
+            fmt::format("{}/.python/python311.zip", millennium_modules_path),
+            fmt::format("{}/.python", millennium_modules_path),
         };
 
         // include venv paths to interpretor
@@ -327,8 +328,7 @@ void plugin::bootstrap()
 
     auto plugins = stream_buffer::plugin_mgr::parse_all();
 
-    for (stream_buffer::plugin_mgr::plugin_t& plugin : plugins) 
-    {
+    for (const auto& plugin : plugins) {
         std::thread(localize_python_runtime, plugin).detach();
     }
 
