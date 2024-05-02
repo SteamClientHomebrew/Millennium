@@ -4,6 +4,7 @@
 #include <thread>
 #include <functional>
 #include <string>
+#include <generic/stream_parser.h>
 
 struct thread_state {
 	std::string name;
@@ -20,11 +21,11 @@ private:
 	std::vector<std::thread> thread_pool;
 	std::vector<thread_state> instances_;
 
+public:
 	plugin_manager();
 	~plugin_manager();
-public:
 
-	bool create_instance(std::string name, std::function<void()> callback);
+	bool create_instance(stream_buffer::plugin_mgr::plugin_t& plugin, std::function<void(stream_buffer::plugin_mgr::plugin_t&)> callback);
 	void wait_for_exit();
 
 	thread_state get_thread_state(std::string pluginName);

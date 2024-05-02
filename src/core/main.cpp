@@ -6,40 +6,31 @@
 #include <stdexcept>
 #include <exception>
 #include <typeinfo>
+#include <_win32/thread.h>
 
-unsigned long enable_debugger(void)
+const bool __attribute__((constructor)) setup_env() 
 {
 #ifdef _WIN32
-    const std::string filePath = ".cef-enable-remote-debugging";
-#elif __linux__
-    const std::string filePath =
-        fmt::format("{}/.local/share/Steam/.cef-enable-remote-debugging", std::getenv("HOME"));
+    static_cast<bool>(AllocConsole());
+    void(freopen("CONOUT$", "w", stdout));
+    void(freopen("CONOUT$", "w", stderr));
 #endif
 
-    if (!std::filesystem::exists(filePath)) 
-    {
-        if (!std::ifstream(filePath))
-        {
-            std::ofstream(filePath).close();
-            return false;
-        }
+#ifdef _WIN32
+    constexpr const char* filePath = ".cef-enable-remote-debugging";
+#elif __linux__
+    std::string filePath = fmt::format("{}/.local/share/Steam/.cef-enable-remote-debugging", std::getenv("HOME"));
+#endif
+
+    if (!std::filesystem::exists(filePath)) {
+        std::ofstream(filePath).close();
+        return false;
     }
     return true;
 }
 
 const void bootstrap()
 {
-    enable_debugger();
-    
-#ifdef _WIN32
-    // allocate console
-    static_cast<bool>(AllocConsole());
-
-    // redirect standard output
-    void(freopen("CONOUT$", "w", stdout));
-    void(freopen("CONOUT$", "w", stderr));
-#endif
-
     if (!dependencies::clone_millennium_module()) {
         return;
     }

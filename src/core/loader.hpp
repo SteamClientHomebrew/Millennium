@@ -9,6 +9,7 @@
 
 void localize_python_runtime(stream_buffer::plugin_mgr::plugin_t plugin_name);
 std::string get_plugin_frontend(std::string plugin_name);
+static std::string sessionId;
 
 struct shared {
 	websocketpp::client
@@ -27,4 +28,7 @@ public:
 	void bootstrap();
 };
 
-bool post_socket(nlohmann::json data);
+namespace tunnel {
+	bool post_shared(nlohmann::json data);
+	bool post_global(nlohmann::json data);
+}

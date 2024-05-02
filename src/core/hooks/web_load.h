@@ -2,8 +2,10 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <vector>
+#include <mutex>
 
 static unsigned long long hook_tag;
+static std::mutex request_map_mutex;
 
 class webkit_handler {
 private:
@@ -18,7 +20,8 @@ private:
 
     struct web_hook_t {
         short id;
-        std::string request_id, type;
+        std::string request_id;
+        std::string type;
     };
 
     std::shared_ptr<std::vector<web_hook_t>> request_map = std::make_shared<std::vector<web_hook_t>>();

@@ -76,6 +76,8 @@ namespace javascript {
 		std::string name, type;
 	};
 
+    const void reload_shared_context();
+
 	const std::string construct_fncall(const char* value, const char* method_name,
 		std::vector<javascript::param_types> params);
 

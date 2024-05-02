@@ -20,6 +20,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/asio/asio/include
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
   ${CMAKE_SOURCE_DIR}/vendor/websocketpp
+  ${CMAKE_SOURCE_DIR}/vendor/incbin
 )
 
 add_compile_definitions(
@@ -60,7 +61,10 @@ include_directories(
   ${Python_INCLUDE_DIRS}
   ${CURL_INCLUDE_DIR}
   ${LIBGIT2_INCLUDE_DIRS}
+  "src/__builtins__"
 )
+
+# target_include_directories(Millennium PRIVATE "src/__builtins__")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
 set(CMAKE_BUILD_TYPE Debug)
@@ -77,6 +81,7 @@ add_library(Millennium SHARED
   "src/__builtins__/executor.cc"
   "src/deps/module.cc"
   "src/core/hooks/web_load.cc"
+  "src/core/co_initialize/co_stub.cc"
 )
 
 # Set debug flags
@@ -92,7 +97,8 @@ if(WIN32)
 endif()
 
 target_link_libraries(Millennium
-  ${Python_LIBRARIES}
+  # ${Python_LIBRARIES}
+  "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
   ${CURL_LIBRARIES}
   ${LIBGIT2_LIBRARIES}
   Boxer

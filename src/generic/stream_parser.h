@@ -17,8 +17,13 @@ namespace stream_buffer
             nlohmann::basic_json<> pjson;
         };
 
+        std::vector<std::string> get_enabled();
+        bool set_plugin_status(std::string pname, bool enabled);
         std::vector<plugin_t> parse_all();
     };
+
+    void set_config(std::string file_data);
+    void setup_config();
 
     std::filesystem::path steam_path();
 

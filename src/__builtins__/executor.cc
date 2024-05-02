@@ -144,6 +144,48 @@ PyObject* add_browser_js(PyObject* self, PyObject* args)
     return PyLong_FromLong(add_module(args, webkit_handler::type_t::JAVASCRIPT));
 }
 
+/* 
+This portion of the API is undocumented but you can use it. 
+*/
+PyObject* change_plugin_status(PyObject* self, PyObject* args) 
+{ 
+    console.log("updating a plugins status.");
+    const char* plugin_name;  // string parameter
+    PyObject* new_status_obj; // bool parameter
+    int new_status;
+
+    // Parse the arguments from the tuple
+    if (!PyArg_ParseTuple(args, "sO", &plugin_name, &new_status_obj)) {
+        return NULL; // Parsing failed
+    }
+
+    // Check if the second argument is a boolean
+    if (!PyBool_Check(new_status_obj)) {
+        PyErr_SetString(PyExc_TypeError, "Second argument must be a boolean");
+        return NULL;
+    }
+
+    // Convert the PyObject to a C boolean value
+    new_status = PyObject_IsTrue(new_status_obj);
+
+    // Now you have plugin_name as a string and new_status as a boolean value
+    // You can proceed with your logic here
+
+    // For example, printing the parsed values
+    printf("Plugin Name: %s\n", plugin_name);
+    printf("New Status: %d\n", new_status);
+
+    // Perform your actions and return appropriate value
+    // For example, return Py_True or Py_False depending on the action's success
+
+    if (!new_status) {
+        console.log("requested to shutdown plugin {}", plugin_name);
+        std::thread(std::bind(&plugin_manager::shutdown_plugin, &plugin_manager::get(), plugin_name)).detach();
+    }
+
+    Py_RETURN_NONE;
+}
+
 PyMethodDef* get_module_handle()
 {
     static PyMethodDef module_methods[] = 
@@ -157,6 +199,8 @@ PyMethodDef* get_module_handle()
         { "version", py_get_millennium_version, METH_NOARGS, NULL },
         { "steam_path", py_steam_path, METH_NOARGS, NULL },
         { "call_frontend_method", (PyCFunction)call_frontend_method, METH_VARARGS | METH_KEYWORDS, NULL },
+
+        { "change_plugin_status", change_plugin_status, METH_VARARGS, NULL },
         {NULL, NULL, 0, NULL} // Sentinel
     };
 

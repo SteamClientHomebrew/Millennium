@@ -12,7 +12,7 @@ const shared_response execute_shared(std::string javascript) {
     // Create a promise to store the result
     std::promise<shared_response> promise;
 
-    bool success = post_socket(nlohmann::json({ 
+    bool success = tunnel::post_shared(nlohmann::json({ 
         {"id", 54999}, 
         {"method", "Runtime.evaluate"}, 
         {"params", {
@@ -54,6 +54,10 @@ const shared_response execute_shared(std::string javascript) {
 
     // Return the result obtained from the promise
     return promise.get_future().get();
+}
+
+const void javascript::reload_shared_context() {
+    return (void)tunnel::post_shared({ {"id", 89}, {"method", "Page.reload"}, {"sessionId", sessionId} });
 }
 
 const std::string javascript::construct_fncall(

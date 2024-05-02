@@ -18,26 +18,114 @@ namespace stream_buffer
         return std::string(buffer, bufferSize);
     }
 
+    nlohmann::json get_config() {
+        const auto path = steam_path() / ".millennium" / "settings.json";
+
+        if (!fs::exists(path)) {
+            fs::create_directories(path.parent_path());
+            std::ofstream outputFile(path.string());
+            outputFile << "{}";
+        }
+
+        return file::readJsonSync(path.string());
+    }
+
+    void set_config(std::string file_data) {
+        const auto path = steam_path() / ".millennium" / "settings.json";
+
+        if (!fs::exists(path)) {
+            fs::create_directories(path.parent_path());
+            std::ofstream outputFile(path.string());
+            outputFile << "{}";
+        }
+        file::writeFileSync(path, file_data);
+    }
+
+    void setup_config() 
+    {
+        auto json = get_config();
+
+        if (json.contains("enabled") && json["enabled"].is_array()) {
+            bool found = false;
+            for (const auto& item : json["enabled"]) {
+                if (item == "millennium__internal") {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                json["enabled"].push_back("millennium__internal");
+            }
+        }
+        else {
+            json["enabled"] = nlohmann::json::array({ "millennium__internal" });
+        }
+        set_config(json.dump(4));
+    }
+
+    bool plugin_mgr::set_plugin_status(std::string pname, bool enabled) {
+
+        console.log("updating plugin status");
+        auto json = stream_buffer::get_config();
+
+        if (enabled) {
+            if (json.contains("enabled") && json["enabled"].is_array()) {
+                console.log("pushed back plugin");
+                json["enabled"].get<std::vector<std::string>>().push_back(pname);
+            }
+            else {
+                console.log("created enabled list");
+                json["enabled"] = nlohmann::json::array({pname});
+            }
+        }
+        // disable the plugin
+        else {
+            if (json.contains("enabled") && json["enabled"].is_array()) {
+                auto l = json["enabled"].get<std::vector<std::string>>();
+                // Find and erase pname from the vector
+                auto it = std::find(l.begin(), l.end(), pname);
+                if (it != l.end()) { l.erase(it); }
+                // Update the JSON object
+                json["enabled"] = l;
+                console.log("popped plugin from list");
+            }
+            else {
+                console.err("couldn't disable [{}] as its not enabled.", pname);
+            }
+        }
+
+        std::cout << "updated config -> " << json.dump(4) << std::endl;
+        // file::writeFileSync(path, json.dump(4));
+        set_config(json.dump(4));
+        return true;
+    }
+
+    std::vector<std::string> plugin_mgr::get_enabled() 
+    {
+        auto json = stream_buffer::get_config();
+        return json["enabled"].get<std::vector<std::string>>();
+    }
+
     std::vector<plugin_mgr::plugin_t> plugin_mgr::parse_all() 
     {
         const auto plugin_path = steam_path() / "steamui" / "plugins";
         std::vector<plugin_mgr::plugin_t> plugins;
 
-        try {
-            const auto json = file::readJsonSync(fmt::format("{}/plugin.json", millennium_modules_path));
+        // try {
+        //     const auto json = file::readJsonSync(fmt::format("{}/plugin.json", millennium_modules_path));
             
-            stream_buffer::plugin_mgr::plugin_t plugin;
-            plugin.base_dir     = millennium_modules_path;
-            plugin.backend_abs  = fmt::format("{}/backend/main.py", millennium_modules_path);
-            plugin.name         = "millennium__internal";
-            plugin.frontend_abs = fmt::format(".millennium_modules/dist/index.js");
-            plugin.pjson        = json;
+        //     stream_buffer::plugin_mgr::plugin_t plugin;
+        //     plugin.base_dir     = millennium_modules_path;
+        //     plugin.backend_abs  = fmt::format("{}/backend/main.py", millennium_modules_path);
+        //     plugin.name         = "millennium__internal";
+        //     plugin.frontend_abs = fmt::format(".millennium_modules/dist/index.js");
+        //     plugin.pjson        = json;
 
-            plugins.push_back(plugin);
-        }
-        catch (file::io_except& ex) {
-            console.err(ex.what());
-        }
+        //     plugins.push_back(plugin);
+        // }
+        // catch (file::io_except& ex) {
+        //     console.err(ex.what());
+        // }
 
         try {
             for (const auto& entry : std::filesystem::directory_iterator(plugin_path)) 

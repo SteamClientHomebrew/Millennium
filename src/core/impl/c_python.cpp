@@ -46,12 +46,15 @@ const python::return_t lock_gil(std::string plugin_name, std::string script)
 
             const char* errorMessage = PyUnicode_AsUTF8(pStrErrorMessage);
             if (errorMessage) {
-                console.err(fmt::format("[interop-dispatch] {}", errorMessage));
+                console.err(fmt::format("[interop-dispatch] Error calling backend function: {}", errorMessage));
             }
             return { errorMessage, python::type_t::_err };
         }
     }
 
+    if (rv_object == nullptr || rv_object == Py_None) {
+        return { "0", python::type_t::_int }; // whitelist NoneType
+    }
     if (PyBool_Check(rv_object)) {
         return { PyLong_AsLong(rv_object) == 0 ? "False" : "True", python::type_t::_bool };
     }
@@ -62,7 +65,15 @@ const python::return_t lock_gil(std::string plugin_name, std::string script)
         return { PyUnicode_AsUTF8(rv_object), python::type_t::_string };
     }
 
-    return { "return type from python function was not [int, str, bool]", python::type_t::_err };
+    // Print the typename
+    PyObject* object_type = PyObject_Type(rv_object);
+    PyObject* object_type_str = PyObject_Str(object_type);
+    const char* type_name = PyUnicode_AsUTF8(object_type_str);
+    PyErr_Clear();  // Clear any Python exception
+    Py_XDECREF(object_type);
+    Py_XDECREF(object_type_str);
+
+    return { fmt::format("Millennium expected return type [int, str, bool] but recevied [{}]", type_name) , python::type_t::_err };
 }
 
 python::return_t python::evaluate_lock(std::string plugin_name, std::string script)

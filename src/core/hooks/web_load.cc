@@ -12,7 +12,7 @@ webkit_handler webkit_handler::get() {
 
 void webkit_handler::setup_hook() 
 {
-    post_socket({
+    tunnel::post_global({
         { "id", 3242 }, { "method", "Fetch.enable" },
         { "params", {
             { "patterns", {
@@ -80,7 +80,7 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
                 id, message["params"]["requestId"].get<std::string>(), message["params"]["resourceType"].get<std::string>()
             });
 
-            post_socket({
+            tunnel::post_global({
                 { "id", id },
                 { "method", "Fetch.getResponseBody" },
                 { "params", {
@@ -111,7 +111,7 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
 
             auto status = failed ? "millennium couldn't read " + path.generic_string() : "MILLENNIUM-VIRTUAL";
 
-            post_socket({
+            tunnel::post_global({
                 { "id", 63453 },
                 { "method", "Fetch.fulfillRequest" },
                 { "params", {
@@ -129,10 +129,10 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
             });
         }
 
-        std::mutex request_map_mutex;
+        // create a temporary scope so the mutex is free'd
         {
             // Lock the mutex before accessing request_map
-            std::lock_guard<std::mutex> lock(request_map_mutex);
+            // std::lock_guard<std::mutex> lock(request_map_mutex);
 
             for (auto it = request_map->begin(); it != request_map->end();) 
             {
@@ -148,7 +148,7 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
                 
                 console.log("responding to -> {} + {} [{} bytes]", request_id, type, body.size());
 
-                post_socket({
+                tunnel::post_global({
                     { "id", 63453 },
                     { "method", "Fetch.fulfillRequest" },
                     { "params", {
