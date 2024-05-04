@@ -64,11 +64,11 @@ void on_message(server* serv, websocketpp::connection_hdl hdl, server::message_p
         // std::cout << "message -> " << json_data.dump(4) << std::endl;
 
         switch (json_data["id"].get<int>()) {
-            case pipe::type_t::call_server_method: {
+            case ipc_pipe::type_t::call_server_method: {
                 response = (::call_server_method(json_data).dump());
                 break;
             }
-            case pipe::type_t::front_end_loaded: {
+            case ipc_pipe::type_t::front_end_loaded: {
                 response = (::front_end_loaded(json_data).dump());
                 break;
             }
@@ -90,7 +90,7 @@ void on_open(server* s, websocketpp::connection_hdl hdl) {
     s->start_accept();
 }
 
-const void pipe::_create()
+const void ipc_pipe::_create()
 {
     std::thread([&] {
         server wss;

@@ -148,11 +148,11 @@ void plugin::bootstrap()
 #ifdef _WIN32
     _putenv_s("PYTHONDONTWRITEBYTECODE", "1");
 #elif __linux__
-    setenv("PYTHONDONTWRITEBYTECODE", "1", 1)
+    setenv("PYTHONDONTWRITEBYTECODE", "1", 1);
 #endif
 
     stream_buffer::setup_config();
-    pipe::_create();
+    ipc_pipe::_create();
 
     auto plugins = std::make_shared<decltype(stream_buffer::plugin_mgr::parse_all())>(stream_buffer::plugin_mgr::parse_all()); // Allocate plugins dynamically
 

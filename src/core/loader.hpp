@@ -3,8 +3,10 @@
 #include <websocketpp/client.hpp>
 #include <string>
 #include <nlohmann/json.hpp>
+#ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
+#endif
 #include <generic/stream_parser.h>
 
 void localize_python_runtime(stream_buffer::plugin_mgr::plugin_t plugin_name);

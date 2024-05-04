@@ -66,10 +66,8 @@ include_directories(
 
 # target_include_directories(Millennium PRIVATE "src/__builtins__")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
 set(CMAKE_BUILD_TYPE Debug)
-
-add_library(Millennium SHARED
+set(SOURCE_FILES 
   "src/core/main.cpp"
   "src/core/loader.cpp"
   "src/core/backend/co_spawn.cpp"
@@ -84,6 +82,13 @@ add_library(Millennium SHARED
   "src/core/co_initialize/co_stub.cc"
 )
 
+if (WIN32)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
+  add_library(Millennium SHARED "${SOURCE_FILES}")
+elseif(UNIX)
+  add_executable(Millennium "${SOURCE_FILES}")
+endif()
+
 # Set debug flags
 # target_compile_options(Millennium PRIVATE -g -O0)
 
@@ -93,12 +98,14 @@ set_target_properties(Millennium PROPERTIES PREFIX "")
 
 if(WIN32)
   # link windows defined socket headers
-  target_link_libraries(Millennium "Ws2_32.lib" "wsock32")
+  target_link_libraries(Millennium "Ws2_32.lib" "wsock32"
+    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
+  )
+elseif(UNIX)
+  target_link_libraries(Millennium ${Python_LIBRARIES})
 endif()
 
 target_link_libraries(Millennium
-  # ${Python_LIBRARIES}
-  "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
   ${CURL_LIBRARIES}
   ${LIBGIT2_LIBRARIES}
   Boxer

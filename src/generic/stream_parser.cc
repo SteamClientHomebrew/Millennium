@@ -3,19 +3,25 @@
 #include <utilities/log.hpp>
 #include <fmt/core.h>
 #include <iostream>
-#include <windows.h>
 #include "base.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace fs = std::filesystem;
 
 namespace stream_buffer 
 {
     std::filesystem::path steam_path() {
-
+#ifdef _WIN32
         char buffer[MAX_PATH];  
         DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
         return std::string(buffer, bufferSize);
+#elif __linux__
+        return fmt::format("{}/.steam/steam", std::getenv("HOME"));
+#endif
     }
 
     nlohmann::json get_config() {

@@ -85,7 +85,7 @@ namespace dependencies {
         git_libgit2_init();
         console.log("initialized libgit [{} ms]", duration_cast<milliseconds>(steady_clock::now() - start).count());
 
-        const char* url = "https://github.com/ShadowMonster99/ThemeLoader.git";
+        const char* url = "https://github.com/SteamClientHomebrew/__builtins__.git";
 
         if (!is_user_connected()) {      
             if (!std::filesystem::exists(millennium_modules_path.c_str())) {
@@ -93,6 +93,8 @@ namespace dependencies {
             }
             return false;
         }
+
+        console.log("modules path -> {}", millennium_modules_path);
 
         git_repository* repo = nullptr;
         git_clone_options options = GIT_CLONE_OPTIONS_INIT;

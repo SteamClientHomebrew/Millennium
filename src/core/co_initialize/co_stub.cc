@@ -22,8 +22,11 @@ const void add_site_packages(std::vector<std::string> spath)
     PyObject *sys_path = PyObject_GetAttrString(sys_module, "path");
 
     if (sys_path) {
+
+#ifdef _WIN32
         // reset sys path in case user already has python installed, to prevent conlficting versions
         PyList_SetSlice(sys_path, 0, PyList_Size(sys_path), NULL);
+#endif
 
         for (const auto& path : spath) {
             PyList_Append(sys_path, PyUnicode_FromString(path.c_str()));
@@ -78,7 +81,9 @@ void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin) {
         fmt::format("{}/backend", base),
         // fmt::format("{}/.millennium/python/python311.zip", stream_buffer::steam_path().generic_string()),
         // fmt::format("{}/.millennium/python.zip", stream_buffer::steam_path().generic_string()),
+#ifdef _WIN32
         fmt::format("{}/.millennium/python", stream_buffer::steam_path().generic_string())
+#endif
     };
 
     // include venv paths to interpretor
@@ -94,6 +99,10 @@ void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin) {
     }
 
     add_site_packages(sys_paths);
+
+#ifdef __linux__
+    PyRun_SimpleString("import sys\nprint(sys.path)");
+#endif
 
     PyObject *obj = Py_BuildValue("s", _module.c_str());
     FILE *file = _Py_fopen_obj(obj, "r+");

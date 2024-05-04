@@ -6,8 +6,11 @@
 #include <stdexcept>
 #include <exception>
 #include <typeinfo>
+#include <fmt/core.h>
+#ifdef _WIN32
 #include <_win32/thread.h>
 #include <_win32/cmd.h>
+#endif
 
 const bool __attribute__((constructor)) setup_env() 
 {
@@ -39,6 +42,7 @@ const void bootstrap()
 	plugin::get().bootstrap();
 }
 
+#ifdef _WIN32
 int __attribute__((__stdcall__)) DllMain(void*, unsigned long fdwReason, void*) 
 {
     if (fdwReason == DLL_PROCESS_ATTACH) {
@@ -52,3 +56,10 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
     bootstrap();
     return 1;
 }
+#elif __linux__
+int main()
+{
+    bootstrap();
+    return 1;
+}
+#endif
