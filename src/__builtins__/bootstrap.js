@@ -37,11 +37,30 @@ class EventEmitter {
     }
 }
 const emitter = new EventEmitter();
-console.log("millennium is loading")
+console.log('%c Millennium ', 'background: black; color: white', "Bootstrapping modules...");
 
 // connect to millennium websocket IPC
-window.MILLENNIUM_IPC_SOCKET = new WebSocket('ws://localhost:12906');
-window.CURRENT_IPC_CALL_COUNT = 0
+window.CURRENT_IPC_CALL_COUNT = 0;
+
+function connectIPCWebSocket() {
+    window.MILLENNIUM_IPC_SOCKET = new WebSocket('ws://localhost:12906');
+
+    window.MILLENNIUM_IPC_SOCKET.onopen = function(event) {
+        console.log('%c Millennium ', 'background: black; color: white', "Successfully connected to Millennium!");
+        emitter.emit('loaded', true);
+    };
+
+    window.MILLENNIUM_IPC_SOCKET.onclose = function(event) {
+        console.error('IPC connection was peacefully broken.', event);
+        setTimeout(connectIPCWebSocket, 100); 
+    };
+
+    window.MILLENNIUM_IPC_SOCKET.onerror = function(error) {
+        console.error('IPC connection was forcefully broken.', error);
+    };
+}
+
+connectIPCWebSocket();
 
 var originalConsoleLog = console.log;
 
@@ -54,6 +73,8 @@ console.log = function(message) {
     originalConsoleLog.apply(console, arguments);
     if (message.includes("async WebUITransportStore")) {
         console.log = originalConsoleLog;
+
+        console.log('%c Millennium ', 'background: black; color: white', "Bootstrapping builtin modules...");
         // this variable points @ src\__builtins__\api.js
         API_RAW_TEXT
 
@@ -61,15 +82,4 @@ console.log = function(message) {
             SCRIPT_RAW_TEXT
         });  
     }
-};
-
-MILLENNIUM_IPC_SOCKET.onopen = function (event) {
-    console.log('established a connection with millennium')
-    emitter.emit('loaded', true)
-}
-MILLENNIUM_IPC_SOCKET.onclose = function(event) {
-  console.error("ipc connection was peacefully broken", event)
-};
-MILLENNIUM_IPC_SOCKET.onerror = function(error) {
-  console.error("ipc connection was forcefully broken", error)
 };

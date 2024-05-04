@@ -78,13 +78,6 @@ namespace dependencies {
         return false;
     }
 
-    void progress_callback(const char *	path, size_t completed_steps, size_t total_steps, void* payload)
-    {
-        if (completed_steps != 0 && total_steps != 0) {      
-            console.log("progress -> {}", ((completed_steps / total_steps) * 100));
-        }
-    }
-
     bool clone_millennium_module()
     {
         auto start = steady_clock::now();
@@ -104,7 +97,6 @@ namespace dependencies {
         git_repository* repo = nullptr;
         git_clone_options options = GIT_CLONE_OPTIONS_INIT;
         options.checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE; 
-        options.checkout_opts.progress_cb = progress_callback;
 
         int error = git_repository_open(&repo, millennium_modules_path.c_str());
 
@@ -177,7 +169,6 @@ namespace dependencies {
             // Update the working directory to match the latest commit
             git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
             checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE;
-            checkout_opts.progress_cb = progress_callback;
 
             error = git_checkout_tree(repo, (const git_object *)head_commit, &checkout_opts);
             if (error < 0) {
@@ -200,7 +191,7 @@ namespace dependencies {
         // Check for errors
         if (error < 0) {
             const git_error *e = git_error_last();
-            std::cerr << "Error " << error << ": " << e->message << std::endl;
+            console.err("Error cloing modules -> {}", e->message);
         }
 
         console.log("module bootstrapper finished [{} ms]", duration_cast<milliseconds>(steady_clock::now() - start).count());

@@ -145,6 +145,12 @@ void _connect_shared() {
 
 void plugin::bootstrap()
 {
+#ifdef _WIN32
+    _putenv_s("PYTHONDONTWRITEBYTECODE", "1");
+#elif __linux__
+    setenv("PYTHONDONTWRITEBYTECODE", "1", 1)
+#endif
+
     stream_buffer::setup_config();
     pipe::_create();
 

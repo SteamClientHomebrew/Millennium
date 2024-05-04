@@ -7,13 +7,15 @@
 #include <exception>
 #include <typeinfo>
 #include <_win32/thread.h>
+#include <_win32/cmd.h>
 
 const bool __attribute__((constructor)) setup_env() 
 {
 #ifdef _WIN32
-    static_cast<bool>(AllocConsole());
-    void(freopen("CONOUT$", "w", stdout));
-    void(freopen("CONOUT$", "w", stderr));
+    if (steam::get().params.has("-dev") && static_cast<bool>(AllocConsole())) {
+        void(freopen("CONOUT$", "w", stdout));
+        void(freopen("CONOUT$", "w", stderr));
+    }
 #endif
 
 #ifdef _WIN32

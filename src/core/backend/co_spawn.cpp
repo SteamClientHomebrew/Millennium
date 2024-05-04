@@ -1,3 +1,4 @@
+#include <core/loader.hpp>
 #include "co_spawn.hpp"
 #include <thread>
 #include <iostream>
@@ -7,7 +8,6 @@
 #include <__builtins__/executor.h>
 #include <core/impl/mutex_impl.hpp>
 #include <future>
-#include <core/loader.hpp>
 #include <boxer/boxer.h>
 
 static struct PyModuleDef module_def = {
@@ -80,8 +80,7 @@ bool plugin_manager::shutdown_plugin(std::string plugin_name)
         if (name != plugin_name) {
             continue;
         }
-
-        std::cout << "found plugin thread ptr -> " << thread_ptr << std::endl;
+        
         success = true;
 
         if (thread_ptr == nullptr) {
@@ -106,9 +105,9 @@ bool plugin_manager::shutdown_plugin(std::string plugin_name)
         std::cout << "calling unload" << std::endl;
         // synchronously call the unload plugin method and wait for exit.
         if (PyRun_SimpleString("plugin._unload()") != 0) {
-            success = false;
             PyErr_Print();
             console.err("millennium failed to shutdown [{}]", plugin_name);
+            success = false;
         }
 
         // if (PyGILState_Check()) {
