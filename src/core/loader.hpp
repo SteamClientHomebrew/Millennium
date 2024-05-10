@@ -1,16 +1,14 @@
 #pragma once
+#ifdef _WIN32
+#undef _WINSOCKAPI_
+#include <winsock2.h>
+#endif
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 #include <string>
 #include <nlohmann/json.hpp>
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#endif
 #include <generic/stream_parser.h>
 
-void localize_python_runtime(stream_buffer::plugin_mgr::plugin_t plugin_name);
-std::string get_plugin_frontend(std::string plugin_name);
 static std::string sessionId;
 
 struct shared {

@@ -11,7 +11,9 @@
 #include <core/hooks/web_load.h>
 #include <generic/base.h>
 
-websocketpp::client<websocketpp::config::asio_client>* plugin_client, *browser_c;
+websocketpp::client
+    <websocketpp::config::asio_client>* plugin_client, *browser_c;
+    
 websocketpp::connection_hdl plugin_handle, browser_h;
 extern std::string sessionId;
 
@@ -114,6 +116,11 @@ void _connect_browser() {
     }
 }
 
+void on_shared_fail(std::weak_ptr<void> connection_hdl)
+{
+    console.err("shared js context connection seems to have failed?");
+}
+
 void _connect_shared() {
     const std::string ctx = get_shared_js();
 
@@ -124,6 +131,7 @@ void _connect_shared() {
 
         cl.set_open_handler(bind(shared_context::on_connect, &cl, std::placeholders::_1));
         cl.set_message_handler(bind(shared_context::on_message, &cl, std::placeholders::_1, std::placeholders::_2));
+        cl.set_fail_handler(on_shared_fail);
 
         websocketpp::lib::error_code ec;
         websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = cl.get_connection(ctx, ec);

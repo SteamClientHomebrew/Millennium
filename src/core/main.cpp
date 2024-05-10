@@ -11,7 +11,16 @@
 #include <_win32/thread.h>
 #include <_win32/cmd.h>
 #endif
+#include <git2.h>
 
+/**
+ * @brief constructor of hooked module to setup the environment
+ * 
+ * - writes the debugger flag to steam so it launches with remote debugging
+ * - allocated the dev console if applicable on windows
+ * 
+ * @return success (discarded from kernel)
+*/
 const bool __attribute__((constructor)) setup_env() 
 {
 #ifdef _WIN32
@@ -34,6 +43,12 @@ const bool __attribute__((constructor)) setup_env()
     return true;
 }
 
+/**
+ * @brief wrapper for start function
+ * 
+ * - ensures modules are up to date
+ * - starts the plugin backend and frontends
+*/
 const void bootstrap()
 {
     if (!dependencies::clone_millennium_module()) {
