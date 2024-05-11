@@ -3,6 +3,7 @@
 - Hot Reload
   - Shutdown plugins on-the-fly
   - Load new plugins on-the-fly
+  - Auto unzip files in theme folder
 
 
 ## Potential Upcoming Changes
