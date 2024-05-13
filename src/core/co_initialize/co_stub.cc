@@ -79,9 +79,9 @@ void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin) {
 
     std::vector<std::string> sys_paths = { 
         fmt::format("{}/backend", base),
-        // fmt::format("{}/.millennium/python/python311.zip", stream_buffer::steam_path().generic_string()),
         // fmt::format("{}/.millennium/python.zip", stream_buffer::steam_path().generic_string()),
 #ifdef _WIN32
+        fmt::format("{}/.millennium/python/python311.zip", stream_buffer::steam_path().generic_string()),
         fmt::format("{}/.millennium/python", stream_buffer::steam_path().generic_string())
 #endif
     };

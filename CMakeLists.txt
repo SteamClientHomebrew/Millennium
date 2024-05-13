@@ -1,13 +1,25 @@
 cmake_minimum_required(VERSION 3.14)
 project(Millennium LANGUAGES CXX)
 
+# link boxer (cross platform message box lib)
 add_subdirectory(vendor/boxer)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options(-Wno-format-security) 
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Og -lz -std=c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+
+add_compile_options(
+  -g # generate debug information
+  -Og 
+  -lz # link libzip
+)
+
+# set(CMAKE_BUILD_TYPE "Release")
+
+# # You can also add specific compiler flags
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -static")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 23)
@@ -78,6 +90,7 @@ set(SOURCE_FILES
   "src/generic/stream_parser.cc"
   "src/__builtins__/executor.cc"
   "src/deps/module.cc"
+  "src/deps/python.cc"
   "src/core/hooks/web_load.cc"
   "src/core/co_initialize/co_stub.cc"
 )
@@ -85,6 +98,7 @@ set(SOURCE_FILES
 if (WIN32)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
   add_library(Millennium SHARED "${SOURCE_FILES}")
+  # add_executable(Millennium "${SOURCE_FILES}")
 elseif(UNIX)
   add_executable(Millennium "${SOURCE_FILES}")
 endif()
@@ -108,5 +122,6 @@ endif()
 target_link_libraries(Millennium
   ${CURL_LIBRARIES}
   ${LIBGIT2_LIBRARIES}
+  "libminizip.dll.a"
   Boxer
 ) 

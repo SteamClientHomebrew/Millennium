@@ -82,12 +82,6 @@ namespace shared_context {
     }
 }
 
-enum method {
-    SHARED_JS_CONTEXT = 2,
-    GET_DOC_HEADER = 69,
-    TARGET_CREATED = 99
-};
-
 void _connect_browser() {
     const std::string ctx = get_steam_context();
 
@@ -162,7 +156,7 @@ void plugin::bootstrap()
     stream_buffer::setup_config();
     ipc_pipe::_create();
 
-    auto plugins = std::make_shared<decltype(stream_buffer::plugin_mgr::parse_all())>(stream_buffer::plugin_mgr::parse_all()); // Allocate plugins dynamically
+    auto plugins = std::make_shared<std::vector<stream_buffer::plugin_mgr::plugin_t>>(stream_buffer::plugin_mgr::parse_all()); // Allocate plugins dynamically
 
     for (auto& plugin : *plugins) 
     {
@@ -173,7 +167,13 @@ void plugin::bootstrap()
         std::thread(std::bind(&plugin_manager::create_instance, &manager, std::ref(plugin), cb)).detach();
     }
 
+    /**
+     * @brief browser socket connection handles webkit insertions/hooks
+    */
     std::thread t_browser(_connect_browser);
+    /**
+     * @brief shared socket connects to SharedJSContext directly and handles injecting frontends and IPC calls
+    */
     std::thread t_shared(_connect_shared);
 
     t_browser.join();

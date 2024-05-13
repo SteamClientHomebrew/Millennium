@@ -12,6 +12,7 @@
 #include <_win32/cmd.h>
 #endif
 #include <git2.h>
+#include <boxer/boxer.h>
 
 /**
  * @brief constructor of hooked module to setup the environment
@@ -38,6 +39,10 @@ const bool __attribute__((constructor)) setup_env()
 
     if (!std::filesystem::exists(filePath)) {
         std::ofstream(filePath).close();
+
+        boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
+        
+        std::exit(0);
         return false;
     }
     return true;
@@ -51,9 +56,13 @@ const bool __attribute__((constructor)) setup_env()
 */
 const void bootstrap()
 {
-    if (!dependencies::clone_millennium_module()) {
+    hook_steam_thread();
+
+    if (!dependencies::clone_millennium_module() || !dependencies::embed_python()) {
         return;
     }
+
+    unhook_steam_thread();
 	plugin::get().bootstrap();
 }
 

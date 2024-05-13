@@ -60,6 +60,7 @@ bool hook_steam_thread()
         }
         else {
             froze++;
+            break; // temp fix
         }
     }
     console.log("[thread-hook] suspended main threads [{}/{}]", froze, failed);
