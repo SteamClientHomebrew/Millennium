@@ -8,7 +8,12 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options(-Wno-format-security) 
 endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+include(FetchContent)
+FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
+                         GIT_TAG 3b15fa82ea74739b574d705fea44959b58142eb8) # Replace with your desired git commit from: https://github.com/libcpr/cpr/releases
+FetchContent_MakeAvailable(cpr)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -lwinpthread")
 
 add_compile_options(
   -g # generate debug information
@@ -16,7 +21,7 @@ add_compile_options(
   -lz # link libzip
 )
 
-# set(CMAKE_BUILD_TYPE "Release")
+# set(CMAKE_BUILD_TYPE "Debug")
 
 # # You can also add specific compiler flags
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -static")
@@ -58,8 +63,8 @@ else()
   message("Python was not found. download & install here: https://www.python.org/ftp/python/3.11.8/python-3.11.8.exe")
 endif()
 
-find_package(PkgConfig REQUIRED)
-pkg_search_module(LIBGIT2 REQUIRED libgit2)
+# find_package(LibGit2 REQUIRED)
+# target_link_libraries(your_target_name LibGit2::LibGit2)
 
 message(STATUS "LIBGIT  include directory: ${LIBGIT2_INCLUDE_DIRS}")
 message(STATUS "LIBGIT  libraries: ${LIBGIT2_LIBRARIES}")
@@ -71,10 +76,13 @@ message(STATUS "LIBCURL libraries: ${CURL_LIBRARIES}")
 # include python libcurl statically.
 include_directories(
   ${Python_INCLUDE_DIRS}
-  ${CURL_INCLUDE_DIR}
+  # ${CURL_INCLUDE_DIR}
   ${LIBGIT2_INCLUDE_DIRS}
   "src/__builtins__"
 )
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 # target_include_directories(Millennium PRIVATE "src/__builtins__")
 
@@ -120,8 +128,11 @@ elseif(UNIX)
 endif()
 
 target_link_libraries(Millennium
-  ${CURL_LIBRARIES}
-  ${LIBGIT2_LIBRARIES}
+  # ${CURL_LIBRARIES}
+  # ${LIBGIT2_LIBRARIES}
   "libminizip.dll.a"
+  "C:/Users/Admin/Desktop/libgit2-build/libgit2/build/Debug/git2.lib"
   Boxer
+  cpr::cpr
+  Threads::Threads
 ) 

@@ -3,6 +3,8 @@
 #include <curl/curl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <chrono>
+#include <thread>
 
 extern "C" {
     
@@ -61,6 +63,9 @@ extern "C" {
             if(res != CURLE_OK) {
                     fprintf(stderr, "curl_easy_perform() failed: %s\n",  
                             curl_easy_strerror(res));
+                
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                return http_get(url);
             }
 
             curl_easy_cleanup(curl);

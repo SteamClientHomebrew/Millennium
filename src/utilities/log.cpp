@@ -9,9 +9,6 @@
 #include <fmt/core.h>
 #include <sstream>
 
-std::vector<std::string> output_log = {};
-std::vector<std::string> socket_log = {};
-
 std::string output_console::get_time()
 {
 	auto now = std::chrono::system_clock::now();
@@ -27,23 +24,23 @@ std::string output_console::get_time()
 void output_console::_print(std::string type, const std::string& message)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
-
-	output_log.push_back(fmt::format("{}{}{}", get_time(), type, message));
-
     // segmentation fault on linux? not sure why
-#ifdef _WIN32
-	fileStream << get_time() << type << message << std::endl;
-#endif
+	std::cout  << get_time() << type << message << "\n";
+	fileStream << get_time() << type << message << "\n";
 
-	std::cout << get_time() << type << message << std::endl;
+	if (!fileStream.good()) {
+        std::cout << "couldn't write to file..." << std::endl;
+    }
+
+	fileStream.flush(); // Explicitly flush the stream
 }
 
 output_console::output_console() 
 {
 #ifdef _WIN32
-	std::filesystem::path fileName = ".millennium/logs/millennium.log";
+	std::filesystem::path fileName = ".millennium/debug.log";
 #elif __linux__
-    std::filesystem::path fileName =  fmt::format("{}/.steam/steam/.millennium/logs/millennium.log", std::getenv("HOME"));
+    std::filesystem::path fileName =  fmt::format("{}/.steam/steam/.millennium/debug.log", std::getenv("HOME"));
 #endif
 
     try {
@@ -53,7 +50,10 @@ output_console::output_console()
 		std::cout << "Error: " << e.what() << std::endl;
 	}
 
-	fileStream.open(fileName.string(), std::ios::trunc);
+	fileStream.open(fileName.string());
+	if (!fileStream.is_open()) {
+        std::cerr << "Failed to open file for writing." << std::endl;
+    }
 }
 output_console::~output_console() {
 	fileStream.close();
@@ -68,12 +68,15 @@ void output_console::py(std::string pname, std::string val)
 #ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+	fileStream << get_time() << " [" << pname << "] ";
 #endif
+
 	std::cout << get_time() << " [" << pname << "] ";
 #ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	fileStream << val << "\n";
 #endif
-	std::cout << val << std::endl;
+	std::cout << val << "\n";
 }
 
 void output_console::warn(std::string val)

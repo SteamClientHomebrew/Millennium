@@ -147,6 +147,8 @@ void _connect_shared() {
 
 void plugin::bootstrap()
 {
+    console.log("starting plugin bootstrapper...");
+
 #ifdef _WIN32
     _putenv_s("PYTHONDONTWRITEBYTECODE", "1");
 #elif __linux__
@@ -156,21 +158,32 @@ void plugin::bootstrap()
     stream_buffer::setup_config();
     ipc_pipe::_create();
 
+    console.log("parsing local plugin store...");
     auto plugins = std::make_shared<std::vector<stream_buffer::plugin_mgr::plugin_t>>(stream_buffer::plugin_mgr::parse_all()); // Allocate plugins dynamically
+    console.log("[good] successfully parsed plugins");
 
     for (auto& plugin : *plugins) 
     {
         plugin_manager& manager = plugin_manager::get();
+        console.log("[pmgr] attempting to host {} @@ {}", plugin.name, static_cast<void*>(&manager));
+
         std::function<void(stream_buffer::plugin_mgr::plugin_t&)> cb = std::bind(plugin_start_cb, std::placeholders::_1);
 
+        console.log("creating plugin backend instance");
         // Start a new thread with the bound function
         std::thread(std::bind(&plugin_manager::create_instance, &manager, std::ref(plugin), cb)).detach();
     }
+
+    console.log("finished bootstrapping plugin backends...");
+
+    console.log("connecting to cef browser...");
 
     /**
      * @brief browser socket connection handles webkit insertions/hooks
     */
     std::thread t_browser(_connect_browser);
+
+    console.log("connecting to shared context...");
     /**
      * @brief shared socket connects to SharedJSContext directly and handles injecting frontends and IPC calls
     */
@@ -178,4 +191,5 @@ void plugin::bootstrap()
 
     t_browser.join();
     t_shared.join();
+    console.log("browser thread and shared thread exited...");
 }

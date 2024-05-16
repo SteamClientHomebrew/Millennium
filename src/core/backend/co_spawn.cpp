@@ -9,6 +9,7 @@
 #include <core/impl/mutex_impl.hpp>
 #include <future>
 #include <boxer/boxer.h>
+#include <generic/base.h>
 
 static struct PyModuleDef module_def = {
     PyModuleDef_HEAD_INIT,
@@ -21,20 +22,65 @@ PyMODINIT_FUNC PyInit_Millennium(void) {
 
 plugin_manager::plugin_manager() 
 {
+    console.log("initializing plugin manager");
+
     this->instance_count = 0;
 
     // initialize global modules
+    console.log("hooking standard output...");
     PyImport_AppendInittab("hook_stdout", &PyInit_custom_stdout);
+    console.log("hooking standard error...");
     PyImport_AppendInittab("hook_stderr", &PyInit_custom_stderr);
+    console.log("inserting Millennium into module...");
     PyImport_AppendInittab("Millennium", &PyInit_Millennium);
+    console.log("done appending init tabs!");
+    // Py_SetPath(std::wstring(formatted.begin(), formatted.end()).c_str());
+    
+    console.log("Initializing python...");
+    //Py_InitializeEx(0); // implies PyEval_InitThreads()
 
-    Py_InitializeEx(0); // implies PyEval_InitThreads()
+    PyStatus status;
+
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+
+    /* Read all configuration at once */
+    status = PyConfig_Read(&config);
+    if (PyStatus_Exception(status)) {
+        console.err("couldn't read config");
+        goto done;
+    }
+
+    config.write_bytecode = 0;
+
+    /* Specify sys.path explicitly */
+    /* If you want to modify the default set of paths, finish
+       initialization first and then use PySys_GetObject("path") */
+    config.module_search_paths_set = 1;
+    status = PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
+    if (PyStatus_Exception(status)) {
+        console.err("couldn't append pythonPath to syspath");
+        goto done;
+    }
+    status = PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
+    if (PyStatus_Exception(status)) {
+        console.err("couldn't append pythonLibs to syspath");
+        goto done;
+    }
+
+    status = Py_InitializeFromConfig(&config);
 
     _save = PyEval_SaveThread();
+    console.log("::plugin_manager() success!");
+
+done:
+    PyConfig_Clear(&config);
 }
 
 plugin_manager::~plugin_manager()
 {
+    console.err("::~plugin_manager() went out of scope, this probably shouldn't have happened");
+
     PyEval_RestoreThread(_save);
     Py_FinalizeEx();
 }

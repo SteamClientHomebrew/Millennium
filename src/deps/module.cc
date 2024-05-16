@@ -44,6 +44,7 @@ namespace dependencies {
         const auto start = steady_clock::now();
         // initialize libgit 
         git_libgit2_init();
+        
         console.log("initialized libgit [{} ms]", duration_cast<milliseconds>(steady_clock::now() - start).count());
 
         console.log("modules path -> {}", millennium_modules_path);
@@ -51,7 +52,7 @@ namespace dependencies {
         git_repository* repo = nullptr;
         git_clone_options options = GIT_CLONE_OPTIONS_INIT;
         options.checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE; 
-
+ 
         int error = git_repository_open(&repo, millennium_modules_path.c_str());
 
         if (error == GIT_ENOTFOUND) 

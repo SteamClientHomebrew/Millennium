@@ -61,8 +61,6 @@ void on_message(server* serv, websocketpp::connection_hdl hdl, server::message_p
         auto json_data = nlohmann::json::parse(msg->get_payload());
         std::string response;
 
-        // std::cout << "message -> " << json_data.dump(4) << std::endl;
-
         switch (json_data["id"].get<int>()) {
             case ipc_pipe::type_t::call_server_method: {
                 response = (::call_server_method(json_data).dump());
@@ -85,9 +83,17 @@ void on_message(server* serv, websocketpp::connection_hdl hdl, server::message_p
 }
 
 void on_open(server* s, websocketpp::connection_hdl hdl) {
-    // A client has connected, you can perform actions here
-    console.log("client connected to socket");
     s->start_accept();
+}
+
+void custom_error_handler(websocketpp::connection_hdl hdl, websocketpp::server<websocketpp::config::asio>* c) {
+
+    websocketpp::server<websocketpp::config::asio>::connection_ptr con = c->get_con_from_hdl(hdl);
+
+    auto m_error_reason = con->get_ec().message();
+    const auto code = con->get_ec().value();
+
+    console.err("pipe exception -> {} code {}", m_error_reason, code);
 }
 
 const void ipc_pipe::_create()
@@ -99,6 +105,9 @@ const void ipc_pipe::_create()
             // Set logging level
             wss.set_access_channels(websocketpp::log::alevel::fail);
             wss.clear_access_channels(websocketpp::log::alevel::all);
+
+            wss.set_error_channels(websocketpp::log::elevel::all);
+            wss.set_fail_handler(std::bind(custom_error_handler, std::placeholders::_1, &wss));
 
             // Initialize Asio
             wss.init_asio();

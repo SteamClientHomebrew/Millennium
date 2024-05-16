@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 #include <generic/stream_parser.h>
+#include <utilities/log.hpp>
 
 struct thread_state {
 	std::string name;

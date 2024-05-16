@@ -7,6 +7,7 @@
 #include <core/loader.hpp>
 #include <core/hooks/web_load.h>
 #include <__builtins__/incbin.h>
+#include <generic/base.h>
 
 /// @brief sets up the python interpretor to use virtual environment site packages, aswell as custom python path.
 /// @param spath 
@@ -81,8 +82,7 @@ void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin) {
         fmt::format("{}/backend", base),
         // fmt::format("{}/.millennium/python.zip", stream_buffer::steam_path().generic_string()),
 #ifdef _WIN32
-        fmt::format("{}/.millennium/python/python311.zip", stream_buffer::steam_path().generic_string()),
-        fmt::format("{}/.millennium/python", stream_buffer::steam_path().generic_string())
+        pythonPath, pythonLibs
 #endif
     };
 

@@ -58,6 +58,8 @@ const void bootstrap()
 {
     hook_steam_thread();
 
+    // !dependencies::clone_millennium_module() || 
+
     if (!dependencies::clone_millennium_module() || !dependencies::embed_python()) {
         return;
     }

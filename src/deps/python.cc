@@ -6,6 +6,7 @@
 #include <fstream>
 #include <utilities/log.hpp>
 #include <boxer/boxer.h>
+#include <generic/base.h>
 
 namespace dependencies 
 {
@@ -93,10 +94,10 @@ namespace dependencies
     /// @return 
     bool embed_python() 
     {
-        std::filesystem::path path = stream_buffer::steam_path() / ".millennium/python/python.zip";
-
-        if (is_installed(path.parent_path())) {     
-            console.log("python is already installed!");
+        console.log("installing python deps for _win32...");
+        
+        if (is_installed(python_bootzip.parent_path())) {     
+            console.log("python is already installed, skipping...");
             return true;
         }
 
@@ -104,21 +105,22 @@ namespace dependencies
         const char *url = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-win32.zip";
 
         try {
-		    std::filesystem::create_directories(path.parent_path());
+		    std::filesystem::create_directories(python_bootzip.parent_path());
         }
         catch (const std::exception& e) {
             console.err("error creating python directories -> {}", e.what());
 
-            boxer::show(fmt::format("An error occured creating path [{}], try creating it yourself\n\nTrace:\n{}", path.parent_path().string(), e.what()).c_str(), "Whoops!", boxer::Style::Error);
+            boxer::show(fmt::format("An error occured creating path [{}], try creating it yourself\n\nTrace:\n{}", python_bootzip.parent_path().string(), e.what()).c_str(), "Whoops!", boxer::Style::Error);
         }
 
-        if (download_file(url, path.generic_string().c_str()) != 0) {
+        console.log("downloading python 3.11.8 win32...");
+        if (download_file(url, python_bootzip.generic_string().c_str()) != 0) {
             console.err("Failed to download python embed pacakge.");
 
             boxer::show(fmt::format("Failed to download Python embed runtime! "
             "If you have a valid internet connection and you continue to receieve this message please make an issue on the github." 
             "\n\nYou can manually download the binaries from:\n{}\nand extract it here:\n{}\n\n"
-            "Millennium is going to continue to run as it, though it will most likely not function properly", url, path.parent_path().string()).c_str(), "Fatal Startup Error", boxer::Style::Error);
+            "Millennium is going to continue to run as it, though it will most likely not function properly", url, python_bootzip.parent_path().string()).c_str(), "Fatal Startup Error", boxer::Style::Error);
 
             return false;
         } 
@@ -126,14 +128,15 @@ namespace dependencies
         bool result = false;
 
         try {
-            result = extract_package(path);
+            console.log("extracting module packages...");
+            result = extract_package(python_bootzip);
         }
         catch (const extract_except& e) {
             boxer::show(fmt::format("A potentially fatal error occured when trying to extract python.\n\n"
             "Stack Trace:\n{}\n\nCreate an issue on our GitHub if you continue to face this!", e.what()).c_str(), "Oops! Something went wrong", boxer::Style::Error);
         }
 
-        boxer::show("Millennium had to do some background for the first time launch. Its recommended you restart steam just to make sure changes take affect!", "Important Tip!");
+        //boxer::show("Millennium had to do some background for the first time launch. Its recommended you restart steam just to make sure changes take affect!", "Important Tip!");
         return result;
     }
 }
