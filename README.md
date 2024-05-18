@@ -1,9 +1,3 @@
-> [!IMPORTANT]
->
-> ### END-USER SUPPORT
->
-> If you face any issues installing and/or using Millennium, please refer to [our wiki](https://github.com/SteamClientHomebrew/Millennium/wiki), or check current/closed [issues here](https://github.com/SteamClientHomebrew/Millennium/issues) before asking us on discord!
-<br>
 
 <div align="">
 
