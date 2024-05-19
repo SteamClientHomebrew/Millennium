@@ -94,10 +94,10 @@ namespace dependencies
     /// @return 
     bool embed_python() 
     {
-        console.log("installing python deps for _win32...");
-        
+        console.head("python pkg [win32]");
+
         if (is_installed(python_bootzip.parent_path())) {     
-            console.log("python is already installed, skipping...");
+            console.log_item("status", "python seems to be ready...", true);
             return true;
         }
 

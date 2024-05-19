@@ -115,3 +115,19 @@ void output_console::warn(std::string fmt, Args&&... args)
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #endif
 }
+
+void output_console::head(std::string val) {
+	const auto message = fmt::format("\n[┬] {}", val);
+
+	std::cout  << message << "\n";
+	fileStream << message << "\n";
+}
+
+ void output_console::log_item(std::string name, std::string data, bool end) {
+
+	std::string connector = end ? "└" : "├";
+	const auto message = fmt::format(" {}──[{}]: {}", connector, name, data);
+
+	std::cout  << message << "\n";
+	fileStream << message << "\n";
+ }

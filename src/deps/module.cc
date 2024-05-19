@@ -18,13 +18,10 @@ namespace dependencies {
     */
     int fetchhead_ref_cb(const char *name, const char *url,
        const git_oid *oid, unsigned int is_merge, void *payload)
-    
     {
-        console.log("called [fetchhead_ref_cb]");
-
         if (is_merge)
         {
-            console.log("caught type [merge]");
+            console.log_item("fetchhead_ref_cb", "caught type [merge]");
             git_oid_cpy((git_oid *)payload, oid);
         }
         return 0;
@@ -45,9 +42,9 @@ namespace dependencies {
         // initialize libgit 
         git_libgit2_init();
         
-        console.log("initialized libgit [{} ms]", duration_cast<milliseconds>(steady_clock::now() - start).count());
+        console.head(fmt::format("libgit [{} ms]", duration_cast<milliseconds>(steady_clock::now() - start).count()));
 
-        console.log("modules path -> {}", millennium_modules_path);
+        console.log_item("modules", millennium_modules_path);
 
         git_repository* repo = nullptr;
         git_clone_options options = GIT_CLONE_OPTIONS_INIT;
@@ -57,28 +54,29 @@ namespace dependencies {
 
         if (error == GIT_ENOTFOUND) 
         {
-            console.log("cloning millennium modules...");
+            console.log_item("status", "cloning millennium modules...");
             // Repository doesn't exist, clone it
             error = git_clone(&repo, modules_repo, millennium_modules_path.c_str(), &options);
             if (error == 0) {
-                console.log("successfully cloned millennium frontend modules.");
+                console.log_item("clone success", "true");
             } else {
                 const git_error* e = git_error_last();
                 const std::string message = fmt::format("Error cloning frontend modules -> {}", e->message);
+                console.log_item("clone success", fmt::format("false [{}]", e->message));
 
-                console.err(message);
+                //console.err(message);
                 boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
             }
         } 
         else if (error == 0) 
         {
-            console.log("checking for module updates...");
+            console.log_item("status", "checking for module updates...");
             // Fetch the latest changes from the remote
             git_remote *remote;
             error = git_remote_lookup(&remote, repo, "origin");
             
             if (error < 0) {
-                console.err("error looking up remote -> {}", git_error_last()->message);
+                console.log_item("error", fmt::format("failed lookup -> {}", git_error_last()->message));
                 return 0; 
             }
 
@@ -92,7 +90,7 @@ namespace dependencies {
             if (error < 0) {
 
                 const git_error * last_error = git_error_last();
-                console.err("error fetching remote -> klass: {}, message: {}", last_error->klass, last_error->message);
+                console.log_item("error", fmt::format("failed fetch -> -> klass: {}, message: {}", last_error->klass, last_error->message));
 
                 // Couldn't connect to GitHub, and modules dont already exist.
                 if (last_error->klass == GIT_ERROR_NET && !std::filesystem::exists(millennium_modules_path.c_str())) 
@@ -118,28 +116,29 @@ namespace dependencies {
             git_merge_analysis_t anout;
             git_merge_preference_t pout;
 
-            console.log("analysing repository information");
+            console.log_item("status", "analyzing repository information...");
 
             error = git_merge_analysis(&anout, &pout, repo, (const git_annotated_commit **) their_heads, 1);
 
             if (error < 0) {
-                console.err("error analysing merge -> {}", git_error_last()->message);
+                console.log_item("error", fmt::format("couldn't analyze -> {}", git_error_last()->message));
                 return false; 
             }
 
             if (anout & GIT_MERGE_ANALYSIS_UP_TO_DATE) 
             {
-                console.log("modules seem to be up-to-date!");
+                console.log_item("status", "modules seem to be up-to-date!");
 
                 git_annotated_commit_free(their_heads[0]);
                 git_repository_state_cleanup(repo);
                 git_remote_free(remote);
-
+                
+                console.log_item("status", fmt::format("done [{} ms]", duration_cast<milliseconds>(steady_clock::now() - start).count()), true);
                 return true;
             } 
             else if (anout & GIT_MERGE_ANALYSIS_FASTFORWARD) 
             {
-                console.log("fast-forwarding modules...");
+                console.log_item("status", "fast-forwarding modules...");
 
                 git_reference *ref;
                 git_reference *newref;
@@ -163,10 +162,8 @@ namespace dependencies {
         // Check for errors
         if (error < 0) {
             const git_error *e = git_error_last();
-            console.err("error cloing modules -> {}", e->message);
+            console.log_item("error", fmt::format("git check failed -> {}", e->message));
         }
-
-        console.log("module bootstrapper finished [{} ms]", duration_cast<milliseconds>(steady_clock::now() - start).count());
 
         // Free resources
         git_repository_free(repo);

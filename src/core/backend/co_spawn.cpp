@@ -22,21 +22,21 @@ PyMODINIT_FUNC PyInit_Millennium(void) {
 
 plugin_manager::plugin_manager() 
 {
-    console.log("initializing plugin manager");
+    console.head("init plugin manager:");
 
     this->instance_count = 0;
 
     // initialize global modules
-    console.log("hooking standard output...");
+    console.log_item("hook", "locking standard output...");
     PyImport_AppendInittab("hook_stdout", &PyInit_custom_stdout);
-    console.log("hooking standard error...");
+    console.log_item("hook", "locking standard error...");
     PyImport_AppendInittab("hook_stderr", &PyInit_custom_stderr);
-    console.log("inserting Millennium into module...");
+    console.log_item("hook", "inserting Millennium into module...");
     PyImport_AppendInittab("Millennium", &PyInit_Millennium);
-    console.log("done appending init tabs!");
+    console.log_item("status", "done appending init tabs!");
     // Py_SetPath(std::wstring(formatted.begin(), formatted.end()).c_str());
     
-    console.log("Initializing python...");
+    console.log_item("status", "initializing python...");
     //Py_InitializeEx(0); // implies PyEval_InitThreads()
 
     PyStatus status;
@@ -71,7 +71,6 @@ plugin_manager::plugin_manager()
     status = Py_InitializeFromConfig(&config);
 
     _save = PyEval_SaveThread();
-    console.log("::plugin_manager() success!");
 
 done:
     PyConfig_Clear(&config);
@@ -148,7 +147,6 @@ bool plugin_manager::shutdown_plugin(std::string plugin_name)
             success = false;
         }
 
-        std::cout << "calling unload" << std::endl;
         // synchronously call the unload plugin method and wait for exit.
         if (PyRun_SimpleString("plugin._unload()") != 0) {
             PyErr_Print();

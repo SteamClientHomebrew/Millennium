@@ -146,7 +146,7 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
                 if      (type == "Script"    ) body = this->js_hook (base64_decode(message["result"]["body"]));
                 else if (type == "Stylesheet") body = this->css_hook(base64_decode(message["result"]["body"]));
                 
-                console.log("responding to -> {} + {} [{} bytes]", request_id, type, body.size());
+                // console.log("responding to -> {} + {} [{} bytes]", request_id, type, body.size());
 
                 tunnel::post_global({
                     { "id", 63453 },

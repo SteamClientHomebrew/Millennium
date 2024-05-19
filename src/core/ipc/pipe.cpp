@@ -103,7 +103,7 @@ const void ipc_pipe::_create()
 
         try {
             // Set logging level
-            wss.set_access_channels(websocketpp::log::alevel::fail);
+            wss.set_access_channels(websocketpp::log::alevel::none);
             wss.clear_access_channels(websocketpp::log::alevel::all);
 
             wss.set_error_channels(websocketpp::log::elevel::all);

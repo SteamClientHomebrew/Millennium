@@ -1,4 +1,5 @@
-﻿#include <core/loader.hpp>
+﻿#define UNICODE
+#include <core/loader.hpp>
 #include <filesystem>
 #include <fstream>
 #include <deps/deps.h>
@@ -13,7 +14,6 @@
 #endif
 #include <git2.h>
 #include <boxer/boxer.h>
-
 /**
  * @brief constructor of hooked module to setup the environment
  * 
@@ -56,6 +56,7 @@ const bool __attribute__((constructor)) setup_env()
 */
 const void bootstrap()
 {
+    SetConsoleOutputCP(CP_UTF8);
     set_start_time(std::chrono::high_resolution_clock::now());
     
     hook_steam_thread();

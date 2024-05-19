@@ -13,8 +13,4 @@ static std::filesystem::path python_bootzip = modules_basedir / "python.zip";
 static const auto pythonPath = (modules_basedir).generic_string();
 static const auto pythonLibs = (modules_basedir / "python311.zip").generic_string();
 
-#ifdef _WIN32
-	static const std::filesystem::path logs_dir = ".millennium/debug.log";
-#elif __linux__
-    static const std::filesystem::path logs_dir =  fmt::format("{}/.steam/steam/.millennium/debug.log", std::getenv("HOME"));
-#endif
+static const std::filesystem::path logs_dir = stream_buffer::steam_path() / ".millennium/debug.log";

@@ -37,6 +37,9 @@ public:
     template<typename... Args>
     void warn(std::string fmt, Args&&... args);
     void warn(std::string val);
+
+    void head(std::string val);
+    void log_item(std::string name, std::string data, bool end=false);
 };
 static output_console console;
 
