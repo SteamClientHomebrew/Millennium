@@ -32,3 +32,5 @@ namespace tunnel {
 	bool post_shared(nlohmann::json data);
 	bool post_global(nlohmann::json data);
 }
+
+void set_start_time(std::chrono::_V2::system_clock::time_point time);

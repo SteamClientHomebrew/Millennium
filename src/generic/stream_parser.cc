@@ -112,6 +112,16 @@ namespace stream_buffer
         return json["enabled"].get<std::vector<std::string>>();
     }
 
+    bool plugin_mgr::is_enabled(std::string plugin_name) {
+
+        for (const auto& plugin : plugin_mgr::get_enabled()) {
+            if (plugin == plugin_name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     std::vector<plugin_mgr::plugin_t> plugin_mgr::parse_all() 
     {
         const auto plugin_path = steam_path() / "steamui" / "plugins";

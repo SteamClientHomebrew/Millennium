@@ -18,6 +18,8 @@ namespace stream_buffer
         };
 
         std::vector<std::string> get_enabled();
+        bool is_enabled(std::string plugin_name);
+
         bool set_plugin_status(std::string pname, bool enabled);
         std::vector<plugin_t> parse_all();
     };

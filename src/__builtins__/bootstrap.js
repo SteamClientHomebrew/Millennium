@@ -62,24 +62,25 @@ function connectIPCWebSocket() {
 
 connectIPCWebSocket();
 
-var originalConsoleLog = console.log;
+// var originalConsoleLog = console.log;
 
 /**
  * seemingly fully functional, though needs a rewrite as its tacky
  * @todo hook a function that specifies when react is loaded, or use other methods to figure out when react has loaded. 
  * @param {*} message 
  */
-console.log = function(message) {
-    originalConsoleLog.apply(console, arguments);
-    if (message.includes("async WebUITransportStore")) {
-        console.log = originalConsoleLog;
 
-        console.log('%c Millennium ', 'background: black; color: white', "Bootstrapping builtin modules...");
-        // this variable points @ src\__builtins__\api.js
-        API_RAW_TEXT
+function __millennium_module_init__() {
+  if (window.SP_REACTDOM === undefined) {
+    setTimeout(() => __millennium_module_init__(), 1)
+  }
+  else {
+    console.log('%c Millennium ', 'background: black; color: white', "Bootstrapping builtin modules...");
+    // this variable points @ src_builtins_\api.js
 
-        emitter.on('loaded', () => {
-            SCRIPT_RAW_TEXT
-        });  
-    }
-};
+    emitter.on('loaded', () => {
+      SCRIPT_RAW_TEXT
+    });
+  }
+}
+__millennium_module_init__()

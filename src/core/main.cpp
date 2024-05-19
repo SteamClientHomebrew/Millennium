@@ -56,9 +56,9 @@ const bool __attribute__((constructor)) setup_env()
 */
 const void bootstrap()
 {
+    set_start_time(std::chrono::high_resolution_clock::now());
+    
     hook_steam_thread();
-
-    // !dependencies::clone_millennium_module() || 
 
     if (!dependencies::clone_millennium_module() || !dependencies::embed_python()) {
         return;

@@ -118,7 +118,7 @@ const void ipc_pipe::_create()
             wss.run();
         }
         catch (const std::exception& e) {
-            console.err("IPC-Main uncaught error -> {}", e.what());
+            console.err("[pipecon] uncaught error -> {}", e.what());
         }
     }).detach();
 

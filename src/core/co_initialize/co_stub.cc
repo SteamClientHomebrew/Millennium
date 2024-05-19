@@ -133,13 +133,20 @@ const void inject_shims(void)
     std::string _import;
     
     for (auto& plugin : plugins)  {
+
+        if (!stream_buffer::plugin_mgr::is_enabled(plugin.name)) { 
+            
+            console.log("bootstrap skipping frontend {} [disabled]", plugin.name);
+            continue;
+        }
+
         // steam's cef has a loopback for files by default, so we can just use that
         _import.append(make_script(fmt::format("https://steamloopback.host/{}", plugin.frontend_abs)));
     }
 
     std::string script = fboot_script;
 
-    script.replace(script.find("API_RAW_TEXT"), sizeof("API_RAW_TEXT") - 1, API);
+    // script.replace(script.find("API_RAW_TEXT"), sizeof("API_RAW_TEXT") - 1, API);
     script.replace(script.find("SCRIPT_RAW_TEXT"), sizeof("SCRIPT_RAW_TEXT") - 1, _import);
 
     tunnel::post_shared({ {"id", 8567}, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", script }}} });

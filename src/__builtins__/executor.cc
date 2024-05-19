@@ -104,7 +104,6 @@ PyObject* remove_browser_module(PyObject* self, PyObject* args) {
     }
 
     auto list = webkit_handler::get().h_list_ptr;
-
     bool success = false;
 
     for (auto it = (*list).begin(); it != (*list).end();) 

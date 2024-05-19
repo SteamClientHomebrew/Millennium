@@ -17,6 +17,12 @@ websocketpp::client
 websocketpp::connection_hdl plugin_handle, browser_h;
 extern std::string sessionId;
 
+static std::chrono::_V2::system_clock::time_point bootstrap_start;
+
+void set_start_time(std::chrono::_V2::system_clock::time_point time) {
+    bootstrap_start = time;
+}
+
 // @ src\core\co_initialize\co_stub.cc
 const void inject_shims(void);
 void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin);
@@ -83,30 +89,35 @@ namespace shared_context {
 }
 
 void _connect_browser() {
-    const std::string ctx = get_steam_context();
+    while (true) {
+        const std::string ctx = get_steam_context();
 
-    try {
-        websocketpp::client<websocketpp::config::asio_client> cl;
-        cl.set_access_channels(websocketpp::log::alevel::none);
-        cl.init_asio();
+        try {
+            websocketpp::client<websocketpp::config::asio_client> cl;
+            cl.set_access_channels(websocketpp::log::alevel::none);
+            cl.init_asio();
 
-        cl.set_open_handler(bind(browser::on_connect, &cl, std::placeholders::_1));
-        cl.set_message_handler(bind(browser::on_message, &cl, std::placeholders::_1, std::placeholders::_2));
+            cl.set_open_handler(bind(browser::on_connect, &cl, std::placeholders::_1));
+            cl.set_message_handler(bind(browser::on_message, &cl, std::placeholders::_1, std::placeholders::_2));
 
-        websocketpp::lib::error_code ec;
-        websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = cl.get_connection(ctx, ec);
+            websocketpp::lib::error_code ec;
+            websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = cl.get_connection(ctx, ec);
 
-        if (ec) {
-            console.err("could not create connection because: {}", ec.message());
-            return;
+            if (ec) {
+                console.err("could not create connection because: {}", ec.message());
+                return;
+            }
+
+            cl.connect(con); cl.run();
+        }
+        catch (websocketpp::exception& ex) 
+        {
+            console.err("Failed to connect to steam.");
+            console.err(ex.what());
         }
 
-        cl.connect(con); cl.run();
-    }
-    catch (websocketpp::exception& ex) 
-    {
-        console.err("Failed to connect to steam.");
-        console.err(ex.what());
+        console.err("browser tunnel collapsed, attempting to reopen...");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 }
 
@@ -116,31 +127,36 @@ void on_shared_fail(std::weak_ptr<void> connection_hdl)
 }
 
 void _connect_shared() {
-    const std::string ctx = get_shared_js();
+    while (true) {
+        const std::string ctx = get_shared_js();
 
-    try {
-        websocketpp::client<websocketpp::config::asio_client> cl;
-        cl.set_access_channels(websocketpp::log::alevel::none);
-        cl.init_asio();
+        try {
+            websocketpp::client<websocketpp::config::asio_client> cl;
+            cl.set_access_channels(websocketpp::log::alevel::none);
+            cl.init_asio();
 
-        cl.set_open_handler(bind(shared_context::on_connect, &cl, std::placeholders::_1));
-        cl.set_message_handler(bind(shared_context::on_message, &cl, std::placeholders::_1, std::placeholders::_2));
-        cl.set_fail_handler(on_shared_fail);
+            cl.set_open_handler(bind(shared_context::on_connect, &cl, std::placeholders::_1));
+            cl.set_message_handler(bind(shared_context::on_message, &cl, std::placeholders::_1, std::placeholders::_2));
+            cl.set_fail_handler(on_shared_fail);
 
-        websocketpp::lib::error_code ec;
-        websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = cl.get_connection(ctx, ec);
+            websocketpp::lib::error_code ec;
+            websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = cl.get_connection(ctx, ec);
 
-        if (ec) {
-            console.err("could not create connection because: {}", ec.message());
-            return;
+            if (ec) {
+                console.err("could not create connection because: {}", ec.message());
+                return;
+            }
+
+            cl.connect(con); cl.run();
+        }
+        catch (websocketpp::exception& ex) 
+        {
+            console.err("Failed to connect to steam.");
+            console.err(ex.what());
         }
 
-        cl.connect(con); cl.run();
-    }
-    catch (websocketpp::exception& ex) 
-    {
-        console.err("Failed to connect to steam.");
-        console.err(ex.what());
+        console.err("sharedcontext tunnel collapsed, attempting to reopen...");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 }
 
@@ -165,6 +181,13 @@ void plugin::bootstrap()
     for (auto& plugin : *plugins) 
     {
         plugin_manager& manager = plugin_manager::get();
+
+        if (!stream_buffer::plugin_mgr::is_enabled(plugin.name)) { 
+            
+            console.log("bootstrap skipping backend {} [disabled]", plugin.name);
+            continue;
+        }
+
         console.log("[pmgr] attempting to host {} @@ {}", plugin.name, static_cast<void*>(&manager));
 
         std::function<void(stream_buffer::plugin_mgr::plugin_t&)> cb = std::bind(plugin_start_cb, std::placeholders::_1);
@@ -188,6 +211,10 @@ void plugin::bootstrap()
      * @brief shared socket connects to SharedJSContext directly and handles injecting frontends and IPC calls
     */
     std::thread t_shared(_connect_shared);
+
+    // Calculate the duration
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - bootstrap_start);
+    console.log("overhead startup took {} ms...", duration.count());
 
     t_browser.join();
     t_shared.join();
