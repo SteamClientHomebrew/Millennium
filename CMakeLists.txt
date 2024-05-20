@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
 project(Millennium LANGUAGES CXX)
-
-# link boxer (cross platform message box lib)
 add_subdirectory(vendor/boxer)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -9,23 +7,12 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 include(FetchContent)
-FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
-                         GIT_TAG 3b15fa82ea74739b574d705fea44959b58142eb8) # Replace with your desired git commit from: https://github.com/libcpr/cpr/releases
+FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git GIT_TAG 3b15fa82ea74739b574d705fea44959b58142eb8)
 FetchContent_MakeAvailable(cpr)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -lwinpthread")
 
-add_compile_options(
-  -g # generate debug information
-  -Og 
-  -lz # link libzip
-)
-
-# set(CMAKE_BUILD_TYPE "Debug")
-
-# # You can also add specific compiler flags
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -static")
-
+add_compile_options(-g -Og -lz)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -51,9 +38,6 @@ add_compile_definitions(
   _CRT_SECURE_NO_WARNINGS
 )
 
-# if cmake can't find python, set the path manually. 
-# set(Python_ROOT_DIR "C:/Program Files (x86)/Python311-32")
-# set(Python_FIND_STRATEGY LOCATION)
 find_package(Python COMPONENTS Development)
 
 if (Python_FOUND)
@@ -63,9 +47,6 @@ else()
   message("Python was not found. download & install here: https://www.python.org/ftp/python/3.11.8/python-3.11.8.exe")
 endif()
 
-# find_package(LibGit2 REQUIRED)
-# target_link_libraries(your_target_name LibGit2::LibGit2)
-
 message(STATUS "LIBGIT  include directory: ${LIBGIT2_INCLUDE_DIRS}")
 message(STATUS "LIBGIT  libraries: ${LIBGIT2_LIBRARIES}")
 
@@ -73,18 +54,14 @@ find_package(CURL REQUIRED)
 message(STATUS "LIBCURL include directory: ${CURL_INCLUDE_DIR}")
 message(STATUS "LIBCURL libraries: ${CURL_LIBRARIES}")
 
-# include python libcurl statically.
 include_directories(
   ${Python_INCLUDE_DIRS}
-  # ${CURL_INCLUDE_DIR}
   ${LIBGIT2_INCLUDE_DIRS}
   "src/__builtins__"
 )
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-
-# target_include_directories(Millennium PRIVATE "src/__builtins__")
 
 set(CMAKE_BUILD_TYPE Debug)
 set(SOURCE_FILES 
@@ -111,12 +88,8 @@ elseif(UNIX)
   add_executable(Millennium "${SOURCE_FILES}")
 endif()
 
-# Set debug flags
-# target_compile_options(Millennium PRIVATE -g -O0)
-
 set_target_properties(Millennium PROPERTIES OUTPUT_NAME "User32")
 set_target_properties(Millennium PROPERTIES PREFIX "")
-# set_target_properties(Millennium PROPERTIES LINK_FLAGS "-static-libstdc++")
 
 if(WIN32)
   # link windows defined socket headers
@@ -128,8 +101,6 @@ elseif(UNIX)
 endif()
 
 target_link_libraries(Millennium
-  # ${CURL_LIBRARIES}
-  # ${LIBGIT2_LIBRARIES}
   "libminizip.dll.a"
   "C:/Users/Admin/Desktop/libgit2-build/libgit2/build/Debug/git2.lib"
   Boxer
