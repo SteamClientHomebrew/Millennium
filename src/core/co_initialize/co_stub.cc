@@ -15,17 +15,14 @@
 const void add_site_packages(std::vector<std::string> spath) 
 {
     PyObject *sys_module = PyImport_ImportModule("sys");
-
     if (!sys_module) {
         console.err("couldn't import sysmodule");
         return;
     }
+
     PyObject *sys_path = PyObject_GetAttrString(sys_module, "path");
-
     if (sys_path) {
-
 #ifdef _WIN32
-        // reset sys path in case user already has python installed, to prevent conlficting versions
         PyList_SetSlice(sys_path, 0, PyList_Size(sys_path), NULL);
 #endif
 
@@ -43,27 +40,23 @@ void initialize_plugin(PyObject* global_dict) {
     PyObject *plugin_class = PyDict_GetItemString(global_dict, "Plugin");
 
     if (!plugin_class || !PyCallable_Check(plugin_class)) {
-        PyErr_Print(); 
-        return;
+        PyErr_Print(); return;
     }
 
     PyObject *plugin_instance = PyObject_CallObject(plugin_class, NULL);
 
     if (!plugin_instance) {
-        PyErr_Print();
-        return;
+        PyErr_Print(); return;
     }
 
     PyDict_SetItemString(global_dict, "plugin", plugin_instance);
     PyObject *load_method = PyObject_GetAttrString(plugin_instance, "_load");
 
     if (!load_method || !PyCallable_Check(load_method)) {
-        PyErr_Print(); 
-        return;
+        PyErr_Print(); return;
     }
-    PyObject_CallObject(load_method, NULL);
 
-    // Cleanup references
+    PyObject_CallObject(load_method, NULL);
     Py_DECREF(load_method);
     Py_DECREF(plugin_instance);
 }
@@ -80,7 +73,6 @@ void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin) {
 
     std::vector<std::string> sys_paths = { 
         fmt::format("{}/backend", base),
-        // fmt::format("{}/.millennium/python.zip", stream_buffer::steam_path().generic_string()),
 #ifdef _WIN32
         pythonPath, pythonLibs
 #endif
@@ -113,7 +105,6 @@ void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin) {
     }
 
     if (PyRun_SimpleFile(file, _module.c_str()) != 0) {
-        // An error occurred during script execution
         console.err("millennium failed to startup [{}]", plugin.name);
         return;
     }
@@ -130,7 +121,7 @@ const void inject_shims(void)
     tunnel::post_shared({ {"id", 1}, {"method", "Page.enable"} });
 
     auto plugins = stream_buffer::plugin_mgr::parse_all();
-    std::string _import;
+    std::string import_table;
     
     for (auto& plugin : plugins)  {
 
@@ -139,15 +130,11 @@ const void inject_shims(void)
             console.log("bootstrap skipping frontend {} [disabled]", plugin.name);
             continue;
         }
-
-        // steam's cef has a loopback for files by default, so we can just use that
-        _import.append(make_script(fmt::format("https://steamloopback.host/{}", plugin.frontend_abs)));
+        import_table.append(make_script(fmt::format("https://steamloopback.host/{}", plugin.frontend_abs)));
     }
 
     std::string script = fboot_script;
-
-    // script.replace(script.find("API_RAW_TEXT"), sizeof("API_RAW_TEXT") - 1, API);
-    script.replace(script.find("SCRIPT_RAW_TEXT"), sizeof("SCRIPT_RAW_TEXT") - 1, _import);
+    script.replace(script.find("SCRIPT_RAW_TEXT"), sizeof("SCRIPT_RAW_TEXT") - 1, import_table);
 
     tunnel::post_shared({ {"id", 8567}, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", script }}} });
     tunnel::post_shared({ {"id", 69  }, {"method", "Page.reload"} });

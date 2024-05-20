@@ -55,8 +55,7 @@ namespace stream_buffer
             bool found = false;
             for (const auto& item : json["enabled"]) {
                 if (item == "millennium__internal") {
-                    found = true;
-                    break;
+                    found = true; break;
                 }
             }
             if (!found) {
@@ -101,7 +100,6 @@ namespace stream_buffer
         }
 
         std::cout << "updated config -> " << json.dump(4) << std::endl;
-        // file::writeFileSync(path, json.dump(4));
         set_config(json.dump(4));
         return true;
     }
@@ -126,22 +124,6 @@ namespace stream_buffer
     {
         const auto plugin_path = steam_path() / "steamui" / "plugins";
         std::vector<plugin_mgr::plugin_t> plugins;
-
-        // try {
-        //     const auto json = file::readJsonSync(fmt::format("{}/plugin.json", millennium_modules_path));
-            
-        //     stream_buffer::plugin_mgr::plugin_t plugin;
-        //     plugin.base_dir     = millennium_modules_path;
-        //     plugin.backend_abs  = fmt::format("{}/backend/main.py", millennium_modules_path);
-        //     plugin.name         = "millennium__internal";
-        //     plugin.frontend_abs = fmt::format(".millennium_modules/dist/index.js");
-        //     plugin.pjson        = json;
-
-        //     plugins.push_back(plugin);
-        // }
-        // catch (file::io_except& ex) {
-        //     console.err(ex.what());
-        // }
 
         try {
             for (const auto& entry : std::filesystem::directory_iterator(plugin_path)) 
@@ -181,17 +163,15 @@ namespace stream_buffer
     namespace file {
 
         nlohmann::json readJsonSync(const std::string& filename) {
-            // Open the file
+
             std::ifstream file(filename);
             if (!file.is_open()) {
                 throw io_except(fmt::format("[{}] failed to open file -> ", __func__, filename));
             }
 
-            // Read the content of the file into a string
             std::string fileContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
             try {
-                // Parse the string content as JSON
                 nlohmann::json jsonData = nlohmann::json::parse(fileContent);
                 return jsonData;
             }
@@ -224,16 +204,14 @@ namespace stream_buffer
             console.log(fmt::format("writing file to: {}", filePath.string()));
 
             std::ofstream fileStream(filePath, std::ios::binary);
-            if (!fileStream)
-            {
+            if (!fileStream) {
                 console.log(fmt::format("Failed to open file for writing: {}", filePath.string()));
                 return;
             }
 
             fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
 
-            if (!fileStream)
-            {
+            if (!fileStream) {
                 console.log(fmt::format("Error writing to file: {}", filePath.string()));
             }
 

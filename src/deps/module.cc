@@ -58,11 +58,11 @@ namespace dependencies {
             // Repository doesn't exist, clone it
             error = git_clone(&repo, modules_repo, millennium_modules_path.c_str(), &options);
             if (error == 0) {
-                console.log_item("clone success", "true");
+                console.log_item("status", "finished module audit!", true);
             } else {
                 const git_error* e = git_error_last();
                 const std::string message = fmt::format("Error cloning frontend modules -> {}", e->message);
-                console.log_item("clone success", fmt::format("false [{}]", e->message));
+                console.log_item("status", fmt::format("false [{}]", e->message), true);
 
                 //console.err(message);
                 boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);

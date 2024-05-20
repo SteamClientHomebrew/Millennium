@@ -16,14 +16,10 @@ void webkit_handler::setup_hook()
         { "id", 3242 }, { "method", "Fetch.enable" },
         { "params", {
             { "patterns", {
-                // hook a global css module from all steam pages
                 { { "urlPattern", "https://*.*.com/public/shared/css/buttons.css*" }, { "resourceType", "Stylesheet" }, { "requestStage", "Response" }  },
-                // hook a global js module from all steam pages
                 { { "urlPattern", "https://*.*.com/public/shared/javascript/shared_global.js*" }, { "resourceType", "Script" }, { "requestStage", "Response" } },
-                { 
-                    // create a virtual ftp table from a default accept XSS url
-                    { "urlPattern", fmt::format("{}*", this->virt_url) }, { "requestStage", "Request" } 
-                }
+                
+                { { "urlPattern", fmt::format("{}*", this->virt_url) }, { "requestStage", "Request" } }
             }
         }}}
     });
@@ -60,7 +56,6 @@ std::string webkit_handler::css_hook(std::string body)
         if (item.type != type_t::STYLESHEET) {
             continue;
         }
-
         std::filesystem::path relativePath = std::filesystem::relative(item.path, stream_buffer::steam_path() / "steamui");
         inject.append(fmt::format("@import \"{}{}\";\n", this->looback, relativePath.generic_string()));
     }
@@ -76,16 +71,12 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
         if (message["method"] == "Fetch.requestPaused" && !this->is_ftp_call(message)) 
         {
             id--;
-            (*request_map).push_back({
-                id, message["params"]["requestId"].get<std::string>(), message["params"]["resourceType"].get<std::string>()
-            });
+            (*request_map).push_back({ id, message["params"]["requestId"].get<std::string>(), message["params"]["resourceType"].get<std::string>() });
 
             tunnel::post_global({
                 { "id", id },
                 { "method", "Fetch.getResponseBody" },
-                { "params", {
-                    { "requestId", message["params"]["requestId"] }
-                }}
+                { "params", { { "requestId", message["params"]["requestId"] } }}
             });
         }
 
@@ -94,9 +85,7 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
             std::string requestUrl = message["params"]["request"]["url"];
             std::size_t pos = requestUrl.find(this->virt_url);
 
-            if (pos != std::string::npos) {
-                requestUrl.erase(pos, std::string(this->virt_url).length());  
-            }
+            if (pos != std::string::npos) { requestUrl.erase(pos, std::string(this->virt_url).length()); }
 
             const auto path = stream_buffer::steam_path() / "steamui" / requestUrl;
             bool failed = false;
@@ -108,14 +97,12 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
             }
 
             std::string fileContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
             auto status = failed ? "millennium couldn't read " + path.generic_string() : "MILLENNIUM-VIRTUAL";
 
             tunnel::post_global({
                 { "id", 63453 },
                 { "method", "Fetch.fulfillRequest" },
                 { "params", {
-
                     { "requestId", message["params"]["requestId"] },
                     { "responseCode", failed ? 404 : 200 },
                     { "responsePhrase", status }, 
@@ -129,38 +116,29 @@ void webkit_handler::handle_hook(nlohmann::basic_json<> message)
             });
         }
 
-        // create a temporary scope so the mutex is free'd
+        for (auto it = request_map->begin(); it != request_map->end();) 
         {
-            // Lock the mutex before accessing request_map
-            // std::lock_guard<std::mutex> lock(request_map_mutex);
+            auto [id, request_id, type] = (*it);
 
-            for (auto it = request_map->begin(); it != request_map->end();) 
-            {
-                auto [id, request_id, type] = (*it);
-
-                if (message["id"] != id || !message["result"]["base64Encoded"]) {
-                    it++; continue;
-                }
-
-                std::string body = {};
-                if      (type == "Script"    ) body = this->js_hook (base64_decode(message["result"]["body"]));
-                else if (type == "Stylesheet") body = this->css_hook(base64_decode(message["result"]["body"]));
-                
-                // console.log("responding to -> {} + {} [{} bytes]", request_id, type, body.size());
-
-                tunnel::post_global({
-                    { "id", 63453 },
-                    { "method", "Fetch.fulfillRequest" },
-                    { "params", {
-                        { "requestId", request_id },
-                        { "responseCode", 200 },
-                        { "body", base64_encode(body) }
-                    }}
-                });
-
-                // done using it, remove it from memory
-                it = request_map->erase(it);
+            if (message["id"] != id || !message["result"]["base64Encoded"]) {
+                it++; continue;
             }
+
+            std::string body = {};
+            if      (type == "Script"    ) body = this->js_hook (base64_decode(message["result"]["body"]));
+            else if (type == "Stylesheet") body = this->css_hook(base64_decode(message["result"]["body"]));
+
+            tunnel::post_global({
+                { "id", 63453 },
+                { "method", "Fetch.fulfillRequest" },
+                { "params", {
+                    { "requestId", request_id },
+                    { "responseCode", 200 },
+                    { "body", base64_encode(body) }
+                }}
+            });
+
+            it = request_map->erase(it);
         }
     }
     catch (const nlohmann::detail::exception& ex) {

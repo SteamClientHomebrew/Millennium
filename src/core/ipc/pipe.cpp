@@ -23,9 +23,9 @@ static nlohmann::json call_server_method(nlohmann::basic_json<> message)
 
     switch (response.type)
     {
-        case python::type_t::_bool: { json_ret["returnValue"] = (response.plain == "True" ? true : false); break; }
+        case python::type_t::_bool:   { json_ret["returnValue"] = (response.plain == "True" ? true : false); break; }
         case python::type_t::_string: { json_ret["returnValue"] = d6e(response.plain); break; }
-        case python::type_t::_int: { json_ret["returnValue"] = stoi(response.plain); break; }
+        case python::type_t::_int:    { json_ret["returnValue"] = stoi(response.plain); break; }
 
         case python::type_t::_err: {
             json_ret["failedRequest"] = true;
@@ -63,15 +63,12 @@ void on_message(server* serv, websocketpp::connection_hdl hdl, server::message_p
 
         switch (json_data["id"].get<int>()) {
             case ipc_pipe::type_t::call_server_method: {
-                response = (::call_server_method(json_data).dump());
-                break;
+                response = (::call_server_method(json_data).dump()); break;
             }
             case ipc_pipe::type_t::front_end_loaded: {
-                response = (::front_end_loaded(json_data).dump());
-                break;
+                response = (::front_end_loaded(json_data).dump()); break;
             }
         }
-
         con->send(response, msg->get_opcode());
     }
     catch (nlohmann::detail::exception& ex) {
@@ -86,33 +83,19 @@ void on_open(server* s, websocketpp::connection_hdl hdl) {
     s->start_accept();
 }
 
-void custom_error_handler(websocketpp::connection_hdl hdl, websocketpp::server<websocketpp::config::asio>* c) {
-
-    websocketpp::server<websocketpp::config::asio>::connection_ptr con = c->get_con_from_hdl(hdl);
-
-    auto m_error_reason = con->get_ec().message();
-    const auto code = con->get_ec().value();
-
-    console.err("pipe exception -> {} code {}", m_error_reason, code);
-}
-
 const void ipc_pipe::_create()
 {
     std::thread([&] {
         server wss;
 
         try {
-            // Set logging level
             wss.set_access_channels(websocketpp::log::alevel::none);
             wss.clear_access_channels(websocketpp::log::alevel::all);
 
-            wss.set_error_channels(websocketpp::log::elevel::all);
-            wss.set_fail_handler(std::bind(custom_error_handler, std::placeholders::_1, &wss));
-
-            // Initialize Asio
             wss.init_asio();
             wss.set_message_handler(bind(on_message, &wss, std::placeholders::_1, std::placeholders::_2));
             wss.set_open_handler(bind(&on_open, &wss, std::placeholders::_1));
+
             wss.listen(12906);
             wss.start_accept();
             wss.run();

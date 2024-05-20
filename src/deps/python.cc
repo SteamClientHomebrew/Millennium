@@ -113,9 +113,10 @@ namespace dependencies
             boxer::show(fmt::format("An error occured creating path [{}], try creating it yourself\n\nTrace:\n{}", python_bootzip.parent_path().string(), e.what()).c_str(), "Whoops!", boxer::Style::Error);
         }
 
-        console.log("downloading python 3.11.8 win32...");
+        console.log_item("status", "downloading python 3.11.8 package...");
+
         if (download_file(url, python_bootzip.generic_string().c_str()) != 0) {
-            console.err("Failed to download python embed pacakge.");
+            console.log_item("status", "failed to download package...");
 
             boxer::show(fmt::format("Failed to download Python embed runtime! "
             "If you have a valid internet connection and you continue to receieve this message please make an issue on the github." 
@@ -128,7 +129,7 @@ namespace dependencies
         bool result = false;
 
         try {
-            console.log("extracting module packages...");
+            console.log_item("status", "extracting installed package...");
             result = extract_package(python_bootzip);
         }
         catch (const extract_except& e) {
@@ -136,6 +137,7 @@ namespace dependencies
             "Stack Trace:\n{}\n\nCreate an issue on our GitHub if you continue to face this!", e.what()).c_str(), "Oops! Something went wrong", boxer::Style::Error);
         }
 
+        console.log_item("exec", "finished package audit!", true);
         //boxer::show("Millennium had to do some background for the first time launch. Its recommended you restart steam just to make sure changes take affect!", "Important Tip!");
         return result;
     }

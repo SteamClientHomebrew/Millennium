@@ -117,17 +117,27 @@ void output_console::warn(std::string fmt, Args&&... args)
 }
 
 void output_console::head(std::string val) {
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	const auto message = fmt::format("\n[┬] {}", val);
 
-	std::cout  << message << "\n";
+	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+    std::cout << "\n[┬] ";
+    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	std::cout  << val << "\n";
+
 	fileStream << message << "\n";
 }
 
  void output_console::log_item(std::string name, std::string data, bool end) {
 
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	std::string connector = end ? "└" : "├";
 	const auto message = fmt::format(" {}──[{}]: {}", connector, name, data);
 
-	std::cout  << message << "\n";
+	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+    std::cout << " " << connector << "──[" <<name << "]: ";
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	std::cout << data << "\n";
+
 	fileStream << message << "\n";
  }
