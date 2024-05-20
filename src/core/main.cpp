@@ -30,19 +30,13 @@ const bool __attribute__((constructor)) setup_env()
         void(freopen("CONOUT$", "w", stderr));
     }
 #endif
-
-#ifdef _WIN32
-    constexpr const char* filePath = ".cef-enable-remote-debugging";
-#elif __linux__
-    std::string filePath = fmt::format("{}/.local/share/Steam/.cef-enable-remote-debugging", std::getenv("HOME"));
-#endif
+    const char* filePath = (stream_buffer::steam_path() / ".cef-enable-remote-debugging").generic_string().c_str();
 
     if (!std::filesystem::exists(filePath)) {
         std::ofstream(filePath).close();
-
-        boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
-        
+        boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");  
         std::exit(0);
+
         return false;
     }
     return true;

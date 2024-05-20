@@ -28,14 +28,12 @@ std::vector<DWORD> get_threads_sync() {
     }
 
     do {
-        // Skip the current thread
         if (te32.th32OwnerProcessID == processId && te32.th32ThreadID != currentThreadId) {
             out.push_back(te32.th32ThreadID);
         }
     } while (Thread32Next(hThreadSnap, &te32));
 
     CloseHandle(hThreadSnap);
-
     return out;
 }
 
