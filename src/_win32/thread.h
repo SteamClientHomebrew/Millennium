@@ -42,7 +42,6 @@ std::vector<DWORD> get_threads_sync() {
 bool hook_steam_thread()
 {
     std::vector<DWORD> threads = get_threads_sync();
-
     int froze = 0, failed = 0;
 
     for (const auto& thread : threads) {
