@@ -8,6 +8,6 @@ extern "C" {
 			front_end_loaded
 		};
 
-		const void _create();
+		const int _create();
 	}
 }

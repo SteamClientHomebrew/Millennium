@@ -18,7 +18,8 @@ namespace stream_buffer
         char buffer[MAX_PATH];  
         DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
-        return std::string(buffer, bufferSize);
+        const std::string path = std::string(buffer, bufferSize);
+        return path.empty() ? "C:/Program Files (x86)/Steam" : path;
 #elif __linux__
         return fmt::format("{}/.steam/steam", std::getenv("HOME"));
 #endif
@@ -33,7 +34,15 @@ namespace stream_buffer
             outputFile << "{}";
         }
 
-        return file::readJsonSync(path.string());
+        bool success;
+        const auto json = file::readJsonSync(path.string(), &success);
+
+        if (!success) {
+            std::ofstream outputFile(path.string());
+            outputFile << "{}";
+        }
+
+        return success ? json : nlohmann::json({});
     }
 
     void set_config(std::string file_data) {
@@ -47,7 +56,7 @@ namespace stream_buffer
         file::writeFileSync(path, file_data);
     }
 
-    void setup_config() 
+    int setup_config() 
     {
         auto json = get_config();
 
@@ -66,6 +75,7 @@ namespace stream_buffer
             json["enabled"] = nlohmann::json::array({ "millennium__internal" });
         }
         set_config(json.dump(4));
+        return true;
     }
 
     bool plugin_mgr::set_plugin_status(std::string pname, bool enabled) {
@@ -162,21 +172,23 @@ namespace stream_buffer
     
     namespace file {
 
-        nlohmann::json readJsonSync(const std::string& filename) {
+        nlohmann::json readJsonSync(const std::string& filename, bool* success) {
 
             std::ifstream file(filename);
             if (!file.is_open()) {
-                throw io_except(fmt::format("[{}] failed to open file -> ", __func__, filename));
+                if (success != nullptr) *success = false;
             }
 
             std::string fileContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-            try {
-                nlohmann::json jsonData = nlohmann::json::parse(fileContent);
-                return jsonData;
+            if (nlohmann::json::accept(fileContent)) {
+                if (success != nullptr) *success = true;
+                return nlohmann::json::parse(fileContent);
             }
-            catch (const std::exception&) {
-                throw io_except(fmt::format("[{}] failed parse file object -> ", __func__, filename));
+            else {
+                console.err("error reading [{}]", filename);
+                if (success != nullptr) *success = false;
+                return {};
             }
         }
 

@@ -1,9 +1,7 @@
 #include <vector>
-#include <processthreadsapi.h>
-#include <tlhelp32.h>
-#include <handleapi.h>
 #include <iostream>
 #include <utilities/log.hpp>
+#include <tlhelp32.h>
 
 std::vector<DWORD> get_threads_sync() {
 

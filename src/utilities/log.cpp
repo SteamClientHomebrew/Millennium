@@ -8,6 +8,38 @@
 #include <fstream>
 #include <fmt/core.h>
 #include <sstream>
+#include <thread>
+#ifdef _WIN32
+#include <_win32/cmd.h>
+#endif
+
+output_console console;
+
+class TeeBuf : public std::streambuf {
+public:
+    TeeBuf(std::streambuf* sb1, std::streambuf* sb2) : sb1(sb1), sb2(sb2) {}
+
+protected:
+    virtual int overflow(int c) override {
+        if (c == EOF) {
+            return !EOF;
+        } else {
+            int const r1 = sb1->sputc(c);
+            int const r2 = sb2->sputc(c);
+            return r1 == EOF || r2 == EOF ? EOF : c;
+        }
+    }
+
+    virtual int sync() override {
+        int const r1 = sb1->pubsync();
+        int const r2 = sb2->pubsync();
+        return r1 == 0 && r2 == 0 ? 0 : -1;
+    }
+
+private:
+    std::streambuf* sb1;
+    std::streambuf* sb2;
+};
 
 std::string output_console::get_time()
 {
@@ -24,19 +56,31 @@ std::string output_console::get_time()
 void output_console::_print(std::string type, const std::string& message)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
-    // segmentation fault on linux? not sure why
-	std::cout  << get_time() << type << message << "\n";
-	fileStream << get_time() << type << message << "\n";
 
-	if (!fileStream.good()) {
-        std::cout << "couldn't write to file..." << std::endl;
-    }
+	std::cout << get_time() << type << message << "\n";
+	*file << get_time() << type << message << "\n";
 
-	fileStream.flush(); // Explicitly flush the stream
+	(*file).flush();
 }
 
-output_console::output_console() 
+output_console::output_console()
 {
+#ifdef _WIN32
+    if (steam::get().params.has("-dev") && static_cast<bool>(AllocConsole())) {
+        void(freopen("CONOUT$", "w", stdout));
+        void(freopen("CONOUT$", "w", stderr));
+    }
+	SetConsoleOutputCP(CP_UTF8);
+#endif
+	file = std::make_shared<std::ofstream>("output.txt");
+
+    // Check if the file stream is open
+    if (!(*file).is_open()) {
+        std::cerr << "Failed to open the file." << std::endl;
+        return;
+    }
+
+
 #ifdef _WIN32
 	std::filesystem::path fileName = ".millennium/debug.log";
 #elif __linux__
@@ -49,14 +93,9 @@ output_console::output_console()
 	catch (const std::exception& e) {
 		std::cout << "Error: " << e.what() << std::endl;
 	}
-
-	fileStream.open(fileName.string());
-	if (!fileStream.is_open()) {
-        std::cerr << "Failed to open file for writing." << std::endl;
-    }
 }
 output_console::~output_console() {
-	fileStream.close();
+	(*file).close();
 }
 
 void output_console::log(std::string val) {
@@ -65,55 +104,54 @@ void output_console::log(std::string val) {
 
 void output_console::py(std::string pname, std::string val)
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
-	fileStream << get_time() << " [" << pname << "] ";
-#endif
-
+	#endif
 	std::cout << get_time() << " [" << pname << "] ";
-#ifdef _WIN32
+	#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-	fileStream << val << "\n";
-#endif
+	#endif
 	std::cout << val << "\n";
+	(*file) << get_time() << " [" << pname << "] " << val << "\n";
+	(*file).flush();
 }
 
 void output_console::warn(std::string val)
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
-#endif
+	#endif
 	_print(" [warn] ", val);
-#ifdef _WIN32
+	#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-#endif
+	#endif
 }
 
 void output_console::err(std::string val)
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
-#endif
+	#endif
 	_print(" [error] ", val);
-#ifdef _WIN32
+	#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-#endif
+	#endif
 }
 
 template<typename... Args>
 void output_console::warn(std::string fmt, Args&&... args)
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
-#endif
+	#endif
 	_print(" [warn] ", fmt::format(fmt, std::forward<Args>(args)...));
-#ifdef _WIN32
+	#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-#endif
+	#endif
 }
 
 void output_console::head(std::string val) {
@@ -123,9 +161,9 @@ void output_console::head(std::string val) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
     std::cout << "\n[┬] ";
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-	std::cout  << val << "\n";
-
-	fileStream << message << "\n";
+	std::cout << val << "\n";
+	*file << message << "\n";
+	(*file).flush();
 }
 
  void output_console::log_item(std::string name, std::string data, bool end) {
@@ -139,5 +177,6 @@ void output_console::head(std::string val) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 	std::cout << data << "\n";
 
-	fileStream << message << "\n";
+	*file << message << "\n";
+	(*file).flush();
  }

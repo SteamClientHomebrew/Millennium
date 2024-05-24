@@ -15,9 +15,9 @@ websocketpp::client<websocketpp::config::asio_client>* plugin_client, *browser_c
 websocketpp::connection_hdl plugin_handle, browser_h;
 
 extern std::string sessionId;
-static std::chrono::_V2::system_clock::time_point bootstrap_start;
+static std::chrono::system_clock::time_point bootstrap_start;
 
-void set_start_time(std::chrono::_V2::system_clock::time_point time) {
+void set_start_time(std::chrono::system_clock::time_point time) {
     bootstrap_start = time;
 }
 
@@ -134,8 +134,14 @@ void _connect_shared() {
 
 void plugin::bootstrap()
 {
-    stream_buffer::setup_config();
-    ipc_pipe::_create();
+    console.head("backend:");
+
+    int error;
+    error = stream_buffer::setup_config();
+    console.log_item("setup_config", !error ? "failed" : "success");
+
+    error = ipc_pipe::_create();
+    console.log_item("pipemon", !error ? "failed" : "success", true);
 
     auto plugins = std::make_shared<std::vector<stream_buffer::plugin_mgr::plugin_t>>(stream_buffer::plugin_mgr::parse_all()); 
     console.head("hosting query:");
@@ -151,8 +157,6 @@ void plugin::bootstrap()
         plugin_manager& manager = plugin_manager::get();
 
         if (!stream_buffer::plugin_mgr::is_enabled(plugin.name)) { 
-            
-            console.log("bootstrap skipping backend {} [disabled]", plugin.name);
             continue;
         }
 

@@ -25,7 +25,7 @@ namespace stream_buffer
     };
 
     void set_config(std::string file_data);
-    void setup_config();
+    int setup_config();
 
     std::filesystem::path steam_path();
 
@@ -41,7 +41,7 @@ namespace stream_buffer
             std::string msg;
         };
 
-        nlohmann::json readJsonSync(const std::string& filename);
+        nlohmann::json readJsonSync(const std::string& filename, bool* success = nullptr);
         std::string readFileSync(const std::string& filename);
         void writeFileSync(const std::filesystem::path& filePath, std::string content);
         void writeFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);

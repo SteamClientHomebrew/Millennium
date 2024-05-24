@@ -83,27 +83,30 @@ void on_open(server* s, websocketpp::connection_hdl hdl) {
     s->start_accept();
 }
 
-const void ipc_pipe::_create()
+const int open_webserver() {
+    server wss;
+
+    try {
+        wss.set_access_channels(websocketpp::log::alevel::none);
+        wss.clear_access_channels(websocketpp::log::alevel::all);
+
+        wss.init_asio();
+        wss.set_message_handler(bind(on_message, &wss, std::placeholders::_1, std::placeholders::_2));
+        wss.set_open_handler(bind(&on_open, &wss, std::placeholders::_1));
+
+        wss.listen(12906);
+        wss.start_accept();
+        wss.run();
+    }
+    catch (const std::exception& e) {
+        console.err("[pipecon] uncaught error -> {}", e.what());
+        return false;
+    }
+    return true;
+}
+
+const int ipc_pipe::_create()
 {
-    std::thread([&] {
-        server wss;
-
-        try {
-            wss.set_access_channels(websocketpp::log::alevel::none);
-            wss.clear_access_channels(websocketpp::log::alevel::all);
-
-            wss.init_asio();
-            wss.set_message_handler(bind(on_message, &wss, std::placeholders::_1, std::placeholders::_2));
-            wss.set_open_handler(bind(&on_open, &wss, std::placeholders::_1));
-
-            wss.listen(12906);
-            wss.start_accept();
-            wss.run();
-        }
-        catch (const std::exception& e) {
-            console.err("[pipecon] uncaught error -> {}", e.what());
-        }
-    }).detach();
-
-    return void();
+    std::thread(open_webserver).detach();
+    return true;
 }

@@ -95,7 +95,6 @@ PyObject* call_frontend_method(PyObject* self, PyObject* args, PyObject* kwargs)
 PyObject* py_get_millennium_version(PyObject* self, PyObject* args) { return PyUnicode_FromString(g_mversion); }
 PyObject* py_steam_path(PyObject* self, PyObject* args) { return PyUnicode_FromString(stream_buffer::steam_path().string().c_str()); }
 
-
 PyObject* remove_browser_module(PyObject* self, PyObject* args) { 
     int js_index;
 
@@ -126,22 +125,14 @@ int add_module(PyObject* args, webkit_handler::type_t type) {
     }
 
     hook_tag++;
-
     auto path = stream_buffer::steam_path() / "steamui" / item_str;
 
     webkit_handler::get().h_list_ptr->push_back({ path.generic_string(), type, hook_tag });
     return hook_tag;
 }
 
-PyObject* add_browser_css(PyObject* self, PyObject* args) 
-{ 
-    return PyLong_FromLong(add_module(args, webkit_handler::type_t::STYLESHEET));
-}
-
-PyObject* add_browser_js(PyObject* self, PyObject* args) 
-{ 
-    return PyLong_FromLong(add_module(args, webkit_handler::type_t::JAVASCRIPT));
-}
+PyObject* add_browser_css(PyObject* self, PyObject* args) { return PyLong_FromLong(add_module(args, webkit_handler::type_t::STYLESHEET)); }
+PyObject* add_browser_js(PyObject* self, PyObject* args)  { return PyLong_FromLong(add_module(args, webkit_handler::type_t::JAVASCRIPT)); }
 
 /* 
 This portion of the API is undocumented but you can use it. 
@@ -153,12 +144,10 @@ PyObject* change_plugin_status(PyObject* self, PyObject* args)
     PyObject* new_status_obj; // bool parameter
     int new_status;
 
-    // Parse the arguments from the tuple
     if (!PyArg_ParseTuple(args, "sO", &plugin_name, &new_status_obj)) {
         return NULL; // Parsing failed
     }
 
-    // Check if the second argument is a boolean
     if (!PyBool_Check(new_status_obj)) {
         PyErr_SetString(PyExc_TypeError, "Second argument must be a boolean");
         return NULL;
@@ -167,19 +156,15 @@ PyObject* change_plugin_status(PyObject* self, PyObject* args)
     // Convert the PyObject to a C boolean value
     new_status = PyObject_IsTrue(new_status_obj);
 
-    // Now you have plugin_name as a string and new_status as a boolean value
-    // You can proceed with your logic here
-
-    // For example, printing the parsed values
     printf("Plugin Name: %s\n", plugin_name);
     printf("New Status: %d\n", new_status);
 
-    // Perform your actions and return appropriate value
-    // For example, return Py_True or Py_False depending on the action's success
-
     if (!new_status) {
-        console.log("requested to shutdown plugin {}", plugin_name);
+        console.log("requested to shutdown plugin [{}]", plugin_name);
         std::thread(std::bind(&plugin_manager::shutdown_plugin, &plugin_manager::get(), plugin_name)).detach();
+    }
+    else {
+        console.log("requested to enable plugin [{}]", plugin_name);
     }
 
     Py_RETURN_NONE;

@@ -1,18 +1,29 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.5.0)
 project(Millennium LANGUAGES CXX)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcurl -lssh2 -lssl -lcrypto -lz -static-libgcc -static-libstdc++ -lstdc++ -lpthread")
+
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(vendor/boxer)
+
+# Ensure zlib paths are correctly set
+# set(ZLIB_ROOT vendor/minizip-ng/third_party/zlib)
+# add_subdirectory(${ZLIB_ROOT})
+
+# Include directories
+# add_subdirectory(vendor/minizip-ng)
+# include_directories(${ZLIB_ROOT})
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options(-Wno-format-security) 
 endif()
 
+
 include(FetchContent)
 FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git GIT_TAG 3b15fa82ea74739b574d705fea44959b58142eb8)
 FetchContent_MakeAvailable(cpr)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -lwinpthread")
-
-add_compile_options(-g -Og -lz)
+# add_compile_options(-g -Og -lz)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,7 +39,7 @@ include_directories(
 )
 
 add_compile_definitions(
-  CURL_STATICLIB 
+  # CURL_STATICLIB 
   FMT_HEADER_ONLY
   _WEBSOCKETPP_CPP11_THREAD_
   ASIO_HAS_STD_INVOKE_RESULT
@@ -38,6 +49,7 @@ add_compile_definitions(
   _CRT_SECURE_NO_WARNINGS
 )
 
+# find_package(minizip REQUIRED)
 find_package(Python COMPONENTS Development)
 
 if (Python_FOUND)
@@ -50,18 +62,11 @@ endif()
 message(STATUS "LIBGIT  include directory: ${LIBGIT2_INCLUDE_DIRS}")
 message(STATUS "LIBGIT  libraries: ${LIBGIT2_LIBRARIES}")
 
-find_package(CURL REQUIRED)
-message(STATUS "LIBCURL include directory: ${CURL_INCLUDE_DIR}")
-message(STATUS "LIBCURL libraries: ${CURL_LIBRARIES}")
-
 include_directories(
   ${Python_INCLUDE_DIRS}
   ${LIBGIT2_INCLUDE_DIRS}
   "src/__builtins__"
 )
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(SOURCE_FILES 
@@ -75,7 +80,6 @@ set(SOURCE_FILES
   "src/generic/stream_parser.cc"
   "src/__builtins__/executor.cc"
   "src/deps/module.cc"
-  "src/deps/python.cc"
   "src/core/hooks/web_load.cc"
   "src/core/co_initialize/co_stub.cc"
 )
@@ -88,7 +92,7 @@ elseif(UNIX)
   add_executable(Millennium "${SOURCE_FILES}")
 endif()
 
-set_target_properties(Millennium PROPERTIES OUTPUT_NAME "User32")
+set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
 set_target_properties(Millennium PROPERTIES PREFIX "")
 
 if(WIN32)
@@ -101,9 +105,7 @@ elseif(UNIX)
 endif()
 
 target_link_libraries(Millennium
-  "libminizip.dll.a"
   "C:/Users/Admin/Desktop/libgit2-build/libgit2/build/Debug/git2.lib"
   Boxer
   cpr::cpr
-  Threads::Threads
 ) 
