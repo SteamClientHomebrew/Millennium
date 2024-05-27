@@ -1,9 +1,7 @@
 #include "log.hpp"
-
 #include <chrono>
 #include <string>
 #include <iostream>
-
 #include <filesystem>
 #include <fstream>
 #include <fmt/core.h>
@@ -14,32 +12,6 @@
 #endif
 
 output_console console;
-
-class TeeBuf : public std::streambuf {
-public:
-    TeeBuf(std::streambuf* sb1, std::streambuf* sb2) : sb1(sb1), sb2(sb2) {}
-
-protected:
-    virtual int overflow(int c) override {
-        if (c == EOF) {
-            return !EOF;
-        } else {
-            int const r1 = sb1->sputc(c);
-            int const r2 = sb2->sputc(c);
-            return r1 == EOF || r2 == EOF ? EOF : c;
-        }
-    }
-
-    virtual int sync() override {
-        int const r1 = sb1->pubsync();
-        int const r2 = sb2->pubsync();
-        return r1 == 0 && r2 == 0 ? 0 : -1;
-    }
-
-private:
-    std::streambuf* sb1;
-    std::streambuf* sb2;
-};
 
 std::string output_console::get_time()
 {
@@ -75,7 +47,7 @@ output_console::output_console()
 	file = std::make_shared<std::ofstream>("output.txt");
 
     // Check if the file stream is open
-    if (!(*file).is_open()) {
+    if (!file->is_open()) {
         std::cerr << "Failed to open the file." << std::endl;
         return;
     }
@@ -95,7 +67,7 @@ output_console::output_console()
 	}
 }
 output_console::~output_console() {
-	(*file).close();
+	file->close();
 }
 
 void output_console::log(std::string val) {

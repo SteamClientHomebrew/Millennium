@@ -24,6 +24,7 @@ void set_start_time(std::chrono::system_clock::time_point time) {
 // @ src\core\co_initialize\co_stub.cc
 const void inject_shims(void);
 void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin);
+const std::string setup_bootstrap_module();
 
 enum socket_t {
     SHARED, 
@@ -70,12 +71,62 @@ namespace browser {
     }
 }
 
+const void check_ready_state(nlohmann::json json) {
+
+    //std::cout << json.dump(4) << std::endl;
+
+    if (!json.contains("params") || !json["params"].is_object()) {
+        return;
+    }
+
+    if (!json["params"].contains("args") || !json["params"]["args"].is_array()) {
+        return;
+    }
+
+    if (json["params"]["args"].size() == 0) {
+        return;
+    }
+
+    const std::string message = json["params"]["args"][0]["value"];
+
+    if (message.find("Init localization") != std::string::npos) {
+        
+        std::cout << json.dump(4) << std::endl;
+
+        console.err("shared js context start detected!");
+        tunnel::post_shared({ {"id", 71  }, {"method", "Debugger.pause"} });
+    }
+}
+
 namespace shared_context {
 
     const void on_message(websocketpp::client<websocketpp::config::asio_client>* c, 
                 websocketpp::connection_hdl hdl, 
                 websocketpp::config::asio_client::message_type::ptr msg) 
-    { }
+    {
+        try {
+            const auto json = nlohmann::json::parse(msg->get_payload()); 
+
+            std::cout << json.dump(4) << std::endl;
+
+            if (json.contains("method") && json["method"] == "Runtime.consoleAPICalled") {
+                check_ready_state(json);
+            }
+
+            if (json.contains("method") && json["method"] == "Debugger.paused") {
+
+                const nlohmann::json debugger_eval = { {"id", 50 }, {"method", "Runtime.evaluate"}, {"params", {
+                    { "expression", setup_bootstrap_module() }
+                }} };
+
+                std::cout << "sending debugger eval message -> " << debugger_eval.dump(4) << std::endl;
+                tunnel::post_shared(debugger_eval);
+            }
+        }
+        catch (nlohmann::detail::exception& ex) {
+            console.err(ex.what());
+        }
+    }
 
     const void on_connect(websocketpp::client<websocketpp::config::asio_client>* _c, websocketpp::connection_hdl _hdl) 
     {

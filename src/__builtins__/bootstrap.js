@@ -69,7 +69,6 @@ connectIPCWebSocket();
  * @todo hook a function that specifies when react is loaded, or use other methods to figure out when react has loaded. 
  * @param {*} message 
  */
-
 function __millennium_module_init__() {
   if (window.SP_REACTDOM === undefined) {
     setTimeout(() => __millennium_module_init__(), 1)

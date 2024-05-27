@@ -33,18 +33,29 @@ plugin_manager::plugin_manager()
 
     /* Read all configuration at once */
     status = PyConfig_Read(&config);
+
     if (PyStatus_Exception(status)) {
-        console.err("couldn't read config");
+        console.err("couldn't read config {}", status.err_msg);
         goto done;
     }
 
     config.write_bytecode = 0;
+
+#ifdef _WIN32
     config.module_search_paths_set = 1;
 
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
 
+#endif
+
     status = Py_InitializeFromConfig(&config);
+
+    if (PyStatus_Exception(status)) {
+        console.err("couldn't initialize from config {}", status.err_msg);
+        goto done;
+    }
+
     _save = PyEval_SaveThread();
 done:
     PyConfig_Clear(&config);
@@ -52,7 +63,7 @@ done:
 
 plugin_manager::~plugin_manager()
 {
-    console.err("::~plugin_manager() went out of scope, this probably shouldn't have happened");
+    console.err("::~plugin_manager() was destroyed.");
     PyEval_RestoreThread(_save);
     Py_FinalizeEx();
 }
