@@ -155,12 +155,18 @@ void output_console::warn(std::string fmt, Args&&... args)
 }
 
 void output_console::head(std::string val) {
+#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#endif
 	const auto message = fmt::format("\n[┬] {}", val);
 
+#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+#endif
     std::cout << "\n[┬] ";
+#ifdef _WIN32
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+#endif
 	std::cout << val << "\n";
 	*file << message << "\n";
 	(*file).flush();
@@ -168,13 +174,19 @@ void output_console::head(std::string val) {
 
  void output_console::log_item(std::string name, std::string data, bool end) {
 
+#ifdef _WIN32
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#endif
 	std::string connector = end ? "└" : "├";
 	const auto message = fmt::format(" {}──[{}]: {}", connector, name, data);
 
+#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+#endif
     std::cout << " " << connector << "──[" <<name << "]: ";
+#ifdef _WIN32
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+#endif
 	std::cout << data << "\n";
 
 	*file << message << "\n";
