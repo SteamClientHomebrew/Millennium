@@ -27,8 +27,6 @@ plugin_manager::plugin_manager()
     console.log_item("status", "done appending init tabs!");
     console.log_item("status", "initializing python...");
 
-    Py_Initialize();
-
     PyStatus status;
     PyConfig config;
     PyConfig_InitPythonConfig(&config);
@@ -37,35 +35,19 @@ plugin_manager::plugin_manager()
     status = PyConfig_Read(&config);
     if (PyStatus_Exception(status)) {
         console.err("couldn't read config");
-        PyConfig_Clear(&config);
+        goto done;
     }
 
     config.write_bytecode = 0;
     config.module_search_paths_set = 1;
 
-    PyObject* sys_path = PySys_GetObject("path");
-    ssize_t list_size = PyList_Size(sys_path);
-
-    for (size_t i = 0; i < list_size; i++) {
-        PyObject* item = PyList_GetItem(sys_path, i);
-        ssize_t item_size = PyList_Size(item);
-        wchar_t* str = PyUnicode_AsWideCharString(item, &item_size);
-
-        PyWideStringList_Append(&config.module_search_paths, str);
-    }
-    Py_XDECREF(sys_path);
-
-#ifdef _WIN32
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
-#endif
 
     status = Py_InitializeFromConfig(&config);
-    if (PyStatus_Exception(status)) {
-        console.err("couldn't read config");
-        PyConfig_Clear(&config);
-    }
     _save = PyEval_SaveThread();
+done:
+    PyConfig_Clear(&config);
 }
 
 plugin_manager::~plugin_manager()
