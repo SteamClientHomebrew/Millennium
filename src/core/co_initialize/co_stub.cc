@@ -240,7 +240,7 @@ const void inject_shims(void)
     tunnel::post_shared({ {"id", 8567}, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", setup_bootstrap_module() }}} });
     // tunnel::post_shared({ {"id", 70  }, {"method", "Debugger.enable"} });
     // tunnel::post_shared({ {"id", 68  }, {"method", "Runtime.enable"} });
-    tunnel::post_shared({ {"id", 68  }, {"method", "Fetch.enable"} });
+    // tunnel::post_shared({ {"id", 68  }, {"method", "Fetch.enable"} });
     tunnel::post_shared({ {"id", 69  }, {"method", "Page.reload"} });
     // tunnel::post_shared({ {"id", 71  }, {"method", "Debugger.pause"} });
 }
