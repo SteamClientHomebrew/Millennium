@@ -104,8 +104,12 @@ elseif(UNIX)
   target_link_libraries(Millennium ${Python_LIBRARIES})
 endif()
 
-target_link_libraries(Millennium
-  "C:/Users/Admin/Desktop/libgit2-build/libgit2/build/Debug/git2.lib"
-  Boxer
-  cpr::cpr
-) 
+if (WIN32)
+  target_link_libraries(Millennium
+    "C:/Users/Admin/Desktop/libgit2-build/libgit2/build/Debug/git2.lib"
+    Boxer
+    cpr::cpr
+  )
+elseif (UNIX)
+  target_link_libraries(Millennium git2 Boxer cpr::cpr)
+endif()

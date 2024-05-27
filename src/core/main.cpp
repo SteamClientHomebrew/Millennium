@@ -55,7 +55,9 @@ const void bootstrap()
 {
     set_start_time(std::chrono::high_resolution_clock::now());
     
+#ifdef _WIN32
     hook_steam_thread();
+#endif
 
     const bool __builtins__ = dependencies::audit_package("@builtins", millennium_modules_path, builtins_repo);
     const bool __rmods__    = dependencies::audit_package("@packages", modules_basedir.generic_string(), modules_repo);
@@ -64,7 +66,9 @@ const void bootstrap()
         return;
     }
 
+#ifdef _WIN32
     unhook_steam_thread();
+#endif
 	plugin::get().bootstrap();
 }
 
