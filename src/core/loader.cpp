@@ -107,7 +107,7 @@ namespace shared_context {
         try {
             const auto json = nlohmann::json::parse(msg->get_payload()); 
 
-            std::cout << json.dump(4) << std::endl;
+            //std::cout << json.dump(4) << std::endl;
 
             if (json.contains("method") && json["method"] == "Runtime.consoleAPICalled") {
                 check_ready_state(json);

@@ -46,7 +46,6 @@ plugin_manager::plugin_manager()
 
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
-
 #endif
 
     status = Py_InitializeFromConfig(&config);
@@ -65,7 +64,7 @@ plugin_manager::~plugin_manager()
 {
     console.err("::~plugin_manager() was destroyed.");
     PyEval_RestoreThread(_save);
-    Py_FinalizeEx();
+    // Py_FinalizeEx();
 }
 
 bool plugin_manager::create_instance(stream_buffer::plugin_mgr::plugin_t& plugin, std::function<void(stream_buffer::plugin_mgr::plugin_t&)> callback)
