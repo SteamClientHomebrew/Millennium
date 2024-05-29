@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(Millennium LANGUAGES CXX)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcurl -lssh2 -lssl -lcrypto -lz -static-libgcc -static-libstdc++ -lstdc++ -lpthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lunistring -liconv -lbrotlicommon -lcurl -lssh2 -lssl -lcrypto -lz -static-libgcc -static-libstdc++ -lstdc++ -lpthread")
 
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(vendor/boxer)
@@ -51,6 +51,7 @@ add_compile_definitions(
 
 # find_package(minizip REQUIRED)
 find_package(Python COMPONENTS Development)
+find_package(Threads REQUIRED)
 
 if (Python_FOUND)
   message(STATUS "PYTHON  include directory: ${Python_INCLUDE_DIRS}")
@@ -97,19 +98,21 @@ set_target_properties(Millennium PROPERTIES PREFIX "")
 
 if(WIN32)
   # link windows defined socket headers
-  target_link_libraries(Millennium "Ws2_32.lib" "wsock32"
-    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
+  target_link_libraries(Millennium 
+    Ws2_32.lib
+    wsock32
+    ${CMAKE_SOURCE_DIR}/vendor/win32/python311.lib
+    ${CMAKE_SOURCE_DIR}/vendor/win32/git2.lib
   )
 elseif(UNIX)
-  target_link_libraries(Millennium ${Python_LIBRARIES})
+  target_link_libraries(Millennium 
+    ${Python_LIBRARIES}
+    git2
+  )
 endif()
 
-if (WIN32)
-  target_link_libraries(Millennium
-    "C:/Users/Admin/Desktop/libgit2-build/libgit2/build/Debug/git2.lib"
-    Boxer
-    cpr::cpr
-  )
-elseif (UNIX)
-  target_link_libraries(Millennium git2 Boxer cpr::cpr)
-endif()
+target_link_libraries(Millennium
+  Boxer
+  cpr::cpr
+  Threads::Threads
+)
