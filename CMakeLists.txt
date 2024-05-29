@@ -6,14 +6,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lunistring -liconv -lbrotlicommon -lcur
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(vendor/boxer)
 
-# Ensure zlib paths are correctly set
-# set(ZLIB_ROOT vendor/minizip-ng/third_party/zlib)
-# add_subdirectory(${ZLIB_ROOT})
-
-# Include directories
-# add_subdirectory(vendor/minizip-ng)
-# include_directories(${ZLIB_ROOT})
-
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   add_compile_options(-Wno-format-security) 
 endif()
@@ -39,7 +31,7 @@ include_directories(
 )
 
 add_compile_definitions(
-  # CURL_STATICLIB 
+  CURL_STATICLIB 
   FMT_HEADER_ONLY
   _WEBSOCKETPP_CPP11_THREAD_
   ASIO_HAS_STD_INVOKE_RESULT
