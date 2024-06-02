@@ -55,23 +55,20 @@ For normal users, installing via the installers makes the most sense. However wh
 
 <br>
 
-## Core  Features
+## Core Features
 
-- CSS Overrides
-  - Client Area CSS Overrides
-  - Webkit CSS Overrides
-- JavaScript Overrides
-  - high-level interation with React in Client area.
-  - Interation with any aspect of the Client with native JS.
-
-## RoadMap
-
-- Linux Support
-- Faster patching algorithm for Settings Modal
-- Plugin Support
-  - Backends written in python
-  - Frontend written with React or native JS
-  - IPC between usermode and JS vm.
+- Plugin Loader
+  - JavaScript (React) frontend container in Steam
+  - Python backend container in usermode
+  - [Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface) (ffi) binding
+  - Hook modules in the Steam web browser
+    - Overwrite/Modify HTTP requests
+    - Load custom JavaScript (Native) into web browser
+    - Load custom StyleSheets into web browser
+- [Builtin Module](https://github.com/SteamClientHomebrew/__builtins__)
+  - Manage and load custom user themes into Steam
+  - Manage custom plugins into Steam
+  - Manage theme & plugin updates. 
 
 ## Platform Support
 
