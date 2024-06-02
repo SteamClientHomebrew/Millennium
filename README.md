@@ -27,14 +27,10 @@ Millennium is an **open-source low-code modding framework** to create, manage an
 
 If you enjoy this tool, please consider starring the project ⭐
 
-<div align="" style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-  <br>
-  <div style="box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);">
-    <img alt="Preview" alt="Hero image" src="https://i.imgur.com/cfPZJot.png"/>
-  </div>
-</div>
 
 <br><br>
+
+https://github.com/SteamClientHomebrew/Millennium/assets/81448108/4859f1fb-6371-4392-834a-c426aa16128a
 
 </div>
 
