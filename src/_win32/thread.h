@@ -2,16 +2,18 @@
 #include <iostream>
 #include <utilities/log.hpp>
 #include <tlhelp32.h>
+#include <Psapi.h>
 
-std::vector<DWORD> get_threads_sync() {
-
+std::vector<DWORD> DiscoverProcessThreads() 
+{
     std::vector<DWORD> out;
 
     DWORD processId = GetCurrentProcessId();
     DWORD currentThreadId = GetCurrentThreadId(); // Get ID of the current thread
     HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 
-    if (hThreadSnap == INVALID_HANDLE_VALUE) {
+    if (hThreadSnap == INVALID_HANDLE_VALUE) 
+    {
         std::cout << "Failed to create thread snapshot." << std::endl;
         return out;
     }
@@ -19,65 +21,97 @@ std::vector<DWORD> get_threads_sync() {
     THREADENTRY32 te32;
     te32.dwSize = sizeof(THREADENTRY32);
 
-    if (!Thread32First(hThreadSnap, &te32)) {
+    if (!Thread32First(hThreadSnap, &te32)) 
+    {
         std::cout << "Failed to retrieve the first thread." << std::endl;
         CloseHandle(hThreadSnap);
         return out;
     }
 
-    do {
-        if (te32.th32OwnerProcessID == processId && te32.th32ThreadID != currentThreadId) {
+    do 
+    {
+        if (te32.th32OwnerProcessID == processId && te32.th32ThreadID != currentThreadId)
+        {
             out.push_back(te32.th32ThreadID);
         }
-    } while (Thread32Next(hThreadSnap, &te32));
+    } 
+    while (Thread32Next(hThreadSnap, &te32));
 
     CloseHandle(hThreadSnap);
     return out;
 }
 
-bool hook_steam_thread()
+bool PauseSteamCore()
 {
-    std::vector<DWORD> threads = get_threads_sync();
-    int froze = 0, failed = 0;
+    std::vector<DWORD> threads = DiscoverProcessThreads();
 
-    for (const auto& thread : threads) {
+    int frozeThreadRefCount = 0;
+    int failedFreezeRefCount = 0;
+
+    for (const auto& thread : threads) 
+    {
         HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, thread);
-        if (hThread == NULL) {
+        if (hThread == NULL) 
+        {
             std::cout << "Failed to open thread." << std::endl;
-            failed++;
+            failedFreezeRefCount++;
             continue;
         }
 
         // Suspend the thread
-        if (SuspendThread(hThread) == -1) {
+        if (SuspendThread(hThread) == -1) 
+        {
             CloseHandle(hThread);
-            failed++;
+            failedFreezeRefCount++;
         }
-        else {
-            froze++;
+        else 
+        {
+            frozeThreadRefCount++;
             break; // temp fix
         }
     }
-    console.log("[thread-hook] suspended main threads [{}/{}]", froze, failed);
+
+    Logger.Log("[thread-hook] suspended main threads [{}/{}]", frozeThreadRefCount, failedFreezeRefCount);
     return true;
 }
 
-bool unhook_steam_thread()
+bool UnpauseSteamCore()
 {
-    std::vector<DWORD> threads = get_threads_sync();
+    std::vector<DWORD> threads = DiscoverProcessThreads();
 
-    for (const auto& thread : threads) {
+    for (const auto& thread : threads) 
+    {
         HANDLE hThread = OpenThread(THREAD_SUSPEND_RESUME, FALSE, thread);
-        if (hThread == NULL) {
+        if (hThread == NULL) 
+        {
             std::cout << "Failed to open thread." << std::endl;
             continue;
         }
 
-        // Suspend the thread
-        if (ResumeThread(hThread) == -1) {
+        if (ResumeThread(hThread) == -1) 
+        {
             std::cout << "Failed to resume thread." << std::endl;
             CloseHandle(hThread);
         }
     }
     return true;
+}
+
+std::string GetProcessName(DWORD processID)
+{
+    char szProcessName[MAX_PATH] = "<unknown>";
+    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
+
+    if (hProcess != NULL)
+    {
+        HMODULE hMod;
+        DWORD cbNeeded;
+
+        if (EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded))
+        {
+            GetModuleBaseNameA(hProcess, hMod, szProcessName, sizeof(szProcessName));
+        }
+        CloseHandle(hProcess);
+    }
+    return szProcessName;
 }

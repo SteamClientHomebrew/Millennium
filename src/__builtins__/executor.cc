@@ -1,6 +1,6 @@
 #include "executor.h"
-#include <core/backend/co_spawn.hpp>
-#include <core/impl/mutex_impl.hpp>
+#include <core/py_controller/co_spawn.hpp>
+#include <core/ffi/ffi.hpp>
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
 #include <fstream>
@@ -9,25 +9,25 @@
 #include <generic/base.h>
 #include <core/hooks/web_load.h>
 
-PyObject* py_get_user_settings(PyObject* self, PyObject* args)
+PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
-    const auto data = stream_buffer::file::readJsonSync(stream_buffer::steam_path().string());
-    PyObject* py_dict = PyDict_New();
+    const auto SettingsStore = SystemIO::ReadJsonSync(SystemIO::GetSteamPath().string());
+    PyObject* resultBuffer = PyDict_New();
 
-    for (auto it = data.begin(); it != data.end(); ++it) 
+    for (auto it = SettingsStore.begin(); it != SettingsStore.end(); ++it) 
     {
         PyObject* key = PyUnicode_FromString(it.key().c_str());
         PyObject* value = PyUnicode_FromString(it.value().get<std::string>().c_str());
 
-        PyDict_SetItem(py_dict, key, value);
+        PyDict_SetItem(resultBuffer, key, value);
         Py_DECREF(key);
         Py_DECREF(value);
     }
 
-    return py_dict;
+    return resultBuffer;
 }
 
-PyObject* py_set_user_settings_key(PyObject* self, PyObject* args)
+PyObject* SetUserSettings(PyObject* self, PyObject* args)
 {
     const char* key;
     const char* value;
@@ -37,79 +37,95 @@ PyObject* py_set_user_settings_key(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    auto data = stream_buffer::file::readJsonSync(stream_buffer::steam_path().string());
+    auto data = SystemIO::ReadJsonSync(SystemIO::GetSteamPath().string());
     data[key] = value;
 
-    stream_buffer::file::writeFileSync(stream_buffer::steam_path().string(), data.dump(4)); 
+    SystemIO::WriteFileSync(SystemIO::GetSteamPath().string(), data.dump(4));
     Py_RETURN_NONE;
 }
 
-PyObject* call_frontend_method(PyObject* self, PyObject* args, PyObject* kwargs)
+PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
 {
-    const char* method_name = NULL;
-    PyObject* params_list = NULL;
+    const char* methodName = NULL;
+    PyObject* parameterList = NULL;
 
-    static const char* kwlist[] = { "method_name", "params", NULL };
+    static const char* keywordArgsList[] = { "method_name", "params", NULL };
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)kwlist, &method_name, &params_list)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)keywordArgsList, &methodName, &parameterList)) 
+    {
         return NULL;
     }
 
-    std::vector<javascript::param_types> params;
+    std::vector<JavaScript::JsFunctionConstructTypes> params;
 
-    if (params_list != NULL)
+    if (parameterList != NULL)
     {
-        if (!PyList_Check(params_list)) {
+        if (!PyList_Check(parameterList))
+        {
             PyErr_SetString(PyExc_TypeError, "params must be a list");
             return NULL;
         }
 
-        Py_ssize_t list_size = PyList_Size(params_list);
-        for (Py_ssize_t i = 0; i < list_size; ++i) {
-            PyObject* item = PyList_GetItem(params_list, i);
-            const char* value_str = PyUnicode_AsUTF8(PyObject_Str(item));
-            const char* value_type = Py_TYPE(item)->tp_name;
+        Py_ssize_t listSize = PyList_Size(parameterList);
 
-            if (strcmp(value_type, "str") != 0 && strcmp(value_type, "bool") != 0 && strcmp(value_type, "int") != 0) {
+        for (Py_ssize_t i = 0; i < listSize; ++i) 
+        {
+            PyObject* listItem = PyList_GetItem(parameterList, i);
+            const std::string strValue  = PyUnicode_AsUTF8(PyObject_Str(listItem));
+            const std::string valueType = Py_TYPE(listItem)->tp_name;
+
+            if (valueType != "str" && valueType != "bool" && valueType != "int")
+            {
                 PyErr_SetString(PyExc_TypeError, "Millennium's IPC can only handle [bool, str, int]");
                 return NULL;
             }
 
-            params.push_back({ value_str, value_type });
+            params.push_back({ strValue, valueType });
         }
     }
 
     PyObject* globals = PyModule_GetDict(PyImport_AddModule("__main__"));
-    PyObject* result = PyRun_String("MILLENNIUM_PLUGIN_SECRET_NAME", Py_eval_input, globals, globals);
+    PyObject* pluginNameObj = PyRun_String("MILLENNIUM_PLUGIN_SECRET_NAME", Py_eval_input, globals, globals);
 
-    if (result == nullptr || PyErr_Occurred()) {
-        console.err("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
+    if (pluginNameObj == nullptr || PyErr_Occurred()) 
+    {
+        Logger.Error("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
         return NULL;
     }
 
-    std::string script = javascript::construct_fncall(PyUnicode_AsUTF8(PyObject_Str(result)), method_name, params);
+    const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
+    const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
 
-    return javascript::evaluate_lock(script);
+    return JavaScript::EvaluateFromSocket(script);
 }
 
-PyObject* py_get_millennium_version(PyObject* self, PyObject* args) { return PyUnicode_FromString(g_mversion); }
-PyObject* py_steam_path(PyObject* self, PyObject* args) { return PyUnicode_FromString(stream_buffer::steam_path().string().c_str()); }
+PyObject* GetVersionInfo(PyObject* self, PyObject* args) 
+{ 
+    return PyUnicode_FromString(g_millenniumVersion); 
+}
 
-PyObject* remove_browser_module(PyObject* self, PyObject* args) { 
-    int js_index;
+PyObject* GetSteamPath(PyObject* self, PyObject* args) 
+{
+    return PyUnicode_FromString(SystemIO::GetSteamPath().string().c_str()); 
+}
 
-    if (!PyArg_ParseTuple(args, "i", &js_index)) {
+PyObject* RemoveBrowserModule(PyObject* self, PyObject* args) 
+{ 
+    int moduleId;
+
+    if (!PyArg_ParseTuple(args, "i", &moduleId)) 
+    {
         return NULL;
     }
 
-    auto list = webkit_handler::get().h_list_ptr;
     bool success = false;
+    const auto moduleList = WebkitHandler::get().m_hookListPtr;
 
-    for (auto it = (*list).begin(); it != (*list).end();) 
+    for (auto it = moduleList->begin(); it != moduleList->end();)
     {
-        if (it->id == js_index) 
+        if (it->id == moduleId) 
         {
-            it = list->erase(it);
+            it = moduleList->erase(it);
             success = true;
         } 
         else ++it;
@@ -117,76 +133,86 @@ PyObject* remove_browser_module(PyObject* self, PyObject* args) {
     return PyBool_FromLong(success);
 }
 
-int add_module(PyObject* args, webkit_handler::type_t type) {
-    const char* item_str;
+unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type) 
+{
+    const char* moduleItem;
 
-    if (!PyArg_ParseTuple(args, "s", &item_str)) {
+    if (!PyArg_ParseTuple(args, "s", &moduleItem)) 
+    {
         return 0;
     }
 
     hook_tag++;
-    auto path = stream_buffer::steam_path() / "steamui" / item_str;
+    auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
-    webkit_handler::get().h_list_ptr->push_back({ path.generic_string(), type, hook_tag });
+    WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), type, hook_tag });
     return hook_tag;
 }
 
-PyObject* add_browser_css(PyObject* self, PyObject* args) { return PyLong_FromLong(add_module(args, webkit_handler::type_t::STYLESHEET)); }
-PyObject* add_browser_js(PyObject* self, PyObject* args)  { return PyLong_FromLong(add_module(args, webkit_handler::type_t::JAVASCRIPT)); }
+PyObject* AddBrowserCss(PyObject* self, PyObject* args) 
+{ 
+    return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::STYLESHEET)); 
+}
+
+PyObject* AddBrowserJs(PyObject* self, PyObject* args)  
+{ 
+    return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::JAVASCRIPT)); 
+}
 
 /* 
 This portion of the API is undocumented but you can use it. 
 */
-PyObject* change_plugin_status(PyObject* self, PyObject* args) 
+PyObject* TogglePluginStatus(PyObject* self, PyObject* args) 
 { 
-    console.log("updating a plugins status.");
-    const char* plugin_name;  // string parameter
-    PyObject* new_status_obj; // bool parameter
-    int new_status;
+    Logger.Log("updating a plugins status.");
 
-    if (!PyArg_ParseTuple(args, "sO", &plugin_name, &new_status_obj)) {
+    const char* pluginName;
+    PyObject* statusObj;
+    int newToggleStatus;
+
+    if (!PyArg_ParseTuple(args, "sO", &pluginName, &statusObj)) 
+    {
         return NULL; // Parsing failed
     }
 
-    if (!PyBool_Check(new_status_obj)) {
+    if (!PyBool_Check(statusObj)) 
+    {
         PyErr_SetString(PyExc_TypeError, "Second argument must be a boolean");
         return NULL;
     }
 
-    // Convert the PyObject to a C boolean value
-    new_status = PyObject_IsTrue(new_status_obj);
+    newToggleStatus = PyObject_IsTrue(statusObj);
 
-    printf("Plugin Name: %s\n", plugin_name);
-    printf("New Status: %d\n", new_status);
-
-    if (!new_status) {
-        console.log("requested to shutdown plugin [{}]", plugin_name);
-        std::thread(std::bind(&plugin_manager::shutdown_plugin, &plugin_manager::get(), plugin_name)).detach();
+    if (!newToggleStatus) 
+    {
+        Logger.Log("requested to shutdown plugin [{}]", pluginName);
+        std::thread(std::bind(&PythonManager::ShutdownPlugin, &PythonManager::GetInstance(), pluginName)).detach();
     }
-    else {
-        console.log("requested to enable plugin [{}]", plugin_name);
+    else 
+    {
+        Logger.Log("requested to enable plugin [{}]", pluginName);
     }
 
     Py_RETURN_NONE;
 }
 
-PyMethodDef* get_module_handle()
+PyMethodDef* GetMillenniumModule()
 {
-    static PyMethodDef module_methods[] = 
+    static PyMethodDef moduleMethods[] = 
     {
-        { "add_browser_css", add_browser_css, METH_VARARGS, NULL },
-        { "add_browser_js", add_browser_js, METH_VARARGS, NULL },
-        { "remove_browser_module", remove_browser_module, METH_VARARGS, NULL },
+        { "add_browser_css", AddBrowserCss, METH_VARARGS, NULL },
+        { "add_browser_js", AddBrowserJs, METH_VARARGS, NULL },
+        { "remove_browser_module", RemoveBrowserModule, METH_VARARGS, NULL },
 
-        { "get_user_settings", py_get_user_settings, METH_NOARGS, NULL },
-        { "set_user_settings_key", py_set_user_settings_key, METH_VARARGS, NULL },
-        { "version", py_get_millennium_version, METH_NOARGS, NULL },
-        { "steam_path", py_steam_path, METH_NOARGS, NULL },
-        { "call_frontend_method", (PyCFunction)call_frontend_method, METH_VARARGS | METH_KEYWORDS, NULL },
+        { "get_user_settings", GetUserSettings, METH_NOARGS, NULL },
+        { "set_user_settings_key", SetUserSettings, METH_VARARGS, NULL },
+        { "version", GetVersionInfo, METH_NOARGS, NULL },
+        { "steam_path", GetSteamPath, METH_NOARGS, NULL },
+        { "call_frontend_method", (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
 
-        { "change_plugin_status", change_plugin_status, METH_VARARGS, NULL },
+        { "change_plugin_status", TogglePluginStatus, METH_VARARGS, NULL },
         {NULL, NULL, 0, NULL} // Sentinel
     };
 
-    return module_methods;
+    return moduleMethods;
 }

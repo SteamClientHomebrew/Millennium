@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #ifdef _WIN32
+#include <winsock2.h>
 #include <Windows.h>
 #include <shellapi.h>
 #endif

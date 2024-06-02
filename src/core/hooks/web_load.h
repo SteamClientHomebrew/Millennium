@@ -5,43 +5,51 @@
 #include <mutex>
 
 static unsigned long long hook_tag;
-static std::mutex request_map_mutex;
 
-class webkit_handler {
-private:
-    // must share the same base url, or be whitelisted.
-    const char* virt_url = "https://s.ytimg.com/millennium-virtual/";
-    const char* looback = "https://steamloopback.host/";
-
-    bool is_ftp_call(nlohmann::basic_json<> message);
-
-    std::string css_hook(std::string body);
-    std::string js_hook(std::string body);
-
-    struct web_hook_t {
-        short id;
-        std::string request_id;
-        std::string type;
-    };
-
-    std::shared_ptr<std::vector<web_hook_t>> request_map = std::make_shared<std::vector<web_hook_t>>();
-
+class WebkitHandler 
+{
 public:
-	static webkit_handler get();
+    static WebkitHandler get();
 
-    enum type_t {
-        STYLESHEET, 
+    enum TagTypes {
+        STYLESHEET,
         JAVASCRIPT
     };
 
-    struct shook_t {
+    struct HookType {
         std::string path;
-        type_t type;
+        TagTypes type;
         unsigned long long id;
     };
 
-    std::shared_ptr<std::vector<shook_t>> h_list_ptr = std::make_shared<std::vector<shook_t>>();
+    std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
 
-    void handle_hook(nlohmann::basic_json<> message);
-    void setup_hook();
+    void DispatchSocketMessage(nlohmann::basic_json<> message);
+    void SetupGlobalHooks();
+
+private:
+    long long hookMessageId = -69;
+
+    // must share the same base url, or be whitelisted.
+    const char* m_javaScriptVirtualUrl = "https://s.ytimg.com/millennium-virtual/";
+    const char* m_steamLoopback = "https://steamloopback.host/";
+
+    bool IsGetBodyCall(nlohmann::basic_json<> message);
+
+    std::string HandleCssHook(std::string body);
+    std::string HandleJsHook(std::string body);
+    void HandleHooks(nlohmann::basic_json<> message);
+
+    void RetrieveRequestFromDisk(nlohmann::basic_json<> message);
+    void GetResponseBody(nlohmann::basic_json<> message);
+
+    std::filesystem::path ConvertToLoopBack(std::string requestUrl);
+
+    struct WebHookItem {
+        long long id;
+        std::string requestId;
+        std::string type;
+    };
+
+    std::shared_ptr<std::vector<WebHookItem>> m_requestMap = std::make_shared<std::vector<WebHookItem>>();
 };

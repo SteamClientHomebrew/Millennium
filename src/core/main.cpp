@@ -12,84 +12,111 @@
 #include <fmt/core.h>
 #ifdef _WIN32
 #include <_win32/thread.h>
+#include <windows.h>
+#include <tlhelp32.h>
+#include <psapi.h>
+#include <iostream>
 #endif
 #include <git2.h>
 #include <boxer/boxer.h>
 #include <generic/base.h>
 #include <string>
 #include <utilities/log.hpp>
-/**
- * @brief constructor of hooked module to setup the environment
- * 
- * - writes the debugger flag to steam so it launches with remote debugging
- * - allocated the dev console if applicable on windows
- * 
- * @return success (discarded from kernel)
-*/
-const bool __attribute__((constructor)) setup_env() 
+
+class Preload 
 {
-#ifdef _WIN32
-    constexpr const char* filePath = ".cef-enable-remote-debugging";
-#elif __linux__
-    std::string filePath = fmt::format("{}/.local/share/Steam/.cef-enable-remote-debugging", std::getenv("HOME"));
-#endif
+public:
 
-    if (!std::filesystem::exists(filePath)) {
-        std::ofstream(filePath).close();
+    Preload() 
+    {
+        this->VerifyEnvironment();
+        PauseSteamCore();
+    }
 
-        boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
+    ~Preload() 
+    {
+        UnpauseSteamCore();
+    }
+
+    const void VerifyEnvironment() 
+    {
+        const auto filePath = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
+
+        // Steam's CEF Remote Debugger isn't exposed to port 8080
+        if (!std::filesystem::exists(filePath)) 
+        {
+            std::ofstream(filePath).close();
+
+            boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
+            std::exit(0);
+        }
+    }
+
+    const void Start() 
+    {
+        const bool bBuiltInSuccess = Dependencies::GitAuditPackage("@builtins", builtinsModulesAbsolutePath, builtinsRepository);
+
+        if (!bBuiltInSuccess) 
+        {
+            Logger.Error("failed to audit builtin modules...");
+            return;
+        }
+
+        // python modules only need to be audited on windows systems. 
+        // linux users need their own installation of python
+        #ifdef _WIN32
+        const bool bPythonModulesSuccess = Dependencies::GitAuditPackage("@packages", pythonModulesBaseDir.generic_string(), pythonModulesRepository);
         
-        std::exit(0);
-        return false;
+        if (!bPythonModulesSuccess) 
+        {
+            Logger.Error("failed to audit python modules...");
+            return;
+        }
+        #endif
+    }
+};
+
+/* Wrapped cross platform entrypoint */
+const static void EntryMain() 
+{
+    std::string processName = GetProcessName(GetCurrentProcessId());
+
+    if (processName != "steam.exe") 
+    {
+        return; // don't load into non Steam Applications. 
+    }
+
+    const auto startTime = std::chrono::system_clock::now();
+    {
+        std::unique_ptr<Preload> preload = std::make_unique<Preload>();
+        preload->Start();
+    }
+
+    std::unique_ptr<PluginLoader> loader = std::make_unique<PluginLoader>(startTime);
+
+    loader->StartBackEnds();
+    loader->StartFrontEnds();
+}
+
+#ifdef _WIN32
+int __stdcall DllMain(void*, unsigned long fdwReason, void*) 
+{
+    if (fdwReason == DLL_PROCESS_ATTACH) 
+    {
+        std::thread(EntryMain).detach();
     }
     return true;
 }
 
-/**
- * @brief wrapper for start function
- * 
- * - ensures modules are up to date
- * - starts the plugin backend and frontends
-*/
-const void bootstrap()
+int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdShow)
 {
-    set_start_time(std::chrono::high_resolution_clock::now());
-    
-#ifdef _WIN32
-    hook_steam_thread();
-#endif
-
-    const bool __builtins__ = dependencies::audit_package("@builtins", millennium_modules_path, builtins_repo);
-    const bool __rmods__    = dependencies::audit_package("@packages", modules_basedir.generic_string(), modules_repo);
-
-    if (!__builtins__ || !__rmods__) {
-        return;
-    }
-
-#ifdef _WIN32
-    unhook_steam_thread();
-#endif
-	plugin::get().bootstrap();
-}
-
-#ifdef _WIN32
-int __attribute__((__stdcall__)) DllMain(void*, unsigned long fdwReason, void*) 
-{
-    if (fdwReason == DLL_PROCESS_ATTACH) {
-        std::thread(bootstrap).detach();
-    }
-    return true;
-}
-
-int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdshow)
-{
-    bootstrap();
+    EntryMain();
     return 1;
 }
 #elif __linux__
 int main()
 {
-    bootstrap();
+    __main__();
     return 1;
 }
 #endif

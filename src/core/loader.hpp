@@ -9,28 +9,26 @@
 #include <nlohmann/json.hpp>
 #include <generic/stream_parser.h>
 
-static std::string sessionId;
-
-struct shared {
-	websocketpp::client
-		<websocketpp::config::asio_client>* client;
-	websocketpp::connection_hdl handle;
-};
-
-class plugin {
+class PluginLoader {
 public:
 
-	static plugin get() {
-		static plugin _p;
-		return _p;
-	}
+	PluginLoader(std::chrono::system_clock::time_point startTime);
 
-	void bootstrap();
+	const void StartBackEnds();
+	const void StartFrontEnds();
+
+private:
+	const void PrintActivePlugins();
+
+	const std::thread ConnectSharedJSContext(void* sharedJsHandler);
+	const std::thread ConnectCEFBrowser(void* cefBrowserHandler);
+
+	std::unique_ptr<SettingsStore> m_settingsStorePtr;
+	std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr;
+	std::chrono::system_clock::time_point m_startTime;
 };
 
-namespace tunnel {
-	bool post_shared(nlohmann::json data);
-	bool post_global(nlohmann::json data);
+namespace Sockets {
+	bool PostShared(nlohmann::json data);
+	bool PostGlobal(nlohmann::json data);
 }
-
-void set_start_time(std::chrono::system_clock::time_point time);

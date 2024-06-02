@@ -1,0 +1,7 @@
+{
+  "dependencies": [
+    "libgit2",
+    "python3",
+    "cpr"
+  ]
+}

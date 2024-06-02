@@ -1,13 +1,16 @@
 #pragma once
 #include <nlohmann/json.hpp>
 
-extern "C" {
-	namespace ipc_pipe {
-		enum type_t {
-			call_server_method,
-			front_end_loaded
+extern "C" 
+{
+	namespace IPCMain 
+	{
+		enum Builtins 
+		{
+			CALL_SERVER_METHOD,
+			FRONT_END_LOADED
 		};
 
-		const int _create();
+		const int OpenConnection();
 	}
 }

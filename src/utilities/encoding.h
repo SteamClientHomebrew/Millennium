@@ -62,7 +62,7 @@ static std::string base64_decode(const std::string &in) {
  * - Encodes the input string into base64 format.
  * - Adds padding characters ('=') if necessary to make the length a multiple of 4.
  */
-static std::string base64_encode(const std::string &in) {
+static std::string Base64Encode(const std::string &in) {
     std::string out;
 
     int val = 0, valb = -6;

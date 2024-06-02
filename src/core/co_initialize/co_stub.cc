@@ -2,14 +2,13 @@
 #include <generic/stream_parser.h>
 #include <Python.h>
 #include <fmt/core.h>
-#include <core/backend/co_spawn.hpp>
+#include <core/py_controller/co_spawn.hpp>
 #include <utilities/log.hpp>
 #include <core/loader.hpp>
 #include <core/hooks/web_load.h>
-#include <__builtins__/incbin.h>
 #include <generic/base.h>
 
-constexpr const char* bootstrap_module = R"(
+constexpr const char* bootstrapModule = R"(
 /**
  * This module is in place to load all plugin frontends
  * @ src\__builtins__\bootstrap.js
@@ -74,8 +73,6 @@ function connectIPCWebSocket() {
 
 connectIPCWebSocket();
 
-// var originalConsoleLog = console.log;
-
 /**
  * seemingly fully functional, though needs a rewrite as its tacky
  * @todo hook a function that specifies when react is loaded, or use other methods to figure out when react has loaded. 
@@ -100,147 +97,155 @@ __millennium_module_init__()
 /// @brief sets up the python interpretor to use virtual environment site packages, aswell as custom python path.
 /// @param spath 
 /// @return void 
-const void add_site_packages(std::vector<std::string> spath) 
+const void AddSitePackages(std::vector<std::filesystem::path> spath) 
 {
-    PyObject *sys_module = PyImport_ImportModule("sys");
-    if (!sys_module) {
-        console.err("couldn't import sysmodule");
+    PyObject *sysModule = PyImport_ImportModule("sys");
+    if (!sysModule) 
+    {
+        Logger.Error("couldn't import sysmodule");
         return;
     }
 
-    PyObject *sys_path = PyObject_GetAttrString(sys_module, "path");
-    if (sys_path) {
+    PyObject *systemPath = PyObject_GetAttrString(sysModule, "path");
+
+    if (systemPath) 
+    {
 #ifdef _WIN32
-        PyList_SetSlice(sys_path, 0, PyList_Size(sys_path), NULL);
+        // Wipe the system path clean when on windows
+        // - Prevents clashing installed python versions
+        PyList_SetSlice(systemPath, 0, PyList_Size(systemPath), NULL);
 #endif
 
-        for (const auto& path : spath) {
-            PyList_Append(sys_path, PyUnicode_FromString(path.c_str()));
+        for (const auto& systemPathItem : spath) 
+        {
+            PyList_Append(systemPath, PyUnicode_FromString(systemPathItem.generic_string().c_str()));
         }
-        Py_DECREF(sys_path);
+        Py_DECREF(systemPath);
     }
-    Py_DECREF(sys_module);
+    Py_DECREF(sysModule);
 }
 
 /// @brief initializes the current plugin. creates a plugin instance and calls _load()
 /// @param global_dict 
-void initialize_plugin(PyObject* global_dict) {
-    PyObject *plugin_class = PyDict_GetItemString(global_dict, "Plugin");
+void StartPluginBackend(PyObject* global_dict) 
+{
+    PyObject *pluginComponent = PyDict_GetItemString(global_dict, "Plugin");
 
-    if (!plugin_class || !PyCallable_Check(plugin_class)) {
-        PyErr_Print(); return;
+    if (!pluginComponent || !PyCallable_Check(pluginComponent)) 
+    {
+        PyErr_Print(); 
+        return;
     }
 
-    PyObject *plugin_instance = PyObject_CallObject(plugin_class, NULL);
+    PyObject *pluginComponentInstance = PyObject_CallObject(pluginComponent, NULL);
 
-    if (!plugin_instance) {
-        PyErr_Print(); return;
+    if (!pluginComponentInstance) 
+    {
+        PyErr_Print(); 
+        return;
     }
 
-    PyDict_SetItemString(global_dict, "plugin", plugin_instance);
-    PyObject *load_method = PyObject_GetAttrString(plugin_instance, "_load");
+    PyDict_SetItemString(global_dict, "plugin", pluginComponentInstance);
+    PyObject *loadMethodAttribute = PyObject_GetAttrString(pluginComponentInstance, "_load");
 
-    if (!load_method || !PyCallable_Check(load_method)) {
-        PyErr_Print(); return;
+    if (!loadMethodAttribute || !PyCallable_Check(loadMethodAttribute)) 
+    {
+        PyErr_Print(); 
+        return;
     }
 
-    PyObject_CallObject(load_method, NULL);
-    Py_DECREF(load_method);
-    Py_DECREF(plugin_instance);
+    PyObject_CallObject(loadMethodAttribute, NULL);
+    Py_DECREF(loadMethodAttribute);
+    Py_DECREF(pluginComponentInstance);
 }
 
-void plugin_start_cb(stream_buffer::plugin_mgr::plugin_t& plugin) {
+void BackendStartCallback(SettingsStore::PluginTypeSchema& plugin) {
 
-    const std::string _module = plugin.backend_abs.generic_string();
-    const std::string base = plugin.base_dir.generic_string();
+    const std::string backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
 
-    PyObject* global_dict = PyModule_GetDict((PyObject*)PyImport_AddModule("__main__"));
+    PyObject* globalDictionary = PyModule_GetDict((PyObject*)PyImport_AddModule("__main__"));
+    PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(plugin.pluginName.c_str()));
 
-    // bind the plugin name to the relative interpretor
-    PyDict_SetItemString(global_dict, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(plugin.name.c_str()));
-
-    std::vector<std::string> sys_paths = { 
-        fmt::format("{}/backend", base),
-#ifdef _WIN32
-        pythonPath, pythonLibs
-#endif
+    std::vector<std::filesystem::path> sysPath = { 
+        plugin.pluginBaseDirectory / "backend", pythonPath, pythonLibs
     };
 
     // include venv paths to interpretor
-    if (plugin.pjson.contains("venv") && plugin.pjson["venv"].is_string()) 
+    if (plugin.pluginJson.contains("venv") && plugin.pluginJson["venv"].is_string()) 
     {
-        const auto venv = fmt::format("{}/{}", base, plugin.pjson["venv"].get<std::string>());
+        const auto pluginVirtualEnv = plugin.pluginBaseDirectory / plugin.pluginJson["venv"];
 
         // configure virtual environment for the current plugin
-        sys_paths.push_back(fmt::format("{}/Lib/site-packages", venv));    
-        sys_paths.push_back(fmt::format("{}/Lib/site-packages/win32", venv));    
-        sys_paths.push_back(fmt::format("{}/Lib/site-packages/win32/lib", venv));    
-        sys_paths.push_back(fmt::format("{}/Lib/site-packages/Pythonwin", venv));    
+        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages");
+        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32");
+        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32" / "Lib");
+        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "Pythonwin");
     }
 
-    add_site_packages(sys_paths);
+    AddSitePackages(sysPath);
 
-#ifdef __linux__
-    PyRun_SimpleString("import sys\nprint(sys.path)");
-#endif
+    PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
+    FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
 
-    PyObject *obj = Py_BuildValue("s", _module.c_str());
-    FILE *file = _Py_fopen_obj(obj, "r+");
-
-    if (file == NULL) {
-        console.err("failed to fopen file @ {}", _module);
+    if (mainModuleFilePtr == NULL) 
+    {
+        Logger.Error("failed to fopen file @ {}", backendMainModule);
         return;
     }
 
-    if (PyRun_SimpleFile(file, _module.c_str()) != 0) {
-        console.err("millennium failed to startup [{}]", plugin.name);
+    if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
+    {
+        Logger.Error("millennium failed to startup [{}]", plugin.pluginName);
         return;
     }
 
-    initialize_plugin(global_dict);  
+    StartPluginBackend(globalDictionary);  
 }
 
-const std::string make_script(std::string filename) {
+const std::string ConstructScriptElement(std::string filename) 
+{
     return fmt::format("\nif (!document.querySelectorAll(`script[src='{}'][type='module']`).length) {{ document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
-const std::string setup_bootstrap_module() {
-    
-    auto plugins = stream_buffer::plugin_mgr::parse_all();
-    std::string import_table;
-    
-    for (auto& plugin : plugins)  {
+const std::string ConstructOnLoadModule() 
+{
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
 
-        if (!stream_buffer::plugin_mgr::is_enabled(plugin.name)) { 
-            
-            console.log("bootstrap skipping frontend {} [disabled]", plugin.name);
+    std::string scriptImportTable;
+    
+    for (auto& plugin : plugins)  
+    {
+        if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) 
+        {    
+            Logger.Log("bootstrap skipping frontend {} [disabled]", plugin.pluginName);
             continue;
         }
-        import_table.append(make_script(fmt::format("https://steamloopback.host/{}", plugin.frontend_abs)));
+
+        scriptImportTable.append(ConstructScriptElement(fmt::format("https://steamloopback.host/{}", plugin.frontendAbsoluteDirectory)));
     }
 
-    std::string script = bootstrap_module;
-    std::size_t pos = script.find("SCRIPT_RAW_TEXT");
+    std::string scriptLoader = bootstrapModule;
+    std::size_t importTablePos = scriptLoader.find("SCRIPT_RAW_TEXT");
 
-    if (pos != std::string::npos) {
-        // Replace the found "SCRIPT_RAW_TEXT" with import_table
-        script.replace(pos, strlen("SCRIPT_RAW_TEXT"), import_table);
+    if (importTablePos != std::string::npos) 
+    {
+        scriptLoader.replace(importTablePos, strlen("SCRIPT_RAW_TEXT"), scriptImportTable);
     }
-    else {
-        console.err("couldn't shim bootstrap module with plugin frontends. "
+    else 
+    {
+        Logger.Error("couldn't shim bootstrap module with plugin frontends. "
         "SCRIPT_RAW_TEXT was not found in the target string");
     }
 
-    return script;
+    return scriptLoader;
 }
 
-const void inject_shims(void) 
+const void InjectFrontendShims(void) 
 {
-    tunnel::post_shared({ {"id", 1   }, {"method", "Page.enable"} });
-    tunnel::post_shared({ {"id", 8567}, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", setup_bootstrap_module() }}} });
-    // tunnel::post_shared({ {"id", 70  }, {"method", "Debugger.enable"} });
-    // tunnel::post_shared({ {"id", 68  }, {"method", "Runtime.enable"} });
-    // tunnel::post_shared({ {"id", 68  }, {"method", "Fetch.enable"} });
-    tunnel::post_shared({ {"id", 69  }, {"method", "Page.reload"} });
-    // tunnel::post_shared({ {"id", 71  }, {"method", "Debugger.pause"} });
+    short messageId = 0;
+
+    Sockets::PostShared({ {"id", messageId++ }, {"method", "Page.enable"} });
+    Sockets::PostShared({ {"id", messageId++ }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule() }}} });
+    Sockets::PostShared({ {"id", messageId++ }, {"method", "Page.reload"} });
 }
