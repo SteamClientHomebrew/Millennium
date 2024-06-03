@@ -30,16 +30,16 @@ public:
     Preload() 
     {
         this->VerifyEnvironment();
-#if _WIN32
+    #if _WIN32
         PauseSteamCore();
-#endif
+    #endif
     }
 
     ~Preload() 
     {
-#if _WIN32
+    #if _WIN32
         UnpauseSteamCore();
-#endif
+    #endif
     }
 
     const void VerifyEnvironment() 
@@ -83,14 +83,14 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
-#ifdef _WIN32
+    #ifdef _WIN32
     std::string processName = GetProcessName(GetCurrentProcessId());
 
     if (processName != "steam.exe") 
     {
         return; // don't load into non Steam Applications. 
     }
-#endif
+    #endif
 
     const auto startTime = std::chrono::system_clock::now();
     {

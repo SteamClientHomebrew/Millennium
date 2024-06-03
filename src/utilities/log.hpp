@@ -13,9 +13,9 @@
 class OutputLogger
 {
 private:
-#ifdef _WIN32
+    #ifdef _WIN32
     HANDLE hConsole;
-#endif
+    #endif
     std::mutex logMutex;
     std::shared_ptr<std::ostream> teeStreamPtr;
     std::shared_ptr<std::ofstream> outputLogStream;
