@@ -127,6 +127,8 @@ if(WIN32)
   target_link_libraries(Millennium
     Ws2_32.lib
     wsock32
+    Boxer
+    cpr::cpr
     # ${Python_LIBRARIES}
     # "D:/Development/millennium/vendor/win32/python311.lib"
     # "C:/Users/Admin/Downloads/Python/Python-3.11.8/PCbuild/win32/python311.lib"
