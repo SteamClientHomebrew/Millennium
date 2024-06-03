@@ -30,16 +30,16 @@ public:
     Preload() 
     {
         this->VerifyEnvironment();
-    #if _WIN32
+        #if _WIN32
         PauseSteamCore();
-    #endif
+        #endif
     }
 
     ~Preload() 
     {
-    #if _WIN32
+        #if _WIN32
         UnpauseSteamCore();
-    #endif
+        #endif
     }
 
     const void VerifyEnvironment() 
@@ -84,11 +84,13 @@ public:
 const static void EntryMain() 
 {
     #ifdef _WIN32
-    std::string processName = GetProcessName(GetCurrentProcessId());
-
-    if (processName != "steam.exe") 
     {
-        return; // don't load into non Steam Applications. 
+        std::string processName = GetProcessName(GetCurrentProcessId());
+
+        if (processName != "steam.exe")
+        {
+            return; // don't load into non Steam Applications. 
+        }
     }
     #endif
 

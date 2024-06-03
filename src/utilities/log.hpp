@@ -41,33 +41,33 @@ public:
     template <typename... Args>
     void Error(std::string fmt, Args &&...args)
     {
-#ifdef _WIN32
+        #ifdef _WIN32
         {
             SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
         }
-#endif
+        #endif
         PrintMessage(" [error] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...));
-#ifdef _WIN32
+        #ifdef _WIN32
         {
             SetConsoleTextAttribute(hConsole, COLOR_WHITE);
         }
-#endif
+        #endif
     }
 
     template <typename... Args>
     void Warn(std::string fmt, Args &&...args)
     {
-#ifdef _WIN32
+        #ifdef _WIN32
         {
             SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
         }
-#endif
+        #endif
         PrintMessage(" [warn] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...));
-#ifdef _WIN32
+        #ifdef _WIN32
         {
             SetConsoleTextAttribute(hConsole, COLOR_WHITE);
         }
-#endif
+        #endif
     }
 
     void LogHead(std::string val);
