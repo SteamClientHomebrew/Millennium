@@ -29,8 +29,7 @@ If you enjoy this tool, please consider starring the project ⭐
 
 <br>
 
-[comment]: <> (credits to https://github.com/clawdius for this intro video)
-
+<!-- credits to https://github.com/clawdius for this intro video -->
 https://github.com/SteamClientHomebrew/Millennium/assets/81448108/0c4a0ea0-7995-442a-b569-68ca3750fd5e
 
 <br>
@@ -42,7 +41,10 @@ https://github.com/SteamClientHomebrew/Millennium/assets/81448108/0c4a0ea0-7995-
 
   Install Millennium for Windows. See [this page](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#automatic) for a more detailed guide.
 
-  [![Windows Installer][windows-badge]][windows-link]
+  <!-- [![Windows Installer][windows-badge]][windows-link] -->
+[![Static Badge](https://img.shields.io/badge/Download%20Windows-fff?style=for-the-badge&logo=windows&logoColor=white&color=2D5CBF)][windows-link]
+<!-- [![Static Badge](https://img.shields.io/badge/Download%20Linux-fff?style=for-the-badge&logo=linux&logoColor=white&color=orange)][windows-link] -->
+
 
   [windows-link]: https://github.com/SteamClientHomebrew/Installer/releases/latest/download/Millennium.Installer-Windows.exe
   [windows-badge]: https://img.shields.io/badge/Windows%20(10+)-3a71c1?logo=Windows&logoColor=white&labelColor=111111&color=3a71c1&style=for-the-badge
@@ -55,15 +57,15 @@ For normal users, installing via the installers makes the most sense. However wh
 
 ## Core Features
 
-- Plugin Loader
-  - JavaScript (React) frontend container in Steam
-  - Python backend container in usermode
-  - [Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface) (ffi) binding
-  - Hook modules in the Steam web browser
+- ### Plugin Loader
+  - **JavaScript ([React](https://react.dev/)) frontend** container in Steam
+  - **Python backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
+  - **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Python** to **JavaScript**
+  - **Hook modules in the Steam web browser**
     - Overwrite/Modify HTTP requests
     - Load custom JavaScript (Native) into web browser
     - Load custom StyleSheets into web browser
-- [Builtin Module](https://github.com/SteamClientHomebrew/__builtins__)
+- ### [Builtin Modules](https://github.com/SteamClientHomebrew/__builtins__)
   - Manage and load custom user themes into Steam
   - Manage custom plugins into Steam
   - Manage theme & plugin updates. 
