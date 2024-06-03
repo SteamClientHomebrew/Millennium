@@ -36,8 +36,12 @@ add_compile_definitions(
 
 # Compile as release and compile MSVC as MT (static)
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+if (WIN32)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+elseif(UNIX)
+  set(CMAKE_CXX_FLAGS "-fpermissive")
+endif()
 
 # build boxer (message-box lib)
 add_subdirectory(vendor/boxer)
@@ -74,7 +78,9 @@ add_compile_definitions(
 
 find_package(cpr CONFIG REQUIRED) # used for web requests. 
 find_package(Python REQUIRED COMPONENTS Interpreter Development) # used to run plugin backends
-find_package(unofficial-git2 CONFIG REQUIRED) # update millennium modules
+if (WIN32)
+	find_package(unofficial-git2 CONFIG REQUIRED) # update millennium modules
+endif()
 
 include_directories(
   # ${Python_INCLUDE_DIRS}
@@ -118,15 +124,20 @@ endif()
 
 if(WIN32)
   # link windows defined socket headers
-  target_link_libraries(Millennium Ws2_32.lib wsock32)
-endif()
-
-target_link_libraries(Millennium
-    Boxer
-    cpr::cpr
+  target_link_libraries(Millennium
+    Ws2_32.lib
+    wsock32
     # ${Python_LIBRARIES}
     # "D:/Development/millennium/vendor/win32/python311.lib"
     # "C:/Users/Admin/Downloads/Python/Python-3.11.8/PCbuild/win32/python311.lib"
     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
     unofficial::git2::git2
-)
+  )
+elseif(UNIX)
+  target_link_libraries(Millennium
+      Boxer
+      cpr::cpr
+      git2
+      Python::Python
+  )
+endif()
