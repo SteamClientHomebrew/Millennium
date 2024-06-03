@@ -91,7 +91,7 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
 	std::cout << strMessage << "\n";
 
 	(*outputLogStream) << GetLocalTime() << " [" << pluginName << "] " << strMessage << "\n";
-	(*outputLogStream).flush();
+	outputLogStream->flush();
 }
 
 void OutputLogger::LogHead(std::string strHeadTitle) 

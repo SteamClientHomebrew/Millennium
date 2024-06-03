@@ -1,0 +1,44 @@
+name: Build Millennium
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      
+    - name: Install Visual Studio 2022
+      uses: microsoft/setup-msbuild@v1
+      
+    - name: Download and install CMake
+      run: |
+        curl -fsSL -o cmake.zip https://github.com/Kitware/CMake/releases/download/v3.21.0/cmake-3.21.0-windows-x86_64.zip
+        Expand-Archive cmake.zip -DestinationPath C:\CMake
+        $env:Path += ';C:\CMake\bin'
+        
+    - name: Install vcpkg
+      run: |
+        git clone https://github.com/microsoft/vcpkg.git
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+        .\vcpkg integrate install
+
+    - name: Install vcpkg packages
+      run: |
+        .\vcpkg install <package1> <package2> ...
+        # Replace <package1>, <package2>, etc. with the actual packages you need
+        
+    - name: Configure CMake
+      run: cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake
+      
+    - name: Build project
+      run: cmake --build build --config Release

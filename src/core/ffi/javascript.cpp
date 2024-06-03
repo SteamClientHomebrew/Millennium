@@ -12,7 +12,6 @@ struct EvalResult {
 
 const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval) 
 {
-    // Create a promise to store the result
     std::promise<EvalResult> promise;
 
     bool messageSendSuccess = Sockets::PostShared(nlohmann::json({ 
@@ -29,55 +28,69 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
         throw std::runtime_error("couldn't send message to socket");
     }
 
-    // Register message handler to capture the result
     JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) 
     {
         try 
         {
-            if (eventMessage.contains("id") && eventMessage["id"] == SHARED_JS_EVALUATE_ID)
+            if (eventMessage.contains("id") && eventMessage["id"] != SHARED_JS_EVALUATE_ID)
             {
-                if (eventMessage["result"].contains("exceptionDetails")) 
-                {
-                    promise.set_value({ 
-                        eventMessage["result"]["exceptionDetails"]["exception"]["description"], false
-                    });
-                    return;
-                }
-
-                promise.set_value({ eventMessage["result"]["result"], true });
-
-                // Set the value of the promise with the result
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                return;
             }
+
+            if (eventMessage["result"].contains("exceptionDetails"))
+            {
+                promise.set_value
+                ({
+                    eventMessage["result"]["exceptionDetails"]["exception"]["description"], false
+                });
+                return;
+            }
+
+            promise.set_value({ eventMessage["result"]["result"], true });
+            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
         }
         catch (nlohmann::detail::exception& ex) 
         {
             Logger.Error(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
         }
-        catch (std::future_error& ex) 
+        catch (std::future_error& exception) 
         {
-            Logger.Error(ex.what());
+            Logger.Error(exception.what());
         }
     });
 
-    // Return the result obtained from the promise
     return promise.get_future().get();
 }
 
 const std::string JavaScript::ConstructFunctionCall(const char* plugin, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> fnParams)
 {
-    // plugin module exports are stored in a map on the window object PLUGIN_LIST
     std::string strFunctionFormatted = fmt::format("PLUGIN_LIST['{}'].{}(", plugin, methodName);
+
+    std::map<std::string, std::string> boolMap
+    {
+        { "True", "true" },
+        { "False", "false" }
+    };
 
     for (auto iterator = fnParams.begin(); iterator != fnParams.end(); ++iterator) 
     {
         auto& param = *iterator;
 
-        if (param.type == "str") { strFunctionFormatted += fmt::format("\"{}\"", param.pluginName); }
-        else if (param.type == "bool") { strFunctionFormatted += param.pluginName == "True" ? "true" : "false"; } //python decided to be quirky with caps
-        else { strFunctionFormatted += param.pluginName; }
+        if (param.type == "str") 
+        {
+            strFunctionFormatted += fmt::format("\"{}\"", param.pluginName); 
+        }
+        else if (param.type == "bool") 
+        { 
+            strFunctionFormatted += boolMap[param.pluginName];
+        }
+        else 
+        { 
+            strFunctionFormatted += param.pluginName; 
+        }
 
-        if (std::next(iterator) != fnParams.end()) {
+        if (std::next(iterator) != fnParams.end()) 
+        {
             strFunctionFormatted += ", ";
         }
     }
@@ -90,7 +103,8 @@ PyObject* JavaScript::EvaluateFromSocket(std::string script)
     {
         EvalResult response = ExecuteOnSharedJsContext(script);
 
-        if (!response.successfulCall) {
+        if (!response.successfulCall) 
+        {
             PyErr_SetString(PyExc_RuntimeError, response.json.get<std::string>().c_str());
             return NULL;
         }

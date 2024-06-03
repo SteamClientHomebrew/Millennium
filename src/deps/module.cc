@@ -37,6 +37,17 @@ namespace Dependencies {
             std::uintmax_t removedCount = std::filesystem::remove_all(packageLocalPath);
             Logger.LogItem("status", fmt::format("flushed {} items", removedCount));
         }
+        else if (!std::filesystem::exists(packageLocalPath))
+        {
+            try
+            {
+                std::filesystem::create_directories(packageLocalPath);
+            }
+            catch (std::filesystem::filesystem_error& ex)
+            {
+                Logger.Error("failed to create package directories -> {}", ex.what());
+            }
+        }
         else 
         {
             Logger.LogItem("status", "ready to clone module...");

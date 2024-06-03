@@ -11,18 +11,18 @@ std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
     {
         int index = 0, argumentLength = data["argumentList"].size();
 
-        for (auto it = data["argumentList"].begin(); it != data["argumentList"].end(); ++it, ++index)
+        for (auto argIterator = data["argumentList"].begin(); argIterator != data["argumentList"].end(); ++argIterator, ++index)
         {
-            auto& key = it.key();
-            auto& value = it.value();
+            auto& parameterKeyWord = argIterator.key();
+            auto& parameterData = argIterator.value();
 
-            if (value.is_boolean()) 
+            if (parameterData.is_boolean()) 
             { 
-                strFunctionCall += fmt::format("{}={}", key, value ? "True" : "False"); 
+                strFunctionCall += fmt::format("{}={}", parameterKeyWord, parameterData ? "True" : "False"); 
             }
             else 
             { 
-                strFunctionCall += fmt::format("{}={}", key, value.dump()); 
+                strFunctionCall += fmt::format("{}={}", parameterKeyWord, parameterData.dump()); 
             }
 
             if (index < argumentLength - 1)
@@ -35,14 +35,12 @@ std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
     return strFunctionCall;
 }
 
-const Python::EvalResult EvaluatePython(std::string plugin_name, std::string script) 
+const Python::EvalResult EvaluatePython(std::string pluginName, std::string script) 
 {
-    // Execute the script and assign the return value to a variable
-    PyObject* global_dict = PyModule_GetDict(PyImport_AddModule("__main__"));
-    PyObject* rv_object = PyRun_String(script.c_str(), Py_eval_input, global_dict, global_dict);
+    PyObject* globalDictionaryObj = PyModule_GetDict(PyImport_AddModule("__main__"));
+    PyObject* EvaluatedObj = PyRun_String(script.c_str(), Py_eval_input, globalDictionaryObj, globalDictionaryObj);
 
-    // An exception occurred
-    if (!rv_object && PyErr_Occurred()) 
+    if (!EvaluatedObj && PyErr_Occurred()) 
     {
         PyObject* typeObj, *valueObj, *traceBackObj;
         PyErr_Fetch(&typeObj, &valueObj, &traceBackObj);
@@ -65,24 +63,24 @@ const Python::EvalResult EvaluatePython(std::string plugin_name, std::string scr
         }
     }
 
-    if (rv_object == nullptr || rv_object == Py_None) 
+    if (EvaluatedObj == nullptr || EvaluatedObj == Py_None) 
     {
         return { "0", Python::ReturnTypes::Integer }; // whitelist NoneType
     }
-    if (PyBool_Check(rv_object)) 
+    if (PyBool_Check(EvaluatedObj)) 
     {
-        return { PyLong_AsLong(rv_object) == 0 ? "False" : "True", Python::ReturnTypes::Boolean };
+        return { PyLong_AsLong(EvaluatedObj) == 0 ? "False" : "True", Python::ReturnTypes::Boolean };
     }
-    else if (PyLong_Check(rv_object)) 
+    else if (PyLong_Check(EvaluatedObj)) 
     {
-        return { std::to_string(PyLong_AsLong(rv_object)), Python::ReturnTypes::Integer };
+        return { std::to_string(PyLong_AsLong(EvaluatedObj)), Python::ReturnTypes::Integer };
     }
-    else if (PyUnicode_Check(rv_object)) 
+    else if (PyUnicode_Check(EvaluatedObj)) 
     {
-        return { PyUnicode_AsUTF8(rv_object), Python::ReturnTypes::String };
+        return { PyUnicode_AsUTF8(EvaluatedObj), Python::ReturnTypes::String };
     }
 
-    PyObject* objectType = PyObject_Type(rv_object);
+    PyObject* objectType = PyObject_Type(EvaluatedObj);
     PyObject* strObjectType = PyObject_Str(objectType);
     const char* strTypeName = PyUnicode_AsUTF8(strObjectType);
     PyErr_Clear();  // Clear any Python exception
@@ -92,13 +90,13 @@ const Python::EvalResult EvaluatePython(std::string plugin_name, std::string scr
     return { fmt::format("Millennium expected return type [int, str, bool] but received [{}]", strTypeName) , Python::ReturnTypes::Error };
 }
 
-Python::EvalResult Python::LockGILAndEvaluate(std::string plugin_name, std::string script)
+Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)
 {
-    auto [pluginName, threadState] = PythonManager::GetInstance().GetPythonThreadStateFromName(plugin_name);
+    auto [strPluginName, threadState] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
     if (threadState == nullptr) 
     {
-        Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", plugin_name));
+        Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
         return { "overstepped partying thread state", Error };
     }
 
@@ -111,24 +109,24 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string plugin_name, std::stri
         return { "thread state was nullptr", Error };
     }
 
-    Python::EvalResult response = EvaluatePython(plugin_name, script);
+    Python::EvalResult response = EvaluatePython(pluginName, script);
 
     pythonGilLock->ReleaseAndUnLockGIL();
     return response;
 }
 
-void Python::LockGILAndDiscardEvaluate(std::string plugin_name, std::string script)
+void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string script)
 {
-    auto [pluginName, state] = PythonManager::GetInstance().GetPythonThreadStateFromName(plugin_name);
+    auto [strPluginName, threadState] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
-    if (state == nullptr) 
+    if (threadState == nullptr) 
     {
-        Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", plugin_name));
+        Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
         return;
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-    pythonGilLock->HoldAndLockGILOnThread(state);
+    pythonGilLock->HoldAndLockGILOnThread(threadState);
 
     PyRun_SimpleString(script.c_str());
 
