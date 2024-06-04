@@ -12,7 +12,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: true
-        
+
     - name: Set up Visual Studio 2022
       uses: microsoft/setup-msbuild@v2
       with:
@@ -34,6 +34,7 @@ jobs:
       run: |
         echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
         echo "$PWD/vcpkg" >> $GITHUB_PATH
+        echo "VCPKG_ROOT directory -> $VCPKG_ROOT"
 
     - name: Configure CMake
       run: |
