@@ -30,11 +30,11 @@ jobs:
         .\bootstrap-vcpkg.bat
         .\vcpkg integrate install
 
-    - name: Set vcpkg environment variables
-      run: |
-        echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
-        echo "$PWD/vcpkg" >> $GITHUB_PATH
-        echo "VCPKG_ROOT directory -> $VCPKG_ROOT"
+    - name: Set VCPKG_ROOT environment variable
+      run: echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+  
+    - name: Verify VCPKG_ROOT
+      run: echo $VCPKG_ROOT
 
     - name: Configure CMake
       run: |
