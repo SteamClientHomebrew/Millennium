@@ -25,7 +25,7 @@ public:
 	PythonManager();
 	~PythonManager();
 
-	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema&)> callback);
+	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
 	void WaitForExit();
 
 	PythonThreadState GetPythonThreadStateFromName(std::string pluginName);

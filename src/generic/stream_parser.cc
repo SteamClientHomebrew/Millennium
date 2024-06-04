@@ -78,26 +78,26 @@ int SettingsStore::InitializeSettingsStore()
     return true;
 }
 
-bool SettingsStore::TogglePluginStatus(std::string pname, bool enabled) 
+bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled) 
 {
-    Logger.Log("updating plugin status");
+    Logger.Log("opting to {} {}", enabled ? "enable" : "disable", pluginName);
     auto SettingsStore = this->GetSettings();
 
     if (enabled) 
     {
         if (SettingsStore.contains("enabled") && SettingsStore["enabled"].is_array()) 
         {
-            SettingsStore["enabled"].get<std::vector<std::string>>().push_back(pname);
+            SettingsStore["enabled"].push_back(pluginName);
         }
         else {
-            SettingsStore["enabled"] = nlohmann::json::array({ pname });
+            SettingsStore["enabled"] = nlohmann::json::array({ pluginName });
         }
     }
     // disable the plugin
     else if (!enabled && SettingsStore.contains("enabled") && SettingsStore["enabled"].is_array())
     {
         auto EnabledPlugins = SettingsStore["enabled"].get<std::vector<std::string>>();
-        auto Iterator = std::find(EnabledPlugins.begin(), EnabledPlugins.end(), pname);
+        auto Iterator = std::find(EnabledPlugins.begin(), EnabledPlugins.end(), pluginName);
 
         if (Iterator != EnabledPlugins.end()) 
         { 
@@ -107,7 +107,6 @@ bool SettingsStore::TogglePluginStatus(std::string pname, bool enabled)
         SettingsStore["enabled"] = EnabledPlugins;
     }
 
-    std::cout << "updated config -> " << SettingsStore.dump(4) << std::endl;
     SetSettings(SettingsStore.dump(4));
     return true;
 }

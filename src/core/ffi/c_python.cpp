@@ -101,10 +101,10 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-
     pythonGilLock->HoldAndLockGILOnThread(threadState);
 
-    if (threadState == NULL) {
+    if (threadState == NULL) 
+    {
         Logger.Error("script execution was queried but the receiving parties thread state was nullptr");
         return { "thread state was nullptr", Error };
     }
@@ -127,8 +127,8 @@ void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string scrip
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     pythonGilLock->HoldAndLockGILOnThread(threadState);
-
-    PyRun_SimpleString(script.c_str());
-
+    {
+        PyRun_SimpleString(script.c_str());
+    }
     pythonGilLock->ReleaseAndUnLockGIL();
 }

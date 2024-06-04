@@ -8,6 +8,7 @@
 #include <generic/stream_parser.h>
 #include <generic/base.h>
 #include <core/hooks/web_load.h>
+#include <core/co_initialize/co_stub.h>
 
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
@@ -164,11 +165,12 @@ This portion of the API is undocumented but you can use it.
 */
 PyObject* TogglePluginStatus(PyObject* self, PyObject* args) 
 { 
+    PythonManager& manager = PythonManager::GetInstance();
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     Logger.Log("updating a plugins status.");
 
     const char* pluginName;
     PyObject* statusObj;
-    int newToggleStatus;
 
     if (!PyArg_ParseTuple(args, "sO", &pluginName, &statusObj)) 
     {
@@ -181,16 +183,33 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    newToggleStatus = PyObject_IsTrue(statusObj);
+    const bool newToggleStatus = PyObject_IsTrue(statusObj);
+    const std::string strPluginName = pluginName == nullptr ? std::string() : pluginName;
+
+    settingsStore->TogglePluginStatus(strPluginName, newToggleStatus);
+    ReInjectFrontendShims();
 
     if (!newToggleStatus) 
     {
         Logger.Log("requested to shutdown plugin [{}]", pluginName);
-        std::thread(std::bind(&PythonManager::ShutdownPlugin, &PythonManager::GetInstance(), pluginName)).detach();
+        std::thread(std::bind(&PythonManager::ShutdownPlugin, &manager, pluginName)).detach();
     }
     else 
     {
         Logger.Log("requested to enable plugin [{}]", pluginName);
+
+        std::vector<SettingsStore::PluginTypeSchema> m_pluginsPtr = settingsStore->ParseAllPlugins();
+
+        for (auto plugin : m_pluginsPtr)
+        {
+            if (plugin.pluginName != pluginName)
+            {
+                continue;
+            }
+
+            std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(BackendStartCallback, std::placeholders::_1);
+            std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, cb)).detach();
+        }
     }
 
     Py_RETURN_NONE;

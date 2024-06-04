@@ -111,12 +111,12 @@ PythonManager::~PythonManager()
     // Py_FinalizeEx();
 }
 
-bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema&)> callback)
+bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
 {
     const std::string pluginName = plugin.pluginName;
     this->m_instanceCount++;
 
-    auto thread = std::thread([this, pluginName, callback, &plugin] 
+    auto thread = std::thread([this, pluginName, callback, plugin] 
     {
         PyThreadState* threadStateMain = PyThreadState_New(PyInterpreterState_Main());
         PyEval_RestoreThread(threadStateMain);
@@ -141,66 +141,64 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
 
 bool PythonManager::ShutdownPlugin(std::string plugin_name)
 {
-    bool success = false;
+    bool successfulShutdown = false;
 
     for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); ++it) 
     {
-        const auto& [pluginName, thread_ptr] = *it;
+        const auto& [pluginName, threadState] = *it;
 
         if (pluginName != plugin_name) 
         {
             continue;
         }
         
-        success = true;
+        successfulShutdown = true;
 
-        if (thread_ptr == nullptr) 
+        if (threadState == nullptr) 
         {
             Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", plugin_name));
-            success = false;
+            successfulShutdown = false;
         }
 
-        PyThreadState* threadStateMain = PyThreadState_New(PyInterpreterState_Main());
-        PyEval_RestoreThread(threadStateMain);
-        PyGILState_STATE GILState = PyGILState_Ensure();
-        PyThreadState_Swap(thread_ptr);
+        std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
 
-        if (thread_ptr == NULL) 
+        pythonGilLock->HoldAndLockGILOnThread(threadState);
+
+        if (threadState == NULL) 
         {
             Logger.Error("script execution was queried but the receiving parties thread state was nullptr");
-            success = false;
+            successfulShutdown = false;
         }
 
         if (PyRun_SimpleString("plugin._unload()") != 0) 
         {
             PyErr_Print();
             Logger.Error("millennium failed to shutdown [{}]", plugin_name);
-            success = false;
+            successfulShutdown = false;
         }
 
-        if (PyRun_SimpleString("import sys\nsys.exit()") != 0)
+        if (PyRun_SimpleString("raise SystemExit") != 0)
         {
             PyErr_Print();
             Logger.Error("millennium failed to shutdown [{}]", plugin_name);
-            success = false;
+            successfulShutdown = false;
         }
 
-        // close the python interpretor. GIL must be held and the interpretor must be IDLE
-        Py_EndInterpreter(thread_ptr);
-        PyThreadState_Clear(threadStateMain);
-        PyThreadState_Swap(threadStateMain);
-        PyGILState_Release(GILState);
-        PyThreadState_DeleteCurrent();
+        pythonGilLock->ReleaseAndUnLockGIL();
+        //Py_EndInterpreter(threadState);
 
         this->m_pythonInstances.erase(it);
         break;
     }
 
-    Logger.Log("Successfully shut down [{}].\nRemaining: ", plugin_name);
-    
-    for (const auto& plugin: this->m_pythonInstances) 
+    if (successfulShutdown)
     {
-        Logger.Log(plugin.pluginName);
+        Logger.Log("Successfully shut down [{}].\nRemaining: ", plugin_name);
+
+        for (const auto& plugin : this->m_pythonInstances)
+        {
+            Logger.Log(plugin.pluginName);
+        }
     }
 
     return true;
@@ -208,16 +206,20 @@ bool PythonManager::ShutdownPlugin(std::string plugin_name)
 
 void PythonManager::WaitForExit()
 {
-    for (auto& thread : this->m_threadPool) {
+    for (auto& thread : this->m_threadPool) 
+    {
         thread.detach();
     }
 }
 
-PythonThreadState PythonManager::GetPythonThreadStateFromName(std::string pluginName)
+PythonThreadState PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
 {
-    for (const auto& [pluginName, thread_ptr] : this->m_pythonInstances) {
-        if (pluginName == pluginName) {
-            return {
+    for (const auto& [pluginName, thread_ptr] : this->m_pythonInstances) 
+    {
+        if (targetPluginName == pluginName) 
+        {
+            return 
+            {
                 pluginName, thread_ptr
             };
         }
@@ -227,9 +229,10 @@ PythonThreadState PythonManager::GetPythonThreadStateFromName(std::string plugin
 
 std::string PythonManager::GetPluginNameFromThreadState(PyThreadState* thread) 
 {
-    for (const auto& [pluginName, thread_ptr] : this->m_pythonInstances) {
-
-        if (thread_ptr == nullptr) {
+    for (const auto& [pluginName, thread_ptr] : this->m_pythonInstances)
+    {
+        if (thread_ptr == nullptr) 
+        {
             Logger.Error("thread_ptr was nullptr");
             return {};
         }

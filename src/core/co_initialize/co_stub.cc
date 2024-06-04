@@ -1,5 +1,5 @@
+#include "co_stub.h"
 #include <vector>
-#include <generic/stream_parser.h>
 #include <Python.h>
 #include <fmt/core.h>
 #include <core/py_controller/co_spawn.hpp>
@@ -7,6 +7,7 @@
 #include <core/loader.hpp>
 #include <core/hooks/web_load.h>
 #include <generic/base.h>
+#include <core/ffi/ffi.hpp>
 
 constexpr const char* bootstrapModule = R"(
 /**
@@ -94,15 +95,15 @@ function __millennium_module_init__() {
 __millennium_module_init__()
 )";
 
-/// @brief sets up the python interpretor to use virtual environment site packages, aswell as custom python path.
-/// @param spath 
+/// @brief sets up the python interpreter to use virtual environment site packages, as well as custom python path.
+/// @param system path 
 /// @return void 
 const void AddSitePackages(std::vector<std::filesystem::path> spath) 
 {
     PyObject *sysModule = PyImport_ImportModule("sys");
     if (!sysModule) 
     {
-        Logger.Error("couldn't import sysmodule");
+        Logger.Error("couldn't import system module");
         return;
     }
 
@@ -200,6 +201,7 @@ void BackendStartCallback(SettingsStore::PluginTypeSchema& plugin) {
     }
 
     StartPluginBackend(globalDictionary);  
+    //fclose(mainModuleFilePtr);
 }
 
 const std::string ConstructScriptElement(std::string filename) 
@@ -241,11 +243,42 @@ const std::string ConstructOnLoadModule()
     return scriptLoader;
 }
 
+static std::string addedScriptOnNewDocumentId;
+
 const void InjectFrontendShims(void) 
 {
-    short messageId = 0;
+    enum PageMessage
+    {
+        PAGE_ENABLE,
+        PAGE_SCRIPT,
+        PAGE_RELOAD
+    };
 
-    Sockets::PostShared({ {"id", messageId++ }, {"method", "Page.enable"} });
-    Sockets::PostShared({ {"id", messageId++ }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule() }}} });
-    Sockets::PostShared({ {"id", messageId++ }, {"method", "Page.reload"} });
+    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
+    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule() }}} });
+    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)
+    {
+        try
+        {
+            if (eventMessage.contains("id") && eventMessage["id"] != PAGE_SCRIPT)
+            {
+                return;
+            }
+
+            addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+        }
+        catch (nlohmann::detail::exception& ex)
+        {
+            Logger.Error(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+        }
+    });
+}
+
+const void ReInjectFrontendShims()
+{
+    Sockets::PostShared({ {"id", 0 }, {"method", "Page.removeScriptToEvaluateOnNewDocument"}, {"params", {{ "identifier", addedScriptOnNewDocumentId }}} });
+    InjectFrontendShims();
 }

@@ -42,6 +42,8 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 
 static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 {
+    Logger.Log("Notifying {} that the frontend loaded", message["data"]["pluginName"].get<std::string>());
+
     Python::LockGILAndDiscardEvaluate(
         message["data"]["pluginName"],
         "plugin._front_end_loaded()"
@@ -86,26 +88,26 @@ void OnMessage(server* serv, websocketpp::connection_hdl hdl, server::message_pt
     }
 }
 
-void OnOpen(server* s, websocketpp::connection_hdl hdl) 
+void OnOpen(server* IPCSocketMain, websocketpp::connection_hdl hdl) 
 {
-    s->start_accept();
+    IPCSocketMain->start_accept();
 }
 
-const int open_webserver() 
+const int OpenIPCSocket() 
 {
-    server wss;
+    server IPCSocketMain;
 
     try {
-        wss.set_access_channels(websocketpp::log::alevel::none);
-        wss.clear_access_channels(websocketpp::log::alevel::all);
+        IPCSocketMain.set_access_channels(websocketpp::log::alevel::none);
+        IPCSocketMain.clear_access_channels(websocketpp::log::alevel::all);
 
-        wss.init_asio();
-        wss.set_message_handler(bind(OnMessage, &wss, std::placeholders::_1, std::placeholders::_2));
-        wss.set_open_handler(bind(&OnOpen, &wss, std::placeholders::_1));
+        IPCSocketMain.init_asio();
+        IPCSocketMain.set_message_handler(bind(OnMessage, &IPCSocketMain, std::placeholders::_1, std::placeholders::_2));
+        IPCSocketMain.set_open_handler(bind(&OnOpen, &IPCSocketMain, std::placeholders::_1));
 
-        wss.listen(12906);
-        wss.start_accept();
-        wss.run();
+        IPCSocketMain.listen(12906);
+        IPCSocketMain.start_accept();
+        IPCSocketMain.run();
     }
     catch (const std::exception& e) {
         Logger.Error("[pipecon] uncaught error -> {}", e.what());
@@ -116,6 +118,6 @@ const int open_webserver()
 
 const int IPCMain::OpenConnection()
 {
-    std::thread(open_webserver).detach();
+    std::thread(OpenIPCSocket).detach();
     return true;
 }

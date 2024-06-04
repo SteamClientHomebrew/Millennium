@@ -10,14 +10,11 @@
 #include <socket/await_pipe.h>
 #include <core/hooks/web_load.h>
 #include <generic/base.h>
+#include <core/co_initialize/co_stub.h>
 
 using namespace std::placeholders;
 websocketpp::client<websocketpp::config::asio_client>* sharedClient, *browserClient;
 websocketpp::connection_hdl sharedHandle, browserHandle;
-
-// @ src\core\co_initialize\co_stub.cc
-const void InjectFrontendShims(void);
-void BackendStartCallback(SettingsStore::PluginTypeSchema& plugin);
 
 enum eSocketTypes {
     SHARED, 
@@ -73,8 +70,8 @@ public:
     {
     }
 
-    ~CEFBrowser() {
-        Logger.Error("wdawdawdawdawd");
+    ~CEFBrowser() 
+    {
     }
 };
 
@@ -84,6 +81,8 @@ public:
 
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>*c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
+        const auto json = nlohmann::json::parse(msg->get_payload());
+        JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
     }
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
