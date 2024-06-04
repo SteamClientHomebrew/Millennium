@@ -102,7 +102,7 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
 
 PyObject* GetVersionInfo(PyObject* self, PyObject* args) 
 { 
-    return PyUnicode_FromString(g_millenniumVersion); 
+    return PyUnicode_FromString(MILLENNIUM_VERSION);
 }
 
 PyObject* GetSteamPath(PyObject* self, PyObject* args) 
@@ -143,11 +143,11 @@ unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type
         return 0;
     }
 
-    hook_tag++;
+    g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
-    WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), type, hook_tag });
-    return hook_tag;
+    WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), type, g_hookedModuleId });
+    return g_hookedModuleId;
 }
 
 PyObject* AddBrowserCss(PyObject* self, PyObject* args) 
@@ -184,9 +184,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     }
 
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
-    const std::string strPluginName = pluginName == nullptr ? std::string() : pluginName;
-
-    settingsStore->TogglePluginStatus(strPluginName, newToggleStatus);
+    settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
     ReInjectFrontendShims();
 
     if (!newToggleStatus) 

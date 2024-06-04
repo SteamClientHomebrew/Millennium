@@ -147,11 +147,11 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
 
         if (type == "Script")
         {
-            hookedBodyResponse = this->HandleJsHook(base64_decode(message["result"]["body"]));
+            hookedBodyResponse = this->HandleJsHook(Base64Decode(message["result"]["body"]));
         }
         else if (type == "Stylesheet")
         {
-            hookedBodyResponse = this->HandleCssHook(base64_decode(message["result"]["body"]));
+            hookedBodyResponse = this->HandleCssHook(Base64Decode(message["result"]["body"]));
         }
 
         Sockets::PostGlobal({

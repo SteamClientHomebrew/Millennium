@@ -9,7 +9,7 @@ std::vector<DWORD> DiscoverProcessThreads()
     std::vector<DWORD> out;
 
     DWORD processId = GetCurrentProcessId();
-    DWORD currentThreadId = GetCurrentThreadId(); // Get ID of the current thread
+    DWORD currentThreadId = GetCurrentThreadId();
     HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 
     if (hThreadSnap == INVALID_HANDLE_VALUE) 

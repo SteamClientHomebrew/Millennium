@@ -4,7 +4,7 @@
 #include <vector>
 #include <mutex>
 
-static unsigned long long hook_tag;
+static unsigned long long g_hookedModuleId;
 
 class WebkitHandler 
 {

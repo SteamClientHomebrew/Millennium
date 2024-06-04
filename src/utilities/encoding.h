@@ -31,7 +31,7 @@ static inline bool is_base64(unsigned char c) {
  * - Decodes the input string into its original form.
  * - Removes padding characters ('=') if present.
  */
-static std::string base64_decode(const std::string &in) {
+static std::string Base64Decode(const std::string &in) {
 
     std::string out;
 

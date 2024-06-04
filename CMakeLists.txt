@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.5.0)
 
+set(PRIVATE_PRODUCT_NAME "Millennium")
+set(MILLENNIUM_VERSION   "2.1.0")
+
 # build boxer statically 
 set(BUILD_SHARED_LIBS OFF)
-cmake_policy(SET CMP0091 NEW)
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 project(Millennium LANGUAGES CXX)
 
 if (WIN32)
@@ -13,18 +14,21 @@ if (WIN32)
     set(LIBRARY_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
 endif()
 
-set(PRIVATE_PRODUCT_NAME "Millennium [Steam Homebrew]")
+string(REPLACE "." "," INTERNAL_VERSION "${MILLENNIUM_VERSION}")
+message(INTERNAL_VERSION)
 
 # Set version information
 add_compile_definitions(
+    MILLENNIUM_VERSION="${MILLENNIUM_VERSION}"
+
     VER_COMPANYNAME_STR="Steam Homebrew."
-    VER_PRIVATEBUILD=1.0.1
-    VER_PRERELEASE=1.0.1
-    VER_DEBUG=1.0.1
-    VER_FILEVERSION_STR="2.1.6"
-    VER_FILEVERSION=2,1,6
-    VER_PRODUCTVERSION_STR="2.1.6"
-    VER_PRODUCTVERSION=2,1,6
+    VER_PRIVATEBUILD=${MILLENNIUM_VERSION}
+    VER_PRERELEASE=${MILLENNIUM_VERSION}
+    VER_DEBUG=${MILLENNIUM_VERSION}
+    VER_FILEVERSION_STR="${MILLENNIUM_VERSION}"
+    VER_FILEVERSION=${INTERNAL_VERSION}
+    VER_PRODUCTVERSION_STR="${MILLENNIUM_VERSION}"
+    VER_PRODUCTVERSION=${INTERNAL_VERSION}
     VER_FILEDESCRIPTION_STR="A plugin loader for the modern Steam Client."
     VER_INTERNALNAME_STR="${PRIVATE_PRODUCT_NAME}"
     VER_LEGALCOPYRIGHT_STR="Copyright \(c\) Steam Homebrew."
@@ -38,7 +42,7 @@ add_compile_definitions(
 set(CMAKE_BUILD_TYPE Release)
 if (WIN32)
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 elseif(UNIX)
   set(CMAKE_CXX_FLAGS "-fpermissive")
 endif()
@@ -133,6 +137,7 @@ if(WIN32)
     # "D:/Development/millennium/vendor/win32/python311.lib"
     # "C:/Users/Admin/Downloads/Python/Python-3.11.8/PCbuild/win32/python311.lib"
     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
+    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib"
     unofficial::git2::git2
   )
 elseif(UNIX)

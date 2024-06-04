@@ -66,13 +66,7 @@ public:
         webKitHandler->SetupGlobalHooks();
     }
 
-    CEFBrowser() : webKitHandler(&WebkitHandler::get())
-    {
-    }
-
-    ~CEFBrowser() 
-    {
-    }
+    CEFBrowser() : webKitHandler(&WebkitHandler::get()) { }
 };
 
 class SharedJSContext

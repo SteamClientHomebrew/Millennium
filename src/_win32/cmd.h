@@ -7,7 +7,7 @@
 #include <shellapi.h>
 #endif
 
-class steam {
+class StartupParameters {
 public:
     class parameters {
     public:
@@ -44,13 +44,13 @@ public:
         }
         std::vector<std::string> args; 
     };
-    static steam& get() {
-        static steam instance;
+    static StartupParameters& get() {
+        static StartupParameters instance;
         return instance;
     }
 
     parameters params; 
-    steam() : params() {}
-    steam(const steam&) = delete; 
-    steam& operator=(const steam&) = delete;
+    StartupParameters() : params() {}
+    StartupParameters(const StartupParameters&) = delete;
+    StartupParameters& operator=(const StartupParameters&) = delete;
 };

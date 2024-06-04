@@ -89,7 +89,7 @@ const static void EntryMain()
 
         if (processName != "steam.exe")
         {
-            return; // don't load into non Steam Applications. 
+            return; // Don't load into non Steam Applications. 
         }
     }
     #endif
