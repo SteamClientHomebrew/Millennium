@@ -10,7 +10,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-
+      with:
+        submodules: true
+        
     - name: Set up Visual Studio 2022
       uses: microsoft/setup-msbuild@v2
       with:
