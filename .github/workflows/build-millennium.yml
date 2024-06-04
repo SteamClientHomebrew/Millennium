@@ -12,7 +12,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Set up Visual Studio 2022
-      uses: microsoft/setup-msbuild@v1
+      uses: microsoft/setup-msbuild@v2
       with:
         vs-version: '2022'
 
