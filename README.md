@@ -60,7 +60,7 @@ For normal users, installing via the installers makes the most sense. However wh
 - ### Plugin Loader
   - **JavaScript ([React](https://react.dev/)) frontend** container in Steam
   - **Python backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
-  - **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Python** to **JavaScript**
+  - **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Python** to **JavaScript** and vice versa
   - **Hook modules in the Steam web browser**
     - Overwrite/Modify HTTP requests
     - Load custom JavaScript (Native) into web browser
