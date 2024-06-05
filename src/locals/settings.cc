@@ -129,10 +129,52 @@ bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
     return false;
 }
 
+void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
+{
+    const std::map<std::string, bool> pluginFields = {
+        { "name", true },
+        { "description", false },
+        { "common_name", false },
+    };
+
+    for (const auto& field : pluginFields)
+    {
+        auto [property, required] = field;
+
+        if (!json.contains(property))
+        {
+            if (required)
+            {
+                throw std::runtime_error(fmt::format("plugin configuration must contain '{}'", property));
+            }
+            else
+            {
+                Logger.Warn("plugin '{}' doesn't contain a property field '{}' in '{}'", pluginName, property, SettingsStore::pluginConfigFile);
+            }
+        }
+    }
+}
+
+SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry)
+{
+    SettingsStore::PluginTypeSchema plugin;
+    const std::string pluginDirName = entry.path().filename().string();
+
+    LintPluginData(json, pluginDirName);
+
+    plugin.pluginJson = json;
+    plugin.pluginName = json["name"];
+    plugin.pluginBaseDirectory      = entry.path();
+    plugin.backendAbsoluteDirectory = entry.path() / "backend" / "main.py";
+    plugin.frontendAbsoluteDirectory = (FileSystem::path) "plugins" / pluginDirName / "dist" / "index.js";
+
+    return plugin;
+}
+
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
-    const auto plugin_path = SystemIO::GetSteamPath() / "steamui" / "plugins";
     std::vector<SettingsStore::PluginTypeSchema> plugins;
+    const auto plugin_path = SystemIO::GetSteamPath() / "steamui" / "plugins";
 
     try
     {
@@ -143,7 +185,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
                 continue;
             }
 
-            const auto pluginConfiguration = entry.path() / "plugin.json";
+            const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
 
             if (!FileSystem::exists(pluginConfiguration))
             {
@@ -152,21 +194,10 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 
             try
             {
-                const auto json = SystemIO::ReadJsonSync(pluginConfiguration.string());
+                const auto pluginJson = SystemIO::ReadJsonSync(pluginConfiguration.string());
+                const auto pluginData = GetPluginInternalData(pluginJson, entry);
 
-                if (!json.contains("name"))
-                {
-                    throw std::runtime_error("plugin configuration must contain 'name'");
-                }
-
-                PluginTypeSchema plugin;
-                plugin.pluginBaseDirectory = entry.path();
-                plugin.backendAbsoluteDirectory = entry.path() / "backend" / "main.py";
-                plugin.pluginName = (json.contains("name") && json["name"].is_string() ? json["name"].get<std::string>() : entry.path().filename().string());
-                plugin.frontendAbsoluteDirectory = fmt::format("plugins/{}/dist/index.js", entry.path().filename().string());
-                plugin.pluginJson = json;
-
-                plugins.push_back(plugin);
+                plugins.push_back(pluginData);
             }
             catch (SystemIO::FileException& exception)
             {
@@ -180,7 +211,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
     }
     catch (const std::exception& ex)
     {
-        std::cout << "Error: " << ex.what() << std::endl;
+        Logger.Error("Fall back exception caught trying to parse plugins. {}", ex.what());
     }
 
     return plugins;

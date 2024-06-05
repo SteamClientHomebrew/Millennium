@@ -21,8 +21,16 @@ namespace SystemIO {
             char buffer[MAX_PATH];
             DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
 
-            const std::string path = std::string(buffer, bufferSize);
-            return path.empty() ? "C:/Program Files (x86)/Steam" : path;
+            const std::string steamPath = std::string(buffer, bufferSize);
+
+            if (steamPath.empty())
+            {
+                return "C:/Program Files (x86)/Steam";
+            }
+            else
+            {
+                return steamPath;
+            }
         }
         #elif __linux__
         {
@@ -38,18 +46,29 @@ namespace SystemIO {
         if (!outputLogStream.is_open())
         {
             if (success != nullptr)
+            {
                 *success = false;
+            }
         }
 
         std::string fileContent((std::istreambuf_iterator<char>(outputLogStream)), std::istreambuf_iterator<char>());
 
-        if (nlohmann::json::accept(fileContent)) {
-            if (success != nullptr) *success = true;
+        if (nlohmann::json::accept(fileContent)) 
+        {
+            if (success != nullptr)
+            {
+                *success = true;
+            }
             return nlohmann::json::parse(fileContent);
         }
-        else {
+        else 
+        {
             Logger.Error("error reading [{}]", filename);
-            if (success != nullptr) *success = false;
+
+            if (success != nullptr) 
+            {
+                *success = false;
+            }
             return {};
         }
     }
@@ -57,6 +76,7 @@ namespace SystemIO {
     std::string ReadFileSync(const std::string& filename)
     {
         std::ifstream outputLogStream(filename);
+
         if (!outputLogStream.is_open())
         {
             Logger.Error("failed to open file [readJsonSync]");
@@ -71,7 +91,8 @@ namespace SystemIO {
     {
         std::ofstream outFile(filePath);
 
-        if (outFile.is_open()) {
+        if (outFile.is_open()) 
+        {
             outFile << content;
             outFile.close();
         }

@@ -224,7 +224,7 @@ const std::string ConstructOnLoadModule()
             continue;
         }
 
-        scriptImportTable.append(ConstructScriptElement(fmt::format("https://steamloopback.host/{}", plugin.frontendAbsoluteDirectory)));
+        scriptImportTable.append(ConstructScriptElement(fmt::format("https://steamloopback.host/{}", plugin.frontendAbsoluteDirectory.generic_string())));
     }
 
     std::string scriptLoader = bootstrapModule;

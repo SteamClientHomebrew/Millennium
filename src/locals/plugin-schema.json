@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "common_name": {
+      "type": "string",
+      "markdownDescription": "The common name that appears for your plugin in Settings -> Plugins -> Your plugin"
+    },
+    "name": {
+      "type": "string",
+      "markdownDescription": "The internal name of your plugin, make sure its unique as its VERY important and CANNOT shadow other plugin names"
+    },
+    "description": {
+      "type": "string",
+      "markdownDescription": "A description for your plugin."
+    },
+    "venv": {
+      "type": "string",
+      "markdownDescription": "A relative path to the virtaul python environment.\nFor example if your virtual environment path is `.venv`, then inside `.venv` you should find a `Lib` containing python packages.\n\nYou can create a python virtual environment with the command ```python -m venv .venv``` where .venv is the relative path its created at."
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
