@@ -4,7 +4,7 @@
 #include <thread>
 #include <functional>
 #include <string>
-#include <generic/stream_parser.h>
+#include <locals/locals.h>
 #include <utilities/log.hpp>
 
 struct PythonThreadState {

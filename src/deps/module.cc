@@ -2,9 +2,8 @@
 #include <iostream>
 #include <utilities/log.hpp>
 #include <boxer/boxer.h>
-#include <generic/stream_parser.h>
+#include <locals/locals.h>
 #include "deps.h"
-#include <generic/base.h>
 
 using namespace std::chrono;
 

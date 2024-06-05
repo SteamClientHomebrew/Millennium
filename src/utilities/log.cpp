@@ -10,7 +10,7 @@
 #ifdef _WIN32
 #include <_win32/cmd.h>
 #endif
-#include <generic/stream_parser.h>
+#include <locals/locals.h>
 
 OutputLogger Logger;
 

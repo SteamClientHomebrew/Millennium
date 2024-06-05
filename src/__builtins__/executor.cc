@@ -5,8 +5,8 @@
 #include <fmt/core.h>
 #include <fstream>
 #include <utilities/log.hpp>
-#include <generic/stream_parser.h>
-#include <generic/base.h>
+#include <locals/locals.h>
+#include <locals/base.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
 

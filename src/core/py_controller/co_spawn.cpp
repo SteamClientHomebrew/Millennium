@@ -5,7 +5,7 @@
 #include "co_spawn.hpp"
 #include "bind_stdout.hpp"
 #include <boxer/boxer.h>
-#include <generic/base.h>
+#include <locals/base.h>
 #include <thread>
 
 PyObject* PyInit_Millennium(void) 

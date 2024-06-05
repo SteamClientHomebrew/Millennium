@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "stream_parser.h"
+#include "locals.h"
 
 static constexpr const char* builtinsRepository = "https://github.com/SteamClientHomebrew/__builtins__.git";
 static constexpr const char* pythonModulesRepository =  "https://github.com/SteamClientHomebrew/Packages.git";

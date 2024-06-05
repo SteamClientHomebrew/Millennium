@@ -1,5 +1,5 @@
 #pragma once
-#include <generic/stream_parser.h>
+#include <locals/locals.h>
 
 const void InjectFrontendShims(void);
 

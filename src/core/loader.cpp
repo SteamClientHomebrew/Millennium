@@ -9,7 +9,7 @@
 #include <utilities/http.h>
 #include <socket/await_pipe.h>
 #include <core/hooks/web_load.h>
-#include <generic/base.h>
+#include <locals/base.h>
 #include <core/co_initialize/co_stub.h>
 
 using namespace std::placeholders;
@@ -88,57 +88,6 @@ public:
         InjectFrontendShims();
     }
 };
-
-struct ConnectSocketProps 
-{
-    std::string commonName;
-    std::function<std::string()> fetchSocketUrl;
-
-    std::function<void(
-        websocketpp::client<websocketpp::config::asio_client>*, 
-        websocketpp::connection_hdl)> onConnect;
-
-    std::function<void(
-        websocketpp::client<websocketpp::config::asio_client>*,
-        websocketpp::connection_hdl, 
-        std::shared_ptr<websocketpp::config::core_client::message_type>)> onMessage;
-
-    PluginLoader* pluginLoader;
-};
-
-void ConnectSocket(ConnectSocketProps socketProps) 
-{
-    const auto [commonName, fetchSocketUrl, onConnect, onMessage, pluginLoader] = socketProps;
-
-    while (true) 
-    {
-        const std::string socketUrl = fetchSocketUrl();
-
-        try {
-            websocketpp::client<websocketpp::config::asio_client> socketClient;
-            socketClient.set_access_channels(websocketpp::log::alevel::none);
-            socketClient.init_asio();
-            socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
-            socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
-
-            websocketpp::lib::error_code ec;
-            websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = socketClient.get_connection(socketUrl, ec);
-
-            if (ec) {
-                throw websocketpp::exception(ec.message());
-            }
-            socketClient.connect(con); 
-            socketClient.run();
-        }
-        catch (websocketpp::exception& ex) 
-        {
-            Logger.Error("webSocket exception thrown -> {}", ex.what());
-        }
-
-        Logger.Error("{} tunnel collapsed, attempting to reopen...", commonName);
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-}
 
 PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_startTime(startTime), m_pluginsPtr(nullptr)
 {

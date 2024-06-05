@@ -90,7 +90,6 @@ include_directories(
   # ${Python_INCLUDE_DIRS}
   "C:/Program Files (x86)/Python311-32/include"
   ${LIBGIT2_INCLUDE_DIRS}
-  "src/__builtins__"
 )
 
 set(SOURCE_FILES 
@@ -102,17 +101,17 @@ set(SOURCE_FILES
   "src/core/ffi/gil.cc"
   "src/utilities/log.cpp"
   "src/core/ipc/pipe.cpp"
-  "src/generic/stream_parser.cc"
+  "src/locals/io.cc"
+  "src/locals/settings.cc"
   "src/__builtins__/executor.cc"
   "src/deps/module.cc"
   "src/core/hooks/web_load.cc"
   "src/core/co_initialize/co_stub.cc"
-  version.rc
 )
 
 if (WIN32)
-  add_library(Millennium SHARED "${SOURCE_FILES}")
-  # add_executable(Millennium "${SOURCE_FILES}")
+  add_library(Millennium SHARED "${SOURCE_FILES}" version.rc)
+  # add_executable(Millennium "${SOURCE_FILES}" version.rc)
 elseif(UNIX)
   add_executable(Millennium "${SOURCE_FILES}")
 endif()
@@ -134,8 +133,6 @@ if(WIN32)
     Boxer
     cpr::cpr
     # ${Python_LIBRARIES}
-    # "D:/Development/millennium/vendor/win32/python311.lib"
-    # "C:/Users/Admin/Downloads/Python/Python-3.11.8/PCbuild/win32/python311.lib"
     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib"
     unofficial::git2::git2

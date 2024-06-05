@@ -19,7 +19,7 @@
 #endif
 #include <git2.h>
 #include <boxer/boxer.h>
-#include <generic/base.h>
+#include <locals/base.h>
 #include <string>
 #include <utilities/log.hpp>
 
