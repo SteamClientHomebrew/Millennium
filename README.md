@@ -1,7 +1,9 @@
 <div align="center">
-<img src="https://i.imgur.com/9qYPFSA.png" alt="Alt text" width="40">
-  
-## Millennium for Steam®
+<!-- <img src="https://i.imgur.com/9qYPFSA.png" alt="Alt text" width="40">
+  ## Millennium for Steam® -->
+
+<h3><img align="center" height="40" src="https://i.imgur.com/9qYPFSA.png"> &nbsp; &nbsp;Millennium for Steam®</h3>
+<br>
 
 [![GitHub Releases][downloads-badge]][downloads-link] 
 ![Endpoint Badge][loc-bage]
