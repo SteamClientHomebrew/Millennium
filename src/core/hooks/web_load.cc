@@ -2,7 +2,7 @@
 #include <nlohmann/json.hpp>
 #include <core/loader.hpp>
 #include <core/ffi/ffi.hpp>
-#include <utilities/encoding.h>
+#include <sys/encoding.h>
 #include <boxer/boxer.h>
 
 WebkitHandler WebkitHandler::get() 

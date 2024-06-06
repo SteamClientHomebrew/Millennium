@@ -1,5 +1,5 @@
 #pragma once
-#include <locals/locals.h>
+#include <sys/locals.h>
 
 const void InjectFrontendShims(void);
 

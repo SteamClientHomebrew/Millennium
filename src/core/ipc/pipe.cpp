@@ -3,11 +3,11 @@
 
 #include "pipe.hpp"
 #include <core/ffi/ffi.hpp>
-#include <utilities/encoding.h>
+#include <sys/encoding.h>
 #include <core/ipc/pipe.hpp>
 #include <functional>
 
-typedef websocketpp::server<websocketpp::config::asio> server;
+typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
 static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 {
@@ -50,9 +50,9 @@ static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
     });
 }
 
-void OnMessage(server* serv, websocketpp::connection_hdl hdl, server::message_ptr msg) 
+void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, socketServer::message_ptr msg) 
 {
-    server::connection_ptr serverConnection = serv->get_con_from_hdl(hdl);
+    socketServer::connection_ptr serverConnection = serv->get_con_from_hdl(hdl);
 
     try
     {
@@ -84,19 +84,18 @@ void OnMessage(server* serv, websocketpp::connection_hdl hdl, server::message_pt
     }
 }
 
-void OnOpen(server* IPCSocketMain, websocketpp::connection_hdl hdl) 
+void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl hdl) 
 {
     IPCSocketMain->start_accept();
 }
 
 const int OpenIPCSocket() 
 {
-    server IPCSocketMain;
+    socketServer IPCSocketMain;
 
     try 
     {
         IPCSocketMain.set_access_channels(websocketpp::log::alevel::none);
-        //IPCSocketMain.clear_access_channels(websocketpp::log::alevel::all);
 
         IPCSocketMain.init_asio();
         IPCSocketMain.set_message_handler(bind(OnMessage, &IPCSocketMain, std::placeholders::_1, std::placeholders::_2));
@@ -106,9 +105,9 @@ const int OpenIPCSocket()
         IPCSocketMain.start_accept();
         IPCSocketMain.run();
     }
-    catch (const std::exception& e) 
+    catch (const std::exception& error) 
     {
-        Logger.Error("[ipcMain] uncaught error -> {}", e.what());
+        Logger.Error("[ipcMain] uncaught error -> {}", error.what());
         return false;
     }
     return true;

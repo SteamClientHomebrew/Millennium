@@ -4,8 +4,8 @@
 #include <thread>
 #include <functional>
 #include <string>
-#include <locals/locals.h>
-#include <utilities/log.hpp>
+#include <sys/locals.h>
+#include <sys/log.hpp>
 
 struct PythonThreadState {
 	std::string pluginName;

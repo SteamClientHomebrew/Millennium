@@ -7,7 +7,7 @@
 #include <websocketpp/client.hpp>
 #include <string>
 #include <nlohmann/json.hpp>
-#include <locals/locals.h>
+#include <sys/locals.h>
 #include <socket/await_pipe.h>
 
 class PluginLoader {

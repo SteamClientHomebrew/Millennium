@@ -19,9 +19,9 @@
 #endif
 #include <git2.h>
 #include <boxer/boxer.h>
-#include <locals/base.h>
+#include <sys/base.h>
 #include <string>
-#include <utilities/log.hpp>
+#include <sys/log.hpp>
 
 class Preload 
 {

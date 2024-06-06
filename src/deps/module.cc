@@ -1,8 +1,8 @@
 #include <git2.h>
 #include <iostream>
-#include <utilities/log.hpp>
+#include <sys/log.hpp>
 #include <boxer/boxer.h>
-#include <locals/locals.h>
+#include <sys/locals.h>
 #include "deps.h"
 
 using namespace std::chrono;

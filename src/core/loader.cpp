@@ -6,9 +6,9 @@
 #include <core/py_controller/co_spawn.hpp>
 #include <core/ipc/pipe.hpp>
 #include <core/ffi/ffi.hpp>
-#include <utilities/http.h>
+#include <sys/http.h>
 #include <core/hooks/web_load.h>
-#include <locals/base.h>
+#include <sys/base.h>
 #include <core/co_initialize/co_stub.h>
 
 using namespace std::placeholders;

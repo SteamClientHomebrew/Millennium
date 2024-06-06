@@ -4,9 +4,9 @@
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
 #include <fstream>
-#include <utilities/log.hpp>
-#include <locals/locals.h>
-#include <locals/base.h>
+#include <sys/log.hpp>
+#include <sys/locals.h>
+#include <sys/base.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
 
