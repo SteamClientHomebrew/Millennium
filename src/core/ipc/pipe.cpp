@@ -42,12 +42,7 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 
 static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 {
-    Logger.Log("Notifying {} that the frontend loaded", message["data"]["pluginName"].get<std::string>());
-
-    Python::LockGILAndDiscardEvaluate(
-        message["data"]["pluginName"],
-        "plugin._front_end_loaded()"
-    );
+    Python::LockGILAndDiscardEvaluate(message["data"]["pluginName"], "plugin._front_end_loaded()");
 
     return nlohmann::json({
         { "id", message["iteration"] },
@@ -55,9 +50,10 @@ static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
     });
 }
 
-void OnMessage(server* serv, websocketpp::connection_hdl hdl, server::message_ptr msg) {
+void OnMessage(server* serv, websocketpp::connection_hdl hdl, server::message_ptr msg) 
+{
+    server::connection_ptr serverConnection = serv->get_con_from_hdl(hdl);
 
-    server::connection_ptr con = serv->get_con_from_hdl(hdl);
     try
     {
         auto json_data = nlohmann::json::parse(msg->get_payload());
@@ -76,15 +72,15 @@ void OnMessage(server* serv, websocketpp::connection_hdl hdl, server::message_pt
                 break;
             }
         }
-        con->send(responseMessage, msg->get_opcode());
+        serverConnection->send(responseMessage, msg->get_opcode());
     }
     catch (nlohmann::detail::exception& ex) 
     {
-        con->send(std::string(ex.what()), msg->get_opcode());
+        serverConnection->send(std::string(ex.what()), msg->get_opcode());
     }
     catch (std::exception& ex) 
     {
-        con->send(std::string(ex.what()), msg->get_opcode());
+        serverConnection->send(std::string(ex.what()), msg->get_opcode());
     }
 }
 
@@ -97,9 +93,10 @@ const int OpenIPCSocket()
 {
     server IPCSocketMain;
 
-    try {
+    try 
+    {
         IPCSocketMain.set_access_channels(websocketpp::log::alevel::none);
-        IPCSocketMain.clear_access_channels(websocketpp::log::alevel::all);
+        //IPCSocketMain.clear_access_channels(websocketpp::log::alevel::all);
 
         IPCSocketMain.init_asio();
         IPCSocketMain.set_message_handler(bind(OnMessage, &IPCSocketMain, std::placeholders::_1, std::placeholders::_2));
@@ -109,8 +106,9 @@ const int OpenIPCSocket()
         IPCSocketMain.start_accept();
         IPCSocketMain.run();
     }
-    catch (const std::exception& e) {
-        Logger.Error("[pipecon] uncaught error -> {}", e.what());
+    catch (const std::exception& e) 
+    {
+        Logger.Error("[ipcMain] uncaught error -> {}", e.what());
         return false;
     }
     return true;

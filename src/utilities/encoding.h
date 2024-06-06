@@ -31,19 +31,20 @@ static inline bool is_base64(unsigned char c) {
  * - Decodes the input string into its original form.
  * - Removes padding characters ('=') if present.
  */
-static std::string Base64Decode(const std::string &in) {
-
+static std::string Base64Decode(const std::string &in) 
+{
     std::string out;
-
     std::vector<int> T(256,-1);
     for (int i=0; i<64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
 
     int val=0, valb=-8;
-    for (unsigned char c : in) {
+    for (unsigned char c : in) 
+    {
         if (T[c] == -1) break;
         val = (val << 6) + T[c];
         valb += 6;
-        if (valb >= 0) {
+        if (valb >= 0) 
+        {
             out.push_back(char((val>>valb)&0xFF));
             valb -= 8;
         }
@@ -62,14 +63,17 @@ static std::string Base64Decode(const std::string &in) {
  * - Encodes the input string into base64 format.
  * - Adds padding characters ('=') if necessary to make the length a multiple of 4.
  */
-static std::string Base64Encode(const std::string &in) {
+static std::string Base64Encode(const std::string &in) 
+{
     std::string out;
 
     int val = 0, valb = -6;
-    for (unsigned char c : in) {
+    for (unsigned char c : in) 
+    {
         val = (val << 8) + c;
         valb += 8;
-        while (valb >= 0) {
+        while (valb >= 0) 
+        {
             out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(val>>valb)&0x3F]);
             valb -= 6;
         }

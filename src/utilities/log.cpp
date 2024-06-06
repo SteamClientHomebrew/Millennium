@@ -38,13 +38,18 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message)
 OutputLogger::OutputLogger()
 {
 	#ifdef _WIN32
-    if (StartupParameters::get().params.has("-dev") && static_cast<bool>(AllocConsole())) 
 	{
-        void(freopen("CONOUT$", "w", stdout));
-        void(freopen("CONOUT$", "w", stderr));
-    }
-	SetConsoleOutputCP(CP_UTF8);
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
+
+		if (startupParams->HasArgument("-dev") && static_cast<bool>(AllocConsole()))
+		{
+			void(freopen("CONOUT$", "w", stdout));
+			void(freopen("CONOUT$", "w", stderr));
+		}
+
+		SetConsoleOutputCP(CP_UTF8);
+		hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	}
 	#endif
 
 	const auto fileName = SystemIO::GetSteamPath() / ".millennium" / "debug.log";

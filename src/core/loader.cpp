@@ -7,7 +7,6 @@
 #include <core/ipc/pipe.hpp>
 #include <core/ffi/ffi.hpp>
 #include <utilities/http.h>
-#include <socket/await_pipe.h>
 #include <core/hooks/web_load.h>
 #include <locals/base.h>
 #include <core/co_initialize/co_stub.h>
@@ -16,13 +15,14 @@ using namespace std::placeholders;
 websocketpp::client<websocketpp::config::asio_client>* sharedClient, *browserClient;
 websocketpp::connection_hdl sharedHandle, browserHandle;
 
-enum eSocketTypes {
+enum eSocketTypes 
+{
     SHARED, 
     GLOBAL
 };
 
-bool PostSocket(nlohmann::json data, eSocketTypes type) {
-
+bool PostSocket(nlohmann::json data, eSocketTypes type) 
+{
     const auto client = (type == eSocketTypes::SHARED ? sharedClient : browserClient);
     const auto handle = (type == eSocketTypes::SHARED ? sharedHandle : browserHandle);
 
@@ -100,39 +100,38 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_
     this->PrintActivePlugins();
 }
 
-const std::thread PluginLoader::ConnectSharedJSContext(void* sharedJsHandler)
+const std::thread PluginLoader::ConnectSharedJSContext(void* sharedJsHandler, SocketHelpers* socketHelpers)
 {
-    ConnectSocketProps sharedProps;
+    SocketHelpers::ConnectSocketProps sharedProps;
 
     sharedProps.commonName     = "SharedJSContext";
-    sharedProps.fetchSocketUrl = GetSharedJsContext;
+    sharedProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSharedJsContext, socketHelpers);
     sharedProps.onConnect      = std::bind(&SharedJSContext::onConnect, (SharedJSContext*)sharedJsHandler, _1, _2);
     sharedProps.onMessage      = std::bind(&SharedJSContext::onMessage, (SharedJSContext*)sharedJsHandler, _1, _2, _3);
-    sharedProps.pluginLoader   = this;
 
-    return std::thread(ConnectSocket, sharedProps);
+    return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, sharedProps));
 }
 
-const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler)
+const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
 {
-    ConnectSocketProps browserProps;
+    SocketHelpers::ConnectSocketProps browserProps;
 
     browserProps.commonName     = "CEFBrowser";
-    browserProps.fetchSocketUrl = GetSteamBrowserContext;
+    browserProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
     browserProps.onConnect      = std::bind(&CEFBrowser::onConnect, (CEFBrowser*)cefBrowserHandler, _1, _2);
     browserProps.onMessage      = std::bind(&CEFBrowser::onMessage, (CEFBrowser*)cefBrowserHandler, _1, _2, _3);
-    browserProps.pluginLoader   = this;
 
-    return std::thread(ConnectSocket, browserProps);
+    return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps));
 }
 
 const void PluginLoader::StartFrontEnds()
 {
     CEFBrowser cefBrowserHandler;
     SharedJSContext sharedJsHandler;
+    SocketHelpers socketHelpers;
 
-    std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler);
-    std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler);
+    std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
+    std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
     Logger.LogItem("exec", fmt::format("finished in [{}ms]\n", duration.count()), true);
