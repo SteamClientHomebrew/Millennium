@@ -25,7 +25,6 @@ class SocketHelpers
 private:
 
     short debuggerPort;
-    std::string result;
 
     const short GetDebuggerPort()
     {
