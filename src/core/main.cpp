@@ -19,12 +19,19 @@
 #endif
 #include <git2.h>
 #include <boxer/boxer.h>
-#include <sys/base.h>
 #include <string>
 #include <sys/log.hpp>
+#include <core/py_controller/co_spawn.hpp>
 
 class Preload 
 {
+private:
+
+    const char* builtinsRepository = "https://github.com/SteamClientHomebrew/__builtins__.git";
+    const char* pythonModulesRepository = "https://github.com/SteamClientHomebrew/Packages.git";
+
+    std::filesystem::path builtinsModulesPath = SystemIO::GetSteamPath() / "steamui" / "plugins" / "__millennium__";
+
 public:
 
     Preload() 
@@ -58,7 +65,7 @@ public:
 
     const void Start() 
     {
-        const bool bBuiltInSuccess = Dependencies::GitAuditPackage("@builtins", builtinsModulesAbsolutePath, builtinsRepository);
+        const bool bBuiltInSuccess = Dependencies::GitAuditPackage("@builtins", builtinsModulesPath.string(), builtinsRepository);
 
         if (!bBuiltInSuccess) 
         {
@@ -69,7 +76,7 @@ public:
         // python modules only need to be audited on windows systems. 
         // linux users need their own installation of python
         #ifdef _WIN32
-        const bool bPythonModulesSuccess = Dependencies::GitAuditPackage("@packages", pythonModulesBaseDir.generic_string(), pythonModulesRepository);
+        const bool bPythonModulesSuccess = Dependencies::GitAuditPackage("@packages", pythonModulesBaseDir.string(), pythonModulesRepository);
         
         if (!bPythonModulesSuccess) 
         {
@@ -83,16 +90,10 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
-    #ifdef _WIN32
+    if (!IsSteamApplication())
     {
-        std::string processName = GetProcessName(GetCurrentProcessId());
-
-        if (processName != "steam.exe")
-        {
-            return; // Don't load into non Steam Applications. 
-        }
+        return;
     }
-    #endif
 
     const auto startTime = std::chrono::system_clock::now();
     {

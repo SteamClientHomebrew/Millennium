@@ -6,7 +6,6 @@
 #include <sys/log.hpp>
 #include <core/loader.hpp>
 #include <core/hooks/web_load.h>
-#include <sys/base.h>
 #include <core/ffi/ffi.hpp>
 
 constexpr const char* bootstrapModule = R"(

@@ -4,7 +4,7 @@
 #include <tlhelp32.h>
 #include <Psapi.h>
 
-std::vector<DWORD> DiscoverProcessThreads() 
+static std::vector<DWORD> DiscoverProcessThreads() 
 {
     std::vector<DWORD> out;
 
@@ -41,7 +41,7 @@ std::vector<DWORD> DiscoverProcessThreads()
     return out;
 }
 
-bool PauseSteamCore()
+static bool PauseSteamCore()
 {
     std::vector<DWORD> threads = DiscoverProcessThreads();
 
@@ -75,7 +75,7 @@ bool PauseSteamCore()
     return true;
 }
 
-bool UnpauseSteamCore()
+static bool UnpauseSteamCore()
 {
     std::vector<DWORD> threads = DiscoverProcessThreads();
 
@@ -97,7 +97,7 @@ bool UnpauseSteamCore()
     return true;
 }
 
-std::string GetProcessName(DWORD processID)
+static std::string GetProcessName(DWORD processID)
 {
     char szProcessName[MAX_PATH] = "<unknown>";
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
@@ -114,4 +114,20 @@ std::string GetProcessName(DWORD processID)
         CloseHandle(hProcess);
     }
     return szProcessName;
+}
+
+static const bool IsSteamApplication()
+{
+    #ifdef _WIN32
+    {
+        std::string processName = GetProcessName(GetCurrentProcessId());
+
+        if (processName != "steam.exe")
+        {
+            return false;
+        }
+    }
+    #endif
+
+    return true;
 }

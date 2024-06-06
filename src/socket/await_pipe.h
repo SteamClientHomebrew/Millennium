@@ -80,16 +80,15 @@ private:
 #ifdef _WIN32
     std::string GetProcessName(DWORD processID) 
     {
+        char Buffer[MAX_PATH];
         HANDLE Handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
 
         if (Handle)
         {
-            char Buffer[MAX_PATH];
             if (GetModuleFileNameExA(Handle, 0, Buffer, MAX_PATH))
             {
                 return std::string(Buffer);
             }
-
             CloseHandle(Handle);
         }
 

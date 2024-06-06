@@ -11,6 +11,7 @@
 #include <_win32/cmd.h>
 #endif
 #include <sys/locals.h>
+#include <_win32/thread.h>
 
 OutputLogger Logger;
 
@@ -37,6 +38,11 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message)
 
 OutputLogger::OutputLogger()
 {
+	if (!IsSteamApplication())
+	{
+		return;
+	}
+
 	#ifdef _WIN32
 	{
 		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();

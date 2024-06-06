@@ -6,7 +6,6 @@
 #include <fstream>
 #include <sys/log.hpp>
 #include <sys/locals.h>
-#include <sys/base.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
 
@@ -170,21 +169,25 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     Logger.Log("updating a plugins status.");
 
     const char* pluginName;
+    Py_ssize_t pluginNameLength;
     PyObject* statusObj;
 
-    if (!PyArg_ParseTuple(args, "sO", &pluginName, &statusObj)) 
+    if (!PyArg_ParseTuple(args, "s#O", &pluginName, &pluginNameLength, &statusObj))
     {
-        return NULL; // Parsing failed
+        return NULL;
     }
 
-    if (!PyBool_Check(statusObj)) 
+    if (!PyBool_Check(statusObj))
     {
         PyErr_SetString(PyExc_TypeError, "Second argument must be a boolean");
         return NULL;
     }
 
+    std::string pluginNameStr(pluginName, pluginNameLength);
+
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
-    settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
+    settingsStore->TogglePluginStatus(pluginNameStr.c_str(), newToggleStatus);
+
     ReInjectFrontendShims();
 
     if (!newToggleStatus) 

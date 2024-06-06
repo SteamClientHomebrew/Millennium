@@ -3,7 +3,6 @@
 #include <sys/log.hpp>
 #include <fmt/core.h>
 #include <iostream>
-#include "base.h"
 
 #ifdef _WIN32
 #include <winsock2.h>

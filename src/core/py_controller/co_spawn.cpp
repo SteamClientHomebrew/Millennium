@@ -1,11 +1,10 @@
 #include <Python.h>
 #include <core/loader.hpp>
-#include <__builtins__/executor.h>
+#include <api/executor.h>
 #include <core/ffi/ffi.hpp>
 #include "co_spawn.hpp"
 #include "bind_stdout.hpp"
 #include <boxer/boxer.h>
-#include <sys/base.h>
 #include <thread>
 
 PyObject* PyInit_Millennium(void) 
@@ -51,7 +50,7 @@ const std::string GetPythonVersion()
     return pythonVersion;
 }
 
-PythonManager::PythonManager() : m_InterpretorThreadSave(nullptr)
+PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
     Logger.LogHead("init plugin manager:");
     this->m_instanceCount = 0;
@@ -92,7 +91,7 @@ PythonManager::PythonManager() : m_InterpretorThreadSave(nullptr)
         goto done;
     }
 
-    m_InterpretorThreadSave = PyEval_SaveThread();
+    m_InterpreterThreadSave = PyEval_SaveThread();
 done:
     PyConfig_Clear(&config);
 
@@ -107,7 +106,7 @@ done:
 PythonManager::~PythonManager()
 {
     Logger.Error("PythonManager was destroyed.");
-    PyEval_RestoreThread(m_InterpretorThreadSave);
+    PyEval_RestoreThread(m_InterpreterThreadSave);
     // Py_FinalizeEx();
 }
 

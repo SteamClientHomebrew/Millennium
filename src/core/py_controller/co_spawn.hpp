@@ -12,10 +12,15 @@ struct PythonThreadState {
 	PyThreadState* thread_state;
 };
 
+static const std::filesystem::path pythonModulesBaseDir = SystemIO::GetSteamPath() / ".millennium" / "@modules";
+
+static const std::string pythonPath = pythonModulesBaseDir.generic_string();
+static const std::string pythonLibs = (pythonModulesBaseDir / "python311.zip").generic_string();
+
 class PythonManager 
 {
 private:
-	PyThreadState* m_InterpretorThreadSave;
+	PyThreadState* m_InterpreterThreadSave;
 	short m_instanceCount;
 
 	std::vector<std::thread> m_threadPool;

@@ -16,7 +16,6 @@ if (WIN32)
 endif()
 
 string(REPLACE "." "," INTERNAL_VERSION "${MILLENNIUM_VERSION}")
-message(INTERNAL_VERSION)
 
 # Set version information
 add_compile_definitions(
@@ -104,7 +103,7 @@ set(SOURCE_FILES
   "src/core/ipc/pipe.cpp"
   "src/sys/io.cc"
   "src/sys/settings.cc"
-  "src/__builtins__/executor.cc"
+  "src/api/executor.cc"
   "src/deps/module.cc"
   "src/core/hooks/web_load.cc"
   "src/core/co_initialize/co_stub.cc"
