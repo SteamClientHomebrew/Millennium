@@ -205,7 +205,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
                 continue;
             }
 
-            std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(BackendStartCallback, std::placeholders::_1);
+            std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(BackendStartCallback, std::placeholders::_1);
             std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, cb)).detach();
         }
     }

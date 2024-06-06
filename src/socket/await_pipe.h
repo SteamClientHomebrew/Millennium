@@ -138,8 +138,8 @@ private:
             {
                 // Extract and print process ID or details
                 // This is a simplified example, more parsing required in real case
-                result = "Found in /proc/net/tcp";
-                break;
+
+                return { true, {} };
             }
         }
 #elif __APPLE__
