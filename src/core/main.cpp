@@ -11,7 +11,7 @@
 #include <typeinfo>
 #include <fmt/core.h>
 #ifdef _WIN32
-#include <_win32/thread.h>
+#include <win32/thread.h>
 #include <windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>

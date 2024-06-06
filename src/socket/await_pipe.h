@@ -18,7 +18,7 @@
 #include <cstdio>
 #endif
 #include <boxer/boxer.h>
-#include <_win32/cmd.h>
+#include <win32/cmd.h>
 
 class SocketHelpers
 {
