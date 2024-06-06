@@ -1,9 +1,9 @@
 #include <Python.h>
-#include <core/loader.hpp>
+#include <core/loader.h>
 #include <api/executor.h>
-#include <core/ffi/ffi.hpp>
-#include "co_spawn.hpp"
-#include "bind_stdout.hpp"
+#include <core/ffi/ffi.h>
+#include "co_spawn.h"
+#include "bind_stdout.h"
 #include <boxer/boxer.h>
 #include <thread>
 

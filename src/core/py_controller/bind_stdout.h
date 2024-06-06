@@ -1,7 +1,7 @@
 #include <iostream>
 #include <Python.h>
-#include "co_spawn.hpp"
-#include <sys/log.hpp>
+#include "co_spawn.h"
+#include <sys/log.h>
 #include <fmt/core.h>
 
 extern "C" void PrintPythonMessage(std::string pname, const char* message) 

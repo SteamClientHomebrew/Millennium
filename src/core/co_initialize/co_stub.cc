@@ -2,11 +2,11 @@
 #include <vector>
 #include <Python.h>
 #include <fmt/core.h>
-#include <core/py_controller/co_spawn.hpp>
-#include <sys/log.hpp>
-#include <core/loader.hpp>
+#include <core/py_controller/co_spawn.h>
+#include <sys/log.h>
+#include <core/loader.h>
 #include <core/hooks/web_load.h>
-#include <core/ffi/ffi.hpp>
+#include <core/ffi/ffi.h>
 
 constexpr const char* bootstrapModule = R"(
 /**

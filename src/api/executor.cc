@@ -1,10 +1,10 @@
 #include "executor.h"
-#include <core/py_controller/co_spawn.hpp>
-#include <core/ffi/ffi.hpp>
+#include <core/py_controller/co_spawn.h>
+#include <core/ffi/ffi.h>
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
 #include <fstream>
-#include <sys/log.hpp>
+#include <sys/log.h>
 #include <sys/locals.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>

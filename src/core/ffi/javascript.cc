@@ -1,6 +1,6 @@
-#include "ffi.hpp"
-#include <core/py_controller/co_spawn.hpp>
-#include <core/loader.hpp>
+#include "ffi.h"
+#include <core/py_controller/co_spawn.h>
+#include <core/loader.h>
 #include <future>
 
 struct EvalResult {

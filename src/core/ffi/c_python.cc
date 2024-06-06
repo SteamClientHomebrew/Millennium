@@ -1,5 +1,5 @@
-#include "ffi.hpp"
-#include <core/py_controller/co_spawn.hpp>
+#include "ffi.h"
+#include <core/py_controller/co_spawn.h>
 #include <iostream>
 
 std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)

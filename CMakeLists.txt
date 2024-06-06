@@ -93,20 +93,20 @@ include_directories(
 )
 
 set(SOURCE_FILES 
-  "src/core/main.cpp"
-  "src/core/loader.cpp"
-  "src/core/py_controller/co_spawn.cpp"
-  "src/core/ffi/c_python.cpp"
-  "src/core/ffi/javascript.cpp"
+  "src/core/main.cc"
+  "src/core/loader.cc"
+  "src/core/py_controller/co_spawn.cc"
+  "src/core/ffi/c_python.cc"
+  "src/core/ffi/javascript.cc"
   "src/core/ffi/gil.cc"
-  "src/sys/log.cpp"
-  "src/core/ipc/pipe.cpp"
+  "src/core/co_initialize/co_stub.cc"
+  "src/core/hooks/web_load.cc"
+  "src/core/ipc/pipe.cc"
+  "src/sys/log.cc"
   "src/sys/io.cc"
   "src/sys/settings.cc"
   "src/api/executor.cc"
   "src/deps/module.cc"
-  "src/core/hooks/web_load.cc"
-  "src/core/co_initialize/co_stub.cc"
 )
 
 if (WIN32)

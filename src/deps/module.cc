@@ -1,6 +1,6 @@
 #include <git2.h>
 #include <iostream>
-#include <sys/log.hpp>
+#include <sys/log.h>
 #include <boxer/boxer.h>
 #include <sys/locals.h>
 #include "deps.h"

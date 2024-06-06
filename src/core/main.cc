@@ -1,7 +1,7 @@
 ﻿#define _WINSOCKAPI_
 #define WIN32_LEAN_AND_MEAN 
 #define UNICODE
-#include <core/loader.hpp>
+#include <core/loader.h>
 #include <filesystem>
 #include <fstream>
 #include <deps/deps.h>
@@ -20,8 +20,8 @@
 #include <git2.h>
 #include <boxer/boxer.h>
 #include <string>
-#include <sys/log.hpp>
-#include <core/py_controller/co_spawn.hpp>
+#include <sys/log.h>
+#include <core/py_controller/co_spawn.h>
 
 class Preload 
 {

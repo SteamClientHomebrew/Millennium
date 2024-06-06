@@ -3,7 +3,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
-#include <sys/log.hpp>
+#include <sys/log.h>
 
 class PythonGIL : public std::enable_shared_from_this<PythonGIL>
 {

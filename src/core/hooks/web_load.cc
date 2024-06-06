@@ -1,7 +1,7 @@
 #include "web_load.h"
 #include <nlohmann/json.hpp>
-#include <core/loader.hpp>
-#include <core/ffi/ffi.hpp>
+#include <core/loader.h>
+#include <core/ffi/ffi.h>
 #include <sys/encoding.h>
 #include <boxer/boxer.h>
 

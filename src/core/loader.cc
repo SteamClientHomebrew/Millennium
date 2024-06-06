@@ -1,12 +1,12 @@
-#include "loader.hpp"
+#include "loader.h"
 #include <string>
 #include <iostream>
 #include <Python.h>
 #include <api/executor.h>
 #include <core/co_initialize/co_stub.h>
-#include <core/py_controller/co_spawn.hpp>
-#include <core/ipc/pipe.hpp>
-#include <core/ffi/ffi.hpp>
+#include <core/py_controller/co_spawn.h>
+#include <core/ipc/pipe.h>
+#include <core/ffi/ffi.h>
 #include <sys/http.h>
 #include <core/hooks/web_load.h>
 

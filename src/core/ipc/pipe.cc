@@ -1,10 +1,10 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
-#include "pipe.hpp"
-#include <core/ffi/ffi.hpp>
+#include "pipe.h"
+#include <core/ffi/ffi.h>
 #include <sys/encoding.h>
-#include <core/ipc/pipe.hpp>
+#include <core/ipc/pipe.h>
 #include <functional>
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;

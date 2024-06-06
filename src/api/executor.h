@@ -1,4 +1,4 @@
 #pragma once
-#include <core/py_controller/co_spawn.hpp>
+#include <core/py_controller/co_spawn.h>
 
 PyMethodDef* GetMillenniumModule();

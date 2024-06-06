@@ -3,7 +3,7 @@
 #include <chrono>
 #include <thread>
 #include <cpr/cpr.h>
-#include <sys/log.hpp>
+#include <sys/log.h>
 
 static std::string GetRequest(const char* url) 
 {

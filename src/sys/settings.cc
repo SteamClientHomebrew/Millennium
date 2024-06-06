@@ -1,6 +1,6 @@
 #include "locals.h"
 #include <fstream>
-#include <sys/log.hpp>
+#include <sys/log.h>
 #include <fmt/core.h>
 #include <iostream>
 
