@@ -1,12 +1,12 @@
 #include <sys/http.h>
 #include <thread>
 #include <nlohmann/json.hpp>
-#include <tchar.h>
 #include <filesystem>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <iphlpapi.h>
+#include <tchar.h>
 #pragma comment(lib, "iphlpapi.lib")
 #include <tlhelp32.h>
 #include <psapi.h>
@@ -25,6 +25,7 @@ class SocketHelpers
 private:
 
     short debuggerPort;
+    std::string result;
 
     const short GetDebuggerPort()
     {
@@ -134,7 +135,7 @@ private:
             std::istringstream iss(line);
             std::string localAddress;
 
-            if (iss >> localAddress && localAddress.find(":" + std::to_string(port)) != std::string::npos) 
+            if (iss >> localAddress && localAddress.find(":" + std::to_string(debuggerPort)) != std::string::npos) 
             {
                 // Extract and print process ID or details
                 // This is a simplified example, more parsing required in real case
