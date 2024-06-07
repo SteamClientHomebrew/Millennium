@@ -188,7 +188,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
     settingsStore->TogglePluginStatus(pluginNameStr.c_str(), newToggleStatus);
 
-    ReInjectFrontendShims();
+    CoInitializer::ReInjectFrontendShims();
 
     if (!newToggleStatus) 
     {
@@ -209,7 +209,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
             }
 
             // const auto createCallBack = std::bind(BackendStartCallback, std::placeholders::_1);
-            std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, BackendStartCallback)).detach();
+            std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, CoInitializer::BackendStartCallback)).detach();
         }
     }
 

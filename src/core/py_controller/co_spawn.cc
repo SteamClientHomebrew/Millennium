@@ -1,11 +1,9 @@
-#include <Python.h>
-#include <core/loader.h>
-#include <api/executor.h>
-#include <core/ffi/ffi.h>
 #include "co_spawn.h"
-#include "bind_stdout.h"
+#include <api/executor.h>
+#include <core/loader.h>
+#include <core/ffi/ffi.h>
+#include <core/py_controller/bind_stdout.h>
 #include <boxer/boxer.h>
-#include <thread>
 
 PyObject* PyInit_Millennium(void) 
 {

@@ -84,7 +84,7 @@ public:
         sharedHandle = handle;
 
         Logger.Log("established shared connection @ {:p}", static_cast<void*>(&sharedClient));
-        InjectFrontendShims();
+        CoInitializer::InjectFrontendShims();
     }
 };
 
@@ -165,7 +165,7 @@ const void PluginLoader::StartBackEnds()
             continue;
         }
 
-        std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(BackendStartCallback, std::placeholders::_1);
+        std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
         std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, std::ref(plugin), cb)).detach();
     }
 }

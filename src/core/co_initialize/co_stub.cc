@@ -159,23 +159,24 @@ void StartPluginBackend(PyObject* global_dict)
     Py_DECREF(pluginComponentInstance);
 }
 
-void BackendStartCallback(SettingsStore::PluginTypeSchema& plugin) {
+const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema& plugin) {
 
     const std::string backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
 
     PyObject* globalDictionary = PyModule_GetDict((PyObject*)PyImport_AddModule("__main__"));
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(plugin.pluginName.c_str()));
 
-    std::vector<std::filesystem::path> sysPath = { 
-        plugin.pluginBaseDirectory / "backend", pythonPath, pythonLibs
+    std::vector<std::filesystem::path> sysPath = 
+    { 
+        plugin.pluginBaseDirectory / "backend", 
+        pythonPath, 
+        pythonLibs
     };
 
-    // include venv paths to interpretor
     if (plugin.pluginJson.contains("venv") && plugin.pluginJson["venv"].is_string()) 
     {
         const auto pluginVirtualEnv = plugin.pluginBaseDirectory / plugin.pluginJson["venv"];
 
-        // configure virtual environment for the current plugin
         sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages");
         sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32");
         sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32" / "Lib");
@@ -244,7 +245,7 @@ const std::string ConstructOnLoadModule()
 
 static std::string addedScriptOnNewDocumentId;
 
-const void InjectFrontendShims(void) 
+const void CoInitializer::InjectFrontendShims(void)
 {
     enum PageMessage
     {
@@ -276,7 +277,7 @@ const void InjectFrontendShims(void)
     });
 }
 
-const void ReInjectFrontendShims()
+const void CoInitializer::ReInjectFrontendShims()
 {
     Sockets::PostShared({ {"id", 0 }, {"method", "Page.removeScriptToEvaluateOnNewDocument"}, {"params", {{ "identifier", addedScriptOnNewDocumentId }}} });
     InjectFrontendShims();

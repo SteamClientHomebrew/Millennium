@@ -18,7 +18,7 @@
 #include <cstdio>
 #endif
 #include <boxer/boxer.h>
-#include <win32/cmd.h>
+#include <procmon/cmd.h>
 
 class SocketHelpers
 {
@@ -175,7 +175,7 @@ public:
             std::shared_ptr<websocketpp::config::core_client::message_type>)> onMessage;
     };
 
-    const bool VerifySteamConnection()
+    const void VerifySteamConnection()
     {
         auto [canConnect, processName] = this->GetSteamConnectionProps();
 

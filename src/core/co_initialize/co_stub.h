@@ -1,8 +1,9 @@
 #pragma once
 #include <sys/locals.h>
 
-const void InjectFrontendShims(void);
-
-const void ReInjectFrontendShims(void);
-
-void BackendStartCallback(SettingsStore::PluginTypeSchema& plugin);
+namespace CoInitializer
+{
+	const void InjectFrontendShims(void);
+	const void ReInjectFrontendShims(void);
+	const void BackendStartCallback(SettingsStore::PluginTypeSchema& plugin);
+}

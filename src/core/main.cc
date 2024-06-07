@@ -1,26 +1,16 @@
 ﻿#define _WINSOCKAPI_
 #define WIN32_LEAN_AND_MEAN 
 #define UNICODE
-#include <core/loader.h>
 #include <filesystem>
 #include <fstream>
 #include <deps/deps.h>
-
-#include <stdexcept>
-#include <exception>
-#include <typeinfo>
 #include <fmt/core.h>
 #ifdef _WIN32
-#include <win32/thread.h>
-#include <windows.h>
-#include <tlhelp32.h>
-#include <psapi.h>
-#include <iostream>
+#include <procmon/thread.h>
 #endif
-#include <git2.h>
 #include <boxer/boxer.h>
-#include <string>
 #include <sys/log.h>
+#include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
 
 class Preload 

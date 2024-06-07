@@ -8,10 +8,10 @@
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
-#include <win32/cmd.h>
+#include <procmon/cmd.h>
 #endif
 #include <sys/locals.h>
-#include <win32/thread.h>
+#include <procmon/thread.h>
 
 OutputLogger Logger;
 
