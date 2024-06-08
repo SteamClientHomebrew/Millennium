@@ -44,7 +44,7 @@ jobs:
     - name: Configure CMake
       run: |
         "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
-        cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022"
+        cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022" -A Win32
 
     - name: Build
       run: |
