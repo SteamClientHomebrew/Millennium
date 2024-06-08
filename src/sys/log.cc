@@ -17,11 +17,11 @@ OutputLogger Logger;
 
 std::string OutputLogger::GetLocalTime()
 {
+	std::stringstream bufferStream;
 	auto now = std::chrono::system_clock::now();
 	auto time = std::chrono::system_clock::to_time_t(now);
 	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
-	std::stringstream bufferStream;
 	bufferStream << std::put_time(std::localtime(&time), "%H:%M:%S");
 	bufferStream << fmt::format(".{:03}", ms.count());
 	return fmt::format("[{}]", bufferStream.str());
@@ -64,17 +64,16 @@ OutputLogger::OutputLogger()
 	{
 		std::filesystem::create_directories(fileName.parent_path());
 	}
-	catch (const std::exception& e)
+	catch (const std::exception& exception)
 	{
-		std::cout << "Error: " << e.what() << std::endl;
+		Logger.Error("An error occurred creating debug log directories -> {}", exception.what());
 	}
 
 	outputLogStream = std::make_shared<std::ofstream>(fileName);
 
-    // Check if the file stream is open
     if (!outputLogStream->is_open()) 
 	{
-        std::cerr << "Failed to open the file." << std::endl;
+		Logger.Error("Couldn't open output log stream.");
         return;
     }
 }
