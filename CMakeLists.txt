@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5.0)
 
-set(VCPKG_TARGET_TRIPLET "x86-windows-static")
+# set(VCPKG_TARGET_TRIPLET "x86-windows-static")
 set(PRIVATE_PRODUCT_NAME "Millennium")
 set(MILLENNIUM_VERSION   "2.1.0")
 
