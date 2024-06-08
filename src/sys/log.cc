@@ -112,7 +112,7 @@ void OutputLogger::LogHead(std::string strHeadTitle)
 		SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
 	}
 	#endif
-    std::cout << "\n[┬] ";
+	std::cout << "\n[┬] ";
 	#ifdef _WIN32
 	{
 		SetConsoleTextAttribute(hConsole, COLOR_WHITE);
@@ -133,7 +133,7 @@ void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool 
 		SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
 	}
 	#endif
-    std::cout << " " << connectorPiece << "──[" <<pluginName << "]: ";
+	std::cout << " " << connectorPiece << "──[" <<pluginName << "]: ";
 	#ifdef _WIN32
 	{
 		SetConsoleTextAttribute(hConsole, COLOR_WHITE);

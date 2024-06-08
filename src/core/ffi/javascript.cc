@@ -76,17 +76,23 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
     {
         auto& param = *iterator;
 
-        if (param.type == "str") 
+        switch (param.type)
         {
-            strFunctionFormatted += fmt::format("\"{}\"", param.pluginName); 
-        }
-        else if (param.type == "bool") 
-        { 
-            strFunctionFormatted += boolMap[param.pluginName];
-        }
-        else 
-        { 
-            strFunctionFormatted += param.pluginName; 
+            case JavaScript::Types::String: 
+            {
+                strFunctionFormatted += fmt::format("\"{}\"", param.pluginName);
+                break;
+            }
+            case JavaScript::Types::Boolean: 
+            {
+                strFunctionFormatted += boolMap[param.pluginName];
+                break;
+            }
+            default: 
+            {
+                strFunctionFormatted += param.pluginName;
+                break;
+            }
         }
 
         if (std::next(iterator) != fnParams.end()) 

@@ -23,7 +23,7 @@ public:
 
 namespace Python {
 
-	enum ReturnTypes {
+	enum Types {
 		Boolean,
 		String,
 		Integer,
@@ -33,7 +33,7 @@ namespace Python {
 
 	struct EvalResult {
 		std::string plain;
-		ReturnTypes type;
+		Types type;
 	};
 
 	std::string ConstructFunctionCall(nlohmann::basic_json<> data);
@@ -43,6 +43,18 @@ namespace Python {
 }
 
 namespace JavaScript {
+
+    enum Types {
+        Boolean,
+        String,
+        Integer
+    };
+
+    struct JsFunctionConstructTypes
+    {
+        std::string pluginName;
+        Types type;
+    };
 
     using EventHandler = std::function<void(const nlohmann::json& eventMessage, int listenerId)>;
 
@@ -92,11 +104,6 @@ namespace JavaScript {
             }
         }
     };
-
-	struct JsFunctionConstructTypes
-	{
-		std::string pluginName, type;
-	};
 
 	const std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
 

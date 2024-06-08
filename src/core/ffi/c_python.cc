@@ -54,30 +54,30 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
             if (errorMessage) 
             {
                 Logger.Error(fmt::format("[interop-dispatch] Error calling backend function: {}", errorMessage));
-                return { errorMessage, Python::ReturnTypes::Error };
+                return { errorMessage, Python::Types::Error };
             }
             else 
             {
-                return { "unknown error", Python::ReturnTypes::Error};
+                return { "unknown error", Python::Types::Error};
             }
         }
     }
 
     if (EvaluatedObj == nullptr || EvaluatedObj == Py_None) 
     {
-        return { "0", Python::ReturnTypes::Integer }; // whitelist NoneType
+        return { "0", Python::Types::Integer }; // whitelist NoneType
     }
     if (PyBool_Check(EvaluatedObj)) 
     {
-        return { PyLong_AsLong(EvaluatedObj) == 0 ? "False" : "True", Python::ReturnTypes::Boolean };
+        return { PyLong_AsLong(EvaluatedObj) == 0 ? "False" : "True", Python::Types::Boolean };
     }
     else if (PyLong_Check(EvaluatedObj)) 
     {
-        return { std::to_string(PyLong_AsLong(EvaluatedObj)), Python::ReturnTypes::Integer };
+        return { std::to_string(PyLong_AsLong(EvaluatedObj)), Python::Types::Integer };
     }
     else if (PyUnicode_Check(EvaluatedObj)) 
     {
-        return { PyUnicode_AsUTF8(EvaluatedObj), Python::ReturnTypes::String };
+        return { PyUnicode_AsUTF8(EvaluatedObj), Python::Types::String };
     }
 
     PyObject* objectType = PyObject_Type(EvaluatedObj);
@@ -87,7 +87,7 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
     Py_XDECREF(objectType);
     Py_XDECREF(strObjectType);
 
-    return { fmt::format("Millennium expected return type [int, str, bool] but received [{}]", strTypeName) , Python::ReturnTypes::Error };
+    return { fmt::format("Millennium expected return type [int, str, bool] but received [{}]", strTypeName) , Python::Types::Error };
 }
 
 Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)

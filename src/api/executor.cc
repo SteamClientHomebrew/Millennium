@@ -56,6 +56,13 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
         return NULL;
     }
 
+    std::map<std::string, JavaScript::Types> typeMap 
+    {
+        { "str", JavaScript::Types::String },
+        { "bool", JavaScript::Types::Boolean },
+        { "int", JavaScript::Types::Integer }
+    };
+
     std::vector<JavaScript::JsFunctionConstructTypes> params;
 
     if (parameterList != NULL)
@@ -74,13 +81,15 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
             const std::string strValue  = PyUnicode_AsUTF8(PyObject_Str(listItem));
             const std::string valueType = Py_TYPE(listItem)->tp_name;
 
-            if (valueType != "str" && valueType != "bool" && valueType != "int")
+            try 
+            {
+                params.push_back({ strValue, typeMap[valueType] });
+            }
+            catch (const std::out_of_range& e) 
             {
                 PyErr_SetString(PyExc_TypeError, "Millennium's IPC can only handle [bool, str, int]");
                 return NULL;
             }
-
-            params.push_back({ strValue, valueType });
         }
     }
 
