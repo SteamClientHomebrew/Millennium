@@ -9,78 +9,75 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: true
 
-    - name: Setup MSVC
+    - name: (Generator) Setup Minimal MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: x86
 
-    - name: Download Python source
+    - name: (Dependency) Build Python 3.11.8
       run: |
+    
+        # download python 3.11.8 source code
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
+        # extract the tarball
         tar -xzvf Python-3.11.8.tgz >nul 2>&1
-
-    - name: Modify build configuration for /MT
-      run: |
+        # enter the source directory
         cd Python-3.11.8
-        dir
-        # Modify PCbuild/pcbuild.sln and PCbuild/pythoncore.vcxproj to use /MT instead of /MD
+
+        # edit the build files to statically link msvc runtime so the user doesn't need it installed
         powershell -Command "(Get-Content PCbuild/pcbuild.sln) -replace '/MD', '/MT' | Set-Content PCbuild/pcbuild.sln"
         powershell -Command "(Get-Content PCbuild/pythoncore.vcxproj) -replace '<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>', '<RuntimeLibrary>MultiThreaded</RuntimeLibrary>' | Set-Content PCbuild/pythoncore.vcxproj"
 
-    - name: Build Python
-      run: |
-        cd Python-3.11.8
-        dir
-        ./PCbuild/get_externals.bat # get python external libs before build
+        # get python external libs before build
+        ./PCbuild/get_externals.bat
+        # build python 3.11.8 as win32 and release
         msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
-
-    - name: Verify build
-      run: |
-        cd Python-3.11.8
+        # verify python is installed
         PCbuild\win32\python.exe --version
 
-    - name: Set up Visual Studio 2022
+    - name: (Generator) Integrate VS2022
       uses: microsoft/setup-msbuild@v2
       with:
         vs-version: '17'
 
-    - name: Install CMake
+    - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v1
       with:
         cmake-version: '3.21.1'
 
-    - name: Install vcpkg
+    - name: (Dependency) Install vcpkg
       run: |
+        # clone vcpkg to 
         git clone https://github.com/microsoft/vcpkg.git
         cd vcpkg
+        # bootstrap and install vcpkg
         .\bootstrap-vcpkg.bat
         .\vcpkg integrate install
       shell: pwsh
 
-    - name: Configure CMake
+    - name: (Generator) Configure CMake
       run: |
+        # set vs variables for cache generation
         "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
+        # generate cache for x86/win32 with vs 
+        # - actions-windows-x86 @ CMakeUserPresets.json
+        # - GITHUB_ACTION_BUILD (boolean) is a macro to help set include paths in CMakeLists.txt
         cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022" -A Win32 -DGITHUB_ACTION_BUILD=ON
 
-    - name: Build
+    - name: Build Millennium
       run: |
+        # build millennium with msvc; x86; release
         cmake --build build --config Release
 
-    - name: Set up release environment
-      run: |
-        # Create the build directory if it doesn't exist
-        mkdir -p D:/a/Millennium/Millennium/release-dir
-          
-        # Move the python311.dll file to the build directory
+        # Move the python311.dll binary to the release directory
         move D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:\a\Millennium\Millennium\build\Release\python311.dll
-        # move D:/a/Millennium/Millennium/build/user32.dll D:\a\Millennium\Millennium\release-dir\user32.dll
 
-    - name: Upload build folder
-      uses: actions/upload-artifact@v3
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: build-folder
+        name: millennium
         path: D:/a/Millennium/Millennium/build/Release
