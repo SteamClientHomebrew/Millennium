@@ -16,7 +16,7 @@
     },
     "venv": {
       "type": "string",
-      "markdownDescription": "A relative path to the virtaul python environment.\nFor example if your virtual environment path is `.venv`, then inside `.venv` you should find a `Lib` containing python packages.\n\nYou can create a python virtual environment with the command ```python -m venv .venv``` where .venv is the relative path its created at."
+      "markdownDescription": "A relative path to the virtual python environment.\nFor example if your virtual environment path is `.venv`, then inside `.venv` you should find a `Lib` containing python packages.\n\nYou can create a python virtual environment with the command ```python -m venv .venv``` where .venv is the relative path its created at."
     }
   },
   "required": [
