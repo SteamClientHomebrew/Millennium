@@ -50,16 +50,12 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
         if (pStrErrorMessage) 
         {
             const char* errorMessage = PyUnicode_AsUTF8(pStrErrorMessage);
+            Python::EvalResult exceptionResult = { errorMessage ? errorMessage : "Unknown Error.", Python::Types::Error };
 
-            if (errorMessage) 
-            {
-                Logger.Error(fmt::format("[interop-dispatch] Error calling backend function: {}", errorMessage));
-                return { errorMessage, Python::Types::Error };
-            }
-            else 
-            {
-                return { "unknown error", Python::Types::Error};
-            }
+            Logger.Error(fmt::format(
+                "[interop-dispatch] An error occurred while calling a backend method.\n\t"
+                "Attempted to eval: {},\n\tException information: {}", script, exceptionResult.plain
+            ));
         }
     }
 

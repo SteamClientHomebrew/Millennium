@@ -178,12 +178,11 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     Logger.Log("updating a plugins status.");
 
     const char* pluginName;
-    Py_ssize_t pluginNameLength;
     PyObject* statusObj;
 
-    if (!PyArg_ParseTuple(args, "s#O", &pluginName, &pluginNameLength, &statusObj))
+    if (!PyArg_ParseTuple(args, "sO", &pluginName, &statusObj))
     {
-        return NULL;
+        return NULL; // Parsing failed
     }
 
     if (!PyBool_Check(statusObj))
@@ -192,19 +191,16 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    std::string pluginNameStr(pluginName, pluginNameLength);
-
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
-    settingsStore->TogglePluginStatus(pluginNameStr.c_str(), newToggleStatus);
-
+    settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
     CoInitializer::ReInjectFrontendShims();
 
-    if (!newToggleStatus) 
+    if (!newToggleStatus)
     {
         Logger.Log("requested to shutdown plugin [{}]", pluginName);
         std::thread(std::bind(&PythonManager::ShutdownPlugin, &manager, pluginName)).detach();
     }
-    else 
+    else
     {
         Logger.Log("requested to enable plugin [{}]", pluginName);
 
@@ -217,8 +213,8 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
                 continue;
             }
 
-            // const auto createCallBack = std::bind(BackendStartCallback, std::placeholders::_1);
-            std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, CoInitializer::BackendStartCallback)).detach();
+            std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
+            std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, cb)).detach();
         }
     }
 
