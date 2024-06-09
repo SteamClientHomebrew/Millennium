@@ -1,27 +1,4 @@
-# Ignore compiled binaries
-*.exe
-*.o
-
-# Ignore log files
-*.log
-
-# Ignore directories
-dist/
-bin/
-intermediate/
-.vs/
-obj/
-packages/
-src/core/ipc/client_secret.hpp
-millennium.installer/node_modules/
-millennium.installer/build/
-millennium.installer/dist/
-millennium.installer/dist-electron/
-
-millennium.updater/bin
-
-cmake-build-debug
-build
-# Ignore Clion config
-.idea/
-.vscode/
+/build
+/.vscode
+/.vs
+/out

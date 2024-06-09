@@ -1,1 +1,0 @@
-const char* GET_SDK_REF();

@@ -1,150 +1,162 @@
-cmake_minimum_required(VERSION 3.14)
-project(millennium LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.5.0)
 
-include(FetchContent)
-FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
-        GIT_TAG 3b15fa82ea74739b574d705fea44959b58142eb8)
+# set(VCPKG_TARGET_TRIPLET "x86-windows-static")
+set(PRIVATE_PRODUCT_NAME "Millennium")
+set(MILLENNIUM_VERSION   "2.1.0")
 
-set(CPR_ENABLE_SSL OFF)
-FetchContent_MakeAvailable(cpr)
+# build boxer statically 
+set(BUILD_SHARED_LIBS OFF)
 
-if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-    add_compile_options(-Wno-format-security)
+project(Millennium LANGUAGES CXX)
+
+if (WIN32 AND NOT GITHUB_ACTION_BUILD)
+    # debug output paths
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
+    set(LIBRARY_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
 endif()
 
-# Specify C++ standard globally
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+string(REPLACE "." "," INTERNAL_VERSION "${MILLENNIUM_VERSION}")
 
-add_library(mprhost SHARED vendor/wrapper/host.cpp)
-
-set_target_properties(mprhost PROPERTIES PREFIX "")
-set_target_properties(mprhost PROPERTIES OUTPUT_NAME "libmount")
-set_target_properties(mprhost PROPERTIES SUFFIX ".so.1")
-
-set_target_properties(mprhost PROPERTIES
-        LIBRARY_OUTPUT_DIRECTORY "~/.steam/steam/ubuntu12_64/"
-)
-message("built millennium pr-hoster")
-
-# Include directories for all configurations
-include_directories(
-    "${CMAKE_SOURCE_DIR}/src"
-    "${CMAKE_SOURCE_DIR}/vendor/fmt/include"
-    "${CMAKE_SOURCE_DIR}/vendor/asio/asio/include"
-    "${CMAKE_SOURCE_DIR}/vendor/nlohmann/include"
-    "${CMAKE_SOURCE_DIR}/vendor/websocketpp"
-)
-
-# Set up configurations
-set(CMAKE_CONFIGURATION_TYPES Debug Release)
-
-# Define preprocessor definitions
+# Set version information
 add_compile_definitions(
-    FMT_HEADER_ONLY
-    _WEBSOCKETPP_CPP11_THREAD_
-    CURL_STATICLIB
-    ASIO_HAS_STD_INVOKE_RESULT
-    _WEBSOCKETPP_CPP11_TYPE_TRAITS_
-    _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
-    ASIO_STANDALONE
-    _CRT_SECURE_NO_WARNINGS
+    MILLENNIUM_VERSION="${MILLENNIUM_VERSION}"
+
+    VER_COMPANYNAME_STR="Steam Homebrew."
+    VER_PRIVATEBUILD=${MILLENNIUM_VERSION}
+    VER_PRERELEASE=${MILLENNIUM_VERSION}
+    VER_DEBUG=${MILLENNIUM_VERSION}
+    VER_FILEVERSION_STR="${MILLENNIUM_VERSION}"
+    VER_FILEVERSION=${INTERNAL_VERSION}
+    VER_PRODUCTVERSION_STR="${MILLENNIUM_VERSION}"
+    VER_PRODUCTVERSION=${INTERNAL_VERSION}
+    VER_FILEDESCRIPTION_STR="A plugin loader for the modern Steam Client."
+    VER_INTERNALNAME_STR="${PRIVATE_PRODUCT_NAME}"
+    VER_LEGALCOPYRIGHT_STR="Copyright \(c\) Steam Homebrew."
+    VER_LEGALTRADEMARKS1_STR="Copyright \(c\) Steam Homebrew."
+    VER_LEGALTRADEMARKS2_STR="Copyright \(c\) Steam Homebrew."
+    VER_ORIGINALFILENAME_STR="${PRIVATE_PRODUCT_NAME}"
+    VER_PRODUCTNAME_STR="${PRIVATE_PRODUCT_NAME}"
 )
+
+# Compile as release and compile MSVC as MT (static)
+set(CMAKE_BUILD_TYPE Release)
+if (WIN32)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+elseif(UNIX)
+  set(CMAKE_CXX_FLAGS "-fpermissive")
+endif()
+
+# build boxer (message-box lib)
+add_subdirectory(vendor/boxer)
+
+# add_compile_options(-g -Og -lz)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/deps/imgui
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/glfw
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/asio/asio/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/nlohmann/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/websocketpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/websocketpp/websocketpp
-    ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/vendor/fmt/include
+  ${CMAKE_SOURCE_DIR}/vendor/asio/asio/include
+  ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
+  ${CMAKE_SOURCE_DIR}/vendor/websocketpp
+  ${CMAKE_SOURCE_DIR}/vendor/incbin
 )
 
-link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
+add_compile_definitions(
+  CURL_STATICLIB # static lcurl
+
+  # prevent websocketpp from using boost
+  _WEBSOCKETPP_CPP11_THREAD_
+  _WEBSOCKETPP_CPP11_TYPE_TRAITS_
+  _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
+
+  ASIO_STANDALONE # static asio
+  ASIO_HAS_STD_INVOKE_RESULT # prevent use of boost
+
+  FMT_HEADER_ONLY # implicit static link
+  _CRT_SECURE_NO_WARNINGS
 )
 
-set(SOURCE_FILES
-    src/core/injector/conditions/conditionals.cpp
-    src/core/injector/event_handler.cpp
-    src/core/injector/startup/bootstrap.cpp
-    src/core/injector/startup/welcome_modal.cpp
-    src/core/ipc/handlers/cor.cpp
-    src/core/ipc/ipc_main.cpp
-    src/core/steam/cef_manager.cpp
-    src/core/steam/window/manager.cpp
-    src/utils/io/metrics.cpp
-    src/scripts/sdk/sdk.cpp
-    src/stdafx.cpp
-    src/utils/clr/platform.cpp
-    src/utils/io/input-output.cpp
-    src/utils/thread/thread_handler.cpp
-    src/utils/updater/update.cpp
-    src/window/api/installer.cpp
-    src/window/core/colors.cpp
-    src/window/interface_v2/editor.cpp
-    src/window/interface_v2/settings.cpp
-    src/main.cpp
-    src/utils/cout/logger.cpp
-    src/utils/config/config.cpp
-    src/utils/http/http_client.cpp
-    src/window/interface/globals.cpp
+find_package(cpr CONFIG REQUIRED) # used for web requests. 
+# find_package(Python REQUIRED COMPONENTS Interpreter Development) # used to run plugin backends
+if (WIN32)
+	find_package(unofficial-git2 CONFIG REQUIRED) # update millennium modules
+endif()
+
+include_directories(
+  # ${Python_INCLUDE_DIRS}
+  #"C:/Program Files (x86)/Python311-32/include"
+  ${CMAKE_SOURCE_DIR}/vendor/python/include
+
+  ${LIBGIT2_INCLUDE_DIRS}
 )
 
-set(HEADER_FILES
-    src/core/injector/conditions/conditionals.hpp
-    src/core/injector/event_handler.hpp
-    src/core/injector/startup/bootstrap.hpp
-    src/core/injector/startup/welcome_modal.hpp
-    src/core/ipc/handlers/types.hpp
-    src/core/ipc/ipc_main.hpp
-    src/core/steam/application.hpp
-    src/core/steam/cef_manager.hpp
-    src/core/steam/colors/accent_colors.hpp
-    src/core/steam/window/manager.hpp
-    src/core/steam/window/types/accent_api.hpp
-    src/core/steam/window/types/corners.hpp
-    src/core/steam/window/types/system_backdrop_type.hpp
-    src/utils/io/metrics.hpp
-    src/scripts/sdk/sdk.hpp
-    src/utils/base64.hpp
-    src/utils/clr/platform.hpp
-    src/utils/io/input-output.hpp
-    src/utils/thread/thread_handler.hpp
-    src/utils/updater/update.hpp
-    src/window/api/installer.hpp
-    src/window/core/colors.hpp
-    src/window/interface_v2/editor.hpp
-    src/window/interface_v2/settings.hpp
-    src/scripts/resource.h
-    src/stdafx.h
-    src/utils/config/config.hpp
-    src/utils/http/http_client.hpp
-    src/utils/json.hpp
-    src/utils/cout/logger.hpp
-    src/utils/config/config.hpp
-    src/window/interface/globals.h
+set(SOURCE_FILES 
+  "src/main.cc"
+  "src/core/loader.cc"
+  "src/core/py_controller/co_spawn.cc"
+  "src/core/ffi/c_python.cc"
+  "src/core/ffi/javascript.cc"
+  "src/core/ffi/gil.cc"
+  "src/core/co_initialize/co_stub.cc"
+  "src/core/hooks/web_load.cc"
+  "src/core/ipc/pipe.cc"
+  "src/sys/log.cc"
+  "src/sys/io.cc"
+  "src/sys/settings.cc"
+  "src/api/executor.cc"
+  "src/deps/module.cc"
 )
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
-#add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${HEADER_FILES})
-#set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
-#set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "libxcb")
-#set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".so.1")
+if (WIN32)
+  add_library(Millennium SHARED "${SOURCE_FILES}" version.rc)
+  # add_executable(Millennium "${SOURCE_FILES}" version.rc)
+elseif(UNIX)
+  add_executable(Millennium "${SOURCE_FILES}")
+endif()
 
-get_target_property(target_type ${PROJECT_NAME} TYPE)
-if (target_type STREQUAL "EXECUTABLE")
-    add_definitions(-D_MILLENNIUM_STANDALONE_)
-endif ()
-if (target_type STREQUAL "SHARED_LIBRARY")
-    add_definitions(-D_MILLENNIUM_INTEGRATED_)
-endif ()
+set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
+set_target_properties(Millennium PROPERTIES PREFIX "")
+set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+if(MSVC)
+    # prevent MSVC from generating .lib and .exp archives
+    set_target_properties(Millennium PROPERTIES ARCHIVE_OUTPUT_NAME "" LINK_FLAGS "/NOEXP")
+endif()
+
+if (GITHUB_ACTION_BUILD)
+    message("${GITHUB_ACTION_BUILD}")
+endif()
+
+if(WIN32)
+  # link windows defined socket headers
+  target_link_libraries(Millennium
+    Ws2_32.lib
+    wsock32
+    Boxer
     cpr::cpr
-)
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME}-${CMAKE_BUILD_TYPE}"
-    LIBRARY_OUTPUT_DIRECTORY "~/.local/share/Steam/ubuntu12_32/"
-)
+    # ${Python_LIBRARIES}
+    unofficial::git2::git2
+  )
+  if (GITHUB_ACTION_BUILD)
+    target_link_libraries(Millennium 
+    "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib"
+    "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib")
+  else()
+    target_link_libraries(Millennium 
+     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
+     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib"
+    )
+  endif()
+
+elseif(UNIX)
+  target_link_libraries(Millennium
+      Boxer
+      cpr::cpr
+      git2
+      Python::Python
+  )
+endif()

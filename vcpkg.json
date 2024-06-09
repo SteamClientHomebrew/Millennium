@@ -1,0 +1,6 @@
+{
+  "dependencies": [
+    "libgit2",
+    "cpr"
+  ]
+}
