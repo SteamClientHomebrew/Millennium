@@ -18,12 +18,6 @@ jobs:
       with:
         arch: x86
 
-    - name: Install Python 3.11.8
-      run: |
-        curl -L -o python-3.11.8.exe https://www.python.org/ftp/python/3.11.8/python-3.11.8.exe
-        dir
-        ./python-3.11.8.exe /passive InstallAllUsers=1 PrependPath=1 Include_doc=0 Include_launcher=0
-
     - name: Download Python source
       run: |
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
@@ -41,12 +35,12 @@ jobs:
       run: |
         cd Python-3.11.8
         dir
-        # msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
+        msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
 
-    # - name: Verify build
-    #   run: |
-    #     cd Python-3.11.8
-    #     PCbuild\win32\python.exe --version
+    - name: Verify build
+      run: |
+        cd Python-3.11.8
+        PCbuild\win32\python.exe --version
 
     - name: Set up Visual Studio 2022
       uses: microsoft/setup-msbuild@v2
