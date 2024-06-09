@@ -18,6 +18,11 @@ jobs:
       with:
         arch: x86
 
+    - name: Install Python 3.11.8
+      run: |
+        curl -L -o python-3.11.8.exe https://www.python.org/ftp/python/3.11.8/python-3.11.8.exe
+        python-3.11.8.exe /quiet InstallAllUsers=1 PrependPath=1 Include_doc=0 Include_launcher=0
+
     - name: Download Python source
       run: |
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
@@ -35,7 +40,7 @@ jobs:
       run: |
         cd Python-3.11.8
         dir
-        PCbuild\build.bat -e -p x86
+        msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
 
     - name: Verify build
       run: |
@@ -63,7 +68,7 @@ jobs:
     - name: Configure CMake
       run: |
         "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
-        cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022" -A Win32
+        cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022" -A Win32 -DGITHUB_ACTION_BUILD=ON
 
     - name: Build
       run: |

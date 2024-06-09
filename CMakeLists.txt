@@ -89,13 +89,12 @@ endif()
 include_directories(
   # ${Python_INCLUDE_DIRS}
   "C:/Program Files (x86)/Python311-32/include"
-  "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/Include"
-  "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\Include"
+
   ${LIBGIT2_INCLUDE_DIRS}
 )
 
 set(SOURCE_FILES 
-  "src/core/main.cc"
+  "src/main.cc"
   "src/core/loader.cc"
   "src/core/py_controller/co_spawn.cc"
   "src/core/ffi/c_python.cc"
@@ -127,6 +126,10 @@ if(MSVC)
     set_target_properties(Millennium PROPERTIES ARCHIVE_OUTPUT_NAME "" LINK_FLAGS "/NOEXP")
 endif()
 
+if (GITHUB_ACTION_BUILD)
+    message("${GITHUB_ACTION_BUILD}")
+endif()
+
 if(WIN32)
   # link windows defined socket headers
   target_link_libraries(Millennium
@@ -135,13 +138,18 @@ if(WIN32)
     Boxer
     cpr::cpr
     # ${Python_LIBRARIES}
-    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
-    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib"
-    # for github actions
-    "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib"
-    "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib"
     unofficial::git2::git2
   )
+  if (GITHUB_ACTION_BUILD)
+    target_link_libraries(Millennium 
+    "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib"
+    "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib")
+  else()
+    target_link_libraries(Millennium 
+    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
+    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib")
+  endif()
+
 elseif(UNIX)
   target_link_libraries(Millennium
       Boxer
