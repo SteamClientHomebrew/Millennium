@@ -31,15 +31,10 @@ jobs:
         powershell -Command "(Get-Content PCbuild/pcbuild.sln) -replace '/MD', '/MT' | Set-Content PCbuild/pcbuild.sln"
         powershell -Command "(Get-Content PCbuild/pythoncore.vcxproj) -replace '<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>', '<RuntimeLibrary>MultiThreaded</RuntimeLibrary>' | Set-Content PCbuild/pythoncore.vcxproj"
 
-    - name: Configure build environment
-      run: |
-        cd Python-3.11.8
-        dir
-        PCbuild\prepare.bat
-
     - name: Build Python
       run: |
         cd Python-3.11.8
+        dir
         PCbuild\build.bat -e -p x86
 
     - name: Verify build
