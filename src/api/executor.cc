@@ -85,7 +85,7 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
             {
                 params.push_back({ strValue, typeMap[valueType] });
             }
-            catch (const std::out_of_range& e) 
+            catch (const std::exception&) 
             {
                 PyErr_SetString(PyExc_TypeError, "Millennium's IPC can only handle [bool, str, int]");
                 return NULL;

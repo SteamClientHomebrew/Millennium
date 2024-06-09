@@ -81,7 +81,7 @@ add_compile_definitions(
 )
 
 find_package(cpr CONFIG REQUIRED) # used for web requests. 
-find_package(Python REQUIRED COMPONENTS Interpreter Development) # used to run plugin backends
+# find_package(Python REQUIRED COMPONENTS Interpreter Development) # used to run plugin backends
 if (WIN32)
 	find_package(unofficial-git2 CONFIG REQUIRED) # update millennium modules
 endif()
@@ -146,8 +146,9 @@ if(WIN32)
     "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib")
   else()
     target_link_libraries(Millennium 
-    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
-    "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib")
+     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
+     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib"
+    )
   endif()
 
 elseif(UNIX)
