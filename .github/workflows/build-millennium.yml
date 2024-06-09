@@ -26,6 +26,7 @@ jobs:
     - name: Modify build configuration for /MT
       run: |
         cd Python-3.11.8
+        dir
         # Modify PCbuild/pcbuild.sln and PCbuild/pythoncore.vcxproj to use /MT instead of /MD
         powershell -Command "(Get-Content PCbuild/pcbuild.sln) -replace '/MD', '/MT' | Set-Content PCbuild/pcbuild.sln"
         powershell -Command "(Get-Content PCbuild/pythoncore.vcxproj) -replace '<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>', '<RuntimeLibrary>MultiThreaded</RuntimeLibrary>' | Set-Content PCbuild/pythoncore.vcxproj"
@@ -33,6 +34,7 @@ jobs:
     - name: Configure build environment
       run: |
         cd Python-3.11.8
+        dir
         PCbuild\prepare.bat
 
     - name: Build Python
