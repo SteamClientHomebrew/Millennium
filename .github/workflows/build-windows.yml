@@ -1,4 +1,4 @@
-name: Build Millennium
+name: Build Millennium (Windows)
 
 on:
   workflow_dispatch:
