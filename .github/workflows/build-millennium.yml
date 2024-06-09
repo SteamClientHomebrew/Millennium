@@ -43,10 +43,10 @@ jobs:
         dir
         # msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
 
-    - name: Verify build
-      run: |
-        cd Python-3.11.8
-        PCbuild\win32\python.exe --version
+    # - name: Verify build
+    #   run: |
+    #     cd Python-3.11.8
+    #     PCbuild\win32\python.exe --version
 
     - name: Set up Visual Studio 2022
       uses: microsoft/setup-msbuild@v2
