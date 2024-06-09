@@ -21,6 +21,7 @@ jobs:
     - name: Install Python 3.11.8
       run: |
         curl -L -o python-3.11.8.exe https://www.python.org/ftp/python/3.11.8/python-3.11.8.exe
+        dir
         python-3.11.8.exe /quiet InstallAllUsers=1 PrependPath=1 Include_doc=0 Include_launcher=0
 
     - name: Download Python source
