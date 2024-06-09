@@ -196,28 +196,28 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
     CoInitializer::ReInjectFrontendShims();
 
-    if (!newToggleStatus)
-    {
-        Logger.Log("requested to shutdown plugin [{}]", pluginName);
-        std::thread(std::bind(&PythonManager::ShutdownPlugin, &manager, pluginName)).detach();
-    }
-    else
-    {
-        Logger.Log("requested to enable plugin [{}]", pluginName);
+    //if (!newToggleStatus)
+    //{
+    //    Logger.Log("requested to shutdown plugin [{}]", pluginName);
+    //    std::thread(std::bind(&PythonManager::ShutdownPlugin, &manager, pluginName)).detach();
+    //}
+    //else
+    //{
+    //    Logger.Log("requested to enable plugin [{}]", pluginName);
 
-        std::vector<SettingsStore::PluginTypeSchema> m_pluginsPtr = settingsStore->ParseAllPlugins();
+    //    std::vector<SettingsStore::PluginTypeSchema> m_pluginsPtr = settingsStore->ParseAllPlugins();
 
-        for (auto plugin : m_pluginsPtr)
-        {
-            if (plugin.pluginName != pluginName)
-            {
-                continue;
-            }
+    //    for (auto plugin : m_pluginsPtr)
+    //    {
+    //        if (plugin.pluginName != pluginName)
+    //        {
+    //            continue;
+    //        }
 
-            std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
-            std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, cb)).detach();
-        }
-    }
+    //        std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
+    //        std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, plugin, cb)).detach();
+    //    }
+    //}
 
     Py_RETURN_NONE;
 }
