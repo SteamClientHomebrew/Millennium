@@ -13,6 +13,38 @@ jobs:
       with:
         submodules: true
 
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
+
+    - name: Download Python source
+      run: |
+        curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
+        tar -xzvf Python-3.11.8.tgz
+
+    - name: Modify build configuration for /MT
+      run: |
+        cd Python-3.11.8
+        # Modify PCbuild/pcbuild.sln and PCbuild/pythoncore.vcxproj to use /MT instead of /MD
+        powershell -Command "(Get-Content PCbuild/pcbuild.sln) -replace '/MD', '/MT' | Set-Content PCbuild/pcbuild.sln"
+        powershell -Command "(Get-Content PCbuild/pythoncore.vcxproj) -replace '<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>', '<RuntimeLibrary>MultiThreaded</RuntimeLibrary>' | Set-Content PCbuild/pythoncore.vcxproj"
+
+    - name: Configure build
+      run: |
+        cd Python-3.11.8
+        tools\buildbot\prepare.bat
+
+    - name: Build Python
+      run: |
+        cd Python-3.11.8
+        tools\buildbot\build.bat -e -p x86
+
+    - name: Verify build
+      run: |
+        cd Python-3.11.8
+        PCbuild\amd64\python.exe --version
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
