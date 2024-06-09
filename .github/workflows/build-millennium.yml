@@ -33,17 +33,17 @@ jobs:
     - name: Configure build
       run: |
         cd Python-3.11.8
-        tools\buildbot\prepare.bat
+        ./tools/buildbot/prepare.bat
 
     - name: Build Python
       run: |
         cd Python-3.11.8
-        tools\buildbot\build.bat -e -p x86
+        ./tools\buildbot\build.bat -e -p x86
 
     - name: Verify build
       run: |
         cd Python-3.11.8
-        PCbuild\amd64\python.exe --version
+        ./PCbuild\amd64\python.exe --version
 
     - name: Set up Python
       uses: actions/setup-python@v2
