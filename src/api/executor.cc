@@ -173,16 +173,15 @@ This portion of the API is undocumented but you can use it.
 */
 PyObject* TogglePluginStatus(PyObject* self, PyObject* args) 
 { 
+    PyObject* statusObj;
+    const char* pluginName;
     PythonManager& manager = PythonManager::GetInstance();
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    Logger.Log("updating a plugins status.");
-
-    const char* pluginName;
-    PyObject* statusObj;
 
     if (!PyArg_ParseTuple(args, "sO", &pluginName, &statusObj))
     {
-        return NULL; // Parsing failed
+        PyErr_SetString(PyExc_RuntimeError, "Failed to parse parameters. expected [str, bool]");
+        return NULL;
     }
 
     if (!PyBool_Check(statusObj))
@@ -190,6 +189,8 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         PyErr_SetString(PyExc_TypeError, "Second argument must be a boolean");
         return NULL;
     }
+
+    Logger.Log("Updating active status on [{}]", pluginName);
 
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
     settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
