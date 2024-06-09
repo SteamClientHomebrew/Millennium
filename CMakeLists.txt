@@ -88,7 +88,8 @@ endif()
 
 include_directories(
   # ${Python_INCLUDE_DIRS}
-  "C:/Program Files (x86)/Python311-32/include"
+  #"C:/Program Files (x86)/Python311-32/include"
+  ${CMAKE_SOURCE_DIR}/vendor/python/include
 
   ${LIBGIT2_INCLUDE_DIRS}
 )
