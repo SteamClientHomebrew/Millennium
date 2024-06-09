@@ -5,16 +5,13 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         submodules: true
-
-
-
 
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
@@ -33,20 +30,14 @@ jobs:
 
     - name: (Generator) Configure CMake
       run: |
-        # set vs variables for cache generation
-        "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
-        # generate cache for x86/win32 with vs 
-        # - actions-windows-x86 @ CMakeUserPresets.json
-        # - GITHUB_ACTION_BUILD (boolean) is a macro to help set include paths in CMakeLists.txt
-        cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022" -A Win32 -DGITHUB_ACTION_BUILD=ON
+        cmake --preset=actions-linux -DGITHUB_ACTION_BUILD=ON
 
     - name: Build Millennium
       run: |
-        # build millennium with msvc; x86; release
         cmake --build build --config Release
 
         # Move the python311.dll binary to the release directory
-        move D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:\a\Millennium\Millennium\build\Release\python311.dll
+        # move D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:\a\Millennium\Millennium\build\Release\python311.dll
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
