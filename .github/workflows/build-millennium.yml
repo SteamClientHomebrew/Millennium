@@ -21,7 +21,7 @@ jobs:
     - name: Download Python source
       run: |
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
-        tar -xzvf Python-3.11.8.tgz
+        tar -xzvf Python-3.11.8.tgz >nul 2>&1
 
     - name: Modify build configuration for /MT
       run: |
@@ -30,20 +30,20 @@ jobs:
         powershell -Command "(Get-Content PCbuild/pcbuild.sln) -replace '/MD', '/MT' | Set-Content PCbuild/pcbuild.sln"
         powershell -Command "(Get-Content PCbuild/pythoncore.vcxproj) -replace '<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>', '<RuntimeLibrary>MultiThreaded</RuntimeLibrary>' | Set-Content PCbuild/pythoncore.vcxproj"
 
-    - name: Configure build
+    - name: Configure build environment
       run: |
         cd Python-3.11.8
-        ./tools/buildbot/prepare.bat
+        PCbuild\prepare.bat
 
     - name: Build Python
       run: |
         cd Python-3.11.8
-        ./tools\buildbot\build.bat -e -p x86
+        PCbuild\build.bat -e -p x86
 
     - name: Verify build
       run: |
         cd Python-3.11.8
-        ./PCbuild\amd64\python.exe --version
+        PCbuild\win32\python.exe --version
 
     - name: Set up Python
       uses: actions/setup-python@v2
