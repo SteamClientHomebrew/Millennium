@@ -41,7 +41,7 @@ jobs:
       run: |
         cd Python-3.11.8
         dir
-        msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
+        # msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
 
     - name: Verify build
       run: |
