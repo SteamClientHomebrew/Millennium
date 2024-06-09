@@ -35,6 +35,7 @@ jobs:
       run: |
         cd Python-3.11.8
         dir
+        ./PCbuild/get_externals.bat # get python external libs before build
         msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
 
     - name: Verify build
