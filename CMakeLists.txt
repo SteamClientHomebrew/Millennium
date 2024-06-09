@@ -89,6 +89,7 @@ endif()
 include_directories(
   # ${Python_INCLUDE_DIRS}
   "C:/Program Files (x86)/Python311-32/include"
+  "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/Include"
   ${LIBGIT2_INCLUDE_DIRS}
 )
 
