@@ -69,3 +69,18 @@ jobs:
     - name: Build
       run: |
         cmake --build build --config Release
+
+    - name: Set up release environment
+      run: |
+        # Create the build directory if it doesn't exist
+        mkdir -p D:/a/Millennium/Millennium/release-dir
+          
+        # Move the python311.dll file to the build directory
+        move D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:\a\Millennium\Millennium\release-dir\python311.dll
+        move D:/a/Millennium/Millennium/build/user32.dll D:\a\Millennium\Millennium\release-dir\user32.dll
+
+    - name: Upload build folder
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-folder
+        path: D:/a/Millennium/Millennium/release-dir
