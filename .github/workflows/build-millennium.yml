@@ -45,7 +45,7 @@ jobs:
         vs-version: '17'
 
     - name: (Generator) Install CMake
-      uses: jwlawson/actions-setup-cmake@v1
+      uses: jwlawson/actions-setup-cmake@v2
       with:
         cmake-version: '3.21.1'
 
