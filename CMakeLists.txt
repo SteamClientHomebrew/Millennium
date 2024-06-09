@@ -135,6 +135,8 @@ if(WIN32)
     # ${Python_LIBRARIES}
     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib"
+    # for github actions
+    "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib"
     unofficial::git2::git2
   )
 elseif(UNIX)
