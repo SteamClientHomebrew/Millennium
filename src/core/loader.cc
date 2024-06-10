@@ -61,7 +61,7 @@ public:
         browserClient = client; 
         browserHandle = handle;
 
-        Logger.Log("established browser connection @ {:p}", static_cast<void*>(&client));
+        // Logger.Log("established browser connection @ {:p}", static_cast<void*>(&client));
         webKitHandler->SetupGlobalHooks();
     }
 
@@ -83,7 +83,7 @@ public:
         sharedClient = client; 
         sharedHandle = handle;
 
-        Logger.Log("established shared connection @ {:p}", static_cast<void*>(&sharedClient));
+        // Logger.Log("established shared connection @ {:p}", static_cast<void*>(&sharedClient));
         CoInitializer::InjectFrontendShims();
     }
 };

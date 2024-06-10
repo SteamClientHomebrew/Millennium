@@ -263,23 +263,28 @@ public:
             try
             {
                 websocketpp::client<websocketpp::config::asio_client> socketClient;
+
                 socketClient.set_access_channels(websocketpp::log::alevel::none);
+                socketClient.clear_error_channels(websocketpp::log::elevel::none);
+
                 socketClient.init_asio();
                 socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
                 socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
 
-                websocketpp::lib::error_code ec;
-                websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = socketClient.get_connection(socketUrl, ec);
+                websocketpp::lib::error_code errorCode;
+                websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = socketClient.get_connection(socketUrl, errorCode);
 
-                if (ec) {
-                    throw websocketpp::exception(ec.message());
+                if (errorCode)
+                {
+                    throw websocketpp::exception(errorCode.message());
                 }
+
                 socketClient.connect(con);
                 socketClient.run();
             }
-            catch (websocketpp::exception& ex)
+            catch (websocketpp::exception& exception)
             {
-                Logger.Error("webSocket exception thrown -> {}", ex.what());
+                Logger.Error("webSocket exception thrown -> {}", exception.what());
             }
 
             Logger.Error("{} tunnel collapsed, attempting to reopen...", commonName);

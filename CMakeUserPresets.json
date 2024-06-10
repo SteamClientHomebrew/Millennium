@@ -22,6 +22,15 @@
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "D:/a/Millennium/Millennium/vcpkg/scripts/buildsystems/vcpkg.cmake"
       }
+    },
+    {
+      "name": "actions-linux",
+      "inherits": "x86",
+      "displayName": "GitHub Actions Windows Build",
+      "description": "Default build for GitHub Actions",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "D:/a/Millennium/Millennium/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
     }
   ]
 }

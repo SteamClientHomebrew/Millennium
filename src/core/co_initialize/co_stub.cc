@@ -220,7 +220,6 @@ const std::string ConstructOnLoadModule()
     {
         if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) 
         {    
-            Logger.Log("bootstrap skipping frontend {} [disabled]", plugin.pluginName);
             continue;
         }
 
