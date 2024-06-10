@@ -9,9 +9,9 @@
 #include <thread>
 #ifdef _WIN32
 #include <procmon/cmd.h>
+#include <procmon/thread.h>
 #endif
 #include <sys/locals.h>
-#include <procmon/thread.h>
 
 OutputLogger Logger;
 
@@ -38,12 +38,12 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message)
 
 OutputLogger::OutputLogger()
 {
+	#ifdef _WIN32
 	if (!IsSteamApplication())
 	{
 		return;
 	}
 
-	#ifdef _WIN32
 	{
 		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 

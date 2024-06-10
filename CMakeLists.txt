@@ -89,10 +89,16 @@ endif()
 include_directories(
   # ${Python_INCLUDE_DIRS}
   #"C:/Program Files (x86)/Python311-32/include"
-  ${CMAKE_SOURCE_DIR}/vendor/python/include
 
   ${LIBGIT2_INCLUDE_DIRS}
 )
+
+if(WIN32)
+  include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
+elseif(UNIX)
+  find_package(PythonLibs REQUIRED)
+  include_directories(${PYTHON_INCLUDE_DIRS})
+endif()
 
 set(SOURCE_FILES 
   "src/main.cc"
@@ -157,6 +163,6 @@ elseif(UNIX)
       Boxer
       cpr::cpr
       git2
-      Python::Python
+      ${Python_LIBRARIES}
   )
 endif()
