@@ -46,9 +46,6 @@ jobs:
         $vcxprojPath = "PCbuild/pythoncore.vcxproj"
         $content = Get-Content $vcxprojPath -Raw  # Read the entire content as a single string
 
-        Write-Output "Original Content:"
-        Write-Output $content
-
         $pattern = '</ClCompile>'
         $replacement = @"
         <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Release|Win32'">MultiThreaded</RuntimeLibrary>
@@ -57,10 +54,6 @@ jobs:
         "@
 
         $modifiedContent = $content -replace [regex]::Escape($pattern), $replacement
-
-        Write-Output "`nModified Content:"
-        Write-Output $modifiedContent
-
         $modifiedContent | Set-Content $vcxprojPath
       shell: pwsh
 
@@ -124,7 +117,7 @@ jobs:
         move D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:\a\Millennium\Millennium\build\Release\python311.dll
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-        
+
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
