@@ -28,8 +28,10 @@ jobs:
         # enter the source directory
         cd Python-3.11.8
 
-    - name: (Python )Stage Python 3.11.8 static build
+    - name: (Python) Stage Python 3.11.8 static build
       run: |
+        cd Python-3.11.8
+
         $vcxprojPath = "PCbuild/python.vcxproj"
         $content = Get-Content $vcxprojPath -Raw  # Read the entire content as a single string
 
@@ -55,6 +57,7 @@ jobs:
     - name: (Python) Build 3.11.8
       run: |
 
+        cd Python-3.11.8
         # get python external libs before build
         ./PCbuild/get_externals.bat
         # build python 3.11.8 as win32 and release
