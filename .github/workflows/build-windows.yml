@@ -8,6 +8,14 @@ jobs:
     runs-on: windows-latest
 
     steps:
+
+    - name: Export GitHub Actions cache environment variables
+      uses: actions/github-script@v7
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -27,6 +35,8 @@ jobs:
         tar -xzvf Python-3.11.8.tgz >nul 2>&1
         # enter the source directory
         cd Python-3.11.8
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
       # specify multithreaded runtime library, to exlude the need of MSVS runtime 140
     - name: (Python) Stage Python 3.11.8 static build
@@ -69,11 +79,15 @@ jobs:
       uses: microsoft/setup-msbuild@v2
       with:
         vs-version: '17'
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
       with:
         cmake-version: '3.21.1'
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Dependency) Install vcpkg
       run: |
@@ -85,6 +99,8 @@ jobs:
         .\bootstrap-vcpkg.bat
         .\vcpkg integrate install
       shell: pwsh
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Generator) Configure CMake
       run: |
@@ -95,6 +111,8 @@ jobs:
         # - actions-windows-x86 @ CMakeUserPresets.json
         # - GITHUB_ACTION_BUILD (boolean) is a macro to help set include paths in CMakeLists.txt
         cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022" -A Win32 -DGITHUB_ACTION_BUILD=ON
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Build Millennium
       run: |
@@ -104,7 +122,9 @@ jobs:
 
         # Move the python311.dll binary to the release directory
         move D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:\a\Millennium\Millennium\build\Release\python311.dll
-
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+        
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
