@@ -28,20 +28,20 @@ jobs:
         # enter the source directory
         cd Python-3.11.8
 
+      # specify multithreaded runtime library, to exlude the need of MSVS runtime 140
     - name: (Python) Stage Python 3.11.8 static build
       run: |
         cd Python-3.11.8
 
-        $vcxprojPath = "PCbuild/python.vcxproj"
+        $vcxprojPath = "PCbuild/pythoncore.vcxproj"
         $content = Get-Content $vcxprojPath -Raw  # Read the entire content as a single string
 
         Write-Output "Original Content:"
         Write-Output $content
 
-        $pattern = '<PreprocessorDefinitions>Py_BUILD_CORE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>'
+        $pattern = '<PreprocessorDefinitions Condition="`$(IncludeExternals)">_Py_HAVE_ZLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>'
         $replacement = @"
-        <PreprocessorDefinitions>Py_BUILD_CORE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-        <PreprocessorDefinitions>Py_BUILD_CORE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        <PreprocessorDefinitions Condition="`$(IncludeExternals)">_Py_HAVE_ZLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
         <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Release|Win32'">MultiThreaded</RuntimeLibrary>
         <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Debug|Win32'">MultiThreadedDebug</RuntimeLibrary>
         "@
