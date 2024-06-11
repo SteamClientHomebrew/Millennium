@@ -2,12 +2,6 @@ name: Build Millennium (Windows)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
@@ -32,45 +26,25 @@ jobs:
       with:
         arch: x86
 
-    - name: Set up cache for Python source
-      uses: actions/cache@v3
-      id: python-cache
-      with:
-        path: Python-3.11.8
-        key: ${{ runner.os }}-python-3.11.8-source-${{ hashFiles('.github/workflows/build-windows.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-python-3.11.8-source-
-
     - name: (Python) Download 3.11.8 win32 source
-      if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
+
         # download python 3.11.8 source code
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
         # extract the tarball
         tar -xzvf Python-3.11.8.tgz >nul 2>&1
+        # enter the source directory
+        cd Python-3.11.8
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
-    - name: Set up cache for build files
-      uses: actions/cache@v3
-      id: build-cache
-      with:
-        path: |
-          Python-3.11.8/PCbuild/amd64
-          Python-3.11.8/PCbuild/win32
-        key: ${{ runner.os }}-python-3.11.8-build-${{ hashFiles('.github/workflows/build-windows.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-python-3.11.8-build-
-
+      # specify multithreaded runtime library, to exlude the need of MSVS runtime 140
     - name: (Python) Stage Python 3.11.8 static build
       run: |
         cd Python-3.11.8
 
         $vcxprojPath = "PCbuild/pythoncore.vcxproj"
         $content = Get-Content $vcxprojPath -Raw  # Read the entire content as a single string
-
-        Write-Output "Original Content:"
-        Write-Output $content
 
         $pattern = '</ClCompile>'
         $replacement = @"
@@ -80,10 +54,6 @@ jobs:
         "@
 
         $modifiedContent = $content -replace [regex]::Escape($pattern), $replacement
-
-        Write-Output "`nModified Content:"
-        Write-Output $modifiedContent
-
         $modifiedContent | Set-Content $vcxprojPath
       shell: pwsh
 
