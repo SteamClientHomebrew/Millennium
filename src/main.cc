@@ -80,12 +80,12 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
-    #ifdef _WIN32
-    if (!IsSteamApplication())
-    {
-        return;
-    }
-    #endif
+    //#ifdef _WIN32
+    //if (!IsSteamApplication())
+    //{
+    //    return;
+    //}
+    //#endif
 
     const auto startTime = std::chrono::system_clock::now();
     {

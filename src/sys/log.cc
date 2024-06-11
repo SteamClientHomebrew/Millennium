@@ -39,10 +39,10 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message)
 OutputLogger::OutputLogger()
 {
 	#ifdef _WIN32
-	if (!IsSteamApplication())
-	{
-		return;
-	}
+	//if (!IsSteamApplication())
+	//{
+	//	return;
+	//}
 
 	{
 		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
