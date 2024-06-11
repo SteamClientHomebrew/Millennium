@@ -39,7 +39,7 @@ jobs:
         Write-Output "Original Content:"
         Write-Output $content
 
-        $pattern = '<PreprocessorDefinitions Condition="`$(IncludeExternals)">_Py_HAVE_ZLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>'
+        $pattern = '<PreprocessorDefinitions Condition="$(IncludeExternals)">_Py_HAVE_ZLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>'
         $replacement = @"
         <PreprocessorDefinitions Condition="`$(IncludeExternals)">_Py_HAVE_ZLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
         <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Release|Win32'">MultiThreaded</RuntimeLibrary>
