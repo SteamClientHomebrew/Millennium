@@ -18,9 +18,9 @@ jobs:
       with:
         arch: x86
 
-    - name: (Dependency) Build Python 3.11.8
+    - name: (Python) Download 3.11.8 win32 source
       run: |
-    
+
         # download python 3.11.8 source code
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
         # extract the tarball
@@ -28,9 +28,32 @@ jobs:
         # enter the source directory
         cd Python-3.11.8
 
-        # edit the build files to statically link msvc runtime so the user doesn't need it installed
-        powershell -Command "(Get-Content PCbuild/pcbuild.sln) -replace '/MD', '/MT' | Set-Content PCbuild/pcbuild.sln"
-        powershell -Command "(Get-Content PCbuild/pythoncore.vcxproj) -replace '<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>', '<RuntimeLibrary>MultiThreaded</RuntimeLibrary>' | Set-Content PCbuild/pythoncore.vcxproj"
+    - name: (Python )Stage Python 3.11.8 static build
+      run: |
+        $vcxprojPath = "PCbuild/python.vcxproj"
+        $content = Get-Content $vcxprojPath -Raw  # Read the entire content as a single string
+
+        Write-Output "Original Content:"
+        Write-Output $content
+
+        $pattern = '<PreprocessorDefinitions>Py_BUILD_CORE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>'
+        $replacement = @"
+        <PreprocessorDefinitions>Py_BUILD_CORE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        <PreprocessorDefinitions>Py_BUILD_CORE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Release|Win32'">MultiThreaded</RuntimeLibrary>
+        <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Debug|Win32'">MultiThreadedDebug</RuntimeLibrary>
+        "@
+
+        $modifiedContent = $content -replace [regex]::Escape($pattern), $replacement
+
+        Write-Output "`nModified Content:"
+        Write-Output $modifiedContent
+
+        $modifiedContent | Set-Content $vcxprojPath
+      shell: pwsh
+
+    - name: (Python) Build 3.11.8
+      run: |
 
         # get python external libs before build
         ./PCbuild/get_externals.bat
@@ -51,6 +74,7 @@ jobs:
 
     - name: (Dependency) Install vcpkg
       run: |
+
         # clone vcpkg to 
         git clone https://github.com/microsoft/vcpkg.git
         cd vcpkg
@@ -61,6 +85,7 @@ jobs:
 
     - name: (Generator) Configure CMake
       run: |
+
         # set vs variables for cache generation
         "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
         # generate cache for x86/win32 with vs 
@@ -70,6 +95,7 @@ jobs:
 
     - name: Build Millennium
       run: |
+
         # build millennium with msvc; x86; release
         cmake --build build --config Release
 
