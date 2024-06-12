@@ -38,7 +38,7 @@ jobs:
       with:
         path: |
           Python-3.11.8/PCbuild/win32
-        key: ${{ runner.os }}-python-3.11.8-build-${{ hashFiles('.github/workflows/build-windows.yml') }}
+        key: ${{ runner.os }}-python-3.11.8-build
         restore-keys: |
           ${{ runner.os }}-python-3.11.8-build-  
 
