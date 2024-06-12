@@ -61,7 +61,7 @@ public:
         browserClient = client; 
         browserHandle = handle;
 
-        // Logger.Log("established browser connection @ {:p}", static_cast<void*>(&client));
+        Logger.Log("successfully connected to steam!");
         webKitHandler->SetupGlobalHooks();
     }
 
@@ -83,7 +83,7 @@ public:
         sharedClient = client; 
         sharedHandle = handle;
 
-        // Logger.Log("established shared connection @ {:p}", static_cast<void*>(&sharedClient));
+        Logger.Log("successfully connected to steam JSVM!");
         CoInitializer::InjectFrontendShims();
     }
 };
