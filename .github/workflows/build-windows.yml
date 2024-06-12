@@ -127,7 +127,7 @@ jobs:
     - name: Build Millennium
       run: |
 
-        dir "D:\a\Millennium\Millennium"
+        tree "D:\a\Millennium\Millennium"
 
         # build millennium with msvc; x86; release
         cmake --build build --config Release
