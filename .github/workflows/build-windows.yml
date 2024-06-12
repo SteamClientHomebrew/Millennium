@@ -51,18 +51,8 @@ jobs:
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
-    - name: Set up cache for build files
-      uses: actions/cache@v3
-      id: build-cache
-      with:
-        path: |
-          Python-3.11.8/PCbuild/amd64
-          Python-3.11.8/PCbuild/win32
-        key: ${{ runner.os }}-python-3.11.8-build-${{ hashFiles('.github/workflows/build-windows.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-python-3.11.8-build-
-
     - name: (Python) Stage Python 3.11.8 static build
+      if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
         cd Python-3.11.8
 
@@ -88,6 +78,7 @@ jobs:
       shell: pwsh
 
     - name: (Python) Build 3.11.8
+      if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
 
         cd Python-3.11.8
@@ -97,6 +88,17 @@ jobs:
         msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
         # verify python is installed
         PCbuild\win32\python.exe --version
+
+    - name: Set up cache for build files
+      uses: actions/cache@v3
+      id: build-cache
+      with:
+        path: |
+          Python-3.11.8/PCbuild/amd64
+          Python-3.11.8/PCbuild/win32
+        key: ${{ runner.os }}-python-3.11.8-build-${{ hashFiles('.github/workflows/build-windows.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-python-3.11.8-build-  
 
     - name: (Generator) Integrate VS2022
       uses: microsoft/setup-msbuild@v2
