@@ -44,6 +44,7 @@ jobs:
     - name: (Python) Download 3.11.8 win32 source
       if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
+
         # download python 3.11.8 source code
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
         # extract the tarball
@@ -54,6 +55,7 @@ jobs:
     - name: (Python) Stage Python 3.11.8 static build
       if: steps.python-cache.outputs.cache-hit != 'true'
       run: |
+
         cd Python-3.11.8
 
         $vcxprojPath = "PCbuild/pythoncore.vcxproj"
@@ -141,6 +143,8 @@ jobs:
 
     - name: Build Millennium
       run: |
+
+        dir "D:\a\Millennium\Millennium"
 
         # build millennium with msvc; x86; release
         cmake --build build --config Release
