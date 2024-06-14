@@ -125,22 +125,23 @@ private:
         }
 #elif __linux__
         // Linux-specific code
-        std::ifstream tcpFile("/proc/net/tcp");
-        std::string line;
+        //std::ifstream tcpFile("/proc/net/tcp");
+        //std::string line;
 
-        while (std::getline(tcpFile, line)) 
-        {
-            std::istringstream iss(line);
-            std::string localAddress;
+        //while (std::getline(tcpFile, line)) 
+        //{
+        //    std::istringstream iss(line);
+        //    std::string localAddress;
 
-            if (iss >> localAddress && localAddress.find(":" + std::to_string(debuggerPort)) != std::string::npos) 
-            {
-                // Extract and print process ID or details
-                // This is a simplified example, more parsing required in real case
+        //    if (iss >> localAddress && localAddress.find(":" + std::to_string(debuggerPort)) != std::string::npos) 
+        //    {
+        //        // Extract and print process ID or details
+        //        // This is a simplified example, more parsing required in real case
 
-                return { true, {} };
-            }
-        }
+        //        return { true, {} };
+        //    }
+        //}
+        return { true, {} };
 #elif __APPLE__
         // macOS-specific code using lsof
         std::string command = "lsof -i :" + std::to_string(port) + " | grep LISTEN";
