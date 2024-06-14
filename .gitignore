@@ -2,3 +2,5 @@
 /.vscode
 /.vs
 /out
+/vendor/python/python311.dll
+/vendor/python/python311.lib

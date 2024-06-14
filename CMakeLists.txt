@@ -41,8 +41,8 @@ add_compile_definitions(
 # Compile as release and compile MSVC as MT (static)
 set(CMAKE_BUILD_TYPE Release)
 if (WIN32)
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-  set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+  string(REPLACE "/MDd" "/MTd" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 elseif(UNIX)
   set(CMAKE_CXX_FLAGS "-fpermissive")
 endif()
@@ -87,9 +87,6 @@ if (WIN32)
 endif()
 
 include_directories(
-  # ${Python_INCLUDE_DIRS}
-  #"C:/Program Files (x86)/Python311-32/include"
-
   ${LIBGIT2_INCLUDE_DIRS}
 )
 
@@ -138,13 +135,11 @@ if (GITHUB_ACTION_BUILD)
 endif()
 
 if(WIN32)
-  # link windows defined socket headers
   target_link_libraries(Millennium
     Ws2_32.lib
     wsock32
     Boxer
     cpr::cpr
-    # ${Python_LIBRARIES}
     unofficial::git2::git2
   )
   if (GITHUB_ACTION_BUILD)
@@ -153,11 +148,9 @@ if(WIN32)
     "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib")
   else()
     target_link_libraries(Millennium 
-     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311.lib"
-     "C:/Users/Admin/Downloads/Python-3.11.8/Python-3.11.8/PCbuild/win32/python311_d.lib"
+     ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib
     )
   endif()
-
 elseif(UNIX)
   target_link_libraries(Millennium
       Boxer
