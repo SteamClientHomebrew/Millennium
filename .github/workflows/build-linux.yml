@@ -27,19 +27,6 @@ jobs:
       with:
         submodules: true
 
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: python 3.11.8 build libraries
-        path: D:/a/Millennium/Millennium/build/python
-
-    - name: (Generator) Integrate VS2022
-      uses: microsoft/setup-msbuild@v2
-      with:
-        vs-version: '17'
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
       with:
