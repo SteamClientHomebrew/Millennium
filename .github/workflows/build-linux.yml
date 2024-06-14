@@ -38,8 +38,8 @@ jobs:
       run: |
 
         # bootstrap and install vcpkg
-        .\vendor\vcpkg\bootstrap-vcpkg.sh
-        .\vendor\vcpkg\vcpkg integrate install
+        ./vendor/vcpkg/bootstrap-vcpkg.sh
+        ./vendor/vcpkg/vcpkg integrate install
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
