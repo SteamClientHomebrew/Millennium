@@ -179,7 +179,7 @@ void StartPluginBackend(PyObject* global_dict)
     Py_DECREF(pluginComponentInstance);
 }
 
-const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema& plugin) {
+const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) {
 
     const std::string backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
 
