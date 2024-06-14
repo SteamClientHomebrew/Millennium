@@ -9,89 +9,109 @@
 #include <core/ffi/ffi.h>
 
 constexpr const char* bootstrapModule = R"(
-/**
- * This module is in place to load all plugin frontends
- * @ src\__builtins__\bootstrap.js
- */
 
-class EventEmitter {
-    constructor() {
-      this.events = {};
-      this.pendingEvents = {}; // Store emitted events temporarily
-    }
-  
-    on(eventName, listener) {
-      this.events[eventName] = this.events[eventName] || [];
-      this.events[eventName].push(listener);
-  
-      // If there are pending events for this eventName, emit them now
-      if (this.pendingEvents[eventName]) {
-        this.pendingEvents[eventName].forEach(args => this.emit(eventName, ...args));
-        delete this.pendingEvents[eventName];
-      }
-    }
-  
-    emit(eventName, ...args) {
-      if (this.events[eventName]) {
-        this.events[eventName].forEach(listener => listener(...args));
-      } else {
-        // If there are no listeners yet, store the emitted event for later delivery
-        this.pendingEvents[eventName] = this.pendingEvents[eventName] || [];
-        this.pendingEvents[eventName].push(args);
-      }
-    }
-  
-    off(eventName, listener) {
-      if (this.events[eventName]) {
-        this.events[eventName] = this.events[eventName].filter(registeredListener => registeredListener !== listener);
-      }
-    }
-}
-const emitter = new EventEmitter();
-console.log('%c Millennium ', 'background: black; color: white', "Bootstrapping modules...");
+// Function to create and manage the WebSocket connection
+function createWebSocket(url) {
+    return new Promise((resolve, reject) => {
+        let socket = new WebSocket(url);
 
-// connect to millennium websocket IPC
-window.CURRENT_IPC_CALL_COUNT = 0;
+        socket.addEventListener('open', () => {
+            console.log('WebSocket connected');
+            resolve(socket);
+        });
 
-function connectIPCWebSocket() {
-    window.MILLENNIUM_IPC_SOCKET = new WebSocket('ws://localhost:12906');
+        socket.addEventListener('error', (error) => {
+            console.error('WebSocket error:', error);
+            reject(error);
+        });
 
-    window.MILLENNIUM_IPC_SOCKET.onopen = function(event) {
-        console.log('%c Millennium ', 'background: black; color: white', "Successfully connected to Millennium!");
-        emitter.emit('loaded', true);
-    };
-
-    window.MILLENNIUM_IPC_SOCKET.onclose = function(event) {
-        console.error('IPC connection was peacefully broken.', event);
-        setTimeout(connectIPCWebSocket, 100); 
-    };
-
-    window.MILLENNIUM_IPC_SOCKET.onerror = function(error) {
-        console.error('IPC connection was forcefully broken.', error);
-    };
-}
-
-connectIPCWebSocket();
-
-/**
- * seemingly fully functional, though needs a rewrite as its tacky
- * @todo hook a function that specifies when react is loaded, or use other methods to figure out when react has loaded. 
- * @param {*} message 
- */
-function __millennium_module_init__() {
-  if (window.SP_REACTDOM === undefined) {
-    setTimeout(() => __millennium_module_init__(), 1)
-  }
-  else {
-    console.log('%c Millennium ', 'background: black; color: white', "Bootstrapping builtin modules...");
-    // this variable points @ src_builtins_\api.js
-
-    emitter.on('loaded', () => {
-      SCRIPT_RAW_TEXT
+        socket.addEventListener('close', () => {
+            console.warn('WebSocket closed, attempting to reconnect...');
+            // Attempt to reconnect after a delay
+            setTimeout(() => {
+                createWebSocket(url).then(resolve).catch(reject);
+            }, 1000); // Adjust the delay as needed
+        });
     });
-  }
 }
-__millennium_module_init__()
+
+// Function to wait for WebSocket connection
+function waitForSocket(socket) {
+    return new Promise((resolve, reject) => {
+        if (socket.readyState === WebSocket.OPEN) {
+            resolve();
+        } else {
+            socket.addEventListener('open', resolve);
+            socket.addEventListener('error', reject);
+        }
+    });
+}
+
+const InjectLegacyReactGlobals = () => {
+    let bufferWebpackCache = {};
+
+    const id = Math.random();
+    let initReq;
+
+    let buffer = window.webpackChunksteamui
+
+    buffer.push([
+        [id],
+        {},
+        (r) => {
+            initReq = r;
+        },
+    ]);
+    for (let i of Object.keys(initReq.m)) {
+        try {
+            bufferWebpackCache[i] = initReq(i);
+        } catch (e) {
+            console.debug("[Millennium:Webpack]: Ignoring require error for module", i, e);
+        }
+    }
+
+    const _findModule = (filter) => {
+        const allModules = Object.values(bufferWebpackCache).filter((x) => x)
+
+        for (const m of allModules) {
+            if (m.default && filter(m.default)) return m.default;
+            if (filter(m)) return m;
+        }
+    };
+
+    window.SP_REACTDOM = _findModule((module) => module.createPortal && module.createRoot && module.flushSync)
+    window.SP_REACT = _findModule((module) => module.Component && module.PureComponent && module.useLayoutEffect);
+}
+
+function waitForSPReactDOM() {
+    return new Promise((resolve) => {
+        const interval = setInterval(() => {
+            if (window.webpackChunksteamui !== undefined) {
+                // InjectLegacyReactGlobals()
+                clearInterval(interval);
+                resolve();
+            }
+        }, 100);
+    });
+}
+
+// Create and manage the WebSocket
+createWebSocket('ws://localhost:12906').then((socket) => {
+    window.MILLENNIUM_IPC_SOCKET = socket;
+
+    // Wait for both conditions to be met
+    Promise.all([
+        waitForSocket(socket),
+        waitForSPReactDOM()
+    ]).then(() => {
+        console.log('ready');
+        SCRIPT_RAW_TEXT
+    }).catch((error) => {
+        console.error('Error:', error);
+    });
+}).catch((error) => {
+    console.error('Initial WebSocket connection failed:', error);
+});
 )";
 
 /// @brief sets up the python interpreter to use virtual environment site packages, as well as custom python path.
