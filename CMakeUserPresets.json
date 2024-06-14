@@ -2,7 +2,7 @@
   "version": 2,
   "configurePresets": [
     {
-      "name": "x86",
+      "name": "default",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
       "architecture": {
@@ -10,26 +10,27 @@
         "strategy": "external"
       },
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "windows",
+      "inherits": "default",
+      "generator": "Ninja",
+      "displayName": "Windows Build (x86/Win32)",
+      "description": "Default build Windows NT",
+      "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x86-windows-static"
       }
     },
     {
-      "name": "actions-windows-x86",
-      "inherits": "x86",
-      "displayName": "GitHub Actions Windows Build",
-      "description": "Default build for GitHub Actions",
+      "name": "linux",
+      "inherits": "default",
+      "generator": "Unix Makefiles",
+      "displayName": "Linux Build (x86)",
+      "description": "Default build for Linux",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "D:/a/Millennium/Millennium/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      }
-    },
-    {
-      "name": "actions-linux",
-      "inherits": "x86",
-      "displayName": "GitHub Actions Windows Build",
-      "description": "Default build for GitHub Actions",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "D:/a/Millennium/Millennium/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "VCPKG_TARGET_TRIPLET": "x64-linux"
       }
     }
   ]

@@ -2,12 +2,26 @@ name: Build Millennium (Linux)
 
 on:
   workflow_dispatch:
-
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+
+    - name: Export GitHub Actions cache environment variables
+      uses: actions/github-script@v7
+      with:
+        script: |
+          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -17,30 +31,40 @@ jobs:
       uses: jwlawson/actions-setup-cmake@v2
       with:
         cmake-version: '3.21.1'
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
-    - name: (Dependency) Install vcpkg
+    - name: (Dependency) Install vcpkg & setup environment
       run: |
-        # clone vcpkg to 
-        git clone https://github.com/microsoft/vcpkg.git
-        cd vcpkg
+
+        sudo apt install libgtk-3-dev
+
         # bootstrap and install vcpkg
-        .\bootstrap-vcpkg.bat
-        .\vcpkg integrate install
-      shell: pwsh
+        ./vendor/vcpkg/bootstrap-vcpkg.sh
+        ./vendor/vcpkg/vcpkg integrate install
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Generator) Configure CMake
       run: |
-        cmake --preset=actions-linux -DGITHUB_ACTION_BUILD=ON
+        cmake --preset=linux -G "Unix Makefiles" -DGITHUB_ACTION_BUILD=ON
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Build Millennium
       run: |
-        cmake --build build --config Release
+
+        mkdir ./build/artifacts
+        cmake --build build
 
         # Move the python311.dll binary to the release directory
-        # move D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:\a\Millennium\Millennium\build\Release\python311.dll
+        # copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
+        # copy D:\a\Millennium\Millennium\build\Release\user32.dll D:/a/Millennium/Millennium/build/artifacts/user32.dll
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
         name: millennium
-        path: D:/a/Millennium/Millennium/build/Release
+        path: D:/a/Millennium/Millennium/build/artifacts

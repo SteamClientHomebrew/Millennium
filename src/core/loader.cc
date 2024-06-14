@@ -46,14 +46,14 @@ bool Sockets::PostGlobal(nlohmann::json data)
 
 class CEFBrowser
 {
-    std::unique_ptr<WebkitHandler> webKitHandler;
+    WebkitHandler webKitHandler;
 
 public:
 
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
-        webKitHandler->DispatchSocketMessage(json);
+        webKitHandler.DispatchSocketMessage(json);
     }
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
@@ -62,10 +62,10 @@ public:
         browserHandle = handle;
 
         Logger.Log("successfully connected to steam!");
-        webKitHandler->SetupGlobalHooks();
+        webKitHandler.SetupGlobalHooks();
     }
 
-    CEFBrowser() : webKitHandler(&WebkitHandler::get()) { }
+    CEFBrowser() : webKitHandler(WebkitHandler::get()) { }
 };
 
 class SharedJSContext
@@ -165,7 +165,12 @@ const void PluginLoader::StartBackEnds()
             continue;
         }
 
-        std::function<void(SettingsStore::PluginTypeSchema&)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
-        std::thread(std::bind(&PythonManager::CreatePythonInstance, &manager, std::ref(plugin), cb)).detach();
+        std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
+
+        std::thread(
+            [&manager, &plugin, cb]() {
+                manager.CreatePythonInstance(plugin, cb);
+            }
+        ).detach();
     }
 }

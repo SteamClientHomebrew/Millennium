@@ -93,8 +93,8 @@ include_directories(
 if(WIN32)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
 elseif(UNIX)
-  find_package(PythonLibs REQUIRED)
-  include_directories(${PYTHON_INCLUDE_DIRS})
+  find_package(Python3 COMPONENTS Development REQUIRED)
+  include_directories(${PYTHON3_INCLUDE_DIRS})
 endif()
 
 set(SOURCE_FILES 
@@ -156,6 +156,6 @@ elseif(UNIX)
       Boxer
       cpr::cpr
       git2
-      ${Python_LIBRARIES}
+      Python3::Python
   )
 endif()
