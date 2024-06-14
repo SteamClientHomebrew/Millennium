@@ -40,7 +40,6 @@ jobs:
         # bootstrap and install vcpkg
         .\vendor\vcpkg\bootstrap-vcpkg.bat
         .\vendor\vcpkg\vcpkg integrate install
-      shell: pwsh
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
