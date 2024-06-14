@@ -34,8 +34,10 @@ jobs:
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
-    - name: (Dependency) Install vcpkg
+    - name: (Dependency) Install vcpkg & setup environment
       run: |
+
+        sudo apt install libgtk-3-dev
 
         # bootstrap and install vcpkg
         ./vendor/vcpkg/bootstrap-vcpkg.sh
