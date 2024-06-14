@@ -134,9 +134,9 @@ jobs:
         # set vs variables for cache generation
         "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
         # generate cache for x86/win32 with vs 
-        # - windows @ CMakeUserPresets.json
+        # - actions-windows-x86 @ CMakeUserPresets.json
         # - GITHUB_ACTION_BUILD (boolean) is a macro to help set include paths in CMakeLists.txt
-        cmake --preset=windows -G "Visual Studio 17 2022" -A Win32 -DGITHUB_ACTION_BUILD=ON
+        cmake --preset=actions-windows-x86 -G "Visual Studio 17 2022" -A Win32 -DGITHUB_ACTION_BUILD=ON
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 

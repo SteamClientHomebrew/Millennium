@@ -3,6 +3,7 @@
   "configurePresets": [
     {
       "name": "default",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
       "architecture": {
         "value": "x86",
