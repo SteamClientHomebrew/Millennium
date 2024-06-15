@@ -48,7 +48,7 @@ elseif(UNIX)
 endif()
 
 # build boxer (message-box lib)
-add_subdirectory(vcs)
+add_subdirectory(scripts/version)
 add_subdirectory(vendor/boxer)
 
 # add_compile_options(-g -Og -lz)
