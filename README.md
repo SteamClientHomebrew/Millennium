@@ -23,7 +23,7 @@
 [docs-badge]: https://img.shields.io/badge/documentation-green?labelColor=grey&color=111111&style=for-the-badge&logo=readthedocs&logoColor=white
 [docs-link]: https://github.com/SteamClientHomebrew/Millennium/wiki
 
-[loc-bage]: https://img.shields.io/endpoint?url=https://ghloc.vercel.app/api/SteamClientHomebrew/Millennium/badge?filter=.cc$,.cpp$,.h$,.hpp$?&color=111111&style=for-the-badge&logoColor=white&label=Lines%20of%20Code
+[loc-bage]: https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FMillennium%26branch%3Dmain%26ignored%3Dvendor%26languages%3DC%2520Header%2CC%252B%252B&color=111111&style=for-the-badge&logoColor=white&label=Lines%20of%20Code
 
 Millennium is an **open-source low-code modding framework** to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead.
 
