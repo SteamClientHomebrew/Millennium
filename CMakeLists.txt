@@ -48,7 +48,6 @@ elseif(UNIX)
 endif()
 
 # build boxer (message-box lib)
-add_subdirectory(scripts/version)
 add_subdirectory(vendor/boxer)
 
 # add_compile_options(-g -Og -lz)
@@ -122,7 +121,7 @@ elseif(UNIX)
   add_executable(Millennium "${SOURCE_FILES}")
 endif()
 
-set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
+set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
 set_target_properties(Millennium PROPERTIES PREFIX "")
 set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
 
