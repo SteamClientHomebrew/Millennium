@@ -1,14 +1,13 @@
 #include <windows.h>
-#include <iostream>
-#include <thread>
+#include <stdio.h>
 
-uintptr_t WINAPI EntryMain(HMODULE hModule)
+unsigned int __stdcall EntryMain(HMODULE hModule)
 {
     HINSTANCE hDll = LoadLibrary("millennium.dll");
 
     if (!hDll) 
     {
-        std::cout << "Could not load the DLL" << std::endl;
+        printf("Couldn't locate millennium.dll, a vital library needed.\n");
         return 1;
     }
 
@@ -16,14 +15,16 @@ uintptr_t WINAPI EntryMain(HMODULE hModule)
     return 0;
 }
 
-int __stdcall DllMain(HMODULE hModule, unsigned long fdwReason, void*)
+int __stdcall DllMain(HMODULE hModule, unsigned long fdwReason, void* _)
 {
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
         const HANDLE thread = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)EntryMain, hModule, 0, 0);
 
-        if (thread) 
+        if (thread)
+        {
             CloseHandle(thread);
+        }
     }
-    return true;
+    return 1;
 }
