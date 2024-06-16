@@ -39,7 +39,7 @@ add_compile_definitions(
 )
 
 # Compile as release and compile MSVC as MT (static)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 if (WIN32)
   string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   string(REPLACE "/MDd" "/MTd" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
@@ -149,6 +149,7 @@ if(WIN32)
   else()
     target_link_libraries(Millennium 
      ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib
+     ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib
     )
   endif()
 elseif(UNIX)
