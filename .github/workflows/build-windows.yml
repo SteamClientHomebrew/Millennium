@@ -92,6 +92,7 @@ jobs:
         # Move the python311.dll binary to the release directory
         copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:/a/Millennium/Millennium/build/python/python311.dll
         copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.lib D:/a/Millennium/Millennium/build/python/python311.lib
+        copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311_d.lib D:/a/Millennium/Millennium/build/python/python311_d.lib
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
