@@ -98,7 +98,7 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
 
     if (pluginNameObj == nullptr || PyErr_Occurred()) 
     {
-        Logger.Error("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
+        LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
         return NULL;
     }
 

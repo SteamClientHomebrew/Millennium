@@ -69,7 +69,7 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
     status = PyConfig_Read(&config);
 
     if (PyStatus_Exception(status)) {
-        Logger.Error("couldn't read config {}", status.err_msg);
+        LOG_ERROR("couldn't read config {}", status.err_msg);
         goto done;
     }
 
@@ -85,7 +85,7 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
     status = Py_InitializeFromConfig(&config);
 
     if (PyStatus_Exception(status)) {
-        Logger.Error("couldn't initialize from config {}", status.err_msg);
+        LOG_ERROR("couldn't initialize from config {}", status.err_msg);
         goto done;
     }
 
@@ -103,7 +103,7 @@ done:
 
 PythonManager::~PythonManager()
 {
-    Logger.Error("PythonManager was destroyed.");
+    LOG_ERROR("PythonManager was destroyed.");
     PyEval_RestoreThread(m_InterpreterThreadSave);
     // Py_FinalizeEx();
 }
@@ -153,7 +153,7 @@ bool PythonManager::ShutdownPlugin(std::string plugin_name)
 
         if (threadState == nullptr) 
         {
-            Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", plugin_name));
+            LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", plugin_name));
             successfulShutdown = false;
         }
 
@@ -163,21 +163,21 @@ bool PythonManager::ShutdownPlugin(std::string plugin_name)
 
         if (threadState == NULL) 
         {
-            Logger.Error("script execution was queried but the receiving parties thread state was nullptr");
+            LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
             successfulShutdown = false;
         }
 
         if (PyRun_SimpleString("plugin._unload()") != 0) 
         {
             PyErr_Print();
-            Logger.Error("millennium failed to shutdown [{}]", plugin_name);
+            LOG_ERROR("millennium failed to shutdown [{}]", plugin_name);
             successfulShutdown = false;
         }
 
         if (PyRun_SimpleString("raise SystemExit") != 0)
         {
             PyErr_Print();
-            Logger.Error("millennium failed to shutdown [{}]", plugin_name);
+            LOG_ERROR("millennium failed to shutdown [{}]", plugin_name);
             successfulShutdown = false;
         }
 
@@ -230,7 +230,7 @@ std::string PythonManager::GetPluginNameFromThreadState(PyThreadState* thread)
     {
         if (thread_ptr == nullptr) 
         {
-            Logger.Error("thread_ptr was nullptr");
+            LOG_ERROR("thread_ptr was nullptr");
             return {};
         }
 

@@ -44,7 +44,7 @@ namespace Dependencies {
             }
             catch (std::filesystem::filesystem_error& ex)
             {
-                Logger.Error("failed to create package directories -> {}", ex.what());
+                LOG_ERROR("failed to create package directories -> {}", ex.what());
             }
         }
         else 
@@ -105,7 +105,7 @@ namespace Dependencies {
 
         if (gitErrorCode < 0) 
         {
-            Logger.Error("error looking up annotated commit -> {}", git_error_last()->message);
+            LOG_ERROR("error looking up annotated commit -> {}", git_error_last()->message);
             return 1; 
         }
 

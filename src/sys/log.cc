@@ -66,14 +66,14 @@ OutputLogger::OutputLogger()
 	}
 	catch (const std::exception& exception)
 	{
-		Logger.Error("An error occurred creating debug log directories -> {}", exception.what());
+		LOG_ERROR("An error occurred creating debug log directories -> {}", exception.what());
 	}
 
 	outputLogStream = std::make_shared<std::ofstream>(fileName);
 
     if (!outputLogStream->is_open()) 
 	{
-		Logger.Error("Couldn't open output log stream.");
+		LOG_ERROR("Couldn't open output log stream.");
         return;
     }
 }
@@ -102,19 +102,19 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
 	outputLogStream->flush();
 }
 
-void OutputLogger::LogHead(std::string strHeadTitle) 
+void OutputLogger::LogHead(std::string strHeadTitle, bool useColor) 
 {
 	const auto message = fmt::format("\n[┬] {}", strHeadTitle);
 
 	#ifdef _WIN32
 	{
-		SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+		if (useColor) SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
 	}
 	#endif
 	std::cout << "\n[┬] ";
 	#ifdef _WIN32
 	{
-		SetConsoleTextAttribute(hConsole, COLOR_WHITE);
+		if (useColor) SetConsoleTextAttribute(hConsole, COLOR_WHITE);
 	}
 	#endif
 	std::cout << strHeadTitle << "\n";
@@ -122,20 +122,20 @@ void OutputLogger::LogHead(std::string strHeadTitle)
 	outputLogStream->flush();
 }
 
-void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end) 
+void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, bool useColor) 
 {
 	std::string connectorPiece = end ? "└" : "├";
 	const auto message = fmt::format(" {}──[{}]: {}", connectorPiece, pluginName, strMessage);
 	
 	#ifdef _WIN32
 	{
-		SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+		if (useColor) SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
 	}
 	#endif
 	std::cout << " " << connectorPiece << "──[" <<pluginName << "]: ";
 	#ifdef _WIN32
 	{
-		SetConsoleTextAttribute(hConsole, COLOR_WHITE);
+		if (useColor) SetConsoleTextAttribute(hConsole, COLOR_WHITE);
 	}
 	#endif
 

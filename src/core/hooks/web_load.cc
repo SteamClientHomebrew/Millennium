@@ -92,7 +92,7 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 
     if (failed)
     {
-        Logger.Error("failed to open file [readJsonSync]");
+        LOG_ERROR("failed to open file [readJsonSync]");
     }
 
     const std::string fileContent((std::istreambuf_iterator<char>(localFileStream)), std::istreambuf_iterator<char>());
@@ -193,10 +193,10 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
     }
     catch (const nlohmann::detail::exception& ex) 
     {
-        Logger.Error("error hooking WebKit -> {}", ex.what());
+        LOG_ERROR("error hooking WebKit -> {}", ex.what());
     }
     catch (const std::exception& ex) 
     {
-        Logger.Error("error hooking WebKit -> {}", ex.what());
+        LOG_ERROR("error hooking WebKit -> {}", ex.what());
     }
 }

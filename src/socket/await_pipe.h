@@ -51,13 +51,13 @@ private:
                         return std::stoi(value);
                     }
                     catch (const std::invalid_argument& e) {
-                        Logger.Error("failed to parse dev-tools port due to invalid argument. exception -> {}", e.what());
+                        LOG_ERROR("failed to parse dev-tools port due to invalid argument. exception -> {}", e.what());
                     }
                     catch (const std::out_of_range& e) {
-                        Logger.Error("failed to parse dev-tools port due to too large of an integer. exception -> {}", e.what());
+                        LOG_ERROR("failed to parse dev-tools port due to too large of an integer. exception -> {}", e.what());
                     }
                     catch (...) {
-                        Logger.Error("failed to parse dev-tools port due to an unknown error. exception -> {}");
+                        LOG_ERROR("failed to parse dev-tools port due to an unknown error. exception -> {}");
                     }
                 }
             }
@@ -210,7 +210,7 @@ public:
         }
         catch (nlohmann::detail::exception& exception)
         {
-            Logger.Error(exception.what());
+            LOG_ERROR(exception.what());
 
             const std::string message = fmt::format("A fatal error occurred trying to get SteamBrowserContext -> {}", exception.what());
             boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
@@ -242,7 +242,7 @@ public:
             }
             catch (nlohmann::detail::exception& exception)
             {
-                Logger.Error(exception.what());
+                LOG_ERROR(exception.what());
 
                 const std::string message = fmt::format("A fatal error occurred trying to get SharedJsContext -> {}", exception.what());
                 boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
@@ -285,10 +285,10 @@ public:
             }
             catch (websocketpp::exception& exception)
             {
-                Logger.Error("webSocket exception thrown -> {}", exception.what());
+                LOG_ERROR("webSocket exception thrown -> {}", exception.what());
             }
 
-            Logger.Error("{} tunnel collapsed, attempting to reopen...", commonName);
+            LOG_ERROR("{} tunnel collapsed, attempting to reopen...", commonName);
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     }

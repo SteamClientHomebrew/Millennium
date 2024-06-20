@@ -200,17 +200,17 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
             }
             catch (SystemIO::FileException& exception)
             {
-                Logger.Error("An error occurred reading plugin '{}', exception: {}", entry.path().string(), exception.what());
+                LOG_ERROR("An error occurred reading plugin '{}', exception: {}", entry.path().string(), exception.what());
             }
             catch (std::exception& exception)
             {
-                Logger.Error("An error occurred parsing plugin '{}', exception: {}", entry.path().string(), exception.what());
+                LOG_ERROR("An error occurred parsing plugin '{}', exception: {}", entry.path().string(), exception.what());
             }
         }
     }
     catch (const std::exception& ex)
     {
-        Logger.Error("Fall back exception caught trying to parse plugins. {}", ex.what());
+        LOG_ERROR("Fall back exception caught trying to parse plugins. {}", ex.what());
     }
 
     return plugins;

@@ -6,6 +6,7 @@
 #include <deps/deps.h>
 #include <fmt/core.h>
 #ifdef _WIN32
+#include <winsock2.h>
 #include <procmon/thread.h>
 #endif
 #include <boxer/boxer.h>
@@ -55,11 +56,13 @@ public:
 
     const void Start() 
     {
+        LOG_ERROR("ERROR OCCURED");
+        
         const bool bBuiltInSuccess = Dependencies::GitAuditPackage("@builtins", builtinsModulesPath.string(), builtinsRepository);
 
         if (!bBuiltInSuccess) 
         {
-            Logger.Error("failed to audit builtin modules...");
+            LOG_ERROR("failed to audit builtin modules...");
             return;
         }
 
@@ -70,7 +73,7 @@ public:
         
         if (!bPythonModulesSuccess) 
         {
-            Logger.Error("failed to audit python modules...");
+            LOG_ERROR("failed to audit python modules...");
             return;
         }
         #endif
@@ -80,13 +83,6 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
-    //#ifdef _WIN32
-    //if (!IsSteamApplication())
-    //{
-    //    return;
-    //}
-    //#endif
-
     const auto startTime = std::chrono::system_clock::now();
     {
         std::unique_ptr<Preload> preload = std::make_unique<Preload>();
@@ -111,7 +107,8 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdShow)
 {
-    EntryMain();
+    boxer::show("Millennium successfully loaded!", "Yay!");
+    //EntryMain();
     return 1;
 }
 #elif __linux__

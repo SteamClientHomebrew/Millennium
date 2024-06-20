@@ -26,7 +26,7 @@ bool PostSocket(nlohmann::json data, eSocketTypes type)
     const auto handle = (type == eSocketTypes::SHARED ? sharedHandle : browserHandle);
 
     if (client == nullptr) {
-        Logger.Error("not connected to steam, cant post message");
+        LOG_ERROR("not connected to steam, cant post message");
         return false;
     }
 

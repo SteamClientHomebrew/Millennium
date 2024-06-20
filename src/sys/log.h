@@ -39,14 +39,19 @@ public:
     }
 
     template <typename... Args>
-    void Error(std::string fmt, Args &&...args)
+    void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args &&...args)
     {
         #ifdef _WIN32
         {
             SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
         }
         #endif
-        PrintMessage(" [error] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...));
+
+        this->LogHead((sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), false);
+        this->LogItem("function", function, false, false);
+        this->LogItem("file",  file, false, false);
+        this->LogItem("line", std::to_string(line), true, false);
+        //PrintMessage(fmt::format(" [error] [FUNCTION:{},FILE:{},L:{}] ", function, file, line), (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...));
         #ifdef _WIN32
         {
             SetConsoleTextAttribute(hConsole, COLOR_WHITE);
@@ -70,8 +75,12 @@ public:
         #endif
     }
 
-    void LogHead(std::string val);
-    void LogItem(std::string pluginName, std::string data, bool end = false);
+    void LogHead(std::string val, bool useColor = true);
+    void LogItem(std::string pluginName, std::string data, bool end = false, bool useColor = true);
 };
 
 extern OutputLogger Logger;
+
+#ifndef LOG_ERROR
+#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__)
+#endif

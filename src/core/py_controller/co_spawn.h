@@ -6,6 +6,7 @@
 #include <string>
 #include <sys/locals.h>
 #include <sys/log.h>
+#include <filesystem>
 
 struct PythonThreadState {
 	std::string pluginName;

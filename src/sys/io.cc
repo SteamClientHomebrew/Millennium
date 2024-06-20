@@ -62,7 +62,7 @@ namespace SystemIO {
         }
         else 
         {
-            Logger.Error("error reading [{}]", filename);
+            LOG_ERROR("error reading [{}]", filename);
 
             if (success != nullptr) 
             {
@@ -78,7 +78,7 @@ namespace SystemIO {
 
         if (!outputLogStream.is_open())
         {
-            Logger.Error("failed to open file [readJsonSync]");
+            LOG_ERROR("failed to open file [readJsonSync]");
             return {};
         }
 

@@ -51,11 +51,11 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
         }
         catch (nlohmann::detail::exception& ex) 
         {
-            Logger.Error(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+            LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
         }
         catch (std::future_error& exception) 
         {
-            Logger.Error(exception.what());
+            LOG_ERROR(exception.what());
         }
     });
 

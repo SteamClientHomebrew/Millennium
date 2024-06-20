@@ -9,8 +9,6 @@
 #include <core/ffi/ffi.h>
 
 constexpr const char* bootstrapModule = R"(
-
-// Function to create and manage the WebSocket connection
 function createWebSocket(url) {
     return new Promise((resolve, reject) => {
         let socket = new WebSocket(url);
@@ -27,15 +25,13 @@ function createWebSocket(url) {
 
         socket.addEventListener('close', () => {
             console.warn('WebSocket closed, attempting to reconnect...');
-            // Attempt to reconnect after a delay
             setTimeout(() => {
                 createWebSocket(url).then(resolve).catch(reject);
-            }, 1000); // Adjust the delay as needed
+            }, 100);
         });
     });
 }
 
-// Function to wait for WebSocket connection
 function waitForSocket(socket) {
     return new Promise((resolve, reject) => {
         if (socket.readyState === WebSocket.OPEN) {
@@ -47,21 +43,13 @@ function waitForSocket(socket) {
     });
 }
 
-const InjectLegacyReactGlobals = () => {
+const InjectLegacyReactGlobals = () => 
+{
+    let initReq;
     let bufferWebpackCache = {};
 
-    const id = Math.random();
-    let initReq;
+    window.webpackChunksteamui?.push([[Math.random()], {}, (r) => { initReq = r; }]);
 
-    let buffer = window.webpackChunksteamui
-
-    buffer.push([
-        [id],
-        {},
-        (r) => {
-            initReq = r;
-        },
-    ]);
     for (let i of Object.keys(initReq.m)) {
         try {
             bufferWebpackCache[i] = initReq(i);
@@ -70,7 +58,7 @@ const InjectLegacyReactGlobals = () => {
         }
     }
 
-    const _findModule = (filter) => {
+    const findModule = (filter) => {
         const allModules = Object.values(bufferWebpackCache).filter((x) => x)
 
         for (const m of allModules) {
@@ -79,15 +67,15 @@ const InjectLegacyReactGlobals = () => {
         }
     };
 
-    window.SP_REACTDOM = _findModule((module) => module.createPortal && module.createRoot && module.flushSync)
-    window.SP_REACT = _findModule((module) => module.Component && module.PureComponent && module.useLayoutEffect);
+    window.SP_REACTDOM = findModule((module) => module.createPortal && module.createRoot && module.flushSync)
+    window.SP_REACT    = findModule((module) => module.Component && module.PureComponent && module.useLayoutEffect);
 }
 
 function waitForSPReactDOM() {
     return new Promise((resolve) => {
         const interval = setInterval(() => {
-            if (window.webpackChunksteamui !== undefined) {
-                // InjectLegacyReactGlobals()
+            if (window?.webpackChunksteamui?.length > 3) {
+                InjectLegacyReactGlobals()
                 clearInterval(interval);
                 resolve();
             }
@@ -95,23 +83,17 @@ function waitForSPReactDOM() {
     });
 }
 
-// Create and manage the WebSocket
 createWebSocket('ws://localhost:12906').then((socket) => {
     window.MILLENNIUM_IPC_SOCKET = socket;
+    window.CURRENT_IPC_CALL_COUNT = 0;
 
-    // Wait for both conditions to be met
-    Promise.all([
-        waitForSocket(socket),
-        waitForSPReactDOM()
-    ]).then(() => {
-        console.log('ready');
+    Promise.all([ waitForSocket(socket), waitForSPReactDOM() ]).then(() => {
+        console.log('%c Millennium ', 'background: black; color: white', "Reading to inject shims...");
         SCRIPT_RAW_TEXT
-    }).catch((error) => {
-        console.error('Error:', error);
-    });
-}).catch((error) => {
-    console.error('Initial WebSocket connection failed:', error);
-});
+    })
+    .catch((error) => console.error('error @ createWebSocket ->', error));
+})
+.catch((error) => console.error('Initial WebSocket connection failed:', error));
 )";
 
 /// @brief sets up the python interpreter to use virtual environment site packages, as well as custom python path.
@@ -122,7 +104,7 @@ const void AddSitePackages(std::vector<std::filesystem::path> spath)
     PyObject *sysModule = PyImport_ImportModule("sys");
     if (!sysModule) 
     {
-        Logger.Error("couldn't import system module");
+        LOG_ERROR("couldn't import system module");
         return;
     }
 
@@ -210,13 +192,13 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
     if (mainModuleFilePtr == NULL) 
     {
-        Logger.Error("failed to fopen file @ {}", backendMainModule);
+        LOG_ERROR("failed to fopen file @ {}", backendMainModule);
         return;
     }
 
     if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
     {
-        Logger.Error("millennium failed to startup [{}]", plugin.pluginName);
+        LOG_ERROR("millennium failed to startup [{}]", plugin.pluginName);
         return;
     }
 
@@ -255,7 +237,7 @@ const std::string ConstructOnLoadModule()
     }
     else 
     {
-        Logger.Error("couldn't shim bootstrap module with plugin frontends. "
+        LOG_ERROR("couldn't shim bootstrap module with plugin frontends. "
         "SCRIPT_RAW_TEXT was not found in the target string");
     }
 
@@ -291,7 +273,7 @@ const void CoInitializer::InjectFrontendShims(void)
         }
         catch (nlohmann::detail::exception& ex)
         {
-            Logger.Error(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+            LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
         }
     });
 }

@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.5.0)
 
-# set(VCPKG_TARGET_TRIPLET "x86-windows-static")
 set(PRIVATE_PRODUCT_NAME "Millennium")
 set(MILLENNIUM_VERSION   "2.1.0")
-
-# build boxer statically 
 set(BUILD_SHARED_LIBS OFF)
+
+# set c++ directives
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 project(Millennium LANGUAGES CXX)
 
@@ -39,7 +42,7 @@ add_compile_definitions(
 )
 
 # Compile as release and compile MSVC as MT (static)
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 if (WIN32)
   string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   string(REPLACE "/MDd" "/MTd" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
@@ -51,10 +54,6 @@ endif()
 add_subdirectory(vendor/boxer)
 
 # add_compile_options(-g -Og -lz)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
@@ -81,10 +80,7 @@ add_compile_definitions(
 )
 
 find_package(cpr CONFIG REQUIRED) # used for web requests. 
-# find_package(Python REQUIRED COMPONENTS Interpreter Development) # used to run plugin backends
-if (WIN32)
-	find_package(unofficial-git2 CONFIG REQUIRED) # update millennium modules
-endif()
+find_package(unofficial-git2 CONFIG REQUIRED) # used for updating git modules
 
 include_directories(
   ${LIBGIT2_INCLUDE_DIRS}
@@ -114,8 +110,12 @@ set(SOURCE_FILES
   "src/deps/module.cc"
 )
 
+if (MSVC)
+  set(SOURCE_FILES "${SOURCE_FILES} version.rc") # conpile version information on msvc
+endif()
+
 if (WIN32)
-  add_library(Millennium SHARED "${SOURCE_FILES}" version.rc)
+  add_library(Millennium SHARED "${SOURCE_FILES}")
   # add_executable(Millennium "${SOURCE_FILES}" version.rc)
 elseif(UNIX)
   add_executable(Millennium "${SOURCE_FILES}")
@@ -134,10 +134,24 @@ if (GITHUB_ACTION_BUILD)
     message("${GITHUB_ACTION_BUILD}")
 endif()
 
+find_program(WINDRES windres)
+if (WINDRES)
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/version.o
+        COMMAND ${WINDRES} -i ${CMAKE_SOURCE_DIR}/scripts/version.rc -o ${CMAKE_BINARY_DIR}/version.o
+        DEPENDS ${CMAKE_SOURCE_DIR}/scripts/version.rc
+    )
+
+    add_custom_target(resource DEPENDS ${CMAKE_BINARY_DIR}/version.o)
+    add_dependencies(Millennium resource)
+    target_link_libraries(Millennium ${CMAKE_BINARY_DIR}/version.o)
+endif()
+
 if(WIN32)
   target_link_libraries(Millennium
     Ws2_32.lib
     wsock32
+    Iphlpapi
     Boxer
     cpr::cpr
     unofficial::git2::git2
@@ -145,7 +159,8 @@ if(WIN32)
   if (GITHUB_ACTION_BUILD)
     target_link_libraries(Millennium 
     "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib"
-    "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib")
+    "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib"
+    )
   else()
     target_link_libraries(Millennium 
      ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib

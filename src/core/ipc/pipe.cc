@@ -15,7 +15,7 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 
     if (!message["data"].contains("pluginName")) 
     {
-        Logger.Error("no plugin backend specified, doing nothing...");
+        LOG_ERROR("no plugin backend specified, doing nothing...");
         return {};
     }
 
@@ -108,7 +108,7 @@ const int OpenIPCSocket()
     }
     catch (const std::exception& error) 
     {
-        Logger.Error("[ipcMain] uncaught error -> {}", error.what());
+        LOG_ERROR("[ipcMain] uncaught error -> {}", error.what());
         return false;
     }
     return true;

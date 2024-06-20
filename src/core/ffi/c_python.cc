@@ -52,7 +52,7 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
             const char* errorMessage = PyUnicode_AsUTF8(pStrErrorMessage);
             Python::EvalResult exceptionResult = { errorMessage ? errorMessage : "Unknown Error.", Python::Types::Error };
 
-            Logger.Error(fmt::format(
+            LOG_ERROR(fmt::format(
                 "[interop-dispatch] An error occurred while calling a backend method.\n\t"
                 "Attempted to eval: {},\n\tException information: {}", script, exceptionResult.plain
             ));
@@ -92,7 +92,7 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
 
     if (threadState == nullptr) 
     {
-        Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
         return { "overstepped partying thread state", Error };
     }
 
@@ -101,7 +101,7 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
 
     if (threadState == NULL) 
     {
-        Logger.Error("script execution was queried but the receiving parties thread state was nullptr");
+        LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
         return { "thread state was nullptr", Error };
     }
 
@@ -117,7 +117,7 @@ void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string scrip
 
     if (threadState == nullptr) 
     {
-        Logger.Error(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
         return;
     }
 
