@@ -32,6 +32,7 @@ public:
 private:
     void LintPluginData(nlohmann::json json, std::string pluginName);
     PluginTypeSchema GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
+    void InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins);
 };
 
 namespace SystemIO

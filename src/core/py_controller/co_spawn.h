@@ -13,7 +13,7 @@ struct PythonThreadState {
 	PyThreadState* thread_state;
 };
 
-static const std::filesystem::path pythonModulesBaseDir = SystemIO::GetSteamPath() / ".millennium" / "@modules";
+static const std::filesystem::path pythonModulesBaseDir = SystemIO::GetSteamPath() / "ext" / "data" / "cache";
 
 static const std::string pythonPath = pythonModulesBaseDir.generic_string();
 static const std::string pythonLibs = (pythonModulesBaseDir / "python311.zip").generic_string();

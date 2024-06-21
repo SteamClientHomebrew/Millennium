@@ -61,7 +61,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/asio/asio/include
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
   ${CMAKE_SOURCE_DIR}/vendor/websocketpp
-  ${CMAKE_SOURCE_DIR}/vendor/incbin
+  ${CMAKE_SOURCE_DIR}/vendor/crow/include
 )
 
 add_compile_definitions(
@@ -108,6 +108,7 @@ set(SOURCE_FILES
   "src/sys/settings.cc"
   "src/api/executor.cc"
   "src/deps/module.cc"
+  "src/crow/serv.cc"
 )
 
 if (MSVC)
@@ -147,14 +148,17 @@ if (WINDRES)
     target_link_libraries(Millennium ${CMAKE_BINARY_DIR}/version.o)
 endif()
 
+target_link_libraries(Millennium 
+  Boxer
+  cpr::cpr
+  unofficial::git2::git2
+)
+
 if(WIN32)
   target_link_libraries(Millennium
     Ws2_32.lib
     wsock32
     Iphlpapi
-    Boxer
-    cpr::cpr
-    unofficial::git2::git2
   )
   if (GITHUB_ACTION_BUILD)
     target_link_libraries(Millennium 
@@ -169,9 +173,6 @@ if(WIN32)
   endif()
 elseif(UNIX)
   target_link_libraries(Millennium
-      Boxer
-      cpr::cpr
-      git2
-      Python3::Python
+    Python3::Python
   )
 endif()

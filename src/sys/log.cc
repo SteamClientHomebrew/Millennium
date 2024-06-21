@@ -58,7 +58,7 @@ OutputLogger::OutputLogger()
 	}
 	#endif
 
-	const auto fileName = SystemIO::GetSteamPath() / ".millennium" / "debug.log";
+	const auto fileName = SystemIO::GetSteamPath() / "ext" / "data" / "logs" / "debug.log";
 
 	try
 	{

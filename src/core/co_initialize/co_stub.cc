@@ -12,17 +12,14 @@ constexpr const char* bootstrapModule = R"(
 function createWebSocket(url) {
     return new Promise((resolve, reject) => {
         let socket = new WebSocket(url);
-
         socket.addEventListener('open', () => {
             console.log('WebSocket connected');
             resolve(socket);
         });
-
         socket.addEventListener('error', (error) => {
             console.error('WebSocket error:', error);
             reject(error);
         });
-
         socket.addEventListener('close', () => {
             console.warn('WebSocket closed, attempting to reconnect...');
             setTimeout(() => {
@@ -43,11 +40,10 @@ function waitForSocket(socket) {
     });
 }
 
-const InjectLegacyReactGlobals = () => 
-{
+const InjectLegacyReactGlobals = () => {
+
     let initReq;
     let bufferWebpackCache = {};
-
     window.webpackChunksteamui?.push([[Math.random()], {}, (r) => { initReq = r; }]);
 
     for (let i of Object.keys(initReq.m)) {
@@ -75,7 +71,7 @@ function waitForSPReactDOM() {
     return new Promise((resolve) => {
         const interval = setInterval(() => {
             if (window?.webpackChunksteamui?.length > 3) {
-                InjectLegacyReactGlobals()
+                InjectLegacyReactGlobals();
                 clearInterval(interval);
                 resolve();
             }

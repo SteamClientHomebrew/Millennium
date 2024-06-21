@@ -13,7 +13,7 @@ namespace FileSystem = std::filesystem;
 
 void SettingsStore::SetSettings(std::string file_data)
 {
-    const auto path = SystemIO::GetSteamPath() / ".millennium" / "settings.json";
+    const auto path = SystemIO::GetSteamPath() / "ext" / "data" / "settings.json";
 
     if (!FileSystem::exists(path))
     {
@@ -26,7 +26,7 @@ void SettingsStore::SetSettings(std::string file_data)
 
 nlohmann::json SettingsStore::GetSettings()
 {
-    const auto path = SystemIO::GetSteamPath() / ".millennium" / "settings.json";
+    const auto path = SystemIO::GetSteamPath() / "ext" / "data" / "settings.json";
 
     if (!FileSystem::exists(path))
     {
@@ -170,10 +170,40 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     return plugin;
 }
 
+void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins)
+{
+    const std::filesystem::directory_entry entry(SystemIO::GetSteamPath() / "ext" / "data" / "assets");
+    const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
+
+    if (!FileSystem::exists(pluginConfiguration))
+    {
+        LOG_ERROR("No plugin configuration found in '{}'", entry.path().string());
+        return;
+    }
+
+    try
+    {
+        const auto pluginJson = SystemIO::ReadJsonSync(pluginConfiguration.string());
+        const auto pluginData = GetPluginInternalData(pluginJson, entry);
+
+        plugins.push_back(pluginData);
+    }
+    catch (SystemIO::FileException& exception)
+    {
+        LOG_ERROR("An error occurred reading plugin '{}', exception: {}", entry.path().string(), exception.what());
+    }
+    catch (std::exception& exception)
+    {
+        LOG_ERROR("An error occurred parsing plugin '{}', exception: {}", entry.path().string(), exception.what());
+    }
+}
+
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
     std::vector<SettingsStore::PluginTypeSchema> plugins;
     const auto plugin_path = SystemIO::GetSteamPath() / "steamui" / "plugins";
+
+    this->InsertMillenniumModules(plugins);
 
     try
     {
@@ -211,6 +241,11 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
     catch (const std::exception& ex)
     {
         LOG_ERROR("Fall back exception caught trying to parse plugins. {}", ex.what());
+    }
+
+    for (const auto& plugin : plugins)
+    {
+        Logger.Log("found plugin '{}'", plugin.pluginName);
     }
 
     return plugins;

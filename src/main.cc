@@ -21,7 +21,7 @@ private:
     const char* builtinsRepository = "https://github.com/SteamClientHomebrew/__builtins__.git";
     const char* pythonModulesRepository = "https://github.com/SteamClientHomebrew/Packages.git";
 
-    std::filesystem::path builtinsModulesPath = SystemIO::GetSteamPath() / "steamui" / "plugins" / "__millennium__";
+    std::filesystem::path builtinsModulesPath = SystemIO::GetSteamPath() / "ext" / "data" / "assets";
 
 public:
 
