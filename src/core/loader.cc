@@ -14,17 +14,9 @@ using namespace std::placeholders;
 websocketpp::client<websocketpp::config::asio_client>* sharedClient, *browserClient;
 websocketpp::connection_hdl sharedHandle, browserHandle;
 
-enum eSocketTypes 
+bool PostSocket(nlohmann::json data, 
+    websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle) 
 {
-    SHARED, 
-    GLOBAL
-};
-
-bool PostSocket(nlohmann::json data, eSocketTypes type) 
-{
-    const auto client = (type == eSocketTypes::SHARED ? sharedClient : browserClient);
-    const auto handle = (type == eSocketTypes::SHARED ? sharedHandle : browserHandle);
-
     if (client == nullptr) {
         LOG_ERROR("not connected to steam, cant post message");
         return false;
@@ -36,12 +28,12 @@ bool PostSocket(nlohmann::json data, eSocketTypes type)
 
 bool Sockets::PostShared(nlohmann::json data) 
 {
-    return PostSocket(data, eSocketTypes::SHARED);
+    return PostSocket(data, sharedClient, sharedHandle);
 }
 
 bool Sockets::PostGlobal(nlohmann::json data) 
 {
-    return PostSocket(data, eSocketTypes::GLOBAL);
+    return PostSocket(data, browserClient, browserHandle);
 }
 
 class CEFBrowser
@@ -138,7 +130,7 @@ const void PluginLoader::StartFrontEnds()
     browserSocketThread.join();
     sharedSocketThread.join();
 
-    Logger.Log("browser thread and shared thread exited...");
+    LOG_ERROR("browser thread and shared thread exited...");
     this->StartFrontEnds();
 }
 
