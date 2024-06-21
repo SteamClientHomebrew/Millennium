@@ -92,7 +92,7 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 
     if (failed)
     {
-        LOG_ERROR("failed to open file [readJsonSync]");
+        LOG_ERROR("failed to retrieve file info from disk.");
     }
 
     const std::string fileContent((std::istreambuf_iterator<char>(localFileStream)), std::istreambuf_iterator<char>());
