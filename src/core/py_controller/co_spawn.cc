@@ -50,7 +50,7 @@ const std::string GetPythonVersion()
 
 PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
-    Logger.LogHead("init plugin manager:");
+    Logger.LogHead("initialized python mgr:");
     this->m_instanceCount = 0;
 
     // initialize global modules

@@ -1,14 +1,14 @@
 ﻿#define _WINSOCKAPI_
 #define WIN32_LEAN_AND_MEAN 
 #define UNICODE
-#include <filesystem>
-#include <fstream>
-#include <deps/deps.h>
-#include <fmt/core.h>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <procmon/thread.h>
 #endif
+#include <filesystem>
+#include <fstream>
+#include <deps/deps.h>
+#include <fmt/core.h>
 #include <boxer/boxer.h>
 #include <sys/log.h>
 #include <core/loader.h>
@@ -56,8 +56,6 @@ public:
 
     const void Start() 
     {
-        LOG_ERROR("ERROR OCCURED");
-        
         const bool bBuiltInSuccess = Dependencies::GitAuditPackage("@builtins", builtinsModulesPath.string(), builtinsRepository);
 
         if (!bBuiltInSuccess) 
