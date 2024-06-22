@@ -12,12 +12,13 @@ enum eFileType
     Other
 };
 
-static std::map<eFileType, std::string> fileTypes {
-    {eFileType::StyleSheet, "text/css"},
-    {eFileType::JavaScript, "application/javascript"},
-    {eFileType::Json, "application/json"},
-    {eFileType::Python, "text/x-python"},
-    {eFileType::Other, "text/plain"}
+static std::map<eFileType, std::string> fileTypes 
+{
+    { eFileType::StyleSheet, "text/css" },
+    { eFileType::JavaScript, "application/javascript" },
+    { eFileType::Json,       "application/json" },
+    { eFileType::Python,     "text/x-python" },
+    { eFileType::Other,      "text/plain" }
 };
 
 const eFileType EvaluateFileType(std::filesystem::path filePath)
@@ -79,7 +80,6 @@ namespace Crow
             absolutePath = SystemIO::GetSteamPath() / "plugins" / path;
         }
 
-        Logger.Log("requesting file: {}", absolutePath.string());
         ResponseProps responseProps = EvaluateRequest(absolutePath);
 
         response.add_header("Content-Type", responseProps.contentType);
