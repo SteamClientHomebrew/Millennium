@@ -165,7 +165,7 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     plugin.pluginName = json["name"];
     plugin.pluginBaseDirectory      = entry.path();
     plugin.backendAbsoluteDirectory = entry.path() / "backend" / "main.py";
-    plugin.frontendAbsoluteDirectory = (FileSystem::path) "plugins" / pluginDirName / ".millennium" / "dist" / "index.js";
+    plugin.frontendAbsoluteDirectory = (FileSystem::path)pluginDirName / ".millennium" / "dist" / "index.js";
 
     return plugin;
 }
@@ -211,7 +211,7 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
     std::vector<SettingsStore::PluginTypeSchema> plugins;
-    const auto plugin_path = SystemIO::GetSteamPath() / "steamui" / "plugins";
+    const auto plugin_path = SystemIO::GetSteamPath() / "plugins";
 
     this->InsertMillenniumModules(plugins);
 

@@ -221,14 +221,10 @@ const std::string ConstructOnLoadModule()
             continue;
         }
 
-        if (plugin.isInternal)
-        {
-            scriptImportTable.append(ConstructScriptElement(fmt::format("http://localhost:12033/_internal_/{}", plugin.frontendAbsoluteDirectory.generic_string())));
-        }
-        else
-        {
-            scriptImportTable.append(ConstructScriptElement(fmt::format("https://steamloopback.host/{}", plugin.frontendAbsoluteDirectory.generic_string())));
-        }
+        const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
+        const std::string pathShim = plugin.isInternal ? "_internal_/" : std::string();
+
+        scriptImportTable.append(ConstructScriptElement(fmt::format("http://localhost:12033/{}{}", pathShim, frontEndAbs)));
     }
 
     std::string scriptLoader = bootstrapModule;

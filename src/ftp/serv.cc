@@ -52,6 +52,7 @@ namespace Crow
     {
         std::string contentType;
         std::string content;
+        bool exists;
     };
 
     ResponseProps EvaluateRequest(std::filesystem::path path)
@@ -61,7 +62,8 @@ namespace Crow
 
         return {
             contentType,
-            SystemIO::ReadFileSync(path.string())
+            SystemIO::ReadFileSync(path.string()),
+            std::filesystem::exists(path)
         };
     }
 
@@ -84,8 +86,15 @@ namespace Crow
 
         response.add_header("Content-Type", responseProps.contentType);
         response.add_header("Access-Control-Allow-Origin", "*");
-        response.write(responseProps.content);
 
+        if (!responseProps.exists)
+        {
+            response.code = 404;
+            response.write(fmt::format("404 File not found: {}", absolutePath.string()));
+            return response;
+        }
+
+        response.write(responseProps.content);
         return response;
     }
 
