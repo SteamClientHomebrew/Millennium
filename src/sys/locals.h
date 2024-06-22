@@ -16,6 +16,7 @@ public:
         std::filesystem::path pluginBaseDirectory;
         std::filesystem::path backendAbsoluteDirectory;
         std::filesystem::path frontendAbsoluteDirectory;
+        bool isInternal = false;
     };
 
     std::vector<std::string> GetEnabledPlugins();

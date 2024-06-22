@@ -70,7 +70,7 @@ const InjectLegacyReactGlobals = () => {
 function waitForSPReactDOM() {
     return new Promise((resolve) => {
         const interval = setInterval(() => {
-            if (window?.webpackChunksteamui?.length > 3) {
+            if (window?.webpackChunksteamui?.length >= 5) {
                 InjectLegacyReactGlobals();
                 clearInterval(interval);
                 resolve();
@@ -221,7 +221,14 @@ const std::string ConstructOnLoadModule()
             continue;
         }
 
-        scriptImportTable.append(ConstructScriptElement(fmt::format("https://steamloopback.host/{}", plugin.frontendAbsoluteDirectory.generic_string())));
+        if (plugin.isInternal)
+        {
+            scriptImportTable.append(ConstructScriptElement(fmt::format("http://localhost:12033/_internal_/{}", plugin.frontendAbsoluteDirectory.generic_string())));
+        }
+        else
+        {
+            scriptImportTable.append(ConstructScriptElement(fmt::format("https://steamloopback.host/{}", plugin.frontendAbsoluteDirectory.generic_string())));
+        }
     }
 
     std::string scriptLoader = bootstrapModule;
@@ -233,7 +240,7 @@ const std::string ConstructOnLoadModule()
     }
     else 
     {
-        LOG_ERROR("couldn't shim bootstrap module with plugin frontends. "
+        LOG_ERROR("couldn't shim bootstrap module with plugin front-ends. "
         "SCRIPT_RAW_TEXT was not found in the target string");
     }
 

@@ -19,3 +19,6 @@
 [submodule "vendor/vcpkg"]
 	path = vendor/vcpkg
 	url = https://github.com/microsoft/vcpkg.git
+[submodule "vendor/crow"]
+	path = vendor/crow
+	url = https://github.com/CrowCpp/Crow.git

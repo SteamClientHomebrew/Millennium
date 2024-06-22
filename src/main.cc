@@ -13,6 +13,7 @@
 #include <sys/log.h>
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
+#include <ftp/serv.h>
 
 class Preload 
 {
@@ -81,6 +82,8 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
+    Crow::CreateAsyncServer();
+
     const auto startTime = std::chrono::system_clock::now();
     {
         std::unique_ptr<Preload> preload = std::make_unique<Preload>();

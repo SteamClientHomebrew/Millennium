@@ -78,7 +78,7 @@ namespace SystemIO {
 
         if (!outputLogStream.is_open())
         {
-            LOG_ERROR("failed to open file [readJsonSync]");
+            LOG_ERROR("failed to open file -> {}", filename);
             return {};
         }
 

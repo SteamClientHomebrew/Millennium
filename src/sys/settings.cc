@@ -13,7 +13,7 @@ namespace FileSystem = std::filesystem;
 
 void SettingsStore::SetSettings(std::string file_data)
 {
-    const auto path = SystemIO::GetSteamPath() / "ext" / "data" / "settings.json";
+    const auto path = SystemIO::GetSteamPath() / "ext" / "plugins.json";
 
     if (!FileSystem::exists(path))
     {
@@ -26,7 +26,7 @@ void SettingsStore::SetSettings(std::string file_data)
 
 nlohmann::json SettingsStore::GetSettings()
 {
-    const auto path = SystemIO::GetSteamPath() / "ext" / "data" / "settings.json";
+    const auto path = SystemIO::GetSteamPath() / "ext" / "plugins.json";
 
     if (!FileSystem::exists(path))
     {
@@ -165,7 +165,7 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     plugin.pluginName = json["name"];
     plugin.pluginBaseDirectory      = entry.path();
     plugin.backendAbsoluteDirectory = entry.path() / "backend" / "main.py";
-    plugin.frontendAbsoluteDirectory = (FileSystem::path) "plugins" / pluginDirName / "dist" / "index.js";
+    plugin.frontendAbsoluteDirectory = (FileSystem::path) "plugins" / pluginDirName / ".millennium" / "dist" / "index.js";
 
     return plugin;
 }
@@ -183,10 +183,20 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
 
     try
     {
+        SettingsStore::PluginTypeSchema plugin;
         const auto pluginJson = SystemIO::ReadJsonSync(pluginConfiguration.string());
-        const auto pluginData = GetPluginInternalData(pluginJson, entry);
+        const std::string pluginDirName = entry.path().filename().string();
 
-        plugins.push_back(pluginData);
+        LintPluginData(pluginJson, pluginDirName);
+
+        plugin.pluginJson = pluginJson;
+        plugin.pluginName = pluginJson["name"];
+        plugin.pluginBaseDirectory      = entry.path();
+        plugin.backendAbsoluteDirectory = entry.path() / "backend" / "main.py";
+        plugin.frontendAbsoluteDirectory = (FileSystem::path)"assets" / ".millennium" / "dist" / "index.js";
+        plugin.isInternal = true;
+
+        plugins.push_back(plugin);
     }
     catch (SystemIO::FileException& exception)
     {

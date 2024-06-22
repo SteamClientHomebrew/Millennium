@@ -108,7 +108,7 @@ set(SOURCE_FILES
   "src/sys/settings.cc"
   "src/api/executor.cc"
   "src/deps/module.cc"
-  "src/crow/serv.cc"
+  "src/ftp/serv.cc"
 )
 
 if (MSVC)
