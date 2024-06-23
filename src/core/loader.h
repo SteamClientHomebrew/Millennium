@@ -13,7 +13,7 @@
 class PluginLoader {
 public:
 
-	PluginLoader(std::chrono::system_clock::time_point startTime);
+	PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort);
 
 	const void StartBackEnds();
 	const void StartFrontEnds();
@@ -27,6 +27,7 @@ private:
 	std::unique_ptr<SettingsStore> m_settingsStorePtr;
 	std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr;
 	std::chrono::system_clock::time_point m_startTime;
+	uint16_t m_ftpPort, m_ipcPort;
 };
 
 namespace Sockets {

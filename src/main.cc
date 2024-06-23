@@ -82,7 +82,7 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
-    Crow::CreateAsyncServer();
+    uint16_t ftpPort = Crow::CreateAsyncServer();
 
     const auto startTime = std::chrono::system_clock::now();
     {
@@ -90,7 +90,7 @@ const static void EntryMain()
         preload->Start();
     }
 
-    std::unique_ptr<PluginLoader> loader = std::make_unique<PluginLoader>(startTime);
+    std::unique_ptr<PluginLoader> loader = std::make_unique<PluginLoader>(startTime, ftpPort);
 
     loader->StartBackEnds();
     loader->StartFrontEnds();

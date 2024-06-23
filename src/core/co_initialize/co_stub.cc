@@ -8,7 +8,9 @@
 #include <core/hooks/web_load.h>
 #include <core/ffi/ffi.h>
 
-constexpr const char* bootstrapModule = R"(
+const std::string GetBootstrapModule(const std::string scriptModules, const uint16_t port)
+{
+    return R"(
 function createWebSocket(url) {
     return new Promise((resolve, reject) => {
         let socket = new WebSocket(url);
@@ -79,23 +81,24 @@ function waitForSPReactDOM() {
     });
 }
 
-createWebSocket('ws://localhost:12906').then((socket) => {
+createWebSocket('ws://localhost:)" + std::to_string(port) + R"(').then((socket) => {
     window.MILLENNIUM_IPC_SOCKET = socket;
     window.CURRENT_IPC_CALL_COUNT = 0;
 
     Promise.all([ waitForSocket(socket), waitForSPReactDOM() ]).then(() => {
-        console.log('%c Millennium ', 'background: black; color: white', "Reading to inject shims...");
-        SCRIPT_RAW_TEXT
+        console.log('%c Millennium ', 'background: black; color: white', "Ready to inject shims...");
+        )" + scriptModules + R"(
     })
     .catch((error) => console.error('error @ createWebSocket ->', error));
 })
 .catch((error) => console.error('Initial WebSocket connection failed:', error));
 )";
+}
 
 /// @brief sets up the python interpreter to use virtual environment site packages, as well as custom python path.
 /// @param system path 
 /// @return void 
-const void AddSitePackages(std::vector<std::filesystem::path> spath) 
+const void AddSitePackages(std::vector<std::filesystem::path> sitePackages) 
 {
     PyObject *sysModule = PyImport_ImportModule("sys");
     if (!sysModule) 
@@ -114,7 +117,7 @@ const void AddSitePackages(std::vector<std::filesystem::path> spath)
         PyList_SetSlice(systemPath, 0, PyList_Size(systemPath), NULL);
 #endif
 
-        for (const auto& systemPathItem : spath) 
+        for (const auto& systemPathItem : sitePackages) 
         {
             PyList_Append(systemPath, PyUnicode_FromString(systemPathItem.generic_string().c_str()));
         }
@@ -192,6 +195,8 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         return;
     }
 
+    //PyRun_SimpleString("print('started new interpreter')");
+
     if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
     {
         LOG_ERROR("millennium failed to startup [{}]", plugin.pluginName);
@@ -207,7 +212,7 @@ const std::string ConstructScriptElement(std::string filename)
     return fmt::format("\nif (!document.querySelectorAll(`script[src='{}'][type='module']`).length) {{ document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module', id: 'millennium-injected' }})); }}", filename, filename);
 }
 
-const std::string ConstructOnLoadModule() 
+const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort) 
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
@@ -224,29 +229,19 @@ const std::string ConstructOnLoadModule()
         const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
         const std::string pathShim = plugin.isInternal ? "_internal_/" : std::string();
 
-        scriptImportTable.append(ConstructScriptElement(fmt::format("http://localhost:12033/{}{}", pathShim, frontEndAbs)));
+        scriptImportTable.append(ConstructScriptElement(fmt::format("http://localhost:{}/{}{}", ftpPort, pathShim, frontEndAbs)));
     }
 
-    std::string scriptLoader = bootstrapModule;
-    std::size_t importTablePos = scriptLoader.find("SCRIPT_RAW_TEXT");
-
-    if (importTablePos != std::string::npos) 
-    {
-        scriptLoader.replace(importTablePos, strlen("SCRIPT_RAW_TEXT"), scriptImportTable);
-    }
-    else 
-    {
-        LOG_ERROR("couldn't shim bootstrap module with plugin front-ends. "
-        "SCRIPT_RAW_TEXT was not found in the target string");
-    }
-
-    return scriptLoader;
+    return GetBootstrapModule(scriptImportTable, ipcPort);
 }
 
 static std::string addedScriptOnNewDocumentId;
 
-const void CoInitializer::InjectFrontendShims(void)
+const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
+    static uint16_t m_ftpPort = ftpPort;
+    static uint16_t m_ipcPort = ipcPort;
+
     enum PageMessage
     {
         PAGE_ENABLE,
@@ -255,7 +250,7 @@ const void CoInitializer::InjectFrontendShims(void)
     };
 
     Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule() }}} });
+    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
     Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
 
     JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)

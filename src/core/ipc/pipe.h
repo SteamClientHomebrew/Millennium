@@ -11,6 +11,6 @@ extern "C"
 			FRONT_END_LOADED
 		};
 
-		const int OpenConnection();
+		const uint16_t OpenConnection();
 	}
 }

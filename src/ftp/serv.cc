@@ -2,6 +2,7 @@
 #include <crow.h>
 #include <sys/locals.h>
 #include <sys/log.h>
+#include <sys/asio.h>
 
 enum eFileType
 {
@@ -98,18 +99,31 @@ namespace Crow
         return response;
     }
 
-    void RunMainLoop()
+    std::tuple<std::shared_ptr<crow::SimpleApp>, uint16_t> BindApplication()
     {
-        crow::SimpleApp app;
-        app.server_name("millennium/1.0");
-        app.loglevel(crow::LogLevel::Critical);
+        uint_least16_t port = Asio::GetRandomOpenPort();
+        std::shared_ptr<crow::SimpleApp> app = std::make_shared<crow::SimpleApp>();
 
-        CROW_ROUTE(app, "/<path>")(HandleRequest);
-        app.port(12033).multithreaded().run();
+        app->server_name("millennium/1.0");
+        app->loglevel(crow::LogLevel::Critical);
+        app->port(port);
+
+        CROW_ROUTE((*app), "/<path>")(HandleRequest);
+
+        Logger.Log("ftp server is running on port: {}", app->port());
+        return std::make_tuple(app, port);
     }
 
-    void CreateAsyncServer()
+    uint16_t CreateAsyncServer()
     {
-        std::thread(RunMainLoop).detach();
+        auto [app, port] = BindApplication();
+
+        std::thread(
+            [app]() mutable {
+                app->multithreaded().run();
+            }
+        ).detach();
+
+        return port;
     }
 }

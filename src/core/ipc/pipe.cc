@@ -6,6 +6,7 @@
 #include <sys/encoding.h>
 #include <core/ipc/pipe.h>
 #include <functional>
+#include <sys/asio.h>
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
@@ -89,7 +90,7 @@ void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl hdl)
     IPCSocketMain->start_accept();
 }
 
-const int OpenIPCSocket() 
+const int OpenIPCSocket(uint16_t ipcPort) 
 {
     socketServer IPCSocketMain;
 
@@ -102,7 +103,7 @@ const int OpenIPCSocket()
         IPCSocketMain.set_message_handler(bind(OnMessage, &IPCSocketMain, std::placeholders::_1, std::placeholders::_2));
         IPCSocketMain.set_open_handler(bind(&OnOpen, &IPCSocketMain, std::placeholders::_1));
 
-        IPCSocketMain.listen(12906);
+        IPCSocketMain.listen(ipcPort);
         IPCSocketMain.start_accept();
         IPCSocketMain.run();
     }
@@ -114,8 +115,11 @@ const int OpenIPCSocket()
     return true;
 }
 
-const int IPCMain::OpenConnection()
+const uint16_t IPCMain::OpenConnection()
 {
-    std::thread(OpenIPCSocket).detach();
-    return true;
+    uint16_t ipcPort = Asio::GetRandomOpenPort();
+    Logger.Log("[ipcMain] opening IPC connection on port {}", ipcPort);
+
+    std::thread(OpenIPCSocket, ipcPort).detach();
+    return ipcPort;
 }

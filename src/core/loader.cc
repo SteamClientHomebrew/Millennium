@@ -62,7 +62,10 @@ public:
 
 class SharedJSContext
 {
+    uint16_t m_ftpPort, m_ipcPort;
 public:
+
+    SharedJSContext(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort) { }
 
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>*c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
@@ -76,17 +79,18 @@ public:
         sharedHandle = handle;
 
         Logger.Log("successfully connected to steam JSVM!");
-        CoInitializer::InjectFrontendShims();
+        CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
     }
 };
 
-PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_startTime(startTime), m_pluginsPtr(nullptr)
+PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
+    : m_startTime(startTime), m_pluginsPtr(nullptr), m_ftpPort(ftpPort)
 {
     m_settingsStorePtr = std::make_unique<SettingsStore>();
     m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
 
     m_settingsStorePtr->InitializeSettingsStore();
-    IPCMain::OpenConnection();
+    m_ipcPort = IPCMain::OpenConnection();
 
     this->PrintActivePlugins();
 }
@@ -118,14 +122,20 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
 const void PluginLoader::StartFrontEnds()
 {
     CEFBrowser cefBrowserHandler;
-    SharedJSContext sharedJsHandler;
+    SharedJSContext sharedJsHandler(m_ftpPort, m_ipcPort);
     SocketHelpers socketHelpers;
+
+    auto socketStart = std::chrono::high_resolution_clock::now();
 
     std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
     std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
 
+    auto socketEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - socketStart);
+    Logger.LogItem("socket-con", fmt::format("finished in [{}ms]\n", socketEnd.count()), true);
+
+
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
-    Logger.LogItem("exec", fmt::format("finished in [{}ms]\n", duration.count()), true);
+    Logger.Log("total startup time: [{}ms]", duration.count());
 
     browserSocketThread.join();
     sharedSocketThread.join();
@@ -148,6 +158,7 @@ const void PluginLoader::PrintActivePlugins()
 
 const void PluginLoader::StartBackEnds()
 {
+    auto start = std::chrono::high_resolution_clock::now();
     PythonManager& manager = PythonManager::GetInstance();
 
     for (auto& plugin : *this->m_pluginsPtr)
@@ -165,4 +176,7 @@ const void PluginLoader::StartBackEnds()
             }
         ).detach();
     }
+
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
+    Logger.Log("backend python thread started in [{}ms]", duration.count());
 }

@@ -2,5 +2,5 @@
 
 namespace Crow 
 {
-    void CreateAsyncServer();
+    uint16_t CreateAsyncServer();
 }
