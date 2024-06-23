@@ -24,8 +24,6 @@
         "VCPKG_TARGET_TRIPLET": "x86-windows-static"
       }
     },
-
-
     {
       "name": "windows-mingw",
       "hidden": true,
