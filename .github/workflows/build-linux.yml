@@ -57,7 +57,7 @@ jobs:
         mkdir ./build/artifacts
         cmake --build build
 
-        ldd ./build/artifacts/user32
+        ldd ./build/Release/user32
 
         copy ./build/Release/user32 ./build/artifacts/user32
       env: 
