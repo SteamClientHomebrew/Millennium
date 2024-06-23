@@ -239,36 +239,47 @@ static std::string addedScriptOnNewDocumentId;
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
-    static uint16_t m_ftpPort = ftpPort;
-    static uint16_t m_ipcPort = ipcPort;
+    Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
 
-    enum PageMessage
+    Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
+    Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+
+    BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
+
+    backendHandler.Listen(BackendCallbacks::eEvents::CB_BACKENDS_READY, [ftpPort, ipcPort]() 
     {
-        PAGE_ENABLE,
-        PAGE_SCRIPT,
-        PAGE_RELOAD
-    };
+        static uint16_t m_ftpPort = ftpPort;
+        static uint16_t m_ipcPort = ipcPort;
 
-    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
-    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
-
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)
-    {
-        try
+        enum PageMessage
         {
-            if (eventMessage.contains("id") && eventMessage["id"] != PAGE_SCRIPT)
+            PAGE_ENABLE,
+            PAGE_SCRIPT,
+            PAGE_RELOAD
+        };
+
+        Sockets::PostShared({ {"id", 3423 }, {"method", "Debugger.resume"} });
+        Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
+        Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
+        Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+
+        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)
+        {
+            try
             {
-                return;
-            }
+                if (eventMessage.value("id", -1) != PAGE_SCRIPT)
+                {
+                    return;
+                }
 
-            addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-        }
-        catch (nlohmann::detail::exception& ex)
-        {
-            LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
-        }
+                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+            }
+            catch (nlohmann::detail::exception& ex)
+            {
+                LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+            }
+        });
     });
 }
 

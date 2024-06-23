@@ -228,6 +228,26 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     Py_RETURN_NONE;
 }
 
+PyObject* EmitReadyMessage(PyObject* self, PyObject* args) 
+{ 
+    PyObject* globals = PyModule_GetDict(PyImport_AddModule("__main__"));
+    PyObject* pluginNameObj = PyRun_String("MILLENNIUM_PLUGIN_SECRET_NAME", Py_eval_input, globals, globals);
+
+    if (pluginNameObj == nullptr || PyErr_Occurred()) 
+    {
+        LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
+        return NULL;
+    }
+
+    const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
+    Logger.Log("received ready message for [{}]", pluginName);
+
+    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+    backendHandler.Emit(CoInitializer::BackendCallbacks::eEvents::CB_BACKENDS_READY);
+
+    return PyBool_FromLong(true);
+}
+
 PyMethodDef* GetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = 
@@ -235,6 +255,8 @@ PyMethodDef* GetMillenniumModule()
         { "add_browser_css", AddBrowserCss, METH_VARARGS, NULL },
         { "add_browser_js", AddBrowserJs, METH_VARARGS, NULL },
         { "remove_browser_module", RemoveBrowserModule, METH_VARARGS, NULL },
+
+        { "ready", EmitReadyMessage, METH_NOARGS, NULL },
 
         { "get_user_settings", GetUserSettings, METH_NOARGS, NULL },
         { "set_user_settings_key", SetUserSettings, METH_VARARGS, NULL },

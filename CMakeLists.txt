@@ -101,6 +101,7 @@ set(SOURCE_FILES
   "src/core/ffi/javascript.cc"
   "src/core/ffi/gil.cc"
   "src/core/co_initialize/co_stub.cc"
+  "src/core/co_initialize/events.cc"
   "src/core/hooks/web_load.cc"
   "src/core/ipc/pipe.cc"
   "src/sys/log.cc"
