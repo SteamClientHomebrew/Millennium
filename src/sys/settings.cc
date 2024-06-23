@@ -253,10 +253,5 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
         LOG_ERROR("Fall back exception caught trying to parse plugins. {}", ex.what());
     }
 
-    for (const auto& plugin : plugins)
-    {
-        Logger.Log("found plugin '{}'", plugin.pluginName);
-    }
-
     return plugins;
 }
