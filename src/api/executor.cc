@@ -11,10 +11,12 @@
 
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
-    const auto SettingsStore = SystemIO::ReadJsonSync(SystemIO::GetSteamPath().string());
+    std::unique_ptr<SettingsStore> settingsStorePtr = std::make_unique<SettingsStore>();
+    const nlohmann::json settingsInfo = settingsStorePtr->GetSettings();
+
     PyObject* resultBuffer = PyDict_New();
 
-    for (auto it = SettingsStore.begin(); it != SettingsStore.end(); ++it) 
+    for (auto it = settingsInfo.begin(); it != settingsInfo.end(); ++it) 
     {
         PyObject* key = PyUnicode_FromString(it.key().c_str());
         PyObject* value = PyUnicode_FromString(it.value().get<std::string>().c_str());
@@ -29,6 +31,8 @@ PyObject* GetUserSettings(PyObject* self, PyObject* args)
 
 PyObject* SetUserSettings(PyObject* self, PyObject* args)
 {
+    std::unique_ptr<SettingsStore> settingsStorePtr = std::make_unique<SettingsStore>();
+
     const char* key;
     const char* value;
 
@@ -37,10 +41,12 @@ PyObject* SetUserSettings(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    auto data = SystemIO::ReadJsonSync(SystemIO::GetSteamPath().string());
-    data[key] = value;
+    nlohmann::json settingsInfo = settingsStorePtr->GetSettings();
+    {
+        settingsInfo[key] = value;
+    }
+    settingsStorePtr->SetSettings(settingsInfo.dump(4));
 
-    SystemIO::WriteFileSync(SystemIO::GetSteamPath().string(), data.dump(4));
     Py_RETURN_NONE;
 }
 
