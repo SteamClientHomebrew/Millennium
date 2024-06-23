@@ -113,8 +113,19 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
     return 1;
 }
 #elif __linux__
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+
+void HandleSignalInterrupt(int sig) 
+{
+    std::exit(1);
+}
+
 int main()
 {
+    HandleSignalInterrupt(SIGINT, handle_sigint);
+
     EntryMain();
     return 1;
 }

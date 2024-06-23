@@ -170,8 +170,10 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     std::vector<std::filesystem::path> sysPath = 
     { 
         plugin.pluginBaseDirectory / "backend", 
+#ifdef _WIN32
         pythonPath, 
         pythonLibs
+#endif
     };
 
     if (plugin.pluginJson.contains("venv") && plugin.pluginJson["venv"].is_string()) 
