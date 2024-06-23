@@ -124,7 +124,7 @@ void HandleSignalInterrupt(int sig)
 
 int main()
 {
-    HandleSignalInterrupt(SIGINT, handle_sigint);
+    signal(SIGINT, HandleSignalInterrupt);
 
     EntryMain();
     return 1;
