@@ -57,9 +57,9 @@ jobs:
         mkdir ./build/artifacts
         cmake --build build
 
-        # Move the python311.dll binary to the release directory
-        # copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
-        # copy D:\a\Millennium\Millennium\build\Release\user32.dll D:/a/Millennium/Millennium/build/artifacts/user32.dll
+        ldd ./build/artifacts/user32
+
+        copy ./build/Release/user32 ./build/artifacts/user32
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
@@ -67,4 +67,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: millennium
-        path: D:/a/Millennium/Millennium/build/artifacts
+        path: ./build/artifacts
