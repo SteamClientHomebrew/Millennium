@@ -30,14 +30,14 @@ public:
     {
         this->VerifyEnvironment();
         #if _WIN32
-        PauseSteamCore();
+        //PauseSteamCore();
         #endif
     }
 
     ~Preload() 
     {
         #if _WIN32
-        UnpauseSteamCore();
+        //UnpauseSteamCore();
         #endif
     }
 
