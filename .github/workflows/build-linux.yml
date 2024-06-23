@@ -57,9 +57,9 @@ jobs:
         mkdir ./build/artifacts
         cmake --build build
 
-        ls ./build
+        ldd ./build/user32
 
-        copy ./build/Release/user32 ./build/artifacts/user32
+        copy ./build/user32 ./build/artifacts/user32
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
