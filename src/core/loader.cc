@@ -158,7 +158,6 @@ const void PluginLoader::PrintActivePlugins()
 
 const void PluginLoader::StartBackEnds()
 {
-    auto start = std::chrono::high_resolution_clock::now();
     PythonManager& manager = PythonManager::GetInstance();
 
     for (auto& plugin : *this->m_pluginsPtr)
@@ -176,7 +175,4 @@ const void PluginLoader::StartBackEnds()
             }
         ).detach();
     }
-
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
-    Logger.Log("backend python thread started in [{}ms]", duration.count());
 }
