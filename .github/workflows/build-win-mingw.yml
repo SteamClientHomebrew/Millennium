@@ -111,6 +111,7 @@ jobs:
         install: >
             mingw-w64-i686-toolchain
             mingw-w64-i686-cmake
+            mingw-w64-i686-gcc
             
     - name: Add MinGW32 to PATH
       run: echo "::add-path::C:\msys64\mingw32\bin"
