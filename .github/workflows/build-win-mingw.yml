@@ -13,6 +13,10 @@ jobs:
   build:
     runs-on: windows-latest
 
+    env:
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: true # allow fortnite wallhacks
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
     steps:
 
     - name: Export GitHub Actions cache environment variables
@@ -50,8 +54,6 @@ jobs:
         curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
         # extract the tarball
         tar -xzvf Python-3.11.8.tgz >nul 2>&1
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Python) Stage Python 3.11.8 static build
       if: steps.build-cache.outputs.cache-hit != 'true'
@@ -95,8 +97,6 @@ jobs:
         copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311_d.dll D:/a/Millennium/Millennium/build/python/python311_d.dll
         copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.lib D:/a/Millennium/Millennium/build/python/python311.lib
         copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311_d.lib D:/a/Millennium/Millennium/build/python/python311_d.lib
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
@@ -113,24 +113,19 @@ jobs:
             mingw-w64-i686-cmake
             
     - name: Add MinGW32 to PATH
-      run: echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
+      run: echo "::add-path::C:\msys64\mingw32\bin"
 
     - name: (Dependency) Install vcpkg
+      shell: pwsh
       run: |
 
         # bootstrap and install vcpkg
         ./vendor/vcpkg/bootstrap-vcpkg.bat
         ./vendor/vcpkg/vcpkg integrate install
-      shell: pwsh
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Generator) Configure CMake
       run: |
         cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
-
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Build Millennium
       run: |
@@ -144,8 +139,6 @@ jobs:
         # Move the python311.dll binary to the release directory
         copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
         copy D:\a\Millennium\Millennium\build\Release\user32.dll D:/a/Millennium/Millennium/build/artifacts/user32.dll
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
