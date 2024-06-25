@@ -113,7 +113,7 @@ jobs:
             mingw-w64-i686-cmake
             
     - name: Add MinGW32 to PATH
-      run: echo "::add-path::C:\msys64\mingw32\bin"
+      run: echo "C:\msys64\mingw32\bin" >> $GITHUB_PATH
 
     - name: (Dependency) Install vcpkg
       run: |
