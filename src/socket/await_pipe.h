@@ -195,7 +195,7 @@ public:
 
     SocketHelpers() : debuggerPort(GetDebuggerPort())
     {
-        Logger.Log("debugger port -> {}", debuggerPort);
+        Logger.LogItem("ports", fmt::format("steam debugger port: {}", debuggerPort));
         this->VerifySteamConnection();
     }
 
