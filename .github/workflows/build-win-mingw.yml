@@ -127,7 +127,7 @@ jobs:
 
     - name: (Generator) Configure CMake
       run: |
-        where cmake
+        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
