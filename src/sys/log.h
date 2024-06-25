@@ -34,7 +34,7 @@ public:
     template <typename... Args>
     void Log(std::string fmt, Args &&...args)
     {
-        PrintMessage(" [info] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::light_gray));
+        PrintMessage(" [info] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::dark_gray));
     }
 
     template <typename... Args>
