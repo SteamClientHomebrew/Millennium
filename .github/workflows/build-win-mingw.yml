@@ -126,7 +126,7 @@ jobs:
 
     - name: (Generator) Configure CMake
       run: |
-        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON -DCMAKE_CXX_COMPILER=C:/msys64/mingw32/bin/i686-w64-mingw32-g++.exe
 
     - name: Build Millennium
       run: |
