@@ -15,7 +15,7 @@ function createWebSocket(url) {
     return new Promise((resolve, reject) => {
         let socket = new WebSocket(url);
         socket.addEventListener('open', () => {
-            console.log('WebSocket connected');
+            console.log('%c Millennium ', 'background: black; color: white', "Successfully connected to IPC server.");
             resolve(socket);
         });
         socket.addEventListener('error', (error) => {
@@ -51,9 +51,8 @@ const InjectLegacyReactGlobals = () => {
     for (let i of Object.keys(initReq.m)) {
         try {
             bufferWebpackCache[i] = initReq(i);
-        } catch (e) {
-            console.debug("[Millennium:Webpack]: Ignoring require error for module", i, e);
-        }
+        } 
+        catch (e) { }
     }
 
     const findModule = (filter) => {
