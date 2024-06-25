@@ -104,17 +104,10 @@ jobs:
         name: python 3.11.8 build libraries
         path: D:/a/Millennium/Millennium/build/python
 
-    - name: Install MinGW
-      uses: msys2/setup-msys2@v2
+    - name: Set up MinGW
+      uses: egor-tensin/setup-mingw@v2
       with:
-        update: true
-        install: >
-            mingw-w64-i686-toolchain
-            mingw-w64-i686-cmake
-            mingw-w64-i686-gcc
-            
-    - name: Add MinGW32 to PATH
-      run: echo "::add-path::C:\msys64\mingw32\bin"
+        platform: x86
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
@@ -126,7 +119,7 @@ jobs:
 
     - name: (Generator) Configure CMake
       run: |
-        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON -DCMAKE_CXX_COMPILER=C:/msys64/mingw32/bin/i686-w64-mingw32-g++.exe
+        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
     - name: Build Millennium
       run: |
