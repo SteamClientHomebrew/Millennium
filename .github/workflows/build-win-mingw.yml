@@ -121,8 +121,8 @@ jobs:
       run: |
 
         # bootstrap and install vcpkg
-        ./vendor/bootstrap-vcpkg.bat
-        ./vendor/vcpkg integrate install
+        ./vendor/vcpkg/bootstrap-vcpkg.bat
+        ./vendor/vcpkg/vcpkg integrate install
       shell: pwsh
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
