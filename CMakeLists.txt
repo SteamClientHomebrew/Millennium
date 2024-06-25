@@ -1,7 +1,6 @@
-cmake_minimum_required(VERSION 3.5.0)
+set(MILLENNIUM_VERSION "2.1.0")
 
-set(PRIVATE_PRODUCT_NAME "Millennium")
-set(MILLENNIUM_VERSION   "2.1.0")
+cmake_minimum_required(VERSION 3.5.0)
 set(BUILD_SHARED_LIBS OFF)
 
 # set c++ directives
@@ -18,31 +17,9 @@ if (WIN32 AND NOT GITHUB_ACTION_BUILD)
     set(LIBRARY_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
 endif()
 
-string(REPLACE "." "," INTERNAL_VERSION "${MILLENNIUM_VERSION}")
-
 # Set version information
-add_compile_definitions(
-    MILLENNIUM_VERSION="${MILLENNIUM_VERSION}"
+add_compile_definitions(MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
 
-    VER_COMPANYNAME_STR="Steam Homebrew."
-    VER_PRIVATEBUILD=${MILLENNIUM_VERSION}
-    VER_PRERELEASE=${MILLENNIUM_VERSION}
-    VER_DEBUG=${MILLENNIUM_VERSION}
-    VER_FILEVERSION_STR="${MILLENNIUM_VERSION}"
-    VER_FILEVERSION=${INTERNAL_VERSION}
-    VER_PRODUCTVERSION_STR="${MILLENNIUM_VERSION}"
-    VER_PRODUCTVERSION=${INTERNAL_VERSION}
-    VER_FILEDESCRIPTION_STR="A plugin loader for the modern Steam Client."
-    VER_INTERNALNAME_STR="${PRIVATE_PRODUCT_NAME}"
-    VER_LEGALCOPYRIGHT_STR="Copyright \(c\) Steam Homebrew."
-    VER_LEGALTRADEMARKS1_STR="Copyright \(c\) Steam Homebrew."
-    VER_LEGALTRADEMARKS2_STR="Copyright \(c\) Steam Homebrew."
-    VER_ORIGINALFILENAME_STR="${PRIVATE_PRODUCT_NAME}"
-    VER_PRODUCTNAME_STR="${PRIVATE_PRODUCT_NAME}"
-)
-
-# Compile as release and compile MSVC as MT (static)
-set(CMAKE_BUILD_TYPE Release)
 if (WIN32)
   string(REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   string(REPLACE "/MDd" "/MTd" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
@@ -52,8 +29,6 @@ endif()
 
 # build boxer (message-box lib)
 add_subdirectory(vendor/boxer)
-
-# add_compile_options(-g -Og -lz)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
@@ -65,26 +40,20 @@ include_directories(
 )
 
 add_compile_definitions(
-  CURL_STATICLIB # static lcurl
-
-  # prevent websocketpp from using boost
+  CURL_STATICLIB
   _WEBSOCKETPP_CPP11_THREAD_
   _WEBSOCKETPP_CPP11_TYPE_TRAITS_
   _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
-
-  ASIO_STANDALONE # static asio
-  ASIO_HAS_STD_INVOKE_RESULT # prevent use of boost
-
-  FMT_HEADER_ONLY # implicit static link
+  ASIO_STANDALONE
+  ASIO_HAS_STD_INVOKE_RESULT
+  FMT_HEADER_ONLY
   _CRT_SECURE_NO_WARNINGS
 )
 
 find_package(cpr CONFIG REQUIRED) # used for web requests. 
 find_package(unofficial-git2 CONFIG REQUIRED) # used for updating git modules
 
-include_directories(
-  ${LIBGIT2_INCLUDE_DIRS}
-)
+include_directories(${LIBGIT2_INCLUDE_DIRS})
 
 if(WIN32)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
