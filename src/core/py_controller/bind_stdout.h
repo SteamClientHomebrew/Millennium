@@ -16,14 +16,7 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
 
 extern "C" void PrintPythonError(std::string pname, const char* message)
 {
-    #ifdef _WIN32
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE); 
-    SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
-    #endif
-    std::cout << message;
-    #ifdef _WIN32
-	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-    #endif
+    fmt::print(fg(fmt::color::red), "{}", message);
 }
 
 extern "C" 
