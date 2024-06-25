@@ -104,18 +104,16 @@ jobs:
         name: python 3.11.8 build libraries
         path: D:/a/Millennium/Millennium/build/python
 
-    - name: Set up MSYS2
+    - name: Install MinGW
       uses: msys2/setup-msys2@v2
       with:
-        install: mingw-w64-i686-toolchain
-  
-    - name: Update MSYS2 and install i686 packages
-      shell: msys2 {0}
-      run: |
-        pacman --noconfirm -S mingw-w64-i686-cmake
-        pacman --noconfirm -S mingw-w64-x86_64-gcc
-        pacman --noconfirm -S mingw-w64-x86_64-toolchain
-        pacman --noconfirm -S base-devel
+        update: true
+        install: >
+            mingw-w64-i686-toolchain
+            mingw-w64-i686-cmake
+            
+    - name: Add MinGW32 to PATH
+      run: echo "::add-path::C:\msys64\mingw32\bin"
 
     - name: (Dependency) Install vcpkg
       run: |
@@ -130,7 +128,7 @@ jobs:
     - name: (Generator) Configure CMake
       run: |
         where cmake
-        
+
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
