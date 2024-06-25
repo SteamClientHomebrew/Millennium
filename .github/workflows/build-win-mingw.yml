@@ -104,13 +104,6 @@ jobs:
         name: python 3.11.8 build libraries
         path: D:/a/Millennium/Millennium/build/python
 
-    - name: (Generator) Integrate VS2022
-      uses: microsoft/setup-msbuild@v2
-      with:
-        vs-version: '17'
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
     - name: Set up MSYS2
       uses: msys2/setup-msys2@v2
       with:
@@ -136,7 +129,8 @@ jobs:
 
     - name: (Generator) Configure CMake
       run: |
-        C:/msys64/mingw32/bin/cmake.exe --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+        where cmake
+        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
