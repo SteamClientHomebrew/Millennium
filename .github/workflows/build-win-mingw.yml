@@ -119,7 +119,6 @@ jobs:
     - name: Update MSYS2 and install i686 packages
       shell: msys2 {0}
       run: |
-        pacman -Syu --noconfirm
         pacman -S --noconfirm mingw-w64-i686-gcc mingw-w64-i686-make
 
     - name: (Dependency) Install vcpkg
