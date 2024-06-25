@@ -75,8 +75,6 @@ namespace Dependencies {
         Logger.LogItem("status", "checking for module updates...");
         gitErrorCode = git_remote_lookup(&remote, repo, "origin");
         
-        std::cout << "gitErrorCode: " << gitErrorCode << std::endl; 
-
         if (gitErrorCode < 0) 
         {
             Logger.LogItem("error", fmt::format("failed lookup -> {}", git_error_last()->message));
