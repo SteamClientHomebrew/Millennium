@@ -8,6 +8,7 @@
 #include <sys/locals.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
+#include <git/git.h>
 
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
@@ -248,15 +249,65 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
     return PyBool_FromLong(true);
 }
 
+
+PyObject* CloneRepository(PyObject* self, PyObject* args) 
+{ 
+    const char* repositoryUrl;
+    const char* destinationPath;
+
+    if (!PyArg_ParseTuple(args, "ss", &repositoryUrl, &destinationPath)) 
+    {
+        return NULL; 
+    }
+
+    return PyLong_FromLong(DistributedGit::CloneRepository(destinationPath, repositoryUrl)); 
+}
+
+PyObject* PullRepoHead(PyObject* self, PyObject* args) 
+{ 
+    const char* localPath;
+
+    if (!PyArg_ParseTuple(args, "s", &localPath)) 
+    {
+        return NULL; 
+    }
+
+    return PyLong_FromLong(DistributedGit::UpdateRepository(localPath)); 
+}
+
+PyObject* GetRepoCommit(PyObject* self, PyObject* args) 
+{ 
+    const char* localPath;
+
+    if (!PyArg_ParseTuple(args, "s", &localPath)) 
+    {
+        return NULL; 
+    }
+
+    return PyUnicode_FromString(DistributedGit::GetLocalCommit(localPath).c_str()); 
+}
+
+PyObject* IsRepository(PyObject* self, PyObject* args) 
+{ 
+    const char* localPath;
+
+    if (!PyArg_ParseTuple(args, "s", &localPath)) 
+    {
+        return NULL; 
+    }
+
+    return PyBool_FromLong(DistributedGit::IsRepository(localPath)); 
+}
+
 PyMethodDef* GetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = 
     {
+        { "ready", EmitReadyMessage, METH_NOARGS, NULL },
+
         { "add_browser_css", AddBrowserCss, METH_VARARGS, NULL },
         { "add_browser_js", AddBrowserJs, METH_VARARGS, NULL },
         { "remove_browser_module", RemoveBrowserModule, METH_VARARGS, NULL },
-
-        { "ready", EmitReadyMessage, METH_NOARGS, NULL },
 
         { "get_user_settings", GetUserSettings, METH_NOARGS, NULL },
         { "set_user_settings_key", SetUserSettings, METH_VARARGS, NULL },
@@ -264,7 +315,13 @@ PyMethodDef* GetMillenniumModule()
         { "steam_path", GetSteamPath, METH_NOARGS, NULL },
         { "call_frontend_method", (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
 
+        // private function members
         { "change_plugin_status", TogglePluginStatus, METH_VARARGS, NULL },
+        { "get_repo_commit", GetRepoCommit, METH_VARARGS, NULL },
+        { "pull_repo_head", PullRepoHead, METH_VARARGS, NULL },
+        { "clone_repo", CloneRepository, METH_VARARGS, NULL },
+        { "is_repository", IsRepository, METH_VARARGS, NULL },
+
         {NULL, NULL, 0, NULL} // Sentinel
     };
 

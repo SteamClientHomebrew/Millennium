@@ -77,7 +77,7 @@ set(SOURCE_FILES
   "src/sys/io.cc"
   "src/sys/settings.cc"
   "src/api/executor.cc"
-  "src/deps/module.cc"
+  "src/git/git.cc"
   "src/ftp/serv.cc"
 )
 

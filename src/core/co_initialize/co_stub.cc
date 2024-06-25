@@ -249,6 +249,8 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
 
     backendHandler.Listen(BackendCallbacks::eEvents::CB_BACKENDS_READY, [ftpPort, ipcPort]() 
     {
+        Logger.Log("Backend listener fired.");
+
         static uint16_t m_ftpPort = ftpPort;
         static uint16_t m_ipcPort = ipcPort;
 

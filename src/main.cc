@@ -7,7 +7,7 @@
 #endif
 #include <filesystem>
 #include <fstream>
-#include <deps/deps.h>
+#include <git/git.h>
 #include <fmt/core.h>
 #include <boxer/boxer.h>
 #include <sys/log.h>
