@@ -6,22 +6,21 @@
 #endif
 #include <mutex>
 #include <fmt/core.h>
+#include <fmt/color.h>
 #include <memory>
+#include <iostream>
 
-#define COLOR_WHITE FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE
+#define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)
 
 class OutputLogger
 {
 private:
-    #ifdef _WIN32
-    HANDLE hConsole{};
-    #endif
     std::mutex logMutex;
     std::shared_ptr<std::ostream> teeStreamPtr;
     std::shared_ptr<std::ofstream> outputLogStream;
 
     std::string GetLocalTime();
-    void PrintMessage(std::string type, const std::string &message);
+    void PrintMessage(std::string type, const std::string &message, fmt::v10::text_style color = fg(fmt::color::white));
 
 public:
     OutputLogger(const OutputLogger &) = delete;
@@ -35,48 +34,26 @@ public:
     template <typename... Args>
     void Log(std::string fmt, Args &&...args)
     {
-        PrintMessage(" [info] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...));
+        PrintMessage(" [info] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::light_gray));
     }
 
     template <typename... Args>
     void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args &&...args)
     {
-        #ifdef _WIN32
-        {
-            SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
-        }
-        #endif
-
-        this->LogHead((sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), false);
-        this->LogItem("function", function, false, false);
-        this->LogItem("file",  file, false, false);
-        this->LogItem("line", std::to_string(line), true, false);
-        //PrintMessage(fmt::format(" [error] [FUNCTION:{},FILE:{},L:{}] ", function, file, line), (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...));
-        #ifdef _WIN32
-        {
-            SetConsoleTextAttribute(hConsole, COLOR_WHITE);
-        }
-        #endif
+        this->LogHead((sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::red));
+        this->LogItem("function", function, false, fg(fmt::color::red));
+        this->LogItem("file",  file, false, fg(fmt::color::red));
+        this->LogItem("line", std::to_string(line), true, fg(fmt::color::red));
     }
 
     template <typename... Args>
     void Warn(std::string fmt, Args &&...args)
     {
-        #ifdef _WIN32
-        {
-            SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
-        }
-        #endif
-        PrintMessage(" [warn] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...));
-        #ifdef _WIN32
-        {
-            SetConsoleTextAttribute(hConsole, COLOR_WHITE);
-        }
-        #endif
+        PrintMessage(" [warn] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::yellow));
     }
 
-    void LogHead(std::string val, bool useColor = true);
-    void LogItem(std::string pluginName, std::string data, bool end = false, bool useColor = true);
+    void LogHead(std::string val, fmt::v10::text_style color = fg(fmt::color::magenta));
+    void LogItem(std::string pluginName, std::string data, bool end = false, fmt::v10::text_style color = fg(fmt::color::magenta));
 };
 
 extern OutputLogger Logger;

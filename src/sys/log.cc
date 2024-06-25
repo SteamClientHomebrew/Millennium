@@ -4,7 +4,6 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
-#include <fmt/core.h>
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
@@ -27,11 +26,34 @@ std::string OutputLogger::GetLocalTime()
 	return fmt::format("[{}]", bufferStream.str());
 }
 
-void OutputLogger::PrintMessage(std::string type, const std::string& message)
+#ifdef _WIN32
+void EnableVirtualTerminalProcessing() 
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return;
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return;
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return;
+    }
+}
+#endif
+
+void OutputLogger::PrintMessage(std::string type, const std::string& message, fmt::v10::text_style color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
+	fmt::print(color, "{}{}{}\n", GetLocalTime(), type, message);
 
-	std::cout << GetLocalTime() << type << message << "\n";
 	*outputLogStream << GetLocalTime() << type << message << "\n";
 	outputLogStream->flush();
 }
@@ -39,10 +61,6 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message)
 OutputLogger::OutputLogger()
 {
 	#ifdef _WIN32
-	//if (!IsSteamApplication())
-	//{
-	//	return;
-	//}
 
 	{
 		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
@@ -53,8 +71,10 @@ OutputLogger::OutputLogger()
 			void(freopen("CONOUT$", "w", stderr));
 		}
 
+		#ifdef _WIN32
+		EnableVirtualTerminalProcessing();
+		#endif
 		SetConsoleOutputCP(CP_UTF8);
-		hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	}
 	#endif
 
@@ -85,61 +105,32 @@ OutputLogger::~OutputLogger()
 
 void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
 {
-	#ifdef _WIN32
-	{
-		SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
-	}
-	#endif
-	std::cout << GetLocalTime() << " [" << pluginName << "] ";
-	#ifdef _WIN32
-	{
-		SetConsoleTextAttribute(hConsole, COLOR_WHITE);
-	}
-	#endif
-	std::cout << strMessage << "\n";
+	fmt::print(DEFAULT_ACCENT_COL, "{} [{}] ", GetLocalTime(), pluginName);
+	fmt::print("{}\n", strMessage);
 
 	*outputLogStream << GetLocalTime() << " [" << pluginName << "] " << strMessage << "\n";
 	outputLogStream->flush();
 }
 
-void OutputLogger::LogHead(std::string strHeadTitle, bool useColor) 
+void OutputLogger::LogHead(std::string strHeadTitle, fmt::v10::text_style color) 
 {
 	const auto message = fmt::format("\n[┬] {}", strHeadTitle);
 
-	#ifdef _WIN32
-	{
-		if (useColor) SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
-	}
-	#endif
-	std::cout << "\n[┬] ";
-	#ifdef _WIN32
-	{
-		if (useColor) SetConsoleTextAttribute(hConsole, COLOR_WHITE);
-	}
-	#endif
-	std::cout << strHeadTitle << "\n";
+	fmt::print(color, "\n[┬] ");
+	fmt::print("{}\n", strHeadTitle);
+
 	*outputLogStream << message << "\n";
 	outputLogStream->flush();
 }
 
-void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, bool useColor) 
+void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, fmt::v10::text_style color) 
 {
 	std::string connectorPiece = end ? "└" : "├";
 	const auto message = fmt::format(" {}──[{}]: {}", connectorPiece, pluginName, strMessage);
 	
-	#ifdef _WIN32
-	{
-		if (useColor) SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
-	}
-	#endif
-	std::cout << " " << connectorPiece << "──[" <<pluginName << "]: ";
-	#ifdef _WIN32
-	{
-		if (useColor) SetConsoleTextAttribute(hConsole, COLOR_WHITE);
-	}
-	#endif
+	fmt::print(color, " {}──[{}]: ", connectorPiece, pluginName);
+	fmt::print("{}\n", strMessage);
 
-	std::cout << strMessage << "\n";
 	*outputLogStream << message << "\n";
 	outputLogStream->flush();
  }
