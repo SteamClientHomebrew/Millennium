@@ -109,8 +109,6 @@ namespace Crow
         app->port(port);
 
         CROW_ROUTE((*app), "/<path>")(HandleRequest);
-
-        Logger.Log("ftp server is running on port: {}", app->port());
         return std::make_tuple(app, port);
     }
 

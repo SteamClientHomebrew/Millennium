@@ -118,8 +118,6 @@ const int OpenIPCSocket(uint16_t ipcPort)
 const uint16_t IPCMain::OpenConnection()
 {
     uint16_t ipcPort = Asio::GetRandomOpenPort();
-    Logger.Log("[ipcMain] opening IPC connection on port {}", ipcPort);
-
     std::thread(OpenIPCSocket, ipcPort).detach();
     return ipcPort;
 }

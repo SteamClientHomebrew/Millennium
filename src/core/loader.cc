@@ -92,6 +92,10 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
     m_settingsStorePtr->InitializeSettingsStore();
     m_ipcPort = IPCMain::OpenConnection();
 
+    Logger.LogHead("port info:");
+    Logger.LogItem("ports", fmt::format("ftp port: {}", m_ftpPort));
+    Logger.LogItem("ports", fmt::format("ipc port: {}", m_ipcPort), true);
+
     this->PrintActivePlugins();
 }
 
