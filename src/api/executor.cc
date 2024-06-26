@@ -201,7 +201,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
 
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
     settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
-    CoInitializer::ReInjectFrontendShims();
+    //CoInitializer::ReInjectFrontendShims();
 
     //if (!newToggleStatus)
     //{
@@ -248,7 +248,6 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
 
     return PyBool_FromLong(true);
 }
-
 
 PyObject* CloneRepository(PyObject* self, PyObject* args) 
 { 
@@ -303,24 +302,24 @@ PyMethodDef* GetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = 
     {
-        { "ready", EmitReadyMessage, METH_NOARGS, NULL },
+        { "ready",                 EmitReadyMessage,                METH_NOARGS,  NULL },
 
-        { "add_browser_css", AddBrowserCss, METH_VARARGS, NULL },
-        { "add_browser_js", AddBrowserJs, METH_VARARGS, NULL },
-        { "remove_browser_module", RemoveBrowserModule, METH_VARARGS, NULL },
+        { "add_browser_css",       AddBrowserCss,                   METH_VARARGS, NULL },
+        { "add_browser_js",        AddBrowserJs,                    METH_VARARGS, NULL },
+        { "remove_browser_module", RemoveBrowserModule,             METH_VARARGS, NULL },
 
-        { "get_user_settings", GetUserSettings, METH_NOARGS, NULL },
-        { "set_user_settings_key", SetUserSettings, METH_VARARGS, NULL },
-        { "version", GetVersionInfo, METH_NOARGS, NULL },
-        { "steam_path", GetSteamPath, METH_NOARGS, NULL },
-        { "call_frontend_method", (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
+        { "get_user_settings",     GetUserSettings,                 METH_NOARGS,  NULL },
+        { "set_user_settings_key", SetUserSettings,                 METH_VARARGS, NULL },
+        { "version",               GetVersionInfo,                  METH_NOARGS,  NULL },
+        { "steam_path",            GetSteamPath,                    METH_NOARGS,  NULL },
+        { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
 
         // private function members
-        { "change_plugin_status", TogglePluginStatus, METH_VARARGS, NULL },
-        { "get_repo_commit", GetRepoCommit, METH_VARARGS, NULL },
-        { "pull_repo_head", PullRepoHead, METH_VARARGS, NULL },
-        { "clone_repo", CloneRepository, METH_VARARGS, NULL },
-        { "is_repository", IsRepository, METH_VARARGS, NULL },
+        { "change_plugin_status",  TogglePluginStatus,              METH_VARARGS, NULL },
+        { "get_repo_commit",       GetRepoCommit,                   METH_VARARGS, NULL },
+        { "pull_repo_head",        PullRepoHead,                    METH_VARARGS, NULL },
+        { "clone_repo",            CloneRepository,                 METH_VARARGS, NULL },
+        { "is_repository",         IsRepository,                    METH_VARARGS, NULL },
 
         {NULL, NULL, 0, NULL} // Sentinel
     };
