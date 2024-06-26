@@ -1,5 +1,6 @@
 #pragma once
 #include <sys/locals.h>
+#include <vector>
 
 template <typename T>
 class Singleton 
@@ -40,6 +41,7 @@ namespace CoInitializer
 		BackendCallbacks() {}
 		~BackendCallbacks() {}
 
+		std::vector<eEvents> missedEvents;
 		std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
 	};
 
