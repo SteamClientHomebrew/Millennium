@@ -97,7 +97,7 @@ createWebSocket('ws://localhost:)" + std::to_string(port) + R"(').then((socket) 
 /// @brief sets up the python interpreter to use virtual environment site packages, as well as custom python path.
 /// @param system path 
 /// @return void 
-const void AddSitePackages(std::vector<std::filesystem::path> sitePackages) 
+const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages) 
 {
     PyObject *sysModule = PyImport_ImportModule("sys");
     if (!sysModule) 
@@ -124,6 +124,35 @@ const void AddSitePackages(std::vector<std::filesystem::path> sitePackages)
     }
     Py_DECREF(sysModule);
 }
+
+void AddSitePackagesDirectory(std::filesystem::path customPath)
+{
+    PyObject *siteModule = PyImport_ImportModule("site");
+
+    if (!siteModule) 
+    {
+        PyErr_Print();
+        LOG_ERROR("couldn't import site module");
+        return;
+    }
+
+    PyObject *addSiteDirFunc = PyObject_GetAttrString(siteModule, "addsitedir");
+    if (addSiteDirFunc && PyCallable_Check(addSiteDirFunc)) 
+    {
+        PyObject *args = PyTuple_Pack(1, PyUnicode_FromString(customPath.generic_string().c_str()));
+        PyObject *result = PyObject_CallObject(addSiteDirFunc, args);
+        Py_XDECREF(result);
+        Py_XDECREF(args);
+        Py_XDECREF(addSiteDirFunc);
+    } 
+    else 
+    {
+        PyErr_Print();
+        LOG_ERROR("Failed to get addsitedir function");
+    }
+    Py_XDECREF(siteModule);
+}
+
 
 /// @brief initializes the current plugin. creates a plugin instance and calls _load()
 /// @param global_dict 
@@ -175,17 +204,35 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 #endif
     };
 
-    if (plugin.pluginJson.contains("venv") && plugin.pluginJson["venv"].is_string()) 
-    {
-        const auto pluginVirtualEnv = plugin.pluginBaseDirectory / plugin.pluginJson["venv"];
+    const auto pluginVirtualEnv = plugin.pluginBaseDirectory / ".millennium";
 
-        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages");
-        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32");
-        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32" / "Lib");
-        sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "Pythonwin");
-    }
+    //sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "pygit2");
 
-    AddSitePackages(sysPath);
+
+
+    //AddDllDirectory((pluginVirtualEnv / "Lib" / "site-packages" / "pygit2").wstring().c_str());
+    AddDllDirectory((SystemIO::GetSteamPath() / "ext" / "data" / "cache").wstring().c_str());
+    AppendSysPathModules(sysPath);
+
+
+    // if (plugin.pluginJson.contains("venv") && plugin.pluginJson["venv"].is_string()) 
+    // {
+    //     const auto pluginVirtualEnv = plugin.pluginBaseDirectory / plugin.pluginJson["venv"];
+
+    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages");
+    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32");
+    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32" / "Lib");
+    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "Pythonwin");
+    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "pywin32_system32");
+    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "pygit2");
+
+    //     AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
+    //     AddSitePackagesDirectory(pluginVirtualEnv);
+    // }
+
+    AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
+    AddSitePackagesDirectory(pluginVirtualEnv);
+
 
     PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
@@ -195,8 +242,6 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         LOG_ERROR("failed to fopen file @ {}", backendMainModule);
         return;
     }
-
-    //PyRun_SimpleString("print('started new interpreter')");
 
     if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
     {
@@ -240,7 +285,7 @@ static std::string addedScriptOnNewDocumentId;
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
-    Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
+    // Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
 
     Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
