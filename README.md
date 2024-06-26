@@ -55,7 +55,7 @@ https://github.com/SteamClientHomebrew/Millennium/assets/81448108/0c4a0ea0-7995-
 
 For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Check our [wiki](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#manual) for a guide on how to do this.
 
-<br>
+&nbsp;
 
 ## Core Features
 
@@ -71,6 +71,8 @@ For normal users, installing via the installers makes the most sense. However wh
   - Manage and load custom user themes into Steam
   - Manage custom plugins into Steam
   - Manage theme & plugin updates. 
+
+&nbsp;
 
 ## Platform Support
 
