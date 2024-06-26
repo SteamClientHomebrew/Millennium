@@ -213,6 +213,15 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
     std::vector<SettingsStore::PluginTypeSchema> plugins;
     const auto plugin_path = SystemIO::GetSteamPath() / "plugins";
 
+    try
+    {
+        std::filesystem::create_directories(plugin_path);
+    }
+    catch (const std::exception& exception)
+    {
+        LOG_ERROR("An error occurred creating plugin directories -> {}", exception.what());
+    }
+
     this->InsertMillenniumModules(plugins);
 
     try
