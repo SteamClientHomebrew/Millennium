@@ -207,7 +207,7 @@ namespace DistributedGit
 {
     const bool CloneRepository(std::string repositoryPath, std::string gitRemoteUrl)
     {
-        Logger.Log("FFI clone repository -> {}", repositoryPath.c_str());
+        // Logger.Log("FFI clone repository -> {}", repositoryPath.c_str());
 
         git_libgit2_init();
         git_repository* repo = nullptr;
@@ -230,7 +230,7 @@ namespace DistributedGit
     // update repo from head
     const bool UpdateRepository(std::string packageLocalPath)
     {
-        Logger.Log("FFI update repository -> {}", packageLocalPath.c_str());
+        // Logger.Log("FFI update repository -> {}", packageLocalPath.c_str());
 
         git_libgit2_init();
         git_repository* repo = nullptr;
@@ -252,7 +252,7 @@ namespace DistributedGit
 
     const std::string GetLocalCommit(std::string packageLocalPath)
     {
-        Logger.Log("FFI get local commit -> {}", packageLocalPath.c_str());
+        // Logger.Log("FFI get local commit -> {}", packageLocalPath.c_str());
 
         git_libgit2_init();
         git_repository *repo = nullptr;
@@ -285,7 +285,7 @@ namespace DistributedGit
         char strObjectId[GIT_OID_HEXSZ + 1];
         git_oid_tostr(strObjectId, sizeof(strObjectId), referenceTarget);
 
-        Logger.Log("Current commit ID: {}", strObjectId);
+        //Logger.Log("Current commit ID: {}", strObjectId);
 
         git_reference_free(headRef);
         git_repository_free(repo);
@@ -296,7 +296,7 @@ namespace DistributedGit
 
     const bool IsRepository(std::string packageLocalPath)
     {
-        Logger.Log("FFI check for repository -> {}", packageLocalPath.c_str());
+        // Logger.Log("FFI check for repository -> {}", packageLocalPath.c_str());
 
         git_libgit2_init();
         git_repository *repo = nullptr;
