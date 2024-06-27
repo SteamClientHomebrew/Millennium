@@ -104,8 +104,15 @@ done:
 PythonManager::~PythonManager()
 {
     LOG_ERROR("PythonManager was destroyed.");
-    PyEval_RestoreThread(m_InterpreterThreadSave);
-    // Py_FinalizeEx();
+    
+    // std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
+    // pythonGilLock->HoldAndLockGILOnThread(m_InterpreterThreadSave);
+
+    // for (const auto& [pluginName, threadState] : this->m_pythonInstances) 
+    // {
+    //     //this->ShutdownPlugin(pluginName);
+    // }
+    //Py_FinalizeEx();
 }
 
 bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
