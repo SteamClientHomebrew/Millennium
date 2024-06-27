@@ -1,61 +1,64 @@
 #include "co_stub.h"
 #include <sys/log.h>
 
-bool EvaluateBackendStatus()
+bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 {
-    static int backendReadyCount = 0;
-    backendReadyCount++;
-
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     const std::size_t pluginCount = settingsStore->ParseAllPlugins().size();
 
-    Logger.Log("Backend ready count {}, total plugins {}", backendReadyCount, pluginCount);
+    Logger.Log("failed: {}, success: {}, total plugins: {}", backendFailedCount, backendReadyCount, pluginCount);
 
-    if (backendReadyCount == pluginCount)
+    if ((backendReadyCount + backendFailedCount) == pluginCount)
     {
         return true;
     }
-    
     return false;
 }
 
-void CoInitializer::BackendCallbacks::Emit(const eEvents event_name)
+void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 {
-    if (event_name == eEvents::CB_BACKENDS_READY)
-    {
-        Logger.Log("caught backends ready event");
+    Logger.Log("{} {}", plugin.pluginName, plugin.event == BACKEND_LOAD_SUCCESS ? "loaded" : "failed");
 
-        if (!EvaluateBackendStatus()) 
-        {
-            return;
-        }
+    switch (plugin.event)
+    {
+        case BACKEND_LOAD_SUCCESS: backendReadyCount++;  break;
+        case BACKEND_LOAD_FAILED:  backendFailedCount++; break;
     }
 
-    if (listeners.find(event_name) != listeners.end()) 
+    if (this->EvaluateBackendStatus())
     {
-        for (auto& callback : listeners[event_name]) 
+        if (listeners.find(ON_BACKEND_READY_EVENT) != listeners.end()) 
         {
-            Logger.Log("emitting event start event");
-            callback();
+            for (auto& callback : listeners[ON_BACKEND_READY_EVENT]) 
+            {
+                callback();
+            }
         }
-    }
-    else
-    {
-        Logger.Log("no listeners found for event");
-        missedEvents.push_back(event_name);
+        else
+        {
+            missedEvents.push_back(ON_BACKEND_READY_EVENT);
+        }
     }
 }
 
-void CoInitializer::BackendCallbacks::Listen(const eEvents event_name, EventCallback callback) 
+void CoInitializer::BackendCallbacks::Reset() 
 {
-    listeners[event_name].push_back(callback);
+    backendReadyCount = 0;
+    backendFailedCount = 0;
+    listeners.clear();
+    missedEvents.clear();
+}
 
-    if (std::find(missedEvents.begin(), missedEvents.end(), event_name) != missedEvents.end()) 
+void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback) 
+{
+    listeners[ON_BACKEND_READY_EVENT].push_back(callback);
+
+    if (std::find(missedEvents.begin(), missedEvents.end(), ON_BACKEND_READY_EVENT) != missedEvents.end()) 
     {
         Logger.Log("found missed event, emitting");
         callback();
 
         // remove the event from the missed events list
-        missedEvents.erase(std::remove(missedEvents.begin(), missedEvents.end(), event_name), missedEvents.end());
+        missedEvents.erase(std::remove(missedEvents.begin(), missedEvents.end(), ON_BACKEND_READY_EVENT), missedEvents.end());
     }
 }

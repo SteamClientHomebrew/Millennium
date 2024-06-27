@@ -188,51 +188,38 @@ void StartPluginBackend(PyObject* global_dict)
     Py_DECREF(pluginComponentInstance);
 }
 
-const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) {
+const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName) 
+{
+    PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
+}
 
-    const std::string backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
+const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) 
+{
+    PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
 
-    PyObject* globalDictionary = PyModule_GetDict((PyObject*)PyImport_AddModule("__main__"));
-    PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(plugin.pluginName.c_str()));
+    const auto backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
+    const auto pluginVirtualEnv  = plugin.pluginBaseDirectory / ".millennium";
 
-    std::vector<std::filesystem::path> sysPath = 
-    { 
-        plugin.pluginBaseDirectory / "backend", 
-#ifdef _WIN32
-        pythonPath, 
-        pythonLibs
-#endif
-    };
+    // associate the plugin name with the running plugin. used for IPC/FFI
+    SetPluginSecretName(globalDictionary, plugin.pluginName);
 
-    const auto pluginVirtualEnv = plugin.pluginBaseDirectory / ".millennium";
+    std::vector<std::filesystem::path> sysPath;
+    sysPath.push_back(plugin.pluginBaseDirectory / plugin.backendAbsoluteDirectory.parent_path());
 
-    //sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "pygit2");
+    #ifdef _WIN32
+    {
+        /* Add local python binaries to virtual PATH to prevent changing actual PATH */
+        AddDllDirectory(pythonModulesBaseDir.wstring().c_str());
 
+        sysPath.push_back(pythonPath);
+        sysPath.push_back(pythonLibs);
+    }
+    #endif
 
-
-    //AddDllDirectory((pluginVirtualEnv / "Lib" / "site-packages" / "pygit2").wstring().c_str());
-    AddDllDirectory((SystemIO::GetSteamPath() / "ext" / "data" / "cache").wstring().c_str());
     AppendSysPathModules(sysPath);
-
-
-    // if (plugin.pluginJson.contains("venv") && plugin.pluginJson["venv"].is_string()) 
-    // {
-    //     const auto pluginVirtualEnv = plugin.pluginBaseDirectory / plugin.pluginJson["venv"];
-
-    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages");
-    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32");
-    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "win32" / "Lib");
-    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "Pythonwin");
-    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "pywin32_system32");
-    //     // sysPath.push_back(pluginVirtualEnv / "Lib" / "site-packages" / "pygit2");
-
-    //     AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
-    //     AddSitePackagesDirectory(pluginVirtualEnv);
-    // }
 
     AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
     AddSitePackagesDirectory(pluginVirtualEnv);
-
 
     PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
@@ -246,11 +233,14 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
     {
         LOG_ERROR("millennium failed to startup [{}]", plugin.pluginName);
+
+        CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+
         return;
     }
 
     StartPluginBackend(globalDictionary);  
-    //fclose(mainModuleFilePtr);
 }
 
 const std::string ConstructScriptElement(std::string filename) 
@@ -292,7 +282,7 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
 
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
 
-    backendHandler.Listen(BackendCallbacks::eEvents::CB_BACKENDS_READY, [ftpPort, ipcPort]() 
+    backendHandler.RegisterForLoad([ftpPort, ipcPort]() 
     {
         Logger.Log("Backend listener fired.");
 
