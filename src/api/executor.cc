@@ -241,61 +241,11 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
     }
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
-    Logger.Log("received ready message for [{}]", pluginName);
 
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
-    backendHandler.Emit(CoInitializer::BackendCallbacks::eEvents::CB_BACKENDS_READY);
+    backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
 
     return PyBool_FromLong(true);
-}
-
-PyObject* CloneRepository(PyObject* self, PyObject* args) 
-{ 
-    const char* repositoryUrl;
-    const char* destinationPath;
-
-    if (!PyArg_ParseTuple(args, "ss", &repositoryUrl, &destinationPath)) 
-    {
-        return NULL; 
-    }
-
-    return PyLong_FromLong(DistributedGit::CloneRepository(destinationPath, repositoryUrl)); 
-}
-
-PyObject* PullRepoHead(PyObject* self, PyObject* args) 
-{ 
-    const char* localPath;
-
-    if (!PyArg_ParseTuple(args, "s", &localPath)) 
-    {
-        return NULL; 
-    }
-
-    return PyLong_FromLong(DistributedGit::UpdateRepository(localPath)); 
-}
-
-PyObject* GetRepoCommit(PyObject* self, PyObject* args) 
-{ 
-    const char* localPath;
-
-    if (!PyArg_ParseTuple(args, "s", &localPath)) 
-    {
-        return NULL; 
-    }
-
-    return PyUnicode_FromString(DistributedGit::GetLocalCommit(localPath).c_str()); 
-}
-
-PyObject* IsRepository(PyObject* self, PyObject* args) 
-{ 
-    const char* localPath;
-
-    if (!PyArg_ParseTuple(args, "s", &localPath)) 
-    {
-        return NULL; 
-    }
-
-    return PyBool_FromLong(DistributedGit::IsRepository(localPath)); 
 }
 
 PyMethodDef* GetMillenniumModule()
@@ -314,13 +264,7 @@ PyMethodDef* GetMillenniumModule()
         { "steam_path",            GetSteamPath,                    METH_NOARGS,  NULL },
         { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
 
-        // private function members
         { "change_plugin_status",  TogglePluginStatus,              METH_VARARGS, NULL },
-        { "get_repo_commit",       GetRepoCommit,                   METH_VARARGS, NULL },
-        { "pull_repo_head",        PullRepoHead,                    METH_VARARGS, NULL },
-        { "clone_repo",            CloneRepository,                 METH_VARARGS, NULL },
-        { "is_repository",         IsRepository,                    METH_VARARGS, NULL },
-
         {NULL, NULL, 0, NULL} // Sentinel
     };
 
