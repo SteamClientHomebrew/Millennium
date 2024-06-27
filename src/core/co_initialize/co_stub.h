@@ -27,9 +27,6 @@ namespace CoInitializer
 		friend class Singleton<BackendCallbacks>;
 	public:
 
-		int backendFailedCount = 0;
-		int backendReadyCount = 0;
-
 		enum eBackendLoadEvents 
 		{
 			BACKEND_LOAD_SUCCESS,
@@ -53,12 +50,15 @@ namespace CoInitializer
 		~BackendCallbacks() {}
 
 		bool EvaluateBackendStatus();
+		std::string GetFailedBackendsStr();
+		std::string GetSuccessfulBackendsStr();
 
 		enum eEvents 
 		{
 			ON_BACKEND_READY_EVENT
 		};
 
+		std::vector<PluginTypeSchema> emittedPlugins;
 		std::vector<eEvents> missedEvents;
 		std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
 	};

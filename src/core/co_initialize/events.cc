@@ -1,15 +1,53 @@
 #include "co_stub.h"
 #include <sys/log.h>
 
+std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
+{
+    std::string failedBackends;
+
+    for (const auto& plugin : this->emittedPlugins)
+    {
+        if (plugin.event == BACKEND_LOAD_FAILED)
+        {
+            failedBackends += plugin.pluginName + ", ";
+
+        }
+    }
+
+    return failedBackends.empty() ? 
+        "none" : 
+        fmt::format("[{}]", failedBackends.substr(0, failedBackends.size() - 2));
+}
+
+std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
+{
+    std::string successfulBackends;
+
+    for (const auto& plugin : this->emittedPlugins)
+    {
+        if (plugin.event == BACKEND_LOAD_SUCCESS)
+        {
+            successfulBackends += plugin.pluginName + ", ";
+        }
+    }
+
+    return successfulBackends.empty() ? 
+        "none" : 
+        fmt::format("[{}]", successfulBackends.substr(0, successfulBackends.size() - 2));
+}
+
 bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     const std::size_t pluginCount = settingsStore->ParseAllPlugins().size();
 
-    Logger.Log("failed: {}, success: {}, total plugins: {}", backendFailedCount, backendReadyCount, pluginCount);
-
-    if ((backendReadyCount + backendFailedCount) == pluginCount)
+    if (this->emittedPlugins.size() == pluginCount)
     {
+        Logger.LogHead("all backends are ready!", fg(fmt::color::lime_green));
+        Logger.LogItem("failed", GetFailedBackendsStr(), false, fg(fmt::color::lime_green));
+        Logger.LogItem("success", GetSuccessfulBackendsStr(), false, fg(fmt::color::lime_green));
+        Logger.LogItem("total", std::to_string(pluginCount), true, fg(fmt::color::lime_green));
+
         return true;
     }
     return false;
@@ -18,12 +56,7 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 {
     Logger.Log("{} {}", plugin.pluginName, plugin.event == BACKEND_LOAD_SUCCESS ? "loaded" : "failed");
-
-    switch (plugin.event)
-    {
-        case BACKEND_LOAD_SUCCESS: backendReadyCount++;  break;
-        case BACKEND_LOAD_FAILED:  backendFailedCount++; break;
-    }
+    this->emittedPlugins.push_back(plugin);
 
     if (this->EvaluateBackendStatus())
     {
@@ -43,8 +76,7 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 
 void CoInitializer::BackendCallbacks::Reset() 
 {
-    backendReadyCount = 0;
-    backendFailedCount = 0;
+    emittedPlugins.clear();
     listeners.clear();
     missedEvents.clear();
 }
