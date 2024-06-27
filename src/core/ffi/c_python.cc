@@ -52,10 +52,11 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
             const char* errorMessage = PyUnicode_AsUTF8(pStrErrorMessage);
             Python::EvalResult exceptionResult = { errorMessage ? errorMessage : "Unknown Error.", Python::Types::Error };
 
-            LOG_ERROR(fmt::format(
-                "[interop-dispatch] An error occurred while calling a backend method.\n\t"
-                "Attempted to eval: {},\n\tException information: {}", script, exceptionResult.plain
-            ));
+            Logger.LogHead("[FFI] An error occurred while calling a backend method.", fg(fmt::color::red));
+            Logger.LogItem("evaluated", script, false, fg(fmt::color::red));
+            Logger.LogItem("exception", exceptionResult.plain, true, fg(fmt::color::red));
+
+            return exceptionResult;
         }
     }
 
