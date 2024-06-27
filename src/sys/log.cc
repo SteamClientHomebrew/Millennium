@@ -52,7 +52,11 @@ void EnableVirtualTerminalProcessing()
 void OutputLogger::PrintMessage(std::string type, const std::string& message, fmt::v10::text_style color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
-	fmt::print(color, "{}{}{}\n", GetLocalTime(), type, message);
+
+	if (m_bIsConsoleEnabled)
+	{
+		fmt::print(color, "{}{}{}\n", GetLocalTime(), type, message);
+	}
 
 	*outputLogStream << GetLocalTime() << type << message << "\n";
 	outputLogStream->flush();
@@ -61,20 +65,19 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message, fm
 OutputLogger::OutputLogger()
 {
 	#ifdef _WIN32
-
 	{
 		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
-		if (startupParams->HasArgument("-dev") && static_cast<bool>(AllocConsole()))
+		m_bIsConsoleEnabled = startupParams->HasArgument("-dev");
+
+		if (m_bIsConsoleEnabled && static_cast<bool>(AllocConsole()))
 		{
 			void(freopen("CONOUT$", "w", stdout));
 			void(freopen("CONOUT$", "w", stderr));
-		}
 
-		#ifdef _WIN32
-		EnableVirtualTerminalProcessing();
-		#endif
-		SetConsoleOutputCP(CP_UTF8);
+			EnableVirtualTerminalProcessing();
+			SetConsoleOutputCP(CP_UTF8);
+		}
 	}
 	#endif
 
@@ -105,8 +108,11 @@ OutputLogger::~OutputLogger()
 
 void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
 {
-	fmt::print(DEFAULT_ACCENT_COL, "{} [{}] ", GetLocalTime(), pluginName);
-	fmt::print("{}\n", strMessage);
+	if (m_bIsConsoleEnabled)
+	{
+		fmt::print(DEFAULT_ACCENT_COL, "{} [{}] ", GetLocalTime(), pluginName);
+		fmt::print("{}\n", strMessage);
+	}
 
 	*outputLogStream << GetLocalTime() << " [" << pluginName << "] " << strMessage << "\n";
 	outputLogStream->flush();
@@ -116,8 +122,11 @@ void OutputLogger::LogHead(std::string strHeadTitle, fmt::v10::text_style color)
 {
 	const auto message = fmt::format("\n[┬] {}", strHeadTitle);
 
-	fmt::print(color, "\n[┬] ");
-	fmt::print("{}\n", strHeadTitle);
+	if (m_bIsConsoleEnabled)
+	{
+		fmt::print(color, "\n[┬] ");
+		fmt::print("{}\n", strHeadTitle);
+	}
 
 	*outputLogStream << message << "\n";
 	outputLogStream->flush();
@@ -128,8 +137,11 @@ void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool 
 	std::string connectorPiece = end ? "└" : "├";
 	const auto message = fmt::format(" {}──[{}]: {}", connectorPiece, pluginName, strMessage);
 	
-	fmt::print(color, " {}──[{}]: ", connectorPiece, pluginName);
-	fmt::print("{}\n", strMessage);
+	if (m_bIsConsoleEnabled)
+	{
+		fmt::print(color, " {}──[{}]: ", connectorPiece, pluginName);
+		fmt::print("{}\n", strMessage);
+	}
 
 	*outputLogStream << message << "\n";
 	outputLogStream->flush();
