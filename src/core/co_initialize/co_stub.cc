@@ -273,6 +273,42 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
 
 static std::string addedScriptOnNewDocumentId;
 
+void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
+{
+    static uint16_t m_ftpPort = ftpPort;
+    static uint16_t m_ipcPort = ipcPort;
+
+    enum PageMessage
+    {
+        PAGE_ENABLE,
+        PAGE_SCRIPT,
+        PAGE_RELOAD
+    };
+
+    Sockets::PostShared({ {"id", 3423 }, {"method", "Debugger.resume"} });
+    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
+    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
+    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)
+    {
+        try
+        {
+            if (eventMessage.value("id", -1) != PAGE_SCRIPT)
+            {
+                return;
+            }
+
+            addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+        }
+        catch (nlohmann::detail::exception& ex)
+        {
+            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+        }
+    });
+}
+
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
     // Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
@@ -281,44 +317,7 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
 
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
-
-    backendHandler.RegisterForLoad([ftpPort, ipcPort]() 
-    {
-        Logger.Log("Backend listener fired.");
-
-        static uint16_t m_ftpPort = ftpPort;
-        static uint16_t m_ipcPort = ipcPort;
-
-        enum PageMessage
-        {
-            PAGE_ENABLE,
-            PAGE_SCRIPT,
-            PAGE_RELOAD
-        };
-
-        Sockets::PostShared({ {"id", 3423 }, {"method", "Debugger.resume"} });
-        Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-        Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
-        Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
-
-        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)
-        {
-            try
-            {
-                if (eventMessage.value("id", -1) != PAGE_SCRIPT)
-                {
-                    return;
-                }
-
-                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-            }
-            catch (nlohmann::detail::exception& ex)
-            {
-                LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
-            }
-        });
-    });
+    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }
 
 const void CoInitializer::ReInjectFrontendShims()
