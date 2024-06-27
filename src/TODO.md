@@ -1,4 +1,5 @@
 ## Needed Changes
 
 - Hot Reload
-  - Shutdown plugins on-the-fly
+  - hot reload plugin backends
+  - figure out how to properly shutdown a python backend
