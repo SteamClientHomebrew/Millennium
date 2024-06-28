@@ -79,6 +79,10 @@ OutputLogger::OutputLogger()
 			SetConsoleOutputCP(CP_UTF8);
 		}
 	}
+	#elif __linux__
+	{
+		m_bIsConsoleEnabled = true;
+	}
 	#endif
 
 	const auto fileName = SystemIO::GetSteamPath() / "ext" / "data" / "logs" / "debug.log";
