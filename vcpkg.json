@@ -1,10 +1,6 @@
 {
   "dependencies": [
     "libgit2",
-    "cpr",
-    {
-      "name": "python3",
-      "platform": "linux"
-    }
+    "cpr"
   ]
 }

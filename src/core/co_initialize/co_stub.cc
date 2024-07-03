@@ -218,7 +218,18 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
     AppendSysPathModules(sysPath);
 
-    AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
+    #ifdef _WIN32
+    {
+        AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
+    }
+    #else
+    {
+        AddSitePackagesDirectory(pluginVirtualEnv / "lib" / "python3.11" / "site-packages");
+        AddSitePackagesDirectory(pluginVirtualEnv / "lib64" / "python3.11" / "site-packages");
+    }
+    #endif
+
+
     AddSitePackagesDirectory(pluginVirtualEnv);
 
     PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());

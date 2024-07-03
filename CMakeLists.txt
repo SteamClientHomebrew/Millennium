@@ -58,8 +58,7 @@ include_directories(${LIBGIT2_INCLUDE_DIRS})
 if(WIN32)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
 elseif(UNIX)
-  find_package(Python3 COMPONENTS Development REQUIRED)
-  include_directories(${PYTHON3_INCLUDE_DIRS})
+  include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
 endif()
 
 set(SOURCE_FILES 
@@ -143,6 +142,6 @@ if(WIN32)
   endif()
 elseif(UNIX)
   target_link_libraries(Millennium
-    Python3::Python
+    "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.so"
   )
 endif()
