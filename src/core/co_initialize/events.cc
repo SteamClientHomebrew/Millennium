@@ -43,10 +43,11 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 
     if (this->emittedPlugins.size() == pluginCount)
     {
-        Logger.LogHead("all backends are ready!", fg(fmt::color::lime_green));
-        Logger.LogItem("failed", GetFailedBackendsStr(), false, fg(fmt::color::lime_green));
-        Logger.LogItem("success", GetSuccessfulBackendsStr(), false, fg(fmt::color::lime_green));
-        Logger.LogItem("total", std::to_string(pluginCount), true, fg(fmt::color::lime_green));
+        Logger.LogHead("all backends are ready!", fg(fmt::color::orange));
+        Logger.LogItem("failed", GetFailedBackendsStr(), false, fg(fmt::color::orange));
+        Logger.LogItem("success", GetSuccessfulBackendsStr(), false, fg(fmt::color::orange));
+        Logger.LogItem("total", std::to_string(pluginCount), true, fg(fmt::color::orange));
+        std::cout << std::endl;
 
         return true;
     }
