@@ -1,5 +1,5 @@
 #pragma once
-#include <string.h>
+#include <string>
 #include <chrono>
 #include <thread>
 #include <cpr/cpr.h>
@@ -7,13 +7,16 @@
 
 static std::string GetRequest(const char* url) 
 {
-    cpr::Response response = cpr::Get(cpr::Url{url}, cpr::UserAgent{"millennium.patcher/1.0"});
-
-    if (response.error) 
+    while (true) 
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        return GetRequest(url);
-    }
+        cpr::Response response = cpr::Get(cpr::Url{url}, cpr::UserAgent{"millennium.patcher/1.0"});
 
-    return response.text;
+        if (!response.error) 
+        {
+            return response.text;
+        }
+        
+        Logger.Log("Couldn't connect to server: [{}]", url);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 }
