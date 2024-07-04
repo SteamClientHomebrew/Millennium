@@ -14,6 +14,7 @@
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
 #include <ftp/serv.h>
+#include <posix/helpers.h>
 
 class Preload 
 {
@@ -125,6 +126,7 @@ void HandleSignalInterrupt(int sig)
 int main()
 {
     signal(SIGINT, HandleSignalInterrupt);
+    Logger.Log("Starting Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
 
     EntryMain();
     return 1;
