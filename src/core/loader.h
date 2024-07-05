@@ -9,13 +9,14 @@
 #include <nlohmann/json.hpp>
 #include <sys/locals.h>
 #include <socket/await_pipe.h>
+#include <core/py_controller/co_spawn.h>
 
 class PluginLoader {
 public:
 
 	PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort);
 
-	const void StartBackEnds();
+	const void StartBackEnds(PythonManager& manager);
 	const void StartFrontEnds();
 
 private:

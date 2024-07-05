@@ -80,6 +80,8 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
+
+    PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonUserLibs.begin(), pythonUserLibs.end()).c_str());
 #endif
 
     status = Py_InitializeFromConfig(&config);

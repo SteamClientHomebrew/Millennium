@@ -220,7 +220,8 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
     #ifdef _WIN32
     {
-        AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
+        //AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
+        AddSitePackagesDirectory(SystemIO::GetSteamPath() / "ext" / "data" / "cache" / "Lib" / "site-packages");
     }
     #else
     {

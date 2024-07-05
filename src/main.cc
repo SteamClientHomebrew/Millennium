@@ -14,7 +14,6 @@
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
 #include <ftp/serv.h>
-#include <posix/helpers.h>
 
 class Preload 
 {
@@ -93,8 +92,12 @@ const static void EntryMain()
 
     std::unique_ptr<PluginLoader> loader = std::make_unique<PluginLoader>(startTime, ftpPort);
 
-    loader->StartBackEnds();
+    PythonManager& manager = PythonManager::GetInstance();
+
+    std::thread([&loader, &manager] { loader->StartBackEnds(manager); }).detach();
     loader->StartFrontEnds();
+
+    std::promise<void>().get_future().wait();
 }
 
 #ifdef _WIN32
@@ -117,6 +120,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <posix/helpers.h>
 
 void HandleSignalInterrupt(int sig) 
 {
