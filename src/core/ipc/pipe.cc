@@ -98,6 +98,7 @@ const int OpenIPCSocket(uint16_t ipcPort)
     {
         IPCSocketMain.set_access_channels(websocketpp::log::alevel::none);
         IPCSocketMain.clear_error_channels(websocketpp::log::elevel::none);
+        IPCSocketMain.set_error_channels(websocketpp::log::elevel::none);
 
         IPCSocketMain.init_asio();
         IPCSocketMain.set_message_handler(bind(OnMessage, &IPCSocketMain, std::placeholders::_1, std::placeholders::_2));
