@@ -28,7 +28,7 @@
       "name": "windows-mingw",
       "hidden": true,
       "inherits": "default",
-      "generator": "MinGW Makefiles",
+      "generator": "Ninja",
       "displayName": "windows-mingw",
       "description": "Build using g++ compiler",
       "cacheVariables": {
