@@ -140,6 +140,15 @@ private:
         std::ofstream outFile(m_pythonZip, std::ios::binary);
         outFile.write(response.text.c_str(), response.text.length());
         outFile.close();
+
+        if (std::filesystem::exists(m_pythonZip)) 
+        {
+            Logger.Log("python zip downloaded to [{}]", m_pythonZip);
+        }
+        else 
+        {
+            LOG_ERROR("failed to download Python zip: {}", m_pythonZip);
+        }
     }
 
 public:
