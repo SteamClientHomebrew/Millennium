@@ -38,11 +38,6 @@ jobs:
       with:
         submodules: true
 
-    - name: (Generator) Setup Minimal MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x86
-
     - name: Set up cache for Python source
       uses: actions/cache@v3
       id: build-cache
