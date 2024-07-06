@@ -103,6 +103,9 @@ OutputLogger::OutputLogger()
 		LOG_ERROR("Couldn't open output log stream.");
         return;
     }
+
+	fmt::print(DEFAULT_ACCENT_COL, "⭐ Welcome to Millennium@{} ⭐\n", MILLENNIUM_VERSION);
+	fmt::print(DEFAULT_ACCENT_COL, "   - Discord server https://steambrew.app/discord\n");
 }
 
 OutputLogger::~OutputLogger() 

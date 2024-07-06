@@ -57,7 +57,7 @@ int SettingsStore::InitializeSettingsStore()
 
         for (const auto& enabledPlugin : SettingsStore["enabled"])
         {
-            if (enabledPlugin == "millennium__internal")
+            if (enabledPlugin == "core")
             {
                 found = true;
                 break;
@@ -65,12 +65,12 @@ int SettingsStore::InitializeSettingsStore()
         }
         if (!found)
         {
-            SettingsStore["enabled"].push_back("millennium__internal");
+            SettingsStore["enabled"].push_back("core");
         }
     }
     else
     {
-        SettingsStore["enabled"] = nlohmann::json::array({ "millennium__internal" });
+        SettingsStore["enabled"] = nlohmann::json::array({ "core" });
     }
 
     SetSettings(SettingsStore.dump(4));

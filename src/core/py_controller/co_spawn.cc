@@ -80,6 +80,8 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
+
+    PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonUserLibs.begin(), pythonUserLibs.end()).c_str());
 #endif
 
     status = Py_InitializeFromConfig(&config);
@@ -113,6 +115,26 @@ PythonManager::~PythonManager()
     //     //this->ShutdownPlugin(pluginName);
     // }
     //Py_FinalizeEx();
+}
+
+bool PythonManager::RemovePythonInstance(std::string plugin_name)
+{
+    bool successfulShutdown = false;
+
+    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); ++it) 
+    {
+        const auto& [pluginName, threadState] = *it;
+
+        if (pluginName != plugin_name) 
+        {
+            continue;
+        }
+
+        this->m_pythonInstances.erase(it);
+        break;
+    }
+
+    return successfulShutdown;
 }
 
 bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)

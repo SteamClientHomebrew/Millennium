@@ -14,13 +14,13 @@
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
 #include <ftp/serv.h>
-#include <posix/helpers.h>
+#include <git/pyman.h>
 
 class Preload 
 {
 private:
 
-    const char* builtinsRepository = "https://github.com/SteamClientHomebrew/__builtins__.git";
+    const char* builtinsRepository = "https://github.com/SteamClientHomebrew/Core.git";
     const char* pythonModulesRepository = "https://github.com/SteamClientHomebrew/Packages.git";
 
     std::filesystem::path builtinsModulesPath = SystemIO::GetSteamPath() / "ext" / "data" / "assets";
@@ -52,7 +52,7 @@ public:
             std::ofstream(filePath).close();
 
             boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
-            std::exit(0);
+            std::exit(1);
         }
     }
 
@@ -69,12 +69,9 @@ public:
         // python modules only need to be audited on windows systems. 
         // linux users need their own installation of python
         #ifdef _WIN32
-        const bool bPythonModulesSuccess = Dependencies::GitAuditPackage("@packages", pythonModulesBaseDir.string(), pythonModulesRepository);
-        
-        if (!bPythonModulesSuccess) 
         {
-            LOG_ERROR("failed to audit python modules...");
-            return;
+            std::unique_ptr<PythonInstaller> pythonInstaller = std::make_unique<PythonInstaller>("3.11.8");
+            pythonInstaller->InstallPython();
         }
         #endif
     }
@@ -93,8 +90,12 @@ const static void EntryMain()
 
     std::unique_ptr<PluginLoader> loader = std::make_unique<PluginLoader>(startTime, ftpPort);
 
-    loader->StartBackEnds();
+    PythonManager& manager = PythonManager::GetInstance();
+
+    std::thread([&loader, &manager] { loader->StartBackEnds(manager); }).detach();
     loader->StartFrontEnds();
+
+    std::promise<void>().get_future().wait();
 }
 
 #ifdef _WIN32
@@ -117,6 +118,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <posix/helpers.h>
 
 void HandleSignalInterrupt(int sig) 
 {

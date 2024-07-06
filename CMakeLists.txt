@@ -52,6 +52,7 @@ add_compile_definitions(
 
 find_package(cpr CONFIG REQUIRED) # used for web requests. 
 find_package(unofficial-git2 CONFIG REQUIRED) # used for updating git modules
+find_package(minizip CONFIG REQUIRED) # used for extracting zip files
 
 include_directories(${LIBGIT2_INCLUDE_DIRS})
 
@@ -121,6 +122,7 @@ target_link_libraries(Millennium
   Boxer
   cpr::cpr
   unofficial::git2::git2
+  minizip::minizip
 )
 
 if(WIN32)

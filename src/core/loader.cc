@@ -9,6 +9,7 @@
 #include <core/ffi/ffi.h>
 #include <sys/http.h>
 #include <core/hooks/web_load.h>
+#include <sys/log.h>
 
 using namespace std::placeholders;
 websocketpp::client<websocketpp::config::asio_client>* sharedClient, *browserClient;
@@ -160,9 +161,48 @@ const void PluginLoader::PrintActivePlugins()
     }
 }
 
-const void PluginLoader::StartBackEnds()
+const void StartPreloader(PythonManager& manager)
 {
-    PythonManager& manager = PythonManager::GetInstance();
+    std::promise<void> promise;
+
+    SettingsStore::PluginTypeSchema plugin = 
+    {
+        .pluginName = "preload",
+        .backendAbsoluteDirectory = SystemIO::GetSteamPath() / "ext" / "data" / "assets" / "preload",
+        .isInternal = true
+    };
+
+    manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin) 
+    {
+        Logger.Log("plugin {} started...", plugin.pluginName);
+
+        const auto backendMainModule = (plugin.backendAbsoluteDirectory / "pcm.py").generic_string();
+
+        PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
+        FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
+
+        if (mainModuleFilePtr == NULL) 
+        {
+            LOG_ERROR("failed to fopen file @ {}", backendMainModule);
+            return;
+        }
+
+        if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
+        {
+            LOG_ERROR("millennium failed to preload plugins", plugin.pluginName);
+            return;
+        }
+
+        promise.set_value();
+    });
+
+    promise.get_future().get();
+    manager.RemovePythonInstance("preload"); // shutdown preloader
+}
+
+const void PluginLoader::StartBackEnds(PythonManager& manager)
+{
+    StartPreloader(manager);
 
     for (auto& plugin : *this->m_pluginsPtr)
     {
