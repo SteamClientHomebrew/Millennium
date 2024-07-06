@@ -69,11 +69,11 @@ For normal users, installing via the installers makes the most sense. However wh
     - Load custom StyleSheets into web browser
 - ### [Core Modules](https://github.com/SteamClientHomebrew/Core)
   - Manage and load custom user themes into Steam
-  - Manage custom plugins into Steam
-  - Manage theme & plugin updates. 
-  - Manage python 3.11.8 installation
-  - Manage Millennium Developer Tools
-  - Custom package manager for all python plugins
+  - Manage custom plugins for steam
+  - Maintain theme & plugin versions. 
+  - Manage embedded Python installation
+    - Manage Millennium Python Developer Tools
+    - Custom package manager for all plugins
 
 &nbsp;
 
