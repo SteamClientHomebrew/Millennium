@@ -131,6 +131,7 @@ jobs:
 
     - name: (Generator) Configure CMake
       run: |
+        ninja --version
         cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
     - name: Build Millennium
