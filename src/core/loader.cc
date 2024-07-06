@@ -71,7 +71,22 @@ public:
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>*c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
-        JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+
+        if (json.contains("method") && json["method"] == "Console.messageAdded") 
+        {
+            try
+            {
+                if (json["params"]["message"]["level"] == "error")
+                {
+                    Logger.Log("steam-error: {}", json["params"]["message"]["text"].get<std::string>());
+                }
+            }
+            catch (const std::exception& e) { }
+        }
+        else
+        {        
+            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+        }
     }
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
@@ -81,6 +96,8 @@ public:
 
         Logger.Log("successfully connected to steam JSVM!");
         CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
+
+        Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
     }
 };
 
