@@ -324,6 +324,7 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
     // Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
+    Logger.Log("Injecting frontend shims...");
 
     Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
