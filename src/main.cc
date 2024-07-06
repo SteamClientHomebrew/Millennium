@@ -52,7 +52,7 @@ public:
             std::ofstream(filePath).close();
 
             boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
-            std::exit(0);
+            std::exit(1);
         }
     }
 
