@@ -67,7 +67,7 @@ For normal users, installing via the installers makes the most sense. However wh
     - Overwrite/Modify HTTP requests
     - Load custom JavaScript (Native) into web browser
     - Load custom StyleSheets into web browser
-- ### [Builtin Modules](https://github.com/SteamClientHomebrew/__builtins__)
+- ### [Core Modules](https://github.com/SteamClientHomebrew/Core)
   - Manage and load custom user themes into Steam
   - Manage custom plugins into Steam
   - Manage theme & plugin updates. 
