@@ -139,8 +139,8 @@ jobs:
         cmake --build build --config Release
 
         # Move the python311.dll binary to the release directory
-        copy D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
-        copy D:\a\Millennium\Millennium\build\Release\user32.dll D:/a/Millennium/Millennium/build/artifacts/user32.dll
+        cp D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32\python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
+        cp D:\a\Millennium\Millennium\build\Release\user32.dll D:/a/Millennium/Millennium/build/artifacts/user32.dll
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
