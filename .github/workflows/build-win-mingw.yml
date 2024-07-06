@@ -138,8 +138,9 @@ jobs:
         ./vendor/vcpkg/vcpkg integrate install
 
     - name: (Generator) Configure CMake
+      shell: msys2 {0}
       run: |
-        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON -DCMAKE_CXX_COMPILER=C:/msys64/mingw32/bin/i686-w64-mingw32-g++.exe
+        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
     - name: Build Millennium
       run: |
