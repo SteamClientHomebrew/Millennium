@@ -117,6 +117,26 @@ PythonManager::~PythonManager()
     //Py_FinalizeEx();
 }
 
+bool PythonManager::RemovePythonInstance(std::string plugin_name)
+{
+    bool successfulShutdown = false;
+
+    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); ++it) 
+    {
+        const auto& [pluginName, threadState] = *it;
+
+        if (pluginName != plugin_name) 
+        {
+            continue;
+        }
+
+        this->m_pythonInstances.erase(it);
+        break;
+    }
+
+    return successfulShutdown;
+}
+
 bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
 {
     const std::string pluginName = plugin.pluginName;

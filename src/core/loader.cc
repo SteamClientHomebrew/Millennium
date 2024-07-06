@@ -161,13 +161,13 @@ const void PluginLoader::PrintActivePlugins()
     }
 }
 
-const void PluginLoader::StartBackEnds(PythonManager& manager)
+const void StartPreloader(PythonManager& manager)
 {
     std::promise<void> promise;
-    std::future<void> future = promise.get_future();
 
-    SettingsStore::PluginTypeSchema plugin = {
-        .pluginName = "core",
+    SettingsStore::PluginTypeSchema plugin = 
+    {
+        .pluginName = "preload",
         .backendAbsoluteDirectory = SystemIO::GetSteamPath() / "ext" / "data" / "assets" / "preload",
         .isInternal = true
     };
@@ -196,8 +196,13 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
         promise.set_value();
     });
 
-    future.get();
-    Logger.Log("Preloader finished pacman...");
+    promise.get_future().get();
+    manager.RemovePythonInstance("preload"); // shutdown preloader
+}
+
+const void PluginLoader::StartBackEnds(PythonManager& manager)
+{
+    StartPreloader(manager);
 
     for (auto& plugin : *this->m_pluginsPtr)
     {

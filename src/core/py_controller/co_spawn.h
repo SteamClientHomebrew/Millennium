@@ -32,6 +32,7 @@ public:
 	PythonManager();
 	~PythonManager();
 
+	bool RemovePythonInstance(std::string plugin_name);
 	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
 	void WaitForExit();
 
