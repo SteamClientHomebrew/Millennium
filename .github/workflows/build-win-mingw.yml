@@ -1,4 +1,4 @@
-name: Build Millennium (Windows-MinGW)
+name: Build Millennium (Windows)
 
 on:
   workflow_dispatch:
@@ -114,7 +114,9 @@ jobs:
             mingw-w64-i686-gcc
             
     - name: Add MinGW32 to PATH
-      run: echo "::add-path::C:\msys64\mingw32\bin"
+      run: |
+        echo "::add-path::C:\msys64\mingw32\bin"
+        tree C:\msys64\mingw32\bin
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
