@@ -31,7 +31,7 @@
       "generator": "MinGW Makefiles",
       "displayName": "windows-mingw",
       "description": "Build using g++ compiler",
-      "cmakeExecutable": "C:\\msys64\\mingw32\\bin\\cmake.exe",
+      "cmakeExecutable": "D:/a/_temp/msys64/mingw32/bin/mingw32-make.exe",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x86-mingw-static",
         "CMAKE_CXX_STANDARD": "17",

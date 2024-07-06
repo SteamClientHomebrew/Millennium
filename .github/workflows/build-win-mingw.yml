@@ -126,8 +126,7 @@ jobs:
             
     - name: Add MinGW32 to PATH
       run: |
-        echo "::add-path::C:\msys64\mingw32\bin"
-        tree C:\msys64\mingw32\bin
+        echo "::add-path::D:/a/_temp/msys64/mingw32/bin"
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
