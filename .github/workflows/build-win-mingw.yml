@@ -21,12 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - sys: mingw64
-            env: x86_64
           - sys: mingw32
             env: i686
-          - sys: ucrt64
-            env: ucrt-x86_64
 
     steps:
 
@@ -124,12 +120,6 @@ jobs:
           mingw-w64-${{ matrix.env }}-gcc
           mingw-w64-${{ matrix.env }}-cmake
           mingw-w64-${{ matrix.env }}-ninja
-          mingw-w64-${{ matrix.env }}-doxygen
-          mingw-w64-${{ matrix.env }}-graphviz
-          mingw-w64-${{ matrix.env }}-ghostscript
-          mingw-w64-${{ matrix.env }}-texlive-bin
-          diffutils
-          groff
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
