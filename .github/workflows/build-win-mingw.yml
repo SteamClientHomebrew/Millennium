@@ -131,11 +131,10 @@ jobs:
         cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
     - name: Build Millennium
+      shell: msys2 {0}
       run: |
 
         mkdir D:/a/Millennium/Millennium/build/artifacts
-        dir "D:\a\Millennium\Millennium\Python-3.11.8\PCbuild\win32"
-
         # build millennium with msvc; x86; release
         cmake --build build --config Release
 
