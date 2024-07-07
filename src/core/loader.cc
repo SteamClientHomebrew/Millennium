@@ -184,8 +184,8 @@ const void StartPreloader(PythonManager& manager)
 
     SettingsStore::PluginTypeSchema plugin = 
     {
-        .pluginName = "preload",
-        .backendAbsoluteDirectory = SystemIO::GetSteamPath() / "ext" / "data" / "assets" / "preload",
+        .pluginName = "pipx",
+        .backendAbsoluteDirectory = SystemIO::GetSteamPath() / "ext" / "data" / "assets" / "pipx",
         .isInternal = true
     };
 
@@ -193,7 +193,7 @@ const void StartPreloader(PythonManager& manager)
     {
         Logger.Log("plugin {} started...", plugin.pluginName);
 
-        const auto backendMainModule = (plugin.backendAbsoluteDirectory / "pcm.py").generic_string();
+        const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
         FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
@@ -214,7 +214,7 @@ const void StartPreloader(PythonManager& manager)
     });
 
     promise.get_future().get();
-    manager.RemovePythonInstance("preload"); // shutdown preloader
+    manager.RemovePythonInstance("pipx"); // shutdown preloader
 }
 
 const void PluginLoader::StartBackEnds(PythonManager& manager)
