@@ -60,7 +60,7 @@ For normal users, installing via the installers makes the most sense. However wh
 ## Core Features
 
 - ### Plugin Loader
-  - **JavaScript ([React](https://react.dev/)) frontend** container in Steam
+  - **TypeScript ([React](https://react.dev/)) frontend** container in Steam
   - **Python backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
   - **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Python** to **JavaScript** and vice versa
   - **Hook modules in the Steam web browser**
@@ -71,8 +71,8 @@ For normal users, installing via the installers makes the most sense. However wh
   - Manage and load custom user themes into Steam
   - Manage custom plugins for steam
   - Maintain theme & plugin versions. 
-  - Manage embedded Python installation
-    - Manage Millennium Python Developer Tools
+  - Manage [embedded Python](https://www.python.org/downloads/release/python-3118/) installation
+    - Manage [Millennium Python Developer Tools](https://pypi.org/project/millennium/)
     - Custom package manager for all plugins
 
 &nbsp;
