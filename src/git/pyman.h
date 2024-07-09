@@ -26,13 +26,13 @@ private:
         unzFile zip = unzOpen(m_pythonZip.c_str());
         if (zip == nullptr) 
         {
-            std::cerr << "Cannot open zip file: " << m_pythonZip << std::endl;
+            LOG_ERROR("failed to open zip file: {}", m_pythonZip);
             return;
         }
 
         if (unzGoToFirstFile(zip) != UNZ_OK) 
         {
-            std::cerr << "Cannot go to the first file in zip" << std::endl;
+            LOG_ERROR("failed to go to first file in zip: {}", m_pythonZip);
             unzClose(zip);
             return;
         }
@@ -43,13 +43,13 @@ private:
             unz_file_info fileInfo;
             if (unzGetCurrentFileInfo(zip, &fileInfo, filename, sizeof(filename), nullptr, 0, nullptr, 0) != UNZ_OK) 
             {
-                std::cerr << "Cannot get file info" << std::endl;
+                LOG_ERROR("failed to get file info from zip: {}", m_pythonZip);
                 break;
             }
 
             if (unzOpenCurrentFile(zip) != UNZ_OK) 
             {
-                std::cerr << "Cannot open file: " << filename << std::endl;
+                LOG_ERROR("failed to open file in zip: {}", filename);
                 break;
             }
 
@@ -57,7 +57,7 @@ private:
             int readSize = unzReadCurrentFile(zip, buffer.data(), buffer.size());
             if (readSize < 0) 
             {
-                std::cerr << "Error reading file: " << filename << std::endl;
+                LOG_ERROR("failed to read file in zip: {}", filename);
                 unzCloseCurrentFile(zip);
                 break;
             }
