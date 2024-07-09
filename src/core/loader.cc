@@ -54,7 +54,7 @@ public:
         browserClient = client; 
         browserHandle = handle;
 
-        Logger.Log("successfully connected to steam!");
+        Logger.Log("connected to Steam @ {}", (void*)client);
         webKitHandler.SetupGlobalHooks();
     }
 
@@ -94,7 +94,7 @@ public:
         sharedClient = client; 
         sharedHandle = handle;
 
-        Logger.Log("successfully connected to steam JSVM!");
+        Logger.Log("connected to SharedJSContext @ {}", (void*)client);
         CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
 
         Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
