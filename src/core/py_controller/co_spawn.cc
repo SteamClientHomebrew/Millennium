@@ -3,6 +3,7 @@
 #include <core/loader.h>
 #include <core/ffi/ffi.h>
 #include <core/py_controller/bind_stdout.h>
+#include <core/py_controller/logger.h>
 #include <boxer/boxer.h>
 
 PyObject* PyInit_Millennium(void) 
@@ -56,7 +57,8 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
     // initialize global modules
     Logger.LogItem("hook", "locking standard output..."); PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
     Logger.LogItem("hook", "locking standard error...");  PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
-    Logger.LogItem("hook", "inserting Millennium...");    PyImport_AppendInittab("Millennium", &PyInit_Millennium);
+    Logger.LogItem("hook", "inserting PluginUtils...");   PyImport_AppendInittab("PluginUtils", &PyInit_Logger);
+    Logger.LogItem("hook", "inserting Millennium...");    PyImport_AppendInittab("Millennium",  &PyInit_Millennium);
 
     Logger.LogItem("status", "done appending init tabs!");
     Logger.LogItem("python", "initializing python...");
