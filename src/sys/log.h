@@ -19,11 +19,11 @@ private:
     std::mutex logMutex;
     std::shared_ptr<std::ostream> teeStreamPtr;
     std::shared_ptr<std::ofstream> outputLogStream;
-
     std::string GetLocalTime();
-    void PrintMessage(std::string type, const std::string &message, fmt::v10::text_style color = fg(fmt::color::white));
 
 public:
+    void PrintMessage(std::string type, const std::string &message, fmt::v10::text_style color = fg(fmt::color::white));
+
     OutputLogger(const OutputLogger &) = delete;
     OutputLogger &operator=(const OutputLogger &) = delete;
 
