@@ -104,7 +104,7 @@ OutputLogger::OutputLogger()
         return;
     }
 
-	fmt::print("Millennium v: {}\n", MILLENNIUM_VERSION);                                    
+	fmt::print("[+] Bootstrapping Millennium@{}\n", MILLENNIUM_VERSION);                                    
 }
 
 OutputLogger::~OutputLogger() 
