@@ -13,8 +13,15 @@
 #include <sys/log.h>
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
-#include <ftp/serv.h>
+#include <core/ftp/serv.h>
 #include <git/pyman.h>
+#include <signal.h>
+
+/** Handle ^C signal from terminal */
+void HandleSignalInterrupt(int sig) 
+{
+    std::exit(1);
+}
 
 class Preload 
 {
@@ -80,6 +87,7 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
+    signal(SIGINT, HandleSignalInterrupt);
     uint16_t ftpPort = Crow::CreateAsyncServer();
 
     const auto startTime = std::chrono::system_clock::now();
@@ -117,17 +125,10 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
 #elif __linux__
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <posix/helpers.h>
-
-void HandleSignalInterrupt(int sig) 
-{
-    std::exit(1);
-}
 
 int main()
 {
-    signal(SIGINT, HandleSignalInterrupt);
     Logger.Log("Starting Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
 
     EntryMain();
