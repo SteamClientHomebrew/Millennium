@@ -74,12 +74,12 @@ set(SOURCE_FILES
   "src/core/co_initialize/events.cc"
   "src/core/hooks/web_load.cc"
   "src/core/ipc/pipe.cc"
+  "src/core/ftp/serv.cc"
   "src/sys/log.cc"
   "src/sys/io.cc"
   "src/sys/settings.cc"
   "src/api/executor.cc"
   "src/git/git.cc"
-  "src/ftp/serv.cc"
 )
 
 if (MSVC)
