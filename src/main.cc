@@ -113,6 +113,11 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
     {
         std::thread(EntryMain).detach();
     }
+    if (fdwReason == DLL_PROCESS_DETACH) 
+    {
+        Logger.Log("Shutting down Millennium...");
+        std::exit(1);
+    }
     return true;
 }
 

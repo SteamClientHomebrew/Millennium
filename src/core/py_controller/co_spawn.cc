@@ -108,6 +108,11 @@ PythonManager::~PythonManager()
 {
     LOG_ERROR("PythonManager was destroyed.");
     
+    // for (auto& pythonThread : this->m_threadPool) 
+    // {
+    //     pythonThread.join();
+    // }
+
     // std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     // pythonGilLock->HoldAndLockGILOnThread(m_InterpreterThreadSave);
 
