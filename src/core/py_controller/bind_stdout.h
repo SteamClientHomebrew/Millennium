@@ -1,3 +1,9 @@
+/**
+ * bind_stdout.h
+ * @brief This file is responsible for redirecting the Python stdout and stderr to the logger.
+ * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
+ */
+
 #include <iostream>
 #include <Python.h>
 #include "co_spawn.h"
