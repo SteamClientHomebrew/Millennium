@@ -145,7 +145,7 @@ void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool 
 	
 	if (m_bIsConsoleEnabled)
 	{
-		fmt::print(color, " {}──[{}]: ", connectorPiece, pluginName);
+		fmt::print(color, " {}─[{}]: ", connectorPiece, pluginName);
 		fmt::print("{}\n", strMessage);
 	}
 

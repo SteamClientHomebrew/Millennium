@@ -51,17 +51,16 @@ const std::string GetPythonVersion()
 
 PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
-    Logger.LogHead("initialized python mgr:");
+    Logger.LogHead("Python Monitor:");
     this->m_instanceCount = 0;
 
     // initialize global modules
-    Logger.LogItem("hook", "locking standard output..."); PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
-    Logger.LogItem("hook", "locking standard error...");  PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
-    Logger.LogItem("hook", "inserting PluginUtils...");   PyImport_AppendInittab("PluginUtils", &PyInit_Logger);
-    Logger.LogItem("hook", "inserting Millennium...");    PyImport_AppendInittab("Millennium",  &PyInit_Millennium);
+    Logger.LogItem("+", "Redirecting Standard Output...");    PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
+    Logger.LogItem("+", "Redirecting Standard Error...");    PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
+    Logger.LogItem("+", "Inserting PluginUtils..."); PyImport_AppendInittab("PluginUtils", &PyInit_Logger);
+    Logger.LogItem("+", "Inserting Millennium...");  PyImport_AppendInittab("Millennium",  &PyInit_Millennium);
 
-    Logger.LogItem("status", "done appending init tabs!");
-    Logger.LogItem("python", "initializing python...");
+    Logger.LogItem("Python", "Initializing Python...");
 
     PyStatus status;
     PyConfig config;
@@ -98,7 +97,7 @@ done:
     PyConfig_Clear(&config);
 
     const std::string version = GetPythonVersion();
-    Logger.LogItem("python", fmt::format("initialized python {}", version));
+    Logger.LogItem("Python", fmt::format("Successfully Initialized Python-{}", version));
 
     if (version != "3.11.8") {
         Logger.Warn("Millennium is intended to run python 3.11.8. You may be prone to stability issues...");

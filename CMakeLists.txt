@@ -1,4 +1,9 @@
-set(MILLENNIUM_VERSION "2.1.0")
+# get the millennium version from version file
+file(STRINGS "${CMAKE_SOURCE_DIR}/version" VERSION_LINES LIMIT_COUNT 2)
+list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
+set(MILLENNIUM_VERSION "${MILLENNIUM_VERSION}")
+
+message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 
 cmake_minimum_required(VERSION 3.5.0)
 set(BUILD_SHARED_LIBS OFF)

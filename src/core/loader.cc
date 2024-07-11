@@ -110,9 +110,9 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
     m_settingsStorePtr->InitializeSettingsStore();
     m_ipcPort = IPCMain::OpenConnection();
 
-    Logger.LogHead("port info:");
-    Logger.LogItem("ports", fmt::format("ftp port: {}", m_ftpPort));
-    Logger.LogItem("ports", fmt::format("ipc port: {}", m_ipcPort), true);
+    Logger.LogHead("Internal Process Ports:");
+    Logger.LogItem("+", fmt::format("File Transfer Protocol Port: {}", m_ftpPort));
+    Logger.LogItem("+", fmt::format("Inter Process Communication Port: {}", m_ipcPort), true);
 
     this->PrintActivePlugins();
 }
@@ -153,7 +153,7 @@ const void PluginLoader::StartFrontEnds()
     std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
 
     auto socketEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - socketStart);
-    Logger.LogItem("socket-con", fmt::format("finished in [{}ms]\n", socketEnd.count()), true);
+    Logger.LogItem("+", fmt::format("Finished in [{}ms]\n", socketEnd.count()), true);
 
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
@@ -169,12 +169,12 @@ const void PluginLoader::StartFrontEnds()
 /* debug function, just for developers */
 const void PluginLoader::PrintActivePlugins()
 {
-    Logger.LogHead("hosting query:");
+    Logger.LogHead("Plugin States:");
 
     for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it)
     {
         const auto pluginName = (*it).pluginName;
-        Logger.LogItem(pluginName, m_settingsStorePtr->IsEnabledPlugin(pluginName) ? "enabled" : "disabled", std::next(it) == (*this->m_pluginsPtr).end());
+        Logger.LogItem(pluginName, m_settingsStorePtr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled", std::next(it) == (*this->m_pluginsPtr).end());
     }
 }
 
