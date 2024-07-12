@@ -77,6 +77,7 @@ OutputLogger::OutputLogger()
 
 			EnableVirtualTerminalProcessing();
 			SetConsoleOutputCP(CP_UTF8);
+			SetConsoleTitleA(fmt::format("Millennium@{}", MILLENNIUM_VERSION).c_str());
 		}
 	}
 	#elif __linux__
