@@ -109,15 +109,19 @@ const static void EntryMain()
 #ifdef _WIN32
 int __stdcall DllMain(void*, unsigned long fdwReason, void*) 
 {
-    if (fdwReason == DLL_PROCESS_ATTACH) 
+    switch (fdwReason) 
     {
-        std::thread(EntryMain).detach();
+        case DLL_PROCESS_ATTACH: {
+            std::thread(EntryMain).detach();
+            break;
+        }
+        case DLL_PROCESS_DETACH: {
+            Logger.Log("Shutting down Millennium...");
+            std::exit(1);
+            break;
+        }
     }
-    if (fdwReason == DLL_PROCESS_DETACH) 
-    {
-        Logger.Log("Shutting down Millennium...");
-        std::exit(1);
-    }
+
     return true;
 }
 
