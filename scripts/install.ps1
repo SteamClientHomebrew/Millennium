@@ -1,3 +1,8 @@
+# This file is part of the Millennium project.
+# This script is used to install Millennium on a Windows machine.
+# https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.ps1
+# Copyright (c) 2024 Millennium
+
 # Define ANSI escape sequence for bold purple color
 $BoldPurple = [char]27 + '[38;5;219m'
 $BoldGreen = [char]27 + '[1;32m'
@@ -56,15 +61,14 @@ function Show-Progress {
     $ProgressBar = ("#" * $Progress).PadRight($ProgressBarLength)
     
     $FileCountMessage = "${BoldPurple}[$FileNumber/$TotalFiles]${ResetColor}"
-    $ProgressMessage = "$FileCountMessage $Message"
+    $ProgressMessage  = "$FileCountMessage $Message"
+    $currentDownload  = ConvertTo-ReadableSize -size $CurrentRead
+
     $placement = ([Console]::WindowWidth + 6) - $ProgressBarLength
     $addLength = $placement - $ProgressMessage.Length
-    $spaces = -join (' ' * $addLength)
-    
-    $currentDownload = ConvertTo-ReadableSize -size $CurrentRead
+    $spaces    = " " * $addLength
     $backspace = "`b" * $currentDownload.Length
-
-    # [Console]::SetCursorPosition($placement, [Console]::CursorTop)
+    
     Write-Host -NoNewline "`r$ProgressMessage$spaces${BoldGreen}${backspace}${currentDownload} [$ProgressBar]${ResetColor} $PercentComplete%"
 }
 
@@ -115,32 +119,27 @@ if (-not $customSteamPath) {
     if (-not $steamPath) {
         Write-Host "Steam path not found in registry."
         exit
-    }
-    
+    } 
     [Console]::CursorTop -= 1
-
     [Console]::SetCursorPosition(0, [Console]::CursorTop)
     [Console]::Write(' ' * [Console]::WindowWidth)
 
     Write-Output "`r${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default): ${BoldLightBlue}$steamPath${ResetColor}"
-
-} else {
+} 
+else {
     $steamPath = $customSteamPath
 }
-
-#Write-Output "${BoldPurple}[+]${ResetColor} Using Steam path: ${BoldLightBlue}$steamPath${ResetColor}"
 
 # Ensure the destination directory exists
 if (-not (Test-Path -Path $steamPath)) {
     New-Item -ItemType Directory -Path $steamPath
 }
 
-# Convert the total size to a readable format
-$totalSizeReadable = ConvertTo-ReadableSize -size ($latestRelease.assets | Measure-Object -Property size -Sum).Sum
-$releaseTag = $latestRelease.tag_name
+$releaseTag   = $latestRelease.tag_name
 $packageCount = $latestRelease.assets.Count
-
 Write-Output "`n${BoldPurple}[+]${ResetColor} Packages ($packageCount) ${BoldPurple}Millennium@$releaseTag${ResetColor}`n"
+
+$totalSizeReadable = ConvertTo-ReadableSize -size ($latestRelease.assets | Measure-Object -Property size -Sum).Sum
 Write-Output "${BoldPurple}[+]${ResetColor} Total Download Size:  $totalSizeReadable"
 Write-Output "${BoldPurple}[+]${ResetColor} Total Installed Size: $totalSizeReadable"
 
@@ -156,15 +155,16 @@ Write-Host "${BoldPurple}::${ResetColor} Retreiving packages..."
 
 $FileCount = $latestRelease.assets.Count
 for ($i = 0; $i -lt $FileCount; $i++) {
+
     $asset = $latestRelease.assets[$i]
     $downloadUrl = $asset.browser_download_url
     $outputFile = Join-Path -Path $steamPath -ChildPath $asset.name
-
     DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNumber ($i + 1) -TotalFiles $FileCount -FileName $asset.name
 }
 
 Write-Host "`n"
 
+# future options net yet available
 
 # $choice = Read-Host "`n${BoldPurple}[?]${ResetColor} Do you want to install developer packages? [y/N]"
 # if ($choice -eq "y" -or $choice -eq "yes") {
