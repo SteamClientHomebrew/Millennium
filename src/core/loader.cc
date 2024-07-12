@@ -54,7 +54,7 @@ public:
         browserClient = client; 
         browserHandle = handle;
 
-        Logger.Log("connected to Steam @ {}", (void*)client);
+        Logger.Log("Connected to Steam @ {}", (void*)client);
         webKitHandler.SetupGlobalHooks();
     }
 
@@ -94,7 +94,7 @@ public:
         sharedClient = client; 
         sharedHandle = handle;
 
-        Logger.Log("connected to SharedJSContext @ {}", (void*)client);
+        Logger.Log("Connected to SharedJSContext @ {}", (void*)client);
         CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
 
         Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
@@ -157,7 +157,7 @@ const void PluginLoader::StartFrontEnds()
 
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
-    Logger.Log("total startup time: [{}ms]", duration.count());
+    Logger.Log("Startup took {} ms", duration.count());
 
     browserSocketThread.join();
     sharedSocketThread.join();
@@ -191,7 +191,7 @@ const void StartPreloader(PythonManager& manager)
 
     manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin) 
     {
-        Logger.Log("plugin {} started...", plugin.pluginName);
+        Logger.Log("Started Preloader...", plugin.pluginName);
 
         const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 

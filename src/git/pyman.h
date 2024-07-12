@@ -21,18 +21,18 @@ private:
 
     void ExtractPython() 
     {
-        Logger.Log("extracting python modules [{}]", m_pythonZip);
+        Logger.LogItem("+", "Extracting python modules...");
 
         unzFile zip = unzOpen(m_pythonZip.c_str());
         if (zip == nullptr) 
         {
-            LOG_ERROR("failed to open zip file: {}", m_pythonZip);
+            LOG_ERROR("Failed to open zip file: {}", m_pythonZip);
             return;
         }
 
         if (unzGoToFirstFile(zip) != UNZ_OK) 
         {
-            LOG_ERROR("failed to go to first file in zip: {}", m_pythonZip);
+            LOG_ERROR("Failed to go to first file in zip: {}", m_pythonZip);
             unzClose(zip);
             return;
         }
@@ -43,13 +43,13 @@ private:
             unz_file_info fileInfo;
             if (unzGetCurrentFileInfo(zip, &fileInfo, filename, sizeof(filename), nullptr, 0, nullptr, 0) != UNZ_OK) 
             {
-                LOG_ERROR("failed to get file info from zip: {}", m_pythonZip);
+                LOG_ERROR("Failed to get file info from zip: {}", m_pythonZip);
                 break;
             }
 
             if (unzOpenCurrentFile(zip) != UNZ_OK) 
             {
-                LOG_ERROR("failed to open file in zip: {}", filename);
+                LOG_ERROR("Failed to open file in zip: {}", filename);
                 break;
             }
 
@@ -57,7 +57,7 @@ private:
             int readSize = unzReadCurrentFile(zip, buffer.data(), buffer.size());
             if (readSize < 0) 
             {
-                LOG_ERROR("failed to read file in zip: {}", filename);
+                LOG_ERROR("Failed to read file in zip: {}", filename);
                 unzCloseCurrentFile(zip);
                 break;
             }
@@ -103,7 +103,7 @@ private:
             return;
         }
 
-        Logger.Log("enabling embedded site-packages...");
+        Logger.LogItem("+", "Enabling embedded site-packages...", true);
 
         const auto pathPackage = pythonModulesBaseDir / "python311._pth";
         std::ofstream bufferPackage(pathPackage, std::ios_base::app);
@@ -143,7 +143,7 @@ private:
 
         if (std::filesystem::exists(m_pythonZip)) 
         {
-            Logger.Log("python zip downloaded to [{}]", m_pythonZip);
+            Logger.LogItem("+", "Downloaded embed packages...");
         }
         else 
         {
@@ -154,9 +154,11 @@ private:
 public:
     void InstallPython() 
     {
+        Logger.LogHead("Python Environment Manager:");
+
         if (!std::filesystem::exists(m_pythonDir) || !std::filesystem::is_directory(m_pythonDir) || std::filesystem::is_empty(m_pythonDir)) 
         {
-            Logger.Log("python was not found, installing...");
+            Logger.LogItem("+", "Setting up python environment...");
 
             this->DownloadPython();
             this->ExtractPython();
@@ -169,6 +171,10 @@ public:
             {
                 LOG_ERROR("failed to cleanup python zip at [{}]. it is safe to manually remove. trace: {}", m_pythonZip, e.what());
             }
+        }
+        else 
+        {
+            Logger.LogItem("+", "Successfully verified environment!", true);
         }
 
         this->EnableSitePackages();
