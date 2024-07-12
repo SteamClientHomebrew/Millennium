@@ -15,7 +15,7 @@ function Close-SteamProcess {
 
     if ($steamProcess) {
         Stop-Process -Name "steam" -Force
-        Write-Output "[+] Closed Steam process."
+        Write-Output "${BoldPurple}[+]${ResetColor} Closed Steam process."
     }
 }
 
