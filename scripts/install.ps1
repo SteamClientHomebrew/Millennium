@@ -3,11 +3,8 @@
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.ps1
 # Copyright (c) 2024 Millennium
 
-# Check if the script is being run as an updater
-$IsUpdater = $args -contains "--update"
-
-# write installer state
-Write-Output "${BoldPurple}[+]${ResetColor} Running as $IsUpdater"
+# Millennium artifacts repository
+$apiUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 
 # Define ANSI escape sequence for bold purple color
 $BoldPurple = [char]27 + '[38;5;219m'
@@ -15,6 +12,34 @@ $BoldGreen = [char]27 + '[1;32m'
 $BoldLightBlue = [char]27 + '[38;5;75m'
 
 $ResetColor = [char]27 + '[0m'
+
+function Ask-Boolean-Question {
+    param([bool]$newLine = $true, [string]$question, [bool]$default = $false)
+
+    $choices = if ($default) { "[Y/n]" } else { "[y/N]" }
+    $parsedQuestion = "${BoldPurple}::${ResetColor} $question $choices"
+    $parsedQuestion = if ($newLine) { "`n$parsedQuestion" } else { $parsedQuestion }
+
+    $choice = Read-Host "$parsedQuestion"
+
+    if ($choice -eq "") {
+        $choice = if ($default) { "y" } else { "n" }
+    }
+
+    if ($choice -eq "y" -or $choice -eq "yes") {
+        $choice = "Yes"
+    }
+    else {
+        $choice = "No"
+    }
+
+    [Console]::CursorTop -= if ($newLine) { 2 } else { 1 }
+    [Console]::SetCursorPosition(0, [Console]::CursorTop)
+    [Console]::Write(' ' * [Console]::WindowWidth)
+    Write-Host "`r${parsedQuestion}: ${BoldLightBlue}$choice${ResetColor}"
+
+    return $(if ($choice -eq "yes") { $true } else { $false })
+}
 
 function Close-SteamProcess {
     $steamProcess = Get-Process -Name "steam" -ErrorAction SilentlyContinue
@@ -43,7 +68,7 @@ Close-SteamProcess
 function ConvertTo-ReadableSize {
     param([int64]$size)
     
-    $units = @("B", "KiB", "MiB", "GiB")
+    $units = @("Bytes", "KiB", "MiB", "GiB")
     $index = [Math]::Floor([Math]::Log($size, 1024))
     $sizeFormatted = [Math]::Round($size / [Math]::Pow(1024, $index), 2, [MidpointRounding]::AwayFromZero)
     
@@ -87,7 +112,7 @@ function Show-Progress {
     $spaces    = " " * $addLength
     $backspace = "`b" * $currentDownload.Length
     
-    Write-Host -NoNewline "`r$ProgressMessage$spaces${BoldGreen}${backspace}${currentDownload} [$ProgressBar]${ResetColor} $PercentComplete%"
+    Write-Host -NoNewline "`r$ProgressMessage$spaces${backspace}${currentDownload} ${BoldLightBlue}[$ProgressBar]${ResetColor} $PercentComplete%"
 }
 
 function DownloadFileWithProgress {
@@ -125,36 +150,26 @@ function DownloadFileWithProgress {
     }
 }
 
-$apiUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 $response = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "Millennium.Installer/1.0" }
 $latestRelease = $response | Where-Object { -not $_.prerelease } | Sort-Object -Property created_at -Descending | Select-Object -First 1
 
-$registrySteamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
+$customSteamPath = Read-Host "${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default)"
 
-if (-not $registrySteamPath) {
-    Write-Host "Steam path not found in registry."
-    exit
-} 
+if (-not $customSteamPath) {
+    $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
-if ($IsUpdater) {
-    Write-Output "${BoldPurple}[+]${ResetColor} Updating Millennium..."
-    $steamPath = $registrySteamPath
-}
-else {
-    $customSteamPath = Read-Host "${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default)"
-
-    if (-not $customSteamPath) {
-        $steamPath = $registrySteamPath
-    
-        [Console]::CursorTop -= 1
-        [Console]::SetCursorPosition(0, [Console]::CursorTop)
-        [Console]::Write(' ' * [Console]::WindowWidth)
-    
-        Write-Output "`r${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default): ${BoldLightBlue}$steamPath${ResetColor}"
+    if (-not $steamPath) {
+        Write-Host "Steam path not found in registry."
+        exit
     } 
-    else {
-        $steamPath = $customSteamPath
-    }
+    [Console]::CursorTop -= 1
+    [Console]::SetCursorPosition(0, [Console]::CursorTop)
+    [Console]::Write(' ' * [Console]::WindowWidth)
+
+    Write-Output "`r${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default): ${BoldLightBlue}$steamPath${ResetColor}"
+} 
+else {
+    $steamPath = $customSteamPath
 }
 
 # Ensure the destination directory exists
@@ -162,28 +177,58 @@ if (-not (Test-Path -Path $steamPath)) {
     New-Item -ItemType Directory -Path $steamPath
 }
 
+$totalBytesFromRelease = ($latestRelease.assets | Measure-Object -Property size -Sum).Sum
+
+function Calculate-Installed-Size {
+
+    $installedSize = 0
+    for ($i = 0; $i -lt $packageCount; $i++) {
+        $asset = $latestRelease.assets[$i]
+        $FilePath = Join-Path -Path $steamPath -ChildPath $asset.name
+        
+        if (Test-Path -Path $FilePath) {
+            $installedSize += (Get-Item $FilePath).Length
+        }
+    }
+
+    if ($installedSize -eq 0) {
+        return -1
+    }
+
+    if ($totalBytesFromRelease - $installedSize -eq 0) {
+        return "0 Bytes"
+    }
+
+    return ConvertTo-ReadableSize -size ($totalBytesFromRelease - $installedSize)
+}
+
 $releaseTag   = $latestRelease.tag_name
 $packageCount = $latestRelease.assets.Count
 Write-Output "`n${BoldPurple}[+]${ResetColor} Packages ($packageCount) ${BoldPurple}Millennium@$releaseTag${ResetColor}`n"
 
-$totalSizeReadable = ConvertTo-ReadableSize -size ($latestRelease.assets | Measure-Object -Property size -Sum).Sum
-Write-Output "${BoldPurple}[+]${ResetColor} Total Download Size:  $totalSizeReadable"
-Write-Output "${BoldPurple}[+]${ResetColor} Total Installed Size: $totalSizeReadable"
+$totalSizeReadable = ConvertTo-ReadableSize -size $totalBytesFromRelease
+$totalInstalledSize = Calculate-Installed-Size
+
+Write-Output "${BoldPurple}[+]${ResetColor} Total Download Size:   $totalSizeReadable"
+Write-Output "${BoldPurple}[+]${ResetColor} Total Installed Size:  $totalSizeReadable"
+
+if ($totalInstalledSize -ne -1) {
+    Write-Output "${BoldPurple}[+]${ResetColor} Net Upgrade Size:      $totalInstalledSize"
+}
 
 # offer to proceed with installation
-if (-not $IsUpdater)
-{
-    $choice = Read-Host "`n${BoldPurple}::${ResetColor} Proceed with installation? [Y/n]"
+$result = Ask-Boolean-Question -question "Proceed with installation?" -default $true
 
-    if ($choice -eq "n" -or $choice -eq "no") {
-        Write-Output "${BoldPurple}[+]${ResetColor} Installation aborted."
-        exit
-    }
+if (-not $result) {
+    Write-Output "${BoldPurple}[+]${ResetColor} Installation aborted."
+    exit
 }
 
 Write-Host "${BoldPurple}::${ResetColor} Retreiving packages..."
 
 $FileCount = $latestRelease.assets.Count
+
+# Iterate through each asset and download it
 for ($i = 0; $i -lt $FileCount; $i++) {
 
     $asset = $latestRelease.assets[$i]
@@ -192,23 +237,74 @@ for ($i = 0; $i -lt $FileCount; $i++) {
     DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNumber ($i + 1) -TotalFiles $FileCount -FileName $asset.name
 }
 
-Write-Host "`n`n${BoldPurple}[+]${ResetColor} Installation complete."
+
+# This portion of the script is used to configure the millennium.ini file
+# The script will prompt the user to enable these features.
+Function Get-IniFile ($file)       # Based on "https://stackoverflow.com/a/422529"
+ {
+    $ini = [ordered]@{}
+    $section = "NO_SECTION"
+    $ini[$section] = [ordered]@{}
+
+    switch -regex -file $file {    
+        "^\[(.+)\]$" {
+            $section = $matches[1].Trim()
+            $ini[$section] = [ordered]@{}
+        }
+        "^\s*(.+?)\s*=\s*(.*)" {
+            $name,$value = $matches[1..2]
+            $ini[$section][$name] = $value.Trim()
+        }
+        default { $ini[$section]["<$("{0:d4}" -f $CommentCount++)>"] = $_ }
+    }
+    $ini
+}
+
+Function Set-IniFile ($iniObject, $Path, $PrintNoSection=$false, $PreserveNonData=$true)
+{                                  # Based on "http://www.out-web.net/?p=109"
+    $Content = @()
+    ForEach ($Category in $iniObject.Keys) {
+        if ( ($Category -notlike 'NO_SECTION') -or $PrintNoSection ) {
+            $seperator = if ($Content[$Content.Count - 1] -eq "") {} else { "`n" }
+            $Content += $seperator + "[$Category]";
+        }
+
+        ForEach ($Key in $iniObject.$Category.Keys) {           
+            if ($Key.StartsWith('<')) {
+                if ($PreserveNonData) {
+                    $Content += $iniObject.$Category.$Key
+                }
+            }
+            else {
+                $Content += "$Key = " + $iniObject.$Category.$Key
+            }
+        }
+    }
+    $Content | Set-Content $Path -Force
+}
+
+$configPath = Join-Path -Path $steamPath -ChildPath "/ext/millennium.ini"
+
+# check if the config file exists, if not, create it
+if (-not (Test-Path -Path $configPath)) {
+    New-Item -Path $configPath -ItemType File -Force > $null
+}
+
+Write-Host "`n`r"
+$iniObj = Get-IniFile $configPath
+$result = Ask-Boolean-Question -question "Do you want to install developer packages?" -default $false
+
+if (-not $iniObj.Contains("PackageManager")) { $iniObj["PackageManager"] = [ordered]@{} }
+$iniObj["PackageManager"]["devtools"] = if ($result) { "yes" } else { "no" }
+
+
+$result = Ask-Boolean-Question -question "Do you want Millennium to auto update? [Excluding Beta] (Recommeded)" -default $true -newLine $false
+
+if (-not $iniObj.Contains("Settings")) { $iniObj["Settings"] = [ordered]@{} }
+$iniObj["Settings"]["check_for_updates"] = if ($result) { "yes" } else { "no" }
+
+
+Set-IniFile $iniObj $configPath -PreserveNonData $false
 
 Start-Steam -steamPath $steamPath
-
-# future options net yet available
-
-# $choice = Read-Host "`n${BoldPurple}[?]${ResetColor} Do you want to install developer packages? [y/N]"
-# if ($choice -eq "y" -or $choice -eq "yes") {
-#     Write-Host "yes"
-# } 
-
-# $choice = Read-Host "${BoldPurple}[?]${ResetColor} Do you want Millennium to auto update? (Recommeded) [Y/n]"
-# if ($choice -ne "n" -or $choice -ne "no") {
-#     Update-Config -Key "autoUpdate" -Value $true -JsonFilePath (Join-Path -Path $steamPath -ChildPath "/ext1/plugins.json")
-# }
-
-# $choice = Read-Host "${BoldPurple}[?]${ResetColor} Do you want to use Millennium's GUI? (no = configure millennium with files only) [Y/n]"
-# if ($choice -ne "n" -or $choice -ne "no") {
-#     Update-Config -Key "gui" -Value $true -JsonFilePath (Join-Path -Path $steamPath -ChildPath "/ext1/plugins.json")
-# } 
+Write-Host "`n${BoldPurple}[+]${ResetColor} Installation complete."
