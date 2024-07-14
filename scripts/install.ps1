@@ -3,6 +3,12 @@
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.ps1
 # Copyright (c) 2024 Millennium
 
+# Check if the script is being run as an updater
+$IsUpdater = $args -contains "--update"
+
+# write installer state
+Write-Output "${BoldPurple}[+]${ResetColor} Running as $IsUpdater"
+
 # Define ANSI escape sequence for bold purple color
 $BoldPurple = [char]27 + '[38;5;219m'
 $BoldGreen = [char]27 + '[1;32m'
@@ -17,6 +23,18 @@ function Close-SteamProcess {
         Stop-Process -Name "steam" -Force
         Write-Output "${BoldPurple}[+]${ResetColor} Closed Steam process."
     }
+}
+
+function Start-Steam {
+    param([string]$steamPath)
+
+    $steamExe = Join-Path -Path $steamPath -ChildPath "Steam.exe"
+    if (-not (Test-Path -Path $steamExe)) {
+        Write-Host "Steam executable not found."
+        exit
+    }
+
+    Start-Process -FilePath $steamExe
 }
 
 # Kill steam process before installing
@@ -111,23 +129,32 @@ $apiUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 $response = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "Millennium.Installer/1.0" }
 $latestRelease = $response | Where-Object { -not $_.prerelease } | Sort-Object -Property created_at -Descending | Select-Object -First 1
 
-$customSteamPath = Read-Host "${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default)"
+$registrySteamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
-if (-not $customSteamPath) {
-    $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
-
-    if (-not $steamPath) {
-        Write-Host "Steam path not found in registry."
-        exit
-    } 
-    [Console]::CursorTop -= 1
-    [Console]::SetCursorPosition(0, [Console]::CursorTop)
-    [Console]::Write(' ' * [Console]::WindowWidth)
-
-    Write-Output "`r${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default): ${BoldLightBlue}$steamPath${ResetColor}"
+if (-not $registrySteamPath) {
+    Write-Host "Steam path not found in registry."
+    exit
 } 
+
+if ($IsUpdater) {
+    Write-Output "${BoldPurple}[+]${ResetColor} Updating Millennium..."
+    $steamPath = $registrySteamPath
+}
 else {
-    $steamPath = $customSteamPath
+    $customSteamPath = Read-Host "${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default)"
+
+    if (-not $customSteamPath) {
+        $steamPath = $registrySteamPath
+    
+        [Console]::CursorTop -= 1
+        [Console]::SetCursorPosition(0, [Console]::CursorTop)
+        [Console]::Write(' ' * [Console]::WindowWidth)
+    
+        Write-Output "`r${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default): ${BoldLightBlue}$steamPath${ResetColor}"
+    } 
+    else {
+        $steamPath = $customSteamPath
+    }
 }
 
 # Ensure the destination directory exists
@@ -144,11 +171,14 @@ Write-Output "${BoldPurple}[+]${ResetColor} Total Download Size:  $totalSizeRead
 Write-Output "${BoldPurple}[+]${ResetColor} Total Installed Size: $totalSizeReadable"
 
 # offer to proceed with installation
-$choice = Read-Host "`n${BoldPurple}::${ResetColor} Proceed with installation? [Y/n]"
+if (-not $IsUpdater)
+{
+    $choice = Read-Host "`n${BoldPurple}::${ResetColor} Proceed with installation? [Y/n]"
 
-if ($choice -eq "n" -or $choice -eq "no") {
-    Write-Output "${BoldPurple}[+]${ResetColor} Installation aborted."
-    exit
+    if ($choice -eq "n" -or $choice -eq "no") {
+        Write-Output "${BoldPurple}[+]${ResetColor} Installation aborted."
+        exit
+    }
 }
 
 Write-Host "${BoldPurple}::${ResetColor} Retreiving packages..."
@@ -162,7 +192,9 @@ for ($i = 0; $i -lt $FileCount; $i++) {
     DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNumber ($i + 1) -TotalFiles $FileCount -FileName $asset.name
 }
 
-Write-Host "`n"
+Write-Host "`n`n${BoldPurple}[+]${ResetColor} Installation complete."
+
+Start-Steam -steamPath $steamPath
 
 # future options net yet available
 
