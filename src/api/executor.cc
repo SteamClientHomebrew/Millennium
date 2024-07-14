@@ -12,41 +12,42 @@
 
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
-    std::unique_ptr<SettingsStore> settingsStorePtr = std::make_unique<SettingsStore>();
-    const nlohmann::json settingsInfo = settingsStorePtr->GetSettings();
+    // std::unique_ptr<SettingsStore> settingsStorePtr = std::make_unique<SettingsStore>();
+    // const nlohmann::json settingsInfo = settingsStorePtr->GetSetting();
 
-    PyObject* resultBuffer = PyDict_New();
+    // PyObject* resultBuffer = PyDict_New();
 
-    for (auto it = settingsInfo.begin(); it != settingsInfo.end(); ++it) 
-    {
-        PyObject* key = PyUnicode_FromString(it.key().c_str());
-        PyObject* value = PyUnicode_FromString(it.value().get<std::string>().c_str());
+    // for (auto it = settingsInfo.begin(); it != settingsInfo.end(); ++it) 
+    // {
+    //     PyObject* key = PyUnicode_FromString(it.key().c_str());
+    //     PyObject* value = PyUnicode_FromString(it.value().get<std::string>().c_str());
 
-        PyDict_SetItem(resultBuffer, key, value);
-        Py_DECREF(key);
-        Py_DECREF(value);
-    }
+    //     PyDict_SetItem(resultBuffer, key, value);
+    //     Py_DECREF(key);
+    //     Py_DECREF(value);
+    // }
 
-    return resultBuffer;
+    //return resultBuffer;
+    Py_RETURN_NONE;
 }
 
 PyObject* SetUserSettings(PyObject* self, PyObject* args)
 {
-    std::unique_ptr<SettingsStore> settingsStorePtr = std::make_unique<SettingsStore>();
+    // std::unique_ptr<SettingsStore> settingsStorePtr = std::make_unique<SettingsStore>();
 
-    const char* key;
-    const char* value;
+    // const char* key;
+    // const char* value;
 
-    if (!PyArg_ParseTuple(args, "ss", &key, &value)) 
-    {
-        return NULL;
-    }
+    // if (!PyArg_ParseTuple(args, "ss", &key, &value)) 
+    // {
+    //     return NULL;
+    // }
 
-    nlohmann::json settingsInfo = settingsStorePtr->GetSettings();
-    {
-        settingsInfo[key] = value;
-    }
-    settingsStorePtr->SetSettings(settingsInfo.dump(4));
+    // nlohmann::json settingsInfo = settingsStorePtr->GetSetting();
+    // {
+    //     settingsInfo[key] = value;
+    // }
+    // settingsStorePtr->SetSetting(settingsInfo.dump(4));
 
     Py_RETURN_NONE;
 }

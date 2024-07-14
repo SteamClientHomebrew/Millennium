@@ -42,6 +42,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
   ${CMAKE_SOURCE_DIR}/vendor/websocketpp
   ${CMAKE_SOURCE_DIR}/vendor/crow/include
+  ${CMAKE_SOURCE_DIR}/vendor/ini/src
 )
 
 add_compile_definitions(

@@ -22,3 +22,6 @@
 [submodule "vendor/crow"]
 	path = vendor/crow
 	url = https://github.com/CrowCpp/Crow.git
+[submodule "vendor/ini"]
+	path = vendor/ini
+	url = https://github.com/metayeti/mINI.git

@@ -1,12 +1,17 @@
 #pragma once
+#define MINI_CASE_SENSITIVE
 #include <string>
 #include <filesystem>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <mini/ini.h>
 
 class SettingsStore
 {
 public:
+    mINI::INIFile file;
+    mINI::INIStructure ini;
+
     static constexpr const char* pluginConfigFile = "plugin.json";
 
     struct PluginTypeSchema
@@ -25,10 +30,13 @@ public:
     bool IsEnabledPlugin(std::string pluginName);
     bool TogglePluginStatus(std::string pluginName, bool enabled);
 
-    nlohmann::json GetSettings();
+    std::string GetSetting(std::string key, std::string defaultValue);
+    void SetSetting(std::string key, std::string settingsData);
 
-    void SetSettings(std::string settingsData);
     int InitializeSettingsStore();
+    std::vector<std::string> ParsePluginList();
+
+    SettingsStore();
 
 private:
     void LintPluginData(nlohmann::json json, std::string pluginName);
