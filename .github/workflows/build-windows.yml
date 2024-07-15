@@ -161,10 +161,14 @@ jobs:
         body: |
           This is the release description.
         draft: false
-        prerelease: false
+        prerelease: true
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: millennium
-        path: D:/a/Millennium/Millennium/build/artifacts
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: millennium
+        asset_path: D:/a/Millennium/Millennium/build/artifacts
+        asset_content_type: application/octet-stream
