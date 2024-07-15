@@ -72,6 +72,8 @@ for ($i = 0; $i -lt $FileCount; $i++) {
     $asset = $latestRelease.assets[$i]
     $downloadUrl = $asset.browser_download_url
     $outputFile = Join-Path -Path $steamPath -ChildPath $asset.name
+
+    Write-Host "Downloading file ($($i + 1)/$FileCount): $($asset.name)"
     DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNumber ($i + 1) -TotalFiles $FileCount -FileName $asset.name
 }
 Start-Steam -steamPath $steamPath
