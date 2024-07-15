@@ -32,6 +32,24 @@ jobs:
       with:
         submodules: true
 
+    - name: Read version from file
+      id: read_version
+      run: |
+        $version = Get-Content -Path ./version -TotalCount 2 | Select-Object -Last 1
+        echo "::set-output name=version::$version"
+
+    - name: Check if release 2.1.0 exists
+      id: check_release
+      run: |
+        release_status=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/<owner>/<repo>/releases/tags/2.1.0)
+        echo "::set-output name=status_code::$release_status"
+
+    - name: Cancel workflow if release exists
+      if: steps.check_release.outputs.status_code == '200'
+      run: |
+        echo "Release 2.1.0 exists. Cancelling workflow."
+        exit 1
+
     - name: Set up cache for Python source
       uses: actions/cache@v3
       id: build-cache
@@ -136,13 +154,6 @@ jobs:
         # Move the python311.dll binary to the release directory
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll D:/a/Millennium/Millennium/build/artifacts
-
-    
-    - name: Read version from file
-      id: read_version
-      run: |
-        $version = Get-Content -Path ./version -TotalCount 2 | Select-Object -Last 1
-        echo "::set-output name=version::$version"
 
     - name: Create GitHub Release
       id: create_release
