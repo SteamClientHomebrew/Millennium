@@ -163,6 +163,12 @@ jobs:
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll D:/a/Millennium/Millennium/build/artifacts
 
+    - name: Get Release Information
+      id: get_release
+      run: |
+        $releaseBody = Get-Content -Raw ./scripts/release-notes.md
+        echo "::set-output name=release_body::$releaseBody"
+
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
@@ -171,8 +177,7 @@ jobs:
       with:
         tag_name: ${{ steps.read_version.outputs.version }}
         release_name: Release ${{ steps.read_version.outputs.version }}
-        body: |
-          This is the release description.
+        body: ${{ steps.get_release.outputs.release_body }}
         draft: false
         prerelease: true
 
