@@ -11,7 +11,9 @@ $content[1] = $response
 $content | Set-Content -Path $file
 
 git add .
-git commit -m "Bump version to $response"
+git commit -m "version - bump to $response"
 git push
 
 gh workflow run 101869272 build-windows.yml
+gh run watch
+
