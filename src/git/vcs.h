@@ -55,32 +55,17 @@ bool RunPowershellCommand(const std::wstring& command)
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_SHOWNORMAL;
+    si.wShowWindow = SW_HIDE;
     ZeroMemory(&pi, sizeof(pi));
 
-    // Create the command line for the process
     std::wstring cmdLine = L"cmd.exe /c powershell.exe -NoProfile -ExecutionPolicy Bypass \"" + command + L"\"";
 
-    // Start the child process.
-    if (!CreateProcess(NULL,   // No module name (use command line)
-                    (LPWSTR)cmdLine.c_str(), // Command line
-                    NULL,   // Process handle not inheritable
-                    NULL,   // Thread handle not inheritable
-                    FALSE,  // Set handle inheritance to FALSE
-                    CREATE_NEW_CONSOLE,  // Create new console window
-                    NULL,   // Use parent's environment block
-                    NULL,   // Use parent's starting directory
-                    &si,    // Pointer to STARTUPINFO structure
-                    &pi))   // Pointer to PROCESS_INFORMATION structure
-    {
+    if (!CreateProcess(NULL, (LPWSTR)cmdLine.c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
         std::wcout << L"CreateProcess failed (" << GetLastError() << L").\n";
         return false;
     }
 
-    // Wait until child process exits.
     WaitForSingleObject(pi.hProcess, INFINITE);
-
-    // Close process and thread handles.
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 
