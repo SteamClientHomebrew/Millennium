@@ -178,7 +178,7 @@ jobs:
       with:
         tag_name: ${{ steps.read_version.outputs.version }}
         release_name: Release ${{ steps.read_version.outputs.version }}
-        body: ${{ steps.get_release.outputs.release_body }}
+        body_path: ./scripts/release-notes.md
         draft: false
         prerelease: true
 
