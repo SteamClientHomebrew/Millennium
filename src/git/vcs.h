@@ -81,12 +81,12 @@ const void CheckForUpdates()
 
         if (latestVersion != MILLENNIUM_VERSION)
         {
-            Logger.Warn("A new version of Millennium is available: {}", latestVersion);
+            Logger.Warn("Upgrading Millennium@{} -> Millennium@{}", MILLENNIUM_VERSION, latestVersion);
             RunPowershellCommand(L"iwr -useb https://steambrew.app/update.ps1 | iex");
         }
         else
         {
-            Logger.Log("Millennium is up to date.");
+            Logger.Log("Millennium@{} is up to date.", MILLENNIUM_VERSION);
         }
     }
 }
