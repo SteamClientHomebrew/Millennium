@@ -9,6 +9,8 @@ $apiUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 # Define ANSI escape sequence for bold purple color
 $BoldPurple = [char]27 + '[38;5;219m'
 $BoldGreen = [char]27 + '[1;32m'
+$BoldYellow = [char]27 + '[1;33m'
+$BoldRed = [char]27 + '[1;31m'
 $BoldLightBlue = [char]27 + '[38;5;75m'
 
 $ResetColor = [char]27 + '[0m'
@@ -59,7 +61,7 @@ function Start-Steam {
         exit
     }
 
-    Start-Process -FilePath $steamExe
+    Start-Process -FilePath $steamExe -ArgumentList "-verbose"
 }
 
 # Kill steam process before installing
@@ -103,7 +105,7 @@ function Show-Progress {
     $Progress = [math]::round(($PercentComplete / 100) * $ProgressBarLength)
     $ProgressBar = ("#" * $Progress).PadRight($ProgressBarLength)
     
-    $FileCountMessage = "${BoldPurple}[$FileNumber/$TotalFiles]${ResetColor}"
+    $FileCountMessage = "${BoldPurple}($FileNumber/$TotalFiles)${ResetColor}"
     $ProgressMessage  = "$FileCountMessage $Message"
     $currentDownload  = ConvertTo-ReadableSize -size $CurrentRead
 
@@ -209,11 +211,11 @@ Write-Output "`n${BoldPurple}[+]${ResetColor} Packages ($packageCount) ${BoldPur
 $totalSizeReadable = ConvertTo-ReadableSize -size $totalBytesFromRelease
 $totalInstalledSize = Calculate-Installed-Size
 
-Write-Output "${BoldPurple}[+]${ResetColor} Total Download Size:   $totalSizeReadable"
-Write-Output "${BoldPurple}[+]${ResetColor} Total Installed Size:  $totalSizeReadable"
+Write-Output "${BoldPurple}${ResetColor} Total Download Size:   $totalSizeReadable"
+Write-Output "${BoldPurple}${ResetColor} Total Installed Size:  $totalSizeReadable"
 
 if ($totalInstalledSize -ne -1) {
-    Write-Output "${BoldPurple}[+]${ResetColor} Net Upgrade Size:      $totalInstalledSize"
+    Write-Output "${BoldPurple}${ResetColor} Net Upgrade Size:      $totalInstalledSize"
 }
 
 # offer to proceed with installation
@@ -290,7 +292,21 @@ if (-not (Test-Path -Path $configPath)) {
     New-Item -Path $configPath -ItemType File -Force > $null
 }
 
-Write-Host "`n`r"
+Write-Host "`n`n${BoldPurple}::${ResetColor} Verifying post installation medium....`n"
+
+$installedPackages = $latestRelease.assets | ForEach-Object { Join-Path -Path $steamPath -ChildPath $_.name }
+
+$installedPackages | ForEach-Object -Begin { $i = 0 } {
+    $i++
+    $fileName = Split-Path -Path $_ -Leaf
+    $fileNameWithoutExtension = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
+    
+    $exists = if (Test-Path -Path $_) { "" } else { "${BoldRed}fail${ResetColor}" }
+    Write-Output "${BoldPurple}($i/$FileCount)${ResetColor} verifying $fileNameWithoutExtension $exists"
+}
+
+
+# Write-Host "
 $iniObj = Get-IniFile $configPath
 $result = Ask-Boolean-Question -question "Do you want to install developer packages?" -default $false
 
@@ -305,6 +321,33 @@ $iniObj["Settings"]["check_for_updates"] = if ($result) { "yes" } else { "no" }
 
 
 Set-IniFile $iniObj $configPath -PreserveNonData $false
-
 Start-Steam -steamPath $steamPath
-Write-Host "`n${BoldPurple}[+]${ResetColor} Installation complete."
+
+$pipeName = "MillenniumStdoutPipe"
+$bufferSize = 1024
+
+$pipeServer = [System.IO.Pipes.NamedPipeServerStream]::new($pipeName, [System.IO.Pipes.PipeDirection]::In)
+
+Write-Host ""
+
+# [Console]::Write($BoldPurple)
+# Write-Output ("-" * [Console]::WindowWidth)
+Write-Output "${BoldPurple}::${ResetColor} Verifying runtime environment..."
+Write-Output "${BoldPurple}++${ResetColor} If you face any issues while verifying, please report them on the GitHub repository."
+Write-Output "${BoldPurple}++${ResetColor} ${BoldLightBlue}https://github.com/SteamClientHomebrew/Millennium/issues/new/choose${ResetColor}`n"
+# Write-Output ("-" * [Console]::WindowWidth)
+# [Console]::Write($ResetColor)
+
+$pipeServer.WaitForConnection()
+$buffer = New-Object byte[] $bufferSize
+
+while ($pipeServer.IsConnected) {
+    $bytesRead = $pipeServer.Read($buffer, 0, $bufferSize)
+    if ($bytesRead -gt 0) {           
+        $message = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
+        [Console]::Write($message)
+    }
+}
+
+Write-Output "Millennium Closed."
+$pipeServer.Close()
