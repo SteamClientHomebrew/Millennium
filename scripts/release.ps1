@@ -5,8 +5,9 @@ $response = Read-Host "[Millennium@$version] new version"
 
 Write-Host "You entered: $response"
 
-$content[1] = $response
-
+if ($response -ne "") {
+    $content[1] = $response
+}
 # Write the modified content back to the file
 $content | Set-Content -Path $file
 
