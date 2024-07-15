@@ -147,8 +147,8 @@ jobs:
     - name: Read version from file
       id: read_version
       run: |
-        VERSION=$(sed -n '2p' ./version)
-        echo "::set-output name=version::${VERSION}"
+        $version = Get-Content -Path ./version -TotalCount 2 | Select-Object -Last 1
+        echo "::set-output name=version::$version"
 
     - name: Create GitHub Release
       id: create_release
