@@ -38,7 +38,7 @@ jobs:
         $version = Get-Content -Path ./version -TotalCount 2 | Select-Object -Last 1
         echo "::set-output name=version::$version"
 
-    - name: Check if release 2.1.0 exists
+    - name: Check if release already exists
       id: check_release
       run: |
         # Define the URL of the GitHub API endpoint
@@ -51,17 +51,12 @@ jobs:
             
             # Check if the release exists based on the status code
             if ($status_code -eq 200) {
-                exit 1
+              Write-Output "Release ${{ steps.read_version.outputs.version }} already exists."
+              exit 1
             }
         } catch {
             Write-Output "Release ${{ steps.read_version.outputs.version }} not found. Continuing workflow."
         }
-
-    - name: Cancel workflow if release exists
-      if: steps.check_release.outputs.status_code == '200'
-      run: |
-        echo "Release ${{ steps.read_version.outputs.version }} already exists. Cancelling workflow."
-        exit 1
 
     - name: Set up cache for Python source
       uses: actions/cache@v3
