@@ -157,12 +157,22 @@ jobs:
         draft: false
         prerelease: true
 
-    - name: Upload Build Artifact
+    - name: Upload Core Artifact
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_name: millennium
+        asset_name: user32.dll
+        asset_path: D:/a/Millennium/Millennium/build/artifacts
+        asset_content_type: application/octet-stream
+
+    - name: Upload Python Artifact
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_name: user32.dll
         asset_path: D:/a/Millennium/Millennium/build/artifacts
         asset_content_type: application/octet-stream
