@@ -20,6 +20,19 @@ jobs:
 
     steps:
 
+    - name: Setup | Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+    - name: Setup | Dependencies
+      run: npm i -g pnpm && pnpm install semantic-release
+
+    - name: Release
+      if: github.event_name != 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: pnpm exec semantic-release
+
     - name: Export GitHub Actions cache environment variables
       uses: actions/github-script@v7
       with:
@@ -169,19 +182,6 @@ jobs:
         $releaseBody = Get-Content -Raw ./scripts/release-notes.md
         Write-Output $releaseBody
         echo "::set-output name=release_body::$releaseBody"
-
-    - name: Setup | Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
-    - name: Setup | Dependencies
-      run: npm i -g pnpm
-
-    - name: Release
-      if: github.event_name != 'pull_request'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: pnpm exec semantic-release
 
     - name: Create GitHub Release
       id: create_release
