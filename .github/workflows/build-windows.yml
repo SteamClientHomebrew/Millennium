@@ -51,7 +51,7 @@ jobs:
             
             # Check if the release exists based on the status code
             if ($status_code -eq 200) {
-              Write-Output "Release ${{ steps.read_version.outputs.version }} already exists."
+              Write-Error "Release ${{ steps.read_version.outputs.version }} already exists."
               exit 1
             }
         } catch {
