@@ -144,49 +144,24 @@ jobs:
         cp /d/a/Millennium/Millennium/build/user32.dll D:/a/Millennium/Millennium/build/artifacts
 
     
-    - name: Set up Git
+    - name: Read version from file
+      id: read_version
       run: |
-        git config --global user.name 'github-actions'
-        git config --global user.email 'github-actions@github.com'
-
-    - name: Get the latest tag
-      id: get-latest-tag
-      run: echo "::set-output name=tag::$(git describe --tags --abbrev=0)"
-
-    - name: Generate release notes
-      id: generate-notes
-      run: |
-        latest_tag=$(git describe --tags --abbrev=0)
-        commits=$(git log $latest_tag..HEAD --pretty=format:"%s by @%an in #%h")
-        echo "## What's Changed" > release-notes.md
-        echo "$commits" >> release-notes.md
-        cat release-notes.md
-        echo "::set-output name=notes::$(cat release-notes.md)"
-
-    - name: Bump version and create new tag
-      id: bump-version
-      run: |
-        latest_tag=$(git describe --tags --abbrev=0)
-        echo "Latest tag: $latest_tag"
-        IFS='.' read -ra ADDR <<< "$latest_tag"
-        major=${ADDR[0]//[!0-9]/}
-        minor=${ADDR[1]}
-        patch=${ADDR[2]}
-        new_patch=$((patch + 1))
-        new_tag="v$major.$minor.$new_patch"
-        echo "New tag: $new_tag"
-        echo "::set-output name=new_tag::$new_tag"
-        git tag $new_tag
-        git push origin $new_tag
+        VERSION=$(sed -n '2p' ./version)
+        echo "::set-output name=version::${VERSION}"
 
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ steps.bump-version.outputs.new_tag }}
-        name: Release ${{ steps.bump-version.outputs.new_tag }}
-        body: ${{ steps.generate-notes.outputs.notes }}
+      id: create_release
+      uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.read_version.outputs.version }}
+        release_name: Release ${{ steps.read_version.outputs.version }}
+        body: |
+          This is the release description.
+        draft: false
+        prerelease: false
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
