@@ -62,6 +62,10 @@ $latestRelease = $response | Where-Object { -not $_.prerelease } | Sort-Object -
 
 $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
+$latestVersion = $latestRelease.tag_name
+
+Write-Host "Downloading Millennium $latestVersion..."
+
 $FileCount = $latestRelease.assets.Count
 for ($i = 0; $i -lt $FileCount; $i++) {
 
