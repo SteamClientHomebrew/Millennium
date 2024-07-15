@@ -41,8 +41,21 @@ jobs:
     - name: Check if release 2.1.0 exists
       id: check_release
       run: |
-        release_status=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/SteamClientHomebrew/Millennium/releases/tags/2.1.0)
-        echo "::set-output name=status_code::$release_status"
+        # Define the URL of the GitHub API endpoint
+        $url = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases/tags/${{ steps.read_version.outputs.version }}"
+
+        # Make the HTTP request and retrieve the response status code
+        $response = Invoke-WebRequest -Uri $url -Method Get
+        $status_code = $response.StatusCode
+
+        # Check if the release exists based on the status code
+        if ($status_code -eq 200) {
+            Write-Output "Release 2.1.0 exists. Cancelling workflow."
+            exit 1
+        } 
+        else {
+            Write-Output "Release 2.1.0 does not exist. Continuing workflow."
+        }
 
     - name: Cancel workflow if release exists
       if: steps.check_release.outputs.status_code == '200'
