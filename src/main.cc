@@ -16,6 +16,8 @@
 #include <core/ftp/serv.h>
 #include <git/pyman.h>
 #include <signal.h>
+#include <pipes/terminal_pipe.h>
+#include <git/vcs.h>
 
 /** Handle ^C signal from terminal */
 void HandleSignalInterrupt(int sig) 
@@ -65,6 +67,8 @@ public:
 
     const void Start() 
     {
+        CheckForUpdates();
+
         const bool bBuiltInSuccess = Dependencies::GitAuditPackage("@Core", builtinsModulesPath.string(), builtinsRepository);
 
         if (!bBuiltInSuccess) 
@@ -87,6 +91,14 @@ public:
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
+    std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
+    const bool isVerboseMode = startupParams->HasArgument("-verbose");
+
+    if (isVerboseMode)
+    {
+        CreateTerminalPipe();   
+    }
+
     signal(SIGINT, HandleSignalInterrupt);
     uint16_t ftpPort = Crow::CreateAsyncServer();
 
