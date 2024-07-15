@@ -177,6 +177,7 @@ jobs:
       with:
         # you can also create separate token to trace action
         github-token: "${{ secrets.GITHUB_TOKEN }}"
+        skip-commit: 'true'
 
     - name: Create GitHub Release
       id: create_release
