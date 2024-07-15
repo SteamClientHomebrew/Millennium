@@ -71,7 +71,7 @@ static PyMethodDef LoggerObject_methods[] =
 {
     {"log",     (PyCFunction)LoggerObject_log,     METH_VARARGS, "Log a message"        },
     {"error",   (PyCFunction)LoggerObject_error,   METH_VARARGS, "Log an error message" },
-    {"warning", (PyCFunction)LoggerObject_warning, METH_VARARGS, "Log a warning message"},
+    {"warn", (PyCFunction)LoggerObject_warning, METH_VARARGS, "Log a warning message"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
