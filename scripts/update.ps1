@@ -6,6 +6,44 @@
 # Millennium artifacts repository
 $apiUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 
+# Define the log levels
+$LogLevels = @{
+    INFO    = 1
+    WARNING = 2
+    ERROR   = 3
+}
+
+# Set the default log level
+$LogLevel = $LogLevels.INFO
+
+$steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
+
+# Define the log file path
+$LogFilePath = Join-Path -Path $steamPath -ChildPath "/ext/data/updater.log"
+
+# Create the log directory if it does not exist
+$LogDir = [System.IO.Path]::GetDirectoryName($LogFilePath)
+if (-not (Test-Path -Path $LogDir)) {
+    New-Item -Path $LogDir -ItemType Directory -Force
+}
+
+# Function to log messages
+function Write-Log {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [ValidateSet("INFO", "WARNING", "ERROR")]
+        [string]$Level = "INFO"
+    )
+
+    if ($LogLevels[$Level] -ge $LogLevel) {
+        $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        $LogEntry = "$Timestamp [$Level] $Message"
+        Add-Content -Path $LogFilePath -Value $LogEntry
+    }
+}
+
 function Close-SteamProcess {
     $steamProcess = Get-Process -Name "steam" -ErrorAction SilentlyContinue
 
@@ -51,7 +89,7 @@ function DownloadFileWithProgress {
         $responseStream.Close()
     }
     catch {
-        Write-Host "Error downloading file: $_"
+        Write-Log -Message "Error downloading file: $_" -Level "ERROR"
         if ($fileStream) { $fileStream.Close() }
         if ($responseStream) { $responseStream.Close() }
     }
@@ -63,8 +101,7 @@ $latestRelease = $response | Where-Object { -not $_.prerelease } | Sort-Object -
 $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
 $latestVersion = $latestRelease.tag_name
-
-Write-Host "Downloading Millennium $latestVersion..."
+Write-Log -Message "Downloading Millennium $latestVersion..." -Level "INFO"
 
 $FileCount = $latestRelease.assets.Count
 for ($i = 0; $i -lt $FileCount; $i++) {
@@ -73,7 +110,9 @@ for ($i = 0; $i -lt $FileCount; $i++) {
     $downloadUrl = $asset.browser_download_url
     $outputFile = Join-Path -Path $steamPath -ChildPath $asset.name
 
-    Write-Host "Downloading file ($($i + 1)/$FileCount): $($asset.name)"
+    Write-Log -Message "Downloading file ($($i + 1)/$FileCount): $($asset.name)" -Level "INFO"
     DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNumber ($i + 1) -TotalFiles $FileCount -FileName $asset.name
 }
+
+Write-Log -Message "Millennium is now @$latestVersion." -Level "INFO"
 Start-Steam -steamPath $steamPath
