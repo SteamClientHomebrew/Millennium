@@ -179,8 +179,8 @@ jobs:
         tag_name: ${{ steps.read_version.outputs.version }}
         release_name: Release ${{ steps.read_version.outputs.version }}
         body_path: ./scripts/release-notes.md
-        draft: false
-        prerelease: true
+        draft: true
+        prerelease: false
 
     - name: Upload Core Artifact
       uses: actions/upload-release-asset@v1
