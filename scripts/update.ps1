@@ -3,6 +3,16 @@
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/update.ps1
 # Copyright (c) 2024 Millennium
 
+$steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
+$LogFilePath = Join-Path -Path $steamPath -ChildPath "/ext/data/logs/updater.log"
+$LogFileStd = Join-Path -Path $steamPath -ChildPath "/ext/data/logs/updater-stdout.log"
+
+$LogDir = [System.IO.Path]::GetDirectoryName($LogFilePath)
+if (-not (Test-Path -Path $LogDir)) {
+    New-Item -Path $LogDir -ItemType Directory -Force
+}
+
+$(
 # Millennium artifacts repository
 $apiUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 
@@ -15,17 +25,6 @@ $LogLevels = @{
 
 # Set the default log level
 $LogLevel = $LogLevels.INFO
-
-$steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
-
-# Define the log file path
-$LogFilePath = Join-Path -Path $steamPath -ChildPath "/ext/data/logs/updater.log"
-
-# Create the log directory if it does not exist
-$LogDir = [System.IO.Path]::GetDirectoryName($LogFilePath)
-if (-not (Test-Path -Path $LogDir)) {
-    New-Item -Path $LogDir -ItemType Directory -Force
-}
 
 # Function to log messages
 function Write-Log {
@@ -43,27 +42,6 @@ function Write-Log {
         Add-Content -Path $LogFilePath -Value $LogEntry
     }
 }
-
-# Redirect STDERR and STDOUT to the log file
-$Global:ErrorActionPreference = "Stop"
-$Global:ProgressPreference = "SilentlyContinue"
-
-# Function to redirect output
-function Redirect-Output {
-    $Global:OriginalErrorActionPreference = $ErrorActionPreference
-    $Global:OriginalProgressPreference = $ProgressPreference
-
-    $OutputLogFile = New-Object System.IO.StreamWriter($LogFilePath, $true)
-    $ErrorLogFile = New-Object System.IO.StreamWriter($LogFilePath, $true)
-
-    $Host.UI.RawUI.ReadLineAsString()
-    [System.Console]::SetOut($OutputLogFile)
-    [System.Console]::SetError($ErrorLogFile)
-
-    Write-Host "Redirecting STDOUT and STDERR to $LogFilePath"
-}
-
-Redirect-Output
 
 function Close-SteamProcess {
     $steamProcess = Get-Process -Name "steam" -ErrorAction SilentlyContinue
@@ -137,3 +115,5 @@ for ($i = 0; $i -lt $FileCount; $i++) {
 
 Write-Log -Message "Millennium is now @$latestVersion." -Level "INFO"
 Start-Steam -steamPath $steamPath
+
+) *>&1 > $LogFileStd
