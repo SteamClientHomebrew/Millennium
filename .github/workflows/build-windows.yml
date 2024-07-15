@@ -32,19 +32,6 @@ jobs:
       with:
         submodules: true
 
-    - name: Setup | Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
-    - name: Setup | Dependencies
-      run: npm i -g pnpm && pnpm install semantic-release
-
-    - name: Release
-      if: github.event_name != 'pull_request'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: pnpm exec semantic-release
-
     - name: Read version from file
       id: read_version
       run: |
@@ -191,8 +178,8 @@ jobs:
       with:
         tag_name: ${{ steps.read_version.outputs.version }}
         release_name: Release ${{ steps.read_version.outputs.version }}
-        # body_path: ./scripts/release-notes.md
-        body: ${{steps.changelog.outputs.clean_changelog}}
+        body_path: ./scripts/release-notes.md
+        # body: ${{steps.changelog.outputs.clean_changelog}}
         draft: true
         prerelease: false
 
