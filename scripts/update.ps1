@@ -19,7 +19,7 @@ $LogLevel = $LogLevels.INFO
 $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
 # Define the log file path
-$LogFilePath = Join-Path -Path $steamPath -ChildPath "/ext/data/updater.log"
+$LogFilePath = Join-Path -Path $steamPath -ChildPath "/ext/data/logs/updater.log"
 
 # Create the log directory if it does not exist
 $LogDir = [System.IO.Path]::GetDirectoryName($LogFilePath)
@@ -43,6 +43,27 @@ function Write-Log {
         Add-Content -Path $LogFilePath -Value $LogEntry
     }
 }
+
+# Redirect STDERR and STDOUT to the log file
+$Global:ErrorActionPreference = "Stop"
+$Global:ProgressPreference = "SilentlyContinue"
+
+# Function to redirect output
+function Redirect-Output {
+    $Global:OriginalErrorActionPreference = $ErrorActionPreference
+    $Global:OriginalProgressPreference = $ProgressPreference
+
+    $OutputLogFile = New-Object System.IO.StreamWriter($LogFilePath, $true)
+    $ErrorLogFile = New-Object System.IO.StreamWriter($LogFilePath, $true)
+
+    $Host.UI.RawUI.ReadLineAsString()
+    [System.Console]::SetOut($OutputLogFile)
+    [System.Console]::SetError($ErrorLogFile)
+
+    Write-Host "Redirecting STDOUT and STDERR to $LogFilePath"
+}
+
+Redirect-Output
 
 function Close-SteamProcess {
     $steamProcess = Get-Process -Name "steam" -ErrorAction SilentlyContinue
