@@ -167,6 +167,7 @@ jobs:
       id: get_release
       run: |
         $releaseBody = Get-Content -Raw ./scripts/release-notes.md
+        Write-Output $releaseBody
         echo "::set-output name=release_body::$releaseBody"
 
     - name: Create GitHub Release

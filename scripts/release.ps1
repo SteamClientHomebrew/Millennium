@@ -24,5 +24,7 @@ git commit -m "version - bump to $response"
 git push
 
 gh workflow run 101869272 build-windows.yml
+# wait for a little while
+Start-Sleep -Seconds 3
 gh run watch
 
