@@ -51,20 +51,16 @@ jobs:
             
             # Check if the release exists based on the status code
             if ($status_code -eq 200) {
-                Write-Output "Release 2.1.0 exists. Cancelling workflow."
                 exit 1
-            } else {
-                Write-Output "Release 2.1.0 does not exist. Continuing workflow."
             }
         } catch {
-            # Handle the error if the release is not found (404 error)
-            Write-Output "Release 2.1.0 not found. Continuing workflow."
+            Write-Output "Release ${{ steps.read_version.outputs.version }} not found. Continuing workflow."
         }
 
     - name: Cancel workflow if release exists
       if: steps.check_release.outputs.status_code == '200'
       run: |
-        echo "Release 2.1.0 exists. Cancelling workflow."
+        echo "Release ${{ steps.read_version.outputs.version }} already exists. Cancelling workflow."
         exit 1
 
     - name: Set up cache for Python source
@@ -191,8 +187,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_name: user32.dll
-        asset_path: D:/a/Millennium/Millennium/build/artifacts
+        asset_name: python311.dll
+        asset_path: D:/a/Millennium/Millennium/build/artifacts/python311.dll
         asset_content_type: application/octet-stream
 
     - name: Upload Python Artifact
@@ -202,5 +198,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_name: user32.dll
-        asset_path: D:/a/Millennium/Millennium/build/artifacts
+        asset_path: D:/a/Millennium/Millennium/build/artifacts/user32.dll
         asset_content_type: application/octet-stream
