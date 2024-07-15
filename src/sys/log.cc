@@ -72,13 +72,13 @@ OutputLogger::OutputLogger()
 
 		if (m_bIsConsoleEnabled && static_cast<bool>(AllocConsole()))
 		{
-			void(freopen("CONOUT$", "w", stdout));
-			void(freopen("CONOUT$", "w", stderr));
-
-			EnableVirtualTerminalProcessing();
 			SetConsoleOutputCP(CP_UTF8);
 			SetConsoleTitleA(fmt::format("Millennium@{}", MILLENNIUM_VERSION).c_str());
 		}
+		
+		void(freopen("CONOUT$", "w", stdout));
+		void(freopen("CONOUT$", "w", stderr));
+		EnableVirtualTerminalProcessing();
 	}
 	#elif __linux__
 	{
