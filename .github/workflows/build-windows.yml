@@ -170,14 +170,18 @@ jobs:
         Write-Output $releaseBody
         echo "::set-output name=release_body::$releaseBody"
 
-    - name: conventional changelog action
-      id: changelog
-      # https://github.com/TriPSs/conventional-changelog-action
-      uses: TriPSs/conventional-changelog-action@latest
+    - name: Setup | Node.js
+      uses: actions/setup-node@v3
       with:
-        # you can also create separate token to trace action
-        github-token: "${{ secrets.GITHUB_TOKEN }}"
-        skip-commit: 'true'
+        node-version: 20
+    - name: Setup | Dependencies
+      run: npm i -g pnpm
+
+    - name: Release
+      if: github.event_name != 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: pnpm exec semantic-release
 
     - name: Create GitHub Release
       id: create_release
