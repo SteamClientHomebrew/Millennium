@@ -41,7 +41,7 @@ jobs:
     - name: Check if release 2.1.0 exists
       id: check_release
       run: |
-        release_status=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/<owner>/<repo>/releases/tags/2.1.0)
+        release_status=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/SteamClientHomebrew/Millennium/releases/tags/2.1.0)
         echo "::set-output name=status_code::$release_status"
 
     - name: Cancel workflow if release exists
