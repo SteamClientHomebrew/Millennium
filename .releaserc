@@ -3,10 +3,9 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
-    ["@semantic-release/git", {
-      "assets": ["**/*.{cc,h,hpp,cpp}"],
-      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
-    }],
-    "@semantic-release/github"
+    {
+        "path": "@semantic-release/github",
+        "assets": ["build/user32.dll"]
+    }
   ]
 }
