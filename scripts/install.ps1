@@ -70,6 +70,10 @@ Close-SteamProcess
 function ConvertTo-ReadableSize {
     param([int64]$size)
     
+    if ($size -eq 0) {
+        return "0 Bytes"
+    }
+
     $units = @("Bytes", "KiB", "MiB", "GiB")
     $index = [Math]::Floor([Math]::Log($size, 1024))
     $sizeFormatted = [Math]::Round($size / [Math]::Pow(1024, $index), 2, [MidpointRounding]::AwayFromZero)
@@ -305,6 +309,20 @@ $installedPackages | ForEach-Object -Begin { $i = 0 } {
     Write-Output "${BoldPurple}($i/$FileCount)${ResetColor} verifying $fileNameWithoutExtension $exists"
 }
 
+# write millennium version and installed files to a log file
+$millenniumVersion = $latestRelease.tag_name
+$millenniumLog = Join-Path -Path $steamPath -ChildPath "/ext/data/logs/installer.log"
+
+if (-not (Test-Path -Path $millenniumLog)) {
+    New-Item -Path $millenniumLog -ItemType File -Force > $null
+}
+
+$millenniumLogContent = [PSCustomObject]@{
+    version = $millenniumVersion
+    assets = $installedPackages
+}
+
+$millenniumLogContent | ConvertTo-Json | Set-Content -Path $millenniumLog -Force
 
 # Write-Host "
 $iniObj = Get-IniFile $configPath
