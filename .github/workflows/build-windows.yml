@@ -5,6 +5,11 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
     runs-on: windows-latest
 
     env:
@@ -31,6 +36,16 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: true
+
+    - name: Setup | Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: Setup | Run Semantic Release
+      run: npx semantic-release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Read version from file
       id: read_version
@@ -179,7 +194,6 @@ jobs:
         tag_name: ${{ steps.read_version.outputs.version }}
         release_name: Release ${{ steps.read_version.outputs.version }}
         body_path: ./scripts/release-notes.md
-        # body: ${{steps.changelog.outputs.clean_changelog}}
         draft: true
         prerelease: false
 
