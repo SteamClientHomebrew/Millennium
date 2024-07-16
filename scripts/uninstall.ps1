@@ -274,16 +274,16 @@ $selectedPackagesPath | ForEach-Object {
         $absolutePath = $_
     }
 
-    $result = Remove-Item -Path $absolutePath -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $absolutePath -Recurse -Force -ErrorAction SilentlyContinue
 
-    if (-not $result) {
+    if (-not $?) {
         $global:deletionSuccess = $false
         Write-Host "${BoldRed}[!]${ResetColor} Failed to remove: $absolutePath"
     }
 }
 
 if ($deletionSuccess) {
-    Write-Host "${BoldGreen}[+]${ResetColor} Successfully removed selected packages."
+    Write-Host "${BoldGreen}++${ResetColor} Successfully removed selected packages."
 }
 else {
     Write-Host "${BoldRed}[!]${ResetColor} Some deletions failed. Please manually remove the remaining files."
