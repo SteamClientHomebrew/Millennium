@@ -51,8 +51,8 @@ jobs:
     - name: Write Version to File
       id: write_version
       run: |
-        VERSION=$(npx semantic-release --dry-run | grep "The next release version is" | sed -E 's/.*The next release version is ([0-9.]+).*/\1/')
-        echo -e "# current version of millennium\n$VERSION" > version.txt
+        $VERSION = npx semantic-release --dry-run | Select-String -Pattern "The next release version is" | ForEach-Object { $_.ToString() -replace '.*The next release version is ([0-9.]+).*', '$1' }
+        Set-Content -Path version.txt -Value "# current version of millennium`n$VERSION"
 
     - name: Read version from file
       id: read_version
