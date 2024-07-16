@@ -6,6 +6,12 @@
     {
         "path": "@semantic-release/github",
         "assets": ["build/artifacts/python311.dll", "build/artifacts/user32.dll"]
-    }
+    },
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo \"# current version of millennium\n${nextRelease.version}\" > version.txt; powershell.exe -File ./scripts/build.ps1"
+      }
+    ]
   ]
 }

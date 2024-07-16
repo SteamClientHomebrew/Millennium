@@ -37,6 +37,23 @@ jobs:
       with:
         submodules: true
 
+    - name: Setup | Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: Setup | Semantic Release
+      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # dry run to get the next version
+    - name: Write Version to File
+      id: write_version
+      run: |
+        VERSION=$(npx semantic-release --dry-run | grep "The next release version is" | sed -E 's/.*The next release version is ([0-9.]+).*/\1/')
+        echo -e "# current version of millennium\n$VERSION" > version.txt
+
     - name: Read version from file
       id: read_version
       run: |
@@ -168,12 +185,7 @@ jobs:
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll D:/a/Millennium/Millennium/build/artifacts
 
-    - name: Setup | Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
-  
     - name: Setup | Run Semantic Release
-      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec && npx semantic-release
+      run: npx semantic-release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
