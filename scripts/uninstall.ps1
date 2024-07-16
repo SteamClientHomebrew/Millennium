@@ -165,6 +165,14 @@ if (-not (Test-Path -Path $steamPath)) {
 
 # Path to installed files
 $jsonFilePath = Join-Path -Path $steamPath -ChildPath "/ext/data/logs/installer.log"
+
+# test if file exists
+if (-not (Test-Path -Path $jsonFilePath)) {
+    Write-Host "`n${BoldRed}[!]${ResetColor} Your Millennium installation is corrupted. Please reinstall, then uninstall again."
+    Write-Host "${BoldRed}[!]${ResetColor} Run: iwr -useb https://steambrew.app/install.ps1 | iex"
+    exit
+}
+
 $jsonContent = Get-Content -Path $jsonFilePath -Raw
 $jsonObject = $jsonContent | ConvertFrom-Json
 
