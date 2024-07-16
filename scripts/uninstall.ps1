@@ -1,55 +1,3 @@
-# # Function to read key presses continuously until Enter is pressed, with backspace support
-# function Read-KeyPressesUntilEnter {
-#     # Load .NET Console class
-#     Add-Type -AssemblyName 'mscorlib'
-
-#     # Set the console to not echo the input
-#     [Console]::TreatControlCAsInput = $true
-
-#     $input = ""
-
-#     # Read key presses in a loop
-#     while ($true) {
-#         $key = [Console]::ReadKey($true)
-        
-#         if ($key.Key -eq "Enter") {
-#             break
-#         } elseif ($key.Key -eq "Backspace") {
-#             if ($input.Length -gt 0) {
-#                 $input = $input.Substring(0, $input.Length - 1)
-#                 # Move the cursor back, overwrite the character with space, and move back again
-#                 [Console]::SetCursorPosition([Console]::CursorLeft - 1, [Console]::CursorTop)
-#                 [Console]::Write(" ")
-#                 [Console]::SetCursorPosition([Console]::CursorLeft - 1, [Console]::CursorTop)
-#             }
-#         } else {
-#             # Append the character to the input string
-#             $input += $key.KeyChar
-
-#             if ($input.Contains("1")) {
-#                 Write-Host -NoNewline "${BoldPurple}1"
-#             }
-
-#             #Write-Host -NoNewline $key.KeyChar
-#         }
-
-#     }
-
-#     # Restore the console settings
-#     [Console]::TreatControlCAsInput = $false
-
-#     return $input
-# }
-
-# # Demonstrate the function
-# Write-Host "Type something (press Enter to finish): "
-# $userInput = Read-KeyPressesUntilEnter
-
-# # Output the final input
-# Write-Host "`nYou entered: $userInput"
-
-# exit 
-
 # This file is part of the Millennium project.
 # This script is used to install Millennium on a Windows machine.
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.ps1
@@ -313,6 +261,8 @@ if (-not $result) {
     exit
 }
 
+$deletionSuccess = $true
+
 $selectedPackagesPath | ForEach-Object {
 
     $isDirectory = ContentIsDirectory -path $_
@@ -324,6 +274,17 @@ $selectedPackagesPath | ForEach-Object {
         $absolutePath = $_
     }
 
-    Write-Host "Removing $absolutePath"
-    Remove-Item -Path $absolutePath -Recurse -Force -ErrorAction SilentlyContinue
+    $result = Remove-Item -Path $absolutePath -Recurse -Force -ErrorAction SilentlyContinue
+
+    if (-not $result) {
+        $global:deletionSuccess = $false
+        Write-Host "${BoldRed}[!]${ResetColor} Failed to remove: $absolutePath"
+    }
+}
+
+if ($deletionSuccess) {
+    Write-Host "${BoldGreen}[+]${ResetColor} Successfully removed selected packages."
+}
+else {
+    Write-Host "${BoldRed}[!]${ResetColor} Some deletions failed. Please manually remove the remaining files."
 }
