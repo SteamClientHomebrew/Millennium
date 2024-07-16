@@ -5,7 +5,7 @@
     "@semantic-release/release-notes-generator",
     {
         "path": "@semantic-release/github",
-        "assets": ["build/user32.dll"]
+        "assets": ["build/artifacts/python311.dll", "build/artifacts/user32.dll"]
     }
   ]
 }
