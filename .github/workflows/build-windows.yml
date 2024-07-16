@@ -53,6 +53,8 @@ jobs:
       run: |
         $VERSION = npx semantic-release --dry-run | Select-String -Pattern "The next release version is" | ForEach-Object { $_.ToString() -replace '.*The next release version is ([0-9.]+).*', '$1' }
         Set-Content -Path version.txt -Value "# current version of millennium`n$VERSION"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Read version from file
       id: read_version
