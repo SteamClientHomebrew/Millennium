@@ -48,20 +48,22 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # dry run to get the next version
-    - name: Write Version to File
-      id: write_version
-      run: |
+    - name: Bump Version
+      id: read_version
+      run: |  
         $VERSION = npx semantic-release --dry-run | Select-String -Pattern "The next release version is" | ForEach-Object { $_.ToString() -replace '.*The next release version is ([0-9.]+).*', '$1' }
         Write-Host "Version: $VERSION"
+        echo "::set-output name=version::$version"
         Set-Content -Path ./version -Value "# current version of millennium`nv$VERSION"
+
+        git config user.email "github-actions@github.com"
+        git config user.name "GitHub Actions"
+        git add version
+        git commit -m "chore(release): bump version to $VERSION"
+        git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Read version from file
-      id: read_version
-      run: |
-        $version = Get-Content -Path ./version -TotalCount 2 | Select-Object -Last 1
-        echo "::set-output name=version::$version"
 
     - name: Check if release already exists
       id: check_release
