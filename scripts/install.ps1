@@ -326,7 +326,7 @@ $millenniumLogContent | ConvertTo-Json | Set-Content -Path $millenniumLog -Force
 
 # Write-Host "
 $iniObj = Get-IniFile $configPath
-$result = Ask-Boolean-Question -question "Do you want to install developer packages?" -default $false
+$result = Ask-Boolean-Question -question "Do you want to install plugin developer packages?" -default $false
 
 if (-not $iniObj.Contains("PackageManager")) { $iniObj["PackageManager"] = [ordered]@{} }
 $iniObj["PackageManager"]["devtools"] = if ($result) { "yes" } else { "no" }
