@@ -38,7 +38,7 @@ jobs:
         submodules: true
 
     - name: Setup | Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: 20
 
@@ -53,7 +53,7 @@ jobs:
       run: |  
         $VERSION = npx semantic-release --dry-run | Select-String -Pattern "The next release version is" | ForEach-Object { $_.ToString() -replace '.*The next release version is ([0-9.]+).*', '$1' }
         Write-Host "Version: $VERSION"
-        echo "::set-output name=version::$version"
+        echo "::setOutput name=version::$version"
         Set-Content -Path ./version -Value "# current version of millennium`nv$VERSION"
 
         git config user.email "github-actions@github.com"
@@ -86,7 +86,7 @@ jobs:
         }
 
     - name: Set up cache for Python source
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       id: build-cache
       with:
         path: |
@@ -123,6 +123,10 @@ jobs:
         $modifiedContent | Set-Content $vcxprojPath
 
       shell: pwsh
+
+    - name: (Python) Add msbuild to PATH
+      if: steps.build-cache.outputs.cache-hit != 'true'
+      uses: microsoft/setup-msbuild@v2
 
     - name: (Python) Build 3.11.8
       if: steps.build-cache.outputs.cache-hit != 'true'
@@ -168,7 +172,7 @@ jobs:
       run: |
 
         # bootstrap and install vcpkg
-        ./vendor/vcpkg/bootstrap-vcpkg.bat
+        ./vendor/vcpkg/bootstrap-vcpkg.bat -disableMetrics
         ./vendor/vcpkg/vcpkg integrate install
 
     - name: (Generator) Configure CMake
