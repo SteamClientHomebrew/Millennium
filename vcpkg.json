@@ -3,5 +3,11 @@
     "libgit2",
     "cpr",
     "minizip"
+  ],
+  "overrides": [
+    {
+      "name": "libgit2",
+      "version": "1.8.0"
+    }
   ]
 }
