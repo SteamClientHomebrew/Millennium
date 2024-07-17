@@ -258,7 +258,7 @@ $result = Ask-Boolean-Question -question "Proceed with PERMANENT removal of sele
 
 if (-not $result) {
     Write-Output "${BoldPurple}[+]${ResetColor} Removal aborted."
-    exit
+    [Environment]::Exit(1)
 }
 
 $deletionSuccess = $true
