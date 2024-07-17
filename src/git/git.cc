@@ -28,7 +28,8 @@ namespace Dependencies {
     const int CloneRepository(git_repository* repository, std::string packageLocalPath, std::string remoteObject) 
     {
         git_clone_options gitCloneOpts = GIT_CLONE_OPTIONS_INIT;
-        gitCloneOpts.checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE; 
+        gitCloneOpts.checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE;
+        gitCloneOpts.fetch_opts.depth = 1;
  
         // can't clone into a non-empty directory
         if (std::filesystem::exists(packageLocalPath) && !std::filesystem::is_empty(packageLocalPath)) 
