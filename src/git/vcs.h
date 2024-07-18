@@ -48,6 +48,7 @@ const std::string GetLatestVersion()
     return MILLENNIUM_VERSION;
 }
 
+#ifdef _WIN32
 bool RunPowershellCommand(const std::wstring& command) 
 {
     STARTUPINFO si;
@@ -71,6 +72,7 @@ bool RunPowershellCommand(const std::wstring& command)
 
     return true;
 }
+#endif
 
 const void CheckForUpdates()
 {
@@ -82,7 +84,11 @@ const void CheckForUpdates()
         if (latestVersion != MILLENNIUM_VERSION)
         {
             Logger.Warn("Upgrading Millennium@{} -> Millennium@{}", MILLENNIUM_VERSION, latestVersion);
-            RunPowershellCommand(L"iwr -useb https://steambrew.app/update.ps1 | iex");
+            #ifdef _WIN32
+            {
+                RunPowershellCommand(L"iwr -useb https://steambrew.app/update.ps1 | iex");
+            }
+            #endif
         }
         else
         {
