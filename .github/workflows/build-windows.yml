@@ -190,7 +190,13 @@ jobs:
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll D:/a/Millennium/Millennium/build/artifacts
 
-    - name: Setup | Run Semantic Release
-      run: npx semantic-release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: millennium
+        path: D:/a/Millennium/Millennium/build/artifacts
+
+    # - name: Setup | Run Semantic Release
+    #   run: npx semantic-release
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
