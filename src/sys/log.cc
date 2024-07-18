@@ -49,7 +49,7 @@ void EnableVirtualTerminalProcessing()
 }
 #endif
 
-void OutputLogger::PrintMessage(std::string type, const std::string& message, fmt::v10::text_style color)
+void OutputLogger::PrintMessage(std::string type, const std::string& message, fmt::text_style color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 
@@ -125,7 +125,7 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
 	outputLogStream->flush();
 }
 
-void OutputLogger::LogHead(std::string strHeadTitle, fmt::v10::text_style color) 
+void OutputLogger::LogHead(std::string strHeadTitle, fmt::text_style color) 
 {
 	const auto message = fmt::format("\n[┬] {}", strHeadTitle);
 
@@ -139,7 +139,7 @@ void OutputLogger::LogHead(std::string strHeadTitle, fmt::v10::text_style color)
 	outputLogStream->flush();
 }
 
-void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, fmt::v10::text_style color) 
+void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, fmt::text_style color) 
 {
 	std::string connectorPiece = end ? "└" : "├";
 	const auto message = fmt::format(" {}──[{}]: {}", connectorPiece, pluginName, strMessage);

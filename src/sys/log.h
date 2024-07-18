@@ -22,7 +22,7 @@ private:
     std::string GetLocalTime();
 
 public:
-    void PrintMessage(std::string type, const std::string &message, fmt::v10::text_style color = fg(fmt::color::white));
+    void PrintMessage(std::string type, const std::string &message, fmt::text_style color = fg(fmt::color::white));
 
     OutputLogger(const OutputLogger &) = delete;
     OutputLogger &operator=(const OutputLogger &) = delete;
@@ -53,8 +53,8 @@ public:
         PrintMessage(" [warn] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::yellow));
     }
 
-    void LogHead(std::string val, fmt::v10::text_style color = fg(fmt::color::magenta));
-    void LogItem(std::string pluginName, std::string data, bool end = false, fmt::v10::text_style color = fg(fmt::color::magenta));
+    void LogHead(std::string val, fmt::text_style color = fg(fmt::color::magenta));
+    void LogItem(std::string pluginName, std::string data, bool end = false, fmt::text_style color = fg(fmt::color::magenta));
 };
 
 extern OutputLogger Logger;
