@@ -196,7 +196,7 @@ jobs:
         name: millennium
         path: D:/a/Millennium/Millennium/build/artifacts
 
-    # - name: Setup | Run Semantic Release
-    #   run: npx semantic-release
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Setup | Run Semantic Release
+      run: npx semantic-release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
