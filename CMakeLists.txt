@@ -57,8 +57,7 @@ add_compile_definitions(
 )
 
 find_package(cpr CONFIG REQUIRED) # used for web requests. 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBGIT2 REQUIRED IMPORTED_TARGET libgit2) # used for updating git modules
+find_package(unofficial-libgit2 CONFIG REQUIRED)
 find_package(minizip CONFIG REQUIRED) # used for extracting zip files
 
 include_directories(${LIBGIT2_INCLUDE_DIRS})
@@ -129,7 +128,7 @@ endif()
 target_link_libraries(Millennium 
   Boxer
   cpr::cpr
-  PkgConfig::LIBGIT2
+  unofficial::libgit2::libgit2
   minizip::minizip
 )
 
