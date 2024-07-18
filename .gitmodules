@@ -13,9 +13,6 @@
 [submodule "vendor/boxer"]
 	path = vendor/boxer
 	url = https://github.com/aaronmjacobs/Boxer.git
-[submodule "vendor/incbin"]
-	path = vendor/incbin
-	url = https://github.com/graphitemaster/incbin.git
 [submodule "vendor/vcpkg"]
 	path = vendor/vcpkg
 	url = https://github.com/microsoft/vcpkg.git
