@@ -48,7 +48,7 @@ function Close-SteamProcess {
 
     if ($steamProcess) {
         Stop-Process -Name "steam" -Force
-        Write-Output "${BoldPurple}[+]${ResetColor} Closed Steam process."
+        Write-Output "${BoldPurple}++${ResetColor} Closed Steam process."
     }
 }
 
@@ -159,24 +159,12 @@ function DownloadFileWithProgress {
 $response = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "Millennium.Installer/1.0" }
 $latestRelease = $response | Where-Object { -not $_.prerelease } | Sort-Object -Property created_at -Descending | Select-Object -First 1
 
-$customSteamPath = Read-Host "${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default)"
+$steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
-if (-not $customSteamPath) {
-    $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
-
-    if (-not $steamPath) {
-        Write-Host "Steam path not found in registry."
-        exit
-    } 
-    [Console]::CursorTop -= 1
-    [Console]::SetCursorPosition(0, [Console]::CursorTop)
-    [Console]::Write(' ' * [Console]::WindowWidth)
-
-    Write-Output "`r${BoldPurple}[?]${ResetColor} Steam Path (leave blank for default): ${BoldLightBlue}$steamPath${ResetColor}"
+if (-not $steamPath) {
+    Write-Host "Steam path not found in registry."
+    exit
 } 
-else {
-    $steamPath = $customSteamPath
-}
 
 # Ensure the destination directory exists
 if (-not (Test-Path -Path $steamPath)) {
@@ -210,24 +198,15 @@ function Calculate-Installed-Size {
 
 $releaseTag   = $latestRelease.tag_name
 $packageCount = $latestRelease.assets.Count
-Write-Output "`n${BoldPurple}[+]${ResetColor} Packages ($packageCount) ${BoldPurple}Millennium@$releaseTag${ResetColor}`n"
+Write-Output "${BoldPurple}++${ResetColor} Installing Packages ($packageCount) ${BoldPurple}Millennium@$releaseTag${ResetColor}`n"
 
 $totalSizeReadable = ConvertTo-ReadableSize -size $totalBytesFromRelease
 $totalInstalledSize = Calculate-Installed-Size
 
-Write-Output "${BoldPurple}${ResetColor} Total Download Size:   $totalSizeReadable"
-Write-Output "${BoldPurple}${ResetColor} Total Installed Size:  $totalSizeReadable"
+Write-Output "${BoldPurple}::${ResetColor} Total Download Size:   $totalSizeReadable"
 
 if ($totalInstalledSize -ne -1) {
-    Write-Output "${BoldPurple}${ResetColor} Net Upgrade Size:      $totalInstalledSize"
-}
-
-# offer to proceed with installation
-$result = Ask-Boolean-Question -question "Proceed with installation?" -default $true
-
-if (-not $result) {
-    Write-Output "${BoldPurple}[+]${ResetColor} Installation aborted."
-    exit
+    Write-Output "${BoldPurple}::${ResetColor} Net Upgrade Size:      $totalInstalledSize"
 }
 
 Write-Host "${BoldPurple}::${ResetColor} Retreiving packages..."
@@ -326,20 +305,17 @@ $millenniumLogContent | ConvertTo-Json | Set-Content -Path $millenniumLog -Force
 
 # Write-Host "
 $iniObj = Get-IniFile $configPath
-$result = Ask-Boolean-Question -question "Do you want to install plugin developer packages?" -default $false
 
 if (-not $iniObj.Contains("PackageManager")) { $iniObj["PackageManager"] = [ordered]@{} }
-$iniObj["PackageManager"]["devtools"] = if ($result) { "yes" } else { "no" }
-
-
-$result = Ask-Boolean-Question -question "Do you want Millennium to auto update? [Excluding Beta] (Recommeded)" -default $true -newLine $false
+$iniObj["PackageManager"]["devtools"] = "no"
 
 if (-not $iniObj.Contains("Settings")) { $iniObj["Settings"] = [ordered]@{} }
-$iniObj["Settings"]["check_for_updates"] = if ($result) { "yes" } else { "no" }
+$iniObj["Settings"]["check_for_updates"] = "yes"
 
+
+Write-Host "`n${BoldPurple}::${ResetColor} wrote configuration to $configPath"
 
 Set-IniFile $iniObj $configPath -PreserveNonData $false
-Start-Steam -steamPath $steamPath
 
 $pipeName = "MillenniumStdoutPipe"
 $bufferSize = 1024
@@ -347,14 +323,17 @@ $bufferSize = 1024
 $pipeServer = [System.IO.Pipes.NamedPipeServerStream]::new($pipeName, [System.IO.Pipes.PipeDirection]::In)
 
 Write-Host ""
-
-# [Console]::Write($BoldPurple)
-# Write-Output ("-" * [Console]::WindowWidth)
 Write-Output "${BoldPurple}::${ResetColor} Verifying runtime environment..."
+Write-Output "${BoldPurple}::${ResetColor} Millennium will now start bootstrapping Steam, expect to see Millennium logs below."
 Write-Output "${BoldPurple}++${ResetColor} If you face any issues while verifying, please report them on the GitHub repository."
 Write-Output "${BoldPurple}++${ResetColor} ${BoldLightBlue}https://github.com/SteamClientHomebrew/Millennium/issues/new/choose${ResetColor}`n"
-# Write-Output ("-" * [Console]::WindowWidth)
-# [Console]::Write($ResetColor)
+
+
+
+# sleep 5 seconds to allow the user to read the message
+Start-Sleep -Seconds 5
+
+Start-Steam -steamPath $steamPath
 
 $pipeServer.WaitForConnection()
 $buffer = New-Object byte[] $bufferSize
