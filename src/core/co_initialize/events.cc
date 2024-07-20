@@ -93,7 +93,7 @@ void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback)
 
     if (std::find(missedEvents.begin(), missedEvents.end(), ON_BACKEND_READY_EVENT) != missedEvents.end()) 
     {
-        Logger.Log("found missed event, emitting");
+        //Logger.Log("found missed event, emitting");
         callback();
 
         // remove the event from the missed events list
