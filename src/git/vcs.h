@@ -1,13 +1,12 @@
 #pragma once
 #include <sys/locals.h>
-#include <cpr/cpr.h>
 #include <sys/log.h>
 
 const bool UpdatesEnabled()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
-    const bool checkForUpdates = settingsStore->GetSetting("check_for_updates", "true") == "yes";
+    const bool checkForUpdates = settingsStore->GetSetting("check_for_updates", "yes") == "yes";
 
     return checkForUpdates;
 }
@@ -17,15 +16,9 @@ const std::string GetLatestVersion()
     try 
     {
         const char* releaseUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
+        std::string githubResponse = Http::Get(releaseUrl, false);
 
-        cpr::Response response = cpr::Get(cpr::Url{ releaseUrl }, cpr::UserAgent{"millennium.patcher/1.0"});
-
-        if (response.error) 
-        {
-            throw std::runtime_error("Couldn't connect to server: " + std::string(releaseUrl));
-        }
-
-        nlohmann::json releaseData = nlohmann::json::parse(response.text);
+        nlohmann::json releaseData = nlohmann::json::parse(githubResponse);
 
         // find latest non-pre-release version
         for (const auto& release : releaseData)

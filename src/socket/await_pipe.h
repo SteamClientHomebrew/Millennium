@@ -204,7 +204,7 @@ public:
         try
         {
             std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
-            nlohmann::basic_json<> instance = nlohmann::json::parse(GetRequest(browserUrl.c_str()));
+            nlohmann::basic_json<> instance = nlohmann::json::parse(Http::Get(browserUrl.c_str()));
 
             return instance["webSocketDebuggerUrl"];
         }
@@ -227,7 +227,7 @@ public:
         {
             try
             {
-                nlohmann::basic_json<> windowInstances = nlohmann::json::parse(GetRequest(sharedContextUrl.c_str()));
+                nlohmann::basic_json<> windowInstances = nlohmann::json::parse(Http::Get(sharedContextUrl.c_str()));
 
                 for (const auto& instance : windowInstances)
                 {
@@ -267,6 +267,7 @@ public:
 
                 socketClient.set_access_channels(websocketpp::log::alevel::none);
                 socketClient.clear_error_channels(websocketpp::log::elevel::none);
+                socketClient.set_error_channels(websocketpp::log::elevel::none);
 
                 socketClient.init_asio();
                 socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
@@ -288,7 +289,7 @@ public:
                 LOG_ERROR("webSocket exception thrown -> {}", exception.what());
             }
 
-            LOG_ERROR("{} tunnel collapsed, attempting to reopen...", commonName);
+            Logger.Log("Disconnected from [{}] module...", commonName);
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     }

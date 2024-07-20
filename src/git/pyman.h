@@ -5,8 +5,6 @@
 #include <fmt/core.h>
 #include <string>
 #include <sys/log.h>
-#include <cpr/response.h>
-#include <cpr/session.h>
 #include <minizip/unzip.h>
 #include <filesystem>
 #include <core/py_controller/co_spawn.h>
@@ -126,22 +124,9 @@ private:
     void DownloadPython() 
     {
         std::string pythonUrl = fmt::format("https://www.python.org/ftp/python/{0}/python-{0}-embed-win32.zip", m_pythonVersion);
+        bool success = Http::DownloadFile(pythonUrl.c_str(), m_pythonZip.c_str());
 
-        cpr::Session session;
-        session.SetUrl(pythonUrl);
-        cpr::Response response = session.Get();
-
-        if (response.status_code != 200) 
-        {
-            LOG_ERROR("failed to download Python zip: {}", response.status_code);
-            return;
-        }
-
-        std::ofstream outFile(m_pythonZip, std::ios::binary);
-        outFile.write(response.text.c_str(), response.text.length());
-        outFile.close();
-
-        if (std::filesystem::exists(m_pythonZip)) 
+        if (success && std::filesystem::exists(m_pythonZip)) 
         {
             Logger.LogItem("+", "Downloaded embed packages...");
         }
