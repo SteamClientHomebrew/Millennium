@@ -1,13 +1,7 @@
 {
   "dependencies": [
     "libgit2",
-    "cpr",
+    "curl",
     "minizip"
-  ],
-  "overrides": [
-    {
-      "name": "libgit2",
-      "version": "1.8.0"
-    }
   ]
 }
