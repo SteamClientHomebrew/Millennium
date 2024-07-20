@@ -53,10 +53,13 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message, fm
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 
-	if (m_bIsConsoleEnabled)
+	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
 		fmt::print(color, "{}{}{}\n", GetLocalTime(), type, message);
 	}
+
+	if (m_bIsVersbose)
+		return;
 
 	*outputLogStream << GetLocalTime() << type << message << "\n";
 	outputLogStream->flush();
@@ -69,13 +72,14 @@ OutputLogger::OutputLogger()
 		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
 		m_bIsConsoleEnabled = startupParams->HasArgument("-dev");
+		m_bIsVersbose = startupParams->HasArgument("-verbose");
 
-		if (m_bIsConsoleEnabled && static_cast<bool>(AllocConsole()))
+		if (!m_bIsVersbose && m_bIsConsoleEnabled && static_cast<bool>(AllocConsole()))
 		{
-			SetConsoleOutputCP(CP_UTF8);
 			SetConsoleTitleA(fmt::format("Millennium@{}", MILLENNIUM_VERSION).c_str());
 		}
 		
+		SetConsoleOutputCP(CP_UTF8);
 		void(freopen("CONOUT$", "w", stdout));
 		void(freopen("CONOUT$", "w", stderr));
 		EnableVirtualTerminalProcessing();
@@ -83,6 +87,7 @@ OutputLogger::OutputLogger()
 	#elif __linux__
 	{
 		m_bIsConsoleEnabled = true;
+		m_bIsVersbose = false;
 	}
 	#endif
 
@@ -105,7 +110,7 @@ OutputLogger::OutputLogger()
         return;
     }
 
-	fmt::print("[+] Bootstrapping Millennium@{}\n", MILLENNIUM_VERSION);                                    
+	//fmt::print("[+] Bootstrapping Millennium@{}\n", MILLENNIUM_VERSION);                                    
 }
 
 OutputLogger::~OutputLogger() 
@@ -115,11 +120,14 @@ OutputLogger::~OutputLogger()
 
 void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
 {
-	if (m_bIsConsoleEnabled)
+	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
 		fmt::print(DEFAULT_ACCENT_COL, "{} [{}] ", GetLocalTime(), pluginName);
 		fmt::print("{}\n", strMessage);
 	}
+
+	if (m_bIsVersbose)
+		return;
 
 	*outputLogStream << GetLocalTime() << " [" << pluginName << "] " << strMessage << "\n";
 	outputLogStream->flush();
@@ -129,11 +137,14 @@ void OutputLogger::LogHead(std::string strHeadTitle, fmt::text_style color)
 {
 	const auto message = fmt::format("\n[┬] {}", strHeadTitle);
 
-	if (m_bIsConsoleEnabled)
+	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
 		fmt::print(color, "\n[┬] ");
 		fmt::print("{}\n", strHeadTitle);
 	}
+
+	if (m_bIsVersbose)
+		return;
 
 	*outputLogStream << message << "\n";
 	outputLogStream->flush();
@@ -142,14 +153,17 @@ void OutputLogger::LogHead(std::string strHeadTitle, fmt::text_style color)
 void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, fmt::text_style color) 
 {
 	std::string connectorPiece = end ? "└" : "├";
-	const auto message = fmt::format(" {}──[{}]: {}", connectorPiece, pluginName, strMessage);
+	const auto message = fmt::format(" {}─[{}]: {}", connectorPiece, pluginName, strMessage);
 	
-	if (m_bIsConsoleEnabled)
+	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
 		fmt::print(color, " {}─[{}]: ", connectorPiece, pluginName);
 		fmt::print("{}\n", strMessage);
 	}
 
+	if (m_bIsVersbose)
+		return;
+
 	*outputLogStream << message << "\n";
 	outputLogStream->flush();
- }
+}

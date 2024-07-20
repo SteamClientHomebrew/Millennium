@@ -15,6 +15,7 @@
 class OutputLogger
 {
 private:
+    bool m_bIsVersbose = false;
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
     std::shared_ptr<std::ostream> teeStreamPtr;
