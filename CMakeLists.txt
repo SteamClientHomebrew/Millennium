@@ -56,7 +56,7 @@ add_compile_definitions(
   _CRT_SECURE_NO_WARNINGS
 )
 
-find_package(cpr CONFIG REQUIRED) # used for web requests. 
+find_package(CURL REQUIRED) # used for web requests. 
 find_package(unofficial-libgit2 CONFIG REQUIRED)
 find_package(minizip CONFIG REQUIRED) # used for extracting zip files
 
@@ -127,7 +127,7 @@ endif()
 
 target_link_libraries(Millennium 
   Boxer
-  cpr::cpr
+  CURL::libcurl
   unofficial::libgit2::libgit2
   minizip::minizip
 )
