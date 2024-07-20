@@ -96,7 +96,7 @@ const static void EntryMain()
 
     if (isVerboseMode)
     {
-        CreateTerminalPipe();   
+        CreateTerminalPipe();
     }
 
     signal(SIGINT, HandleSignalInterrupt);
