@@ -1,3 +1,4 @@
+#pragma once
 #ifdef _WIN32
 #include <winbase.h>
 #include <io.h>
@@ -6,14 +7,11 @@
 #include <sys/log.h>
 #include <fcntl.h>
 
-const int CreateTerminalPipe()
+static const int CreateTerminalPipe()
 {
     #ifdef _WIN32
     {
-        const std::string pipeName = R"(\\.\pipe\MillenniumStdoutPipe)";
-
-        // Try to open a named pipe; wait for it, if necessary.
-        HANDLE hPipe = CreateFileA(pipeName.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+        HANDLE hPipe = CreateFileA(R"(\\.\pipe\MillenniumStdoutPipe)", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
         if (hPipe == INVALID_HANDLE_VALUE)
         {
