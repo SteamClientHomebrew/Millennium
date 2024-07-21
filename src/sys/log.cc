@@ -8,7 +8,6 @@
 #include <thread>
 #ifdef _WIN32
 #include <procmon/cmd.h>
-#include <procmon/thread.h>
 #endif
 #include <sys/locals.h>
 

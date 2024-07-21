@@ -3,7 +3,6 @@
 #define UNICODE
 #ifdef _WIN32
 #include <winsock2.h>
-#include <procmon/thread.h>
 #endif
 #include <filesystem>
 #include <fstream>
