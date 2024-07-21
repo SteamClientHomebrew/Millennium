@@ -36,7 +36,7 @@ public:
     template <typename... Args>
     void Log(std::string fmt, Args &&...args)
     {
-        PrintMessage(" [info] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::dark_gray));
+        PrintMessage("(info) ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::dark_gray));
     }
 
     template <typename... Args>
@@ -51,7 +51,7 @@ public:
     template <typename... Args>
     void Warn(std::string fmt, Args &&...args)
     {
-        PrintMessage(" [warn] ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::yellow));
+        PrintMessage("(warn) ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::orange));
     }
 
     void LogHead(std::string val, fmt::text_style color = fg(fmt::color::magenta));

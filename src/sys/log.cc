@@ -54,7 +54,7 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message, fm
 
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(color, "{}{}{}\n", GetLocalTime(), type, message);
+		fmt::print(color, "{}{}\n", type, message);
 	}
 
 	if (m_bIsVersbose)
@@ -121,7 +121,7 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
 {
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(DEFAULT_ACCENT_COL, "{} [{}] ", GetLocalTime(), pluginName);
+		fmt::print(DEFAULT_ACCENT_COL, "({}) ", pluginName);
 		fmt::print("{}\n", strMessage);
 	}
 
@@ -134,11 +134,11 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
 
 void OutputLogger::LogHead(std::string strHeadTitle, fmt::text_style color) 
 {
-	const auto message = fmt::format("\n[┬] {}", strHeadTitle);
+	const auto message = fmt::format("\n(┬) {}", strHeadTitle);
 
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(color, "\n[┬] ");
+		fmt::print(color, "\n(┬) ");
 		fmt::print("{}\n", strHeadTitle);
 	}
 
@@ -151,12 +151,12 @@ void OutputLogger::LogHead(std::string strHeadTitle, fmt::text_style color)
 
 void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, fmt::text_style color) 
 {
-	std::string connectorPiece = end ? "└" : "├";
-	const auto message = fmt::format(" {}─[{}]: {}", connectorPiece, pluginName, strMessage);
+	std::string connectorPiece = end ? "╰" : "├";
+	const auto message = fmt::format(" {}─({}) {}", connectorPiece, pluginName, strMessage);
 	
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(color, " {}─[{}]: ", connectorPiece, pluginName);
+		fmt::print(color, " {}─({}) ", connectorPiece, pluginName);
 		fmt::print("{}\n", strMessage);
 	}
 

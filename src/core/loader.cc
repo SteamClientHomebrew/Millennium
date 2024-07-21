@@ -78,7 +78,15 @@ public:
             {
                 if (json["params"]["message"]["level"] == "error")
                 {
-                    Logger.Log("steam-error: {}", json["params"]["message"]["text"].get<std::string>());
+                    const auto data = json["params"]["message"];
+
+                    std::string errorMessage = data["text"];
+                    std::string url = data["url"];
+                    int line = data["line"];
+                    int column = data["column"];
+
+                    std::string traceMessage = fmt::format("{}:{}:{}", url, line, column);
+                    Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", errorMessage, traceMessage);
                 }
             }
             catch (const std::exception& e) { }

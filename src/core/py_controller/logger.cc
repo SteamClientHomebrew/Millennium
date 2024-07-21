@@ -69,9 +69,9 @@ static PyObject* LoggerObject_warning(LoggerObject *self, PyObject *args)
 
 static PyMethodDef LoggerObject_methods[] = 
 {
-    {"log",     (PyCFunction)LoggerObject_log,     METH_VARARGS, "Log a message"        },
-    {"error",   (PyCFunction)LoggerObject_error,   METH_VARARGS, "Log an error message" },
-    {"warn", (PyCFunction)LoggerObject_warning, METH_VARARGS, "Log a warning message"},
+    {"log",     (PyCFunction)LoggerObject_log,   METH_VARARGS, "Log a message"        },
+    {"error",   (PyCFunction)LoggerObject_error, METH_VARARGS, "Log an error message" },
+    {"warn", (PyCFunction)LoggerObject_warning,  METH_VARARGS, "Log a warning message"},
 
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
