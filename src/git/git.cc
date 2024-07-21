@@ -19,7 +19,6 @@ namespace Dependencies {
     {
         if (refCallbackIsMerge)
         {
-            Logger.LogItem("Head", "Found merge reference...");
             git_oid_cpy((git_oid *)payload, oid);
         }
         return 0;
@@ -35,7 +34,7 @@ namespace Dependencies {
         if (std::filesystem::exists(packageLocalPath) && !std::filesystem::is_empty(packageLocalPath)) 
         {
             std::uintmax_t removedCount = std::filesystem::remove_all(packageLocalPath);
-            Logger.LogItem("Status", fmt::format("Flushed {} items", removedCount));
+            Logger.LogItem("+", fmt::format("Flushed {} items", removedCount));
         }
         else if (!std::filesystem::exists(packageLocalPath))
         {
@@ -50,10 +49,10 @@ namespace Dependencies {
         }
         else 
         {
-            Logger.LogItem("Status", "Ready to clone module...");
+            Logger.LogItem("+", "Ready to clone module...");
         }
 
-        Logger.LogItem("status", "Cloning modules...");
+        Logger.LogItem("+", "Cloning modules...");
         int cloneSuccessStatus = git_clone(&repository, remoteObject.c_str(), packageLocalPath.c_str(), &gitCloneOpts);
 
         if (cloneSuccessStatus != 0) 
@@ -61,7 +60,7 @@ namespace Dependencies {
             const git_error* lastError = git_error_last();
             const std::string strErrorMessage = fmt::format("Error cloning frontend modules -> {}", lastError->message);
 
-            Logger.LogItem("Status", strErrorMessage, true);
+            Logger.LogItem("+", strErrorMessage, true);
             boxer::show(strErrorMessage.c_str(), "Fatal Error", boxer::Style::Error);
         }
 
@@ -73,7 +72,7 @@ namespace Dependencies {
         int gitErrorCode;
         git_remote *remote;
 
-        Logger.LogItem("Status", "Checking for updates...");
+        Logger.LogItem("+", "Checking for updates...");
         gitErrorCode = git_remote_lookup(&remote, repo, "origin");
         
         if (gitErrorCode < 0) 
@@ -113,7 +112,6 @@ namespace Dependencies {
         git_merge_analysis_t analysisOut;
         git_merge_preference_t preferenceOut;
 
-        Logger.LogItem("Status", "Analyzing repository information...");
         gitErrorCode = git_merge_analysis(&analysisOut, &preferenceOut, repo, (const git_annotated_commit **) annotatedCommit, 1);
 
         if (gitErrorCode < 0) 
@@ -124,7 +122,7 @@ namespace Dependencies {
 
         if (analysisOut & GIT_MERGE_ANALYSIS_UP_TO_DATE) 
         {
-            Logger.LogItem("Status", "Repository is up to date.");
+            Logger.LogItem("+", "Repository is up to date.");
 
             git_annotated_commit_free(annotatedCommit[0]);
             git_repository_state_cleanup(repo);
@@ -134,7 +132,7 @@ namespace Dependencies {
         } 
         else if (analysisOut & GIT_MERGE_ANALYSIS_FASTFORWARD) 
         {
-            Logger.LogItem("Status", "Fast-forwarding analysis...");
+            Logger.LogItem("+", "Fast-forwarding analysis...");
 
             git_reference *referenceOut;
             git_reference *newTargetReference;
@@ -172,7 +170,6 @@ namespace Dependencies {
         git_libgit2_init();
         
         Logger.LogHead(fmt::format("Package Manager - {} [{} ms]", common_name, duration_cast<milliseconds>(steady_clock::now() - startTime).count()));
-        Logger.LogItem("Path", package_path);
 
         git_repository* repo = nullptr;
         int repositoryOpenStatus = git_repository_open(&repo, package_path.c_str());
@@ -180,13 +177,12 @@ namespace Dependencies {
         switch (repositoryOpenStatus) {
             case GIT_ENOTFOUND: 
             {
-                Logger.LogItem("Status", "Repository was not found...");
+                Logger.LogItem("+", "Repository was not found...");
                 repositoryOpenStatus = CloneRepository(repo, package_path, remote_object);
                 break;
             }
             case 0: // no error occured
             {
-                Logger.LogItem("Status", "Fetching repository head...");
                 repositoryOpenStatus = FetchHead(repo, package_path);
                 break;
             } 
@@ -196,7 +192,7 @@ namespace Dependencies {
             }
         }
 
-        Logger.LogItem("Status", fmt::format("{} in {} ms", repositoryOpenStatus == 0 ? "Succeeded" : "Failed", duration_cast<milliseconds>(steady_clock::now() - startTime).count()), true);
+        Logger.LogItem("+", fmt::format("{} in {} ms", repositoryOpenStatus == 0 ? "Succeeded" : "Failed", duration_cast<milliseconds>(steady_clock::now() - startTime).count()), true);
         // Free resources
         git_repository_free(repo);
         git_libgit2_shutdown();

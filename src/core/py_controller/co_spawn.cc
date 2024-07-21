@@ -55,10 +55,10 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
     this->m_instanceCount = 0;
 
     // initialize global modules
-    Logger.LogItem("+", "Redirecting Standard Output...");    PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
-    Logger.LogItem("+", "Redirecting Standard Error...");    PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
-    Logger.LogItem("+", "Inserting PluginUtils..."); PyImport_AppendInittab("PluginUtils", &PyInit_Logger);
-    Logger.LogItem("+", "Inserting Millennium...");  PyImport_AppendInittab("Millennium",  &PyInit_Millennium);
+    PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
+    PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
+    PyImport_AppendInittab("PluginUtils", &PyInit_Logger);
+    PyImport_AppendInittab("Millennium",  &PyInit_Millennium);
 
     Logger.LogItem("Python", "Initializing Python...");
 
