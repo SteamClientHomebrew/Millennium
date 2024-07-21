@@ -10,6 +10,7 @@ body:
     options:
     - label: I found no existing issues matching my bug
       required: true
+    - label: My issue is not caused by the Millennium interface inside Steam (Themes, Plugins & Update Panel). If it is, make a issue report in [this repo](https://github.com/SteamClientHomebrew/Core). 
     - label: My issue is not caused by a theme
       required: true
 - type: textarea
