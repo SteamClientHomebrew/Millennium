@@ -15,7 +15,7 @@ body:
 - type: textarea
   attributes:
     label: Describe the feature you'd like!
-    description: A clear and concise description of what you want to see in BetterDiscord.
+    description: A clear and concise description of what you want to see in Millennium.
   validations:
     required: true
 - type: textarea
