@@ -118,10 +118,11 @@ public:
 };
 
 PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
-    : m_startTime(startTime), m_pluginsPtr(nullptr), m_ftpPort(ftpPort)
+    : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_ftpPort(ftpPort)
 {
     m_settingsStorePtr = std::make_unique<SettingsStore>();
     m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
 
     m_settingsStorePtr->InitializeSettingsStore();
     m_ipcPort = IPCMain::OpenConnection();
@@ -224,13 +225,8 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
 {
     StartPreloader(manager);
 
-    for (auto& plugin : *this->m_pluginsPtr)
+    for (auto& plugin : *this->m_enabledPluginsPtr)
     {
-        if (!m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName)) 
-        {
-            continue;
-        }
-
         std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
 
         std::thread(

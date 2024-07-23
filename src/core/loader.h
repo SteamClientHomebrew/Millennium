@@ -24,7 +24,7 @@ private:
 	const std::thread ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers);
 
 	std::unique_ptr<SettingsStore> m_settingsStorePtr;
-	std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr;
+	std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;
 	std::chrono::system_clock::time_point m_startTime;
 	uint16_t m_ftpPort, m_ipcPort;
 };

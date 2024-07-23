@@ -39,7 +39,7 @@ std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
 bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const std::size_t pluginCount = settingsStore->GetEnabledPlugins().size();
+    const std::size_t pluginCount = settingsStore->GetEnabledBackends().size();
 
     if (this->emittedPlugins.size() == pluginCount)
     {
