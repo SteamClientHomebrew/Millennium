@@ -21,8 +21,6 @@ public:
 
 private:
 	const void PrintActivePlugins();
-
-	const std::thread ConnectSharedJSContext(void* sharedJsHandler, SocketHelpers* socketHelpers);
 	const std::thread ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers);
 
 	std::unique_ptr<SettingsStore> m_settingsStorePtr;

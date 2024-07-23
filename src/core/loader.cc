@@ -12,41 +12,96 @@
 #include <sys/log.h>
 
 using namespace std::placeholders;
-websocketpp::client<websocketpp::config::asio_client>* sharedClient, *browserClient;
-websocketpp::connection_hdl sharedHandle, browserHandle;
+websocketpp::client<websocketpp::config::asio_client>*browserClient;
+websocketpp::connection_hdl browserHandle;
 
-bool PostSocket(nlohmann::json data, 
-    websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle) 
-{
-    if (client == nullptr) {
-        LOG_ERROR("not connected to steam, cant post message");
-        return false;
-    }
-
-    client->send(handle, data.dump(), websocketpp::frame::opcode::text);
-    return true;
-}
+std::string sharedJsContextSessionId;
 
 bool Sockets::PostShared(nlohmann::json data) 
 {
-    return PostSocket(data, sharedClient, sharedHandle);
+    data["sessionId"] = sharedJsContextSessionId;
+    //Logger.Log(data.dump(4));
+    return Sockets::PostGlobal(data);
 }
 
 bool Sockets::PostGlobal(nlohmann::json data) 
 {
-    return PostSocket(data, browserClient, browserHandle);
+    if (browserClient == nullptr) {
+        LOG_ERROR("not connected to steam, cant post message");
+        return false;
+    }
+
+    browserClient->send(browserHandle, data.dump(), websocketpp::frame::opcode::text);
+    return true;
 }
 
 class CEFBrowser
 {
     WebkitHandler webKitHandler;
-
+    uint16_t m_ftpPort, m_ipcPort;
 public:
 
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
+        const std::string method = json.value("method", std::string());
+        
+        // if (json.contains("method")) 
+        // {
+        // }
+        //Logger.Log(json.dump(4));
+
+        if (method == "Target.targetCreated" || method == "Target.targetInfoChanged")
+        {
+            const auto targetInfo = json["params"]["targetInfo"];
+
+            if (targetInfo["title"] == "SharedJSContext" && targetInfo["attached"] == false) 
+            {
+                Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, 
+                    { "params", { { "targetId", targetInfo["targetId"] }, { "flatten", true } } } 
+                });
+            }
+        }
+        if (method == "Target.attachedToTarget")
+        {
+            sharedJsContextSessionId = json["params"]["sessionId"];
+            this->onSharedJsConnect();
+        }
+        if (method == "Console.messageAdded") 
+        {
+            try
+            {
+                if (json["params"]["message"]["level"] == "error")
+                {
+                    const auto data = json["params"]["message"];
+
+                    std::string traceMessage = fmt::format("{}:{}:{}", data["url"].get<std::string>(), data["line"].get<int>(), data["column"].get<int>());
+                    Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", data["text"].get<std::string>(), traceMessage);
+                }
+            }
+            catch (const std::exception& e) { }
+        }
+        else if (method.find("Debugger") == std::string::npos) 
+        {        
+            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+        }
+
         webKitHandler.DispatchSocketMessage(json);
+    }
+
+    const void SetupSharedJSContext()
+    {
+        Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.setDiscoverTargets" }, { "params", { { "discover", true } } } });
+    }
+
+    const void onSharedJsConnect()
+    {
+        std::thread([this]() {
+            Logger.Log("Connected to SharedJSContext");
+            CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
+
+            Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
+        }).detach();
     }
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
@@ -55,58 +110,11 @@ public:
         browserHandle = handle;
 
         Logger.Log("Connected to Steam @ {}", (void*)client);
+        this->SetupSharedJSContext();
         webKitHandler.SetupGlobalHooks();
     }
 
-    CEFBrowser() : webKitHandler(WebkitHandler::get()) { }
-};
-
-class SharedJSContext
-{
-    uint16_t m_ftpPort, m_ipcPort;
-public:
-
-    SharedJSContext(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort) { }
-
-    const void onMessage(websocketpp::client<websocketpp::config::asio_client>*c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
-    {
-        const auto json = nlohmann::json::parse(msg->get_payload());
-
-        if (json.contains("method") && json["method"] == "Console.messageAdded") 
-        {
-            try
-            {
-                if (json["params"]["message"]["level"] == "error")
-                {
-                    const auto data = json["params"]["message"];
-
-                    std::string errorMessage = data["text"];
-                    std::string url = data["url"];
-                    int line = data["line"];
-                    int column = data["column"];
-
-                    std::string traceMessage = fmt::format("{}:{}:{}", url, line, column);
-                    Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", errorMessage, traceMessage);
-                }
-            }
-            catch (const std::exception& e) { }
-        }
-        else
-        {        
-            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
-        }
-    }
-
-    const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
-    {
-        sharedClient = client; 
-        sharedHandle = handle;
-
-        Logger.Log("Connected to SharedJSContext @ {}", (void*)client);
-        CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
-
-        Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
-    }
+    CEFBrowser(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) { }
 };
 
 PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
@@ -125,18 +133,6 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
     this->PrintActivePlugins();
 }
 
-const std::thread PluginLoader::ConnectSharedJSContext(void* sharedJsHandler, SocketHelpers* socketHelpers)
-{
-    SocketHelpers::ConnectSocketProps sharedProps;
-
-    sharedProps.commonName     = "SharedJSContext";
-    sharedProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSharedJsContext, socketHelpers);
-    sharedProps.onConnect      = std::bind(&SharedJSContext::onConnect, (SharedJSContext*)sharedJsHandler, _1, _2);
-    sharedProps.onMessage      = std::bind(&SharedJSContext::onMessage, (SharedJSContext*)sharedJsHandler, _1, _2, _3);
-
-    return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, sharedProps));
-}
-
 const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
 {
     SocketHelpers::ConnectSocketProps browserProps;
@@ -151,14 +147,13 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
 
 const void PluginLoader::StartFrontEnds()
 {
-    CEFBrowser cefBrowserHandler;
-    SharedJSContext sharedJsHandler(m_ftpPort, m_ipcPort);
+    CEFBrowser cefBrowserHandler(m_ftpPort, m_ipcPort);
     SocketHelpers socketHelpers;
 
     auto socketStart = std::chrono::high_resolution_clock::now();
 
     std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
-    std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
+    //std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
 
     auto socketEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - socketStart);
     Logger.LogItem("+", fmt::format("Finished in [{}ms]\n", socketEnd.count()), true);
@@ -168,7 +163,7 @@ const void PluginLoader::StartFrontEnds()
     Logger.Log("Startup took {} ms", duration.count());
 
     browserSocketThread.join();
-    sharedSocketThread.join();
+    //sharedSocketThread.join();
 
     LOG_ERROR("browser thread and shared thread exited...");
     this->StartFrontEnds();

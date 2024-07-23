@@ -218,41 +218,6 @@ public:
         }
     }
 
-    const std::string GetSharedJsContext()
-    {
-        std::string sharedJsContextSocket;
-        std::string sharedContextUrl = fmt::format("{}/json", this->GetDebuggerUrl());
-
-        while (sharedJsContextSocket.empty())
-        {
-            try
-            {
-                nlohmann::basic_json<> windowInstances = nlohmann::json::parse(Http::Get(sharedContextUrl.c_str()));
-
-                for (const auto& instance : windowInstances)
-                {
-                    if (instance["title"] == "SharedJSContext")
-                    {
-                        sharedJsContextSocket = instance["webSocketDebuggerUrl"].get<std::string>();
-                        break;
-                    }
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            }
-            catch (nlohmann::detail::exception& exception)
-            {
-                LOG_ERROR(exception.what());
-
-                const std::string message = fmt::format("A fatal error occurred trying to get SharedJsContext -> {}", exception.what());
-                boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
-                std::exit(1);
-            }
-        }
-
-        return sharedJsContextSocket;
-    }
-
     void ConnectSocket(ConnectSocketProps socketProps)
     {
         const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
