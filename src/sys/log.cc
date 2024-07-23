@@ -22,7 +22,7 @@ std::string OutputLogger::GetLocalTime()
 
 	bufferStream << std::put_time(std::localtime(&time), "%H:%M:%S");
 	bufferStream << fmt::format(".{:03}", ms.count());
-	return fmt::format("[{}]", bufferStream.str());
+	return fmt::format("({})", bufferStream.str());
 }
 
 #ifdef _WIN32
@@ -54,7 +54,7 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message, fm
 
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(color, "{}{}\n", type, message);
+		fmt::print(color, "{}{}{}\n", GetLocalTime(), type, message);
 	}
 
 	if (m_bIsVersbose)
@@ -121,7 +121,7 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
 {
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(DEFAULT_ACCENT_COL, "({}) ", pluginName);
+		fmt::print(DEFAULT_ACCENT_COL, "{} ({}) ", GetLocalTime(), pluginName);
 		fmt::print("{}\n", strMessage);
 	}
 
