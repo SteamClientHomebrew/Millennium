@@ -59,7 +59,7 @@
     {
       "name": "linux",
       "inherits": "default",
-      "generator": "Unix Makefiles",
+      "generator": "Ninja",
       "displayName": "linux-x86",
       "description": "Default build for Linux",
       "cacheVariables": {
