@@ -42,6 +42,7 @@ namespace CoInitializer
 		using EventCallback = std::function<void()>;
 
 		void RegisterForLoad(EventCallback callback);
+		void StatusDipatch();
 		void BackendLoaded(PluginTypeSchema plugin);
 		void Reset();
 
@@ -58,6 +59,7 @@ namespace CoInitializer
 			ON_BACKEND_READY_EVENT
 		};
 
+		bool isReadyForCallback = false;
 		std::vector<PluginTypeSchema> emittedPlugins;
 		std::vector<eEvents> missedEvents;
 		std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
