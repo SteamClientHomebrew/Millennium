@@ -41,6 +41,21 @@ class CEFBrowser
     uint16_t m_ftpPort, m_ipcPort;
 public:
 
+    const void HandleConsoleMessage(const nlohmann::json& json)
+    {
+        try
+        {
+            if (json["params"]["message"]["level"] == "error")
+            {
+                const auto data = json["params"]["message"];
+
+                std::string traceMessage = fmt::format("{}:{}:{}", data["url"].get<std::string>(), data["line"].get<int>(), data["column"].get<int>());
+                Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", data["text"].get<std::string>(), traceMessage);
+            }
+        }
+        catch (const std::exception& e) { }
+    }
+
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
@@ -69,17 +84,7 @@ public:
         }
         if (method == "Console.messageAdded") 
         {
-            try
-            {
-                if (json["params"]["message"]["level"] == "error")
-                {
-                    const auto data = json["params"]["message"];
-
-                    std::string traceMessage = fmt::format("{}:{}:{}", data["url"].get<std::string>(), data["line"].get<int>(), data["column"].get<int>());
-                    Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", data["text"].get<std::string>(), traceMessage);
-                }
-            }
-            catch (const std::exception& e) { }
+            this->HandleConsoleMessage(json);
         }
         else if (method.find("Debugger") == std::string::npos) 
         {        
@@ -196,7 +201,6 @@ const void StartPreloader(PythonManager& manager)
     manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin) 
     {
         Logger.Log("Started Preloader...", plugin.pluginName);
-
         const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
