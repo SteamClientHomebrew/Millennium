@@ -171,8 +171,18 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
     return true;
 }
 
+bool isInterpreterBusy(PyInterpreterState *interp) 
+{
+    PyThreadState *tstate = PyInterpreterState_ThreadHead(interp);
+    return (tstate != NULL);
+}
+
 bool PythonManager::ShutdownPlugin(std::string plugin_name)
 {
+    pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    Logger.Log("Shutting down [{}]...", plugin_name);
+
     bool successfulShutdown = false;
 
     for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); ++it) 
@@ -209,15 +219,24 @@ bool PythonManager::ShutdownPlugin(std::string plugin_name)
             successfulShutdown = false;
         }
 
-        if (PyRun_SimpleString("raise SystemExit") != 0)
+        std::cout << "unload() finished!" << std::endl;
+
+        if (isInterpreterBusy(threadState->interp)) 
         {
-            PyErr_Print();
-            LOG_ERROR("millennium failed to shutdown [{}]", plugin_name);
+            LOG_ERROR("interpreter was busy after unload() was called");
             successfulShutdown = false;
+            break;
         }
 
+        // if (PyRun_SimpleString("raise SystemExit") != 0)
+        // {
+        //     PyErr_Print();
+        //     LOG_ERROR("millennium failed to shutdown [{}]", plugin_name);
+        //     successfulShutdown = false;
+        // }
+
+        Py_EndInterpreter(threadState);
         pythonGilLock->ReleaseAndUnLockGIL();
-        //Py_EndInterpreter(threadState);
 
         this->m_pythonInstances.erase(it);
         break;
@@ -231,6 +250,10 @@ bool PythonManager::ShutdownPlugin(std::string plugin_name)
         {
             Logger.Log(plugin.pluginName);
         }
+    }
+    else
+    {
+        Logger.Warn("Failed to shut down [{}].", plugin_name);
     }
 
     return true;
