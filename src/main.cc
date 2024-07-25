@@ -38,17 +38,9 @@ public:
     Preload() 
     {
         this->VerifyEnvironment();
-        #if _WIN32
-        //PauseSteamCore();
-        #endif
     }
 
-    ~Preload() 
-    {
-        #if _WIN32
-        //UnpauseSteamCore();
-        #endif
-    }
+    ~Preload() { }
 
     const void VerifyEnvironment() 
     {
