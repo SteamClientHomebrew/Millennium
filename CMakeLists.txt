@@ -34,6 +34,7 @@ endif()
 
 # build boxer (message-box lib)
 add_subdirectory(vendor/boxer)
+add_subdirectory(cli)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
