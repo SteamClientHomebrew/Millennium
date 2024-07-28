@@ -34,7 +34,6 @@ endif()
 
 # build boxer (message-box lib)
 add_subdirectory(vendor/boxer)
-add_subdirectory(cli)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
@@ -56,6 +55,8 @@ add_compile_definitions(
   FMT_HEADER_ONLY
   _CRT_SECURE_NO_WARNINGS
 )
+
+add_subdirectory(cli)
 
 find_package(CURL REQUIRED) # used for web requests. 
 find_package(unofficial-libgit2 CONFIG REQUIRED)

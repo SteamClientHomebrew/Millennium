@@ -17,7 +17,9 @@
 #include <cstdlib>
 #include <cstdio>
 #endif
+#ifndef MILLENNIUM_CLI
 #include <boxer/boxer.h>
+#endif
 #include <procmon/cmd.h>
 
 class SocketHelpers
@@ -174,10 +176,13 @@ public:
             websocketpp::client<websocketpp::config::asio_client>*,
             websocketpp::connection_hdl,
             std::shared_ptr<websocketpp::config::core_client::message_type>)> onMessage;
+
+        bool bAutoReconnect = true;
     };
 
     const void VerifySteamConnection()
     {
+        #ifndef MILLENNIUM_CLI
         auto [canConnect, processName] = this->GetSteamConnectionProps();
 
         if (!canConnect)
@@ -191,6 +196,7 @@ public:
             boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
             std::exit(1);
         }
+        #endif
     }
 
     SocketHelpers() : debuggerPort(GetDebuggerPort())
@@ -201,6 +207,7 @@ public:
 
     const std::string GetSteamBrowserContext()
     {
+        #ifndef MILLENNIUM_CLI
         try
         {
             std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
@@ -216,11 +223,14 @@ public:
             boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
             std::exit(1);
         }
+        #else
+        return {};
+        #endif
     }
 
     void ConnectSocket(ConnectSocketProps socketProps)
     {
-        const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
+        const auto [commonName, fetchSocketUrl, onConnect, onMessage, bAutoReconnect] = socketProps;
 
         while (true)
         {
@@ -256,6 +266,11 @@ public:
 
             Logger.Log("Disconnected from [{}] module...", commonName);
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+            if (!bAutoReconnect)
+            {
+                break;
+            }
         }
     }
 };
