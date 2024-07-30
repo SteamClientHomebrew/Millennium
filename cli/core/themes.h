@@ -8,8 +8,7 @@
 #include <memory>
 #include <cxxabi.h>
 
-std::vector<std::string> split(const std::string& str, char delimiter) 
-{
+std::vector<std::string> split(const std::string& str, char delimiter) {
     std::vector<std::string> tokens;
     std::string token;
     std::istringstream tokenStream(str);
@@ -19,8 +18,7 @@ std::vector<std::string> split(const std::string& str, char delimiter)
     return tokens;
 }
 
-std::string CleanKey(const std::string& key) 
-{
+std::string CleanKey(const std::string& key) {
     std::string cleanedKey = std::regex_replace(key, std::regex("[^a-zA-Z0-9 ]"), "");
     std::replace(cleanedKey.begin(), cleanedKey.end(), ' ', '_');
     std::transform(cleanedKey.begin(), cleanedKey.end(), cleanedKey.begin(), ::tolower);
@@ -38,15 +36,12 @@ std::string getSimplifiedTypeName() {
 }
 
 template <typename T>
-void SetValueFromFlattenedKey(nlohmann::json& j, const std::string& flattenedKey, T newValue) 
-{
+void SetValueFromFlattenedKey(nlohmann::json& j, const std::string& flattenedKey, T newValue) {
     std::vector<std::string> keys = split(flattenedKey, '.');
     nlohmann::json* current = &j;
 
-    for (const std::string& key : keys) 
-    {
-        for (auto it = current->begin(); it != current->end(); ++it) 
-        {
+    for (const std::string& key : keys) {
+        for (auto it = current->begin(); it != current->end(); ++it) {
             std::string cleanedKey = CleanKey(it.key());
             if (cleanedKey != key) {
                 continue;
@@ -69,9 +64,9 @@ void SetValueFromFlattenedKey(nlohmann::json& j, const std::string& flattenedKey
 }
 
 void FlattenStructure(const nlohmann::json& j, const std::string targetKey = {}, const std::string& prefix = "") {
-    for (auto it = j.begin(); it != j.end(); ++it) 
-    {
+    for (auto it = j.begin(); it != j.end(); ++it) {
         std::string cleanedKey = CleanKey(it.key());
+
         if (it->is_structured()) {
             FlattenStructure(*it, targetKey, prefix + cleanedKey + ".");
         } 
@@ -84,14 +79,14 @@ void FlattenStructure(const nlohmann::json& j, const std::string targetKey = {},
             else                              typePrefix = WHITE;
 
             if (!targetKey.empty() && prefix + cleanedKey != targetKey) continue;
-
             std::cout << BOLD << prefix + cleanedKey << RESET << " = " << typePrefix << it.value() << RESET << std::endl;
         }
     }
 }
 
 void GetThemeConfig(std::string key) {
-    nlohmann::json themeConfig = SystemIO::ReadJsonSync("/home/shadow/.steam/steam/ext/themes.json");
+    std::string themeConfigPath = (SystemIO::GetSteamPath() / "ext" / "themes.json").generic_string();
+    nlohmann::json themeConfig = SystemIO::ReadJsonSync(themeConfigPath);
 
     if (key.empty()) {
         FlattenStructure(themeConfig);
@@ -108,9 +103,10 @@ void GetThemeConfig(std::string key) {
 template <typename T>
 void SetThemeConfig(std::string key, T value) {
 
-    nlohmann::json themeConfig = SystemIO::ReadJsonSync("/home/shadow/.steam/steam/ext/themes.json");
+    std::string themeConfigPath = (SystemIO::GetSteamPath() / "ext" / "themes.json").generic_string();
+    nlohmann::json themeConfig = SystemIO::ReadJsonSync(themeConfigPath);
     SetValueFromFlattenedKey(themeConfig, key, value);
     FlattenStructure(themeConfig, key);
 
-    SystemIO::WriteFileSync("/home/shadow/.steam/steam/ext/themes.json", themeConfig.dump(4));
+    SystemIO::WriteFileSync(themeConfigPath, themeConfig.dump(4));
 }

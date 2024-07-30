@@ -182,7 +182,38 @@ public:
     }
 };
 
+#ifdef _WIN32
+std::string GetSteamPathFromRegistry() {
+    HKEY hKey;
+    char value[512];
+    DWORD valueLength = sizeof(value);
+    LONG result;
+
+    result = RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &hKey);
+    if (result != ERROR_SUCCESS) {
+        std::cerr << "Error opening registry key: " << result << std::endl;
+        return {};
+    }
+
+    result = RegQueryValueExA(hKey, "SteamPath", nullptr, nullptr, (LPBYTE)value, &valueLength);
+    if (result != ERROR_SUCCESS) {
+        std::cerr << "Error reading registry value: " << result << std::endl;
+        RegCloseKey(hKey);
+        return {};
+    }
+
+    RegCloseKey(hKey);
+    return std::string(value, valueLength - 1);
+}
+#endif
+
 int main(int argc, char* argv[]) {
+
+    // read steam path from registry
+    #ifdef _WIN32
+    SetEnvironmentVariable("SteamPath", GetSteamPathFromRegistry().c_str());
+    #endif
+
     std::unique_ptr<Millennium> millennium = std::make_unique<Millennium>();
     millennium->Parse(argc, argv);
     return millennium->Run();

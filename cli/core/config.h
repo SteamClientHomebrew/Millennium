@@ -5,8 +5,9 @@
 #include <util/ansi.h>
 #include <mini/ini.h>
 #include <logger/log.h>
+#include <sys/locals.h>
 
-constexpr const char* configPath = "/home/shadow/.steam/steam/ext/millennium.ini";
+std::string configPath = (SystemIO::GetSteamPath() / "ext" / "millennium.ini").generic_string();
 
 static std::tuple<mINI::INIFile, mINI::INIStructure> GetConfigFile() {
     mINI::INIFile file(configPath);
