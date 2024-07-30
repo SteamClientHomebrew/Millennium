@@ -27,12 +27,8 @@ public:
 
     void ListAllPlugins() {
         for (const auto& plugin : m_allPlugins) {
-            if (std::find(m_enabledPlugins.begin(), m_enabledPlugins.end(), plugin.pluginName) != m_enabledPlugins.end()) {
-                std::cout << plugin.pluginName << " - " << BOLD << GREEN << "enabled" << RESET << std::endl;
-            }
-            else {
-                std::cout << plugin.pluginName << " - " << BOLD << RED << "disabled" << RESET << std::endl;
-            }
+            const bool bIsEnabled = std::find(m_enabledPlugins.begin(), m_enabledPlugins.end(), plugin.pluginName) != m_enabledPlugins.end();
+            std::cout << plugin.pluginName << " - " << BOLD << (bIsEnabled ? GREEN + std::string("enabled") : RED + std::string("disabled")) << RESET << std::endl;
         }
     }
 

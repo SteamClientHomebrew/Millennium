@@ -22,8 +22,8 @@ void GetConfig(std::string field) {
     const bool bFindField = !field.empty();
 
     for (auto const& it : ini) {
-        auto const& section = it.first;
-        auto const& collection = it.second;
+        const std::string& section = it.first;
+        const mINI::INIMap<std::string>& collection = it.second;
 
         if (!bFindField) std::cout << BOLD << section << RESET << "\n" << std::endl;
 
