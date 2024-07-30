@@ -17,7 +17,7 @@
 
 #define LOG_FAIL(msg) \
     if (LOG_LEVEL >= LOG_LEVEL_FAIL) { \
-        std::cout << BOLD << RED << "FAIL " << RESET << msg << std::endl; \
+        std::cerr << BOLD << RED << "FAIL " << RESET << msg << std::endl; \
     }
 
 #define LOG_INFO(msg) \

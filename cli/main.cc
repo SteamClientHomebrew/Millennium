@@ -8,34 +8,6 @@
 #include <util/reload_steam.h>
 #include <util/restart_steam.h>
 
-std::variant<std::string, int, bool, double> DeduceOptionType(CLI::Option* option) {
-    const auto strType = option->as<std::string>();
-
-    if (strType == "true" || strType == "false") {
-        return option->as<bool>();
-    } else if (strType.find('.') != std::string::npos) {
-        return option->as<double>();
-    } else if (std::all_of(strType.begin(), strType.end(), ::isdigit)) {
-        return option->as<int>();
-    } else {
-        return option->as<std::string>();
-    }
-}
-
-template<typename T>
-void SetThemeConfigHelper(const std::string& themeField, const T& value) {
-    SetThemeConfig(themeField, value);
-}
-
-void ProcessThemeConfig(CLI::Option* themeField, CLI::Option* themeValue) {
-    auto value = DeduceOptionType(themeValue);
-    const auto themeFieldStr = themeField->as<std::string>();
-
-    std::visit([&themeFieldStr](auto&& arg) {
-        SetThemeConfigHelper(themeFieldStr, arg);
-    }, value);
-}
-
 class Millennium {
 private:
     int argumentCount;
@@ -49,8 +21,8 @@ private:
     CLI::App* config;
     CLI::Option* configField, *configValue;
 
-    CLI::App* themeConfig;
-    CLI::Option* themeField, *themeValue;
+    CLI::App* themes, *use, *theme_list, *theme_current;
+    CLI::Option* use_theme_name, *themeValue;
 
     CLI::App* steam, *restart, *reload;
 
@@ -70,21 +42,20 @@ public:
             this->list_enabled = list->add_flag("-e,--enabled", "List all enabled plugins.");
             this->list_disabled = list->add_flag("-d,--disabled", "List all disabled plugins.");
 
-        this->themes = app->add_subcommand("plugins", "Interface with Millenniums plugin system."); 
-        this->use = themes->add_subcommand("use", "Use a specific theme"); 
-        this->use_theme_name = use->add_option("theme_name", "Name of the theme to enable")->required();
+        this->themes = app->add_subcommand("themes", "Customize & manage your theme settings."); 
+            this->use = themes->add_subcommand("use", "Use a specific theme"); 
+                this->use_theme_name = use->add_option("theme_name", "Name of the theme to enable")->required();
             
-        this->theme_list = themes->add_subcommand("list", "List all plugins and their status"); 
-            this->list_enabled = theme_list->add_flag("-e,--enabled", "List all enabled plugins.");
-            this->list_disabled = theme_list->add_flag("-d,--disabled", "List all disabled plugins.");
-
+            this->theme_list = themes->add_subcommand("list", "List all found user themes."); 
+            this->theme_current = themes->add_subcommand("current", "Print the current active theme and exit."); 
+            
         this->config = app->add_subcommand("config", "Interact with your local Millennium configuration."); 
             this->configField = config->add_option("field", "Print a specific fields value");
             this->configValue = config->add_option("value", "Assign a value to a field");
         
-        this->themeConfig = app->add_subcommand("theme_config", "Interact with your theme settings."); 
-            this->themeField = themeConfig->add_option("field", "Print a specific fields value");
-            this->themeValue = themeConfig->add_option("value", "Assign a value to a field");
+        // this->themeConfig = app->add_subcommand("theme_config", "Interact with your theme settings."); 
+        //     this->themeField = themeConfig->add_option("field", "Print a specific fields value");
+        //     this->themeValue = themeConfig->add_option("value", "Assign a value to a field");
         
         this->steam = app->add_subcommand("steam", "Interact with your local Steam installation."); 
             this->restart = steam->add_subcommand("restart", "Restart the Steam client");
@@ -93,7 +64,12 @@ public:
 
     int Parse(int argc, char* argv[]) {
         this->argumentCount = argc;
-        CLI11_PARSE(*app, argc, argv);
+        try {
+            (*app).parse(argc, argv); 
+        } 
+        catch(const CLI::ParseError &e) { 
+            return (*app).exit(e); 
+        }
         return 0;
     }
 
@@ -148,16 +124,17 @@ public:
     }
 
     int ThemeConfig() {
-        if (!themeValue->as<std::string>().empty()) {
-            try {   
-                ProcessThemeConfig(themeField, themeValue);
-            }
-            catch(const std::exception& e){
-                LOG_FAIL(e.what());
-            } 
+        if (theme_list->parsed()) {
+            PrintAllThemes();
+        }
+        else if (theme_current->parsed()) {
+            PrintCurrentTheme();
+        }
+        else if (use->parsed()) {
+            //SetTheme(use_theme_name->as<std::string>());
         }
         else {
-            GetThemeConfig(themeField->as<std::string>());
+            std::cout << themes->help();
         }
         return 0;
     }
@@ -173,10 +150,10 @@ public:
             return 0;
         }
 
-        if (steam->parsed())       return this->Steam();
-        if (config->parsed())      return this->Config();
-        if (themeConfig->parsed()) return this->ThemeConfig();
-        if (plugins->parsed())     return this->Plugins();
+        if (steam->parsed())   return this->Steam();
+        if (config->parsed())  return this->Config();
+        if (themes->parsed())  return this->ThemeConfig();
+        if (plugins->parsed()) return this->Plugins();
         
         return 0;
     }
@@ -215,6 +192,8 @@ int main(int argc, char* argv[]) {
     #endif
 
     std::unique_ptr<Millennium> millennium = std::make_unique<Millennium>();
-    millennium->Parse(argc, argv);
+    int parseResult = millennium->Parse(argc, argv);
+
+    if (parseResult != 0) return parseResult;
     return millennium->Run();
 }
