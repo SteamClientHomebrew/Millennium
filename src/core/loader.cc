@@ -19,8 +19,13 @@ std::string sharedJsContextSessionId;
 
 bool Sockets::PostShared(nlohmann::json data) 
 {
+    if (sharedJsContextSessionId.empty()) 
+    {
+        LOG_ERROR("not connected to shared js context, cant post message");
+        return false;
+    }
+
     data["sessionId"] = sharedJsContextSessionId;
-    //Logger.Log(data.dump(4));
     return Sockets::PostGlobal(data);
 }
 
@@ -61,16 +66,10 @@ public:
         const auto json = nlohmann::json::parse(msg->get_payload());
         const std::string method = json.value("method", std::string());
         
-        // if (json.contains("method")) 
-        // {
-        // }
-        //Logger.Log(json.dump(4));
-
-        if (method == "Target.targetCreated" || method == "Target.targetInfoChanged")
+        if (method == "Target.targetCreated")
         {
             const auto targetInfo = json["params"]["targetInfo"];
-
-            if (targetInfo["title"] == "SharedJSContext" && targetInfo["attached"] == false) 
+            if (targetInfo["title"] == "SharedJSContext") 
             {
                 Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, 
                     { "params", { { "targetId", targetInfo["targetId"] }, { "flatten", true } } } 
