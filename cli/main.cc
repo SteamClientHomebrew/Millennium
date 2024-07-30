@@ -69,7 +69,15 @@ public:
         this->list = plugins->add_subcommand("list", "List all plugins and their status"); 
             this->list_enabled = list->add_flag("-e,--enabled", "List all enabled plugins.");
             this->list_disabled = list->add_flag("-d,--disabled", "List all disabled plugins.");
-        
+
+        this->themes = app->add_subcommand("plugins", "Interface with Millenniums plugin system."); 
+        this->use = themes->add_subcommand("use", "Use a specific theme"); 
+        this->use_theme_name = use->add_option("theme_name", "Name of the theme to enable")->required();
+            
+        this->theme_list = themes->add_subcommand("list", "List all plugins and their status"); 
+            this->list_enabled = theme_list->add_flag("-e,--enabled", "List all enabled plugins.");
+            this->list_disabled = theme_list->add_flag("-d,--disabled", "List all disabled plugins.");
+
         this->config = app->add_subcommand("config", "Interact with your local Millennium configuration."); 
             this->configField = config->add_option("field", "Print a specific fields value");
             this->configValue = config->add_option("value", "Assign a value to a field");
