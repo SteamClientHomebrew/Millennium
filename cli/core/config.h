@@ -4,7 +4,7 @@
 #include <vector>
 #include <util/ansi.h>
 #include <mini/ini.h>
-#include <logger/log.h>
+#include <util/log.h>
 #include <sys/locals.h>
 
 std::string configPath = (SystemIO::GetSteamPath() / "ext" / "millennium.ini").generic_string();
@@ -34,7 +34,7 @@ void GetConfig(std::string field) {
 
             if (!bFindField) std::cout << "  " << key << " = " << value << std::endl;
             if (key == field) std::cout << value << std::endl;
-            if (!bFindField && iteration == collection.size()) std::cout << std::endl;
+            if (!bFindField && (size_t)iteration == collection.size()) std::cout << std::endl;
 
             iteration++;
         }

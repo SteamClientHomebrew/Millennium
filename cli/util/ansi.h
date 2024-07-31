@@ -11,3 +11,4 @@
 #define CYAN "\033[36m"
 #define WHITE "\033[37m"
 #define GREY "\033[90m"
+#define PURPLE "\033[95m"

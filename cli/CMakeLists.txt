@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 3.5.0)
 project(CLI)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/ini/src
@@ -29,10 +27,10 @@ add_compile_definitions(
 
 # Add your source files here
 set(SOURCES 
-    main.cc
-    ${CMAKE_SOURCE_DIR}/src/sys/settings.cc
-    ${CMAKE_SOURCE_DIR}/src/sys/io.cc
-    ${CMAKE_SOURCE_DIR}/src/sys/log.cc
+  main.cc
+  ${CMAKE_SOURCE_DIR}/src/sys/settings.cc
+  ${CMAKE_SOURCE_DIR}/src/sys/io.cc
+  ${CMAKE_SOURCE_DIR}/src/sys/log.cc
 )
 find_package(CLI11 CONFIG REQUIRED)
 
@@ -44,9 +42,6 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections")
   # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} Wl,--gc-sections -s")
 endif()
-
-message(STATUS "Compile options: ${CMAKE_CXX_FLAGS}")
-message(STATUS "Link options: ${CMAKE_EXE_LINKER_FLAGS}")
 
 target_link_libraries(CLI PRIVATE CLI11::CLI11 CURL::libcurl)
 set_target_properties(CLI PROPERTIES OUTPUT_NAME "millennium")

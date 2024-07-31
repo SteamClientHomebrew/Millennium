@@ -5,8 +5,7 @@
 #include <core/plugins.h>
 #include <core/config.h>
 #include <core/themes.h>
-#include <util/reload_steam.h>
-#include <util/restart_steam.h>
+#include <util/steam.h>
 
 class Millennium {
 private:
@@ -22,9 +21,13 @@ private:
     CLI::Option* configField, *configValue;
 
     CLI::App* themes, *use, *theme_list, *theme_current;
+    CLI::App* theme_config, *theme_colors;
+    CLI::Option* theme_config_name, *theme_colors_name;
+
     CLI::Option* use_theme_name, *themeValue;
 
-    CLI::App* steam, *restart, *reload;
+    CLI::App* apply;
+    CLI::Option* force;
 
 public:
     Millennium() {
@@ -48,6 +51,11 @@ public:
             
             this->theme_list = themes->add_subcommand("list", "List all found user themes."); 
             this->theme_current = themes->add_subcommand("current", "Print the current active theme and exit."); 
+
+            this->theme_config = themes->add_subcommand("config", "Interact with your theme settings."); 
+                this->theme_config_name = theme_config->add_option("theme_name", "Name of the theme to configure")->required();
+            this->theme_colors = themes->add_subcommand("colors", "Interact with your theme colors."); 
+                this->theme_colors_name = theme_colors->add_option("theme_name", "Name of the theme to configure")->required();
             
         this->config = app->add_subcommand("config", "Interact with your local Millennium configuration."); 
             this->configField = config->add_option("field", "Print a specific fields value");
@@ -57,9 +65,8 @@ public:
         //     this->themeField = themeConfig->add_option("field", "Print a specific fields value");
         //     this->themeValue = themeConfig->add_option("value", "Assign a value to a field");
         
-        this->steam = app->add_subcommand("steam", "Interact with your local Steam installation."); 
-            this->restart = steam->add_subcommand("restart", "Restart the Steam client");
-            this->reload = steam->add_subcommand("reload", "Reload the Steam client interface");
+        this->apply = app->add_subcommand("apply", "Apply configuration changes."); 
+        this->force = this->apply->add_flag("-f,--force", "Force apply changes by restarting Steam.");
     }
 
     int Parse(int argc, char* argv[]) {
@@ -74,16 +81,17 @@ public:
     }
 
     int Steam() {
-        if (restart->parsed()) {
-            RestartSteam();
+        if (apply->parsed()) {
+            if (force->as<bool>()) {
+                ForceRestartSteam();
+            }
+            else {
+                ReloadSteam();
+            }
             return 0;
         }
-        else if (reload->parsed()) {
-            ReloadSteam();
-            return 0;
-        }
-
-        std::cout << steam->help();
+        
+        std::cout << apply->help();
         return 0;
     }
 
@@ -131,7 +139,13 @@ public:
             PrintCurrentTheme();
         }
         else if (use->parsed()) {
-            //SetTheme(use_theme_name->as<std::string>());
+            SetTheme(use_theme_name->as<std::string>());
+        }
+        else if (theme_config->parsed() && !theme_config_name->as<std::string>().empty()) {
+            PrintThemeConfig(theme_config_name->as<std::string>());
+        }
+        else if (theme_colors->parsed() && !theme_colors_name->as<std::string>().empty()) {
+            std::cout << "theme_colors" << std::endl;
         }
         else {
             std::cout << themes->help();
@@ -150,7 +164,7 @@ public:
             return 0;
         }
 
-        if (steam->parsed())   return this->Steam();
+        if (apply->parsed())   return this->Steam();
         if (config->parsed())  return this->Config();
         if (themes->parsed())  return this->ThemeConfig();
         if (plugins->parsed()) return this->Plugins();
