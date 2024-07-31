@@ -36,16 +36,6 @@ namespace Http
                     break;
                 }
 
-                switch (res) 
-                {
-                    case CURLE_OPERATION_TIMEDOUT: LOG_ERROR("Operation timed out: {}", curl_easy_strerror(res)); break;
-                    case CURLE_COULDNT_CONNECT: LOG_ERROR("Couldn't connect to server: {}", curl_easy_strerror(res)); break;
-                    case CURLE_SSL_CONNECT_ERROR: LOG_ERROR("SSL connection error: {}", curl_easy_strerror(res)); break;
-                    case CURLE_PEER_FAILED_VERIFICATION: LOG_ERROR("Peer failed verification: {}", curl_easy_strerror(res)); break;
-                    case CURLE_GOT_NOTHING: LOG_ERROR("Got nothing: {}", curl_easy_strerror(res)); break;
-                    default: LOG_ERROR("curl_easy_perform() failed: {}", curl_easy_strerror(res)); break;
-                }
-
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
             }
             curl_easy_cleanup(curl);
