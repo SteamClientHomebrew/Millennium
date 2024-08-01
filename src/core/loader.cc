@@ -12,6 +12,7 @@
 #include <sys/log.h>
 
 using namespace std::placeholders;
+using namespace std::chrono;
 websocketpp::client<websocketpp::config::asio_client>*browserClient;
 websocketpp::connection_hdl browserHandle;
 
@@ -45,6 +46,8 @@ class CEFBrowser
     WebkitHandler webKitHandler;
     uint16_t m_ftpPort, m_ipcPort;
     bool m_sharedJsConnected = false;
+
+    std::chrono::system_clock::time_point m_startTime;
 public:
 
     const void HandleConsoleMessage(const nlohmann::json& json)
@@ -73,6 +76,7 @@ public:
         { 
             const auto targets = json["result"]["targetInfos"];
             auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
+            
             if (targetIterator != targets.end() && !m_sharedJsConnected) 
             {
                 Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, 
@@ -110,15 +114,15 @@ public:
     const void onSharedJsConnect()
     {
         std::thread([this]() {
-            Logger.Log("Connected to SharedJSContext");
+            Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
             CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
-
             Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
         }).detach();
     }
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
     {
+        m_startTime = std::chrono::system_clock::now();
         browserClient = client; 
         browserHandle = handle;
 
