@@ -18,7 +18,7 @@ bool GetThemeJson(std::string themeName, nlohmann::json& json) {
     }
 
     bool success = false;
-    json = SystemIO::ReadJsonSync(themesDirectory / themeName / "skin.json", &success);
+    json = SystemIO::ReadJsonSync((themesDirectory / themeName / "skin.json").string(), &success);
     if (!success) {
         LOG_FAIL("Failed to parse theme information.");
         return false;
@@ -29,7 +29,7 @@ bool GetThemeJson(std::string themeName, nlohmann::json& json) {
 nlohmann::json GetThemeDataJson() {
     const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
     bool success = false;
-    const auto json = SystemIO::ReadJsonSync(themeDataPath, &success);
+    const auto json = SystemIO::ReadJsonSync(themeDataPath.string(), &success);
     if (!success) {
         LOG_FAIL("Failed to read themes.json");
         return {};
@@ -37,13 +37,13 @@ nlohmann::json GetThemeDataJson() {
     return json;
 }
 
-void PrintAllThemes() {
+int PrintAllThemes() {
     std::vector<std::tuple<std::string, std::string>> themes;
     const auto themes_dir = SystemIO::GetSteamPath() / "steamui" / "skins";
 
     if (!std::filesystem::exists(themes_dir)) {
         LOG_FAIL("Themes directory does not exist");
-        return;
+        return 1;
     }
 
     for (const auto& entry : std::filesystem::directory_iterator(themes_dir)) {
@@ -73,9 +73,11 @@ void PrintAllThemes() {
         // else 
         //     std::cout << std::endl;     
     }
+
+    return 0;
 }
 
-void PrintCurrentTheme() {
+int PrintCurrentTheme() {
     const auto activeTheme = GetThemeDataJson()["active"].get<std::string>();
     fmt::print("{}\n", activeTheme);
 
@@ -83,78 +85,102 @@ void PrintCurrentTheme() {
     if (!GetThemeJson(activeTheme, themeJson)) {
         LOG_WARN("Active theme could not be found on the disk, rendering it invalid.");
     }
+    return 0;
 }
 
-void SetTheme(std::string themeName) {
+int SetTheme(std::string themeName) {
     const auto themesDirectory = SystemIO::GetSteamPath() / "steamui" / "skins";
     const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
 
     bool success = false;
-    nlohmann::json json = SystemIO::ReadJsonSync(themeDataPath, &success);
+    nlohmann::json json = SystemIO::ReadJsonSync(themeDataPath.string(), &success);
     if (!success) {
         LOG_FAIL("Failed to read themes.json");
-        return;
+        return 1;
     }
 
     if (!json.contains("active") || !json["active"].is_string()) {
         LOG_FAIL("No active theme found.");
-        return;
+        return 1;
     }
 
     if (!std::filesystem::exists(themesDirectory / themeName)) {
         LOG_FAIL("Theme directory does not exist.");
-        return;
+        return 1;
     }
 
     json["active"] = themeName;
     SystemIO::WriteFileSync(themeDataPath, json.dump(4));
     LOG_INFO("Your current theme is now " << themeName << "\nTo apply changes run:\nmillennium apply");
+    return 0;
 }
 
-void PrintThemeConfig(const std::string& themeName) {
+int PrintThemeConfig(const std::string& themeName) {
     const auto themesDir = SystemIO::GetSteamPath() / "steamui" / "skins" / themeName;
     const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
 
     if (!std::filesystem::exists(themesDir)) {
         LOG_FAIL("Theme directory does not exist.");
-        return;
+        return 1;
     }
 
     bool success;
-    auto themeJson = SystemIO::ReadJsonSync(themesDir / "skin.json", &success);
+    auto themeJson = SystemIO::ReadJsonSync((themesDir / "skin.json").string(), &success);
     if (!success) {
         LOG_FAIL("Failed to read skin.json");
-        return;
+        return 1;
     }
 
-    auto themeDataJson = SystemIO::ReadJsonSync(themeDataPath, &success);
+    auto themeDataJson = SystemIO::ReadJsonSync((themeDataPath).string(), &success);
     if (!success) {
         LOG_FAIL("Failed to read themes.json");
-        return;
+        return 1;
     }
 
     if (!themeDataJson.value("conditions", nlohmann::json{}).contains(themeName)) {
         LOG_FAIL(themeName << " does not contain any configurable options.");
-        return;
+        return 1;
     }
 
     for (const auto& [key, value] : themeDataJson["conditions"][themeName].items()) {
         try {
-            fmt::print("\n{}{}{} = {}\n", PURPLE, key, RESET, value.dump());
+            fmt::print("\n{} = {}\n", key, value.dump());
 
             if (themeJson.contains("Conditions") && themeJson["Conditions"].contains(key)) {
                 std::string description = themeJson["Conditions"][key].value("description", std::string{});
                 std::string defaultVal = themeJson["Conditions"][key].value("default", std::string{});
 
-                fmt::print("{}{}\nValues: [", GREY, description);
+                fmt::print("    Values: [");
                 for (const auto& [key, _] : themeJson["Conditions"][key]["values"].items()) 
                     fmt::print("{}, ", key);
 
-                fmt::print("\b\b] Default: [{}]{}\n", defaultVal, RESET);
+                fmt::print("\b\b] Default: [{}]\n", defaultVal);
             }
         }
         catch (const std::exception& e) {
             LOG_FAIL("Failed to print theme config for " << key << " with error: " << e.what());
         }
     }
+    return 0;
+}
+
+int PrintThemesWithConfig() {
+    const auto themesDir = SystemIO::GetSteamPath() / "steamui" / "skins";
+    const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
+
+    bool success;
+    auto themeDataJson = SystemIO::ReadJsonSync((themeDataPath).string(), &success);
+    if (!success) {
+        LOG_FAIL("Failed to read themes.json");
+        return 1;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(themesDir)) {
+        if (entry.is_directory()) {
+            if (themeDataJson.value("conditions", nlohmann::json{}).contains(entry.path().filename().string())) {
+                fmt::print("{}\n", entry.path().filename().string());
+            }
+        }
+    }
+    return 0;
 }

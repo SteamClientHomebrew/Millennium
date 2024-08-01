@@ -17,33 +17,38 @@ private:
 
 public:
 
-    void DisablePlugin(std::string plugin) {
+    int DisablePlugin(std::string plugin) {
         m_settingsStorePtr->TogglePluginStatus(plugin, false);
+        return 0;
     }
 
-    void EnablePlugin(std::string plugin) {
+    int EnablePlugin(std::string plugin) {
         m_settingsStorePtr->TogglePluginStatus(plugin, true);
+        return 0;
     }
 
-    void ListAllPlugins() {
+    int ListAllPlugins() {
         for (const auto& plugin : m_allPlugins) {
             const bool bIsEnabled = std::find(m_enabledPlugins.begin(), m_enabledPlugins.end(), plugin.pluginName) != m_enabledPlugins.end();
             std::cout << plugin.pluginName << " - " << BOLD << (bIsEnabled ? GREEN + std::string("enabled") : RED + std::string("disabled")) << RESET << std::endl;
         }
+        return 0;
     }
 
-    void ListDisabledPlugins() {
+    int ListDisabledPlugins() {
         for (const auto& plugin : m_allPlugins) {
             if (std::find(m_enabledPlugins.begin(), m_enabledPlugins.end(), plugin.pluginName) == m_enabledPlugins.end()) {
                 std::cout << plugin.pluginName << std::endl;
             }
         }
+        return 0;
     }
 
-    void ListEnabledPlugins() {
+    int ListEnabledPlugins() {
         for (const auto& plugin : m_enabledPlugins) {
             std::cout << plugin << std::endl;
         }
+        return 0;
     }
 
     PluginManager() {

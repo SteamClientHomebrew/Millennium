@@ -4,26 +4,21 @@ project(CLI)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Optimize for size
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections -fno-rtti")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s -static -Wl,--gc-sections")
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/ini/src
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
-  ${CMAKE_SOURCE_DIR}/vendor/websocketpp
   ${CMAKE_SOURCE_DIR}/vendor/fmt/include
-  ${CMAKE_SOURCE_DIR}/vendor/asio/asio/include
   ${CMAKE_SOURCE_DIR}/cli
   ${CMAKE_SOURCE_DIR}/src
 )
 find_package(CURL REQUIRED)
 
-add_compile_definitions(
-  MILLENNIUM_CLI
-  FMT_HEADER_ONLY
-  _WEBSOCKETPP_CPP11_THREAD_
-  _WEBSOCKETPP_CPP11_TYPE_TRAITS_
-  _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
-  ASIO_STANDALONE
-  ASIO_HAS_STD_INVOKE_RESULT
-)
+add_compile_definitions(MILLENNIUM_CLI FMT_HEADER_ONLY)
 
 # Add your source files here
 set(SOURCES 

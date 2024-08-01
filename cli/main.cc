@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <iostream>
 #include <algorithm> 
 #include <variant>
@@ -7,200 +10,165 @@
 #include <core/themes.h>
 #include <util/steam.h>
 
+#define SUBPARSED(subcommand) (subcommand->parsed())
+#define str(x) (x->as<std::string>())
+#define asbool(x) (x->as<bool>())
+
 class Millennium {
 private:
     int argumentCount;
-    std::unique_ptr<CLI::App> app;
+    std::unique_ptr<CLI::App> m_MillenniumApp;
     CLI::Option* version;
 
-    CLI::App* plugins, *enable, *disable, *list;
-    CLI::Option* list_enabled, *list_disabled;
-    CLI::Option* enable_plugin_name, *disable_plugin_name;
+    CLI::App* sbPlugins, *sbPluginEnable, *sbPluginDisable, *sbPluginList;
+    CLI::Option* optListEnabledPlugins, *optListDisabledPlugins;
+    CLI::Option* optEnablePluginName, *optDisablePluginName;
 
-    CLI::App* config;
+    CLI::App* sbConfig;
     CLI::Option* configField, *configValue;
 
-    CLI::App* themes, *use, *theme_list, *theme_current;
-    CLI::App* theme_config, *theme_colors;
-    CLI::Option* theme_config_name, *theme_colors_name;
+    CLI::App* sbThemes, *sbUseTheme, *sbListThemes, *sbCurrentTheme;
+    CLI::App* sbThemeConfig, *sbThemeColors;
+    CLI::Option* sbThemeConfigName, *optThemeColorsName;
+    CLI::Option* optThemeConfigView;
 
-    CLI::Option* use_theme_name, *themeValue;
+    CLI::Option* optUseThemeName, *themeValue;
 
-    CLI::App* apply;
+    CLI::App* asExecApply;
     CLI::Option* force;
 
 public:
     Millennium() {
-        this->app = std::make_unique<CLI::App>("Millennium@" + std::string(MILLENNIUM_VERSION));
-        this->version = app->add_flag("-v,--version", "Print the version of Millennium");
+        m_MillenniumApp = std::make_unique<CLI::App>("Millennium@" + std::string(MILLENNIUM_VERSION));
+        m_MillenniumApp->footer("Documentation: https://docs.steambrew.app");
+        version = m_MillenniumApp->add_flag("-v,--version", "Print the version of Millennium");
 
-        this->plugins = app->add_subcommand("plugins", "Interface with Millenniums plugin system."); 
-            this->enable = plugins->add_subcommand("enable", "Enable a plugin from its name"); 
-                this->enable_plugin_name = enable->add_option("plugin_name", "Name of the plugin to enable")->required();
+        /** Handle plugins subcommands */
+        sbPlugins = m_MillenniumApp->add_subcommand("plugins", "Interface with Millenniums plugin system.")->require_subcommand(); 
+        {
+            sbPluginEnable = sbPlugins->add_subcommand("enable", "Enable a plugin from its name"); 
+            {
+                optEnablePluginName = sbPluginEnable->add_option("plugin_name", "Name of the plugin to enable")->required();
+            }
             
-            this->disable = plugins->add_subcommand("disable", "Disable a plugin from its name"); 
-                this->disable_plugin_name = disable->add_option("plugin_name", "Name of the plugin to disable")->required();
+            sbPluginDisable = sbPlugins->add_subcommand("disable", "Disable a plugin from its name"); 
+            {
+                optDisablePluginName = sbPluginDisable->add_option("plugin_name", "Name of the plugin to disable")->required();
+            }
             
-        this->list = plugins->add_subcommand("list", "List all plugins and their status"); 
-            this->list_enabled = list->add_flag("-e,--enabled", "List all enabled plugins.");
-            this->list_disabled = list->add_flag("-d,--disabled", "List all disabled plugins.");
+            sbPluginList = sbPlugins->add_subcommand("list", "List all plugins and their status"); 
+            {
+                optListEnabledPlugins  = sbPluginList->add_flag("-e,--enabled", "List all enabled plugins.");
+                optListDisabledPlugins = sbPluginList->add_flag("-d,--disabled", "List all disabled plugins.");
+            }
+        }
 
-        this->themes = app->add_subcommand("themes", "Customize & manage your theme settings."); 
-            this->use = themes->add_subcommand("use", "Use a specific theme"); 
-                this->use_theme_name = use->add_option("theme_name", "Name of the theme to enable")->required();
+        /** Handle themes subcommand */
+        sbThemes = m_MillenniumApp->add_subcommand("themes", "Customize & manage your theme settings.")->require_subcommand(); 
+        {
+            sbUseTheme = sbThemes->add_subcommand("use", "Use a specific theme"); 
+            {
+                optUseThemeName = sbUseTheme->add_option("theme_name", "Name of the theme to enable")->required();
+            }
             
-            this->theme_list = themes->add_subcommand("list", "List all found user themes."); 
-            this->theme_current = themes->add_subcommand("current", "Print the current active theme and exit."); 
+            sbListThemes   = sbThemes->add_subcommand("list", "List all found user themes.");
+            sbCurrentTheme = sbThemes->add_subcommand("current", "Print the current active theme and exit.");
 
-            this->theme_config = themes->add_subcommand("config", "Interact with your theme settings."); 
-                this->theme_config_name = theme_config->add_option("theme_name", "Name of the theme to configure")->required();
-            this->theme_colors = themes->add_subcommand("colors", "Interact with your theme colors."); 
-                this->theme_colors_name = theme_colors->add_option("theme_name", "Name of the theme to configure")->required();
+            sbThemeConfig = sbThemes->add_subcommand("config", "Interact with your theme settings.")->require_option(1); 
+            {
+                sbThemeConfigName  = sbThemeConfig->add_option("theme_name", "Name of the theme to configure");
+                optThemeConfigView = sbThemeConfig->add_flag("-v,--view", "List all themes that have config.");
+            }
+
+            sbThemeColors = sbThemes->add_subcommand("colors", "Interact with your theme colors."); 
+            {
+                optThemeColorsName = sbThemeColors->add_option("theme_name", "Name of the theme to configure")->required();
+            }
+        }
             
-        this->config = app->add_subcommand("config", "Interact with your local Millennium configuration."); 
-            this->configField = config->add_option("field", "Print a specific fields value");
-            this->configValue = config->add_option("value", "Assign a value to a field");
+        /** Handle config commands */
+        sbConfig = m_MillenniumApp->add_subcommand("config", "Interact with your local Millennium configuration."); 
+        {
+            configField = sbConfig->add_option("field", "Print a specific fields value");
+            configValue = sbConfig->add_option("value", "Assign a value to a field");
+        }
         
-        // this->themeConfig = app->add_subcommand("theme_config", "Interact with your theme settings."); 
-        //     this->themeField = themeConfig->add_option("field", "Print a specific fields value");
-        //     this->themeValue = themeConfig->add_option("value", "Assign a value to a field");
-        
-        this->apply = app->add_subcommand("apply", "Apply configuration changes."); 
-        this->force = this->apply->add_flag("-f,--force", "Force apply changes by restarting Steam.");
+        /** Handle apply commands (Restart & Reload) */
+        asExecApply = m_MillenniumApp->add_subcommand("apply", "Apply configuration changes."); 
+        {
+            force = asExecApply->add_flag("-f,--force", "Force apply changes by restarting Steam.");
+        }
     }
 
     int Parse(int argc, char* argv[]) {
-        this->argumentCount = argc;
-        try {
-            (*app).parse(argc, argv); 
-        } 
-        catch(const CLI::ParseError &e) { 
-            return (*app).exit(e); 
-        }
+        argumentCount = argc;
+
+        try                             { (*m_MillenniumApp).parse(argc, argv);  } 
+        catch(const CLI::ParseError &e) { return (*m_MillenniumApp).exit(e);     }
         return 0;
     }
 
     int Steam() {
-        if (apply->parsed()) {
-            if (force->as<bool>()) {
-                ForceRestartSteam();
-            }
-            else {
-                ReloadSteam();
-            }
-            return 0;
-        }
-        
-        std::cout << apply->help();
-        return 0;
+        if (asbool(force)) { return ForceRestartSteam(); }
+        return ReloadSteam();
     }
 
     int Config() {
-        if (!configValue->as<std::string>().empty()) {
-            SetConfig(configField->as<std::string>(), configValue->as<std::string>());
-        }
-        else {
-            GetConfig(configField->as<std::string>());
-        }
-        return 0;
+        if (!str(configValue).empty()) { return SetConfig(str(configField), str(configValue)); } 
+        return GetConfig(str(configField));
     }
 
     int Plugins() {
         std::unique_ptr<PluginManager> pluginManager = std::make_unique<PluginManager>();
 
-        if (enable->parsed()) {
-            pluginManager->EnablePlugin(enable_plugin_name->as<std::string>());
+        if (SUBPARSED(sbPluginEnable) ) { return pluginManager->EnablePlugin(str(optEnablePluginName));   }
+        if (SUBPARSED(sbPluginDisable)) { return pluginManager->DisablePlugin(str(optDisablePluginName)); }
+
+        if (SUBPARSED(sbPluginList)) {
+            if (asbool(optListEnabledPlugins))  { return pluginManager->ListEnabledPlugins();  }
+            if (asbool(optListDisabledPlugins)) { return pluginManager->ListDisabledPlugins(); }
+
+            return pluginManager->ListAllPlugins();
         }
-        else if (disable->parsed()) {
-            pluginManager->DisablePlugin(disable_plugin_name->as<std::string>());
-        }
-        else if (list->parsed()) {
-            if (list_enabled->as<bool>()) {
-                pluginManager->ListEnabledPlugins();
-            }
-            else if (list_disabled->as<bool>()) {
-                pluginManager->ListDisabledPlugins();
-            }
-            else {
-                pluginManager->ListAllPlugins();
-            }
-        }
-        else {
-            std::cout << plugins->help();
-        }
+
         return 0;
     }
 
     int ThemeConfig() {
-        if (theme_list->parsed()) {
-            PrintAllThemes();
+        if (SUBPARSED(sbListThemes)  ) { return PrintAllThemes();                         }
+        if (SUBPARSED(sbCurrentTheme)) { return PrintCurrentTheme();                      }
+        if (SUBPARSED(sbUseTheme)    ) { return SetTheme(str(optUseThemeName));           }
+
+        if (SUBPARSED(sbThemeConfig) ) { 
+            if (!str(sbThemeConfigName).empty()) { return PrintThemeConfig(str(sbThemeConfigName)); }
+            if (asbool(optThemeConfigView))      { return PrintThemesWithConfig();                  }
         }
-        else if (theme_current->parsed()) {
-            PrintCurrentTheme();
-        }
-        else if (use->parsed()) {
-            SetTheme(use_theme_name->as<std::string>());
-        }
-        else if (theme_config->parsed() && !theme_config_name->as<std::string>().empty()) {
-            PrintThemeConfig(theme_config_name->as<std::string>());
-        }
-        else if (theme_colors->parsed() && !theme_colors_name->as<std::string>().empty()) {
-            std::cout << "theme_colors" << std::endl;
-        }
-        else {
-            std::cout << themes->help();
-        }
+        if (SUBPARSED(sbThemeColors) ) { std::cout << "theme_colors" << std::endl; }
+
         return 0;
     }
 
     int Run() {
-        if (this->argumentCount == 1) {
-            std::cout << app->help();
+        if (argumentCount == 1) {
+            std::cout << m_MillenniumApp->help();
             return 0;
         }
 
-        if (version->as<bool>()) {
+        if (asbool(version)) {
             std::cout << MILLENNIUM_VERSION << std::endl;
             return 0;
         }
 
-        if (apply->parsed())   return this->Steam();
-        if (config->parsed())  return this->Config();
-        if (themes->parsed())  return this->ThemeConfig();
-        if (plugins->parsed()) return this->Plugins();
+        if (asExecApply->parsed()) return Steam();
+        if (sbConfig->parsed()   ) return Config();
+        if (sbThemes->parsed()   ) return ThemeConfig();
+        if (sbPlugins->parsed()  ) return Plugins();
         
         return 0;
     }
 };
 
-#ifdef _WIN32
-std::string GetSteamPathFromRegistry() {
-    HKEY hKey;
-    char value[512];
-    DWORD valueLength = sizeof(value);
-    LONG result;
-
-    result = RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &hKey);
-    if (result != ERROR_SUCCESS) {
-        std::cerr << "Error opening registry key: " << result << std::endl;
-        return {};
-    }
-
-    result = RegQueryValueExA(hKey, "SteamPath", nullptr, nullptr, (LPBYTE)value, &valueLength);
-    if (result != ERROR_SUCCESS) {
-        std::cerr << "Error reading registry value: " << result << std::endl;
-        RegCloseKey(hKey);
-        return {};
-    }
-
-    RegCloseKey(hKey);
-    return std::string(value, valueLength - 1);
-}
-#endif
-
 int main(int argc, char* argv[]) {
-
-    // read steam path from registry
     #ifdef _WIN32
     SetEnvironmentVariable("SteamPath", GetSteamPathFromRegistry().c_str());
     #endif

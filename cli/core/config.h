@@ -17,7 +17,7 @@ static std::tuple<mINI::INIFile, mINI::INIStructure> GetConfigFile() {
     return { file, ini };
 }
 
-void GetConfig(std::string field) {
+int GetConfig(std::string field) {
     auto [file, ini] = GetConfigFile();
     const bool bFindField = !field.empty();
 
@@ -39,9 +39,10 @@ void GetConfig(std::string field) {
             iteration++;
         }
     }
+    return 0;
 }
 
-void SetConfig(std::string field, std::string new_value) {
+int SetConfig(std::string field, std::string new_value) {
     auto [file, ini] = GetConfigFile();
     for (auto const& it : ini) {
 
@@ -56,7 +57,7 @@ void SetConfig(std::string field, std::string new_value) {
 
             if (bIsBool && new_value != "yes" && new_value != "no") {
                 LOG_FAIL("invalid simplified boolean type for \"" << field << "\", must be [yes|no] ");
-                return;
+                return 1;
             }
 
             ini[section][section_entry.first] = new_value;
@@ -64,4 +65,5 @@ void SetConfig(std::string field, std::string new_value) {
             LOG_INFO("updated " << field << " to " << new_value);
         }
     }
+    return 0;
 }
