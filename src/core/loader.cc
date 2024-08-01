@@ -44,6 +44,7 @@ class CEFBrowser
 {
     WebkitHandler webKitHandler;
     uint16_t m_ftpPort, m_ipcPort;
+    bool m_sharedJsConnected = false;
 public:
 
     const void HandleConsoleMessage(const nlohmann::json& json)
@@ -66,14 +67,22 @@ public:
         const auto json = nlohmann::json::parse(msg->get_payload());
         const std::string method = json.value("method", std::string());
         
-        if (method == "Target.targetCreated")
-        {
-            const auto targetInfo = json["params"]["targetInfo"];
-            if (targetInfo["title"] == "SharedJSContext") 
+        if (json.contains("id") && json["id"] == 0 && 
+            json.contains("result") && json["result"].is_object() && 
+            json["result"].contains("targetInfos") && json["result"]["targetInfos"].is_array()) 
+        { 
+            const auto targets = json["result"]["targetInfos"];
+            auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
+            if (targetIterator != targets.end() && !m_sharedJsConnected) 
             {
                 Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, 
-                    { "params", { { "targetId", targetInfo["targetId"] }, { "flatten", true } } } 
+                    { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } } 
                 });
+                m_sharedJsConnected = true;
+            }
+            else if (!m_sharedJsConnected)
+            {
+                this->SetupSharedJSContext();
             }
         }
         if (method == "Target.attachedToTarget")
@@ -95,7 +104,7 @@ public:
 
     const void SetupSharedJSContext()
     {
-        Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.setDiscoverTargets" }, { "params", { { "discover", true } } } });
+        Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.getTargets" } });
     }
 
     const void onSharedJsConnect()
