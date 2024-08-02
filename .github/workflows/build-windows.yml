@@ -234,12 +234,18 @@ jobs:
 
     - name: Zip Build Artifact
       run: |
-        # zip the build artifacts
+        Start-Sleep -Seconds 10  # Wait for 10 seconds to ensure no file locks
+
         Add-Type -AssemblyName System.IO.Compression.FileSystem
 
         # Define the file to be zipped and the destination zip file
         $directoryToZip  = "D:/a/env/"
         $zipFile = "D:/a/env/millennium-${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
+
+        # Check if the zip file already exists and remove it if necessary
+        if (Test-Path $zipFile) {
+            Remove-Item $zipFile -Force
+        }
 
         # Create a new zip archive
         [System.IO.Compression.ZipFile]::CreateFromDirectory($directoryToZip, $zipFile)
