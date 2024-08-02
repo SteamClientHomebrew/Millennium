@@ -339,7 +339,7 @@ $installedPackages | ForEach-Object -Begin { $i = 0 } {
     $fileName = Split-Path -Path $_ -Leaf
     $fileNameWithoutExtension = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
     
-    $exists = if (-not Test-Path -Path $_) { "" } else { "${BoldRed}fail${ResetColor}" }
+    $exists = if (-not (Test-Path -Path $_)) { "" } else { "${BoldRed}fail${ResetColor}" }
     Write-Output "${BoldPurple}($i/$FileCount)${ResetColor} verifying $fileNameWithoutExtension $exists"
 }
 
