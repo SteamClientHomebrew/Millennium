@@ -247,37 +247,42 @@ function Extract-ZipWithProgress {
         [string]$extractPath
     )
 
-    # Open the ZIP file
-    $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
-    $totalFiles = $zipArchive.Entries.Count
-    $currentFile = 0
+    try {
+         # Open the ZIP file
+        $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+        $totalFiles = $zipArchive.Entries.Count
+        $currentFile = 0
 
-    foreach ($entry in $zipArchive.Entries) {
-        if (-not [string]::IsNullOrEmpty($entry.FullName) -and -not $entry.FullName.EndsWith('/')) {
-            $currentFile++
-            $destinationPath = Join-Path -Path $extractPath -ChildPath $entry.FullName
+        foreach ($entry in $zipArchive.Entries) {
+            if (-not [string]::IsNullOrEmpty($entry.FullName) -and -not $entry.FullName.EndsWith('/')) {
+                $currentFile++
+                $destinationPath = Join-Path -Path $extractPath -ChildPath $entry.FullName
 
-            # Ensure the destination directory exists
-            $destDir = [System.IO.Path]::GetDirectoryName($destinationPath)
-            if (-not (Test-Path -Path $destDir)) {
-                New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                # Ensure the destination directory exists
+                $destDir = [System.IO.Path]::GetDirectoryName($destinationPath)
+                if (-not (Test-Path -Path $destDir)) {
+                    New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                }
+
+                # Extract the file using streams
+                $entryStream = $entry.Open()
+                $fileStream = [System.IO.File]::Create($destinationPath)
+                $entryStream.CopyTo($fileStream)
+                $fileStream.Close()
+                $entryStream.Close()
+                
+                # Show progress
+                $filename = Split-Path -Path $entry.FullName -Leaf
+                Show-Progress -FileNumber 2 -TotalFiles 2 -PercentComplete ([math]::Round(($currentFile / $totalFiles) * 100)) -Message "Unpacking Assets..." -CurrentRead 0 -TotalBytes 0
             }
-
-            # Extract the file using streams
-            $entryStream = $entry.Open()
-            $fileStream = [System.IO.File]::Create($destinationPath)
-            $entryStream.CopyTo($fileStream)
-            $fileStream.Close()
-            $entryStream.Close()
-            
-            # Show progress
-            $filename = Split-Path -Path $entry.FullName -Leaf
-            Show-Progress -FileNumber 2 -TotalFiles 2 -PercentComplete ([math]::Round(($currentFile / $totalFiles) * 100)) -Message "Unpacking Assets..." -CurrentRead 0 -TotalBytes 0
         }
-    }
 
-    # Close the ZIP archive
-    $zipArchive.Dispose()
+        # Close the ZIP archive
+        $zipArchive.Dispose()
+    }
+    catch {
+        Write-Host "Error extracting zip file: $_"
+    }
 }
 
 $downloadUrl = $targetAsset.browser_download_url
@@ -287,8 +292,11 @@ DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNum
 Write-Host ""
 Extract-ZipWithProgress -zipPath $outputFile -extractPath $steamPath
 
-# Remove the downloaded zip file
-# Remove-Item -Path $outputFile > $null
+# Remove the downloaded zip file if it exists
+
+if (Test-Path -Path $outputFile) {
+    Remove-Item -Path $outputFile > $null
+}
 
 
 # This portion of the script is used to configure the millennium.ini file
