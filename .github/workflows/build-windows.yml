@@ -237,7 +237,7 @@ jobs:
         $directoryToZip  = "D:/a/env/"
         $zipFile = "D:/a/env/millennium-${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
 
-        Compress-Archive -Path $directoryToZip -DestinationPath $zipFile -Recurse
+        Compress-Archive -Path $directoryToZip -DestinationPath $zipFile
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
