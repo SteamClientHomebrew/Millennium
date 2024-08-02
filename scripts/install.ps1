@@ -300,9 +300,11 @@ if (Test-Path -Path $outputFile) {
 
 $millenniumBinDir = Join-Path -Path $steamPath -ChildPath "/ext/bin"
 
-# Add the extracted directory to the PATH environment variable
-[System.Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$millenniumBinDir", [System.EnvironmentVariableTarget]::User)
-
+# Check if the directory is already in the PATH
+if (-not ($env:PATH -split ";" | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq $millenniumBinDir })) {
+    # Add the directory to the PATH environment variable
+    [System.Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$millenniumBinDir", [System.EnvironmentVariableTarget]::User)
+}
 
 # This portion of the script is used to configure the millennium.ini file
 # The script will prompt the user to enable these features.
