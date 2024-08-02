@@ -15,6 +15,12 @@ $BoldLightBlue = [char]27 + '[38;5;75m'
 
 $ResetColor = [char]27 + '[0m'
 
+$isUpdaterDefined = Test-Path Variable:\UpdaterStatus
+$isUpdaterTrue = $true -eq $UpdaterStatus
+
+$isUpdater = if ($isUpdaterDefined -and $isUpdaterTrue) { $true } else { $false }
+Write-Host $isUpdater
+
 function Ask-Boolean-Question {
     param([bool]$newLine = $true, [string]$question, [bool]$default = $false)
 
@@ -113,6 +119,10 @@ function Show-Progress {
     $ProgressMessage  = "$FileCountMessage $Message"
     $currentDownload  = ConvertTo-ReadableSize -size $CurrentRead
 
+    if ($currentDownload -eq "0 Bytes") {
+        $currentDownload = ""
+    }
+
     $placement = ([Console]::WindowWidth + 6) - $ProgressBarLength
     $addLength = $placement - $ProgressMessage.Length
     $spaces    = " " * $addLength
@@ -157,7 +167,7 @@ function DownloadFileWithProgress {
 }
 
 $response = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "Millennium.Installer/1.0" }
-$latestRelease = $response | Where-Object { -not $_.prerelease } | Sort-Object -Property created_at -Descending | Select-Object -First 1
+$latestRelease = $response | Where-Object { $_.prerelease } | Sort-Object -Property created_at -Descending | Select-Object -First 1
 
 $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
@@ -170,8 +180,6 @@ if (-not $steamPath) {
 if (-not (Test-Path -Path $steamPath)) {
     New-Item -ItemType Directory -Path $steamPath
 }
-
-$totalBytesFromRelease = ($latestRelease.assets | Measure-Object -Property size -Sum).Sum
 
 function Calculate-Installed-Size {
 
@@ -196,31 +204,75 @@ function Calculate-Installed-Size {
     return ConvertTo-ReadableSize -size ($totalBytesFromRelease - $installedSize)
 }
 
+
 $releaseTag   = $latestRelease.tag_name
+$packageName = "millennium-$releaseTag-windows-x86_64.zip"
+
+# Find the size of the package from its name
 $packageCount = $latestRelease.assets.Count
-Write-Output "${BoldPurple}++${ResetColor} Installing Packages ($packageCount) ${BoldPurple}Millennium@$releaseTag${ResetColor}`n"
+$targetAsset = $latestRelease.assets | Where-Object { $_.name -eq $packageName }
+
+$totalBytesFromRelease = $totalBytesFromRelease = $targetAsset.size
+
+
+Write-Output "${BoldPurple}++${ResetColor} Installing Packages (Windows) ${BoldPurple}Millennium@$releaseTag${ResetColor}`n"
 
 $totalSizeReadable = ConvertTo-ReadableSize -size $totalBytesFromRelease
 $totalInstalledSize = Calculate-Installed-Size
 
 Write-Output "${BoldPurple}::${ResetColor} Total Download Size:   $totalSizeReadable"
-
-if ($totalInstalledSize -ne -1) {
-    Write-Output "${BoldPurple}::${ResetColor} Net Upgrade Size:      $totalInstalledSize"
-}
-
 Write-Host "${BoldPurple}::${ResetColor} Retreiving packages..."
 
 $FileCount = $latestRelease.assets.Count
 
-# Iterate through each asset and download it
-for ($i = 0; $i -lt $FileCount; $i++) {
+function Extract-ZipWithProgress {
+    param (
+        [string]$zipPath,
+        [string]$extractPath
+    )
 
-    $asset = $latestRelease.assets[$i]
-    $downloadUrl = $asset.browser_download_url
-    $outputFile = Join-Path -Path $steamPath -ChildPath $asset.name
-    DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNumber ($i + 1) -TotalFiles $FileCount -FileName $asset.name
+    # Open the ZIP file
+    $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+    $totalFiles = $zipArchive.Entries.Count
+    $currentFile = 0
+
+    foreach ($entry in $zipArchive.Entries) {
+        if (-not [string]::IsNullOrEmpty($entry.FullName) -and -not $entry.FullName.EndsWith('/')) {
+            $currentFile++
+            $destinationPath = Join-Path -Path $extractPath -ChildPath $entry.FullName
+
+            # Ensure the destination directory exists
+            $destDir = [System.IO.Path]::GetDirectoryName($destinationPath)
+            if (-not (Test-Path -Path $destDir)) {
+                New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+            }
+
+            # Extract the file using streams
+            $entryStream = $entry.Open()
+            $fileStream = [System.IO.File]::Create($destinationPath)
+            $entryStream.CopyTo($fileStream)
+            $fileStream.Close()
+            $entryStream.Close()
+            
+            # Show progress
+            $filename = Split-Path -Path $entry.FullName -Leaf
+            Show-Progress -FileNumber 2 -TotalFiles 2 -PercentComplete ([math]::Round(($currentFile / $totalFiles) * 100)) -Message "Extracting $filename..." -CurrentRead 0 -TotalBytes 0
+        }
+    }
+
+    # Close the ZIP archive
+    $zipArchive.Dispose()
 }
+
+$downloadUrl = $targetAsset.browser_download_url
+$outputFile = Join-Path -Path $steamPath -ChildPath $targetAsset.name
+$basename = [System.IO.Path]::GetFileNameWithoutExtension($targetAsset.name)
+DownloadFileWithProgress -Url $downloadUrl -DestinationPath $outputFile -FileNumber 1 -TotalFiles 2 -FileName "Downloading $basename..."
+Write-Host ""
+Extract-ZipWithProgress -zipPath $outputFile -extractPath $steamPath
+
+# Remove the downloaded zip file
+Remove-Item -Path $outputFile > $null
 
 
 # This portion of the script is used to configure the millennium.ini file
@@ -313,9 +365,11 @@ if (-not $iniObj.Contains("Settings")) { $iniObj["Settings"] = [ordered]@{} }
 $iniObj["Settings"]["check_for_updates"] = "yes"
 
 
-Write-Host "`n${BoldPurple}::${ResetColor} wrote configuration to $configPath"
+Write-Host "`n${BoldPurple}::${ResetColor} Wrote configuration to $configPath"
 
 Set-IniFile $iniObj $configPath -PreserveNonData $false
+
+exit
 
 $pipeName = "MillenniumStdoutPipe"
 $bufferSize = 1024
@@ -327,8 +381,6 @@ Write-Output "${BoldPurple}::${ResetColor} Verifying runtime environment..."
 Write-Output "${BoldPurple}::${ResetColor} Millennium will now start bootstrapping Steam, expect to see Millennium logs below."
 Write-Output "${BoldPurple}++${ResetColor} If you face any issues while verifying, please report them on the GitHub repository."
 Write-Output "${BoldPurple}++${ResetColor} ${BoldLightBlue}https://github.com/SteamClientHomebrew/Millennium/issues/new/choose${ResetColor}`n"
-
-
 
 # sleep 5 seconds to allow the user to read the message
 Start-Sleep -Seconds 5
