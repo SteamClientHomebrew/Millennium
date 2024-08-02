@@ -59,7 +59,7 @@ For normal users, installing via the installers makes the most sense. However wh
 
 ## Core Features
 
-- ### Plugin Loader
+- ### [Plugin Loader](/src/)
   - **TypeScript ([React](https://react.dev/)) frontend** container in Steam
   - **Python backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
   - **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Python** to **JavaScript** and vice versa
@@ -67,7 +67,7 @@ For normal users, installing via the installers makes the most sense. However wh
     - Overwrite/Modify HTTP requests
     - Load custom JavaScript (Native) into web browser
     - Load custom StyleSheets into web browser
-- ### [Core Modules](https://github.com/SteamClientHomebrew/Core)
+- ### [Core Modules](/assets/)
   - Manage and load custom user themes into Steam
   - Manage custom plugins for steam
   - Maintain theme & plugin versions. 
