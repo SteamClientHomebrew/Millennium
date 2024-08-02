@@ -10,7 +10,7 @@ import {
     pluginSelf, 
     Toggle, 
     showModal, 
-} from '@millennium/ui'
+} from 'millennium-lib'
 import * as CustomIcons from '../custom_components/CustomIcons'
 import { Field } from '../custom_components/Field'
 

@@ -1,4 +1,4 @@
-import { Millennium } from "@millennium/ui"
+import { Millennium } from "millennium-lib"
 
 export const WatchDog = {
     startReload: () => {

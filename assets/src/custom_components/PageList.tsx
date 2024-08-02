@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { Classes } from "@millennium/ui";
+import { Classes } from "millennium-lib";
 import { pagedSettingsClasses } from "../classes";
 
 const active: string = pagedSettingsClasses.Active;

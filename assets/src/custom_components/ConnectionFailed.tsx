@@ -1,4 +1,4 @@
-import { DialogButton, IconsModule, pluginSelf } from "@millennium/ui";
+import { DialogButton, IconsModule, pluginSelf } from "millennium-lib";
 
 export const ConnectionFailed = () => {
 

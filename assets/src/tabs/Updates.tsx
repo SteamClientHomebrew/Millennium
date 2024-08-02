@@ -10,7 +10,7 @@ import {
     IconsModule,
     pluginSelf,
     Toggle,
-} from '@millennium/ui'
+} from 'millennium-lib'
 import { Field } from '../custom_components/Field';
 import { locale } from '../locales';
 import { ThemeItem } from '../types';

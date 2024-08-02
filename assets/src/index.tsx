@@ -1,4 +1,4 @@
-import { Millennium, pluginSelf } from "@millennium/ui"; 
+import { Millennium, pluginSelf } from "millennium-lib"; 
 import { patchDocumentContext } from "./patcher/index"
 import { RenderSettingsModal } from "./ui/Settings"
 import { ConditionsStore, ThemeItem, SystemAccentColor, UpdateItem, SettingsProps, ThemeItemV1 } from "./types";

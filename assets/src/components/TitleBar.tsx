@@ -1,4 +1,4 @@
-import { findModuleExport } from "@millennium/ui";
+import { findModuleExport } from "millennium-lib";
 import React, { CSSProperties, ReactNode } from "react";
 
 interface TitleBarProps {

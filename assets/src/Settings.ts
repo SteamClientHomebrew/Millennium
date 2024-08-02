@@ -1,4 +1,4 @@
-import { Millennium, pluginSelf } from "@millennium/ui"
+import { Millennium, pluginSelf } from "millennium-lib"
 import { SettingsProps } from "./types"
 
 export let SettingsStore: SettingsProps = pluginSelf.SettingsStore

@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { findModuleExport } from "@millennium/ui";
+import { findModuleExport } from "millennium-lib";
 
 interface BBCodeParserProps {
 	bShowShortSpeakerInfo?: boolean;

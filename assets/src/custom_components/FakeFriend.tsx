@@ -1,4 +1,4 @@
-import { Classes } from "@millennium/ui";
+import { Classes } from "millennium-lib";
 import React, { ReactNode } from "react";
 
 interface FakeFriendProps {

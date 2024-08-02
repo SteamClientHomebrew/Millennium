@@ -1,4 +1,4 @@
-import { findModuleExport } from "@millennium/ui";
+import { findModuleExport } from "millennium-lib";
 
 export const CreatePopupBase: any = findModuleExport(
 	(m) =>

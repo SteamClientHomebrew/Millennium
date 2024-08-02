@@ -7,7 +7,7 @@ import {
     DialogSubHeader,
     Millennium,
     pluginSelf,
-} from "@millennium/ui"
+} from "millennium-lib"
 import { ThemeItem } from "../types"
 import { CreatePopup } from "../components/CreatePopup"
 import React from "react"

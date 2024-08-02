@@ -1,4 +1,4 @@
-import { pluginSelf } from "@millennium/ui"
+import { pluginSelf } from "millennium-lib"
 import { Patch, Theme, ThemeItem } from "../types";
 
 /**

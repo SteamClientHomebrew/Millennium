@@ -1,4 +1,4 @@
-import { pluginSelf } from "@millennium/ui"
+import { pluginSelf } from "millennium-lib"
 import { Conditions, ConditionsStore, ThemeItem, ConditionalControlFlowType as ModuleType } from "../../types"
 import { EvaluatePatch } from "../Dispatch"
 

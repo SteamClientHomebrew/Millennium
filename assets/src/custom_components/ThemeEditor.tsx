@@ -11,7 +11,7 @@ import {
     SingleDropdownOption,
     Toggle,
     pluginSelf,
-  } from "@millennium/ui";
+  } from "millennium-lib";
 import { BBCodeParser } from "../components/BBCodeParser";
 import { Field } from "../custom_components/Field";
 import { Conditions, ConditionsStore, ICondition, ThemeItem } from "../types"

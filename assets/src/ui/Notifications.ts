@@ -1,4 +1,4 @@
-import { Millennium, pluginSelf } from "@millennium/ui"
+import { Millennium, pluginSelf } from "millennium-lib"
 import { notificationClasses } from "../classes";
 
 /**
