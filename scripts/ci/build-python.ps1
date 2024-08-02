@@ -1,5 +1,5 @@
 # download python 3.11.8 source code
-Invoke-WebRequest -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
+curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
 # extract the tarball
 tar -xzvf Python-3.11.8.tgz >nul 2>&1
 
