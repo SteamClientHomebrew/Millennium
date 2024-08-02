@@ -15,13 +15,13 @@
 [downloads-link]: #automatic-installation-recommended
 
 [discord-badge]: https://img.shields.io/badge/discord-green?labelColor=grey&color=111111&style=for-the-badge&logo=discord&logoColor=white
-[discord-link]: https://millennium.web.app/discord
+[discord-link]: https://steambrew.app/discord
 
 [website-badge]: https://img.shields.io/badge/website-green?labelColor=grey&color=111111&style=for-the-badge&logo=firefoxbrowser&logoColor=white
-[website-link]: https://millennium.web.app/
+[website-link]: https://steambrew.app/
 
 [docs-badge]: https://img.shields.io/badge/documentation-green?labelColor=grey&color=111111&style=for-the-badge&logo=readthedocs&logoColor=white
-[docs-link]: https://github.com/SteamClientHomebrew/Millennium/wiki
+[docs-link]: https://docs.steambrew.app/
 
 [loc-bage]: https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FMillennium%26branch%3Dmain%26ignored%3Dvendor%26languages%3DC%2520Header%2CC%252B%252B&color=111111&style=for-the-badge&logoColor=white&label=Lines%20of%20Code
 
@@ -41,19 +41,11 @@ https://github.com/SteamClientHomebrew/Millennium/assets/81448108/0c4a0ea0-7995-
 
 ### Automatic Installation (Recommended)
 
-  Install Millennium for Windows. See [this page](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#automatic) for a more detailed guide.
-
-  <!-- [![Windows Installer][windows-badge]][windows-link] -->
-[![Static Badge](https://img.shields.io/badge/Download%20Windows-fff?style=for-the-badge&logo=windows&logoColor=white&color=2D5CBF)][windows-link]
-<!-- [![Static Badge](https://img.shields.io/badge/Download%20Linux-fff?style=for-the-badge&logo=linux&logoColor=white&color=orange)][windows-link] -->
-
-
-  [windows-link]: https://github.com/SteamClientHomebrew/Installer/releases/latest/download/Millennium.Installer-Windows.exe
-  [windows-badge]: https://img.shields.io/badge/Windows%20(10+)-3a71c1?logo=Windows&logoColor=white&labelColor=111111&color=3a71c1&style=for-the-badge
+  Installing Millennium is only a few steps. See [this page](https://docs.steambrew.app/users/installing#automatic) for a more detailed guide.
 
 ### Manual Installation
 
-For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Check our [wiki](https://github.com/SteamClientHomebrew/Millennium/wiki/Getting-Started#manual) for a guide on how to do this.
+For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Check our [documentation](https://docs.steambrew.app/users/installing#manual) for a guide on how to do this.
 
 &nbsp;
 
