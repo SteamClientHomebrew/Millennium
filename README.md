@@ -71,10 +71,10 @@ For normal users, installing via the installers makes the most sense. However wh
 
 ## Platform Support
 
-Millennium currently only supports standard Windows NT builds. This includes ARM based processors and x86 based processors. Linux and Mac are NOT currently supported BUT support is currently in development for linux. For a more details see our [wiki](https://github.com/SteamClientHomebrew/Millennium/wiki/Platform-Support)
 
 Supported Platforms:
 
-- Windows 10 and newer
-- Windows (x86/x64/ARM) NT
+- Windows (x86/x64/ARM) NT (10 and newer)
 - Linux (WIP, [Learn more](https://github.com/SteamClientHomebrew/Millennium/wiki/Platform-Support))
+
+As of now, Millennium only has official support for Windows. Although Millennium works on Linux, its still in development and you should expect bugs. If you face issues on Linux, report them on this repository.
