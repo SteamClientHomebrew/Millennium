@@ -42,6 +42,50 @@ jobs:
       with:
         node-version: 20
 
+    - name: Setup | CI Build Environment
+      run: cd assets && npm install && npm run dev
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup | Create Environment
+      run: |
+        # Change directory
+        Set-Location -Path "D:/a/Millennium/Millennium"
+
+        # Define destination paths
+        $destinationBase = "D:/a/env/ext/data/assets"
+        $destinationDist = "$destinationBase/.millennium/Dist"
+        $destinationCore = "$destinationBase"
+        $destinationPipx = "$destinationBase"
+        $destinationRequirements = "$destinationBase/requirements.txt"
+        $destinationPlugin = "$destinationBase/plugin.json"
+
+        # Ensure destination directories exist
+        $dirs = @($destinationDist, $destinationCore, $destinationPipx)
+        foreach ($dir in $dirs) {
+            if (-not (Test-Path -Path $dir)) {
+                New-Item -Path $dir -ItemType Directory -Force
+            }
+        }
+
+        # Copy files and directories
+        Copy-Item -Path "./assets/.millennium/Dist/index.js" -Destination $destinationDist\index.js -Force
+        Copy-Item -Path "./assets/core" -Destination $destinationCore -Recurse -Force
+        Copy-Item -Path "./assets/pipx" -Destination $destinationPipx -Recurse -Force
+        Copy-Item -Path "./assets/requirements.txt" -Destination $destinationRequirements -Force
+        Copy-Item -Path "./assets/plugin.json" -Destination $destinationPlugin -Force
+
+    
+    - name: Setup | Python Environment
+      run: |
+        . scripts\ci\setup-python.ps1 D:/a/env/ext/data/cache
+
+    - name: Upload Assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: millennium
+        path: D:/a/env/
+
     - name: Setup | Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec
       env:
@@ -187,14 +231,14 @@ jobs:
         ls ./build
 
         # Move the python311.dll binary to the release directory
-        cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/Millennium/Millennium/build/artifacts/python311.dll
-        cp /d/a/Millennium/Millennium/build/user32.dll D:/a/Millennium/Millennium/build/artifacts
+        cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
+        cp /d/a/Millennium/Millennium/build/user32.dll  D:/a/env/user32.dll
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
         name: millennium
-        path: D:/a/Millennium/Millennium/build/artifacts
+        path: D:/a/env/
 
     - name: Setup | Run Semantic Release
       run: npx semantic-release
