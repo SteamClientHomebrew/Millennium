@@ -5,12 +5,12 @@
     "@semantic-release/release-notes-generator",
     {
         "path": "@semantic-release/github",
-        "assets": ["D:/a/env/env.zip"]
+        "assets": ["D:/a/env/millennium-*-windows-x86_64.zip"]
     },
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "echo \"# current version of millennium\n${nextRelease.version}\" > version.txt; powershell.exe -File ./scripts/build.ps1; powershell.exe -Command \"Compress-Archive -Path D:/a/env -DestinationPath D:/a/env/env.zip\""
+        "prepareCmd": "echo \"# current version of millennium\n${nextRelease.version}\" > version.txt; powershell.exe -File ./scripts/build.ps1"
       }
     ]
   ]
