@@ -19,7 +19,10 @@ $isUpdaterDefined = Test-Path Variable:\UpdaterStatus
 $isUpdaterTrue = $true -eq $UpdaterStatus
 
 $isUpdater = if ($isUpdaterDefined -and $isUpdaterTrue) { $true } else { $false }
-Write-Host $isUpdater
+
+if ($isUpdater) {
+    Write-Output "${BoldPurple}++${ResetColor} Updating Millennium..."
+}
 
 function Ask-Boolean-Question {
     param([bool]$newLine = $true, [string]$question, [bool]$default = $false)
