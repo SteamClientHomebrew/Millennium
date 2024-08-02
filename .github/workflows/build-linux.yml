@@ -51,28 +51,19 @@ jobs:
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Dependency) Install vcpkg & setup environment
-      run: |
-
-        sudo apt install libgtk-3-dev
-
-        # bootstrap and install vcpkg
-        ./vendor/vcpkg/bootstrap-vcpkg.sh
-        ./vendor/vcpkg/vcpkg integrate install
+      run: sudo apt install libgtk-3-dev &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Generator) Configure CMake
-      run: |
-        cmake --preset=linux -G "Unix Makefiles" -DGITHUB_ACTION_BUILD=ON
+      run: cmake --preset=linux -G "Unix Makefiles" -DGITHUB_ACTION_BUILD=ON
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Build Millennium
       run: |
-
         mkdir ./build/artifacts
         cmake --build build
-        ldd ./build/user32
         cp ./build/user32 ./build/artifacts/user32
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"

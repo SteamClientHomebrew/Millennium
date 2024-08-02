@@ -1,10 +1,10 @@
-name: Build Millennium (Windows)
+name: Build Millennium
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-windows:
     permissions:
       contents: write
       issues: write
@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: true # allow fortnite wallhacks
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
@@ -115,6 +115,119 @@ jobs:
       with:
         name: millennium
         path: D:/a/env/
+
+    # - name: Setup | Run Semantic Release
+    #   run: npx semantic-release
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+
+    env:
+      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: (Setup) Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: (Setup) Assets Build Environment
+      run: cd assets && npm install && npm run dev
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: (Setup) Build Assets
+      run: bash scripts/ci/posix/mk-assets.sh
+    
+    # - name: (Setup) Construct Python Environment
+    #   run: bash scripts/ci/setup-python.sh /home/runner/env/ext/data/cache
+
+    - name: (Setup) Semantic Release
+      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+      env: 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # dry run to get the next version
+    - name: Bump Version
+      id: read_version
+      run: bash scripts/ci/posix/bump-version.sh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install pyenv
+      run: |
+        curl https://pyenv.run | bash
+        export PYENV_ROOT="$HOME/.pyenv"
+        export PATH="$PYENV_ROOT/bin:$PATH"
+        eval "$(pyenv init --path)"
+        eval "$(pyenv init -)"
+        eval "$(pyenv virtualenv-init -)"
+        pyenv install 3.11.8
+        pyenv global 3.11.8
+        python --version
+      shell: bash
+
+    - name: Verify Python version
+      run: python --version
+
+    - name: (Generator) Install CMake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.21.1'
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+    - name: (Dependency) Install vcpkg & setup environment
+      run: sudo apt install libgtk-3-dev &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+    - name: (Generator) Configure CMake
+      run: cmake --preset=linux -G "Unix Makefiles" -DGITHUB_ACTION_BUILD=ON
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+    - name: Build Millennium
+      run: |
+        mkdir ./build/artifacts
+        cmake --build build
+        cp ./build/user32 ./build/artifacts/user32
+      env: 
+        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: millennium
+        path: ./build/artifacts
+
+    - name: Build Millennium
+      run: |
+        mkdir -p /home/runner/Millennium/build/artifacts
+        cmake --build build --config Release
+        cp /home/runner/Millennium/build/libmillennium.so /home/runner/env/
+        cp /home/runner/Millennium/build/cli/millennium /home/runner/env/
+
+    - name: Zip Build Artifact
+      run: zip -r /home/runner/env/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip /home/runner/env/
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: millennium
+        path: /home/runner/env/
 
     # - name: Setup | Run Semantic Release
     #   run: npx semantic-release
