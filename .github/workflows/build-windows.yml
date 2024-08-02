@@ -228,6 +228,8 @@ jobs:
         cmake --build build --config Release
         ls ./build
 
+        ls D:/a/env/
+
         # Move the python311.dll binary to the release directory
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll  D:/a/env/user32.dll
@@ -237,7 +239,7 @@ jobs:
         $directoryToZip  = "D:/a/env/"
         $zipFile = "D:/a/env/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
 
-        Compress-Archive -Path $directoryToZip -DestinationPath $zipFile
+        Get-ChildItem -Path $directoryToZip | Compress-Archive -DestinationPath $zipFile
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
