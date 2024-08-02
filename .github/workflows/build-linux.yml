@@ -27,6 +27,36 @@ jobs:
       with:
         submodules: true
 
+    - name: Install pyenv dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
+            libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+            libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev \
+            python-openssl git
+
+    - name: Install pyenv
+      run: |
+        curl https://pyenv.run | bash
+        echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> $GITHUB_ENV
+        echo 'eval "$(pyenv init --path)"' >> $GITHUB_ENV
+        echo 'eval "$(pyenv init -)"' >> $GITHUB_ENV
+        echo 'eval "$(pyenv virtualenv-init -)"' >> $GITHUB_ENV
+
+    - name: Reload environment
+      shell: bash
+      run: |
+        source $GITHUB_ENV
+        pyenv update
+
+    - name: Install Python 3.11.8
+      run: |
+        pyenv install 3.11.8
+        pyenv global 3.11.8
+
+    - name: Verify Python version
+      run: python --version
+
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
       with:
