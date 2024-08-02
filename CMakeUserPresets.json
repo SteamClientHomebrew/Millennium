@@ -64,7 +64,7 @@
       "description": "Default build for Linux",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-linux",
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ]

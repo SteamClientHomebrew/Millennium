@@ -113,7 +113,7 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: millennium
+        name: millennium-windows
         path: D:/a/env/
 
     # - name: Setup | Run Semantic Release
@@ -139,7 +139,7 @@ jobs:
         script: |
           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-          
+
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -224,7 +224,7 @@ jobs:
       run: |
         mkdir -p /home/runner/Millennium/build/artifacts
         cmake --build build --config Release
-        cp /home/runner/Millennium/build/libmillennium.so /home/runner/env/
+        cp /home/runner/Millennium/build/user32.so /home/runner/env/
         cp /home/runner/Millennium/build/cli/millennium /home/runner/env/
 
     - name: Zip Build Artifact
@@ -233,7 +233,7 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: millennium
+        name: millennium-linux
         path: /home/runner/env/
 
     # - name: Setup | Run Semantic Release
