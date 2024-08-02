@@ -3,6 +3,18 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "docs/CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["docs/CHANGELOG.md"]
+      }
+    ],
     {
         "path": "@semantic-release/github",
         "assets": ["D:/a/env/millennium-*-windows-x86_64.zip"]
