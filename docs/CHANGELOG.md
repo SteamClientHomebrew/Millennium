@@ -1,3 +1,10 @@
+# [2.6.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.5.1...v2.6.0) (2024-08-02)
+
+
+### Features
+
+* Remove LibGit2 and rely on CI assets ([5db0ebd](https://github.com/SteamClientHomebrew/Millennium/commit/5db0ebd6f571007b0fa3ea66c958a67dd93e64dd))
+
 ## [2.5.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.5.0...v2.5.1) (2024-08-02)
 
 
@@ -81,7 +88,3 @@
 
 * Fix semantic release version stubs ([7b436d7](https://github.com/SteamClientHomebrew/Millennium/commit/7b436d783c35c6637bfd045f5989822497867f96))
 * use powershell syntax 🤦 ([eb1b75b](https://github.com/SteamClientHomebrew/Millennium/commit/eb1b75b9ac5f9d0009625898ba8b8c6a930ad5c9))
-
-
-
-
