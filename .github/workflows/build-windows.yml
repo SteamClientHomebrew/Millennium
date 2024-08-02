@@ -168,6 +168,10 @@ jobs:
 
       shell: pwsh
 
+    - name: (Python) Add msbuild to PATH
+      if: steps.build-cache.outputs.cache-hit != 'true'
+      uses: microsoft/setup-msbuild@v2
+
     - name: (Python) Build 3.11.8
       if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
