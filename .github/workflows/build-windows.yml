@@ -80,12 +80,6 @@ jobs:
       run: |
         . scripts\ci\setup-python.ps1 D:/a/env/ext/data/cache
 
-    - name: Upload Assets
-      uses: actions/upload-artifact@v4
-      with:
-        name: millennium
-        path: D:/a/env/
-
     - name: Setup | Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec
       env:
