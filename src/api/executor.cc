@@ -8,7 +8,6 @@
 #include <sys/locals.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
-#include <git/git.h>
 
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {

@@ -6,14 +6,12 @@
 #endif
 #include <filesystem>
 #include <fstream>
-#include <git/git.h>
 #include <fmt/core.h>
 #include <boxer/boxer.h>
 #include <sys/log.h>
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
 #include <core/ftp/serv.h>
-#include <git/pyman.h>
 #include <signal.h>
 #include <pipes/terminal_pipe.h>
 #include <git/vcs.h>
@@ -59,23 +57,6 @@ public:
     const void Start() 
     {
         CheckForUpdates();
-
-        const bool bBuiltInSuccess = Dependencies::GitAuditPackage("@Core", builtinsModulesPath.string(), builtinsRepository);
-
-        if (!bBuiltInSuccess) 
-        {
-            LOG_ERROR("failed to audit builtin modules...");
-            return;
-        }
-
-        // python modules only need to be audited on windows systems. 
-        // linux users need their own installation of python
-        #ifdef _WIN32
-        {
-            std::unique_ptr<PythonInstaller> pythonInstaller = std::make_unique<PythonInstaller>("3.11.8");
-            pythonInstaller->InstallPython();
-        }
-        #endif
     }
 };
 

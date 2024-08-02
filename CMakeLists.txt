@@ -59,7 +59,6 @@ add_compile_definitions(
 add_subdirectory(cli)
 
 find_package(CURL REQUIRED) # used for web requests. 
-find_package(unofficial-libgit2 CONFIG REQUIRED)
 find_package(minizip CONFIG REQUIRED) # used for extracting zip files
 
 include_directories(${LIBGIT2_INCLUDE_DIRS})
@@ -87,7 +86,6 @@ set(SOURCE_FILES
   "src/sys/io.cc"
   "src/sys/settings.cc"
   "src/api/executor.cc"
-  "src/git/git.cc"
 )
 
 if (MSVC)
@@ -130,7 +128,6 @@ endif()
 target_link_libraries(Millennium 
   Boxer
   CURL::libcurl
-  unofficial::libgit2::libgit2
   minizip::minizip
 )
 
