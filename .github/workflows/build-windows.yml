@@ -37,157 +37,49 @@ jobs:
       with:
         submodules: true
 
-    - name: Setup | Node.js
+    - name: (Setup) Node.js
       uses: actions/setup-node@v3
       with:
         node-version: 20
 
-    - name: Setup | CI Build Environment
+    - name: (Setup) Assets Build Environment
       run: cd assets && npm install && npm run dev
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Setup | Create Environment
-      run: |
-        # Change directory
-        Set-Location -Path "D:/a/Millennium/Millennium"
-
-        # Define destination paths
-        $destinationBase = "D:/a/env/ext/data/assets"
-        $destinationDist = "$destinationBase/.millennium/Dist"
-        $destinationCore = "$destinationBase"
-        $destinationPipx = "$destinationBase"
-        $destinationRequirements = "$destinationBase/requirements.txt"
-        $destinationPlugin = "$destinationBase/plugin.json"
-
-        # Ensure destination directories exist
-        $dirs = @($destinationDist, $destinationCore, $destinationPipx)
-        foreach ($dir in $dirs) {
-            if (-not (Test-Path -Path $dir)) {
-                New-Item -Path $dir -ItemType Directory -Force
-            }
-        }
-
-        # Copy files and directories
-        Copy-Item -Path "./assets/.millennium/Dist/index.js" -Destination $destinationDist\index.js -Force
-        Copy-Item -Path "./assets/core" -Destination $destinationCore -Recurse -Force
-        Copy-Item -Path "./assets/pipx" -Destination $destinationPipx -Recurse -Force
-        Copy-Item -Path "./assets/requirements.txt" -Destination $destinationRequirements -Force
-        Copy-Item -Path "./assets/plugin.json" -Destination $destinationPlugin -Force
-
+    - name: (Setup) Build Assets
+      run: . scripts\ci\mk-assets.ps1
     
-    - name: Setup | Python Environment
-      run: |
-        . scripts\ci\setup-python.ps1 D:/a/env/ext/data/cache
+    - name: (Setup) Construct Python Environment
+      run: . scripts\ci\setup-python.ps1 D:/a/env/ext/data/cache
 
-    - name: Setup | Semantic Release
+    - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-      env:
+      env: 
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # dry run to get the next version
     - name: Bump Version
       id: read_version
-      run: |  
-        $VERSION = npx semantic-release --dry-run | Select-String -Pattern "The next release version is" | ForEach-Object { $_.ToString() -replace '.*The next release version is ([0-9.]+).*', '$1' }
-        Write-Host "Version: $VERSION"
-        echo "::set-output name=version::$version"
-        Set-Content -Path ./version -Value "# current version of millennium`nv$VERSION"
-
-        git config user.email "github-actions@github.com"
-        git config user.name "GitHub Actions"
-        git add version
-        git commit -m "chore(release): bump version to v$VERSION"
-        git push
+      run: . scripts\ci\bump-version.ps1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-    - name: Check if release already exists
-      id: check_release
-      run: |
-        # Define the URL of the GitHub API endpoint
-        $url = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases/tags/${{ steps.read_version.outputs.version }}"
-
-        # Make the HTTP request and retrieve the response
-        try {
-            $response = Invoke-WebRequest -Uri $url -Method Get -ErrorAction Stop
-            $status_code = $response.StatusCode
-            
-            # Check if the release exists based on the status code
-            if ($status_code -eq 200) {
-              Write-Error "Release ${{ steps.read_version.outputs.version }} already exists."
-              exit 1
-            }
-        } catch {
-            Write-Output "Release ${{ steps.read_version.outputs.version }} not found. Continuing workflow."
-        }
 
     - name: Set up cache for Python source
       uses: actions/cache@v3
       id: build-cache
       with:
-        path: |
-          Python-3.11.8/PCbuild/win32
+        path: Python-3.11.8/PCbuild/win32
         key: ${{ runner.os }}-python-3.11.8-build
-        restore-keys: |
-          ${{ runner.os }}-python-3.11.8-build-  
-
-    - name: (Python) Download 3.11.8 win32 source
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-
-        # download python 3.11.8 source code
-        curl -o Python-3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
-        # extract the tarball
-        tar -xzvf Python-3.11.8.tgz >nul 2>&1
-
-    - name: (Python) Stage Python 3.11.8 static build
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-        cd Python-3.11.8
-
-        $vcxprojPath = "PCbuild/pythoncore.vcxproj"
-        $content = Get-Content $vcxprojPath -Raw  # Read the entire content as a single string
-
-        $pattern = '</ClCompile>'
-        $replacement = @"
-        <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Release|Win32'">MultiThreaded</RuntimeLibrary>
-        <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Debug|Win32'">MultiThreadedDebug</RuntimeLibrary>
-        </ClCompile>
-        "@
-
-        $modifiedContent = $content -replace [regex]::Escape($pattern), $replacement
-        $modifiedContent | Set-Content $vcxprojPath
-
-      shell: pwsh
+        restore-keys: ${{ runner.os }}-python-3.11.8-build-  
 
     - name: (Python) Add msbuild to PATH
       if: steps.build-cache.outputs.cache-hit != 'true'
       uses: microsoft/setup-msbuild@v2
 
-    - name: (Python) Build 3.11.8
+    - name: (Python) Download 3.11.8 win32 source
       if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-
-        cd Python-3.11.8
-        # get python external libs before build
-        ./PCbuild/get_externals.bat
-        # build python 3.11.8 as win32 and release
-        msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
-        msbuild PCBuild/pcbuild.sln /p:Configuration=Debug /p:Platform=Win32 /p:RuntimeLibrary=MT
-        # verify python is installed
-        PCbuild/win32/python.exe --version
-
-    - name: Upload Python artifacts
-      run: |
-
-        mkdir D:/a/Millennium/Millennium/build/python
-        # Move the python311.dll binary to the release directory
-        copy D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/Millennium/Millennium/build/python/python311.dll
-        copy D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311_d.dll D:/a/Millennium/Millennium/build/python/python311_d.dll
-        copy D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib D:/a/Millennium/Millennium/build/python/python311.lib
-        copy D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311_d.lib D:/a/Millennium/Millennium/build/python/python311_d.lib
+      run: . scripts\ci\build-python.ps1
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
@@ -207,43 +99,24 @@ jobs:
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
-      run: |
-
-        # bootstrap and install vcpkg
-        ./vendor/vcpkg/bootstrap-vcpkg.bat
-        ./vendor/vcpkg/vcpkg integrate install
+      run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
 
     - name: (Generator) Configure CMake
       shell: msys2 {0}
-      run: |
-        ninja --version
-        cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+      run: cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
     - name: Build Millennium
       shell: msys2 {0}
       run: |
-
         mkdir D:/a/Millennium/Millennium/build/artifacts
-        # build millennium with msvc; x86; release
         cmake --build build --config Release
-        ls ./build
-
-        ls D:/a/env/
-
-        # Move the python311.dll binary to the release directory
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll  D:/a/env/user32.dll
-
-        # make bin directory
         mkdir D:/a/env/ext/bin
         cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
     - name: Zip Build Artifact
-      run: |
-        $directoryToZip  = "D:/a/env/"
-        $zipFile = "D:/a/env/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
-
-        Get-ChildItem -Path $directoryToZip | Compress-Archive -DestinationPath $zipFile
+      run: Get-ChildItem -Path "D:/a/env/" | Compress-Archive -DestinationPath "D:/a/env/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
@@ -251,7 +124,7 @@ jobs:
         name: millennium
         path: D:/a/env/
 
-    - name: Setup | Run Semantic Release
-      run: npx semantic-release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # - name: Setup | Run Semantic Release
+    #   run: npx semantic-release
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
