@@ -1,3 +1,10 @@
+## [2.6.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.6.0...v2.6.1) (2024-08-02)
+
+
+### Bug Fixes
+
+* Fix CI asset packer ([47cf6c6](https://github.com/SteamClientHomebrew/Millennium/commit/47cf6c66409ae94b4c00f1a29f4889c564378c71))
+
 # [2.6.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.5.1...v2.6.0) (2024-08-02)
 
 
