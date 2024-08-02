@@ -24,6 +24,8 @@ if ($isUpdater) {
     Write-Output "${BoldPurple}++${ResetColor} Updating Millennium..."
 }
 
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
 function Ask-Boolean-Question {
     param([bool]$newLine = $true, [string]$question, [bool]$default = $false)
 
