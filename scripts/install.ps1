@@ -372,7 +372,10 @@ Write-Host "`n${BoldPurple}::${ResetColor} Wrote configuration to $configPath"
 
 Set-IniFile $iniObj $configPath -PreserveNonData $false
 
-exit
+if ($isUpdater) {
+    Write-Output "${BoldPurple}++${ResetColor} Millennium has been updated successfully."
+    exit
+}
 
 $pipeName = "MillenniumStdoutPipe"
 $bufferSize = 1024
