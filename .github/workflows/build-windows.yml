@@ -232,24 +232,6 @@ jobs:
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll  D:/a/env/user32.dll
 
-    - name: Zip Build Artifact
-      run: |
-        Start-Sleep -Seconds 10  # Wait for 10 seconds to ensure no file locks
-
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-        # Define the file to be zipped and the destination zip file
-        $directoryToZip  = "D:/a/env/"
-        $zipFile = "D:/a/env/millennium-${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
-
-        # Check if the zip file already exists and remove it if necessary
-        if (Test-Path $zipFile) {
-            Remove-Item $zipFile -Force
-        }
-
-        # Create a new zip archive
-        [System.IO.Compression.ZipFile]::CreateFromDirectory($directoryToZip, $zipFile)
-
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
