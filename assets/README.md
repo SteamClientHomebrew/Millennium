@@ -1,8 +1,6 @@
 ## Introduction
-This repository serves as a way to manage updates, plugins, and themes for Millennium. This plugin is automatically integrated into Millennium.
+This portion of the repository serves as a way to manage updates, plugins, and themes for Millennium. This plugin is automatically integrated into Millennium.
 
-[loc-bage]: https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FCore%26branch%3Dmaster%26ignored%3D.millennium%2FDist%2Findex.js%26stat%3DlinesOfCode%26languages%3DPython%2CTypeScript&color=111111&style=for-the-badge&logoColor=white&label=Lines%20of%20Code
-![Endpoint Badge][loc-bage]
 
 ### Overview
 - Manage Plugins in Steam Settings
@@ -24,8 +22,8 @@ Clone this repository place it in your plugins folder and start Steam. You can n
 ### Building 
 
 ```
-git clone https://github.com/SteamClientHomebrew/Core.git --recursive
-cd Core
+git clone https://github.com/SteamClientHomebrew/Millennium.git
+cd Millennium/assets
 npm install
 npm run dev
 ```
