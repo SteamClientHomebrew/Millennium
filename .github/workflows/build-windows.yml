@@ -190,7 +190,7 @@ jobs:
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Dependency) Install vcpkg & setup environment
-      run: sudo apt install libgtk-3-dev &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
+      run: sudo apt install libgtk-3-dev ninja &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
