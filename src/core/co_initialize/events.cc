@@ -1,5 +1,6 @@
 #include "co_stub.h"
 #include <sys/log.h>
+#include <core/py_controller/co_spawn.h>
 
 std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
 {
@@ -39,7 +40,7 @@ std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
 bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const std::size_t pluginCount = settingsStore->GetEnabledPlugins().size();
+    const std::size_t pluginCount = settingsStore->GetEnabledBackends().size();
 
     if (this->emittedPlugins.size() == pluginCount)
     {
@@ -59,11 +60,8 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
     return false;
 }
 
-void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
+void CoInitializer::BackendCallbacks::StatusDipatch()
 {
-    Logger.Log("{} {}", plugin.pluginName, plugin.event == BACKEND_LOAD_SUCCESS ? "loaded" : "failed");
-    this->emittedPlugins.push_back(plugin);
-
     if (this->EvaluateBackendStatus())
     {
         if (listeners.find(ON_BACKEND_READY_EVENT) != listeners.end()) 
@@ -72,12 +70,21 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
             {
                 callback();
             }
+            isReadyForCallback = true;
         }
         else
         {
             missedEvents.push_back(ON_BACKEND_READY_EVENT);
         }
     }
+}
+
+void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
+{
+    Logger.Log("{} {}", plugin.pluginName, plugin.event == BACKEND_LOAD_SUCCESS ? "loaded" : "failed");
+    this->emittedPlugins.push_back(plugin);
+
+    this->StatusDipatch();
 }
 
 void CoInitializer::BackendCallbacks::Reset() 
@@ -89,14 +96,20 @@ void CoInitializer::BackendCallbacks::Reset()
 
 void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback) 
 {
+    Logger.Log("Registering for load event @ {}", (void*)&callback);
     listeners[ON_BACKEND_READY_EVENT].push_back(callback);
+
+    if (isReadyForCallback) 
+    {
+        Logger.Log("Force firing [{}] callback as the target event was already called.", __FUNCTION__);
+
+        callback();
+        return;
+    }
 
     if (std::find(missedEvents.begin(), missedEvents.end(), ON_BACKEND_READY_EVENT) != missedEvents.end()) 
     {
-        //Logger.Log("found missed event, emitting");
         callback();
-
-        // remove the event from the missed events list
         missedEvents.erase(std::remove(missedEvents.begin(), missedEvents.end(), ON_BACKEND_READY_EVENT), missedEvents.end());
     }
 }

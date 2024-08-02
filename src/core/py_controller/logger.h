@@ -17,6 +17,18 @@ private:
     std::string filename;
     std::string pluginName;
 
+    std::string GetLocalTime()
+    {
+        std::stringstream bufferStream;
+        auto now = std::chrono::system_clock::now();
+        auto time = std::chrono::system_clock::to_time_t(now);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+        bufferStream << std::put_time(std::localtime(&time), "%H:%M:%S");
+        bufferStream << fmt::format(".{:03}", ms.count());
+        return fmt::format("({})", bufferStream.str());
+    }
+
     std::string GetLocalDateStr()
     {
         auto now = std::chrono::system_clock::now();
@@ -45,7 +57,7 @@ public:
 
     void Log(const std::string& message) 
     {        
-        std::string formatted = fmt::format("({}) ", pluginName);
+        std::string formatted = fmt::format("{} ({}) ", GetLocalTime(), pluginName);
   
         fmt::print(fg(fmt::color::light_sky_blue), formatted);
         fmt::print(fmt::format("{}\n", message));
@@ -55,7 +67,7 @@ public:
 
     void Warn(const std::string& message) 
     {
-        std::string formatted = fmt::format("{}{}\n", fmt::format(" ({}) ", pluginName), message);
+        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" ({}) ", pluginName), message);
 
         fmt::print(fg(fmt::color::orange), formatted, "\n");
         file << formatted;
@@ -64,7 +76,7 @@ public:
 
     void Error(const std::string& message) 
     {
-        std::string formatted = fmt::format("{}{}\n", fmt::format(" ({}) ", pluginName), message);
+        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" ({}) ", pluginName), message);
 
         fmt::print(fg(fmt::color::red), formatted, "\n");
         file << formatted;

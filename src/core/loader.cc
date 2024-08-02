@@ -12,108 +12,134 @@
 #include <sys/log.h>
 
 using namespace std::placeholders;
-websocketpp::client<websocketpp::config::asio_client>* sharedClient, *browserClient;
-websocketpp::connection_hdl sharedHandle, browserHandle;
+using namespace std::chrono;
+websocketpp::client<websocketpp::config::asio_client>*browserClient;
+websocketpp::connection_hdl browserHandle;
 
-bool PostSocket(nlohmann::json data, 
-    websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle) 
-{
-    if (client == nullptr) {
-        LOG_ERROR("not connected to steam, cant post message");
-        return false;
-    }
-
-    client->send(handle, data.dump(), websocketpp::frame::opcode::text);
-    return true;
-}
+std::string sharedJsContextSessionId;
 
 bool Sockets::PostShared(nlohmann::json data) 
 {
-    return PostSocket(data, sharedClient, sharedHandle);
+    if (sharedJsContextSessionId.empty()) 
+    {
+        LOG_ERROR("not connected to shared js context, cant post message");
+        return false;
+    }
+
+    data["sessionId"] = sharedJsContextSessionId;
+    return Sockets::PostGlobal(data);
 }
 
 bool Sockets::PostGlobal(nlohmann::json data) 
 {
-    return PostSocket(data, browserClient, browserHandle);
+    if (browserClient == nullptr) {
+        LOG_ERROR("not connected to steam, cant post message");
+        return false;
+    }
+
+    browserClient->send(browserHandle, data.dump(), websocketpp::frame::opcode::text);
+    return true;
 }
 
 class CEFBrowser
 {
     WebkitHandler webKitHandler;
+    uint16_t m_ftpPort, m_ipcPort;
+    bool m_sharedJsConnected = false;
 
+    std::chrono::system_clock::time_point m_startTime;
 public:
+
+    const void HandleConsoleMessage(const nlohmann::json& json)
+    {
+        try
+        {
+            if (json["params"]["message"]["level"] == "error")
+            {
+                const auto data = json["params"]["message"];
+
+                std::string traceMessage = fmt::format("{}:{}:{}", data["url"].get<std::string>(), data["line"].get<int>(), data["column"].get<int>());
+                Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", data["text"].get<std::string>(), traceMessage);
+            }
+        }
+        catch (const std::exception& e) { }
+    }
 
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
+        const std::string method = json.value("method", std::string());
+        
+        if (json.contains("id") && json["id"] == 0 && 
+            json.contains("result") && json["result"].is_object() && 
+            json["result"].contains("targetInfos") && json["result"]["targetInfos"].is_array()) 
+        { 
+            const auto targets = json["result"]["targetInfos"];
+            auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
+            
+            if (targetIterator != targets.end() && !m_sharedJsConnected) 
+            {
+                Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, 
+                    { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } } 
+                });
+                m_sharedJsConnected = true;
+            }
+            else if (!m_sharedJsConnected)
+            {
+                this->SetupSharedJSContext();
+            }
+        }
+        if (method == "Target.attachedToTarget")
+        {
+            sharedJsContextSessionId = json["params"]["sessionId"];
+            this->onSharedJsConnect();
+        }
+        if (method == "Console.messageAdded") 
+        {
+            this->HandleConsoleMessage(json);
+        }
+        else if (method.find("Debugger") == std::string::npos) 
+        {        
+            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+        }
+
         webKitHandler.DispatchSocketMessage(json);
+    }
+
+    const void SetupSharedJSContext()
+    {
+        Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.getTargets" } });
+    }
+
+    const void onSharedJsConnect()
+    {
+        std::thread([this]() {
+            Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
+            CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
+            Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
+        }).detach();
     }
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
     {
+        m_startTime = std::chrono::system_clock::now();
         browserClient = client; 
         browserHandle = handle;
 
         Logger.Log("Connected to Steam @ {}", (void*)client);
+        this->SetupSharedJSContext();
         webKitHandler.SetupGlobalHooks();
     }
 
-    CEFBrowser() : webKitHandler(WebkitHandler::get()) { }
-};
-
-class SharedJSContext
-{
-    uint16_t m_ftpPort, m_ipcPort;
-public:
-
-    SharedJSContext(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort) { }
-
-    const void onMessage(websocketpp::client<websocketpp::config::asio_client>*c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
-    {
-        const auto json = nlohmann::json::parse(msg->get_payload());
-
-        if (json.contains("method") && json["method"] == "Console.messageAdded") 
-        {
-            try
-            {
-                if (json["params"]["message"]["level"] == "error")
-                {
-                    const auto data = json["params"]["message"];
-
-                    std::string errorMessage = data["text"];
-                    std::string url = data["url"];
-                    int line = data["line"];
-                    int column = data["column"];
-
-                    std::string traceMessage = fmt::format("{}:{}:{}", url, line, column);
-                    Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", errorMessage, traceMessage);
-                }
-            }
-            catch (const std::exception& e) { }
-        }
-        else
-        {        
-            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
-        }
-    }
-
-    const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
-    {
-        sharedClient = client; 
-        sharedHandle = handle;
-
-        Logger.Log("Connected to SharedJSContext @ {}", (void*)client);
-        CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
-
-        Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
-    }
+    CEFBrowser(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) { }
 };
 
 PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
-    : m_startTime(startTime), m_pluginsPtr(nullptr), m_ftpPort(ftpPort)
+    : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_ftpPort(ftpPort)
 {
     m_settingsStorePtr = std::make_unique<SettingsStore>();
     m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
 
     m_settingsStorePtr->InitializeSettingsStore();
     m_ipcPort = IPCMain::OpenConnection();
@@ -123,18 +149,6 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
     Logger.LogItem("+", fmt::format("Inter Process Communication Port: {}", m_ipcPort), true);
 
     this->PrintActivePlugins();
-}
-
-const std::thread PluginLoader::ConnectSharedJSContext(void* sharedJsHandler, SocketHelpers* socketHelpers)
-{
-    SocketHelpers::ConnectSocketProps sharedProps;
-
-    sharedProps.commonName     = "SharedJSContext";
-    sharedProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSharedJsContext, socketHelpers);
-    sharedProps.onConnect      = std::bind(&SharedJSContext::onConnect, (SharedJSContext*)sharedJsHandler, _1, _2);
-    sharedProps.onMessage      = std::bind(&SharedJSContext::onMessage, (SharedJSContext*)sharedJsHandler, _1, _2, _3);
-
-    return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, sharedProps));
 }
 
 const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
@@ -151,14 +165,13 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
 
 const void PluginLoader::StartFrontEnds()
 {
-    CEFBrowser cefBrowserHandler;
-    SharedJSContext sharedJsHandler(m_ftpPort, m_ipcPort);
+    CEFBrowser cefBrowserHandler(m_ftpPort, m_ipcPort);
     SocketHelpers socketHelpers;
 
     auto socketStart = std::chrono::high_resolution_clock::now();
 
     std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
-    std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
+    //std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
 
     auto socketEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - socketStart);
     Logger.LogItem("+", fmt::format("Finished in [{}ms]\n", socketEnd.count()), true);
@@ -168,7 +181,7 @@ const void PluginLoader::StartFrontEnds()
     Logger.Log("Startup took {} ms", duration.count());
 
     browserSocketThread.join();
-    sharedSocketThread.join();
+    //sharedSocketThread.join();
 
     LOG_ERROR("browser thread and shared thread exited...");
     this->StartFrontEnds();
@@ -200,7 +213,6 @@ const void StartPreloader(PythonManager& manager)
     manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin) 
     {
         Logger.Log("Started Preloader...", plugin.pluginName);
-
         const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
@@ -229,13 +241,8 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
 {
     StartPreloader(manager);
 
-    for (auto& plugin : *this->m_pluginsPtr)
+    for (auto& plugin : *this->m_enabledPluginsPtr)
     {
-        if (!m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName)) 
-        {
-            continue;
-        }
-
         std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
 
         std::thread(

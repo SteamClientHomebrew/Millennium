@@ -13,21 +13,21 @@ const std::string GetBootstrapModule(const std::string scriptModules, const uint
     return R"(
 function createWebSocket(url) {
     return new Promise((resolve, reject) => {
-        let socket = new WebSocket(url);
-        socket.addEventListener('open', () => {
-            console.log('%c Millennium ', 'background: black; color: white', "Successfully connected to IPC server.");
-            resolve(socket);
-        });
-        socket.addEventListener('error', (error) => {
-            console.error('WebSocket error:', error);
-            reject(error);
-        });
-        socket.addEventListener('close', () => {
-            console.warn('WebSocket closed, attempting to reconnect...');
-            setTimeout(() => {
-                createWebSocket(url).then(resolve).catch(reject);
-            }, 100);
-        });
+        try {
+            let socket = new WebSocket(url);
+            socket.addEventListener('open', () => {
+                console.log('%c Millennium ', 'background: black; color: white', "Successfully connected to IPC server.");
+                resolve(socket);
+            });
+            socket.addEventListener('close', () => {
+                setTimeout(() => {
+                    createWebSocket(url).then(resolve).catch(reject);
+                }, 100);
+            });
+        } 
+        catch (error) {
+            console.warn('Failed to connect to IPC server:', error);
+        } 
     });
 }
 
@@ -232,21 +232,21 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
 
     AddSitePackagesDirectory(pluginVirtualEnv);
+    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
 
     PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
 
     if (mainModuleFilePtr == NULL) 
     {
-        LOG_ERROR("failed to fopen file @ {}", backendMainModule);
+        Logger.Warn("failed to fopen file @ {}", backendMainModule);
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
     }
 
     if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
     {
         LOG_ERROR("millennium failed to startup [{}]", plugin.pluginName);
-
-        CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
         backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
 
         return;

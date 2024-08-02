@@ -5,7 +5,9 @@
 #include <sys/locals.h>
 #include "git.h"
 
+#define ASSETS_SHALLOW_DATABASE_ERROR 426674
 using namespace std::chrono;
+namespace fs = std::filesystem;
 
 namespace Dependencies {
 
@@ -24,17 +26,59 @@ namespace Dependencies {
         return 0;
     }
 
+    
+    void MakeWritable(const fs::path& targetPath) 
+    {
+        std::error_code errorCode;
+        fs::permissions(targetPath, fs::perms::owner_write | fs::perms::owner_read | fs::perms::owner_exec |
+                            fs::perms::group_write | fs::perms::group_read | fs::perms::group_exec |
+                            fs::perms::others_write | fs::perms::others_read | fs::perms::others_exec,
+                        errorCode);
+        if (errorCode) 
+        {
+            LOG_ERROR("Failed to change permissions of {} -> {}", targetPath.string(), errorCode.message());
+        }
+    }
+
+    void RemoveAllWithPermissions(const fs::path& targetPath) 
+    {
+        try
+        {
+            if (!std::filesystem::exists(targetPath))
+            {
+                Logger.Warn("Path does not exist: {}", targetPath.string());
+            }
+
+            for (auto& entry : std::filesystem::recursive_directory_iterator(targetPath)) 
+            {
+                MakeWritable(entry.path());
+            }
+            std::error_code errorCode;
+            std::filesystem::remove_all(targetPath, errorCode);
+            if (errorCode) 
+            {
+                LOG_ERROR("Failed to remove {} -> {}", targetPath.string(), errorCode.message());
+                return;
+            } 
+
+            Logger.Log("Successfully removed {}", targetPath.string());
+        }
+        catch (std::filesystem::filesystem_error& ex)
+        {
+            LOG_ERROR("Failed to remove {} -> {}", targetPath.string(), ex.what());
+        }
+    }
+
     const int CloneRepository(git_repository* repository, std::string packageLocalPath, std::string remoteObject) 
     {
         git_clone_options gitCloneOpts = GIT_CLONE_OPTIONS_INIT;
         gitCloneOpts.checkout_opts.checkout_strategy = GIT_CHECKOUT_FORCE;
-        gitCloneOpts.fetch_opts.depth = 1;
  
         // can't clone into a non-empty directory
         if (std::filesystem::exists(packageLocalPath) && !std::filesystem::is_empty(packageLocalPath)) 
         {
-            std::uintmax_t removedCount = std::filesystem::remove_all(packageLocalPath);
-            Logger.LogItem("+", fmt::format("Flushed {} items", removedCount));
+            Logger.LogItem("+", "Removing existing directory...");
+            RemoveAllWithPermissions(packageLocalPath);
         }
         else if (!std::filesystem::exists(packageLocalPath))
         {
@@ -93,6 +137,11 @@ namespace Dependencies {
             if (last_error->klass == GIT_ERROR_NET && !std::filesystem::exists(package_path.c_str())) 
             {
                 boxer::show("It seems you don't have internet connection or GitHub's API is unreachable. A valid internet connection is required to setup Millennium.", "Error", boxer::Style::Error);
+            }   
+            else if (last_error->klass == GIT_ERROR_ODB) 
+            {
+                Logger.Log("Unshallowing assets repository...");
+                return ASSETS_SHALLOW_DATABASE_ERROR;
             }
             return 1; 
         }
@@ -184,6 +233,13 @@ namespace Dependencies {
             case 0: // no error occured
             {
                 repositoryOpenStatus = FetchHead(repo, package_path);
+                if (repositoryOpenStatus == ASSETS_SHALLOW_DATABASE_ERROR)
+                {
+                    git_repository_free(repo);
+                    git_libgit2_shutdown();
+                    RemoveAllWithPermissions(package_path);
+                    return GitAuditPackage(common_name, package_path, remote_object);
+                }
                 break;
             } 
             default: {

@@ -270,3 +270,19 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 
     return plugins;
 }
+
+std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
+{
+    const auto allPlugins = this->ParseAllPlugins();
+    std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
+
+    for (auto& plugin : allPlugins)
+    {
+        if (this->IsEnabledPlugin(plugin.pluginName) && plugin.pluginJson.value("useBackend", true))
+        {
+            enabledBackends.push_back(plugin);
+        }
+    }
+
+    return enabledBackends;
+}
