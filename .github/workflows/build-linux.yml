@@ -27,23 +27,23 @@ jobs:
       with:
         submodules: true
 
- 
     - name: Install pyenv
       run: |
         curl https://pyenv.run | bash
-        echo 'export PYENV_ROOT="$HOME/.pyenv"' >> $GITHUB_ENV
-        echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> $GITHUB_ENV
-        echo 'eval "$(pyenv init --path)"' >> $GITHUB_ENV
-        echo 'eval "$(pyenv init -)"' >> $GITHUB_ENV
-        echo 'eval "$(pyenv virtualenv-init -)"' >> $GITHUB_ENV
-        source $GITHUB_ENV
-        pyenv update
+        echo 'PYENV_ROOT="$HOME/.pyenv"' >> $GITHUB_ENV
+        echo 'PATH="$PYENV_ROOT/bin:$PATH"' >> $GITHUB_ENV
+        echo 'eval "$(pyenv init --path)"' >> $HOME/.bashrc
+        echo 'eval "$(pyenv init -)"' >> $HOME/.bashrc
+        echo 'eval "$(pyenv virtualenv-init -)"' >> $HOME/.bashrc
+      shell: bash
 
     - name: Install Python 3.11.8
       run: |
-        source $GITHUB_ENV
+        source ~/.bashrc
         pyenv install 3.11.8
         pyenv global 3.11.8
+        python --version
+      shell: bash
 
     - name: Verify Python version
       run: python --version
