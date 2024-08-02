@@ -81,7 +81,7 @@ jobs:
         . scripts\ci\setup-python.ps1 D:/a/env/ext/data/cache
 
     - name: Setup | Semantic Release
-      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog
+      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
