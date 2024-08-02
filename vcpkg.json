@@ -1,6 +1,5 @@
 {
   "dependencies": [
-    "libgit2",
     "curl",
     "minizip",
     "cli11"
