@@ -13,18 +13,10 @@ jobs:
     runs-on: windows-latest
 
     env:
-        ACTIONS_ALLOW_UNSECURE_COMMANDS: true # allow fortnite wallhacks
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - sys: mingw32
-            env: i686
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true # allow fortnite wallhacks
+      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
-
     - name: Export GitHub Actions cache environment variables
       uses: actions/github-script@v7
       with:
@@ -90,12 +82,12 @@ jobs:
     - name: Install prerequisites
       uses: msys2/setup-msys2@v2
       with:
-        msystem: ${{ matrix.sys }}
+        msystem: mingw32
         install: >-
-          mingw-w64-${{ matrix.env }}-libgcrypt
-          mingw-w64-${{ matrix.env }}-gcc
-          mingw-w64-${{ matrix.env }}-cmake
-          mingw-w64-${{ matrix.env }}-ninja
+          mingw-w64-i686-libgcrypt
+          mingw-w64-i686-gcc
+          mingw-w64-i686-cmake
+          mingw-w64-i686-ninja
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
