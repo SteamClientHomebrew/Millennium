@@ -178,7 +178,7 @@ function DownloadFileWithProgress {
 }
 
 $response = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "Millennium.Installer/1.0" }
-$latestRelease = $response | Where-Object { $_.prerelease } | Sort-Object -Property created_at -Descending | Select-Object -First 1
+$latestRelease = $response | Where-Object { -not $_.prerelease } | Sort-Object -Property created_at -Descending | Select-Object -First 1
 
 $steamPath = (Get-ItemProperty -Path "HKCU:\Software\Valve\Steam").SteamPath
 
@@ -222,6 +222,11 @@ $packageName = "millennium-$releaseTag-windows-x86_64.zip"
 # Find the size of the package from its name
 $packageCount = $latestRelease.assets.Count
 $targetAsset = $latestRelease.assets | Where-Object { $_.name -eq $packageName }
+
+if (-not $targetAsset) {
+    Write-Host "${BoldRed}[!]${ResetColor} Failed to find targetted assets for Millennium@$releaseTag"
+    exit
+}
 
 $totalBytesFromRelease = $totalBytesFromRelease = $targetAsset.size
 
@@ -283,7 +288,7 @@ Write-Host ""
 Extract-ZipWithProgress -zipPath $outputFile -extractPath $steamPath
 
 # Remove the downloaded zip file
-Remove-Item -Path $outputFile > $null
+# Remove-Item -Path $outputFile > $null
 
 
 # This portion of the script is used to configure the millennium.ini file
