@@ -1,7 +1,7 @@
 # Define the URLs and the destination folder
 $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-win32.zip"
 $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
-$destinationFolder = "C:\Users\shadow\Desktop\cache"
+$destinationFolder = $args[0]
 
 # Create the destination folder if it doesn't exist
 if (-Not (Test-Path $destinationFolder)) {
