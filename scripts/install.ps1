@@ -116,7 +116,7 @@ function Update-Config {
 function Show-Progress {
     param ([int]$FileNumber, [int]$TotalFiles, [int]$PercentComplete, [string]$Message, [int]$CurrentRead, [int]$TotalBytes)
 
-    $ProgressBarLength = 65
+    $ProgressBarLength = [math]::round([System.Console]::WindowWidth / 4)
     $Progress = [math]::round(($PercentComplete / 100) * $ProgressBarLength)
     $ProgressBar = ("#" * $Progress).PadRight($ProgressBarLength)
     
@@ -130,6 +130,12 @@ function Show-Progress {
 
     $placement = ([Console]::WindowWidth + 6) - $ProgressBarLength
     $addLength = $placement - $ProgressMessage.Length
+
+    # check if addLength is negative
+    if ($addLength -lt 0) {
+        $addLength = $ProgressMessage.Length
+    }
+
     $spaces    = " " * $addLength
     $backspace = "`b" * $currentDownload.Length
     
