@@ -131,8 +131,10 @@ function Get-FileSize {
     param ($relativePath)
     $totalSize = 0
 
-    if (Test-Path $relativePath -PathType Leaf) {
-        $fileSize = (Get-Item $relativePath).Length
+    $absolutePath = Join-Path -Path $steamPath -ChildPath $relativePath
+
+    if (Test-Path $absolutePath -PathType Leaf) {
+        $fileSize = (Get-Item $absolutePath).Length
         $totalSize += $fileSize
     }
 
@@ -223,7 +225,7 @@ function PrettyPrintSizeOnDisk {
 }
 
 $assets = @(
-    "Millennium", $jsonObject.assets
+    "Millennium", @("user32.dll", "python311.dll")
     "Core Modules", "ext/data/assets"
     "Python Cache", "ext/data/cache"
     "User Plugins", "plugins"
