@@ -261,7 +261,7 @@ function Extract-ZipWithProgress {
             
             # Show progress
             $filename = Split-Path -Path $entry.FullName -Leaf
-            Show-Progress -FileNumber 2 -TotalFiles 2 -PercentComplete ([math]::Round(($currentFile / $totalFiles) * 100)) -Message "Extracting $filename..." -CurrentRead 0 -TotalBytes 0
+            Show-Progress -FileNumber 2 -TotalFiles 2 -PercentComplete ([math]::Round(($currentFile / $totalFiles) * 100)) -Message "Unpacking Assets..." -CurrentRead 0 -TotalBytes 0
         }
     }
 
