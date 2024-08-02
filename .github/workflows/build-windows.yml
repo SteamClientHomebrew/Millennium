@@ -238,11 +238,11 @@ jobs:
         Add-Type -AssemblyName System.IO.Compression.FileSystem
 
         # Define the file to be zipped and the destination zip file
-        $fileToZip = "D:/a/env/"
+        $directoryToZip  = "D:/a/env/"
         $zipFile = "D:/a/env/millennium-${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
 
         # Create a new zip archive
-        [System.IO.Compression.ZipFile]::CreateFromDirectory((Get-Item $fileToZip).Directory.FullName, $zipFile)
+        [System.IO.Compression.ZipFile]::CreateFromDirectory($directoryToZip, $zipFile)
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
