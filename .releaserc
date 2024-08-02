@@ -5,7 +5,7 @@
     "@semantic-release/release-notes-generator",
     {
         "path": "@semantic-release/github",
-        "assets": ["D:/a/env"]
+        "assets": ["D:/a/env/millennium-*-windows-x86_64.zip"]
     },
     [
       "@semantic-release/exec",
