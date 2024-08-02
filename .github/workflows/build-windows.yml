@@ -232,6 +232,8 @@ jobs:
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll  D:/a/env/user32.dll
 
+    - name: Zip Build Artifact
+      run: |
         # zip the build artifacts
         Add-Type -AssemblyName System.IO.Compression.FileSystem
 
@@ -241,7 +243,6 @@ jobs:
 
         # Create a new zip archive
         [System.IO.Compression.ZipFile]::CreateFromDirectory((Get-Item $fileToZip).Directory.FullName, $zipFile)
-
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
