@@ -235,7 +235,7 @@ jobs:
     - name: Zip Build Artifact
       run: |
         $directoryToZip  = "D:/a/env/"
-        $zipFile = "D:/a/env/millennium-${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
+        $zipFile = "D:/a/env/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
 
         Compress-Archive -Path $directoryToZip -DestinationPath $zipFile
 
