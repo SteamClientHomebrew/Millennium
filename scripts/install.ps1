@@ -298,6 +298,11 @@ if (Test-Path -Path $outputFile) {
     Remove-Item -Path $outputFile > $null
 }
 
+$millenniumBinDir = Join-Path -Path $steamPath -ChildPath "/ext/bin"
+
+# Add the extracted directory to the PATH environment variable
+[System.Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";$millenniumBinDir", [System.EnvironmentVariableTarget]::User)
+
 
 # This portion of the script is used to configure the millennium.ini file
 # The script will prompt the user to enable these features.

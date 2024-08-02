@@ -233,7 +233,7 @@ jobs:
         # Move the python311.dll binary to the release directory
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
         cp /d/a/Millennium/Millennium/build/user32.dll  D:/a/env/user32.dll
-        cp /d/a/Millennium/Millennium/build/cli/millennium.exe  D:/a/env/bin/millennium.exe
+        cp /d/a/Millennium/Millennium/build/cli/millennium.exe  D:/a/env/ext/bin/millennium.exe
 
     - name: Zip Build Artifact
       run: |
