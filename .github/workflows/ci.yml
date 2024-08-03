@@ -226,7 +226,7 @@ jobs:
         cmake --build build --config Release
 
         mkdir -p /home/runner/env
-        cp /home/runner/Millennium/build/user32.so /home/runner/env/
+        cp /home/runner/Millennium/build/user32 /home/runner/env/
         mkdir -p /home/runner/env/ext/bin
         cp /home/runner/Millennium/build/cli/millennium /home/runner/env/ext/bin
 
