@@ -158,9 +158,6 @@ jobs:
     - name: (Setup) Build Assets
       run: bash scripts/ci/posix/mk-assets.sh
     
-    - name: (Setup) Construct Python Environment
-      run: bash scripts/ci/posix/setup-python.sh /home/runner/env/ext/data/cache
-
     - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
       env: 
@@ -188,6 +185,9 @@ jobs:
 
     - name: Verify Python version
       run: python --version
+
+    - name: (Setup) Construct Python Environment
+      run: bash scripts/ci/posix/setup-python.sh /home/runner/env/ext/data/cache
 
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
