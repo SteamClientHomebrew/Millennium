@@ -107,9 +107,6 @@ jobs:
         mkdir D:/a/env/ext/bin
         cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
-    - name: Zip Build Artifact
-      run: Get-ChildItem -Path "D:/a/env/" | Compress-Archive -DestinationPath "D:/a/env/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip"
-
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -209,12 +206,6 @@ jobs:
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: millennium
-        path: ./build/artifacts
-
     - name: Build Millennium
       run: |
         mkdir -p /home/runner/Millennium/build/artifacts
@@ -227,9 +218,6 @@ jobs:
         mkdir -p /home/runner/env/ext/bin
         cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
 
-    - name: Zip Build Artifact
-      run: zip -r /home/runner/env/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip /home/runner/env/
-
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -240,6 +228,11 @@ jobs:
     needs: [build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
@@ -264,12 +257,7 @@ jobs:
 
     - name: Bump Version
       id: read_version
-      run: |
-        VERSION=$(npx semantic-release --dry-run | grep -oP 'The next release version is \K[0-9.]+')
-        echo "Version: $VERSION"
-        echo "::set-output name=version::$VERSION"
-        echo "# current version of millennium" > ./version
-        echo "v$VERSION" >> ./version
+      run: bash scripts/ci/posix/bump-version.sh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
