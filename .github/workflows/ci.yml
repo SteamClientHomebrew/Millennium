@@ -40,10 +40,10 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: (Setup) Build Assets
-      run: . scripts\ci\mk-assets.ps1
+      run: . scripts\ci\win32\mk-assets.ps1
     
     - name: (Setup) Construct Python Environment
-      run: . scripts\ci\setup-python.ps1 D:/a/env/ext/data/cache
+      run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
 
     - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
@@ -53,7 +53,7 @@ jobs:
     # dry run to get the next version
     - name: Bump Version
       id: read_version
-      run: . scripts\ci\bump-version.ps1
+      run: . scripts\ci\win32\bump-version.ps1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -71,7 +71,7 @@ jobs:
 
     - name: (Python) Download 3.11.8 win32 source
       if: steps.build-cache.outputs.cache-hit != 'true'
-      run: . scripts\ci\build-python.ps1
+      run: . scripts\ci\win32\build-python.ps1
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
@@ -158,8 +158,8 @@ jobs:
     - name: (Setup) Build Assets
       run: bash scripts/ci/posix/mk-assets.sh
     
-    # - name: (Setup) Construct Python Environment
-    #   run: bash scripts/ci/setup-python.sh /home/runner/env/ext/data/cache
+    - name: (Setup) Construct Python Environment
+      run: bash scripts/ci/setup-python.sh /home/runner/env/ext/data/cache
 
     - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
@@ -224,8 +224,11 @@ jobs:
       run: |
         mkdir -p /home/runner/Millennium/build/artifacts
         cmake --build build --config Release
+
+        mkdir -p /home/runner/env
         cp /home/runner/Millennium/build/user32.so /home/runner/env/
-        cp /home/runner/Millennium/build/cli/millennium /home/runner/env/
+        mkdir -p /home/runner/env/ext/bin
+        cp /home/runner/Millennium/build/cli/millennium /home/runner/env/ext/bin
 
     - name: Zip Build Artifact
       run: zip -r /home/runner/env/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip /home/runner/env/
