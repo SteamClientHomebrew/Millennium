@@ -159,7 +159,7 @@ jobs:
       run: bash scripts/ci/posix/mk-assets.sh
     
     - name: (Setup) Construct Python Environment
-      run: bash scripts/ci/setup-python.sh /home/runner/env/ext/data/cache
+      run: bash scripts/ci/posix/setup-python.sh /home/runner/env/ext/data/cache
 
     - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
