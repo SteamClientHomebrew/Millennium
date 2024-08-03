@@ -18,7 +18,7 @@ project(Millennium LANGUAGES CXX)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
     # debug output paths
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam/ext/bin")
     set(LIBRARY_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
 endif()
 
