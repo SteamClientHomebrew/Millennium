@@ -215,6 +215,7 @@ jobs:
 
         mkdir -p /home/runner/env
         cp ./build/user32 /home/runner/env/user32
+        cp ~/.pyenv/versions/3.11.8/lib/libpython3.11.so.1.0 /home/runner/env/libpython3.11.so.1.0
         mkdir -p /home/runner/env/ext/bin
         cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
 
