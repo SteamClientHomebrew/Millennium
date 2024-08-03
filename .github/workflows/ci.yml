@@ -270,7 +270,7 @@ jobs:
         cd - # return to the original directory
 
         cd ./artifacts/linux
-        zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip .
+        tar -czvf ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz .
         cd - # return to the original directory
 
     - name: Create GitHub Release
