@@ -264,7 +264,12 @@ jobs:
 
     - name: Bump Version
       id: read_version
-      run: bash scripts/ci/posix/bump-version.sh
+      run: |
+        VERSION=$(npx semantic-release --dry-run | grep -oP 'The next release version is \K[0-9.]+')
+        echo "Version: $VERSION"
+        echo "::set-output name=version::$VERSION"
+        echo "# current version of millennium" > ./version
+        echo "v$VERSION" >> ./version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
