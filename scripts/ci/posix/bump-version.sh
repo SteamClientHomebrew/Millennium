@@ -7,7 +7,7 @@ VERSION=$(npx semantic-release --dry-run | grep -oP 'The next release version is
 echo "Version: $VERSION"
 
 # Set the GitHub Actions output variable
-echo "version=$VERSION" >> $GITHUB_ENV
+echo "::set-output name=version::$VERSION"
 
 # Write the version to the file
 echo "# current version of millennium" > ./version
