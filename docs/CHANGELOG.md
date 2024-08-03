@@ -1,3 +1,11 @@
+## [2.7.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.7.1...v2.7.2) (2024-08-03)
+
+
+### Bug Fixes
+
+* Fix installer extracting ghost files ([96e238e](https://github.com/SteamClientHomebrew/Millennium/commit/96e238e86d2bc4ba35d550f40a54c8d3322f3c41))
+* Properly whitelist the default skin in the CLI ([1d8faef](https://github.com/SteamClientHomebrew/Millennium/commit/1d8faef57bde9ca8b08578e08be0f3685f719c3c))
+
 ## [2.7.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.7.0...v2.7.1) (2024-08-03)
 
 
