@@ -257,7 +257,7 @@ jobs:
 
     - name: Bump Version
       id: read_version
-      run: bash scripts/ci/posix/version.sh
+      run: bash scripts/ci/posix/bump.sh
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
