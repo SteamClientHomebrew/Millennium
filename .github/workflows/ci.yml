@@ -116,11 +116,6 @@ jobs:
         name: millennium-windows
         path: D:/a/env/
 
-    # - name: Setup | Run Semantic Release
-    #   run: npx semantic-release
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build-linux:
     permissions:
       contents: write
@@ -241,7 +236,46 @@ jobs:
         name: millennium-linux
         path: /home/runner/env/
 
-    # - name: Setup | Run Semantic Release
-    #   run: npx semantic-release
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: Install Semantic Release
+      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+      env: 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download Windows Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: millennium-windows
+        path: ./artifacts/windows
+
+    - name: Download Linux Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: millennium-linux
+        path: ./artifacts/linux
+
+    - name: Bump Version
+      id: read_version
+      run: bash scripts/ci/posix/bump-version.sh
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Proccess Artifacts
+      run: |
+        # rename artifacts
+        mv ./artifacts/windows/millennium-windows.zip ./artifacts/windows/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip
+        mv ./artifacts/linux/millennium-linux.zip ./artifacts/linux/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip
+
+    - name: Create GitHub Release
+      run: npx semantic-release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

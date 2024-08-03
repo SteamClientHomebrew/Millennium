@@ -17,7 +17,7 @@
     ],
     {
         "path": "@semantic-release/github",
-        "assets": ["D:/a/env/millennium-*-windows-x86_64.zip"]
+        "assets": ["./artifacts/**/*.zip"]
     },
     [
       "@semantic-release/exec",
