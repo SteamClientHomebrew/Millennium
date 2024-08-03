@@ -21,7 +21,7 @@ fi
 mkdir -p "$TARGET_PATH"
 
 # Copy the contents of the pyenv Python version to the target path
-cp -r "$SOURCE_PATH/" "$TARGET_PATH/"
+cp -r "$SOURCE_PATH/"* "$TARGET_PATH"
 
 # Verify if the copy was successful
 if [ $? -eq 0 ]; then
