@@ -266,8 +266,9 @@ jobs:
         # rename artifacts
         ls -laR ./artifacts
 
-        zip -r /home/runner/env/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip ./artifacts/windows/
-        zip -r /home/runner/env/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip ./artifacts/linux/
+        mkdir -p ./artifacts/release
+        zip -r ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip ./artifacts/windows/
+        zip -r ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip ./artifacts/linux/
 
     - name: Create GitHub Release
       run: npx semantic-release

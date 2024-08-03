@@ -17,7 +17,7 @@
     ],
     {
         "path": "@semantic-release/github",
-        "assets": ["./artifacts/**/*.zip"]
+        "assets": ["./artifacts/release/*.zip"]
     },
     [
       "@semantic-release/exec",
