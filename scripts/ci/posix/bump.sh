@@ -7,5 +7,5 @@ echo "v$VERSION" >> ./version
 git config user.email "github-actions@github.com"
 git config user.name "GitHub Actions"
 git add version
-git commit -m "chore(release): bump version to v$VERSION"
+git commit -m "chore(release): bump version to v$VERSION [skip ci]"
 git push
