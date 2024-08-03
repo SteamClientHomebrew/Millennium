@@ -18,12 +18,6 @@
     {
         "path": "@semantic-release/github",
         "assets": ["./artifacts/release/*.zip"]
-    },
-    [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "echo \"# current version of millennium\n${nextRelease.version}\" > version.txt; powershell.exe -File ./scripts/build.ps1"
-      }
-    ]
+    }
   ]
 }
