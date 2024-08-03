@@ -225,10 +225,12 @@ jobs:
         mkdir -p /home/runner/Millennium/build/artifacts
         cmake --build build --config Release
 
+        ls -laR /home/runner/Millennium/build
+
         mkdir -p /home/runner/env
-        cp /home/runner/Millennium/build/user32 /home/runner/env/
+        cp ./build/user32 /home/runner/env/user32
         mkdir -p /home/runner/env/ext/bin
-        cp /home/runner/Millennium/build/cli/millennium /home/runner/env/ext/bin
+        cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
 
     - name: Zip Build Artifact
       run: zip -r /home/runner/env/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.zip /home/runner/env/
