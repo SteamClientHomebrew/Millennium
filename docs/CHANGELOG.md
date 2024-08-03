@@ -6,6 +6,14 @@
 * Fix uninstaller core ([cd5c5e3](https://github.com/SteamClientHomebrew/Millennium/commit/cd5c5e3aff4efc95516442b609d3fc4cc99fbf22))
 * Only add CLI to PATH if its not already there ([9d794ce](https://github.com/SteamClientHomebrew/Millennium/commit/9d794ce1e0838cbfb67f705b9ae6f302e64bd426))
 
+## [2.7.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.7.0...v2.7.1) (2024-08-03)
+
+
+### Bug Fixes
+
+* Fix uninstaller core ([cd5c5e3](https://github.com/SteamClientHomebrew/Millennium/commit/cd5c5e3aff4efc95516442b609d3fc4cc99fbf22))
+* Only add CLI to PATH if its not already there ([9d794ce](https://github.com/SteamClientHomebrew/Millennium/commit/9d794ce1e0838cbfb67f705b9ae6f302e64bd426))
+
 # [2.7.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.6.1...v2.7.0) (2024-08-02)
 
 
