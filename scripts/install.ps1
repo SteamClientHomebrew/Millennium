@@ -248,14 +248,17 @@ function Extract-ZipWithProgress {
     )
 
     try {
-         # Open the ZIP file
+        # Open the ZIP file
         $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
-        $totalFiles = $zipArchive.Entries.Count
+        $totalFiles = $zipArchive.Entries | Where-Object { -not [string]::IsNullOrEmpty($_.FullName) -and -not $_.FullName.EndsWith('/') } | Measure-Object | Select-Object -ExpandProperty Count
+        $totalBytes = $zipArchive.Entries | Where-Object { -not [string]::IsNullOrEmpty($_.FullName) -and -not $_.FullName.EndsWith('/') } | Measure-Object Length -Sum | Select-Object -ExpandProperty Sum
         $currentFile = 0
+        $extractedBytes = 0
 
         foreach ($entry in $zipArchive.Entries) {
             if (-not [string]::IsNullOrEmpty($entry.FullName) -and -not $entry.FullName.EndsWith('/')) {
                 $currentFile++
+                $extractedBytes += $entry.Length
                 $destinationPath = Join-Path -Path $extractPath -ChildPath $entry.FullName
 
                 # Ensure the destination directory exists
@@ -272,10 +275,15 @@ function Extract-ZipWithProgress {
                 $entryStream.Close()
                 
                 # Show progress
-                $filename = Split-Path -Path $entry.FullName -Leaf
-                Show-Progress -FileNumber 2 -TotalFiles 2 -PercentComplete ([math]::Round(($currentFile / $totalFiles) * 100)) -Message "Unpacking Assets..." -CurrentRead 0 -TotalBytes 0
+                $percentComplete = [math]::Round(($currentFile / $totalFiles) * 100)
+                $extractedSizeMB = [math]::Round($extractedBytes / 1MB, 2)
+                $totalSizeMB = [math]::Round($totalBytes / 1MB, 2)
+                Show-Progress -FileNumber 2 -TotalFiles 2 -PercentComplete $percentComplete -Message "Unpacking Assets..." -CurrentRead 0 -TotalBytes 0
             }
         }
+
+        $extractedSizeFormatted = ConvertTo-ReadableSize -size $extractedBytes
+        Write-Host "`n`n${BoldPurple}::${ResetColor} Total Installed Size:   $extractedSizeFormatted to disk."
 
         # Close the ZIP archive
         $zipArchive.Dispose()
@@ -358,18 +366,13 @@ if (-not (Test-Path -Path $configPath)) {
     New-Item -Path $configPath -ItemType File -Force > $null
 }
 
-Write-Host "`n`n${BoldPurple}::${ResetColor} Verifying post installation medium....`n"
+Write-Host "${BoldPurple}::${ResetColor} Verifying post installation medium....`n"
 
-$installedPackages = $latestRelease.assets | ForEach-Object { Join-Path -Path $steamPath -ChildPath $_.name }
+$fileName = Split-Path -Path $targetAsset.name -Leaf
+$fileNameWithoutExtension = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
 
-$installedPackages | ForEach-Object -Begin { $i = 0 } {
-    $i++
-    $fileName = Split-Path -Path $_ -Leaf
-    $fileNameWithoutExtension = [System.IO.Path]::GetFileNameWithoutExtension($fileName)
-    
-    $exists = if (-not (Test-Path -Path $_)) { "" } else { "${BoldRed}fail${ResetColor}" }
-    Write-Output "${BoldPurple}($i/$FileCount)${ResetColor} verifying $fileNameWithoutExtension $exists"
-}
+$exists = if (-not (Test-Path -Path $targetAsset.name)) { "" } else { "${BoldRed}fail${ResetColor}" }
+Write-Output "${BoldPurple}(1/1)${ResetColor} verifying $fileNameWithoutExtension $exists"
 
 # write millennium version and installed files to a log file
 $millenniumVersion = $latestRelease.tag_name
