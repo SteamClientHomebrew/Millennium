@@ -81,6 +81,10 @@ int PrintCurrentTheme() {
     const auto activeTheme = GetThemeDataJson()["active"].get<std::string>();
     fmt::print("{}\n", activeTheme);
 
+    if (activeTheme == "default") {
+        return 0;
+    }
+
     nlohmann::basic_json<> themeJson;
     if (!GetThemeJson(activeTheme, themeJson)) {
         LOG_WARN("Active theme could not be found on the disk, rendering it invalid.");
