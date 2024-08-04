@@ -1,3 +1,15 @@
+# [2.8.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.7.2...v2.8.0) (2024-08-04)
+
+
+### Bug Fixes
+
+* **CI:** Fix dependency issue on linux ([7e91f54](https://github.com/SteamClientHomebrew/Millennium/commit/7e91f54d19c4b4735e5dd15fdf43ee13013865a5))
+
+
+### Features
+
+* Add install script for linux ([950ffa8](https://github.com/SteamClientHomebrew/Millennium/commit/950ffa8eccd131d35e101f4e195a1594ecb68d3a))
+
 ## [2.7.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.7.1...v2.7.2) (2024-08-03)
 
 
