@@ -44,3 +44,5 @@ jobs:
     - name: Verify installation
       run: |
         /usr/local/python-3.11.8/bin/python3.11 --version
+        file /usr/local/python-3.11.8/bin/python3.11
+        /usr/local/python-3.11.8/bin/python3.11 -c "import hashlib"
