@@ -3,7 +3,7 @@
 #include <core/loader.h>
 #include <core/ffi/ffi.h>
 #include <sys/encoding.h>
-#include <boxer/boxer.h>
+// #include <boxer/boxer.h>
 
 WebkitHandler WebkitHandler::get() 
 {

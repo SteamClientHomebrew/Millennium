@@ -18,7 +18,7 @@
 #include <cstdio>
 #endif
 #ifndef MILLENNIUM_CLI
-#include <boxer/boxer.h>
+// #include <boxer/boxer.h>
 #endif
 #include <procmon/cmd.h>
 
@@ -193,7 +193,7 @@ public:
                 "Millennium & Steam will now close until further action is taken.", debuggerPort, processName
             );
 
-            boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
+            //boxer::show(message.c_str(), "Fatal Error", //boxer::Style::Error);
             std::exit(1);
         }
         #endif
@@ -201,7 +201,7 @@ public:
 
     SocketHelpers() : debuggerPort(GetDebuggerPort())
     {
-        Logger.LogItem("Ports", fmt::format("Connecting to Steam on port: {}", debuggerPort));
+        Logger.Log("Opting to use '{}' for SteamDBG port", debuggerPort);
         this->VerifySteamConnection();
     }
 
@@ -220,7 +220,7 @@ public:
             LOG_ERROR(exception.what());
 
             const std::string message = fmt::format("A fatal error occurred trying to get SteamBrowserContext -> {}", exception.what());
-            boxer::show(message.c_str(), "Fatal Error", boxer::Style::Error);
+            //boxer::show(message.c_str(), "Fatal Error", //boxer::Style::Error);
             std::exit(1);
         }
         #else
