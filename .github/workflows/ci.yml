@@ -190,14 +190,15 @@ jobs:
 
     - name: Configure and build Python 3.11.8 (32-bit)
       run: |
+        mkdir -p $HOME/.millennium/ext/data/cache
         cd Python-3.11.8
         sudo CFLAGS="-m32" LDFLAGS="-m32" ./configure --prefix=$HOME/.millennium/ext/data/cache --enable-optimizations
-        make -j$(nproc)
+        sudo make -j$(nproc)
         sudo make altinstall
 
     - name: Verify installation
       run: |
-        rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
+        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
 
     - name: (Generator) Install CMake
