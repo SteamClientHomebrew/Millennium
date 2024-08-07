@@ -13,21 +13,24 @@ jobs:
 
     - name: Install dependencies
       run: |
+        sudo dpkg --add-architecture i386
         sudo apt-get update
         sudo apt-get install -y \
           build-essential \
-          zlib1g-dev \
-          libncurses5-dev \
-          libgdbm-dev \
-          libnss3-dev \
-          libssl-dev \
-          libreadline-dev \
-          libffi-dev \
+          zlib1g-dev:i386 \
+          libncurses5-dev:i386 \
+          libgdbm-dev:i386 \
+          libnss3-dev:i386 \
+          libssl-dev:i386 \
+          libreadline-dev:i386 \
+          libffi-dev:i386 \
           wget \
           curl \
-          libbz2-dev \
-          libsqlite3-dev \
-          liblzma-dev
+          libbz2-dev:i386 \
+          libsqlite3-dev:i386 \
+          liblzma-dev:i386 \
+          gcc-multilib \
+          g++-multilib
 
     - name: Download Python 3.11.8 source
       run: |
