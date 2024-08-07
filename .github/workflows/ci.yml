@@ -162,24 +162,43 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install pyenv
+    - name: Install dependencies
       run: |
-        curl https://pyenv.run | bash
-        export PYENV_ROOT="$HOME/.pyenv"
-        export PATH="$PYENV_ROOT/bin:$PATH"
-        eval "$(pyenv init --path)"
-        eval "$(pyenv init -)"
-        eval "$(pyenv virtualenv-init -)"
-        pyenv install 3.11.8
-        pyenv global 3.11.8
-        python --version
-      shell: bash
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          zlib1g-dev:i386 \
+          libncurses5-dev:i386 \
+          libgdbm-dev:i386 \
+          libnss3-dev:i386 \
+          libssl-dev:i386 \
+          libreadline-dev:i386 \
+          libffi-dev:i386 \
+          wget \
+          curl \
+          libbz2-dev:i386 \
+          libsqlite3-dev:i386 \
+          liblzma-dev:i386 \
+          gcc-multilib \
+          g++-multilib
 
-    - name: Verify Python version
-      run: python --version
+    - name: Download Python 3.11.8 source
+      run: |
+        wget https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
+        tar -xf Python-3.11.8.tgz
 
-    - name: (Setup) Construct Python Environment
-      run: bash scripts/ci/posix/setup-python.sh /home/runner/env/ext/data/cache
+    - name: Configure and build Python 3.11.8 (32-bit)
+      run: |
+        cd Python-3.11.8
+        sudo CFLAGS="-m32" LDFLAGS="-m32" ./configure --prefix=$HOME/.millennium/ext/data/cache --enable-optimizations
+        make -j$(nproc)
+        sudo make altinstall
+
+    - name: Verify installation
+      run: |
+        rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
+        $HOME/.millennium/ext/data/cache/bin/python3.11 --version
 
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
