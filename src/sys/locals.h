@@ -58,6 +58,7 @@ namespace SystemIO
     };
 
     std::filesystem::path GetSteamPath();
+    std::filesystem::path GetInstallPath();
     nlohmann::json ReadJsonSync(const std::string& filename, bool* success = nullptr);
     std::string ReadFileSync(const std::string& filename);
     void WriteFileSync(const std::filesystem::path& filePath, std::string content);

@@ -33,7 +33,20 @@ namespace SystemIO {
         }
         #elif __linux__
         {
-            return fmt::format("{}/.steam/steam", std::getenv("HOME"));
+            return fmt::format("{}/.steam/steam/", std::getenv("HOME"));
+        }
+        #endif
+    }
+
+    std::filesystem::path GetInstallPath()
+    {
+        #ifdef _WIN32
+        {
+            return GetSteamPath();
+        }
+        #elif __linux__
+        {
+            return fmt::format("{}/.millennium", std::getenv("HOME"));
         }
         #endif
     }

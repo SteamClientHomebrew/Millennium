@@ -221,12 +221,12 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     #ifdef _WIN32
     {
         //AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
-        AddSitePackagesDirectory(SystemIO::GetSteamPath() / "ext" / "data" / "cache" / "Lib" / "site-packages");
+        AddSitePackagesDirectory(SystemIO::GetInstallPath() / "ext" / "data" / "cache" / "Lib" / "site-packages");
     }
     #else
     {
-        AddSitePackagesDirectory(pluginVirtualEnv / "lib" / "python3.11" / "site-packages");
-        AddSitePackagesDirectory(pluginVirtualEnv / "lib64" / "python3.11" / "site-packages");
+        // AddSitePackagesDirectory(pluginVirtualEnv / "lib" / "python3.11" / "site-packages");
+        AddSitePackagesDirectory(SystemIO::GetInstallPath() / "ext" / "data" / "cache" / "lib" / "python3.11" / "site-packages");
     }
     #endif
 
@@ -246,7 +246,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
     if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
     {
-        LOG_ERROR("millennium failed to startup [{}]", plugin.pluginName);
+        Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
         backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
 
         return;
@@ -287,6 +287,8 @@ static std::string addedScriptOnNewDocumentId;
 
 void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 {
+    Logger.Log("Notifying frontend of backend load...");
+
     static uint16_t m_ftpPort = ftpPort;
     static uint16_t m_ipcPort = ipcPort;
 

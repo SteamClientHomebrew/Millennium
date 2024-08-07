@@ -76,11 +76,11 @@ namespace Crow
         if (IsInternalRequest(path))
         {
             const auto relativePath = std::filesystem::relative(fmt::format("/{}", path), "/_internal_");
-            absolutePath = SystemIO::GetSteamPath() / "ext" / "data" / relativePath;
+            absolutePath = SystemIO::GetInstallPath() / "ext" / "data" / relativePath;
         }
         else
         {
-            absolutePath = SystemIO::GetSteamPath() / "plugins" / path;
+            absolutePath = SystemIO::GetInstallPath() / "plugins" / path;
         }
 
         ResponseProps responseProps = EvaluateRequest(absolutePath);

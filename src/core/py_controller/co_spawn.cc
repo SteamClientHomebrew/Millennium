@@ -4,7 +4,7 @@
 #include <core/ffi/ffi.h>
 #include <core/py_controller/bind_stdout.h>
 #include <core/py_controller/logger.h>
-#include <boxer/boxer.h>
+// #include <boxer/boxer.h>
 
 PyObject* PyInit_Millennium(void) 
 {
@@ -51,7 +51,6 @@ const std::string GetPythonVersion()
 
 PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
-    Logger.LogHead("Python Monitor:");
     this->m_instanceCount = 0;
 
     // initialize global modules
@@ -60,7 +59,7 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
     PyImport_AppendInittab("PluginUtils", &PyInit_Logger);
     PyImport_AppendInittab("Millennium",  &PyInit_Millennium);
 
-    Logger.LogItem("Python", "Initializing Python...");
+    Logger.Log("Verifying Python environment...");
 
     PyStatus status;
     PyConfig config;
@@ -75,15 +74,11 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
     }
 
     config.write_bytecode = 0;
-
-#ifdef _WIN32
     config.module_search_paths_set = 1;
 
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
-
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonUserLibs.begin(), pythonUserLibs.end()).c_str());
-#endif
 
     status = Py_InitializeFromConfig(&config);
 
@@ -97,7 +92,6 @@ done:
     PyConfig_Clear(&config);
 
     const std::string version = GetPythonVersion();
-    Logger.LogItem("Python", fmt::format("Successfully Initialized Python-{}", version));
 
     if (version != "3.11.8") {
         Logger.Warn("Millennium is intended to run python 3.11.8. You may be prone to stability issues...");

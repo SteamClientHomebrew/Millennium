@@ -13,11 +13,18 @@ struct PythonThreadState {
 	PyThreadState* thread_state;
 };
 
-static const std::filesystem::path pythonModulesBaseDir = SystemIO::GetSteamPath() / "ext" / "data" / "cache";
+static const std::filesystem::path pythonModulesBaseDir = SystemIO::GetInstallPath() / "ext" / "data" / "cache";
 
+#ifdef _WIN32
 static const std::string pythonPath = pythonModulesBaseDir.generic_string();
 static const std::string pythonLibs = (pythonModulesBaseDir / "python311.zip").generic_string();
 static const std::string pythonUserLibs = (pythonModulesBaseDir / "Lib" / "site-packages").generic_string();
+#elif __linux__
+static const std::string pythonPath = (pythonModulesBaseDir / "lib" / "python3.11").generic_string();
+static const std::string pythonLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "lib-dynload").generic_string();
+static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
+#endif
+
 
 class PythonManager 
 {

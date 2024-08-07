@@ -13,7 +13,7 @@ namespace FileSystem = std::filesystem;
 
 SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::INIStructure())
 {
-    const auto path = SystemIO::GetSteamPath() / "ext" / "millennium.ini";
+    const auto path = SystemIO::GetInstallPath() / "ext" / "millennium.ini";
 
     if (!FileSystem::exists(path))
     {
@@ -178,7 +178,7 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
 
 void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins)
 {
-    const std::filesystem::directory_entry entry(SystemIO::GetSteamPath() / "ext" / "data" / "assets");
+    const std::filesystem::directory_entry entry(SystemIO::GetInstallPath() / "ext" / "data" / "assets");
     const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
 
     if (!FileSystem::exists(pluginConfiguration))
@@ -217,7 +217,7 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
     std::vector<SettingsStore::PluginTypeSchema> plugins;
-    const auto plugin_path = SystemIO::GetSteamPath() / "plugins";
+    const auto plugin_path = SystemIO::GetInstallPath() / "plugins";
 
     try
     {

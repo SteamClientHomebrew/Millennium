@@ -125,6 +125,11 @@ PyObject* GetSteamPath(PyObject* self, PyObject* args)
     return PyUnicode_FromString(SystemIO::GetSteamPath().string().c_str()); 
 }
 
+PyObject* GetInstallPath(PyObject* self, PyObject* args) 
+{
+    return PyUnicode_FromString(SystemIO::GetInstallPath().string().c_str()); 
+}
+
 PyObject* RemoveBrowserModule(PyObject* self, PyObject* args) 
 { 
     int moduleId;
@@ -264,6 +269,8 @@ PyMethodDef* GetMillenniumModule()
         { "set_user_settings_key", SetUserSettings,                 METH_VARARGS, NULL },
         { "version",               GetVersionInfo,                  METH_NOARGS,  NULL },
         { "steam_path",            GetSteamPath,                    METH_NOARGS,  NULL },
+        { "get_install_path",      GetInstallPath,                  METH_NOARGS,  NULL },
+
         { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
 
         { "change_plugin_status",  TogglePluginStatus,              METH_VARARGS, NULL },
