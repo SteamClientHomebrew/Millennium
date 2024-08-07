@@ -14,6 +14,9 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+
 project(Millennium LANGUAGES CXX)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
@@ -33,7 +36,7 @@ elseif(UNIX)
 endif()
 
 # build boxer (message-box lib)
-add_subdirectory(vendor/boxer)
+# add_subdirectory(vendor/boxer)
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
@@ -56,17 +59,17 @@ add_compile_definitions(
   _CRT_SECURE_NO_WARNINGS
 )
 
-add_subdirectory(cli)
+# add_subdirectory(cli)
 
 find_package(CURL REQUIRED) # used for web requests. 
-find_package(minizip CONFIG REQUIRED) # used for extracting zip files
+find_package(unofficial-minizip CONFIG REQUIRED) # used for extracting zip files
 
 include_directories(${LIBGIT2_INCLUDE_DIRS})
 
 if(WIN32)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
 elseif(UNIX)
-  include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
+  include_directories("/usr/local/python-3.11.8/include/python3.11")
 endif()
 
 set(SOURCE_FILES 
@@ -96,12 +99,12 @@ if (WIN32)
   add_library(Millennium SHARED "${SOURCE_FILES}")
   # add_executable(Millennium "${SOURCE_FILES}" version.rc)
 elseif(UNIX)
-  add_executable(Millennium "${SOURCE_FILES}")
+  # add_executable(Millennium "${SOURCE_FILES}")
+  add_library(Millennium SHARED "${SOURCE_FILES}")
 endif()
+set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 
-set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
-set_target_properties(Millennium PROPERTIES PREFIX "")
-set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
+target_compile_options (Millennium PRIVATE -m32 )
 
 if(MSVC)
     # prevent MSVC from generating .lib and .exp archives
@@ -126,9 +129,9 @@ endif()
 # endif()
 
 target_link_libraries(Millennium 
-  Boxer
+  # Boxer
   CURL::libcurl
-  minizip::minizip
+  unofficial::minizip::minizip
 )
 
 if(WIN32)
@@ -150,6 +153,6 @@ if(WIN32)
   endif()
 elseif(UNIX)
   target_link_libraries(Millennium
-    "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.so"
+    "/home/shadow/.millennium/ext/data/cache/lib/libpython-3.11.8.so"
   )
 endif()

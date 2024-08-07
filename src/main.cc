@@ -7,7 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <fmt/core.h>
-#include <boxer/boxer.h>
+// #include <boxer/boxer.h>
 #include <sys/log.h>
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
@@ -29,7 +29,7 @@ private:
     const char* builtinsRepository = "https://github.com/SteamClientHomebrew/Core.git";
     const char* pythonModulesRepository = "https://github.com/SteamClientHomebrew/Packages.git";
 
-    std::filesystem::path builtinsModulesPath = SystemIO::GetSteamPath() / "ext" / "data" / "assets";
+    std::filesystem::path builtinsModulesPath = SystemIO::GetInstallPath() / "ext" / "data" / "assets";
 
 public:
 
@@ -49,14 +49,16 @@ public:
         {
             std::ofstream(filePath).close();
 
-            boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
+            //boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
             std::exit(1);
         }
     }
 
     const void Start() 
     {
+        #ifdef _WIN32
         CheckForUpdates();
+        #endif
     }
 };
 
@@ -111,7 +113,7 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
 
 int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdShow)
 {
-    boxer::show("Millennium successfully loaded!", "Yay!");
+    //boxer::show("Millennium successfully loaded!", "Yay!");
     //EntryMain();
     return 1;
 }
@@ -119,12 +121,90 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
 #include <stdio.h>
 #include <stdlib.h>
 #include <posix/helpers.h>
+#include <dlfcn.h>
+#include <fstream>
+#include <chrono>
+#include <ctime>
+#include <stdexcept>
 
-int main()
+extern "C"
 {
-    Logger.Log("Starting Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
+    /* Trampoline for the real main() */
+    static int (*fnMainOriginal)(int, char **, char **);
+    std::unique_ptr<std::thread> g_millenniumThread;
 
-    EntryMain();
-    return 1;
+    /* Our fake main() that gets called by __libc_start_main() */
+    int MainHooked(int argc, char **argv, char **envp)
+    {
+        pid_t pid = getpid();
+        Logger.Log("Hooked main() with PID: {}", pid);
+
+        /** 
+         * Since this isn't an executable, and is "preloaded", the kernel doesn't implicitly load dependencies, so we need to manually. 
+         * libpython3.11.so.1.0 should already be in $PATH, so we can just load it from there.
+        */
+        if (!dlopen("/home/shadow/.millennium/ext/data/cache/lib/libpython-3.11.8.so", RTLD_LAZY | RTLD_GLOBAL)) 
+        {
+            LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
+        }
+        else
+        {
+            Logger.Log("Successfully loaded unix python libraries...");
+        }
+
+        /** Start Millennium on a new thread to prevent I/O blocking */
+        g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+        g_millenniumThread->detach();
+
+        int steam_main = fnMainOriginal(argc, argv, envp);
+
+        Logger.Log("Steam main exited with code: {}", steam_main);
+        return steam_main;
+    }
+
+    /*
+    * Wrapper for __libc_start_main() that replaces the real main
+    * function with our hooked version.
+    */
+    int __libc_start_main(
+        int (*main)(int, char **, char **),
+        int argc,
+        char **argv,
+        int (*init)(int, char **, char **),
+        void (*fini)(void),
+        void (*rtld_fini)(void),
+        void *stack_end)
+    {
+        /* Save the real main function address */
+        fnMainOriginal = main;
+
+        /* Find the real __libc_start_main()... */
+            typedef int (*libc_start_main_t)(int (*)(int, char **, char **), int, char **, int (*)(int, char **, char **), void (*)(void), void (*)(void), void *);
+        libc_start_main_t orig = (libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
+
+        std::filesystem::path steamPath = std::filesystem::path(std::getenv("HOME")) / ".steam/steam/ubuntu12_32/steam";
+
+        if (argv[0] != steamPath.string()) {
+            /** Started from bash (invalid) */
+            return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
+        }
+
+        Logger.Log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
+        /* ... and call it with our custom main function */
+        return orig(MainHooked, argc, argv, init, fini, rtld_fini, stack_end);
+    }
+
+
+    /** This is a constructor, which is caught when a  */
+    __attribute__((constructor)) void core_init() 
+    {
+        //Logger.Log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
+    }
+
+    __attribute__((destructor)) void core_deinit() 
+    {
+        //Logger.Log("Unloading Millennium...");
+    }
 }
+
 #endif

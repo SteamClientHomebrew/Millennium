@@ -63,7 +63,9 @@
       "displayName": "linux-x86",
       "description": "Default build for Linux",
       "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "VCPKG_TARGET_TRIPLET": "x86-linux",
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_C_FLAGS": "-m32",
         "CMAKE_BUILD_TYPE": "Release"
       }
     }
