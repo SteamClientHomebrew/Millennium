@@ -1,0 +1,46 @@
+name: Build Python 3.11.8 (32-bit)
+
+on:
+    workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          zlib1g-dev \
+          libncurses5-dev \
+          libgdbm-dev \
+          libnss3-dev \
+          libssl-dev \
+          libreadline-dev \
+          libffi-dev \
+          wget \
+          curl \
+          libbz2-dev \
+          libsqlite3-dev \
+          liblzma-dev
+
+    - name: Download Python 3.11.8 source
+      run: |
+        wget https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
+        tar -xf Python-3.11.8.tgz
+
+    - name: Configure and build Python 3.11.8 (32-bit)
+      run: |
+        cd Python-3.11.8
+        ./configure --prefix=/usr/local/python-3.11.8 --enable-optimizations --with-arch=i686
+        make -j$(nproc)
+        sudo make altinstall
+
+    - name: Verify installation
+      run: |
+        /usr/local/python-3.11.8/bin/python3.11 --version
