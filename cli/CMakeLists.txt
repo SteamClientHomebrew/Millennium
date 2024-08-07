@@ -9,6 +9,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s -static -Wl,--gc-sections")
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+
 include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/ini/src
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
@@ -30,6 +33,9 @@ set(SOURCES
 find_package(CLI11 CONFIG REQUIRED)
 
 add_executable(CLI ${SOURCES})
+set_target_properties(CLI PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+target_compile_options (CLI PRIVATE -m32 )
+
 install(TARGETS CLI DESTINATION /usr/local/bin)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)

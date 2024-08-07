@@ -59,7 +59,7 @@ add_compile_definitions(
   _CRT_SECURE_NO_WARNINGS
 )
 
-# add_subdirectory(cli)
+add_subdirectory(cli)
 
 find_package(CURL REQUIRED) # used for web requests. 
 find_package(unofficial-minizip CONFIG REQUIRED) # used for extracting zip files
