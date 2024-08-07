@@ -47,7 +47,7 @@ jobs:
     - name: Verify installation
       run: |
         /usr/local/python-3.11.8/bin/python3.11 --version
-        file /usr/local/python-3.11.8/bin/python3.11 -m pip install pygit2
+        /usr/local/python-3.11.8/bin/python3.11 -m pip install pygit2
 
 
     # - name: Upload artifact
