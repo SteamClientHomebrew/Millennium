@@ -196,9 +196,18 @@ jobs:
         sudo make -j$(nproc)
         sudo make altinstall
 
-    - name: Verify installation
+    - name: Setup installation
       run: |
         sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
+
+        mkdir -p $HOME/.millennium/ext/data/cache/lib/tmp
+        cd $HOME/.millennium/ext/data/cache/lib/tmp
+        sudo ar -x ../libpython3.11.a
+        sudo gcc -m32 -shared -o ../libpython3.11.so.1.0 *.o
+
+        cd ../
+        sudo rm -rf tmp
+
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
 
     - name: (Generator) Install CMake
