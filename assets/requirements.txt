@@ -4,7 +4,7 @@ pywin32 | Windows
 requests
 winrt-Windows.UI.ViewManagement | Windows
 winrt-Windows.UI | Windows
-pygit2
+pygit2 | Windows
 cssutils
 websockets
 watchdog
