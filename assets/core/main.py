@@ -1,5 +1,8 @@
 import Millennium, json, os, configparser # type: ignore
 
+import platform
+print(f"Loading Millennium-Core@{Millennium.version()}")
+
 from api.css_analyzer import parse_root
 from api.themes import Colors
 from api.themes import find_all_themes
@@ -7,14 +10,14 @@ from api.plugins import find_all_plugins
 from api.config import Config, cfg
 from util.webkit_handler import WebkitStack, add_browser_css, add_browser_js
 from util.theme_installer import uninstall_theme
-from updater.version_control import Updater
 
-print(f"Loading Millennium-Core@{Millennium.version()}")
-updater = Updater()
+if platform.system() == "Windows":
+    from updater.version_control import Updater
+    updater = Updater()
 
 def get_load_config():
     millennium = configparser.ConfigParser()
-    config_path = os.path.join(Millennium.steam_path(), "ext", "millennium.ini")
+    config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
 
     with open(config_path, 'r') as enabled: millennium.read_file(enabled)
 

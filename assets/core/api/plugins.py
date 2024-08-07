@@ -3,7 +3,7 @@ import configparser, os, json
 
 def is_enabled(plugin_name: str) -> bool:
     config = configparser.ConfigParser()
-    config_path = os.path.join(Millennium.steam_path(), "ext", "millennium.ini")
+    config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
     
     with open(config_path, 'r') as enabled:
         config.read_file(enabled)
@@ -29,5 +29,5 @@ def search_dirs(m_path: str, plugins: list) -> None:
 def find_all_plugins() -> str:
     plugins = []
     for subdir in ["ext/data", "plugins"]: # ext/data is internal plugins, plugins is user plugins
-        search_dirs(os.path.join(Millennium.steam_path(), subdir), plugins)
+        search_dirs(os.path.join(Millennium.get_install_path(), subdir), plugins)
     return json.dumps(plugins)

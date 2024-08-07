@@ -25,7 +25,7 @@ class Config:
     def __init__(self):
         self.steam_utils = SteamUtils()
 
-        self.config_path = os.path.join(Millennium.steam_path(), "ext", "themes.json")
+        self.config_path = os.path.join(Millennium.get_install_path(), "ext", "themes.json")
         self.config = self.get_config()
 
         self.create_default("active", "default", str)
