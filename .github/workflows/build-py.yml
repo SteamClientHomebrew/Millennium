@@ -37,7 +37,7 @@ jobs:
     - name: Configure and build Python 3.11.8 (32-bit)
       run: |
         cd Python-3.11.8
-        ./configure --prefix=/usr/local/python-3.11.8 --enable-optimizations --with-arch=i686
+        sudo CFLAGS="-m32" LDFLAGS="-m32" ./configure --prefix=/usr/local/python-3.11.8 --enable-optimizations
         make -j$(nproc)
         sudo make altinstall
 
@@ -47,13 +47,8 @@ jobs:
         file /usr/local/python-3.11.8/bin/python3.11
         /usr/local/python-3.11.8/bin/python3.11 -c "import hashlib"
 
-    - name: Package Python binary
-      run: |
-        cd /usr/local
-        sudo tar -czvf python-3.11.8-32bit.tar.gz python-3.11.8
-  
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: python-3.11.8-32bit
-        path: /usr/local/python-3.11.8-32bit.tar.gz
+        path: /usr/local/python-3.11.8
