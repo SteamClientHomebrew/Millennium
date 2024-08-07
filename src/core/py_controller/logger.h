@@ -24,9 +24,9 @@ private:
         auto time = std::chrono::system_clock::to_time_t(now);
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
-        bufferStream << std::put_time(std::localtime(&time), "%H:%M:%S");
+        bufferStream << std::put_time(std::localtime(&time), "%M:%S");
         bufferStream << fmt::format(".{:03}", ms.count());
-        return fmt::format("({})", bufferStream.str());
+        return fmt::format("[{}]", bufferStream.str());
     }
 
     std::string GetLocalDateStr()
@@ -48,7 +48,7 @@ private:
 public:
     BackendLogger(const std::string& pluginName) : pluginName(pluginName)
     {
-        this->filename = (SystemIO::GetSteamPath() / "ext" / "data" / "logs" / fmt::format("{}_log.txt", pluginName)).generic_string();
+        this->filename = (SystemIO::GetInstallPath() / "ext" / "data" / "logs" / fmt::format("{}_log.txt", pluginName)).generic_string();
         file.open(filename, std::ios::app);
 
         file << fmt::format("\n\n\n--------------------------------- [{}] ---------------------------------\n", GetLocalDateStr());
@@ -57,9 +57,16 @@ public:
 
     void Log(const std::string& message) 
     {        
-        std::string formatted = fmt::format("{} ({}) ", GetLocalTime(), pluginName);
+        const auto toUpper = [](const std::string& str) {
+            std::string result = str;
+            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+            return result;
+        };
+
+        fmt::print("{} ", GetLocalTime());
+        std::string formatted = fmt::format("{} ", toUpper(pluginName));
   
-        fmt::print(fg(fmt::color::light_sky_blue), formatted);
+        fmt::print("\033[1m\033[34m{}\033[0m\033[0m", formatted);
         fmt::print(fmt::format("{}\n", message));
         file << formatted << message << "\n";
         file.flush();

@@ -144,10 +144,7 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
     m_settingsStorePtr->InitializeSettingsStore();
     m_ipcPort = IPCMain::OpenConnection();
 
-    Logger.LogHead("Internal Process Ports:");
-    Logger.LogItem("+", fmt::format("File Transfer Protocol Port: {}", m_ftpPort));
-    Logger.LogItem("+", fmt::format("Inter Process Communication Port: {}", m_ipcPort), true);
-
+    Logger.Log("Ports: {{ FTP: {}, IPC: {} }}", m_ftpPort, m_ipcPort);
     this->PrintActivePlugins();
 }
 
@@ -169,19 +166,12 @@ const void PluginLoader::StartFrontEnds()
     SocketHelpers socketHelpers;
 
     auto socketStart = std::chrono::high_resolution_clock::now();
-
     std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
-    //std::thread sharedSocketThread  = this->ConnectSharedJSContext(&sharedJsHandler, &socketHelpers);
-
-    auto socketEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - socketStart);
-    Logger.LogItem("+", fmt::format("Finished in [{}ms]\n", socketEnd.count()), true);
-
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
     Logger.Log("Startup took {} ms", duration.count());
 
     browserSocketThread.join();
-    //sharedSocketThread.join();
 
     LOG_ERROR("browser thread and shared thread exited...");
     this->StartFrontEnds();
@@ -190,13 +180,14 @@ const void PluginLoader::StartFrontEnds()
 /* debug function, just for developers */
 const void PluginLoader::PrintActivePlugins()
 {
-    Logger.LogHead("Plugin States:");
-
+    std::string pluginList = "Plugins: { ";
     for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it)
     {
         const auto pluginName = (*it).pluginName;
-        Logger.LogItem(pluginName, m_settingsStorePtr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled", std::next(it) == (*this->m_pluginsPtr).end());
+        pluginList.append(fmt::format("{}: {}{}", pluginName, m_settingsStorePtr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled", std::next(it) == (*this->m_pluginsPtr).end() ? " }" : ", "));
     }
+
+    Logger.Log(pluginList);
 }
 
 const void StartPreloader(PythonManager& manager)
@@ -206,13 +197,13 @@ const void StartPreloader(PythonManager& manager)
     SettingsStore::PluginTypeSchema plugin = 
     {
         .pluginName = "pipx",
-        .backendAbsoluteDirectory = SystemIO::GetSteamPath() / "ext" / "data" / "assets" / "pipx",
+        .backendAbsoluteDirectory = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / "pipx",
         .isInternal = true
     };
 
     manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin) 
     {
-        Logger.Log("Started Preloader...", plugin.pluginName);
+        Logger.Log("Started preloader module");
         const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
@@ -229,6 +220,8 @@ const void StartPreloader(PythonManager& manager)
             LOG_ERROR("millennium failed to preload plugins", plugin.pluginName);
             return;
         }
+
+        Logger.Log("Preloader finished...");
 
         promise.set_value();
     });

@@ -20,9 +20,9 @@ std::string OutputLogger::GetLocalTime()
 	auto time = std::chrono::system_clock::to_time_t(now);
 	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
-	bufferStream << std::put_time(std::localtime(&time), "%H:%M:%S");
+	bufferStream << std::put_time(std::localtime(&time), "%M:%S");
 	bufferStream << fmt::format(".{:03}", ms.count());
-	return fmt::format("({})", bufferStream.str());
+	return fmt::format("[{}]", bufferStream.str());
 }
 
 #ifdef _WIN32
@@ -48,13 +48,13 @@ void EnableVirtualTerminalProcessing()
 }
 #endif
 
-void OutputLogger::PrintMessage(std::string type, const std::string& message, fmt::text_style color)
+void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(color, "{}{}{}\n", GetLocalTime(), type, message);
+		fmt::print("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
 	}
 
 	if (m_bIsVersbose)
@@ -85,8 +85,8 @@ OutputLogger::OutputLogger()
 	}
 	#elif __linux__
 	{
-		m_bIsConsoleEnabled = true;
-		m_bIsVersbose = false;
+		this->m_bIsConsoleEnabled = true;
+		this->m_bIsVersbose = true;
 	}
 	#endif
 
@@ -119,9 +119,16 @@ OutputLogger::~OutputLogger()
 
 void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
 {
+	const auto toUpper = [](const std::string& str) {
+		std::string result = str;
+		std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+		return result;
+	};
+
 	if (m_bIsVersbose || m_bIsConsoleEnabled)
 	{
-		fmt::print(DEFAULT_ACCENT_COL, "{} ({}) ", GetLocalTime(), pluginName);
+		fmt::print("{} ", GetLocalTime());
+        fmt::print("\033[1m\033[34m{} \033[0m\033[0m", toUpper(pluginName));
 		fmt::print("{}\n", strMessage);
 	}
 

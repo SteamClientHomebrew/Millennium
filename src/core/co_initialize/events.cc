@@ -48,12 +48,7 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
         const std::string successfulBackends = GetSuccessfulBackendsStr();
 
         auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
-
-        Logger.LogHead("All backends are ready!", fg(color));
-        Logger.LogItem("Failed", failedBackends, false, fg(color));
-        Logger.LogItem("Success", successfulBackends, false, fg(color));
-        Logger.LogItem("Total", std::to_string(pluginCount), true, fg(color));
-        std::cout << std::endl;
+        Logger.Log("Finished preparing backends...");
 
         return true;
     }
@@ -81,7 +76,15 @@ void CoInitializer::BackendCallbacks::StatusDipatch()
 
 void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 {
-    Logger.Log("{} {}", plugin.pluginName, plugin.event == BACKEND_LOAD_SUCCESS ? "loaded" : "failed");
+    if (plugin.event == BACKEND_LOAD_FAILED)
+    {
+        Logger.Warn("Failed to load '{}'", plugin.pluginName);
+    }
+    else if (plugin.event == BACKEND_LOAD_SUCCESS)
+    {
+        Logger.Log("Successfully loaded '{}'", plugin.pluginName);
+    }
+
     this->emittedPlugins.push_back(plugin);
 
     this->StatusDipatch();

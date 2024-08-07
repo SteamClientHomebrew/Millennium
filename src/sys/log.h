@@ -12,10 +12,23 @@
 
 #define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)
 
+#define COL_RED "\033[31m"
+#define COL_GREEN "\033[32m"
+#define COL_YELLOW "\033[33m"
+#define COL_BLUE "\033[34m"
+#define COL_MAGENTA "\033[35m"
+#define COL_CYAN "\033[36m"
+#define COL_WHITE "\033[37m"
+#define COL_RESET "\033[0m"
+
 class OutputLogger
 {
 private:
+#ifdef _WIN32
     bool m_bIsVersbose = false;
+#elif __linux__
+    bool m_bIsVersbose = true;
+#endif
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
     std::shared_ptr<std::ostream> teeStreamPtr;
@@ -23,7 +36,7 @@ private:
     std::string GetLocalTime();
 
 public:
-    void PrintMessage(std::string type, const std::string &message, fmt::text_style color = fg(fmt::color::white));
+    void PrintMessage(std::string type, const std::string &message, std::string color = COL_WHITE);
 
     OutputLogger(const OutputLogger &) = delete;
     OutputLogger &operator=(const OutputLogger &) = delete;
@@ -36,7 +49,7 @@ public:
     template <typename... Args>
     void Log(std::string fmt, Args &&...args)
     {
-        PrintMessage(" (info) ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::dark_gray));
+        PrintMessage(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_GREEN);
     }
 
     template <typename... Args>
@@ -51,7 +64,7 @@ public:
     template <typename... Args>
     void Warn(std::string fmt, Args &&...args)
     {
-        PrintMessage(" (warn) ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::orange));
+        PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
     }
 
     void LogHead(std::string val, fmt::text_style color = fg(fmt::color::magenta));
