@@ -139,7 +139,7 @@ extern "C"
          * Since this isn't an executable, and is "preloaded", the kernel doesn't implicitly load dependencies, so we need to manually. 
          * libpython3.11.so.1.0 should already be in $PATH, so we can just load it from there.
         */
-        if (!dlopen(fmt::format("{}/.millennium/ext/data/cache/lib/libpython3.11.8.so", homeDirectory).c_str(), RTLD_LAZY | RTLD_GLOBAL)) 
+        if (!dlopen(fmt::format("{}/.millennium/libpython-3.11.8.so", homeDirectory).c_str(), RTLD_LAZY | RTLD_GLOBAL)) 
         {
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
