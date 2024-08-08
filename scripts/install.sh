@@ -78,7 +78,7 @@ chmod +x "$exe"
 log "SETTING EXECUTABLE PERMISSIONS TO $millennium_install/start.sh"
 chmod +x "$millennium_install/start.sh"
 log "SETTING EXECUTABLE PERMISSIONS TO ~/.millennium/ext/data/cache/bin/python3.11"
-chmod +x "~/.millennium/ext/data/cache/bin/python3.11"
+chmod +x "$HOME/.millennium/ext/data/cache/bin/python3.11"
 
 log "REMOVING $tar"
 rm "$tar"
