@@ -1,3 +1,10 @@
+## [2.9.4](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.3...v2.9.4) (2024-08-08)
+
+
+### Bug Fixes
+
+* (Linux) Permission & bug fixes ([56af75f](https://github.com/SteamClientHomebrew/Millennium/commit/56af75f8cee7bfd33d78badadfb3aa63cc5605ea))
+
 ## [2.9.3](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.2...v2.9.3) (2024-08-08)
 
 
