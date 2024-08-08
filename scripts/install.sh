@@ -75,7 +75,7 @@ tar xzf "$tar" -C "$millennium_install"
 
 log "SETTING EXECUTABLE PERMISSIONS TO $exe"
 chmod +x "$exe"
-chmod +x "$millennium_install/user32"
+chmod +x "$millennium_install/start.sh"
 
 log "REMOVING $tar"
 rm "$tar"
