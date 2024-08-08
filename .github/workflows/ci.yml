@@ -209,8 +209,8 @@ jobs:
         ls
 
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
-        mkdir -p /home/runner/env/ext/data/cache
-        sudo cp -r $HOME/.millennium/ext/data/cache /home/runner/env/ext/data/cache
+        mkdir -p /home/runner/env/ext/data
+        sudo cp -r $HOME/.millennium/ext/data/cache /home/runner/env/ext/data
 
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
