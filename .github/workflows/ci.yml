@@ -208,6 +208,8 @@ jobs:
         sudo rm -rf tmp
         ls
 
+        mv $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
+
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
         mkdir -p /home/runner/env/ext/data
         sudo cp -r $HOME/.millennium/ext/data/cache /home/runner/env/ext/data
