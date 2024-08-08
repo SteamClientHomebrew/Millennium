@@ -21,7 +21,7 @@ project(Millennium LANGUAGES CXX)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
     # debug output paths
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam/ext/bin")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
     set(LIBRARY_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
 endif()
 
@@ -105,6 +105,12 @@ endif()
 set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 
 target_compile_options (Millennium PRIVATE -m32 )
+
+if (WIN32)
+  set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
+  set_target_properties(Millennium PROPERTIES PREFIX "")
+  set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
+endif()
 
 if(MSVC)
     # prevent MSVC from generating .lib and .exp archives

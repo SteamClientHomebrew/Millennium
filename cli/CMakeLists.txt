@@ -21,6 +21,10 @@ include_directories(
 )
 find_package(CURL REQUIRED)
 
+if (WIN32)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam/ext/bin")
+endif()
+
 add_compile_definitions(MILLENNIUM_CLI FMT_HEADER_ONLY)
 
 # Add your source files here

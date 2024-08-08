@@ -24,13 +24,6 @@ void HandleSignalInterrupt(int sig)
 
 class Preload 
 {
-private:
-
-    const char* builtinsRepository = "https://github.com/SteamClientHomebrew/Core.git";
-    const char* pythonModulesRepository = "https://github.com/SteamClientHomebrew/Packages.git";
-
-    std::filesystem::path builtinsModulesPath = SystemIO::GetInstallPath() / "ext" / "data" / "assets";
-
 public:
 
     Preload() 
@@ -49,6 +42,7 @@ public:
         {
             std::ofstream(filePath).close();
 
+            Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
             //boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
             std::exit(1);
         }
