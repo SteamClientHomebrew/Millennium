@@ -6,7 +6,7 @@ class Config:
 
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config_file = os.path.join(Millennium.steam_path(), "ext", "millennium.ini")
+        self.config_file = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
 
         if os.path.exists(self.config_file):
             try:
@@ -29,7 +29,7 @@ class Config:
 
     def setup(self):
 
-        LOCALS = os.path.join(Millennium.steam_path(), "ext", "data")
+        LOCALS = os.path.join(Millennium.get_install_path(), "ext", "data")
 
         _platform = platform.system()
 
