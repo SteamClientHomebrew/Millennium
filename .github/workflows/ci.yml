@@ -204,9 +204,9 @@ jobs:
         sudo ar -x ../libpython3.11.a
         sudo gcc -m32 -shared -o ../libpython3.11.so *.o
 
-        cd ../
-        ls -laR
+        cd $HOME/.millennium/ext/data/cache/lib
         sudo rm -rf tmp
+        ls
 
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
 
