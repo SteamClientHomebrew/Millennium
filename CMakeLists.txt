@@ -159,6 +159,6 @@ if(WIN32)
   endif()
 elseif(UNIX)
   target_link_libraries(Millennium
-    "$ENV{HOME}/.millennium/ext/data/cache/lib/libpython-3.11.8.so"
+    "$ENV{HOME}/.millennium/ext/data/cache/lib/libpython3.11.8.so"
   )
 endif()
