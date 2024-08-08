@@ -183,12 +183,22 @@ jobs:
           gcc-multilib \
           g++-multilib
 
+    - name: Set up cache for Python source
+      uses: actions/cache@v3
+      id: build-cache
+      with:
+        path: home/runner/.millennium/ext/data/cache
+        key: ${{ runner.os }}-python-linux-3.11.8-build
+        restore-keys: ${{ runner.os }}-python-linux-3.11.8-build-  
+
     - name: Download Python 3.11.8 source
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         wget https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
         tar -xf Python-3.11.8.tgz
 
     - name: Configure and build Python 3.11.8 (32-bit)
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         mkdir -p $HOME/.millennium/ext/data/cache
         cd Python-3.11.8
@@ -197,6 +207,7 @@ jobs:
         sudo make altinstall
 
     - name: Setup installation
+      if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
         sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
         sudo mkdir -p $HOME/.millennium/ext/data/cache/lib/tmp
