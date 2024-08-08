@@ -1,3 +1,10 @@
+## [2.9.3](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.2...v2.9.3) (2024-08-08)
+
+
+### Bug Fixes
+
+* Fix config paths on linux ([07576b9](https://github.com/SteamClientHomebrew/Millennium/commit/07576b9ea51af006eecb050039a16ccedbf6240b))
+
 ## [2.9.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.1...v2.9.2) (2024-08-08)
 
 
