@@ -243,7 +243,7 @@ jobs:
         ls -laR /home/runner/Millennium/build
 
         mkdir -p /home/runner/env
-        cp ./build/user32 /home/runner/env/user32
+        cp ./build/libMillennium.so /home/runner/env/libMillennium.so
         cp ~/.pyenv/versions/3.11.8/lib/libpython3.11.so /home/runner/env/libpython3.11.so
         cp ./scripts/posix/start_millennium.sh /home/runner/env/start_millennium.sh
         
