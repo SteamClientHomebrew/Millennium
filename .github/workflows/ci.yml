@@ -202,7 +202,7 @@ jobs:
         sudo mkdir -p $HOME/.millennium/ext/data/cache/lib/tmp
         cd $HOME/.millennium/ext/data/cache/lib/tmp
         sudo ar -x ../libpython3.11.a
-        sudo gcc -m32 -shared -o ../libpython3.11.so *.o
+        sudo gcc -m32 -shared -o ../libpython3.11.8.so *.o
 
         cd $HOME/.millennium/ext/data/cache/lib
         sudo rm -rf tmp
