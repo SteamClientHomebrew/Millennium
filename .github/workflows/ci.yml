@@ -202,9 +202,10 @@ jobs:
         sudo mkdir -p $HOME/.millennium/ext/data/cache/lib/tmp
         cd $HOME/.millennium/ext/data/cache/lib/tmp
         sudo ar -x ../libpython3.11.a
-        sudo gcc -m32 -shared -o ../libpython3.11.so.1.0 *.o
+        sudo gcc -m32 -shared -o ../libpython3.11.so *.o
 
         cd ../
+        ls -laR
         sudo rm -rf tmp
 
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
@@ -243,7 +244,7 @@ jobs:
 
         mkdir -p /home/runner/env
         cp ./build/user32 /home/runner/env/user32
-        cp ~/.pyenv/versions/3.11.8/lib/libpython3.11.so.1.0 /home/runner/env/libpython3.11.so.1.0
+        cp ~/.pyenv/versions/3.11.8/lib/libpython3.11.so /home/runner/env/libpython3.11.so
         cp ./scripts/posix/start_millennium.sh /home/runner/env/start_millennium.sh
         
         mkdir -p /home/runner/env/ext/bin
