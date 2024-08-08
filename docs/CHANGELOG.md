@@ -1,3 +1,19 @@
+# [2.9.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.8.0...v2.9.0) (2024-08-08)
+
+
+### Bug Fixes
+
+* Disable theme updater for compatibility until further notice ([6861a45](https://github.com/SteamClientHomebrew/Millennium/commit/6861a456bf868113af201f817646b075ac1c083b))
+* Fix watchdog threading errors ([cd0531b](https://github.com/SteamClientHomebrew/Millennium/commit/cd0531b44826ccb781f9286d4cb6734a5cba7844))
+* Properly segment install path and Steam path ([41f8ca8](https://github.com/SteamClientHomebrew/Millennium/commit/41f8ca8e4b96a06a1c7bf0286bd677f492b8d766))
+* Remove boxer on unix to prevent unneeded deps ([6b9953a](https://github.com/SteamClientHomebrew/Millennium/commit/6b9953a81e5eac96fb7d0a1cc26c17a2f0b7d488))
+* Simpler less verbose logs ([0c3e90a](https://github.com/SteamClientHomebrew/Millennium/commit/0c3e90aeea94061f443cd37be69ff2fd43981900))
+
+
+### Features
+
+* Fix platform arch for 32 bit LD_PRELOAD-able binary ([515cb9e](https://github.com/SteamClientHomebrew/Millennium/commit/515cb9eb966c9d2adf9e5b3b2f51614b43bacabb))
+
 # [2.8.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.7.2...v2.8.0) (2024-08-04)
 
 
