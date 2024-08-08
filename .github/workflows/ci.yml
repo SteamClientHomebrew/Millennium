@@ -227,20 +227,13 @@ jobs:
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
-    - name: Build Millennium
-      run: |
-        mkdir ./build/artifacts
-        cmake --build build
-        cp ./build/user32 ./build/artifacts/user32
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: Build Millennium
       run: |
-        mkdir -p /home/runner/Millennium/build/artifacts
+        # mkdir -p /home/runner/Millennium/build/artifacts
         cmake --build build --config Release
 
-        ls -laR /home/runner/Millennium/build
+        # ls -laR /home/runner/Millennium/build
 
         mkdir -p /home/runner/env
         cp ./build/libMillennium.so /home/runner/env/libMillennium.so
