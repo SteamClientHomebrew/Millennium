@@ -37,8 +37,8 @@ class Config:
         self.validate_theme()
 
         # Setup file watcher
-        self.setup_file_watcher()
-        self.start_watch()
+        # self.setup_file_watcher()
+        # self.start_watch()
 
         self.set_config(json.dumps(self.config, indent=4))
         self.set_theme_cb()
@@ -92,18 +92,18 @@ class Config:
 
 
     def set_config(self, dumps: str) -> None:
-        try:
-            self.observer.stop()
-            self.observer.join()
-        except Exception:
-            pass
+        # try:
+        #     self.observer.stop()
+        #     self.observer.join()
+        # except Exception:
+        #     pass
 
         with open(self.config_path, 'w') as config:
             config.write(dumps)
 
         self.config = self.get_config()
-        self.setup_file_watcher()
-        self.start_watch()
+        # self.setup_file_watcher()
+        # self.start_watch()
         
 
     def change_theme(self, theme_name: str) -> None:
