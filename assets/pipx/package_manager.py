@@ -30,6 +30,8 @@ def pip(cmd, config):
     pip_logs = config.get('PackageManager', 'pip_logs')
     terminate_flag = [False]
 
+    os.makedirs(os.path.dirname(pip_logs), exist_ok=True)
+
     with open(pip_logs, 'w') as f:
         if platform.system() == 'Windows':
             proc = subprocess.Popen([python_bin, '-m', 'pip'] + cmd + ["--no-warn-script-location"],
