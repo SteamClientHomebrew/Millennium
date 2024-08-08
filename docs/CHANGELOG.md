@@ -1,3 +1,10 @@
+## [2.9.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.1...v2.9.2) (2024-08-08)
+
+
+### Bug Fixes
+
+* (Linux) Fix python binary paths ([76b40ff](https://github.com/SteamClientHomebrew/Millennium/commit/76b40ffaaec77eccf99ce85a2e30cf9fe05d85b6))
+
 ## [2.9.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.0...v2.9.1) (2024-08-08)
 
 
