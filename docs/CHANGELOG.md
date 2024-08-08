@@ -5,6 +5,13 @@
 
 * Properly ship python libraries ([92ec03c](https://github.com/SteamClientHomebrew/Millennium/commit/92ec03c5843fb65222cf952142fe2890f9ccaa93))
 
+## [2.9.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.0...v2.9.1) (2024-08-08)
+
+
+### Bug Fixes
+
+* Properly ship python libraries ([92ec03c](https://github.com/SteamClientHomebrew/Millennium/commit/92ec03c5843fb65222cf952142fe2890f9ccaa93))
+
 # [2.9.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.8.0...v2.9.0) (2024-08-08)
 
 
