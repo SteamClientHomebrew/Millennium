@@ -310,21 +310,21 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     {
         try
         {
-            if (eventMessage.value("id", -1) == 3423)
+            if (eventMessage.contains("id") && eventMessage["id"] == 3423)
             {
-                if (eventMessage.contains("error") && eventMessage["error"].contains("code") && eventMessage["error"]["code"] == -32000)
+                if (!eventMessage.contains("error"))
                 {
                     hasUnpausedDebugger = false;
                     Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
                     Sockets::PostShared({ {"id", 3423 }, {"method", "Debugger.resume"} });
                 }
-                else
+                else if (eventMessage.contains("result"))
                 {
                     hasUnpausedDebugger = true;
                 }
             }
 
-            if (eventMessage.value("id", -1) == PAGE_SCRIPT)
+            if (eventMessage.contains("id") && eventMessage["id"] == PAGE_SCRIPT)
             {
                 addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
                 hasScriptIdentifier = true;
