@@ -294,44 +294,50 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
     enum PageMessage
     {
+        DEBUGGER_RESUME,
         PAGE_ENABLE,
         PAGE_SCRIPT,
         PAGE_RELOAD
     };
 
-    Sockets::PostShared({ {"id", 3423 }, {"method", "Debugger.resume"} });
+    Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
     Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
     Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
     Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
 
-    bool hasUnpausedDebugger = false, hasScriptIdentifier = false;
+    std::shared_ptr<bool> hasUnpausedDebugger = std::make_shared<bool>(false);
+    std::shared_ptr<bool> hasScriptIdentifier = std::make_shared<bool>(false);
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [
+        hasUnpausedDebuggerPtr = hasUnpausedDebugger, hasScriptIdentifierPtr = hasScriptIdentifier
+    ](const nlohmann::json& eventMessage, int listenerId)
     {
         try
         {
-            if (eventMessage.contains("id") && eventMessage["id"] == 3423)
+            const int messageId = eventMessage.value("id", -1);
+
+            if (messageId == DEBUGGER_RESUME)
             {
-                if (!eventMessage.contains("error"))
+                if (eventMessage.contains("error"))
                 {
-                    hasUnpausedDebugger = false;
+                    *hasUnpausedDebuggerPtr = false;
                     Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
-                    Sockets::PostShared({ {"id", 3423 }, {"method", "Debugger.resume"} });
+                    Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
                 }
                 else if (eventMessage.contains("result"))
                 {
-                    hasUnpausedDebugger = true;
+                    *hasUnpausedDebuggerPtr = true;
                 }
             }
-
-            if (eventMessage.contains("id") && eventMessage["id"] == PAGE_SCRIPT)
-            {
+            else if (messageId == PAGE_SCRIPT)
+            {   
                 addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                hasScriptIdentifier = true;
+                *hasScriptIdentifierPtr = true;
             }
 
-            if (hasUnpausedDebugger && hasScriptIdentifier)
+            if (*hasUnpausedDebuggerPtr && *hasScriptIdentifierPtr)
             {
+                Logger.Log("Successfully notified frontend...");
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
         }
