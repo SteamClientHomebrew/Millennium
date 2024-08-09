@@ -4,6 +4,14 @@
 ### Bug Fixes
 
 * Fix linux startup issues [#75](https://github.com/SteamClientHomebrew/Millennium/issues/75) ([dad87ba](https://github.com/SteamClientHomebrew/Millennium/commit/dad87ba8ba76f4df4ff033f14f68d2c53651a85f))
+* Fix startup bugs on Windows [#76](https://github.com/SteamClientHomebrew/Millennium/issues/76) ([b86c537](https://github.com/SteamClientHomebrew/Millennium/commit/b86c537b42ae5e11bf9793b2d7ab696e9fedcd96))
+
+## [2.9.5](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.4...v2.9.5) (2024-08-09)
+
+
+### Bug Fixes
+
+* Fix linux startup issues [#75](https://github.com/SteamClientHomebrew/Millennium/issues/75) ([dad87ba](https://github.com/SteamClientHomebrew/Millennium/commit/dad87ba8ba76f4df4ff033f14f68d2c53651a85f))
 
 ## [2.9.4](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.3...v2.9.4) (2024-08-08)
 
