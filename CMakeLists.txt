@@ -20,9 +20,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 project(Millennium LANGUAGES CXX)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
-    # debug output paths
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
-    set(LIBRARY_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
+  # debug output paths
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
+  set(LIBRARY_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam")
+elseif(UNIX AND NOT GITHUB_ACTION_BUILD)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
 endif()
 
 # Set version information

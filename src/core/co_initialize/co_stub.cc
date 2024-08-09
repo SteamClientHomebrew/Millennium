@@ -304,17 +304,36 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
     Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
 
+    bool hasUnpausedDebugger = false, hasScriptIdentifier = false;
+
     JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId)
     {
         try
         {
-            if (eventMessage.value("id", -1) != PAGE_SCRIPT)
+            if (eventMessage.value("id", -1) == 3423)
             {
-                return;
+                if (eventMessage.contains("error") && eventMessage["error"].contains("code") && eventMessage["error"]["code"] == -32000)
+                {
+                    hasUnpausedDebugger = false;
+                    Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
+                    Sockets::PostShared({ {"id", 3423 }, {"method", "Debugger.resume"} });
+                }
+                else
+                {
+                    hasUnpausedDebugger = true;
+                }
             }
 
-            addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+            if (eventMessage.value("id", -1) == PAGE_SCRIPT)
+            {
+                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                hasScriptIdentifier = true;
+            }
+
+            if (hasUnpausedDebugger && hasScriptIdentifier)
+            {
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+            }
         }
         catch (nlohmann::detail::exception& ex)
         {

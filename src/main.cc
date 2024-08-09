@@ -175,7 +175,7 @@ extern "C"
         fnMainOriginal = main;
 
         /* Find the real __libc_start_main()... */
-            typedef int (*libc_start_main_t)(int (*)(int, char **, char **), int, char **, int (*)(int, char **, char **), void (*)(void), void (*)(void), void *);
+        typedef int (*libc_start_main_t)(int (*)(int, char **, char **), int, char **, int (*)(int, char **, char **), void (*)(void), void (*)(void), void *);
         libc_start_main_t orig = (libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
 
         std::filesystem::path steamPath = std::filesystem::path(std::getenv("HOME")) / ".steam/steam/ubuntu12_32/steam";

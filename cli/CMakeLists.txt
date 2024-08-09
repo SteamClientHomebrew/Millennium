@@ -23,6 +23,8 @@ find_package(CURL REQUIRED)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam/ext/bin")
+elseif(UNIX AND NOT GITHUB_ACTION_BUILD)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/ext/bin")
 endif()
 
 add_compile_definitions(MILLENNIUM_CLI FMT_HEADER_ONLY)

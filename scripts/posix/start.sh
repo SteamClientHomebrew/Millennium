@@ -21,7 +21,8 @@ exec 3>&1 # Save a copy of file descriptor 1 (stdout) so we can restore it later
 exec 1> >(filter_output) # Redirect stdout to filter_output
 
 export STEAM_RUNTIME_LOGGER=0 # On archlinux, this needed to stop stdout from being piped into /dev/null instead of the terminal
-export LD_PRELOAD=~/Documents/Millennium/build/libMillennium.so # preload Millennium into Steam
+export LD_PRELOAD=~/.millennium/libMillennium.so # preload Millennium into Steam
+export LD_LIBRARY_PATH=~/.millennium/:$LD_LIBRARY_PATH
 
 # Millennium hooks __libc_start_main to initialize itself, which is a function that is called before main. 
 # Besides that, Millennium does not alter Steam memory and runs completely disjoint.
