@@ -1,5 +1,6 @@
+import time
 import Millennium, json, os, configparser # type: ignore
-
+from util.logger import logger
 import platform
 print(f"Loading Millennium-Core@{Millennium.version()}")
 
@@ -54,4 +55,5 @@ class Plugin:
         Millennium.ready()
 
     def _unload(self):
-        pass
+        logger.log("Millennium-Core is unloading...")
+    
