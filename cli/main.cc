@@ -9,6 +9,7 @@
 #include <core/config.h>
 #include <core/themes.h>
 #include <util/steam.h>
+#include "posix/patch.h"
 
 #define SUBPARSED(subcommand) (subcommand->parsed())
 #define str(x) (x->as<std::string>())
@@ -109,6 +110,11 @@ public:
     }
 
     int Steam() {
+
+        #ifdef __linux__
+        // PatchPosixStartScript();
+        #endif
+
         if (asbool(force)) { return ForceRestartSteam(); }
         return ReloadSteam();
     }

@@ -7,7 +7,7 @@
 #include <util/log.h>
 #include <sys/locals.h>
 
-std::string configPath = (SystemIO::GetSteamPath() / "ext" / "millennium.ini").generic_string();
+std::string configPath = (SystemIO::GetInstallPath() / "ext" / "millennium.ini").generic_string();
 
 static std::tuple<mINI::INIFile, mINI::INIStructure> GetConfigFile() {
     mINI::INIFile file(configPath);

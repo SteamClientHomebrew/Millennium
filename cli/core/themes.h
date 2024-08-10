@@ -27,7 +27,7 @@ bool GetThemeJson(std::string themeName, nlohmann::json& json) {
 }
 
 nlohmann::json GetThemeDataJson() {
-    const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
+    const auto themeDataPath = SystemIO::GetInstallPath() / "ext" / "themes.json";
     bool success = false;
     const auto json = SystemIO::ReadJsonSync(themeDataPath.string(), &success);
     if (!success) {
@@ -94,7 +94,7 @@ int PrintCurrentTheme() {
 
 int SetTheme(std::string themeName) {
     const auto themesDirectory = SystemIO::GetSteamPath() / "steamui" / "skins";
-    const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
+    const auto themeDataPath = SystemIO::GetInstallPath() / "ext" / "themes.json";
 
     bool success = false;
     nlohmann::json json = SystemIO::ReadJsonSync(themeDataPath.string(), &success);
@@ -121,7 +121,7 @@ int SetTheme(std::string themeName) {
 
 int PrintThemeConfig(const std::string& themeName) {
     const auto themesDir = SystemIO::GetSteamPath() / "steamui" / "skins" / themeName;
-    const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
+    const auto themeDataPath = SystemIO::GetInstallPath() / "ext" / "themes.json";
 
     if (!std::filesystem::exists(themesDir)) {
         LOG_FAIL("Theme directory does not exist.");
@@ -170,7 +170,7 @@ int PrintThemeConfig(const std::string& themeName) {
 
 int PrintThemesWithConfig() {
     const auto themesDir = SystemIO::GetSteamPath() / "steamui" / "skins";
-    const auto themeDataPath = SystemIO::GetSteamPath() / "ext" / "themes.json";
+    const auto themeDataPath = SystemIO::GetInstallPath() / "ext" / "themes.json";
 
     bool success;
     auto themeDataJson = SystemIO::ReadJsonSync((themeDataPath).string(), &success);
