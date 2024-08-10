@@ -11,6 +11,8 @@
 #include <socket/await_pipe.h>
 #include <core/py_controller/co_spawn.h>
 
+extern std::atomic<bool> g_threadTerminateFlag;
+
 class PluginLoader {
 public:
 

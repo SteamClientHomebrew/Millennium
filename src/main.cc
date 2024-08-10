@@ -83,7 +83,9 @@ const static void EntryMain()
     std::thread([&loader, &manager] { loader->StartBackEnds(manager); }).detach();
     loader->StartFrontEnds();
 
-    std::promise<void>().get_future().wait();
+    //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+    //std::promise<void>().get_future().wait();
 }
 
 #ifdef _WIN32
@@ -97,7 +99,6 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
         }
         case DLL_PROCESS_DETACH: {
             Logger.Log("Shutting down Millennium...");
-            std::exit(1);
             break;
         }
     }
@@ -148,16 +149,30 @@ extern "C"
             Logger.Log("Successfully loaded unix python libraries...");
         }
 
-        /** Start Millennium on a new thread to prevent I/O blocking */
-        g_millenniumThread = std::make_unique<std::thread>(EntryMain);
-        g_millenniumThread->detach();
+        #ifdef MILLENNIUM_SHARED
+        {
+            /** Start Millennium on a new thread to prevent I/O blocking */
+            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+            int steam_main = fnMainOriginal(argc, argv, envp);
+            Logger.Log("Hooked Steam entry returned {}", steam_main);
 
-        int steam_main = fnMainOriginal(argc, argv, envp);
+            g_threadTerminateFlag.store(true);
+            g_millenniumThread->join();
 
-        Logger.Log("Steam main exited with code: {}", steam_main);
-        return steam_main;
+            Logger.Log("Shutting down Millennium...");
+            return steam_main;
+        }
+        #else
+        {
+            g_threadTerminateFlag.store(true);
+            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+            g_millenniumThread->join();
+            return 0;
+        }
+        #endif
     }
 
+    #ifdef MILLENNIUM_SHARED
     /*
     * Wrapper for __libc_start_main() that replaces the real main
     * function with our hooked version.
@@ -189,18 +204,12 @@ extern "C"
         /* ... and call it with our custom main function */
         return orig(MainHooked, argc, argv, init, fini, rtld_fini, stack_end);
     }
+    #endif
+}
 
-
-    /** This is a constructor, which is caught when a  */
-    __attribute__((constructor)) void core_init() 
-    {
-        //Logger.Log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
-    }
-
-    __attribute__((destructor)) void core_deinit() 
-    {
-        //Logger.Log("Unloading Millennium...");
-    }
+int main(int argc, char **argv, char **envp)
+{
+    return MainHooked(argc, argv, envp);
 }
 
 #endif

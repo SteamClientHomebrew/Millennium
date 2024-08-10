@@ -5,12 +5,21 @@
 #include <functional>
 #include <string>
 #include <sys/locals.h>
+#include <condition_variable>
+#include <atomic>
 #include <sys/log.h>
 #include <filesystem>
+
+struct InterpreterMutex {
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::atomic<bool> flag {false};
+};
 
 struct PythonThreadState {
 	std::string pluginName;
 	PyThreadState* thread_state;
+	std::shared_ptr<InterpreterMutex> mutex;
 };
 
 static const std::filesystem::path pythonModulesBaseDir = SystemIO::GetInstallPath() / "ext" / "data" / "cache";
@@ -25,28 +34,23 @@ static const std::string pythonLibs = (pythonModulesBaseDir / "lib" / "python3.1
 static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
 #endif
 
-
 class PythonManager 
 {
 private:
 	PyThreadState* m_InterpreterThreadSave;
-	short m_instanceCount;
 
-	std::vector<std::thread> m_threadPool;
+	std::vector<std::tuple<std::string, std::thread>> m_threadPool;
 	std::vector<PythonThreadState> m_pythonInstances;
 
 public:
 	PythonManager();
 	~PythonManager();
 
-	bool RemovePythonInstance(std::string plugin_name);
+	bool DestroyPythonInstance(std::string plugin_name);
 	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
-	void WaitForExit();
 
 	PythonThreadState GetPythonThreadStateFromName(std::string pluginName);
 	std::string GetPluginNameFromThreadState(PyThreadState* thread);
-
-	bool ShutdownPlugin(std::string plugin_name);
 
 	static PythonManager& GetInstance() {
 		static PythonManager InstanceRef;

@@ -208,7 +208,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
 
     if (!newToggleStatus)
     {
-        std::thread(std::bind(&PythonManager::ShutdownPlugin, &manager, pluginName)).detach();
+        std::thread(std::bind(&PythonManager::DestroyPythonInstance, &manager, pluginName)).detach();
     }
     else
     {

@@ -17,6 +17,7 @@ websocketpp::client<websocketpp::config::asio_client>*browserClient;
 websocketpp::connection_hdl browserHandle;
 
 std::string sharedJsContextSessionId;
+std::atomic<bool> g_threadTerminateFlag(false);
 
 bool Sockets::PostShared(nlohmann::json data) 
 {
@@ -156,6 +157,7 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
     browserProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
     browserProps.onConnect      = std::bind(&CEFBrowser::onConnect, (CEFBrowser*)cefBrowserHandler, _1, _2);
     browserProps.onMessage      = std::bind(&CEFBrowser::onMessage, (CEFBrowser*)cefBrowserHandler, _1, _2, _3);
+    browserProps.bAutoReconnect = false;
 
     return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps));
 }
@@ -173,7 +175,14 @@ const void PluginLoader::StartFrontEnds()
 
     browserSocketThread.join();
 
-    LOG_ERROR("browser thread and shared thread exited...");
+    Logger.Log("Disconnected from Steam debugger...");
+
+    if (g_threadTerminateFlag.load())
+    {
+        Logger.Log("Terminating frontend thread pool...");
+        return;
+    }
+
     this->StartFrontEnds();
 }
 
@@ -227,7 +236,7 @@ const void StartPreloader(PythonManager& manager)
     });
 
     promise.get_future().get();
-    manager.RemovePythonInstance("pipx"); // shutdown preloader
+    manager.DestroyPythonInstance("pipx");
 }
 
 const void PluginLoader::StartBackEnds(PythonManager& manager)

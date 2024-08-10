@@ -102,9 +102,19 @@ if (WIN32)
   add_library(Millennium SHARED "${SOURCE_FILES}")
   # add_executable(Millennium "${SOURCE_FILES}" version.rc)
 elseif(UNIX)
-  # add_executable(Millennium "${SOURCE_FILES}")
-  add_library(Millennium SHARED "${SOURCE_FILES}")
+  add_executable(Millennium "${SOURCE_FILES}")
+  # add_library(Millennium SHARED "${SOURCE_FILES}")
 endif()
+
+get_target_property(IS_EXECUTABLE Millennium TYPE)
+get_target_property(IS_SHARED Millennium TYPE)
+
+if (IS_EXECUTABLE)
+  add_compile_definitions(MILLENNIUM_EXECUTABLE)
+elseif(IS_SHARED)
+  add_compile_definitions(MILLENNIUM_SHARED)
+endif()
+
 set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 
 target_compile_options (Millennium PRIVATE -m32 )
