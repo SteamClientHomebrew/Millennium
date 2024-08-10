@@ -6,6 +6,16 @@
 # Copyright (c) 2024 Millennium
 set -e
 
+BOLD_RED="\033[1;31m"
+BOLD_PINK="\033[1;35m"
+BOLD_GREEN="\033[1;32m"
+BOLD_YELLOW="\033[1;33m"
+BOLD_BLUE="\033[1;34m"
+BOLD_MAGENTA="\033[1;35m"
+BOLD_CYAN="\033[1;36m"
+BOLD_WHITE="\033[1;37m"
+RESET="\033[0m"
+
 for arg in "$@"; do
     shift
     case "$arg" in
@@ -33,7 +43,7 @@ fi
 
 
 log() {
-    echo "$1"
+    echo -e "$1"
 }
 
 case $(uname -sm) in
@@ -50,11 +60,19 @@ command -v grep >/dev/null || { log "grep isn't installed!" >&2; exit 1; }
 releases_uri="https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 if [ -z "$tag" ]; then
     tag=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
+    # get the bytes size of the release assets
+    size=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)] | .[0].assets | .[0].size')
 fi
 
 tag=${tag#v}
+size=${size:-0}
 
-log "FETCHING Version $tag"
+# convert bytes to human readable format
+size=$(echo $size | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }')
+
+log "${BOLD_PINK}++${RESET} Installing Packages (Linux) Millennium@$tag"
+log "\n${BOLD_PINK}::${RESET} Total Download Size: $size"
+log "${BOLD_PINK}::${RESET} Retreiving packages..."
 
 download_uri=https://github.com/SteamClientHomebrew/Millennium/releases/download/v$tag/millennium-v$tag-$target.tar.gz
 
@@ -65,22 +83,30 @@ bin_dir="$millennium_install/ext/bin"
 tar="$millennium_install/millennium.tar.gz"
 
 # installing
-[ ! -d "$millennium_install" ] && log "CREATING $millennium_install" && mkdir -p "$millennium_install"
+[ ! -d "$millennium_install" ] && log "${BOLD_PINK}++${RESET} Creating $millennium_install" && mkdir -p "$millennium_install"
 
-log "DOWNLOADING $download_uri"
-curl --fail --location --progress-bar --output "$tar" "$download_uri"
+log "\n${BOLD_PINK}(1/2)${RESET} Downloading millennium-v$tag-$target..."
 
-log "EXTRACTING $tar"
+# Download the file with custom progress
+curl --fail --location --output "$tar" "$download_uri" --silent
+
+log "${BOLD_PINK}(2/2)${RESET} Unpacking Assets..."
+
 tar xzf "$tar" -C "$millennium_install"
 
-log "SETTING EXECUTABLE PERMISSIONS TO $exe"
+uncompressed_size=$(echo $(gzip -l "$tar" | awk 'NR==2 {print $2}') \
+    | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }')
+
+
+log "\n${BOLD_PINK}::${RESET} Total Installed Size: $uncompressed_size"
+
+log "${BOLD_PINK}::${RESET} Setting up permissions..."
+
 chmod +x "$exe"
-log "SETTING EXECUTABLE PERMISSIONS TO $millennium_install/start.sh"
 chmod +x "$millennium_install/start.sh"
-log "SETTING EXECUTABLE PERMISSIONS TO ~/.millennium/ext/data/cache/bin/python3.11"
 chmod +x "$HOME/.millennium/ext/data/cache/bin/python3.11"
 
-log "REMOVING $tar"
+log "\n${BOLD_PINK}++${RESET} Cleaning up installer packages..."
 rm "$tar"
 
 notfound() {
@@ -105,21 +131,19 @@ check() {
 
     # Create shellrc if it doesn't exist
     if ! [ -f "$shellrc" ]; then
-        log "CREATING $shellrc"
+        log "${BOLD_PINK}++${RESET} Creating $shellrc"
         touch "$shellrc"
     fi
 
     # Still checking again, in case touch command failed
     if [ -f "$shellrc" ]; then
         if ! grep -q "$bin_dir" "$shellrc"; then
-            log "APPENDING $bin_dir to PATH in $shellrc"
+            log "${BOLD_PINK}++${RESET} Appending $bin_dir to PATH in $shellrc"
             if ! endswith_newline "$shellrc"; then
                 echo >> "$shellrc"
             fi
             echo "${2:-$path}" >> "$shellrc"
             export PATH="$bin_dir:$PATH"
-        else
-            log "millennium path already set in $shellrc, continuing..."
         fi
     else
         notfound
@@ -136,6 +160,8 @@ case $SHELL in
     *) notfound ;;
 esac
 
-echo
-log "Millennium@v$tag was installed successfully to $millennium_install"
-log "Run 'millennium --help' to get started"
+
+log "${BOLD_PINK}++${RESET} Millennium@v$tag was installed successfully to $millennium_install"
+
+# log "\nRun 'millennium apply' to apply Millennium."
+log "\nRun 'millennium --help' for further instructions."
