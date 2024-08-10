@@ -55,10 +55,8 @@ public:
     template <typename... Args>
     void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args &&...args)
     {
-        this->LogHead((sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), fg(fmt::color::red));
-        this->LogItem("function", function, false, fg(fmt::color::red));
-        this->LogItem("file",  file, false, fg(fmt::color::red));
-        this->LogItem("line", std::to_string(line), true, fg(fmt::color::red));
+        this->PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
+        this->PrintMessage(" TRACE ", fmt::format("{} @ {}:{}", function, file, line), COL_RED);
     }
 
     template <typename... Args>

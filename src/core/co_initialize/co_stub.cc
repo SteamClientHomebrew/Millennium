@@ -219,17 +219,10 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     AppendSysPathModules(sysPath);
 
     #ifdef _WIN32
-    {
-        //AddSitePackagesDirectory(pluginVirtualEnv / "Lib" / "site-packages");
-        AddSitePackagesDirectory(SystemIO::GetInstallPath() / "ext" / "data" / "cache" / "Lib" / "site-packages");
-    }
+    AddSitePackagesDirectory(SystemIO::GetInstallPath() / "ext" / "data" / "cache" / "Lib" / "site-packages");
     #else
-    {
-        // AddSitePackagesDirectory(pluginVirtualEnv / "lib" / "python3.11" / "site-packages");
-        AddSitePackagesDirectory(SystemIO::GetInstallPath() / "ext" / "data" / "cache" / "lib" / "python3.11" / "site-packages");
-    }
+    AddSitePackagesDirectory(SystemIO::GetInstallPath() / "ext" / "data" / "cache" / "lib" / "python3.11" / "site-packages");
     #endif
-
 
     AddSitePackagesDirectory(pluginVirtualEnv);
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
@@ -308,9 +301,10 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     std::shared_ptr<bool> hasUnpausedDebugger = std::make_shared<bool>(false);
     std::shared_ptr<bool> hasScriptIdentifier = std::make_shared<bool>(false);
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [
-        hasUnpausedDebuggerPtr = hasUnpausedDebugger, hasScriptIdentifierPtr = hasScriptIdentifier
-    ](const nlohmann::json& eventMessage, int listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", 
+        // capture the shared pointers by copy, as to gain ownership && prevent premature deallocation
+        [hasUnpausedDebuggerPtr = hasUnpausedDebugger, hasScriptIdentifierPtr = hasScriptIdentifier] 
+        (const nlohmann::json& eventMessage, int listenerId)
     {
         try
         {

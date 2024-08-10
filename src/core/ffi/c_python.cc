@@ -52,9 +52,8 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
             const char* errorMessage = PyUnicode_AsUTF8(pStrErrorMessage);
             Python::EvalResult exceptionResult = { errorMessage ? errorMessage : "Unknown Error.", Python::Types::Error };
 
-            Logger.LogHead(fmt::format("[FFI] An error occurred while calling a backend method from [{}].", pluginName), fg(fmt::color::red));
-            Logger.LogItem("evaluated", script, false, fg(fmt::color::red));
-            Logger.LogItem("exception", exceptionResult.plain, true, fg(fmt::color::red));
+            Logger.PrintMessage(" FFI-ERR ", fmt::format("An error occurred while calling a backend method from [{}].", pluginName), COL_RED);
+            Logger.PrintMessage(" TRACE ", fmt::format("{} -> {}", script, exceptionResult.plain), COL_RED);
 
             return exceptionResult;
         }
@@ -89,7 +88,7 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
 
 Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)
 {
-    auto [strPluginName, threadState] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    auto [strPluginName, threadState, interpMutex] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
     if (threadState == nullptr) 
     {
@@ -114,7 +113,7 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
 
 void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string script)
 {
-    auto [strPluginName, threadState] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    auto [strPluginName, threadState, interpMutex] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
     if (threadState == nullptr) 
     {
