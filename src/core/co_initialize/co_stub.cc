@@ -321,6 +321,7 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                 else if (eventMessage.contains("result"))
                 {
                     *hasUnpausedDebuggerPtr = true;
+                    Logger.Log("Successfully resumed debugger...");
                 }
             }
             else if (messageId == PAGE_SCRIPT)
@@ -345,10 +346,39 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
     // Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
+    std::promise<void> promise;
     Logger.Log("Injecting frontend shims...");
 
     Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&promise] (const nlohmann::json& eventMessage, int listenerId)
+    {
+        try
+        {
+            const int messageId = eventMessage.value("id", -1);
+
+            if (messageId == 65756)
+            {
+                if (eventMessage.contains("error"))
+                {
+                    Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
+                    Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+                }
+                else if (eventMessage.contains("result"))
+                {
+                    Logger.Log("Successfully paused debugger...");
+                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                    promise.set_value();
+                }
+            }
+        }
+        catch (nlohmann::detail::exception& ex)
+        {
+            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+        }
+    });
+    promise.get_future().get();
 
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
