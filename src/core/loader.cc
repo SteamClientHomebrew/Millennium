@@ -17,7 +17,7 @@ websocketpp::client<websocketpp::config::asio_client>*browserClient;
 websocketpp::connection_hdl browserHandle;
 
 std::string sharedJsContextSessionId;
-std::atomic<bool> g_threadTerminateFlag(false);
+std::shared_ptr<InterpreterMutex> g_threadTerminateFlag = std::make_shared<InterpreterMutex>();
 
 bool Sockets::PostShared(nlohmann::json data) 
 {
@@ -40,6 +40,14 @@ bool Sockets::PostGlobal(nlohmann::json data)
 
     browserClient->send(browserHandle, data.dump(), websocketpp::frame::opcode::text);
     return true;
+}
+
+void Sockets::Shutdown() 
+{
+    if (browserClient != nullptr) 
+    {
+        browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
+    }
 }
 
 class CEFBrowser
@@ -128,6 +136,7 @@ public:
         browserHandle = handle;
 
         Logger.Log("Connected to Steam @ {}", (void*)client);
+
         this->SetupSharedJSContext();
         webKitHandler.SetupGlobalHooks();
     }
@@ -175,14 +184,13 @@ const void PluginLoader::StartFrontEnds()
 
     browserSocketThread.join();
 
-    Logger.Log("Disconnected from Steam debugger...");
-
-    if (g_threadTerminateFlag.load())
+    if (g_threadTerminateFlag->flag.load())
     {
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
 
+    Logger.Warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
     this->StartFrontEnds();
 }
 

@@ -156,7 +156,8 @@ extern "C"
             int steam_main = fnMainOriginal(argc, argv, envp);
             Logger.Log("Hooked Steam entry returned {}", steam_main);
 
-            g_threadTerminateFlag.store(true);
+            g_threadTerminateFlag->flag.store(true);
+            Sockets::Shutdown();
             g_millenniumThread->join();
 
             Logger.Log("Shutting down Millennium...");

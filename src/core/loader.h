@@ -11,7 +11,7 @@
 #include <socket/await_pipe.h>
 #include <core/py_controller/co_spawn.h>
 
-extern std::atomic<bool> g_threadTerminateFlag;
+extern std::shared_ptr<InterpreterMutex> g_threadTerminateFlag;
 
 class PluginLoader {
 public:
@@ -34,4 +34,5 @@ private:
 namespace Sockets {
 	bool PostShared(nlohmann::json data);
 	bool PostGlobal(nlohmann::json data);
+	void Shutdown();
 }
