@@ -107,11 +107,8 @@ public:
         {
             this->HandleConsoleMessage(json);
         }
-        else if (method.find("Debugger") == std::string::npos) 
-        {        
-            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
-        }
-
+        
+        JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
         webKitHandler.DispatchSocketMessage(json);
     }
 

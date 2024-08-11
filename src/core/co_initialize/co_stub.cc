@@ -287,72 +287,81 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
     enum PageMessage
     {
-        DEBUGGER_RESUME,
-        PAGE_ENABLE,
-        PAGE_SCRIPT,
-        PAGE_RELOAD
+        DEBUGGER_RESUME = 1,
+        PAGE_ENABLE = 2,
+        PAGE_SCRIPT = 3,
+        PAGE_RELOAD = 4
     };
-
-    Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
-    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
-    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
 
     std::shared_ptr<bool> hasUnpausedDebugger = std::make_shared<bool>(false);
     std::shared_ptr<bool> hasScriptIdentifier = std::make_shared<bool>(false);
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", 
-        // capture the shared pointers by copy, as to gain ownership && prevent premature deallocation
-        [hasUnpausedDebuggerPtr = hasUnpausedDebugger, hasScriptIdentifierPtr = hasScriptIdentifier] 
-        (const nlohmann::json& eventMessage, int listenerId)
+    auto socketEmitterThread = std::thread([hasUnpausedDebugger, hasScriptIdentifier]
     {
-        try
+        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", 
+            // capture the shared pointers by copy, as to gain ownership && prevent premature deallocation
+            [hasUnpausedDebuggerPtr = hasUnpausedDebugger, hasScriptIdentifierPtr = hasScriptIdentifier] 
+            (const nlohmann::json& eventMessage, int listenerId)
         {
-            const int messageId = eventMessage.value("id", -1);
-
-            if (messageId == DEBUGGER_RESUME)
+            try
             {
-                if (eventMessage.contains("error"))
-                {
-                    *hasUnpausedDebuggerPtr = false;
-                    Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
-                    Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
-                }
-                else if (eventMessage.contains("result"))
-                {
-                    *hasUnpausedDebuggerPtr = true;
-                    Logger.Log("Successfully resumed debugger...");
-                }
-            }
-            else if (messageId == PAGE_SCRIPT)
-            {   
-                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                *hasScriptIdentifierPtr = true;
-            }
+                const int messageId = eventMessage.value("id", -1);
 
-            if (*hasUnpausedDebuggerPtr && *hasScriptIdentifierPtr)
-            {
-                Logger.Log("Successfully notified frontend...");
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                if (messageId == DEBUGGER_RESUME)
+                {
+                    if (eventMessage.contains("error"))
+                    {
+                        *hasUnpausedDebuggerPtr = false;
+                        Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
+                        Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
+                    }
+                    else if (eventMessage.contains("result"))
+                    {
+                        *hasUnpausedDebuggerPtr = true;
+                        Logger.Log("Successfully resumed debugger...");
+                        Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+                    }
+                }
+                else if (messageId == PAGE_SCRIPT)
+                {   
+                    addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                    *hasScriptIdentifierPtr = true;
+                }
+
+                if (*hasUnpausedDebuggerPtr && *hasScriptIdentifierPtr)
+                {
+                    Logger.Log("Successfully notified frontend...");
+                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                }
             }
-        }
-        catch (nlohmann::detail::exception& ex)
-        {
-            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
-        }
+            catch (nlohmann::detail::exception& ex)
+            {
+                LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+            }
+        });
     });
+
+    Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
+    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
+    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
+
+    socketEmitterThread.join();
 }
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
     // Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
     std::promise<void> promise;
-    Logger.Log("Injecting frontend shims...");
+    Logger.Log("Preparing to injecting frontend shims...");
 
     Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&promise] (const nlohmann::json& eventMessage, int listenerId)
+    std::shared_ptr<bool> hasSuccess = std::make_shared<bool>(false), hasPaused = std::make_shared<bool>(false);
+
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [
+        &promise, hasSuccessPtr = hasSuccess, hasPausedPtr = hasPaused
+    ] (const nlohmann::json& eventMessage, int listenerId)
     {
         try
         {
@@ -367,10 +376,20 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
                 }
                 else if (eventMessage.contains("result"))
                 {
-                    Logger.Log("Successfully paused debugger...");
-                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                    promise.set_value();
+                    Logger.Log("Successfully sent debugger pause...");
+                    *hasSuccessPtr = true;
                 }
+            }
+            if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused")
+            {
+                Logger.Log("Debugger has paused!");
+                *hasPausedPtr = true;
+            }
+
+            if (*hasSuccessPtr && *hasPausedPtr)
+            {
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                promise.set_value();
             }
         }
         catch (nlohmann::detail::exception& ex)
@@ -380,6 +399,7 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
     });
     promise.get_future().get();
 
+    Logger.Log("Ready to inject shims!");
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }
