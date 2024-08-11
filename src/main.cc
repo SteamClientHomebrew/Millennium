@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <pipes/terminal_pipe.h>
 #include <git/vcs.h>
+#include <api/executor.h>
 
 /** Handle ^C signal from terminal */
 void HandleSignalInterrupt(int sig) 
@@ -76,7 +77,8 @@ const static void EntryMain()
         preload->Start();
     }
 
-    std::unique_ptr<PluginLoader> loader = std::make_unique<PluginLoader>(startTime, ftpPort);
+    std::shared_ptr<PluginLoader> loader = std::make_shared<PluginLoader>(startTime, ftpPort);
+    SetPluginLoader(loader);
 
     PythonManager& manager = PythonManager::GetInstance();
 
