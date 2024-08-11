@@ -49,6 +49,8 @@ public:
 	bool DestroyPythonInstance(std::string plugin_name);
 	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
 
+	bool IsRunning(std::string pluginName);
+
 	PythonThreadState GetPythonThreadStateFromName(std::string pluginName);
 	std::string GetPluginNameFromThreadState(PyThreadState* thread);
 

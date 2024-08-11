@@ -9,6 +9,8 @@
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
 
+std::shared_ptr<PluginLoader> g_pluginLoader;
+
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
     // std::unique_ptr<SettingsStore> settingsStorePtr = std::make_unique<SettingsStore>();
@@ -204,35 +206,18 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
 
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
     settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
-    CoInitializer::ReInjectFrontendShims();
 
     if (!newToggleStatus)
     {
-        std::thread(std::bind(&PythonManager::DestroyPythonInstance, &manager, pluginName)).detach();
+        std::thread([pluginName, &manager] { manager.DestroyPythonInstance(pluginName); }).detach();
     }
     else
     {
         Logger.Log("requested to enable plugin [{}]", pluginName);
-
-        std::vector<SettingsStore::PluginTypeSchema> m_pluginsPtr = settingsStore->ParseAllPlugins();
-
-        for (auto plugin : m_pluginsPtr)
-        {
-            if (plugin.pluginName != pluginName)
-            {
-                continue;
-            }
-
-            std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
-
-            std::thread(
-                [&manager, &plugin, cb]() {
-                    manager.CreatePythonInstance(plugin, cb);
-                }
-            ).detach();
-        }
+        std::thread([&manager] { g_pluginLoader->StartBackEnds(manager); }).detach();
     }
 
+    CoInitializer::ReInjectFrontendShims();
     Py_RETURN_NONE;
 }
 
@@ -278,4 +263,9 @@ PyMethodDef* GetMillenniumModule()
     };
 
     return moduleMethods;
+}
+
+void SetPluginLoader(std::shared_ptr<PluginLoader> pluginLoader) 
+{
+    g_pluginLoader = pluginLoader;
 }

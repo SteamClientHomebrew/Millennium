@@ -68,6 +68,19 @@
         "CMAKE_C_FLAGS": "-m32",
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "default",
+      "generator": "Ninja",
+      "displayName": "linux-debug-x86",
+      "description": "Default build for Linux",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x86-linux",
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
     }
   ]
 }
