@@ -78,6 +78,9 @@ namespace JavaScript {
         {
             int listenerId = nextListenerId++;
             events[event].push_back(std::make_pair(listenerId, handler));
+
+            Logger.Warn("Listening for message on ID: {}", listenerId);
+
             return listenerId;
         }
 
@@ -99,7 +102,14 @@ namespace JavaScript {
                 const auto& handlers = it->second;
                 for (const auto& handler : handlers) 
                 {
-                    handler.second(data, handler.first);
+                    try 
+                    {
+                        handler.second(data, handler.first);
+                    } 
+                    catch (const std::bad_function_call& e) 
+                    {
+                        Logger.Warn("Failed to emit message. exception: {}", e.what());
+                    }
                 }
             }
         }
