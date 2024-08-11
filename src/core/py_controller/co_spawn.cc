@@ -157,6 +157,18 @@ bool PythonManager::DestroyPythonInstance(std::string plugin_name)
     return successfulShutdown;
 }
 
+bool PythonManager::IsRunning(std::string targetPluginName)
+{
+    for (const auto& [pluginName, threadState, interpMutex] : this->m_pythonInstances) 
+    {
+        if (targetPluginName == pluginName) 
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
 {
     const std::string pluginName = plugin.pluginName;
@@ -166,6 +178,7 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
     {
         PyThreadState* threadStateMain = PyThreadState_New(PyInterpreterState_Main());
         PyEval_RestoreThread(threadStateMain);
+
         PyThreadState* interpreterState = Py_NewInterpreter();
 
         PyThreadState_Swap(interpreterState);
@@ -182,9 +195,9 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
         std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
         interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr]{ return interpMutexStatePtr->flag.load(); });
 
-        Logger.Log("Plugin '{}' was orphaned off the mutex lock, signalling shut down...", pluginName);
+        Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
+        
         std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-
         pythonGilLock->HoldAndLockGILOnThread(interpreterState);
 
         if (pluginName != "pipx" && PyRun_SimpleString("plugin._unload()") != 0) 
@@ -195,10 +208,12 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
 
         Logger.Log("Shutting down plugin '{}'", pluginName);
         Py_EndInterpreter(interpreterState);
+        Logger.Log("Ended sub-interpreter...", pluginName);
         pythonGilLock->ReleaseAndUnLockGIL();
         Logger.Log("Shut down plugin '{}'", pluginName);
     });
 
+    Logger.Log("Created thread {} for plugin '{}'", ThreadIdToString(thread.get_id()), pluginName);
     this->m_threadPool.push_back({ pluginName, std::move(thread) });
     return true;
 }

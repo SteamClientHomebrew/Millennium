@@ -249,10 +249,19 @@ const void StartPreloader(PythonManager& manager)
 
 const void PluginLoader::StartBackEnds(PythonManager& manager)
 {
+    Logger.Log("Starting plugin backends...");
+
     StartPreloader(manager);
 
     for (auto& plugin : *this->m_enabledPluginsPtr)
     {
+        // check if plugin is already running
+        if (manager.IsRunning(plugin.pluginName))
+        {
+            Logger.Log("Skipping load for '{}' as it's already running", plugin.pluginName);
+            continue;
+        }
+
         std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
 
         std::thread(
