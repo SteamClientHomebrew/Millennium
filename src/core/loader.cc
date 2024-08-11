@@ -177,6 +177,7 @@ const void PluginLoader::StartFrontEnds()
     SocketHelpers socketHelpers;
 
     auto socketStart = std::chrono::high_resolution_clock::now();
+    Logger.Log("Starting frontend socket...");
     std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
@@ -250,6 +251,8 @@ const void StartPreloader(PythonManager& manager)
 const void PluginLoader::StartBackEnds(PythonManager& manager)
 {
     StartPreloader(manager);
+
+    Logger.Log("Starting backends...");
 
     for (auto& plugin : *this->m_enabledPluginsPtr)
     {
