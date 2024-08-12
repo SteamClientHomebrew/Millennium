@@ -78,9 +78,6 @@ namespace JavaScript {
         {
             int listenerId = nextListenerId++;
             events[event].push_back(std::make_pair(listenerId, handler));
-
-            Logger.Warn("Listening for message on ID: {}", listenerId);
-
             return listenerId;
         }
 
