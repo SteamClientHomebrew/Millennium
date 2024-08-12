@@ -318,14 +318,17 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                     else if (eventMessage.contains("result"))
                     {
                         *hasUnpausedDebuggerPtr = true;
-                        Logger.Log("Successfully resumed debugger...");
-                        Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+                        Logger.Log("Successfully resumed debugger, injecting shims...");
+                        Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
+                        Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
                     }
                 }
                 else if (messageId == PAGE_SCRIPT)
                 {   
                     addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
                     *hasScriptIdentifierPtr = true;
+                    Logger.Log("Successfully injected shims, updating state...");
+                    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
                 }
 
                 if (*hasUnpausedDebuggerPtr && *hasScriptIdentifierPtr)
@@ -342,9 +345,6 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     });
 
     Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
-    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
-
     socketEmitterThread.join();
 }
 

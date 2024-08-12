@@ -1,7 +1,10 @@
 import time
+start_time = time.perf_counter()
+
 import Millennium, json, os, configparser # type: ignore
 from util.logger import logger
 import platform
+
 print(f"Loading Millennium-Core@{Millennium.version()}")
 
 from api.css_analyzer import parse_root
@@ -51,7 +54,8 @@ class Plugin:
         # websocket_thread = threading.Thread(target=start_websocket_server)
         # websocket_thread.start()
 
-        print("Millennium-Core is ready!")
+        elapsed_time = time.perf_counter() - start_time
+        print(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
         Millennium.ready()
 
     def _unload(self):
