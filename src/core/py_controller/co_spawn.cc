@@ -115,6 +115,8 @@ PythonManager::~PythonManager()
 
     PyEval_RestoreThread(m_InterpreterThreadSave);
     Py_FinalizeEx();
+
+    Logger.Log("Python has been finalized...");
 }
 
 bool PythonManager::DestroyPythonInstance(std::string plugin_name)
@@ -130,7 +132,11 @@ bool PythonManager::DestroyPythonInstance(std::string plugin_name)
             continue;
         }
 
-        interpMutex->flag.store(true);
+        // Lock mutex in new scope to avoid deadlock
+        {
+            std::lock_guard<std::mutex> lg(interpMutex->mtx);
+            interpMutex->flag.store(true);  // Set the flag
+        }
         interpMutex->cv.notify_one(); // Notify waiting thread
 
         Logger.Log("Notified plugin [{}] to shut down...", plugin_name);
@@ -193,7 +199,9 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
 
         // Sit on the mutex until daddy says it's time to go
         std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
-        interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr]{ return interpMutexStatePtr->flag.load(); });
+        interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { 
+            return interpMutexStatePtr->flag.load();
+        });
 
         Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
         

@@ -163,11 +163,9 @@ const UpdatesViewModal: React.FC = () => {
 
     const checkForUpdates = async () => {
         if (checkingForUpdates) return 
-        
         setCheckingForUpdates(true)
-        await Millennium.callServerMethod("updater.re_initialize")
 
-        Millennium.callServerMethod("updater.get_update_list")
+        Millennium.callServerMethod("updater.get_update_list", { force: true })
         .then((result: any) => {
             pluginSelf.connectionFailed = false
             return result

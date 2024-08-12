@@ -82,25 +82,33 @@ const static void EntryMain()
 
     PythonManager& manager = PythonManager::GetInstance();
 
-    std::thread([&loader, &manager] { loader->StartBackEnds(manager); }).detach();
-    loader->StartFrontEnds();
+    auto backendThread = std::thread([&loader, &manager] { loader->StartBackEnds(manager); });
+    auto frontendThreads = std::thread([&loader] { loader->StartFrontEnds(); });
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+    backendThread.join();
+    frontendThreads.join();
 
-    //std::promise<void>().get_future().wait();
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 }
 
 #ifdef _WIN32
+std::unique_ptr<std::thread> g_millenniumThread;
+
 int __stdcall DllMain(void*, unsigned long fdwReason, void*) 
 {
     switch (fdwReason) 
     {
         case DLL_PROCESS_ATTACH: {
-            std::thread(EntryMain).detach();
+            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
             break;
         }
         case DLL_PROCESS_DETACH: {
-            Logger.Log("Shutting down Millennium...");
+            Logger.PrintMessage(" MAIN ", "Shutting down Millennium...", COL_MAGENTA);
+            g_threadTerminateFlag->flag.store(true);
+            Sockets::Shutdown();
+            g_millenniumThread->join();
+            Logger.PrintMessage(" MAIN ", "Millennium has been shut down.", COL_MAGENTA);
+            //std::this_thread::sleep_for(std::chrono::milliseconds(100000000));
             break;
         }
     }

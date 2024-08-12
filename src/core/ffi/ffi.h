@@ -61,56 +61,61 @@ namespace JavaScript {
     class SharedJSMessageEmitter {
     private:
         SharedJSMessageEmitter() {}
+
         std::unordered_map<std::string, std::vector<std::pair<int, EventHandler>>> events;
+        std::unordered_map<std::string, std::vector<nlohmann::json>> missedMessages; // New data structure for missed messages
         int nextListenerId = 0;
 
     public:
         SharedJSMessageEmitter(const SharedJSMessageEmitter&) = delete;
-        SharedJSMessageEmitter& operator=(const SharedJSMessageEmitter&) = delete; 
+        SharedJSMessageEmitter& operator=(const SharedJSMessageEmitter&) = delete;
 
-        static SharedJSMessageEmitter& InstanceRef() 
-        {
+        static SharedJSMessageEmitter& InstanceRef() {
             static SharedJSMessageEmitter InstanceRef;
             return InstanceRef;
         }
 
-        int OnMessage(const std::string& event, EventHandler handler) 
-        {
+        int OnMessage(const std::string& event, EventHandler handler) {
             int listenerId = nextListenerId++;
             events[event].push_back(std::make_pair(listenerId, handler));
 
-            Logger.Warn("Listening for message on ID: {}", listenerId);
-
+            // Deliver any missed messages
+            auto it = missedMessages.find(event);
+            if (it != missedMessages.end()) {
+                for (const auto& message : it->second) {
+                    handler(message, listenerId);
+                }
+                missedMessages.erase(it); // Clear missed messages once delivered
+            }
             return listenerId;
         }
 
-        void RemoveListener(const std::string& event, int listenerId) 
-        {
+        void RemoveListener(const std::string& event, int listenerId) {
             auto it = events.find(event);
-            if (it != events.end()) 
-            {
+            if (it != events.end()) {
                 auto& handlers = it->second;
-                handlers.erase(std::remove_if(handlers.begin(), handlers.end(), [listenerId](const auto& handler) { return handler.first == listenerId; }), handlers.end());
+                handlers.erase(std::remove_if(handlers.begin(), handlers.end(), [listenerId](const auto& handler) {
+                    if (handler.first == listenerId) {
+                        return true;
+                    }
+                    return false;
+                }), handlers.end());
             }
         }
 
-        void EmitMessage(const std::string& event, const nlohmann::json& data) 
-        {
+        void EmitMessage(const std::string& event, const nlohmann::json& data) {
             auto it = events.find(event);
-            if (it != events.end()) 
-            {
+            if (it != events.end()) {
                 const auto& handlers = it->second;
-                for (const auto& handler : handlers) 
-                {
-                    try 
-                    {
+                for (const auto& handler : handlers) {
+                    try {
                         handler.second(data, handler.first);
-                    } 
-                    catch (const std::bad_function_call& e) 
-                    {
+                    } catch (const std::bad_function_call& e) {
                         Logger.Warn("Failed to emit message. exception: {}", e.what());
                     }
                 }
+            } else {
+                missedMessages[event].push_back(data);
             }
         }
     };

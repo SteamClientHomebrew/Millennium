@@ -107,11 +107,8 @@ public:
         {
             this->HandleConsoleMessage(json);
         }
-        else if (method.find("Debugger") == std::string::npos) 
-        {        
-            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
-        }
-
+        
+        JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
         webKitHandler.DispatchSocketMessage(json);
     }
 
@@ -177,6 +174,7 @@ const void PluginLoader::StartFrontEnds()
     SocketHelpers socketHelpers;
 
     auto socketStart = std::chrono::high_resolution_clock::now();
+    Logger.Log("Starting frontend socket...");
     std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
@@ -252,6 +250,8 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
     Logger.Log("Starting plugin backends...");
 
     StartPreloader(manager);
+
+    Logger.Log("Starting backends...");
 
     for (auto& plugin : *this->m_enabledPluginsPtr)
     {

@@ -8,7 +8,15 @@ from util.logger import logger
 
 class Updater:
 
-    def get_update_list(self):
+    def get_update_list(self, force: bool = False):
+
+        if force:
+            self.re_initialize()
+
+        if self.has_cache is False:
+            self.process_updates()
+            self.has_cache = True
+
         return json.dumps({ "updates": self.update_list, "notifications": cfg.get_config()["updateNotifications"] })
     
     def set_update_notifs_status(self, status: bool):
@@ -176,4 +184,4 @@ class Updater:
             print(f"found updates for {[theme['native'] for theme in self.update_list]} in {round((time.time() - start_time) * 1000, 4)} ms")
 
     def __init__(self):
-        self.process_updates()
+        self.has_cache = False
