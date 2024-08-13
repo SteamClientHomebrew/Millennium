@@ -193,7 +193,10 @@ public:
                 "Millennium & Steam will now close until further action is taken.", debuggerPort, processName
             );
 
-            //boxer::show(message.c_str(), "Fatal Error", //boxer::Style::Error);
+            #ifdef _WIN32
+            MessageBoxA(nullptr, message.c_str(), "Fatal Error", MB_ICONERROR);
+            #endif
+            Logger.Warn(message);
             std::exit(1);
         }
         #endif

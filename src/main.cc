@@ -175,7 +175,7 @@ extern "C"
         }
         #else
         {
-            g_threadTerminateFlag.store(true);
+            g_threadTerminateFlag->flag.store(true);
             g_millenniumThread = std::make_unique<std::thread>(EntryMain);
             g_millenniumThread->join();
             return 0;
