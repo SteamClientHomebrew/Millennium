@@ -18,7 +18,7 @@ def get_installed_packages():
 def main():
 
     start_time = time.perf_counter()
-    pip_setup.verify_pip(config)
+    pip_setup.verify_pip()
 
     # keep millennium module up to date
     watchdog = dev_tools.mpc(config.get('PackageManager', 'python'))

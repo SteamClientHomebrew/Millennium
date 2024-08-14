@@ -350,24 +350,17 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
-    // Logger.Log("Received ftp port: {}, ipc port: {}", ftpPort, ipcPort);
-    std::promise<void> promise;
     Logger.Log("Preparing to injecting frontend shims...");
-
-    Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
-    Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
-
+    
+    std::shared_ptr<std::promise<void>> promise = std::make_shared<std::promise<void>>();
     std::shared_ptr<bool> hasSuccess = std::make_shared<bool>(false), hasPaused = std::make_shared<bool>(false);
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [
-        &promise, hasSuccessPtr = hasSuccess, hasPausedPtr = hasPaused
-    ] (const nlohmann::json& eventMessage, int listenerId)
+    auto debuggerPauseThread = std::thread([promise, hasSuccess, hasPaused] {
+        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [promisePtr = promise, hasSuccessPtr = hasSuccess, hasPausedPtr = hasPaused] 
+        (const nlohmann::json& eventMessage, int listenerId)
     {
-        try
-        {
-            const int messageId = eventMessage.value("id", -1);
-
-            if (messageId == 65756)
+        try {
+            if (eventMessage.value("id", -1) == 65756)
             {
                 if (eventMessage.contains("error"))
                 {
@@ -385,11 +378,10 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
                 Logger.Log("Debugger has paused!");
                 *hasPausedPtr = true;
             }
-
             if (*hasSuccessPtr && *hasPausedPtr)
             {
+                promisePtr->set_value();
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                promise.set_value();
             }
         }
         catch (nlohmann::detail::exception& ex)
@@ -397,7 +389,13 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
             LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
         }
     });
-    promise.get_future().get();
+    });
+
+    Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
+    Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+
+    promise->get_future().get();
+    debuggerPauseThread.join();
 
     Logger.Log("Ready to inject shims!");
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
