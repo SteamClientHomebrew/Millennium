@@ -26,7 +26,7 @@ class OutputLogger
 private:
 #ifdef _WIN32
     bool m_bIsVersbose = false;
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
     bool m_bIsVersbose = true;
 #endif
     bool m_bIsConsoleEnabled = false;

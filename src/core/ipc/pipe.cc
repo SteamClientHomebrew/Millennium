@@ -35,6 +35,12 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
             responseMessage["failMessage"] = response.plain;
             break;
         }
+        case Python::Types::Unknown:
+        {
+            responseMessage["failedRequest"] = true;
+            responseMessage["failMessage"] = "FFI Request received an unknown type: " + response.plain;
+            break;
+        }
     }
 
     responseMessage["id"] = message["iteration"];

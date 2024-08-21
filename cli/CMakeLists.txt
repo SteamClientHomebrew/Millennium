@@ -5,12 +5,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Optimize for size
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections -fno-rtti")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s -static -Wl,--gc-sections")
+#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections -fno-rtti")
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -Wl,--gc-sections")
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+if (NOT APPLE)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/vendor/ini/src
@@ -39,14 +41,17 @@ set(SOURCES
 find_package(CLI11 CONFIG REQUIRED)
 
 add_executable(CLI ${SOURCES})
-set_target_properties(CLI PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-target_compile_options (CLI PRIVATE -m32 )
+
+if (NOT APPLE) 
+  set_target_properties(CLI PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+  target_compile_options (CLI PRIVATE -m32 )
+endif()
 
 install(TARGETS CLI DESTINATION /usr/local/bin)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections")
+  #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections")
   # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} Wl,--gc-sections -s")
 endif()
 

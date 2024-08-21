@@ -31,7 +31,7 @@ namespace SystemIO {
                 return steamPath;
             }
         }
-        #elif __linux__
+        #elif defined(__linux__) || defined(__APPLE__)
         {
             return fmt::format("{}/.steam/steam/", std::getenv("HOME"));
         }
@@ -44,7 +44,7 @@ namespace SystemIO {
         {
             return GetSteamPath();
         }
-        #elif __linux__
+        #elif defined(__linux__) || defined(__APPLE__)
         {
             return fmt::format("{}/.millennium", std::getenv("HOME"));
         }

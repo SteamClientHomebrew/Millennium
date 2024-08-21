@@ -81,6 +81,17 @@
         "CMAKE_C_FLAGS": "-m32",
         "CMAKE_BUILD_TYPE": "Debug"
       }
+    },
+    {
+      "name": "mac-debug-arm64",
+      "inherits": "default",
+      "generator": "Ninja",
+      "displayName": "mac-debug-arm64",
+      "description": "Default build for Linux",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "arm64-osx",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
     }
   ]
 }

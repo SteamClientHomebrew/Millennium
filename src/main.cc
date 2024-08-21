@@ -122,7 +122,7 @@ int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmd
     //EntryMain();
     return 1;
 }
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 #include <stdio.h>
 #include <stdlib.h>
 #include <posix/helpers.h>

@@ -146,7 +146,8 @@ private:
         return { true, {} };
 #elif __APPLE__
         // macOS-specific code using lsof
-        std::string command = "lsof -i :" + std::to_string(port) + " | grep LISTEN";
+        std::string result;
+        std::string command = "lsof -i :" + std::to_string(debuggerPort) + " | grep LISTEN";
         FILE* fp = popen(command.c_str(), "r");
         if (fp) 
         {
@@ -157,6 +158,7 @@ private:
             }
             pclose(fp);
         }
+        return { true, {} };
 #endif
 
         return { false };

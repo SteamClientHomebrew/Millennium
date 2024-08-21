@@ -32,6 +32,10 @@ static const std::string pythonUserLibs = (pythonModulesBaseDir / "Lib" / "site-
 static const std::string pythonPath = (pythonModulesBaseDir / "lib" / "python3.11").generic_string();
 static const std::string pythonLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "lib-dynload").generic_string();
 static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
+#elif __APPLE__
+static const std::string pythonPath = (std::filesystem::path("/Users/admin/.pyenv/versions/3.11.8") / "lib" / "python3.11").generic_string();
+static const std::string pythonLibs = (std::filesystem::path("/Users/admin/.pyenv/versions/3.11.8") / "lib" / "python3.11" / "lib-dynload").generic_string();
+static const std::string pythonUserLibs = (std::filesystem::path("/Users/admin/.pyenv/versions/3.11.8") / "lib" / "python3.11" / "site-packages").generic_string();
 #endif
 
 class PythonManager 

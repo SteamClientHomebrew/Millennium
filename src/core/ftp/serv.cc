@@ -117,8 +117,8 @@ namespace Crow
         auto [app, port] = BindApplication();
 
         std::thread(
-            [app]() mutable {
-                app->multithreaded().run();
+            [appPtr = app]() mutable {
+                appPtr->multithreaded().run();
             }
         ).detach();
 
