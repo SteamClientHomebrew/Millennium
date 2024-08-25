@@ -72,7 +72,7 @@ include_directories(${LIBGIT2_INCLUDE_DIRS})
 if(WIN32)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
 elseif(UNIX)
-  include_directories("$ENV{HOME}/.millennium/ext/data/cache/include/python3.11/")
+  include_directories("$ENV{HOME}/Documents/LibPython/")
 endif()
 
 set(SOURCE_FILES 
@@ -165,6 +165,6 @@ if(WIN32)
   endif()
 elseif(UNIX)
   target_link_libraries(Millennium
-    "$ENV{HOME}/.millennium/libpython-3.11.8.so"
+    "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so"
   )
 endif()
