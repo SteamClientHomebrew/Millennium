@@ -14,8 +14,10 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+if (NOT APPLE)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+endif()
 
 project(Millennium LANGUAGES CXX)
 
@@ -73,6 +75,12 @@ if(WIN32)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
 elseif(UNIX)
   include_directories("$ENV{HOME}/Documents/LibPython/")
+
+  if (APPLE)
+    include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
+  else()
+    include_directories("$ENV{HOME}/.millennium/ext/data/cache/include/python3.11/")
+  endif()
 endif()
 
 set(SOURCE_FILES 
@@ -108,9 +116,10 @@ elseif(UNIX)
   add_compile_definitions(MILLENNIUM_SHARED)
 endif()
 
-set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-
-target_compile_options (Millennium PRIVATE -m32 )
+if (NOT APPLE)
+  set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+  target_compile_options (Millennium PRIVATE -m32 )
+endif()
 
 if (WIN32)
   set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
@@ -155,7 +164,6 @@ if(WIN32)
   if (GITHUB_ACTION_BUILD)
     target_link_libraries(Millennium 
     "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib"
-    "D:\\a\\Millennium\\Millennium\\Python-3.11.8\\PCbuild\\win32\\python311.lib"
     )
   else()
     target_link_libraries(Millennium 
@@ -164,7 +172,14 @@ if(WIN32)
     )
   endif()
 elseif(UNIX)
-  target_link_libraries(Millennium
-    "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so"
-  )
+
+  if (APPLE)
+    target_link_libraries(Millennium
+      "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib"
+    )
+  else()
+    target_link_libraries(Millennium
+      "$ENV{HOME}/.millennium/libpython-3.11.8.so"
+    )
+  endif()
 endif()
