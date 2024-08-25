@@ -74,12 +74,10 @@ include_directories(${LIBGIT2_INCLUDE_DIRS})
 if(WIN32)
   include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
 elseif(UNIX)
-  include_directories("$ENV{HOME}/Documents/LibPython/")
-
   if (APPLE)
     include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
   else()
-    include_directories("$ENV{HOME}/.millennium/ext/data/cache/include/python3.11/")
+    include_directories("$ENV{HOME}/Documents/LibPython/")
   endif()
 endif()
 
@@ -179,7 +177,7 @@ elseif(UNIX)
     )
   else()
     target_link_libraries(Millennium
-      "$ENV{HOME}/.millennium/libpython-3.11.8.so"
+      "$ENV{HOME}/LibPython/libpython-3.11.8.so"
     )
   endif()
 endif()
