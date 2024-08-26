@@ -137,7 +137,19 @@ class AboutThemeRenderer extends React.Component<any> {
                 <div className="ModalPosition_Content" style={{width: "100vw", height: "100vh"}}>
                     <div className="DialogContent _DialogLayout GenericConfirmDialog _DialogCenterVertically">
                         <div className="DialogContent_InnerWidth" style={{flex: "unset"}}>
-                            <DialogHeader>{this.activeTheme?.data?.name ?? this.activeTheme?.native}</DialogHeader>
+                            <DialogHeader style={{
+                                display: "flex",
+                                alignItems: "baseline",
+                                gap: "10px",
+                            }}>
+                                {this.activeTheme?.data?.name ?? this.activeTheme?.native}
+                                <p style ={{
+                                    fontSize: "10px",
+                                    height: "min-content",
+                                    margin: "0",
+                                    color: "grey"
+                                }}>{this.activeTheme?.data?.version}</p>
+                            </DialogHeader>
                             <DialogBody style={{flex: "unset"}}>
                                 <this.RenderDeveloperProfile/>
                                 <this.RenderDescription/>

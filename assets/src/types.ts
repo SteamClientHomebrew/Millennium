@@ -70,6 +70,7 @@ export interface Theme {
     header_image?: URL,
     splash_image?: URL,
     name?: string, 
+    version?: string,
     source?: string, 
     tags?: string[]
 }
