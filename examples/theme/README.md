@@ -8,21 +8,16 @@ A theme template for Millennium providing a basic boilerplate to help get starte
 
 ## Setting up
 ```ps1
-git clone https://github.com/SteamClientHomebrew/PluginTemplate.git
-cd PluginTemplate
-pnpm install
+git clone --depth=1 https://github.com/SteamClientHomebrew/Millennium 
+mv ./Millennium/examples/theme ./theme_template 
+rm -rf Millennium
 ```
 
 ## Using
 
 Then ensure your theme template is in your themes folder. 
-`%STEAM_PATH%/steamui/skins`, and select it from the "Themes" tab within steam, or run `millennium themes use your_theme`
+`%STEAM_PATH%/steamui/skins/theme_template`, and select it from the "Themes" tab within steam, or run `millennium themes use theme_template`
 
 ## Next Steps
 
 https://docs.steambrew.app/developers/themes/getting-started
-
-<!-- ## Deploying
-```ps1
-pnpm run build
-``` -->

@@ -10,8 +10,11 @@ A plugin template for Millennium providing a basic boilerplate to help get start
 
 ## Setting up
 ```ps1
-git clone https://github.com/SteamClientHomebrew/PluginTemplate.git
-cd PluginTemplate
+git clone --depth=1 https://github.com/SteamClientHomebrew/Millennium 
+mv ./Millennium/examples/plugin ./plugin_template 
+rm -rf Millennium
+
+cd plugin_template
 pnpm install
 ```
 
@@ -21,7 +24,7 @@ pnpm run dev
 ```
 
 Then ensure your plugin template is in your plugins folder. 
-`%MILLENNIUM_PATH%/plugins`, and select it from the "Plugins" tab within steam, or run `millennium plugins enable your_plugin_internal_name`
+`%MILLENNIUM_PATH%/plugins/plugin_template`, and select it from the "Plugins" tab within steam, or run `millennium plugins enable plugin_template`
 
 #### Note:
 **MILLENNIUM_PATH** =
@@ -31,8 +34,3 @@ Then ensure your plugin template is in your plugins folder.
 ## Next Steps
 
 https://docs.steambrew.app/developers/plugins/learn
-
-<!-- ## Deploying
-```ps1
-pnpm run build
-``` -->
