@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "dev": "millennium-ttc --build dev",
+    "build": "millennium-ttc --build prod"
+  },
+  "devDependencies": {
+    "@types/react": "16.14.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/webpack": "^5.28.5",
+    "millennium-lib": "^3.5.6"
+  },
+  "type": "module",
+  "name": "millennium-plugin",
+  "version": "1.0.0",
+  "description": "A template plugin for millennium",
+  "main": "./frontend/index.jsx",
+  "author": "Millennium",
+  "license": "MIT"
+}

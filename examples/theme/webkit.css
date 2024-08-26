@@ -1,0 +1,3 @@
+/**
+ * @description This file styles the steam store
+ */
