@@ -177,7 +177,7 @@ elseif(UNIX)
     )
   else()
     target_link_libraries(Millennium
-      "$ENV{HOME}/LibPython/libpython-3.11.8.so"
+      "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so"
     )
   endif()
 endif()

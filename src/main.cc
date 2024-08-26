@@ -26,10 +26,9 @@ void HandleSignalInterrupt(int sig)
 class Preload 
 {
 public:
-
     Preload() 
-    {
-        this->VerifyEnvironment();
+    { 
+        this->VerifyEnvironment(); 
     }
 
     ~Preload() { }
@@ -44,31 +43,28 @@ public:
             std::ofstream(filePath).close();
 
             Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
-            //boxer::show("Successfully initialized Millennium!. You can now manually restart Steam...", "Message");
             std::exit(1);
         }
     }
 
     const void Start() 
     {
-        #ifdef _WIN32
         CheckForUpdates();
-        #endif
     }
 };
 
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
+    /** Handle signal interrupts (^C) */
+    signal(SIGINT, HandleSignalInterrupt);
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
-    const bool isVerboseMode = startupParams->HasArgument("-verbose");
 
-    if (isVerboseMode)
+    if (startupParams->HasArgument("-verbose"))
     {
         CreateTerminalPipe();
     }
 
-    signal(SIGINT, HandleSignalInterrupt);
     uint16_t ftpPort = Crow::CreateAsyncServer();
 
     const auto startTime = std::chrono::system_clock::now();
@@ -82,7 +78,7 @@ const static void EntryMain()
 
     PythonManager& manager = PythonManager::GetInstance();
 
-    auto backendThread = std::thread([&loader, &manager] { loader->StartBackEnds(manager); });
+    auto backendThread   = std::thread([&loader, &manager] { loader->StartBackEnds(manager); });
     auto frontendThreads = std::thread([&loader] { loader->StartFrontEnds(); });
 
     backendThread.join();
@@ -98,11 +94,13 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
 {
     switch (fdwReason) 
     {
-        case DLL_PROCESS_ATTACH: {
+        case DLL_PROCESS_ATTACH: 
+        {
             g_millenniumThread = std::make_unique<std::thread>(EntryMain);
             break;
         }
-        case DLL_PROCESS_DETACH: {
+        case DLL_PROCESS_DETACH: 
+        {
             Logger.PrintMessage(" MAIN ", "Shutting down Millennium...", COL_MAGENTA);
             g_threadTerminateFlag->flag.store(true);
             Sockets::Shutdown();
@@ -141,22 +139,17 @@ extern "C"
     /* Our fake main() that gets called by __libc_start_main() */
     int MainHooked(int argc, char **argv, char **envp)
     {
-        pid_t pid = getpid();
-        Logger.Log("Hooked main() with PID: {}", pid);
-
-        std::string homeDirectory = std::getenv("HOME");
+        Logger.Log("Hooked main() with PID: {}", getpid());
 
         /** 
          * Since this isn't an executable, and is "preloaded", the kernel doesn't implicitly load dependencies, so we need to manually. 
          * libpython3.11.so.1.0 should already be in $PATH, so we can just load it from there.
         */
-        if (!dlopen(fmt::format("{}/.millennium/libpython-3.11.8.so", homeDirectory).c_str(), RTLD_LAZY | RTLD_GLOBAL)) 
+        std::string pythonPath = fmt::format("{}/.millennium/libpython-3.11.8.so", std::getenv("HOME"));
+
+        if (!dlopen(pythonPath.c_str(), RTLD_LAZY | RTLD_GLOBAL)) 
         {
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
-        }
-        else
-        {
-            Logger.Log("Successfully loaded unix python libraries...");
         }
 
         #ifdef MILLENNIUM_SHARED
@@ -185,29 +178,25 @@ extern "C"
 
     #ifdef MILLENNIUM_SHARED
     /*
-    * Wrapper for __libc_start_main() that replaces the real main
+    * Trampoline for __libc_start_main() that replaces the real main
     * function with our hooked version.
     */
     int __libc_start_main(
-        int (*main)(int, char **, char **),
-        int argc,
-        char **argv,
-        int (*init)(int, char **, char **),
-        void (*fini)(void),
-        void (*rtld_fini)(void),
-        void *stack_end)
+        int (*main)(int, char **, char **), int argc, char **argv,
+        int (*init)(int, char **, char **), void (*fini)(void), void (*rtld_fini)(void), void *stack_end)
     {
         /* Save the real main function address */
         fnMainOriginal = main;
 
-        /* Find the real __libc_start_main()... */
-        typedef int (*libc_start_main_t)(int (*)(int, char **, char **), int, char **, int (*)(int, char **, char **), void (*)(void), void (*)(void), void *);
-        libc_start_main_t orig = (libc_start_main_t)dlsym(RTLD_NEXT, "__libc_start_main");
+        /* Get the address of the real __libc_start_main() */
+        decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
+        /* Get the path to the Steam executable */
         std::filesystem::path steamPath = std::filesystem::path(std::getenv("HOME")) / ".steam/steam/ubuntu12_32/steam";
 
-        if (argv[0] != steamPath.string()) {
-            /** Started from bash (invalid) */
+        /** not loaded in a invalid child process */
+        if (argv[0] != steamPath.string()) 
+        {
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }
 
@@ -222,5 +211,4 @@ int main(int argc, char **argv, char **envp)
 {
     return MainHooked(argc, argv, envp);
 }
-
 #endif

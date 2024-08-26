@@ -2,23 +2,19 @@
 #include <sys/locals.h>
 #include <sys/log.h>
 
+static constexpr const char* releaseUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
+
 const bool UpdatesEnabled()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-
-    const bool checkForUpdates = settingsStore->GetSetting("check_for_updates", "yes") == "yes";
-
-    return checkForUpdates;
+    return settingsStore->GetSetting("check_for_updates", "yes") == "yes";
 }
 
 const std::string GetLatestVersion()
 {
     try 
     {
-        const char* releaseUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
-        std::string githubResponse = Http::Get(releaseUrl, false);
-
-        nlohmann::json releaseData = nlohmann::json::parse(githubResponse);
+        nlohmann::json releaseData = nlohmann::json::parse(Http::Get(releaseUrl, false));
 
         // find latest non-pre-release version
         for (const auto& release : releaseData)
@@ -76,10 +72,14 @@ const void CheckForUpdates()
 
         if (latestVersion != MILLENNIUM_VERSION)
         {
-            Logger.Warn("Upgrading Millennium@{} -> Millennium@{}", MILLENNIUM_VERSION, latestVersion);
             #ifdef _WIN32
             {
+                Logger.Warn("Upgrading Millennium@{} -> Millennium@{}", MILLENNIUM_VERSION, latestVersion); 
                 RunPowershellCommand(L"iwr -useb https://steambrew.app/update.ps1 | iex");
+            }
+            #elif __linux__
+            {
+                Logger.Warn("An update is available for Millennium. {} -> {}\nRun 'millennium update' to update to the latest version", MILLENNIUM_VERSION, latestVersion);
             }
             #endif
         }

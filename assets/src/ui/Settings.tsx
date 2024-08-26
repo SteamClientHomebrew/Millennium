@@ -38,6 +38,7 @@ const RenderViewComponent = (componentType: Renderer): any => {
 const PluginComponent: React.FC = () => {
 
 	const [selected, setSelected] = useState<Renderer>();
+	const [isUpdatesDisabled, setUpdatesDisabled] = useState<boolean>(false);
 	const nativeTabs = pluginSelf.settingsDoc.querySelectorAll(`.${Classes.PagedSettingsDialog_PageListItem}:not(.MillenniumTab)`)
 
 	for (const tab of nativeTabs) {
@@ -55,6 +56,10 @@ const PluginComponent: React.FC = () => {
 	}
 
 	useEffect(() => {
+		SteamClient.System.GetOSType().then((osType: number) => {
+			if (osType === -184) setUpdatesDisabled(true)
+		})
+
 		Millennium.findElement(pluginSelf.settingsDoc, ".DialogBody").then(_ => {
 			if (pluginSelf?.OpenOnUpdatesPanel ?? false) {
 				componentUpdate(Renderer.Updates)
@@ -82,14 +87,14 @@ const PluginComponent: React.FC = () => {
 				componentUpdate(Renderer.Themes);
 			}}
 		/>
-		<PageList.Item
+		{!isUpdatesDisabled && <PageList.Item
 			bSelected={selected === Renderer.Updates}
 			icon=<IconsModule.Update />
 			title={locale.settingsPanelUpdates}
 			onClick={() => {
 				componentUpdate(Renderer.Updates);
 			}}
-		/>
+		/>} 
 		<PageList.Separator />
 		</>
 	);
