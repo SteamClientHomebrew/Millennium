@@ -102,11 +102,11 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
         case DLL_PROCESS_DETACH: 
         {
             Logger.PrintMessage(" MAIN ", "Shutting down Millennium...", COL_MAGENTA);
+            std::exit(EXIT_SUCCESS);
             g_threadTerminateFlag->flag.store(true);
             Sockets::Shutdown();
             g_millenniumThread->join();
             Logger.PrintMessage(" MAIN ", "Millennium has been shut down.", COL_MAGENTA);
-            //std::this_thread::sleep_for(std::chrono::milliseconds(100000000));
             break;
         }
     }
