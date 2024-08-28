@@ -1,3 +1,11 @@
+## [2.10.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.10.0...v2.10.1) (2024-08-28)
+
+
+### Bug Fixes
+
+* Fix race condition causing boot loop ([f3c9e88](https://github.com/SteamClientHomebrew/Millennium/commit/f3c9e881eca3642885eb953801dc6dcc4bcd0058))
+* Fix Unix start script paths ([f4f2bb7](https://github.com/SteamClientHomebrew/Millennium/commit/f4f2bb7675e5e3a0ead907f69385683624624d63))
+
 # [2.10.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.4...v2.10.0) (2024-08-28)
 
 
