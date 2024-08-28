@@ -1,3 +1,38 @@
+# [2.10.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.4...v2.10.0) (2024-08-28)
+
+
+### Bug Fixes
+
+* Check if a queried plugin is already loaded before starting it ([5fa6d99](https://github.com/SteamClientHomebrew/Millennium/commit/5fa6d998b5938c410689dbeb9bb6461425813c87))
+* Decrease release binary size on linux ([dd0600a](https://github.com/SteamClientHomebrew/Millennium/commit/dd0600ac8906d81ffc281566ea4ec839f54a2a64))
+* Fix CI ([c952fbf](https://github.com/SteamClientHomebrew/Millennium/commit/c952fbf10f0af532e86430bbc8b37c99fff44aa8))
+* Fix CLI paths to use updated refs ([59b91dd](https://github.com/SteamClientHomebrew/Millennium/commit/59b91ddd70e8593f55e3731850ce16d0eb392a48))
+* Fix crashes on Steam close ([4d09aa6](https://github.com/SteamClientHomebrew/Millennium/commit/4d09aa688dd31758a222f5a9d44761fcb4086e14))
+* Fix edge case SEGV ([b17146d](https://github.com/SteamClientHomebrew/Millennium/commit/b17146d3febe448c577bf19ac9107f931e93144b))
+* Fix linux startup issues [#75](https://github.com/SteamClientHomebrew/Millennium/issues/75) ([dad87ba](https://github.com/SteamClientHomebrew/Millennium/commit/dad87ba8ba76f4df4ff033f14f68d2c53651a85f))
+* Fix Mac OS support. ([6b9997b](https://github.com/SteamClientHomebrew/Millennium/commit/6b9997be621223c0fb1ce64c4c09aa8fc7d68f93))
+* Fix race condition causing Millennium to get stuck on "Notifying frontend of backend load..." ([63973b2](https://github.com/SteamClientHomebrew/Millennium/commit/63973b293cfb22f6f1803cc3e46eee8353f4b5cb))
+* Fix startup bugs on Windows [#76](https://github.com/SteamClientHomebrew/Millennium/issues/76) ([b86c537](https://github.com/SteamClientHomebrew/Millennium/commit/b86c537b42ae5e11bf9793b2d7ab696e9fedcd96))
+* Fix startup issues on Linux ([9fcf293](https://github.com/SteamClientHomebrew/Millennium/commit/9fcf29307737bee8b1ca9473548b3958756f474d))
+* Fix startup issues on windows [#76](https://github.com/SteamClientHomebrew/Millennium/issues/76) ([aa2ade2](https://github.com/SteamClientHomebrew/Millennium/commit/aa2ade25f58da642c68b8305778d8b2619253369))
+* Fix threaded race condition ([08ab88d](https://github.com/SteamClientHomebrew/Millennium/commit/08ab88dc37a614c965b1b6f4d83d7953a7c688a6))
+* Issues where Steam would show prematurely ([486e892](https://github.com/SteamClientHomebrew/Millennium/commit/486e89232140ebe0512ce921f3a32b324d8f00ea))
+* Unix build bug fixes ([0745446](https://github.com/SteamClientHomebrew/Millennium/commit/0745446a6596b0a2435ad76d0e248686eb5dcfd7))
+
+
+### Features
+
+* Better, easier to view installer for linux ([fd27c80](https://github.com/SteamClientHomebrew/Millennium/commit/fd27c802b49c150cd8ef6f701297041a810faeea))
+* Hot reload for plugins ([cdacaba](https://github.com/SteamClientHomebrew/Millennium/commit/cdacaba73197fd8a985ff96aaa19a8b122f5c652))
+* Show theme version in "About Theme" [#87](https://github.com/SteamClientHomebrew/Millennium/issues/87) ([f99046e](https://github.com/SteamClientHomebrew/Millennium/commit/f99046e053e6a4503564b74b2e71e93c9185bd0f))
+* Stage fully hot reloadable plugins ([79d4a27](https://github.com/SteamClientHomebrew/Millennium/commit/79d4a2744fb89a2b5836f013223fc2c439f82453))
+
+
+### Performance Improvements
+
+* Improve shutdown speed on Linux ([b0a026f](https://github.com/SteamClientHomebrew/Millennium/commit/b0a026fd388cb8a706a8971312583e80c50ec072))
+* Startup performance improvements ([6a138d3](https://github.com/SteamClientHomebrew/Millennium/commit/6a138d39b44e37e16a81c8b8a0be89591885e8aa))
+
 ## [2.9.5](https://github.com/SteamClientHomebrew/Millennium/compare/v2.9.4...v2.9.5) (2024-08-09)
 
 
