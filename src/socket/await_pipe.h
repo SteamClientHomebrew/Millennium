@@ -22,6 +22,8 @@
 #endif
 #include <procmon/cmd.h>
 
+static bool bHasCheckedConnection = false;
+
 class SocketHelpers
 {
 private:
@@ -183,8 +185,12 @@ public:
     const void VerifySteamConnection()
     {
         #ifndef MILLENNIUM_CLI
-        auto [canConnect, processName] = this->GetSteamConnectionProps();
+        if (bHasCheckedConnection)
+        {
+            return;
+        }
 
+        auto [canConnect, processName] = this->GetSteamConnectionProps();
         if (!canConnect)
         {
             const std::string message = fmt::format(
@@ -199,6 +205,8 @@ public:
             Logger.Warn(message);
             std::exit(1);
         }
+
+        bHasCheckedConnection = true;
         #endif
     }
 

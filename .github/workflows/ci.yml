@@ -209,14 +209,6 @@ jobs:
     - name: Setup installation
       if: steps.build-cache.outputs.cache-hit != 'true'
       run: |
-        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
-        sudo rm -rf $HOME/.millennium/ext/data/cache/share
-        sudo rm -rf $HOME/.millennium/ext/data/cache/include
-        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/__pycache__/
-        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/config-3.11-x86_64-linux-gnu/
-        sudo rm $HOME/.millennium/ext/data/cache/lib/libpython3.11.a
-
-
         sudo mkdir -p $HOME/.millennium/ext/data/cache/lib/tmp
         cd $HOME/.millennium/ext/data/cache/lib/tmp
         sudo ar -x ../libpython3.11.a
@@ -225,6 +217,17 @@ jobs:
         cd $HOME/.millennium/ext/data/cache/lib
         sudo rm -rf tmp
         ls
+
+        sudo mkdir -p $HOME/Documents/LibPython/
+        cd $HOME/.millennium/ext/data/cache/include/python3.11/
+        sudo mv * $HOME/Documents/LibPython/
+
+        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
+        sudo rm -rf $HOME/.millennium/ext/data/cache/share
+        sudo rm -rf $HOME/.millennium/ext/data/cache/include
+        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/__pycache__/
+        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/config-3.11-x86_64-linux-gnu/
+        sudo rm $HOME/.millennium/ext/data/cache/lib/libpython3.11.a
 
         sudo mv $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
 
