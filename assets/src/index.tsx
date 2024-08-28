@@ -97,15 +97,15 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
     pluginSelf.useInterface   = result?.useInterface as boolean ?? true
 
     // @ts-ignore
-    if (g_PopupManager?.m_mapPopups?.size > 0) {
-        // check if RestartJSContext exists
-        if (SteamClient?.Browser?.RestartJSContext) {
-            SteamClient.Browser.RestartJSContext()
-        }
-        else {
-            Logger.Warn("SteamClient.Browser.RestartJSContext is not available")
-        }
-    }
+    // if (g_PopupManager?.m_mapPopups?.size > 0) {
+    //     // check if RestartJSContext exists
+    //     if (SteamClient?.Browser?.RestartJSContext) {
+    //         SteamClient.Browser.RestartJSContext()
+    //     }
+    //     else {
+    //         Logger.Warn("SteamClient.Browser.RestartJSContext is not available")
+    //     }
+    // }
     PatchMissedDocuments();
 }
 
