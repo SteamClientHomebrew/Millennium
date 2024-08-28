@@ -147,37 +147,24 @@ endif()
 #     target_link_libraries(Millennium ${CMAKE_BINARY_DIR}/version.o)
 # endif()
 
-target_link_libraries(Millennium 
-  # Boxer
-  CURL::libcurl
-  unofficial::minizip::minizip
-)
+target_link_libraries(Millennium CURL::libcurl unofficial::minizip::minizip)
 
 if(WIN32)
-  target_link_libraries(Millennium
-    Ws2_32.lib
-    wsock32
-    Iphlpapi
-  )
-  if (GITHUB_ACTION_BUILD)
-    target_link_libraries(Millennium 
-    "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib"
-    )
-  else()
-    target_link_libraries(Millennium 
-     ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib
-     ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib
-    )
-  endif()
-elseif(UNIX)
+	target_link_libraries(Millennium Ws2_32.lib wsock32 Iphlpapi)
 
-  if (APPLE)
-    target_link_libraries(Millennium
-      "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib"
-    )
-  else()
-    target_link_libraries(Millennium
-      "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so"
-    )
-  endif()
+	if (GITHUB_ACTION_BUILD)
+		target_link_libraries(Millennium "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib")
+	else()
+		target_link_libraries(Millennium ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
+	endif()
+elseif(UNIX)
+	if (APPLE)
+		target_link_libraries(Millennium "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
+	else()
+		if (GITHUB_ACTION_BUILD)
+			target_link_libraries(Millennium "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so")
+		else()
+			target_link_libraries(Millennium "$ENV{HOME}/.millennium/libpython-3.11.8.so")
+		endif()
+	endif()
 endif()

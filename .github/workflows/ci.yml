@@ -218,6 +218,10 @@ jobs:
         sudo rm -rf tmp
         ls
 
+        sudo mkdir -p $HOME/Documents/LibPython/
+        cd $HOME/.millennium/ext/data/cache/include
+        sudo mv * $HOME/Documents/LibPython/
+
         sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
         sudo rm -rf $HOME/.millennium/ext/data/cache/share
         sudo rm -rf $HOME/.millennium/ext/data/cache/include
