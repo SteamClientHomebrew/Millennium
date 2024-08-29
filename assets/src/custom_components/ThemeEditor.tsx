@@ -8,6 +8,8 @@ import {
     DialogHeader,
     Dropdown,
     Millennium,
+    SidebarNavigation,
+    type SidebarNavigationPage,
     SingleDropdownOption,
     Toggle,
     pluginSelf,
@@ -197,6 +199,45 @@ export class RenderThemeEditor extends React.Component {
     
         const themeConditions: Conditions = activeTheme.data.Conditions
         const savedConditions = pluginSelf?.conditionals?.[activeTheme.native] as ConditionsStore
+
+		const pages: SidebarNavigationPage[] = Object.entries(themeConditions)
+			.reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
+				const [name, patch] = entry;
+				const { tab } = patch;
+				const condition = { [name]: patch };
+				const page = {
+					title: tab,
+					conditions: [condition],
+				};
+
+				const foundTab = vec.find((e) => e.title === tab);
+				if (foundTab) {
+					foundTab.conditions.push(condition);
+					return vec;
+				}
+
+				vec.push(page);
+				return vec;
+			}, [])
+			.map(({ title, conditions }) => ({
+				title,
+				content: (
+					<DialogBody className={Classes.SettingsDialogBodyFade}>
+						{Object.entries(
+							conditions.reduce((a, b) => Object.assign(a, b)),
+						).map(([key, value]) => (
+							<this.RenderComponent
+								condition={key}
+								store={savedConditions}
+								value={value}
+							/>
+						))}
+					</DialogBody>
+				),
+			}));
+        const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
+
+        return <SidebarNavigation pages={pages} title={title} />; 
 
         return (
             <div className="ModalPosition" tabIndex={0}>

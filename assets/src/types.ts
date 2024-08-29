@@ -45,6 +45,7 @@ export interface Conditions {
 export interface ICondition {
     default?: string;
     description?: string;
+    tab: string;
     values: {
         [condition: string]: ConditionalControlFlow
     };
