@@ -235,41 +235,8 @@ export class RenderThemeEditor extends React.Component {
 					</DialogBody>
 				),
 			}));
-        const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
+		const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
-        return <SidebarNavigation pages={pages} title={title} />; 
-
-        return (
-            <div className="ModalPosition" tabIndex={0}>
-
-                <style>
-                    {
-                        `.DialogBody.${Classes.SettingsDialogBodyFade}:last-child { padding-bottom: 65px; }
-                        input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`
-                    }
-                </style>
-
-                <div className="ModalPosition_Content" style={{width: "100vw", height: "100vh"}}>
-                    <div className={`${Classes.PagedSettingsDialog} ${Classes.SettingsModal} ${Classes.DesktopPopup} Panel`}>
-                        <div className="DialogContentTransition Panel" style={{minWidth: "100vw"}}>
-                            <div className={`DialogContent _DialogLayout ${Classes.PagedSettingsDialog_PageContent} `}>
-                                <div className="DialogContent_InnerWidth">
-                                    <DialogHeader>Editing {activeTheme?.data?.name ?? activeTheme.native}</DialogHeader>
-                                    <DialogBody className={Classes.SettingsDialogBodyFade}>
-                                        {themeConditions && <DialogControlsSection>
-                                            <SettingsDialogSubHeader>{locale.customThemeSettingsConfigHeader}</SettingsDialogSubHeader>
-                                            <DialogBodyText className='_3fPiC9QRyT5oJ6xePCVYz8'>{locale.customThemeSettingsConfigDescription}</DialogBodyText>
-                                    
-                                            {Object.entries(themeConditions).map(([key, value]) => <this.RenderComponent condition={key} store={savedConditions} value={value}/>)}
-                                        </DialogControlsSection>}
-                                        <this.RenderColorsOpts/>
-                                    </DialogBody>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+		return <SidebarNavigation pages={pages} title={title} />; 
     }
 }
