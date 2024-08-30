@@ -18,8 +18,6 @@ import { BBCodeParser } from "../components/BBCodeParser";
 import { Field } from "../custom_components/Field";
 import { Conditions, ConditionsStore, ICondition, ThemeItem } from "../types"
 import { settingsClasses } from "../classes"
-import { locale } from "../locales"
-import { SettingsDialogSubHeader } from "../components/SettingsDialogSubHeader";
 
 interface ConditionalComponent {
     condition: string,
@@ -173,25 +171,23 @@ export class RenderThemeEditor extends React.Component {
     }
 
     RenderColorsOpts: React.FC = () => {
-        const activeTheme: ThemeItem = pluginSelf.activeTheme as ThemeItem
         const [themeColors, setThemeColors] = useState<ColorProps[]>()
 
         useEffect(() => {
-            if (activeTheme?.data?.RootColors) {
-                Millennium.callServerMethod("cfg.get_color_opts")
-                .then((result: any) => {
-                    console.log(JSON.parse(result) as ColorProps[])
-                    setThemeColors(JSON.parse(result) as ColorProps[])
-                })
-            }
+            Millennium.callServerMethod("cfg.get_color_opts")
+            .then((result: any) => {
+                console.log(JSON.parse(result) as ColorProps[])
+                setThemeColors(JSON.parse(result) as ColorProps[])
+            })
         }, [])
 
-        return themeColors && <DialogControlsSection>
-            <SettingsDialogSubHeader>{locale.customThemeSettingsColorsHeader}</SettingsDialogSubHeader>
-            <DialogBodyText className='_3fPiC9QRyT5oJ6xePCVYz8'>{locale.customThemeSettingsColorsDescription}</DialogBodyText>
-
-            {themeColors?.map((color: any, index: number) => <this.RenderColorComponent color={color} index={index}/>)}
-        </DialogControlsSection>      
+		return (
+			<>
+				{themeColors?.map((color, index) => (
+					<this.RenderColorComponent color={color} index={index} />
+				))}
+			</>
+		);
     }
 
     render() {
@@ -200,7 +196,16 @@ export class RenderThemeEditor extends React.Component {
         const themeConditions: Conditions = activeTheme.data.Conditions
         const savedConditions = pluginSelf?.conditionals?.[activeTheme.native] as ConditionsStore
 
-		const pages: SidebarNavigationPage[] = Object.entries(themeConditions)
+		const colorPage: SidebarNavigationPage = {
+            visible: !!activeTheme.data.RootColors,
+			title: "Colors",
+			content: (
+				<DialogBody className={Classes.SettingsDialogBodyFade}>
+					<this.RenderColorsOpts />
+				</DialogBody>
+			),
+		};
+		const otherPages: SidebarNavigationPage[] = Object.entries(themeConditions)
 			.reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
 				const [name, patch] = entry;
 				const { tab } = patch;
@@ -237,6 +242,8 @@ export class RenderThemeEditor extends React.Component {
 			}));
 		const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
-		return <SidebarNavigation pages={pages} title={title} />; 
+		return (
+			<SidebarNavigation pages={[...otherPages, colorPage]} title={title} />
+		);
     }
 }
