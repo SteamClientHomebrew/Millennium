@@ -45,7 +45,11 @@ export interface Conditions {
 export interface ICondition {
     default?: string;
     description?: string;
-    tab: string;
+    /**
+     * Tab to put the condition in.
+     * If no condition uses them, there will be no tabs.
+     */
+    tab?: string;
     values: {
         [condition: string]: ConditionalControlFlow
     };
