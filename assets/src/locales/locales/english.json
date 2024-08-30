@@ -28,8 +28,6 @@
     "optionReloadLater": "Reload Later",
     "updatePanelUpdateNotifications": "Push Notifications",
     "updatePanelUpdateNotificationsTooltip": "Get Millennium to give you a reminder when a item in your library has an update!",
-    "customThemeSettingsColorsHeader": "Color Options",
-    "customThemeSettingsColorsDescription": "Customize the colors of your theme.",
-    "customThemeSettingsConfigHeader": "Custom Settings",
-    "customThemeSettingsConfigDescription": "Customize the settings of your theme."
+    "customThemeSettingsColors": "Colors",
+    "customThemeSettingsConfig": "Custom Settings"
 }

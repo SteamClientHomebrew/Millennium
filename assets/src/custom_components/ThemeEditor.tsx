@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react"
 import {
     Classes,
     DialogBody,
-    DialogBodyText,
     DialogButton,
-    DialogControlsSection,
     DialogHeader,
     Dropdown,
     Millennium,
@@ -18,6 +16,7 @@ import { BBCodeParser } from "../components/BBCodeParser";
 import { Field } from "../custom_components/Field";
 import { Conditions, ConditionsStore, ICondition, ThemeItem } from "../types"
 import { settingsClasses } from "../classes"
+import { locale } from "../locales";
 
 interface ConditionalComponent {
     condition: string,
@@ -195,17 +194,49 @@ export class RenderThemeEditor extends React.Component {
     
         const themeConditions: Conditions = activeTheme.data.Conditions
         const savedConditions = pluginSelf?.conditionals?.[activeTheme.native] as ConditionsStore
+        const entries = Object.entries(themeConditions);
+
+        const themeHasColors = !!activeTheme.data.RootColors;
+        const themeHasTabs = entries.map((e) => e[1]).some((e) => !!e.tab);
+
+        if (!themeHasTabs && !themeHasColors) {
+            return (
+                <div className="ModalPosition" tabIndex={0}>
+                    <style>
+                        {
+                            `.DialogBody.${Classes.SettingsDialogBodyFade}:last-child { padding-bottom: 65px; }
+                            input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`
+                        }
+                    </style>
+
+                    <div className="ModalPosition_Content" style={{width: "100vw", height: "100vh"}}>
+                        <div className={`${Classes.PagedSettingsDialog} ${Classes.SettingsModal} ${Classes.DesktopPopup} Panel`}>
+                            <div className="DialogContentTransition Panel" style={{minWidth: "100vw"}}>
+                                <div className={`DialogContent _DialogLayout ${Classes.PagedSettingsDialog_PageContent} `}>
+                                    <div className="DialogContent_InnerWidth">
+                                        <DialogHeader>{locale.customThemeSettingsConfig}</DialogHeader>
+                                        <DialogBody className={Classes.SettingsDialogBodyFade}>
+                                            {Object.entries(themeConditions).map(([key, value]) => <this.RenderComponent condition={key} store={savedConditions} value={value}/>)}
+                                        </DialogBody>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
 
         const colorPage: SidebarNavigationPage = {
-            visible: !!activeTheme.data.RootColors,
-            title: "Colors",
+            visible: themeHasColors,
+            title: locale.customThemeSettingsColors,
             content: (
                 <DialogBody className={Classes.SettingsDialogBodyFade}>
                     <this.RenderColorsOpts />
                 </DialogBody>
             ),
         };
-        const otherPages: SidebarNavigationPage[] = Object.entries(themeConditions)
+        const otherPages: SidebarNavigationPage[] = entries
             .reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
                 const [name, patch] = entry;
                 const { tab } = patch;
@@ -240,10 +271,16 @@ export class RenderThemeEditor extends React.Component {
                     </DialogBody>
                 ),
             }));
+        const pageWithoutTitle = otherPages.find((e) => !e.title);
+        const pages = [
+            { ...pageWithoutTitle, title: locale.customThemeSettingsConfig },
+            ...otherPages.filter((e) => e !== pageWithoutTitle),
+            colorPage
+        ];
         const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
         return (
-            <SidebarNavigation pages={[...otherPages, colorPage]} title={title} />
-        );
+			<SidebarNavigation pages={pages} title={title} />
+		);
     }
 }
