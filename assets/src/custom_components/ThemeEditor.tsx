@@ -181,13 +181,13 @@ export class RenderThemeEditor extends React.Component {
             })
         }, [])
 
-		return (
-			<>
-				{themeColors?.map((color, index) => (
-					<this.RenderColorComponent color={color} index={index} />
-				))}
-			</>
-		);
+        return (
+            <>
+                {themeColors?.map((color, index) => (
+                    <this.RenderColorComponent color={color} index={index} />
+                ))}
+            </>
+        );
     }
 
     render() {
@@ -196,54 +196,54 @@ export class RenderThemeEditor extends React.Component {
         const themeConditions: Conditions = activeTheme.data.Conditions
         const savedConditions = pluginSelf?.conditionals?.[activeTheme.native] as ConditionsStore
 
-		const colorPage: SidebarNavigationPage = {
+        const colorPage: SidebarNavigationPage = {
             visible: !!activeTheme.data.RootColors,
-			title: "Colors",
-			content: (
-				<DialogBody className={Classes.SettingsDialogBodyFade}>
-					<this.RenderColorsOpts />
-				</DialogBody>
-			),
-		};
-		const otherPages: SidebarNavigationPage[] = Object.entries(themeConditions)
-			.reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
-				const [name, patch] = entry;
-				const { tab } = patch;
-				const condition = { [name]: patch };
-				const page = {
-					title: tab,
-					conditions: [condition],
-				};
+            title: "Colors",
+            content: (
+                <DialogBody className={Classes.SettingsDialogBodyFade}>
+                    <this.RenderColorsOpts />
+                </DialogBody>
+            ),
+        };
+        const otherPages: SidebarNavigationPage[] = Object.entries(themeConditions)
+            .reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
+                const [name, patch] = entry;
+                const { tab } = patch;
+                const condition = { [name]: patch };
+                const page = {
+                    title: tab,
+                    conditions: [condition],
+                };
 
-				const foundTab = vec.find((e) => e.title === tab);
-				if (foundTab) {
-					foundTab.conditions.push(condition);
-					return vec;
-				}
+                const foundTab = vec.find((e) => e.title === tab);
+                if (foundTab) {
+                    foundTab.conditions.push(condition);
+                    return vec;
+                }
 
-				vec.push(page);
-				return vec;
-			}, [])
-			.map(({ title, conditions }) => ({
-				title,
-				content: (
-					<DialogBody className={Classes.SettingsDialogBodyFade}>
-						{Object.entries(
-							conditions.reduce((a, b) => Object.assign(a, b)),
-						).map(([key, value]) => (
-							<this.RenderComponent
-								condition={key}
-								store={savedConditions}
-								value={value}
-							/>
-						))}
-					</DialogBody>
-				),
-			}));
-		const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
+                vec.push(page);
+                return vec;
+            }, [])
+            .map(({ title, conditions }) => ({
+                title,
+                content: (
+                    <DialogBody className={Classes.SettingsDialogBodyFade}>
+                        {Object.entries(
+                            conditions.reduce((a, b) => Object.assign(a, b)),
+                        ).map(([key, value]) => (
+                            <this.RenderComponent
+                                condition={key}
+                                store={savedConditions}
+                                value={value}
+                            />
+                        ))}
+                    </DialogBody>
+                ),
+            }));
+        const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
-		return (
-			<SidebarNavigation pages={[...otherPages, colorPage]} title={title} />
-		);
+        return (
+            <SidebarNavigation pages={[...otherPages, colorPage]} title={title} />
+        );
     }
 }
