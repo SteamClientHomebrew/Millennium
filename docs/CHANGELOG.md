@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.10.1...v2.11.0) (2024-08-31)
+
+
+### Features
+
+* Theme option tabs ([#94](https://github.com/SteamClientHomebrew/Millennium/issues/94)) ([cc6e339](https://github.com/SteamClientHomebrew/Millennium/commit/cc6e339ef454478c9945a8512851ff79a3a12c1b))
+
 ## [2.10.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.10.0...v2.10.1) (2024-08-28)
 
 
