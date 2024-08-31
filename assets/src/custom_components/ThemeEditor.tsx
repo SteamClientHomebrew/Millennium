@@ -56,14 +56,14 @@ interface ColorProps {
 }
 
 const ThemeEditorContainer: React.FC = ({ children }) => (
-	<ModalPosition>
-		<style>
-			{`.DialogBody { margin-bottom: 48px; }
+    <ModalPosition>
+        <style>
+            {`.DialogBody { margin-bottom: 48px; }
             input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`}
-		</style>
+        </style>
 
         {children}
-	</ModalPosition>
+    </ModalPosition>
 );
 
 export class RenderThemeEditor extends React.Component {
@@ -255,13 +255,13 @@ export class RenderThemeEditor extends React.Component {
                     </DialogBody>
                 ),
             }));
-		const pageWithoutTitle = {
-			...otherPages.find((e) => !e.title),
-			title: locale.customThemeSettingsConfig,
-		};
-		const tabs = themeHasTabs
-			? otherPages.filter((e) => e !== pageWithoutTitle)
-			: [pageWithoutTitle];
+        const pageWithoutTitle = {
+            ...otherPages.find((e) => !e.title),
+            title: locale.customThemeSettingsConfig,
+        };
+        const tabs = themeHasTabs
+            ? otherPages.filter((e) => e !== pageWithoutTitle)
+            : [pageWithoutTitle];
 
         const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup}`;
         const pages = [...tabs, colorPage];
@@ -269,17 +269,17 @@ export class RenderThemeEditor extends React.Component {
 
         return (
             <ThemeEditorContainer>
-				{!themeHasTabs && !themeHasColors && (
-					<style>{`
+                {!themeHasTabs && !themeHasColors && (
+                    <style>{`
                         .PageListColumn {
                             display: none !important;
                         }
                     `}</style>
-				)}
+                )}
 
                 {/* @ts-ignore: Hasn't been added to DFL yet */}
                 <SidebarNavigation className={className} pages={pages} title={title} />
             </ThemeEditorContainer>
-		);
+        );
     }
 }
