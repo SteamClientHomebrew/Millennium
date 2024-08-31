@@ -6,6 +6,7 @@ import {
     DialogHeader,
     Dropdown,
     Millennium,
+    ModalPosition,
     SidebarNavigation,
     type SidebarNavigationPage,
     SingleDropdownOption,
@@ -53,6 +54,17 @@ interface ColorProps {
     hex: string,
     defaultColor: string
 }
+
+const ThemeEditorContainer: React.FC = ({ children }) => (
+	<ModalPosition>
+		<style>
+			{`.DialogBody { margin-bottom: 48px; }
+            input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`}
+		</style>
+
+        {children}
+	</ModalPosition>
+);
 
 export class RenderThemeEditor extends React.Component {
 
@@ -199,34 +211,6 @@ export class RenderThemeEditor extends React.Component {
         const themeHasColors = !!activeTheme.data.RootColors;
         const themeHasTabs = entries.map((e) => e[1]).some((e) => !!e.tab);
 
-        if (!themeHasTabs && !themeHasColors) {
-            return (
-                <div className="ModalPosition" tabIndex={0}>
-                    <style>
-                        {
-                            `.DialogBody.${Classes.SettingsDialogBodyFade}:last-child { padding-bottom: 65px; }
-                            input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`
-                        }
-                    </style>
-
-                    <div className="ModalPosition_Content" style={{width: "100vw", height: "100vh"}}>
-                        <div className={`${Classes.PagedSettingsDialog} ${Classes.SettingsModal} ${Classes.DesktopPopup} Panel`}>
-                            <div className="DialogContentTransition Panel" style={{minWidth: "100vw"}}>
-                                <div className={`DialogContent _DialogLayout ${Classes.PagedSettingsDialog_PageContent} `}>
-                                    <div className="DialogContent_InnerWidth">
-                                        <DialogHeader>{locale.customThemeSettingsConfig}</DialogHeader>
-                                        <DialogBody className={Classes.SettingsDialogBodyFade}>
-                                            {Object.entries(themeConditions).map(([key, value]) => <this.RenderComponent condition={key} store={savedConditions} value={value}/>)}
-                                        </DialogBody>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
         const colorPage: SidebarNavigationPage = {
             visible: themeHasColors,
             title: locale.customThemeSettingsColors,
@@ -278,10 +262,24 @@ export class RenderThemeEditor extends React.Component {
 		const tabs = themeHasTabs
 			? otherPages.filter((e) => e !== pageWithoutTitle)
 			: [pageWithoutTitle];
+
+        const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup}`;
+        const pages = [...tabs, colorPage];
         const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
         return (
-			<SidebarNavigation className="AAAAAAAtesting" pages={[...tabs, colorPage]} title={title} />
+            <ThemeEditorContainer>
+				{!themeHasTabs && !themeHasColors && (
+					<style>{`
+                        .PageListColumn {
+                            display: none !important;
+                        }
+                    `}</style>
+				)}
+
+                {/* @ts-ignore: Hasn't been added to DFL yet */}
+                <SidebarNavigation className={className} pages={pages} title={title} />
+            </ThemeEditorContainer>
 		);
     }
 }
