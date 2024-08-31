@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react"
 import {
     Classes,
     DialogBody,
-    DialogBodyText,
     DialogButton,
-    DialogControlsSection,
     DialogHeader,
     Dropdown,
     Millennium,
+    ModalPosition,
+    SidebarNavigation,
+    type SidebarNavigationPage,
     SingleDropdownOption,
     Toggle,
     pluginSelf,
@@ -16,8 +17,7 @@ import { BBCodeParser } from "../components/BBCodeParser";
 import { Field } from "../custom_components/Field";
 import { Conditions, ConditionsStore, ICondition, ThemeItem } from "../types"
 import { settingsClasses } from "../classes"
-import { locale } from "../locales"
-import { SettingsDialogSubHeader } from "../components/SettingsDialogSubHeader";
+import { locale } from "../locales";
 
 interface ConditionalComponent {
     condition: string,
@@ -54,6 +54,17 @@ interface ColorProps {
     hex: string,
     defaultColor: string
 }
+
+const ThemeEditorContainer: React.FC = ({ children }) => (
+    <ModalPosition>
+        <style>
+            {`.DialogBody { margin-bottom: 48px; }
+            input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`}
+        </style>
+
+        {children}
+    </ModalPosition>
+);
 
 export class RenderThemeEditor extends React.Component {
 
@@ -171,25 +182,23 @@ export class RenderThemeEditor extends React.Component {
     }
 
     RenderColorsOpts: React.FC = () => {
-        const activeTheme: ThemeItem = pluginSelf.activeTheme as ThemeItem
         const [themeColors, setThemeColors] = useState<ColorProps[]>()
 
         useEffect(() => {
-            if (activeTheme?.data?.RootColors) {
-                Millennium.callServerMethod("cfg.get_color_opts")
-                .then((result: any) => {
-                    console.log(JSON.parse(result) as ColorProps[])
-                    setThemeColors(JSON.parse(result) as ColorProps[])
-                })
-            }
+            Millennium.callServerMethod("cfg.get_color_opts")
+            .then((result: any) => {
+                console.log(JSON.parse(result) as ColorProps[])
+                setThemeColors(JSON.parse(result) as ColorProps[])
+            })
         }, [])
 
-        return themeColors && <DialogControlsSection>
-            <SettingsDialogSubHeader>{locale.customThemeSettingsColorsHeader}</SettingsDialogSubHeader>
-            <DialogBodyText className='_3fPiC9QRyT5oJ6xePCVYz8'>{locale.customThemeSettingsColorsDescription}</DialogBodyText>
-
-            {themeColors?.map((color: any, index: number) => <this.RenderColorComponent color={color} index={index}/>)}
-        </DialogControlsSection>      
+        return (
+            <>
+                {themeColors?.map((color, index) => (
+                    <this.RenderColorComponent color={color} index={index} />
+                ))}
+            </>
+        );
     }
 
     render() {
@@ -197,38 +206,80 @@ export class RenderThemeEditor extends React.Component {
     
         const themeConditions: Conditions = activeTheme.data.Conditions
         const savedConditions = pluginSelf?.conditionals?.[activeTheme.native] as ConditionsStore
+        const entries = Object.entries(themeConditions);
+
+        const themeHasColors = !!activeTheme.data.RootColors;
+        const themeHasTabs = entries.map((e) => e[1]).some((e) => !!e.tab);
+
+        const colorPage: SidebarNavigationPage = {
+            visible: themeHasColors,
+            title: locale.customThemeSettingsColors,
+            content: (
+                <DialogBody className={Classes.SettingsDialogBodyFade}>
+                    <this.RenderColorsOpts />
+                </DialogBody>
+            ),
+        };
+        const otherPages: SidebarNavigationPage[] = entries
+            .reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
+                const [name, patch] = entry;
+                const { tab } = patch;
+                const condition = { [name]: patch };
+                const page = {
+                    title: tab,
+                    conditions: [condition],
+                };
+
+                const foundTab = vec.find((e) => e.title === tab);
+                if (foundTab) {
+                    foundTab.conditions.push(condition);
+                    return vec;
+                }
+
+                vec.push(page);
+                return vec;
+            }, [])
+            .map(({ title, conditions }) => ({
+                title,
+                content: (
+                    <DialogBody className={Classes.SettingsDialogBodyFade}>
+                        {Object.entries(
+                            conditions.reduce((a, b) => Object.assign(a, b)),
+                        ).map(([key, value]) => (
+                            <this.RenderComponent
+                                condition={key}
+                                store={savedConditions}
+                                value={value}
+                            />
+                        ))}
+                    </DialogBody>
+                ),
+            }));
+        const pageWithoutTitle = {
+            ...otherPages.find((e) => !e.title),
+            title: locale.customThemeSettingsConfig,
+        };
+        const tabs = themeHasTabs
+            ? otherPages.filter((e) => e !== pageWithoutTitle)
+            : [pageWithoutTitle];
+
+        const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup}`;
+        const pages = [...tabs, colorPage];
+        const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
         return (
-            <div className="ModalPosition" tabIndex={0}>
+            <ThemeEditorContainer>
+                {!themeHasTabs && !themeHasColors && (
+                    <style>{`
+                        .PageListColumn {
+                            display: none !important;
+                        }
+                    `}</style>
+                )}
 
-                <style>
-                    {
-                        `.DialogBody.${Classes.SettingsDialogBodyFade}:last-child { padding-bottom: 65px; }
-                        input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`
-                    }
-                </style>
-
-                <div className="ModalPosition_Content" style={{width: "100vw", height: "100vh"}}>
-                    <div className={`${Classes.PagedSettingsDialog} ${Classes.SettingsModal} ${Classes.DesktopPopup} Panel`}>
-                        <div className="DialogContentTransition Panel" style={{minWidth: "100vw"}}>
-                            <div className={`DialogContent _DialogLayout ${Classes.PagedSettingsDialog_PageContent} `}>
-                                <div className="DialogContent_InnerWidth">
-                                    <DialogHeader>Editing {activeTheme?.data?.name ?? activeTheme.native}</DialogHeader>
-                                    <DialogBody className={Classes.SettingsDialogBodyFade}>
-                                        {themeConditions && <DialogControlsSection>
-                                            <SettingsDialogSubHeader>{locale.customThemeSettingsConfigHeader}</SettingsDialogSubHeader>
-                                            <DialogBodyText className='_3fPiC9QRyT5oJ6xePCVYz8'>{locale.customThemeSettingsConfigDescription}</DialogBodyText>
-                                    
-                                            {Object.entries(themeConditions).map(([key, value]) => <this.RenderComponent condition={key} store={savedConditions} value={value}/>)}
-                                        </DialogControlsSection>}
-                                        <this.RenderColorsOpts/>
-                                    </DialogBody>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )
+                {/* @ts-ignore: className hasn't been added to DFL yet */}
+                <SidebarNavigation className={className} pages={pages} title={title} />
+            </ThemeEditorContainer>
+        );
     }
 }
