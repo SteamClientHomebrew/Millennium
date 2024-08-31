@@ -277,7 +277,7 @@ export class RenderThemeEditor extends React.Component {
                     `}</style>
                 )}
 
-                {/* @ts-ignore: Hasn't been added to DFL yet */}
+                {/* @ts-ignore: className hasn't been added to DFL yet */}
                 <SidebarNavigation className={className} pages={pages} title={title} />
             </ThemeEditorContainer>
         );
