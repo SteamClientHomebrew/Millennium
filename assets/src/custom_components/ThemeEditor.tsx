@@ -271,16 +271,17 @@ export class RenderThemeEditor extends React.Component {
                     </DialogBody>
                 ),
             }));
-        const pageWithoutTitle = otherPages.find((e) => !e.title);
-        const pages = [
-            { ...pageWithoutTitle, title: locale.customThemeSettingsConfig },
-            ...otherPages.filter((e) => e !== pageWithoutTitle),
-            colorPage
-        ];
+		const pageWithoutTitle = {
+			...otherPages.find((e) => !e.title),
+			title: locale.customThemeSettingsConfig,
+		};
+		const tabs = themeHasTabs
+			? otherPages.filter((e) => e !== pageWithoutTitle)
+			: [pageWithoutTitle];
         const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
         return (
-			<SidebarNavigation pages={pages} title={title} />
+			<SidebarNavigation className="AAAAAAAtesting" pages={[...tabs, colorPage]} title={title} />
 		);
     }
 }
