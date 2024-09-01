@@ -1,3 +1,10 @@
+## [2.11.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.11.0...v2.11.1) (2024-09-01)
+
+
+### Bug Fixes
+
+* Fix skin not applying after BPM exit [#96](https://github.com/SteamClientHomebrew/Millennium/issues/96) ([ba9e001](https://github.com/SteamClientHomebrew/Millennium/commit/ba9e001c92f24e0d5420e41ae696789601b0285f))
+
 # [2.11.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.10.1...v2.11.0) (2024-08-31)
 
 
