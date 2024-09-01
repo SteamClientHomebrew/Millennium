@@ -405,6 +405,7 @@ Set-IniFile $iniObj $configPath -PreserveNonData $false
 
 if ($isUpdater) {
     Write-Output "${BoldPurple}++${ResetColor} Millennium has been updated successfully."
+    Start-Steam -steamPath $steamPath
     exit
 }
 
