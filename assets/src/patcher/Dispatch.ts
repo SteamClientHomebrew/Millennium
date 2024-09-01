@@ -44,7 +44,7 @@ export const DOMModifier = {
 }
 
 export function constructThemePath(nativeName: string, relativePath: string) {
-    return ['skins', nativeName, relativePath].join('/');
+    return [window.location.origin, 'skins', nativeName, relativePath].join('/');
 }
 
 export const classListMatch = (classList: string[], affectee: string) => {
