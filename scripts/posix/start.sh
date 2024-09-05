@@ -27,4 +27,4 @@ export LD_LIBRARY_PATH="$HOME/.millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # Millennium hooks __libc_start_main to initialize itself, which is a function that is called before main. 
 # Besides that, Millennium does not alter Steam memory and runs completely disjoint.
 
-bash ~/.steam/steam/steam.sh > >(steam_output) 2>&1
+bash ~/.steam/steam/steam.sh > >(steam_output) 2>&1 "$@"
