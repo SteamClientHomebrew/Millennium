@@ -55,6 +55,7 @@ esac
 command -v curl >/dev/null || { log "curl isn't installed!" >&2; exit 1; }
 command -v tar >/dev/null || { log "tar isn't installed!" >&2; exit 1; }
 command -v grep >/dev/null || { log "grep isn't installed!" >&2; exit 1; }
+command -v jq >/dev/null || { log "jq isn't installed!" >&2; exit 1; }
 
 # download uri
 releases_uri="https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
