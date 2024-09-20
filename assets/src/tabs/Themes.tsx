@@ -239,6 +239,9 @@ const ThemeViewModal: React.FC = () => {
                     </DialogButton>
         
                     <Dropdown
+                        onMenuOpened={() => {
+                            findAllThemes().then((result: ComboItem[]) => setThemes(result))
+                        }}
                         contextMenuPositionOptions={{ bMatchWidth: false }}
                         rgOptions={themes as any}
                         selectedOption={1}
