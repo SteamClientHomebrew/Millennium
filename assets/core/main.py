@@ -1,3 +1,4 @@
+import threading
 import time
 start_time = time.perf_counter()
 
@@ -13,7 +14,7 @@ from api.themes import find_all_themes
 from api.plugins import find_all_plugins
 from api.config import Config, cfg
 from util.webkit_handler import WebkitStack, add_browser_css, add_browser_js
-from util.theme_installer import uninstall_theme
+from util.theme_installer import start_websocket_server, uninstall_theme
 
 if platform.system() == "Windows":
     from updater.version_control import Updater

@@ -1,7 +1,17 @@
+import gc
 import Millennium # type: ignore
-import os, stat, json, shutil, websockets, asyncio
+import os, stat, json, shutil, websockets, asyncio, pygit2
 from api.config import cfg
 from api.themes import find_all_themes
+import pathlib
+
+def delete_folder(pth):
+    for sub in pth.iterdir():
+        if sub.is_dir():
+            delete_folder(sub)
+        else:
+            sub.unlink()
+    pth.rmdir()
 
 def error_message(websocket, message):
     return json.dumps({"type": "error", "message": message})
@@ -22,9 +32,12 @@ def get_theme_from_gitpair(repo, owner):
 def check_install(repo, owner):
     return False if get_theme_from_gitpair(repo, owner) == None else True
 
-def make_dir_writable(function, path, exception):
+def remove_readonly(func, path, exc_info):
+    print(f"removing readonly file {exc_info}")
+
+    # Change the file to writable and try the function again
     os.chmod(path, stat.S_IWRITE)
-    function(path)
+    func(path)
 
 def uninstall_theme(repo, owner):
     target_theme = get_theme_from_gitpair(repo, owner)
@@ -36,7 +49,9 @@ def uninstall_theme(repo, owner):
         return error_message("Couldn't locate the target theme on disk!")
     
     try:
-        shutil.rmtree(path, onerror=make_dir_writable)
+        print(f"deleting theme {path}")
+        gc.collect()
+        shutil.rmtree(path, onerror=remove_readonly)
         return json.dumps({'success': True})
     except Exception as e:
         return json.dumps({'success': False, 'message': str(e)})
@@ -46,12 +61,12 @@ def install_theme(repo, owner):
     path = os.path.join(Millennium.steam_path(), "steamui", "skins", repo)
     os.makedirs(path, exist_ok=True)
 
-    success = Millennium.clone_repo(f"https://github.com/{owner}/{repo}.git", path)
-
-    if not success:
+    try:
+        pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
+        return json.dumps({'success': True})
+    except Exception as e:
         return json.dumps({'success': False, 'message': "Failed to clone the theme repository!"})
     
-    return json.dumps({'success': True})
 
 def handle_set_active_theme(repo, owner):
     target_theme = get_theme_from_gitpair(repo, owner)
@@ -66,7 +81,6 @@ def handle_set_active_theme(repo, owner):
 
 async def echo(websocket, path):
     async for message in websocket:
-        print(f"received message {message}")
         query = json.loads(message)
 
         if "type" not in query:
@@ -89,7 +103,7 @@ async def echo(websocket, path):
         }
 
         if type in action_handlers:
-            await websocket.send(action_handlers[type]())
+            await websocket.send(json.dumps({ "type": type, "data": action_handlers[type]() }))
         else:
             await unknown_message(websocket)
 
