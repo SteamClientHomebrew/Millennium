@@ -101,7 +101,7 @@ OutputLogger::OutputLogger()
 		LOG_ERROR("An error occurred creating debug log directories -> {}", exception.what());
 	}
 
-	outputLogStream = std::make_shared<std::ofstream>(fileName);
+	outputLogStream = std::make_shared<std::ofstream>(fileName, std::ios::out | std::ios::trunc);
 
     if (!outputLogStream->is_open()) 
 	{

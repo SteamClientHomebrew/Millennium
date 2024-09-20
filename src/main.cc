@@ -17,12 +17,6 @@
 #include <git/vcs.h>
 #include <api/executor.h>
 
-/** Handle ^C signal from terminal */
-void HandleSignalInterrupt(int sig) 
-{
-    std::exit(1);
-}
-
 class Preload 
 {
 public:
@@ -57,7 +51,7 @@ public:
 const static void EntryMain() 
 {
     /** Handle signal interrupts (^C) */
-    signal(SIGINT, HandleSignalInterrupt);
+    signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
     if (startupParams->HasArgument("-verbose"))
