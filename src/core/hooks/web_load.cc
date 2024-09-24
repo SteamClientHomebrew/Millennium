@@ -43,7 +43,7 @@ std::string WebkitHandler::HandleJsHook(std::string body)
             continue;
         }
 
-        std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath() / "steamui");
+        std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
         
         scriptTagInject.append(fmt::format(
             "document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}{}', type: 'module', id: 'millennium-injected' }}));\n", 

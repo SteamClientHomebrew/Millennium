@@ -138,20 +138,14 @@ class Config:
         if "failed" in theme:
             return
 
-        # Keep backwards compatibility
-        if "Steam-WebKit" in theme["data"] and isinstance(theme["data"]["Steam-WebKit"], str):
-            add_browser_css(os.path.join(Millennium.steam_path(), "skins", name, theme["data"]["Steam-WebKit"]))
+        keys = ["Steam-WebKit", "webkitCSS", "RootColors"]
 
-        # New implementation of webkit hooks 9/19/2024
-        if "webkitCSS" in theme["data"] and isinstance(theme["data"]["webkitCSS"], str):
-            add_browser_css(os.path.join(Millennium.steam_path(), "skins", name, theme["data"]["webkitCSS"]))
+        for key in keys:
+            if key in theme["data"] and isinstance(theme["data"][key], str):
+                add_browser_css(os.path.join(Millennium.steam_path(), "skins", name, theme["data"][key]))
 
         if "webkitJS" in theme["data"] and isinstance(theme["data"]["webkitJS"], str):
             add_browser_js(os.path.join(Millennium.steam_path(), "skins", name, theme["data"]["webkitJS"]))
-
-
-        if "RootColors" in theme["data"] and isinstance(theme["data"]["RootColors"], str):
-            add_browser_css(os.path.join(Millennium.steam_path(), "skins", name, theme["data"]["RootColors"]))
 
 
     def setup_colors(self, file_path):
