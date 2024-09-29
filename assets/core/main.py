@@ -52,8 +52,8 @@ class Plugin:
         cfg.set_theme_cb()
 
         # Disable until further notice
-        # websocket_thread = threading.Thread(target=start_websocket_server)
-        # websocket_thread.start()
+        websocket_thread = threading.Thread(target=start_websocket_server)
+        websocket_thread.start()
 
         elapsed_time = time.perf_counter() - start_time
         print(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")

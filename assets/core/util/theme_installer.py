@@ -63,6 +63,7 @@ def install_theme(repo, owner):
 
     try:
         pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
+        gc.collect()
         return json.dumps({'success': True})
     except Exception as e:
         return json.dumps({'success': False, 'message': "Failed to clone the theme repository!"})

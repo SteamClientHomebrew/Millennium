@@ -137,36 +137,36 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
     {
         try 
         {
-                    auto [id, request_id, type] = (*requestIterator);
+            auto [id, request_id, type] = (*requestIterator);
 
-                if (message["id"] != id || !message["result"]["base64Encoded"])
-                {
-                    requestIterator++;
-                    continue;
-                }
+            if (message["id"] != id || !message["result"]["base64Encoded"])
+            {
+                requestIterator++;
+                continue;
+            }
 
-                std::string hookedBodyResponse = {};
+            std::string hookedBodyResponse = {};
 
-                if (type == "Script")
-                {
-                    hookedBodyResponse = this->HandleJsHook(Base64Decode(message["result"]["body"]));
-                }
-                else if (type == "Stylesheet")
-                {
-                    hookedBodyResponse = this->HandleCssHook(Base64Decode(message["result"]["body"]));
-                }
+            if (type == "Script")
+            {
+                hookedBodyResponse = this->HandleJsHook(Base64Decode(message["result"]["body"]));
+            }
+            else if (type == "Stylesheet")
+            {
+                hookedBodyResponse = this->HandleCssHook(Base64Decode(message["result"]["body"]));
+            }
 
-                Sockets::PostGlobal({
-                    { "id", 63453 },
-                    { "method", "Fetch.fulfillRequest" },
-                    { "params", {
-                        { "requestId", request_id },
-                        { "responseCode", 200 },
-                        { "body", Base64Encode(hookedBodyResponse) }
-                    }}
-                });
+            Sockets::PostGlobal({
+                { "id", 63453 },
+                { "method", "Fetch.fulfillRequest" },
+                { "params", {
+                    { "requestId", request_id },
+                    { "responseCode", 200 },
+                    { "body", Base64Encode(hookedBodyResponse) }
+                }}
+            });
 
-                requestIterator = m_requestMap->erase(requestIterator);
+            requestIterator = m_requestMap->erase(requestIterator);
         }
         catch (const nlohmann::detail::exception& ex) 
         {
