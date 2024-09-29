@@ -51,9 +51,11 @@ class Plugin:
     def _load(self):     
         cfg.set_theme_cb()
 
-        # Disable until further notice
-        websocket_thread = threading.Thread(target=start_websocket_server)
-        websocket_thread.start()
+        try:
+            websocket_thread = threading.Thread(target=start_websocket_server)
+            websocket_thread.start()
+        except Exception as e:
+            logger.error("Failed to start the websocket for theme installer! trace: " + str(e))
 
         elapsed_time = time.perf_counter() - start_time
         print(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
