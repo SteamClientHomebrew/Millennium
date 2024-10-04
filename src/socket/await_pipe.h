@@ -122,7 +122,8 @@ private:
                 const auto targetProcess = std::filesystem::path(GetProcessName((int)tcpTable->table[i].dwOwningPid));
 
                 return { 
-                    targetProcess.filename().string() == "steamwebhelper.exe",
+                    // if the process is empty, it probably means steam has started using it yet, so we can ignore it
+                    targetProcess.filename().string() == "steamwebhelper.exe" || targetProcess.filename().string() == "", 
                     targetProcess.string()
                 };
             }
