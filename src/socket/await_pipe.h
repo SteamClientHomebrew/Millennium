@@ -112,7 +112,10 @@ private:
         if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR) 
         {
             free(tcpTable);
-            return { false };
+            return { 
+                false,
+                "Error getting TCP table"
+            };
         }
 
         for (DWORD i = 0; i < tcpTable->dwNumEntries; i++)
@@ -122,8 +125,7 @@ private:
                 const auto targetProcess = std::filesystem::path(GetProcessName((int)tcpTable->table[i].dwOwningPid));
 
                 return { 
-                    // if the process is empty, it probably means steam has started using it yet, so we can ignore it
-                    targetProcess.filename().string() == "steamwebhelper.exe" || targetProcess.filename().string() == "", 
+                    targetProcess.filename().string() == "steamwebhelper.exe", 
                     targetProcess.string()
                 };
             }
@@ -162,7 +164,7 @@ private:
         }
 #endif
 
-        return { false };
+        return { true };
     }
 
 public:
