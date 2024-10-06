@@ -1,3 +1,21 @@
+# [2.12.0](https://github.com/shdwmtr/millennium/compare/v2.11.1...v2.12.0) (2024-10-06)
+
+
+### Bug Fixes
+
+* Check if jq is installed ([#109](https://github.com/shdwmtr/millennium/issues/109)) ([319c814](https://github.com/shdwmtr/millennium/commit/319c81453331370ca63bc3ed8cf8227fef4712d7))
+* Fix issues where target port is "taken" when it's actually open and usable. [#122](https://github.com/shdwmtr/millennium/issues/122) ([ffce333](https://github.com/shdwmtr/millennium/commit/ffce333834b8e255c815def3b2d68d5bf4045310))
+* Fix updater not restarting steam properly ([2ece336](https://github.com/shdwmtr/millennium/commit/2ece33607904656847ac1594f6e3b8a7094e5a2f))
+* Prevent logs files from getting too large ([e2aa7fd](https://github.com/shdwmtr/millennium/commit/e2aa7fd1927e1caf78628e97b25e8b1aa05ff8fc))
+* Update theme dialog dropdown content on the fly. ([1944410](https://github.com/shdwmtr/millennium/commit/194441091a7dfa13fd0bd2d6eadbb85a98a55dc6))
+
+
+### Features
+
+* Add "webkitCSS" && "webkitJS" options ([019565e](https://github.com/shdwmtr/millennium/commit/019565e60f68d51a45a20acf8a67255cd50f8ad2))
+* Add auto theme installer ([b732bc9](https://github.com/shdwmtr/millennium/commit/b732bc93684753b1164154a1f4bc2ee605d4357e))
+* Add webkit JS option in skin.json ([3d360a4](https://github.com/shdwmtr/millennium/commit/3d360a4d4a98bc366b807fcd46248980a092f21a))
+
 ## [2.11.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.11.0...v2.11.1) (2024-09-01)
 
 
