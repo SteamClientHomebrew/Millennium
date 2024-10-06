@@ -1,3 +1,10 @@
+## [2.12.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.0...v2.12.1) (2024-10-06)
+
+
+### Bug Fixes
+
+* Fix updater bug. ([acb0437](https://github.com/SteamClientHomebrew/Millennium/commit/acb0437367736cecbd5d65123e08620ed043f24b))
+
 # [2.12.0](https://github.com/shdwmtr/millennium/compare/v2.11.1...v2.12.0) (2024-10-06)
 
 
