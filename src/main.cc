@@ -52,12 +52,15 @@ const static void EntryMain()
 {
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
+
+    #ifdef _WIN32
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
     if (startupParams->HasArgument("-verbose"))
     {
         CreateTerminalPipe();
     }
+    #endif
 
     uint16_t ftpPort = Crow::CreateAsyncServer();
 
