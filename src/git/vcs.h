@@ -2,7 +2,7 @@
 #include <sys/locals.h>
 #include <sys/log.h>
 
-static constexpr const char* releaseUrl = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
+static constexpr const char* releaseUrl = "https://api.github.com/repos/shdwmtr/millennium/releases";
 
 const bool UpdatesEnabled()
 {

@@ -26,6 +26,7 @@ namespace Http
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
+            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
 
             while (true) 
             {
