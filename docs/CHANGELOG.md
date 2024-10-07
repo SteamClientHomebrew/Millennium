@@ -1,3 +1,13 @@
+## [2.12.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.1...v2.12.2) (2024-10-07)
+
+
+### Bug Fixes
+
+* Fix CI ([966fc22](https://github.com/SteamClientHomebrew/Millennium/commit/966fc22422e1b38c6f09c81984f57b53c8445ba7))
+* Fix CI output paths ([9bf0b09](https://github.com/SteamClientHomebrew/Millennium/commit/9bf0b09e3ed3c8b8c160e5f30198f86b66b9e967))
+* Platform bug fixes ([2b63f68](https://github.com/SteamClientHomebrew/Millennium/commit/2b63f682c9e5b5d969251a2ed0b39c2d7a1f098c))
+* Update installed themes in the dropdown without having to close and open settings ([e7303c1](https://github.com/SteamClientHomebrew/Millennium/commit/e7303c174eb6fb2f0974a6fe3a014ab60c839b08))
+
 ## [2.12.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.0...v2.12.1) (2024-10-06)
 
 
