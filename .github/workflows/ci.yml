@@ -41,6 +41,9 @@ jobs:
 
     - name: (Setup) Build Assets
       run: . scripts\ci\win32\mk-assets.ps1
+
+    - name: (Setup) Test
+      run: ls D:/a/env/ext/data/assets
     
     - name: (Setup) Construct Python Environment
       run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
