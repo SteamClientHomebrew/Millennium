@@ -35,15 +35,12 @@ jobs:
         node-version: 20
 
     - name: (Setup) Assets Build Environment
-      run: cd assets && npm install && npm run dev
+      run: cd assets && npm install && npm run build
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: (Setup) Build Assets
       run: . scripts\ci\win32\mk-assets.ps1
-
-    - name: (Setup) Test
-      run: ls D:/a/env/ext/data/assets && cat D:/a/env/ext/data/assets/.millennium/Dist/index.js
     
     - name: (Setup) Construct Python Environment
       run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
@@ -110,11 +107,10 @@ jobs:
         mkdir D:/a/env/ext/bin
         cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
-        tree D:/a/env
-
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
+        include-hidden-files: true
         name: millennium-windows
         path: D:/a/env/
 
@@ -148,7 +144,7 @@ jobs:
         node-version: 20
 
     - name: (Setup) Assets Build Environment
-      run: cd assets && npm install && npm run dev
+      run: cd assets && npm install && npm run build
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -276,6 +272,7 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
+        include-hidden-files: true
         name: millennium-linux
         path: /home/runner/env/
 
