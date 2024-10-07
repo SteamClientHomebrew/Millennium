@@ -1,3 +1,10 @@
+## [2.12.3](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.2...v2.12.3) (2024-10-07)
+
+
+### Bug Fixes
+
+* Actually fix the CI. ([6051ee2](https://github.com/SteamClientHomebrew/Millennium/commit/6051ee2fa4e307633cd143fced91c2507a39bf24))
+
 ## [2.12.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.1...v2.12.2) (2024-10-07)
 
 
