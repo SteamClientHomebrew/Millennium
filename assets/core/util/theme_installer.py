@@ -1,6 +1,11 @@
 import gc
 import Millennium # type: ignore
-import os, stat, json, shutil, websockets, asyncio, pygit2
+import os, stat, json, shutil, websockets, asyncio
+
+import platform
+if platform.system() == "Windows":
+    import pygit2
+
 from api.config import cfg
 from api.themes import find_all_themes
 import pathlib
