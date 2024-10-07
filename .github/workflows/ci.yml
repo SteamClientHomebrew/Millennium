@@ -110,6 +110,8 @@ jobs:
         mkdir D:/a/env/ext/bin
         cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
+        tree D:/a/env
+
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
