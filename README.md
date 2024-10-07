@@ -3,27 +3,32 @@
   ## Millennium for Steam® -->
 
 <h3><img align="center" height="40" src="https://i.imgur.com/9qYPFSA.png"> &nbsp; &nbsp;Millennium for Steam®</h3>
+
+
+<kbd>
+  <a href="https://steambrew.app/discord">
+      <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
+  </a>
+</kbd>
+<kbd>
+  <a href="https://steambrew.app">
+      <img alt="Static Badge" src="https://img.shields.io/badge/website-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=firefoxbrowser&logoColor=white" href="#">
+  </a>
+</kbd>
+<kbd>
+  <a href="https://docs.steambrew.app">
+      <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
+  </a>
+</kbd>
+<kbd>
+  <a href="#">
+      <img alt="Static Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FMillennium%26branch%3Dmain&style=for-the-badge&label=Lines%20of%20Code&labelColor=%23151B23&color=%23151B23">
+  </a>
+</kbd>
+
+<br>
 <br>
 
-[![GitHub Releases][downloads-badge]][downloads-link] 
-![Endpoint Badge][loc-bage]
-[![Discord][discord-badge]][discord-link] 
-[![Website][website-badge]][website-link] [![Docs][docs-badge]][docs-link]
-
-
-[downloads-badge]: https://img.shields.io/github/downloads/shadowmonster99/millennium-steam-binaries/total?labelColor=grey&color=111111&style=for-the-badge
-[downloads-link]: #automatic-installation-recommended
-
-[discord-badge]: https://img.shields.io/badge/discord-green?labelColor=grey&color=111111&style=for-the-badge&logo=discord&logoColor=white
-[discord-link]: https://steambrew.app/discord
-
-[website-badge]: https://img.shields.io/badge/website-green?labelColor=grey&color=111111&style=for-the-badge&logo=firefoxbrowser&logoColor=white
-[website-link]: https://steambrew.app/
-
-[docs-badge]: https://img.shields.io/badge/documentation-green?labelColor=grey&color=111111&style=for-the-badge&logo=readthedocs&logoColor=white
-[docs-link]: https://docs.steambrew.app/
-
-[loc-bage]: https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FMillennium%26branch%3Dmain%26ignored%3Dvendor%26languages%3DC%2520Header%2CC%252B%252B&color=111111&style=for-the-badge&logoColor=white&label=Lines%20of%20Code
 
 Millennium is an **open-source low-code modding framework** to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead.
 
