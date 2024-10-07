@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "build": "millennium-ttc --build dev",
-    "prod": "millennium-ttc --build prod",
+    "dev": "millennium-ttc --build dev",
+    "build": "millennium-ttc --build prod",
     "create-env": "python -m venv .venv",
     "prepare": "husky"
   },
