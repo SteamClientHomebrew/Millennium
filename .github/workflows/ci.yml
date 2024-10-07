@@ -37,6 +37,7 @@ jobs:
     - name: (Setup) Assets Build Environment
       run: | 
         cd assets && npm install && npm run build
+        mkdir D:/a/env/ext/data/assets/.millennium
         mv D:\a\Millennium\Millennium\assets\.millennium D:/a/env/ext/data/assets/.millennium
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
