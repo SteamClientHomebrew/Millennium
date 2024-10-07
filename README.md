@@ -7,7 +7,7 @@
 
 <kbd>
   <a href="https://steambrew.app/discord">
-      <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
+      <img alt="Static Badge" src="https://img.shields.io/badge/discord-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=discord&logoColor=white" href="#">
   </a>
 </kbd>
 <kbd>
@@ -21,8 +21,8 @@
   </a>
 </kbd>
 <kbd>
-  <a href="#">
-      <img alt="Static Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FMillennium%26branch%3Dmain&style=for-the-badge&label=Lines%20of%20Code&labelColor=%23151B23&color=%23151B23">
+  <a href="#"  title="Lines of Code">
+      <img alt="Static Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FMillennium%26branch%3Dmain&style=for-the-badge&labelColor=%23151B23&color=%23151B23&logo=coderwall&label=&logoColor=white">
   </a>
 </kbd>
 
