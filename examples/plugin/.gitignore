@@ -1,1 +1,5 @@
+.millennium
 node_modules/
+
+# This file is generated after running 'npm install'
+package-lock.json

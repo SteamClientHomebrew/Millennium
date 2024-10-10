@@ -7,6 +7,7 @@ A plugin template for Millennium providing a basic boilerplate to help get start
 
 ## Prerequisites
 - **[Millennium](https://github.com/SteamClientHomebrew/Millennium)**
+- **[NodeJS](https://nodejs.org/)**
 
 ## Setting up
 ```ps1
@@ -15,12 +16,12 @@ mv ./Millennium/examples/plugin ./plugin_template
 rm -rf Millennium
 
 cd plugin_template
-pnpm install
+npm install
 ```
 
 ## Building
 ```
-pnpm run dev
+npm run dev
 ```
 
 Then ensure your plugin template is in your plugins folder. 
