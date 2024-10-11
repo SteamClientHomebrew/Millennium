@@ -26,7 +26,6 @@ class Plugin:
     def _front_end_loaded(self):
         # The front end has successfully mounted in the steam app. 
         # You can now use Millennium.call_frontend_method()
-
         logger.log("The front end has loaded!")
 
         start_time = time.time()
@@ -39,14 +38,13 @@ class Plugin:
     def _load(self):     
         # This code is executed when your plugin loads. 
         # notes: thread safe, running for entire lifespan of millennium
+        logger.log(f"bootstrapping example plugin, millennium {Millennium.version()}")
 
-        logger.log(f"bootstrapping plugin, millennium v{Millennium.version()}")
-        logger.log(f"Steam Path -> {Millennium.steam_path()}")
-
-        # print("pinging frontend")  
         try:
+            # This will fail to call the frontend as it is not yet loaded. It is only safe to call the frontend after _front_end_loaded is called.
             value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
             logger.log(f"ponged message -> {value}")
+
         except ConnectionError as error:
             logger.error(f"Failed to ping frontend, {error}")
 
