@@ -46,7 +46,8 @@ class Plugin:
 
         # print("pinging frontend")  
         try:
-            value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
+            # value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
+            value = "nil"
             print(f"ponged message -> {value}")
         except ConnectionError as error:
             print(error) # "frontend is not loaded!"
