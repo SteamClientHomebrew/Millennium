@@ -1,3 +1,10 @@
+## [2.12.4](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.3...v2.12.4) (2024-10-11)
+
+
+### Bug Fixes
+
+* Fix issues with the plugin example crashing. ([8624fab](https://github.com/SteamClientHomebrew/Millennium/commit/8624fab5942c684291edc1c0b8a090731dcd91c0))
+
 ## [2.12.3](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.2...v2.12.3) (2024-10-07)
 
 
