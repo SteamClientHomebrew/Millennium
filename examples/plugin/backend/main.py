@@ -29,7 +29,9 @@ class Plugin:
         print("The front end has loaded!")
 
         start_time = time.time()
-        value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
+        # This throws an error related to the params argument (This is an assumption, Dont hate me :c)
+        # value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
+        value = "nil"
         end_time = time.time()
         
         print(f"classname.method says -> {value} [{round((end_time - start_time) * 1000, 3)}ms]")
@@ -48,6 +50,7 @@ class Plugin:
             print(f"ponged message -> {value}")
         except ConnectionError as error:
             print(error) # "frontend is not loaded!"
+        Millennium.ready()
 
 
     def _unload(self):
