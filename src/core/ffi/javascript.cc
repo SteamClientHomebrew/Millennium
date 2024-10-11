@@ -30,23 +30,28 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 
     JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) 
     {
+        nlohmann::json response = eventMessage;
+        std::string method = response.value("method", std::string());
+
+        if (method.find("Debugger") != std::string::npos || method.find("Console") != std::string::npos) 
+        {
+            return;
+        }
+
         try 
         {
-            if (eventMessage.contains("id") && eventMessage["id"] != SHARED_JS_EVALUATE_ID)
+            if (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID)
             {
                 return;
             }
 
-            if (eventMessage["result"].contains("exceptionDetails"))
+            if (response["result"].contains("exceptionDetails"))
             {
-                promise.set_value
-                ({
-                    eventMessage["result"]["exceptionDetails"]["exception"]["description"], false
-                });
+                promise.set_value({ response["result"]["exceptionDetails"]["exception"]["description"], false });
                 return;
             }
 
-            promise.set_value({ eventMessage["result"]["result"], true });
+            promise.set_value({ response["result"]["result"], true });
             JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
         }
         catch (nlohmann::detail::exception& ex) 

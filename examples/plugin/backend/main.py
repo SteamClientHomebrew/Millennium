@@ -1,4 +1,5 @@
-import Millennium
+import Millennium, PluginUtils # type: ignore
+logger = PluginUtils.Logger("__plugin_name__")
 
 import time
 import json
@@ -6,7 +7,7 @@ import json
 class Backend:
     @staticmethod 
     def receive_frontend_message(message: str, status: bool, count: int):
-        print(f"received: {[message, status, count]}")
+        logger.log(f"received: {[message, status, count]}")
 
         # accepted return types [str, int, bool]
         if count == 69:
@@ -15,7 +16,7 @@ class Backend:
             return 
 
 def get_steam_path():
-    print("getting steam path")
+    logger.log("getting steam path")
     return Millennium.steam_path()
 
 class Plugin:
@@ -26,29 +27,31 @@ class Plugin:
         # The front end has successfully mounted in the steam app. 
         # You can now use Millennium.call_frontend_method()
 
-        print("The front end has loaded!")
+        logger.log("The front end has loaded!")
 
         start_time = time.time()
         value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
         end_time = time.time()
         
-        print(f"classname.method says -> {value} [{round((end_time - start_time) * 1000, 3)}ms]")
+        logger.log(f"classname.method says -> {value} [{round((end_time - start_time) * 1000, 3)}ms]")
 
 
     def _load(self):     
         # This code is executed when your plugin loads. 
         # notes: thread safe, running for entire lifespan of millennium
 
-        print(f"bootstrapping plugin, millennium v{Millennium.version()}")
-        print(f"Steam Path -> {Millennium.steam_path()}")
+        logger.log(f"bootstrapping plugin, millennium v{Millennium.version()}")
+        logger.log(f"Steam Path -> {Millennium.steam_path()}")
 
         # print("pinging frontend")  
         try:
             value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
-            print(f"ponged message -> {value}")
+            logger.log(f"ponged message -> {value}")
         except ConnectionError as error:
-            print(error) # "frontend is not loaded!"
+            logger.error(f"Failed to ping frontend, {error}")
+
+        Millennium.ready() # this is required to tell Millennium that the backend is ready.
 
 
     def _unload(self):
-        print("unloading")
+        logger.log("unloading")

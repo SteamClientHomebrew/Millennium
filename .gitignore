@@ -6,3 +6,6 @@
 /vendor/python/python311.lib
 /vendor/python/python311_d.lib
 /vendor/python/python311_d.dll
+
+# Ignore plugin example build assets
+/examples/plugin/.millennium

@@ -45,6 +45,17 @@ private:
         return fmt::format("[{}-{}-{} @ {}:{}:{}]", year, month, day, hour, min, sec);
     }
 
+    std::string GetPluginName() 
+    { 
+        const auto toUpper = [](const std::string& str) {
+            std::string result = str;
+            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+            return result;
+        };
+
+        return toUpper(pluginName);    
+    }
+
 public:
     BackendLogger(const std::string& pluginName) : pluginName(pluginName)
     {
@@ -57,14 +68,8 @@ public:
 
     void Log(const std::string& message) 
     {        
-        const auto toUpper = [](const std::string& str) {
-            std::string result = str;
-            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-            return result;
-        };
-
         fmt::print("{} ", GetLocalTime());
-        std::string formatted = fmt::format("{} ", toUpper(pluginName));
+        std::string formatted = fmt::format("{} ", GetPluginName());
   
         fmt::print("\033[1m\033[34m{}\033[0m\033[0m", formatted);
         fmt::print(fmt::format("{}\n", message));
@@ -74,7 +79,7 @@ public:
 
     void Warn(const std::string& message) 
     {
-        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" ({}) ", pluginName), message);
+        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message);
 
         fmt::print(fg(fmt::color::orange), formatted, "\n");
         file << formatted;
@@ -83,10 +88,11 @@ public:
 
     void Error(const std::string& message) 
     {
-        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" ({}) ", pluginName), message);
+        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message);
 
         fmt::print(fg(fmt::color::red), formatted, "\n");
         file << formatted;
+        file.flush();
     }
 };
 

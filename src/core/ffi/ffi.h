@@ -82,7 +82,7 @@ namespace JavaScript {
             // Deliver any missed messages
             auto it = missedMessages.find(event);
             if (it != missedMessages.end()) {
-                for (const auto& message : it->second) {
+                for (const auto message : it->second) {
                     handler(message, listenerId);
                 }
                 missedMessages.erase(it); // Clear missed messages once delivered

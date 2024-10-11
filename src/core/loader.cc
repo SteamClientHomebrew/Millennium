@@ -23,7 +23,6 @@ bool Sockets::PostShared(nlohmann::json data)
 {
     if (sharedJsContextSessionId.empty()) 
     {
-        LOG_ERROR("not connected to shared js context, cant post message");
         return false;
     }
 
@@ -33,8 +32,8 @@ bool Sockets::PostShared(nlohmann::json data)
 
 bool Sockets::PostGlobal(nlohmann::json data) 
 {
-    if (browserClient == nullptr) {
-        LOG_ERROR("not connected to steam, cant post message");
+    if (browserClient == nullptr) 
+    {
         return false;
     }
 
@@ -98,17 +97,20 @@ public:
                 this->SetupSharedJSContext();
             }
         }
+        
         if (method == "Target.attachedToTarget")
         {
             sharedJsContextSessionId = json["params"]["sessionId"];
             this->onSharedJsConnect();
         }
-        if (method == "Console.messageAdded") 
+        else if (method == "Console.messageAdded") 
         {
             this->HandleConsoleMessage(json);
         }
-        
-        JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+        else
+        {        
+            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+        }
         webKitHandler.DispatchSocketMessage(json);
     }
 
