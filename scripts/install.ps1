@@ -401,6 +401,13 @@ $iniObj["Settings"]["check_for_updates"] = "yes"
 
 Write-Host "`n${BoldPurple}::${ResetColor} Wrote configuration to $configPath"
 
+# Create a file named .cef-enable-remote-debugging in the Steam directory
+$cefDebuggingFile = Join-Path -Path $steamPath -ChildPath ".cef-enable-remote-debugging"
+if (-not (Test-Path -Path $cefDebuggingFile)) {
+    # Create the file if it doesn't exist
+    New-Item -Path $cefDebuggingFile -ItemType File -Force > $null
+}
+
 Set-IniFile $iniObj $configPath -PreserveNonData $false
 
 if ($isUpdater) {
