@@ -104,6 +104,8 @@ void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback)
 
     if (this->EvaluateBackendStatus())
     {
+        Logger.Log("Firing callback as all backends are already loaded.");
+
         callback();
         return;
     }

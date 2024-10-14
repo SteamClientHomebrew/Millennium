@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
 #include <sys/log.h>
+#include <thread>
 
 class PythonGIL : public std::enable_shared_from_this<PythonGIL>
 {
@@ -83,7 +84,7 @@ namespace JavaScript {
             auto it = missedMessages.find(event);
             if (it != missedMessages.end()) {
                 for (const auto message : it->second) {
-                    handler(message, listenerId);
+                    std::thread([handler, message, listenerId] { handler(message, listenerId); }).detach();
                 }
                 missedMessages.erase(it); // Clear missed messages once delivered
             }

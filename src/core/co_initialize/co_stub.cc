@@ -305,6 +305,14 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         {
             try
             {
+                // if (eventMessage.value("method", "").find("Debugger.scriptParsed") == std::string::npos && 
+                //     eventMessage.value("method", "").find("Debugger.scriptFailedToParse") == std::string::npos && 
+                //     eventMessage.value("method", "").find("Fetch") == std::string::npos
+                //     )
+                // {
+                //     std::cout << eventMessage.dump(4) << std::endl;
+                // }
+
                 const int messageId = eventMessage.value("id", -1);
 
                 if (messageId == DEBUGGER_RESUME)
@@ -313,7 +321,7 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                     {
                         *hasUnpausedDebuggerPtr = false;
                         Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
-                        Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
+                        // Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
                     }
                     else if (eventMessage.contains("result"))
                     {
@@ -344,6 +352,7 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         });
     });
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
     socketEmitterThread.join();
 }
