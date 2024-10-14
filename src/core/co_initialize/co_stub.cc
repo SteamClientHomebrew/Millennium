@@ -301,7 +301,7 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", 
             // capture the shared pointers by copy, as to gain ownership && prevent premature deallocation
             [hasUnpausedDebuggerPtr = hasUnpausedDebugger, hasScriptIdentifierPtr = hasScriptIdentifier] 
-            (const nlohmann::json& eventMessage, int listenerId)
+            (const nlohmann::json eventMessage, int listenerId)
         {
             try
             {

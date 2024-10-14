@@ -102,6 +102,12 @@ void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback)
     Logger.Log("Registering for load event @ {}", (void*)&callback);
     listeners[ON_BACKEND_READY_EVENT].push_back(callback);
 
+    if (this->EvaluateBackendStatus())
+    {
+        callback();
+        return;
+    }
+
     if (isReadyForCallback) 
     {
         Logger.Log("Force firing [{}] callback as the target event was already called.", __FUNCTION__);
