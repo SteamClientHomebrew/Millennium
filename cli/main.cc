@@ -176,7 +176,7 @@ public:
 
 int main(int argc, char* argv[]) {
     #ifdef _WIN32
-    SetEnvironmentVariable("SteamPath", GetSteamPathFromRegistry().c_str());
+    //SetEnvironmentVariable("SteamPath", GetSteamPathFromRegistry().c_str());
     #endif
 
     std::unique_ptr<Millennium> millennium = std::make_unique<Millennium>();

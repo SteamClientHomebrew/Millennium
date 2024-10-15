@@ -5,9 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Optimize for size
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections -fno-rtti")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s -static -Wl,--gc-sections")
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+# set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections -fno-rtti")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s -static -Wl,--gc-sections")
+# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
@@ -42,13 +42,25 @@ add_executable(CLI ${SOURCES})
 set_target_properties(CLI PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
 target_compile_options (CLI PRIVATE -m32 )
 
+find_program(WINDRES windres)
+if (WINDRES)
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/version-cli.o
+        COMMAND ${WINDRES} -i ${CMAKE_SOURCE_DIR}/scripts/cli.version.rc -o ${CMAKE_BINARY_DIR}/version-cli.o
+        DEPENDS ${CMAKE_SOURCE_DIR}/scripts/cli.version.rc
+    )
+
+    add_custom_target(resource-cli DEPENDS ${CMAKE_BINARY_DIR}/version-cli.o)
+    add_dependencies(CLI resource-cli)
+endif()
+
 install(TARGETS CLI DESTINATION /usr/local/bin)
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections")
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections")
   # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} Wl,--gc-sections -s")
 endif()
 
-target_link_libraries(CLI PRIVATE CLI11::CLI11 CURL::libcurl)
+target_link_libraries(CLI PRIVATE CLI11::CLI11 CURL::libcurl ${CMAKE_BINARY_DIR}/version-cli.o)
 set_target_properties(CLI PROPERTIES OUTPUT_NAME "millennium")
