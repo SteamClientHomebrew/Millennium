@@ -269,12 +269,15 @@ $selectedPackagesPath | ForEach-Object {
 
     $isDirectory = ContentIsDirectory -path $_
 
-    if ($isDirectory) {
-        $absolutePath = Join-Path -Path $steamPath -ChildPath $_
+    if ($_ -match "user32.dll") {
+        $cefRemoteDebugging = Join-Path -Path $steamPath -ChildPath ".cef-enable-remote-debugging"
+
+        if (Test-Path -Path $cefRemoteDebugging) {
+            Remove-Item -Path $cefRemoteDebugging -Force -ErrorAction SilentlyContinue
+        }
     }
-    else {
-        $absolutePath = $_
-    }
+
+    $absolutePath = Join-Path -Path $steamPath -ChildPath $_
 
     Remove-Item -Path $absolutePath -Recurse -Force -ErrorAction SilentlyContinue
 
