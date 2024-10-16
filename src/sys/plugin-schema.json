@@ -17,6 +17,18 @@
     "venv": {
       "type": "string",
       "markdownDescription": "A relative path to the virtual python environment.\nFor example if your virtual environment path is `.venv`, then inside `.venv` you should find a `Lib` containing python packages.\n\nYou can create a python virtual environment with the command ```python -m venv .venv``` where .venv is the relative path its created at."
+    },
+    "useBackend": {
+      "type": "boolean",
+      "markdownDescription": "Whether or not your plugin uses the backend. If you set this to true, you must provide a `backend` folder (or set a custom backend directory) in your plugin directory."
+    },
+    "backend": {
+      "type": "string",
+      "markdownDescription": "The relative path to the backend directory. If not provided, the default folder is `backend`."
+    },
+    "frontend": {
+      "type": "string",
+      "markdownDescription": "The relative path to the frontend directory. If not provided, the default folder is `frontend`."
     }
   },
   "required": [
