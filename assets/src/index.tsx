@@ -9,6 +9,7 @@ import { PatchNotification } from "./ui/Notifications";
 import { Settings, SettingsStore } from "./Settings";
 import { DispatchGlobalColors } from "./patcher/v1/GlobalColors";
 import { WatchDog } from "./Events";
+import { CreateWebkitScript } from "./Webkit";
 
 /**
  * @note crashes steam on silent boot startup
@@ -77,6 +78,8 @@ const windowCreated = (windowContext: any): void => {
 const InitializePatcher = (startTime: number, result: SettingsProps) => {
 
     Logger.Log(`Received props in [${(performance.now() - startTime).toFixed(3)}ms]`, result)
+
+    CreateWebkitScript(result.active_theme);
 
     const theme: ThemeItem = result.active_theme
     const systemColors: SystemAccentColor = result.accent_color

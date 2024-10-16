@@ -2,7 +2,7 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import pipx.config as config
+import config as config
 import time
 import importlib.metadata
 import dev_tools, pip_setup, package_manager
