@@ -29,6 +29,18 @@
     "frontend": {
       "type": "string",
       "markdownDescription": "The relative path to the frontend directory. If not provided, the default folder is `frontend`."
+    },
+    "thumbnail": {
+      "type": "string",
+      "markdownDescription": "An absolute path to an image resource, usually hosted on Imgur or GitHub's raw CDN. The image should be 16:9 and a minimum size of 512x288 pixels."
+    },
+    "splash_image": {
+      "type": "string",
+      "markdownDescription": "An absolute path to an image resource, usually hosted on Imgur or GitHub's raw CDN. This image is displayed as a backdrop when viewing your plugin page online. The image should be 16:9 and a minimum size of 1920x1080 pixels."
+    },
+    "version": {
+      "type": "string",
+      "markdownDescription": "The version of your plugin."
     }
   },
   "required": [
