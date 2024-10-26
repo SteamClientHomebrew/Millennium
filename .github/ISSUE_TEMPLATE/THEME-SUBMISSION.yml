@@ -1,0 +1,20 @@
+name: Submit a Theme
+description: Submit a theme to be added to the website
+title: "[Submission]"
+labels: [enhancement]
+body:
+- type: checkboxes
+  attributes:
+    label: Before Requesting
+    description: "I have double checked and agree with the following:"
+    options:
+    - label: I did not steal code from other theme developers without credit
+      required: true
+- type: textarea
+  attributes:
+    label: Repository Info
+    description: Provide the GitHub URL of the repository to be considered. 
+  validations:
+    required: true
+  validations:
+    required: false
