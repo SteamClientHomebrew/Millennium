@@ -12,6 +12,8 @@ body:
       required: true
     - label: My issue is not caused by a theme
       required: true
+    - label: My issue is not caused by a plugin
+      required: true
 - type: textarea
   attributes:
     label: Describe the Bug
