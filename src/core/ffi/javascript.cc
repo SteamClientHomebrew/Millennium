@@ -47,7 +47,14 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 
             if (response["result"].contains("exceptionDetails"))
             {
-                promise.set_value({ response["result"]["exceptionDetails"]["exception"]["description"], false });
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                const std::string classType = response["result"]["exceptionDetails"]["exception"]["className"];
+
+                // Custom exception type thrown from CallFrontendMethod in executor.cc
+                if (classType == "MillenniumFrontEndError") 
+                    promise.set_value({ "__CONNECTION_ERROR__", false });
+                else
+                    promise.set_value({ response["result"]["exceptionDetails"]["exception"]["description"], false });
                 return;
             }
 
@@ -64,7 +71,14 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
         }
     });
 
-    return promise.get_future().get();
+    const EvalResult result = promise.get_future().get();
+
+    if (!result.successfulCall && result.json == "__CONNECTION_ERROR__") 
+    {
+        throw std::runtime_error("frontend is not loaded!");
+    }
+
+    return result;
 }
 
 const std::string JavaScript::ConstructFunctionCall(const char* plugin, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> fnParams)

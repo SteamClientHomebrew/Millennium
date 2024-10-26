@@ -92,7 +92,7 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
 
     if (threadState == nullptr) 
     {
-        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
         return { "overstepped partying thread state", Error };
     }
 
@@ -117,7 +117,7 @@ void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string scrip
 
     if (threadState == nullptr) 
     {
-        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? ", pluginName));
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
         return;
     }
 

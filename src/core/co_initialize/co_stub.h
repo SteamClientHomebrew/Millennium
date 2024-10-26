@@ -44,6 +44,7 @@ namespace CoInitializer
 		void RegisterForLoad(EventCallback callback);
 		void StatusDipatch();
 		void BackendLoaded(PluginTypeSchema plugin);
+		void BackendUnLoaded(PluginTypeSchema plugin);
 		void Reset();
 
 	private:

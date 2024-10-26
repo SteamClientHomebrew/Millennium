@@ -114,7 +114,11 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
     const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
 
-    return JavaScript::EvaluateFromSocket(script);
+    return JavaScript::EvaluateFromSocket(
+        // Check the the frontend code is actually loaded aside from SteamUI
+        fmt::format("class MillenniumFrontEndError extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }}"
+        "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new MillenniumFrontEndError('frontend not loaded yet!');\n\n{}", pluginName, script)
+    );
 }
 
 PyObject* GetVersionInfo(PyObject* self, PyObject* args) 

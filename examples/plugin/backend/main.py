@@ -45,9 +45,10 @@ class Plugin:
             value = Millennium.call_frontend_method("classname.method", params=[18, "USA", False])
             logger.log(f"ponged message -> {value}")
 
+        # Frontend not yet loaded
         except ConnectionError as error:
             logger.error(f"Failed to ping frontend, {error}")
-
+            
         Millennium.ready() # this is required to tell Millennium that the backend is ready.
 
 

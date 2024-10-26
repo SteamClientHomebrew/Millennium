@@ -22,6 +22,8 @@ public:
 	const void StartFrontEnds();
 
 private:
+	const void Initialize();
+
 	const void PrintActivePlugins();
 	const std::thread ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers);
 

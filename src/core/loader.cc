@@ -143,8 +143,7 @@ public:
     CEFBrowser(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) { }
 };
 
-PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
-    : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_ftpPort(ftpPort)
+const void PluginLoader::Initialize()
 {
     m_settingsStorePtr = std::make_unique<SettingsStore>();
     m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
@@ -155,6 +154,12 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
 
     Logger.Log("Ports: {{ FTP: {}, IPC: {} }}", m_ftpPort, m_ipcPort);
     this->PrintActivePlugins();
+}
+
+PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
+    : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_ftpPort(ftpPort)
+{
+    this->Initialize();
 }
 
 const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
@@ -191,6 +196,8 @@ const void PluginLoader::StartFrontEnds()
     }
 
     Logger.Warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
+    
+    this->m_startTime = std::chrono::system_clock::now();
     this->StartFrontEnds();
 }
 
@@ -250,10 +257,11 @@ const void StartPreloader(PythonManager& manager)
 const void PluginLoader::StartBackEnds(PythonManager& manager)
 {
     Logger.Log("Starting plugin backends...");
-
     StartPreloader(manager);
-
     Logger.Log("Starting backends...");
+
+    this->Initialize();
+    this->PrintActivePlugins();
 
     for (auto& plugin : *this->m_enabledPluginsPtr)
     {
@@ -268,6 +276,7 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
 
         std::thread(
             [&manager, &plugin, cb]() {
+                Logger.Log("Starting backend for '{}'", plugin.pluginName);
                 manager.CreatePythonInstance(plugin, cb);
             }
         ).detach();

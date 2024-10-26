@@ -4,6 +4,7 @@
 #include <core/ffi/ffi.h>
 #include <core/py_controller/bind_stdout.h>
 #include <core/py_controller/logger.h>
+#include <core/co_initialize/co_stub.h>
 // #include <boxer/boxer.h>
 
 std::string ThreadIdToString(const std::thread::id& id) {
@@ -152,6 +153,9 @@ bool PythonManager::DestroyPythonInstance(std::string plugin_name)
 
                 Logger.Log("Successfully joined thread");
                 this->m_threadPool.erase(it);
+                
+                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+                backendHandler.BackendUnLoaded({ plugin_name });
                 break;
             }
         }
@@ -190,7 +194,9 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
         PyThreadState_Swap(interpreterState);
         
         this->m_pythonInstances.push_back({ pluginName, interpreterState, interpMutexStatePtr });
+        Logger.Log("Redirecting stdout/stderr for plugin '{}'", pluginName);
         RedirectOutput();
+        Logger.Log("Invoking plugin main callback for '{}'", pluginName);
         callback(plugin);
         
         PyThreadState_Clear(threadStateMain);

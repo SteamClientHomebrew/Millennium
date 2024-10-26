@@ -42,6 +42,8 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     const std::size_t pluginCount = settingsStore->GetEnabledBackends().size();
 
+    Logger.Log("\033[1;35mEnabled Plugins: {}, Loaded Plugins : {}\033[0m", pluginCount, emittedPlugins.size());
+
     if (this->emittedPlugins.size() == pluginCount)
     {
         const std::string failedBackends = GetFailedBackendsStr();
@@ -61,9 +63,13 @@ void CoInitializer::BackendCallbacks::StatusDipatch()
     {
         if (listeners.find(ON_BACKEND_READY_EVENT) != listeners.end()) 
         {
-            for (auto& callback : listeners[ON_BACKEND_READY_EVENT]) 
+            auto& callbacks = listeners[ON_BACKEND_READY_EVENT];
+
+            for (auto it = callbacks.begin(); it != callbacks.end(); )
             {
-                callback();
+                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&(*it));
+                (*it)(); // Call the callback
+                it = callbacks.erase(it); // Remove callback after calling
             }
             isReadyForCallback = true;
         }
@@ -90,6 +96,18 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
     this->StatusDipatch();
 }
 
+void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin)
+{
+    // remove the plugin from the emitted list
+    this->emittedPlugins.erase(std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), 
+        [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; }), this->emittedPlugins.end());
+
+    
+    Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
+
+    this->StatusDipatch();
+}
+
 void CoInitializer::BackendCallbacks::Reset() 
 {
     emittedPlugins.clear();
@@ -99,28 +117,13 @@ void CoInitializer::BackendCallbacks::Reset()
 
 void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback) 
 {
-    Logger.Log("Registering for load event @ {}", (void*)&callback);
+    const auto invokeCallback = [&]() {
+        Logger.Log("\033[1;35mInvoking on load event @ {}\033[0m", (void*)&callback);
+        callback();
+    };
+
+    Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
     listeners[ON_BACKEND_READY_EVENT].push_back(callback);
 
-    if (this->EvaluateBackendStatus())
-    {
-        Logger.Log("Firing callback as all backends are already loaded.");
-
-        callback();
-        return;
-    }
-
-    if (isReadyForCallback) 
-    {
-        Logger.Log("Force firing [{}] callback as the target event was already called.", __FUNCTION__);
-
-        callback();
-        return;
-    }
-
-    if (std::find(missedEvents.begin(), missedEvents.end(), ON_BACKEND_READY_EVENT) != missedEvents.end()) 
-    {
-        callback();
-        missedEvents.erase(std::remove(missedEvents.begin(), missedEvents.end(), ON_BACKEND_READY_EVENT), missedEvents.end());
-    }
+    this->StatusDipatch();
 }
