@@ -52,6 +52,8 @@ if (WINDRES)
 
     add_custom_target(resource-cli DEPENDS ${CMAKE_BINARY_DIR}/version-cli.o)
     add_dependencies(CLI resource-cli)
+    
+    target_link_libraries(CLI PRIVATE ${CMAKE_BINARY_DIR}/version-cli.o)
 endif()
 
 install(TARGETS CLI DESTINATION /usr/local/bin)
@@ -62,5 +64,5 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} Wl,--gc-sections -s")
 endif()
 
-target_link_libraries(CLI PRIVATE CLI11::CLI11 CURL::libcurl ${CMAKE_BINARY_DIR}/version-cli.o)
+target_link_libraries(CLI PRIVATE CLI11::CLI11 CURL::libcurl)
 set_target_properties(CLI PROPERTIES OUTPUT_NAME "millennium")
