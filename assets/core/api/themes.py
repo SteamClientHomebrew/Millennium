@@ -25,6 +25,7 @@ class Colors:
             'dark1':  hex(UIColorType.ACCENT_DARK1),   'dark1Rgb': rgb(UIColorType.ACCENT_DARK1),
             'dark2':  hex(UIColorType.ACCENT_DARK2),   'dark2Rgb': rgb(UIColorType.ACCENT_DARK2),
             'dark3':  hex(UIColorType.ACCENT_DARK3),   'dark3Rgb': rgb(UIColorType.ACCENT_DARK3),
+            'systemAccent': True
         }
         return json.dumps(color_dictionary)
 
@@ -36,15 +37,93 @@ class Colors:
             'accent': '#000',
             'light1': '#000', 'light2': '#000', 'light3': '#000',
             'dark1': '#000',   'dark2': '#000',   'dark3': '#000',
+            'accentRgb': '0, 0, 0', 'light1Rgb': '0, 0, 0', 'light2Rgb': '0, 0, 0', 'light3Rgb': '0, 0, 0',
+            'dark1Rgb': '0, 0, 0', 'dark2Rgb': '0, 0, 0', 'dark3Rgb': '0, 0, 0',
+            'systemAccent': True
         }
         return json.dumps(color_dictionary)
+    
+    @staticmethod
+    def extrap_custom_color(accent_color: str) -> str:
+
+        def adjust_hex_color(hex_color, percent=15):
+            # Remove the '#' character if present
+            hex_color = hex_color.lstrip('#')
+            
+            # Convert hex to RGB
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+
+            # Calculate the adjusted color
+            if percent < 0:  # Darken the color
+                r = max(0, int(r * (1 + percent / 100)))
+                g = max(0, int(g * (1 + percent / 100)))
+                b = max(0, int(b * (1 + percent / 100)))
+            else:  # Lighten the color
+                r = min(255, int(r + (255 - r) * (percent / 100)))
+                g = min(255, int(g + (255 - g) * (percent / 100)))
+                b = min(255, int(b + (255 - b) * (percent / 100)))
+
+            # Convert back to hex
+            adjusted_hex = f'#{r:02x}{g:02x}{b:02x}'
+            return adjusted_hex
+
+        def hex_to_rgba(hex_color):
+            # Remove the '#' character if present
+            hex_color = hex_color.lstrip('#')
+
+            # Check if the input has an alpha channel (8 characters)
+            if len(hex_color) == 8:
+                r = int(hex_color[0:2], 16)
+                g = int(hex_color[2:4], 16)
+                b = int(hex_color[4:6], 16)
+                a = int(hex_color[6:8], 16) / 255  # Normalize alpha to [0, 1]
+            elif len(hex_color) == 6:
+                r = int(hex_color[0:2], 16)
+                g = int(hex_color[2:4], 16)
+                b = int(hex_color[4:6], 16)
+                a = 1.0  # Fully opaque
+            else:
+                raise ValueError("Invalid hex color format. Use 6 or 8 characters.")
+
+            return (r, g, b, a)
+        
+        original_accent = Colors.get_accent_color_win32() if os.name == 'nt' else Colors.get_accent_color_posix()
+        
+        return json.dumps({
+            'accent': accent_color,
+            'light1': adjust_hex_color(accent_color, 15),
+            'light2': adjust_hex_color(accent_color, 30),
+            'light3': adjust_hex_color(accent_color, 45),
+            'dark1': adjust_hex_color(accent_color, -15),
+            'dark2': adjust_hex_color(accent_color, -30),
+            'dark3': adjust_hex_color(accent_color, -45),
+            'accentRgb': hex_to_rgba(accent_color),
+            'light1Rgb': hex_to_rgba(adjust_hex_color(accent_color, 15)),
+            'light2Rgb': hex_to_rgba(adjust_hex_color(accent_color, 30)),
+            'light3Rgb': hex_to_rgba(adjust_hex_color(accent_color, 45)),
+            'dark1Rgb': hex_to_rgba(adjust_hex_color(accent_color, -15)),
+            'dark2Rgb': hex_to_rgba(adjust_hex_color(accent_color, -30)),
+            'dark3Rgb': hex_to_rgba(adjust_hex_color(accent_color, -45)),
+            'systemAccent': False,
+            'originalAccent': original_accent
+        })
 
     @staticmethod
-    def get_accent_color():
-        if os.name == 'nt':
-            return Colors.get_accent_color_win32()
+    def get_accent_color(accent_color):
+
+        if accent_color == "DEFAULT_ACCENT_COLOR":
+
+            print("Using default accent color")
+            if os.name == 'nt':
+                return Colors.get_accent_color_win32()
+            else:
+                return Colors.get_accent_color_posix()
+            
         else:
-            return Colors.get_accent_color_posix()
+            print("Using custom accent color")
+            return Colors.extrap_custom_color(accent_color)
 
 
 def is_valid(theme_native_name: str) -> bool:

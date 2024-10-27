@@ -10,6 +10,8 @@
     "themePanelInjectJavascriptToolTip": "Decide whether themes are allowed to insert JavaScript into Steam. Disabling JavaScript may break Steam interface as a byproduct (requires reload)",
     "themePanelInjectCSS": "Inject StyleSheets",
     "themePanelInjectCSSToolTip": "Decide whether themes are allowed to insert stylesheets into Steam. (requires reload)",
+    "themePanelCustomAccentColor": "Custom Accent Color",
+    "themePanelCustomAccentColorToolTip": "Set a custom accent color for themes that support it (requires reload)",
     "updatePanelHasUpdates": "Updates Available!",
     "updatePanelHasUpdatesSub": "Millennium found the following updates for your themes.",
     "updatePanelReleasedTag": "Released:",

@@ -83,16 +83,18 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
 
     const theme: ThemeItem = result.active_theme
     const systemColors: SystemAccentColor = result.accent_color
+
     
     ParseLocalTheme(theme)
     DispatchSystemColors(systemColors)
-
+    
     const themeV1: ThemeItemV1 = result?.active_theme?.data as ThemeItemV1
-
+    
     if (themeV1?.GlobalsColors) {
         DispatchGlobalColors(themeV1?.GlobalsColors)
     }
     
+    pluginSelf.systemColors   = systemColors
     pluginSelf.conditionals   = result?.conditions as ConditionsStore
     pluginSelf.scriptsAllowed = result?.settings?.scripts as boolean ?? true
     pluginSelf.stylesAllowed  = result?.settings?.styles as boolean ?? true

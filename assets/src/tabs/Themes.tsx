@@ -20,6 +20,10 @@ import { ComboItem, ThemeItem } from '../types'
 import { SetupAboutRenderer } from '../custom_components/AboutTheme'
 import { locale } from '../locales'
 import { ConnectionFailed } from '../custom_components/ConnectionFailed'
+import { settingsClasses } from '../classes'
+import { DispatchSystemColors } from '../patcher/SystemColors'
+import { DOMModifier } from '../patcher/Dispatch'
+import { RenderAccentColorPicker } from './AccentColorPicker'
 
 const Localize = (token: string): string =>
     // @ts-ignore
@@ -265,6 +269,9 @@ const ThemeViewModal: React.FC = () => {
                         <Toggle value={cssState} onChange={onStyleToggle} />
                     )}
                 </Field>
+
+                <RenderAccentColorPicker />
+
             </DialogBody>
         </>
     )

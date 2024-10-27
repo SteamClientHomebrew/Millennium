@@ -1,7 +1,7 @@
 import Millennium, json, os # type: ignore
 
 from api.css_analyzer import ColorTypes, convert_from_hex, convert_to_hex, parse_root
-from api.themes import is_valid
+from api.themes import Colors, is_valid
 from api.watchdog import SteamUtils
 from util.webkit_handler import WebkitStack, add_browser_css, add_browser_js
 from watchdog.observers import Observer
@@ -32,6 +32,7 @@ class Config:
         self.create_default("scripts", True, bool)
         self.create_default("styles", True, bool)
         self.create_default("updateNotifications", True, bool)
+        self.create_default("accentColor", "DEFAULT_ACCENT_COLOR", str)
     
         # Check if the active them
         self.validate_theme()
@@ -200,6 +201,18 @@ class Config:
             self.config["colors"][self.name][color] = parsed_color
             self.set_config(json.dumps(self.config, indent=4))
             return parsed_color
+        
+    def change_accent_color(self, new_color: str) -> None:
+        self.config["accentColor"] = new_color
+        self.set_config(json.dumps(self.config, indent=4))
+
+        return Colors.get_accent_color(self.config["accentColor"])
+    
+    def reset_accent_color(self) -> None:
+        self.config["accentColor"] = "DEFAULT_ACCENT_COLOR"
+        self.set_config(json.dumps(self.config, indent=4))
+
+        return Colors.get_accent_color(self.config["accentColor"])
 
 
     def set_theme_cb(self):

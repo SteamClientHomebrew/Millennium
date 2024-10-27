@@ -42,7 +42,7 @@ def get_load_config():
     config = cfg.get_config()
 
     return json.dumps({
-        "accent_color": json.loads(Colors.get_accent_color()), 
+        "accent_color": json.loads(Colors.get_accent_color(config["accentColor"])), 
         "conditions": config["conditions"] if "conditions" in config else None, 
         "active_theme": json.loads(cfg.get_active_theme()),
         "settings": config,
