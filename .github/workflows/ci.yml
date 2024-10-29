@@ -1,4 +1,4 @@
-name: Build Millennium
+name: Build & Release Millennium
 
 on:
   workflow_dispatch:
