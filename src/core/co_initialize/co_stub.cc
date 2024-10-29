@@ -359,57 +359,67 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
-    Logger.Log("Preparing to injecting frontend shims...");
-    
-    std::shared_ptr<std::promise<void>> promise = std::make_shared<std::promise<void>>();
-    std::shared_ptr<bool> hasSuccess = std::make_shared<bool>(false), hasPaused = std::make_shared<bool>(false);
+    Logger.Log("Preparing to inject frontend shims...");
 
-    auto debuggerPauseThread = std::thread([promise, hasSuccess, hasPaused] {
-        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [promisePtr = promise, hasSuccessPtr = hasSuccess, hasPausedPtr = hasPaused] 
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool hasSuccess = false;
+    bool hasPaused = false;
+
+    auto debuggerPauseThread = std::thread([&mtx, &cv, &hasSuccess, &hasPaused] {
+        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&mtx, &cv, &hasSuccess, &hasPaused] 
         (const nlohmann::json& eventMessage, int listenerId)
-    {
-        try {
-            if (eventMessage.value("id", -1) == 65756)
-            {
-                if (eventMessage.contains("error"))
-                {
-                    Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
-                    Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
-                }
-                else if (eventMessage.contains("result"))
-                {
-                    Logger.Log("Successfully sent debugger pause...");
-                    *hasSuccessPtr = true;
-                }
-            }
-            if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused")
-            {
-                Logger.Log("Debugger has paused!");
-                *hasPausedPtr = true;
-            }
-            if (*hasSuccessPtr && *hasPausedPtr)
-            {
-                promisePtr->set_value();
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-            }
-        }
-        catch (nlohmann::detail::exception& ex)
         {
-            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
-        }
-    });
+            try {
+                if (eventMessage.value("id", -1) == 65756)
+                {
+                    if (eventMessage.contains("error"))
+                    {
+                        Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
+                        Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+                    }
+                    else if (eventMessage.contains("result"))
+                    {
+                        Logger.Log("Successfully sent debugger pause...");
+                        std::lock_guard<std::mutex> lock(mtx);
+                        hasSuccess = true;
+                    }
+                }
+                if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused")
+                {
+                    Logger.Log("Debugger has paused!");
+                    std::lock_guard<std::mutex> lock(mtx);
+                    hasPaused = true;
+                }
+
+                // Notify if both conditions are met
+                if (hasSuccess && hasPaused)
+                {
+                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                    cv.notify_all();
+                }
+            }
+            catch (nlohmann::detail::exception& ex)
+            {
+                LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+            }
+        });
     });
 
     Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
 
-    promise->get_future().get();
+    // Wait for notification
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&hasSuccess, &hasPaused] { return hasSuccess && hasPaused; });
+
     debuggerPauseThread.join();
 
     Logger.Log("Ready to inject shims!");
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }
+
 
 const void CoInitializer::ReInjectFrontendShims()
 {
