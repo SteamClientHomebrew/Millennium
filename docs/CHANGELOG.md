@@ -1,3 +1,22 @@
+# [2.13.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.4...v2.13.0) (2024-11-02)
+
+
+### Bug Fixes
+
+* Add file description and details to help prevent false positives. ([0fd35ad](https://github.com/SteamClientHomebrew/Millennium/commit/0fd35ad6e91f84b2e0119cad9e478de79eb050f1))
+* Create debugger flag from installer instead of Millennium ([652945d](https://github.com/SteamClientHomebrew/Millennium/commit/652945d0bd377e34cfef4ee7be127c74db515f5f))
+* Fix all issues with steam re-opening unskinned, and the UI freezing ([6f5cd67](https://github.com/SteamClientHomebrew/Millennium/commit/6f5cd6715b6c7201c9b246ec8d887a893917d753))
+* Fix std::future_error by mutex ([75dd852](https://github.com/SteamClientHomebrew/Millennium/commit/75dd852d1991e17c0aa17c34a80ad41d9036ac1a))
+* Fix uninstaller bugs and improve cleanup ([a923e2a](https://github.com/SteamClientHomebrew/Millennium/commit/a923e2aca843c44ff8063db5169f33be8bce8ef7))
+* Fully fix plugin hot reloadability. Plugins can now be loaded/unloaded at any time, in any order ([af651b5](https://github.com/SteamClientHomebrew/Millennium/commit/af651b5482044be0128b302131a2a6f31c5638ac))
+* Temporarily disable CLI support for Millennium on windows. ([02d9a76](https://github.com/SteamClientHomebrew/Millennium/commit/02d9a76e92498b52a59c1212a04d7d42a5232ebc))
+
+
+### Features
+
+* Ability to override system accent color ([a850936](https://github.com/SteamClientHomebrew/Millennium/commit/a850936e40688345a90646d92600cd6e506ea623))
+* Add regex support for webkit patching ([#147](https://github.com/SteamClientHomebrew/Millennium/issues/147)) ([0c87da1](https://github.com/SteamClientHomebrew/Millennium/commit/0c87da152c1e8a5a00bc787978214ba4839efe70)), closes [#127](https://github.com/SteamClientHomebrew/Millennium/issues/127) [#140](https://github.com/SteamClientHomebrew/Millennium/issues/140)
+
 ## [2.12.4](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.3...v2.12.4) (2024-10-11)
 
 
