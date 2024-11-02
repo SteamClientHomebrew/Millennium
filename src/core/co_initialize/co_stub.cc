@@ -278,6 +278,10 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
 
 static std::string addedScriptOnNewDocumentId;
 
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+
 void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 {
     Logger.Log("Notifying frontend of backend load...");
@@ -293,53 +297,51 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         PAGE_RELOAD = 4
     };
 
-    std::shared_ptr<bool> hasUnpausedDebugger = std::make_shared<bool>(false);
-    std::shared_ptr<bool> hasScriptIdentifier = std::make_shared<bool>(false);
+    std::mutex mtx;
+    std::condition_variable cvDebugger;
+    std::condition_variable cvScript;
 
-    auto socketEmitterThread = std::thread([hasUnpausedDebugger, hasScriptIdentifier]
+    bool hasUnpausedDebugger = false;
+    bool hasScriptIdentifier = false;
+
+    auto socketEmitterThread = std::thread([&]
     {
         JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", 
-            // capture the shared pointers by copy, as to gain ownership && prevent premature deallocation
-            [hasUnpausedDebuggerPtr = hasUnpausedDebugger, hasScriptIdentifierPtr = hasScriptIdentifier] 
-            (const nlohmann::json eventMessage, int listenerId)
+            [&] (const nlohmann::json& eventMessage, int listenerId)
         {
+            std::unique_lock<std::mutex> lock(mtx);
+            
             try
             {
-                // if (eventMessage.value("method", "").find("Debugger.scriptParsed") == std::string::npos && 
-                //     eventMessage.value("method", "").find("Debugger.scriptFailedToParse") == std::string::npos && 
-                //     eventMessage.value("method", "").find("Fetch") == std::string::npos
-                //     )
-                // {
-                //     std::cout << eventMessage.dump(4) << std::endl;
-                // }
-
                 const int messageId = eventMessage.value("id", -1);
 
                 if (messageId == DEBUGGER_RESUME)
                 {
                     if (eventMessage.contains("error"))
                     {
-                        *hasUnpausedDebuggerPtr = false;
+                        hasUnpausedDebugger = false;
                         Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
-                        // Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
                     }
                     else if (eventMessage.contains("result"))
                     {
-                        *hasUnpausedDebuggerPtr = true;
+                        hasUnpausedDebugger = true;
                         Logger.Log("Successfully resumed debugger, injecting shims...");
                         Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
                         Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
                     }
+                    cvDebugger.notify_one();  // Notify that debugger resume is processed
                 }
                 else if (messageId == PAGE_SCRIPT)
-                {   
+                {
                     addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                    *hasScriptIdentifierPtr = true;
+                    hasScriptIdentifier = true;
                     Logger.Log("Successfully injected shims, updating state...");
                     Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+                    cvScript.notify_one();  // Notify that script injection is processed
                 }
 
-                if (*hasUnpausedDebuggerPtr && *hasScriptIdentifierPtr)
+                // Check if both conditions have been met
+                if (hasUnpausedDebugger && hasScriptIdentifier)
                 {
                     Logger.Log("Successfully notified frontend...");
                     JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
@@ -354,7 +356,21 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
+
+    // Wait for debugger resume
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cvDebugger.wait(lock, [&] { return hasUnpausedDebugger; });
+    }
+
+    // Wait for script injection completion
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cvScript.wait(lock, [&] { return hasScriptIdentifier; });
+    }
+
     socketEmitterThread.join();
+    Logger.Log("Frontend notifier finished!");
 }
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)

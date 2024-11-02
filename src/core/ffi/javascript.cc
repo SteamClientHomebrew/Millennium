@@ -10,9 +10,15 @@ struct EvalResult {
 
 #define SHARED_JS_EVALUATE_ID 54999
 
+#include <mutex>
+#include <condition_variable>
+
 const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval) 
 {
-    std::promise<EvalResult> promise;
+    std::mutex mtx;
+    std::condition_variable cv;
+    EvalResult evalResult;
+    bool resultReady = false;  // Flag to indicate when the result is ready
 
     bool messageSendSuccess = Sockets::PostShared(nlohmann::json({ 
         { "id", SHARED_JS_EVALUATE_ID },
@@ -28,8 +34,10 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
         throw std::runtime_error("couldn't send message to socket");
     }
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) 
+    int listenerId = JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) 
     {
+        std::lock_guard<std::mutex> lock(mtx);  // Lock mutex for safe access
+
         nlohmann::json response = eventMessage;
         std::string method = response.value("method", std::string());
 
@@ -47,38 +55,39 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 
             if (response["result"].contains("exceptionDetails"))
             {
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
                 const std::string classType = response["result"]["exceptionDetails"]["exception"]["className"];
 
                 // Custom exception type thrown from CallFrontendMethod in executor.cc
                 if (classType == "MillenniumFrontEndError") 
-                    promise.set_value({ "__CONNECTION_ERROR__", false });
+                    evalResult = { "__CONNECTION_ERROR__", false };
                 else
-                    promise.set_value({ response["result"]["exceptionDetails"]["exception"]["description"], false });
-                return;
+                    evalResult = { response["result"]["exceptionDetails"]["exception"]["description"], false };
+            }
+            else 
+            {
+                evalResult = { response["result"]["result"], true };
             }
 
-            promise.set_value({ response["result"]["result"], true });
+            resultReady = true;
+            cv.notify_one();  // Signal that result is ready
             JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
         }
         catch (nlohmann::detail::exception& ex) 
         {
             LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
         }
-        catch (std::future_error& exception) 
-        {
-            LOG_ERROR(exception.what());
-        }
     });
 
-    const EvalResult result = promise.get_future().get();
+    // Wait for the result to be ready
+    std::unique_lock<std::mutex> lock(mtx);
+    cv.wait(lock, [&] { return resultReady; });
 
-    if (!result.successfulCall && result.json == "__CONNECTION_ERROR__") 
+    if (!evalResult.successfulCall && evalResult.json == "__CONNECTION_ERROR__") 
     {
         throw std::runtime_error("frontend is not loaded!");
     }
 
-    return result;
+    return evalResult;
 }
 
 const std::string JavaScript::ConstructFunctionCall(const char* plugin, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> fnParams)
