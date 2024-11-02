@@ -372,7 +372,6 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     socketEmitterThread.join();
     Logger.Log("Frontend notifier finished!");
 }
-
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort)
 {
     Logger.Log("Preparing to inject frontend shims...");
@@ -382,60 +381,95 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
     bool hasSuccess = false;
     bool hasPaused = false;
 
-    auto debuggerPauseThread = std::thread([&mtx, &cv, &hasSuccess, &hasPaused] {
-        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&mtx, &cv, &hasSuccess, &hasPaused] 
-        (const nlohmann::json& eventMessage, int listenerId)
+    std::thread debuggerPauseThread;
+    try 
+    {
+        debuggerPauseThread = std::thread([&mtx, &cv, &hasSuccess, &hasPaused] 
         {
-            try {
-                if (eventMessage.value("id", -1) == 65756)
-                {
-                    if (eventMessage.contains("error"))
-                    {
-                        Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
-                        Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
-                    }
-                    else if (eventMessage.contains("result"))
-                    {
-                        Logger.Log("Successfully sent debugger pause...");
-                        std::lock_guard<std::mutex> lock(mtx);
-                        hasSuccess = true;
-                    }
-                }
-                if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused")
-                {
-                    Logger.Log("Debugger has paused!");
-                    std::lock_guard<std::mutex> lock(mtx);
-                    hasPaused = true;
-                }
-
-                // Notify if both conditions are met
-                if (hasSuccess && hasPaused)
-                {
-                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                    cv.notify_all();
-                }
-            }
-            catch (nlohmann::detail::exception& ex)
+            JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&mtx, &cv, &hasSuccess, &hasPaused] 
+            (const nlohmann::json& eventMessage, int listenerId)
             {
-                LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
-            }
+                try 
+                {
+                    if (eventMessage.value("id", -1) == 65756)
+                    {
+                        if (eventMessage.contains("error"))
+                        {
+                            Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
+                            Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+                        }
+                        else if (eventMessage.contains("result"))
+                        {
+                            Logger.Log("Successfully sent debugger pause...");
+                            std::lock_guard<std::mutex> lock(mtx);
+                            hasSuccess = true;
+                        }
+                    }
+                    if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused")
+                    {
+                        Logger.Log("Debugger has paused!");
+                        std::lock_guard<std::mutex> lock(mtx);
+                        hasPaused = true;
+                    }
+
+                    // Notify if both conditions are met
+                    {
+                        std::lock_guard<std::mutex> lock(mtx);
+                        if (hasSuccess && hasPaused)
+                        {
+                            try 
+                            {
+                                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                            } 
+                            catch (const std::exception& ex) 
+                            {
+                                LOG_ERROR("Error removing listener: {}", ex.what());
+                            }
+                            cv.notify_all();  // Notify waiting thread
+                        }
+                    }
+                }
+                catch (const nlohmann::detail::exception& ex)
+                {
+                    LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+                }
+            });
         });
-    });
+    } 
+    catch (const std::system_error& e) 
+    {
+        LOG_ERROR("Failed to create debuggerPauseThread: {}", e.what());
+        return;
+    }
 
     Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
 
-    // Wait for notification
-    std::unique_lock<std::mutex> lock(mtx);
-    cv.wait(lock, [&hasSuccess, &hasPaused] { return hasSuccess && hasPaused; });
+    // Wait for notification with diagnostics if wait fails
+    try 
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait(lock, [&hasSuccess, &hasPaused] { return hasSuccess && hasPaused; });
+    } 
+    catch (const std::system_error& e) {
+        LOG_ERROR("Condition variable wait error: {}", e.what());
+        if (debuggerPauseThread.joinable()) 
+        {
+            debuggerPauseThread.join();
+        }
+        return;
+    }
 
-    debuggerPauseThread.join();
+    // Join the thread safely
+    if (debuggerPauseThread.joinable()) 
+    {
+        debuggerPauseThread.join();
+    }
 
     Logger.Log("Ready to inject shims!");
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }
-
 
 const void CoInitializer::ReInjectFrontendShims()
 {
