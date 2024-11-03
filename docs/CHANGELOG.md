@@ -1,3 +1,12 @@
+## [2.13.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.13.0...v2.13.1) (2024-11-03)
+
+
+### Bug Fixes
+
+* Fix race condition on startup ([b4131ef](https://github.com/SteamClientHomebrew/Millennium/commit/b4131efa0650e480ee064782e9f5b27ec4875eb2))
+* Fix startup crashes ([b00dd37](https://github.com/SteamClientHomebrew/Millennium/commit/b00dd378e63daa976ae5e1fa0770a1133b742ee3))
+* Fix startup crashes [#153](https://github.com/SteamClientHomebrew/Millennium/issues/153) ([256bc77](https://github.com/SteamClientHomebrew/Millennium/commit/256bc778d47e2b2428c5366310ddd725334f4bb1))
+
 # [2.13.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.12.4...v2.13.0) (2024-11-02)
 
 
