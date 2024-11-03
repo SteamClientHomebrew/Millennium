@@ -374,67 +374,60 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 }
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) {
-    static std::mutex mtx;
-    static std::condition_variable cv;
-    static bool hasSuccess = false;
-    static bool hasPaused = false;
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool hasSuccess = false, hasPaused = false;
 
     Logger.Log("Preparing to inject frontend shims...");
 
-    std::thread debuggerPauseThread;
-    try {
-        debuggerPauseThread = std::thread([] {
-            JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [](const nlohmann::json& eventMessage, int listenerId) {
-                std::lock_guard<std::mutex> lock(mtx);
-                
-                if (eventMessage.value("id", -1) == 65756) {
-                    if (eventMessage.contains("error")) {
-                        Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
-                        Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
-                    } else if (eventMessage.contains("result")) {
-                        Logger.Log("Successfully sent debugger pause...");
-                        hasSuccess = true;
-                    }
-                }
-                if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused") {
-                    Logger.Log("Debugger has paused!");
-                    hasPaused = true;
-                }
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) {
+        std::lock_guard<std::mutex> lock(mtx);
+        
+        if (eventMessage.value("id", -1) == 65756) 
+        {
+            if (eventMessage.contains("error")) 
+            {
+                Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
+                Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+            } 
+            else if (eventMessage.contains("result")) 
+            {
+                Logger.Log("Successfully sent debugger pause...");
+                hasSuccess = true;
+            }
+        }
+        if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused") 
+        {
+            Logger.Log("Debugger has paused!");
+            hasPaused = true;
+        }
 
-                if (hasSuccess && hasPaused) {
-                    try {
-                        JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                    } catch (const std::exception& ex) {
-                        LOG_ERROR("Error removing listener: {}", ex.what());
-                    }
-                    cv.notify_all(); 
-                    Logger.Log("Notifying...");
-                }
-            });
-        });
-    } catch (const std::system_error& e) {
-        LOG_ERROR("Failed to create debuggerPauseThread: {}", e.what());
-        return;
-    }
+        if (hasSuccess && hasPaused) 
+        {
+            try 
+            {
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+            } 
+            catch (const std::exception& ex) 
+            {
+                LOG_ERROR("Error removing listener: {}", ex.what());
+            }
+            cv.notify_all(); 
+        }
+    });
 
     Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
     Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
 
-    try {
+    try 
+    {
         std::unique_lock<std::mutex> lock(mtx);
-        cv.wait(lock, [] { return hasSuccess && hasPaused; });
-    } catch (const std::system_error& e) {
+        cv.wait(lock, [&] { return hasSuccess && hasPaused; });
+    } 
+    catch (const std::system_error& e) 
+    {
         LOG_ERROR("Condition variable wait error: {}", e.what());
-        if (debuggerPauseThread.joinable()) {
-            debuggerPauseThread.join();
-        }
         return;
-    }
-
-    Logger.Log("Waiting for thread to join...");
-
-    if (debuggerPauseThread.joinable()) {
-        debuggerPauseThread.join();
     }
 
     Logger.Log("Ready to inject shims!");
