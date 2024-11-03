@@ -373,14 +373,16 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     Logger.Log("Frontend notifier finished!");
 }
 
-const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) {
+const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
+{
     std::mutex mtx;
     std::condition_variable cv;
     bool hasSuccess = false, hasPaused = false;
 
     Logger.Log("Preparing to inject frontend shims...");
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) {
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) 
+    {
         std::lock_guard<std::mutex> lock(mtx);
         
         if (eventMessage.value("id", -1) == 65756) 

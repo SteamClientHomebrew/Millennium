@@ -84,7 +84,7 @@ namespace JavaScript {
             auto it = missedMessages.find(event);
             if (it != missedMessages.end()) {
                 for (const auto message : it->second) {
-                    std::thread([handler, message, listenerId] { handler(message, listenerId); }).detach();
+                    handler(message, listenerId);
                 }
                 missedMessages.erase(it); // Clear missed messages once delivered
             }
