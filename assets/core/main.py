@@ -14,7 +14,7 @@ from api.themes import find_all_themes
 from api.plugins import find_all_plugins
 from api.config import Config, cfg
 from util.webkit_handler import WebkitStack, add_browser_css, add_browser_js
-from util.theme_installer import start_websocket_server, uninstall_theme
+from util.theme_installer import WebSocketServer
 
 from updater.version_control import Updater
 updater = Updater()
@@ -57,10 +57,11 @@ class Plugin:
 
     def _load(self):     
         cfg.set_theme_cb()
+        self.server = WebSocketServer()
 
         try:
-            websocket_thread = threading.Thread(target=start_websocket_server)
-            websocket_thread.start()
+            logger.log("Starting the websocket for theme installer...")
+            self.server.start()
         except Exception as e:
             logger.error("Failed to start the websocket for theme installer! trace: " + str(e))
 
@@ -70,4 +71,5 @@ class Plugin:
 
     def _unload(self):
         logger.log("Millennium-Core is unloading...")
-    
+        self.server.stop()
+        logger.log("Millennium-Core has been unloaded!")

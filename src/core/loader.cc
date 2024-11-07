@@ -43,10 +43,18 @@ bool Sockets::PostGlobal(nlohmann::json data)
 
 void Sockets::Shutdown() 
 {
-    if (browserClient != nullptr) 
+    try
     {
-        browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
+        if (browserClient != nullptr) 
+        {
+            browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
+        }
     }
+    catch(const websocketpp::exception& e)
+    {
+        LOG_ERROR("Failed to close browser connection: {}", e.what());
+    }
+    
 }
 
 class CEFBrowser

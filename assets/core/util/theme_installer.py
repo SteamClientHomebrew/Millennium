@@ -13,143 +13,181 @@ elif platform.system() == "Linux":
 from api.config import cfg
 from api.themes import find_all_themes
 import pathlib
+import asyncio
+import threading
+import websockets
 
-def delete_folder(pth):
-    for sub in pth.iterdir():
-        if sub.is_dir():
-            delete_folder(sub)
-        else:
-            sub.unlink()
-    pth.rmdir()
+class WebSocketServer:
 
-def error_message(websocket, message):
-    return json.dumps({"type": "error", "message": message})
+    def delete_folder(self, pth):
+        for sub in pth.iterdir():
+            if sub.is_dir():
+                self.delete_folder(sub)
+            else:
+                sub.unlink()
+        pth.rmdir()
 
-async def unknown_message(websocket):
-    return await websocket.send(json.dumps({"type": "unknown", "message": "unknown message type"}))
+    def error_message(self, websocket, message):
+        return json.dumps({"type": "error", "message": message})
 
-def get_theme_from_gitpair(repo, owner):
-    themes = json.loads(find_all_themes())
+    async def unknown_message(self, websocket):
+        return await websocket.send(json.dumps({"type": "unknown", "message": "unknown message type"}))
 
-    for theme in themes:
-        github_data = theme.get("data", {}).get("github", {})
-        if github_data.get("owner") == owner and github_data.get("repo_name") == repo:
-            return theme
+    def get_theme_from_gitpair(self, repo, owner):
+        themes = json.loads(find_all_themes())
 
-    return None
+        for theme in themes:
+            github_data = theme.get("data", {}).get("github", {})
+            if github_data.get("owner") == owner and github_data.get("repo_name") == repo:
+                return theme
 
-def check_install(repo, owner):
+        return None
 
-    is_installed = False if get_theme_from_gitpair(repo, owner) == None else True
-    logger.log(f"Requesting to check install theme: {owner}/{repo} -> {is_installed}")
+    def check_install(self, repo, owner):
 
-    return is_installed
+        is_installed = False if self.get_theme_from_gitpair(repo, owner) == None else True
+        logger.log(f"Requesting to check install theme: {owner}/{repo} -> {is_installed}")
 
-def remove_readonly(func, path, exc_info):
-    print(f"removing readonly file {exc_info}")
+        return is_installed
 
-    # Change the file to writable and try the function again
-    os.chmod(path, stat.S_IWRITE)
-    func(path)
+    def remove_readonly(self, func, path, exc_info):
+        logger.log(f"removing readonly file {exc_info}")
 
-def uninstall_theme(repo, owner):
-    logger.log(f"Requesting to uninstall theme -> {owner}/{repo}")
+        # Change the file to writable and try the function again
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
 
-    target_theme = get_theme_from_gitpair(repo, owner)
-    if target_theme == None:
-        return error_message("Couldn't locate the target theme on disk!")
-    
-    path = os.path.join(Millennium.steam_path(), "steamui", "skins", target_theme["native"])
-    if not os.path.exists(path):
-        return error_message("Couldn't locate the target theme on disk!")
-    
-    try:
-        print(f"deleting theme {path}")
-        gc.collect()
-        shutil.rmtree(path, onerror=remove_readonly)
-        return json.dumps({'success': True})
-    except Exception as e:
-        return json.dumps({'success': False, 'message': str(e)})
-    
+    def uninstall_theme(self, repo, owner):
+        logger.log(f"Requesting to uninstall theme -> {owner}/{repo}")
 
-def install_theme(repo, owner):
-
-    path = os.path.join(Millennium.steam_path(), "steamui", "skins", repo)
-    os.makedirs(path, exist_ok=True)
-
-    logger.log(f"Requesting to install theme -> {owner}/{repo} to {path}")
-
-    try:
-
-        if platform.system() == "Windows":
-            pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
-        elif platform.system() == "Linux":
-
-            use_system_libs()
-            logger.log("Attempting to clone repo from system git")
-            git.Repo.clone_from(f"https://github.com/{owner}/{repo}.git", path) 
-            unuse_system_libs()
-
-        gc.collect()
-        return json.dumps({'success': True})
-    except git.CommandError as e:
-        print(f"Error cloning repository: {e}")
-    except Exception as e:
-        return json.dumps({'success': False, 'message': "Failed to clone the theme repository!"})
-    
-
-def handle_set_active_theme(repo, owner):
-    target_theme = get_theme_from_gitpair(repo, owner)
-
-    if target_theme == None:
-        return json.dumps({'success': False, 'message': "Couldn't locate the target theme on disk!"})
-
-    cfg.change_theme(target_theme["native"])
-    Millennium.call_frontend_method("ReloadMillenniumFrontend")
-
-    return json.dumps({'success': True})
-
-async def echo(websocket, path):
-    async for message in websocket:
-        query = json.loads(message)
-
-        if "type" not in query:
-            return await unknown_message(websocket)
-
-        type = query["type"]
-        message = query["data"] if "data" in query else None
-
-        if "repo" not in message or "owner" not in message:
-            return await unknown_message(websocket)
+        target_theme = self.get_theme_from_gitpair(repo, owner)
+        if target_theme == None:
+            return self.error_message("Couldn't locate the target theme on disk!")
         
-        repo = message["repo"]
-        owner = message["owner"]
-
-        action_handlers = {
-            "checkInstall": lambda: check_install(repo, owner),
-            "uninstallTheme": lambda: uninstall_theme(repo, owner),
-            "installTheme": lambda: install_theme(repo, owner),
-            "setActiveTheme": lambda: handle_set_active_theme(repo, owner)
-        }
-
-        if type in action_handlers:
-            await websocket.send(json.dumps({ "type": type, "data": action_handlers[type]() }))
-        else:
-            await unknown_message(websocket)
-
-
-async def serve_websocket():
-    while True:
+        path = os.path.join(Millennium.steam_path(), "steamui", "skins", target_theme["native"])
+        if not os.path.exists(path):
+            return self.error_message("Couldn't locate the target theme on disk!")
+        
         try:
-            async with websockets.serve(echo, "localhost", 9123):
-                await asyncio.Future()  # run forever
+            logger.log(f"deleting theme {path}")
+            gc.collect()
+            shutil.rmtree(path, onerror=self.remove_readonly)
+            return json.dumps({'success': True})
         except Exception as e:
-            print(f"ipc socket closed on exception: {e}")
-            print("restarting websocket...")
-            await asyncio.sleep(5)  # Wait for 5 seconds before reconnecting
+            return json.dumps({'success': False, 'message': str(e)})
+        
 
-def start_websocket_server():
-    asyncio.set_event_loop(asyncio.new_event_loop())
-    asyncio.get_event_loop().run_until_complete(serve_websocket())
+    def install_theme(self, repo, owner):
 
-    start_websocket_server()
+        path = os.path.join(Millennium.steam_path(), "steamui", "skins", repo)
+        os.makedirs(path, exist_ok=True)
+
+        logger.log(f"Requesting to install theme -> {owner}/{repo} to {path}")
+
+        try:
+
+            if platform.system() == "Windows":
+                pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
+            elif platform.system() == "Linux":
+
+                use_system_libs()
+                logger.log("Attempting to clone repo from system git")
+                git.Repo.clone_from(f"https://github.com/{owner}/{repo}.git", path) 
+                unuse_system_libs()
+
+            gc.collect()
+            return json.dumps({'success': True})
+        except git.CommandError as e:
+            logger.error(f"Error cloning repository: {e}")
+        except Exception as e:
+            return json.dumps({'success': False, 'message': "Failed to clone the theme repository!"})
+        
+
+    def handle_set_active_theme(self, repo, owner):
+        target_theme = self.get_theme_from_gitpair(repo, owner)
+
+        if target_theme == None:
+            return json.dumps({'success': False, 'message': "Couldn't locate the target theme on disk!"})
+
+        cfg.change_theme(target_theme["native"])
+        Millennium.call_frontend_method("ReloadMillenniumFrontend")
+
+        return json.dumps({'success': True})
+
+    def __init__(self, host="localhost", port=9123):
+        self.host = host
+        self.port = port
+        self.server = None
+        self.loop = None
+        self.thread = None
+        self.stop_event = asyncio.Event()
+
+    async def handler(self, websocket, path):
+        
+        logger.log("Client connected")
+        try:
+            while not self.stop_event.is_set():
+                # Wait for a message from the client
+                message = await websocket.recv()
+                query = json.loads(message)
+
+                if "type" not in query:
+                    return await self.unknown_message(websocket)
+
+                type = query["type"]
+                message = query["data"] if "data" in query else None
+
+                if "repo" not in message or "owner" not in message:
+                    return await self.unknown_message(websocket)
+                
+                repo = message["repo"]
+                owner = message["owner"]
+
+                action_handlers = {
+                    "checkInstall": lambda: self.check_install(repo, owner),
+                    "uninstallTheme": lambda: self.uninstall_theme(repo, owner),
+                    "installTheme": lambda: self.install_theme(repo, owner),
+                    "setActiveTheme": lambda: self.handle_set_active_theme(repo, owner)
+                }
+
+                if type in action_handlers:
+                    await websocket.send(json.dumps({ "type": type, "data": action_handlers[type]() }))
+                else:
+                    await self.unknown_message(websocket)
+                
+                # Send a response back
+                await websocket.send(f"Server received: {message}")
+        except websockets.ConnectionClosed:
+            logger.log("Client disconnected")
+
+    async def start_server(self):
+        # Start WebSocket server
+        self.server = await websockets.serve(self.handler, self.host, self.port)
+        logger.log(f"Server started on ws://{self.host}:{self.port}")
+        
+        # Run server until stop event is set
+        await self.stop_event.wait()
+        
+        # Close server gracefully
+        self.server.close()
+        await self.server.wait_closed()
+        logger.log("Server stopped")
+
+    def _run_loop(self):
+        # Create and run the event loop in the thread
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(self.start_server())
+
+    def start(self):
+        # Start server on a new thread
+        self.thread = threading.Thread(target=self._run_loop)
+        self.thread.start()
+
+    def stop(self):
+        # Signal to stop the server and close the loop
+        if self.loop and not self.loop.is_closed():
+            self.loop.call_soon_threadsafe(self.stop_event.set)
+            self.thread.join()
+            self.loop.close()
+        logger.log("Server thread closed")
