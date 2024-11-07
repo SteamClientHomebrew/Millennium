@@ -1,10 +1,14 @@
 import gc
 import Millennium # type: ignore
 import os, stat, json, shutil, websockets, asyncio
+from unix.use_system import unuse_system_libs, use_system_libs
+from util.logger import logger
 
 import platform
 if platform.system() == "Windows":
     import pygit2
+elif platform.system() == "Linux":
+    import git
 
 from api.config import cfg
 from api.themes import find_all_themes
@@ -35,7 +39,11 @@ def get_theme_from_gitpair(repo, owner):
     return None
 
 def check_install(repo, owner):
-    return False if get_theme_from_gitpair(repo, owner) == None else True
+
+    is_installed = False if get_theme_from_gitpair(repo, owner) == None else True
+    logger.log(f"Requesting to check install theme: {owner}/{repo} -> {is_installed}")
+
+    return is_installed
 
 def remove_readonly(func, path, exc_info):
     print(f"removing readonly file {exc_info}")
@@ -45,6 +53,8 @@ def remove_readonly(func, path, exc_info):
     func(path)
 
 def uninstall_theme(repo, owner):
+    logger.log(f"Requesting to uninstall theme -> {owner}/{repo}")
+
     target_theme = get_theme_from_gitpair(repo, owner)
     if target_theme == None:
         return error_message("Couldn't locate the target theme on disk!")
@@ -63,13 +73,27 @@ def uninstall_theme(repo, owner):
     
 
 def install_theme(repo, owner):
+
     path = os.path.join(Millennium.steam_path(), "steamui", "skins", repo)
     os.makedirs(path, exist_ok=True)
 
+    logger.log(f"Requesting to install theme -> {owner}/{repo} to {path}")
+
     try:
-        pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
+
+        if platform.system() == "Windows":
+            pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
+        elif platform.system() == "Linux":
+
+            use_system_libs()
+            logger.log("Attempting to clone repo from system git")
+            git.Repo.clone_from(f"https://github.com/{owner}/{repo}.git", path) 
+            unuse_system_libs()
+
         gc.collect()
         return json.dumps({'success': True})
+    except git.CommandError as e:
+        print(f"Error cloning repository: {e}")
     except Exception as e:
         return json.dumps({'success': False, 'message': "Failed to clone the theme repository!"})
     

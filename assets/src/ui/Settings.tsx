@@ -56,9 +56,9 @@ const PluginComponent: React.FC = () => {
 	}
 
 	useEffect(() => {
-		SteamClient.System.GetOSType().then((osType: number) => {
-			if (osType === -184) setUpdatesDisabled(true)
-		})
+		// SteamClient.System.GetOSType().then((osType: number) => {
+		// 	if (osType === -184) setUpdatesDisabled(true)
+		// })
 
 		Millennium.findElement(pluginSelf.settingsDoc, ".DialogBody").then(_ => {
 			if (pluginSelf?.OpenOnUpdatesPanel ?? false) {

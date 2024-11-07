@@ -426,7 +426,7 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
         std::unique_lock<std::mutex> lock(mtx);
         cv.wait(lock, [&] { return hasSuccess && hasPaused; });
     } 
-    catch (const std::system_error& e) 
+    catch (const std::system_error& e)
     {
         LOG_ERROR("Condition variable wait error: {}", e.what());
         return;
