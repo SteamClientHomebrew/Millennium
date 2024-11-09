@@ -1,3 +1,16 @@
+# [2.14.0](https://github.com/shdwmtr/millennium/compare/v2.13.1...v2.14.0) (2024-11-09)
+
+
+### Bug Fixes
+
+* **Linux:** Fix hang on shutdown [#142](https://github.com/shdwmtr/millennium/issues/142) ([e8e9790](https://github.com/shdwmtr/millennium/commit/e8e9790099c50ef804301995d56a21ade8b7295d))
+
+
+### Features
+
+* Better error logging for plugin backends ([45433c0](https://github.com/shdwmtr/millennium/commit/45433c03842227c80c9482d649b9aff2641c55d0))
+* **Unix:** Add theme auto installer & update manager ([2a8a880](https://github.com/shdwmtr/millennium/commit/2a8a8803a160f5abfd503c2a84be8371c7f13e81))
+
 ## [2.13.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.13.0...v2.13.1) (2024-11-03)
 
 
