@@ -80,6 +80,5 @@ For normal users, installing via the installers makes the most sense. However wh
 Supported Platforms:
 
 - Windows (x86/x64/ARM) NT (10 and newer)
-- Linux (WIP, [Learn more](https://docs.steambrew.app/users/installing#linux))
-
-As of now, Millennium only has official support for Windows. Although Millennium works on Linux, its still in development and you should expect bugs. If you face issues on Linux, report them on this repository.
+- Linux (x84/x86_64/i686/i386)
+- OSX (Support planned, WIP)
