@@ -97,7 +97,7 @@ class WebSocketServer:
 
             gc.collect()
             return json.dumps({'success': True})
-        except git.CommandError as e:
+        except git.CommandError if platform.system() == "Linux" else pygit2.GitError as e:
             logger.error(f"Error cloning repository: {e}")
         except Exception as e:
             return json.dumps({'success': False, 'message': "Failed to clone the theme repository!"})
