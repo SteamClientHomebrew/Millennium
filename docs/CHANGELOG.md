@@ -1,3 +1,10 @@
+## [2.14.1](https://github.com/shdwmtr/millennium/compare/v2.14.0...v2.14.1) (2024-11-09)
+
+
+### Bug Fixes
+
+* Fix theme editor. ([6446ebe](https://github.com/shdwmtr/millennium/commit/6446ebe8b7d60dce828ce318a83009f9d1634a0b))
+
 # [2.14.0](https://github.com/shdwmtr/millennium/compare/v2.13.1...v2.14.0) (2024-11-09)
 
 
