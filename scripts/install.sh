@@ -164,5 +164,4 @@ esac
 
 log "${BOLD_PINK}++${RESET} Millennium@v$tag was installed successfully to $millennium_install"
 
-# log "\nRun 'millennium apply' to apply Millennium."
-log "\nRun 'millennium --help' for further instructions."
+log "\n${BOLD_PINK}::${RESET} To start Millennium along side Steam, run ~/.millennium/start.sh\n   Steam MUST be started from this script to work properly with Millennium.\n   Your base installation of Steam has not been modified, this is simply an extension."
