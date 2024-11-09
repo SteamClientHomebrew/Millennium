@@ -270,8 +270,6 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
 
         Logger.PrintMessage(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
-
-        PyErr_Print();  // Print the Python error to stderr
         Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
         backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
