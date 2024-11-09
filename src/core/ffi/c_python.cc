@@ -1,6 +1,7 @@
 #include "ffi.h"
 #include <core/py_controller/co_spawn.h>
 #include <iostream>
+#include <tuple>
 
 std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
 {
@@ -35,6 +36,57 @@ std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
     return strFunctionCall;
 }
 
+std::tuple<std::string, std::string> Python::GetExceptionInformaton() 
+{
+    PyObject* typeObj = nullptr;
+    PyObject* valueObj = nullptr;
+    PyObject* traceBackObj = nullptr;
+    
+    PyErr_Fetch(&typeObj, &valueObj, &traceBackObj);
+    PyErr_NormalizeException(&typeObj, &valueObj, &traceBackObj);
+
+    if (!valueObj) 
+    {
+        return { "Unknown Error.", "Unknown Error." };
+    }
+
+    PyObject* pStrErrorMessage = PyObject_Str(valueObj);
+    const char* errorMessage = pStrErrorMessage ? PyUnicode_AsUTF8(pStrErrorMessage) : "Unknown Error.";
+    
+    std::string tracebackText;
+    if (traceBackObj) 
+    {
+        PyObject* tracebackModule = PyImport_ImportModule("traceback");
+        if (tracebackModule) 
+        {
+            PyObject* formatExceptionFunc = PyObject_GetAttrString(tracebackModule, "format_exception");
+            if (formatExceptionFunc && PyCallable_Check(formatExceptionFunc)) 
+            {
+                PyObject* tracebackList = PyObject_CallFunctionObjArgs(formatExceptionFunc, typeObj, valueObj, traceBackObj, NULL);
+                if (tracebackList) 
+                {
+                    PyObject* tracebackStr = PyUnicode_Join(PyUnicode_FromString(""), tracebackList);
+                    if (tracebackStr) 
+                    {
+                        tracebackText = PyUnicode_AsUTF8(tracebackStr);
+                        Py_DECREF(tracebackStr);
+                    }
+                    Py_DECREF(tracebackList);
+                }
+                Py_DECREF(formatExceptionFunc);
+            }
+            Py_DECREF(tracebackModule);
+        }
+    }
+
+    Py_XDECREF(typeObj);
+    Py_XDECREF(valueObj);
+    Py_XDECREF(traceBackObj);
+    Py_XDECREF(pStrErrorMessage);
+
+    return { errorMessage, tracebackText };
+}
+
 const Python::EvalResult EvaluatePython(std::string pluginName, std::string script) 
 {
     PyObject* globalDictionaryObj = PyModule_GetDict(PyImport_AddModule("__main__"));
@@ -42,21 +94,9 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
 
     if (!EvaluatedObj && PyErr_Occurred()) 
     {
-        PyObject* typeObj, *valueObj, *traceBackObj;
-        PyErr_Fetch(&typeObj, &valueObj, &traceBackObj);
-        PyErr_NormalizeException(&typeObj, &valueObj, &traceBackObj);
+        const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
 
-        PyObject* pStrErrorMessage = PyObject_Str(valueObj);
-        if (pStrErrorMessage) 
-        {
-            const char* errorMessage = PyUnicode_AsUTF8(pStrErrorMessage);
-            Python::EvalResult exceptionResult = { errorMessage ? errorMessage : "Unknown Error.", Python::Types::Error };
-
-            Logger.PrintMessage(" FFI-ERR ", fmt::format("An error occurred while calling a backend method from [{}].", pluginName), COL_RED);
-            Logger.PrintMessage(" TRACE ", fmt::format("{} -> {}", script, exceptionResult.plain), COL_RED);
-
-            return exceptionResult;
-        }
+        Logger.PrintMessage(" FFI-ERROR ", fmt::format("Failed to call {}: {}\n{}{}", script, COL_RED, traceback, COL_RESET), COL_RED);
     }
 
     if (EvaluatedObj == nullptr || EvaluatedObj == Py_None) 
@@ -124,7 +164,23 @@ void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string scrip
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     pythonGilLock->HoldAndLockGILOnThread(threadState);
     {
-        PyRun_SimpleString(script.c_str());
+        PyObject* globalDictionaryObj = PyModule_GetDict(PyImport_AddModule("__main__"));
+        PyObject* EvaluatedObj = PyRun_String(script.c_str(), Py_eval_input, globalDictionaryObj, globalDictionaryObj);
+
+        if (!EvaluatedObj && PyErr_Occurred()) 
+        {
+            const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
+            PyErr_Clear();
+
+            if (errorMessage == "name 'plugin' is not defined")
+            {
+                Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call {} on {} as the function "
+                    "does not exist, or the interpreter crashed before it was loaded.", script, pluginName), COL_RED);
+                return;
+            }
+
+            Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call {} on {}: {}\n{}{}", script, pluginName, COL_RED, traceback, COL_RESET), COL_RED);
+        }
     }
     pythonGilLock->ReleaseAndUnLockGIL();
 }

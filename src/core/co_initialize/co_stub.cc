@@ -7,6 +7,7 @@
 #include <core/loader.h>
 #include <core/hooks/web_load.h>
 #include <core/ffi/ffi.h>
+#include <tuple>
 
 const std::string GetBootstrapModule(const std::string scriptModules, const uint16_t port)
 {
@@ -156,13 +157,27 @@ void AddSitePackagesDirectory(std::filesystem::path customPath)
 
 /// @brief initializes the current plugin. creates a plugin instance and calls _load()
 /// @param global_dict 
-void StartPluginBackend(PyObject* global_dict) 
+void StartPluginBackend(PyObject* global_dict, std::string pluginName) 
 {
+    const auto PrintError = [&pluginName]() 
+    {
+        const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
+        PyErr_Clear();
+
+        if (errorMessage == "name 'plugin' is not defined")
+        {
+            Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call _load on {}", pluginName), COL_RED);
+            return;
+        }
+
+        Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call _load on {}: {}\n{}{}", pluginName, COL_RED, traceback, COL_RESET), COL_RED);
+    };
+
     PyObject *pluginComponent = PyDict_GetItemString(global_dict, "Plugin");
 
     if (!pluginComponent || !PyCallable_Check(pluginComponent)) 
     {
-        PyErr_Print(); 
+        PrintError();
         return;
     }
 
@@ -170,7 +185,7 @@ void StartPluginBackend(PyObject* global_dict)
 
     if (!pluginComponentInstance) 
     {
-        PyErr_Print(); 
+        PrintError();
         return;
     }
 
@@ -179,7 +194,7 @@ void StartPluginBackend(PyObject* global_dict)
 
     if (!loadMethodAttribute || !PyCallable_Check(loadMethodAttribute)) 
     {
-        PyErr_Print(); 
+        PrintError();
         return;
     }
 
@@ -237,15 +252,33 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         return;
     }
 
-    if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
-    {
-        Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
-        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+    PyObject* mainModule = PyImport_AddModule("__main__");
+    PyObject* mainModuleDict = PyModule_GetDict(mainModule);
 
+    if (!mainModule || !mainModuleDict) {
+        Logger.Warn("Millennium failed to initialize the main module.");
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        fclose(mainModuleFilePtr);
         return;
     }
 
-    StartPluginBackend(globalDictionary);  
+    PyObject* result = PyRun_File(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict);
+    fclose(mainModuleFilePtr);
+
+    if (!result) 
+    {
+        const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
+
+        Logger.PrintMessage(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
+
+        PyErr_Print();  // Print the Python error to stderr
+        Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        return;
+    }
+
+    Py_DECREF(result);
+    StartPluginBackend(globalDictionary, plugin.pluginName);  
 }
 
 const std::string ConstructScriptElement(std::string filename) 

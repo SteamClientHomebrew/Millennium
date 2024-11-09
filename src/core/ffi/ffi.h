@@ -38,6 +38,7 @@ namespace Python {
 	};
 
 	std::string ConstructFunctionCall(nlohmann::basic_json<> data);
+    std::tuple<std::string, std::string> GetExceptionInformaton();
 
 	EvalResult LockGILAndEvaluate(std::string pluginName, std::string script);
 	void LockGILAndDiscardEvaluate(std::string pluginName, std::string script);
