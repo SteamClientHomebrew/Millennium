@@ -2,38 +2,26 @@
 
 const void ShutdownShim(HINSTANCE hinstDLL)
 {
-    // Unload current module
     FreeLibraryAndExitThread(hinstDLL, 0);
 }
 
 const void LoadMillennium(HINSTANCE hinstDLL)
 {
     HMODULE hMillennium = LoadLibrary(TEXT("millennium.dll"));
-    if (hMillennium == nullptr) {
+    if (hMillennium == nullptr) 
+    {
         MessageBoxA(nullptr, "Failed to load millennium.dll", "Error", MB_ICONERROR);
-        return; // Exit with error code
+        return;
     }
 
     CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)ShutdownShim, hinstDLL, 0, nullptr);
 }
 
-BOOL WINAPI DllMain(
-    HINSTANCE hinstDLL,  // handle to DLL module
-    DWORD fdwReason,     // reason for calling function
-    LPVOID lpvReserved )  // reserved
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-    switch (fdwReason) 
+    if (fdwReason == DLL_PROCESS_ATTACH) 
     {
-        case DLL_PROCESS_ATTACH: 
-        {
-            LoadMillennium(hinstDLL);
-            break;
-        }
-        case DLL_PROCESS_DETACH: 
-        {
-            // ShutdownShim();
-            break;
-        }
+        LoadMillennium(hinstDLL);
     }
 
     return true;
