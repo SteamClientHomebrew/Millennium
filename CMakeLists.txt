@@ -64,6 +64,10 @@ add_compile_definitions(
   _CRT_SECURE_NO_WARNINGS
 )
 
+if (WIN32)
+  add_subdirectory(win32)
+endif()
+
 add_subdirectory(cli)
 
 find_package(CURL REQUIRED) # used for web requests. 
@@ -120,7 +124,7 @@ if (NOT APPLE)
 endif()
 
 if (WIN32)
-  set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
+  set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
   set_target_properties(Millennium PROPERTIES PREFIX "")
   set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
 endif()
