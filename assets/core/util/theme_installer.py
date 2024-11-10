@@ -122,7 +122,7 @@ class WebSocketServer:
         self.thread = None
         self.stop_event = asyncio.Event()
 
-    async def handler(self, websocket, path):
+    async def handler(self, websocket):
         
         logger.log("Client connected")
         try:
