@@ -1,3 +1,10 @@
+# [2.15.0](https://github.com/shdwmtr/millennium/compare/v2.14.2...v2.15.0) (2024-11-12)
+
+
+### Features
+
+* Binary stripping on release modules to drastically reduce binary size ([45734f2](https://github.com/shdwmtr/millennium/commit/45734f2be936a2ed58072f96d52c5d68945d6e71))
+
 ## [2.14.2](https://github.com/shdwmtr/millennium/compare/v2.14.1...v2.14.2) (2024-11-12)
 
 
