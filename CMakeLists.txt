@@ -19,6 +19,11 @@ if (NOT APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 endif()
 
+if (WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -s")
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
+endif()
+
 project(Millennium LANGUAGES CXX)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
