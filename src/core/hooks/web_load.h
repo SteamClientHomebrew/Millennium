@@ -27,7 +27,10 @@ public:
     void DispatchSocketMessage(nlohmann::basic_json<> message);
     void SetupGlobalHooks();
 
+    void SetIPCPort(uint16_t ipcPort) { m_ipcPort = ipcPort; }
+
 private:
+    uint16_t m_ipcPort;
     long long hookMessageId = -69;
 
     // must share the same base url, or be whitelisted.

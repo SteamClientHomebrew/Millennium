@@ -44,6 +44,67 @@ namespace Http
         return response;
     }
 
+    static nlohmann::json ParseHeaders(const std::string& headers) 
+    {
+        nlohmann::json jsonHeaders = nlohmann::json::array();
+        std::istringstream stream(headers);
+        std::string line;
+        
+        while (std::getline(stream, line)) 
+        {
+            if (line.find(':') != std::string::npos) 
+            {
+                std::string name = line.substr(0, line.find(':'));
+                std::string value = line.substr(line.find(':') + 1);
+                
+                value.erase(0, value.find_first_not_of(" \t"));
+                value.erase(value.find_last_not_of(" \t\r\n") + 1);
+
+                jsonHeaders.push_back({{"name", name}, {"value", value}});
+            }
+        }
+        return jsonHeaders;
+    }
+
+    static std::pair<std::string, long> GetWithHeaders(const char* url, nlohmann::json headers, std::string userAgent, nlohmann::json& responseHeadersJson) 
+    {
+        struct curl_slist* headersList = NULL;
+
+        for (auto& [key, value] : headers.items()) 
+        {
+            headersList = curl_slist_append(headersList, fmt::format("{}: {}", key, value.get<std::string>()).c_str());
+        }
+
+        CURL* curl;
+        CURLcode res;
+        std::string response;
+        std::string responseHeaders;
+        long statusCode = 0;
+
+        curl = curl_easy_init();
+        if (curl) 
+        {
+            curl_easy_setopt(curl, CURLOPT_URL, url);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headersList);
+
+            curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, +[](char* buffer, size_t size, size_t nitems, std::string* userdata) -> size_t {
+                userdata->append(buffer, size * nitems);
+                return size * nitems;
+            });
+            curl_easy_setopt(curl, CURLOPT_HEADERDATA, &responseHeaders);
+            res = curl_easy_perform(curl);
+            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &statusCode);
+            responseHeadersJson = ParseHeaders(responseHeaders);
+            curl_easy_cleanup(curl);
+        }
+        curl_slist_free_all(headersList);
+
+        return {response, statusCode};
+    }
+
     static bool DownloadFile(const char* url, const char* filename) 
     {
         CURL* curl;

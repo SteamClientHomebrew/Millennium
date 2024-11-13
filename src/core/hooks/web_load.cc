@@ -3,6 +3,8 @@
 #include <core/loader.h>
 #include <core/ffi/ffi.h>
 #include <sys/encoding.h>
+#include <sys/http.h>   
+#include <unordered_set>
 // #include <boxer/boxer.h>
 
 WebkitHandler WebkitHandler::get() 
@@ -19,6 +21,8 @@ void WebkitHandler::SetupGlobalHooks()
             { "patterns", {
                 { { "urlPattern", "https://*.*.com/public/shared/css/buttons.css*" }, { "resourceType", "Stylesheet" }, { "requestStage", "Response" }  },
                 { { "urlPattern", "https://*.*.com/public/shared/javascript/shared_global.js*" }, { "resourceType", "Script" }, { "requestStage", "Response" } },
+                { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Request" } },
+
                 
                 { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } }
             }
@@ -34,6 +38,127 @@ bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message)
 
 std::string WebkitHandler::HandleJsHook(std::string body) 
 {
+    const static std::string API = R"(
+
+    if (typeof window.MILLENNIUM_BACKEND_IPC === 'undefined')
+    {
+    const IPCMain = {
+        postMessage: function(messageId, contents) {
+            return new Promise(function(resolve) {
+
+                const message = { id: messageId, iteration: window.CURRENT_IPC_CALL_COUNT++, data: contents };
+
+                const messageHandler = function(data) {
+                    const json = JSON.parse(data.data);
+
+                    // Wait to receive the correct message id from the backend
+                    if (json.id !== message.iteration) return;
+
+                    resolve(json);
+                    window.MILLENNIUM_IPC_SOCKET.removeEventListener('message', messageHandler);
+                };
+
+                window.MILLENNIUM_IPC_SOCKET.addEventListener('message', messageHandler);
+                window.MILLENNIUM_IPC_SOCKET.send(JSON.stringify(message));
+            });
+        }
+    };
+
+    window.MILLENNIUM_BACKEND_IPC = IPCMain;
+
+    window.Millennium = {
+        callServerMethod: function(pluginName, methodName, kwargs) {
+            return new Promise(function(resolve, reject) {
+                const query = {
+                    pluginName: pluginName,
+                    methodName: methodName,
+                    ...(kwargs && { argumentList: kwargs })
+                };
+
+                // Call handled from "src\core\ipc\pipe.cpp @ L:67"
+                window.MILLENNIUM_BACKEND_IPC.postMessage(0, query).then(function(response) {
+                    if (response && response.failedRequest) {
+                        reject(`IPC call from [name: ${pluginName}, method: ${methodName}] failed on exception -> ${response.failMessage}`);
+                    }
+
+                    const responseStream = response.returnValue;
+                    // FFI backend encodes string responses in base64 to avoid encoding issues
+                    resolve(typeof responseStream === 'string' ? atob(responseStream) : responseStream);
+                });
+            });
+        },
+        findElement: function(privateDocument, querySelector, timeout) {
+            return new Promise(function(resolve, reject) {
+                const matchedElements = privateDocument.querySelectorAll(querySelector);
+
+                // Node is already in DOM and doesn't require watchdog
+                if (matchedElements.length) {
+                    resolve(matchedElements);
+                    return;
+                }
+
+                let timer = null;
+
+                const observer = new MutationObserver(function() {
+                    const matchedElements = privateDocument.querySelectorAll(querySelector);
+                    if (matchedElements.length) {
+                        if (timer) clearTimeout(timer);
+
+                        observer.disconnect();
+                        resolve(matchedElements);
+                    }
+                });
+
+                // Observe the document body for item changes, assuming we are waiting for target element
+                observer.observe(privateDocument.body, {
+                    childList: true,
+                    subtree: true
+                });
+
+                if (timeout) {
+                    timer = setTimeout(function() {
+                        observer.disconnect();
+                        reject();
+                    }, timeout);
+                }
+            });
+        }
+    };
+
+
+    function createWebSocket(url) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();  // Record the start time
+            
+            try {
+                let socket = new WebSocket(url);
+                socket.addEventListener('open', () => {
+                    const endTime = Date.now();  // Record the end time
+                    const connectionTime = endTime - startTime;  // Calculate the connection time
+                    console.log('%c Millennium ', 'background: black; color: white', 
+                                `Successfully connected to IPC server. Connection time: ${connectionTime}ms.`);
+                    resolve(socket);
+                });
+                socket.addEventListener('close', () => {
+                    setTimeout(() => {
+                        createWebSocket(url).then(resolve).catch(reject);
+                    }, 100);
+                });
+            } 
+            catch (error) {
+                console.warn('Failed to connect to IPC server:', error);
+            } 
+        });
+    }
+
+    createWebSocket('ws://localhost:)" + std::to_string(m_ipcPort) + R"(').then((socket) => {
+        window.MILLENNIUM_IPC_SOCKET = socket;
+        window.CURRENT_IPC_CALL_COUNT = 0;
+    })
+    .catch((error) => console.error('Initial WebSocket connection failed:', error));
+    }
+    )";
+
     std::string scriptTagInject;
 
     for (auto& hookItem : *m_hookListPtr) 
@@ -46,8 +171,8 @@ std::string WebkitHandler::HandleJsHook(std::string body)
         std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
         
         scriptTagInject.append(fmt::format(
-            "document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}{}', type: 'module', id: 'millennium-injected' }}));\n", 
-            this->m_javaScriptVirtualUrl, relativePath.generic_string()
+            "{}\ndocument.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}{}', type: 'module', id: 'millennium-injected' }}));\n", 
+            API, this->m_javaScriptVirtualUrl, relativePath.generic_string()
         ));
     }
     return scriptTagInject + body;
@@ -139,7 +264,7 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
         {
             auto [id, request_id, type] = (*requestIterator);
 
-            if (message["id"] != id || !message["result"]["base64Encoded"])
+            if (type == "Document" || message["id"] != id || !message["result"]["base64Encoded"])
             {
                 requestIterator++;
                 continue;
@@ -181,11 +306,69 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
 
 void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
 {
+    // if (message.value("method", "").find("Debugger.") == std::string::npos)
+    // {
+    //     Logger.Log(message.dump(4));
+    // }
+
     try 
     {
         if (message["method"] == "Fetch.requestPaused")
         {
-            switch (this->IsGetBodyCall(message))
+            if (message["params"]["resourceType"] == "Document")
+            {
+
+                std::string requestId  = message["params"]["requestId"].get<std::string>();
+                std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
+                nlohmann::json requestHeaders = message["params"]["request"]["headers"];
+
+                nlohmann::json responseHeaders = nlohmann::json::array({
+                    {
+                        { "name", "Content-Security-Policy" },
+                        { "value", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:;" }
+                    },
+                    {
+                        { "name", "Access-Control-Allow-Origin" },
+                        { "value", "*" }
+                    }
+                });
+
+                for (auto& [key, value] : requestHeaders.items())
+                {
+                    responseHeaders.push_back({ { "name", key }, { "value", value } });
+                }
+
+                nlohmann::json responseHeadersJson;
+
+                const auto [originalContent, statusCode] = Http::GetWithHeaders(requestUrl.c_str(), requestHeaders, requestHeaders.value("User-Agent", ""), responseHeadersJson);
+
+                for (const auto& item : responseHeadersJson)
+                {
+                    bool keyExists = std::any_of(responseHeaders.begin(), responseHeaders.end(),
+                                                [&](const nlohmann::json& existingHeader) {
+                                                    return existingHeader.at("name") == item.at("name");
+                                                });
+
+                    if (!keyExists) {
+                        responseHeaders.push_back(item);
+                    }
+                }
+
+                nlohmann::json message = {
+                    { "id", 63453 },
+                    { "method", "Fetch.fulfillRequest" },
+                    { "params", {
+                        { "requestId", requestId },
+                        { "responseCode", statusCode },
+                        { "responseHeaders", responseHeaders },
+                        { "body", Base64Encode(originalContent) }
+                    }}
+                };  
+
+                Sockets::PostGlobal(message);
+
+            }
+            else switch (this->IsGetBodyCall(message))
             {
                 case true: 
                 {
