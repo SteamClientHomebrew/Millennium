@@ -73,6 +73,14 @@ function Start-Steam {
     }
 
     Start-Process -FilePath $steamExe -ArgumentList "-verbose"
+
+    Start-Sleep -Seconds 5
+
+    $steamProcess = Get-Process -Name "steam" -ErrorAction SilentlyContinue
+    if ($steamProcess) {
+        Write-Output "${BoldPurple}++${ResetColor} Steam has launched successfully. Closing script..."
+        exit
+    }
 }
 
 # Kill steam process before installing
