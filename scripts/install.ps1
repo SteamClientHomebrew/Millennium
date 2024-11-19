@@ -73,14 +73,6 @@ function Start-Steam {
     }
 
     Start-Process -FilePath $steamExe -ArgumentList "-verbose"
-
-    Start-Sleep -Seconds 5
-
-    $steamProcess = Get-Process -Name "steam" -ErrorAction SilentlyContinue
-    if ($steamProcess) {
-        Write-Output "${BoldPurple}++${ResetColor} Steam has launched successfully. Closing script..."
-        exit
-    }
 }
 
 # Kill steam process before installing
@@ -448,6 +440,13 @@ while ($pipeServer.IsConnected) {
     if ($bytesRead -gt 0) {           
         $message = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
         [Console]::Write($message)
+        
+        # Check if the message contains "SteamUI successfully loaded"
+        if ($message -match "CORE SteamUI successfully loaded!") {
+            Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
+            Start-Sleep -Seconds 2
+            exit
+        }
     }
 }
 
