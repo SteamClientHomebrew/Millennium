@@ -442,7 +442,7 @@ while ($pipeServer.IsConnected) {
         [Console]::Write($message)
         
         # Check if the message contains "SteamUI successfully loaded"
-        if ($message -match "CORE SteamUI successfully loaded!") {
+        if ($message -match "SteamUI successfully loaded!") {
             Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
             Start-Sleep -Seconds 2
             exit
