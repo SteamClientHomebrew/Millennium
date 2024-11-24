@@ -440,6 +440,13 @@ while ($pipeServer.IsConnected) {
     if ($bytesRead -gt 0) {           
         $message = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
         [Console]::Write($message)
+        
+        # Check if the message contains "SteamUI successfully loaded"
+        if ($message -match "SteamUI successfully loaded!") {
+            Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
+            Start-Sleep -Seconds 2
+            exit
+        }
     }
 }
 
