@@ -263,7 +263,7 @@ const ThemeViewModal: React.FC = () => {
 
                 <Field
                     label={locale.themePanelInjectCSS}
-                    description={locale.themePanelInjectCSSToolTip}
+                    description={locale.themePanelInjectJavascriptToolTip}
                 >
                     {cssState !== undefined && (
                         <Toggle value={cssState} onChange={onStyleToggle} />
