@@ -198,6 +198,7 @@ const void PluginLoader::InjectWebkitShims()
         {
             if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end())
             {
+                Logger.Log("Removing hook for module id: {}", it->id);
                 it = moduleList->erase(it);
             }
             else ++it;
@@ -209,14 +210,14 @@ const void PluginLoader::InjectWebkitShims()
 
     for (auto& plugin : allPlugins)
     {
-        const auto absolutePath     = SystemIO::GetSteamPath() / "plugins" / plugin.webkitAbsolutePath;
+        const auto absolutePath = SystemIO::GetSteamPath() / "plugins" / plugin.webkitAbsolutePath;
 
         if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
         {
             g_hookedModuleId++;
             hookIds.push_back(g_hookedModuleId);
 
-            Logger.Log("\n\n\n\nInjecting Webkit shims for '{}'\n\n\n", plugin.pluginName);
+            Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId);
             WebkitHandler::get().m_hookListPtr->push_back({ absolutePath.generic_string(), WebkitHandler::TagTypes::JAVASCRIPT, g_hookedModuleId });
         }
     }
