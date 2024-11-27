@@ -225,7 +225,7 @@ function PrettyPrintSizeOnDisk {
 }
 
 $assets = @(
-    "Millennium", @("user32.dll", "python311.dll")
+    "Millennium", @("user32.dll", "python311.dll", "millennium.dll")
     "Core Modules", "ext/data/assets"
     "Python Cache", "ext/data/cache"
     "User Plugins", "plugins"

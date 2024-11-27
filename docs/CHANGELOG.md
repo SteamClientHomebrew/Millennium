@@ -1,3 +1,19 @@
+# [2.15.0](https://github.com/shdwmtr/millennium/compare/v2.14.2...v2.15.0) (2024-11-12)
+
+
+### Features
+
+* Binary stripping on release modules to drastically reduce binary size ([45734f2](https://github.com/shdwmtr/millennium/commit/45734f2be936a2ed58072f96d52c5d68945d6e71))
+
+## [2.14.2](https://github.com/shdwmtr/millennium/compare/v2.14.1...v2.14.2) (2024-11-12)
+
+
+### Bug Fixes
+
+* Fix the CI ([7c29d23](https://github.com/shdwmtr/millennium/commit/7c29d23fecaf2f3f6b760bf95f5d368db87e2a3f))
+* Fix theme installer not working ([559ae66](https://github.com/shdwmtr/millennium/commit/559ae6617d79f2772bace63d3df1b4f049b764c2))
+* Hopefully help prevent false positives ([d448ab1](https://github.com/shdwmtr/millennium/commit/d448ab12ed0b8bda10a17ced92123b91a2ef06ad))
+
 ## [2.14.1](https://github.com/shdwmtr/millennium/compare/v2.14.0...v2.14.1) (2024-11-09)
 
 

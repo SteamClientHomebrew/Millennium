@@ -19,6 +19,11 @@ if (NOT APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 endif()
 
+if (WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -s")
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
+endif()
+
 project(Millennium LANGUAGES CXX)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
@@ -63,6 +68,10 @@ add_compile_definitions(
   FMT_HEADER_ONLY
   _CRT_SECURE_NO_WARNINGS
 )
+
+if (WIN32)
+  add_subdirectory(win32)
+endif()
 
 add_subdirectory(cli)
 
@@ -120,7 +129,7 @@ if (NOT APPLE)
 endif()
 
 if (WIN32)
-  set_target_properties(Millennium PROPERTIES OUTPUT_NAME "user32")
+  set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
   set_target_properties(Millennium PROPERTIES PREFIX "")
   set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
 endif()

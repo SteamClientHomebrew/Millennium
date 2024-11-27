@@ -137,7 +137,10 @@ export default async function PluginMain() {
     const startTime = performance.now();
 
     pluginSelf.WatchDog = WatchDog // Expose WatchDog to the global scope
-    Settings.FetchAllSettings().then((result: SettingsProps) => InitializePatcher(startTime, result))
+    Settings.FetchAllSettings().then((result: SettingsProps) => { 
+        InitializePatcher(startTime, result)
+        Millennium.AddWindowCreateHook(windowCreated)
+    })
 
     // @todo: fix notificaitons modal
     // Millennium.callServerMethod("updater.get_update_list")
@@ -151,6 +154,4 @@ export default async function PluginMain() {
     //         console.error("Failed to fetch updates")
     //         pluginSelf.connectionFailed = true
     //     })
-
-    Millennium.AddWindowCreateHook(windowCreated)
 }

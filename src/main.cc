@@ -80,8 +80,6 @@ const static void EntryMain()
 
     backendThread.join();
     frontendThreads.join();
-
-    // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 }
 
 #ifdef _WIN32
@@ -98,7 +96,7 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
         }
         case DLL_PROCESS_DETACH: 
         {
-            Logger.PrintMessage(" MAIN ", "Shutting down Millennium...", COL_MAGENTA);
+            Logger.Log("Shutting down Millennium...");
             std::exit(EXIT_SUCCESS);
             g_threadTerminateFlag->flag.store(true);
             Sockets::Shutdown();

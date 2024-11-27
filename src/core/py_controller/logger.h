@@ -105,4 +105,4 @@ typedef struct
 LoggerObject;
 
 extern PyTypeObject LoggerType;
-PyMODINIT_FUNC PyInit_Logger(void);
+PyObject* PyInit_Logger(void);

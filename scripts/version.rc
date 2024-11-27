@@ -5,8 +5,8 @@
 
 #define VER_COMPANYNAME_STR         "Steam Homebrew\0"
 #define VER_FILEDESCRIPTION_STR     "A plugin loader for the modern Steam Client\0"
-#define VER_INTERNALNAME_STR        "user32.dll\0"
-#define VER_ORIGINALFILENAME_STR    "user32.dll\0"
+#define VER_INTERNALNAME_STR        "millennium.dll\0"
+#define VER_ORIGINALFILENAME_STR    "millennium.dll\0"
 #define VER_LEGALCOPYRIGHT_STR      "Steam Homebrew 2024\0"
 #define VER_LEGALTRADEMARKS1_STR    "All Rights Reserved\0"
 #define VER_LEGALTRADEMARKS2_STR    "\0"

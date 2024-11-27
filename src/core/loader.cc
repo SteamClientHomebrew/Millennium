@@ -148,7 +148,10 @@ public:
         webKitHandler.SetupGlobalHooks();
     }
 
-    CEFBrowser(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) { }
+    CEFBrowser(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) 
+    {
+        webKitHandler.SetIPCPort(ipcPort);
+    }
 };
 
 const void PluginLoader::Initialize()

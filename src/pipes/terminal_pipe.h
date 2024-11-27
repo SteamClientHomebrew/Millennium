@@ -9,7 +9,7 @@
 
 #ifdef _WIN32
 extern "C" {
-    __declspec(dllexport) const int CreateTerminalPipe()
+    const int CreateTerminalPipe()
     {
         HANDLE hPipe = CreateFileA(R"(\\.\pipe\MillenniumStdoutPipe)", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
