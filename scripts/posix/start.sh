@@ -3,9 +3,16 @@
 # This function filters out the error message "from LD_PRELOAD cannot be preloaded" from 64 bit executables 
 # The messages are just failing module side effects and not fatal. 
 filter_output() {
-    local pattern='from LD_PRELOAD cannot be preloaded'
+    local patterns=('from LD_PRELOAD cannot be preloaded' 'Fontconfig warning: "' 'Fontconfig error: "')
     while IFS= read -r msg; do
-        if [[ ! "$msg" =~ $pattern ]]; then
+        local skip=false
+        for pattern in "${patterns[@]}"; do
+            if [[ "$msg" =~ $pattern ]]; then
+                skip=true
+                break
+            fi
+        done
+        if [[ "$skip" == false ]]; then
             printf '%s\n' "$msg"
         fi
     done
@@ -13,7 +20,7 @@ filter_output() {
 
 steam_output() {
     while IFS= read -r msg; do
-        printf '\033[35mSTEAM\033[0m %s\n' "$msg"
+        printf '%s\n' "$msg"
     done
 }
 

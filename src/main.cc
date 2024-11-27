@@ -173,6 +173,46 @@ extern "C"
         #endif
     }
 
+    void RemoveFromLdPreload() 
+    {
+        const std::string fileToRemove = std::filesystem::path(std::getenv("HOME")) / ".millennium" / "libMillennium.so";
+
+        const char* ldPreload = std::getenv("LD_PRELOAD");
+        if (!ldPreload) 
+        {
+            std::cerr << "LD_PRELOAD is not set." << std::endl;
+            return;
+        }
+
+        std::string token;
+        std::string ldPreloadStr = ldPreload;
+        std::istringstream iss(ldPreloadStr);
+        std::vector<std::string> updatedPreload;
+
+        // Split LD_PRELOAD by spaces and filter out fileToRemove
+        while (iss >> token) 
+        {
+            if (token != fileToRemove) 
+            {
+                updatedPreload.push_back(token);
+            }
+        }
+
+        // Join the remaining paths back into a single string
+        std::ostringstream oss;
+        for (size_t i = 0; i < updatedPreload.size(); ++i) 
+        {
+            if (i > 0) oss << ' ';
+            oss << updatedPreload[i];
+        }
+
+        // Set the updated LD_PRELOAD
+        if (setenv("LD_PRELOAD", oss.str().c_str(), 1) != 0) 
+        {
+            perror("setenv");
+        }
+    }
+
     #ifdef MILLENNIUM_SHARED
     /*
     * Trampoline for __libc_start_main() that replaces the real main
@@ -197,6 +237,9 @@ extern "C"
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }
 
+        /* Remove the Millennium library from LD_PRELOAD */
+        RemoveFromLdPreload();
+        /* Log that we've loaded Millennium */
         Logger.Log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
         /* ... and call it with our custom main function */
         return orig(MainHooked, argc, argv, init, fini, rtld_fini, stack_end);
