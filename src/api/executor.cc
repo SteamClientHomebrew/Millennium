@@ -116,8 +116,12 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
 
     return JavaScript::EvaluateFromSocket(
         // Check the the frontend code is actually loaded aside from SteamUI
-        fmt::format("class MillenniumFrontEndError extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }}"
-        "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new MillenniumFrontEndError('frontend not loaded yet!');\n\n{}", pluginName, script)
+        fmt::format(
+            "if (typeof MillenniumFrontEndError === 'undefined') {{ class MillenniumFrontEndError extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
+            "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new MillenniumFrontEndError('frontend not loaded yet!');\n\n{}", 
+            pluginName, 
+            script
+        )
     );
 }
 

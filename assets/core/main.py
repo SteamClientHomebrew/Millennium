@@ -25,7 +25,7 @@ def inject_webkit_shim(shim_script: str):
         f.write(shim_script)
         f.close()
 
-    add_browser_js(os.path.join(Millennium.steam_path(), "shim.js"))
+    add_browser_js("shim.js")
 
 def get_load_config():
     millennium = configparser.ConfigParser()

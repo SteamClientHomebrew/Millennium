@@ -21,6 +21,7 @@ public:
         std::filesystem::path pluginBaseDirectory;
         std::filesystem::path backendAbsoluteDirectory;
         std::filesystem::path frontendAbsoluteDirectory;
+        std::filesystem::path webkitAbsolutePath;
         bool isInternal = false;
     };
 

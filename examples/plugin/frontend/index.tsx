@@ -17,6 +17,8 @@ function windowCreated(context: object)
     console.log(context)
 }
 
+
+
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
 

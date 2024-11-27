@@ -20,6 +20,7 @@ public:
 
 	const void StartBackEnds(PythonManager& manager);
 	const void StartFrontEnds();
+	const void InjectWebkitShims();
 
 private:
 	const void Initialize();

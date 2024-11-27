@@ -143,10 +143,10 @@ class Config:
 
         for key in keys:
             if key in theme["data"] and isinstance(theme["data"][key], str):
-                add_browser_css(os.path.join(Millennium.steam_path(), "skins", name, theme["data"][key]))
+                add_browser_css(os.path.join(Millennium.steam_path(), "steamui", "skins", name, theme["data"][key]))
 
         if "webkitJS" in theme["data"] and isinstance(theme["data"]["webkitJS"], str):
-            add_browser_js(os.path.join(Millennium.steam_path(), "skins", name, theme["data"]["webkitJS"]))
+            add_browser_js(os.path.join(Millennium.steam_path(), "steamui", "skins", name, theme["data"]["webkitJS"]))
 
 
     def setup_colors(self, file_path):

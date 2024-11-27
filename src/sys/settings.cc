@@ -169,9 +169,10 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     
     plugin.pluginJson = json;
     plugin.pluginName = json["name"];
-    plugin.pluginBaseDirectory      = entry.path();
-    plugin.backendAbsoluteDirectory = entry.path() / json.value("backend", "backend") / "main.py";
+    plugin.pluginBaseDirectory       = entry.path();
+    plugin.backendAbsoluteDirectory  = entry.path() / json.value("backend", "backend") / "main.py";
     plugin.frontendAbsoluteDirectory = (FileSystem::path)pluginDirName / ".millennium" / "Dist" / "index.js";
+    plugin.webkitAbsolutePath        = (FileSystem::path)pluginDirName / ".millennium" / "Dist" / "webkit.js";
 
     return plugin;
 }
@@ -197,9 +198,10 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
 
         plugin.pluginJson = pluginJson;
         plugin.pluginName = pluginJson["name"];
-        plugin.pluginBaseDirectory      = entry.path();
-        plugin.backendAbsoluteDirectory = entry.path() / pluginJson.value("backend", "backend") / "main.py";
+        plugin.pluginBaseDirectory       = entry.path();
+        plugin.backendAbsoluteDirectory  = entry.path() / pluginJson.value("backend", "backend") / "main.py";
         plugin.frontendAbsoluteDirectory = (FileSystem::path)"assets" / ".millennium" / "Dist" / "index.js";
+        plugin.webkitAbsolutePath        = (FileSystem::path)"assets" / ".millennium" / "Dist" / "webkit.js";
         plugin.isInternal = true;
 
         plugins.push_back(plugin);

@@ -169,7 +169,7 @@ std::string WebkitHandler::HandleJsHook(std::string body)
         }
 
         std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
-        
+
         scriptTagInject.append(fmt::format(
             "{}\ndocument.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}{}', type: 'module', id: 'millennium-injected' }}));\n", 
             API, this->m_javaScriptVirtualUrl, relativePath.generic_string()
@@ -188,7 +188,6 @@ std::string WebkitHandler::HandleCssHook(std::string body)
         {
             continue;
         }
-
         std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath() / "steamui");
         styleTagInject.append(fmt::format("@import \"{}{}\";\n", this->m_steamLoopback, relativePath.generic_string()));
     }
@@ -205,7 +204,7 @@ std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
         requestUrl.erase(pos, std::string(this->m_javaScriptVirtualUrl).length());
     }
 
-    return SystemIO::GetSteamPath() / "steamui" / requestUrl;
+    return SystemIO::GetSteamPath() / requestUrl;
 }
 
 void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)

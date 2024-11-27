@@ -186,10 +186,48 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
     return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps));
 }
 
+const void PluginLoader::InjectWebkitShims() 
+{
+    static std::vector<int> hookIds;
+
+    if (!hookIds.empty())
+    {
+        const auto moduleList = WebkitHandler::get().m_hookListPtr;
+
+        for (auto it = moduleList->begin(); it != moduleList->end();)
+        {
+            if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end())
+            {
+                it = moduleList->erase(it);
+            }
+            else ++it;
+        }
+    }
+
+    const auto allPlugins = this->m_settingsStorePtr->ParseAllPlugins();
+    std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
+
+    for (auto& plugin : allPlugins)
+    {
+        const auto absolutePath     = SystemIO::GetSteamPath() / "plugins" / plugin.webkitAbsolutePath;
+
+        if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
+        {
+            g_hookedModuleId++;
+            hookIds.push_back(g_hookedModuleId);
+
+            Logger.Log("\n\n\n\nInjecting Webkit shims for '{}'\n\n\n", plugin.pluginName);
+            WebkitHandler::get().m_hookListPtr->push_back({ absolutePath.generic_string(), WebkitHandler::TagTypes::JAVASCRIPT, g_hookedModuleId });
+        }
+    }
+}
+
 const void PluginLoader::StartFrontEnds()
 {
     CEFBrowser cefBrowserHandler(m_ftpPort, m_ipcPort);
     SocketHelpers socketHelpers;
+
+    this->InjectWebkitShims();
 
     auto socketStart = std::chrono::high_resolution_clock::now();
     Logger.Log("Starting frontend socket...");
