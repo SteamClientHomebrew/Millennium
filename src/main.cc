@@ -13,6 +13,7 @@
 #include <core/py_controller/co_spawn.h>
 #include <core/ftp/serv.h>
 #include <signal.h>
+#include <cxxabi.h>
 #include <pipes/terminal_pipe.h>
 #include <git/vcs.h>
 #include <api/executor.h>
@@ -47,9 +48,41 @@ public:
     }
 };
 
+void OnTerminate() 
+{
+    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!";
+    
+    auto const exceptionPtr = std::current_exception();
+    if (exceptionPtr) {
+        try {
+            int status;
+            auto const exceptionType = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status);
+            errorMessage.append("\nTerminating with uncaught exception of type `");
+            errorMessage.append(exceptionType);
+            errorMessage.append("`");
+            std::rethrow_exception(exceptionPtr); // rethrow the exception to catch its exception message
+        }
+        catch (const std::exception& e) {
+            errorMessage.append(" with `what()` = \"");
+            errorMessage.append(e.what());
+            errorMessage.append("\"");
+        }
+        catch (...) {
+        }
+    }
+
+    #ifdef _WIN32
+    MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
+    #elif __linux__
+    std::cerr << errorMessage << std::endl;
+    #endif
+}
+
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
+    std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
+    
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
