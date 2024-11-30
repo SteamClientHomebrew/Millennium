@@ -9,6 +9,12 @@ interface EditPluginProps {
 	plugin: PluginComponent
 }
 
+declare global {
+	interface Window {
+		PLUGIN_LIST: any
+	}
+}
+
 const isEditablePlugin = (plugin_name: string) => {
 	return window.PLUGIN_LIST && window.PLUGIN_LIST[plugin_name] 
 	&& typeof window.PLUGIN_LIST[plugin_name].renderPluginSettings === 'function' ? true : false
