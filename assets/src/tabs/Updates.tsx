@@ -10,7 +10,7 @@ import {
     IconsModule,
     pluginSelf,
     Toggle,
-} from 'millennium-lib'
+} from '@steambrew/client'
 import { Field } from '../custom_components/Field';
 import { locale } from '../locales';
 import { ThemeItem } from '../types';

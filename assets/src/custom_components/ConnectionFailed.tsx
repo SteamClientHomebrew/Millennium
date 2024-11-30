@@ -1,4 +1,4 @@
-import { DialogButton, IconsModule, pluginSelf } from "millennium-lib";
+import { DialogButton, IconsModule, pluginSelf } from "@steambrew/client";
 
 export const ConnectionFailed = () => {
 

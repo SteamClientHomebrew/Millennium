@@ -48,7 +48,7 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 
         try 
         {
-            if (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID)
+            if (!response.contains("id") || (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID))
             {
                 return;
             }

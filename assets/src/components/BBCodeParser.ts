@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { findModuleExport } from "millennium-lib";
+import { findModuleExport } from "@steambrew/client";
 
 interface BBCodeParserProps {
 	bShowShortSpeakerInfo?: boolean;

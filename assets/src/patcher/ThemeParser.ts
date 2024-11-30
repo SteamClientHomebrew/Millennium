@@ -1,4 +1,4 @@
-import { pluginSelf } from "millennium-lib"
+import { pluginSelf } from "@steambrew/client"
 import { Patch, Theme, ThemeItem } from "../types";
 
 /**

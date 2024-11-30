@@ -1,4 +1,4 @@
-import { findClassModule } from "millennium-lib"
+import { findClassModule } from "@steambrew/client"
 
 export const devClasses = findClassModule(m => m.richPresenceLabel && m.blocked) as any
 export const pagedSettingsClasses = findClassModule(m => m.PagedSettingsDialog_PageList) as any

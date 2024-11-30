@@ -1,4 +1,4 @@
-import { Millennium, pluginSelf } from "millennium-lib"
+import { Millennium, pluginSelf } from "@steambrew/client"
 import { SettingsProps } from "./types"
 
 export let SettingsStore: SettingsProps = pluginSelf.SettingsStore

@@ -1,4 +1,4 @@
-import { findModuleExport } from "millennium-lib";
+import { findModuleExport } from "@steambrew/client";
 import React, { CSSProperties, ReactNode } from "react";
 
 interface TitleBarProps {

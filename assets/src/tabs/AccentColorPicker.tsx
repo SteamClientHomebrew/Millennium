@@ -1,4 +1,4 @@
-import { DialogButton, Field, Millennium, pluginSelf } from "millennium-lib"
+import { DialogButton, Field, Millennium, pluginSelf } from "@steambrew/client"
 import { useState } from "react";
 import { DispatchSystemColors } from "../patcher/SystemColors";
 import { settingsClasses } from "../classes";

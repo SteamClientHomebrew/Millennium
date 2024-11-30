@@ -1,4 +1,4 @@
-import { Millennium } from "millennium-lib"; 
+import { callable, Millennium } from "@steambrew/client"; 
 
 class classname {
     static method(country: string, age: number) {
@@ -17,23 +17,15 @@ function windowCreated(context: object)
     console.log(context)
 }
 
-
+// Declare a function that exists on the backend
+const backendMethod = callable<[{ message: string, status: boolean, count: number }]>('Backend.receive_frontend_message')
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
 
-    // const startTime = Date.now();
+    // Call the backend method
+    const message = await backendMethod({ message: "Hello World From Frontend!", status: true, count: 69 })
+    console.log("Result from callServerMethod:", message)
 
-    // const result = await Millennium.callServerMethod("Backend.receive_frontend_message", {
-    //     message: "Hello World From Frontend!",
-    //     status: true,
-    //     count: 69
-    // })
-    // console.log(`callServerMethod took: ${Date.now() - startTime} ms`);
-
-    // const steam_path = await Millennium.callServerMethod("get_steam_path")
-
-    // console.log("Result from callServerMethod:", result)
-    // console.log("Steam Path:", steam_path)
     Millennium.AddWindowCreateHook(windowCreated)
 }

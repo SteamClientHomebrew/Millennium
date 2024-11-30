@@ -19,11 +19,7 @@ void WebkitHandler::SetupGlobalHooks()
         { "id", 3242 }, { "method", "Fetch.enable" },
         { "params", {
             { "patterns", {
-                { { "urlPattern", "https://*.*.com/public/shared/css/buttons.css*" }, { "resourceType", "Stylesheet" }, { "requestStage", "Response" }  },
-                { { "urlPattern", "https://*.*.com/public/shared/javascript/shared_global.js*" }, { "resourceType", "Script" }, { "requestStage", "Response" } },
-                { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Request" } },
-
-                
+                { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Request" } },     
                 { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } }
             }
         }}}
@@ -34,165 +30,6 @@ bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message)
 {
     return message["params"]["request"]["url"].get<std::string>()
         .find(this->m_javaScriptVirtualUrl) != std::string::npos;
-}
-
-std::string WebkitHandler::HandleJsHook(std::string body) 
-{
-    const static std::string API = R"(
-
-    if (typeof window.MILLENNIUM_BACKEND_IPC === 'undefined')
-    {
-    const IPCMain = {
-        postMessage: function(messageId, contents) {
-            return new Promise(function(resolve) {
-
-                const message = { id: messageId, iteration: window.CURRENT_IPC_CALL_COUNT++, data: contents };
-
-                const messageHandler = function(data) {
-                    const json = JSON.parse(data.data);
-
-                    // Wait to receive the correct message id from the backend
-                    if (json.id !== message.iteration) return;
-
-                    resolve(json);
-                    window.MILLENNIUM_IPC_SOCKET.removeEventListener('message', messageHandler);
-                };
-
-                window.MILLENNIUM_IPC_SOCKET.addEventListener('message', messageHandler);
-                window.MILLENNIUM_IPC_SOCKET.send(JSON.stringify(message));
-            });
-        }
-    };
-
-    window.MILLENNIUM_BACKEND_IPC = IPCMain;
-
-    window.Millennium = {
-        callServerMethod: function(pluginName, methodName, kwargs) {
-            return new Promise(function(resolve, reject) {
-                const query = {
-                    pluginName: pluginName,
-                    methodName: methodName,
-                    ...(kwargs && { argumentList: kwargs })
-                };
-
-                // Call handled from "src\core\ipc\pipe.cpp @ L:67"
-                window.MILLENNIUM_BACKEND_IPC.postMessage(0, query).then(function(response) {
-                    if (response && response.failedRequest) {
-                        reject(`IPC call from [name: ${pluginName}, method: ${methodName}] failed on exception -> ${response.failMessage}`);
-                    }
-
-                    const responseStream = response.returnValue;
-                    // FFI backend encodes string responses in base64 to avoid encoding issues
-                    resolve(typeof responseStream === 'string' ? atob(responseStream) : responseStream);
-                });
-            });
-        },
-        findElement: function(privateDocument, querySelector, timeout) {
-            return new Promise(function(resolve, reject) {
-                const matchedElements = privateDocument.querySelectorAll(querySelector);
-
-                // Node is already in DOM and doesn't require watchdog
-                if (matchedElements.length) {
-                    resolve(matchedElements);
-                    return;
-                }
-
-                let timer = null;
-
-                const observer = new MutationObserver(function() {
-                    const matchedElements = privateDocument.querySelectorAll(querySelector);
-                    if (matchedElements.length) {
-                        if (timer) clearTimeout(timer);
-
-                        observer.disconnect();
-                        resolve(matchedElements);
-                    }
-                });
-
-                // Observe the document body for item changes, assuming we are waiting for target element
-                observer.observe(privateDocument.body, {
-                    childList: true,
-                    subtree: true
-                });
-
-                if (timeout) {
-                    timer = setTimeout(function() {
-                        observer.disconnect();
-                        reject();
-                    }, timeout);
-                }
-            });
-        }
-    };
-
-
-    function createWebSocket(url) {
-        return new Promise((resolve, reject) => {
-            const startTime = Date.now();  // Record the start time
-            
-            try {
-                let socket = new WebSocket(url);
-                socket.addEventListener('open', () => {
-                    const endTime = Date.now();  // Record the end time
-                    const connectionTime = endTime - startTime;  // Calculate the connection time
-                    console.log('%c Millennium ', 'background: black; color: white', 
-                                `Successfully connected to IPC server. Connection time: ${connectionTime}ms.`);
-                    resolve(socket);
-                });
-                socket.addEventListener('close', () => {
-                    setTimeout(() => {
-                        createWebSocket(url).then(resolve).catch(reject);
-                    }, 100);
-                });
-            } 
-            catch (error) {
-                console.warn('Failed to connect to IPC server:', error);
-            } 
-        });
-    }
-
-    createWebSocket('ws://localhost:)" + std::to_string(m_ipcPort) + R"(').then((socket) => {
-        window.MILLENNIUM_IPC_SOCKET = socket;
-        window.CURRENT_IPC_CALL_COUNT = 0;
-    })
-    .catch((error) => console.error('Initial WebSocket connection failed:', error));
-    }
-    )";
-
-    std::string scriptTagInject;
-
-    for (auto& hookItem : *m_hookListPtr) 
-    {
-        if (hookItem.type != TagTypes::JAVASCRIPT) 
-        {
-            continue;
-        }
-
-        std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
-
-        scriptTagInject.append(fmt::format(
-            "{}\ndocument.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}{}', type: 'module', id: 'millennium-injected' }}));\n", 
-            API, this->m_javaScriptVirtualUrl, relativePath.generic_string()
-        ));
-    }
-    return scriptTagInject + body;
-}
-
-std::string WebkitHandler::HandleCssHook(std::string body) 
-{
-    std::string styleTagInject;
-
-    for (auto& hookItem : *m_hookListPtr) 
-    {
-        if (hookItem.type != TagTypes::STYLESHEET) 
-        {
-            continue;
-        }
-        std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath() / "steamui");
-        styleTagInject.append(fmt::format("@import \"{}{}\";\n", this->m_steamLoopback, relativePath.generic_string()));
-    }
-
-    return styleTagInject + body;
 }
 
 std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
@@ -255,61 +92,52 @@ void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
     });
 }
 
-void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
+const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
-    for (auto requestIterator = m_requestMap->begin(); requestIterator != m_requestMap->end();)
+    std::string patched = original;
+    const std::string webkitPreloadModule = SystemIO::ReadFileSync("C:\\Users\\Desktop-PC\\Documents\\Development\\plugutil\\api\\dist\\webkit_api.js");
+
+    std::vector<std::string> scriptModules;
+    std::string cssShimContent;
+    std::string scriptModuleArray;
+
+    for (auto& hookItem : *m_hookListPtr) 
     {
-        try 
+        if (hookItem.type == TagTypes::STYLESHEET) 
         {
-            auto [id, request_id, type] = (*requestIterator);
-
-            if (type == "Document" || message["id"] != id || !message["result"]["base64Encoded"])
-            {
-                requestIterator++;
+            if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
-            }
 
-            std::string hookedBodyResponse = {};
-
-            if (type == "Script")
-            {
-                hookedBodyResponse = this->HandleJsHook(Base64Decode(message["result"]["body"]));
-            }
-            else if (type == "Stylesheet")
-            {
-                hookedBodyResponse = this->HandleCssHook(Base64Decode(message["result"]["body"]));
-            }
-
-            Sockets::PostGlobal({
-                { "id", 63453 },
-                { "method", "Fetch.fulfillRequest" },
-                { "params", {
-                    { "requestId", request_id },
-                    { "responseCode", 200 },
-                    { "body", Base64Encode(hookedBodyResponse) }
-                }}
-            });
-
-            requestIterator = m_requestMap->erase(requestIterator);
+            std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath() / "steamui");
+            cssShimContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}{}\">\n", this->m_steamLoopback, relativePath.generic_string())); 
         }
-        catch (const nlohmann::detail::exception& ex) 
+        else if (hookItem.type == TagTypes::JAVASCRIPT) 
         {
-            LOG_ERROR("error hooking WebKit -> {}", ex.what());
-        }
-        catch (const std::exception& ex) 
-        {
-            LOG_ERROR("error hooking WebKit -> {}", ex.what());
+            if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
+                continue;
+
+            std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
+            scriptModules.push_back(fmt::format("{}{}", this->m_javaScriptVirtualUrl, relativePath.generic_string()));
         }
     }
+
+    for (int i = 0; i < scriptModules.size(); i++)
+    {
+        scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
+    }
+
+    std::string shimContent = fmt::format("<script type=\"module\" id=\"millennium-injected\" defer>{}millennium_components({}, [{}])\n</script>\n{}", webkitPreloadModule, m_ipcPort, scriptModuleArray, cssShimContent);
+
+    if (patched.find("<head>") == std::string::npos) 
+    {
+        return patched;
+    }
+
+    return patched.replace(patched.find("<head>"), 6, "<head>" + shimContent);
 }
 
 void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
 {
-    // if (message.value("method", "").find("Debugger.") == std::string::npos)
-    // {
-    //     Logger.Log(message.dump(4));
-    // }
-
     try 
     {
         if (message["method"] == "Fetch.requestPaused")
@@ -343,15 +171,14 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
 
                 for (const auto& item : responseHeadersJson)
                 {
-                    bool keyExists = std::any_of(responseHeaders.begin(), responseHeaders.end(),
-                                                [&](const nlohmann::json& existingHeader) {
-                                                    return existingHeader.at("name") == item.at("name");
-                                                });
-
-                    if (!keyExists) {
+                    if (!std::any_of(responseHeaders.begin(), responseHeaders.end(), [&](const nlohmann::json& existingHeader) {
+                        return existingHeader.at("name") == item.at("name");
+                    })) {
                         responseHeaders.push_back(item);
                     }
                 }
+
+                const std::string patchedContent = this->PatchDocumentContents(requestUrl, originalContent);
 
                 nlohmann::json message = {
                     { "id", 63453 },
@@ -360,29 +187,18 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
                         { "requestId", requestId },
                         { "responseCode", statusCode },
                         { "responseHeaders", responseHeaders },
-                        { "body", Base64Encode(originalContent) }
+                        { "body", Base64Encode(patchedContent) }
                     }}
                 };  
 
                 Sockets::PostGlobal(message);
 
             }
-            else switch (this->IsGetBodyCall(message))
+            else if (this->IsGetBodyCall(message))
             {
-                case true: 
-                {
-                    this->RetrieveRequestFromDisk(message);
-                    break;
-                }
-                case false:
-                {
-                    this->GetResponseBody(message);
-                    break;
-                }
+                this->RetrieveRequestFromDisk(message);
             }
         }
-
-        this->HandleHooks(message);
     }
     catch (const nlohmann::detail::exception& ex) 
     {

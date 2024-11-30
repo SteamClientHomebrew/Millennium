@@ -12,7 +12,7 @@ import {
     SingleDropdownOption,
     Toggle,
     pluginSelf,
-  } from "millennium-lib";
+  } from "@steambrew/client";
 import { BBCodeParser } from "../components/BBCodeParser";
 import { Field } from "../custom_components/Field";
 import { Conditions, ConditionsStore, ICondition, ThemeItem } from "../types"

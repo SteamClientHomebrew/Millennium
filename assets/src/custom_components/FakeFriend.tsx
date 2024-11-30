@@ -1,4 +1,4 @@
-import { Classes } from "millennium-lib";
+import { Classes } from "@steambrew/client";
 import React, { ReactNode } from "react";
 
 interface FakeFriendProps {

@@ -72,14 +72,14 @@ public:
         std::string formatted = fmt::format("{} ", GetPluginName());
   
         fmt::print("\033[1m\033[34m{}\033[0m\033[0m", formatted);
-        fmt::print(fmt::format("{}\n", message));
+        fmt::print("{}\n", message.c_str());
         file << formatted << message << "\n";
         file.flush();
     }
 
     void Warn(const std::string& message) 
     {
-        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message);
+        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
 
         fmt::print(fg(fmt::color::orange), formatted, "\n");
         file << formatted;
@@ -88,7 +88,7 @@ public:
 
     void Error(const std::string& message) 
     {
-        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message);
+        std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
 
         fmt::print(fg(fmt::color::red), formatted, "\n");
         file << formatted;

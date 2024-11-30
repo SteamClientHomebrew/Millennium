@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { Classes, classMap, findClassModule } from "millennium-lib";
+import { Classes, classMap, findClassModule } from "@steambrew/client";
 
 const containerClasses = [
 	Classes.Field,
@@ -29,7 +29,7 @@ interface FieldProps {
 
 /**
  * @note
- * Use this instead of the `millennium-lib` one to prevent the
+ * Use this instead of the `@steambrew/client` one to prevent the
  * `Assertion failed: Trying to use ConfigContext without a provider!  Add ConfigContextRoot to application.`
  * error.
  */

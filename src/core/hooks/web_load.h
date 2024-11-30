@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <mutex>
+#include <regex>
 
 static unsigned long long g_hookedModuleId;
 
@@ -18,6 +19,7 @@ public:
 
     struct HookType {
         std::string path;
+        std::regex urlPattern;
         TagTypes type;
         unsigned long long id;
     };
@@ -41,6 +43,8 @@ private:
 
     std::string HandleCssHook(std::string body);
     std::string HandleJsHook(std::string body);
+
+    const std::string PatchDocumentContents(std::string requestUrl, std::string original);
     void HandleHooks(nlohmann::basic_json<> message);
 
     void RetrieveRequestFromDisk(nlohmann::basic_json<> message);

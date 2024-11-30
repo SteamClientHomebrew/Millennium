@@ -9,90 +9,17 @@
 #include <core/ffi/ffi.h>
 #include <tuple>
 
-const std::string GetBootstrapModule(const std::string scriptModules, const uint16_t port)
+const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
 {
-    return R"(
-function createWebSocket(url) {
-    return new Promise((resolve, reject) => {
-        try {
-            let socket = new WebSocket(url);
-            socket.addEventListener('open', () => {
-                console.log('%c Millennium ', 'background: black; color: white', "Successfully connected to IPC server.");
-                resolve(socket);
-            });
-            socket.addEventListener('close', () => {
-                setTimeout(() => {
-                    createWebSocket(url).then(resolve).catch(reject);
-                }, 100);
-            });
-        } 
-        catch (error) {
-            console.warn('Failed to connect to IPC server:', error);
-        } 
-    });
-}
+    std::string scriptModuleArray;
+    std::string scriptContents = SystemIO::ReadFileSync("C:\\Users\\Desktop-PC\\Documents\\Development\\plugutil\\api\\dist\\client_api.js");
 
-function waitForSocket(socket) {
-    return new Promise((resolve, reject) => {
-        if (socket.readyState === WebSocket.OPEN) {
-            resolve();
-        } else {
-            socket.addEventListener('open', resolve);
-            socket.addEventListener('error', reject);
-        }
-    });
-}
-
-const InjectLegacyReactGlobals = () => {
-
-    let initReq;
-    let bufferWebpackCache = {};
-    window.webpackChunksteamui?.push([[Math.random()], {}, (r) => { initReq = r; }]);
-
-    for (let i of Object.keys(initReq.m)) {
-        try {
-            bufferWebpackCache[i] = initReq(i);
-        } 
-        catch (e) { }
+    for (int i = 0; i < scriptModules.size(); i++)
+    {
+        scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
-    const findModule = (filter) => {
-        const allModules = Object.values(bufferWebpackCache).filter((x) => x)
-
-        for (const m of allModules) {
-            if (m.default && filter(m.default)) return m.default;
-            if (filter(m)) return m;
-        }
-    };
-
-    window.SP_REACTDOM = findModule((module) => module.createPortal && module.createRoot && module.flushSync)
-    window.SP_REACT    = findModule((module) => module.Component && module.PureComponent && module.useLayoutEffect);
-}
-
-function waitForSPReactDOM() {
-    return new Promise((resolve) => {
-        const interval = setInterval(() => {
-            if (window?.webpackChunksteamui?.length >= 5) {
-                InjectLegacyReactGlobals();
-                clearInterval(interval);
-                resolve();
-            }
-        }, 100);
-    });
-}
-
-createWebSocket('ws://localhost:)" + std::to_string(port) + R"(').then((socket) => {
-    window.MILLENNIUM_IPC_SOCKET = socket;
-    window.CURRENT_IPC_CALL_COUNT = 0;
-
-    Promise.all([ waitForSocket(socket), waitForSPReactDOM() ]).then(() => {
-        console.log('%c Millennium ', 'background: black; color: white', "Ready to inject shims...");
-        )" + scriptModules + R"(
-    })
-    .catch((error) => console.error('error @ createWebSocket ->', error));
-})
-.catch((error) => console.error('Initial WebSocket connection failed:', error));
-)";
+    return fmt::format("{}\nmillennium_components({}, [{}]);", scriptContents, port, scriptModuleArray);
 }
 
 /// @brief sets up the python interpreter to use virtual environment site packages, as well as custom python path.
@@ -208,6 +135,12 @@ const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pl
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
 }
 
+const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin) 
+{
+    PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.pluginBaseDirectory.generic_string().c_str()));
+    PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
+}
+
 const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) 
 {
     PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
@@ -217,6 +150,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
     // associate the plugin name with the running plugin. used for IPC/FFI
     SetPluginSecretName(globalDictionary, plugin.pluginName);
+    SetPluginEnvironmentVariables(globalDictionary, plugin);
 
     std::vector<std::filesystem::path> sysPath;
     sysPath.push_back(plugin.pluginBaseDirectory / plugin.backendAbsoluteDirectory.parent_path());
@@ -279,17 +213,12 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     StartPluginBackend(globalDictionary, plugin.pluginName);  
 }
 
-const std::string ConstructScriptElement(std::string filename) 
-{
-    return fmt::format("\nif (!document.querySelectorAll(`script[src='{}'][type='module']`).length) {{ document.head.appendChild(Object.assign(document.createElement('script'), {{ src: '{}', type: 'module', id: 'millennium-injected' }})); }}", filename, filename);
-}
-
 const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort) 
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
 
-    std::string scriptImportTable;
+    std::vector<std::string> scriptImportTable;
     
     for (auto& plugin : plugins)  
     {
@@ -301,13 +230,13 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
         const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
         const std::string pathShim = plugin.isInternal ? "_internal_/" : std::string();
 
-        scriptImportTable.append(ConstructScriptElement(fmt::format("http://localhost:{}/{}{}", ftpPort, pathShim, frontEndAbs)));
+        scriptImportTable.push_back(fmt::format("http://localhost:{}/{}{}", ftpPort, pathShim, frontEndAbs));
     }
 
     return GetBootstrapModule(scriptImportTable, ipcPort);
 }
 
-static std::string addedScriptOnNewDocumentId;
+static std::string addedScriptOnNewDocumentId = "";
 
 #include <mutex>
 #include <condition_variable>

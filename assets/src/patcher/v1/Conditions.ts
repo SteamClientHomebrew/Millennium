@@ -5,7 +5,7 @@
  * it serves only to allow old ones to still work until they are properly updated by the developer. 
  */
 
-import { pluginSelf } from "millennium-lib"
+import { pluginSelf } from "@steambrew/client"
 import { Patch, Theme, ThemeItem } from "../../types"
 import { DOMModifier, constructThemePath } from "../Dispatch"
 

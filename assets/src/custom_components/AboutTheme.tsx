@@ -7,7 +7,7 @@ import {
     DialogSubHeader,
     Millennium,
     pluginSelf,
-} from "millennium-lib"
+} from "@steambrew/client"
 import { ThemeItem } from "../types"
 import { CreatePopup } from "../components/CreatePopup"
 import React from "react"

@@ -1,4 +1,4 @@
-import { Millennium } from "millennium-lib"
+import { Millennium } from "@steambrew/client"
 
 export const WatchDog = {
     startReload: () => {

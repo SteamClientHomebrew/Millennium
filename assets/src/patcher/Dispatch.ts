@@ -1,4 +1,4 @@
-import { pluginSelf } from "millennium-lib";
+import { pluginSelf } from "@steambrew/client";
 import { CommonPatchTypes, ConditionalControlFlow, ConditionalPatch, ConditionalControlFlowType as ModuleType } from "../types";
 
 export const DOMModifier = {

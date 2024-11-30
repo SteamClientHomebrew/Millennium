@@ -1,4 +1,4 @@
-import { Millennium, pluginSelf } from "millennium-lib"
+import { Millennium, pluginSelf } from "@steambrew/client"
 import { notificationClasses } from "../classes";
 
 /**
