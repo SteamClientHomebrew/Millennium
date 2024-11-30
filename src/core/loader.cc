@@ -218,7 +218,7 @@ const void PluginLoader::InjectWebkitShims()
             hookIds.push_back(g_hookedModuleId);
 
             Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId);
-            WebkitHandler::get().m_hookListPtr->push_back({ absolutePath.generic_string(), WebkitHandler::TagTypes::JAVASCRIPT, g_hookedModuleId });
+            WebkitHandler::get().m_hookListPtr->push_back({ absolutePath.generic_string(), std::regex(".*"), WebkitHandler::TagTypes::JAVASCRIPT, g_hookedModuleId });
         }
     }
 }

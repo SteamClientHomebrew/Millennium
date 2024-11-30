@@ -19,14 +19,6 @@ from util.theme_installer import WebSocketServer
 from updater.version_control import Updater
 updater = Updater()
 
-def inject_webkit_shim(shim_script: str):
-    # write the contents to a file
-    with open(os.path.join(Millennium.steam_path(), "steamui", "shim.js"), "w") as f:
-        f.write(shim_script)
-        f.close()
-
-    add_browser_js("shim.js")
-
 def get_load_config():
     millennium = configparser.ConfigParser()
     config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")

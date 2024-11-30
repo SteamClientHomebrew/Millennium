@@ -167,8 +167,10 @@ PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
 unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type) 
 {
     const char* moduleItem;
+    const char* regexSelector = ".*"; // Default value if no second parameter is provided
 
-    if (!PyArg_ParseTuple(args, "s", &moduleItem)) 
+    // Parse arguments: moduleItem is required, regexSelector is optional
+    if (!PyArg_ParseTuple(args, "s|s", &moduleItem, &regexSelector)) 
     {
         return 0;
     }
@@ -176,7 +178,16 @@ unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type
     g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
-    WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), type, g_hookedModuleId });
+    try 
+    {
+        WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+    } 
+    catch (const std::regex_error& e) 
+    {
+        LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", regexSelector, e.what());
+        return 0;
+    }
+
     return g_hookedModuleId;
 }
 
