@@ -13,7 +13,7 @@ class Backend:
         if count == 69:
             return True
         else:
-            return 
+            return False
 
 def get_steam_path():
     logger.log("getting steam path")

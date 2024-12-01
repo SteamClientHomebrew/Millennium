@@ -18,7 +18,7 @@ function windowCreated(context: object)
 }
 
 // Declare a function that exists on the backend
-const backendMethod = callable<[{ message: string, status: boolean, count: number }]>('Backend.receive_frontend_message')
+const backendMethod = callable<[{ message: string, status: boolean, count: number }], boolean>('Backend.receive_frontend_message')
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
