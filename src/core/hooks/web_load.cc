@@ -92,6 +92,11 @@ void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
     });
 }
 
+// These URLS are blacklisted from being hooked, to prevent potential security issues.
+static const std::vector<std::string> g_blackListedUrls = {
+    "https://checkout\\.steampowered\\.com/.*"
+};
+
 const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
     std::string patched = original;
@@ -115,7 +120,7 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
         {
             if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
-
+            
             std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
             scriptModules.push_back(fmt::format("{}{}", this->m_javaScriptVirtualUrl, relativePath.generic_string()));
         }
@@ -127,6 +132,10 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
     }
 
     std::string shimContent = fmt::format("<script type=\"module\" id=\"millennium-injected\" defer>{}millennium_components({}, [{}])\n</script>\n{}", webkitPreloadModule, m_ipcPort, scriptModuleArray, cssShimContent);
+
+    for (const auto& blackListedUrl : g_blackListedUrls)        
+        if (std::regex_match(requestUrl, std::regex(blackListedUrl))) 
+            shimContent = cssShimContent; // Remove all queried JavaScript from the page. 
 
     if (patched.find("<head>") == std::string::npos) 
     {
