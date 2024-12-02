@@ -88,6 +88,7 @@ jobs:
           mingw-w64-i686-gcc
           mingw-w64-i686-cmake
           mingw-w64-i686-ninja
+          unzip
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
