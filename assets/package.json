@@ -11,7 +11,7 @@
     "@semantic-release/github": "^10.1.1",
     "@steambrew/api": "^3.8.12",
     "@steambrew/client": "^3.8.12",
-    "@steambrew/ttc": "^1.0.1",
+    "@steambrew/ttc": "^1.0.4",
     "@steambrew/webkit": "^3.8.12",
     "@types/react": "16.14.0",
     "@types/react-dom": "^18.2.25",
