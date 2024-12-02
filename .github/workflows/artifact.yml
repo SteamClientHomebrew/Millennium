@@ -110,6 +110,7 @@ jobs:
         # cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
         npm install @steambrew/api
+        mkdir D:/a/env/ext/data/shims
         cp -r ./node_modules/@steambrew/api/dist/webkit_api.js D:/a/env/ext/data/shims/webkit_api.js
         cp -r ./node_modules/@steambrew/api/dist/client_api.js D:/a/env/ext/data/shims/client_api.js
 
@@ -276,6 +277,7 @@ jobs:
         cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
 
         npm install @steambrew/api
+        mkdir D:/a/env/ext/data/shims
         cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
         cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
 
