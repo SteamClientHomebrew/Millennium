@@ -119,10 +119,14 @@ jobs:
         # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
         # cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
+    - name: Add API modules
+      run: |
         npm install @steambrew/api
-        mkdir D:/a/env/ext/data/shims
-        cp -r ./node_modules/@steambrew/api/dist/webkit_api.js D:/a/env/ext/data/shims/webkit_api.js
-        cp -r ./node_modules/@steambrew/api/dist/client_api.js D:/a/env/ext/data/shims/client_api.js
+        New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+
+        Copy-Item -Path "./node_modules/@steambrew/api/dist/webkit_api.js" -Destination "D:/a/env/ext/data/shims/webkit_api.js" -Force
+        Copy-Item -Path "./node_modules/@steambrew/api/dist/client_api.js" -Destination "D:/a/env/ext/data/shims/client_api.js" -Force
+
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
