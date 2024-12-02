@@ -97,6 +97,15 @@ jobs:
       shell: msys2 {0}
       run: cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
+    - name: Install Node.js and npm
+      shell: msys2 {0}
+      run: |
+        curl -fsSL https://nodejs.org/dist/v16.20.0/node-v16.20.0-win-x86.zip -o node.zip
+        unzip node.zip -d /usr/local
+        export PATH="/usr/local/node-v16.20.0-win-x86:$PATH"
+        node --version
+        npm --version
+    
     - name: Build Millennium
       shell: msys2 {0}
       run: |
@@ -277,7 +286,7 @@ jobs:
         cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
 
         npm install @steambrew/api
-        mkdir D:/a/env/ext/data/shims
+        mkdir -p D:/a/env/ext/data/shims
         cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
         cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
 
