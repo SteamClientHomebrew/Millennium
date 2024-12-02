@@ -287,7 +287,7 @@ jobs:
         cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
 
         npm install @steambrew/api
-        mkdir -p D:/a/env/ext/data/shims
+        mkdir -p /home/runner/env/ext/data/shims
         cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
         cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
 
