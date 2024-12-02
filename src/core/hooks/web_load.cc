@@ -100,7 +100,16 @@ static const std::vector<std::string> g_blackListedUrls = {
 const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
     std::string patched = original;
-    const std::string webkitPreloadModule = SystemIO::ReadFileSync("C:\\Users\\Desktop-PC\\Documents\\Development\\plugutil\\api\\dist\\webkit_api.js");
+    const std::string webkitPreloadModule = SystemIO::ReadFileSync((SystemIO::GetSteamPath() / "ext" / "data" / "shims" / "webkit_api.js").string());
+
+    if (webkitPreloadModule.empty()) 
+    {
+        LOG_ERROR("Missing webkit preload module. Please re-install Millennium.");
+        #ifdef _WIN32
+        MessageBoxA(NULL, "Missing webkit preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
+        #endif
+        return patched;
+    }
 
     std::vector<std::string> scriptModules;
     std::string cssShimContent;

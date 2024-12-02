@@ -12,7 +12,15 @@
 const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
 {
     std::string scriptModuleArray;
-    std::string scriptContents = SystemIO::ReadFileSync("C:\\Users\\Desktop-PC\\Documents\\Development\\plugutil\\api\\dist\\client_api.js");
+    std::string scriptContents = SystemIO::ReadFileSync((SystemIO::GetSteamPath() / "ext" / "data" / "shims" / "client_api.js").string());
+
+    if (scriptContents.empty())
+    {
+        LOG_ERROR("Missing webkit preload module. Please re-install Millennium.");
+        #ifdef _WIN32
+        MessageBoxA(NULL, "Missing client preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
+        #endif
+    }
 
     for (int i = 0; i < scriptModules.size(); i++)
     {
