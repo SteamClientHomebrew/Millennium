@@ -156,6 +156,8 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
 
 void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
 {
+    static std::chrono::time_point lastExceptionTime = std::chrono::system_clock::now();
+
     try 
     {
         if (message["method"] == "Fetch.requestPaused")
@@ -220,10 +222,18 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
     }
     catch (const nlohmann::detail::exception& ex) 
     {
-        LOG_ERROR("error hooking WebKit -> {}", ex.what());
+        if (std::chrono::system_clock::now() - lastExceptionTime > std::chrono::seconds(5)) 
+        {
+            LOG_ERROR("error dispatching socket message -> {}", ex.what());
+            lastExceptionTime = std::chrono::system_clock::now();
+        }
     }
     catch (const std::exception& ex) 
     {
-        LOG_ERROR("error hooking WebKit -> {}", ex.what());
+        if (std::chrono::system_clock::now() - lastExceptionTime > std::chrono::seconds(5)) 
+        {
+            LOG_ERROR("error dispatching socket message -> {}", ex.what());
+            lastExceptionTime = std::chrono::system_clock::now();
+        }
     }
 }

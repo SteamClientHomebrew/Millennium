@@ -1,5 +1,6 @@
 /build
 /.vscode
+/.idea
 /.vs
 /out
 /vendor/python/python311.dll
