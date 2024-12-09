@@ -88,6 +88,7 @@ jobs:
           mingw-w64-i686-gcc
           mingw-w64-i686-cmake
           mingw-w64-i686-ninja
+          unzip
 
     - name: (Dependency) Install vcpkg
       shell: pwsh
@@ -97,6 +98,15 @@ jobs:
       shell: msys2 {0}
       run: cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
+    - name: Install Node.js and npm
+      shell: msys2 {0}
+      run: |
+        curl -fsSL https://nodejs.org/dist/v16.20.0/node-v16.20.0-win-x86.zip -o node.zip
+        unzip node.zip -d /usr/local
+        export PATH="/usr/local/node-v16.20.0-win-x86:$PATH"
+        node --version
+        npm --version
+    
     - name: Build Millennium
       shell: msys2 {0}
       run: |
@@ -108,6 +118,15 @@ jobs:
         mkdir D:/a/env/ext/bin
         # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
         # cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
+
+    - name: Add API modules
+      run: |
+        npm install @steambrew/api
+        New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+
+        Copy-Item -Path "./node_modules/@steambrew/api/dist/webkit_api.js" -Destination "D:/a/env/ext/data/shims/webkit_api.js" -Force
+        Copy-Item -Path "./node_modules/@steambrew/api/dist/client_api.js" -Destination "D:/a/env/ext/data/shims/client_api.js" -Force
+
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
@@ -270,6 +289,11 @@ jobs:
         
         mkdir -p /home/runner/env/ext/bin
         cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
+
+        npm install @steambrew/api
+        mkdir -p /home/runner/env/ext/data/shims
+        cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
+        cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
