@@ -41,6 +41,13 @@
     "version": {
       "type": "string",
       "markdownDescription": "The version of your plugin."
+    },
+    "include": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "markdownDescription": "A list of relative paths for the plugin builder to include in your plugin distribution."
     }
   },
   "required": [
