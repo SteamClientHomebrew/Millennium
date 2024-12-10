@@ -74,6 +74,13 @@ For normal users, installing via the installers makes the most sense. However wh
 
 &nbsp;
 
+## Creating Plugins & Themes
+
+Creating themes and plugins for Millennium is relatively straight foward. Our [documentation](https://docs.steambrew.app/developers) goes over the basics of both, 
+and we have examples for both in [examples](./examples)
+
+&nbsp;
+
 ## Platform Support
 
 
