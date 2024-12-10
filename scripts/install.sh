@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # This file is part of the Millennium project.
-# This script is used to install Millennium on a Windows machine.
+# This script is used to install Millennium on a Linux machine.
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.sh
 # Copyright (c) 2024 Millennium
 set -e
