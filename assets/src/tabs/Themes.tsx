@@ -86,7 +86,6 @@ const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
     return (
         <DialogButton 
             onClick={() => ThemeSettings(active)}
-            style={{margin: "0", padding: "0px 10px", marginRight: "10px"}} 
             className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton" 
         >
             <IconsModule.Settings height="16" />
@@ -206,7 +205,18 @@ const ThemeViewModal: React.FC = () => {
 
     return (
         <>
-            <style>{`.DialogDropDown._DialogInputContainer.Panel.Focusable { min-width: max-content !important; }`}</style>
+            <style>
+            {`
+                .DialogDropDown._DialogInputContainer.Panel.Focusable { min-width: max-content !important; }
+                button.millenniumIconButton {
+                    padding: 9px 10px !important; 
+                    margin: 0 !important; 
+                    margin-right: 10px !important;
+                    display: flex;
+                    width: auto;
+                }
+            `}
+            </style>
 
             <DialogHeader>{locale.settingsPanelThemes}</DialogHeader>
             <DialogBody className={classMap.SettingsDialogBodyFade}>
@@ -227,7 +237,6 @@ const ThemeViewModal: React.FC = () => {
                     {!pluginSelf.isDefaultTheme && (
                         <DialogButton
                             onClick={() => SetupAboutRenderer(active)}
-                            style={{ margin: "0", padding: "0px 10px", marginRight: "10px" }}
                             className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
                         >
                             <IconsModule.Information height="16" />
@@ -236,7 +245,6 @@ const ThemeViewModal: React.FC = () => {
         
                     <DialogButton
                         onClick={OpenThemesFolder}
-                        style={{ margin: "0", padding: "0px 10px", marginRight: "10px" }}
                         className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
                     >
                         <CustomIcons.Folder />

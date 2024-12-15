@@ -27,8 +27,8 @@ const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
 	}
 
 	return (
-		<DialogButton className="_3epr8QYWw_FqFgMx38YEEm" style={{marginTop: 0, marginLeft: 0, marginRight: 15}}>
-			<IconsModule.Settings />
+		<DialogButton className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton">
+			<IconsModule.Settings height="16" />
 		</DialogButton>
 	)
 }
@@ -80,6 +80,18 @@ const PluginViewModal: React.FC = () => {
 
 	return (
 		<>
+		<style>
+		{`
+			button.millenniumIconButton {
+				padding: 9px 10px !important; 
+				margin: 0 !important; 
+				margin-right: 10px !important;
+				display: flex;
+				width: auto;
+			}
+		`}
+		</style>
+
 		<DialogHeader>{locale.settingsPanelPlugins}</DialogHeader>
 		<DialogBody className={classMap.SettingsDialogBodyFade}>
 			{plugins.map((plugin: PluginComponent, index: number) => (
