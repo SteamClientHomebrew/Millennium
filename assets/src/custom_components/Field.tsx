@@ -1,25 +1,18 @@
 import React, { ReactNode } from "react";
-import { Classes, classMap, findClassModule } from "@steambrew/client";
+import { fieldClasses } from "../classes";
 
 const containerClasses = [
-	Classes.Field,
-	Classes.WithFirstRow,
-	Classes.VerticalAlignCenter,
-	Classes.WithDescription,
-	Classes.WithBottomSeparatorStandard,
-	Classes.ChildrenWidthFixed,
-	Classes.ExtraPaddingOnChildrenBelow,
-	Classes.StandardPadding,
-	Classes.HighlightOnFocus,
+	fieldClasses.Field,
+	fieldClasses.WithFirstRow,
+	fieldClasses.VerticalAlignCenter,
+	fieldClasses.WithDescription,
+	fieldClasses.WithBottomSeparatorStandard,
+	fieldClasses.ChildrenWidthFixed,
+	fieldClasses.ExtraPaddingOnChildrenBelow,
+	fieldClasses.StandardPadding,
+	fieldClasses.HighlightOnFocus,
 	"Panel",
 ].join(" ");
-const fieldClasses: any = findClassModule(
-	(m) =>
-		m.FieldLabel &&
-		!m.GyroButtonPickerDialog &&
-		!m.ControllerOutline &&
-		!m.AwaitingEmailConfIcon,
-);
 
 interface FieldProps {
 	children: ReactNode;
@@ -41,8 +34,8 @@ export const Field: React.FC<FieldProps> = ({
 	<div className={containerClasses}>
 		<div className={fieldClasses.FieldLabelRow}>
 			<div className={fieldClasses.FieldLabel}>{label}</div>
-			<div className={classMap.FieldChildrenWithIcon}>{children}</div>
+			<div className={fieldClasses.FieldChildrenWithIcon}>{children}</div>
 		</div>
-		<div className={classMap.FieldDescription}>{description}</div>
+		<div className={fieldClasses.FieldDescription}>{description}</div>
 	</div>
 );
