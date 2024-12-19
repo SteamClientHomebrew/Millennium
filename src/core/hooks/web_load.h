@@ -5,7 +5,7 @@
 #include <mutex>
 #include <regex>
 
-static unsigned long long g_hookedModuleId;
+extern unsigned long long g_hookedModuleId;
 
 class WebkitHandler 
 {

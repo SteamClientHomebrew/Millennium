@@ -7,6 +7,8 @@
 #include <unordered_set>
 // #include <boxer/boxer.h>
 
+unsigned long long g_hookedModuleId;
+
 WebkitHandler WebkitHandler::get() 
 {
     static WebkitHandler webkitHandler;
