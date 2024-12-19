@@ -137,7 +137,7 @@ def add_conditional_data(path: str, data: dict):
     parsed_patches = parse_conditional_patches(data)
 
     for patch in parsed_patches:
-        if patch['fileType'] == 'TargetCss':
+        if patch['fileType'] == 'TargetCss' and patch['targetPath'] is not None and patch['matchString'] is not None:
             add_browser_css(os.path.join(path, patch['targetPath']), patch['matchString'])
-        elif patch['fileType'] == 'TargetJs':
+        elif patch['fileType'] == 'TargetJs' and patch['targetPath'] is not None and patch['matchString'] is not None:
             add_browser_js(os.path.join(path, patch['targetPath']), patch['matchString'])
