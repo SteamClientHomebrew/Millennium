@@ -161,18 +161,25 @@ class WebSocketServer:
             logger.log("Client disconnected")
 
     async def start_server(self):
-        # Start WebSocket server
-        self.server = await websockets.serve(self.handler, self.host, self.port)
-        logger.log(f"Server started on ws://{self.host}:{self.port}")
-        
-        # Run server until stop event is set
-        await self.stop_event.wait()
-        
-        # Close server gracefully
-        self.server.close()
-        await self.server.wait_closed()
-        logger.log("Server stopped")
+        try:
+            # Start WebSocket server
+            self.server = await websockets.serve(self.handler, self.host, self.port)
+            logger.log(f"Server started on ws://{self.host}:{self.port}")
 
+            # Run server until stop event is set
+            await self.stop_event.wait()
+
+            # Close server gracefully
+            self.server.close()
+            await self.server.wait_closed()
+            logger.log("Server stopped")
+
+        except OSError as e:
+            if e.errno == 98:  # Errno 98 is typically "Address already in use"
+                logger.error(f"Port {self.port} is already in use. Please stop the process using it or choose a different port.")
+            else:
+                logger.error(f"An unexpected error occurred: {e}")
+                
     def _run_loop(self):
         # Create and run the event loop in the thread
         self.loop = asyncio.new_event_loop()
