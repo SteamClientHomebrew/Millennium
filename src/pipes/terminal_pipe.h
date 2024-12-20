@@ -15,14 +15,14 @@ extern "C" {
 
         if (hPipe == INVALID_HANDLE_VALUE)
         {
-            std::cerr << "Failed to connect to pipe." << std::endl;
+            std::cerr << "Failed to connect to pipe. Error: " << GetLastError() << std::endl;
             return 1;
         }
 
         int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
         if (pipeDescriptor == -1)
         {
-            std::cerr << "Failed to get pipe file descriptor." << std::endl;
+            std::cerr << "Failed to get pipe file descriptor. Error: " << errno << std::endl;
             CloseHandle(hPipe);
             return 1;
         }
@@ -30,22 +30,20 @@ extern "C" {
         FILE* pipeFile = _fdopen(pipeDescriptor, "w");
         if (!pipeFile)
         {
-            std::cerr << "Failed to open pipe file descriptor as FILE*." << std::endl;
+            std::cerr << "Failed to open pipe file descriptor as FILE*. Error: " << errno << std::endl;
             CloseHandle(hPipe);
             return 1;
         }
 
-        // Redirect stdout to the named pipe
-        if (dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
+        if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
         {
-            std::cerr << "Failed to redirect stdout to pipe." << std::endl;
+            std::cerr << "Failed to redirect stdout to pipe. Error: " << errno << std::endl;
+            fclose(pipeFile);
             CloseHandle(hPipe);
-            fclose(pipeFile); // Close the FILE* on failure
             return 1;
         }
-        setvbuf(stdout, NULL, _IONBF, 0);
 
-        std::shared_ptr<FILE*> pipePtr = std::make_shared<FILE*>(pipeFile);
+        setvbuf(stdout, NULL, _IONBF, 0);
         return 0;
     }
 }

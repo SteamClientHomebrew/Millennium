@@ -428,7 +428,7 @@ Write-Output "${BoldPurple}++${ResetColor} If you face any issues while verifyin
 Write-Output "${BoldPurple}++${ResetColor} ${BoldLightBlue}https://github.com/SteamClientHomebrew/Millennium/issues/new/choose${ResetColor}`n"
 
 # sleep 5 seconds to allow the user to read the message
-Start-Sleep -Seconds 5
+# Start-Sleep -Seconds 5
 
 Start-Steam -steamPath $steamPath
 
@@ -439,11 +439,11 @@ while ($pipeServer.IsConnected) {
     $bytesRead = $pipeServer.Read($buffer, 0, $bufferSize)
     if ($bytesRead -gt 0) {           
         $message = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
-        [Console]::Write($message)
+        # [Console]::Write($message)
         
         # Check if the message contains "SteamUI successfully loaded"
         if ($message -match "SteamUI successfully loaded!") {
-            Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
+            Write-Host "${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
             Start-Sleep -Seconds 2
             exit
         }
