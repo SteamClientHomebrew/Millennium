@@ -12,7 +12,7 @@
 const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
 {
     std::string scriptModuleArray;
-    std::string scriptContents = SystemIO::ReadFileSync((SystemIO::GetSteamPath() / "ext" / "data" / "shims" / "client_api.js").string());
+    std::string scriptContents = SystemIO::ReadFileSync((SystemIO::GetInstallPath() / "ext" / "data" / "shims" / "client_api.js").string());
 
     if (scriptContents.empty())
     {

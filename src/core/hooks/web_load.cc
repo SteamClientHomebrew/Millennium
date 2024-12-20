@@ -102,7 +102,7 @@ static const std::vector<std::string> g_blackListedUrls = {
 const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
     std::string patched = original;
-    const std::string webkitPreloadModule = SystemIO::ReadFileSync((SystemIO::GetSteamPath() / "ext" / "data" / "shims" / "webkit_api.js").string());
+    const std::string webkitPreloadModule = SystemIO::ReadFileSync((SystemIO::GetInstallPath() / "ext" / "data" / "shims" / "webkit_api.js").string());
 
     if (webkitPreloadModule.empty()) 
     {
