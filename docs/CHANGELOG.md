@@ -1,3 +1,13 @@
+## [2.16.1](https://github.com/shdwmtr/millennium/compare/v2.16.0...v2.16.1) (2024-12-20)
+
+
+### Bug Fixes
+
+* Catch installer socket being used instead of crashing. ([8817735](https://github.com/shdwmtr/millennium/commit/88177355d74b53ad7671e35831f6c050f842172c))
+* Fix crashing on new installs ([9b7e1e5](https://github.com/shdwmtr/millennium/commit/9b7e1e52b21556c6935112b92233ea75b52b69ba))
+* Fix unix pathing ([07dc66c](https://github.com/shdwmtr/millennium/commit/07dc66cc0d707153e976d52b3fe981694c1fa5b3))
+* Properly handle theme config with invalid props. ([d25461d](https://github.com/shdwmtr/millennium/commit/d25461d34f6e9790d18cc667395268a32508fb2a))
+
 # [2.16.0](https://github.com/shdwmtr/millennium/compare/v2.15.0...v2.16.0) (2024-12-19)
 
 
