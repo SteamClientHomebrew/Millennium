@@ -1,3 +1,10 @@
+## [2.16.2](https://github.com/shdwmtr/millennium/compare/v2.16.1...v2.16.2) (2024-12-21)
+
+
+### Bug Fixes
+
+* Fix installer crashes (again) ([bfafcb7](https://github.com/shdwmtr/millennium/commit/bfafcb79253fb0fb3475b35e87229dfa11c2471a))
+
 ## [2.16.1](https://github.com/shdwmtr/millennium/compare/v2.16.0...v2.16.1) (2024-12-20)
 
 
