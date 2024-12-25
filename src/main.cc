@@ -50,11 +50,13 @@ public:
 
 void OnTerminate() 
 {
-    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!";
-    
     auto const exceptionPtr = std::current_exception();
-    if (exceptionPtr) {
-        try {
+    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!";
+
+    if (exceptionPtr) 
+    {
+        try 
+        {
             int status;
             auto const exceptionType = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status);
             errorMessage.append("\nTerminating with uncaught exception of type `");
@@ -62,13 +64,13 @@ void OnTerminate()
             errorMessage.append("`");
             std::rethrow_exception(exceptionPtr); // rethrow the exception to catch its exception message
         }
-        catch (const std::exception& e) {
+        catch (const std::exception& e) 
+        {
             errorMessage.append(" with `what()` = \"");
             errorMessage.append(e.what());
             errorMessage.append("\"");
         }
-        catch (...) {
-        }
+        catch (...) { }
     }
 
     #ifdef _WIN32

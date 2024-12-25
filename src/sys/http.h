@@ -4,6 +4,7 @@
 #include <thread>
 #include <sys/log.h>
 #include <curl/curl.h>
+#include <winhttp.h>
 
 static size_t write_callback(char* ptr, size_t size, size_t nmemb, std::string* data) 
 {
@@ -13,6 +14,41 @@ static size_t write_callback(char* ptr, size_t size, size_t nmemb, std::string* 
 
 namespace Http 
 {
+    static void AddWindowsProxySettings(CURL* curl)
+    {
+        // Function to convert wide strings (wchar_t*) to std::string
+        const auto wide_to_string = [](const wchar_t* wide_str) -> std::string 
+        {
+            if (!wide_str) 
+                return "";
+
+            int size_needed = WideCharToMultiByte(CP_UTF8, 0, wide_str, -1, nullptr, 0, nullptr, nullptr);
+            std::string str(size_needed, 0);
+            WideCharToMultiByte(CP_UTF8, 0, wide_str, -1, &str[0], size_needed, nullptr, nullptr);
+            return str;
+        };
+
+        WINHTTP_CURRENT_USER_IE_PROXY_CONFIG proxyConfig;
+
+        if (WinHttpGetIEProxyConfigForCurrentUser(&proxyConfig)) 
+        {
+            if (proxyConfig.lpszProxy) 
+            {
+                curl_easy_setopt(curl, CURLOPT_PROXY, wide_to_string(proxyConfig.lpszProxy).c_str());
+            }
+
+            // Free memory allocated by WinHttpGetIEProxyConfigForCurrentUser
+            if (proxyConfig.lpszProxy) GlobalFree(proxyConfig.lpszProxy);
+            if (proxyConfig.lpszProxyBypass) GlobalFree(proxyConfig.lpszProxyBypass);
+            if (proxyConfig.lpszAutoConfigUrl) GlobalFree(proxyConfig.lpszAutoConfigUrl);
+        } 
+        else 
+        {
+            std::cerr << "Failed to get proxy settings. Error: " << GetLastError() << std::endl;
+        }
+
+    }
+
     static std::string Get(const char* url, bool retry = true) 
     {
         CURL* curl;
@@ -27,6 +63,7 @@ namespace Http
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
+            AddWindowsProxySettings(curl);
 
             while (true) 
             {
@@ -89,6 +126,7 @@ namespace Http
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headersList);
+            AddWindowsProxySettings(curl);
 
             curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, +[](char* buffer, size_t size, size_t nitems, std::string* userdata) -> size_t {
                 userdata->append(buffer, size * nitems);
@@ -120,6 +158,7 @@ namespace Http
                 curl_easy_setopt(curl, CURLOPT_URL, url);
                 curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
                 curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
+                AddWindowsProxySettings(curl);
 
                 res = curl_easy_perform(curl);
                 fclose(file);

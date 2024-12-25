@@ -110,7 +110,7 @@ set(SOURCE_FILES
 )
 
 if (MSVC)
-  set(SOURCE_FILES "${SOURCE_FILES} version.rc") # conpile version information on msvc
+  set(SOURCE_FILES "${SOURCE_FILES} version.rc") # compile version information on msvc
 endif()
 
 if (WIN32)
@@ -159,7 +159,7 @@ endif()
 target_link_libraries(Millennium CURL::libcurl unofficial::minizip::minizip)
 
 if(WIN32)
-	target_link_libraries(Millennium Ws2_32.lib wsock32 Iphlpapi)
+	target_link_libraries(Millennium Ws2_32.lib wsock32 Iphlpapi winhttp)
 
 	if (GITHUB_ACTION_BUILD)
 		target_link_libraries(Millennium "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib")
