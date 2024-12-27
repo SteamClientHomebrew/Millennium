@@ -5,6 +5,7 @@
 #include <sys/encoding.h>
 #include <sys/http.h>   
 #include <unordered_set>
+#include "csp_bypass.h"
 // #include <boxer/boxer.h>
 
 unsigned long long g_hookedModuleId;
@@ -21,7 +22,7 @@ void WebkitHandler::SetupGlobalHooks()
         { "id", 3242 }, { "method", "Fetch.enable" },
         { "params", {
             { "patterns", {
-                { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Request" } },     
+                { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Response" } },     
                 { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } }
             }
         }}}
@@ -85,7 +86,7 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 {
     hookMessageId -= 1;
-    m_requestMap->push_back({ hookMessageId, message["params"]["requestId"], message["params"]["resourceType"] });
+    m_requestMap->push_back({ hookMessageId, message["params"]["requestId"], message["params"]["resourceType"], message });
 
     Sockets::PostGlobal({
         { "id", hookMessageId },
@@ -156,6 +157,47 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
     return patched.replace(patched.find("<head>"), 6, "<head>" + shimContent);
 }
 
+void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
+{
+    for (auto requestIterator = m_requestMap->begin(); requestIterator != m_requestMap->end();)
+    {
+        try 
+        {
+            auto [id, requestId, type, response] = (*requestIterator);
+
+            if (message["id"] != id || !message["result"]["base64Encoded"])
+            {
+                requestIterator++;
+                continue;
+            }
+
+            const std::string patchedContent = this->PatchDocumentContents(response["params"]["request"]["url"], Base64Decode(message["result"]["body"]));
+
+            BypassCSP();
+
+            Sockets::PostGlobal({
+                { "id", 63453 },
+                { "method", "Fetch.fulfillRequest" },
+                { "params", {
+                    { "requestId", requestId },
+                    { "responseCode", response["params"]["responseStatusCode"] },
+                    { "body", Base64Encode(patchedContent) }
+                }}
+            });
+
+            requestIterator = m_requestMap->erase(requestIterator);
+        }
+        catch (const nlohmann::detail::exception& ex) 
+        {
+            LOG_ERROR("error hooking WebKit -> {}", ex.what());
+        }
+        catch (const std::exception& ex) 
+        {
+            LOG_ERROR("error hooking WebKit -> {}", ex.what());
+        }
+    }
+}
+
 void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
 {
     static std::chrono::time_point lastExceptionTime = std::chrono::system_clock::now();
@@ -164,63 +206,22 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
     {
         if (message["method"] == "Fetch.requestPaused")
         {
-            if (message["params"]["resourceType"] == "Document")
+            switch (this->IsGetBodyCall(message))
             {
-
-                std::string requestId  = message["params"]["requestId"].get<std::string>();
-                std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
-                nlohmann::json requestHeaders = message["params"]["request"]["headers"];
-
-                nlohmann::json responseHeaders = nlohmann::json::array({
-                    {
-                        { "name", "Content-Security-Policy" },
-                        { "value", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:;" }
-                    },
-                    {
-                        { "name", "Access-Control-Allow-Origin" },
-                        { "value", "*" }
-                    }
-                });
-
-                for (auto& [key, value] : requestHeaders.items())
+                case true: 
                 {
-                    responseHeaders.push_back({ { "name", key }, { "value", value } });
+                    this->RetrieveRequestFromDisk(message);
+                    break;
                 }
-
-                nlohmann::json responseHeadersJson;
-
-                const auto [originalContent, statusCode] = Http::GetWithHeaders(requestUrl.c_str(), requestHeaders, requestHeaders.value("User-Agent", ""), responseHeadersJson);
-
-                for (const auto& item : responseHeadersJson)
+                case false:
                 {
-                    if (!std::any_of(responseHeaders.begin(), responseHeaders.end(), [&](const nlohmann::json& existingHeader) {
-                        return existingHeader.at("name") == item.at("name");
-                    })) {
-                        responseHeaders.push_back(item);
-                    }
+                    this->GetResponseBody(message);
+                    break;
                 }
-
-                const std::string patchedContent = this->PatchDocumentContents(requestUrl, originalContent);
-
-                nlohmann::json message = {
-                    { "id", 63453 },
-                    { "method", "Fetch.fulfillRequest" },
-                    { "params", {
-                        { "requestId", requestId },
-                        { "responseCode", statusCode },
-                        { "responseHeaders", responseHeaders },
-                        { "body", Base64Encode(patchedContent) }
-                    }}
-                };  
-
-                Sockets::PostGlobal(message);
-
-            }
-            else if (this->IsGetBodyCall(message))
-            {
-                this->RetrieveRequestFromDisk(message);
             }
         }
+
+        this->HandleHooks(message);
     }
     catch (const nlohmann::detail::exception& ex) 
     {

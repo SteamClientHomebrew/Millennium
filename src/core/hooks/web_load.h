@@ -56,6 +56,7 @@ private:
         long long id;
         std::string requestId;
         std::string type;
+        nlohmann::basic_json<> message;
     };
 
     std::shared_ptr<std::vector<WebHookItem>> m_requestMap = std::make_shared<std::vector<WebHookItem>>();

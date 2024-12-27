@@ -106,7 +106,7 @@ public:
             }
         }
         
-        if (method == "Target.attachedToTarget")
+        if (method == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
         {
             sharedJsContextSessionId = json["params"]["sessionId"];
             this->onSharedJsConnect();
