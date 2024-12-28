@@ -40,6 +40,11 @@ def get_load_config():
         "useInterface": True if millennium.get('Settings', 'useInterface', fallback='') == "yes" else False,
     })
 
+def _webkit_accent_color():
+    config = cfg.get_config()
+
+    return Colors.get_accent_color(config["accentColor"])
+
 def update_plugin_status(plugin_name: str, enabled: bool):
     Millennium.change_plugin_status(plugin_name, enabled)
 
