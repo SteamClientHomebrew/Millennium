@@ -1,7 +1,7 @@
 #include <core/loader.h>
 #include <core/ffi/ffi.h>
 
-const void BypassCSP()
+const void BypassCSP(void)
 {
     // This function is used to bypass the Content Security Policy (CSP) of a website.
     // The Content Security Policy (CSP) is a security standard that helps prevent cross-site scripting (XSS), clickjacking, and other code injection attacks resulting from execution of malicious content in the context of trusted web pages.
@@ -18,9 +18,7 @@ const void BypassCSP()
                 {
                     const std::string targetUrl = target["url"].get<std::string>();
 
-                    if (target["type"] == "page" && 
-                        targetUrl.find("steamloopback.host") == std::string::npos && 
-                        targetUrl.find("https://") != std::string::npos)
+                    if (target["type"] == "page" && targetUrl.find("steamloopback.host") == std::string::npos && targetUrl.find("https://") != std::string::npos)
                     {
                         Sockets::PostGlobal({
                             { "id", 567844 },
@@ -64,7 +62,6 @@ const void BypassCSP()
         {
             LOG_ERROR("error bypassing CSP -> {}", e.what());
         }
-        
     });
 
     Sockets::PostGlobal({

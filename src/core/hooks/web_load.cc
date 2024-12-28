@@ -10,6 +10,12 @@
 
 unsigned long long g_hookedModuleId;
 
+// These URLS are blacklisted from being hooked, to prevent potential security issues.
+static const std::vector<std::string> g_blackListedUrls
+{
+    "https://checkout\\.steampowered\\.com/.*"
+};
+
 WebkitHandler WebkitHandler::get() 
 {
     static WebkitHandler webkitHandler;
@@ -31,8 +37,7 @@ void WebkitHandler::SetupGlobalHooks()
 
 bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message) 
 {
-    return message["params"]["request"]["url"].get<std::string>()
-        .find(this->m_javaScriptVirtualUrl) != std::string::npos;
+    return message["params"]["request"]["url"].get<std::string>().find(this->m_javaScriptVirtualUrl) != std::string::npos;
 }
 
 std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
@@ -52,17 +57,17 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
     std::filesystem::path localFilePath = this->ConvertToLoopBack(message["params"]["request"]["url"]);
     std::ifstream localFileStream(localFilePath);
 
-    bool failed = !localFileStream.is_open();
+    bool bFailedRead = !localFileStream.is_open();
 
-    if (failed)
+    if (bFailedRead)
     {
         LOG_ERROR("failed to retrieve file info from disk.");
     }
 
     const std::string fileContent((std::istreambuf_iterator<char>(localFileStream)), std::istreambuf_iterator<char>());
 
-    const std::string successMessage = "MILLENNIUM-VIRTUAL";
-    const std::string failedMessage = fmt::format("Millennium couldn't read {}", localFilePath.string());
+    const int responseCode            = bFailedRead ? 404 : 200;
+    const std::string responseMessage = bFailedRead ? "millennium" : "millennium couldn't read " + localFilePath.string();
 
     const nlohmann::json responseHeaders = nlohmann::json::array
     ({
@@ -74,33 +79,31 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
         { "id", 63453 },
         { "method", "Fetch.fulfillRequest" },
         { "params", {
+            { "responseCode",    responseCode    },
             { "requestId",       message["params"]["requestId"] },
-            { "responseCode",    failed ? 404 : 200 },
-            { "responsePhrase",  failed ? failedMessage : successMessage },
             { "responseHeaders", responseHeaders },
-            { "body", Base64Encode(fileContent) }
+            { "responsePhrase",  responseMessage },
+            { "body", Base64Encode(fileContent)  }
         }}
     });
 }
 
 void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 {
-    hookMessageId -= 1;
-    Logger.Log(message.dump(4));
-
     const int statusCode = message["params"]["responseStatusCode"].get<int>();
 
     // If the status code is a redirect, we just continue the request. 
     if (statusCode == 301 || statusCode == 302 || statusCode == 303 || statusCode == 307 || statusCode == 308)
     {
         Sockets::PostGlobal({
-            { "id", hookMessageId },
+            { "id", 0 },
             { "method", "Fetch.continueRequest" },
             { "params", { { "requestId", message["params"]["requestId"] } }}
         });
     }
     else
     {
+        hookMessageId -= 1;
         m_requestMap->push_back({ hookMessageId, message["params"]["requestId"], message["params"]["resourceType"], message });
 
         Sockets::PostGlobal({
@@ -110,11 +113,6 @@ void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
         });
     }
 }
-
-// These URLS are blacklisted from being hooked, to prevent potential security issues.
-static const std::vector<std::string> g_blackListedUrls = {
-    "https://checkout\\.steampowered\\.com/.*"
-};
 
 const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
@@ -162,8 +160,12 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
     std::string shimContent = fmt::format("<script type=\"module\" id=\"millennium-injected\" defer>{}millennium_components({}, [{}])\n</script>\n{}", webkitPreloadModule, m_ipcPort, scriptModuleArray, cssShimContent);
 
     for (const auto& blackListedUrl : g_blackListedUrls)        
+    {
         if (std::regex_match(requestUrl, std::regex(blackListedUrl))) 
+        {
             shimContent = cssShimContent; // Remove all queried JavaScript from the page. 
+        }
+    }
 
     if (patched.find("<head>") == std::string::npos) 
     {
@@ -206,10 +208,12 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
         catch (const nlohmann::detail::exception& ex) 
         {
             LOG_ERROR("error hooking WebKit -> {}\n\n{}", ex.what(), message.dump(4));
+            requestIterator = m_requestMap->erase(requestIterator);
         }
         catch (const std::exception& ex) 
         {
             LOG_ERROR("error hooking WebKit -> {}\n\n{}", ex.what(), message.dump(4));
+            requestIterator = m_requestMap->erase(requestIterator);
         }
     }
 }
