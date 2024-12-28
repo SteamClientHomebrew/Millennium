@@ -29,7 +29,7 @@ const void BypassCSP(void)
                             }}
                         });
 
-                        Logger.Log("Bypassing CSP for " + target["url"].get<std::string>());
+                        // Logger.Log("Bypassing CSP for " + target["url"].get<std::string>());
                     }
                 }
             }
@@ -45,12 +45,12 @@ const void BypassCSP(void)
                     }}
                 });
 
-                Logger.Log("Sent CSP bypass request");
+                // Logger.Log("Sent CSP bypass request");
             }
 
             if (message.contains("id") && message.value("id", -1) == 1235377)
             {
-                Logger.Log("Successfully bypassed CSP");
+                // Logger.Log("Successfully bypassed CSP");
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
         }
