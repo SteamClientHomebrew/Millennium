@@ -86,13 +86,29 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 {
     hookMessageId -= 1;
-    m_requestMap->push_back({ hookMessageId, message["params"]["requestId"], message["params"]["resourceType"], message });
+    Logger.Log(message.dump(4));
 
-    Sockets::PostGlobal({
-        { "id", hookMessageId },
-        { "method", "Fetch.getResponseBody" },
-        { "params", { { "requestId", message["params"]["requestId"] } }}
-    });
+    const int statusCode = message["params"]["responseStatusCode"].get<int>();
+
+    // If the status code is a redirect, we just continue the request. 
+    if (statusCode == 301 || statusCode == 302 || statusCode == 303 || statusCode == 307 || statusCode == 308)
+    {
+        Sockets::PostGlobal({
+            { "id", hookMessageId },
+            { "method", "Fetch.continueRequest" },
+            { "params", { { "requestId", message["params"]["requestId"] } }}
+        });
+    }
+    else
+    {
+        m_requestMap->push_back({ hookMessageId, message["params"]["requestId"], message["params"]["resourceType"], message });
+
+        Sockets::PostGlobal({
+            { "id", hookMessageId },
+            { "method", "Fetch.getResponseBody" },
+            { "params", { { "requestId", message["params"]["requestId"] } }}
+        });
+    }
 }
 
 // These URLS are blacklisted from being hooked, to prevent potential security issues.
@@ -165,7 +181,7 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
         {
             auto [id, requestId, type, response] = (*requestIterator);
 
-            if (message["id"] != id || !message["result"]["base64Encoded"])
+            if (message["id"] != id || (message["id"] == id && !message["result"]["base64Encoded"]))
             {
                 requestIterator++;
                 continue;
@@ -189,11 +205,11 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
         }
         catch (const nlohmann::detail::exception& ex) 
         {
-            LOG_ERROR("error hooking WebKit -> {}", ex.what());
+            LOG_ERROR("error hooking WebKit -> {}\n\n{}", ex.what(), message.dump(4));
         }
         catch (const std::exception& ex) 
         {
-            LOG_ERROR("error hooking WebKit -> {}", ex.what());
+            LOG_ERROR("error hooking WebKit -> {}\n\n{}", ex.what(), message.dump(4));
         }
     }
 }
