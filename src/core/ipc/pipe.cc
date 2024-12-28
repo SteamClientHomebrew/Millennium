@@ -25,9 +25,9 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 
     switch (response.type)
     {
-        case Python::Types::Boolean:   { responseMessage["returnValue"] = (response.plain == "True" ? true : false); break; }
-        case Python::Types::String:    { responseMessage["returnValue"] = Base64Encode(response.plain); break; }
-        case Python::Types::Integer:   { responseMessage["returnValue"] = stoi(response.plain); break; }
+        case Python::Types::Boolean: { responseMessage["returnValue"] = (response.plain == "True" ? true : false); break; }
+        case Python::Types::String:  { responseMessage["returnValue"] = Base64Encode(response.plain);              break; }
+        case Python::Types::Integer: { responseMessage["returnValue"] = stoi(response.plain);                      break; }
 
         case Python::Types::Error: 
         {

@@ -24,6 +24,14 @@ public:
         unsigned long long id;
     };
 
+    enum RedirectType {
+        REDIRECT = 301,
+        MOVED_PERMANENTLY = 302,
+        FOUND = 303,
+        TEMPORARY_REDIRECT = 307,
+        PERMANENT_REDIRECT = 308
+    };
+
     std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
 
     void DispatchSocketMessage(nlohmann::basic_json<> message);
@@ -36,7 +44,7 @@ private:
     long long hookMessageId = -69;
 
     // must share the same base url, or be whitelisted.
-    const char* m_javaScriptVirtualUrl = "https://s.ytimg.com/millennium-virtual/";
+    const char* m_javaScriptVirtualUrl = "https://pseudo.millennium.app/";
     const char* m_steamLoopback = "https://steamloopback.host/";
 
     bool IsGetBodyCall(nlohmann::basic_json<> message);

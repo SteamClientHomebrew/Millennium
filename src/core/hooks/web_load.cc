@@ -6,13 +6,11 @@
 #include <sys/http.h>   
 #include <unordered_set>
 #include "csp_bypass.h"
-// #include <boxer/boxer.h>
 
 unsigned long long g_hookedModuleId;
 
 // These URLS are blacklisted from being hooked, to prevent potential security issues.
-static const std::vector<std::string> g_blackListedUrls
-{
+static const std::vector<std::string> g_blackListedUrls = {
     "https://checkout\\.steampowered\\.com/.*"
 };
 
@@ -79,21 +77,21 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
         { "id", 63453 },
         { "method", "Fetch.fulfillRequest" },
         { "params", {
-            { "responseCode",    responseCode    },
-            { "requestId",       message["params"]["requestId"] },
+            { "responseCode", responseCode },
+            { "requestId", message["params"]["requestId"] },
             { "responseHeaders", responseHeaders },
-            { "responsePhrase",  responseMessage },
-            { "body", Base64Encode(fileContent)  }
+            { "responsePhrase", responseMessage },
+            { "body", Base64Encode(fileContent) }
         }}
     });
 }
 
 void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 {
-    const int statusCode = message["params"]["responseStatusCode"].get<int>();
+    const RedirectType statusCode = message["params"]["responseStatusCode"].get<RedirectType>();
 
     // If the status code is a redirect, we just continue the request. 
-    if (statusCode == 301 || statusCode == 302 || statusCode == 303 || statusCode == 307 || statusCode == 308)
+    if (statusCode == REDIRECT || statusCode == MOVED_PERMANENTLY || statusCode == FOUND || statusCode == TEMPORARY_REDIRECT || statusCode == PERMANENT_REDIRECT)
     {
         Sockets::PostGlobal({
             { "id", 0 },
@@ -129,8 +127,7 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
     }
 
     std::vector<std::string> scriptModules;
-    std::string cssShimContent;
-    std::string scriptModuleArray;
+    std::string cssShimContent, scriptModuleArray;
 
     for (auto& hookItem : *m_hookListPtr) 
     {
@@ -228,16 +225,8 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
         {
             switch (this->IsGetBodyCall(message))
             {
-                case true: 
-                {
-                    this->RetrieveRequestFromDisk(message);
-                    break;
-                }
-                case false:
-                {
-                    this->GetResponseBody(message);
-                    break;
-                }
+                case true:  { this->RetrieveRequestFromDisk(message); break; }
+                case false: { this->GetResponseBody(message);         break; }
             }
         }
 
