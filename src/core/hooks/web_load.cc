@@ -190,14 +190,17 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
 
             BypassCSP();
 
+            const int responseCode = response["params"].value("responseStatusCode", 200);
+            const std::string responseMessage = response["params"].value("responseStatusText", "OK");
+
             Sockets::PostGlobal({
                 { "id", 63453 },
                 { "method", "Fetch.fulfillRequest" },
                 { "params", {
                     { "requestId", requestId },
-                    { "responseCode", response["params"]["responseStatusCode"] },
+                    { "responseCode", responseCode },
                     { "responseHeaders", response["params"]["responseHeaders"] },
-                    { "responsePhrase", response["params"]["responseStatusText"] },
+                    { "responsePhrase", responseMessage.length() > 0 ? responseMessage : "OK" },
                     { "body", Base64Encode(patchedContent) }
                 }}
             });
