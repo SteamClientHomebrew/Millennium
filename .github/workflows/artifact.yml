@@ -50,13 +50,6 @@ jobs:
       env: 
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # dry run to get the next version
-    - name: Bump Version
-      id: read_version
-      run: . scripts\ci\win32\version.ps1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     - name: Set up cache for Python source
       uses: actions/cache@v3
       id: build-cache
@@ -175,13 +168,6 @@ jobs:
     - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
       env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    # dry run to get the next version
-    - name: Bump Version
-      id: read_version
-      run: bash scripts/ci/posix/version.sh
-      env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install dependencies
