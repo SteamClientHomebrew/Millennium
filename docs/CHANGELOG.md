@@ -1,3 +1,10 @@
+## [2.17.2](https://github.com/shdwmtr/millennium/compare/v2.17.1...v2.17.2) (2024-12-29)
+
+
+### Bug Fixes
+
+* Fix overlay browser not loading on pages without a response phrase. ([7d0fbcf](https://github.com/shdwmtr/millennium/commit/7d0fbcf365f0d6a7f3d163a3f265c1cf45c595ec))
+
 ## [2.17.1](https://github.com/shdwmtr/millennium/compare/v2.17.0...v2.17.1) (2024-12-29)
 
 
