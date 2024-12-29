@@ -196,6 +196,8 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
                 { "params", {
                     { "requestId", requestId },
                     { "responseCode", response["params"]["responseStatusCode"] },
+                    { "responseHeaders", response["params"]["responseHeaders"] },
+                    { "responsePhrase", response["params"]["responseStatusText"] },
                     { "body", Base64Encode(patchedContent) }
                 }}
             });
