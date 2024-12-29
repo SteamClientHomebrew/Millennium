@@ -1,3 +1,20 @@
+# [2.17.0](https://github.com/shdwmtr/millennium/compare/v2.16.2...v2.17.0) (2024-12-29)
+
+
+### Bug Fixes
+
+* Add proxy support for web requests within Steam. ([71dabc6](https://github.com/shdwmtr/millennium/commit/71dabc6c5299de1f3b5dd2053dad5f3d4a8856a7))
+* Fix installer script ([fb4053d](https://github.com/shdwmtr/millennium/commit/fb4053dcb299311daac5df20dcca3409d3298af7))
+* Fix webkit and CSP related issues. closes [#197](https://github.com/shdwmtr/millennium/issues/197), [#196](https://github.com/shdwmtr/millennium/issues/196), [#194](https://github.com/shdwmtr/millennium/issues/194) ([e2cd49d](https://github.com/shdwmtr/millennium/commit/e2cd49dd7b4911ededf5d16c5446f0221de35d4e))
+* Fix webkit issues, Close [#194](https://github.com/shdwmtr/millennium/issues/194), [#196](https://github.com/shdwmtr/millennium/issues/196) ([2c91a95](https://github.com/shdwmtr/millennium/commit/2c91a9517bbe662e5227304c63dafdbfabee7ac9))
+* Fix webkit patcher edge cases on redirects ([2573215](https://github.com/shdwmtr/millennium/commit/25732155fc5c4cb8a2d1b036b63a404b495eae94))
+* Fix webkit patcher skipping non-secure requests. ([b9a6d0d](https://github.com/shdwmtr/millennium/commit/b9a6d0d0fef4f66f5bf0bd027dd45e98f710ff21))
+
+
+### Features
+
+* Add system accent color to webkit ([af602c3](https://github.com/shdwmtr/millennium/commit/af602c30e140a1588d901417d9b6d83a590ed4f6))
+
 ## [2.16.2](https://github.com/shdwmtr/millennium/compare/v2.16.1...v2.16.2) (2024-12-21)
 
 
