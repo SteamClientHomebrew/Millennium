@@ -1,3 +1,10 @@
+## [2.17.1](https://github.com/shdwmtr/millennium/compare/v2.17.0...v2.17.1) (2024-12-29)
+
+
+### Bug Fixes
+
+* Fix workshop pages not rendering HTML. ([4614cc8](https://github.com/shdwmtr/millennium/commit/4614cc81776ed0731d5324723a0466a2a74537d0))
+
 # [2.17.0](https://github.com/shdwmtr/millennium/compare/v2.16.2...v2.17.0) (2024-12-29)
 
 
