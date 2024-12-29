@@ -18,7 +18,8 @@ const void BypassCSP(void)
                 {
                     const std::string targetUrl = target["url"].get<std::string>();
 
-                    if (target["type"] == "page" && targetUrl.find("steamloopback.host") == std::string::npos && targetUrl.find("https://") != std::string::npos)
+                    // make sure the only target none client pages. 
+                    if (target["type"] == "page" && targetUrl.find("steamloopback.host") == std::string::npos && targetUrl.find("about:blank?") == std::string::npos)
                     {
                         Sockets::PostGlobal({
                             { "id", 567844 },
