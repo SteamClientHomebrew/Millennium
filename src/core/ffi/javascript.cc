@@ -147,9 +147,9 @@ PyObject* JavaScript::EvaluateFromSocket(std::string script)
 
         if      (type == "string") return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
         else if (type == "boolean")   return PyBool_FromLong(response.json["value"]);
-        else if (type == "int")    return PyLong_FromLong(response.json["value"]);
+        else if (type == "number")    return PyLong_FromLong(response.json["value"]);
         else
-            return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. accepted types [string, boolean, int]", type).c_str());
+            return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
 
     }
     catch (nlohmann::detail::exception& ex)
