@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 
 set(BUILD_SHARED_LIBS OFF)
 
+if (WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -s")
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
+endif()
+
 # Set the project name
 project(ShimDll)
 
