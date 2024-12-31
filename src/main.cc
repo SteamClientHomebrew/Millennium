@@ -15,38 +15,21 @@
 #include <signal.h>
 #include <cxxabi.h>
 #include <pipes/terminal_pipe.h>
-#include <git/vcs.h>
 #include <api/executor.h>
 
-class Preload 
+const static void VerifyEnvironment() 
 {
-public:
-    Preload() 
-    { 
-        this->VerifyEnvironment(); 
-    }
+    const auto filePath = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
 
-    ~Preload() { }
-
-    const void VerifyEnvironment() 
+    // Steam's CEF Remote Debugger isn't exposed to port 8080
+    if (!std::filesystem::exists(filePath)) 
     {
-        const auto filePath = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
+        std::ofstream(filePath).close();
 
-        // Steam's CEF Remote Debugger isn't exposed to port 8080
-        if (!std::filesystem::exists(filePath)) 
-        {
-            std::ofstream(filePath).close();
-
-            Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
-            std::exit(1);
-        }
+        Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
+        std::exit(1);
     }
-
-    const void Start() 
-    {
-        CheckForUpdates();
-    }
-};
+}
 
 void OnTerminate() 
 {
@@ -100,10 +83,7 @@ const static void EntryMain()
     uint16_t ftpPort = Crow::CreateAsyncServer();
 
     const auto startTime = std::chrono::system_clock::now();
-    {
-        std::unique_ptr<Preload> preload = std::make_unique<Preload>();
-        preload->Start();
-    }
+    VerifyEnvironment();
 
     std::shared_ptr<PluginLoader> loader = std::make_shared<PluginLoader>(startTime, ftpPort);
     SetPluginLoader(loader);

@@ -274,8 +274,7 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
     auto socketEmitterThread = std::thread([&]
     {
-        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", 
-            [&] (const nlohmann::json& eventMessage, int listenerId)
+        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [&](const nlohmann::json& eventMessage, std::string listenerId)
         {
             std::unique_lock<std::mutex> lock(mtx);
             
@@ -349,7 +348,7 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
 
     Logger.Log("Preparing to inject frontend shims...");
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) 
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "InjectFrontendShims", [&](const nlohmann::json& eventMessage, std::string listenerId) 
     {
         std::lock_guard<std::mutex> lock(mtx);
         

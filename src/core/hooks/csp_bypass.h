@@ -8,7 +8,7 @@ const void BypassCSP(void)
     // The CSP is implemented by the web server and enforced by the web browser.
     // The CSP is a set of rules that the web server sends to the web browser to tell it what content is allowed to be loaded
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&] (const nlohmann::json& message, int listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
     {
         try
         {

@@ -34,7 +34,7 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
         throw std::runtime_error("couldn't send message to socket");
     }
 
-    int listenerId = JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", [&](const nlohmann::json& eventMessage, int listenerId) 
+    std::string listenerId = JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "ExecuteOnSharedJsContext", [&](const nlohmann::json& eventMessage, std::string listenerId) 
     {
         std::lock_guard<std::mutex> lock(mtx);  // Lock mutex for safe access
 
