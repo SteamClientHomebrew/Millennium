@@ -1,14 +1,15 @@
 #pragma once
 #include <nlohmann/json.hpp>
 
-extern "C" 
+extern "C"
 {
-	namespace IPCMain 
+	namespace IPCMain
 	{
-		enum Builtins 
+		enum Builtins
 		{
 			CALL_SERVER_METHOD,
-			FRONT_END_LOADED
+			FRONT_END_LOADED,
+			GET_FRONTEND_SETTINGS
 		};
 
 		const uint16_t OpenConnection();

@@ -3,21 +3,16 @@
 #include <core/loader.h>
 #include <future>
 
-struct EvalResult {
-    nlohmann::basic_json<> json;
-    bool successfulCall;
-};
-
 #define SHARED_JS_EVALUATE_ID 54999
 
 #include <mutex>
 #include <condition_variable>
 
-const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval) 
+JavaScript::EvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
 {
     std::mutex mtx;
     std::condition_variable cv;
-    EvalResult evalResult;
+    JavaScript::EvalResult evalResult;
     bool resultReady = false;  // Flag to indicate when the result is ready
 
     bool messageSendSuccess = Sockets::PostShared(nlohmann::json({ 

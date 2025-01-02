@@ -58,6 +58,11 @@ namespace JavaScript {
         Types type;
     };
 
+    struct EvalResult {
+        nlohmann::basic_json<> json;
+        bool successfulCall;
+    };
+
     using EventHandler = std::function<void(const nlohmann::json& eventMessage, std::string listenerId)>;
 
     class SharedJSMessageEmitter {
@@ -122,5 +127,6 @@ namespace JavaScript {
 
 	const std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
 
+    JavaScript::EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval);
 	PyObject* EvaluateFromSocket(std::string script);
 }
