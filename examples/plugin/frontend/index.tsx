@@ -1,4 +1,5 @@
-import { callable, Millennium } from "@steambrew/client"; 
+import { callable, Millennium } from "@steambrew/client";
+import { ExampleSettings } from "./ExampleSettings";
 
 class classname {
     static method(country: string, age: number) {
@@ -20,11 +21,12 @@ function windowCreated(context: object)
 // Declare a function that exists on the backend
 const backendMethod = callable<[{ message: string, status: boolean, count: number }], boolean>('Backend.receive_frontend_message')
 
+const settings = Millennium.exposeSettings(new ExampleSettings());
+
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
-
     // Call the backend method
-    const message = await backendMethod({ message: "Hello World From Frontend!", status: true, count: 69 })
+    const message = await backendMethod({ message: settings.frontendMessage, status: true, count: settings.frontendCount })
     console.log("Result from callServerMethod:", message)
 
     Millennium.AddWindowCreateHook(windowCreated)

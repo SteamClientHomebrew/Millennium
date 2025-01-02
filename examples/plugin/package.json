@@ -18,10 +18,9 @@
   "author": "Millennium",
   "license": "MIT",
   "dependencies": {
-    "@steambrew/api": "^4.1.1",
-    "@steambrew/client": "^4.1.1",
-    "@steambrew/ttc": "^1.0.4",
-    "@steambrew/webkit": "^4.1.1",
+    "@steambrew/client": "^4.2.1",
+    "@steambrew/ttc": "^1.0.5",
+    "@steambrew/webkit": "^4.2.1",
     "preact": "^10.25.0"
   }
 }

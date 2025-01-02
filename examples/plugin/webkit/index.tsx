@@ -1,8 +1,8 @@
-import { callable } from "@steambrew/webkit"
+import { callable, Millennium } from '@steambrew/webkit';
 
 // preact is a lightweight alternative to react that is compatible with react components
 // This allows you to render components on pages without huge react dependencies
-import { render } from "preact";
+import { render } from 'preact';
 
 const receiveFrontendMethod = callable<[{ message: string, status: boolean, count: number }], boolean>("Backend.receive_frontend_message")
 
@@ -18,14 +18,22 @@ const ExampleComponent: preact.FunctionalComponent<ExampleComponentProps> = ({ s
 	</div>
 );
 
+type WebkitSettings = {
+	overrideWebkitDocument: boolean,
+	frontendCount: number
+}
+
 export default async function WebkitMain () {
+	const settings = await Millennium.getSettings<WebkitSettings>();
 
 	const success = await receiveFrontendMethod({
 		message: "Hello World From Frontend!",
 		status: true,
-		count: 69
+		count: settings.frontendCount,
 	})
 
 	console.log("Result from receive_frontend_message:", success)
-	render(<ExampleComponent success={success}/>, document.body);
+	if (settings.overrideWebkitDocument) {
+		render(<ExampleComponent success={success}/>, document.body);
+	}
 }
