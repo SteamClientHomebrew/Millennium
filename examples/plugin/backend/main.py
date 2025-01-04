@@ -20,7 +20,7 @@ def get_steam_path():
     return Millennium.steam_path()
 
 def get_do_frontend_call():
-    return Millennium.call_frontend_method("settings.getDoFrontendCall")
+    return Millennium.call_frontend_method("settings.BasicSettings.getDoFrontendCall")
 
 class Plugin:
 

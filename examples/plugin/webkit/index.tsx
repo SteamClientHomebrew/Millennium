@@ -19,8 +19,10 @@ const ExampleComponent: preact.FunctionalComponent<ExampleComponentProps> = ({ s
 );
 
 type WebkitSettings = {
-	overrideWebkitDocument: boolean,
-	frontendCount: number
+	BasicSettings: {
+		overrideWebkitDocument: boolean,
+		frontendCount: number
+	}
 }
 
 export default async function WebkitMain () {
@@ -29,11 +31,11 @@ export default async function WebkitMain () {
 	const success = await receiveFrontendMethod({
 		message: "Hello World From Frontend!",
 		status: true,
-		count: settings.frontendCount,
+		count: settings.BasicSettings.frontendCount,
 	})
 
 	console.log("Result from receive_frontend_message:", success)
-	if (settings.overrideWebkitDocument) {
+	if (settings.BasicSettings.overrideWebkitDocument) {
 		render(<ExampleComponent success={success}/>, document.body);
 	}
 }
