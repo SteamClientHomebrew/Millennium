@@ -17,5 +17,5 @@ std::string get_steam_path() {
     }
 
     RegCloseKey(hKey);
-    return std::string(buffer, bufferSize);
+    return std::string(buffer, strlen(buffer));
 }

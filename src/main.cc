@@ -72,6 +72,32 @@ const static void EntryMain()
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
     #ifdef _WIN32
+
+    // try {
+    //     if (std::filesystem::exists(SystemIO::GetInstallPath() / "user32.queue.dll"))
+    //     {
+    //         Logger.Log("Updating shim module from cache...");
+
+    //         while (true) {
+    //             try {
+    //                 std::filesystem::remove(SystemIO::GetInstallPath() / "user32.dll");
+    //                 break;
+    //             }
+    //             catch (std::filesystem::filesystem_error& e) {
+    //                 continue;
+    //             }
+    //         }
+
+    //         Logger.Log("Removed old inject shim...");
+
+    //         std::filesystem::rename(SystemIO::GetInstallPath() / "user32.queue.dll", SystemIO::GetInstallPath() / "user32.dll"); 
+    //         Logger.Log("Successfully updated user32.dll!");
+    //     }
+    // }
+    // catch (std::exception& e) {
+    //     LOG_ERROR("Failed to update user32.dll: {}", e.what());
+    // }
+
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
     if (startupParams->HasArgument("-verbose"))
@@ -95,6 +121,8 @@ const static void EntryMain()
 
     backendThread.join();
     frontendThreads.join();
+
+    Logger.Log("Millennium has gracefully shut down.");
 }
 
 #ifdef _WIN32
@@ -117,6 +145,8 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
             Sockets::Shutdown();
             g_millenniumThread->join();
             Logger.PrintMessage(" MAIN ", "Millennium has been shut down.", COL_MAGENTA);
+
+            std::this_thread::sleep_for(std::chrono::seconds(1000));
             break;
         }
     }

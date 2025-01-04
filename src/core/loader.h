@@ -17,6 +17,7 @@ class PluginLoader {
 public:
 
 	PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort);
+	// ~PluginLoader();
 
 	const void StartBackEnds(PythonManager& manager);
 	const void StartFrontEnds();
@@ -32,6 +33,8 @@ private:
 	std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;
 	std::chrono::system_clock::time_point m_startTime;
 	uint16_t m_ftpPort, m_ipcPort;
+
+	std::vector<std::thread> m_threadPool;
 };
 
 namespace Sockets {

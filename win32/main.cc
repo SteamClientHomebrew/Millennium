@@ -6,6 +6,9 @@
 #include "http.h"
 #include "unzip.h"
 #include "steam.h"
+#include <filesystem>
+#include "../src/procmon/cmd.h"
+#include <thread>
 
 const void shutdown_shim(HINSTANCE hinstDLL) {
     FreeLibraryAndExitThread(hinstDLL, 0);
@@ -26,12 +29,13 @@ void download_latest(nlohmann::basic_json<> latest_release, const std::string &l
     const std::string download_url = get_platform_module(latest_release, latest_version);
     printf("downloading asset: %s\n", download_url.c_str());
 
-    const std::string download_path = steam_path + "/millennium.zip";
+    const std::string download_path = (std::filesystem::temp_directory_path() / "millennium.zip").string();
+    std::cout << download_path << std::endl;
 
-    if (download_file(download_url, download_path.c_str())) { 
+    if (download_file(download_url, download_path)) { 
         printf("successfully downloaded asset...\n");
 
-        extract_zip(download_path.c_str(), "C:/Program Files (x86)/Steam"); 
+        extract_zip(download_path.c_str(), steam_path.c_str()); 
         remove(download_path.c_str());
 
         printf("updated to %s\n", latest_version.c_str());
@@ -41,12 +45,11 @@ void download_latest(nlohmann::basic_json<> latest_release, const std::string &l
     }
 }
 
-const void check_for_updates() {
+const void check_for_updates(std::string steam_path) {
 
     const auto start = std::chrono::high_resolution_clock::now();
 
     printf("checking for updates...\n");
-    std::string steam_path = get_steam_path();
     printf("steam path: %s\n", steam_path.c_str());
 
     try {
@@ -87,14 +90,77 @@ const void check_for_updates() {
     printf("elapsed time: %fs\n", elapsed.count());
 }
 
-const void load_millennium(HINSTANCE hinstDLL) {
-    FILE *stream;
-    AllocConsole();
-    freopen_s(&stream, "CONOUT$", "w", stdout);
-    freopen_s(&stream, "CONOUT$", "w", stderr);
+#ifdef _WIN32
+void EnableVirtualTerminalProcessing() 
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+    {
+        return;
+    }
 
-    // check_for_updates();
-    printf("finished checking for updates\n");
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode))
+    {
+        return;
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode))
+    {
+        return;
+    }
+}
+#endif
+
+void patch_shared_js_context(std::string steam_path) {
+    try {
+        // copy index.html to index.html.bak
+        const auto shared_js_path = std::filesystem::path(steam_path) / "steamui" / "index.html";
+        const auto shared_js_bak_path = std::filesystem::path(steam_path) / "steamui" / "orig.html";
+
+        if (std::filesystem::exists(shared_js_bak_path) && std::filesystem::is_regular_file(shared_js_bak_path)) {
+            std::cout << "shared_js_context already patched..." << std::endl;
+            return;
+        }
+
+        std::cout << "renaming shared_js_context..." << std::endl;
+        std::filesystem::rename(shared_js_path, shared_js_bak_path);
+
+        std::cout << "patching shared_js_context..." << std::endl;
+        std::ofstream shared_js_patched(shared_js_path, std::ios::trunc);
+        shared_js_patched << "<!doctype html><html><head><title>SharedJSContext</title></head></html>";
+        shared_js_patched.close();
+    }
+    catch (const std::exception &e) {
+        printf("Error patching shared_js_context: %s\n", e.what());
+    }
+}
+
+const void load_millennium(HINSTANCE hinstDLL) {
+
+    std::string steam_path = get_steam_path();
+    std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
+
+    if (startupParams->HasArgument("-dev")) {
+
+		if (static_cast<bool>(AllocConsole())) {
+			SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
+		}
+		
+		SetConsoleOutputCP(CP_UTF8);
+		void(freopen("CONOUT$", "w", stdout));
+		void(freopen("CONOUT$", "w", stderr));
+		EnableVirtualTerminalProcessing();
+    }
+
+    patch_shared_js_context(steam_path);
+
+    // if (!IsDebuggerPresent()) 
+    {
+        check_for_updates(steam_path);
+        printf("finished checking for updates\n");  
+    }
 
     HMODULE hMillennium = LoadLibrary(TEXT("millennium.dll"));
     if (hMillennium == nullptr) {
@@ -110,7 +176,8 @@ const void load_millennium(HINSTANCE hinstDLL) {
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
     if (fdwReason == DLL_PROCESS_ATTACH) {
-        load_millennium(hinstDLL);
+        auto tr = std::thread(load_millennium, hinstDLL);
+        tr.detach();
     }
     return true;
 }

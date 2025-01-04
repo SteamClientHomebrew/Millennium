@@ -48,6 +48,7 @@ void Sockets::Shutdown()
         if (browserClient != nullptr) 
         {
             browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
+            Logger.Log("Shut down browser connection...");
         }
     }
     catch(const websocketpp::exception& e)
@@ -109,6 +110,10 @@ public:
         if (method == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
         {
             sharedJsContextSessionId = json["params"]["sessionId"];
+            this->UnPatchSharedJSContext();
+        }
+        else if (json.value("id", -1) == 9773) 
+        {
             this->onSharedJsConnect();
         }
         else if (method == "Console.messageAdded") 
@@ -125,6 +130,31 @@ public:
     const void SetupSharedJSContext()
     {
         Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.getTargets" } });
+    }
+
+    const void UnPatchSharedJSContext()
+    {
+        Logger.Log("Restoring shared_js_context...");
+
+        const auto shared_js_path = SystemIO::GetSteamPath() / "steamui" / "index.html";
+        const auto shared_js_bak_path = SystemIO::GetSteamPath() / "steamui" / "orig.html";
+
+        try
+        {
+            if (std::filesystem::exists(shared_js_bak_path) && std::filesystem::is_regular_file(shared_js_bak_path))
+            {
+                std::filesystem::remove(shared_js_path);
+            }
+
+            std::filesystem::rename(shared_js_bak_path, shared_js_path);
+        }
+        catch (const std::exception& e)
+        {
+            Logger.Warn("Failed to restore shared_js_context: {}", e.what());
+        }
+
+        Logger.Log("Restored shared_js_context...");
+        Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
     }
 
     const void onSharedJsConnect()
@@ -324,11 +354,20 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
 
         std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
 
-        std::thread(
+        m_threadPool.push_back(std::thread(
             [&manager, &plugin, cb]() {
                 Logger.Log("Starting backend for '{}'", plugin.pluginName);
                 manager.CreatePythonInstance(plugin, cb);
             }
-        ).detach();
+        ));
     }
 }
+
+// PluginLoader::~PluginLoader()
+// {
+//     Logger.Log("Shutting down plugin loader...");
+//     for (auto& thread : m_threadPool)
+//     {
+//         thread.join();
+//     }
+// }

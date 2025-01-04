@@ -154,9 +154,7 @@ class WebSocketServer:
                     await websocket.send(json.dumps({ "type": type, "data": action_handlers[type]() }))
                 else:
                     await self.unknown_message(websocket)
-                
-                # Send a response back
-                await websocket.send(f"Server received: {message}")
+
         except websockets.ConnectionClosed:
             logger.log("Client disconnected")
 

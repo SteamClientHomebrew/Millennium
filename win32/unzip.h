@@ -123,6 +123,10 @@ void extract_zip(const char *zip_filename, const char *output_dir) {
             snprintf(filename, sizeof(filename), "%s", "user32.queue.dll");
         }
 
+        if (strcmp(filename, "millennium.dll") == 0) {
+            continue;   
+        } 
+
         if (is_any_parent_symlink(output_path)) {
             // printf("Skipping file due to symlink in parent directory: %s\n", output_path);
             continue;

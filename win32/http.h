@@ -16,6 +16,9 @@ size_t write_callback(char* ptr, size_t size, size_t nmemb, std::string* data) {
 }
 
 bool download_file(const std::string& url, const std::string& outputFilePath) {
+
+    std::cout << "downloading to " << outputFilePath << std::endl;
+
     CURL* curl;
     CURLcode res;
     std::ofstream outputFile;
@@ -68,12 +71,11 @@ const std::string get(const char* url, bool retry = true) {
 
         while (true) {
             res = curl_easy_perform(curl);
-
+    
             if (!retry || res == CURLE_OK) {   
                 break;
             }
 
-            std::cerr << "res: " << res << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(3));
         }
         curl_easy_cleanup(curl);

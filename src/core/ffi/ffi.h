@@ -11,7 +11,7 @@ class PythonGIL : public std::enable_shared_from_this<PythonGIL>
 private:
     PyGILState_STATE m_interpreterGIL{};
     PyThreadState* m_interpreterThreadState = nullptr;
-    PyInterpreterState* m_mainInterpreter = nullptr;
+    PyInterpreterState* m_mainInterpreter   = nullptr;
 
 public:
     const void HoldAndLockGIL();
@@ -78,11 +78,12 @@ namespace JavaScript {
 
         std::string OnMessage(const std::string& event, const std::string name, EventHandler handler) {
             events[event].push_back(std::make_pair(name, handler));
-
             // Deliver any missed messages
             auto it = missedMessages.find(event);
-            if (it != missedMessages.end()) {
-                for (const auto message : it->second) {
+            if (it != missedMessages.end()) 
+            {
+                for (const auto message : it->second) 
+                {
                     handler(message, name);
                 }
                 missedMessages.erase(it); // Clear missed messages once delivered
@@ -90,31 +91,43 @@ namespace JavaScript {
             return name;
         }
 
-        void RemoveListener(const std::string& event, std::string listenerId) {
+        void RemoveListener(const std::string& event, std::string listenerId) 
+        {
             auto it = events.find(event);
-            if (it != events.end()) {
+            if (it != events.end()) 
+            {
                 auto& handlers = it->second;
-                handlers.erase(std::remove_if(handlers.begin(), handlers.end(), [listenerId](const auto& handler) {
-                    if (handler.first == listenerId) {
+                handlers.erase(std::remove_if(handlers.begin(), handlers.end(), [listenerId](const auto& handler) 
+                {
+                    if (handler.first == listenerId) 
+                    {
                         return true;
                     }
                     return false;
-                }), handlers.end());
+                }), 
+                handlers.end());
             }
         }
 
         void EmitMessage(const std::string& event, const nlohmann::json& data) {
             auto it = events.find(event);
-            if (it != events.end()) {
+            if (it != events.end()) 
+            {
                 const auto& handlers = it->second;
-                for (const auto& handler : handlers) {
-                    try {
+                for (const auto& handler : handlers) 
+                {
+                    try 
+                    {
                         handler.second(data, handler.first);
-                    } catch (const std::bad_function_call& e) {
+                    } 
+                    catch (const std::bad_function_call& e) 
+                    {
                         Logger.Warn("Failed to emit message on {}. exception: {}", handler.first, e.what());
                     }
                 }
-            } else {
+            } 
+            else 
+            {
                 missedMessages[event].push_back(data);
             }
         }

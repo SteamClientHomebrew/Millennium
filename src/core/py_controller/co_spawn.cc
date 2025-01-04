@@ -109,6 +109,7 @@ PythonManager::~PythonManager()
     
     for (const auto& [pluginName, threadState, interpMutex] : this->m_pythonInstances) 
     {
+        Logger.Warn("Shutting down plugin '{}'", pluginName);
         this->DestroyPythonInstance(pluginName);
     }
 

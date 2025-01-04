@@ -25,29 +25,6 @@ std::string OutputLogger::GetLocalTime()
 	return fmt::format("[{}]", bufferStream.str());
 }
 
-#ifdef _WIN32
-void EnableVirtualTerminalProcessing() 
-{
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE)
-    {
-        return;
-    }
-
-    DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode))
-    {
-        return;
-    }
-
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode))
-    {
-        return;
-    }
-}
-#endif
-
 void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
@@ -72,16 +49,6 @@ OutputLogger::OutputLogger()
 
 		m_bIsConsoleEnabled = startupParams->HasArgument("-dev");
 		m_bIsVersbose = startupParams->HasArgument("-verbose");
-
-		if (!m_bIsVersbose && m_bIsConsoleEnabled && static_cast<bool>(AllocConsole()))
-		{
-			SetConsoleTitleA(fmt::format("Millennium@{}", MILLENNIUM_VERSION).c_str());
-		}
-		
-		SetConsoleOutputCP(CP_UTF8);
-		void(freopen("CONOUT$", "w", stdout));
-		void(freopen("CONOUT$", "w", stderr));
-		EnableVirtualTerminalProcessing();
 	}
 	#elif __linux__
 	{

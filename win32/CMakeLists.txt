@@ -38,4 +38,3 @@ target_link_libraries(ShimDll CURL::libcurl unofficial::minizip::minizip)
 set_target_properties(ShimDll PROPERTIES OUTPUT_NAME "user32")
 set_target_properties(ShimDll PROPERTIES PREFIX "")
 set_target_properties(ShimDll PROPERTIES NO_EXPORT TRUE)
-
