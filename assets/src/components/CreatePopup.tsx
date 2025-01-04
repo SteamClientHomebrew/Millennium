@@ -9,9 +9,10 @@ export interface RenderProps {
 
 export class CreatePopup extends CreatePopupBase {
 
-    constructor(component: ReactNode, strPopupName: string, options: any) {
+    constructor(component: ReactNode, strPopupName: string, options: any, componentParams: any = {}) {
         super(strPopupName, options)
         this.component = component
+        this.componentParams = componentParams
     }
 
     Show() {
@@ -35,7 +36,7 @@ export class CreatePopup extends CreatePopupBase {
                             hideMax={false}
                             hideActions={false}
                         />
-                        <this.component/>
+                        <this.component {...this.componentParams}/>
         
                     </div>
                 </>

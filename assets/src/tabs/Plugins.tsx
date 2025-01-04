@@ -1,9 +1,57 @@
 import React, { useEffect, useState } from 'react';
-import { DialogBody, DialogButton, DialogHeader, IconsModule, Millennium, Toggle, classMap, pluginSelf } from '@steambrew/client';
+import {
+	DialogBody,
+	DialogButton,
+	DialogHeader,
+	IconsModule,
+	Millennium,
+	Toggle,
+	classMap,
+	pluginSelf,
+	showModal,
+	MillenniumModuleSettings,
+	MillenniumSettingTabs,
+} from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { Field } from '../custom_components/Field';
+import RenderPluginSettings from '../custom_components/PluginSettings';
+import { CreatePopup } from '../components/CreatePopup';
+
+// class TestPopup extends React.Component<any> {
+// 	render() {
+// 		return (
+// 			<ModalPosition>
+// 				<SidebarNavigation pages={[{title: 'test', content: <h2>Test</h2>}]}>
+// 				</SidebarNavigation>
+// 			</ModalPosition>
+// 		)
+// 	}
+// }
+
+const PluginSettings = (plugin: PluginComponent)=> {
+	//TODO: find out why CreatePopup fails when rendering a SidebarNavigation
+	// Seems to be something with the "Router" context being empty so it can't get location?
+	// CreatePopup is better than showModal because it can be resized and text fields are interactable but it doesn't want to render SidebarNavigation
+
+	// const popup = new CreatePopup(TestPopup, "testing", {
+	// 	title: 'Testing window',
+	// 	popup_class: "fullheight",
+	// 	body_class: "fullheight ModalDialogBody DesktopUI ",
+	// 	html_class: "client_chat_frame fullheight ModalDialogPopup ",
+	// 	eCreationFlags: 18,
+	// 	dimensions: {width: 850, height: 722},
+	// 	replace_existing_popup: false,
+	// }, {plugin: plugin})
+	// popup.Show();
+
+	showModal(<RenderPluginSettings plugin={plugin} />, pluginSelf.settingsWnd, {
+		strTitle: `Editing ${plugin.data.common_name} settings`,
+		popupHeight: 675,
+		popupWidth: 850,
+	})
+}
 
 interface EditPluginProps {
 	plugin: PluginComponent
@@ -17,17 +65,22 @@ declare global {
 
 const isEditablePlugin = (plugin_name: string) => {
 	return window.PLUGIN_LIST && window.PLUGIN_LIST[plugin_name] 
-	&& typeof window.PLUGIN_LIST[plugin_name].renderPluginSettings === 'function' ? true : false
+	&& window.PLUGIN_LIST[plugin_name].settings
+	&& (window.PLUGIN_LIST[plugin_name].settings instanceof MillenniumModuleSettings
+		|| window.PLUGIN_LIST[plugin_name].settings instanceof MillenniumSettingTabs)
 }
 
-const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
+const RenderEditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
 
 	if (!isEditablePlugin(plugin?.data?.name)) {
 		return <></>
 	}
 
 	return (
-		<DialogButton className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton">
+		<DialogButton
+			onClick={() => PluginSettings(plugin)}
+			className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
+		>
 			<IconsModule.Settings height="16" />
 		</DialogButton>
 	)
@@ -100,7 +153,7 @@ const PluginViewModal: React.FC = () => {
 					label={plugin?.data?.common_name}
 					description={plugin?.data?.description ?? locale.itemNoDescription}
 				>
-					<EditPlugin plugin={plugin}/>
+					<RenderEditPlugin plugin={plugin}/>
 					<Toggle 
 						disabled={plugin?.data?.name == "core"} 
 						value={checkedItems[index]} 

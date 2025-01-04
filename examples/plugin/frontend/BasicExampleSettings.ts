@@ -1,6 +1,6 @@
 import { DefineSetting, MillenniumModuleSettings } from '@steambrew/client';
 
-export class ExampleSettings extends MillenniumModuleSettings<ExampleSettings> {
+export class BasicExampleSettings extends MillenniumModuleSettings<BasicExampleSettings> {
     @DefineSetting('Do frontend call', 'If backend should call the frontend method', Boolean)
     public doFrontendCall: boolean = true;
 
