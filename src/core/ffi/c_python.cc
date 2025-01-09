@@ -2,6 +2,7 @@
 #include <core/py_controller/co_spawn.h>
 #include <iostream>
 #include <tuple>
+#include <core/py_controller/logger.h>
 
 std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
 {
@@ -133,6 +134,8 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
     if (threadState == nullptr) 
     {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script));
+
         return { "overstepped partying thread state", Error };
     }
 
@@ -142,6 +145,8 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
     if (threadState == NULL) 
     {
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script));
+
         return { "thread state was nullptr", Error };
     }
 
@@ -158,6 +163,7 @@ void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string scrip
     if (threadState == nullptr) 
     {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script; maybe it crashed or exited early?: {}", script));
         return;
     }
 
@@ -176,10 +182,14 @@ void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string scrip
             {
                 Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call {} on {} as the function "
                     "does not exist, or the interpreter crashed before it was loaded.", script, pluginName), COL_RED);
+
+                ErrorToLogger(pluginName, fmt::format("Millennium failed to call {} on {} as the function "
+                    "does not exist, or the interpreter crashed before it was loaded.", script, pluginName));
                 return;
             }
 
             Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call {} on {}: {}\n{}{}", script, pluginName, COL_RED, traceback, COL_RESET), COL_RED);
+            ErrorToLogger(pluginName, fmt::format("Millennium failed to call {} on {}: {}\n", script, pluginName, traceback));
         }
     }
     pythonGilLock->ReleaseAndUnLockGIL();

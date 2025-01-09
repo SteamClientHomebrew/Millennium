@@ -1,0 +1,34 @@
+{
+    "configurations": [
+        {
+            "type": "cppdbg",
+            "request": "launch",
+            "name": "Launch Millennium",
+            "program": "C:\\Program Files (x86)\\Steam\\steam.exe",
+            "args": [
+                "-dev",
+                "-skipinitialbootstrap",
+                "-nobootstrapperupdate",
+                "-noverifyfiles"
+            ],
+            "cwd": "C:\\Program Files (x86)\\Steam\\",
+            "stopAtEntry": false,
+            "setupCommands": [
+                {
+                    "description": "Enable break on all exceptions",
+                    "text": "catch throw",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "environment": [],
+            "externalConsole": true,
+            "console": "integratedTerminal",
+            "preLaunchTask": "CMake: build"
+        }
+    ]
+}

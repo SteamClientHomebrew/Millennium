@@ -219,6 +219,7 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
         {
             PyErr_Print();
             Logger.Warn("'{}' refused to shutdown properly, force shutting down plugin...", pluginName);
+            ErrorToLogger(pluginName, "Failed to shut down plugin properly, force shutting down plugin...");
         }
 
         Logger.Log("Shutting down plugin '{}'", pluginName);

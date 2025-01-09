@@ -3,11 +3,12 @@ import ReactDOM from 'react-dom';
 import { PluginViewModal } from '../tabs/Plugins'
 import { ThemeViewModal } from '../tabs/Themes'
 import { UpdatesViewModal } from '../tabs/Updates'
-import { IconsModule, Millennium, pluginSelf, Classes } from '@steambrew/client';
+import { IconsModule, Millennium, pluginSelf, Classes, showModal } from '@steambrew/client';
 import { locale } from '../locales';
 import { pagedSettingsClasses } from "../classes";
 import * as CustomIcons from '../custom_components/CustomIcons'
 import * as PageList from '../custom_components/PageList';
+import { MillenniumSettings } from '../custom_components/SettingsModal';
 
 const activeClassName: any = pagedSettingsClasses.Active
 
@@ -19,18 +20,18 @@ enum Renderer {
 }
 
 const RenderViewComponent = (componentType: Renderer): any => {
-	Millennium.findElement(pluginSelf.settingsDoc, ".DialogContent_InnerWidth").then((element: NodeListOf<Element>) => { 
+	Millennium.findElement(pluginSelf.settingsDoc, ".DialogContent_InnerWidth").then((element: NodeListOf<Element>) => {
 
 		switch (componentType) {
-			case Renderer.Plugins:   
-				ReactDOM.render(<PluginViewModal/>, element[0]);
-				break;   	
+			case Renderer.Plugins:
+				ReactDOM.render(<PluginViewModal />, element[0]);
+				break;
 			case Renderer.Themes:
-				ReactDOM.render(<ThemeViewModal/>, element[0]);
-				break;  
+				ReactDOM.render(<ThemeViewModal />, element[0]);
+				break;
 			case Renderer.Updates:
-				ReactDOM.render(<UpdatesViewModal/>, element[0]);
-				break;  
+				ReactDOM.render(<UpdatesViewModal />, element[0]);
+				break;
 		}
 	})
 }
@@ -71,31 +72,31 @@ const PluginComponent: React.FC = () => {
 
 	return (
 		<>
-		<PageList.Item
-			bSelected={selected === Renderer.Plugins}
-			icon=<CustomIcons.Plugins />
-			title={locale.settingsPanelPlugins}
-			onClick={() => {
-				componentUpdate(Renderer.Plugins);
-			}}
-		/>
-		<PageList.Item
-			bSelected={selected === Renderer.Themes}
-			icon=<CustomIcons.Themes />
-			title={locale.settingsPanelThemes}
-			onClick={() => {
-				componentUpdate(Renderer.Themes);
-			}}
-		/>
-		{!isUpdatesDisabled && <PageList.Item
-			bSelected={selected === Renderer.Updates}
-			icon=<IconsModule.Update />
-			title={locale.settingsPanelUpdates}
-			onClick={() => {
-				componentUpdate(Renderer.Updates);
-			}}
-		/>} 
-		<PageList.Separator />
+			<PageList.Item
+				bSelected={selected === Renderer.Plugins}
+				icon=<CustomIcons.Plugins />
+				title={locale.settingsPanelPlugins}
+				onClick={() => {
+					componentUpdate(Renderer.Plugins);
+				}}
+			/>
+			<PageList.Item
+				bSelected={selected === Renderer.Themes}
+				icon=<CustomIcons.Themes />
+				title={locale.settingsPanelThemes}
+				onClick={() => {
+					componentUpdate(Renderer.Themes);
+				}}
+			/>
+			{!isUpdatesDisabled && <PageList.Item
+				bSelected={selected === Renderer.Updates}
+				icon=<IconsModule.Update />
+				title={locale.settingsPanelUpdates}
+				onClick={() => {
+					componentUpdate(Renderer.Updates);
+				}}
+			/>}
+			<PageList.Separator />
 		</>
 	);
 }
@@ -109,7 +110,7 @@ const hookSettingsComponent = () => {
 	const elements = pluginSelf.settingsDoc.querySelectorAll(`.${Classes.PagedSettingsDialog_PageListItem}:not(.MillenniumTab)`);
 
 	elements.forEach((element: HTMLElement, index: number) => {
-		element.addEventListener('click', function(_: any) {
+		element.addEventListener('click', function (_: any) {
 
 			if (processingItem) return
 
@@ -121,7 +122,7 @@ const hookSettingsComponent = () => {
 			try {
 				processingItem = true;
 				if (index + 1 <= elements.length) elements[index + 1].dispatchEvent(click); else elements[index - 2].dispatchEvent(click);
-				
+
 				elements[index].dispatchEvent(click);
 				processingItem = false;
 			}
@@ -130,20 +131,27 @@ const hookSettingsComponent = () => {
 	})
 }
 
-function RenderSettingsModal(_context: any) 
-{
-	pluginSelf.settingsDoc = _context.m_popup.document
-	pluginSelf.settingsWnd = _context.m_popup.window
+function RenderSettingsModal(_context: any) {
+	pluginSelf.mainWindow = _context.m_popup.window
 
-	Millennium.findElement(_context.m_popup.document, "." + Classes.PagedSettingsDialog_PageList).then(element => {
-		hookSettingsComponent()
-		// Create a new div element
-		var bufferDiv = document.createElement("div");
-		bufferDiv.classList.add("millennium-tabs-list")
+	Millennium.findElement(_context.m_popup.document, ".contextMenuItem").then((contextMenuItems: NodeListOf<Element>) => {
 
-		element[0].prepend(bufferDiv);
+		for (const item of contextMenuItems) {
+			if (item.textContent === "Settings") {
 
-		ReactDOM.render(<PluginComponent />, bufferDiv);
+				const millenniumSettings = item.cloneNode(true);
+				millenniumSettings.textContent = "Millennium Settings";
+				item.after(millenniumSettings);
+
+				millenniumSettings.addEventListener("click", () => {
+					showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
+						strTitle: "Millennium",
+						popupHeight: 675,
+						popupWidth: 850,
+					});
+				});
+			}
+		}
 	})
 }
 

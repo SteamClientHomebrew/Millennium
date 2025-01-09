@@ -1,4 +1,4 @@
-import { Millennium, pluginSelf } from "@steambrew/client"; 
+import { Millennium, pluginSelf } from "@steambrew/client";
 import { patchDocumentContext } from "./patcher/index"
 import { RenderSettingsModal } from "./ui/Settings"
 import { ConditionsStore, ThemeItem, SystemAccentColor, UpdateItem, SettingsProps, ThemeItemV1 } from "./types";
@@ -15,7 +15,7 @@ import { WatchDog } from "./Events";
  */
 const UnsetSilentStartup = () => {
     const params = new URLSearchParams(window.location.href);
-    
+
     if (params.get("SILENT_STARTUP") === "true") {
         params.set("SILENT_STARTUP", "false")
 
@@ -28,7 +28,7 @@ const UnsetSilentStartup = () => {
 const SetSilentStartup = () => {
     const params = new URLSearchParams(window.location.href);
     const silent = params.get("SILENT_STARTUP")
-    
+
     if (silent === "false" || silent == null) {
         params.set("SILENT_STARTUP", "true")
 
@@ -54,16 +54,12 @@ const PatchMissedDocuments = () => {
 
 const windowCreated = (windowContext: any): void => {
 
-    switch (windowContext.m_strTitle) {
-        /** @ts-ignore */
-        case LocalizationManager.LocalizeString("#Steam_Platform"): {
-            //UnsetSilentStartup()
+    if (windowContext.m_strName == "contextmenu_2") {
+        pluginSelf.useInterface && RenderSettingsModal(windowContext)
+    }
 
-        }
-        /** @ts-ignore */
-        case LocalizationManager.LocalizeString("#Settings_Title"): {
-            pluginSelf.useInterface && RenderSettingsModal(windowContext)
-        }     
+    if (windowContext.m_strName == "Millennium") {
+        pluginSelf.millenniumSettingsWindow = windowContext.m_popup.window
     }
 
     if (windowContext.m_strTitle.includes("notificationtoasts")) {
@@ -81,22 +77,23 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
     const theme: ThemeItem = result.active_theme
     const systemColors: SystemAccentColor = result.accent_color
 
-    
+
     ParseLocalTheme(theme)
     DispatchSystemColors(systemColors)
-    
+
     const themeV1: ThemeItemV1 = result?.active_theme?.data as ThemeItemV1
-    
+
     if (themeV1?.GlobalsColors) {
         DispatchGlobalColors(themeV1?.GlobalsColors)
     }
-    
-    pluginSelf.systemColors   = systemColors
-    pluginSelf.conditionals   = result?.conditions as ConditionsStore
+
+    pluginSelf.systemColors = systemColors
+    pluginSelf.conditionals = result?.conditions as ConditionsStore
     pluginSelf.scriptsAllowed = result?.settings?.scripts as boolean ?? true
-    pluginSelf.stylesAllowed  = result?.settings?.styles as boolean ?? true
-    pluginSelf.steamPath      = result?.steamPath as string
-    pluginSelf.useInterface   = result?.useInterface as boolean ?? true
+    pluginSelf.stylesAllowed = result?.settings?.styles as boolean ?? true
+    pluginSelf.steamPath = result?.steamPath as string
+    pluginSelf.useInterface = result?.useInterface as boolean ?? true
+    pluginSelf.version = result?.millenniumVersion as string
 
     // @ts-ignore
     // if (g_PopupManager?.m_mapPopups?.size > 0) {
@@ -123,7 +120,7 @@ const ProcessUpdates = (updates: UpdateItem[]) => {
 
     setTimeout(() => {
         SteamClient.ClientNotifications.DisplayClientNotification(
-            1, JSON.stringify({ title: 'Updates Available', body: message, state: 'online', steamid: 0 }), (_: any) => {}
+            1, JSON.stringify({ title: 'Updates Available', body: message, state: 'online', steamid: 0 }), (_: any) => { }
         )
     }, 5000)
 }
@@ -134,7 +131,7 @@ export default async function PluginMain() {
     const startTime = performance.now();
 
     pluginSelf.WatchDog = WatchDog // Expose WatchDog to the global scope
-    Settings.FetchAllSettings().then((result: SettingsProps) => { 
+    Settings.FetchAllSettings().then((result: SettingsProps) => {
         InitializePatcher(startTime, result)
         Millennium.AddWindowCreateHook(windowCreated)
     })

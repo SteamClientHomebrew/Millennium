@@ -9,6 +9,7 @@
 #include "co_spawn.h"
 #include <sys/log.h>
 #include <fmt/core.h>
+#include "logger.h"
 
 extern "C" void PrintPythonMessage(std::string pname, const char* message) 
 {
@@ -17,12 +18,14 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
     if (logMessage != "\n" && logMessage != " ")
     {
         Logger.LogPluginMessage(pname, message);
+        InfoToLogger(pname, message);
     }
 }
 
 extern "C" void PrintPythonError(std::string pname, const char* message)
 {
     fmt::print(fg(fmt::color::red), "{}", message);
+    ErrorToLogger(pname, message);
 }
 
 extern "C" 

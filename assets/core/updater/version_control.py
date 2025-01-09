@@ -43,7 +43,7 @@ class Updater:
                     needs_copy = True
                     update_queue.append((theme, path))
             except Exception as e:
-                print(f"An exception occurred: {e}")
+                logger.log(f"An exception occurred: {e}")
 
         if needs_copy:
             source_dir = os.path.join(Millennium.steam_path(), "steamui", "skins")
@@ -57,7 +57,7 @@ class Updater:
             shutil.copytree(source_dir, destination_dir)
 
         for theme, path in update_queue:
-            print(f"upgrading theme to GIT @ {path}")
+            logger.log(f"upgrading theme to GIT @ {path}")
             if "github" in theme["data"]:
                 self.pull_head(path, theme["data"]["github"])
 
@@ -81,10 +81,10 @@ class Updater:
             else:
                 GitRepo.clone_from(repo_url, path)
         except Exception as e:
-            print(f"An exception occurred: {e}")
+            logger.log(f"An exception occurred: {e}")
 
     def update_theme(self, native: str) -> bool:
-        print(f"updating theme {native}")
+        logger.log(f"updating theme {native}")
         try:
             path = os.path.join(Millennium.steam_path(), "steamui", "skins", native)
             repo = GitRepo(path)
@@ -99,7 +99,7 @@ class Updater:
                 repo.remotes.origin.pull()
                 unuse_system_libs()
         except Exception as e:
-            print(f"An exception occurred: {e}")
+            logger.log(f"An exception occurred: {e}")
             return False
         self.re_initialize()
         return True
@@ -130,6 +130,7 @@ class Updater:
         self.update_list = []
         self.update_query = []
         self.query_themes()
+
         response = requests.post(
             "https://steambrew.app/api/v2/checkupdates",
             data=json.dumps(self.construct_post_body()),
@@ -150,7 +151,7 @@ class Updater:
                     if repo_name:
                         self.check_theme(theme, repo_name, repo)
             if self.update_list:
-                print(f"found updates for {[theme['native'] for theme in self.update_list]} in {round((time.time() - start_time) * 1000, 4)} ms")
+                logger.log(f"found updates for {[theme['native'] for theme in self.update_list]} in {round((time.time() - start_time) * 1000, 4)} ms")
 
     def __init__(self):
         self.has_cache = False

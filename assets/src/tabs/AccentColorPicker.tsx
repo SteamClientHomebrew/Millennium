@@ -1,5 +1,5 @@
 import { DialogButton, Field, Millennium, pluginSelf } from "@steambrew/client"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DispatchSystemColors } from "../patcher/SystemColors";
 import { settingsClasses } from "../classes";
 import { locale } from "../locales";
@@ -26,7 +26,7 @@ const RenderAccentColorPicker = () => {
     }
 
     const ResetColor = () => {
-        Millennium.callServerMethod("cfg.reset_accent_color").then((result: any) => { 
+        Millennium.callServerMethod("cfg.reset_accent_color").then((result: any) => {
             DispatchSystemColors(JSON.parse(result));
             setColorState(pluginSelf.systemColors.accent.substring(0, 7));
             UpdateAllWindows();
@@ -41,10 +41,12 @@ const RenderAccentColorPicker = () => {
 
         <Field
             label={locale.themePanelCustomAccentColor}
-            description={locale.themePanelCustomAccentColorDescription}
+            description={
+                locale.themePanelCustomAccentColorToolTip
+            }
         >
             {<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>Reset</DialogButton>}
-            <input type="color" className="colorPicker" name="colorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)}/>
+            <input type="color" className="colorPicker" name="colorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
         </Field>
     </>)
 }

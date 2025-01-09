@@ -7,7 +7,7 @@ class SteamUtils:
 
     def handle_message(self, file, event_func):
         try:
-            print(f"dispatching {event_func} from {file}")
+            logger.log(f"dispatching {event_func} from {file}")
             Millennium.call_frontend_method(event_func)
             os.remove(file)
         except Exception as e:

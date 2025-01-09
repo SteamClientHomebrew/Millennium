@@ -1,6 +1,7 @@
 #pragma once
 #include <sys/locals.h>
 #include <vector>
+#include <Python.h>
 
 template <typename T>
 class Singleton 
@@ -70,3 +71,5 @@ namespace CoInitializer
 	const void ReInjectFrontendShims(void);
 	const void BackendStartCallback(SettingsStore::PluginTypeSchema plugin);
 }
+
+const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName);

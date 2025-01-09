@@ -1,6 +1,5 @@
 #include "co_stub.h"
 #include <vector>
-#include <Python.h>
 #include <fmt/core.h>
 #include <core/py_controller/co_spawn.h>
 #include <sys/log.h>
@@ -8,6 +7,7 @@
 #include <core/hooks/web_load.h>
 #include <core/ffi/ffi.h>
 #include <tuple>
+#include <core/py_controller/logger.h>
 
 const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
 {
@@ -141,6 +141,17 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
 const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName) 
 {
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
+
+    PyObject* builtins = PyEval_GetBuiltins();
+    if (!builtins) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
+        return;
+    }
+
+    // Set the variable in the __builtins__ dictionary
+    if (PyDict_SetItemString(builtins, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str())) < 0) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to set the variable in __builtins__.");
+    }
 }
 
 const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin) 
@@ -190,6 +201,8 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     if (mainModuleFilePtr == NULL) 
     {
         Logger.Warn("failed to fopen file @ {}", backendMainModule);
+        ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
+
         backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
     }
@@ -199,6 +212,8 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
     if (!mainModule || !mainModuleDict) {
         Logger.Warn("Millennium failed to initialize the main module.");
+        ErrorToLogger(plugin.pluginName, "Failed to initialize the main module.");
+
         backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         fclose(mainModuleFilePtr);
         return;
@@ -213,6 +228,9 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
         Logger.PrintMessage(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
         Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
+
+        ErrorToLogger(plugin.pluginName, fmt::format("Failed to start plugin: {}. This is likely due to failing module side effects, unrelated to Millennium.\n\n{}", plugin.pluginName, traceback));
+
         backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
     }
@@ -266,140 +284,107 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     };
 
     std::mutex mtx;
-    std::condition_variable cvDebugger;
     std::condition_variable cvScript;
 
-    bool hasUnpausedDebugger = false;
     bool hasScriptIdentifier = false;
 
-    auto socketEmitterThread = std::thread([&]
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", 
+        [&mtx, &cvScript, &hasScriptIdentifier]
+        (const nlohmann::json& eventMessage, std::string listenerId)
     {
-        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [&](const nlohmann::json& eventMessage, std::string listenerId)
+        std::unique_lock<std::mutex> lock(mtx);
+        
+        try
         {
-            std::unique_lock<std::mutex> lock(mtx);
-            
-            try
-            {
-                const int messageId = eventMessage.value("id", -1);
+            const int messageId = eventMessage.value("id", -1);
 
-                if (messageId == DEBUGGER_RESUME)
-                {
-                    if (eventMessage.contains("error"))
-                    {
-                        hasUnpausedDebugger = false;
-                        Logger.Warn("Failed to resume debugger, Steam is likely not yet loaded...");
-                    }
-                    else if (eventMessage.contains("result"))
-                    {
-                        hasUnpausedDebugger = true;
-                        Logger.Log("Successfully resumed debugger, injecting shims...");
-                        Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-                        Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
-                    }
-                    cvDebugger.notify_one();  // Notify that debugger resume is processed
-                }
-                else if (messageId == PAGE_SCRIPT)
-                {
-                    addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                    hasScriptIdentifier = true;
-                    Logger.Log("Successfully injected shims, updating state...");
-                    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
-                    cvScript.notify_one();  // Notify that script injection is processed
-                }
-
-                // Check if both conditions have been met
-                if (hasUnpausedDebugger && hasScriptIdentifier)
-                {
-                    Logger.Log("Successfully notified frontend...");
-                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                }
-            }
-            catch (nlohmann::detail::exception& ex)
+            if (messageId == PageMessage::PAGE_SCRIPT)
             {
-                LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                hasScriptIdentifier = true;
+                Logger.Log("Successfully injected shims, updating state...");
+                Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+                cvScript.notify_one();  
+
+                Logger.Log("Successfully notified frontend...");
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
-        });
+        }
+        catch (nlohmann::detail::exception& ex)
+        {
+            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+        }
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    Sockets::PostShared({ {"id", DEBUGGER_RESUME }, {"method", "Debugger.resume"} });
+    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
+    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
 
-    // Wait for debugger resume
-    {
-        std::unique_lock<std::mutex> lock(mtx);
-        cvDebugger.wait(lock, [&] { return hasUnpausedDebugger; });
-    }
-
-    // Wait for script injection completion
     {
         std::unique_lock<std::mutex> lock(mtx);
         cvScript.wait(lock, [&] { return hasScriptIdentifier; });
     }
 
-    socketEmitterThread.join();
     Logger.Log("Frontend notifier finished!");
 }
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
 {
-    std::mutex mtx;
-    std::condition_variable cv;
-    bool hasSuccess = false, hasPaused = false;
+    // std::mutex mtx;
+    // std::shared_ptr<std::condition_variable> cv = std::make_shared<std::condition_variable>();
+    // bool hasSuccess = false, hasPaused = false;
 
-    Logger.Log("Preparing to inject frontend shims...");
+    // Logger.Log("Preparing to inject frontend shims...");
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "InjectFrontendShims", [&](const nlohmann::json& eventMessage, std::string listenerId) 
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-        
-        if (eventMessage.value("id", -1) == 65756) 
-        {
-            if (eventMessage.contains("error")) 
-            {
-                Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
-                Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
-            } 
-            else if (eventMessage.contains("result")) 
-            {
-                Logger.Log("Successfully sent debugger pause...");
-                hasSuccess = true;
-            }
-        }
-        if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused") 
-        {
-            Logger.Log("Debugger has paused!");
-            hasPaused = true;
-        }
+    // auto threadId = std::thread([&mtx, cvPtr = cv, &hasSuccess, &hasPaused, ftpPort, ipcPort]() 
+    // {
+    //     JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "InjectFrontendShims", [&mtx, cvPtrPtr = cvPtr, &hasPaused, &hasSuccess](const nlohmann::json& eventMessage, std::string listenerId) 
+    //     {
+    //         std::lock_guard<std::mutex> lock(mtx);
+            
+    //         if (eventMessage.value("id", -1) == 65756) 
+    //         {
+    //             if (eventMessage.contains("error")) 
+    //             {
+    //                 Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
+    //                 Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+    //             } 
+    //             else if (eventMessage.contains("result")) 
+    //             {
+    //                 Logger.Log("Successfully sent debugger pause...");
+    //                 hasSuccess = true;
+    //             }
+    //         }
+    //         if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused") 
+    //         {
+    //             Logger.Log("Debugger has paused!");
+    //             hasPaused = true;
+    //         }
 
-        if (hasSuccess && hasPaused) 
-        {
-            try 
-            {
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-            } 
-            catch (const std::exception& ex) 
-            {
-                LOG_ERROR("Error removing listener: {}", ex.what());
-            }
-            cv.notify_all(); 
-        }
-    });
+    //         if (hasSuccess && hasPaused) 
+    //         {
+    //             try 
+    //             {
+    //                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+    //             } 
+    //             catch (const std::exception& ex) 
+    //             {
+    //                 LOG_ERROR("Error removing listener: {}", ex.what());
+    //             }
+    //             cvPtrPtr->notify_all();    
+    //         }
+    //     });
 
-    Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
-    Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
+    //     std::unique_lock<std::mutex> lock(mtx);
+    //     cvPtr->wait(lock, [&] { return hasSuccess && hasPaused; });
+    // });
 
-    try 
-    {
-        std::unique_lock<std::mutex> lock(mtx);
-        cv.wait(lock, [&] { return hasSuccess && hasPaused; });
-    } 
-    catch (const std::system_error& e)
-    {
-        LOG_ERROR("Condition variable wait error: {}", e.what());
-        return;
-    }
+    // Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
+    // Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
 
-    Logger.Log("Ready to inject shims!");
+    // threadId.join();
+
+    // Logger.Log("Ready to inject shims!");
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }

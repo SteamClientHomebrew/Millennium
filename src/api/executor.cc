@@ -8,6 +8,8 @@
 #include <sys/locals.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
+#include <core/py_controller/logger.h>
+#include <sys/encoding.h>
 
 std::shared_ptr<PluginLoader> g_pluginLoader;
 
@@ -185,6 +187,7 @@ unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type
     catch (const std::regex_error& e) 
     {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", regexSelector, e.what());
+        ErrorToLogger("executor", fmt::format("Failed to add browser module with invalid regex: {} ({})", regexSelector, e.what()));
         return 0;
     }
 
@@ -259,6 +262,51 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
     return PyBool_FromLong(true);
 }
 
+PyObject* GetPluginLogs(PyObject* self, PyObject* args) 
+{
+    nlohmann::json logData = nlohmann::json::array();
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+
+    std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
+
+    for (auto& logger : g_loggerList) 
+    {
+        nlohmann::json logDataItem;
+
+        for (auto [message, logLevel] : logger->CollectLogs()) 
+        {
+            logDataItem.push_back({
+                { "message", Base64Encode(message) },
+                { "level", logLevel }
+            });
+        }
+
+        std::string pluginName = logger->GetPluginName(false);
+
+        for (auto& plugin : plugins) 
+        {
+            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false)) 
+            {
+                pluginName = plugin.pluginJson.value("common_name", pluginName);
+                break;
+            }
+        }
+
+        // Handle package manager plugin
+        if (pluginName == "pipx") 
+        {
+            pluginName = "Package Manager";
+        }
+
+        logData.push_back({
+            { "name", pluginName },
+            { "logs", logDataItem }
+        });
+    }
+
+    return PyUnicode_FromString(logData.dump().c_str());
+}
+
 PyMethodDef* GetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = 
@@ -274,6 +322,8 @@ PyMethodDef* GetMillenniumModule()
         { "version",               GetVersionInfo,                  METH_NOARGS,  NULL },
         { "steam_path",            GetSteamPath,                    METH_NOARGS,  NULL },
         { "get_install_path",      GetInstallPath,                  METH_NOARGS,  NULL },
+
+        { "get_plugin_logs" ,      GetPluginLogs,                   METH_NOARGS, NULL },
 
         { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
 

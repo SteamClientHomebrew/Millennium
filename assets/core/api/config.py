@@ -6,6 +6,7 @@ from api.watchdog import SteamUtils
 from util.webkit_handler import WebkitStack, add_browser_css, add_browser_js, add_conditional_data, parse_conditional_patches
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from util.logger import logger
 
 class ConfigFileHandler(FileSystemEventHandler):
     def __init__(self, config_instance):
@@ -48,7 +49,7 @@ class Config:
     def validate_theme(self):
         active = self.config["active"]
         if active != "default" and not is_valid(active):
-            print(f"Theme '{active}' is invalid. Resetting to default.")
+            logger.log(f"Theme '{active}' is invalid. Resetting to default.")
             self.config["active"] = "default"
 
 

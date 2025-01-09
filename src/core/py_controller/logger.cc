@@ -3,28 +3,57 @@
 #include <stdio.h>
 #include <fstream>
 
+std::vector<BackendLogger*> g_loggerList;
+
 static PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     LoggerObject *self;
     self = (LoggerObject *)type->tp_alloc(type, 0);
 
-    if (self != NULL) 
+    const char* prefix = NULL;
+    if (PyArg_ParseTuple(args, "|s", &prefix) && prefix != NULL) 
     {
-        self->prefix = NULL;
+        PyErr_WarnEx(PyExc_DeprecationWarning, "The logger name parameter is deprecated and will be automatically replaced by the plugin name.", 1);
+    }
 
-        if (!PyArg_ParseTuple(args, "|s", &self->prefix)) 
+    PyObject* builtins = PyEval_GetBuiltins();
+    if (!builtins) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
+        return NULL;
+    }
+
+    // Get the variable from the __builtins__ dictionary
+    PyObject* value = PyDict_GetItemString(builtins, "MILLENNIUM_PLUGIN_SECRET_NAME");
+    std::string pluginName = value ? PyUnicode_AsUTF8(value) : "ERRNO_PLUGIN_NAME";
+
+    // Check if the logger already exists, and use it if it does
+    for (auto logger : g_loggerList) 
+    {
+        if (logger->GetPluginName(false) == pluginName) 
         {
-            Py_DECREF(self);
-            return NULL;
+            self->m_loggerPtr = logger;
+            return (PyObject *)self;
         }
     }
 
-    self->m_loggerPtr = std::make_unique<BackendLogger>(self->prefix);
+    self->m_loggerPtr = new BackendLogger(pluginName);
+    g_loggerList.push_back(self->m_loggerPtr);
     return (PyObject *)self;
 }
 
 static void LoggerObject_dealloc(LoggerObject *self)
 {
+    // delete self->m_loggerPtr;
+
+    // for (auto it = g_loggerList.begin(); it != g_loggerList.end();)
+    // {
+    //     if (*it == self->m_loggerPtr)
+    //     {
+    //         it = g_loggerList.erase(it);
+    //     }
+    //     else ++it;
+    // }
+
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 

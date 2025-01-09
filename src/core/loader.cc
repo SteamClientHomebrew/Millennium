@@ -10,6 +10,7 @@
 #include <sys/http.h>
 #include <core/hooks/web_load.h>
 #include <sys/log.h>
+#include "py_controller/logger.h"
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -310,18 +311,23 @@ const void StartPreloader(PythonManager& manager)
         Logger.Log("Started preloader module");
         const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
+        PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
+        SetPluginSecretName(globalDictionary, plugin.pluginName);
+
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
         FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
 
         if (mainModuleFilePtr == NULL) 
         {
             LOG_ERROR("failed to fopen file @ {}", backendMainModule);
+            ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
             return;
         }
 
         if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
         {
             LOG_ERROR("millennium failed to preload plugins", plugin.pluginName);
+            ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
             return;
         }
 

@@ -1,4 +1,5 @@
 import Millennium, os, json # type: ignore
+from util.logger import logger
 
 class Colors:
 
@@ -31,7 +32,7 @@ class Colors:
 
     @staticmethod
     def get_accent_color_posix():
-        print("[posix] get_accent_color has no implementation")
+        logger.log("[posix] get_accent_color has no implementation")
 
         color_dictionary = {
             'accent': '#000',
@@ -115,14 +116,14 @@ class Colors:
 
         if accent_color == "DEFAULT_ACCENT_COLOR":
 
-            print("Using default accent color")
+            logger.log("Using default accent color")
             if os.name == 'nt':
                 return Colors.get_accent_color_win32()
             else:
                 return Colors.get_accent_color_posix()
             
         else:
-            print("Using custom accent color")
+            logger.log("Using custom accent color")
             return Colors.extrap_custom_color(accent_color)
 
 
@@ -152,6 +153,6 @@ def find_all_themes() -> str:
             with open(skin_json_path, 'r') as json_file:
                 themes.append({"native": theme, "data": json.load(json_file)})
         except json.JSONDecodeError:
-            print(f"Error parsing {skin_json_path}. Invalid JSON format.")
+            logger.log(f"Error parsing {skin_json_path}. Invalid JSON format.")
     
     return json.dumps(themes)

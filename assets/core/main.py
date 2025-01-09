@@ -1,12 +1,15 @@
 import threading
 import time
+import base64
+
+import psutil
 start_time = time.perf_counter()
 
 import Millennium, json, os, configparser # type: ignore
 from util.logger import logger
 import platform
 
-print(f"Loading Millennium-Core@{Millennium.version()}")
+logger.log(f"Loading Millennium-Core@{Millennium.version()}")
 
 from api.css_analyzer import parse_root
 from api.themes import Colors
@@ -38,6 +41,7 @@ def get_load_config():
         "settings": config,
         "steamPath": Millennium.steam_path(),
         "useInterface": True if millennium.get('Settings', 'useInterface', fallback='') == "yes" else False,
+        "millenniumVersion": Millennium.version(),
     })
 
 def _webkit_accent_color():
@@ -48,9 +52,22 @@ def _webkit_accent_color():
 def update_plugin_status(plugin_name: str, enabled: bool):
     Millennium.change_plugin_status(plugin_name, enabled)
 
+def _get_plugin_logs():
+    return Millennium.get_plugin_logs()
+
+def _copy_to_clipboard(data: str):
+    try:
+        import pyperclip
+        pyperclip.copy(data)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to copy to clipboard: {e}")
+        return False
+
+
 class Plugin:
     def _front_end_loaded(self):
-        print("SteamUI successfully loaded!")
+        logger.log("SteamUI successfully loaded!")
 
     def _load(self):     
         cfg.set_theme_cb()
@@ -63,8 +80,9 @@ class Plugin:
             logger.error("Failed to start the websocket for theme installer! trace: " + str(e))
 
         elapsed_time = time.perf_counter() - start_time
-        print(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
+        logger.log(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
         Millennium.ready()
+
 
     def _unload(self):
         logger.log("Millennium-Core is unloading...")

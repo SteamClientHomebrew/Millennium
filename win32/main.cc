@@ -9,6 +9,7 @@
 #include <filesystem>
 #include "../src/procmon/cmd.h"
 #include <thread>
+#include <fcntl.h>
 
 const void shutdown_shim(HINSTANCE hinstDLL) {
     FreeLibraryAndExitThread(hinstDLL, 0);
@@ -137,21 +138,110 @@ void patch_shared_js_context(std::string steam_path) {
     }
 }
 
+// Custom stream buffer class
+class CustomStreambuf : public std::streambuf {
+private:
+    std::ofstream outputFile;       // File stream for writing output
+    std::streambuf* originalBuffer; // Pointer to the original stream buffer
+
+public:
+    CustomStreambuf(std::ostream& stream, const std::string& filename)
+        : originalBuffer(stream.rdbuf()), outputFile(filename, std::ios::out | std::ios::app) {
+        if (!outputFile.is_open()) {
+            throw std::runtime_error("Failed to open file: " + filename);
+        }
+        // Redirect the stream to this custom buffer
+        stream.rdbuf(this);
+    }
+
+    ~CustomStreambuf() {
+        // Restore the original buffer and close the file
+        std::cout.rdbuf(originalBuffer);
+        outputFile.close();
+    }
+
+protected:
+    // Override the overflow method to intercept characters
+    int overflow(int c) override {
+        if (c != EOF) {
+            MessageBoxA(nullptr, "overflow", "Error", MB_ICONERROR);
+            // Write character to the file
+            outputFile.put(static_cast<char>(c));
+            outputFile.flush();
+        }
+        return c;
+    }
+
+    // Override the sync method to flush the file
+    int sync() override {
+        outputFile.flush();
+        return 0; // Return 0 to indicate success
+    }
+};
+
+
+void restore_stdout() {
+    // Get the standard output handle (console)
+
+    // setvbuf(stdout, nullptr, _IONBF, 0);  // Set unbuffered mode for stdout
+
+    std::cout.clear();  // Clear any error flags on std::cout
+}
+
 const void load_millennium(HINSTANCE hinstDLL) {
+
+    restore_stdout();
 
     std::string steam_path = get_steam_path();
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
+    std::thread threadId;
 
     if (startupParams->HasArgument("-dev")) {
 
 		if (static_cast<bool>(AllocConsole())) {
 			SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
 		}
-		
-		SetConsoleOutputCP(CP_UTF8);
-		void(freopen("CONOUT$", "w", stdout));
-		void(freopen("CONOUT$", "w", stderr));
-		EnableVirtualTerminalProcessing();
+
+        // freopen("duplicate_output.txt", "w", stdout);
+
+        // HANDLE hPipe = CreateFileA(R"(\\.\pipe\MillenniumStdoutPipe)", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+        // if (hPipe == INVALID_HANDLE_VALUE)
+        // {
+        //     std::cerr << "Failed to connect to pipe. Error: " << GetLastError() << std::endl;
+        //     return;
+        // }
+
+        // int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
+        // if (pipeDescriptor == -1)
+        // {
+        //     std::cerr << "Failed to get pipe file descriptor. Error: " << errno << std::endl;
+        //     CloseHandle(hPipe);
+        //     return;
+        // }
+
+        // FILE* pipeFile = _fdopen(pipeDescriptor, "w");
+        // if (!pipeFile)
+        // {
+        //     std::cerr << "Failed to open pipe file descriptor as FILE*. Error: " << errno << std::endl;
+        //     CloseHandle(hPipe);
+        //     return;
+        // }
+
+        // if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
+        // {
+        //     std::cerr << "Failed to redirect stdout to pipe. Error: " << errno << std::endl;
+        //     fclose(pipeFile);
+        //     CloseHandle(hPipe);
+        //     return;
+        // }
+
+        // setvbuf(stdout, NULL, _IONBF, 0);
+        freopen("CONOUT$", "w", stdout);
+
+
+        EnableVirtualTerminalProcessing();
+
     }
 
     patch_shared_js_context(steam_path);
@@ -170,6 +260,7 @@ const void load_millennium(HINSTANCE hinstDLL) {
     else {
         printf("loaded millennium...\n");
     }
+
 
     CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)shutdown_shim, hinstDLL, 0, nullptr);
 }

@@ -2,6 +2,8 @@
     "settingsPanelPlugins": "Plugins",
     "settingsPanelThemes": "Themes",
     "settingsPanelUpdates": "Updates",
+    "settingsPanelLogs": "Logs",
+    "settingsPanelBugReport": "Report a Bug",
     "itemNoDescription": "No description yet.",
     "themePanelClientTheme": "Client Theme",
     "themePanelThemeTooltip": "Select the theme you want Steam to use (requires reload)",
@@ -31,5 +33,10 @@
     "updatePanelUpdateNotifications": "Push Notifications",
     "updatePanelUpdateNotificationsTooltip": "Get Millennium to give you a reminder when a item in your library has an update!",
     "customThemeSettingsColors": "Colors",
-    "customThemeSettingsConfig": "Custom Settings"
+    "customThemeSettingsConfig": "Custom Settings",
+    "errorMessageTitle": "Whoops!",
+    "errorSubmitIssueNotValid": "Your issue is not valid. Make sure your issue does not involve a plugin or theme, if it does, please contact the developer of the plugin or theme.",
+    "errorSubmitIssueNoDescription": "Please provide a description of your issue (10 characters or more).",
+    "errorSubmitIssueNoSteps": "Please provide an overview on how to reproduce your issue (10 characters or more).",
+    "errorSubmitIssueTooFrequent": "Woah there! You're submitting issues too quickly. Please wait a bit before submitting another issue."
 }
