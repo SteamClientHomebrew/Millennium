@@ -12,6 +12,9 @@ import {
     Toggle,
     SteamSpinner,
     Field,
+    callable,
+    ConfirmModal,
+    showModal,
 } from '@steambrew/client'
 
 import { locale } from '../locales';
@@ -21,8 +24,8 @@ import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { SettingsDialogSubHeader } from '../components/SettingsDialogSubHeader';
 
 interface UpdateProps {
-    updates: UpdateItemType[];
-    setUpdates: React.Dispatch<React.SetStateAction<UpdateItemType[]>>
+    updates: UpdateItemType[]
+    fetchUpdates: () => Promise<boolean>
 }
 
 interface UpdateItemType {
@@ -45,56 +48,82 @@ const UpToDateModal: React.FC = () => {
     )
 }
 
-const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, setUpdates }) => {
+const UpdateTheme = callable<[{ native: string }], boolean>("updater.update_theme")
+
+const ShowMessageBox = (message: string, title?: string) => {
+    return new Promise((resolve) => {
+        const onOK = () => resolve(true)
+        const onCancel = () => resolve(false)
+
+        showModal(<ConfirmModal
+            // @ts-ignore
+            strTitle={title ?? LocalizationManager.LocalizeString("#InfoSettings_Title")}
+            strDescription={message}
+            onOK={onOK}
+            onCancel={onCancel}
+        />,
+            pluginSelf.millenniumSettingsWindow,
+            {
+                bNeverPopOut: false,
+            },
+        );
+    })
+}
+
+interface FormatString {
+    (template: string, ...args: string[]): string;
+}
+
+const formatString: FormatString = (template, ...args) => {
+    return template.replace(/{(\d+)}/g, (match, index) => {
+        return index < args.length ? args[index] : match;  // Replace {index} with the corresponding argument or leave it unchanged
+    });
+}
+
+const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }) => {
 
     const [updating, setUpdating] = useState<Array<any>>([])
     const viewMoreClick = (props: UpdateItemType) => SteamClient.System.OpenInSystemBrowser(props?.commit)
 
-    const updateItemMessage = (updateObject: UpdateItemType, index: number) => {
+    const updateItemMessage = async (updateObject: UpdateItemType, index: number) => {
         setUpdating({ ...updating, [index]: true });
-        Millennium.callServerMethod("updater.update_theme", { native: updateObject.native })
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .then((success: boolean) => {
-                /** @todo: prompt user an error occured. */
-                if (!success) return
 
-                const activeTheme: ThemeItem = pluginSelf.activeTheme
+        const success = await UpdateTheme({ native: updateObject.native })
 
-                // the current theme was just updated, so reload SteamUI
-                if (activeTheme?.native === updateObject?.native) {
+        if (success) {
+            /** Check for updates */
+            await fetchUpdates()
+            const activeTheme: ThemeItem = pluginSelf.activeTheme
+
+            /** Check if the updated theme is currently in use, if so reload */
+            if (activeTheme?.native === updateObject?.native) {
+                SteamClient.Browser.RestartJSContext()
+
+                // @ts-ignore
+                const reload = await ShowMessageBox(formatString(locale.updateSuccessfulRestart, updateObject?.name), LocalizationManager.LocalizeString("#ImageUpload_SuccessCard"))
+
+                if (reload) {
                     SteamClient.Browser.RestartJSContext()
                 }
+            }
+            else {
+                // @ts-ignore=
+                const reload = await ShowMessageBox(formatString(locale.updateSuccessful, updateObject?.name), LocalizationManager.LocalizeString("#ImageUpload_SuccessCard"))
 
-                Millennium.callServerMethod("updater.get_update_list")
-                    .then((result: any) => {
-                        pluginSelf.connectionFailed = false
-                        return result
-                    })
-                    .then((result: any) => {
-                        setUpdates(JSON.parse(result).updates)
-                    })
-            })
+                if (reload) {
+                    SteamClient.Browser.RestartJSContext()
+                }
+            }
+        }
+        else {
+            // @ts-ignore
+            ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), LocalizationManager.LocalizeString("#Generic_Error"))
+        }
     }
-
-    const fieldButtonsStyles: CSSProperties = {
-        display: "flex",
-        gap: "8px",
-    };
-    const updateButtonStyles: CSSProperties = {
-        minWidth: "80px",
-    };
-    const updateDescriptionStyles: CSSProperties = {
-        display: "flex",
-        flexDirection: "column",
-    };
-    const updateLabelStyles: CSSProperties = {
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-    };
+    const fieldButtonsStyles: CSSProperties = { display: "flex", gap: "8px", };
+    const updateButtonStyles: CSSProperties = { minWidth: "80px" };
+    const updateDescriptionStyles: CSSProperties = { display: "flex", flexDirection: "column" };
+    const updateLabelStyles: CSSProperties = { display: "flex", alignItems: "center", gap: "8px" };
 
     return (
         <DialogControlsSection>
@@ -135,97 +164,68 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, setUpdates }) 
     )
 }
 
+const GetUpdateList = callable<[{ force: boolean }], any>("updater.get_update_list")
+const SetUpdateNotificationStatus = callable<[{ status: boolean }], boolean>("updater.set_update_notifs_status")
+
 const UpdatesViewModal: React.FC = () => {
 
     const [updates, setUpdates] = useState<Array<UpdateItemType>>(null)
-    const [checkingForUpdates, setCheckingForUpdates] = useState<boolean>(false)
     const [showUpdateNotifications, setNotifications] = useState<boolean>(undefined)
     const [hasReceivedUpdates, setHasReceivedUpdates] = useState<boolean>(false)
 
-    useEffect(() => {
-        Millennium.callServerMethod("updater.get_update_list")
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .then((result: any) => {
+    const FetchAvailableUpdates = async (): Promise<boolean> => new Promise(async (resolve, reject) => {
+        try {
+            const updateList = JSON.parse(await GetUpdateList({ force: true }))
+            pluginSelf.connectionFailed = false
 
-                const updates = JSON.parse(result)
-                console.log(updates)
+            setUpdates(updateList.updates)
+            setNotifications(updateList.notifications ?? false)
+            setHasReceivedUpdates(true)
 
-                setUpdates(updates.updates)
-                setNotifications(updates.notifications ?? false)
-                setHasReceivedUpdates(true)
-            })
-            .catch((_: any) => {
-                console.error("Failed to fetch updates")
-                pluginSelf.connectionFailed = true
-            })
-    }, [])
+            resolve(true)
+        }
+        catch (exception) {
+            console.error("Failed to fetch updates")
+            pluginSelf.connectionFailed = true
 
-    const checkForUpdates = async () => {
-        if (checkingForUpdates) return
-        setCheckingForUpdates(true)
+            reject(false)
+        }
+        resolve(true)
+    })
 
-        Millennium.callServerMethod("updater.get_update_list", { force: true })
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .then((result: any) => {
-                setUpdates(JSON.parse(result).updates)
-                setCheckingForUpdates(false)
-            })
-            .catch((_: any) => {
-                console.error("Failed to fetch updates")
-                pluginSelf.connectionFailed = true
-            })
+
+    const OnNotificationsChange = async (enabled: boolean) => {
+        const result = await SetUpdateNotificationStatus({ status: enabled })
+
+        if (result) {
+            setNotifications(enabled)
+            Settings.FetchAllSettings()
+        }
+        else {
+            console.error("Failed to update settings")
+            pluginSelf.connectionFailed = true
+        }
     }
 
-    const DialogHeaderStyles: any = {
-        display: "flex", alignItems: "center", gap: "15px"
-    }
+    useEffect(() => { FetchAvailableUpdates() }, [])
 
-    const OnNotificationsChange = (enabled: boolean) => {
-
-        Millennium.callServerMethod("updater.set_update_notifs_status", { status: enabled })
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .then((success: boolean) => {
-                if (success) {
-                    setNotifications(enabled)
-                    Settings.FetchAllSettings()
-                }
-            })
-    }
-
+    /** Check if the connection failed, this usually means the backend crashed or couldn't load */
     if (pluginSelf.connectionFailed) {
         return <ConnectionFailed />
     }
 
-    return <>
-        <style>{`
-            .waitingForUpdates {
-                background: unset !important;  
-            }
-        `}</style>
-        {
-            !hasReceivedUpdates ?
-                <SteamSpinner className={'waitingForUpdates'} />
-                :
-                <>
-                    <Field
-                        label={locale.updatePanelUpdateNotifications}
-                        description={locale.updatePanelUpdateNotificationsTooltip}
-                    >
-                        {showUpdateNotifications !== undefined && <Toggle value={showUpdateNotifications} onChange={OnNotificationsChange} />}
-                    </Field>
-                    {updates && (!updates.length ? <UpToDateModal /> : <RenderAvailableUpdates updates={updates} setUpdates={setUpdates} />)}
-                </>
-        }
-    </>
+    return !hasReceivedUpdates ?
+        <SteamSpinner background={"transparent"} /> :
+        <>
+            <Field
+                label={locale.updatePanelUpdateNotifications}
+                description={locale.updatePanelUpdateNotificationsTooltip}
+            >
+                {showUpdateNotifications !== undefined && <Toggle value={showUpdateNotifications} onChange={OnNotificationsChange} />}
+            </Field>
+            {updates && (!updates.length ? <UpToDateModal /> : <RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} />)}
+        </>
+
 }
 
 export { UpdatesViewModal }

@@ -4,7 +4,7 @@ import { PluginComponent } from '../types';
 import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { GetLogData, LogData, LogLevel } from './Logs';
-
+import * as CustomIcons from '../custom_components/CustomIcons'
 
 interface EditPluginProps {
 	plugin: PluginComponent
@@ -45,8 +45,7 @@ const PluginViewModal: React.FC = () => {
 	const [checkedItems, setCheckedItems] = useState<{ [key: number]: boolean }>({});
 	const [pluginsWithLogs, setPluginsWithLogs] = useState<Map<string, PluginStatusProps>>()
 
-	useEffect(() => {
-
+	const FetchAllPlugins = () => {
 		Millennium.callServerMethod("find_all_plugins").then((value: string) => {
 			const json: PluginComponent[] = JSON.parse(value)
 
@@ -83,7 +82,9 @@ const PluginViewModal: React.FC = () => {
 				return result
 			})
 			.catch((_: any) => pluginSelf.connectionFailed = true)
-	}, [])
+	}
+
+	useEffect(() => { FetchAllPlugins() }, [])
 
 	const checkBoxChange = (index: number, checked: boolean): void => {
 		console.log(checked)
@@ -140,6 +141,15 @@ const PluginViewModal: React.FC = () => {
 		return <ConnectionFailed />
 	}
 
+	const OpenPluginsFolder = () => {
+		const pluginsPath = [pluginSelf.installPath, "plugins"].join("/");
+		SteamClient.System.OpenLocalDirectoryInSystemExplorer(pluginsPath);
+	}
+
+	const GetMorePlugins = () => {
+		SteamClient.System.OpenInSystemBrowser("https://steambrew.app/plugins");
+	}
+
 	return (
 		<>
 			<style>{`
@@ -158,6 +168,49 @@ const PluginViewModal: React.FC = () => {
 					margin-top: 10px;
 				}
 			`}</style>
+
+			{/* <div className='pluginTabInfo' style={{
+				marginTop: "5px",
+				display: "flex",
+				justifyContent: "space-between",
+				alignItems: "center",
+			}}>
+
+				<p style={{ margin: "0px", fontSize: "13px" }}> Found {plugins.length} plugins, {Object.keys(checkedItems).filter((key: any) => checkedItems[key]).length} plugins enabled</p>
+
+				<div style={{ display: "flex", gap: "10px" }}>
+					<DialogButton onClick={FetchAllPlugins} style={{ padding: "0px 10px 0px" }}>
+						<IconsModule.Refresh height="16" />
+					</DialogButton>
+
+					<DialogButton onClick={OpenPluginsFolder} style={{ padding: "0px 10px 0px" }}>
+						<CustomIcons.Folder />
+					</DialogButton>
+				</div>
+			</div> */}
+
+			<Field
+				label={`Found ${plugins.length} plugin(s), ${Object.keys(checkedItems).filter((key: any) => checkedItems[key]).length} plugin(s) enabled`}
+				bottomSeparator='none'
+				description={
+					<>
+						{locale.pluginPanelPluginTooltip}
+						<a href="#" onClick={GetMorePlugins}>
+							{locale.pluginPanelGetMorePlugins}
+						</a>
+					</>
+				}
+			>
+				<div style={{ display: "flex", gap: "10px" }}>
+					<DialogButton onClick={FetchAllPlugins} style={{ padding: "0px 10px 0px" }}>
+						<IconsModule.Refresh height="16" />
+					</DialogButton>
+
+					<DialogButton onClick={OpenPluginsFolder} style={{ padding: "0px 10px 0px" }}>
+						<CustomIcons.Folder />
+					</DialogButton>
+				</div>
+			</Field>
 
 			{plugins.map((plugin: PluginComponent, index: number) => (
 

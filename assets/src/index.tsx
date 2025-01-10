@@ -54,11 +54,11 @@ const PatchMissedDocuments = () => {
 
 const windowCreated = (windowContext: any): void => {
 
-    if (windowContext.m_strName == "contextmenu_2") {
+    if (windowContext.m_strTitle === "Steam Root Menu") {
         pluginSelf.useInterface && RenderSettingsModal(windowContext)
     }
 
-    if (windowContext.m_strName == "Millennium") {
+    if (windowContext.m_strName === "Millennium") {
         pluginSelf.millenniumSettingsWindow = windowContext.m_popup.window
     }
 
@@ -92,6 +92,7 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
     pluginSelf.scriptsAllowed = result?.settings?.scripts as boolean ?? true
     pluginSelf.stylesAllowed = result?.settings?.styles as boolean ?? true
     pluginSelf.steamPath = result?.steamPath as string
+    pluginSelf.installPath = result?.installPath as string
     pluginSelf.useInterface = result?.useInterface as boolean ?? true
     pluginSelf.version = result?.millenniumVersion as string
 

@@ -70,7 +70,6 @@ const RenderLogViewer = ({ logs, setSelectedLog }: {
         }, 2000)
     }
 
-    // React.ChangeEventHandler<HTMLInputElement>
     const ShowMatchedLogsFromSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value)
 
@@ -165,7 +164,6 @@ const RenderLogViewer = ({ logs, setSelectedLog }: {
                 </pre>
             </div>
         </>
-
     )
 }
 
@@ -175,18 +173,16 @@ interface RenderLogSelectorProps {
 }
 
 const RenderLogSelector: React.FC<RenderLogSelectorProps> = ({ logData, setSelectedLog }) => {
-    return (
-        logData === undefined ?
-            <SteamSpinner className={'waitingForUpdates'} />
-            :
-            <>
-                {logData.map((log, index) => (
-                    <DialogButton key={index} onClick={() => { setSelectedLog(log ?? undefined) }} style={{ width: "unset", marginTop: "20px" }} className={settingsClasses.SettingsDialogButton}>
-                        {log?.name}
-                    </DialogButton>
-                ))}
-            </>
-    )
+    return logData === undefined ?
+        <SteamSpinner background={"transparent"} />
+        :
+        <>
+            {logData.map((log, index) => (
+                <DialogButton key={index} onClick={() => { setSelectedLog(log ?? undefined) }} style={{ width: "unset", marginTop: "20px" }} className={settingsClasses.SettingsDialogButton}>
+                    {log?.name}
+                </DialogButton>
+            ))}
+        </>
 }
 
 export const LogsViewModal: React.FC = () => {
@@ -195,24 +191,10 @@ export const LogsViewModal: React.FC = () => {
     const [selectedLog, setSelectedLog] = useState<LogData>(undefined);
 
     useEffect(() => {
-        GetLogData().then((data: any) => {
-            console.log(JSON.parse(data))
-            setLogData(JSON.parse(data))
-        })
+        GetLogData().then((data: any) => { setLogData(JSON.parse(data)) });
     }, []);
 
-    return (
-        <>
-            <style>{`
-                .waitingForUpdates {
-                    background: unset !important;  
-                }
-            `}</style>
-            {
-                selectedLog === undefined ?
-                    <RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} /> :
-                    <RenderLogViewer logs={selectedLog} setSelectedLog={setSelectedLog} />
-            }
-        </>
-    )
+    return selectedLog === undefined ?
+        <RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} /> :
+        <RenderLogViewer logs={selectedLog} setSelectedLog={setSelectedLog} />
 }

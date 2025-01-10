@@ -7,7 +7,9 @@
     "itemNoDescription": "No description yet.",
     "themePanelClientTheme": "Client Theme",
     "themePanelThemeTooltip": "Select the theme you want Steam to use (requires reload)",
+    "pluginPanelPluginTooltip": "Don't have any plugins installed? ",
     "themePanelGetMoreThemes": "Get more themes",
+    "pluginPanelGetMorePlugins": "Find plugins here",
     "themePanelInjectJavascript": "Inject JavaScript",
     "themePanelInjectJavascriptToolTip": "Decide whether themes are allowed to insert JavaScript into Steam. Disabling JavaScript may break Steam interface as a byproduct (requires reload)",
     "themePanelInjectCSS": "Inject StyleSheets",
@@ -38,5 +40,8 @@
     "errorSubmitIssueNotValid": "Your issue is not valid. Make sure your issue does not involve a plugin or theme, if it does, please contact the developer of the plugin or theme.",
     "errorSubmitIssueNoDescription": "Please provide a description of your issue (10 characters or more).",
     "errorSubmitIssueNoSteps": "Please provide an overview on how to reproduce your issue (10 characters or more).",
-    "errorSubmitIssueTooFrequent": "Woah there! You're submitting issues too quickly. Please wait a bit before submitting another issue."
+    "errorSubmitIssueTooFrequent": "Woah there! You're submitting issues too quickly. Please wait a bit before submitting another issue.",
+    "updateSuccessful": "Successfully updated {0}",
+    "updateSuccessfulRestart": "Successfully updated {0}! As you currently have it active, you will need to restart Steam for the changes to take effect.",
+    "updateFailed": "Failed to update {0}! Check the logs for more information."
 }

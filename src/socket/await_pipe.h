@@ -231,10 +231,7 @@ public:
         }
         catch (nlohmann::detail::exception& exception)
         {
-            LOG_ERROR(exception.what());
-
-            const std::string message = fmt::format("A fatal error occurred trying to get SteamBrowserContext -> {}", exception.what());
-            //boxer::show(message.c_str(), "Fatal Error", //boxer::Style::Error);
+            LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}", debuggerPort, exception.what());
             std::exit(1);
         }
         #else

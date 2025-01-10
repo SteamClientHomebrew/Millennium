@@ -135,12 +135,15 @@ function RenderSettingsModal(_context: any) {
 	pluginSelf.mainWindow = _context.m_popup.window
 
 	Millennium.findElement(_context.m_popup.document, ".contextMenuItem").then((contextMenuItems: NodeListOf<Element>) => {
-
 		for (const item of contextMenuItems) {
-			if (item.textContent === "Settings") {
+
+			// @ts-ignore
+			const settingsString = LocalizationManager.LocalizeString("#Settings")
+
+			if (item.textContent === settingsString) {
 
 				const millenniumSettings = item.cloneNode(true);
-				millenniumSettings.textContent = "Millennium Settings";
+				millenniumSettings.textContent = "Millennium " + settingsString;
 				item.after(millenniumSettings);
 
 				millenniumSettings.addEventListener("click", () => {

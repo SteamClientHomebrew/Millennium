@@ -143,9 +143,18 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
         {
             if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
-            
+
             std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
-            scriptModules.push_back(fmt::format("{}{}", this->m_javaScriptVirtualUrl, relativePath.generic_string()));
+
+            #ifdef _WIN32
+            std::string scriptModule = fmt::format("{}{}", this->m_javaScriptVirtualUrl, relativePath.generic_string());
+            #else 
+            std::string scriptModule = fmt::format("{}steamui/{}", this->m_javaScriptVirtualUrl, relativePath.generic_string());
+            #endif
+
+
+            std::cout << scriptModule << std::endl;
+            scriptModules.push_back(scriptModule);
         }
     }
 

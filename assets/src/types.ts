@@ -153,6 +153,7 @@ export interface SettingsProps {
     conditions: ConditionsStore,
     settings: Settings,
     steamPath: string,
+    installPath: string,
     useInterface: boolean,
     millenniumVersion: string
 }

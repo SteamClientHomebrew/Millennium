@@ -40,6 +40,7 @@ def get_load_config():
         "active_theme": json.loads(cfg.get_active_theme()),
         "settings": config,
         "steamPath": Millennium.steam_path(),
+        "installPath": Millennium.get_install_path(),
         "useInterface": True if millennium.get('Settings', 'useInterface', fallback='') == "yes" else False,
         "millenniumVersion": Millennium.version(),
     })
