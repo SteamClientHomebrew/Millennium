@@ -249,6 +249,8 @@ extern "C"
             oss << updatedPreload[i];
         }
 
+        Logger.Log("Updating LD_PRELOAD from [{}] to [{}]", ldPreloadStr, oss.str());
+
         // Set the updated LD_PRELOAD
         if (setenv("LD_PRELOAD", oss.str().c_str(), 1) != 0) 
         {
@@ -257,6 +259,60 @@ extern "C"
     }
 
     #ifdef MILLENNIUM_SHARED
+
+    int IsSamePath(const char *path1, const char *path2) 
+    {
+        char realpath1[PATH_MAX], realpath2[PATH_MAX];
+        struct stat stat1, stat2;
+
+        // Get the real paths for both paths (resolves symlinks)
+        if (realpath(path1, realpath1) == NULL) 
+        {
+            perror("realpath failed for path1");
+            return 0;  // Error in resolving path
+        }
+        if (realpath(path2, realpath2) == NULL) 
+        {
+            perror("realpath failed for path2");
+            return 0;  // Error in resolving path
+        }
+
+        // Compare resolved paths
+        if (strcmp(realpath1, realpath2) != 0) 
+        {
+            return 0;  // Paths are different
+        }
+
+        // Check if both paths are symlinks and compare symlink targets
+        if (lstat(path1, &stat1) == 0 && lstat(path2, &stat2) == 0) 
+        {
+            if (S_ISLNK(stat1.st_mode) && S_ISLNK(stat2.st_mode)) 
+            {
+                // Both are symlinks, compare the target paths
+                char target1[PATH_MAX], target2[PATH_MAX];
+                ssize_t len1 = readlink(path1, target1, sizeof(target1) - 1);
+                ssize_t len2 = readlink(path2, target2, sizeof(target2) - 1);
+
+                if (len1 == -1 || len2 == -1) 
+                {
+                    perror("readlink failed");
+                    return 0;
+                }
+
+                target1[len1] = '\0';
+                target2[len2] = '\0';
+
+                // Compare the symlink targets
+                if (strcmp(target1, target2) != 0) 
+                {
+                    return 0;  // Symlinks point to different targets
+                }
+            }
+        }
+
+        return 1;  // Paths are the same, including symlinks to each other
+    }
+
     /*
     * Trampoline for __libc_start_main() that replaces the real main
     * function with our hooked version.
@@ -271,11 +327,13 @@ extern "C"
         /* Get the address of the real __libc_start_main() */
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
+        Logger.Log("Hooked __libc_start_main() {}", argv[0]);
+
         /* Get the path to the Steam executable */
         std::filesystem::path steamPath = std::filesystem::path(std::getenv("HOME")) / ".steam/steam/ubuntu12_32/steam";
 
         /** not loaded in a invalid child process */
-        if (argv[0] != steamPath.string()) 
+        if (!IsSamePath(argv[0], steamPath.string().c_str()))
         {
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }

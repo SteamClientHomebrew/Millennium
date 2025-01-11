@@ -250,8 +250,10 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
     {
         if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) 
         {    
+            Logger.Log("plugin {} is not enabled", plugin.pluginName);
             continue;
         }
+        Logger.Log("plugin {} is enabled", plugin.pluginName);
 
         const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
         const std::string pathShim = plugin.isInternal ? "_internal_/" : std::string();

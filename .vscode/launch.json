@@ -3,7 +3,7 @@
         {
             "type": "cppdbg",
             "request": "launch",
-            "name": "Launch Millennium",
+            "name": "Debug Millennium (Windows)",
             "program": "C:\\Program Files (x86)\\Steam\\steam.exe",
             "args": [
                 "-dev",
@@ -12,6 +12,36 @@
                 "-noverifyfiles"
             ],
             "cwd": "C:\\Program Files (x86)\\Steam\\",
+            "stopAtEntry": false,
+            "setupCommands": [
+                {
+                    "description": "Enable break on all exceptions",
+                    "text": "catch throw",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "environment": [],
+            "externalConsole": true,
+            "console": "integratedTerminal",
+            "preLaunchTask": "CMake: build"
+        },
+        {
+            "type": "cppdbg",
+            "request": "launch",
+            "name": "Debug Millennium (Linux)",
+            "program": "/usr/bin/steam-runtime",
+            "args": [
+                "-dev",
+                "-skipinitialbootstrap",
+                "-nobootstrapperupdate",
+                "-noverifyfiles"
+            ],
+            "cwd": "/usr/bin/",
             "stopAtEntry": false,
             "setupCommands": [
                 {
