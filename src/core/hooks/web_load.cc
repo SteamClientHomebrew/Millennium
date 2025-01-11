@@ -6,6 +6,7 @@
 #include <sys/http.h>   
 #include <unordered_set>
 #include "csp_bypass.h"
+#include <util/url_parser.h>
 
 unsigned long long g_hookedModuleId;
 
@@ -27,7 +28,8 @@ void WebkitHandler::SetupGlobalHooks()
         { "params", {
             { "patterns", {
                 { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Response" } },     
-                { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } }
+                { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } },
+                { { "urlPattern", fmt::format("{}*", this->m_styleSheetVirtualUrl) }, { "requestStage", "Request" } }
             }
         }}}
     });
@@ -35,19 +37,25 @@ void WebkitHandler::SetupGlobalHooks()
 
 bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message) 
 {
-    return message["params"]["request"]["url"].get<std::string>().find(this->m_javaScriptVirtualUrl) != std::string::npos;
+    return message["params"]["request"]["url"].get<std::string>().find(this->m_javaScriptVirtualUrl) != std::string::npos
+        || message["params"]["request"]["url"].get<std::string>().find(this->m_styleSheetVirtualUrl) != std::string::npos;
 }
 
 std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
 {
-    std::size_t pos = requestUrl.find(this->m_javaScriptVirtualUrl);
+    std::size_t jsPos = requestUrl.find(this->m_javaScriptVirtualUrl);
+    std::size_t cssPos = requestUrl.find(this->m_styleSheetVirtualUrl);
 
-    if (pos != std::string::npos)
+    if (jsPos != std::string::npos)
     {
-        requestUrl.erase(pos, std::string(this->m_javaScriptVirtualUrl).length());
+        requestUrl.erase(jsPos, std::string(this->m_javaScriptVirtualUrl).length());
+    }
+    else if (cssPos != std::string::npos)
+    {
+        requestUrl.erase(cssPos, std::string(this->m_styleSheetVirtualUrl).length());
     }
 
-    return SystemIO::GetSteamPath() / requestUrl;
+    return std::filesystem::path(PathFromUrl(requestUrl));
 }
 
 void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
@@ -67,10 +75,14 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
     const int responseCode            = bFailedRead ? 404 : 200;
     const std::string responseMessage = bFailedRead ? "millennium" : "millennium couldn't read " + localFilePath.string();
 
+    // Get file extension from the file path.
+    const std::string fileExtension = localFilePath.extension().string();
+    const std::string contentType = fileExtension == ".css" ? "text/css" : "application/javascript";
+
     const nlohmann::json responseHeaders = nlohmann::json::array
     ({
         { {"name", "Access-Control-Allow-Origin"}, {"value", "*"} },
-        { {"name", "Content-Type"}, {"value", "application/javascript"} }
+        { {"name", "Content-Type"}, {"value", contentType} }
     });
 
     Sockets::PostGlobal({
@@ -136,25 +148,14 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
             if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
 
-            std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath() / "steamui");
-            cssShimContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}{}\">\n", this->m_steamLoopback, relativePath.generic_string())); 
+            cssShimContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", UrlFromPath("https://css.millennium.app/", hookItem.path))); 
         }
         else if (hookItem.type == TagTypes::JAVASCRIPT) 
         {
             if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
 
-            std::filesystem::path relativePath = std::filesystem::relative(hookItem.path, SystemIO::GetSteamPath());
-
-            #ifdef _WIN32
-            std::string scriptModule = fmt::format("{}{}", this->m_javaScriptVirtualUrl, relativePath.generic_string());
-            #else 
-            std::string scriptModule = fmt::format("{}steamui/{}", this->m_javaScriptVirtualUrl, relativePath.generic_string());
-            #endif
-
-
-            std::cout << scriptModule << std::endl;
-            scriptModules.push_back(scriptModule);
+            scriptModules.push_back(UrlFromPath(this->m_javaScriptVirtualUrl, hookItem.path));
         }
     }
 

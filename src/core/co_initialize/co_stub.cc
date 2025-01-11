@@ -8,6 +8,13 @@
 #include <core/ffi/ffi.h>
 #include <tuple>
 #include <core/py_controller/logger.h>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <sys/encoding.h>
+#include <util/url_parser.h>
+
+static std::string addedScriptOnNewDocumentId = "";
 
 const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
 {
@@ -250,25 +257,15 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
     {
         if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) 
         {    
-            Logger.Log("plugin {} is not enabled", plugin.pluginName);
             continue;
         }
-        Logger.Log("plugin {} is enabled", plugin.pluginName);
 
         const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
-        const std::string pathShim = plugin.isInternal ? "_internal_/" : std::string();
-
-        scriptImportTable.push_back(fmt::format("http://localhost:{}/{}{}", ftpPort, pathShim, frontEndAbs));
+        scriptImportTable.push_back(UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), frontEndAbs));
     }
 
     return GetBootstrapModule(scriptImportTable, ipcPort);
 }
-
-static std::string addedScriptOnNewDocumentId = "";
-
-#include <mutex>
-#include <condition_variable>
-#include <thread>
 
 void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 {

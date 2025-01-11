@@ -179,9 +179,10 @@ public:
         webKitHandler.SetupGlobalHooks();
     }
 
-    CEFBrowser(uint16_t fptPort, uint16_t ipcPort) : m_ftpPort(fptPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) 
+    CEFBrowser(uint16_t ftpPort, uint16_t ipcPort) : m_ftpPort(ftpPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) 
     {
         webKitHandler.SetIPCPort(ipcPort);
+        webKitHandler.SetFTPPort(ftpPort);
     }
 };
 
@@ -241,7 +242,7 @@ const void PluginLoader::InjectWebkitShims()
 
     for (auto& plugin : allPlugins)
     {
-        const auto absolutePath = SystemIO::GetSteamPath() / "plugins" / plugin.webkitAbsolutePath;
+        const auto absolutePath = SystemIO::GetInstallPath() / "plugins" / plugin.webkitAbsolutePath;
 
         if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
         {

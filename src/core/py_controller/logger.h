@@ -81,8 +81,6 @@ public:
 
     BackendLogger(const std::string& pluginName) : pluginName(pluginName)
     {
-        std::cout << "Creating logger for " << pluginName << std::endl;
-
         this->filename = (SystemIO::GetInstallPath() / "ext" / "data" / "logs" / fmt::format("{}_log.txt", pluginName)).generic_string();
         file.open(filename, std::ios::app);
 
@@ -92,7 +90,6 @@ public:
 
     ~BackendLogger() 
     {
-        std::cout << "Destroying logger for " << pluginName << std::endl;
         file.close();
     }
 
@@ -100,7 +97,7 @@ public:
     {        
         std::string formatted = fmt::format("{} ", GetPluginName());
 
-        if (onlyBuffer) 
+        if (!onlyBuffer) 
         {
             fmt::print("{} ", GetLocalTime());
     
@@ -115,7 +112,7 @@ public:
 
     void Warn(const std::string& message, bool onlyBuffer = false) 
     {
-        if (onlyBuffer)
+        if (!onlyBuffer)
         {
             std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
 

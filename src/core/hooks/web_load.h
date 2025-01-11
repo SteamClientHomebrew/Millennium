@@ -38,14 +38,15 @@ public:
     void SetupGlobalHooks();
 
     void SetIPCPort(uint16_t ipcPort) { m_ipcPort = ipcPort; }
+    void SetFTPPort(uint16_t ftpPort) { m_ftpPort = ftpPort; }
 
 private:
-    uint16_t m_ipcPort;
+    uint16_t m_ipcPort, m_ftpPort;
     long long hookMessageId = -69;
 
     // must share the same base url, or be whitelisted.
-    const char* m_javaScriptVirtualUrl = "https://pseudo.millennium.app/";
-    const char* m_steamLoopback = "https://steamloopback.host/";
+    const char* m_javaScriptVirtualUrl = "https://js.millennium.app/";
+    const char* m_styleSheetVirtualUrl = "https://css.millennium.app/";
 
     bool IsGetBodyCall(nlohmann::basic_json<> message);
 

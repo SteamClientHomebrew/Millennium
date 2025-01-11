@@ -3,6 +3,8 @@
 #include <sys/locals.h>
 #include <sys/log.h>
 #include <sys/asio.h>
+#include <sys/encoding.h>
+#include <util/url_parser.h>
 
 enum eFileType
 {
@@ -37,16 +39,6 @@ const eFileType EvaluateFileType(std::filesystem::path filePath)
     }
 }
 
-const bool IsInternalRequest(const std::filesystem::path& filepath) 
-{
-    for (const auto& component : filepath) 
-    {
-        return component.string() == "_internal_";
-    }
-
-    return {};
-}
-
 namespace Crow
 {
     struct ResponseProps
@@ -71,19 +63,7 @@ namespace Crow
     crow::response HandleRequest(std::string path)
     {
         crow::response response;
-        std::filesystem::path absolutePath;
-
-        if (IsInternalRequest(path))
-        {
-            const auto relativePath = std::filesystem::relative(fmt::format("/{}", path), "/_internal_");
-            absolutePath = SystemIO::GetInstallPath() / "ext" / "data" / relativePath;
-        }
-        else
-        {
-            absolutePath = SystemIO::GetInstallPath() / "plugins" / path;
-        }
-
-        ResponseProps responseProps = EvaluateRequest(absolutePath);
+        ResponseProps responseProps = EvaluateRequest(PathFromUrl(path));
 
         response.add_header("Content-Type", responseProps.contentType);
         response.add_header("Access-Control-Allow-Origin", "*");
@@ -91,7 +71,7 @@ namespace Crow
         if (!responseProps.exists)
         {
             response.code = 404;
-            response.write(fmt::format("404 File not found: {}", absolutePath.string()));
+            response.write(fmt::format("404 File not found: {}", PathFromUrl(path)));
             return response;
         }
 
