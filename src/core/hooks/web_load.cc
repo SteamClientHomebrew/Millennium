@@ -28,6 +28,8 @@ void WebkitHandler::SetupGlobalHooks()
         { "params", {
             { "patterns", {
                 { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Response" } },     
+                /** Maintain backwards compatibility for themes that explicitly rely on this url */
+                { { "urlPattern", fmt::format("{}*", this->m_oldHookAddress      ) }, { "requestStage", "Request" } },
                 { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } },
                 { { "urlPattern", fmt::format("{}*", this->m_styleSheetVirtualUrl) }, { "requestStage", "Request" } }
             }
@@ -37,14 +39,18 @@ void WebkitHandler::SetupGlobalHooks()
 
 bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message) 
 {
-    return message["params"]["request"]["url"].get<std::string>().find(this->m_javaScriptVirtualUrl) != std::string::npos
-        || message["params"]["request"]["url"].get<std::string>().find(this->m_styleSheetVirtualUrl) != std::string::npos;
+    std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
+
+    return requestUrl.find(this->m_javaScriptVirtualUrl) != std::string::npos
+        || requestUrl.find(this->m_styleSheetVirtualUrl) != std::string::npos
+        || requestUrl.find(this->m_oldHookAddress)       != std::string::npos;
 }
 
 std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
 {
-    std::size_t jsPos = requestUrl.find(this->m_javaScriptVirtualUrl);
-    std::size_t cssPos = requestUrl.find(this->m_styleSheetVirtualUrl);
+    size_t jsPos  = requestUrl.find(this->m_javaScriptVirtualUrl);
+    size_t cssPos = requestUrl.find(this->m_styleSheetVirtualUrl);
+    size_t oldPos = requestUrl.find(this->m_oldHookAddress);
 
     if (jsPos != std::string::npos)
     {
@@ -53,6 +59,10 @@ std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
     else if (cssPos != std::string::npos)
     {
         requestUrl.erase(cssPos, std::string(this->m_styleSheetVirtualUrl).length());
+    }
+    else if (oldPos != std::string::npos)
+    {
+        requestUrl.erase(oldPos, std::string(this->m_oldHookAddress).length());
     }
 
     return std::filesystem::path(PathFromUrl(requestUrl));
