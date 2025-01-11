@@ -73,30 +73,34 @@ const static void EntryMain()
 
     #ifdef _WIN32
 
-    // try {
-    //     if (std::filesystem::exists(SystemIO::GetInstallPath() / "user32.queue.dll"))
-    //     {
-    //         Logger.Log("Updating shim module from cache...");
+    try {
+        if (std::filesystem::exists(SystemIO::GetInstallPath() / "user32.queue.dll"))
+        {
+            Logger.Log("Updating shim module from cache...");
 
-    //         while (true) {
-    //             try {
-    //                 std::filesystem::remove(SystemIO::GetInstallPath() / "user32.dll");
-    //                 break;
-    //             }
-    //             catch (std::filesystem::filesystem_error& e) {
-    //                 continue;
-    //             }
-    //         }
+            while (true) {
+                try {
+                    std::filesystem::remove(SystemIO::GetInstallPath() / "user32.dll");
+                    break;
+                }
+                catch (std::filesystem::filesystem_error& e) {
+                    continue;
+                }
+            }
 
-    //         Logger.Log("Removed old inject shim...");
+            Logger.Log("Removed old inject shim...");
 
-    //         std::filesystem::rename(SystemIO::GetInstallPath() / "user32.queue.dll", SystemIO::GetInstallPath() / "user32.dll"); 
-    //         Logger.Log("Successfully updated user32.dll!");
-    //     }
-    // }
-    // catch (std::exception& e) {
-    //     LOG_ERROR("Failed to update user32.dll: {}", e.what());
-    // }
+            std::filesystem::rename(SystemIO::GetInstallPath() / "user32.queue.dll", SystemIO::GetInstallPath() / "user32.dll"); 
+            Logger.Log("Successfully updated user32.dll!");
+        }
+    }
+    catch (std::exception& e) {
+        LOG_ERROR("Failed to update user32.dll: {}", e.what());
+
+        #ifdef _WIN32
+        MessageBoxA(NULL, "Failed to update user32.dll, it's recommended that you reinstall Millennium.", "Oops!", MB_ICONERROR | MB_OK);
+        #endif
+    }
 
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
