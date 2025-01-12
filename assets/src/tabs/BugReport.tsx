@@ -152,7 +152,7 @@ export const BugReportViewModal: React.FC = () => {
             return
         }
 
-        console.log(jsonReport)
+        /** No, you're not a hacker for finding this, and we didn't accidentally leave it. No point putting it in an .env variable as its visible from DOM inspector regardless */
         const webhookURL = "https://discord.com/api/webhooks/1326663682343702549/-T-Gw1wKVltJ3Srwk2u7OzV_QYBOKy1EzgbAtPIhFTEZeysSthKtY3D5sooPC7rHu9-J"
 
         fetch(webhookURL, {
@@ -162,7 +162,7 @@ export const BugReportViewModal: React.FC = () => {
             },
             body: JSON.stringify({
                 content: await FormatBugReport(jsonReport),
-                username: "Bug Report", // Optional: The username for the webhook message
+                username: "Bug Report",
             }),
         })
             .then((response) => {

@@ -1,158 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
-import { PluginViewModal } from '../tabs/Plugins'
-import { ThemeViewModal } from '../tabs/Themes'
-import { UpdatesViewModal } from '../tabs/Updates'
-import { IconsModule, Millennium, pluginSelf, Classes, showModal } from '@steambrew/client';
-import { locale } from '../locales';
-import { pagedSettingsClasses } from "../classes";
-import * as CustomIcons from '../custom_components/CustomIcons'
-import * as PageList from '../custom_components/PageList';
+import { Millennium, pluginSelf, showModal } from '@steambrew/client';
 import { MillenniumSettings } from '../custom_components/SettingsModal';
-
-const activeClassName: any = pagedSettingsClasses.Active
-
-enum Renderer {
-	Plugins,
-	Themes,
-	Updates,
-	Unset
-}
-
-const RenderViewComponent = (componentType: Renderer): any => {
-	Millennium.findElement(pluginSelf.settingsDoc, ".DialogContent_InnerWidth").then((element: NodeListOf<Element>) => {
-
-		switch (componentType) {
-			case Renderer.Plugins:
-				ReactDOM.render(<PluginViewModal />, element[0]);
-				break;
-			case Renderer.Themes:
-				ReactDOM.render(<ThemeViewModal />, element[0]);
-				break;
-			case Renderer.Updates:
-				ReactDOM.render(<UpdatesViewModal />, element[0]);
-				break;
-		}
-	})
-}
-
-const PluginComponent: React.FC = () => {
-
-	const [selected, setSelected] = useState<Renderer>();
-	const [isUpdatesDisabled, setUpdatesDisabled] = useState<boolean>(false);
-	const nativeTabs = pluginSelf.settingsDoc.querySelectorAll(`.${Classes.PagedSettingsDialog_PageListItem}:not(.MillenniumTab)`)
-
-	for (const tab of nativeTabs) {
-		tab.addEventListener("click", () => {
-			setSelected(Renderer.Unset);
-		});
-	}
-
-	const componentUpdate = (type: Renderer) => {
-		RenderViewComponent(type);
-		setSelected(type)
-		nativeTabs.forEach((element: HTMLElement) => {
-			element.classList.remove(activeClassName);
-		});
-	}
-
-	useEffect(() => {
-		// SteamClient.System.GetOSType().then((osType: number) => {
-		// 	if (osType === -184) setUpdatesDisabled(true)
-		// })
-
-		Millennium.findElement(pluginSelf.settingsDoc, ".DialogBody").then(_ => {
-			if (pluginSelf?.OpenOnUpdatesPanel ?? false) {
-				componentUpdate(Renderer.Updates)
-
-				pluginSelf.OpenOnUpdatesPanel = false
-			}
-		})
-	}, [])
-
-	return (
-		<>
-			<PageList.Item
-				bSelected={selected === Renderer.Plugins}
-				icon=<CustomIcons.Plugins />
-				title={locale.settingsPanelPlugins}
-				onClick={() => {
-					componentUpdate(Renderer.Plugins);
-				}}
-			/>
-			<PageList.Item
-				bSelected={selected === Renderer.Themes}
-				icon=<CustomIcons.Themes />
-				title={locale.settingsPanelThemes}
-				onClick={() => {
-					componentUpdate(Renderer.Themes);
-				}}
-			/>
-			{!isUpdatesDisabled && <PageList.Item
-				bSelected={selected === Renderer.Updates}
-				icon=<IconsModule.Update />
-				title={locale.settingsPanelUpdates}
-				onClick={() => {
-					componentUpdate(Renderer.Updates);
-				}}
-			/>}
-			<PageList.Separator />
-		</>
-	);
-}
-
-/**
- * Hooks settings tabs components, and forces active overlayed panels to re-render
- * @todo A better, more integrated way of doing this, that doesn't involve runtime patching. 
- */
-const hookSettingsComponent = () => {
-	let processingItem = false;
-	const elements = pluginSelf.settingsDoc.querySelectorAll(`.${Classes.PagedSettingsDialog_PageListItem}:not(.MillenniumTab)`);
-
-	elements.forEach((element: HTMLElement, index: number) => {
-		element.addEventListener('click', function (_: any) {
-
-			if (processingItem) return
-
-			console.log(pluginSelf.settingsDoc.querySelectorAll('.' + Classes.PageListSeparator))
-
-			pluginSelf.settingsDoc.querySelectorAll('.' + Classes.PageListSeparator).forEach((element: HTMLElement) => element.classList.remove(Classes.Transparent))
-			const click = new MouseEvent("click", { view: pluginSelf.settingsWnd, bubbles: true, cancelable: true })
-
-			try {
-				processingItem = true;
-				if (index + 1 <= elements.length) elements[index + 1].dispatchEvent(click); else elements[index - 2].dispatchEvent(click);
-
-				elements[index].dispatchEvent(click);
-				processingItem = false;
-			}
-			catch (error) { console.log(error) }
-		});
-	})
-}
 
 function RenderSettingsModal(_context: any) {
 	pluginSelf.mainWindow = _context.m_popup.window
 
 	Millennium.findElement(_context.m_popup.document, ".contextMenuItem").then((contextMenuItems: NodeListOf<Element>) => {
 		for (const item of contextMenuItems) {
-
 			// @ts-ignore
 			const settingsString = LocalizationManager.LocalizeString("#Settings")
 
 			if (item.textContent === settingsString) {
 
-				const millenniumSettings = item.cloneNode(true);
-				millenniumSettings.textContent = "Millennium " + settingsString;
-				item.after(millenniumSettings);
+				/** Clone the settings button DOM object and edit its name and onClick */
+				const millenniumContextMenu = Object.assign(item.cloneNode(true), {
+					textContent: "Millennium " + settingsString,
+					onclick: () => {
+						showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
+							strTitle: "Millennium",
+							popupHeight: 675,
+							popupWidth: 850,
+						});
+					},
+				})
 
-				millenniumSettings.addEventListener("click", () => {
-					showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
-						strTitle: "Millennium",
-						popupHeight: 675,
-						popupWidth: 850,
-					});
-				});
+				item.after(millenniumContextMenu);
 			}
 		}
 	})
