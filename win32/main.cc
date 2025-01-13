@@ -24,6 +24,11 @@ std::string get_platform_module(nlohmann::basic_json<> latest_release, const std
     return {};
 }
 
+extern "C" __declspec(dllexport) std::string __get_shim_version(void)
+{
+    return std::string(MILLENNIUM_VERSION);
+}
+
 void download_latest(nlohmann::basic_json<> latest_release, const std::string &latest_version, std::string steam_path) {
 
     printf("updating from %s to %s\n", MILLENNIUM_VERSION, latest_version.c_str());
@@ -138,59 +143,7 @@ void patch_shared_js_context(std::string steam_path) {
     }
 }
 
-// Custom stream buffer class
-class CustomStreambuf : public std::streambuf {
-private:
-    std::ofstream outputFile;       // File stream for writing output
-    std::streambuf* originalBuffer; // Pointer to the original stream buffer
-
-public:
-    CustomStreambuf(std::ostream& stream, const std::string& filename)
-        : originalBuffer(stream.rdbuf()), outputFile(filename, std::ios::out | std::ios::app) {
-        if (!outputFile.is_open()) {
-            throw std::runtime_error("Failed to open file: " + filename);
-        }
-        // Redirect the stream to this custom buffer
-        stream.rdbuf(this);
-    }
-
-    ~CustomStreambuf() {
-        // Restore the original buffer and close the file
-        std::cout.rdbuf(originalBuffer);
-        outputFile.close();
-    }
-
-protected:
-    // Override the overflow method to intercept characters
-    int overflow(int c) override {
-        if (c != EOF) {
-            MessageBoxA(nullptr, "overflow", "Error", MB_ICONERROR);
-            // Write character to the file
-            outputFile.put(static_cast<char>(c));
-            outputFile.flush();
-        }
-        return c;
-    }
-
-    // Override the sync method to flush the file
-    int sync() override {
-        outputFile.flush();
-        return 0; // Return 0 to indicate success
-    }
-};
-
-
-void restore_stdout() {
-    // Get the standard output handle (console)
-
-    // setvbuf(stdout, nullptr, _IONBF, 0);  // Set unbuffered mode for stdout
-
-    std::cout.clear();  // Clear any error flags on std::cout
-}
-
 const void load_millennium(HINSTANCE hinstDLL) {
-
-    restore_stdout();
 
     std::string steam_path = get_steam_path();
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
@@ -202,46 +155,8 @@ const void load_millennium(HINSTANCE hinstDLL) {
 			SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
 		}
 
-        // freopen("duplicate_output.txt", "w", stdout);
-
-        // HANDLE hPipe = CreateFileA(R"(\\.\pipe\MillenniumStdoutPipe)", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-
-        // if (hPipe == INVALID_HANDLE_VALUE)
-        // {
-        //     std::cerr << "Failed to connect to pipe. Error: " << GetLastError() << std::endl;
-        //     return;
-        // }
-
-        // int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
-        // if (pipeDescriptor == -1)
-        // {
-        //     std::cerr << "Failed to get pipe file descriptor. Error: " << errno << std::endl;
-        //     CloseHandle(hPipe);
-        //     return;
-        // }
-
-        // FILE* pipeFile = _fdopen(pipeDescriptor, "w");
-        // if (!pipeFile)
-        // {
-        //     std::cerr << "Failed to open pipe file descriptor as FILE*. Error: " << errno << std::endl;
-        //     CloseHandle(hPipe);
-        //     return;
-        // }
-
-        // if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
-        // {
-        //     std::cerr << "Failed to redirect stdout to pipe. Error: " << errno << std::endl;
-        //     fclose(pipeFile);
-        //     CloseHandle(hPipe);
-        //     return;
-        // }
-
-        // setvbuf(stdout, NULL, _IONBF, 0);
         freopen("CONOUT$", "w", stdout);
-
-
         EnableVirtualTerminalProcessing();
-
     }
 
     patch_shared_js_context(steam_path);

@@ -74,9 +74,53 @@ void OnTerminate()
     #endif
 }
 
+#ifdef _WIN32
+const static bool CheckShimLoaderVersion()
+{
+    HMODULE hModule = LoadLibraryA("./user32.dll");
+
+    if (!hModule) 
+    {
+        LOG_ERROR("Failed to load user32.dll: {}", GetLastError());
+        return false;
+    }
+
+    // Call __get_shim_version() from the shim module
+    typedef std::string (*GetShimVersion)();
+    GetShimVersion getShimVersion = (GetShimVersion)GetProcAddress(hModule, "__get_shim_version");
+
+    if (!getShimVersion) 
+    {
+        LOG_ERROR("Failed to get __get_shim_version: {}", GetLastError());
+        FreeLibrary(hModule);
+        return false;
+    }
+
+    std::string shimVersion = getShimVersion();
+    Logger.Log("Shim version: {}", shimVersion);
+
+    if (shimVersion != MILLENNIUM_VERSION) 
+    {
+        LOG_ERROR("Shim version mismatch: {} != {}", shimVersion, MILLENNIUM_VERSION);
+        FreeLibrary(hModule);
+        return false;
+    }
+
+    FreeLibrary(hModule);
+    return true;
+}
+#endif
+
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
+    #ifdef _WIN32
+    if (!CheckShimLoaderVersion()) {
+        MessageBoxA(NULL, "An error occurred while updating Millennium, we we're unable to find an up-to-date 'user32.dll' in the Steam directory. Try restarting, and if that doesn't work try reinstalling.", "Oops!", MB_ICONERROR | MB_OK);
+        return;
+    }
+    #endif
+
     std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
     
     /** Handle signal interrupts (^C) */
