@@ -87,7 +87,9 @@ public:
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
         const std::string method = json.value("method", std::string());
-        
+
+        // std::cout << json.dump(4) << std::endl;
+
         if (json.contains("id") && json["id"] == 0 && 
             json.contains("result") && json["result"].is_object() && 
             json["result"].contains("targetInfos") && json["result"]["targetInfos"].is_array()) 
@@ -107,19 +109,21 @@ public:
                 this->SetupSharedJSContext();
             }
         }
-        
+
         if (method == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
         {
             sharedJsContextSessionId = json["params"]["sessionId"];
+            Sockets::PostShared({ {"id", 9494 }, {"method", "Log.enable"}, {"sessionId", sharedJsContextSessionId} });
+
             this->UnPatchSharedJSContext();
         }
         else if (json.value("id", -1) == 9773) 
         {
             this->onSharedJsConnect();
         }
-        else if (method == "Console.messageAdded") 
+        else if (method == "Log.entryAdded") 
         {
-            this->HandleConsoleMessage(json);
+            this->HandleConsoleMessage(json); 
         }
         else
         {        
@@ -163,7 +167,6 @@ public:
         std::thread([this]() {
             Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
             CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
-            Sockets::PostShared({ {"id", 9494 }, {"method", "Console.enable"} });
         }).detach();
     }
 

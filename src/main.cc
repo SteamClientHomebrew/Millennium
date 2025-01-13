@@ -151,18 +151,14 @@ const static void EntryMain()
     }
     catch (std::exception& e) {
         LOG_ERROR("Failed to update user32.dll: {}", e.what());
-
-        #ifdef _WIN32
         MessageBoxA(NULL, "Failed to update user32.dll, it's recommended that you reinstall Millennium.", "Oops!", MB_ICONERROR | MB_OK);
-        #endif
     }
 
-    std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
+    // Get the terminal handle before redirecting it. 
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 
-    if (startupParams->HasArgument("-verbose"))
-    {
-        CreateTerminalPipe();
-    }
+    std::thread(CreateTerminalPipe, hConsole).detach();
+    RedirectToPipe();
     #endif
 
     uint16_t ftpPort = Crow::CreateAsyncServer();

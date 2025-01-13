@@ -138,6 +138,15 @@ public:
         logBuffer.push_back({ WHITE + GetLocalTime(true) + RED + " " + GetPluginName() + " " + message + RESET + "\n", _ERROR });
     }
 
+    void Print(const std::string& message) 
+    {
+        // fmt::print(message);
+        file << message;
+        file.flush();
+
+        logBuffer.push_back({ message, _INFO });
+    }
+
     std::vector<LogEntry> CollectLogs() 
     {
         return logBuffer;
@@ -196,6 +205,22 @@ static const void WarnToLogger(const std::string pluginNme, const std::string me
 
 static const void ErrorToLogger(const std::string pluginNme, const std::string message) {
     AddLoggerMessage(pluginNme, message, BackendLogger::_ERROR);    
+}
+
+static const void RawToLogger(const std::string pluginName, const std::string message) 
+{
+    for (auto logger : g_loggerList) 
+    {
+        if (logger->GetPluginName(false) == pluginName) 
+        {
+            logger->Print(message);
+            return;
+        }
+    }
+
+    BackendLogger* newLogger = new BackendLogger(pluginName);
+    newLogger->Print(message);
+    g_loggerList.push_back(newLogger);
 }
 
 typedef struct 
