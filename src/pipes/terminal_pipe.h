@@ -9,6 +9,8 @@
 #include <core/py_controller/logger.h>
 
 #ifdef _WIN32
+static const wchar_t* PIPE_NAME = LR"(\\.\pipe\MillenniumStdoutPipe)"; 
+
 extern "C" {
 
     const int CreateTerminalPipe(HANDLE hConsolehandle) 
@@ -17,14 +19,14 @@ extern "C" {
         std::ofstream outFile;
         outFile.open(filename, std::ios::trunc);
 
-        const std::wstring pipeName = LR"(\\.\pipe\MillenniumStdoutPipe)";
-        HANDLE hNamedPipe = CreateNamedPipe(pipeName.c_str(), PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 0, 0, 0, nullptr);
+        HANDLE hNamedPipe = CreateNamedPipe(PIPE_NAME, PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 0, 0, 0, nullptr);
 
         if (hNamedPipe == INVALID_HANDLE_VALUE) 
         {
             std::cout << "Failed to create named pipe. Error: " << GetLastError() << std::endl;
             return 1;
         }
+        
         if (!ConnectNamedPipe(hNamedPipe, nullptr)) 
         {
             std::cout << "Failed to connect named pipe. Error: " << GetLastError() << std::endl;
@@ -78,48 +80,42 @@ extern "C" {
 
     const int RedirectToPipe()
     {
-        try {
-            HANDLE hPipe = CreateFileA(R"(\\.\pipe\MillenniumStdoutPipe)", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+        HANDLE hPipe = CreateFileW(PIPE_NAME, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-            while (hPipe == INVALID_HANDLE_VALUE)
-            {
-                hPipe = CreateFileA(R"(\\.\pipe\MillenniumStdoutPipe)", GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-            
-            int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
-            if (pipeDescriptor == -1)
-            {
-                std::cout << "Failed to get pipe file descriptor. Error: " << errno << std::endl;
-                CloseHandle(hPipe);
-                return 1;
-            }
-
-            FILE* pipeFile = _fdopen(pipeDescriptor, "w");
-            if (!pipeFile)
-            {
-                std::cout << "Failed to open pipe file descriptor as FILE*. Error: " << errno << std::endl;
-                CloseHandle(hPipe);
-                return 1;
-            }
-
-            if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
-            {
-                std::cout << "Failed to redirect stdout to pipe. Error: " << errno << std::endl;
-                fclose(pipeFile);
-                CloseHandle(hPipe);
-                return 1;
-            }
-
-            setvbuf(stdout, NULL, _IONBF, 0);
-
-            std::cout << "Redirected stdout to pipe." << std::endl;
-            return 0;
+        while (hPipe == INVALID_HANDLE_VALUE)
+        {
+            hPipe = CreateFileW(PIPE_NAME, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        catch (std::system_error& ex) {
-            std::cout << "Failed to create terminal pipe: " << ex.what() << std::endl;
+        
+        int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
+        if (pipeDescriptor == -1)
+        {
+            std::cout << "Failed to get pipe file descriptor. Error: " << errno << std::endl;
+            CloseHandle(hPipe);
             return 1;
         }
+
+        FILE* pipeFile = _fdopen(pipeDescriptor, "w");
+        if (!pipeFile)
+        {
+            std::cout << "Failed to open pipe file descriptor as FILE*. Error: " << errno << std::endl;
+            CloseHandle(hPipe);
+            return 1;
+        }
+
+        if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
+        {
+            std::cout << "Failed to redirect stdout to pipe. Error: " << errno << std::endl;
+            fclose(pipeFile);
+            CloseHandle(hPipe);
+            return 1;
+        }
+
+        setvbuf(stdout, NULL, _IONBF, 0);
+
+        std::cout << "Redirected stdout to pipe." << std::endl;
+        return 0;
     }
 }
 #endif
