@@ -87,5 +87,5 @@ and we have examples for both in [examples](./examples)
 Supported Platforms:
 
 - Windows (x86/x64/ARM) NT (10 and newer)
-- Linux (x84/x86_64/i686/i386)
+- Linux (x86/x86_64/i686/i386)
 - OSX (Support planned, WIP)
