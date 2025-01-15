@@ -29,7 +29,7 @@
     "optionReloadNow": "Reload Now",
     "optionReloadLater": "Reload Later",
     "updatePanelUpdateNotifications": "Push Notifications",
-    "updatePanelUpdateNotificationsTooltip": "Get Millennium to give you a reminder when a item in your library has an update!",
+    "updatePanelUpdateNotificationsTooltip": "Get Millennium to give you a reminder when an item in your library has an update!",
     "customThemeSettingsColors": "Colors",
     "customThemeSettingsConfig": "Custom Settings"
 }

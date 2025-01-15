@@ -6,6 +6,7 @@ import schinese from "./locales/schinese.json";
 import german from "./locales/german.json";
 import russian from "./locales/russian.json";
 import swedish from "./locales/swedish.json";
+import vietnamese from "./locales/vietnamese.json";
 import { Logger } from "../Logger";
 
 interface LocalizationData {
@@ -39,7 +40,8 @@ const localizationFiles: { [key: string]: LocalizationData } = {
     schinese,
     german,
     russian,
-    swedish
+    swedish,
+    vietnamese,
     // Add other languages here
 };
 
