@@ -3,6 +3,8 @@ import time
 import base64
 
 import psutil
+
+from updater.millennium import MillenniumUpdater
 start_time = time.perf_counter()
 
 import Millennium, json, os, configparser # type: ignore
@@ -19,6 +21,8 @@ from api.config import Config, cfg
 from util.webkit_handler import WebkitStack, add_browser_css, add_browser_js
 from util.theme_installer import WebSocketServer
 
+# This updater module is responsible for updating themes.
+# It DOES NOT automatically do so, it is interfaced in the front-end.
 from updater.version_control import Updater
 updater = Updater()
 
@@ -39,10 +43,15 @@ def get_load_config():
         "conditions": config["conditions"] if "conditions" in config else None, 
         "active_theme": json.loads(cfg.get_active_theme()),
         "settings": config,
+
         "steamPath": Millennium.steam_path(),
         "installPath": Millennium.get_install_path(),
+
         "useInterface": True if millennium.get('Settings', 'useInterface', fallback='') == "yes" else False,
         "millenniumVersion": Millennium.version(),
+
+        "wantsUpdates": MillenniumUpdater.user_wants_updates().value,
+        "wantsNotify": MillenniumUpdater.user_wants_update_notify().value,
     })
 
 def _webkit_accent_color():
@@ -83,6 +92,10 @@ class Plugin:
         elapsed_time = time.perf_counter() - start_time
         logger.log(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
         Millennium.ready()
+
+        # This CHECKS for updates on Millennium given the user has it enabled in settings.
+        # It DOES NOT automatically update, it is interfaced in the front-end.
+        MillenniumUpdater.check_for_updates()
 
 
     def _unload(self):

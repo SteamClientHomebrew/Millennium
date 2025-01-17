@@ -38,10 +38,10 @@ const PatchNotification = (doc: Document) => {
                 (await Millennium.findElement(doc, "." + notificationClasses.StandardLogoDimensions))?.[0]?.remove();
                 (await Millennium.findElement(doc, "." + notificationClasses.AvatarStatus))?.[0]?.remove();
                 (await Millennium.findElement(doc, "." + notificationClasses.Icon))?.[0]?.remove();
+
+                RemoveAllListeners(doc)
+                SetClickListener(doc)
             }
-    
-            RemoveAllListeners(doc)
-            SetClickListener(doc)
         })
     }
     catch (error) {

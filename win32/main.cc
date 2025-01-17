@@ -1,102 +1,82 @@
 #include <windows.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <nlohmann/json.hpp>
 #include <iostream>
-#include "http.h"
-#include "unzip.h"
-#include "steam.h"
-#include <filesystem>
-#include "../src/procmon/cmd.h"
+#include <shimlogger.h>
+#include <fstream>
+#include <http.h>
+#include <unzip.h>
+#include <steam.h>
+#include <procmon/cmd.h>
 #include <thread>
-#include <fcntl.h>
 
-const void shutdown_shim(HINSTANCE hinstDLL) {
+static const char* GITHUB_API_URL = "https://api.github.com/repos/shdwmtr/millennium/releases";
+
+const void UnloadAndReleaseLibrary(HINSTANCE hinstDLL) 
+{
     FreeLibraryAndExitThread(hinstDLL, 0);
 }
 
-std::string get_platform_module(nlohmann::basic_json<> latest_release, const std::string &latest_version) {
-    for (const auto &asset : latest_release["assets"]) {
-        if (asset["name"].get<std::string>() == "millennium-" + latest_version + "-windows-x86_64.zip") {
+std::string GetPlatformAssetModule(nlohmann::basic_json<> latestRelease, const std::string &latest_version) 
+{
+    for (const auto &asset : latestRelease["assets"]) 
+    {
+        if (asset["name"].get<std::string>() == "millennium-" + latest_version + "-windows-x86_64.zip") 
+        {
             return asset["browser_download_url"].get<std::string>();
         }
     }
     return {};
 }
 
-extern "C" __declspec(dllexport) std::string __get_shim_version(void)
+extern "C" __attribute__((dllexport)) const char* __get_shim_version(void)
 {
-    return std::string(MILLENNIUM_VERSION);
+    return MILLENNIUM_VERSION;
 }
 
-void download_latest(nlohmann::basic_json<> latest_release, const std::string &latest_version, std::string steam_path) {
+void DownloadLatestAsset(std::string queuedDownloadUrl, std::string steam_path) 
+{
+    Print("Downloading asset: {}", queuedDownloadUrl);
+    const std::string localDownloadPath = (std::filesystem::temp_directory_path() / "millennium.zip").string();
 
-    printf("updating from %s to %s\n", MILLENNIUM_VERSION, latest_version.c_str());
-    const std::string download_url = get_platform_module(latest_release, latest_version);
-    printf("downloading asset: %s\n", download_url.c_str());
+    if (DownloadResource(queuedDownloadUrl, localDownloadPath)) 
+    { 
+        Print("Successfully downloaded asset...");
 
-    const std::string download_path = (std::filesystem::temp_directory_path() / "millennium.zip").string();
-    std::cout << download_path << std::endl;
-
-    if (download_file(download_url, download_path)) { 
-        printf("successfully downloaded asset...\n");
-
-        extract_zip(download_path.c_str(), steam_path.c_str()); 
-        remove(download_path.c_str());
-
-        printf("updated to %s\n", latest_version.c_str());
+        ExtractZippedArchive(localDownloadPath.c_str(), steam_path.c_str()); 
+        remove(localDownloadPath.c_str());
     }
-    else {
-        printf("failed to download asset: %s\n", download_url);
+    else 
+    {
+        Error("Failed to download asset: {}", queuedDownloadUrl);
     }
 }
 
-const void check_for_updates(std::string steam_path) {
-
+const void CheckForUpdates(std::string strSteamPath) 
+{
     const auto start = std::chrono::high_resolution_clock::now();
 
-    printf("checking for updates...\n");
-    printf("steam path: %s\n", steam_path.c_str());
+    Print("Checking for updates...");
+    Print("Steam path: {}", strSteamPath);
 
-    try {
-        nlohmann::json latest_release;
+    const auto updateFlagPath = std::filesystem::path(strSteamPath) / "ext" / "update.flag";
 
-        printf("fetching releases...");
-        std::string releases_str = get("https://api.github.com/repos/shdwmtr/millennium/releases");
-        printf(" ok\n");
-        printf("parsing releases...");
-        const nlohmann::json releases = nlohmann::json::parse(releases_str);
-        printf(" ok\n");
-
-        printf("finding latest release...");
-        for (const auto &release : releases) {
-            if (!release["prerelease"].get<bool>()) {
-                latest_release = release;
-                printf(" ok\n");
-                break;
-            }
-        }
-
-        const std::string latest_version = latest_release["tag_name"].get<std::string>();
-        printf("latest version: %s\n", latest_version.c_str());
-
-        if ((!latest_version.empty() && latest_version != MILLENNIUM_VERSION) || !std::filesystem::exists("millennium.dll")) {
-            download_latest(latest_release, latest_version, steam_path);   
-        }
-        else {
-            printf("no updates found\n");
-        }
-    }
-    catch (const nlohmann::json::exception &e) {
-        printf("Error parsing JSON: %s\n", e.what());
+    if (!std::filesystem::exists(updateFlagPath)) 
+    {   
+        Print("No updates were queried...");
+        return;
     }
 
-    const auto end = std::chrono::high_resolution_clock::now();
-    const std::chrono::duration<double> elapsed = end - start;
-    printf("elapsed time: %fs\n", elapsed.count());
+    std::ifstream updateFlagFile(updateFlagPath);
+    std::string updateFlagContent((std::istreambuf_iterator<char>(updateFlagFile)), std::istreambuf_iterator<char>());
+
+    std::remove(updateFlagPath.string().c_str());
+
+    Print("Updating Millennium from queue: {}", updateFlagContent);
+    DownloadLatestAsset(updateFlagContent, strSteamPath);  
+
+    Print("Elapsed time: {}s", (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start)).count());
 }
 
-#ifdef _WIN32
 void EnableVirtualTerminalProcessing() 
 {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -117,41 +97,45 @@ void EnableVirtualTerminalProcessing()
         return;
     }
 }
-#endif
 
-void patch_shared_js_context(std::string steam_path) {
-    try {
-        // copy index.html to index.html.bak
-        const auto shared_js_path = std::filesystem::path(steam_path) / "steamui" / "index.html";
-        const auto shared_js_bak_path = std::filesystem::path(steam_path) / "steamui" / "orig.html";
+void PatchSharedJSContext(std::string strSteamPath) 
+{
+    try 
+    {
+        const auto SteamUIModulePath       = std::filesystem::path(strSteamPath) / "steamui" / "index.html";
+        const auto SteamUIModuleBackupPath = std::filesystem::path(strSteamPath) / "steamui" / "orig.html";
 
-        if (std::filesystem::exists(shared_js_bak_path) && std::filesystem::is_regular_file(shared_js_bak_path)) {
-            std::cout << "shared_js_context already patched..." << std::endl;
+        if (std::filesystem::exists(SteamUIModuleBackupPath) && std::filesystem::is_regular_file(SteamUIModuleBackupPath)) 
+        {
+            Print("SharedJSContext already patched...");
             return;
         }
 
-        std::cout << "renaming shared_js_context..." << std::endl;
-        std::filesystem::rename(shared_js_path, shared_js_bak_path);
+        Print("Backing up original SharedJSContext...");
+        std::filesystem::rename(SteamUIModulePath, SteamUIModuleBackupPath);
 
-        std::cout << "patching shared_js_context..." << std::endl;
-        std::ofstream shared_js_patched(shared_js_path, std::ios::trunc);
-        shared_js_patched << "<!doctype html><html><head><title>SharedJSContext</title></head></html>";
-        shared_js_patched.close();
+        Print("Patching SharedJSContext...");
+        
+        // Write an empty document to the file, this halts the Steam UI from loading as we've removed the <script>'s
+        std::ofstream SteamUI(SteamUIModulePath, std::ios::trunc);
+        SteamUI << "<!doctype html><html><head><title>SharedJSContext</title></head></html>";
+        SteamUI.close();
     }
-    catch (const std::exception &e) {
-        printf("Error patching shared_js_context: %s\n", e.what());
+    catch (const std::exception &exception) 
+    {
+        Error("Error patching SharedJSContext: {}", exception.what());
     }
 }
 
-const void load_millennium(HINSTANCE hinstDLL) {
-
-    std::string steam_path = get_steam_path();
+const void BootstrapMillennium(HINSTANCE hinstDLL) 
+{
+    const std::string strSteamPath = GetSteamPath();
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
-    std::thread threadId;
 
-    if (startupParams->HasArgument("-dev")) {
-
-		if (static_cast<bool>(AllocConsole())) {
+    if (startupParams->HasArgument("-dev")) 
+    {
+		if (static_cast<bool>(AllocConsole())) 
+        {
 			SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
 		}
 
@@ -159,31 +143,35 @@ const void load_millennium(HINSTANCE hinstDLL) {
         EnableVirtualTerminalProcessing();
     }
 
-    patch_shared_js_context(steam_path);
+    Print("Loading Bootstrapper@{}", MILLENNIUM_VERSION);
 
-    // if (!IsDebuggerPresent()) 
+    PatchSharedJSContext(strSteamPath);
+    CheckForUpdates(strSteamPath);
+
+    Print("Finished checking for updates");  
+
+    // After checking for updates, load Millenniums core library.
+    HMODULE hMillennium = LoadLibraryA("millennium.dll");
+    if (hMillennium == nullptr) 
     {
-        check_for_updates(steam_path);
-        printf("finished checking for updates\n");  
-    }
-
-    HMODULE hMillennium = LoadLibrary(TEXT("millennium.dll"));
-    if (hMillennium == nullptr) {
-        MessageBoxA(nullptr, "Failed to load millennium.dll", "Error", MB_ICONERROR);
+        MessageBoxA(nullptr, "Failed to load millennium.dll. Please reinstall/remove Millennium to continue.", "Error", MB_ICONERROR);
         return;
     }
-    else {
-        printf("loaded millennium...\n");
+    else 
+    {
+        Print("Loaded millennium...");
     }
 
-
-    CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)shutdown_shim, hinstDLL, 0, nullptr);
+    CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UnloadAndReleaseLibrary, hinstDLL, 0, nullptr);
 }
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-    if (fdwReason == DLL_PROCESS_ATTACH) {
-        auto tr = std::thread(load_millennium, hinstDLL);
-        tr.detach();
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) 
+{
+    if (fdwReason == DLL_PROCESS_ATTACH) 
+    {
+        // Detach from the main thread as to not wakeup the watchdog from Steam's debugger. 
+        std::thread(BootstrapMillennium, hinstDLL).detach();
     }
+    
     return true;
 }

@@ -177,6 +177,10 @@ const RenderLogSelector: React.FC<RenderLogSelectorProps> = ({ logData, setSelec
         <SteamSpinner background={"transparent"} />
         :
         <>
+            <DialogButton onClick={() => { SteamClient.Browser.OpenDevTools() }} style={{ width: "unset", marginTop: "20px" }} className={settingsClasses.SettingsDialogButton}>
+                Open Steam Dev Tools
+            </DialogButton>
+
             {logData.map((log, index) => (
                 <DialogButton key={index} onClick={() => { setSelectedLog(log ?? undefined) }} style={{ width: "unset", marginTop: "20px" }} className={settingsClasses.SettingsDialogButton}>
                     {log?.name}

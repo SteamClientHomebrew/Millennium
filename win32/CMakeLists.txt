@@ -2,13 +2,17 @@ cmake_minimum_required(VERSION 3.10)
 
 set(BUILD_SHARED_LIBS OFF)
 
-if (WIN32)
+if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -s")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 endif()
 
 # Set the project name
 project(ShimDll)
+
+include_directories(
+  ${CMAKE_SOURCE_DIR}/win32/include
+)
 
 # Specify the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -31,7 +35,7 @@ add_compile_definitions(
 )
 
 # Add the executable
-add_library(ShimDll SHARED main.cc)
+add_library(ShimDll SHARED main.cc src/steam.cc src/http.cc src/unzip.cc)
 
 target_link_libraries(ShimDll CURL::libcurl unofficial::minizip::minizip)
 

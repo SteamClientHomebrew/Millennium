@@ -5,7 +5,7 @@
 #include <sys/log.h>
 #include <curl/curl.h>
 
-static size_t write_callback(char* ptr, size_t size, size_t nmemb, std::string* data) 
+static size_t WriteByteCallback(char* ptr, size_t size, size_t nmemb, std::string* data) 
 {
     data->append(ptr, size * nmemb);
     return size * nmemb;
@@ -23,7 +23,7 @@ namespace Http
         if (curl) 
         {
             curl_easy_setopt(curl, CURLOPT_URL, url);
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects

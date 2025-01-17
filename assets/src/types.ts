@@ -155,7 +155,9 @@ export interface SettingsProps {
     steamPath: string,
     installPath: string,
     useInterface: boolean,
-    millenniumVersion: string
+    millenniumVersion: string,
+    wantsUpdates: boolean,
+    wantsNotify: boolean
 }
 
 export interface ColorProp {
@@ -167,4 +169,10 @@ export interface ColorProp {
 
 export interface ThemeItemV1 extends Theme {
     GlobalsColors: ColorProp[]
+}
+
+export enum UpdaterOptionProps {
+    UNSET,
+    YES,
+    NO
 }

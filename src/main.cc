@@ -74,91 +74,16 @@ void OnTerminate()
     #endif
 }
 
-#ifdef _WIN32
-const static bool CheckShimLoaderVersion()
-{
-    HMODULE hModule = LoadLibraryA("./user32.dll");
-
-    if (!hModule) 
-    {
-        LOG_ERROR("Failed to load user32.dll: {}", GetLastError());
-        return false;
-    }
-
-    // Call __get_shim_version() from the shim module
-    typedef std::string (*GetShimVersion)();
-    GetShimVersion getShimVersion = (GetShimVersion)GetProcAddress(hModule, "__get_shim_version");
-
-    if (!getShimVersion) 
-    {
-        LOG_ERROR("Failed to get __get_shim_version: {}", GetLastError());
-        FreeLibrary(hModule);
-        return false;
-    }
-
-    std::string shimVersion = getShimVersion();
-    Logger.Log("Shim version: {}", shimVersion);
-
-    if (shimVersion != MILLENNIUM_VERSION) 
-    {
-        LOG_ERROR("Shim version mismatch: {} != {}", shimVersion, MILLENNIUM_VERSION);
-        FreeLibrary(hModule);
-        return false;
-    }
-
-    FreeLibrary(hModule);
-    return true;
-}
-#endif
-
 /* Wrapped cross platform entrypoint */
 const static void EntryMain() 
 {
-    #ifdef _WIN32
-    if (!CheckShimLoaderVersion()) {
-        MessageBoxA(NULL, "An error occurred while updating Millennium, we we're unable to find an up-to-date 'user32.dll' in the Steam directory. Try restarting, and if that doesn't work try reinstalling.", "Oops!", MB_ICONERROR | MB_OK);
-        return;
-    }
-    #endif
-
     std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
     
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
     #ifdef _WIN32
-
-    try {
-        if (std::filesystem::exists(SystemIO::GetInstallPath() / "user32.queue.dll"))
-        {
-            Logger.Log("Updating shim module from cache...");
-
-            while (true) {
-                try {
-                    std::filesystem::remove(SystemIO::GetInstallPath() / "user32.dll");
-                    break;
-                }
-                catch (std::filesystem::filesystem_error& e) {
-                    continue;
-                }
-            }
-
-            Logger.Log("Removed old inject shim...");
-
-            std::filesystem::rename(SystemIO::GetInstallPath() / "user32.queue.dll", SystemIO::GetInstallPath() / "user32.dll"); 
-            Logger.Log("Successfully updated user32.dll!");
-        }
-    }
-    catch (std::exception& e) {
-        LOG_ERROR("Failed to update user32.dll: {}", e.what());
-        MessageBoxA(NULL, "Failed to update user32.dll, it's recommended that you reinstall Millennium.", "Oops!", MB_ICONERROR | MB_OK);
-    }
-
-    // Get the terminal handle before redirecting it. 
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    std::thread(CreateTerminalPipe, hConsole).detach();
-    RedirectToPipe();
+    WinUtils::SetupWin32Environment();  
     #endif
 
     uint16_t ftpPort = Crow::CreateAsyncServer();

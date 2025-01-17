@@ -9,6 +9,7 @@ import { PatchNotification } from "./ui/Notifications";
 import { Settings, SettingsStore } from "./Settings";
 import { DispatchGlobalColors } from "./patcher/v1/GlobalColors";
 import { WatchDog } from "./Events";
+import { ShowUpdaterModal } from "./custom_components/UpdaterModal";
 
 /**
  * @note crashes steam on silent boot startup
@@ -61,6 +62,26 @@ const windowCreated = (windowContext: any): void => {
     if (windowContext.m_strName === "Millennium") {
         pluginSelf.millenniumSettingsWindow = windowContext.m_popup.window
     }
+    else if (windowContext.m_strName === "Millennium Updater") {
+        pluginSelf.millenniumUpdaterWindow = windowContext.m_popup.window
+
+        // Bring the updater window forward
+        pluginSelf?.millenniumUpdaterWindow?.SteamClient?.Window?.MarkLastFocused()
+        pluginSelf?.millenniumUpdaterWindow?.SteamClient?.Window?.FlashWindow()
+        pluginSelf?.millenniumUpdaterWindow?.SteamClient?.Window?.BringToFront()
+    }
+
+    // @ts-ignore
+    g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
+        if (element?.value_?.m_strName === "SP Desktop_uid0") {
+            pluginSelf.mainWindow = element?.value_?.m_popup?.window
+
+            if (element?.value_?.m_popup?.window?.HAS_SHOWN_UPDATER === undefined) {
+                ShowUpdaterModal()
+                element.value_.m_popup.window.HAS_SHOWN_UPDATER = true
+            }
+        }
+    })
 
     if (windowContext.m_strTitle.includes("notificationtoasts")) {
         PatchNotification(windowContext.m_popup.document)
@@ -95,6 +116,9 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
     pluginSelf.installPath = result?.installPath as string
     pluginSelf.useInterface = result?.useInterface as boolean ?? true
     pluginSelf.version = result?.millenniumVersion as string
+
+    pluginSelf.wantsMillenniumUpdates = result?.wantsUpdates as boolean ?? true
+    pluginSelf.wantsMillenniumUpdateNotifications = result?.wantsNotify as boolean ?? true
 
     // @ts-ignore
     // if (g_PopupManager?.m_mapPopups?.size > 0) {
