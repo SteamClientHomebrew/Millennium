@@ -72,15 +72,22 @@ public:
     {
         try
         {
-            if (json["params"]["message"]["level"] == "error")
+            if (
+                json.contains("params") && json["params"].is_object() &&
+                json["params"].contains("message") && json["params"]["message"].is_object() &&
+                json["params"]["message"].contains("level") && json["params"]["message"]["level"].is_string()
+            )
             {
-                const auto data = json["params"]["message"];
+                if (json["params"]["message"]["level"] == "error")
+                {
+                    const auto data = json["params"]["message"];
 
-                std::string traceMessage = fmt::format("{}:{}:{}", data["url"].get<std::string>(), data["line"].get<int>(), data["column"].get<int>());
-                Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", data["text"].get<std::string>(), traceMessage);
+                    std::string traceMessage = fmt::format("{}:{}:{}", data["url"].get<std::string>(), data["line"].get<int>(), data["column"].get<int>());
+                    Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", data["text"].get<std::string>(), traceMessage);
+                }
             }
         }
-        catch (const std::exception& e) { }
+        catch (const nlohmann::detail::exception& e) { }
     }
 
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)

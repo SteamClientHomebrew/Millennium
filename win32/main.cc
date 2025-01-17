@@ -51,6 +51,11 @@ void DownloadLatestAsset(std::string queuedDownloadUrl, std::string steam_path)
     }
 }
 
+/**
+ * @brief Check for updates based off the update.flag file in the Steam directory.
+ * Updates are not automatically derived from the server, they are specifically read from what the user has requested in the update.flag file.
+ * the update.flag file is written to by assets\src\custom_components\UpdaterModal.tsx
+ */
 const void CheckForUpdates(std::string strSteamPath) 
 {
     const auto start = std::chrono::high_resolution_clock::now();
@@ -68,8 +73,12 @@ const void CheckForUpdates(std::string strSteamPath)
 
     std::ifstream updateFlagFile(updateFlagPath);
     std::string updateFlagContent((std::istreambuf_iterator<char>(updateFlagFile)), std::istreambuf_iterator<char>());
+    updateFlagFile.close();
 
-    std::remove(updateFlagPath.string().c_str());
+    if (std::remove(updateFlagPath.string().c_str()) != 0) 
+    {
+        Error("Failed to remove update.flag file...");
+    }
 
     Print("Updating Millennium from queue: {}", updateFlagContent);
     DownloadLatestAsset(updateFlagContent, strSteamPath);  
@@ -149,6 +158,14 @@ const void BootstrapMillennium(HINSTANCE hinstDLL)
     CheckForUpdates(strSteamPath);
 
     Print("Finished checking for updates");  
+
+    // Check if millennium.dll is already loaded in process memory, and if so, unload it.
+    HMODULE hLoadedMillennium = GetModuleHandleA("millennium.dll");
+    if (hLoadedMillennium != nullptr) 
+    {
+        Print("Unloading millennium.dll and reloading...");
+        FreeLibrary(hLoadedMillennium);
+    }
 
     // After checking for updates, load Millenniums core library.
     HMODULE hMillennium = LoadLibraryA("millennium.dll");
