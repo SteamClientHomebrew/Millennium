@@ -188,7 +188,7 @@ const UpdatesViewModal: React.FC = () => {
 
     const FetchAvailableUpdates = async (): Promise<boolean> => new Promise(async (resolve, reject) => {
         try {
-            const updateList = JSON.parse(await GetUpdateList({ force: true }))
+            const updateList = JSON.parse(await GetUpdateList({ force: false }))
             pluginSelf.connectionFailed = false
 
             setUpdates(updateList.updates)
