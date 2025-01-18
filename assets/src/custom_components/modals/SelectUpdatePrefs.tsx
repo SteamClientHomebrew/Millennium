@@ -3,7 +3,7 @@ import { GenericConfirmDialog } from "../GenericDialog";
 import { useState } from "react";
 import { UpdaterOptionProps } from "../../types";
 import { locale } from "../../locales";
-import { Separator } from "../PageList";
+import { Separator } from "../../components/ISteamComponents";
 
 const SetUserWantsUpdates = callable<[{ wantsUpdates: boolean }], void>("MillenniumUpdater.set_user_wants_updates");
 const SetUserWantsNotifications = callable<[{ wantsNotify: boolean }], void>("MillenniumUpdater.set_user_wants_update_notify");
@@ -13,8 +13,12 @@ export const PromptSelectUpdaterOptions = () => {
     let SecurityModalWindow: ShowModalResult;
 
     const RenderOptionSelector = () => {
-        const [wantsUpdates, setWantsUpdates] = useState(pluginSelf.wantsMillenniumUpdates == UpdaterOptionProps.YES);
-        const [wantsNotify, setWantsNotify] = useState(pluginSelf.wantsMillenniumUpdateNotifications == UpdaterOptionProps.YES);
+        const [wantsUpdates, setWantsUpdates] = useState(
+            pluginSelf.wantsMillenniumUpdates == UpdaterOptionProps.UNSET || pluginSelf.wantsMillenniumUpdates == UpdaterOptionProps.YES
+        );
+        const [wantsNotify, setWantsNotify] = useState(
+            pluginSelf.wantsMillenniumUpdateNotifications == UpdaterOptionProps.UNSET || pluginSelf.wantsMillenniumUpdateNotifications == UpdaterOptionProps.YES
+        );
 
         const OnUpdateChange = (newValue: boolean) => {
             setWantsUpdates(newValue)
@@ -43,17 +47,17 @@ export const PromptSelectUpdaterOptions = () => {
 
                         <Separator />
 
-                        <Field label={locale.toggleWantsMillenniumUpdates} bottomSeparator="none">
+                        <Field label={locale.toggleWantsMillenniumUpdates} description={locale.toggleWantsMillenniumUpdatesTooltip} bottomSeparator="none">
                             <Toggle value={wantsUpdates} onChange={OnUpdateChange} />
                         </Field>
-                        <Field label={locale.toggleWantsMillenniumUpdatesNotifications} bottomSeparator="none">
+                        <Field label={locale.toggleWantsMillenniumUpdatesNotifications} description={locale.toggleWantsMillenniumUpdatesNotificationsTooltip} bottomSeparator="none">
                             <Toggle value={wantsNotify} onChange={OnNotifyChange} />
                         </Field>
                     </DialogBodyText>
 
                     <DialogFooter>
                         <div className="DialogTwoColLayout _DialogColLayout Panel" style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                            <p className='updateInfoTidbit' style={{ lineHeight: "7px" }}>{locale.settingsAreChangeableLater}</p>
+                            <p className='updateInfoTidbit' style={{ lineHeight: "7px", fontSize: "14px" }}>{locale.settingsAreChangeableLater}</p>
                             <DialogButton className='Primary' onClick={OnContinue}>
                                 Continue
                             </DialogButton>
@@ -66,7 +70,7 @@ export const PromptSelectUpdaterOptions = () => {
 
     SecurityModalWindow = showModal(<RenderOptionSelector />, pluginSelf.mainWindow, {
         strTitle: "Select Update Options",
-        popupHeight: 445,
-        popupWidth: 575,
+        popupHeight: 545,
+        popupWidth: 675,
     })
 }

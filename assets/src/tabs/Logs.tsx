@@ -10,6 +10,8 @@ import {
 
 import { useEffect, useState } from 'react'
 import { settingsClasses } from '../classes'
+import Ansi from "ansi-to-react"
+import { Separator } from '../components/ISteamComponents'
 
 export type LogItem = {
     level: LogLevel,
@@ -28,9 +30,6 @@ export enum LogLevel {
 }
 
 export const GetLogData = callable<[], LogData[]>("_get_plugin_logs")
-
-import Ansi from "ansi-to-react"
-import { Separator } from '../custom_components/PageList'
 
 const RenderLogViewer = ({ logs, setSelectedLog }: {
     logs: LogData,

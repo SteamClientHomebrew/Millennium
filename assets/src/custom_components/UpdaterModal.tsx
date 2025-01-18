@@ -1,6 +1,5 @@
 import Markdown from 'markdown-to-jsx'
-import { callable, ConfirmModal, DialogBody, DialogBodyText, DialogButton, DialogFooter, DialogHeader, Field, ModalPosition, pluginSelf, showModal, ShowModalResult, Toggle } from "@steambrew/client";
-import { Separator } from "./PageList";
+import { callable, DialogBody, DialogBodyText, DialogButton, DialogFooter, DialogHeader, Field, pluginSelf, showModal, Toggle } from "@steambrew/client";
 import { useState } from "react";
 import { UpdaterOptionProps } from '../types';
 import { locale } from '../locales';
@@ -8,6 +7,7 @@ import { GenericConfirmDialog } from './GenericDialog';
 import { ShowDownloadInformation } from './modals/UpdateInfoModal';
 import { PromptSelectUpdaterOptions } from './modals/SelectUpdatePrefs';
 import { OnDoNotShowAgainChange } from './modals/DisableUpdates';
+import { Separator } from '../components/ISteamComponents';
 
 const UpdateMillennium = callable<[{ downloadUrl: string }], void>("MillenniumUpdater.queue_update");
 
@@ -35,7 +35,16 @@ const UpdateAvailablePopup = ({ props, targetAsset }: { props: any, targetAsset:
     const [doNotShowAgain, setDoNotShowAgain] = useState(false);
 
     const OpenDiffInExternalBrowser = () => {
-        SteamClient.System.OpenInSystemBrowser(`https://github.com/shdwmtr/millennium/compare/${pluginSelf.version}...${props.tag_name}`)
+        SteamClient.System.OpenInSystemBrowser(`https://github.com/shdwmtr/millennium/compare/${pluginSelf.version}...${props.tag_name}#files_bucket`)
+    }
+
+    const CloseWindow = () => {
+        pluginSelf?.windows?.["Millennium Updater"]?.SteamClient?.Window?.Close()
+    }
+
+    const StartUpdateProcess = () => {
+        UpdateMillennium({ downloadUrl: targetAsset.browser_download_url })
+        CloseWindow()
     }
 
     return (
@@ -64,10 +73,10 @@ const UpdateAvailablePopup = ({ props, targetAsset }: { props: any, targetAsset:
                             <Toggle value={doNotShowAgain} onChange={(newValue) => OnDoNotShowAgainChange(newValue, setDoNotShowAgain)} />
                         </Field>
 
-                        <DialogButton className='Primary' onClick={UpdateMillennium.bind(null, { downloadUrl: targetAsset.browser_download_url })}>
+                        <DialogButton className='Primary' onClick={StartUpdateProcess}>
                             {locale.strUpdateNextStartup}
                         </DialogButton>
-                        <DialogButton className='Secondary' onClick={() => { pluginSelf?.millenniumUpdaterWindow?.SteamClient?.Window?.Close() }}>
+                        <DialogButton className='Secondary' onClick={CloseWindow}>
                             {locale.strUpdateReject}
                         </DialogButton>
                     </div>
@@ -77,7 +86,15 @@ const UpdateAvailablePopup = ({ props, targetAsset }: { props: any, targetAsset:
     )
 }
 
+const GetPlatformSpecificAsset = async (releaseInfo: any) => {
+    switch (await SteamClient.System.GetOSType()) {
+        case 20: return (releaseInfo.assets.find((asset: any) => asset.name === `millennium-${releaseInfo.tag_name}-windows-x86_64.zip`))
+        default: return (releaseInfo.assets.find((asset: any) => asset.name === `millennium-${releaseInfo.tag_name}-linux-x86_64.tar.gz`))
+    }
+}
+
 export const ShowUpdaterModal = async () => {
+
     /** If the user hasn't specified their update options, prompt them */
     if (pluginSelf.wantsMillenniumUpdateNotifications == UpdaterOptionProps.UNSET || pluginSelf.wantsMillenniumUpdates == UpdaterOptionProps.UNSET) {
         LOG_UPDATE_INFO("User hasn't specified update options yet, prompting...")
@@ -101,14 +118,7 @@ export const ShowUpdaterModal = async () => {
         return;
     }
 
-    const GetOSDownloadInformation = async () => {
-        switch (await SteamClient.System.GetOSType()) {
-            case 20: return (updates.newVersion.assets.find((asset: any) => asset.name === `millennium-${updates.newVersion.tag_name}-windows-x86_64.zip`))
-            default: return (updates.newVersion.assets.find((asset: any) => asset.name === `millennium-${updates.newVersion.tag_name}-linux-x86_64.tar.gz`))
-        }
-    }
-
-    const targetAsset = await GetOSDownloadInformation();
+    const targetAsset = await GetPlatformSpecificAsset(updates.newVersion);
 
     if (pluginSelf.wantsMillenniumUpdateNotifications == UpdaterOptionProps.NO) {
         // Start the update process without showing the modal; as they want updates, but not notifications
@@ -124,4 +134,17 @@ export const ShowUpdaterModal = async () => {
         popupHeight: 500,
         popupWidth: 725,
     });
+
+    const intervalId = setInterval(() => {
+        const updaterWindow = pluginSelf?.windows?.["Millennium Updater"]
+
+        if (!updaterWindow) {
+            return;
+        }
+
+        updaterWindow.SteamClient?.Window?.MarkLastFocused()
+        updaterWindow.SteamClient?.Window?.FlashWindow()
+        updaterWindow.SteamClient?.Window?.BringToFront()
+        clearInterval(intervalId)
+    }, 1)
 }

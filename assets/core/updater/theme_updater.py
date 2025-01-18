@@ -13,7 +13,8 @@ if platform.system() == "Windows":
 else:
     from git import Repo as GitRepo  # Use GitPython on Unix
 
-class Updater:
+# This module is responsible for updating themes. It does not automatically do so, it is interfaced in the front-end.
+class ThemeUpdater:
 
     def get_update_list(self, force: bool = False):
         if force:
@@ -23,9 +24,11 @@ class Updater:
             self.has_cache = True
         return json.dumps({"updates": self.update_list, "notifications": cfg.get_config()["updateNotifications"]})
 
+
     def set_update_notifs_status(self, status: bool):
         cfg.set_config_keypair("updateNotifications", status)
         return True
+
 
     def query_themes(self):
         themes = json.loads(find_all_themes())
@@ -61,6 +64,7 @@ class Updater:
             if "github" in theme["data"]:
                 self.pull_head(path, theme["data"]["github"])
 
+
     def construct_post_body(self):
         post_body = []
         for theme, repo in self.update_query:
@@ -72,6 +76,7 @@ class Updater:
                     post_body.append({'owner': owner, 'repo': repo})
         return post_body
 
+
     def pull_head(self, path: str, data: any) -> None:
         try:
             shutil.rmtree(path)
@@ -82,6 +87,7 @@ class Updater:
                 GitRepo.clone_from(repo_url, path)
         except Exception as e:
             logger.log(f"An exception occurred: {e}")
+
 
     def update_theme(self, native: str) -> bool:
         logger.log(f"updating theme {native}")
@@ -104,12 +110,14 @@ class Updater:
         self.re_initialize()
         return True
 
+
     def needs_update(self, remote_commit: str, theme: str, repo) -> bool:
         if platform.system() == "Windows":
             local_commit = repo[repo.head.target].id
         else:
             local_commit = repo.head.commit.hexsha
         return str(local_commit) != str(remote_commit)
+
 
     def check_theme(self, theme, repo_name, repo):
         remote = next((item for item in self.remote_json if item.get("name") == repo_name), None)
@@ -123,8 +131,10 @@ class Updater:
                     'name': theme["data"].get("name", theme["native"])
                 })
 
+
     def re_initialize(self):
         return self.__init__()
+
 
     def fetch_updates(self):
         self.update_list = []
@@ -141,6 +151,7 @@ class Updater:
             return
         return response.json()
 
+
     def process_updates(self) -> bool:
         start_time = time.time()
         self.remote_json = self.fetch_updates()
@@ -152,6 +163,7 @@ class Updater:
                         self.check_theme(theme, repo_name, repo)
             if self.update_list:
                 logger.log(f"found updates for {[theme['native'] for theme in self.update_list]} in {round((time.time() - start_time) * 1000, 4)} ms")
+
 
     def __init__(self):
         self.has_cache = False

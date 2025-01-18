@@ -19,7 +19,7 @@ const ReEnableUpdates = (setDoNotShowAgain: React.Dispatch<React.SetStateAction<
         strCancelButtonText="No"
         onOK={OnContinue}
 
-    />, pluginSelf.millenniumUpdaterWindow, {});
+    />, pluginSelf?.windows?.["Millennium Updater"], {});
 }
 
 const DisableUpdates = (setDoNotShowAgain: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -45,7 +45,7 @@ const DisableUpdates = (setDoNotShowAgain: React.Dispatch<React.SetStateAction<b
             onMiddleButton={DisableNotifications}
             bHideCloseIcon={true}
         />,
-        pluginSelf.millenniumUpdaterWindow,
+        pluginSelf?.windows?.["Millennium Updater"],
         {}
     );
 }

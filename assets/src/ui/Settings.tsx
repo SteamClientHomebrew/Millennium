@@ -2,8 +2,6 @@ import { Millennium, pluginSelf, showModal } from '@steambrew/client';
 import { MillenniumSettings } from '../custom_components/SettingsModal';
 
 function RenderSettingsModal(_context: any) {
-	pluginSelf.mainWindow = _context.m_popup.window
-
 	Millennium.findElement(_context.m_popup.document, ".contextMenuItem").then((contextMenuItems: NodeListOf<Element>) => {
 		for (const item of contextMenuItems) {
 			// @ts-ignore

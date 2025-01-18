@@ -51,7 +51,7 @@ const RenderDownloadInformation: React.FC<DownloadInformationProps> = ({ props, 
 export const ShowDownloadInformation = (props: any, targetAsset: any) => (
     showModal(
         <RenderDownloadInformation props={props} targetAsset={targetAsset} />,
-        pluginSelf.millenniumUpdaterWindow,
+        pluginSelf?.windows?.["Millennium Updater"],
         {
             strTitle: "Download Information",
             popupHeight: 340, popupWidth: 475,

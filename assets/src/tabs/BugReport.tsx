@@ -14,7 +14,7 @@ import {
 import { useState } from 'react'
 import { locale } from '../locales'
 import { settingsClasses } from '../classes'
-import { SettingsDialogSubHeader } from '../components/SettingsDialogSubHeader'
+import { SettingsDialogSubHeader } from '../components/ISteamComponents';
 
 declare global {
     interface Window {
@@ -49,7 +49,7 @@ const ShowErrorMessage = (message: string) => {
             strTitle={locale.errorMessageTitle}
             strDescription={message}
         />,
-        pluginSelf.millenniumSettingsWindow,
+        pluginSelf.windows["Millennium"],
         {
             bNeverPopOut: false,
         },
@@ -62,7 +62,7 @@ const UserPromptBugReport = () => {
             strTitle={"Successfully Submitted Bug Report!"}
             strDescription={"Thanks submitting a report; we're constantly trying to make Millennium better!"}
         />,
-        pluginSelf.millenniumSettingsWindow,
+        pluginSelf.windows["Millennium"],
         {
             bNeverPopOut: false,
         },

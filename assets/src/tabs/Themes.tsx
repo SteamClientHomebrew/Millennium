@@ -42,14 +42,14 @@ const PromptReload = (onOK: () => void) =>
             strOKButtonText={Localize("#Settings_RestartNow_ButtonText")}
             onOK={onOK}
         />,
-        pluginSelf.millenniumSettingsWindow,
+        pluginSelf.windows["Millennium"],
         {
             bNeverPopOut: false,
         },
     );
 
 const ThemeSettings = (activeTheme: string) =>
-    showModal(<RenderThemeEditor />, pluginSelf.millenniumSettingsWindow, {
+    showModal(<RenderThemeEditor />, pluginSelf.windows["Millennium"], {
         strTitle: activeTheme + " Settings",
         popupHeight: 675,
         popupWidth: 850,

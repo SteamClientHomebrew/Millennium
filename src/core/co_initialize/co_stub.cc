@@ -329,61 +329,6 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
 const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
 {
-    // std::mutex mtx;
-    // std::shared_ptr<std::condition_variable> cv = std::make_shared<std::condition_variable>();
-    // bool hasSuccess = false, hasPaused = false;
-
-    // Logger.Log("Preparing to inject frontend shims...");
-
-    // auto threadId = std::thread([&mtx, cvPtr = cv, &hasSuccess, &hasPaused, ftpPort, ipcPort]() 
-    // {
-    //     JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "InjectFrontendShims", [&mtx, cvPtrPtr = cvPtr, &hasPaused, &hasSuccess](const nlohmann::json& eventMessage, std::string listenerId) 
-    //     {
-    //         std::lock_guard<std::mutex> lock(mtx);
-            
-    //         if (eventMessage.value("id", -1) == 65756) 
-    //         {
-    //             if (eventMessage.contains("error")) 
-    //             {
-    //                 Logger.Warn("Failed to pause debugger, Steam is likely not yet loaded...");
-    //                 Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
-    //             } 
-    //             else if (eventMessage.contains("result")) 
-    //             {
-    //                 Logger.Log("Successfully sent debugger pause...");
-    //                 hasSuccess = true;
-    //             }
-    //         }
-    //         if (eventMessage.contains("method") && eventMessage["method"] == "Debugger.paused") 
-    //         {
-    //             Logger.Log("Debugger has paused!");
-    //             hasPaused = true;
-    //         }
-
-    //         if (hasSuccess && hasPaused) 
-    //         {
-    //             try 
-    //             {
-    //                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-    //             } 
-    //             catch (const std::exception& ex) 
-    //             {
-    //                 LOG_ERROR("Error removing listener: {}", ex.what());
-    //             }
-    //             cvPtrPtr->notify_all();    
-    //         }
-    //     });
-
-    //     std::unique_lock<std::mutex> lock(mtx);
-    //     cvPtr->wait(lock, [&] { return hasSuccess && hasPaused; });
-    // });
-
-    // Sockets::PostShared({ {"id", 3422 }, {"method", "Debugger.enable"} });
-    // Sockets::PostShared({ {"id", 65756 }, {"method", "Debugger.pause"} });
-
-    // threadId.join();
-
-    // Logger.Log("Ready to inject shims!");
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }

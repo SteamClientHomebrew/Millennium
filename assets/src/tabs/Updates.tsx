@@ -1,12 +1,8 @@
 import { CSSProperties, useEffect, useState } from 'react'
 import {
-    Millennium,
-    DialogBody,
     DialogBodyText,
     DialogButton,
     DialogControlsSection,
-    classMap,
-    DialogHeader,
     IconsModule,
     pluginSelf,
     Toggle,
@@ -18,10 +14,10 @@ import {
 } from '@steambrew/client'
 
 import { locale } from '../locales';
-import { ThemeItem } from '../types';
+import { ThemeItem, UpdaterOptionProps } from '../types';
 import { Settings } from '../Settings';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
-import { SettingsDialogSubHeader } from '../components/SettingsDialogSubHeader';
+import { SettingsDialogSubHeader } from '../components/ISteamComponents';
 
 interface UpdateProps {
     updates: UpdateItemType[]
@@ -62,7 +58,7 @@ const ShowMessageBox = (message: string, title?: string) => {
             onOK={onOK}
             onCancel={onCancel}
         />,
-            pluginSelf.millenniumSettingsWindow,
+            pluginSelf.windows["Millennium"],
             {
                 bNeverPopOut: false,
             },
@@ -166,12 +162,29 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
 
 const GetUpdateList = callable<[{ force: boolean }], any>("updater.get_update_list")
 const SetUpdateNotificationStatus = callable<[{ status: boolean }], boolean>("updater.set_update_notifs_status")
+const SetUserWantsUpdates = callable<[{ wantsUpdates: boolean }], void>("MillenniumUpdater.set_user_wants_updates");
+const SetUserWantsNotifications = callable<[{ wantsNotify: boolean }], void>("MillenniumUpdater.set_user_wants_update_notify");
 
 const UpdatesViewModal: React.FC = () => {
 
     const [updates, setUpdates] = useState<Array<UpdateItemType>>(null)
     const [showUpdateNotifications, setNotifications] = useState<boolean>(undefined)
     const [hasReceivedUpdates, setHasReceivedUpdates] = useState<boolean>(false)
+
+    const [wantsUpdates, setWantsUpdates] = useState(pluginSelf.wantsMillenniumUpdates == UpdaterOptionProps.YES);
+    const [wantsNotify, setWantsNotify] = useState(pluginSelf.wantsMillenniumUpdateNotifications == UpdaterOptionProps.YES);
+
+    const OnUpdateChange = (newValue: boolean) => {
+        setWantsUpdates(newValue)
+        pluginSelf.wantsMillenniumUpdates = newValue
+        SetUserWantsUpdates({ wantsUpdates: newValue });
+    }
+
+    const OnNotifyChange = (newValue: boolean) => {
+        setWantsNotify(newValue)
+        pluginSelf.wantsMillenniumUpdateNotifications = newValue
+        SetUserWantsNotifications({ wantsNotify: newValue });
+    }
 
     const FetchAvailableUpdates = async (): Promise<boolean> => new Promise(async (resolve, reject) => {
         try {
@@ -181,13 +194,11 @@ const UpdatesViewModal: React.FC = () => {
             setUpdates(updateList.updates)
             setNotifications(updateList.notifications ?? false)
             setHasReceivedUpdates(true)
-
             resolve(true)
         }
         catch (exception) {
             console.error("Failed to fetch updates")
             pluginSelf.connectionFailed = true
-
             reject(false)
         }
         resolve(true)
@@ -217,12 +228,31 @@ const UpdatesViewModal: React.FC = () => {
     return !hasReceivedUpdates ?
         <SteamSpinner background={"transparent"} /> :
         <>
+            <SettingsDialogSubHeader>Millennium Updates</SettingsDialogSubHeader>
+
+            <Field label={locale.updatePanelCheckForUpdates}
+                description={locale.toggleWantsMillenniumUpdatesTooltip}
+            >
+                <Toggle value={wantsUpdates} onChange={OnUpdateChange} />
+            </Field>
+            <Field
+                label={locale.updatePanelShowUpdateNotifications}
+                description={locale.toggleWantsMillenniumUpdatesNotificationsTooltip}
+                bottomSeparator='none'
+            >
+                <Toggle value={wantsNotify} onChange={OnNotifyChange} />
+            </Field>
+
+            <SettingsDialogSubHeader>Plugin & Theme Updates</SettingsDialogSubHeader>
+
             <Field
                 label={locale.updatePanelUpdateNotifications}
                 description={locale.updatePanelUpdateNotificationsTooltip}
             >
                 {showUpdateNotifications !== undefined && <Toggle value={showUpdateNotifications} onChange={OnNotificationsChange} />}
             </Field>
+
+
             {updates && (!updates.length ? <UpToDateModal /> : <RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} />)}
         </>
 

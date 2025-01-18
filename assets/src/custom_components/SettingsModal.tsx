@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react"
+import React from "react"
 import {
     Classes,
     DialogBody,
     IconsModule,
     ModalPosition,
     pluginSelf,
-    Router,
     SidebarNavigation,
     type SidebarNavigationPage,
 } from "@steambrew/client";
@@ -28,61 +27,33 @@ export class MillenniumSettings extends React.Component {
                 visible: true,
                 title: locale.settingsPanelThemes,
                 icon: <CustomIcons.Themes />,
-                content: (
-                    <DialogBody className={Classes.SettingsDialogBodyFade}>
-                        <ThemeViewModal />
-                    </DialogBody>
-                ),
-                // route: "/settings/millennium/themes",
+                content: (<DialogBody className={Classes.SettingsDialogBodyFade}><ThemeViewModal /></DialogBody>)
             },
             {
                 visible: true,
                 title: locale.settingsPanelPlugins,
                 icon: <CustomIcons.Plugins />,
-                content: (
-                    <DialogBody className={Classes.SettingsDialogBodyFade}>
-                        <PluginViewModal />
-                    </DialogBody>
-                ),
-                // route: "/settings/millennium/plugins",
+                content: (<DialogBody className={Classes.SettingsDialogBodyFade}><PluginViewModal /></DialogBody>)
             },
             {
                 visible: true,
                 title: locale.settingsPanelUpdates,
                 icon: <IconsModule.Update />,
-                content: (
-                    <DialogBody className={Classes.SettingsDialogBodyFade}>
-                        <UpdatesViewModal />
-                    </DialogBody>
-                ),
-                // route: "/settings/millennium/updates",
+                content: (<DialogBody className={Classes.SettingsDialogBodyFade}><UpdatesViewModal /></DialogBody>)
             },
             {
                 visible: true,
                 title: locale.settingsPanelBugReport,
                 icon: <IconsModule.BugReport />,
-                content: (
-                    <DialogBody className={Classes.SettingsDialogBodyFade}>
-                        <BugReportViewModal />
-                    </DialogBody>
-                ),
-                // route: "/settings/millennium/bugreport",s
+                content: (<DialogBody className={Classes.SettingsDialogBodyFade}><BugReportViewModal /></DialogBody>)
             },
             {
                 visible: true,
                 title: locale.settingsPanelLogs,
                 icon: <IconsModule.TextCodeBlock />,
-                content: (
-                    <DialogBody className={Classes.SettingsDialogBodyFade}>
-                        <LogsViewModal />
-                    </DialogBody>
-                ),
-                // route: "/settings/millennium/logs",
+                content: (<DialogBody className={Classes.SettingsDialogBodyFade}><LogsViewModal /></DialogBody>)
             },
         ];
-        const title = `Millennium ${pluginSelf.version}`;
-
-        console.log(IconsModule)
 
         return (
             <ModalPosition>
@@ -92,7 +63,7 @@ export class MillenniumSettings extends React.Component {
                 </style>
 
                 {/* @ts-ignore */}
-                <SidebarNavigation className={className} pages={pages} title={title} />
+                <SidebarNavigation className={className} pages={pages} title={`Millennium ${pluginSelf.version}`} />
             </ModalPosition>
         );
     }

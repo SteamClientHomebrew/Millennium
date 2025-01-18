@@ -14,10 +14,10 @@ import {
     pluginSelf,
     Field
 } from "@steambrew/client";
-import { BBCodeParser } from "../components/BBCodeParser";
 import { Conditions, ConditionsStore, ICondition, ThemeItem } from "../types"
 import { settingsClasses } from "../classes"
 import { locale } from "../locales";
+import { BBCodeParser } from "../components/ISteamComponents";
 
 interface ConditionalComponent {
     condition: string,
@@ -69,7 +69,6 @@ const ThemeEditorContainer: React.FC = ({ children }) => (
 export class RenderThemeEditor extends React.Component {
 
     GetConditionType = (value: any): ConditionType => {
-
         if (Object.keys(value).every((element: string) => element === 'yes' || element === 'no')) {
             return ConditionType.Toggle
         }

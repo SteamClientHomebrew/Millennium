@@ -49,14 +49,18 @@
     "DisableUpdates": "Disable Updates",
     "DisableOnlyNotifications": "Just Notifications",
     "message1162025SecurityUpdate": "We're deciding to update our security protocols to better benefit you, and the community as a whole. As of 1/16/2025, we've decided to implement measures to explicitly ask you if you want to receive updates from Millennium.",
-    "message1162025SecurityUpdateTooltip": "(This does NOT include theme and plugin updates, which are handled separately, are we're never automatic)",
-    "toggleWantsMillenniumUpdates": "Do you want to receive updates from Millennium?",
-    "toggleWantsMillenniumUpdatesNotifications": "Do you want to receive notifications for updates? (similar to this popup)",
+    "message1162025SecurityUpdateTooltip": "(This does NOT include theme and plugin updates, which are handled separately, are were never automatic)",
+    "toggleWantsMillenniumUpdates": "Do you want Millennium to check for updates?",
+    "toggleWantsMillenniumUpdatesTooltip": "If enabled, Millennium will automatically check for updates. Updates will NOT automatically be applied unless you've disabled notifications (the setting below). You will receive a popup box with the option to update or dismiss.",
+    "toggleWantsMillenniumUpdatesNotifications": "Do you want to notified when updates are found? (similar to this popup)",
+    "toggleWantsMillenniumUpdatesNotificationsTooltip": "If an update is found and this setting is on, you will receive a popup box with the option to update, or stay on the version you're already on. If an update is found and you do NOT have this setting enabled, you will not receive a popup box, and the update will be applied.",
     "settingsAreChangeableLater": "You can change these settings later in Millennium Settings.",
     "strViewUpdateDiffInBrowser": "View Diff in Browser",
     "strViewDownloadInfo": "View Download Information",
     "strUpdateNextStartup": "Update Next Startup",
     "strUpdateReject": "I'll pass",
     "strDontShowAgain": "Don't show this again",
-    "strAnUpdateIsAvailable": "An update is available for Millennium! We're showing you this message because you've opted in to receive updates. If you no longer want to receive these messages, you can turn on automatic updates, or you can disable updates entirely from Millennium Settings."
+    "strAnUpdateIsAvailable": "An update is available for Millennium! We're showing you this message because you've opted in to receive updates. If you no longer want to receive these messages, you can turn on automatic updates, or you can disable updates entirely from Millennium Settings.",
+    "updatePanelCheckForUpdates": "Check for Updates",
+    "updatePanelShowUpdateNotifications": "Show Update Notifications"
 }
