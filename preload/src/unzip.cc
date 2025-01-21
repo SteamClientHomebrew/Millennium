@@ -9,6 +9,13 @@
 
 #define WRITE_BUFFER_SIZE 8192
 
+/**
+ * @brief Check if any parent directories of a path are symbolic links.
+ * @note This function is used to prevent overwriting files that are symbolic links.
+ * 
+ * @param path The path to check.
+ * @return True if any parent directories are symbolic links, false otherwise.
+ */
 bool IsAnyParentSymbolicLink(std::filesystem::path path) 
 {
     std::filesystem::path parentPath = path.parent_path();
@@ -45,6 +52,12 @@ bool IsAnyParentSymbolicLink(std::filesystem::path path)
     return false;
 }
 
+/**
+ * @brief Create directories that do not exist.
+ * @note This function is used to create directories that do not exist when extracting a zip archive.
+ * 
+ * @param path The path to create directories for.
+ */
 void CreateNonExistentDirectories(std::filesystem::path path) 
 {
     std::filesystem::path dir_path(path);
@@ -58,6 +71,11 @@ void CreateNonExistentDirectories(std::filesystem::path path)
     }
 }
 
+/**
+ * @brief Extract a zipped file to a directory.
+ * @param zipfile The zip file to extract.
+ * @param fileName The name of the file to extract.
+ */
 void ExtractZippedFile(unzFile zipfile, std::filesystem::path fileName) 
 {
     if (fileName.string() == "user32.dll") 
@@ -97,11 +115,20 @@ void ExtractZippedFile(unzFile zipfile, std::filesystem::path fileName)
     fclose(outfile);
 }
 
+/** 
+ * @brief Check if a path is a directory path.
+ * @note This function does not check if an actual directory exists, it only checks if the path string is directory-like.
+*/
 bool IsDirectoryPath(const std::filesystem::path& path) 
 {
     return path.has_filename() == false || (path.string().back() == '/' || path.string().back() == '\\');
 }
 
+/**
+ * @brief Extract a zipped archive to a directory.
+ * @param zipFilePath The path to the zip file.
+ * @param outputDirectory The directory to extract the zip file to.
+ */
 void ExtractZippedArchive(const char *zipFilePath, const char *outputDirectory) 
 {
     Print("Extracting zip file: {} to {}", zipFilePath, outputDirectory);

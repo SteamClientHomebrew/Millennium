@@ -11,28 +11,30 @@
 
 static const char* GITHUB_API_URL = "https://api.github.com/repos/shdwmtr/millennium/releases";
 
+/**
+ * @brief Unload and release the library from memory.
+ * @param hinstDLL The handle to the library.
+ */
 const void UnloadAndReleaseLibrary(HINSTANCE hinstDLL) 
 {
     FreeLibraryAndExitThread(hinstDLL, 0);
 }
 
-std::string GetPlatformAssetModule(nlohmann::basic_json<> latestRelease, const std::string &latest_version) 
-{
-    for (const auto &asset : latestRelease["assets"]) 
-    {
-        if (asset["name"].get<std::string>() == "millennium-" + latest_version + "-windows-x86_64.zip") 
-        {
-            return asset["browser_download_url"].get<std::string>();
-        }
-    }
-    return {};
-}
-
+/**
+ * @brief Get the current version of the updater module (this module). This is used to check 
+ * compatibility with the latest version of Millennium, and th updater to make sure they are in sync.
+ * @return Current version in semantic versioning format.
+ */
 extern "C" __attribute__((dllexport)) const char* __get_shim_version(void)
 {
     return MILLENNIUM_VERSION;
 }
 
+/**
+ * @brief Download the latest asset from the Millennium GitHub repository.
+ * @param queuedDownloadUrl The URL to download the asset from.
+ * @param steam_path The path to the Steam directory.
+ */
 void DownloadLatestAsset(std::string queuedDownloadUrl, std::string steam_path) 
 {
     Print("Downloading asset: {}", queuedDownloadUrl);
@@ -86,6 +88,10 @@ const void CheckForUpdates(std::string strSteamPath)
     Print("Elapsed time: {}s", (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start)).count());
 }
 
+/**
+ * @brief Enable virtual terminal processing for the console. 
+ * Windows by default not support ANSI escape codes, this function enables it.
+ */
 void EnableVirtualTerminalProcessing() 
 {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -107,6 +113,11 @@ void EnableVirtualTerminalProcessing()
     }
 }
 
+/**
+ * @brief Patch the SharedJSContext file to prevent the Steam UI from loading.
+ * This is done by writing an empty document to the file.
+ * We do this to prevent the Steam UI from loading before Millennium has started.
+ */
 void PatchSharedJSContext(std::string strSteamPath) 
 {
     try 

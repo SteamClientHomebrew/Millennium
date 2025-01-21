@@ -70,7 +70,7 @@ add_compile_definitions(
 )
 
 if (WIN32)
-  add_subdirectory(win32)
+  add_subdirectory(preload)
 endif()
 
 add_subdirectory(cli)

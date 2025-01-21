@@ -8,10 +8,10 @@ if (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 # Set the project name
-project(ShimDll)
+project(preload)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/win32/include
+  ${CMAKE_SOURCE_DIR}/preload/include
 )
 
 # Specify the C++ standard
@@ -35,10 +35,10 @@ add_compile_definitions(
 )
 
 # Add the executable
-add_library(ShimDll SHARED main.cc src/steam.cc src/http.cc src/unzip.cc)
+add_library(preload SHARED main.cc src/steam.cc src/http.cc src/unzip.cc)
 
-target_link_libraries(ShimDll CURL::libcurl unofficial::minizip::minizip)
+target_link_libraries(preload CURL::libcurl unofficial::minizip::minizip)
 
-set_target_properties(ShimDll PROPERTIES OUTPUT_NAME "user32")
-set_target_properties(ShimDll PROPERTIES PREFIX "")
-set_target_properties(ShimDll PROPERTIES NO_EXPORT TRUE)
+set_target_properties(preload PROPERTIES OUTPUT_NAME "user32")
+set_target_properties(preload PROPERTIES PREFIX "")
+set_target_properties(preload PROPERTIES NO_EXPORT TRUE)

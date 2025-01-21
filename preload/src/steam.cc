@@ -2,6 +2,10 @@
 #include <string>
 #include <steam.h>
 
+/**
+ * @brief Get the path to the Steam installation, read from the registry.
+ * @return The path to the Steam installation.
+ */
 std::string GetSteamPath() 
 {
     HKEY hiveKey;

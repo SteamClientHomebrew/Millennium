@@ -17,6 +17,10 @@
 #include <pipes/terminal_pipe.h>
 #include <api/executor.h>
 
+/**
+ * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
+ * .cef-enable-remote-debugging is a special file name that Steam uses to signal CEF to enable remote debugging.
+ */
 const static void VerifyEnvironment() 
 {
     const auto filePath = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
@@ -31,6 +35,10 @@ const static void VerifyEnvironment()
     }
 }
 
+/**
+ * @brief Custom terminate handler for Millennium.
+ * This function is called when Millennium encounters a fatal error that it can't recover from.
+ */
 void OnTerminate() 
 {
     if (IsDebuggerPresent())    
@@ -74,7 +82,9 @@ void OnTerminate()
     #endif
 }
 
-/* Wrapped cross platform entrypoint */
+/**
+ * @brief Millennium's main method, called on startup on both Windows and Linux.
+ */
 const static void EntryMain() 
 {
     std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
@@ -83,9 +93,17 @@ const static void EntryMain()
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
     #ifdef _WIN32
+    /**
+     * Windows requires a special environment setup to redirect stdout to a pipe.
+     * This is necessary for the logger component to capture stdout from Millennium.
+     * This is also necessary to update the updater module from cache.
+     */
     WinUtils::SetupWin32Environment();  
     #endif
 
+    /**
+     * Create an FTP server to allow plugins to be loaded from the host machine.
+     */
     uint16_t ftpPort = Crow::CreateAsyncServer();
 
     const auto startTime = std::chrono::system_clock::now();
@@ -96,7 +114,9 @@ const static void EntryMain()
 
     PythonManager& manager = PythonManager::GetInstance();
 
+    /** Start the python backends */
     auto backendThread   = std::thread([&loader, &manager] { loader->StartBackEnds(manager); });
+    /** Start the injection process into the Steam web helper */
     auto frontendThreads = std::thread([&loader] { loader->StartFrontEnds(); });
 
     backendThread.join();
@@ -108,6 +128,11 @@ const static void EntryMain()
 #ifdef _WIN32
 std::unique_ptr<std::thread> g_millenniumThread;
 
+/**
+ * @brief Entry point for Millennium on Windows.
+ * @param fdwReason The reason for calling the DLL.
+ * @return True if the DLL was successfully loaded, false otherwise.
+ */
 int __stdcall DllMain(void*, unsigned long fdwReason, void*) 
 {
     switch (fdwReason) 
@@ -134,12 +159,6 @@ int __stdcall DllMain(void*, unsigned long fdwReason, void*)
     return true;
 }
 
-int APIENTRY WinMain(HINSTANCE hInst, HINSTANCE hInstPrev, PSTR cmdline, int cmdShow)
-{
-    //boxer::show("Millennium successfully loaded!", "Yay!");
-    //EntryMain();
-    return 1;
-}
 #elif __linux__
 #include <stdio.h>
 #include <stdlib.h>

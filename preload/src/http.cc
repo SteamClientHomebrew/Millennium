@@ -5,6 +5,14 @@
 #include <shimlogger.h>
 #include <http.h>   
 
+/**
+ * @brief Write a file to a callback.
+ * @param contents The contents of the file.
+ * @param size The size of the memory.
+ * @param nMemoryBytes The number of memory bytes.
+ * @param userPtr The user pointer.
+ * @return The size of the memory bytes.
+ */
 size_t WriteFileCallback(void* contents, size_t size, size_t nMemoryBytes, void* userPtr) 
 {
     std::ofstream* file = static_cast<std::ofstream*>(userPtr);
@@ -13,12 +21,26 @@ size_t WriteFileCallback(void* contents, size_t size, size_t nMemoryBytes, void*
     return totalSize;
 }
 
+/**
+ * @brief Write a byte to a string.
+ * @param charPtr The pointer to the character.
+ * @param size The size of the memory.
+ * @param nMemoryBytes The number of memory bytes.
+ * @param data The string to write to.
+ * @return The size of the memory bytes.
+ */
 size_t WriteByteCallback(char* charPtr, size_t size, size_t nMemoryBytes, std::string* data) 
 {
     data->append(charPtr, size * nMemoryBytes);
     return size * nMemoryBytes;
 }
 
+/**
+ * @brief Download a resource from a URL and save it to a file.
+ * @param url The URL to download the resource from.
+ * @param outputFilePath The path to save the downloaded resource to.
+ * @return True if the resource was downloaded successfully, false otherwise.
+ */
 bool DownloadResource(const std::string& url, const std::string& outputFilePath) 
 {
     CURL* curl;
@@ -61,6 +83,14 @@ bool DownloadResource(const std::string& url, const std::string& outputFilePath)
     return true;
 }
 
+/**
+ * @brief Fetch a URL and return the response, Optionally retry fetching the URL until it succeeds.
+ * @note This function will automatically follow redirects.
+ * 
+ * @param url The URL to fetch.
+ * @param shouldRetryUntilSuccess Whether to retry fetching the URL until it succeeds.
+ * @return The response from the URL.
+ */
 const std::string Fetch(const char* url, bool shouldRetryUntilSuccess) 
 {
     CURL* curl;

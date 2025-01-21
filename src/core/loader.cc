@@ -20,6 +20,12 @@ websocketpp::connection_hdl browserHandle;
 std::string sharedJsContextSessionId;
 std::shared_ptr<InterpreterMutex> g_threadTerminateFlag = std::make_shared<InterpreterMutex>();
 
+/**
+ * @brief Post a message to the SharedJSContext window.
+ * @param data The data to post.
+ * 
+ * @note ID's are managed by the caller. 
+ */
 bool Sockets::PostShared(nlohmann::json data) 
 {
     if (sharedJsContextSessionId.empty()) 
@@ -31,6 +37,12 @@ bool Sockets::PostShared(nlohmann::json data)
     return Sockets::PostGlobal(data);
 }
 
+/**
+ * @brief Post a message to the entire browser.
+ * @param data The data to post.
+ * 
+ * @note ID's are managed by the caller.
+ */
 bool Sockets::PostGlobal(nlohmann::json data) 
 {
     if (browserClient == nullptr) 
@@ -42,7 +54,11 @@ bool Sockets::PostGlobal(nlohmann::json data)
     return true;
 }
 
-void Sockets::Shutdown() 
+/**
+ * @brief Shutdown the browser connection.
+ * 
+ */
+void Sockets::Shutdown()
 {
     try
     {
@@ -56,7 +72,6 @@ void Sockets::Shutdown()
     {
         LOG_ERROR("Failed to close browser connection: {}", e.what());
     }
-    
 }
 
 class CEFBrowser
