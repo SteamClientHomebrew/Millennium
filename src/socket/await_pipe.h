@@ -122,7 +122,13 @@ private:
         {
             if (ntohs((u_short)tcpTable->table[i].dwLocalPort) == debuggerPort)
             {
-                const auto targetProcess = std::filesystem::path(GetProcessName((int)tcpTable->table[i].dwOwningPid));
+                const auto targetProcess = std::filesystem::path(GetProcessName(tcpTable->table[i].dwOwningPid));
+
+                if (targetProcess.string().empty())
+                {
+                    // Skip if we can't get the process name
+                    continue;
+                }
 
                 return { 
                     targetProcess.filename().string() == "steamwebhelper.exe", 
@@ -130,40 +136,7 @@ private:
                 };
             }
         }
-#elif __linux__
-        // Linux-specific code
-        //std::ifstream tcpFile("/proc/net/tcp");
-        //std::string line;
-
-        //while (std::getline(tcpFile, line)) 
-        //{
-        //    std::istringstream iss(line);
-        //    std::string localAddress;
-
-        //    if (iss >> localAddress && localAddress.find(":" + std::to_string(debuggerPort)) != std::string::npos) 
-        //    {
-        //        // Extract and print process ID or details
-        //        // This is a simplified example, more parsing required in real case
-
-        //        return { true, {} };
-        //    }
-        //}
-        return { true, {} };
-#elif __APPLE__
-        // macOS-specific code using lsof
-        std::string command = "lsof -i :" + std::to_string(port) + " | grep LISTEN";
-        FILE* fp = popen(command.c_str(), "r");
-        if (fp) 
-        {
-            char buffer[128];
-            while (fgets(buffer, sizeof(buffer), fp) != nullptr) 
-            {
-                result += buffer;
-            }
-            pclose(fp);
-        }
 #endif
-
         return { true };
     }
 
