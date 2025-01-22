@@ -109,17 +109,13 @@ The following guide includes the installation of the following:
 1. Navigate to somewhere you want to build to
 1. Next, download and build Python 3.11.8 (Win32) with the following commands. 
    ```ps1
-    # download python 3.11.8 source code
     Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz" -OutFile "Python-3.11.8.tgz"
-    # extract the tarball
     tar -xzvf "Python-3.11.8.tgz"
-    # set the working directory to the extracted folder
     Set-Location "Python-3.11.8"
 
     $vcxprojPath = "PCbuild/pythoncore.vcxproj"
-    $content = Get-Content $vcxprojPath -Raw  # Read the entire content as a single string
+    $content = Get-Content $vcxprojPath -Raw  
 
-    # Force the runtime library to be MultiThreaded for Release and Debug configurations
     $pattern = '</ClCompile>'
     $replacement = @"
     <RuntimeLibrary Condition="'`$(Configuration)|`$(Platform)'=='Release|Win32'">MultiThreaded</RuntimeLibrary>
@@ -130,18 +126,11 @@ The following guide includes the installation of the following:
     $modifiedContent = $content -replace [regex]::Escape($pattern), $replacement
     $modifiedContent | Set-Content $vcxprojPath
 
-    # get python external libs before build
     ./PCbuild/get_externals.bat
-    # build python 3.11.8 as win32 and release
     msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
     msbuild PCBuild/pcbuild.sln /p:Configuration=Debug /p:Platform=Win32 /p:RuntimeLibrary=MT
-    # verify python is installed
     PCbuild/win32/python.exe --version
 
-
-
-    # Move the python311.dll binary to the release directory
-    # Move the python311.dll binary to the temp directory
     $tempDir = "C:\Temp\PythonBuild"
     New-Item -ItemType Directory -Force -Path $tempDir
 
@@ -150,11 +139,9 @@ The following guide includes the installation of the following:
     Copy-Item PCbuild/win32/python311.lib -Destination $tempDir
     Copy-Item PCbuild/win32/python311_d.lib -Destination $tempDir
 
-    # remove all content from the Python-3.11.8 directory
     Set-Location ../
     Remove-Item -Recurse -Force -Path "Python-3.11.8"
 
-    # move the python binaries to the build directory
     New-Item -ItemType Directory -Force -Path "Python-3.11.8"
     Copy-Item -Recurse -Force -Path $tempDir -Destination "Python-3.11.8"
 
