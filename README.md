@@ -102,7 +102,7 @@ The following guide includes the installation of the following:
 - [MSYS2](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20241208.exe) (MinGW32 specifically)
 - [Visual Studio Build Tools ](https://aka.ms/vs/17/release/vs_BuildTools.exe)
 
-
+### Build Steps
 1. Download and install [MSYS2](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20241208.exe)
 1. Download and install [Visual Studio Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe)
 1. Run `Developer PowerShell for VS 2022` installed from the previous step.
