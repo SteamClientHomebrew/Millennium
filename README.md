@@ -89,3 +89,49 @@ Supported Platforms:
 - Windows (x86/x64/ARM) NT (10 and newer)
 - Linux (x84/x86_64/i686/i386)
 - OSX (Support planned, WIP)
+
+
+## Building from source
+
+### Windows 10/11
+
+Overview:
+
+Building Millennium will require a long list of steps, however everything should work smoothly given you follow the instructions
+
+The following guide includes the installation of the following:
+- [MSYS2](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20241208.exe) (MinGW32 specifically)
+- [Visual Studio Build Tools ](https://aka.ms/vs/17/release/vs_BuildTools.exe)
+
+
+1. Download and install [MSYS2](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20241208.exe)
+1. Download and install [Visual Studio Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe)
+1. Run `Developer PowerShell for VS 2022` installed from the previous step.
+1. Navigate to somewhere you want to build to
+1. Next, download and build Python 3.11.8 (Win32) with the following command. 
+   `iwr -useb "https://raw.githubusercontent.com/shdwmtr/millennium/refs/heads/main/scripts/user/python.ps1" | iex`
+1. Now, open MSYS2, any of the shells should work fine.
+1. Run the following and close the shell.
+   ```bash
+    pacman -Syu
+    pacman -S mingw-w64-i686-cmake
+    pacman -S --needed base-devel mingw-w64-i686-toolchain
+    pacman -S git
+   ```
+1. Open CMD, and navigate to somewhere you want to build millennium and then run:
+`C:\msys64\msys2_shell.cmd -defterm -no-start -mingw32`
+1. Clone the Millennium repository
+    ```cmd
+    git clone https://github.com/shdwmtr/millennium --recursive
+    cd millennium
+    ```
+1. From the previous step, where we build python, copy everything from `Python-3.11.8/PythonBuild/` to `%MILLENNIUM_SRC_DIR%/vendor/python`
+1. Build Millennium
+    ```bash
+    cmake --preset="windows-mingw-debug"
+    # or for release
+    cmake --preset="windows-mingw-release"
+    cmake --build ./build
+    ```
+
+
