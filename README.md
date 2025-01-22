@@ -90,12 +90,11 @@ Supported Platforms:
 - Linux (x84/x86_64/i686/i386)
 - OSX (Support planned, WIP)
 
+&nbsp;
 
 ## Building from source
 
 ### Windows 10/11
-
-Overview:
 
 Building Millennium will require a long list of steps, however everything should work smoothly given you follow the instructions
 
@@ -119,7 +118,7 @@ The following guide includes the installation of the following:
     pacman -S git
    ```
 1. Open CMD, and navigate to somewhere you want to build millennium and then run:
-`C:\msys64\msys2_shell.cmd -defterm -no-start -mingw32`
+`C:\msys64\msys2_shell.cmd -defterm -no-start -mingw32` this will put you in the MinGW shell
 1. Clone the Millennium repository
     ```cmd
     git clone https://github.com/shdwmtr/millennium --recursive
@@ -133,5 +132,22 @@ The following guide includes the installation of the following:
     cmake --preset="windows-mingw-release"
     cmake --build ./build
     ```
+
+1. Next, you'll need to build Millenniums internal plugin from source. 
+You can install NodeJs from MinGW, or you could use your local install from PowerShell/CMD
+
+    ```bash
+    cd "%MILLENNIUM_SRC_DIR%/assets"
+    npm install
+    npm run dev
+    ```
+
+    Millennium expects these shim assets to be at `%MILLENNIUM_DIR%/ext/data/assets`
+
+    where `%MILLENNIUM_DIR%` is:
+    - Steam path (default `C:\Program Files (x86)\Steam`) on Windows
+    - `~/.millennium` on Unix
+
+    You can either symlink them or copy them over. 
 
 
