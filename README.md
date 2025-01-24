@@ -150,34 +150,34 @@ The following guide includes the installation of the following:
 1. Now, open MSYS2, any of the shells should work fine.
 1. Run the following and close the shell.
    ```bash
-    pacman -Syu
-    pacman -S mingw-w64-i686-cmake
-    pacman -S --needed base-devel mingw-w64-i686-toolchain
-    pacman -S git
+    $ pacman -Syu
+    $ pacman -S mingw-w64-i686-cmake
+    $ pacman -S --needed base-devel mingw-w64-i686-toolchain
+    $ pacman -S git
    ```
 1. Open CMD, and navigate to somewhere you want to build millennium and then run:
 `C:\msys64\msys2_shell.cmd -defterm -no-start -mingw32` this will put you in the MinGW shell
 1. Clone the Millennium repository
     ```cmd
-    git clone https://github.com/shdwmtr/millennium --recursive
-    cd millennium
+    $ git clone https://github.com/shdwmtr/millennium --recursive
+    $ cd millennium
     ```
 1. From the previous step, where we built python, copy the files to `%MILLENNIUM_SRC_DIR%/vendor/python`
 1. Build Millennium
     ```bash
-    cmake --preset="windows-mingw-debug"
+    $ cmake --preset="windows-mingw-debug"
     # or for release
-    cmake --preset="windows-mingw-release"
-    cmake --build ./build
+    $ cmake --preset="windows-mingw-release"
+    $ cmake --build ./build
     ```
 
 1. Next, you'll need to build Millenniums internal plugin from source. 
 You can install NodeJs from MinGW, or you could use your local install from PowerShell/CMD
 
     ```bash
-    cd "%MILLENNIUM_SRC_DIR%/assets"
-    npm install
-    npm run dev
+    $ cd "%MILLENNIUM_SRC_DIR%/assets"
+    $ npm install
+    $ npm run dev
     ```
 
     Millennium expects these shim assets to be at `%MILLENNIUM_DIR%/ext/data/assets`
