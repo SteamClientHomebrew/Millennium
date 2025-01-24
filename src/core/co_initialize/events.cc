@@ -11,13 +11,10 @@ std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
         if (plugin.event == BACKEND_LOAD_FAILED)
         {
             failedBackends += plugin.pluginName + ", ";
-
         }
     }
 
-    return failedBackends.empty() ? 
-        "none" : 
-        fmt::format("[{}]", failedBackends.substr(0, failedBackends.size() - 2));
+    return failedBackends.empty() ? "none" : fmt::format("[{}]", failedBackends.substr(0, failedBackends.size() - 2));
 }
 
 std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
@@ -32,9 +29,7 @@ std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
         }
     }
 
-    return successfulBackends.empty() ? 
-        "none" : 
-        fmt::format("[{}]", successfulBackends.substr(0, successfulBackends.size() - 2));
+    return successfulBackends.empty() ? "none" : fmt::format("[{}]", successfulBackends.substr(0, successfulBackends.size() - 2));
 }
 
 bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
@@ -57,7 +52,7 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
     return false;
 }
 
-void CoInitializer::BackendCallbacks::StatusDipatch()
+void CoInitializer::BackendCallbacks::StatusDispatch()
 {
     if (this->EvaluateBackendStatus())
     {
@@ -65,11 +60,11 @@ void CoInitializer::BackendCallbacks::StatusDipatch()
         {
             auto& callbacks = listeners[ON_BACKEND_READY_EVENT];
 
-            for (auto it = callbacks.begin(); it != callbacks.end(); )
+            for (auto callbackIterator = callbacks.begin(); callbackIterator != callbacks.end(); )
             {
-                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&(*it));
-                (*it)(); // Call the callback
-                it = callbacks.erase(it); // Remove callback after calling
+                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&(*callbackIterator));
+                (*callbackIterator)(); // Call the callback
+                callbackIterator = callbacks.erase(callbackIterator); // Remove callback after calling
             }
             isReadyForCallback = true;
         }
@@ -93,7 +88,7 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 
     this->emittedPlugins.push_back(plugin);
 
-    this->StatusDipatch();
+    this->StatusDispatch();
 }
 
 void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin)
@@ -105,7 +100,7 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin)
     
     Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
 
-    this->StatusDipatch();
+    this->StatusDispatch();
 }
 
 void CoInitializer::BackendCallbacks::Reset() 
@@ -117,13 +112,8 @@ void CoInitializer::BackendCallbacks::Reset()
 
 void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback) 
 {
-    const auto invokeCallback = [&]() {
-        Logger.Log("\033[1;35mInvoking on load event @ {}\033[0m", (void*)&callback);
-        callback();
-    };
-
     Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
     listeners[ON_BACKEND_READY_EVENT].push_back(callback);
 
-    this->StatusDipatch();
+    this->StatusDispatch();
 }

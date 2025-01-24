@@ -77,7 +77,7 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 
     if (bFailedRead)
     {
-        LOG_ERROR("failed to retrieve file info from disk.");
+        LOG_ERROR("failed to retrieve file '{}' info from disk.", localFilePath.string());
     }
 
     const std::string fileContent((std::istreambuf_iterator<char>(localFileStream)), std::istreambuf_iterator<char>());

@@ -110,8 +110,6 @@ public:
         const auto json = nlohmann::json::parse(msg->get_payload());
         const std::string method = json.value("method", std::string());
 
-        // std::cout << json.dump(4) << std::endl;
-
         if (json.contains("id") && json["id"] == 0 && 
             json.contains("result") && json["result"].is_object() && 
             json["result"].contains("targetInfos") && json["result"]["targetInfos"].is_array()) 
@@ -161,26 +159,26 @@ public:
 
     const void UnPatchSharedJSContext()
     {
-        Logger.Log("Restoring shared_js_context...");
+        Logger.Log("Restoring SharedJSContext...");
 
-        const auto shared_js_path = SystemIO::GetSteamPath() / "steamui" / "index.html";
-        const auto shared_js_bak_path = SystemIO::GetSteamPath() / "steamui" / "orig.html";
+        const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
+        const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
 
         try
         {
-            if (std::filesystem::exists(shared_js_bak_path) && std::filesystem::is_regular_file(shared_js_bak_path))
+            if (std::filesystem::exists(SteamUIModulePathBackup) && std::filesystem::is_regular_file(SteamUIModulePathBackup))
             {
-                std::filesystem::remove(shared_js_path);
+                std::filesystem::remove(SteamUIModulePath);
             }
 
-            std::filesystem::rename(shared_js_bak_path, shared_js_path);
+            std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
         }
         catch (const std::exception& e)
         {
-            Logger.Warn("Failed to restore shared_js_context: {}", e.what());
+            Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
         }
 
-        Logger.Log("Restored shared_js_context...");
+        Logger.Log("Restored SharedJSContext...");
         Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
     }
 
@@ -194,7 +192,7 @@ public:
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
     {
-        m_startTime = std::chrono::system_clock::now();
+        m_startTime   = std::chrono::system_clock::now();
         browserClient = client; 
         browserHandle = handle;
 
@@ -213,15 +211,14 @@ public:
 
 const void PluginLoader::Initialize()
 {
-    m_settingsStorePtr = std::make_unique<SettingsStore>();
-    m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
+    m_settingsStorePtr  = std::make_unique<SettingsStore>();
+    m_pluginsPtr        = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
     m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
 
     m_settingsStorePtr->InitializeSettingsStore();
     m_ipcPort = IPCMain::OpenConnection();
 
     Logger.Log("Ports: {{ FTP: {}, IPC: {} }}", m_ftpPort, m_ipcPort);
-    this->PrintActivePlugins();
 }
 
 PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
@@ -243,10 +240,15 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
     return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps));
 }
 
+/**
+ * @brief Injects webkit shims into the SteamUI.    
+ * All hooks are internally stored in the function and are removed upon re-injection. 
+ */
 const void PluginLoader::InjectWebkitShims() 
 {
     static std::vector<int> hookIds;
 
+    /** Clear all previous hooks if there are any */
     if (!hookIds.empty())
     {
         const auto moduleList = WebkitHandler::get().m_hookListPtr;
@@ -265,6 +267,7 @@ const void PluginLoader::InjectWebkitShims()
     const auto allPlugins = this->m_settingsStorePtr->ParseAllPlugins();
     std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
 
+    // Inject all webkit shims for enabled plugins if they have shims
     for (auto& plugin : allPlugins)
     {
         const auto absolutePath = SystemIO::GetInstallPath() / "plugins" / plugin.webkitAbsolutePath;
@@ -321,23 +324,32 @@ const void PluginLoader::PrintActivePlugins()
     Logger.Log(pluginList);
 }
 
+/**
+ * @brief Start the package manager preload module.
+ * 
+ * The preloader module is responsible for python package management.
+ * All packages are grouped and shared when needed, to prevent wasting space.
+ * @see assets\pipx\main.py
+ */
 const void StartPreloader(PythonManager& manager)
 {
     std::promise<void> promise;
 
-    SettingsStore::PluginTypeSchema plugin = 
+    SettingsStore::PluginTypeSchema plugin
     {
         .pluginName = "pipx",
         .backendAbsoluteDirectory = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / "pipx",
         .isInternal = true
     };
 
+    /** Create instance on a separate thread to prevent IO blocking of concurrent threads */
     manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin) 
     {
         Logger.Log("Started preloader module");
         const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
         PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
+        /** Set plugin name in the global dictionary so its stdout can be retrieved by the logger. */
         SetPluginSecretName(globalDictionary, plugin.pluginName);
 
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
@@ -358,10 +370,10 @@ const void StartPreloader(PythonManager& manager)
         }
 
         Logger.Log("Preloader finished...");
-
         promise.set_value();
     });
 
+    /* Wait for the package manager plugin to exit, signalling we can now start other plugins */
     promise.get_future().get();
     manager.DestroyPythonInstance("pipx");
 }

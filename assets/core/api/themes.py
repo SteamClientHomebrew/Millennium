@@ -138,7 +138,7 @@ def is_valid(theme_native_name: str) -> bool:
         return True
     except json.JSONDecodeError:
         return False
-
+    
 
 def find_all_themes() -> str:
     path = Millennium.steam_path() + "/steamui/skins"

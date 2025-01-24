@@ -43,7 +43,7 @@ namespace CoInitializer
 		using EventCallback = std::function<void()>;
 
 		void RegisterForLoad(EventCallback callback);
-		void StatusDipatch();
+		void StatusDispatch();
 		void BackendLoaded(PluginTypeSchema plugin);
 		void BackendUnLoaded(PluginTypeSchema plugin);
 		void Reset();

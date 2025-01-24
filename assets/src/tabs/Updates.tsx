@@ -130,14 +130,15 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
                 <>
                     <Field
                         key={index}
-                        label=<div style={updateLabelStyles}>
+                        label={<div style={updateLabelStyles}>
                             <div className="update-item-type" style={{ color: "white", fontSize: "12px", padding: "4px", background: "#007eff", borderRadius: "6px" }}>Theme</div>
                             {update.name}
-                        </div>
-                        description=<div style={updateDescriptionStyles}>
+                        </div>}
+                        description={<div style={updateDescriptionStyles}>
                             <div><b>{locale.updatePanelReleasedTag}</b> {update?.date}</div>
                             <div><b>{locale.updatePanelReleasePatchNotes}</b> {update?.message}</div>
-                        </div>
+                        </div>}
+                        bottomSeparator={updates.length - 1 === index ? 'none' : 'standard'}
                     >
                         <div style={fieldButtonsStyles}>
                             <DialogButton

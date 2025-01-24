@@ -1,3 +1,5 @@
+import re
+import cssutils
 import Millennium, json, os # type: ignore
 
 from api.css_analyzer import ColorTypes, convert_from_hex, convert_to_hex, parse_root
@@ -191,6 +193,77 @@ class Config:
             root_colors = os.path.join(Millennium.steam_path(), "steamui", "skins", self.name, self.theme["data"]["RootColors"])
             self.setup_colors(root_colors)
 
+    def does_theme_use_accent_color(self) -> bool:
+
+        if "data" not in self.theme:
+            logger.log("Theme data not found")
+            return False
+
+        parsed_data = parse_conditional_patches(self.theme["data"])
+
+        if self.theme["data"].get("UseDefaultPatches", False):
+
+            # Default patch CSS files. 
+            parsed_data.append({ "fileType": "TargetCss", "targetPath": "libraryroot.custom.css" })
+            parsed_data.append({ "fileType": "TargetCss", "targetPath": "bigpicture.custom.css"  })
+            parsed_data.append({ "fileType": "TargetCss", "targetPath": "friends.custom.css"     })
+
+        def get_all_imports(css_path, visited=None):
+            if visited is None:
+                visited = set()
+            
+            # Normalize the file path
+            css_path = os.path.abspath(css_path)
+            
+            # Avoid re-processing files
+            if css_path in visited:
+                return visited
+            
+            visited.add(css_path)
+            
+            # Read the CSS content
+            try:
+                with open(css_path, "r", encoding="utf-8") as file:
+                    css_content = file.read()
+            except FileNotFoundError:
+                return visited
+
+            # Regex to match @import rules
+            import_pattern = re.compile(r'@import\s+(?:url\()?["\']?(.*?)["\']?\)?;')
+
+            # Find all @import paths in the CSS
+            for match in import_pattern.finditer(css_content):
+                imported_path = match.group(1)
+                if not imported_path:
+                    continue
+                
+                # Resolve relative paths
+                if not imported_path.startswith(("http://", "https://")):
+                    imported_path = os.path.join(os.path.dirname(css_path), imported_path)
+                    imported_path = os.path.abspath(imported_path)
+                
+                get_all_imports(imported_path, visited)
+            
+            return visited
+                
+
+        for patch in parsed_data:
+            if patch['fileType'] == 'TargetCss':
+                css_path = os.path.join(Millennium.steam_path(), "steamui", "skins", self.name, patch['targetPath'])
+                imports = get_all_imports(css_path)
+
+                for import_path in imports:
+                    try:
+                        with open(import_path, "r", encoding="utf-8") as file:
+                            css_content = file.read()
+
+                            if "--SystemAccentColor" in css_content:
+                                return True
+                    except FileNotFoundError:
+                        continue
+
+        return False
+                
 
     def get_conditionals(self):
         return json.dumps(self.config["Conditions"])

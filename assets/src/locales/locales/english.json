@@ -16,6 +16,8 @@
     "themePanelInjectCSSToolTip": "Decide whether themes are allowed to insert stylesheets into Steam. (requires reload)",
     "themePanelCustomAccentColor": "Custom Accent Color",
     "themePanelCustomAccentColorToolTip": "Set a custom accent color for themes that support it (requires reload)",
+    "themePanelCustomColorNotUsed": "Note: The active theme does NOT use this setting.",
+    "themePanelCustomColorUsed": "Note: The active theme uses this setting!",
     "updatePanelHasUpdates": "Updates Available!",
     "updatePanelHasUpdatesSub": "Millennium found the following updates for your themes.",
     "updatePanelReleasedTag": "Released:",

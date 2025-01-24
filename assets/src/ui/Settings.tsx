@@ -15,8 +15,8 @@ function RenderSettingsModal(_context: any) {
 					onclick: () => {
 						showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
 							strTitle: "Millennium",
-							popupHeight: 675,
-							popupWidth: 850,
+							popupHeight: 601,
+							popupWidth: 842,
 						});
 					},
 				})

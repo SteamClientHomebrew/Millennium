@@ -4,7 +4,7 @@ import { DispatchSystemColors } from "../patcher/SystemColors";
 import { settingsClasses } from "../classes";
 import { locale } from "../locales";
 
-const RenderAccentColorPicker = () => {
+const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentThemeUsesAccentColor: boolean }) => {
     const [colorState, setColorState] = useState(pluginSelf.systemColors.accent.substring(0, 7));
 
     const UpdateAllWindows = () => {
@@ -42,7 +42,21 @@ const RenderAccentColorPicker = () => {
         <Field
             label={locale.themePanelCustomAccentColor}
             description={
-                locale.themePanelCustomAccentColorToolTip
+                <>
+                    <div>{locale.themePanelCustomAccentColorToolTip}</div>
+                    {
+                        currentThemeUsesAccentColor !== undefined ?
+
+                            ((!currentThemeUsesAccentColor) ? (
+                                <div className="themeDoesNotUseAccent" style={{ color: "#ae3232" }}>{locale.themePanelCustomColorNotUsed}</div>
+                            )
+                                :
+                                <div className="themeDoesUseAccent" style={{ color: "rgb(71 126 189)" }}>{locale.themePanelCustomColorUsed}</div>
+                            )
+                            :
+                            <div>Checking theme information...</div>
+                    }
+                </>
             }
         >
             {<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>Reset</DialogButton>}

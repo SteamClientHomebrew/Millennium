@@ -47,7 +47,7 @@ private:
     /** Maintain backwards compatibility for themes that explicitly rely on this url */
     const char* m_oldHookAddress       = "https://pseudo.millennium.app/";
 
-    // must share the same base url, or be whitelisted.
+    /** New hook URLS (1/21/2025) */
     const char* m_javaScriptVirtualUrl = "https://js.millennium.app/";
     const char* m_styleSheetVirtualUrl = "https://css.millennium.app/";
 

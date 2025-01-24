@@ -1,3 +1,15 @@
+/**
+ * serv.cc
+ * 
+ * This FTP is used strictly for internal use.
+ * The port in which the FTP resides on is dynamic and is chosen at runtime to 
+ * prevent any unwanted interaction from external sources.
+ * 
+ * This server is primarily used to provide a way to read local files 
+ * from the host machine from the SteamUI "virtual machine".
+ * ex. Loading plugin files, assets, etc.
+ */
+
 #include <iostream>
 #include <crow.h>
 #include <sys/locals.h>
@@ -15,6 +27,7 @@ enum eFileType
     Other
 };
 
+/** FTP File types, these should be enough */
 static std::map<eFileType, std::string> fileTypes 
 {
     { eFileType::StyleSheet, "text/css" },
@@ -88,6 +101,7 @@ namespace Crow
         app->loglevel(crow::LogLevel::Critical);
         app->port(port);
 
+        /** Bind the request handler for all request paths */
         CROW_ROUTE((*app), "/<path>")(HandleRequest);
         return std::make_tuple(app, port);
     }

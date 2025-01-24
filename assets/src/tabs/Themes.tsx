@@ -10,7 +10,8 @@ import {
     pluginSelf,
     Toggle,
     showModal,
-    Field
+    Field,
+    callable
 } from '@steambrew/client'
 import * as CustomIcons from '../custom_components/CustomIcons'
 
@@ -128,6 +129,7 @@ const ThemeViewModal: React.FC = () => {
     const [active, setActive] = useState<string>()
     const [jsState, setJsState] = useState<boolean>(undefined)
     const [cssState, setCssState] = useState<boolean>(undefined)
+    const [themeUsesAccentColor, setThemeUsesAccentColor] = useState<boolean>(undefined)
 
     useEffect(() => {
 
@@ -138,6 +140,14 @@ const ThemeViewModal: React.FC = () => {
 
         setJsState(pluginSelf.scriptsAllowed)
         setCssState(pluginSelf.stylesAllowed)
+
+        const bDoesUseAccentColor = callable<[]>("cfg.does_theme_use_accent_color");
+
+        bDoesUseAccentColor().then((result: any) => {
+            console.log("Does theme use accent color", result)
+            setThemeUsesAccentColor(result)
+        })
+
     }, [])
 
     const onScriptToggle = (enabled: boolean) => {
@@ -278,7 +288,7 @@ const ThemeViewModal: React.FC = () => {
                 )}
             </Field>
 
-            <RenderAccentColorPicker />
+            <RenderAccentColorPicker currentThemeUsesAccentColor={themeUsesAccentColor} />
 
             {/* </DialogBody> */}
         </>
