@@ -106,13 +106,10 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
         const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
         PyErr_Clear();
 
-        if (errorMessage == "name 'plugin' is not defined")
-        {
-            Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call _load on {}", pluginName), COL_RED);
-            return;
-        }
+        const auto formattedMessage = fmt::format("Millennium failed to call _load on {}: {}\n{}{}", pluginName, COL_RED, traceback, COL_RESET);
 
-        Logger.PrintMessage(" FFI-ERROR ", fmt::format("Millennium failed to call _load on {}: {}\n{}{}", pluginName, COL_RED, traceback, COL_RESET), COL_RED);
+        ErrorToLogger(pluginName, formattedMessage);
+        Logger.PrintMessage(" BOOT ", formattedMessage, COL_RED);
     };
 
     PyObject *pluginComponent = PyDict_GetItemString(global_dict, "Plugin");
@@ -140,7 +137,16 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
         return;
     }
 
-    PyObject_CallObject(loadMethodAttribute, NULL);
+    PyObject *result = PyObject_CallObject(loadMethodAttribute, NULL);
+    if (result == NULL) 
+    {
+        PrintError();
+    } 
+    else 
+    {
+        Py_DECREF(result); 
+    }
+
     Py_DECREF(loadMethodAttribute);
     Py_DECREF(pluginComponentInstance);
 }

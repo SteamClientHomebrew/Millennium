@@ -90,7 +90,17 @@ std::tuple<std::string, std::string> Python::GetExceptionInformaton()
 
 const Python::EvalResult EvaluatePython(std::string pluginName, std::string script) 
 {
-    PyObject* globalDictionaryObj = PyModule_GetDict(PyImport_AddModule("__main__"));
+    PyObject* mainModule = PyImport_AddModule("__main__");
+
+    if (!mainModule) 
+    {
+        const auto message = fmt::format("Failed to fetch python module on [{}]. This usually means the GIL could not be acquired either because the backend froze or crashed", pluginName);
+
+        ErrorToLogger(pluginName, message);
+        return { message, Python::Types::Error };
+    }
+
+    PyObject* globalDictionaryObj = PyModule_GetDict(mainModule);
     PyObject* EvaluatedObj = PyRun_String(script.c_str(), Py_eval_input, globalDictionaryObj, globalDictionaryObj);
 
     if (!EvaluatedObj && PyErr_Occurred()) 
