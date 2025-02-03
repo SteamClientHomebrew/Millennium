@@ -1,13 +1,12 @@
-﻿#define _WINSOCKAPI_
-#define WIN32_LEAN_AND_MEAN 
-#define UNICODE
+﻿#define UNICODE
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN 
 #include <winsock2.h>
+#define _WINSOCKAPI_
 #endif
 #include <filesystem>
 #include <fstream>
 #include <fmt/core.h>
-// #include <boxer/boxer.h>
 #include <sys/log.h>
 #include <core/loader.h>
 #include <core/py_controller/co_spawn.h>
@@ -87,7 +86,10 @@ void OnTerminate()
  */
 const static void EntryMain() 
 {
-    std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
+    if (!IsDebuggerPresent()) 
+    {
+        std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
+    }
     
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
@@ -119,39 +121,38 @@ const static void EntryMain()
     /** Start the injection process into the Steam web helper */
     auto frontendThreads = std::thread([&loader] { loader->StartFrontEnds(); });
 
-    backendThread.join();
+    backendThread  .join();
     frontendThreads.join();
 
     Logger.Log("Millennium has gracefully shut down.");
 }
 
 #ifdef _WIN32
-std::unique_ptr<std::thread> g_millenniumThread;
+HANDLE g_hMillenniumThread;
 
 /**
  * @brief Entry point for Millennium on Windows.
  * @param fdwReason The reason for calling the DLL.
  * @return True if the DLL was successfully loaded, false otherwise.
  */
-int __stdcall DllMain(void*, unsigned long fdwReason, void*) 
+int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
     switch (fdwReason) 
     {
         case DLL_PROCESS_ATTACH: 
         {
-            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+            const std::string threadName = fmt::format("Millennium@{}", MILLENNIUM_VERSION);
+
+            g_hMillenniumThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)EntryMain, NULL, 0, NULL);
+            SetThreadDescription(g_hMillenniumThread, std::wstring(threadName.begin(), threadName.end()).c_str());
             break;
         }
         case DLL_PROCESS_DETACH: 
         {
-            Logger.Log("Shutting down Millennium...");
-            std::exit(EXIT_SUCCESS);
-            g_threadTerminateFlag->flag.store(true);
-            Sockets::Shutdown();
-            g_millenniumThread->join();
-            Logger.PrintMessage(" MAIN ", "Millennium has been shut down.", COL_MAGENTA);
+            WinUtils::RestoreStdout();
+            Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
 
-            std::this_thread::sleep_for(std::chrono::seconds(1000));
+            std::exit(0);
             break;
         }
     }

@@ -160,6 +160,8 @@ const void BootstrapMillennium(HINSTANCE hinstDLL)
 		}
 
         freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+
         EnableVirtualTerminalProcessing();
     }
 

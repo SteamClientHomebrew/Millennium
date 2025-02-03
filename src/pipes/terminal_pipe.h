@@ -2,13 +2,10 @@
 #ifdef _WIN32
 #include <winbase.h>
 #include <io.h>
-#endif
-
 #include <sys/log.h>
 #include <fcntl.h>
 #include <core/py_controller/logger.h>
 
-#ifdef _WIN32
 auto now = std::chrono::system_clock::now();
 auto currentTimeStamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
 
@@ -135,22 +132,22 @@ namespace WinUtils {
 
     const int RedirectToPipe()
     {
-        if ((HANDLE)_get_osfhandle(_fileno(stdout)) == INVALID_HANDLE_VALUE) 
+        if ((HANDLE)_get_osfhandle(_fileno(stdout)) == INVALID_HANDLE_VALUE)
         {
-            // If for some reason the console is not allocated, stdout would be an invalid pipe handle, so we first need to redirect it to a valid handle to pipe it.
-            // Using NUL as a file name will redirect stdout to the void, but its still a valid handle.
+            // If for some reason the console is not allocated, stdout would be an invalid pipe handle,
+            // so we first need to redirect it to a valid handle to pipe it.
+            // Using NUL as a file name will redirect stdout to the void, but it's still a valid handle.
             freopen("NUL", "w", stdout);
         }
 
         HANDLE hPipe = CreateFileW(GetPipeName().c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
-        // Wait for the pipe to be created by the owner
         while (hPipe == INVALID_HANDLE_VALUE)
         {
             hPipe = CreateFileW(GetPipeName().c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        
+
         int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
         if (pipeDescriptor == -1)
         {
@@ -165,7 +162,6 @@ namespace WinUtils {
             return 1;
         }
 
-        // Redirect our allocated stdout handle to the pipe
         if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
         {
             fclose(pipeFile);
@@ -175,6 +171,16 @@ namespace WinUtils {
         setvbuf(stdout, NULL, _IONBF, 0);
         return 0;
     }
+
+    const int RestoreStdout()
+    {
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+
+        return 0;
+    }
+
+    __declspec(dllexport) std::unique_ptr<std::thread> terminalPipeThread;
 
     /**
      * @brief Redirects the standard output to a pipe to be processed by the plugin logger, and verifies the shim loader.
@@ -203,6 +209,7 @@ namespace WinUtils {
         {
             if (!std::filesystem::exists(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH))
             {
+                Logger.Log("No queued shim loader found...");
                 return;
             }
 
@@ -219,6 +226,7 @@ namespace WinUtils {
                 try 
                 {
                     std::filesystem::remove(SystemIO::GetInstallPath() / SHIM_LOADER_PATH);
+                    Logger.Log("Removed old inject shim...");
                     break;
                 }
                 catch (std::filesystem::filesystem_error& e)

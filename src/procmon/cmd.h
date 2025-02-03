@@ -1,10 +1,7 @@
 #pragma once  
 #include <string>
 #include <vector>
-#if defined(_WIN32)
-#if !defined(__MILLENNIUM_SHIM__)
-#include <winsock2.h>
-#endif
+#ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
 #endif
