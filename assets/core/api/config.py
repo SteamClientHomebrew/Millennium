@@ -196,7 +196,6 @@ class Config:
     def does_theme_use_accent_color(self) -> bool:
 
         if "data" not in self.theme:
-            logger.log("Theme data not found")
             return False
 
         parsed_data = parse_conditional_patches(self.theme["data"])

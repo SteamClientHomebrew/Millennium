@@ -11,7 +11,7 @@ auto currentTimeStamp = std::chrono::duration_cast<std::chrono::seconds>(now.tim
 
 static const wchar_t* PIPE_NAME = LR"(\\.\pipe\MillenniumStdoutPipe)"; 
 
-static const char* SHIM_LOADER_PATH = "user32.dll";
+static const char* SHIM_LOADER_PATH        = "user32.dll";
 static const char* SHIM_LOADER_QUEUED_PATH = "user32.dll.queued"; // The path of the recently updated shim loader waiting for an update.
 
 namespace WinUtils {
@@ -199,11 +199,11 @@ namespace WinUtils {
         std::thread(WinUtils::CreateTerminalPipe, hConsole).detach();
         WinUtils::RedirectToPipe();
 
-        if (WinUtils::CheckShimLoaderVersion(SystemIO::GetInstallPath() / SHIM_LOADER_PATH) == ShimLoaderProps::INVALID) 
-        {
-            MessageBoxA(NULL, "It appears one of Millennium's core assets are out of date, this may cause stability issues. It is recommended that you reinstall Millennium.", "Oops!", MB_ICONERROR | MB_OK);
-            return;
-        }
+        // if (WinUtils::CheckShimLoaderVersion(SystemIO::GetInstallPath() / SHIM_LOADER_PATH) == ShimLoaderProps::INVALID) 
+        // {
+        //     MessageBoxA(NULL, "It appears one of Millennium's core assets are out of date, this may cause stability issues. It is recommended that you reinstall Millennium.", "Oops!", MB_ICONERROR | MB_OK);
+        //     return;
+        // }
 
         try 
         {
@@ -221,17 +221,24 @@ namespace WinUtils {
 
             Logger.Log("Updating shim module from cache...");
 
+            const int TIMEOUT_IN_SECONDS = 10;
+            auto startTime = std::chrono::steady_clock::now();
+
+            // Wait for the preloader to be removed, as sometimes it's still in use for a few milliseconds.
             while (true) 
             {
                 try 
                 {
                     std::filesystem::remove(SystemIO::GetInstallPath() / SHIM_LOADER_PATH);
-                    Logger.Log("Removed old inject shim...");
                     break;
                 }
                 catch (std::filesystem::filesystem_error& e)
                 {
-                    continue;
+                    if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(TIMEOUT_IN_SECONDS))
+                    {
+                        throw std::runtime_error("Timed out while waiting for the preloader to be removed.");
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }
 

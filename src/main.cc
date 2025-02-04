@@ -96,12 +96,12 @@ const static void EntryMain()
 
     #ifdef _WIN32
     /**
-     * Windows requires a special environment setup to redirect stdout to a pipe.
-     * This is necessary for the logger component to capture stdout from Millennium.
-     * This is also necessary to update the updater module from cache.
-     */
+    * Windows requires a special environment setup to redirect stdout to a pipe.
+    * This is necessary for the logger component to capture stdout from Millennium.
+    * This is also necessary to update the updater module from cache.
+    */
     WinUtils::SetupWin32Environment();  
-    #endif
+    #endif 
 
     /**
      * Create an FTP server to allow plugins to be loaded from the host machine.
