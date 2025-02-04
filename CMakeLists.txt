@@ -73,8 +73,6 @@ if (WIN32)
   add_subdirectory(preload)
 endif()
 
-add_subdirectory(cli)
-
 find_package(CURL REQUIRED) # used for web requests. 
 include_directories(${LIBGIT2_INCLUDE_DIRS})
 
