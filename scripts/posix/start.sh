@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This function filters out the error message "from LD_PRELOAD cannot be preloaded" from 64 bit executables 
 # The messages are just failing module side effects and are not fatal. 
