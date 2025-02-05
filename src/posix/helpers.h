@@ -1,3 +1,4 @@
+#ifdef __linux__
 #include <fstream>
 #include <sys/utsname.h>
 #include <sys/auxv.h>
@@ -28,3 +29,4 @@ std::string GetSystemArchitecture()
 
     return info.machine;
 }
+#endif

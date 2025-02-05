@@ -100,7 +100,7 @@ set(SOURCE_FILES
   "src/main.cc"
   "src/core/loader.cc"
   "src/core/py_controller/co_spawn.cc"
-  "src/core/py_controller/logger.cc"
+  "src/core/py_hooks/logger.cc"
   "src/core/ffi/c_python.cc"
   "src/core/ffi/javascript.cc"
   "src/core/ffi/gil.cc"

@@ -64,15 +64,15 @@ private:
     std::string GetLocalDateStr()
     {
         auto now = std::chrono::system_clock::now();
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-        std::tm local_tm = *std::localtime(&now_c);
+        std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
+        std::tm localeTime = *std::localtime(&timeNow);
 
-        int year = local_tm.tm_year + 1900;
-        int month = local_tm.tm_mon + 1;
-        int day = local_tm.tm_mday;
-        int hour = local_tm.tm_hour;
-        int min = local_tm.tm_min;
-        int sec = local_tm.tm_sec;
+        int year  = localeTime.tm_year + 1900;
+        int month = localeTime.tm_mon + 1;
+        int day   = localeTime.tm_mday;
+        int hour  = localeTime.tm_hour;
+        int min   = localeTime.tm_min;
+        int sec   = localeTime.tm_sec;
 
         return fmt::format("[{}-{}-{} @ {}:{}:{}]", year, month, day, hour, min, sec);
     }
@@ -140,7 +140,6 @@ public:
 
     void Print(const std::string& message) 
     {
-        // fmt::print(message);
         file << message;
         file.flush();
 
@@ -154,7 +153,8 @@ public:
 
     std::string GetPluginName(bool upperCase = true) 
     { 
-        const auto toUpper = [](const std::string& str) {
+        const auto toUpper = [](const std::string& str) 
+        {
             std::string result = str;
             std::transform(result.begin(), result.end(), result.begin(), ::toupper);
             return result;
@@ -182,7 +182,6 @@ static void AddLoggerMessage(const std::string pluginName, const std::string mes
         }
     }
 
-    // Make a new logger for the plugin
     BackendLogger* newLogger = new BackendLogger(pluginName);
 
     switch (level) 
@@ -195,17 +194,9 @@ static void AddLoggerMessage(const std::string pluginName, const std::string mes
     g_loggerList.push_back(newLogger);
 }
 
-static const void InfoToLogger(const std::string pluginNme, const std::string message) {
-    AddLoggerMessage(pluginNme, message, BackendLogger::_INFO);    
-}
-
-static const void WarnToLogger(const std::string pluginNme, const std::string message) {
-    AddLoggerMessage(pluginNme, message, BackendLogger::_WARN);    
-}
-
-static const void ErrorToLogger(const std::string pluginNme, const std::string message) {
-    AddLoggerMessage(pluginNme, message, BackendLogger::_ERROR);    
-}
+static const void InfoToLogger (const std::string pluginNme, const std::string message) { AddLoggerMessage(pluginNme, message, BackendLogger::_INFO);  }
+static const void WarnToLogger (const std::string pluginNme, const std::string message) { AddLoggerMessage(pluginNme, message, BackendLogger::_WARN);  }
+static const void ErrorToLogger(const std::string pluginNme, const std::string message) { AddLoggerMessage(pluginNme, message, BackendLogger::_ERROR); }
 
 static const void RawToLogger(const std::string pluginName, const std::string message) 
 {

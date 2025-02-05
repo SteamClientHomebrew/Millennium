@@ -17,9 +17,6 @@
 #include <cstdlib>
 #include <cstdio>
 #endif
-#ifndef MILLENNIUM_CLI
-// #include <boxer/boxer.h>
-#endif
 #include <procmon/cmd.h>
 
 static bool bHasCheckedConnection = false;

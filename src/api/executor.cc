@@ -8,7 +8,7 @@
 #include <sys/locals.h>
 #include <core/hooks/web_load.h>
 #include <core/co_initialize/co_stub.h>
-#include <core/py_controller/logger.h>
+#include <core/py_hooks/logger.h>
 #include <sys/encoding.h>
 
 std::shared_ptr<PluginLoader> g_pluginLoader;

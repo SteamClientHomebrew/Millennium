@@ -2,8 +2,8 @@
 #include <api/executor.h>
 #include <core/loader.h>
 #include <core/ffi/ffi.h>
-#include <core/py_controller/bind_stdout.h>
-#include <core/py_controller/logger.h>
+#include <core/py_hooks/bind_stdout.h>
+#include <core/py_hooks/logger.h>
 #include <core/co_initialize/co_stub.h>
 // #include <boxer/boxer.h>
 
