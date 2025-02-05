@@ -40,16 +40,9 @@ const static void VerifyEnvironment()
  */
 void OnTerminate() 
 {
-    if (IsDebuggerPresent())    
-    {
-        // If a debugger is attached, let the debugger handle the exception
-        #ifdef _WIN32
-        __debugbreak();
-        #elif __linux__
-        raise(SIGTRAP);
-        #endif
-        return;
-    }
+    #ifdef _WIN32
+    if (IsDebuggerPresent()) __debugbreak();
+    #endif
 
     auto const exceptionPtr = std::current_exception();
     std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!";
@@ -86,7 +79,9 @@ void OnTerminate()
  */
 const static void EntryMain() 
 {
+    #if defined(_WIN32) && defined(_DEBUG)
     if (!IsDebuggerPresent()) 
+    #endif
     {
         std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
     }
