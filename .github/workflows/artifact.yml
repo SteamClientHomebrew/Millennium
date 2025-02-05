@@ -273,9 +273,6 @@ jobs:
         cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
         cp ./scripts/posix/start.sh /home/runner/env/start.sh
         
-        mkdir -p /home/runner/env/ext/bin
-        cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
-
         npm install @steambrew/api
         mkdir -p /home/runner/env/ext/data/shims
         cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
