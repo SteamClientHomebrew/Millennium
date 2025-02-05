@@ -58,11 +58,6 @@ const std::string GetPythonVersion()
 
 PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
-    #ifdef _WIN32
-    // Set PYTHONHOME to the current directory
-    _putenv_s("PYTHONHOME", (SystemIO::GetInstallPath() / "ext" / "data" / "cache").generic_string().c_str());
-    #endif
-
     // initialize global modules
     PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
     PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
@@ -73,16 +68,19 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 
     PyStatus status;
     PyConfig config;
+
     PyConfig_InitPythonConfig(&config);
 
     /* Read all configuration at once */
     status = PyConfig_Read(&config);
 
-    if (PyStatus_Exception(status)) {
+    if (PyStatus_Exception(status)) 
+    {
         LOG_ERROR("couldn't read config {}", status.err_msg);
         goto done;
     }
 
+    PyConfig_SetString(&config, &config.home, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     config.write_bytecode = 0;
     config.module_search_paths_set = 1;
 
