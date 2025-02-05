@@ -239,7 +239,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         std::thread([&manager] { g_pluginLoader->StartBackEnds(manager); }).detach();
     }
 
-    CoInitializer::ReInjectFrontendShims();
+    CoInitializer::ReInjectFrontendShims(g_pluginLoader);
     Py_RETURN_NONE;
 }
 

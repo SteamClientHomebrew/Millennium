@@ -2,6 +2,7 @@
 #include <sys/locals.h>
 #include <vector>
 #include <Python.h>
+#include <core/loader.h>
 
 template <typename T>
 class Singleton 
@@ -68,7 +69,7 @@ namespace CoInitializer
 	};
 
 	const void InjectFrontendShims(uint16_t ftpPort = 0, uint16_t ipcPort = 0);
-	const void ReInjectFrontendShims(void);
+	const void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader);
 	const void BackendStartCallback(SettingsStore::PluginTypeSchema plugin);
 }
 

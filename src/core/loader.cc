@@ -216,9 +216,16 @@ const void PluginLoader::Initialize()
     m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
 
     m_settingsStorePtr->InitializeSettingsStore();
-    m_ipcPort = IPCMain::OpenConnection();
 
-    Logger.Log("Ports: {{ FTP: {}, IPC: {} }}", m_ftpPort, m_ipcPort);
+    static bool hasCreatedIPC = false;
+
+    if (!hasCreatedIPC)
+    {
+        m_ipcPort = IPCMain::OpenConnection();
+        Logger.Log("Ports: {{ FTP: {}, IPC: {} }}", m_ftpPort, m_ipcPort);
+
+        hasCreatedIPC = true;
+    }
 }
 
 PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
@@ -246,12 +253,15 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
  */
 const void PluginLoader::InjectWebkitShims() 
 {
+    Logger.Warn("Injecting webkit shims...");
+    
+    this->Initialize();
     static std::vector<int> hookIds;
 
     /** Clear all previous hooks if there are any */
     if (!hookIds.empty())
     {
-        const auto moduleList = WebkitHandler::get().m_hookListPtr;
+        auto moduleList = WebkitHandler::get().m_hookListPtr;
 
         for (auto it = moduleList->begin(); it != moduleList->end();)
         {
@@ -406,12 +416,3 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
         ));
     }
 }
-
-// PluginLoader::~PluginLoader()
-// {
-//     Logger.Log("Shutting down plugin loader...");
-//     for (auto& thread : m_threadPool)
-//     {
-//         thread.join();
-//     }
-// }

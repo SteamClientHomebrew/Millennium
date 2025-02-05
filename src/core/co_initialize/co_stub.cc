@@ -339,8 +339,10 @@ const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }
 
-const void CoInitializer::ReInjectFrontendShims()
+const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader)
 {
+    pluginLoader->InjectWebkitShims();
+
     Sockets::PostShared({ {"id", 0 }, {"method", "Page.removeScriptToEvaluateOnNewDocument"}, {"params", {{ "identifier", addedScriptOnNewDocumentId }}} });
     InjectFrontendShims();
 }

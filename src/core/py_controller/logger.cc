@@ -13,7 +13,7 @@ static PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *
     const char* prefix = NULL;
     if (PyArg_ParseTuple(args, "|s", &prefix) && prefix != NULL) 
     {
-        PyErr_WarnEx(PyExc_DeprecationWarning, "The logger name parameter is deprecated and will be automatically replaced by the plugin name.", 1);
+        PyErr_WarnEx(PyExc_DeprecationWarning, "DEVELOPER INFO: Logger() no longer accepts custom name parameters, this is not fatal however all parameters will be ignored, please remove them.", 1);
     }
 
     PyObject* builtins = PyEval_GetBuiltins();
@@ -43,17 +43,6 @@ static PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *
 
 static void LoggerObject_dealloc(LoggerObject *self)
 {
-    // delete self->m_loggerPtr;
-
-    // for (auto it = g_loggerList.begin(); it != g_loggerList.end();)
-    // {
-    //     if (*it == self->m_loggerPtr)
-    //     {
-    //         it = g_loggerList.erase(it);
-    //     }
-    //     else ++it;
-    // }
-
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 

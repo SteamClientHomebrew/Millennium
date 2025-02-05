@@ -58,6 +58,11 @@ const std::string GetPythonVersion()
 
 PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
+    #ifdef _WIN32
+    // Set PYTHONHOME to the current directory
+    _putenv_s("PYTHONHOME", (SystemIO::GetInstallPath() / "ext" / "data" / "cache").generic_string().c_str());
+    #endif
+
     // initialize global modules
     PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
     PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
@@ -81,8 +86,8 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
     config.write_bytecode = 0;
     config.module_search_paths_set = 1;
 
-    PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
-    PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());
+    PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(),     pythonPath.end()    ).c_str());
+    PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(),     pythonLibs.end()    ).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonUserLibs.begin(), pythonUserLibs.end()).c_str());
 
     status = Py_InitializeFromConfig(&config);
@@ -195,9 +200,7 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
         PyThreadState_Swap(interpreterState);
         
         this->m_pythonInstances.push_back({ pluginName, interpreterState, interpMutexStatePtr });
-        Logger.Log("Redirecting stdout/stderr for plugin '{}'", pluginName);
         RedirectOutput();
-        Logger.Log("Invoking plugin main callback for '{}'", pluginName);
         callback(plugin);
         
         PyThreadState_Clear(threadStateMain);
@@ -229,7 +232,6 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
         Logger.Log("Shut down plugin '{}'", pluginName);
     });
 
-    Logger.Log("Created thread {} for plugin '{}'", ThreadIdToString(thread.get_id()), pluginName);
     this->m_threadPool.push_back({ pluginName, std::move(thread) });
     return true;
 }
