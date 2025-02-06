@@ -5,7 +5,7 @@ import platform
 import subprocess
 import threading
 from core.api.plugins import find_all_plugins
-from logger import logger
+from core.util.logger import logger
 import platform
 
 def get_installed_packages():
@@ -65,12 +65,12 @@ _platform = platform.system()
 
 def needed_packages():
 
-    print(f"checking for packages on {_platform}")
+    logger.log(f"checking for packages on {_platform}")
 
     needed_packages = []
     installed_packages = get_installed_packages()
 
-    for plugin in json.loads(find_all_plugins()):
+    for plugin in json.loads(find_all_plugins(logger)):
         requirements_path = os.path.join(plugin["path"], "requirements.txt")
 
         if not os.path.exists(requirements_path):

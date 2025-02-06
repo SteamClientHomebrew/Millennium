@@ -1,10 +1,10 @@
 import { DialogButton, Field, Millennium, pluginSelf } from "@steambrew/client"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DispatchSystemColors } from "../patcher/SystemColors";
 import { settingsClasses } from "../classes";
 import { locale } from "../locales";
 
-const RenderAccentColorPicker = () => {
+const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentThemeUsesAccentColor: boolean }) => {
     const [colorState, setColorState] = useState(pluginSelf.systemColors.accent.substring(0, 7));
 
     const UpdateAllWindows = () => {
@@ -26,7 +26,7 @@ const RenderAccentColorPicker = () => {
     }
 
     const ResetColor = () => {
-        Millennium.callServerMethod("cfg.reset_accent_color").then((result: any) => { 
+        Millennium.callServerMethod("cfg.reset_accent_color").then((result: any) => {
             DispatchSystemColors(JSON.parse(result));
             setColorState(pluginSelf.systemColors.accent.substring(0, 7));
             UpdateAllWindows();
@@ -41,10 +41,26 @@ const RenderAccentColorPicker = () => {
 
         <Field
             label={locale.themePanelCustomAccentColor}
-            description={locale.themePanelCustomAccentColorDescription}
+            description={
+                <>
+                    <div>{locale.themePanelCustomAccentColorToolTip}</div>
+                    {
+                        currentThemeUsesAccentColor !== undefined ?
+
+                            ((!currentThemeUsesAccentColor) ? (
+                                <div className="themeDoesNotUseAccent" style={{ color: "#ae3232" }}>{locale.themePanelCustomColorNotUsed}</div>
+                            )
+                                :
+                                <div className="themeDoesUseAccent" style={{ color: "rgb(71 126 189)" }}>{locale.themePanelCustomColorUsed}</div>
+                            )
+                            :
+                            <div>Checking theme information...</div>
+                    }
+                </>
+            }
         >
             {<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>Reset</DialogButton>}
-            <input type="color" className="colorPicker" name="colorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)}/>
+            <input type="color" className="colorPicker" name="colorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
         </Field>
     </>)
 }

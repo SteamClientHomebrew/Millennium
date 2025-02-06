@@ -1,6 +1,36 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _                     
+ *  |     |_| | |___ ___ ___|_|_ _ _____           
+ *  | | | | | | | -_|   |   | | | |     |          
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
+ * 
+ * ==================================================
+ * 
+ * Copyright (c) 2025 Project Millennium
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "locals.h"
 #include <fstream>
-#include <sys/log.h>
+#include <log.h>
 #include <fmt/core.h>
 #include <iostream>
 
@@ -171,8 +201,8 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     plugin.pluginName = json["name"];
     plugin.pluginBaseDirectory       = entry.path();
     plugin.backendAbsoluteDirectory  = entry.path() / json.value("backend", "backend") / "main.py";
-    plugin.frontendAbsoluteDirectory = (FileSystem::path)pluginDirName / ".millennium" / "Dist" / "index.js";
-    plugin.webkitAbsolutePath        = (FileSystem::path)pluginDirName / ".millennium" / "Dist" / "webkit.js";
+    plugin.frontendAbsoluteDirectory = entry.path() / ".millennium" / "Dist" / "index.js";
+    plugin.webkitAbsolutePath        = entry.path() / ".millennium" / "Dist" / "webkit.js";
 
     return plugin;
 }
@@ -200,8 +230,8 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
         plugin.pluginName = pluginJson["name"];
         plugin.pluginBaseDirectory       = entry.path();
         plugin.backendAbsoluteDirectory  = entry.path() / pluginJson.value("backend", "backend") / "main.py";
-        plugin.frontendAbsoluteDirectory = (FileSystem::path)"assets" / ".millennium" / "Dist" / "index.js";
-        plugin.webkitAbsolutePath        = (FileSystem::path)"assets" / ".millennium" / "Dist" / "webkit.js";
+        plugin.frontendAbsoluteDirectory = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / ".millennium" / "Dist" / "index.js";
+        plugin.webkitAbsolutePath        = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / ".millennium" / "Dist" / "webkit.js";
         plugin.isInternal = true;
 
         plugins.push_back(plugin);

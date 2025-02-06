@@ -1,6 +1,7 @@
 import Millennium
 import platform
 import configparser, os
+from core.util.logger import logger
 
 class Config:
 
@@ -12,7 +13,7 @@ class Config:
             try:
                 self.config.read(self.config_file)
             except configparser.Error:
-                print("error reading config file, resetting...")
+                logger.log("error reading config file, resetting...")
 
         self.setup()
 

@@ -1,7 +1,6 @@
 {
   "dependencies": [
     "curl",
-    "minizip",
-    "cli11"
+    "minizip"
   ]
 }

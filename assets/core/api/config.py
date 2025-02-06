@@ -1,30 +1,15 @@
+import re
+import cssutils
 import Millennium, json, os # type: ignore
 
 from api.css_analyzer import ColorTypes, convert_from_hex, convert_to_hex, parse_root
 from api.themes import Colors, is_valid
-from api.watchdog import SteamUtils
-from util.webkit_handler import WebkitStack, add_browser_css, add_browser_js, add_conditional_data, parse_conditional_patches
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-
-class ConfigFileHandler(FileSystemEventHandler):
-    def __init__(self, config_instance):
-        self.config_instance = config_instance
-
-    def on_modified(self, event):
-        self.config_instance.steam_utils.handle_dispatch(event)
-
-        if event.src_path == self.config_instance.config_path:
-            self.config_instance.reload_config()
-
-    def on_created(self, event):
-        self.config_instance.steam_utils.handle_dispatch(event)
+from util.webkit_handler import WebkitHookStore, add_browser_css, add_browser_js, add_conditional_data, parse_conditional_patches
+from util.logger import logger
 
 
 class Config:
     def __init__(self):
-        self.steam_utils = SteamUtils()
-
         self.config_path = os.path.join(Millennium.get_install_path(), "ext", "themes.json")
         self.config = self.get_config()
 
@@ -37,9 +22,6 @@ class Config:
         # Check if the active them
         self.validate_theme()
 
-        # Setup file watcher
-        # self.setup_file_watcher()
-        # self.start_watch()
 
         self.set_config(json.dumps(self.config, indent=4))
         self.set_theme_cb()
@@ -48,18 +30,8 @@ class Config:
     def validate_theme(self):
         active = self.config["active"]
         if active != "default" and not is_valid(active):
-            print(f"Theme '{active}' is invalid. Resetting to default.")
+            logger.log(f"Theme '{active}' is invalid. Resetting to default.")
             self.config["active"] = "default"
-
-
-    def setup_file_watcher(self):
-        self.event_handler = ConfigFileHandler(self)
-        self.observer = Observer()
-
-
-    def start_watch(self):
-        self.observer.schedule(self.event_handler, os.path.dirname(self.config_path), recursive=False)
-        self.observer.start()
 
 
     def reload_config(self):
@@ -67,7 +39,7 @@ class Config:
         self.validate_theme()
         self.set_config(json.dumps(self.config, indent=4))
 
-        WebkitStack().unregister_all()
+        WebkitHookStore().unregister_all()
         self.set_theme_cb()
 
 
@@ -93,18 +65,10 @@ class Config:
 
 
     def set_config(self, dumps: str) -> None:
-        # try:
-        #     self.observer.stop()
-        #     self.observer.join()
-        # except Exception:
-        #     pass
-
         with open(self.config_path, 'w') as config:
             config.write(dumps)
 
         self.config = self.get_config()
-        # self.setup_file_watcher()
-        # self.start_watch()
         
 
     def change_theme(self, theme_name: str) -> None:
@@ -229,6 +193,76 @@ class Config:
             root_colors = os.path.join(Millennium.steam_path(), "steamui", "skins", self.name, self.theme["data"]["RootColors"])
             self.setup_colors(root_colors)
 
+    def does_theme_use_accent_color(self) -> bool:
+
+        if "data" not in self.theme:
+            return False
+
+        parsed_data = parse_conditional_patches(self.theme["data"])
+
+        if self.theme["data"].get("UseDefaultPatches", False):
+
+            # Default patch CSS files. 
+            parsed_data.append({ "fileType": "TargetCss", "targetPath": "libraryroot.custom.css" })
+            parsed_data.append({ "fileType": "TargetCss", "targetPath": "bigpicture.custom.css"  })
+            parsed_data.append({ "fileType": "TargetCss", "targetPath": "friends.custom.css"     })
+
+        def get_all_imports(css_path, visited=None):
+            if visited is None:
+                visited = set()
+            
+            # Normalize the file path
+            css_path = os.path.abspath(css_path)
+            
+            # Avoid re-processing files
+            if css_path in visited:
+                return visited
+            
+            visited.add(css_path)
+            
+            # Read the CSS content
+            try:
+                with open(css_path, "r", encoding="utf-8") as file:
+                    css_content = file.read()
+            except FileNotFoundError:
+                return visited
+
+            # Regex to match @import rules
+            import_pattern = re.compile(r'@import\s+(?:url\()?["\']?(.*?)["\']?\)?;')
+
+            # Find all @import paths in the CSS
+            for match in import_pattern.finditer(css_content):
+                imported_path = match.group(1)
+                if not imported_path:
+                    continue
+                
+                # Resolve relative paths
+                if not imported_path.startswith(("http://", "https://")):
+                    imported_path = os.path.join(os.path.dirname(css_path), imported_path)
+                    imported_path = os.path.abspath(imported_path)
+                
+                get_all_imports(imported_path, visited)
+            
+            return visited
+                
+
+        for patch in parsed_data:
+            if patch['fileType'] == 'TargetCss':
+                css_path = os.path.join(Millennium.steam_path(), "steamui", "skins", self.name, patch['targetPath'])
+                imports = get_all_imports(css_path)
+
+                for import_path in imports:
+                    try:
+                        with open(import_path, "r", encoding="utf-8") as file:
+                            css_content = file.read()
+
+                            if "--SystemAccentColor" in css_content:
+                                return True
+                    except FileNotFoundError:
+                        continue
+
+        return False
+                
 
     def get_conditionals(self):
         return json.dumps(self.config["Conditions"])

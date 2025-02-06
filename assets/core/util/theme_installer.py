@@ -27,11 +27,14 @@ class WebSocketServer:
                 sub.unlink()
         pth.rmdir()
 
+
     def error_message(self, websocket, message):
         return json.dumps({"type": "error", "message": message})
 
+
     async def unknown_message(self, websocket):
         return await websocket.send(json.dumps({"type": "unknown", "message": "unknown message type"}))
+
 
     def get_theme_from_gitpair(self, repo, owner):
         themes = json.loads(find_all_themes())
@@ -43,6 +46,7 @@ class WebSocketServer:
 
         return None
 
+
     def check_install(self, repo, owner):
 
         is_installed = False if self.get_theme_from_gitpair(repo, owner) == None else True
@@ -50,12 +54,14 @@ class WebSocketServer:
 
         return is_installed
 
+
     def remove_readonly(self, func, path, exc_info):
         logger.log(f"removing readonly file {exc_info}")
 
         # Change the file to writable and try the function again
         os.chmod(path, stat.S_IWRITE)
         func(path)
+
 
     def uninstall_theme(self, repo, owner):
         logger.log(f"Requesting to uninstall theme -> {owner}/{repo}")
@@ -114,6 +120,7 @@ class WebSocketServer:
 
         return json.dumps({'success': True})
 
+
     def __init__(self, host="localhost", port=9123):
         self.host = host
         self.port = port
@@ -121,6 +128,7 @@ class WebSocketServer:
         self.loop = None
         self.thread = None
         self.stop_event = asyncio.Event()
+
 
     async def handler(self, websocket):
         
@@ -158,6 +166,7 @@ class WebSocketServer:
         except websockets.ConnectionClosed:
             logger.log("Client disconnected")
 
+
     async def start_server(self):
         try:
             # Start WebSocket server
@@ -177,17 +186,20 @@ class WebSocketServer:
                 logger.error(f"Port {self.port} is already in use. Please stop the process using it or choose a different port.")
             else:
                 logger.error(f"An unexpected error occurred: {e}")
-                
+
+
     def _run_loop(self):
         # Create and run the event loop in the thread
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self.start_server())
 
+
     def start(self):
         # Start server on a new thread
         self.thread = threading.Thread(target=self._run_loop)
         self.thread.start()
+
 
     def stop(self):
         # Signal to stop the server and close the loop
