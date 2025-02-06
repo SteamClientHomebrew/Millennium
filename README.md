@@ -22,7 +22,7 @@
 </kbd>
 <kbd>
   <a href="#"  title="Lines of Code">
-      <img alt="Static Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3DSteamClientHomebrew%2FMillennium%26branch%3Dmain&style=for-the-badge&labelColor=%23151B23&color=%23151B23&logo=coderwall&label=&logoColor=white">
+      <img alt="Static Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3Dshdwmtr%2Fmillennium%26branch%3Dmain%26languages%3DC%252B%252B%2CC%2520Header%26ignored%3Dvendor&style=for-the-badge&labelColor=%23151B23&color=%23151B23&logo=coderwall&label=%20Lines of Code&logoColor=white">
   </a>
 </kbd>
 
