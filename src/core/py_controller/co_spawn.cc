@@ -1,3 +1,33 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _                     
+ *  |     |_| | |___ ___ ___|_|_ _ _____           
+ *  | | | | | | | -_|   |   | | | |     |          
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
+ * 
+ * ==================================================
+ * 
+ * Copyright (c) 2025 Project Millennium
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "co_spawn.h"
 #include <api/executor.h>
 #include <core/loader.h>
@@ -90,7 +120,8 @@ PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 
     status = Py_InitializeFromConfig(&config);
 
-    if (PyStatus_Exception(status)) {
+    if (PyStatus_Exception(status)) 
+    {
         LOG_ERROR("couldn't initialize from config {}", status.err_msg);
         goto done;
     }
@@ -101,7 +132,8 @@ done:
 
     const std::string version = GetPythonVersion();
 
-    if (version != "3.11.8") {
+    if (version != "3.11.8") 
+    {
         Logger.Warn("Millennium is intended to run python 3.11.8. You may be prone to stability issues...");
     }
 }
@@ -137,12 +169,8 @@ bool PythonManager::DestroyPythonInstance(std::string plugin_name)
             continue;
         }
 
-        // Lock mutex in new scope to avoid deadlock
-        {
-            std::lock_guard<std::mutex> lg(interpMutex->mtx);
-            interpMutex->flag.store(true);  // Set the flag
-        }
-        interpMutex->cv.notify_one(); // Notify waiting thread
+        { std::lock_guard<std::mutex> lg(interpMutex->mtx); interpMutex->flag.store(true); }
+        interpMutex->cv.notify_one();
 
         Logger.Log("Notified plugin [{}] to shut down...", plugin_name);
 
@@ -152,7 +180,7 @@ bool PythonManager::DestroyPythonInstance(std::string plugin_name)
 
             if (pluginName == plugin_name) 
             {
-                Logger.Log("Trying to join thread {}...", ThreadIdToString(thread.get_id()));
+                Logger.Log("Joining thread for plugin '{}'", plugin_name);
                 thread.join();
 
                 Logger.Log("Successfully joined thread");
