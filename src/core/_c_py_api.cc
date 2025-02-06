@@ -43,6 +43,12 @@
 
 std::shared_ptr<PluginLoader> g_pluginLoader;
 
+std::map<std::string, JavaScript::Types> typeMap = {
+    { "str",  JavaScript::Types::String  },
+    { "bool", JavaScript::Types::Boolean },
+    { "int",  JavaScript::Types::Integer }
+};
+
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "get_user_settings is not implemented yet. It will likely be removed in the future.");
@@ -66,13 +72,6 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
     {
         return NULL;
     }
-
-    std::map<std::string, JavaScript::Types> typeMap 
-    {
-        { "str",  JavaScript::Types::String  },
-        { "bool", JavaScript::Types::Boolean },
-        { "int",  JavaScript::Types::Integer }
-    };
 
     std::vector<JavaScript::JsFunctionConstructTypes> params;
 
