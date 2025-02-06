@@ -29,12 +29,12 @@
  */
 
 #include "co_spawn.h"
-#include <api/executor.h>
-#include <core/loader.h>
-#include <core/ffi/ffi.h>
-#include <core/py_hooks/bind_stdout.h>
-#include <core/py_hooks/logger.h>
-#include <core/co_initialize/co_stub.h>
+#include "executor.h"
+#include "loader.h"
+#include "ffi.h"
+#include "bind_stdout.h"
+#include "logger.h"
+#include "co_stub.h"
 // #include <boxer/boxer.h>
 
 std::string ThreadIdToString(const std::thread::id& id) {

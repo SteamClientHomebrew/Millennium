@@ -42,11 +42,11 @@
 
 #include <iostream>
 #include <crow.h>
-#include <sys/locals.h>
-#include <sys/log.h>
-#include <sys/asio.h>
-#include <sys/encoding.h>
-#include <util/url_parser.h>
+#include "locals.h"
+#include "log.h"
+#include "asio.h"
+#include "encoding.h"
+#include "url_parser.h"
 
 enum eFileType
 {

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include <core/py_hooks/logger.h>
+#include "logger.h"
 #include <Python.h>
 #include <stdio.h>
 #include <fstream>

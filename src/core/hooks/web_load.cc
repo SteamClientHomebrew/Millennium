@@ -30,13 +30,13 @@
 
 #include "web_load.h"
 #include <nlohmann/json.hpp>
-#include <core/loader.h>
-#include <core/ffi/ffi.h>
-#include <sys/encoding.h>
-#include <sys/http.h>   
+#include "loader.h"
+#include "ffi.h"
+#include "encoding.h"
+#include "http.h"
 #include <unordered_set>
 #include "csp_bypass.h"
-#include <util/url_parser.h>
+#include "url_parser.h"
 
 unsigned long long g_hookedModuleId;
 

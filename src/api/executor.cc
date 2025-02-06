@@ -29,17 +29,17 @@
  */
 
 #include "executor.h"
-#include <core/py_controller/co_spawn.h>
-#include <core/ffi/ffi.h>
+#include "co_spawn.h"
+#include "ffi.h"
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
 #include <fstream>
-#include <sys/log.h>
-#include <sys/locals.h>
-#include <core/hooks/web_load.h>
-#include <core/co_initialize/co_stub.h>
-#include <core/py_hooks/logger.h>
-#include <sys/encoding.h>
+#include "log.h"
+#include "locals.h"
+#include "web_load.h"
+#include "co_stub.h"
+#include "logger.h"
+#include "encoding.h"
 
 std::shared_ptr<PluginLoader> g_pluginLoader;
 

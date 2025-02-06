@@ -38,8 +38,8 @@
 #include <iomanip>
 #include <fmt/core.h>
 #include <fmt/color.h>
-#include <sys/locals.h>
-#include <sys/log.h>
+#include "locals.h"
+#include "log.h"
 #include <vector>
 
 #define RED "\033[31m"

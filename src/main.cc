@@ -37,14 +37,14 @@
 #include <filesystem>
 #include <fstream>
 #include <fmt/core.h>
-#include <sys/log.h>
-#include <core/loader.h>
-#include <core/py_controller/co_spawn.h>
-#include <core/ftp/serv.h>
+#include <log.h>
+#include "loader.h"
+#include "co_spawn.h"
+#include <serv.h>
 #include <signal.h>
 #include <cxxabi.h>
-#include <pipes/terminal_pipe.h>
-#include <api/executor.h>
+#include "terminal_pipe.h"
+#include "executor.h"
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.

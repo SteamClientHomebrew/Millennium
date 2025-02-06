@@ -37,9 +37,9 @@
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
-#include <procmon/cmd.h>
+#include "cmd.h"
 #endif
-#include <sys/locals.h>
+#include "locals.h"
 
 OutputLogger Logger;
 

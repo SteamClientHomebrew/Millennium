@@ -33,10 +33,10 @@
 #include <iostream>
 #include <shimlogger.h>
 #include <fstream>
-#include <http.h>
+#include <phttp.h>
 #include <unzip.h>
 #include <steam.h>
-#include <procmon/cmd.h>
+#include "cmd.h"
 #include <thread>
 
 static const char* GITHUB_API_URL = "https://api.github.com/repos/shdwmtr/millennium/releases";

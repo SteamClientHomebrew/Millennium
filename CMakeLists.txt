@@ -62,6 +62,7 @@ endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
+  ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/vendor/fmt/include
   ${CMAKE_SOURCE_DIR}/vendor/asio/asio/include
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include

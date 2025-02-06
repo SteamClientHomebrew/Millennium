@@ -31,18 +31,18 @@
 #include "co_stub.h"
 #include <vector>
 #include <fmt/core.h>
-#include <core/py_controller/co_spawn.h>
-#include <sys/log.h>
-#include <core/loader.h>
-#include <core/hooks/web_load.h>
-#include <core/ffi/ffi.h>
+#include "co_spawn.h"
+#include "log.h"
+#include "loader.h"
+#include "web_load.h"
+#include "ffi.h"
 #include <tuple>
-#include <core/py_hooks/logger.h>
+#include "logger.h"
 #include <mutex>
 #include <condition_variable>
 #include <thread>
-#include <sys/encoding.h>
-#include <util/url_parser.h>
+#include "encoding.h"
+#include "url_parser.h"
 
 static std::string addedScriptOnNewDocumentId = "";
 

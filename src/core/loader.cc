@@ -32,15 +32,15 @@
 #include <string>
 #include <iostream>
 #include <Python.h>
-#include <api/executor.h>
-#include <core/co_initialize/co_stub.h>
-#include <core/py_controller/co_spawn.h>
-#include <core/ipc/pipe.h>
-#include <core/ffi/ffi.h>
-#include <sys/http.h>
-#include <core/hooks/web_load.h>
-#include <sys/log.h>
-#include "py_hooks/logger.h"
+#include "executor.h"
+#include "co_stub.h"
+#include "co_spawn.h"
+#include "pipe.h"
+#include "ffi.h"
+#include "http.h"
+#include "web_load.h"
+#include "log.h"
+#include "logger.h"
 
 using namespace std::placeholders;
 using namespace std::chrono;

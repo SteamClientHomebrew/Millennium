@@ -36,8 +36,8 @@
 
 #include <iostream>
 #include <Python.h>
-#include <core/py_controller/co_spawn.h>
-#include <sys/log.h>
+#include "co_spawn.h"
+#include "log.h"
 #include <fmt/core.h>
 #include "logger.h"
 

@@ -30,7 +30,7 @@
 
 #include "locals.h"
 #include <fstream>
-#include <sys/log.h>
+#include <log.h>
 #include <fmt/core.h>
 #include <iostream>
 

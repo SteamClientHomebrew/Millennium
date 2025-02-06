@@ -29,10 +29,10 @@
  */
 
 #include "ffi.h"
-#include <core/py_controller/co_spawn.h>
+#include "co_spawn.h"
 #include <iostream>
 #include <tuple>
-#include <core/py_hooks/logger.h>
+#include "logger.h"
 
 std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
 {

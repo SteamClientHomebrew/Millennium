@@ -29,8 +29,8 @@
  */
 
 #include "co_stub.h"
-#include <sys/log.h>
-#include <core/py_controller/co_spawn.h>
+#include "log.h"
+#include "co_spawn.h"
 
 std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
 {

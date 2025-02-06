@@ -42,8 +42,8 @@
  * i.e making requests to external servers, loading scripts from external sources, etc.
  * 
  */
-#include <core/loader.h>
-#include <core/ffi/ffi.h>
+#include "loader.h"
+#include "ffi.h"
 
 const void BypassCSP(void)
 {

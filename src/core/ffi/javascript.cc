@@ -29,8 +29,8 @@
  */
 
 #include "ffi.h"
-#include <core/py_controller/co_spawn.h>
-#include <core/loader.h>
+#include "co_spawn.h"
+#include "loader.h"
 #include <future>
 
 struct EvalResult {

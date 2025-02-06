@@ -32,9 +32,9 @@
 #ifdef _WIN32
 #include <winbase.h>
 #include <io.h>
-#include <sys/log.h>
+#include "log.h"
 #include <fcntl.h>
-#include <core/py_hooks/logger.h>
+#include "logger.h"
 
 auto now = std::chrono::system_clock::now();
 auto currentTimeStamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
