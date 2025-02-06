@@ -32,6 +32,17 @@
 #include "log.h"
 #include "co_spawn.h"
 
+/**
+ * Retrieves a comma-separated string of backend plugins that failed to load.
+ *
+ * @returns {std::string} - A string containing the names of backend plugins that failed to load, 
+ *         formatted as a comma-separated list enclosed in square brackets. If no plugins failed 
+ *         to load, the string "none" is returned.
+ * 
+ * This function iterates through a list of emitted plugins, checks if their loading event 
+ * indicates failure (`BACKEND_LOAD_FAILED`), and appends their names to the result string.
+ * If no plugins fail to load, it returns `"none"`.
+ */
 std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
 {
     std::string failedBackends;
@@ -47,6 +58,17 @@ std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
     return failedBackends.empty() ? "none" : fmt::format("[{}]", failedBackends.substr(0, failedBackends.size() - 2));
 }
 
+/**
+ * Retrieves a comma-separated string of successfully loaded backend plugins.
+ *
+ * @returns {std::string} - A string containing the names of successfully loaded backend plugins, 
+ *         formatted as a comma-separated list enclosed in square brackets. If no plugins were 
+ *         successfully loaded, the string "none" is returned.
+ * 
+ * This function iterates through a list of emitted plugins, checks if their loading event 
+ * indicates success (`BACKEND_LOAD_SUCCESS`), and appends their names to the result string.
+ * If no plugins are successfully loaded, it returns `"none"`.
+ */
 std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
 {
     std::string successfulBackends;
@@ -62,6 +84,13 @@ std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
     return successfulBackends.empty() ? "none" : fmt::format("[{}]", successfulBackends.substr(0, successfulBackends.size() - 2));
 }
 
+/**
+ * Evaluates the status of the backend loading process by comparing the number of enabled and loaded plugins.
+ *
+ * @returns {bool} - `true` if all enabled plugins have been processed (i.e., the number of loaded plugins matches
+ *         the number of enabled plugins), otherwise `false`.
+ * 
+ */
 bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
@@ -75,13 +104,25 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
         const std::string successfulBackends = GetSuccessfulBackendsStr();
 
         auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
-        Logger.Log("Finished preparing backends...");
+        Logger.Log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), failedBackends), fmt::format(fmt::fg(fmt::color::lime_green), successfulBackends));
 
         return true;
     }
     return false;
 }
 
+/**
+ * Dispatches the backend status callbacks once the backend loading process is complete.
+ * 
+ * This function checks if the backend status evaluation is successful. If all enabled plugins 
+ * are loaded, it proceeds to invoke and remove callbacks associated with the `ON_BACKEND_READY_EVENT`.
+ * 
+ * If there are no listeners for the `ON_BACKEND_READY_EVENT`, the event is recorded as missed and will
+ * be attempted later. Once the callbacks are executed, the `isReadyForCallback` flag is set to `true`.
+ * 
+ * Error Handling:
+ * - If the backend status is not ready, the function does nothing.
+ */
 void CoInitializer::BackendCallbacks::StatusDispatch()
 {
     if (this->EvaluateBackendStatus())
@@ -105,6 +146,11 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
     }
 }
 
+/**
+ * Handles the status update of a loaded backend plugin and dispatches the appropriate events.
+ *
+ * @param {PluginTypeSchema} plugin - The plugin whose loading status is being processed.
+ */
 void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 {
     if (plugin.event == BACKEND_LOAD_FAILED)
@@ -121,6 +167,11 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
     this->StatusDispatch();
 }
 
+/**
+ * Handles the status update of an unloaded backend plugin and dispatches the appropriate events.
+ * 
+ * @param {PluginTypeSchema} plugin - The plugin whose unloading status is being processed.
+ */
 void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin)
 {
     // remove the plugin from the emitted list
@@ -133,6 +184,9 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin)
     this->StatusDispatch();
 }
 
+/**
+ * Resets the backend callbacks by clearing all emitted plugins, listeners, and missed events.
+ */
 void CoInitializer::BackendCallbacks::Reset() 
 {
     emittedPlugins.clear();
@@ -140,6 +194,9 @@ void CoInitializer::BackendCallbacks::Reset()
     missedEvents.clear();
 }
 
+/**
+ * Registers a callback for the backend load event.
+ */
 void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback) 
 {
     Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);

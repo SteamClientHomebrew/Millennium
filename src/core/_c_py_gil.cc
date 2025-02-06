@@ -30,18 +30,36 @@
 
 #include "ffi.h"
 
+/**
+ * @brief Constructs a PythonGIL instance and initializes a new thread state.
+ *
+ * This constructor retrieves the main Python interpreter state and creates a new thread state for execution.
+ */
 PythonGIL::PythonGIL()
 {
     m_mainInterpreter = PyInterpreterState_Main();
     m_interpreterThreadState = PyThreadState_New(m_mainInterpreter);
 }
 
+/**
+ * @brief Acquires and locks the Python GIL for the current thread.
+ *
+ * This method ensures that the Python GIL is properly locked before executing Python code.
+ */
 const void PythonGIL::HoldAndLockGIL()
 {
     PyEval_RestoreThread(m_interpreterThreadState);
     m_interpreterGIL = PyGILState_Ensure();
 }
 
+/**
+ * @brief Acquires and locks the Python GIL for a specific thread.
+ *
+ * @param {PyThreadState*} threadState - The Python thread state to switch to.
+ *
+ * This function locks the GIL and swaps the thread state to the provided one, allowing safe execution
+ * of Python code in a multi-threaded environment.
+ */
 const void PythonGIL::HoldAndLockGILOnThread(PyThreadState* threadState)
 {
     PyEval_RestoreThread(m_interpreterThreadState);
@@ -49,6 +67,11 @@ const void PythonGIL::HoldAndLockGILOnThread(PyThreadState* threadState)
     PyThreadState_Swap(threadState);
 }
 
+/**
+ * @brief Releases the Python GIL and deletes the current thread state.
+ *
+ * This destructor ensures that the thread state is properly cleared and deleted, preventing memory leaks.
+ */
 PythonGIL::~PythonGIL()
 {
     PyThreadState_Clear(m_interpreterThreadState);
@@ -58,6 +81,11 @@ PythonGIL::~PythonGIL()
     PyThreadState_DeleteCurrent();
 }
 
+/**
+ * @brief Releases and unlocks the Python GIL.
+ *
+ * This function resets the shared instance of `PythonGIL`, effectively releasing the GIL and cleaning up resources.
+ */
 const void PythonGIL::ReleaseAndUnLockGIL()
 {
     std::shared_ptr<PythonGIL> self = shared_from_this();

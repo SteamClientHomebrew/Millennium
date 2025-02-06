@@ -40,6 +40,22 @@
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
+/**
+ * Calls a server method based on the provided JSON message and returns a response.
+ * A "server method" is a Python function that is called by the IPC server.
+ *
+ * @param {nlohmann::basic_json<>} message - A JSON message containing the method to be called and its arguments.
+ * @returns {nlohmann::json} - A JSON response with the result of the server method call.
+ * 
+ * This function constructs a function call script using the provided message, evaluates it using Python,
+ * and returns the result. The response may contain the return value, or in case of an error, the error message.
+ * 
+ * The return value's type is determined based on the Python evaluation result:
+ * - Boolean: Returned as `true` or `false`.
+ * - String: Returned as a Base64-encoded string.
+ * - Integer: Returned as an integer.
+ * - Error: Returns a failure message and a flag indicating the failure.
+ */
 static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 {
     const std::string fnCallScript = Python::ConstructFunctionCall(message["data"]);
@@ -71,6 +87,15 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
     return responseMessage; 
 }
 
+/**
+ * Handles the event when the frontend is loaded by evaluating the corresponding Python method.
+ *
+ * @param {nlohmann::basic_json<>} message - A JSON message containing the plugin name and event data.
+ * @returns {nlohmann::json} - A JSON response indicating success.
+ * 
+ * This function evaluates the `plugin._front_end_loaded()` method using the provided plugin name and
+ * returns a response indicating the success of the operation.
+ */
 static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 {
     Python::LockGILAndDiscardEvaluate(message["data"]["pluginName"], "plugin._front_end_loaded()");
@@ -81,6 +106,17 @@ static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
     });
 }
 
+/**
+ * Handles incoming WebSocket messages and dispatches them to the appropriate handler function.
+ *
+ * @param {socketServer*} serv - A pointer to the WebSocket server instance.
+ * @param {websocketpp::connection_hdl} hdl - The connection handle.
+ * @param {socketServer::message_ptr} msg - The WebSocket message received.
+ * 
+ * This function checks the message's `id` field and invokes the appropriate server method handler, 
+ * such as `CallServerMethod` or `OnFrontEndLoaded`. If any exceptions are caught, they are sent back
+ * as error messages.
+ */
 void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, socketServer::message_ptr msg) 
 {
     socketServer::connection_ptr serverConnection = serv->get_con_from_hdl(hdl);
@@ -115,11 +151,24 @@ void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, socketServer
     }
 }
 
+/**
+ * Handles the WebSocket connection open event, starting the server's accept loop.
+ */
 void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl hdl) 
 {
     IPCSocketMain->start_accept();
 }
 
+/**
+ * Opens a WebSocket server for IPC communication on a specified port.
+ *
+ * @param {uint16_t} ipcPort - The port number to open the WebSocket server on.
+ * @returns {int} - Returns `true` if the WebSocket server was successfully opened, `false` if an error occurred.
+ * 
+ * This function initializes a WebSocket server, sets up necessary handlers for incoming messages and connections,
+ * listens on the specified port, and runs the server. If any exceptions occur during initialization or handling,
+ * they are caught and logged.
+ */
 const int OpenIPCSocket(uint16_t ipcPort) 
 {
     socketServer IPCSocketMain;
@@ -146,6 +195,14 @@ const int OpenIPCSocket(uint16_t ipcPort)
     return true;
 }
 
+/**
+ * Opens an asynchronous WebSocket connection for IPC communication.
+ *
+ * @returns {uint16_t} - The port number on which the WebSocket server is running.
+ * 
+ * This function obtains a random open port, initializes the WebSocket server, and runs it in a separate thread.
+ * The assigned port number is returned.
+ */
 const uint16_t IPCMain::OpenConnection()
 {
     uint16_t ipcPort = Asio::GetRandomOpenPort();

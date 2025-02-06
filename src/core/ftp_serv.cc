@@ -48,6 +48,17 @@
 #include "encoding.h"
 #include "url_parser.h"
 
+/**
+ * Enum representing the different types of files.
+ * 
+ * @enum {number}
+ * @readonly
+ * @property {number} StyleSheet - Represents a CSS file.
+ * @property {number} JavaScript - Represents a JavaScript file.
+ * @property {number} Json - Represents a JSON file.
+ * @property {number} Python - Represents a Python file.
+ * @property {number} Other - Represents other file types.
+ */
 enum eFileType
 {
     StyleSheet,
@@ -57,7 +68,15 @@ enum eFileType
     Other
 };
 
-/** FTP File types, these should be enough */
+/**
+ * A map that associates each file type from the `eFileType` enum to its corresponding MIME type.
+ * 
+ * - `StyleSheet` maps to "text/css"
+ * - `JavaScript` maps to "application/javascript"
+ * - `Json` maps to "application/json"
+ * - `Python` maps to "text/x-python"
+ * - `Other` maps to "text/plain"
+ */
 static std::map<eFileType, std::string> fileTypes 
 {
     { eFileType::StyleSheet, "text/css" },
@@ -67,6 +86,19 @@ static std::map<eFileType, std::string> fileTypes
     { eFileType::Other,      "text/plain" }
 };
 
+/**
+ * Evaluates the file type based on the file extension.
+ *
+ * @param {std::filesystem::path} filePath - The path to the file to evaluate.
+ * @returns {eFileType} - The type of the file, which could be one of the `eFileType` values.
+ * 
+ * The function checks the file extension and returns the corresponding file type:
+ * - `.css` → `eFileType::StyleSheet`
+ * - `.js` → `eFileType::JavaScript`
+ * - `.json` → `eFileType::Json`
+ * - `.py` → `eFileType::Python`
+ * - For any other extension, `eFileType::Other` is returned.
+ */
 const eFileType EvaluateFileType(std::filesystem::path filePath)
 {
     const std::string extension = filePath.extension().string();
@@ -84,6 +116,14 @@ const eFileType EvaluateFileType(std::filesystem::path filePath)
 
 namespace Crow
 {
+    /**
+     * A struct representing the properties of an HTTP response.
+     * 
+     * @typedef {Object} ResponseProps
+     * @property {string} contentType - The MIME type of the response content (e.g., "text/css").
+     * @property {string} content - The actual content of the response.
+     * @property {boolean} exists - A flag indicating if the requested file exists or not.
+     */
     struct ResponseProps
     {
         std::string contentType;
@@ -91,6 +131,15 @@ namespace Crow
         bool exists;
     };
 
+    /**
+     * Evaluates an HTTP request by determining the content type and reading the file content.
+     *
+     * @param {std::filesystem::path} path - The path of the requested file.
+     * @returns {ResponseProps} - The properties of the response, including content type, content, and existence status.
+     * 
+     * This function determines the type of the requested file (using `EvaluateFileType`), then reads the content of the file 
+     * and returns an appropriate response structure (`ResponseProps`).
+     */
     ResponseProps EvaluateRequest(std::filesystem::path path)
     {
         eFileType fileType = EvaluateFileType(path.string());
@@ -103,6 +152,15 @@ namespace Crow
         };
     }
 
+    /**
+     * Handles an incoming HTTP request by generating a response with the appropriate content.
+     *
+     * @param {string} path - The request path (file path).
+     * @returns {crow::response} - The response to be sent back to the client.
+     * 
+     * This function checks if the requested file exists, sets the correct content type, and writes the content to the response.
+     * If the file does not exist, a 404 error response is returned.
+     */
     crow::response HandleRequest(std::string path)
     {
         crow::response response;
@@ -122,12 +180,20 @@ namespace Crow
         return response;
     }
 
+    /**
+     * Binds a Crow application to a random open port and sets up routing for incoming requests.
+     *
+     * @returns {std::tuple} - A tuple containing the `crow::SimpleApp` instance and the assigned port number.
+     * 
+     * This function sets up a `crow::SimpleApp`, binds it to a random open port, and routes all incoming paths 
+     * to the `HandleRequest` function for handling.
+     */
     std::tuple<std::shared_ptr<crow::SimpleApp>, uint16_t> BindApplication()
     {
         uint_least16_t port = Asio::GetRandomOpenPort();
         std::shared_ptr<crow::SimpleApp> app = std::make_shared<crow::SimpleApp>();
 
-        app->server_name("millennium/1.0");
+        app->server_name(fmt::format("millennium/{}", MILLENNIUM_VERSION));
         app->loglevel(crow::LogLevel::Critical);
         app->port(port);
 
@@ -136,16 +202,18 @@ namespace Crow
         return std::make_tuple(app, port);
     }
 
+    /**
+     * Creates and starts an asynchronous server that handles requests concurrently.
+     *
+     * @returns {uint16_t} - The port number on which the server is running.
+     * 
+     * This function initializes the Crow application, binds it to a random open port, 
+     * and runs it in a separate thread. It then returns the assigned port number.
+     */
     uint16_t CreateAsyncServer()
     {
         auto [app, port] = BindApplication();
-
-        std::thread(
-            [app]() mutable {
-                app->multithreaded().run();
-            }
-        ).detach();
-
+        std::thread([app]() mutable { app->multithreaded().run(); }).detach();
         return port;
     }
 }

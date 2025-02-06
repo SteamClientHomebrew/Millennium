@@ -113,45 +113,18 @@ class CEFBrowser
     std::chrono::system_clock::time_point m_startTime;
 public:
 
-    const void HandleConsoleMessage(const nlohmann::json& json)
-    {
-        try
-        {
-            if (
-                json.contains("params") && json["params"].is_object() &&
-                json["params"].contains("message") && json["params"]["message"].is_object() &&
-                json["params"]["message"].contains("level") && json["params"]["message"]["level"].is_string()
-            )
-            {
-                if (json["params"]["message"]["level"] == "error")
-                {
-                    const auto data = json["params"]["message"];
-
-                    std::string traceMessage = fmt::format("{}:{}:{}", data["url"].get<std::string>(), data["line"].get<int>(), data["column"].get<int>());
-                    Logger.Warn("(Steam-Error) {}\n  Info: (This warning may be non-fatal)\n  Where: ({})", data["text"].get<std::string>(), traceMessage);
-                }
-            }
-        }
-        catch (const nlohmann::detail::exception& e) { }
-    }
-
     const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
-        const std::string method = json.value("method", std::string());
 
-        if (json.contains("id") && json["id"] == 0 && 
-            json.contains("result") && json["result"].is_object() && 
-            json["result"].contains("targetInfos") && json["result"]["targetInfos"].is_array()) 
+        if (json.contains("id") && json["id"] == 0 && json.contains("result") && json["result"].is_object() && json["result"].contains("targetInfos") && json["result"]["targetInfos"].is_array()) 
         { 
-            const auto targets = json["result"]["targetInfos"];
+            const auto targets  = json["result"]["targetInfos"];
             auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
             
             if (targetIterator != targets.end() && !m_sharedJsConnected) 
             {
-                Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, 
-                    { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } } 
-                });
+                Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } } });
                 m_sharedJsConnected = true;
             }
             else if (!m_sharedJsConnected)
@@ -160,7 +133,7 @@ public:
             }
         }
 
-        if (method == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
+        if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
         {
             sharedJsContextSessionId = json["params"]["sessionId"];
             Sockets::PostShared({ {"id", 9494 }, {"method", "Log.enable"}, {"sessionId", sharedJsContextSessionId} });
@@ -170,10 +143,6 @@ public:
         else if (json.value("id", -1) == 9773) 
         {
             this->onSharedJsConnect();
-        }
-        else if (method == "Log.entryAdded") 
-        {
-            this->HandleConsoleMessage(json); 
         }
         else
         {        

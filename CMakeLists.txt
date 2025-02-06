@@ -112,7 +112,7 @@ set(SOURCE_FILES
   "src/core/ipc_pipe.cc"
   "src/core/ftp_serv.cc"
   "src/sys/log.cc"
-  "src/sys/io.cc"
+  "src/sys/sysfs.cc"
   "src/sys/settings.cc"
 )
 

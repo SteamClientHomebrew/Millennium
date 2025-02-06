@@ -84,7 +84,7 @@ std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
  * 
  * @return { errorMessageString, tracebackString }
  */
-std::tuple<std::string, std::string> Python::GetExceptionInformaton() 
+std::tuple<std::string, std::string> Python::ActiveExceptionInformation() 
 {
     PyObject* typeObj = nullptr;
     PyObject* valueObj = nullptr;
@@ -169,7 +169,7 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
 
     if (!EvaluatedObj && PyErr_Occurred()) 
     {
-        const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
+        const auto [errorMessage, traceback] = Python::ActiveExceptionInformation();
 
         Logger.PrintMessage(" FFI-ERROR ", fmt::format("Failed to call {}: {}\n{}{}", script, COL_RED, traceback, COL_RESET), COL_RED);
     }
@@ -287,7 +287,7 @@ void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string scrip
 
         if (!EvaluatedObj && PyErr_Occurred()) 
         {
-            const auto [errorMessage, traceback] = Python::GetExceptionInformaton();
+            const auto [errorMessage, traceback] = Python::ActiveExceptionInformation();
             PyErr_Clear();
 
             if (errorMessage == "name 'plugin' is not defined")
