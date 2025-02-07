@@ -35,13 +35,6 @@
 #include "bind_stdout.h"
 #include "logger.h"
 #include "co_stub.h"
-// #include <boxer/boxer.h>
-
-std::string ThreadIdToString(const std::thread::id& id) {
-    std::stringstream ss;
-    ss << std::hash<std::thread::id>{}(id);
-    return ss.str();
-}
 
 PyObject* PyInit_Millennium(void) 
 {

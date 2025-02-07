@@ -185,9 +185,12 @@ public:
         bool bAutoReconnect = true;
     };
 
+    /**
+     * @brief Verify the socket connection was opened by the Steam Client 
+     * (i.e owned by Steam), and if not report a faulty connection.
+     */
     const void VerifySteamConnection()
     {
-        #ifndef MILLENNIUM_CLI
         if (bHasCheckedConnection)
         {
             return;
@@ -210,7 +213,6 @@ public:
         }
 
         bHasCheckedConnection = true;
-        #endif
     }
 
     SocketHelpers() : debuggerPort(GetDebuggerPort())
@@ -219,9 +221,14 @@ public:
         this->VerifySteamConnection();
     }
 
+    /**
+     * @brief Get the Steam browser context.
+     * It can locally be accessed at localhost:%PORT%/json/version
+     * 
+     * @return std::string The Steam browser context.
+     */
     const std::string GetSteamBrowserContext()
     {
-        #ifndef MILLENNIUM_CLI
         try
         {
             std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
@@ -234,9 +241,6 @@ public:
             LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}", debuggerPort, exception.what());
             std::exit(1);
         }
-        #else
-        return {};
-        #endif
     }
 
     void ConnectSocket(ConnectSocketProps socketProps)

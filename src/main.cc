@@ -154,7 +154,6 @@ const static void EntryMain()
 
 #ifdef _WIN32
 HANDLE g_hMillenniumThread;
-
 /**
  * @brief Entry point for Millennium on Windows.
  * @param fdwReason The reason for calling the DLL.
