@@ -159,7 +159,7 @@ find_package(CURL REQUIRED) # used for web requests.
 target_link_libraries(Millennium CURL::libcurl)
 
 if(WIN32)
-  target_link_libraries(Millennium Ws2_32.lib wsock32 Iphlpapi winhttp)
+  target_link_libraries(Millennium wsock32 Iphlpapi)
 
   if(GITHUB_ACTION_BUILD)
     target_link_libraries(Millennium "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib")
