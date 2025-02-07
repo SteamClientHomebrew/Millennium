@@ -177,23 +177,103 @@ void PatchSharedJSContext(std::string strSteamPath)
     }
 }
 
+/**
+ * @brief Restore the SharedJSContext file to its original state.
+ * Only ever used if the bootstrap process fails to load Millennium.
+ */
+void RestoreSharedJSContext(std::string strSteamPath)
+{
+    const auto SteamUIModulePath       = std::filesystem::path(strSteamPath) / "steamui" / "index.html";
+    const auto SteamUIModulePathBackup = std::filesystem::path(strSteamPath) / "steamui" / "orig.html";
+
+    try
+    {
+        if (std::filesystem::exists(SteamUIModulePathBackup) && std::filesystem::is_regular_file(SteamUIModulePathBackup))
+        {
+            std::filesystem::remove(SteamUIModulePath);
+        }
+
+        std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
+    }
+    catch (const std::exception& e)
+    {
+        Error("Failed to restore SharedJSContext: {}", e.what());
+    }
+}
+
+void ShowErrorMessage(DWORD errorCode)
+{
+    char errorMsg[512];
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, errorCode, 0, errorMsg, sizeof(errorMsg), nullptr);
+    
+    std::string errorMessage = "Failed to load Millennium (millennium.dll). Error code: " + std::to_string(errorCode) + "\n" + errorMsg;
+    MessageBoxA(nullptr, errorMessage.c_str(), "Error", MB_ICONERROR);
+}
+
+/**
+ * @brief Allocate a console window for debugging purposes.
+ * This is only called if the -dev argument is passed to the application.
+ */
+void AllocateDevConsole()
+{
+    std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
+
+    /** Check if developer mode is activated */
+    if (!startupParams->HasArgument("-dev")) 
+    {
+        return;
+    }
+
+    if (!static_cast<bool>(AllocConsole())) 
+    {   
+        return;
+    }
+
+    SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
+
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+
+    EnableVirtualTerminalProcessing();
+}
+
+/**
+ * @brief Unload Millennium from process memory.
+ */
+void UnloadMillennium()
+{
+    // Check if millennium.dll is already loaded in process memory, and if so, unload it.
+    HMODULE hLoadedMillennium = GetModuleHandleA("millennium.dll");
+
+    if (hLoadedMillennium != nullptr) 
+    {
+        Print("Unloading millennium.dll and reloading...");
+        FreeLibrary(hLoadedMillennium);
+    }
+}
+
+/**
+ * @brief Load Millennium into process memory. 
+ * 
+ * This calls DllMain in %root%/src/main.cc which initializes Millennium.
+ */
+void LoadMillennium()
+{
+    // Check if the load was successful.
+    if (LoadLibraryA("millennium.dll") == nullptr) 
+    {
+        DWORD errorCode = GetLastError();
+        ShowErrorMessage(errorCode);
+        return;
+    }
+
+    Print("Loaded millennium...");
+}
+
 const void BootstrapMillennium(HINSTANCE hinstDLL) 
 {
     const std::string strSteamPath = GetSteamPath();
-    std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
-
-    if (startupParams->HasArgument("-dev")) 
-    {
-		if (static_cast<bool>(AllocConsole())) 
-        {
-			SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
-		}
-
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
-
-        EnableVirtualTerminalProcessing();
-    }
+    AllocateDevConsole();
 
     Print("Loading Bootstrapper@{}", MILLENNIUM_VERSION);
 
@@ -202,26 +282,7 @@ const void BootstrapMillennium(HINSTANCE hinstDLL)
 
     Print("Finished checking for updates");  
 
-    // Check if millennium.dll is already loaded in process memory, and if so, unload it.
-    HMODULE hLoadedMillennium = GetModuleHandleA("millennium.dll");
-    if (hLoadedMillennium != nullptr) 
-    {
-        Print("Unloading millennium.dll and reloading...");
-        FreeLibrary(hLoadedMillennium);
-    }
-
-    // After checking for updates, load Millenniums core library.
-    HMODULE hMillennium = LoadLibraryA("millennium.dll");
-    if (hMillennium == nullptr) 
-    {
-        MessageBoxA(nullptr, "Failed to load millennium.dll. Please reinstall/remove Millennium to continue.", "Error", MB_ICONERROR);
-        return;
-    }
-    else 
-    {
-        Print("Loaded millennium...");
-    }
-
+    LoadMillennium();
     CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UnloadAndReleaseLibrary, hinstDLL, 0, nullptr);
 }
 
