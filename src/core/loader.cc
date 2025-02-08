@@ -279,7 +279,11 @@ const void PluginLoader::InjectWebkitShims()
     // Inject all webkit shims for enabled plugins if they have shims
     for (auto& plugin : allPlugins)
     {
+        #ifdef _WIN32
         const auto absolutePath = SystemIO::GetInstallPath() / "plugins" / plugin.webkitAbsolutePath;
+        #elif __linux__
+        const auto absolutePath = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "plugins" / plugin.webkitAbsolutePath;
+        #endif
 
         if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
         {
@@ -347,7 +351,11 @@ const void StartPreloader(PythonManager& manager)
     SettingsStore::PluginTypeSchema plugin
     {
         .pluginName = "pipx",
+        #ifdef _WIN32
         .backendAbsoluteDirectory = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / "pipx",
+        #elif __linux__
+        .backendAbsoluteDirectory = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "lib" / "assets" / "pipx",
+        #endif
         .isInternal = true
     };
 

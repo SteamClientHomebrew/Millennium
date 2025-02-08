@@ -49,8 +49,8 @@ if(WIN32 AND NOT GITHUB_ACTION_BUILD)
   endif()
 
 elseif(UNIX AND NOT GITHUB_ACTION_BUILD)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "/usr/lib/millennium/")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "/usr/lib/millennium/")
 endif()
 
 # Set version information

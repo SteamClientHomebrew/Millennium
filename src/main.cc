@@ -75,24 +75,19 @@ void OnTerminate()
     #endif
 
     auto const exceptionPtr = std::current_exception();
-    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!";
+    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
 
     if (exceptionPtr) 
     {
         try 
         {
             int status;
-            auto const exceptionType = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status);
-            errorMessage.append("\nTerminating with uncaught exception of type `");
-            errorMessage.append(exceptionType);
-            errorMessage.append("`");
+            errorMessage.append(fmt::format("Terminating with uncaught exception of type `{}`", abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status)));
             std::rethrow_exception(exceptionPtr); // rethrow the exception to catch its exception message
         }
         catch (const std::exception& e) 
         {
-            errorMessage.append(" with `what()` = \"");
-            errorMessage.append(e.what());
-            errorMessage.append("\"");
+            errorMessage.append(fmt::format("with `what()` = \"{}\"", e.what()));
         }
         catch (...) { }
     }
@@ -187,7 +182,7 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 #elif __linux__
 #include <stdio.h>
 #include <stdlib.h>
-#include <posix/helpers.h>
+#include "helpers.h"
 #include <dlfcn.h>
 #include <fstream>
 #include <chrono>
@@ -209,7 +204,7 @@ extern "C"
          * Since this isn't an executable, and is "preloaded", the kernel doesn't implicitly load dependencies, so we need to manually. 
          * libpython3.11.so.1.0 should already be in $PATH, so we can just load it from there.
         */
-        std::string pythonPath = fmt::format("{}/.millennium/libpython-3.11.8.so", std::getenv("HOME"));
+        std::string pythonPath = "/usr/lib/millennium/libpython-3.11.8.so";
 
         if (!dlopen(pythonPath.c_str(), RTLD_LAZY | RTLD_GLOBAL)) 
         {

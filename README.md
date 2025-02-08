@@ -92,6 +92,27 @@ Supported Platforms:
 
 &nbsp;
 
+## Unix File Structure
+
+```
+/
+├─ usr/
+│  ├─ lib/
+│  │  ├─ millennium/
+│  │  │  ├─ libMillennium.so # millennium
+│  │  │  ├─ libpython-3.11.8.so # dynamically linked to millennium, allows user plugin backends to run
+├─ home/
+│  ├─ $user/
+│  │  ├─ .local/
+│  │  │  ├─ millennium/
+│  │  │  │  ├─ lib/
+│  │  │  │  │  ├─ assets/ # builtin plugin that provides base functionality for millennium.
+│  │  │  │  │  ├─ cache/ # a cached, minimal, production build of python's runtime deps, used to run and manage plugins
+│  │  │  │  │  ├─ shims/
+│  │  │  │  ├─ logs/
+│  │  │  │  ├─ plugins/ # user plugins
+```
+
 ## Building from source
 
 ### Windows 10/11

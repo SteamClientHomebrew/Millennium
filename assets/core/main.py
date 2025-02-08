@@ -44,6 +44,12 @@ def get_load_config():
     })
 
     
+def get_plugins_dir():
+    if os.name == "nt":
+        return os.path.join(Millennium.get_install_path(), "/plugins/")
+    elif os.name == "posix":
+        return os.path.join(os.path.expanduser("~/.local/share/millennium/plugins/"))
+
 def _webkit_accent_color():
     return Colors.get_accent_color(cfg.get_config()["accentColor"])
 

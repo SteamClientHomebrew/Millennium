@@ -1,5 +1,6 @@
 import Millennium # type: ignore
 import configparser, os, json
+from plat_spec.main import config_path
 
 try:
     from util.logger import logger
@@ -8,8 +9,7 @@ except ImportError:
 
 def is_enabled(plugin_name: str) -> bool:
     config = configparser.ConfigParser()
-    config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
-    
+
     with open(config_path, 'r') as enabled:
         config.read_file(enabled)
     
@@ -34,6 +34,13 @@ def search_dirs(m_path: str, plugins: list, _logger = None) -> None:
 
 def find_all_plugins(_logger = None) -> str:
     plugins = []
-    for subdir in ["ext/data", "plugins"]: # ext/data is internal plugins, plugins is user plugins
-        search_dirs(os.path.join(Millennium.get_install_path(), subdir), plugins, logger if _logger is None else _logger)
+
+    if os.name == 'nt':
+        for subdir in ["ext/data", "plugins"]: # ext/data is internal plugins, plugins is user plugins
+            search_dirs(os.path.join(Millennium.get_install_path(), subdir), plugins, logger if _logger is None else _logger)
+            
+    elif os.name == 'posix':
+        for subdir in [os.path.join(Millennium.get_install_path(), "ext/data"), os.path.expanduser("~/.local/share/millennium/plugins")]: # ext/data is internal plugins, plugins is user plugins
+            search_dirs(subdir, plugins, logger if _logger is None else _logger)
+
     return json.dumps(plugins)

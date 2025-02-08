@@ -5,6 +5,7 @@ import os
 import requests
 import Millennium # type: ignore
 from util.logger import logger
+from plat_spec.main import config_path
 
 class UpdaterProps(Enum):
     UNSET = 0,
@@ -65,10 +66,8 @@ class MillenniumUpdater:
 
     
     def user_wants_updates():
-        
-        # Ini parse the millennium.ini file and check if check_for_updates is set to yes
+
         millennium = configparser.ConfigParser()
-        config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
 
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)
@@ -84,7 +83,6 @@ class MillenniumUpdater:
         logger.log("Setting user update preference to: " + str(wantsUpdates))
 
         millennium = configparser.ConfigParser()
-        config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
 
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)
@@ -101,7 +99,6 @@ class MillenniumUpdater:
         logger.log("Setting update notifications to: " + str(wantsNotify))
 
         millennium = configparser.ConfigParser()
-        config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
 
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)
@@ -116,7 +113,6 @@ class MillenniumUpdater:
     def user_wants_update_notify() -> UpdaterProps:
 
         millennium = configparser.ConfigParser()
-        config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
 
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)

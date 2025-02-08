@@ -1,13 +1,14 @@
-import Millennium
+import Millennium # type: ignore
 import platform
 import configparser, os
 from core.util.logger import logger
+from core.plat_spec.main import config_path
 
 class Config:
 
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config_file = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
+        self.config_file = config_path
 
         if os.path.exists(self.config_file):
             try:

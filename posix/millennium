@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import sys
+
+PATCHED_START_SCRIPT = """
+#!/bin/bash
+
+# This function filters out the error message "from LD_PRELOAD cannot be preloaded" from 64 bit executables 
+# The messages are just failing module side effects and are not fatal. 
+filter_output() {
+    local patterns=('from LD_PRELOAD cannot be preloaded' 'Fontconfig warning: "' 'Fontconfig error: "')
+    while IFS= read -r msg; do
+        local skip=false
+        for pattern in "${patterns[@]}"; do
+            if [[ "$msg" =~ $pattern ]]; then
+                skip=true
+                break
+            fi
+        done
+        if [[ "$skip" == false ]]; then
+            printf '%s\\n' "$msg"
+        fi
+    done
+}
+
+steam_output() {
+    while IFS= read -r msg; do
+        printf '%s\\n' "$msg"
+    done
+}
+
+# If there is no display, keep original settings and redirect stdout back to its original file descriptor
+if [ -n "$DISPLAY" ]; then
+    exec 3>&1 # Save a copy of file descriptor 1 (stdout) so we can restore it later
+    exec 1> >(filter_output) # Redirect stdout to filter_output
+    export STEAM_RUNTIME_LOGGER=0 # On archlinux, this needed to stop stdout from being piped into /dev/null instead of the terminal
+fi
+
+export LD_PRELOAD="/usr/lib/millennium/libMillennium.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
+export LD_LIBRARY_PATH="/usr/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# Millennium hooks __libc_start_main to initialize itself, which is a function that is called before main. 
+# Besides that, Millennium does not alter Steam memory and runs completely disjoint.
+exec /usr/lib/steam/steam > >(steam_output) 2>&1 "$@"
+"""
+
+def patch():
+    print("running patch command...")
+
+    # Check for sudo permissions
+    if os.geteuid() != 0:
+        print("insufficient permissions. Please run this script with sudo.")
+        sys.exit(1)
+
+    # Steam start script path, this does not work for snap, flatpak, or other sand-boxed installations
+    start_script_path = "/usr/bin/steam-runtime"
+    backup_path = start_script_path + ".millennium.bak"
+
+    # Check if the start script exists
+    if not os.path.exists(start_script_path):
+        print("steam start script not found.")
+        sys.exit(1)
+
+    # Backup the original start script
+    if not os.path.exists(backup_path):
+        print("backing up the original start script...")
+        os.rename(start_script_path, backup_path)
+        print("backup made at: " + backup_path)
+    else:
+        print("backup already exists, would you like to overwrite it? (y/N)", end=" ")
+        response = input().lower()
+
+        if response == "y":
+            print("overwriting the backup...")
+            os.remove(backup_path)
+            os.rename(start_script_path, backup_path)
+        else:
+            print("skipping backup...")
+
+    print("finished backing up the original start script.")
+    print("patching the Steam start script...")
+
+    # Write the patched start script
+    with open(start_script_path, "w") as f:
+        f.write(PATCHED_START_SCRIPT)
+
+    print("patched the Steam start script.")
+    print("checking execution permissions...")
+
+    # Check if the start script is executable
+    if not os.access(start_script_path, os.X_OK):
+        print("making the start script executable...")
+        os.chmod(start_script_path, 0o755)
+        print("start script is now executable.")
+
+    print("done.")
+
+
+def status():
+    
+    # Check for sudo permissions
+    if os.geteuid() != 0:
+        print("Insufficient permissions. Please run this script with sudo.")
+        sys.exit(1)
+
+    # Steam start script path, this does not work for snap, flatpak, or other sand-boxed installations
+    start_script_path = "/usr/bin/steam-runtime"
+
+    # Check if the start script exists
+    if not os.path.exists(start_script_path):
+        print("Steam start script not found.")
+        sys.exit(1)
+
+    is_patched = False
+
+    # Check if the start script has been patched
+    with open(start_script_path, "r") as f:
+        if f.read() == PATCHED_START_SCRIPT:
+            is_patched = True
+        else:
+            is_patched = False
+
+    color = "\033[92m" if is_patched else "\033[91m"
+
+    print(f"{color}●\033[0m Steam bootstrapper status")
+    print(f"  Patched: {color}{"true" if is_patched else "false"}\033[0m")
+    print(f"  Path: {start_script_path}")
+    print(f"  Exit Code: {color}{0 if is_patched else 1}\033[0m")
+
+    return 0 if is_patched else 1
+
+
+def main():
+    parser = argparse.ArgumentParser(description="CLI App with patch and status commands.")
+    subparsers = parser.add_subparsers(dest='command')
+
+    # Define the "patch" command
+    patch_parser = subparsers.add_parser('patch', help="Apply a patch.")
+    patch_parser.set_defaults(func=patch)
+
+    # Define the "status" command
+    status_parser = subparsers.add_parser('status', help="Check if the bootstrapper module is patched.")
+    status_parser.set_defaults(func=status)
+
+    # Parse arguments and call the appropriate function
+    args = parser.parse_args()
+
+    if args.command:
+        sys.exit(args.func())
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()
