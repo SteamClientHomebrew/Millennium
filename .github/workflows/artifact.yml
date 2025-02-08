@@ -290,7 +290,7 @@ jobs:
 
         # Move scripts to usr folder
         mkdir -p ~/build/usr/bin
-        cp ~/Millennium/posix/millennium ~/build/usr/bin/millennium
+        cp posix/millennium ~/build/usr/bin/millennium
         chmod +x ~/build/usr/bin/millennium
 
         mkdir -p ~/build/home/user/.local/share/millennium
