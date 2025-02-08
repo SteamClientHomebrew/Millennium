@@ -278,6 +278,28 @@ jobs:
         cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
         cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
 
+    - name: Restructure Filesystem
+      run: |
+
+        mkdir ~/build
+
+        # Move assets to usr folder
+        mkdir -p ~/build/usr/lib/millennium
+        cp /home/runner/env/libMillennium.so ~/build/usr/lib/millennium/libMillennium.so
+        cp /home/runner/env/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
+
+        # Move scripts to usr folder
+        mkdir -p ~/build/usr/bin
+        cp ~/Millennium/posix/millennium ~/build/usr/bin/millennium
+        chmod +x ~/build/usr/bin/millennium
+
+        mkdir -p ~/build/home/user/.local/share/millennium
+
+        # Move assets to home folder
+        cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/shims
+        cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/cache
+        cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/assets
+
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
