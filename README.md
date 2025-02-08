@@ -94,7 +94,7 @@ Supported Platforms:
 
 ## Unix File Structure
 
-```
+```bash
 /
 ├─ usr/
 │  ├─ lib/
@@ -111,6 +111,8 @@ Supported Platforms:
 │  │  │  │  │  ├─ shims/
 │  │  │  │  ├─ logs/
 │  │  │  │  ├─ plugins/ # user plugins
+│  │  ├─ .config/
+│  │  │  ├─ millennium/ # config files
 ```
 
 ## Building from source
