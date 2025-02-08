@@ -40,7 +40,7 @@ def find_all_plugins(_logger = None) -> str:
             search_dirs(os.path.join(Millennium.get_install_path(), subdir), plugins, logger if _logger is None else _logger)
             
     elif os.name == 'posix':
-        for subdir in [os.path.join(Millennium.get_install_path(), "ext/data"), os.path.expanduser("~/.local/share/millennium/plugins")]: # ext/data is internal plugins, plugins is user plugins
+        for subdir in [os.path.expanduser("~/.local/share/millennium/lib"), os.path.expanduser("~/.local/share/millennium/plugins")]: # ext/data is internal plugins, plugins is user plugins
             search_dirs(subdir, plugins, logger if _logger is None else _logger)
 
     return json.dumps(plugins)
