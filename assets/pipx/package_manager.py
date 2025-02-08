@@ -70,6 +70,8 @@ def needed_packages():
     needed_packages = []
     installed_packages = get_installed_packages()
 
+    logger.log(f"Installed packages: {installed_packages}")
+
     for plugin in json.loads(find_all_plugins(logger)):
         requirements_path = os.path.join(plugin["path"], "requirements.txt")
 

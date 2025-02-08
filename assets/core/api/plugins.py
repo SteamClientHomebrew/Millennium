@@ -31,7 +31,6 @@ def search_dirs(m_path: str, plugins: list, _logger = None) -> None:
             _logger.error(f"Error parsing {skin_json_path}. Invalid JSON format.")
             
 
-
 def find_all_plugins(_logger = None) -> str:
     plugins = []
 
