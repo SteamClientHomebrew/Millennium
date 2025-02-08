@@ -15,6 +15,7 @@ import { useState } from 'react'
 import { locale } from '../locales'
 import { settingsClasses } from '../classes'
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
+import { env } from '../env';
 
 declare global {
     interface Window {
@@ -152,8 +153,7 @@ export const BugReportViewModal: React.FC = () => {
             return
         }
 
-        /** No, you're not a hacker for finding this, and we didn't accidentally leave it. No point putting it in an .env variable as its visible from DOM inspector regardless */
-        const webhookURL = "https://discord.com/api/webhooks/1326663682343702549/-T-Gw1wKVltJ3Srwk2u7OzV_QYBOKy1EzgbAtPIhFTEZeysSthKtY3D5sooPC7rHu9-J"
+        const webhookURL = env.WEBHOOK_URL
 
         fetch(webhookURL, {
             method: "POST",

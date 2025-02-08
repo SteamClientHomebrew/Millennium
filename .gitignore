@@ -9,3 +9,5 @@
 
 # Ignore plugin example build assets
 /examples/plugin/.millennium
+
+/assets/src/env.ts
