@@ -204,7 +204,7 @@ extern "C"
          * Since this isn't an executable, and is "preloaded", the kernel doesn't implicitly load dependencies, so we need to manually. 
          * libpython3.11.so.1.0 should already be in $PATH, so we can just load it from there.
         */
-        std::string pythonPath = "/usr/lib/millennium/libpython-3.11.8.so";
+        std::string pythonPath = LIBPYTHON_RUNTIME_PATH;
 
         if (!dlopen(pythonPath.c_str(), RTLD_LAZY | RTLD_GLOBAL)) 
         {
