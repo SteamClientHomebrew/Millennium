@@ -70,10 +70,12 @@ export const EvaluatePatch = (type: ModuleType, modulePatch: ConditionalControlF
 
         switch (type) {
             case ModuleType.TargetCss: {
-                DOMModifier.AddStyleSheet(document, constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src))  
+                DOMModifier.AddStyleSheet(document, constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src));
+                break;
             }   
             case ModuleType.TargetJs: {
-                DOMModifier.AddJavaScript(document, constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src))
+                DOMModifier.AddJavaScript(document, constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src));
+                break;
             }     
         }  
     });
