@@ -70,25 +70,19 @@ class Colors:
             adjusted_hex = f'#{r:02x}{g:02x}{b:02x}'
             return adjusted_hex
 
-        def hex_to_rgba(hex_color):
+        def hex_to_rgb(hex_color):
             # Remove the '#' character if present
             hex_color = hex_color.lstrip('#')
 
             # Check if the input has an alpha channel (8 characters)
-            if len(hex_color) == 8:
-                r = int(hex_color[0:2], 16)
-                g = int(hex_color[2:4], 16)
-                b = int(hex_color[4:6], 16)
-                a = int(hex_color[6:8], 16) / 255  # Normalize alpha to [0, 1]
-            elif len(hex_color) == 6:
-                r = int(hex_color[0:2], 16)
-                g = int(hex_color[2:4], 16)
-                b = int(hex_color[4:6], 16)
-                a = 1.0  # Fully opaque
-            else:
-                raise ValueError("Invalid hex color format. Use 6 or 8 characters.")
+            if len(hex_color) != 6:
+                raise ValueError("Invalid hex color format. Use 6 characters (e.g., #RRGGBB).")
 
-            return (r, g, b, a)
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+
+            return (r, g, b)
         
         original_accent = Colors.get_accent_color_win32() if os.name == 'nt' else Colors.get_accent_color_posix()
         
@@ -100,13 +94,13 @@ class Colors:
             'dark1': adjust_hex_color(accent_color, -15),
             'dark2': adjust_hex_color(accent_color, -30),
             'dark3': adjust_hex_color(accent_color, -45),
-            'accentRgb': hex_to_rgba(accent_color),
-            'light1Rgb': hex_to_rgba(adjust_hex_color(accent_color, 15)),
-            'light2Rgb': hex_to_rgba(adjust_hex_color(accent_color, 30)),
-            'light3Rgb': hex_to_rgba(adjust_hex_color(accent_color, 45)),
-            'dark1Rgb': hex_to_rgba(adjust_hex_color(accent_color, -15)),
-            'dark2Rgb': hex_to_rgba(adjust_hex_color(accent_color, -30)),
-            'dark3Rgb': hex_to_rgba(adjust_hex_color(accent_color, -45)),
+            'accentRgb': hex_to_rgb(accent_color),
+            'light1Rgb': hex_to_rgb(adjust_hex_color(accent_color, 15)),
+            'light2Rgb': hex_to_rgb(adjust_hex_color(accent_color, 30)),
+            'light3Rgb': hex_to_rgb(adjust_hex_color(accent_color, 45)),
+            'dark1Rgb': hex_to_rgb(adjust_hex_color(accent_color, -15)),
+            'dark2Rgb': hex_to_rgb(adjust_hex_color(accent_color, -30)),
+            'dark3Rgb': hex_to_rgb(adjust_hex_color(accent_color, -45)),
             'systemAccent': False,
             'originalAccent': original_accent
         })
