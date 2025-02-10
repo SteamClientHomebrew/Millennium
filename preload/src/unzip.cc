@@ -54,13 +54,15 @@ bool IsAnyParentSymbolicLink(std::filesystem::path path)
     {
     #ifdef _WIN32
         DWORD attributes = GetFileAttributesA(path.string().c_str());
-        if (attributes == INVALID_FILE_ATTRIBUTES) {
+        if (attributes == INVALID_FILE_ATTRIBUTES) 
+        {
             return false;
         }
         return (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0; 
     #else
         struct stat path_stat;
-        if (lstat(path, &path_stat) == -1) {
+        if (lstat(path, &path_stat) == -1) 
+        {
             return false; 
         }
         return S_ISLNK(path_stat.st_mode);
