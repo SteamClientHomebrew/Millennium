@@ -58,6 +58,7 @@
     },
     {
       "name": "linux",
+      "hidden": true,
       "inherits": "default",
       "generator": "Ninja",
       "displayName": "linux-x86",
@@ -74,12 +75,25 @@
       "inherits": "default",
       "generator": "Ninja",
       "displayName": "linux-debug-x86",
-      "description": "Default build for Linux",
+      "description": "Debug build for Linux",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x86-linux",
         "CMAKE_CXX_FLAGS": "-m32",
         "CMAKE_C_FLAGS": "-m32",
         "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-release",
+      "inherits": "default",
+      "generator": "Ninja",
+      "displayName": "linux-release-x86",
+      "description": "Release build for Linux",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x86-linux",
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ]

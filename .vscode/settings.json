@@ -84,6 +84,7 @@
         "filesystem": "cpp",
         "stdfloat": "cpp",
         "cfenv": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "stdio.h": "c"
     }
 }

@@ -27,6 +27,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 project(Millennium LANGUAGES CXX)
+add_subdirectory(cli)
 
 if(WIN32 AND NOT GITHUB_ACTION_BUILD)
   execute_process(
