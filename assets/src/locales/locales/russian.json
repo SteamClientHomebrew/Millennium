@@ -9,7 +9,7 @@
     "themePanelThemeTooltip": "Выберите тему для клиента Steam (требуется перезапуск)",
     "pluginPanelPluginTooltip": "У вас не установлены плагины? ",
     "themePanelGetMoreThemes": "Каталог Тем",
-    "pluginPanelGetMorePlugins": "Каталог Плагинов"
+    "pluginPanelGetMorePlugins": "Каталог Плагинов",
     "themePanelInjectJavascript": "Внедрить Скрипты (JavaScript)",
     "themePanelInjectJavascriptToolTip": "Разрешить темам внедрять JavaScript в Steam (требуется перезапуск)",
     "themePanelInjectCSS": "Внедрить Стили (CSS)",
