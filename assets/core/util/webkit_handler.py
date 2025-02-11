@@ -4,7 +4,7 @@ import os
 import Millennium # type: ignore
 from util.logger import logger
 
-class WebkitStack:
+class WebkitHookStore:
     _instance = None
 
     def __new__(cls):
@@ -13,34 +13,13 @@ class WebkitStack:
             cls._instance.stack = []
         return cls._instance
 
-    def is_empty(self):
-        return len(self.stack) == 0
-
     def push(self, item):
         self.stack.append(item)
 
-    def pop(self):
-        if not self.is_empty():
-            return self.stack.pop()
-        else:
-            raise IndexError("pop from an empty stack")
-
-    def peek(self):
-        if not self.is_empty():
-            return self.stack[-1]
-        else:
-            raise IndexError("peek from an empty stack")
-
-    def size(self):
-        return len(self.stack)
-    
     def unregister_all(self):
         for hook in self.stack.copy():
             Millennium.remove_browser_module(hook)
             self.stack.remove(hook)
-
-    def remove_all(self):
-        self.stack.clear()
 
 
 def parse_conditional_patches(conditional_patches: dict):
@@ -125,11 +104,11 @@ def parse_conditional_patches(conditional_patches: dict):
 
 
 def add_browser_css(css_path: str, regex=".*") -> None:
-    stack = WebkitStack()
+    stack = WebkitHookStore()
     stack.push(Millennium.add_browser_css(css_path, regex))
 
 def add_browser_js(js_path: str, regex=".*") -> None:
-    stack = WebkitStack()
+    stack = WebkitHookStore()
     stack.push(Millennium.add_browser_js(js_path, regex))
 
 def add_conditional_data(path: str, data: dict):
@@ -137,7 +116,7 @@ def add_conditional_data(path: str, data: dict):
     parsed_patches = parse_conditional_patches(data)
 
     for patch in parsed_patches:
-        if patch['fileType'] == 'TargetCss':
+        if patch['fileType'] == 'TargetCss' and patch['targetPath'] is not None and patch['matchString'] is not None:
             add_browser_css(os.path.join(path, patch['targetPath']), patch['matchString'])
-        elif patch['fileType'] == 'TargetJs':
+        elif patch['fileType'] == 'TargetJs' and patch['targetPath'] is not None and patch['matchString'] is not None:
             add_browser_js(os.path.join(path, patch['targetPath']), patch['matchString'])

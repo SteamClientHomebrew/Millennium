@@ -1,3 +1,33 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _                     
+ *  |     |_| | |___ ___ ___|_|_ _ _____           
+ *  | | | | | | | -_|   |   | | | |     |          
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
+ * 
+ * ==================================================
+ * 
+ * Copyright (c) 2025 Project Millennium
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "log.h"
 #include <chrono>
 #include <string>
@@ -7,9 +37,9 @@
 #include <sstream>
 #include <thread>
 #ifdef _WIN32
-#include <procmon/cmd.h>
+#include "cmd.h"
 #endif
-#include <sys/locals.h>
+#include "locals.h"
 
 OutputLogger Logger;
 
@@ -24,29 +54,6 @@ std::string OutputLogger::GetLocalTime()
 	bufferStream << fmt::format(".{:03}", ms.count());
 	return fmt::format("[{}]", bufferStream.str());
 }
-
-#ifdef _WIN32
-void EnableVirtualTerminalProcessing() 
-{
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE)
-    {
-        return;
-    }
-
-    DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode))
-    {
-        return;
-    }
-
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode))
-    {
-        return;
-    }
-}
-#endif
 
 void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
@@ -72,16 +79,6 @@ OutputLogger::OutputLogger()
 
 		m_bIsConsoleEnabled = startupParams->HasArgument("-dev");
 		m_bIsVersbose = startupParams->HasArgument("-verbose");
-
-		if (!m_bIsVersbose && m_bIsConsoleEnabled && static_cast<bool>(AllocConsole()))
-		{
-			SetConsoleTitleA(fmt::format("Millennium@{}", MILLENNIUM_VERSION).c_str());
-		}
-		
-		SetConsoleOutputCP(CP_UTF8);
-		void(freopen("CONOUT$", "w", stdout));
-		void(freopen("CONOUT$", "w", stderr));
-		EnableVirtualTerminalProcessing();
 	}
 	#elif __linux__
 	{

@@ -1,18 +1,19 @@
-import { 
-    Millennium, 
+import {
+    Millennium,
     ConfirmModal,
-    Dropdown, 
-    DialogHeader, 
-    DialogBody, 
+    Dropdown,
+    DialogHeader,
+    DialogBody,
     DialogButton,
-    classMap, 
-    IconsModule, 
-    pluginSelf, 
-    Toggle, 
-    showModal, 
+    classMap,
+    IconsModule,
+    pluginSelf,
+    Toggle,
+    showModal,
+    Field,
+    callable
 } from '@steambrew/client'
 import * as CustomIcons from '../custom_components/CustomIcons'
-import { Field } from '../custom_components/Field'
 
 import { useEffect, useState } from 'react'
 import { RenderThemeEditor } from '../custom_components/ThemeEditor'
@@ -35,22 +36,22 @@ const Localize = (token: string): string =>
  * but it restarts Steam instead of reloading the UI.
  */
 const PromptReload = (onOK: () => void) =>
-	showModal(
-		<ConfirmModal
-			strTitle={Localize("#Settings_RestartRequired_Title")}
-			strDescription={Localize("#Settings_RestartRequired_Description")}
+    showModal(
+        <ConfirmModal
+            strTitle={Localize("#Settings_RestartRequired_Title")}
+            strDescription={Localize("#Settings_RestartRequired_Description")}
             strOKButtonText={Localize("#Settings_RestartNow_ButtonText")}
-			onOK={onOK}
-		/>,
-		pluginSelf.settingsWnd,
-		{
-			bNeverPopOut: true,
-		},
-	);
+            onOK={onOK}
+        />,
+        pluginSelf.windows["Millennium"],
+        {
+            bNeverPopOut: false,
+        },
+    );
 
 const ThemeSettings = (activeTheme: string) =>
-    showModal(<RenderThemeEditor />, pluginSelf.settingsWnd, {
-        strTitle: "Editing " + activeTheme,
+    showModal(<RenderThemeEditor />, pluginSelf.windows["Millennium"], {
+        strTitle: activeTheme + " Settings",
         popupHeight: 675,
         popupWidth: 850,
         fnOnClose: () => {
@@ -84,9 +85,9 @@ const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
     }
 
     return (
-        <DialogButton 
+        <DialogButton
             onClick={() => ThemeSettings(active)}
-            className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton" 
+            className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
         >
             <IconsModule.Settings height="16" />
         </DialogButton>
@@ -94,12 +95,12 @@ const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
 }
 
 const findAllThemes = async (): Promise<ComboItem[]> => {
-    
+
     const activeTheme: ThemeItem = await Millennium.callServerMethod("cfg.get_active_theme")
-    .then((result: any) => {
-        pluginSelf.connectionFailed = false
-        return result
-    })
+        .then((result: any) => {
+            pluginSelf.connectionFailed = false
+            return result
+        })
 
     return new Promise<ComboItem[]>(async (resolve) => {
         let buffer: ComboItem[] = (JSON.parse(await Millennium.callServerMethod("find_all_themes")
@@ -110,9 +111,9 @@ const findAllThemes = async (): Promise<ComboItem[]> => {
 
             /** Prevent the selected theme from appearing in combo box */
             .filter((theme: ThemeItem) => !pluginSelf.isDefaultTheme ? theme.native !== activeTheme.native : true)
-            .map((theme: ThemeItem, index: number) => ({ 
+            .map((theme: ThemeItem, index: number) => ({
 
-                label: theme?.data?.name ?? theme.native, theme: theme, data: "theme" + index 
+                label: theme?.data?.name ?? theme.native, theme: theme, data: "theme" + index
             }))
 
 
@@ -128,6 +129,7 @@ const ThemeViewModal: React.FC = () => {
     const [active, setActive] = useState<string>()
     const [jsState, setJsState] = useState<boolean>(undefined)
     const [cssState, setCssState] = useState<boolean>(undefined)
+    const [themeUsesAccentColor, setThemeUsesAccentColor] = useState<boolean>(undefined)
 
     useEffect(() => {
 
@@ -138,13 +140,21 @@ const ThemeViewModal: React.FC = () => {
 
         setJsState(pluginSelf.scriptsAllowed)
         setCssState(pluginSelf.stylesAllowed)
+
+        const bDoesUseAccentColor = callable<[]>("cfg.does_theme_use_accent_color");
+
+        bDoesUseAccentColor().then((result: any) => {
+            console.log("Does theme use accent color", result)
+            setThemeUsesAccentColor(result)
+        })
+
     }, [])
 
     const onScriptToggle = (enabled: boolean) => {
         setJsState(enabled)
 
         PromptReload(() => {
-                Millennium.callServerMethod("cfg.set_config_keypair", {key: "scripts", value: enabled})
+            Millennium.callServerMethod("cfg.set_config_keypair", { key: "scripts", value: enabled })
                 .then((result: any) => {
                     pluginSelf.connectionFailed = false
                     return result
@@ -154,7 +164,7 @@ const ThemeViewModal: React.FC = () => {
                     pluginSelf.connectionFailed = true
                 })
 
-                SteamClient.Browser.RestartJSContext()
+            SteamClient.Browser.RestartJSContext()
         })
     }
 
@@ -162,15 +172,15 @@ const ThemeViewModal: React.FC = () => {
         setCssState(enabled)
 
         PromptReload(() => {
-            Millennium.callServerMethod("cfg.set_config_keypair", {key: "styles", value: enabled})
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .catch((_: any) => {
-                console.error("Failed to update settings")
-                pluginSelf.connectionFailed = true
-            })
+            Millennium.callServerMethod("cfg.set_config_keypair", { key: "styles", value: enabled })
+                .then((result: any) => {
+                    pluginSelf.connectionFailed = false
+                    return result
+                })
+                .catch((_: any) => {
+                    console.error("Failed to update settings")
+                    pluginSelf.connectionFailed = true
+                })
 
             SteamClient.Browser.RestartJSContext()
         })
@@ -179,7 +189,7 @@ const ThemeViewModal: React.FC = () => {
     const updateThemeCallback = (item: ComboItem) => {
         const themeName = item.data === "default" ? "__default__" : item.theme.native;
 
-        Millennium.callServerMethod("cfg.change_theme", {theme_name: themeName}).then((result: any) => {
+        Millennium.callServerMethod("cfg.change_theme", { theme_name: themeName }).then((result: any) => {
             pluginSelf.connectionFailed = false
             return result
         });
@@ -190,9 +200,9 @@ const ThemeViewModal: React.FC = () => {
         });
     }
 
-	if (pluginSelf.connectionFailed) {
-		return <ConnectionFailed/>
-	}
+    if (pluginSelf.connectionFailed) {
+        return <ConnectionFailed />
+    }
 
     const OpenThemesFolder = () => {
         const themesPath = [pluginSelf.steamPath, "steamui", "skins"].join("/");
@@ -206,7 +216,7 @@ const ThemeViewModal: React.FC = () => {
     return (
         <>
             <style>
-            {`
+                {`
                 .DialogDropDown._DialogInputContainer.Panel.Focusable { min-width: max-content !important; }
                 button.millenniumIconButton {
                     padding: 9px 10px !important; 
@@ -218,69 +228,69 @@ const ThemeViewModal: React.FC = () => {
             `}
             </style>
 
-            <DialogHeader>{locale.settingsPanelThemes}</DialogHeader>
-            <DialogBody className={classMap.SettingsDialogBodyFade}>
-                <Field
-                    label={locale.themePanelClientTheme}
-                    description={
-                        <>
-                            {locale.themePanelThemeTooltip}
-                            {". "}
-                            <a href="#" onClick={GetMoreThemes}>
-                                {locale.themePanelGetMoreThemes}
-                            </a>
-                        </>   
-                    }       
-                >
-                    <RenderEditTheme active={active} />
+            {/* <DialogHeader>{locale.settingsPanelThemes}</DialogHeader>
+            <DialogBody className={classMap.SettingsDialogBodyFade}> */}
+            <Field
+                label={locale.themePanelClientTheme}
+                description={
+                    <>
+                        {locale.themePanelThemeTooltip}
+                        {". "}
+                        <a href="#" onClick={GetMoreThemes}>
+                            {locale.themePanelGetMoreThemes}
+                        </a>
+                    </>
+                }
+            >
+                <RenderEditTheme active={active} />
 
-                    {!pluginSelf.isDefaultTheme && (
-                        <DialogButton
-                            onClick={() => SetupAboutRenderer(active)}
-                            className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
-                        >
-                            <IconsModule.Information height="16" />
-                        </DialogButton>
-                    )}
-        
+                {!pluginSelf.isDefaultTheme && (
                     <DialogButton
-                        onClick={OpenThemesFolder}
+                        onClick={() => SetupAboutRenderer(active)}
                         className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
                     >
-                        <CustomIcons.Folder />
+                        <IconsModule.Information height="16" />
                     </DialogButton>
-        
-                    <Dropdown
-                        onMenuOpened={async () => await findAllThemes().then((result: ComboItem[]) => setThemes(result))}
-                        contextMenuPositionOptions={{ bMatchWidth: false }}
-                        rgOptions={themes as any}
-                        selectedOption={1}
-                        strDefaultLabel={active}
-                        onChange={updateThemeCallback as any}
-                    />
-                </Field>
+                )}
 
-                <Field
-                    label={locale.themePanelInjectJavascript}
-                    description={locale.themePanelInjectJavascriptToolTip}
+                <DialogButton
+                    onClick={OpenThemesFolder}
+                    className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
                 >
-                    {jsState !== undefined && (
-                        <Toggle value={jsState} onChange={onScriptToggle} />
-                    )}
-                </Field>
+                    <CustomIcons.Folder />
+                </DialogButton>
 
-                <Field
-                    label={locale.themePanelInjectCSS}
-                    description={locale.themePanelInjectCSSToolTip}
-                >
-                    {cssState !== undefined && (
-                        <Toggle value={cssState} onChange={onStyleToggle} />
-                    )}
-                </Field>
+                <Dropdown
+                    onMenuOpened={async () => await findAllThemes().then((result: ComboItem[]) => setThemes(result))}
+                    contextMenuPositionOptions={{ bMatchWidth: false }}
+                    rgOptions={themes as any}
+                    selectedOption={1}
+                    strDefaultLabel={active}
+                    onChange={updateThemeCallback as any}
+                />
+            </Field>
 
-                <RenderAccentColorPicker />
+            <Field
+                label={locale.themePanelInjectJavascript}
+                description={locale.themePanelInjectJavascriptToolTip}
+            >
+                {jsState !== undefined && (
+                    <Toggle value={jsState} onChange={onScriptToggle} />
+                )}
+            </Field>
 
-            </DialogBody>
+            <Field
+                label={locale.themePanelInjectCSS}
+                description={locale.themePanelInjectCSSToolTip}
+            >
+                {cssState !== undefined && (
+                    <Toggle value={cssState} onChange={onStyleToggle} />
+                )}
+            </Field>
+
+            <RenderAccentColorPicker currentThemeUsesAccentColor={themeUsesAccentColor} />
+
+            {/* </DialogBody> */}
         </>
     )
 }

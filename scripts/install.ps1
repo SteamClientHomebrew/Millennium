@@ -72,7 +72,7 @@ function Start-Steam {
         exit
     }
 
-    Start-Process -FilePath $steamExe -ArgumentList "-verbose"
+    Start-Process -FilePath $steamExe
 }
 
 # Kill steam process before installing
@@ -283,7 +283,7 @@ function Extract-ZipWithProgress {
         }
 
         $extractedSizeFormatted = ConvertTo-ReadableSize -size $extractedBytes
-        Write-Host "`n`n${BoldPurple}::${ResetColor} Total Installed Size:   $extractedSizeFormatted to disk."
+        Write-Host "`n`n${BoldPurple}::${ResetColor} Total Installed Size:  $extractedSizeFormatted"
 
         # Close the ZIP archive
         $zipArchive.Dispose()
@@ -301,7 +301,6 @@ Write-Host ""
 Extract-ZipWithProgress -zipPath $outputFile -extractPath $steamPath
 
 # Remove the downloaded zip file if it exists
-
 if (Test-Path -Path $outputFile) {
     Remove-Item -Path $outputFile > $null
 }
@@ -416,39 +415,5 @@ if ($isUpdater) {
     exit
 }
 
-$pipeName = "MillenniumStdoutPipe"
-$bufferSize = 1024
-
-$pipeServer = [System.IO.Pipes.NamedPipeServerStream]::new($pipeName, [System.IO.Pipes.PipeDirection]::In)
-
-Write-Host ""
-Write-Output "${BoldPurple}::${ResetColor} Verifying runtime environment..."
-Write-Output "${BoldPurple}::${ResetColor} Millennium will now start bootstrapping Steam, expect to see Millennium logs below."
-Write-Output "${BoldPurple}++${ResetColor} If you face any issues while verifying, please report them on the GitHub repository."
-Write-Output "${BoldPurple}++${ResetColor} ${BoldLightBlue}https://github.com/SteamClientHomebrew/Millennium/issues/new/choose${ResetColor}`n"
-
-# sleep 5 seconds to allow the user to read the message
-Start-Sleep -Seconds 5
-
-Start-Steam -steamPath $steamPath
-
-$pipeServer.WaitForConnection()
-$buffer = New-Object byte[] $bufferSize
-
-while ($pipeServer.IsConnected) {
-    $bytesRead = $pipeServer.Read($buffer, 0, $bufferSize)
-    if ($bytesRead -gt 0) {           
-        $message = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
-        [Console]::Write($message)
-        
-        # Check if the message contains "SteamUI successfully loaded"
-        if ($message -match "SteamUI successfully loaded!") {
-            Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
-            Start-Sleep -Seconds 2
-            exit
-        }
-    }
-}
-
-Write-Output "Millennium Closed."
-$pipeServer.Close()
+Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
+Write-Host "${BoldGreen}++${ResetColor} See ${BoldLightBlue}https://docs.steambrew.app/users/getting-started${ResetColor} for more information."

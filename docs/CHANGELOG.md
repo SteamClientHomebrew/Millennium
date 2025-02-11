@@ -1,3 +1,81 @@
+## [2.17.2](https://github.com/shdwmtr/millennium/compare/v2.17.1...v2.17.2) (2024-12-29)
+
+
+### Bug Fixes
+
+* Fix overlay browser not loading on pages without a response phrase. ([7d0fbcf](https://github.com/shdwmtr/millennium/commit/7d0fbcf365f0d6a7f3d163a3f265c1cf45c595ec))
+
+## [2.17.1](https://github.com/shdwmtr/millennium/compare/v2.17.0...v2.17.1) (2024-12-29)
+
+
+### Bug Fixes
+
+* Fix workshop pages not rendering HTML. ([4614cc8](https://github.com/shdwmtr/millennium/commit/4614cc81776ed0731d5324723a0466a2a74537d0))
+
+# [2.17.0](https://github.com/shdwmtr/millennium/compare/v2.16.2...v2.17.0) (2024-12-29)
+
+
+### Bug Fixes
+
+* Add proxy support for web requests within Steam. ([71dabc6](https://github.com/shdwmtr/millennium/commit/71dabc6c5299de1f3b5dd2053dad5f3d4a8856a7))
+* Fix installer script ([fb4053d](https://github.com/shdwmtr/millennium/commit/fb4053dcb299311daac5df20dcca3409d3298af7))
+* Fix webkit and CSP related issues. closes [#197](https://github.com/shdwmtr/millennium/issues/197), [#196](https://github.com/shdwmtr/millennium/issues/196), [#194](https://github.com/shdwmtr/millennium/issues/194) ([e2cd49d](https://github.com/shdwmtr/millennium/commit/e2cd49dd7b4911ededf5d16c5446f0221de35d4e))
+* Fix webkit issues, Close [#194](https://github.com/shdwmtr/millennium/issues/194), [#196](https://github.com/shdwmtr/millennium/issues/196) ([2c91a95](https://github.com/shdwmtr/millennium/commit/2c91a9517bbe662e5227304c63dafdbfabee7ac9))
+* Fix webkit patcher edge cases on redirects ([2573215](https://github.com/shdwmtr/millennium/commit/25732155fc5c4cb8a2d1b036b63a404b495eae94))
+* Fix webkit patcher skipping non-secure requests. ([b9a6d0d](https://github.com/shdwmtr/millennium/commit/b9a6d0d0fef4f66f5bf0bd027dd45e98f710ff21))
+
+
+### Features
+
+* Add system accent color to webkit ([af602c3](https://github.com/shdwmtr/millennium/commit/af602c30e140a1588d901417d9b6d83a590ed4f6))
+
+## [2.16.2](https://github.com/shdwmtr/millennium/compare/v2.16.1...v2.16.2) (2024-12-21)
+
+
+### Bug Fixes
+
+* Fix installer crashes (again) ([bfafcb7](https://github.com/shdwmtr/millennium/commit/bfafcb79253fb0fb3475b35e87229dfa11c2471a))
+
+## [2.16.1](https://github.com/shdwmtr/millennium/compare/v2.16.0...v2.16.1) (2024-12-20)
+
+
+### Bug Fixes
+
+* Catch installer socket being used instead of crashing. ([8817735](https://github.com/shdwmtr/millennium/commit/88177355d74b53ad7671e35831f6c050f842172c))
+* Fix crashing on new installs ([9b7e1e5](https://github.com/shdwmtr/millennium/commit/9b7e1e52b21556c6935112b92233ea75b52b69ba))
+* Fix unix pathing ([07dc66c](https://github.com/shdwmtr/millennium/commit/07dc66cc0d707153e976d52b3fe981694c1fa5b3))
+* Properly handle theme config with invalid props. ([d25461d](https://github.com/shdwmtr/millennium/commit/d25461d34f6e9790d18cc667395268a32508fb2a))
+
+# [2.16.0](https://github.com/shdwmtr/millennium/compare/v2.15.0...v2.16.0) (2024-12-19)
+
+
+### Bug Fixes
+
+* **CI:** Fix CI ([b897b49](https://github.com/shdwmtr/millennium/commit/b897b4901fa53ba8a76860c368a30b240ff129e6))
+* **CI:** Fix CI ([914df34](https://github.com/shdwmtr/millennium/commit/914df34aef0f8b531f01e9c7dde8be5dd6543a3d))
+* Close installer after successful install ([cfd961c](https://github.com/shdwmtr/millennium/commit/cfd961c54b59808b625a9dfbe077ae29940998b5))
+* Fix plugin JS being removed from webkit when a new theme is selected. ([a29c7df](https://github.com/shdwmtr/millennium/commit/a29c7df0aeb1114bfb0c1c515231ce5fa7faf5fb))
+* Fix settings icons not being centered and plugin settings button not having propper styling ([#184](https://github.com/shdwmtr/millennium/issues/184)) ([5fddc2d](https://github.com/shdwmtr/millennium/commit/5fddc2db498d84a1da321c1301fafa1baac106fc))
+* Fix system accent color not working on some startups ([2eb7a94](https://github.com/shdwmtr/millennium/commit/2eb7a943a951fe965d5e749c6b04b0573918d1d8))
+* Fix the artifact CI ([3faf711](https://github.com/shdwmtr/millennium/commit/3faf7111cbecab18d6351abc9a8d55746c88085e))
+* Fix typo in install.sh ([#178](https://github.com/shdwmtr/millennium/issues/178)) ([76349b3](https://github.com/shdwmtr/millennium/commit/76349b3aa7374a67b408fad9583b0073164abb8d)), closes [#4](https://github.com/shdwmtr/millennium/issues/4)
+* Fix typo on themes page [#168](https://github.com/shdwmtr/millennium/issues/168) ([e05ec19](https://github.com/shdwmtr/millennium/commit/e05ec1962999e57a4662b8391a0b379e3a2c82ee))
+* Prevent debug info from growing insanely large [#176](https://github.com/shdwmtr/millennium/issues/176) ([d23bec9](https://github.com/shdwmtr/millennium/commit/d23bec9832d8dbe9888a95d765f36d0cf9e6a5b4))
+* **Unix:** Fix LD_PRELOAD variable interfering with Steam games. ([cbfd653](https://github.com/shdwmtr/millennium/commit/cbfd653b3980d42dd529fc4c84028271e0c6d4e2))
+* Use correct classes for Field ([#189](https://github.com/shdwmtr/millennium/issues/189)) ([4ce6b5d](https://github.com/shdwmtr/millennium/commit/4ce6b5d084eb5dfce022e5a4bcc7e68833f3a902))
+
+
+### Features
+
+* Add better webkit support for plugins ([33b6cde](https://github.com/shdwmtr/millennium/commit/33b6cde0091dab72761ebb4e0b051471d20b94ca))
+* Add Swedish localization. ([#180](https://github.com/shdwmtr/millennium/issues/180)) ([0d9e8b4](https://github.com/shdwmtr/millennium/commit/0d9e8b49cbfac3950e6a0bb280ca3cc6d22739c4))
+* Added CPS bypass & Added Millennium API to webkit modules ([eda0f54](https://github.com/shdwmtr/millennium/commit/eda0f5460061075e0e389c9cacbd270a97c18739))
+* Conditional webkit patching based on URL with regex [#127](https://github.com/shdwmtr/millennium/issues/127) ([bf36bd5](https://github.com/shdwmtr/millennium/commit/bf36bd537c19ae5c5a10fdc6b3e86db3947dd862))
+* **Security:** Blacklist certain pages, like the checkout, from being injected into by plugins. ([54edc4c](https://github.com/shdwmtr/millennium/commit/54edc4c6f82f6f6b41fed29ce7f0e7b01ba200c9))
+* Slightly Better Russian Translation ([#187](https://github.com/shdwmtr/millennium/issues/187)) ([639390d](https://github.com/shdwmtr/millennium/commit/639390dab1c9367cc72a3bff98dc454fa55ccbb0))
+* Softer and better crash detection. ([fc5e756](https://github.com/shdwmtr/millennium/commit/fc5e7568757f72e020cfa3def59cb9c6026284d2))
+* Updated plugin support for better webkit modding. ([1a8daf0](https://github.com/shdwmtr/millennium/commit/1a8daf048515c8c01b8ce703838c7da6efb40771))
+
 # [2.15.0](https://github.com/shdwmtr/millennium/compare/v2.14.2...v2.15.0) (2024-11-12)
 
 
