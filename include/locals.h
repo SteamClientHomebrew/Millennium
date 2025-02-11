@@ -89,6 +89,11 @@ namespace SystemIO
     };
 
     std::filesystem::path GetSteamPath();
+
+    /**
+     * FIXME: This function is no longer useful and should be removed. 
+     * It was intended to point to the local install path, however there isn't one anymore on unix. 
+     */
     std::filesystem::path GetInstallPath();
     nlohmann::json ReadJsonSync(const std::string& filename, bool* success = nullptr);
     std::string ReadFileSync(const std::string& filename);
