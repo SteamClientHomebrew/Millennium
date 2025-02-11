@@ -45,6 +45,7 @@
 #include <cxxabi.h>
 #include "terminal_pipe.h"
 #include "executor.h"
+#include <env.h>
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
@@ -104,6 +105,8 @@ void OnTerminate()
  */
 const static void EntryMain() 
 {
+    SetupEnvironmentVariables();
+
     #if defined(_WIN32) && defined(_DEBUG)
     if (!IsDebuggerPresent()) 
     #endif
@@ -237,7 +240,7 @@ extern "C"
 
     void RemoveFromLdPreload() 
     {
-        const std::string fileToRemove = std::filesystem::path(std::getenv("HOME")) / ".millennium" / "libMillennium.so";
+        const std::string fileToRemove = LIBPYTHON_RUNTIME_PATH;
 
         const char* ldPreload = std::getenv("LD_PRELOAD");
         if (!ldPreload) 

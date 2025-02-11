@@ -31,17 +31,12 @@ class Config:
 
     def setup(self):
 
-        if os.name == 'nt':
-            LOCALS = os.path.join(Millennium.get_install_path(), "ext", "data")
-        elif os.name == 'posix':
-            LOCALS = os.path.expanduser("~/.local/share/millennium")
-
         _platform = platform.system()
 
         if _platform == "Windows":
-            PYTHON_BIN = os.path.join(LOCALS, "cache", "python.exe")  
+            PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "python.exe")  
         elif _platform == "Linux":
-            PYTHON_BIN = os.path.expanduser("~/.local/share/millennium/lib/cache/bin/python3.11")
+            PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "bin", "python3.11")
 
             # check if the binary is executable
             if not os.access(PYTHON_BIN, os.X_OK):
@@ -49,8 +44,8 @@ class Config:
                 os.chmod(PYTHON_BIN, 0o755)
                 logger.log(f"Set {PYTHON_BIN} as executable")
 
-        PACMAN_LOGS      = os.path.join(LOCALS, "logs", "pacman.log")
-        PIP_INSTALL_LOGS = os.path.join(LOCALS, "logs", "pip_boot.log")
+        PACMAN_LOGS      = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pacman.log")
+        PIP_INSTALL_LOGS = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pip_boot.log")
 
         self.set_default('PackageManager', 'dev_packages', 'no')
         self.set_default('PackageManager', 'auto_update_dev_packages', 'yes')

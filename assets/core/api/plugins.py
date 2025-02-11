@@ -34,12 +34,8 @@ def search_dirs(m_path: str, plugins: list, _logger = None) -> None:
 def find_all_plugins(_logger = None) -> str:
     plugins = []
 
-    if os.name == 'nt':
-        for subdir in ["ext/data", "plugins"]: # ext/data is internal plugins, plugins is user plugins
-            search_dirs(os.path.join(Millennium.get_install_path(), subdir), plugins, logger if _logger is None else _logger)
-            
-    elif os.name == 'posix':
-        for subdir in [os.path.expanduser("~/.local/share/millennium/lib"), os.path.expanduser("~/.local/share/millennium/plugins")]: # ext/data is internal plugins, plugins is user plugins
-            search_dirs(subdir, plugins, logger if _logger is None else _logger)
+    # MILLENNIUM__DATA_LIB is internal plugins, MILLENNIUM__PLUGINS_PATH is user plugins
+    for subdir in [os.getenv("MILLENNIUM__DATA_LIB"), os.getenv("MILLENNIUM__PLUGINS_PATH")]: 
+        search_dirs(subdir, plugins, logger if _logger is None else _logger)
 
     return json.dumps(plugins)

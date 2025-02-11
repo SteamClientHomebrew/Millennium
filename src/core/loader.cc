@@ -41,6 +41,7 @@
 #include "web_load.h"
 #include "log.h"
 #include "logger.h"
+#include <env.h>
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -158,6 +159,7 @@ public:
 
     const void UnPatchSharedJSContext()
     {
+        #ifdef _WIN32
         Logger.Log("Restoring SharedJSContext...");
 
         const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
@@ -178,6 +180,7 @@ public:
         }
 
         Logger.Log("Restored SharedJSContext...");
+        #endif
         Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
     }
 
@@ -279,11 +282,7 @@ const void PluginLoader::InjectWebkitShims()
     // Inject all webkit shims for enabled plugins if they have shims
     for (auto& plugin : allPlugins)
     {
-        #ifdef _WIN32
-        const auto absolutePath = SystemIO::GetInstallPath() / "plugins" / plugin.webkitAbsolutePath;
-        #elif __linux__
-        const auto absolutePath = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "plugins" / plugin.webkitAbsolutePath;
-        #endif
+        const auto absolutePath = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
 
         if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
         {
@@ -351,11 +350,7 @@ const void StartPreloader(PythonManager& manager)
     SettingsStore::PluginTypeSchema plugin
     {
         .pluginName = "pipx",
-        #ifdef _WIN32
-        .backendAbsoluteDirectory = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / "pipx",
-        #elif __linux__
-        .backendAbsoluteDirectory = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "lib" / "assets" / "pipx",
-        #endif
+        .backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx",
         .isInternal = true
     };
 

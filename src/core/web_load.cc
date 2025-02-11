@@ -37,6 +37,7 @@
 #include <unordered_set>
 #include "csp_bypass.h"
 #include "url_parser.h"
+#include <env.h>
 
 unsigned long long g_hookedModuleId;
 
@@ -167,11 +168,7 @@ void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
     std::string patched = original;
-    #ifdef _WIN32
-    const std::string webkitPreloadModule = SystemIO::ReadFileSync((SystemIO::GetInstallPath() / "ext" / "data" / "shims" / "webkit_api.js").string());
-    #elif __linux__
-    const std::string webkitPreloadModule = SystemIO::ReadFileSync((std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "lib" / "shims" / "webkit_api.js").string());
-    #endif
+    const std::string webkitPreloadModule = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "webkit_api.js").string());
 
     if (webkitPreloadModule.empty()) 
     {

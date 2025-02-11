@@ -38,16 +38,13 @@
 #include <winsock2.h>
 #include <windows.h>
 #endif
+#include <env.h>
 
 namespace FileSystem = std::filesystem;
 
 SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::INIStructure())
 {
-    #ifdef _WIN32
-    const auto path = SystemIO::GetInstallPath() / "ext" / "millennium.ini";
-    #elif __linux__
-    const auto path = std::filesystem::path(std::getenv("HOME")) / ".config" / "millennium" / "millennium.ini";
-    #endif
+    const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
 
     if (!FileSystem::exists(path))
     {
@@ -213,11 +210,7 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
 
 void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins)
 {
-    #ifdef _WIN32
-    const std::filesystem::directory_entry entry(SystemIO::GetInstallPath() / "ext" / "data" / "assets");
-    #elif __linux__
-    const std::filesystem::directory_entry entry(std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "lib" / "assets");
-    #endif
+    const std::filesystem::directory_entry entry(std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")));
     const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
 
     if (!FileSystem::exists(pluginConfiguration))
@@ -238,13 +231,8 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
         plugin.pluginName = pluginJson["name"];
         plugin.pluginBaseDirectory       = entry.path();
         plugin.backendAbsoluteDirectory  = entry.path() / pluginJson.value("backend", "backend") / "main.py";
-        #ifdef _WIN32
-        plugin.frontendAbsoluteDirectory = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / ".millennium" / "Dist" / "index.js";
-        plugin.webkitAbsolutePath        = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / ".millennium" / "Dist" / "webkit.js";
-        #elif __linux__
-        plugin.frontendAbsoluteDirectory = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "lib" / "assets" / ".millennium" / "Dist" / "index.js";
-        plugin.webkitAbsolutePath        = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "lib" / "assets" / ".millennium" / "Dist" / "webkit.js";
-        #endif
+        plugin.frontendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "index.js";
+        plugin.webkitAbsolutePath        = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "webkit.js";
         plugin.isInternal = true;
 
         plugins.push_back(plugin);
@@ -262,11 +250,7 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
     std::vector<SettingsStore::PluginTypeSchema> plugins;
-    #ifdef _WIN32
-    const auto plugin_path = SystemIO::GetInstallPath() / "plugins";
-    #elif __linux__
-    const auto plugin_path = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "plugins";
-    #endif
+    const auto plugin_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
 
     try
     {

@@ -40,6 +40,7 @@
 #include "cmd.h"
 #endif
 #include "locals.h"
+#include <env.h>
 
 OutputLogger Logger;
 
@@ -87,11 +88,7 @@ OutputLogger::OutputLogger()
 	}
 	#endif
 
-	#ifdef _WIN32
-	const auto fileName = SystemIO::GetSteamPath() / "ext" / "data" / "logs" / "debug.log";
-	#elif __linux__
-	const auto fileName = std::filesystem::path(std::getenv("HOME")) / ".local" / "share" / "millennium" / "logs" / "debug.log";
-	#endif
+	const auto fileName = std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / "debug.log";
 
 	try
 	{
