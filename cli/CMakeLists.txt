@@ -25,3 +25,5 @@ add_compile_definitions(MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
 
 set_target_properties(cli PROPERTIES OUTPUT_NAME "millennium")
 set_target_properties(cli PROPERTIES PREFIX "")
+
+install(TARGETS cli DESTINATION bin)
