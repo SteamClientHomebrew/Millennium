@@ -214,3 +214,5 @@ elseif(UNIX)
     endif()
   endif()
 endif()
+
+install(TARGETS Millennium DESTINATION lib)
