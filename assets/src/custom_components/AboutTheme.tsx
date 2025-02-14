@@ -9,14 +9,14 @@ import {
     pluginSelf,
 } from "@steambrew/client"
 import { ThemeItem } from "../types"
-import { CreatePopup } from "../components/CreatePopup"
 import React from "react"
 import { locale } from "../locales";
 import { devClasses, settingsClasses } from "../classes";
 import { FakeFriend } from "./FakeFriend";
+import { CreatePopup } from "../components/ISteamComponents";
 
 class AboutThemeRenderer extends React.Component<any> {
-    
+
     activeTheme: ThemeItem;
 
     constructor(props: any) {
@@ -28,14 +28,14 @@ class AboutThemeRenderer extends React.Component<any> {
     RenderDeveloperProfile = () => {
 
         const OpenDeveloperProfile = () => {
-            this.activeTheme?.data?.github?.owner 
-            && SteamClient.System.OpenInSystemBrowser(`https://github.com/${this.activeTheme?.data?.github?.owner}/`)
+            this.activeTheme?.data?.github?.owner
+                && SteamClient.System.OpenInSystemBrowser(`https://github.com/${this.activeTheme?.data?.github?.owner}/`)
         }
 
         return (
             <>
-            <style>
-                {`
+                <style>
+                    {`
                 .${Classes.FakeFriend}.online:hover {
                     cursor: pointer !important;
                 }
@@ -44,23 +44,23 @@ class AboutThemeRenderer extends React.Component<any> {
                 .online.${devClasses.noContextMenu}.${devClasses.twoLine} {
                     pointer-events: none;
                 }`}
-            </style>
+                </style>
 
-            <FakeFriend
-                eStatus="online"
-                strAvatarURL={
-                    this.activeTheme?.data?.github?.owner
-                        ? `https://github.com/${this.activeTheme?.data?.github?.owner}.png`
-                        : "https://i.pinimg.com/736x/98/1d/6b/981d6b2e0ccb5e968a0618c8d47671da.jpg"
-                }
-                strGameName={`✅ ${locale.aboutThemeVerifiedDev}`}
-                strPlayerName={
-                    this.activeTheme?.data?.github?.owner ??
+                <FakeFriend
+                    eStatus="online"
+                    strAvatarURL={
+                        this.activeTheme?.data?.github?.owner
+                            ? `https://github.com/${this.activeTheme?.data?.github?.owner}.png`
+                            : "https://i.pinimg.com/736x/98/1d/6b/981d6b2e0ccb5e968a0618c8d47671da.jpg"
+                    }
+                    strGameName={`✅ ${locale.aboutThemeVerifiedDev}`}
+                    strPlayerName={
+                        this.activeTheme?.data?.github?.owner ??
                         this.activeTheme?.data?.author ??
                         locale.aboutThemeAnonymous
-                }
-                onClick={OpenDeveloperProfile}
-            />
+                    }
+                    onClick={OpenDeveloperProfile}
+                />
             </>
         )
     }
@@ -90,14 +90,14 @@ class AboutThemeRenderer extends React.Component<any> {
 
         const ShowInFolder = () => {
             Millennium.callServerMethod("Millennium.steam_path")
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .then((path: string) => {
-                console.log(path)
-                SteamClient.System.OpenLocalDirectoryInSystemExplorer(`${path}/steamui/skins/${this.activeTheme.native}`)
-            })
+                .then((result: any) => {
+                    pluginSelf.connectionFailed = false
+                    return result
+                })
+                .then((path: string) => {
+                    console.log(path)
+                    SteamClient.System.OpenLocalDirectoryInSystemExplorer(`${path}/steamui/skins/${this.activeTheme.native}`)
+                })
         }
 
         const UninstallTheme = () => {
@@ -105,27 +105,27 @@ class AboutThemeRenderer extends React.Component<any> {
                 owner: this.activeTheme?.data?.github?.owner,
                 repo: this.activeTheme?.data?.github?.repo_name
             })
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .then((raw: string) => {
+                .then((result: any) => {
+                    pluginSelf.connectionFailed = false
+                    return result
+                })
+                .then((raw: string) => {
 
-                const message = JSON.parse(raw)
-                console.log(message)
+                    const message = JSON.parse(raw)
+                    console.log(message)
 
-                SteamClient.Browser.RestartJSContext()
-            })
+                    SteamClient.Browser.RestartJSContext()
+                })
         }
 
         return (
             <>
-                {themeOwner && themeRepo && <DialogButton style={{width: "unset"}} className={settingsClasses.SettingsDialogButton} onClick={ShowSource}>{locale.viewSourceCode}</DialogButton>}
+                {themeOwner && themeRepo && <DialogButton style={{ width: "unset" }} className={settingsClasses.SettingsDialogButton} onClick={ShowSource}>{locale.viewSourceCode}</DialogButton>}
                 {/* {kofiDonate && <button type="button" style={{width: "unset"}} className={`${settingsClasses.SettingsDialogButton} DialogButton _DialogLayout Secondary Focusable`} onClick={OpenDonateDefault}>Donate</button>} */}
 
-                <div className=".flex-btn-container" style={{display: "flex", gap: "5px"}}>
-                    <DialogButton style={{width: "50%", }} className={settingsClasses.SettingsDialogButton} onClick={ShowInFolder}>{locale.showInFolder}</DialogButton>
-                    <DialogButton style={{width: "50%"}} className={settingsClasses.SettingsDialogButton} onClick={UninstallTheme}>{locale.uninstall}</DialogButton> 
+                <div className=".flex-btn-container" style={{ display: "flex", gap: "5px" }}>
+                    <DialogButton style={{ width: "50%", }} className={settingsClasses.SettingsDialogButton} onClick={ShowInFolder}>{locale.showInFolder}</DialogButton>
+                    <DialogButton style={{ width: "50%" }} className={settingsClasses.SettingsDialogButton} onClick={UninstallTheme}>{locale.uninstall}</DialogButton>
                 </div>
             </>
         )
@@ -134,26 +134,26 @@ class AboutThemeRenderer extends React.Component<any> {
     CreateModalBody = () => {
         return (
             <div className="ModalPosition" tabIndex={0}>
-                <div className="ModalPosition_Content" style={{width: "100vw", height: "100vh"}}>
+                <div className="ModalPosition_Content" style={{ width: "100vw", height: "100vh" }}>
                     <div className="DialogContent _DialogLayout GenericConfirmDialog _DialogCenterVertically">
-                        <div className="DialogContent_InnerWidth" style={{flex: "unset"}}>
+                        <div className="DialogContent_InnerWidth" style={{ flex: "unset" }}>
                             <DialogHeader style={{
                                 display: "flex",
                                 alignItems: "baseline",
                                 gap: "10px",
                             }}>
                                 {this.activeTheme?.data?.name ?? this.activeTheme?.native}
-                                <p style ={{
+                                <p style={{
                                     fontSize: "10px",
                                     height: "min-content",
                                     margin: "0",
                                     color: "grey"
                                 }}>{this.activeTheme?.data?.version}</p>
                             </DialogHeader>
-                            <DialogBody style={{flex: "unset"}}>
-                                <this.RenderDeveloperProfile/>
-                                <this.RenderDescription/>
-                                <this.RenderInfoRow/>
+                            <DialogBody style={{ flex: "unset" }}>
+                                <this.RenderDeveloperProfile />
+                                <this.RenderDescription />
+                                <this.RenderInfoRow />
                             </DialogBody>
                         </div>
                     </div>
@@ -164,7 +164,7 @@ class AboutThemeRenderer extends React.Component<any> {
 
     render() {
         return (
-            <this.CreateModalBody/>
+            <this.CreateModalBody />
         )
     }
 }
@@ -178,7 +178,7 @@ export const SetupAboutRenderer = (active: string) => {
         html_class: "client_chat_frame fullheight ModalDialogPopup ",
         eCreationFlags: 274,
         window_opener_id: 1,
-        dimensions: {width: 450, height: 375},
+        dimensions: { width: 450, height: 375 },
         replace_existing_popup: false,
     }
 

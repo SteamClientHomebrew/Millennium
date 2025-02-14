@@ -105,4 +105,4 @@ function patchDocumentContext(windowContext: any)
     }
 }
 
-export { patchDocumentContext }
+export { patchDocumentContext as PatchDocumentContext }

@@ -12,12 +12,12 @@ import {
     SingleDropdownOption,
     Toggle,
     pluginSelf,
-  } from "@steambrew/client";
-import { BBCodeParser } from "../components/BBCodeParser";
-import { Field } from "../custom_components/Field";
+    Field
+} from "@steambrew/client";
 import { Conditions, ConditionsStore, ICondition, ThemeItem } from "../types"
 import { settingsClasses } from "../classes"
 import { locale } from "../locales";
+import { BBCodeParser } from "../components/ISteamComponents";
 
 interface ConditionalComponent {
     condition: string,
@@ -26,8 +26,8 @@ interface ConditionalComponent {
 }
 
 interface ComponentInterface {
-    conditionType: ConditionType, 
-    values: string[], 
+    conditionType: ConditionType,
+    values: string[],
     conditionName: string,
     store: ConditionsStore
 }
@@ -69,7 +69,6 @@ const ThemeEditorContainer: React.FC = ({ children }) => (
 export class RenderThemeEditor extends React.Component {
 
     GetConditionType = (value: any): ConditionType => {
-
         if (Object.keys(value).every((element: string) => element === 'yes' || element === 'no')) {
             return ConditionType.Toggle
         }
@@ -77,60 +76,60 @@ export class RenderThemeEditor extends React.Component {
             return ConditionType.Dropdown
         }
     }
-    
+
     UpdateLocalCondition = (conditionName: string, newData: string) => {
         const activeTheme: ThemeItem = pluginSelf.activeTheme as ThemeItem
-    
+
         return new Promise<boolean>((resolve) => {
             Millennium.callServerMethod("cfg.change_condition", {
                 theme: activeTheme.native, newData: newData, condition: conditionName
             })
-            .then((result: any) => {
-                pluginSelf.connectionFailed = false
-                return result
-            })
-            .then((response: any) => {
+                .then((result: any) => {
+                    pluginSelf.connectionFailed = false
+                    return result
+                })
+                .then((response: any) => {
 
-                const success = JSON.parse(response)?.success as boolean ?? false
+                    const success = JSON.parse(response)?.success as boolean ?? false
 
-                success && (pluginSelf.ConditionConfigHasChanged = true)
-                resolve(success)
-            })
+                    success && (pluginSelf.ConditionConfigHasChanged = true)
+                    resolve(success)
+                })
         })
     }
-    
+
     RenderComponentInterface: React.FC<ComponentInterface> = ({ conditionType, values, store, conditionName }) => {
-    
+
         /** Dropdown items if given that the component is a dropdown */
         const items = values.map((value: string, index: number) => ({ label: value, data: "componentId" + index }))
-    
+
         /** Checked status if given that the component is a toggle */
         const [checked, setChecked] = useState(store?.[conditionName] == "yes" ? true : false)
         // const [isHovered, setIsHovered] = useState({state: false, target: null});
-    
+
         const onCheckChange = (enabled: boolean) => {
-    
+
             this.UpdateLocalCondition(conditionName, enabled ? "yes" : "no").then((success) => {
                 success && setChecked(enabled)
             })
         }
-    
+
         const onDropdownChange = (data: SingleDropdownOption) => {
             this.UpdateLocalCondition(conditionName, data.label as string)
         }
 
         switch (conditionType) {
-            case ConditionType.Dropdown: 
+            case ConditionType.Dropdown:
                 // @ts-ignore
-                return <Dropdown contextMenuPositionOptions={{bMatchWidth: false}} onChange={onDropdownChange} rgOptions={items} selectedOption={1} strDefaultLabel={store[conditionName]}/>
-    
+                return <Dropdown contextMenuPositionOptions={{ bMatchWidth: false }} onChange={onDropdownChange} rgOptions={items} selectedOption={1} strDefaultLabel={store[conditionName]} />
+
             case ConditionType.Toggle:
                 return <Toggle value={checked} onChange={onCheckChange} />
         }
     }
-    
-    RenderComponent: React.FC<ConditionalComponent> = ({condition, value, store}) => {
-    
+
+    RenderComponent: React.FC<ConditionalComponent> = ({ condition, value, store }) => {
+
         const conditionType: ConditionType = this.GetConditionType(value.values)
 
         return (
@@ -142,27 +141,27 @@ export class RenderThemeEditor extends React.Component {
             </Field>
         )
     }
-    
-    RenderColorComponent: React.FC<{color: ColorProps, index: number}> = ({color, index}) => {
+
+    RenderColorComponent: React.FC<{ color: ColorProps, index: number }> = ({ color, index }) => {
 
         const [colorState, setColorState] = useState(color?.hex ?? "#000000");
         (window as any).lastColorChangeTime = performance.now();
 
         const UpdateColor = (hexColor: string) => {
-            if (performance.now() - (window as any).lastColorChangeTime < 5) { 
+            if (performance.now() - (window as any).lastColorChangeTime < 5) {
                 return;
             }
 
             setColorState(hexColor)
 
             Millennium.callServerMethod("cfg.change_color", { color_name: color.color, new_color: hexColor, type: color.type })
-            .then((result: any) => {
-                // @ts-ignore
-                g_PopupManager.m_mapPopups.data_.forEach((element: any) => {
-                    var rootColors = element.value_.m_popup.window.document.getElementById("RootColors");
-                    rootColors.innerHTML = rootColors.innerHTML.replace(new RegExp(`${color.color}:.*?;`, 'g'), `${color.color}: ${result};`)
+                .then((result: any) => {
+                    // @ts-ignore
+                    g_PopupManager.m_mapPopups.data_.forEach((element: any) => {
+                        var rootColors = element.value_.m_popup.window.document.getElementById("RootColors");
+                        rootColors.innerHTML = rootColors.innerHTML.replace(new RegExp(`${color.color}:.*?;`, 'g'), `${color.color}: ${result};`)
+                    })
                 })
-            })
         }
 
         const ResetColor = () => {
@@ -176,7 +175,7 @@ export class RenderThemeEditor extends React.Component {
                 description=<BBCodeParser text={color?.description ?? "No description yet."} />
             >
                 {colorState != color.defaultColor && <DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>Reset</DialogButton>}
-                <input type="color" className="colorPicker" name="colorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)}/>
+                <input type="color" className="colorPicker" name="colorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
             </Field>
         )
     }
@@ -186,10 +185,10 @@ export class RenderThemeEditor extends React.Component {
 
         useEffect(() => {
             Millennium.callServerMethod("cfg.get_color_opts")
-            .then((result: any) => {
-                console.log(JSON.parse(result) as ColorProps[])
-                setThemeColors(JSON.parse(result) as ColorProps[])
-            })
+                .then((result: any) => {
+                    console.log(JSON.parse(result) as ColorProps[])
+                    setThemeColors(JSON.parse(result) as ColorProps[])
+                })
         }, [])
 
         return (
@@ -203,7 +202,7 @@ export class RenderThemeEditor extends React.Component {
 
     render() {
         const activeTheme: ThemeItem = pluginSelf.activeTheme as ThemeItem
-    
+
         const themeConditions: Conditions = activeTheme.data.Conditions
         const savedConditions = pluginSelf?.conditionals?.[activeTheme.native] as ConditionsStore
         const entries = Object.entries(themeConditions);

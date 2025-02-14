@@ -10,3 +10,4 @@ cssutils
 websockets
 watchdog
 PySocks
+pyperclip

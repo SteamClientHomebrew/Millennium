@@ -113,7 +113,7 @@ jobs:
         mkdir D:/a/Millennium/Millennium/build/artifacts
         cmake --build build --config Release
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
-        cp /d/a/Millennium/Millennium/build/win32/user32.dll  D:/a/env/user32.dll
+        cp /d/a/Millennium/Millennium/build/preload/user32.dll  D:/a/env/user32.dll
         cp /d/a/Millennium/Millennium/build/millennium.dll D:/a/env/millennium.dll
         mkdir D:/a/env/ext/bin
         # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
@@ -286,9 +286,6 @@ jobs:
         cp ./build/libMillennium.so /home/runner/env/libMillennium.so
         cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
         cp ./scripts/posix/start.sh /home/runner/env/start.sh
-        
-        mkdir -p /home/runner/env/ext/bin
-        cp ./build/cli/millennium /home/runner/env/ext/bin/millennium
 
         npm install @steambrew/api
         mkdir -p /home/runner/env/ext/data/shims
