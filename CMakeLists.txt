@@ -5,7 +5,7 @@ set(MILLENNIUM_VERSION "${MILLENNIUM_VERSION}")
 
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.10...3.21)
 set(BUILD_SHARED_LIBS OFF)
 
 # set c++ directives
@@ -28,6 +28,51 @@ endif()
 
 project(Millennium LANGUAGES CXX)
 
+if(UNIX)
+  add_subdirectory(cli)
+endif()
+
+# Check Python version in 32 bit section
+# Just include Python headers for Windows and Apple platforms
+if(WIN32)
+  include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
+elseif(UNIX)
+  if(APPLE)
+    include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
+  else()
+    # Try to find required version of Python
+    # Python guarantee to have API and ABI compatible within a same major and minor versions
+    # Harden version range to to find only 3.11 python
+    find_package(Python 3.11 EXACT COMPONENTS Development)
+
+    if(PYTHON_FOUND)
+      # Run simple test to check if python is working with current flags
+      try_compile(PYTHON_TEST_RESULT
+        "${CMAKE_BINARY_DIR}"
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/FindPython_test.cc"
+        LINK_LIBRARIES Python::Module)
+
+      if(PYTHON_TEST_RESULT)
+        message(STATUS "Found suitable Python version ${Python_VERSION}")
+        set(LIBPYTHON_RUNTIME_PATH ${Python_LIBRARIES})
+      else()
+        message(STATUS "Python ABI mismatch, rolling back to default one")
+      endif()
+    else()
+      # Use this var to check if the package been found and it's 32bit
+      set(PYTHON_TEST_RESULT FALSE)
+      message(STATUS "No Python package found, rolling back to default one")
+    endif()
+
+    if(NOT ${PYTHON_TEST_RESULT})
+      include_directories("$ENV{HOME}/Documents/LibPython/")
+      set(LIBPYTHON_RUNTIME_PATH "/usr/lib/millennium/libpython-3.11.8.so")
+    endif()
+  endif()
+endif()
+
+message(STATUS "Set Python runtime library to ${LIBPYTHON_RUNTIME_PATH}")
+
 if(WIN32 AND NOT GITHUB_ACTION_BUILD)
   execute_process(
     COMMAND reg query "HKCU\\Software\\Valve\\Steam" /v "SteamPath"
@@ -47,10 +92,6 @@ if(WIN32 AND NOT GITHUB_ACTION_BUILD)
   else()
     message(WARNING "Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
   endif()
-
-elseif(UNIX AND NOT GITHUB_ACTION_BUILD)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
 endif()
 
 # Set version information
@@ -86,17 +127,6 @@ if(WIN32)
   add_subdirectory(preload)
 endif()
 
-# Include Python headers
-if(WIN32)
-  include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
-elseif(UNIX)
-  if(APPLE)
-    include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
-  else()
-    include_directories("$ENV{HOME}/Documents/LibPython/")
-  endif()
-endif()
-
 set(SOURCE_FILES
   "src/main.cc"
   "src/core/loader.cc"
@@ -114,6 +144,7 @@ set(SOURCE_FILES
   "src/sys/log.cc"
   "src/sys/sysfs.cc"
   "src/sys/settings.cc"
+  "src/sys/env.cc"
 )
 
 if(WIN32)
@@ -123,6 +154,10 @@ elseif(UNIX)
   # add_compile_definitions(MILLENNIUM_EXECUTABLE)
   add_library(Millennium SHARED "${SOURCE_FILES}")
   add_compile_definitions(MILLENNIUM_SHARED)
+
+  if(NOT APPLE)
+    target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_PATH="${LIBPYTHON_RUNTIME_PATH}")
+  endif()
 endif()
 
 if(NOT APPLE)
@@ -134,6 +169,10 @@ if(WIN32)
   set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
   set_target_properties(Millennium PROPERTIES PREFIX "")
   set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
+elseif(UNIX AND NOT APPLE)
+  set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
+  set_target_properties(Millennium PROPERTIES PREFIX "lib")
+  set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
 endif()
 
 if(MSVC)
@@ -174,7 +213,13 @@ elseif(UNIX)
     if(GITHUB_ACTION_BUILD)
       target_link_libraries(Millennium "$ENV{HOME}/.millennium/libpython-3.11.8.so")
     else()
-      target_link_libraries(Millennium "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so")
+      if(PYTHON_TEST_RESULT)
+        target_link_libraries(Millennium Python::Module)
+      else()
+        target_link_libraries(Millennium "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so")
+      endif()
     endif()
   endif()
 endif()
+
+install(TARGETS Millennium DESTINATION lib)

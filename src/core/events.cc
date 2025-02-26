@@ -172,16 +172,30 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
  * 
  * @param {PluginTypeSchema} plugin - The plugin whose unloading status is being processed.
  */
-void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin)
+void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown)
 {
+    assert(plugin.pluginName.empty() == false);
+
     // remove the plugin from the emitted list
-    this->emittedPlugins.erase(std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), 
-        [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; }), this->emittedPlugins.end());
+    auto it = std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const PluginTypeSchema& p) { 
+        return p.pluginName == plugin.pluginName; 
+    });
 
-    
-    Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
+    if (it != this->emittedPlugins.end()) 
+    {
+        this->emittedPlugins.erase(it, this->emittedPlugins.end());
+        Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
+    } 
+    else 
+    {
+        Logger.Log("\033[1;33mPlugin {} not found.\033[0m", plugin.pluginName);
+    }
 
-    this->StatusDispatch();
+    if (!isShuttingDown) 
+    {
+        Logger.Log("Running status dispatcher...");
+        this->StatusDispatch();
+    }
 }
 
 /**

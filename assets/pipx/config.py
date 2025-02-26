@@ -1,13 +1,14 @@
-import Millennium
+import Millennium # type: ignore
 import platform
 import configparser, os
 from core.util.logger import logger
+from core.plat_spec.main import config_path
 
 class Config:
 
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config_file = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
+        self.config_file = config_path
 
         if os.path.exists(self.config_file):
             try:
@@ -30,17 +31,21 @@ class Config:
 
     def setup(self):
 
-        LOCALS = os.path.join(Millennium.get_install_path(), "ext", "data")
-
         _platform = platform.system()
 
         if _platform == "Windows":
-            PYTHON_BIN = os.path.join(LOCALS, "cache", "python.exe")  
+            PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "python.exe")  
         elif _platform == "Linux":
-            PYTHON_BIN = os.path.join(os.environ.get("HOME"), ".millennium", "ext", "data", "cache", "bin", "python3.11")
+            PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "bin", "python3.11")
 
-        PACMAN_LOGS      = os.path.join(LOCALS, "logs", "pacman.log")
-        PIP_INSTALL_LOGS = os.path.join(LOCALS, "logs", "pip_boot.log")
+            # check if the binary is executable
+            if not os.access(PYTHON_BIN, os.X_OK):
+                # set it as executable
+                os.chmod(PYTHON_BIN, 0o755)
+                logger.log(f"Set {PYTHON_BIN} as executable")
+
+        PACMAN_LOGS      = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pacman.log")
+        PIP_INSTALL_LOGS = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pip_boot.log")
 
         self.set_default('PackageManager', 'dev_packages', 'no')
         self.set_default('PackageManager', 'auto_update_dev_packages', 'yes')

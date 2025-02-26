@@ -1,10 +1,11 @@
 import configparser
 import os
 import Millennium # type: ignore
+from plat_spec.main import config_path
 
 class IniConfig:
 
-    config_path = os.path.join(Millennium.get_install_path(), "ext", "millennium.ini")
+    config_path = config_path
 
     @staticmethod
     def get_config(header: str, key: str, fallback: str) -> str:

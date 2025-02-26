@@ -40,6 +40,7 @@
 #include "cmd.h"
 #endif
 #include "locals.h"
+#include <env.h>
 
 OutputLogger Logger;
 
@@ -87,7 +88,7 @@ OutputLogger::OutputLogger()
 	}
 	#endif
 
-	const auto fileName = SystemIO::GetSteamPath() / "ext" / "data" / "logs" / "debug.log";
+	const auto fileName = std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / "debug.log";
 
 	try
 	{

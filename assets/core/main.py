@@ -44,6 +44,9 @@ def get_load_config():
     })
 
     
+def get_plugins_dir():
+    return os.getenv("MILLENNIUM__PLUGINS_PATH")
+
 def _webkit_accent_color():
     return Colors.get_accent_color(cfg.get_config()["accentColor"])
 
@@ -85,6 +88,11 @@ class Plugin:
         elapsed_time = time.perf_counter() - start_time
         logger.log(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
         Millennium.ready()
+
+        if os.name == "posix":
+            from unix.socket_con import serve_unix_socket
+            logger.log("Starting UNIX socket server...")
+            serve_unix_socket()
 
         # This CHECKS for updates on Millennium given the user has it enabled in settings.
         # It DOES NOT automatically update, it is interfaced in the front-end.

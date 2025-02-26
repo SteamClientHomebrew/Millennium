@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { DialogBody, DialogBodyText, DialogButton, DialogFooter, DialogHeader, DialogLabel, Field, IconsModule, Millennium, Navigation, Toggle, classMap, pluginSelf } from '@steambrew/client';
+import { DialogBody, DialogBodyText, DialogButton, DialogFooter, DialogHeader, DialogLabel, Field, IconsModule, Millennium, Navigation, Toggle, callable, classMap, pluginSelf } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
@@ -141,8 +141,11 @@ const PluginViewModal: React.FC = () => {
 		return <ConnectionFailed />
 	}
 
-	const OpenPluginsFolder = () => {
-		const pluginsPath = [pluginSelf.installPath, "plugins"].join("/");
+	const OpenPluginsFolder = async () => {
+		const GetPluginsPath = callable<[], string>("get_plugins_dir")
+		const pluginsPath = await GetPluginsPath()
+
+		console.log("Opening plugins folder", pluginsPath)
 		SteamClient.System.OpenLocalDirectoryInSystemExplorer(pluginsPath);
 	}
 

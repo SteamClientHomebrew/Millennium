@@ -45,6 +45,7 @@
 #include <cxxabi.h>
 #include "terminal_pipe.h"
 #include "executor.h"
+#include <env.h>
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
@@ -75,24 +76,19 @@ void OnTerminate()
     #endif
 
     auto const exceptionPtr = std::current_exception();
-    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!";
+    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
 
     if (exceptionPtr) 
     {
         try 
         {
             int status;
-            auto const exceptionType = abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status);
-            errorMessage.append("\nTerminating with uncaught exception of type `");
-            errorMessage.append(exceptionType);
-            errorMessage.append("`");
+            errorMessage.append(fmt::format("Terminating with uncaught exception of type `{}`", abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status)));
             std::rethrow_exception(exceptionPtr); // rethrow the exception to catch its exception message
         }
         catch (const std::exception& e) 
         {
-            errorMessage.append(" with `what()` = \"");
-            errorMessage.append(e.what());
-            errorMessage.append("\"");
+            errorMessage.append(fmt::format("with `what()` = \"{}\"", e.what()));
         }
         catch (...) { }
     }
@@ -104,14 +100,26 @@ void OnTerminate()
     #endif
 }
 
+#ifdef __linux__
+#include <sys/ptrace.h>
+#include <unistd.h>
+
+int IsDebuggerPresent() 
+{
+    return ptrace(PTRACE_TRACEME, 0, 0, 0) == -1;
+}
+#endif
+
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
  */
 const static void EntryMain() 
 {
-    #if defined(_WIN32) && defined(_DEBUG)
-    if (!IsDebuggerPresent()) 
+    #if _WIN32
+    SetupEnvironmentVariables();
     #endif
+
+    if (!IsDebuggerPresent()) 
     {
         std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
     }
@@ -147,9 +155,7 @@ const static void EntryMain()
     auto frontendThreads = std::thread([&loader] { loader->StartFrontEnds(); });
 
     backendThread  .join();
-    frontendThreads.join();
-
-    Logger.Log("Millennium has gracefully shut down.");
+    frontendThreads.detach();
 }
 
 #ifdef _WIN32
@@ -187,7 +193,7 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 #elif __linux__
 #include <stdio.h>
 #include <stdlib.h>
-#include <posix/helpers.h>
+#include "helpers.h"
 #include <dlfcn.h>
 #include <fstream>
 #include <chrono>
@@ -200,18 +206,17 @@ extern "C"
     static int (*fnMainOriginal)(int, char **, char **);
     std::unique_ptr<std::thread> g_millenniumThread;
 
+    /** 
+     * Since this isn't an executable, and is "preloaded", the kernel doesn't implicitly load dependencies, so we need to manually. 
+    */
+    static constexpr const char* __LIBPYTHON_RUNTIME_PATH = LIBPYTHON_RUNTIME_PATH;
+
     /* Our fake main() that gets called by __libc_start_main() */
     int MainHooked(int argc, char **argv, char **envp)
     {
         Logger.Log("Hooked main() with PID: {}", getpid());
 
-        /** 
-         * Since this isn't an executable, and is "preloaded", the kernel doesn't implicitly load dependencies, so we need to manually. 
-         * libpython3.11.so.1.0 should already be in $PATH, so we can just load it from there.
-        */
-        std::string pythonPath = fmt::format("{}/.millennium/libpython-3.11.8.so", std::getenv("HOME"));
-
-        if (!dlopen(pythonPath.c_str(), RTLD_LAZY | RTLD_GLOBAL)) 
+        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) 
         {
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
@@ -242,46 +247,86 @@ extern "C"
 
     void RemoveFromLdPreload() 
     {
-        const std::string fileToRemove = std::filesystem::path(std::getenv("HOME")) / ".millennium" / "libMillennium.so";
-
-        const char* ldPreload = std::getenv("LD_PRELOAD");
-        if (!ldPreload) 
+        const char* ldPreload = getenv("LD_PRELOAD");
+        if (!ldPreload)  
         {
-            std::cerr << "LD_PRELOAD is not set." << std::endl;
+            fprintf(stderr, "LD_PRELOAD is not set.\n");
             return;
         }
-
-        std::string token;
-        std::string ldPreloadStr = ldPreload;
-        std::istringstream iss(ldPreloadStr);
-        std::vector<std::string> updatedPreload;
-
-        // Split LD_PRELOAD by spaces and filter out fileToRemove
-        while (iss >> token) 
+    
+        char* ldPreloadStr = strdup(ldPreload);
+        if (!ldPreloadStr) 
         {
-            if (token != fileToRemove) 
+            perror("strdup");
+            return;
+        }
+    
+        char* token, *rest = ldPreloadStr;
+        size_t tokenCount = 0, tokenArraySize = 8; 
+        char** tokens = (char**)malloc(tokenArraySize * sizeof(char*));
+    
+        if (!tokens) 
+        {
+            perror("malloc");
+            free(ldPreloadStr);
+            return;
+        }
+    
+        while ((token = strtok_r(rest, " ", &rest))) 
+        {
+            if (strcmp(token, GetEnv("MILLENNIUM_RUNTIME_PATH").c_str()) != 0) 
             {
-                updatedPreload.push_back(token);
+                if (tokenCount >= tokenArraySize) 
+                {
+                    tokenArraySize *= 2;
+                    tokens = (char**)realloc(tokens, tokenArraySize * sizeof(char*));
+                    if (!tokens) 
+                    {
+                        perror("realloc");
+                        free(ldPreloadStr);
+                        return;
+                    }
+                }
+                tokens[tokenCount++] = token;
             }
         }
-
-        // Join the remaining paths back into a single string
-        std::ostringstream oss;
-        for (size_t i = 0; i < updatedPreload.size(); ++i) 
+    
+        size_t newSize = 0;
+        for (size_t i = 0; i < tokenCount; ++i) 
         {
-            if (i > 0) oss << ' ';
-            oss << updatedPreload[i];
+            newSize += strlen(tokens[i]) + 1;
         }
-
-        Logger.Log("Updating LD_PRELOAD from [{}] to [{}]", ldPreloadStr, oss.str());
-
-        // Set the updated LD_PRELOAD
-        if (setenv("LD_PRELOAD", oss.str().c_str(), 1) != 0) 
+    
+        char* updatedLdPreload = (char*)malloc(newSize);
+        if (!updatedLdPreload) 
+        {
+            perror("malloc");
+            free(ldPreloadStr);
+            free(tokens);
+            return;
+        }
+    
+        updatedLdPreload[0] = '\0'; 
+        for (size_t i = 0; i < tokenCount; ++i) 
+        {
+            if (i > 0) 
+            {
+                strcat(updatedLdPreload, " ");
+            }
+            strcat(updatedLdPreload, tokens[i]);
+        }
+    
+        printf("Updating LD_PRELOAD from [%s] to [%s]\n", ldPreloadStr, updatedLdPreload);
+    
+        if (setenv("LD_PRELOAD", updatedLdPreload, 1) != 0) 
         {
             perror("setenv");
         }
+    
+        free(ldPreloadStr);
+        free(updatedLdPreload);
+        free(tokens);
     }
-
     #ifdef MILLENNIUM_SHARED
 
     int IsSamePath(const char *path1, const char *path2) 
@@ -337,6 +382,12 @@ extern "C"
         return 1;  // Paths are the same, including symlinks to each other
     }
 
+    __attribute__((constructor)) void __init_millennium() 
+    {
+        std::cout << "Millennium loaded" << std::endl;
+        SetupEnvironmentVariables();
+    }
+
     /*
     * Trampoline for __libc_start_main() that replaces the real main
     * function with our hooked version.
@@ -351,16 +402,13 @@ extern "C"
         /* Get the address of the real __libc_start_main() */
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
-        Logger.Log("Hooked __libc_start_main() {}", argv[0]);
-
-        /* Get the path to the Steam executable */
-        std::filesystem::path steamPath = std::filesystem::path(std::getenv("HOME")) / ".steam/steam/ubuntu12_32/steam";
-
         /** not loaded in a invalid child process */
-        if (!IsSamePath(argv[0], steamPath.string().c_str()))
+        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()))
         {
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }
+
+        Logger.Log("Hooked __libc_start_main() {}", argv[0]);
 
         /* Remove the Millennium library from LD_PRELOAD */
         RemoveFromLdPreload();

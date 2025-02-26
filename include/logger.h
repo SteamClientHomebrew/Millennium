@@ -41,6 +41,7 @@
 #include "locals.h"
 #include "log.h"
 #include <vector>
+#include "env.h"
 
 #define RED "\033[31m"
 #define GREEN "\033[32m"
@@ -111,7 +112,7 @@ public:
 
     BackendLogger(const std::string& pluginName) : pluginName(pluginName)
     {
-        this->filename = (SystemIO::GetInstallPath() / "ext" / "data" / "logs" / fmt::format("{}_log.txt", pluginName)).generic_string();
+        this->filename = (std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / fmt::format("{}_log.log", pluginName)).generic_string();
         file.open(filename, std::ios::app);
 
         file << fmt::format("\n\n\n--------------------------------- [{}] ---------------------------------\n", GetLocalDateStr());
@@ -165,7 +166,7 @@ public:
             file.flush();
         }
 
-        logBuffer.push_back({ WHITE + GetLocalTime(true) + RED + " " + GetPluginName() + " " + message + RESET + "\n", _ERROR });
+        logBuffer.push_back({ RED + message + RESET, _ERROR });
     }
 
     void Print(const std::string& message) 

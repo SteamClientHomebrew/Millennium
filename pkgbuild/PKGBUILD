@@ -1,0 +1,32 @@
+pkgname=python311-32bit
+pkgver=3.11.8
+pkgrel=1
+pkgdesc="Python 3.11.8 compiled for 32-bit"
+arch=('x86_64')  # Still building on x86_64, but for 32-bit support
+url="https://www.python.org/"
+license=('custom')
+depends=('lib32-glibc' 'lib32-zlib' 'lib32-openssl' 'lib32-bzip2' 'lib32-openssl' 'lib32-libffi' 'lib32-sqlite' 'lib32-readline' 'lib32-expat' 'libb2')
+makedepends=('gcc-multilib' 'make')
+
+conflicts=('libb2')
+
+source=("https://www.python.org/ftp/python/$pkgver/Python-$pkgver.tar.xz")
+sha256sums=('9e06008c8901924395bc1da303eac567a729ae012baa182ab39269f650383bb3')
+
+build() {
+    cd "$srcdir/Python-$pkgver"
+
+    echo "Configuring 32-bit Python..."
+    sudo CFLAGS="-m32" LDFLAGS="-m32" ./configure --enable-optimizations --prefix=/opt/python-$pkgver-32 --with-openssl=/usr/include/openssl
+
+    echo "Building 32-bit Python..."
+    make -j$(nproc) -s | tee build.log 2>&1
+}
+
+package() {
+    cd "$srcdir/Python-$pkgver"
+    make DESTDIR="$pkgdir" install
+
+    # Create a symlink for easier access
+    install -Dm755 "$pkgdir/opt/python-$pkgver-32/bin/python3" "$pkgdir/usr/bin/python3.11-32"
+}

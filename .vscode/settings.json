@@ -82,6 +82,9 @@
         "variant": "cpp",
         "*.ipp": "cpp",
         "filesystem": "cpp",
-        "stdfloat": "cpp"
+        "stdfloat": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp",
+        "stdio.h": "c"
     }
 }

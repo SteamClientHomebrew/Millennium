@@ -41,6 +41,7 @@
 #include "web_load.h"
 #include "log.h"
 #include "logger.h"
+#include <env.h>
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -158,6 +159,7 @@ public:
 
     const void UnPatchSharedJSContext()
     {
+        #ifdef _WIN32
         Logger.Log("Restoring SharedJSContext...");
 
         const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
@@ -178,6 +180,7 @@ public:
         }
 
         Logger.Log("Restored SharedJSContext...");
+        #endif
         Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
     }
 
@@ -233,7 +236,7 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
     this->Initialize();
 }
 
-const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
+std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
 {
     SocketHelpers::ConnectSocketProps browserProps;
 
@@ -241,9 +244,8 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
     browserProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
     browserProps.onConnect      = std::bind(&CEFBrowser::onConnect, (CEFBrowser*)cefBrowserHandler, _1, _2);
     browserProps.onMessage      = std::bind(&CEFBrowser::onMessage, (CEFBrowser*)cefBrowserHandler, _1, _2, _3);
-    browserProps.bAutoReconnect = false;
 
-    return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps));
+    return std::make_shared<std::thread>(std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps)));
 }
 
 /**
@@ -279,7 +281,7 @@ const void PluginLoader::InjectWebkitShims()
     // Inject all webkit shims for enabled plugins if they have shims
     for (auto& plugin : allPlugins)
     {
-        const auto absolutePath = SystemIO::GetInstallPath() / "plugins" / plugin.webkitAbsolutePath;
+        const auto absolutePath = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
 
         if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
         {
@@ -301,15 +303,20 @@ const void PluginLoader::StartFrontEnds()
 
     auto socketStart = std::chrono::high_resolution_clock::now();
     Logger.Log("Starting frontend socket...");
-    std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
+    std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
     Logger.Log("Startup took {} ms", duration.count());
 
-    browserSocketThread.join();
+    if (browserSocketThread->joinable())
+    {
+        Logger.Warn("Joining browser socket thread {}", (void*)browserSocketThread.get());
+        browserSocketThread->join();
+        Logger.Warn("Browser socket thread joined...");
+    }
 
     if (g_threadTerminateFlag->flag.load())
-    {
+    {   
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
@@ -347,7 +354,7 @@ const void StartPreloader(PythonManager& manager)
     SettingsStore::PluginTypeSchema plugin
     {
         .pluginName = "pipx",
-        .backendAbsoluteDirectory = SystemIO::GetInstallPath() / "ext" / "data" / "assets" / "pipx",
+        .backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx",
         .isInternal = true
     };
 
@@ -407,11 +414,7 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
 
         std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
 
-        m_threadPool.push_back(std::thread(
-            [&manager, &plugin, cb]() {
-                Logger.Log("Starting backend for '{}'", plugin.pluginName);
-                manager.CreatePythonInstance(plugin, cb);
-            }
-        ));
+        Logger.Log("Starting backend for '{}'", plugin.pluginName);
+        manager.CreatePythonInstance(plugin, cb);
     }
 }

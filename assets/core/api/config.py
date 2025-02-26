@@ -10,7 +10,7 @@ from util.logger import logger
 
 class Config:
     def __init__(self):
-        self.config_path = os.path.join(Millennium.get_install_path(), "ext", "themes.json")
+        self.config_path = os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "themes.json")
         self.config = self.get_config()
 
         self.create_default("active", "default", str)

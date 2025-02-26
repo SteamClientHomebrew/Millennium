@@ -39,6 +39,7 @@
 #include <atomic>
 #include "log.h"
 #include <filesystem>
+#include "env.h"
 
 struct InterpreterMutex {
     std::mutex mtx;
@@ -52,7 +53,7 @@ struct PythonThreadState {
 	std::shared_ptr<InterpreterMutex> mutex;
 };
 
-static const std::filesystem::path pythonModulesBaseDir = SystemIO::GetInstallPath() / "ext" / "data" / "cache";
+static const std::filesystem::path pythonModulesBaseDir = std::filesystem::path(GetEnv("MILLENNIUM__PYTHON_ENV"));
 
 #ifdef _WIN32
 static const std::string pythonPath     = pythonModulesBaseDir.generic_string();
@@ -67,6 +68,7 @@ static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "pytho
 class PythonManager 
 {
 private:
+	std::mutex m_pythonMutex;
 	PyThreadState* m_InterpreterThreadSave;
 
 	std::vector<std::tuple<std::string, std::thread>> m_threadPool;
@@ -76,7 +78,8 @@ public:
 	PythonManager();
 	~PythonManager();
 
-	bool DestroyPythonInstance(std::string plugin_name);
+	bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
+	bool DestroyAllPythonInstances();
 	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
 
 	bool IsRunning(std::string pluginName);

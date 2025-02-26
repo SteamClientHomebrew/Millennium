@@ -43,6 +43,7 @@
 #include <thread>
 #include "encoding.h"
 #include "url_parser.h"
+#include <env.h>
 
 static std::string addedScriptOnNewDocumentId = "";
 
@@ -63,7 +64,7 @@ static std::string addedScriptOnNewDocumentId = "";
 const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
 {
     std::string scriptModuleArray;
-    std::string scriptContents = SystemIO::ReadFileSync((SystemIO::GetInstallPath() / "ext" / "data" / "shims" / "client_api.js").string());
+    std::string scriptContents = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "client_api.js").string());
 
     if (scriptContents.empty())
     {

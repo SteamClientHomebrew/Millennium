@@ -181,8 +181,6 @@ public:
             websocketpp::client<websocketpp::config::asio_client>*,
             websocketpp::connection_hdl,
             std::shared_ptr<websocketpp::config::core_client::message_type>)> onMessage;
-
-        bool bAutoReconnect = true;
     };
 
     /**
@@ -245,47 +243,61 @@ public:
 
     void ConnectSocket(ConnectSocketProps socketProps)
     {
-        const auto [commonName, fetchSocketUrl, onConnect, onMessage, bAutoReconnect] = socketProps;
+        websocketpp::client<websocketpp::config::asio_client> socketClient;
 
-        while (true)
+        const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
+        
+        // Fetch socket URL
+        const std::string socketUrl = fetchSocketUrl();
+        if (socketUrl.empty())
         {
-            const std::string socketUrl = fetchSocketUrl();
-
-            try
-            {
-                websocketpp::client<websocketpp::config::asio_client> socketClient;
-
-                socketClient.set_access_channels(websocketpp::log::alevel::none);
-                socketClient.clear_error_channels(websocketpp::log::elevel::none);
-                socketClient.set_error_channels(websocketpp::log::elevel::none);
-
-                socketClient.init_asio();
-                socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
-                socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
-
-                websocketpp::lib::error_code errorCode;
-                websocketpp::client<websocketpp::config::asio_client>::connection_ptr con = socketClient.get_connection(socketUrl, errorCode);
-
-                if (errorCode)
-                {
-                    throw websocketpp::exception(errorCode.message());
-                }
-
-                socketClient.connect(con);
-                socketClient.run();
-            }
-            catch (websocketpp::exception& exception)
-            {
-                LOG_ERROR("webSocket exception thrown -> {}", exception.what());
-            }
-
-            Logger.Log("Disconnected from [{}] module...", commonName);
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-            if (!bAutoReconnect)
-            {
-                break;
-            }
+            LOG_ERROR("[{}] Socket URL is empty. Aborting connection.", commonName);
+            return;
         }
+    
+        try
+        {
+            socketClient.set_access_channels(websocketpp::log::alevel::none);
+            socketClient.clear_error_channels(websocketpp::log::elevel::none);
+            socketClient.set_error_channels(websocketpp::log::elevel::all);
+    
+            socketClient.init_asio();
+    
+            // Validate handlers before binding
+            if (!onConnect || !onMessage)
+            {
+                LOG_ERROR("[{}] Invalid event handlers. Connection aborted.", commonName);
+                return;
+            }
+    
+            socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
+            socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
+
+            websocketpp::lib::error_code errorCode;
+            auto con = socketClient.get_connection(socketUrl, errorCode);
+    
+            if (errorCode)
+            {
+                LOG_ERROR("[{}] Failed to establish connection: {} [{}]", commonName, errorCode.message(), errorCode.value());
+                return;
+            }
+    
+            socketClient.connect(con);
+            socketClient.run();
+        }
+        catch (const websocketpp::exception& ex)
+        {
+            LOG_ERROR("[{}] WebSocket exception thrown -> {}", commonName, ex.what());
+        }
+        catch (const std::exception& ex)
+        {
+            LOG_ERROR("[{}] Standard exception caught -> {}", commonName, ex.what());
+        }
+        catch (...)
+        {
+            LOG_ERROR("[{}] Unknown exception caught.", commonName);
+        }
+    
+        Logger.Log("Disconnected from [{}] module...", commonName);
     }
 };

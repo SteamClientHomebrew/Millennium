@@ -141,6 +141,10 @@ class ThemeUpdater:
         self.update_query = []
         self.query_themes()
 
+        if not self.update_query:
+            logger.log("No themes to update!")
+            return
+
         response = requests.post(
             "https://steambrew.app/api/v2/checkupdates",
             data=json.dumps(self.construct_post_body()),
