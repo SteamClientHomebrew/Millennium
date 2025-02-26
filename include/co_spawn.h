@@ -68,6 +68,7 @@ static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "pytho
 class PythonManager 
 {
 private:
+	std::mutex m_pythonMutex;
 	PyThreadState* m_InterpreterThreadSave;
 
 	std::vector<std::tuple<std::string, std::thread>> m_threadPool;
@@ -77,7 +78,8 @@ public:
 	PythonManager();
 	~PythonManager();
 
-	bool DestroyPythonInstance(std::string plugin_name);
+	bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
+	bool DestroyAllPythonInstances();
 	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
 
 	bool IsRunning(std::string pluginName);

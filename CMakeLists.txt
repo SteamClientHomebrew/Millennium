@@ -5,7 +5,7 @@ set(MILLENNIUM_VERSION "${MILLENNIUM_VERSION}")
 
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.10...3.21)
 set(BUILD_SHARED_LIBS OFF)
 
 # set c++ directives
@@ -27,7 +27,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 project(Millennium LANGUAGES CXX)
-add_subdirectory(cli)
+
+if(UNIX)
+  add_subdirectory(cli)
+endif()
 
 # Check Python version in 32 bit section
 # Just include Python headers for Windows and Apple platforms
@@ -166,6 +169,10 @@ if(WIN32)
   set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
   set_target_properties(Millennium PROPERTIES PREFIX "")
   set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
+elseif(UNIX AND NOT APPLE)
+  set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
+  set_target_properties(Millennium PROPERTIES PREFIX "lib")
+  set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
 endif()
 
 if(MSVC)

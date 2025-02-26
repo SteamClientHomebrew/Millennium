@@ -57,7 +57,7 @@ private:
 	const void Initialize();
 
 	const void PrintActivePlugins();
-	const std::thread ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers);
+	std::shared_ptr<std::thread> ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers);
 
 	std::unique_ptr<SettingsStore> m_settingsStorePtr;
 	std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;

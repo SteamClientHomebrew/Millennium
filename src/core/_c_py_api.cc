@@ -228,6 +228,8 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     const bool newToggleStatus = PyObject_IsTrue(statusObj);
     settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
 
+    /** FIXME: Properly handle threads here. Detaching them is definitely going to cause issues */
+
     if (!newToggleStatus)
     {
         std::thread([pluginName, &manager] { manager.DestroyPythonInstance(pluginName); }).detach();

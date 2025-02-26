@@ -27,13 +27,18 @@ steam_output() {
 # If there is no display, keep original settings and redirect stdout back to its original file descriptor
 if [ -n "$DISPLAY" ]; then
     exec 3>&1 # Save a copy of file descriptor 1 (stdout) so we can restore it later
-    exec 1> >(filter_output) # Redirect stdout to filter_output
+    exec 1> >(filter_output)
     export STEAM_RUNTIME_LOGGER=0 # On archlinux, this needed to stop stdout from being piped into /dev/null instead of the terminal
 fi
 
-export LD_PRELOAD="/usr/lib/millennium/libMillennium.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
+export LD_PRELOAD="/usr/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
 export LD_LIBRARY_PATH="/usr/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 # Millennium hooks __libc_start_main to initialize itself, which is a function that is called before main. 
 # Besides that, Millennium does not alter Steam memory and runs completely disjoint.
-exec /usr/lib/steam/steam > >(steam_output) 2>&1 "$@"
+if [[ -z "${DEBUGGER-}" ]]; then
+    echo "Redirecting Steam output..."
+    exec /usr/lib/steam/steam > >(steam_output) 2>&1 "$@"
+else
+    exec /usr/lib/steam/steam "$@"
+fi

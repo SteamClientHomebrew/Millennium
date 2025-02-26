@@ -37,6 +37,7 @@
 #include "pipe.h"
 #include <functional>
 #include "asio.h"
+#include "locals.h"
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
@@ -98,8 +99,26 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
  */
 static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 {
-    Python::LockGILAndDiscardEvaluate(message["data"]["pluginName"], "plugin._front_end_loaded()");
+    const std::string pluginName = message["data"]["pluginName"];
 
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    const auto allPlugins = settingsStore->ParseAllPlugins();
+
+    /** Check if the plugin uses a backend, and if so delegate the notification. */
+    for (auto& plugin : allPlugins)
+    {
+        if (plugin.pluginName == pluginName)
+        {
+            if (plugin.pluginJson.value("useBackend", true)) 
+            {  
+                Logger.Log("Delegating frontend load for plugin: {}", pluginName);
+                Python::LockGILAndDiscardEvaluate(pluginName, "plugin._front_end_loaded()");
+            }
+            break;
+        }
+    }
+
+    /** Return a success message. */
     return nlohmann::json({
         { "id", message["iteration"] },
         { "success", true }

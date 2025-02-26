@@ -8,9 +8,13 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <stdbool.h>
-#include "incbin.h"
 #include <pwd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <argp.h>
+
+#include "incbin.h"
+#include "sock_serv.h"
 
 INCTXT(PATCHED_START_SCRIPT, "../../scripts/posix/start.sh");
 
@@ -24,13 +28,13 @@ void check_sudo() {
     }
 }
 
-void __patch() {
+int patch_steam() {
     printf("resolving permissions...\n");
     check_sudo();
 
     if (access(START_SCRIPT_PATH, F_OK) == -1) {
         printf("error: Steam start script not found. Ensure you're Steam installation is not flatpak, or snap.\n");
-        exit(1);
+        return 1;
     }
     
     if (access(BACKUP_PATH, F_OK) == -1) {
@@ -55,26 +59,28 @@ void __patch() {
     FILE *file = fopen(START_SCRIPT_PATH, "w");
     if (!file) {
         perror("Failed to open script for writing");
-        exit(1);
+        return 1;
     }
     fputs(PATCHED_START_SCRIPT_data, file);
     fclose(file);
     chmod(START_SCRIPT_PATH, 0755);
     printf("Successfully wrote: %s\n", START_SCRIPT_PATH);
+
+    return 0;
 }
 
-void __status() {
+int check_patch_status() {
     check_sudo();
 
     if (access(START_SCRIPT_PATH, F_OK) == -1) {
         printf("Steam start script not found.\n");
-        exit(1);
+        return 1;
     }
     
     FILE *file = fopen(START_SCRIPT_PATH, "r");
     if (!file) {
         perror("Failed to open script");
-        exit(1);
+        return 1;
     }
     
     fseek(file, 0, SEEK_END);
@@ -84,30 +90,30 @@ void __status() {
     if (file_size <= 0) {
         printf("File is empty or could not determine file size.\n");
         fclose(file);
-        exit(1);
+        return 1;
     }
     
     char *buffer = (char *)malloc(file_size + 1);
     if (!buffer) {
         perror("Failed to allocate memory for buffer");
         fclose(file);
-        exit(1);
+        return 1;
     }
     
     fread(buffer, 1, file_size, file);
     fclose(file);
     buffer[file_size] = '\0';
     
-    bool is_patched = (strcmp(buffer, PATCHED_START_SCRIPT_data) == 0);
+    int is_patched = (strcmp(buffer, PATCHED_START_SCRIPT_data) == 0);
     printf("\033[%dm●\033[0m Steam bootstrapper status\n", is_patched ? 92 : 91);
     printf("  Patched: \033[%dm%s\033[0m\n", is_patched ? 92 : 91, is_patched ? "true" : "false");
     printf("  Path: %s\n", START_SCRIPT_PATH);
     
     free(buffer);
-    exit(is_patched ? 0 : 1);
+    return !is_patched;
 }
 
-void __python() {
+int get_python_path() {
     const char *sudo_user = getenv("SUDO_USER");
     const char *home;
 
@@ -122,9 +128,10 @@ void __python() {
         home = getenv("HOME");
     }
     printf("%s/.local/share/millennium/lib/cache/bin/python3.11\n", home);
+    return 0;
 }
 
-int __version() {
+int get_millennium_version() {
     printf("%s\n", MILLENNIUM_VERSION);
 
     char str[] = MILLENNIUM_VERSION;
@@ -137,30 +144,45 @@ int __version() {
         printf("%s\n", token);
         token = strtok(NULL, ".");
     }
+
+    return 0;
 }
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        printf("Usage: %s [patch|status|version|python]\n", argv[0]);
-        return 1;
-    }
+struct argp_option options[] = {
+    { "patch", 'p', 0, 0, "Patch the Steam runtime to load Millennium", 1 },
+    { "status", 's', 0, 0, "Check if Steam runtime is patched", 1 },
+    { "plugins", 'l', 0, 0, "Manage plugins", 1 },
+    { "logs", 'g', 0, 0, "Manage themes", 1 },
+    { "version", 'v', 0, 0, "Print the current version", 1 },
+    { "python", 'y', 0, 0, "Get the path of the python interpreter", 1 },
+    { 0 } // Null terminator
+};
 
-    #ifdef __linux__
-    if (strcmp(argv[1], "patch") == 0) {
-        __patch();
-    } else if (strcmp(argv[1], "status") == 0) {
-        __status();
-    } 
-    else 
-    #endif
+error_t parse_opt(int key, char *arg, struct argp_state *state) {
+    switch (key) {
+        case 'p': return patch_steam();
+        case 's': return check_patch_status();
+        case 'l': return send_message(LIST_PLUGINS,    0);
+        case 'g': return send_message(GET_PLUGIN_LOGS, 0); 
+        case 'v': return get_millennium_version();
+        case 'y': return get_python_path();
 
-    if (strcmp(argv[1], "version") == 0) {
-        __version();
-    } else if (strcmp(argv[1], "python") == 0) {
-        __python();
-    } else {
-        printf("Unknown command: %s\n", argv[1]);
-        return 1;
+        default: return ARGP_ERR_UNKNOWN;
     }
-    return 0;
+}
+
+int main(int argc, char* argv[]) {
+
+    char title[] = "Millennium@";
+    char* __dest = malloc(strlen(title) + strlen(MILLENNIUM_VERSION) + 1);
+    if (__dest == NULL) {
+        perror("malloc failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    strcpy(__dest, title);
+    strcat(__dest, MILLENNIUM_VERSION);
+
+    struct argp argp = { options, parse_opt, NULL, __dest };
+    return argp_parse(&argp, argc, argv, 0, 0, NULL);
 }

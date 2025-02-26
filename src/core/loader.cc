@@ -236,7 +236,7 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint
     this->Initialize();
 }
 
-const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
+std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
 {
     SocketHelpers::ConnectSocketProps browserProps;
 
@@ -244,9 +244,8 @@ const std::thread PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, Socke
     browserProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
     browserProps.onConnect      = std::bind(&CEFBrowser::onConnect, (CEFBrowser*)cefBrowserHandler, _1, _2);
     browserProps.onMessage      = std::bind(&CEFBrowser::onMessage, (CEFBrowser*)cefBrowserHandler, _1, _2, _3);
-    browserProps.bAutoReconnect = false;
 
-    return std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps));
+    return std::make_shared<std::thread>(std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps)));
 }
 
 /**
@@ -304,15 +303,20 @@ const void PluginLoader::StartFrontEnds()
 
     auto socketStart = std::chrono::high_resolution_clock::now();
     Logger.Log("Starting frontend socket...");
-    std::thread browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
+    std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
     Logger.Log("Startup took {} ms", duration.count());
 
-    browserSocketThread.join();
+    if (browserSocketThread->joinable())
+    {
+        Logger.Warn("Joining browser socket thread {}", (void*)browserSocketThread.get());
+        browserSocketThread->join();
+        Logger.Warn("Browser socket thread joined...");
+    }
 
     if (g_threadTerminateFlag->flag.load())
-    {
+    {   
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
@@ -410,11 +414,7 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
 
         std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
 
-        m_threadPool.push_back(std::thread(
-            [&manager, &plugin, cb]() {
-                Logger.Log("Starting backend for '{}'", plugin.pluginName);
-                manager.CreatePythonInstance(plugin, cb);
-            }
-        ));
+        Logger.Log("Starting backend for '{}'", plugin.pluginName);
+        manager.CreatePythonInstance(plugin, cb);
     }
 }

@@ -76,7 +76,7 @@ namespace CoInitializer
 		void RegisterForLoad(EventCallback callback);
 		void StatusDispatch();
 		void BackendLoaded(PluginTypeSchema plugin);
-		void BackendUnLoaded(PluginTypeSchema plugin);
+		void BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown);
 		void Reset();
 
 	private:

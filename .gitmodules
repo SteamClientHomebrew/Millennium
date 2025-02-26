@@ -10,9 +10,6 @@
 [submodule "vendor/fmt"]
 	path = vendor/fmt
 	url = https://github.com/fmtlib/fmt.git
-[submodule "vendor/boxer"]
-	path = vendor/boxer
-	url = https://github.com/aaronmjacobs/Boxer.git
 [submodule "vendor/vcpkg"]
 	path = vendor/vcpkg
 	url = https://github.com/microsoft/vcpkg.git

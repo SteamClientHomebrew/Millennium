@@ -89,6 +89,11 @@ class Plugin:
         logger.log(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
         Millennium.ready()
 
+        if os.name == "posix":
+            from unix.socket_con import serve_unix_socket
+            logger.log("Starting UNIX socket server...")
+            serve_unix_socket()
+
         # This CHECKS for updates on Millennium given the user has it enabled in settings.
         # It DOES NOT automatically update, it is interfaced in the front-end.
         MillenniumUpdater.check_for_updates()
