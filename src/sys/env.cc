@@ -41,6 +41,8 @@
 #include <log.h>
 #include <stdlib.h>
 
+const void SetupEnvironmentVariables();
+
 void SetEnv(const std::string& key, const std::string& value) 
 {
     #ifdef _WIN32
@@ -61,6 +63,16 @@ void UnsetEnv(const std::string& key)
 
 std::string GetEnv(std::string key)
 {
+    #ifdef _WIN32
+    static bool hasSetup = false;
+
+    if (!hasSetup) 
+    {
+        hasSetup = true;
+        SetupEnvironmentVariables();
+    }
+    #endif
+
     char* szVariable = getenv(key.c_str());
 
     if (szVariable == nullptr)
@@ -78,8 +90,6 @@ std::string GetEnv(std::string key)
  */
 const void SetupEnvironmentVariables()
 {
-    SetEnv("MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so");
-    SetEnv("LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH);
     SetEnv("MILLENNIUM__VERSION",     MILLENNIUM_VERSION);
 
     SetEnv("MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string());
@@ -94,6 +104,9 @@ const void SetupEnvironmentVariables()
     SetEnv("MILLENNIUM__SHIMS_PATH",   SystemIO::GetInstallPath().string() + "/ext/data/shims");
     SetEnv("MILLENNIUM__ASSETS_PATH",  SystemIO::GetInstallPath().string() + "/ext/data/assets");
     #elif __linux__
+    SetEnv("MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so");
+    SetEnv("LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH);
+
     /* Path to the steam exe, symlinks are parsed and accepted. */
     SetEnv("MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     std::getenv("HOME")));
     SetEnv("MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/.local/share/millennium/plugins",    std::getenv("HOME")));

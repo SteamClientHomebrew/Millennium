@@ -190,6 +190,12 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     return true;
 }
 
+__attribute__((constructor)) void __init_millennium() 
+{
+    std::cout << "Millennium loaded" << std::endl;
+    SetupEnvironmentVariables();
+}
+
 #elif __linux__
 #include <stdio.h>
 #include <stdlib.h>
@@ -380,12 +386,6 @@ extern "C"
         }
 
         return 1;  // Paths are the same, including symlinks to each other
-    }
-
-    __attribute__((constructor)) void __init_millennium() 
-    {
-        std::cout << "Millennium loaded" << std::endl;
-        SetupEnvironmentVariables();
     }
 
     /*
