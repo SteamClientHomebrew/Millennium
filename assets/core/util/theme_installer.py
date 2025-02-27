@@ -129,10 +129,18 @@ class WebSocketServer:
         self.thread = None
         self.stop_event = asyncio.Event()
 
+    def verify_origin(self, origin):
+        return origin == "https://steambrew.app"
 
-    async def handler(self, websocket):
+    async def handler(self, websocket: websockets.ServerConnection):
+        
+        if not self.verify_origin(websocket.request.headers.get("Origin")):
+            logger.error("Invalid origin")
+            await websocket.close()
+            return
         
         logger.log("Client connected")
+        
         try:
             while not self.stop_event.is_set():
                 # Wait for a message from the client
@@ -154,8 +162,7 @@ class WebSocketServer:
                 action_handlers = {
                     "checkInstall": lambda: self.check_install(repo, owner),
                     "uninstallTheme": lambda: self.uninstall_theme(repo, owner),
-                    "installTheme": lambda: self.install_theme(repo, owner),
-                    "setActiveTheme": lambda: self.handle_set_active_theme(repo, owner)
+                    "installTheme": lambda: self.install_theme(repo, owner)
                 }
 
                 if type in action_handlers:
