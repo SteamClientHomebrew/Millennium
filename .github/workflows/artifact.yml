@@ -256,7 +256,7 @@ jobs:
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Generator) Configure CMake
-      run: cmake --preset=linux -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+      run: cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 

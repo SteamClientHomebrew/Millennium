@@ -308,26 +308,41 @@ PyObject* GetPluginLogs(PyObject* self, PyObject* args)
     return PyUnicode_FromString(logData.dump().c_str());
 }
 
+/** 
+ * Method API for the Millennium module
+ * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
+ */
 PyMethodDef* GetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = 
     {
+        /** Called *one time* after your plugin has finished bootstrapping. Its used to let Millennium know what plugins crashes/loaded etc.  */
         { "ready",                 EmitReadyMessage,                METH_NOARGS,  NULL },
 
+        /** Add a CSS file to the browser webkit hook list */
         { "add_browser_css",       AddBrowserCss,                   METH_VARARGS, NULL },
+        /** Add a JavaScript file to the browser webkit hook list */
         { "add_browser_js",        AddBrowserJs,                    METH_VARARGS, NULL },
+        /** Remove a CSS or JavaScript file, passing the ModuleID provided from add_browser_js/css */
         { "remove_browser_module", RemoveBrowserModule,             METH_VARARGS, NULL },
 
         { "get_user_settings",     GetUserSettings,                 METH_NOARGS,  NULL },
         { "set_user_settings_key", SetUserSettings,                 METH_VARARGS, NULL },
+        /** Get the version of Millennium. In semantic versioning format. */
         { "version",               GetVersionInfo,                  METH_NOARGS,  NULL },
+        /** Get the path to the Steam directory */
         { "steam_path",            GetSteamPath,                    METH_NOARGS,  NULL },
+        /** Get the path to the Millennium install directory */
         { "get_install_path",      GetInstallPath,                  METH_NOARGS,  NULL },
-
+        /** Get all the current stored logs from all loaded and previously loaded plugins during this instance */
         { "get_plugin_logs" ,      GetPluginLogs,                   METH_NOARGS, NULL },
 
+        /** Call a JavaScript method on the frontend. */
         { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
-
+        /** 
+         * @note Internal Use Only 
+         * Used to toggle the status of a plugin, used in the Millennium settings page.
+        */
         { "change_plugin_status",  TogglePluginStatus,              METH_VARARGS, NULL },
         {NULL, NULL, 0, NULL} // Sentinel
     };

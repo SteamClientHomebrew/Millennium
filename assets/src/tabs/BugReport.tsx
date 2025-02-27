@@ -15,7 +15,6 @@ import { useState } from 'react'
 import { locale } from '../locales'
 import { settingsClasses } from '../classes'
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
-import { env } from '../env';
 
 declare global {
     interface Window {
@@ -153,7 +152,7 @@ export const BugReportViewModal: React.FC = () => {
             return
         }
 
-        const webhookURL = env.WEBHOOK_URL
+        const webhookURL = process.env.WEBHOOK_URL
 
         fetch(webhookURL, {
             method: "POST",
