@@ -57,20 +57,6 @@
       }
     },
     {
-      "name": "linux",
-      "hidden": true,
-      "inherits": "default",
-      "generator": "Ninja",
-      "displayName": "linux-x86",
-      "description": "Default build for Linux",
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x86-linux",
-        "CMAKE_CXX_FLAGS": "-m32",
-        "CMAKE_C_FLAGS": "-m32",
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
       "name": "linux-debug",
       "inherits": "default",
       "generator": "Ninja",
@@ -78,8 +64,8 @@
       "description": "Debug build for Linux",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x86-linux",
-        "CMAKE_CXX_FLAGS": "-m32",
-        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_CXX_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
+        "CMAKE_C_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
@@ -91,8 +77,8 @@
       "description": "Release build for Linux",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x86-linux",
-        "CMAKE_CXX_FLAGS": "-m32",
-        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_CXX_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
+        "CMAKE_C_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
         "CMAKE_BUILD_TYPE": "Release"
       }
     }

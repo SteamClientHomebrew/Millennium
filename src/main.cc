@@ -104,10 +104,15 @@ void OnTerminate()
 #include <sys/ptrace.h>
 #include <unistd.h>
 
+/**
+ * @brief Check if a debugger is present on Linux.
+ * @return True if a debugger is present, false otherwise.
+ */
 int IsDebuggerPresent() 
 {
     return ptrace(PTRACE_TRACEME, 0, 0, 0) == -1;
 }
+
 #endif
 
 /**

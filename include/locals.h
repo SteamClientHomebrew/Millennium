@@ -55,7 +55,6 @@ public:
         bool isInternal = false;
     };
 
-    std::vector<std::string> GetEnabledPlugins();
     std::vector<PluginTypeSchema> ParseAllPlugins();
     std::vector<PluginTypeSchema> GetEnabledBackends();
 
