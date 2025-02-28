@@ -64,8 +64,9 @@
       "description": "Debug build for Linux",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x86-linux",
-        "CMAKE_CXX_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
-        "CMAKE_C_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_EXE_LINKER_FLAGS": "-static -static-libstdc++ -static-libgcc",
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
@@ -77,8 +78,9 @@
       "description": "Release build for Linux",
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x86-linux",
-        "CMAKE_CXX_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
-        "CMAKE_C_FLAGS": "-m32 -static-libstdc++ -static-libgcc -static",
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_EXE_LINKER_FLAGS": "-static -static-libstdc++ -static-libgcc",
         "CMAKE_BUILD_TYPE": "Release"
       }
     }

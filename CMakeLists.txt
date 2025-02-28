@@ -219,6 +219,14 @@ elseif(UNIX)
         target_link_libraries(Millennium "$ENV{HOME}/Documents/LibPython/libpython-3.11.8.so")
       endif()
     endif()
+
+    find_library(M_LIB NAMES libm.a PATHS /usr/lib /usr/lib64 /opt/glibc-static/lib NO_DEFAULT_PATH)
+
+    if(NOT M_LIB)
+      message(FATAL_ERROR "Static libm.a not found!")
+    endif()
+
+    target_link_libraries(Millennium ${M_LIB})
   endif()
 endif()
 

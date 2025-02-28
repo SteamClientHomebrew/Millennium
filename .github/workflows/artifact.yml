@@ -277,7 +277,7 @@ jobs:
         # ls -laR /home/runner/Millennium/build
 
         mkdir -p /home/runner/env
-        cp ./build/libMillennium.so /home/runner/env/libMillennium.so
+        cp ./build/libmillennium_x86.so /home/runner/env/libmillennium_x86.so
         cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
         cp ./scripts/posix/start.sh /home/runner/env/start.sh
         
@@ -293,7 +293,7 @@ jobs:
 
         # Move assets to usr folder
         mkdir -p ~/build/usr/lib/millennium
-        cp /home/runner/env/libMillennium.so ~/build/usr/lib/millennium/libMillennium.so
+        cp /home/runner/env/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
         cp /home/runner/env/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
 
         # Move scripts to usr folder
