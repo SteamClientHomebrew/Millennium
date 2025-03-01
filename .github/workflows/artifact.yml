@@ -278,8 +278,8 @@ jobs:
 
         mkdir -p /home/runner/env
         cp ./build/libmillennium_x86.so /home/runner/env/libmillennium_x86.so
+        cp ./build/cli/millennium /home/runner/env/millennium
         cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
-        cp ./scripts/posix/start.sh /home/runner/env/start.sh
         
         npm install @steambrew/api
         mkdir -p /home/runner/env/ext/data/shims
@@ -298,7 +298,7 @@ jobs:
 
         # Move scripts to usr folder
         mkdir -p ~/build/usr/bin
-        cp posix/millennium ~/build/usr/bin/millennium
+        cp /home/runner/env/millennium ~/build/usr/bin/millennium
         chmod +x ~/build/usr/bin/millennium
 
         mkdir -p ~/build/home/user/.local/share/millennium

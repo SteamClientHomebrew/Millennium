@@ -163,6 +163,12 @@ const static void EntryMain()
     frontendThreads.detach();
 }
 
+__attribute__((constructor)) void __init_millennium() 
+{
+    std::cout << "Millennium loaded" << std::endl;
+    SetupEnvironmentVariables();
+}
+
 #ifdef _WIN32
 HANDLE g_hMillenniumThread;
 /**
@@ -193,12 +199,6 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     }
 
     return true;
-}
-
-__attribute__((constructor)) void __init_millennium() 
-{
-    std::cout << "Millennium loaded" << std::endl;
-    SetupEnvironmentVariables();
 }
 
 #elif __linux__

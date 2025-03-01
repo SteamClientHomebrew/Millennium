@@ -63,9 +63,11 @@ int patch_steam() {
     }
     fputs(PATCHED_START_SCRIPT_data, file);
     fclose(file);
-    chmod(START_SCRIPT_PATH, 0755);
-    printf("Successfully wrote: %s\n", START_SCRIPT_PATH);
 
+    /** Make the start script read-only but executable */
+    chmod(START_SCRIPT_PATH, 0555);
+
+    printf("Successfully wrote: %s\n", START_SCRIPT_PATH);
     return 0;
 }
 
@@ -105,9 +107,8 @@ int check_patch_status() {
     buffer[file_size] = '\0';
     
     int is_patched = (strcmp(buffer, PATCHED_START_SCRIPT_data) == 0);
-    printf("\033[%dm●\033[0m Steam bootstrapper status\n", is_patched ? 92 : 91);
-    printf("  Patched: \033[%dm%s\033[0m\n", is_patched ? 92 : 91, is_patched ? "true" : "false");
-    printf("  Path: %s\n", START_SCRIPT_PATH);
+    printf("\n\033[32m>\e[0m  \033[1mPatched:\033[0m \033[%dm%s\033[0m\n", is_patched ? 92 : 91, is_patched ? "yes" : "no");
+    printf("\033[32m>\e[0m  \033[1mPath:\033[0m    \033[92m%s\033[0m\n", START_SCRIPT_PATH);
     
     free(buffer);
     return !is_patched;
@@ -132,29 +133,26 @@ int get_python_path() {
 }
 
 int get_millennium_version() {
-    printf("%s\n", MILLENNIUM_VERSION);
 
-    char str[] = MILLENNIUM_VERSION;
-    char *token;
-
-    token = strtok(str, ".");
-    token++;
-
-    while (token != NULL) {
-        printf("%s\n", token);
-        token = strtok(NULL, ".");
-    }
-
+    printf(
+        "\nmillennium@%s\n"
+        "Copyright (C) 2025 Project-Millennium, FOSS.\n"
+        "This software is licensed under the MIT License. See more at <https://opensource.org/license/mit> \n"
+        "This is free software; see the source for copying conditions. There is NO\n"
+        "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
+        "Written by shdwmtr.\n",
+        MILLENNIUM_VERSION
+    );
     return 0;
 }
 
 struct argp_option options[] = {
     { "patch", 'p', 0, 0, "Patch the Steam runtime to load Millennium", 1 },
     { "status", 's', 0, 0, "Check if Steam runtime is patched", 1 },
-    { "plugins", 'l', 0, 0, "Manage plugins", 1 },
+    { "plugins", 0, 0, 0, "Manage plugins", 1 },
     { "logs", 'g', 0, 0, "Manage themes", 1 },
     { "version", 'v', 0, 0, "Print the current version", 1 },
-    { "python", 'y', 0, 0, "Get the path of the python interpreter", 1 },
+    { "python", 0, 0, 0, "Get the path of the python interpreter", 1 },
     { 0 } // Null terminator
 };
 

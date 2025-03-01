@@ -23,7 +23,7 @@ int send_message(enum Millennium id, char* data) {
     strcpy(addr.sun_path, SOCKET_PATH);
 
     if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        perror("connect");
+        perror("Couldn't establish a connection with Millennium. Is Steam running?");
         close(sockfd);
         exit(EXIT_FAILURE);
     }
