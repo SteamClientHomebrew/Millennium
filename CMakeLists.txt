@@ -32,6 +32,14 @@ if(UNIX)
   add_subdirectory(cli)
 endif()
 
+find_program(LSB_RELEASE_EXEC lsb_release)
+execute_process(COMMAND ${LSB_RELEASE_EXEC} -is
+  OUTPUT_VARIABLE LSB_RELEASE_ID_SHORT
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+message(STATUS "LSB Release ID: ${LSB_RELEASE_ID_SHORT}")
+
 # Check Python version in 32 bit section
 # Just include Python headers for Windows and Apple platforms
 if(WIN32)
@@ -65,7 +73,7 @@ elseif(UNIX)
     endif()
 
     if(NOT ${PYTHON_TEST_RESULT})
-      include_directories("$ENV{HOME}/Documents/LibPython/")
+      include_directories("${CMAKE_SOURCE_DIR}/vendor/python/include")
       set(LIBPYTHON_RUNTIME_PATH "/usr/lib/millennium/libpython-3.11.8.so")
     endif()
   endif()
