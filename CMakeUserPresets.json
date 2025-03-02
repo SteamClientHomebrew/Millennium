@@ -66,7 +66,6 @@
         "VCPKG_TARGET_TRIPLET": "x86-linux",
         "CMAKE_CXX_FLAGS": "-m32",
         "CMAKE_C_FLAGS": "-m32",
-        "CMAKE_EXE_LINKER_FLAGS": "-static -static-libstdc++ -static-libgcc",
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
@@ -80,7 +79,6 @@
         "VCPKG_TARGET_TRIPLET": "x86-linux",
         "CMAKE_CXX_FLAGS": "-m32",
         "CMAKE_C_FLAGS": "-m32",
-        "CMAKE_EXE_LINKER_FLAGS": "-static -static-libstdc++ -static-libgcc",
         "CMAKE_BUILD_TYPE": "Release"
       }
     }
