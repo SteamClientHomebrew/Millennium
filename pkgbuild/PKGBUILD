@@ -1,32 +1,76 @@
-pkgname=python311-32bit
+pkgname=millennium
 pkgver=3.11.8
 pkgrel=1
-pkgdesc="Python 3.11.8 compiled for 32-bit"
-arch=('x86_64')  # Still building on x86_64, but for 32-bit support
-url="https://www.python.org/"
-license=('custom')
-depends=('lib32-glibc' 'lib32-zlib' 'lib32-openssl' 'lib32-bzip2' 'lib32-openssl' 'lib32-libffi' 'lib32-sqlite' 'lib32-readline' 'lib32-expat' 'libb2')
-makedepends=('gcc-multilib' 'make')
-
-conflicts=('libb2')
-
-source=("https://www.python.org/ftp/python/$pkgver/Python-$pkgver.tar.xz")
-sha256sums=('9e06008c8901924395bc1da303eac567a729ae012baa182ab39269f650383bb3')
+pkgdesc="A software project Millennium"
+arch=('x86_64')
+url="https://github.com/shdwmtr/millennium"
+license=('MIT')
+depends=('gtk3' 'ninja' 'cmake' 'gcc-multilib' 'glibc' 'zlib' 'ncurses' 'gdbm' 'nss' 'openssl' 'readline' 'libffi' 'sqlite' 'xz')
+makedepends=('git' 'nodejs' 'npm')
+source=("git+$url.git")
+sha256sums=('SKIP')
+options=(!debug)
 
 build() {
-    cd "$srcdir/Python-$pkgver"
+    export NODE_NO_WARNINGS=1
+    cd "$srcdir/millennium"
 
-    echo "Configuring 32-bit Python..."
-    sudo CFLAGS="-m32" LDFLAGS="-m32" ./configure --enable-optimizations --prefix=/opt/python-$pkgver-32 --with-openssl=/usr/include/openssl
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mCloning submodules...\e[0m"
+    git submodule update --init --recursive
 
-    echo "Building 32-bit Python..."
-    make -j$(nproc) -s | tee build.log 2>&1
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mInstalling dependencies...\e[0m"
+    npm install @steambrew/api
+
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium core assets...\e[0m"
+
+    cd assets
+    npm install
+    npm run build
+    cd ..
+
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mBootstrapping VCPKG...\e[0m"
+
+    ./vendor/vcpkg/bootstrap-vcpkg.sh
+    ./vendor/vcpkg/vcpkg integrate install
+
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium...\e[0m"
+
+    cmake --preset=linux-release -G "Ninja" -DDISTRO_ARCH=ON
+    cmake --build build --config Release
 }
 
 package() {
-    cd "$srcdir/Python-$pkgver"
-    make DESTDIR="$pkgdir" install
+    cd "$srcdir/millennium"
+    destinationBase="$pkgdir/usr/share/millennium/assets"
 
-    # Create a symlink for easier access
-    install -Dm755 "$pkgdir/opt/python-$pkgver-32/bin/python3" "$pkgdir/usr/bin/python3.11-32"
+    declare -A paths=(
+        ["./assets/.millennium/Dist/index.js"]="$destinationBase/.millennium/Dist/index.js"
+        ["./assets/core"]="$destinationBase/core"
+        ["./assets/pipx"]="$destinationBase/pipx"
+        ["./assets/requirements.txt"]="$destinationBase/requirements.txt"
+        ["./assets/plugin.json"]="$destinationBase/plugin.json"
+    )
+
+    for source in "${!paths[@]}"; do
+        destination="${paths[$source]}"
+        destinationDir="$(dirname "$destination")"
+        if [ ! -d "$destinationDir" ]; then
+            echo "Creating directory $destinationDir"
+            mkdir -p "$destinationDir"
+        fi
+        cp -r "$source" "$destination"
+    done
+    
+    install -Dm755 build/libmillennium_x86.so "$pkgdir/usr/lib/millennium/libmillennium_x86.so"
+    install -Dm755 build/cli/millennium "$pkgdir/usr/bin/millennium"
+    
+    mkdir -p "$pkgdir/usr/lib/millennium"
+    cp "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so" "$pkgdir/usr/lib/millennium/libpython-3.11.8.so"
+
+    mkdir -p "$pkgdir/usr/share/millennium/shims"
+
+    cp -r ./node_modules/@steambrew/api/dist/webkit_api.js "$pkgdir/usr/share/millennium/shims/webkit_api.js"
+    cp -r ./node_modules/@steambrew/api/dist/client_api.js "$pkgdir/usr/share/millennium/shims/client_api.js"
+
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
