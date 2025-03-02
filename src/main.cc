@@ -264,25 +264,25 @@ extern "C"
             fprintf(stderr, "LD_PRELOAD is not set.\n");
             return;
         }
-    
+
         char* ldPreloadStr = strdup(ldPreload);
         if (!ldPreloadStr) 
         {
             perror("strdup");
             return;
         }
-    
+
         char* token, *rest = ldPreloadStr;
         size_t tokenCount = 0, tokenArraySize = 8; 
         char** tokens = (char**)malloc(tokenArraySize * sizeof(char*));
-    
+
         if (!tokens) 
         {
             perror("malloc");
             free(ldPreloadStr);
             return;
         }
-    
+
         while ((token = strtok_r(rest, " ", &rest))) 
         {
             if (strcmp(token, GetEnv("MILLENNIUM_RUNTIME_PATH").c_str()) != 0) 
@@ -290,25 +290,27 @@ extern "C"
                 if (tokenCount >= tokenArraySize) 
                 {
                     tokenArraySize *= 2;
-                    tokens = (char**)realloc(tokens, tokenArraySize * sizeof(char*));
-                    if (!tokens) 
+                    char** temp = (char**)realloc(tokens, tokenArraySize * sizeof(char*));
+                    if (!temp) 
                     {
                         perror("realloc");
                         free(ldPreloadStr);
+                        free(tokens);
                         return;
                     }
+                    tokens = temp;
                 }
                 tokens[tokenCount++] = token;
             }
         }
-    
+
         size_t newSize = 0;
         for (size_t i = 0; i < tokenCount; ++i) 
         {
             newSize += strlen(tokens[i]) + 1;
         }
-    
-        char* updatedLdPreload = (char*)malloc(newSize);
+
+        char* updatedLdPreload = (char*)malloc(newSize > 0 ? newSize : 1);
         if (!updatedLdPreload) 
         {
             perror("malloc");
@@ -316,8 +318,8 @@ extern "C"
             free(tokens);
             return;
         }
-    
-        updatedLdPreload[0] = '\0'; 
+
+        updatedLdPreload[0] = '\0';
         for (size_t i = 0; i < tokenCount; ++i) 
         {
             if (i > 0) 
@@ -326,14 +328,14 @@ extern "C"
             }
             strcat(updatedLdPreload, tokens[i]);
         }
-    
+
         printf("Updating LD_PRELOAD from [%s] to [%s]\n", ldPreloadStr, updatedLdPreload);
-    
+
         if (setenv("LD_PRELOAD", updatedLdPreload, 1) != 0) 
         {
             perror("setenv");
         }
-    
+
         free(ldPreloadStr);
         free(updatedLdPreload);
         free(tokens);
