@@ -2,8 +2,7 @@
   "scripts": {
     "build": "millennium-ttc --build dev",
     "prod": "millennium-ttc --build prod",
-    "create-env": "python -m venv .venv",
-    "prepare": "husky"
+    "create-env": "python -m venv .venv"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
