@@ -13,6 +13,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Update Package Version
+        run: |
+            sed -i "s/pkgver=.*/pkgver=$(date +%Y%m%d)/" ./pkgbuild/PKGBUILD
+
       - name: Publish AUR package
         uses: KSXGitHub/github-actions-deploy-aur@master
         with:
