@@ -43,7 +43,7 @@ message(STATUS "LSB Release ID: ${LSB_RELEASE_ID_SHORT}")
 # Check Python version in 32 bit section
 # Just include Python headers for Windows and Apple platforms
 if(WIN32)
-  include_directories(${CMAKE_SOURCE_DIR}/vendor/python/include)
+  include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32)
 elseif(UNIX)
   if(APPLE)
     include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
