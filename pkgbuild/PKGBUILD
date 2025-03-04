@@ -65,8 +65,6 @@ package() {
     install -Dm755 build/cli/millennium "$pkgdir/usr/bin/millennium"
     
     mkdir -p "$pkgdir/usr/lib/millennium"
-    cp "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so" "$pkgdir/usr/lib/millennium/libpython-3.11.8.so"
-
     mkdir -p "$pkgdir/usr/share/millennium/shims"
 
     cp -r ./node_modules/@steambrew/api/dist/webkit_api.js "$pkgdir/usr/share/millennium/shims/webkit_api.js"

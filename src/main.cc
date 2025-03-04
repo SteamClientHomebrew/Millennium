@@ -226,6 +226,7 @@ extern "C"
     int MainHooked(int argc, char **argv, char **envp)
     {
         Logger.Log("Hooked main() with PID: {}", getpid());
+        Logger.Log("Loading python libraries from {}", __LIBPYTHON_RUNTIME_PATH);
 
         if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) 
         {
