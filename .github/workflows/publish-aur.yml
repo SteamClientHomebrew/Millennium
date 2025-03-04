@@ -1,9 +1,10 @@
 name: Publish to AUR
 
 on:
-  push:
-  pull_request:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Build Millennium"]
+    types:
+      - completed
 
 jobs:
   aur-push:
