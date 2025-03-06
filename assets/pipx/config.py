@@ -29,30 +29,38 @@ class Config:
     def get(self, section, key):
         return self.config[section][key]
 
-    def setup(self):
+    # Get the absolute path to the python binary
+    def get_python_path(self):
+        return self.PYTHON_BIN
+    
+    # Get the path to the pip logs
+    def get_pip_logs(self):
+        return self.PIP_INSTALL_LOGS
+    
+    # Get the path to the pacman logs
+    def get_pacman_logs(self):
+        return self.PACMAN_LOGS
 
+    def setup(self):
         _platform = platform.system()
 
         if _platform == "Windows":
-            PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "python.exe")  
+            self.PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "python.exe")  
         elif _platform == "Linux":
-            PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "bin", "python3.11")
+            self.PYTHON_BIN = os.getenv("LIBPYTHON_RUNTIME_BIN_PATH")
 
             # check if the binary is executable
-            if not os.access(PYTHON_BIN, os.X_OK):
+            if not os.access(self.PYTHON_BIN, os.X_OK):
                 # set it as executable
-                os.chmod(PYTHON_BIN, 0o755)
-                logger.log(f"Set {PYTHON_BIN} as executable")
+                os.chmod(self.PYTHON_BIN, 0o755)
+                logger.log(f"Set {self.PYTHON_BIN} as executable")
 
-        PACMAN_LOGS      = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pacman.log")
-        PIP_INSTALL_LOGS = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pip_boot.log")
+        self.PACMAN_LOGS      = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pacman.log")
+        self.PIP_INSTALL_LOGS = os.path.join(os.getenv("MILLENNIUM__LOGS_PATH"), "pip_boot.log")
 
         self.set_default('PackageManager', 'dev_packages', 'no')
         self.set_default('PackageManager', 'auto_update_dev_packages', 'yes')
         self.set_default('PackageManager', 'use_pip', 'yes')
-        self.set_default('PackageManager', 'python', PYTHON_BIN)
-        self.set_default('PackageManager', 'pip_logs', PACMAN_LOGS)
-        self.set_default('PackageManager', 'pip_boot', PIP_INSTALL_LOGS)
 
         with open(self.config_file, 'w') as configfile:
             self.config.write(configfile)

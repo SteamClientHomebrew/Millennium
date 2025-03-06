@@ -5,7 +5,7 @@ pkgdesc="Millennium is an open-source low-code modding framework to create, mana
 arch=('x86_64')
 url="https://github.com/shdwmtr/millennium"
 license=('MIT')
-depends=('gtk3' 'ninja' 'cmake' 'gcc-multilib' 'glibc' 'zlib' 'ncurses' 'gdbm' 'nss' 'openssl' 'readline' 'libffi' 'sqlite' 'xz' 'python-i686-bin')
+depends=('gtk3' 'ninja' 'cmake' 'gcc-multilib' 'glibc' 'zlib' 'ncurses' 'gdbm' 'nss' 'openssl' 'readline' 'libffi' 'sqlite' 'xz' 'python-i686-bin' 'git')
 makedepends=('git' 'nodejs' 'npm')
 source=("git+$url.git")
 sha256sums=('SKIP')
@@ -65,10 +65,13 @@ package() {
     install -Dm755 build/cli/millennium "$pkgdir/usr/bin/millennium"
     
     mkdir -p "$pkgdir/usr/lib/millennium"
-    mkdir -p "$pkgdir/usr/share/millennium/shims"
+    mkdir -p "$pkgdir$HOME/.local/share/millennium/lib/shims"
 
-    cp -r ./node_modules/@steambrew/api/dist/webkit_api.js "$pkgdir/usr/share/millennium/shims/webkit_api.js"
-    cp -r ./node_modules/@steambrew/api/dist/client_api.js "$pkgdir/usr/share/millennium/shims/client_api.js"
+    cp -r ./node_modules/@steambrew/api/dist/webkit_api.js "$pkgdir$HOME/.local/share/millennium/lib/shims/webkit_api.js"
+    cp -r ./node_modules/@steambrew/api/dist/client_api.js "$pkgdir$HOME/.local/share/millennium/lib/shims/client_api.js"
+
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mCreating virtual environment...\e[0m"
+    /opt/python-i686/bin/python3.11 -m venv "$pkgdir$HOME/.local/share/millennium/lib/cache/" --system-site-packages --symlinks
 
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

@@ -91,7 +91,6 @@ std::string GetEnv(std::string key)
 const void SetupEnvironmentVariables()
 {
     SetEnv("MILLENNIUM__VERSION",     MILLENNIUM_VERSION);
-
     SetEnv("MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string());
     SetEnv("MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string());
 
@@ -116,5 +115,15 @@ const void SetupEnvironmentVariables()
     SetEnv("MILLENNIUM__PYTHON_ENV",     fmt::format("{}/.local/share/millennium/lib/cache",  std::getenv("HOME")));
     SetEnv("MILLENNIUM__SHIMS_PATH",     fmt::format("{}/.local/share/millennium/lib/shims",  std::getenv("HOME")));
     SetEnv("MILLENNIUM__ASSETS_PATH",    fmt::format("{}/.local/share/millennium/lib/assets", std::getenv("HOME")));
+
+    const std::string pythonPath = GetEnv("MILLENNIUM__PYTHON_ENV");
+
+    SetEnv("LIBPYTHON_RUNTIME_BIN_PATH",         LIBPYTHON_RUNTIME_BIN_PATH         == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             pythonPath) : LIBPYTHON_RUNTIME_BIN_PATH        );
+    SetEnv("LIBPYTHON_BUILTIN_MODULES_PATH",     LIBPYTHON_BUILTIN_MODULES_PATH     == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             pythonPath) : LIBPYTHON_BUILTIN_MODULES_PATH    );
+    SetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH", LIBPYTHON_BUILTIN_MODULES_DLL_PATH == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11/lib-dynload", pythonPath) : LIBPYTHON_BUILTIN_MODULES_DLL_PATH);
+
+    std::cout << "LIBPYTHON_RUNTIME_BIN_PATH: "         << GetEnv("LIBPYTHON_RUNTIME_BIN_PATH")         << std::endl;
+    std::cout << "LIBPYTHON_BUILTIN_MODULES_PATH: "     << GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH")     << std::endl;
+    std::cout << "LIBPYTHON_BUILTIN_MODULES_DLL_PATH: " << GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH") << std::endl;
     #endif
 }

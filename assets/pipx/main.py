@@ -22,7 +22,7 @@ def main():
     pip_setup.verify_pip()
 
     # keep millennium module up to date
-    watchdog = dev_tools.mpc(config.get('PackageManager', 'python'))
+    watchdog = dev_tools.mpc(config.get_python_path())
     watchdog.start(config)
 
     if config.get('PackageManager', 'use_pip') == 'yes':

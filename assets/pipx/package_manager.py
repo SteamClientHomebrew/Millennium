@@ -7,6 +7,7 @@ import threading
 from core.api.plugins import find_all_plugins
 from core.util.logger import logger
 import platform
+from config import Config
 
 def get_installed_packages():
     package_names = [dist.metadata["Name"] for dist in importlib.metadata.distributions()]
@@ -24,23 +25,21 @@ def process_output_handler(proc, outfile, terminate_flag):
                 f.write(line + '\n')
 
 
-def pip(cmd, config):
+def pip(cmd, config: Config):
 
-    python_bin = config.get('PackageManager', 'python')
-    pip_logs = config.get('PackageManager', 'pip_logs')
+    python_bin = config.get_python_path()
+    pip_logs = config.get_pip_logs()
     terminate_flag = [False]
 
     os.makedirs(os.path.dirname(pip_logs), exist_ok=True)
 
     with open(pip_logs, 'w') as f:
-        if platform.system() == 'Windows':
-            proc = subprocess.Popen([python_bin, '-m', 'pip'] + cmd + ["--no-warn-script-location"],
-                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                    bufsize=1, universal_newlines=True, creationflags=subprocess.CREATE_NO_WINDOW)
-        else:
-            proc = subprocess.Popen([python_bin, '-m', 'pip'] + cmd + ["--no-warn-script-location"],
-                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                    bufsize=1, universal_newlines=True)
+        proc = subprocess.Popen(
+            [python_bin, '-m', 'pip'] + cmd + ["--no-warn-script-location"],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            bufsize=1, universal_newlines=True,
+            creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == 'Windows' else 0
+        )
 
         output_handler_thread = threading.Thread(target=process_output_handler, args=(proc, pip_logs, terminate_flag))
         output_handler_thread.start()
@@ -53,11 +52,11 @@ def pip(cmd, config):
             logger.error(f"PIP failed with exit code {proc.returncode}")
 
 
-def install_packages(package_names, config):
+def install_packages(package_names, config: Config):
     pip(["install"] + package_names, config)
 
 
-def uninstall_packages(package_names, config):
+def uninstall_packages(package_names, config: Config):
     pip(["uninstall", "-y"] + package_names, config)
 
 
@@ -98,7 +97,7 @@ def needed_packages():
     return needed_packages
 
 
-def audit(config):
+def audit(config: Config):
     packages = needed_packages()
 
     if packages:

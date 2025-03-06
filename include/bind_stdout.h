@@ -68,6 +68,8 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
 extern "C" void PrintPythonError(std::string pname, const char* message)
 {
     fmt::print(fg(fmt::color::red), "{}", message);
+    std::cout.flush(); // Flush the buffer to ensure the message is printed immediately, and the color doesn't leak into the next message.
+
     ErrorToLogger(pname, message);
 }
 
