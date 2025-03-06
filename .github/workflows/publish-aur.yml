@@ -5,6 +5,7 @@ on:
     workflows: ["Build Millennium"]
     types:
       - completed
+  workflow_dispatch:
 
 jobs:
   aur-push:
