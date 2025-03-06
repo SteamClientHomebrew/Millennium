@@ -1,6 +1,6 @@
 pkgver=v2.17.2
 pkgname=millennium
-pkgrel=3
+pkgrel=4
 pkgdesc="Millennium is an open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead."
 arch=('x86_64')
 url="https://github.com/shdwmtr/millennium"
@@ -41,7 +41,7 @@ build() {
 
 package() {
     cd "$srcdir/millennium"
-    destinationBase="$pkgdir/usr/share/millennium/assets"
+    destinationBase="$pkgdir$HOME/.local/share/millennium/lib/assets"
 
     declare -A paths=(
         ["./assets/.millennium/Dist/index.js"]="$destinationBase/.millennium/Dist/index.js"
