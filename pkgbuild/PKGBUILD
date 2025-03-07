@@ -1,6 +1,6 @@
 pkgver=v2.17.2
 pkgname=millennium
-pkgrel=4
+pkgrel=5
 pkgdesc="Millennium is an open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead."
 arch=('x86_64')
 url="https://github.com/shdwmtr/millennium"
@@ -73,5 +73,6 @@ package() {
     echo -e "\e[1m\e[92m==>\e[0m \e[1mCreating virtual environment...\e[0m"
     /opt/python-i686-3.11.8/bin/python3.11 -m venv "$pkgdir$HOME/.local/share/millennium/lib/cache/" --system-site-packages --symlinks
 
+    sudo chown -R $USER:$USER $pkgdir$HOME/.local/share/millennium
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
