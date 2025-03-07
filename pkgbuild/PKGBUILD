@@ -76,3 +76,9 @@ package() {
 
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
+
+post_install() {
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mSetting permissions...\e[0m"
+    sudo chown -R $USER:$USER $HOME/.local/share/millennium
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mPlease run 'millennium patch' setup Millennium.\e[0m"
+}
