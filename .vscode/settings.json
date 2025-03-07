@@ -85,6 +85,8 @@
         "stdfloat": "cpp",
         "cfenv": "cpp",
         "typeindex": "cpp",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "cli.hpp": "c",
+        "unistd.h": "c"
     }
 }

@@ -74,6 +74,5 @@ package() {
     echo -e "\e[1m\e[92m==>\e[0m \e[1mCreating virtual environment...\e[0m"
     /opt/python-i686-3.11.8/bin/python3.11 -m venv "$pkgdir$HOME/.local/share/millennium/lib/cache/" --system-site-packages --symlinks
 
-    sudo chown -R $USER:$USER $pkgdir$HOME/.local/share/millennium
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
