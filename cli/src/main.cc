@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
 {
     CLI::App app{fmt::format("Millennium@{}", MILLENNIUM_VERSION)};
 
-    app.add_subcommand("setup",   "Setup Millennium after a fresh install"     )->callback(setup_millennium);
+    // app.add_subcommand("setup",   "Setup Millennium after a fresh install"     )->callback(setup_millennium);
     app.add_subcommand("patch",   "Patch the Steam runtime to load Millennium" )->callback(patch_steam);
     app.add_subcommand("status",  "Check the status of the Steam runtime patch")->callback(check_patch_status);
     app.add_subcommand("python",  "Get the path to the Python binary"          )->callback(get_python_path);

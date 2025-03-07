@@ -9,7 +9,7 @@ include_directories(include)
 
 # Optimize the build
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s -fdata-sections -ffunction-sections -fno-exceptions")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s -fdata-sections -ffunction-sections")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s -fdata-sections -ffunction-sections")
 endif()
 
