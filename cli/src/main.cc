@@ -153,16 +153,31 @@ const void get_python_path()
 const void setup_millennium()
 {
     check_sudo();
-    const char *dir = getenv("HOME");
-    if (dir == NULL) 
+    const char *sudo_user = getenv("SUDO_USER");
+    const char *home;
+
+    if (sudo_user) 
     {
-        std::cerr << "HOME environment variable not set\n";
-        return;
+        struct passwd *pw = getpwnam(sudo_user);
+        if (pw) 
+        {
+            home = pw->pw_dir;
+        } 
+        else 
+        {
+            home = getenv("HOME");
+        }
+    } 
+    else 
+    {
+        home = getenv("HOME");
     }
 
     char path[1024];
-    snprintf(path, sizeof(path), "%s/.local/share/millennium", dir);
+    snprintf(path, sizeof(path), "%s/.local/share/millennium", home);
     change_ownership(path);
+
+    std::cout << "done.\n";
     return;
 };
 
