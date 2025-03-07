@@ -40,6 +40,7 @@
 #include <fmt/core.h>
 #include <log.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 const void SetupEnvironmentVariables();
 
@@ -90,40 +91,55 @@ std::string GetEnv(std::string key)
  */
 const void SetupEnvironmentVariables()
 {
-    SetEnv("MILLENNIUM__VERSION",     MILLENNIUM_VERSION);
-    SetEnv("MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string());
-    SetEnv("MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string());
+    std::map<std::string, std::string> environment = {
+        { "MILLENNIUM__VERSION",     MILLENNIUM_VERSION },
+        { "MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string() },
+        { "MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string() }
+    };
 
     #ifdef _WIN32
-    SetEnv("MILLENNIUM__PLUGINS_PATH", SystemIO::GetInstallPath().string() + "/plugins");
-    SetEnv("MILLENNIUM__CONFIG_PATH",  SystemIO::GetInstallPath().string() + "/ext");
-    SetEnv("MILLENNIUM__LOGS_PATH",    SystemIO::GetInstallPath().string() + "/ext/logs");
-    SetEnv("MILLENNIUM__DATA_LIB",     SystemIO::GetInstallPath().string() + "/ext/data");
-    SetEnv("MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/cache");
-    SetEnv("MILLENNIUM__SHIMS_PATH",   SystemIO::GetInstallPath().string() + "/ext/data/shims");
-    SetEnv("MILLENNIUM__ASSETS_PATH",  SystemIO::GetInstallPath().string() + "/ext/data/assets");
+    std::map<std::string, std::string> environment_windows = {
+        { "MILLENNIUM__PLUGINS_PATH",   SystemIO::GetInstallPath().string() + "/plugins" },
+        { "MILLENNIUM__CONFIG_PATH",    SystemIO::GetInstallPath().string() + "/ext" },
+        { "MILLENNIUM__LOGS_PATH",      SystemIO::GetInstallPath().string() + "/ext/logs" },
+        { "MILLENNIUM__DATA_LIB",       SystemIO::GetInstallPath().string() + "/ext/data" },
+        { "MILLENNIUM__PYTHON_ENV",     SystemIO::GetInstallPath().string() + "/ext/data/cache" },
+        { "MILLENNIUM__SHIMS_PATH",     SystemIO::GetInstallPath().string() + "/ext/data/shims" },
+        { "MILLENNIUM__ASSETS_PATH",    SystemIO::GetInstallPath().string() + "/ext/data/assets" }
+    };
+    environment.insert(environment_windows.begin(), environment_windows.end());
     #elif __linux__
-    SetEnv("MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so");
-    SetEnv("LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH);
+    std::map<std::string, std::string> environment_unix = {
+        { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
+        { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
 
-    /* Path to the steam exe, symlinks are parsed and accepted. */
-    SetEnv("MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     std::getenv("HOME")));
-    SetEnv("MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/.local/share/millennium/plugins",    std::getenv("HOME")));
-    SetEnv("MILLENNIUM__CONFIG_PATH",    fmt::format("{}/.config/millennium",                 std::getenv("HOME")));
-    SetEnv("MILLENNIUM__LOGS_PATH",      fmt::format("{}/.local/share/millennium/logs",       std::getenv("HOME")));
-    SetEnv("MILLENNIUM__DATA_LIB",       fmt::format("{}/.local/share/millennium/lib",        std::getenv("HOME")));
-    SetEnv("MILLENNIUM__PYTHON_ENV",     fmt::format("{}/.local/share/millennium/lib/cache",  std::getenv("HOME")));
-    SetEnv("MILLENNIUM__SHIMS_PATH",     fmt::format("{}/.local/share/millennium/lib/shims",  std::getenv("HOME")));
-    SetEnv("MILLENNIUM__ASSETS_PATH",    fmt::format("{}/.local/share/millennium/lib/assets", std::getenv("HOME")));
+        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     std::getenv("HOME")) },
+        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/.local/share/millennium/plugins",    std::getenv("HOME")) },
+        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/.config/millennium",                 std::getenv("HOME")) },
+        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/.local/share/millennium/logs",       std::getenv("HOME")) },
+        { "MILLENNIUM__DATA_LIB",       fmt::format("{}/.local/share/millennium/lib",        std::getenv("HOME")) },
+        { "MILLENNIUM__PYTHON_ENV",     fmt::format("{}/.local/share/millennium/lib/cache",  std::getenv("HOME")) },
+        { "MILLENNIUM__SHIMS_PATH",     fmt::format("{}/.local/share/millennium/lib/shims",  std::getenv("HOME")) },
+        { "MILLENNIUM__ASSETS_PATH",    fmt::format("{}/.local/share/millennium/lib/assets", std::getenv("HOME")) },
 
-    const std::string pythonPath = GetEnv("MILLENNIUM__PYTHON_ENV");
-
-    SetEnv("LIBPYTHON_RUNTIME_BIN_PATH",         LIBPYTHON_RUNTIME_BIN_PATH         == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             pythonPath) : LIBPYTHON_RUNTIME_BIN_PATH        );
-    SetEnv("LIBPYTHON_BUILTIN_MODULES_PATH",     LIBPYTHON_BUILTIN_MODULES_PATH     == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             pythonPath) : LIBPYTHON_BUILTIN_MODULES_PATH    );
-    SetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH", LIBPYTHON_BUILTIN_MODULES_DLL_PATH == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11/lib-dynload", pythonPath) : LIBPYTHON_BUILTIN_MODULES_DLL_PATH);
-
-    std::cout << "LIBPYTHON_RUNTIME_BIN_PATH: "         << GetEnv("LIBPYTHON_RUNTIME_BIN_PATH")         << std::endl;
-    std::cout << "LIBPYTHON_BUILTIN_MODULES_PATH: "     << GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH")     << std::endl;
-    std::cout << "LIBPYTHON_BUILTIN_MODULES_DLL_PATH: " << GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH") << std::endl;
+        { "LIBPYTHON_RUNTIME_BIN_PATH",         LIBPYTHON_RUNTIME_BIN_PATH         == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             GetEnv("MILLENNIUM__PYTHON_ENV")) : LIBPYTHON_RUNTIME_BIN_PATH        },
+        { "LIBPYTHON_BUILTIN_MODULES_PATH",     LIBPYTHON_BUILTIN_MODULES_PATH     == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             GetEnv("MILLENNIUM__PYTHON_ENV")) : LIBPYTHON_BUILTIN_MODULES_PATH    },
+        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", LIBPYTHON_BUILTIN_MODULES_DLL_PATH == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11/lib-dynload", GetEnv("MILLENNIUM__PYTHON_ENV")) : LIBPYTHON_BUILTIN_MODULES_DLL_PATH}
+    };
+    environment.insert(environment_unix.begin(), environment_unix.end());
     #endif
+
+    for (const auto& [key, value] : environment)
+    {
+        #ifdef __linux__
+        #define RED "\033[31m"
+        #define RESET "\033[0m"
+        /** Check permissions on each folder */
+        if (access(value.c_str(), R_OK) != 0) {
+            std::cout << fmt::format("{}{}{}{}{}", RED, "Error: ", RESET, fmt::format("Permission denied to access '{}'.", value), "\n");
+        }
+        #endif
+        std::cout << fmt::format("{}={}", key, value) << std::endl;
+        SetEnv(key, value);
+    }
 }
