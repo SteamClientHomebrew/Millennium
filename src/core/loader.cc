@@ -138,8 +138,6 @@ public:
         {
             sharedJsContextSessionId = json["params"]["sessionId"];
             Sockets::PostShared({ {"id", 9494 }, {"method", "Log.enable"}, {"sessionId", sharedJsContextSessionId} });
-
-            this->UnPatchSharedJSContext();
         }
         else if (json.value("id", -1) == 9773) 
         {
@@ -155,33 +153,6 @@ public:
     const void SetupSharedJSContext()
     {
         Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.getTargets" } });
-    }
-
-    const void UnPatchSharedJSContext()
-    {
-        #ifdef _WIN32
-        Logger.Log("Restoring SharedJSContext...");
-
-        const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
-        const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
-
-        try
-        {
-            if (std::filesystem::exists(SteamUIModulePathBackup) && std::filesystem::is_regular_file(SteamUIModulePathBackup))
-            {
-                std::filesystem::remove(SteamUIModulePath);
-            }
-
-            std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
-        }
-        catch (const std::exception& e)
-        {
-            Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
-        }
-
-        Logger.Log("Restored SharedJSContext...");
-        #endif
-        Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
     }
 
     const void onSharedJsConnect()

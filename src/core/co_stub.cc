@@ -398,6 +398,40 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
 }
 
 /**
+ * Restores the original `SharedJSContext` by renaming the backup file to the original file.
+ * It reverses the patches done in the preloader module
+ * 
+ * @note this function is only applicable to Windows
+ */
+const void UnPatchSharedJSContext()
+{
+    #ifdef _WIN32
+    Logger.Log("Restoring SharedJSContext...");
+
+    const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
+    const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
+
+    try
+    {
+        if (std::filesystem::exists(SteamUIModulePathBackup) && std::filesystem::is_regular_file(SteamUIModulePathBackup))
+        {
+            std::filesystem::remove(SteamUIModulePath);
+        }
+
+        std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
+    }
+    catch (const std::exception& e)
+    {
+        Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
+    }
+
+    Logger.Log("Restored SharedJSContext...");
+    #endif
+    Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
+}
+
+
+/**
  * Notifies the frontend of the backend load and handles script injection and state updates.
  *
  * @param {uint16_t} ftpPort - The FTP port used to access frontend resources.
@@ -418,6 +452,7 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
  */
 void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 {
+    UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
 
     static uint16_t m_ftpPort = ftpPort;
