@@ -427,7 +427,7 @@ const void UnPatchSharedJSContext()
 
     Logger.Log("Restored SharedJSContext...");
     #endif
-    Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
+    // Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
 }
 
 

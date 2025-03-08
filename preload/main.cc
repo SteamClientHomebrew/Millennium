@@ -157,8 +157,8 @@ void PatchSharedJSContext(std::string strSteamPath)
 
         if (std::filesystem::exists(SteamUIModuleBackupPath) && std::filesystem::is_regular_file(SteamUIModuleBackupPath)) 
         {
-            Print("SharedJSContext already patched...");
-            return;
+            Print("Removing existing SharedJSContext backup...");
+            std::filesystem::remove(SteamUIModulePath);
         }
 
         Print("Backing up original SharedJSContext...");

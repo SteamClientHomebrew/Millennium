@@ -137,10 +137,7 @@ public:
         if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
         {
             sharedJsContextSessionId = json["params"]["sessionId"];
-            Sockets::PostShared({ {"id", 9494 }, {"method", "Log.enable"}, {"sessionId", sharedJsContextSessionId} });
-        }
-        else if (json.value("id", -1) == 9773) 
-        {
+            Sockets::PostShared({ { "id", 9494 }, { "method", "Log.enable "}, { "sessionId", sharedJsContextSessionId } });
             this->onSharedJsConnect();
         }
         else
@@ -184,6 +181,7 @@ public:
 
 const void PluginLoader::Initialize()
 {
+    
     m_settingsStorePtr  = std::make_unique<SettingsStore>();
     m_pluginsPtr        = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
     m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
