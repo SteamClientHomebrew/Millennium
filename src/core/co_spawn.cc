@@ -306,7 +306,6 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
         // Sit on the mutex until daddy says it's time to go
         std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
         interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { 
-            std::cout << "Waiting for plugin to shut down..." << std::endl;
             return interpMutexStatePtr->flag.load();
         });
 

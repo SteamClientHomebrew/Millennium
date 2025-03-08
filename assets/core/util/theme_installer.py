@@ -132,7 +132,7 @@ class WebSocketServer:
     def verify_origin(self, origin):
         return origin == "https://steambrew.app"
 
-    async def handler(self, websocket: websockets.ServerConnection):
+    async def handler(self, websocket):
         
         if not self.verify_origin(websocket.request.headers.get("Origin")):
             logger.error("Invalid origin")

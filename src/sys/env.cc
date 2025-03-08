@@ -138,8 +138,8 @@ const void SetupEnvironmentVariables()
         if (access(value.c_str(), R_OK) != 0) {
             std::cout << fmt::format("{}{}{}{}{}", RED, "Error: ", RESET, fmt::format("Permission denied to access '{}'.", value), "\n");
         }
-        #endif
         std::cout << fmt::format("{}={}", key, value) << std::endl;
+        #endif
         SetEnv(key, value);
     }
 }

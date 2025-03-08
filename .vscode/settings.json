@@ -87,6 +87,7 @@
         "typeindex": "cpp",
         "stdio.h": "c",
         "cli.hpp": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "strstream": "cpp"
     }
 }
