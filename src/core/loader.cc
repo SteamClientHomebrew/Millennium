@@ -223,7 +223,7 @@ std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHan
  */
 const void PluginLoader::InjectWebkitShims() 
 {
-    Logger.Warn("Injecting webkit shims...");
+    Logger.Log("Injecting webkit shims...");
     
     this->Initialize();
     static std::vector<int> hookIds;

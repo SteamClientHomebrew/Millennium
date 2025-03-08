@@ -90,9 +90,18 @@ class Plugin:
         Millennium.ready()
 
         if os.name == "posix":
-            from unix.socket_con import serve_unix_socket
+            from unix.socket_con import MillenniumSocketServer
             logger.log("Starting UNIX socket server...")
-            serve_unix_socket()
+
+            self.unix_server = MillenniumSocketServer()
+
+            # Function to run the server in a thread
+            def start_server():
+                self.unix_server.serve()
+
+            # Start the server in a separate thread
+            server_thread = threading.Thread(target=start_server, daemon=True)
+            server_thread.start()
 
         # This CHECKS for updates on Millennium given the user has it enabled in settings.
         # It DOES NOT automatically update, it is interfaced in the front-end.
@@ -102,4 +111,10 @@ class Plugin:
     def _unload(self):
         logger.log("Millennium-Core is unloading...")
         self.server.stop()
+        logger.log("Websocket server has been stopped!")
+
+        if os.name == "posix":
+            logger.log("Stopping UNIX socket server...")
+            self.unix_server.stop()
+
         logger.log("Millennium-Core has been unloaded!")

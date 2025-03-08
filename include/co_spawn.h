@@ -51,6 +51,8 @@ struct PythonThreadState {
 	std::string pluginName;
 	PyThreadState* thread_state;
 	std::shared_ptr<InterpreterMutex> mutex;
+
+	PythonThreadState(std::string pluginName, PyThreadState* thread_state, std::shared_ptr<InterpreterMutex> mutex) : pluginName(pluginName), thread_state(thread_state), mutex(mutex) {}
 };
 
 static const std::filesystem::path pythonModulesBaseDir = std::filesystem::path(GetEnv("MILLENNIUM__PYTHON_ENV"));
@@ -72,7 +74,7 @@ private:
 	PyThreadState* m_InterpreterThreadSave;
 
 	std::vector<std::tuple<std::string, std::thread>> m_threadPool;
-	std::vector<PythonThreadState> m_pythonInstances;
+	std::vector<std::shared_ptr<PythonThreadState>> m_pythonInstances;
 
 public:
 	PythonManager();
@@ -84,7 +86,7 @@ public:
 
 	bool IsRunning(std::string pluginName);
 
-	PythonThreadState GetPythonThreadStateFromName(std::string pluginName);
+	std::shared_ptr<PythonThreadState> GetPythonThreadStateFromName(std::string pluginName);
 	std::string GetPluginNameFromThreadState(PyThreadState* thread);
 
 	static PythonManager& GetInstance() {

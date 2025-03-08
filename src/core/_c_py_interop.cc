@@ -221,7 +221,7 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
  */
 Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)
 {
-    auto [strPluginName, threadState, interpMutex] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
     if (threadState == nullptr) 
     {
@@ -270,7 +270,7 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
  */
 void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string script)
 {
-    auto [strPluginName, threadState, interpMutex] = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
     if (threadState == nullptr) 
     {

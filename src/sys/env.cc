@@ -134,10 +134,7 @@ const void SetupEnvironmentVariables()
         #ifdef __linux__
         #define RED "\033[31m"
         #define RESET "\033[0m"
-        /** Check permissions on each folder */
-        if (access(value.c_str(), R_OK) != 0) {
-            std::cout << fmt::format("{}{}{}{}{}", RED, "Error: ", RESET, fmt::format("Permission denied to access '{}'.", value), "\n");
-        }
+
         std::cout << fmt::format("{}={}", key, value) << std::endl;
         #endif
         SetEnv(key, value);

@@ -179,13 +179,17 @@ bool PythonManager::DestroyAllPythonInstances()
 
     for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */) 
     {
-        auto [pluginName, threadState, interpMutex] = *it;
+        auto& [pluginName, threadState, interpMutex] = *(*it);
 
         Logger.Log("Instance state: {}", static_cast<void*>(&(*it)));
+        std::cout << "DESTROY PLUGIN NAME: " << pluginName << "INTERP CV:" << &interpMutex->cv << std::endl;
 
-        { std::lock_guard<std::mutex> lg(interpMutex->mtx); interpMutex->flag.store(true); }
-        interpMutex->cv.notify_one();
-
+        {
+            std::lock_guard<std::mutex> lg(interpMutex->mtx); 
+            interpMutex->flag.store(true); 
+            interpMutex->cv.notify_all();
+        }
+        
         Logger.Log("Notified plugin [{}] to shut down...", pluginName);
 
         // Join and remove the corresponding thread safely
@@ -201,6 +205,10 @@ bool PythonManager::DestroyAllPythonInstances()
 
             this->m_threadPool.erase(threadIt);
             CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, true);
+        }
+        else
+        {
+            LOG_ERROR("Couldn't find thread for plugin '{}'", pluginName);
         }
 
         it = this->m_pythonInstances.erase(it);
@@ -219,7 +227,7 @@ bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isS
 
     for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */) 
     {
-        const auto& [pluginName, threadState, interpMutex] = *it;
+        auto& [pluginName, threadState, interpMutex] = *(*it);
 
         if (pluginName != targetPluginName) 
         {
@@ -229,11 +237,11 @@ bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isS
 
         Logger.Log("Instance state: {}", (void*)&it);
 
-        { 
+        {
             std::lock_guard<std::mutex> lg(interpMutex->mtx); 
             interpMutex->flag.store(true); 
+            interpMutex->cv.notify_all();
         }
-        interpMutex->cv.notify_one();
 
         Logger.Log("Notified plugin [{}] to shut down...", targetPluginName);
 
@@ -258,21 +266,21 @@ bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isS
             }
         }
 
-        it = this->m_pythonInstances.erase(it);  // Safe erase
-
-        Logger.Log("New state: {}", (void*)&it);
-
+        it = this->m_pythonInstances.erase(it);  // Safe erase        
         successfulShutdown = true;
         break;
     }
 
+    Logger.Log("Length of python instances: {}", this->m_pythonInstances.size());
     return successfulShutdown;
 }
 
 bool PythonManager::IsRunning(std::string targetPluginName)
 {
-    for (const auto& [pluginName, threadState, interpMutex] : this->m_pythonInstances) 
+    for (auto instance : this->m_pythonInstances) 
     {
+        const auto& [pluginName, thread_ptr, interpMutex] = *instance;
+
         if (targetPluginName == pluginName) 
         {
             return true;
@@ -284,7 +292,7 @@ bool PythonManager::IsRunning(std::string targetPluginName)
 bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
 {
     const std::string pluginName = plugin.pluginName;
-    auto interpMutexState = std::make_shared<InterpreterMutex>();
+    std::shared_ptr<InterpreterMutex> interpMutexState = std::make_shared<InterpreterMutex>();
 
     auto thread = std::thread([this, pluginName, callback, plugin, interpMutexStatePtr = interpMutexState ] 
     {
@@ -292,20 +300,23 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
         PyEval_RestoreThread(threadStateMain);
 
         PyThreadState* interpreterState = Py_NewInterpreter();
-
         PyThreadState_Swap(interpreterState);
         
-        this->m_pythonInstances.push_back({ std::string(pluginName), interpreterState, interpMutexStatePtr });
+        std::shared_ptr<PythonThreadState> threadState = std::make_shared<PythonThreadState>(std::string(pluginName), interpreterState, interpMutexStatePtr);
+
+        this->m_pythonInstances.push_back(threadState);
         RedirectOutput();
         callback(plugin);
+
+        Logger.Log("Plugin '{}' finished delegating callback function...", pluginName);
         
         PyThreadState_Clear(threadStateMain);
         PyThreadState_Swap(threadStateMain);
         PyThreadState_DeleteCurrent();
 
-        // Sit on the mutex until daddy says it's time to go
         std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
-        interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { 
+
+        interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] {   
             return interpMutexStatePtr->flag.load();
         });
 
@@ -332,13 +343,15 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
     return true;
 }
 
-PythonThreadState PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
+std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
 {
-    for (const auto& [pluginName, thread_ptr, interpMutex] : this->m_pythonInstances) 
+    for (auto instance : this->m_pythonInstances) 
     {
+        const auto& [pluginName, thread_ptr, interpMutex] = *instance;
+
         if (targetPluginName == pluginName) 
         {
-            return { pluginName, thread_ptr };
+            return instance;
         }
     }
     return {};
@@ -346,8 +359,10 @@ PythonThreadState PythonManager::GetPythonThreadStateFromName(std::string target
 
 std::string PythonManager::GetPluginNameFromThreadState(PyThreadState* thread) 
 {
-    for (const auto& [pluginName, thread_ptr, interpMutex] : this->m_pythonInstances)
+    for (auto instance : this->m_pythonInstances)
     {
+        const auto& [pluginName, thread_ptr, interpMutex] = *instance;
+
         if (thread_ptr != nullptr && thread_ptr == thread) 
         {
             return pluginName;

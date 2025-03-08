@@ -186,10 +186,10 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, b
         this->emittedPlugins.erase(it, this->emittedPlugins.end());
         Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
     } 
-    else 
-    {
-        Logger.Log("\033[1;33mPlugin {} not found.\033[0m", plugin.pluginName);
-    }
+    // else if (plugin.pluginName != "pipx") /** Ignore the package manager plugin */
+    // {
+    //     Logger.Log("\033[1;33mPlugin {} not found.\033[0m", plugin.pluginName);
+    // }
 
     if (!isShuttingDown) 
     {

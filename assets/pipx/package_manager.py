@@ -10,6 +10,11 @@ import platform
 from config import Config
 
 def get_installed_packages():
+
+    logger.log("Installed packages:")
+    for dist in importlib.metadata.distributions():
+        logger.log(f"  {dist.metadata['Name']}=={dist.version}")
+
     package_names = [dist.metadata["Name"] for dist in importlib.metadata.distributions()]
     return package_names
 
@@ -69,8 +74,6 @@ def needed_packages():
     needed_packages = []
     installed_packages = get_installed_packages()
 
-    logger.log(f"Installed packages: {installed_packages}")
-
     for plugin in json.loads(find_all_plugins(logger)):
         requirements_path = os.path.join(plugin["path"], "requirements.txt")
 
@@ -89,7 +92,7 @@ def needed_packages():
                     package_name = split[0]
                     package_platform = split[1]
 
-                if package_name not in installed_packages:
+                if package_name.split("==")[0] not in installed_packages:
 
                     if package_platform == _platform:
                         needed_packages.append(package_name)

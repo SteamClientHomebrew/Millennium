@@ -1,13 +1,15 @@
-arrow
-psutil
+pip==24.0
+setuptools==65.5.0
+arrow==1.3.0
+psutil==7.0.0
 pywin32 | Windows
-requests
+requests==2.32.3
 winrt-Windows.UI.ViewManagement | Windows
 winrt-Windows.UI | Windows
 pygit2 | Windows
-GitPython | Linux
-cssutils
-websockets
-watchdog
-PySocks
-pyperclip
+GitPython==3.1.44 | Linux
+cssutils==2.11.1
+websockets==15.0.1
+watchdog==6.0.0
+PySocks==1.7.1
+pyperclip==1.9.0

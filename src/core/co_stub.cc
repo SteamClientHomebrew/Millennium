@@ -358,7 +358,37 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     }
 
     Py_DECREF(result);
+
+    const auto startTime = std::chrono::steady_clock::now();
+    std::atomic<bool> timeOutLockThreadRunning = true;
+
+    std::thread timeOutThread([&timeOutLockThreadRunning, startTime, plugin] 
+    {
+        while (timeOutLockThreadRunning.load()) 
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30)) 
+            {
+                std::string errorMessage = fmt::format(
+                    "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. "
+                    "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading."
+                    "\nLearn more: https://www.geeksforgeeks.org/multithreading-python-set-1/"
+                    "\nThis error is not fatal but this plugin will NOT be able to properly shutdown with may leave steam hanging on exit.", plugin.pluginName
+                );
+
+                LOG_ERROR(errorMessage);
+                ErrorToLogger(plugin.pluginName, errorMessage);
+
+                break;
+            }
+        }
+    });
+
     StartPluginBackend(globalDictionary, plugin.pluginName);  
+
+    timeOutLockThreadRunning.store(false);
+    timeOutThread.join();  
 }
 
 /**

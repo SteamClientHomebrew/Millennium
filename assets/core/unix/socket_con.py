@@ -7,11 +7,11 @@ from enum import Enum, auto
 from api.plugins import find_all_plugins
 from util.logger import logger
 
-import Millennium # type: ignore
+import Millennium  # type: ignore
 
 SOCKET_PATH = "/tmp/millennium_socket"
 
-class SOCKET_TYPES(Enum):
+class SocketTypes(Enum):
     GET_LOADED_PLUGINS = 0
     GET_ENABLED_PLUGINS = auto()
     LIST_PLUGINS = auto()
@@ -23,96 +23,117 @@ class SOCKET_TYPES(Enum):
     GET_PLUGIN_LOGS = auto()
     GET_ACTIVE_THEME = auto()
 
-def parse_message(message: str) -> tuple:
-    return int(message.split("|!|")[0]), message.split("|!|")[1]
+class MillenniumSocketServer:
+    def __init__(self, socket_path=SOCKET_PATH):
+        self.socket_path = socket_path
+        self.server = None
+        self.running = False
 
-def parse_log_types(logs) -> tuple:
-    log_count = 0
-    warn_count = 0
-    error_count = 0
+    def parse_message(self, message: str) -> tuple:
+        return int(message.split("|!|")[0]), message.split("|!|")[1]
 
-    for log in logs:
-        if   log['level'] == 0: log_count   += 1
-        elif log['level'] == 1: warn_count  += 1
-        elif log['level'] == 2: error_count += 1
+    def parse_log_types(self, logs) -> tuple:
+        log_count = sum(1 for log in logs if log['level'] == 0)
+        warn_count = sum(1 for log in logs if log['level'] == 1)
+        error_count = sum(1 for log in logs if log['level'] == 2)
+        return log_count, warn_count, error_count
 
-    return log_count, warn_count, error_count
+    def handle_message(self, encoded_message: str) -> str:
+        try:
+            type_id, message = self.parse_message(encoded_message)
+            logger.log(f"type: {type_id}, message: {message}")
 
-def handle_message(encoded_message: str) -> str:
-    try:
-        type_id, message = parse_message(encoded_message)
-        logger.log(f"type: {type_id}, message: {message}")
+            if type_id == SocketTypes.LIST_PLUGINS.value:
+                str_response = ""
+                first_line = True
 
-        if type_id == SOCKET_TYPES.LIST_PLUGINS.value:
-            str_response: str = ""
-            first_line: bool = True
+                logger.log("Getting loaded plugins...")
+                data = json.loads(find_all_plugins())
 
-            logger.log("Getting loaded plugins...")
-            data = json.loads(find_all_plugins())
+                for plugin in data:
+                    if not first_line:
+                        str_response += "\n\n"
+                    else:
+                        first_line = False
+                    str_response += f"@@ {plugin['data']['name']} @@\n-- {plugin['data']['common_name']}\n++ {plugin['path']}"
 
-            for plugin in data:
-                if not first_line:
-                    str_response += "\n\n"
-                else:
-                    first_line = False
+                return str_response
 
-                str_response += f"@@ {plugin['data']['name']} @@\n-- {plugin['data']['common_name']}\n++ {plugin['path']}"
+            elif type_id == SocketTypes.GET_PLUGIN_LOGS.value:
+                data = json.loads(Millennium.get_plugin_logs())
+                str_response = ""
+                first_line = True
 
-            return str_response
-        
-        elif type_id == SOCKET_TYPES.GET_PLUGIN_LOGS.value:
-            data = json.loads(Millennium.get_plugin_logs()) 
+                for log in data:
+                    if not first_line:
+                        str_response += "\n\n"
+                    else:
+                        first_line = False
+                    str_response += f"@@ {log['name']} @@\n"
+                    log_count, warn_count, error_count = self.parse_log_types(log['logs'])
+                    str_response += f"++log-count:{log_count}\n"
+                    str_response += f"++warn-count:{warn_count}\n"
+                    str_response += f"++error-count:{error_count}\n"
+                    for entry in log['logs']:
+                        str_response += base64.b64decode(entry['message']).decode('utf-8')
+                return str_response
 
-            str_response: str = ""
-            first_line: bool = True
+            return "Invalid type ID"
 
-            for log in data:
-                if not first_line:
-                    str_response += "\n\n"
-                else:
-                    first_line = False
+        except Exception as e:
+            return str(e)
 
-                str_response += f"@@ {log['name']} @@\n"
+    def serve(self):
+        self.is_server_running = True
 
-                log_count, warn_count, error_count = parse_log_types(log['logs'])
+        if os.path.exists(self.socket_path):
+            os.remove(self.socket_path)
 
-                str_response += f"++log-count:{log_count}\n"
-                str_response += f"++warn-count:{warn_count}\n"
-                str_response += f"++error-count:{error_count}\n"
+        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server.bind(self.socket_path)
+        self.server.listen(1)
+        self.server.settimeout(1.0)  # Set a timeout to allow checking `self.running`
+        self.running = True
 
-                for entry in log['logs']:
-                    str_response += base64.b64decode(entry['message']).decode('utf-8')
+        logger.log("Python server waiting for connections...")
 
-            return str_response
-
-        
-        return "Invalid type ID"
-
-    except Exception as e:
-        return str(e)
-
-def serve_unix_socket():
-    # Ensure old socket file is removed
-    if os.path.exists(SOCKET_PATH):
-        os.remove(SOCKET_PATH)
-
-    # Create a UNIX socket
-    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    server.bind(SOCKET_PATH)
-    server.listen(1)
-
-    print("Python server waiting for connections...")
-
-    while True:
-        conn, _ = server.accept()
-        print("Client connected!")
-
-        while True:
-            data = conn.recv(1024)
-            if not data:
+        while self.running:
+            try:
+                conn, _ = self.server.accept()
+            except socket.timeout as e:
+                continue  # Just retry if no connection was received
+            except OSError as e:
                 break
 
-            conn.sendall(handle_message(data.decode()).encode())
+            logger.log("Client connected!")
 
-        print("Closing client connection...")
-        conn.close() 
+            while self.running:
+                try:
+                    data = conn.recv(1024)
+                    if not data:
+                        break
+                    conn.sendall(self.handle_message(data.decode()).encode())
+                except socket.error:
+                    break  # Break if an error occurs
+
+            logger.log("Closing client connection...")
+            conn.close()
+
+        self.server.close()
+        if os.path.exists(self.socket_path):
+            os.remove(self.socket_path)
+        logger.log("Socket server stopped.")
+
+        self.is_server_running = False
+
+    def stop(self):
+        self.running = False
+        if self.server:
+            self.server.close()
+        if os.path.exists(self.socket_path):
+            os.remove(self.socket_path)
+
+        while self.is_server_running:
+            pass
+
+        logger.log("UNIX socket server stopped.")
