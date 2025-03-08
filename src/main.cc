@@ -170,7 +170,7 @@ __attribute__((constructor)) void __init_millennium()
 }
 
 #ifdef _WIN32
-HANDLE g_hMillenniumThread;
+std::unique_ptr<std::thread> g_millenniumThread;
 /**
  * @brief Entry point for Millennium on Windows.
  * @param fdwReason The reason for calling the DLL.
@@ -182,17 +182,17 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     {
         case DLL_PROCESS_ATTACH: 
         {
-            const std::string threadName = fmt::format("Millennium@{}", MILLENNIUM_VERSION);
-
-            g_hMillenniumThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)EntryMain, NULL, 0, NULL);
-            SetThreadDescription(g_hMillenniumThread, std::wstring(threadName.begin(), threadName.end()).c_str());
+            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
             break;
         }
         case DLL_PROCESS_DETACH: 
         {
             WinUtils::RestoreStdout();
-            Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
+            // Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
 
+            // g_threadTerminateFlag->flag.store(true);
+            // Sockets::Shutdown();
+            // g_millenniumThread->join();
             std::exit(0);
             break;
         }

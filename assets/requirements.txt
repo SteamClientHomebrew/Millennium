@@ -2,11 +2,11 @@ pip==25.0.1
 setuptools==75.8.2
 arrow==1.3.0
 psutil==7.0.0
-pywin32 | Windows
+pywin32==308 | Windows
 requests==2.32.3
-winrt-Windows.UI.ViewManagement | Windows
-winrt-Windows.UI | Windows
-pygit2 | Windows
+winrt-Windows.UI.ViewManagement==2.3.0 | Windows
+winrt-Windows.UI==2.3.0 | Windows
+pygit2==1.16.0 | Windows
 GitPython==3.1.44 | Linux
 cssutils==2.11.1
 websockets==15.0.1
