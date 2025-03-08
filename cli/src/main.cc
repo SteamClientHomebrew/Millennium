@@ -196,7 +196,6 @@ int main(int argc, char* argv[])
 {
     CLI::App app{fmt::format("Millennium@{}", MILLENNIUM_VERSION)};
 
-    // app.add_subcommand("setup",   "Setup Millennium after a fresh install"     )->callback(setup_millennium);
     app.add_subcommand("patch",   "Patch the Steam runtime to load Millennium" )->callback(patch_steam);
     app.add_subcommand("status",  "Check the status of the Steam runtime patch")->callback(check_patch_status);
     app.add_subcommand("python",  "Get the path to the Python binary"          )->callback(get_python_path);
@@ -209,7 +208,6 @@ int main(int argc, char* argv[])
     // plugins->add_subcommand("status", "Get the status of a current plugin")->callback([]() { send_message(Millennium::GET_PLUGIN_STATUS, nullptr); });
 
     app.set_version_flag("-v,--version", get_millennium_version());
-
     app.footer("If you have any issues, please report them at: <https://github.com/shdwmtr/millennium/issues>");
 
     CLI11_PARSE(app, argc, argv);

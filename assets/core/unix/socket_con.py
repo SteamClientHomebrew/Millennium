@@ -113,6 +113,7 @@ class MillenniumSocketServer:
                     if not data:
                         break
                     conn.sendall(self.handle_message(data.decode()).encode())
+                    conn.close()
                 except socket.error:
                     break  # Break if an error occurs
 

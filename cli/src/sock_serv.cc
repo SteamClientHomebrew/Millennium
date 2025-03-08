@@ -8,13 +8,13 @@
 #include <sock_serv.h>
 
 #define SOCKET_PATH "/tmp/millennium_socket"
+#define BUFFER_SIZE 1024
 
 int send_message(Millennium id, char* data) {
     int sockfd;
     struct sockaddr_un addr;
-    char buffer[1024];
+    char buffer[BUFFER_SIZE];
 
-    // Create the socket
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd == -1) {
         perror("socket");
@@ -25,14 +25,12 @@ int send_message(Millennium id, char* data) {
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, SOCKET_PATH);
 
-    // Connect to the socket
     if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         std::cerr << "Failed to create a connection to Millennium. Logs are instance based so Millennium must be running to view them." << std::endl;
         close(sockfd);
         exit(EXIT_FAILURE);
     }
 
-    // Prepare the message to send
     int needed_size = snprintf(NULL, 0, "%d|!|%s", (int)id, data) + 1;
     char *result = (char *)malloc(needed_size);
 
@@ -44,8 +42,7 @@ int send_message(Millennium id, char* data) {
 
     snprintf(result, needed_size, "%d|!|%s", (int)id, data);
 
-    // Send the message
-    ssize_t bytes_sent = send(sockfd, result, needed_size - 1, 0);  // Send the actual message, not the size of the pointer
+    ssize_t bytes_sent = send(sockfd, result, needed_size - 1, 0); 
     if (bytes_sent == -1) {
         perror("send failed");
         free(result);
@@ -53,18 +50,18 @@ int send_message(Millennium id, char* data) {
         return 1;
     }
 
-    free(result);  // Free the dynamically allocated memory
+    free(result); 
 
-    // Receive the response
-    int bytesReceived = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
-    if (bytesReceived > 0) {
-        buffer[bytesReceived] = '\0';  // Null-terminate the received string
-        printf("Received: %s\n", buffer);
-    } else if (bytesReceived == -1) {
-        perror("recv failed");
+    ssize_t bytes_received;
+    while ((bytes_received = recv(sockfd, buffer, BUFFER_SIZE - 1, 0)) > 0) {
+        buffer[bytes_received] = '\0';  
+        printf("%s", buffer); 
+        fflush(stdout);
     }
 
-    // Close the socket
+    if (bytes_received == -1) {
+        perror("recv");
+    }
     close(sockfd);
     return 0;
 }

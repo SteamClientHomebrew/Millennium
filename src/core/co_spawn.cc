@@ -182,14 +182,11 @@ bool PythonManager::DestroyAllPythonInstances()
         auto& [pluginName, threadState, interpMutex] = *(*it);
 
         Logger.Log("Instance state: {}", static_cast<void*>(&(*it)));
-        std::cout << "DESTROY PLUGIN NAME: " << pluginName << "INTERP CV:" << &interpMutex->cv << std::endl;
-
         {
             std::lock_guard<std::mutex> lg(interpMutex->mtx); 
             interpMutex->flag.store(true); 
             interpMutex->cv.notify_all();
         }
-        
         Logger.Log("Notified plugin [{}] to shut down...", pluginName);
 
         // Join and remove the corresponding thread safely
