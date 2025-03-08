@@ -10,13 +10,14 @@ import platform
 from config import Config
 
 def get_installed_packages():
-
     logger.log("Installed packages:")
-    for dist in importlib.metadata.distributions():
-        logger.log(f"  {dist.metadata['Name']}=={dist.version}")
-
-    package_names = [dist.metadata["Name"] for dist in importlib.metadata.distributions()]
-    return package_names
+    
+    package_map = {dist.metadata["Name"]: dist.version for dist in importlib.metadata.distributions()}
+    
+    for name, version in package_map.items():
+        logger.log(f"  {name}=={version}")
+    
+    return package_map
 
 def process_output_handler(proc, outfile, terminate_flag):
     with open(outfile, 'w') as f:
@@ -92,10 +93,29 @@ def needed_packages():
                     package_name = split[0]
                     package_platform = split[1]
 
-                if package_name.split("==")[0] not in installed_packages:
+                # Maintain backwards compatibility with old format that doesn't contain a version
+                if package_name.find("==") == -1:
+                    if package_name not in installed_packages:
+                        if package_platform == _platform:
+                            logger.log(f"Package {package_name} is not installed, installing...")
+                            needed_packages.append(package_name)
+                            break        
+                # New format, offer better version control support
+                else:
+                    if package_name.split("==")[0] not in installed_packages:
 
-                    if package_platform == _platform:
-                        needed_packages.append(package_name)
+                        if package_platform == _platform:
+                            logger.log(f"Package {package_name} is not installed, installing...")
+                            needed_packages.append(package_name)
+                            break
+                
+                    elif package_name.split("==")[0] in installed_packages:
+
+                        if package_platform == _platform:
+                            if package_name.split("==")[1] != installed_packages[package_name.split("==")[0]]:
+                                logger.log(f"Package {package_name} is outdated. Current version: {installed_packages[package_name.split('==')[0]]}, required version: {package_name.split('==')[1]}")
+                                needed_packages.append(package_name)
+                                break
 
     return needed_packages
 
