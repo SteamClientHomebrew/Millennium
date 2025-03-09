@@ -157,7 +157,8 @@ export interface SettingsProps {
     useInterface: boolean,
     millenniumVersion: string,
     wantsUpdates: boolean,
-    wantsNotify: boolean
+    wantsNotify: boolean,
+    enabledPlugins: string
 }
 
 export interface ColorProp {

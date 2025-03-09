@@ -76,12 +76,17 @@ const getDocumentClassList = (context: any): string[] => {
 
 function patchDocumentContext(windowContext: any) 
 {
+    const document: Document = windowContext.m_popup.document    
+
+    for (const plugin of pluginSelf.enabledPlugins) {
+        document.documentElement.classList.add(plugin)
+    }
+
     if (pluginSelf.isDefaultTheme) {
         return
     }
 
     const activeTheme: ThemeItem = pluginSelf.activeTheme
-    const document: Document     = windowContext.m_popup.document    
     const classList: string[]    = getDocumentClassList(windowContext);
     const documentTitle: string  = windowContext.m_strTitle
 

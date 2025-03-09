@@ -88,6 +88,7 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
         version: result?.millenniumVersion,
         wantsMillenniumUpdates: result?.wantsUpdates ?? true,
         wantsMillenniumUpdateNotifications: result?.wantsNotify ?? true,
+        enabledPlugins: result?.enabledPlugins ?? []
     });
 
     PatchMissedDocuments();

@@ -27,6 +27,12 @@ updater = ThemeUpdater()
 def get_load_config():
     config = cfg.get_config()
 
+    enabled_plugins = []
+
+    for plugin in json.loads(find_all_plugins()):
+        if plugin["enabled"]:
+            enabled_plugins.append(plugin["data"]["name"])
+
     return json.dumps({
         "accent_color": json.loads(Colors.get_accent_color(config["accentColor"])), 
         "conditions": config["conditions"] if "conditions" in config else None, 
@@ -41,6 +47,8 @@ def get_load_config():
 
         "wantsUpdates": MillenniumUpdater.user_wants_updates().value,
         "wantsNotify": MillenniumUpdater.user_wants_update_notify().value,
+        
+        "enabledPlugins": enabled_plugins
     })
 
     
