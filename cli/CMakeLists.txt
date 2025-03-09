@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set the project name and language
 project(cli)
 include_directories(include)
+include_directories(../vendor/fmt/include)
 
 # Optimize the build
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
