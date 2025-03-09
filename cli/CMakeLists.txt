@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+include(FetchContent)
 
 # Set the project name and language
 project(cli)
@@ -17,12 +18,19 @@ add_compile_definitions(
   "FMT_HEADER_ONLY"
 )
 
+FetchContent_Declare(fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(fmt)
+
 find_package(CLI11 CONFIG REQUIRED)
 
 # Add the executable
 add_executable(cli src/main.cc src/sock_serv.cc)
 
 target_link_libraries(cli PRIVATE CLI11::CLI11)
+target_link_libraries(cli PRIVATE fmt::fmt)
 add_compile_definitions(MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
 
 set_target_properties(cli PROPERTIES OUTPUT_NAME "millennium")
