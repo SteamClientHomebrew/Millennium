@@ -1,30 +1,24 @@
 {
   "scripts": {
     "build": "millennium-ttc --build dev",
-    "prod": "millennium-ttc --build prod",
-    "create-env": "python -m venv .venv"
+    "prod": "millennium-ttc --build prod"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.3.0",
-    "@commitlint/config-conventional": "^19.2.2",
-    "@semantic-release/github": "^10.1.1",
     "@steambrew/api": "^3.8.12",
     "@steambrew/client": "^3.8.12",
     "@steambrew/ttc": "^1.1.1",
     "@steambrew/webkit": "^3.8.12",
+    "@types/node": "^22.13.10",
     "@types/react": "16.14.0",
     "@types/react-dom": "^18.2.25",
-    "@types/webpack": "^5.28.0",
-    "husky": "^9.1.4",
-    "semantic-release": "^24.0.0",
     "shx": "^0.3.4",
     "tslib": "^2.6.2",
     "typescript": "^4.9.5"
   },
   "type": "module",
-  "name": "millennium-plugin",
+  "name": "core",
   "version": "1.0.0",
-  "description": "a template plugin for millennium",
+  "description": "The core functionality plugin for Millennium",
   "main": "./frontend/index.jsx",
   "author": "Millennium",
   "license": "MIT",
@@ -37,8 +31,6 @@
     }
   },
   "dependencies": {
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
     "ansi-to-react": "^6.1.6",
     "markdown-to-jsx": "^7.7.3"
   }

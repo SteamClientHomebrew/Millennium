@@ -98,8 +98,7 @@ def needed_packages():
                     if package_name not in installed_packages:
                         if package_platform == _platform:
                             logger.log(f"Package {package_name} is not installed, installing...")
-                            needed_packages.append(package_name)
-                            break        
+                            needed_packages.append(package_name)   
                 # New format, offer better version control support
                 else:
                     if package_name.split("==")[0] not in installed_packages:
@@ -107,7 +106,6 @@ def needed_packages():
                         if package_platform == _platform:
                             logger.log(f"Package {package_name} is not installed, installing...")
                             needed_packages.append(package_name)
-                            break
                 
                     elif package_name.split("==")[0] in installed_packages:
 
@@ -115,7 +113,10 @@ def needed_packages():
                             if package_name.split("==")[1] != installed_packages[package_name.split("==")[0]]:
                                 logger.log(f"Package {package_name} is outdated. Current version: {installed_packages[package_name.split('==')[0]]}, required version: {package_name.split('==')[1]}")
                                 needed_packages.append(package_name)
-                                break
+
+
+    for package in needed_packages:
+        logger.log(f"Package {package} is needed.")
 
     return needed_packages
 
