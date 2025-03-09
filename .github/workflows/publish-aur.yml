@@ -24,7 +24,7 @@ jobs:
         with:
           pkgname: millennium
           pkgbuild: ./pkgbuild/PKGBUILD
-          assets: millennium.install
+          assets: ./pkgbuild/millennium.install
           commit_username: GitHub Actions
           commit_email: github-actions@github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
