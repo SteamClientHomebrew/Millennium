@@ -47,14 +47,32 @@ def get_load_config():
 def get_plugins_dir():
     return os.getenv("MILLENNIUM__PLUGINS_PATH")
 
+
 def _webkit_accent_color():
     return Colors.get_accent_color(cfg.get_config()["accentColor"])
+
 
 def update_plugin_status(plugin_name: str, enabled: bool):
     Millennium.change_plugin_status(plugin_name, enabled)
 
+
 def _get_plugin_logs():
     return Millennium.get_plugin_logs()
+
+
+def _get_env_var(variable: str):
+    return os.getenv(variable)
+
+
+def _get_os_type():
+    # Get OS type and translate to enum types on the frontend
+    if os.name == "nt":
+        return 0
+    elif os.name == "posix":
+        return 1
+    else:
+        raise ValueError("Unsupported OS")
+    
 
 def _copy_to_clipboard(data: str):
     try:

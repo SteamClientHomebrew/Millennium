@@ -122,6 +122,8 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__SHIMS_PATH",     fmt::format("{}/.local/share/millennium/lib/shims",  std::getenv("HOME")) },
         { "MILLENNIUM__ASSETS_PATH",    fmt::format("{}/.local/share/millennium/lib/assets", std::getenv("HOME")) },
 
+        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
+
         { "LIBPYTHON_RUNTIME_BIN_PATH",         LIBPYTHON_RUNTIME_BIN_PATH         == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             GetEnv("MILLENNIUM__PYTHON_ENV")) : LIBPYTHON_RUNTIME_BIN_PATH        },
         { "LIBPYTHON_BUILTIN_MODULES_PATH",     LIBPYTHON_BUILTIN_MODULES_PATH     == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             GetEnv("MILLENNIUM__PYTHON_ENV")) : LIBPYTHON_BUILTIN_MODULES_PATH    },
         { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", LIBPYTHON_BUILTIN_MODULES_DLL_PATH == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11/lib-dynload", GetEnv("MILLENNIUM__PYTHON_ENV")) : LIBPYTHON_BUILTIN_MODULES_DLL_PATH}

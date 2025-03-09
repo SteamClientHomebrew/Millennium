@@ -176,3 +176,8 @@ export enum UpdaterOptionProps {
     YES,
     NO
 }
+
+export enum OSType {
+    Windows,
+    Linux
+}
