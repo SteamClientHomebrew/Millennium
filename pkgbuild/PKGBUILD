@@ -23,6 +23,7 @@ build() {
     echo -e "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium core assets...\e[0m"
 
     cd assets
+    npm install @steambrew/api --silent
     npm install --silent
     npm run build
     cd ..
