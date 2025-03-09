@@ -148,7 +148,7 @@ PythonManager::~PythonManager()
         thread.join();
     }
 
-    Logger.Log("Python has been finalized...");
+    Logger.Log("Finished shutdown! Bye bye!");
 }
 
 bool PythonManager::DestroyAllPythonInstances()

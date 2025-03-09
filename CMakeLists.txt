@@ -89,7 +89,7 @@ elseif(UNIX)
         set(LIBPYTHON_BUILTIN_MODULES_PATH "<UNKNOWN>")
         set(LIBPYTHON_BUILTIN_MODULES_DLL_PATH "<UNKNOWN>")
 
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL \"https://raw.githubusercontent.com/shdwmtr/millennium/refs/heads/main/scripts/install.sh\" | sh")
+        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/shdwmtr/millennium/refs/heads/main/scripts/install.sh' | sh")
       endif()
     endif()
   endif()
