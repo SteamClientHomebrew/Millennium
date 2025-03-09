@@ -134,6 +134,8 @@ class WebSocketServer:
 
     async def handler(self, websocket):
         
+        logger.log("Typeof websocket: " + type(websocket).__name__)
+
         if not self.verify_origin(websocket.request.headers.get("Origin")):
             logger.error("Invalid origin")
             await websocket.close()
@@ -150,7 +152,7 @@ class WebSocketServer:
                 if "type" not in query:
                     return await self.unknown_message(websocket)
 
-                type = query["type"]
+                query_type = query["type"]
                 message = query["data"] if "data" in query else None
 
                 if "repo" not in message or "owner" not in message:
@@ -165,8 +167,8 @@ class WebSocketServer:
                     "installTheme": lambda: self.install_theme(repo, owner)
                 }
 
-                if type in action_handlers:
-                    await websocket.send(json.dumps({ "type": type, "data": action_handlers[type]() }))
+                if query_type in action_handlers:
+                    await websocket.send(json.dumps({ "type": query_type, "data": action_handlers[query_type]() }))
                 else:
                     await self.unknown_message(websocket)
 
