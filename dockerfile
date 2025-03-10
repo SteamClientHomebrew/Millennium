@@ -94,7 +94,7 @@ RUN set -ex \
     && cmake --preset=linux-debug -DGITHUB_ACTION_BUILD=OFF \
     && cmake --build build \
     && mkdir -p /home/runner/env/ext/data/shims \
-    && cp -v build/libmillennium_x86.so /home/runner/env/libMillennium.so \
+    && cp -v build/libmillennium_x86.so /home/runner/env/ \
     && cp -v ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so \
     && cp -v scripts/posix/start.sh /home/runner/env/start.sh \
     && npm install @steambrew/api \
@@ -106,7 +106,6 @@ WORKDIR /home/runner
 RUN set -ex \
     && mkdir -p build/usr/lib/millennium \
     && cp -rv env/*.so build/usr/lib/millennium/ \
-    && mv -v build/usr/lib/millennium/libMillennium.so build/usr/lib/millennium/libmillennium_x86.so 
     && mkdir build/usr/bin \
     && cp -v work/Millennium/Millennium/build/cli/millennium build/usr/bin/ \
     && chmod +x build/usr/bin/millennium \

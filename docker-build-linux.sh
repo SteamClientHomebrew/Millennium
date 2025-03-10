@@ -127,4 +127,8 @@ log "cleaning up packages..."
 rm -rf "$millennium_install"
 log "done."
 
+if ! sudo chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.local/share/millennium ; then
+	log "${BOLD_RED}Failed to set permissions for /home/$SUDO_USER/.local/share/millennium ...${RESET}"
+fi
+
 log "\n${BOLD_PINK}::${RESET} To get started, run \"millennium patch\" to load Millennium along side Steam. Your base installation of Steam has not been modified, this is simply an extension."
