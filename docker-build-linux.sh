@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# Adapted from install.beta.sh by LazyHatGuy
+# Adapted from install.beta.sh 
+# Build and install the current cloned build of Millennium
+# `sudo bash docker-build-linux.sh install` will run the build and install process
+# `bash docker-build-linux.sh` will build the install files and export them in build-millennium.tar.gz
+# Author: github.com/LazyHatGuy
+# Licence: MIT
 
 #set -ex
 
@@ -127,7 +132,7 @@ log "cleaning up packages..."
 rm -rf "$millennium_install"
 log "done."
 
-if ! sudo chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.local/share/millennium ; then
+if ! sudo chown -R "$SUDO_USER":"$SUDO_USER" "/home/$SUDO_USER/.local/share/millennium" ; then
 	log "${BOLD_RED}Failed to set permissions for /home/$SUDO_USER/.local/share/millennium ...${RESET}"
 fi
 

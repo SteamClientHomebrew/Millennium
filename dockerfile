@@ -1,3 +1,7 @@
+# Build Millennium inside a docker container
+# Author: github.com/LazyHatGuy
+# Licence: MIT
+
 FROM ubuntu:jammy AS build
 
 RUN set -ex && useradd -ms /bin/bash -d /home/runner runner \
