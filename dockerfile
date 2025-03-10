@@ -25,6 +25,7 @@ RUN set -ex && useradd -ms /bin/bash -d /home/runner runner \
                 libncurses5-dev libreadline6-dev libsqlite3-dev libssl-dev \
                 lzma lzma-dev tk-dev uuid-dev zlib1g-dev libmpdec-dev git
 
+# Build CMake
 RUN set -ex && cd /tmp \
     && wget https://github.com/Kitware/CMake/releases/download/v3.21.1/cmake-3.21.1.tar.gz \
     && tar -xvf cmake-3.21.1.tar.gz \
@@ -35,6 +36,7 @@ RUN set -ex && cd /tmp \
     && cmake --version \
     && rm -rfv /tmp/*
     
+# Build Python
 RUN set -ex && cd /home/runner \
     && wget https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz \
     && tar -xvf Python-3.11.8.tgz \
@@ -44,6 +46,7 @@ RUN set -ex && cd /home/runner \
     && make -j$(nproc) \
     && make altinstall
     
+# Move dependencies
 RUN set -ex && mkdir -p /home/runner/.millennium/ext/data/cache/lib/tmp \
     && cd /home/runner/.millennium/ext/data/cache/lib/tmp \
     && ar -x ../libpython3.11.a \
@@ -73,7 +76,10 @@ RUN chown -R runner:runner /home/runner
 USER runner
 SHELL ["/bin/bash", "-c"]
 ENV FNM_PATH="/home/runner/.local/share/fnm"
+
+# Setup NPM and build Millennium
 RUN set -ex \
+    && echo "DEV-Docker-Build" > version \
     && curl -o- https://fnm.vercel.app/install | bash \
     && export PATH="$FNM_PATH:$PATH" \
     && eval "`fnm env`" \
@@ -94,7 +100,8 @@ RUN set -ex \
     && npm install @steambrew/api \
     && cp -v node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js \
     && cp -v node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
-    
+  
+#  Restructure Filesystem and compress to build-millennium.tar.gz
 WORKDIR /home/runner
 RUN set -ex \
     && mkdir -p build/usr/lib/millennium \
