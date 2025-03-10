@@ -126,7 +126,7 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
         
         { "MILLENNIUM__PYTHON_ENV",             pythonEnv },
-        { "LIBPYTHON_RUNTIME_BIN_PATH",         LIBPYTHON_RUNTIME_BIN_PATH         == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             pythonEnv) : LIBPYTHON_RUNTIME_BIN_PATH        },
+        { "LIBPYTHON_RUNTIME_BIN_PATH",         LIBPYTHON_RUNTIME_BIN_PATH         == "<UNKNOWN>" ? fmt::format("{}/bin/python3.11",             pythonEnv) : LIBPYTHON_RUNTIME_BIN_PATH        },
         { "LIBPYTHON_BUILTIN_MODULES_PATH",     LIBPYTHON_BUILTIN_MODULES_PATH     == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11",             pythonEnv) : LIBPYTHON_BUILTIN_MODULES_PATH    },
         { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", LIBPYTHON_BUILTIN_MODULES_DLL_PATH == "<UNKNOWN>" ? fmt::format("{}/lib/python3.11/lib-dynload", pythonEnv) : LIBPYTHON_BUILTIN_MODULES_DLL_PATH}
     };
