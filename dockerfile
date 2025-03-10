@@ -106,11 +106,12 @@ WORKDIR /home/runner
 RUN set -ex \
     && mkdir -p build/usr/lib/millennium \
     && cp -rv env/*.so build/usr/lib/millennium/ \
+    && mv -v build/usr/lib/millennium/libMillennium.so build/usr/lib/millennium/libmillennium_x86.so 
     && mkdir build/usr/bin \
     && cp -v work/Millennium/Millennium/build/cli/millennium build/usr/bin/ \
     && chmod +x build/usr/bin/millennium \
     && mkdir -p build/home/user/.local/share/millennium \
-    && cp -rv env/ext/data/shims build/home/user/.local/share/millennium/ \
-    && cp -rv env/ext/data/cache build/home/user/.local/share/millennium/ \
-    && cp -rv env/ext/data/assets build/home/user/.local/share/millennium/ \
+    && cp -rv env/ext/data/shims build/home/user/.local/share/millennium/lib/ \
+    && cp -rv env/ext/data/cache build/home/user/.local/share/millennium/lib/ \
+    && cp -rv env/ext/data/assets build/home/user/.local/share/millennium/lib/ \
     && tar -czvf build-millennium.tar.gz build
