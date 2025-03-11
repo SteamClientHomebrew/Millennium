@@ -1,11 +1,9 @@
 #!/bin/bash
 
-pre_install() {
+post_install() {
     echo -e "\e[1m\e[92m==>\e[0m \e[1mSetting permissions for $SUDO_USER...\e[0m"
     sudo chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.local/share/millennium
-}
 
-post_install() {
     echo -e "\e[1m\e[92m==>\e[0m \e[1mCreating virtual environment...\e[0m"
     /opt/python-i686-3.11.8/bin/python3.11 -m venv "/home/$SUDO_USER/.local/share/millennium/lib/cache/" --system-site-packages --symlinks
 
