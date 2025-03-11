@@ -46,7 +46,7 @@ class MillenniumUpdater:
 
 
         except requests.exceptions.RequestException as e:
-            logger.error("Failed to check for updates: ", e)
+            logger.error(f"Failed to check for updates: {e}")
     
 
     def has_any_updates():
