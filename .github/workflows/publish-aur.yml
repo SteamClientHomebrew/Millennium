@@ -7,6 +7,10 @@ on:
       - completed
   workflow_dispatch:
 
+concurrency:
+  group: aur-publish
+  cancel-in-progress: false
+
 jobs:
   aur-push:
     runs-on: ubuntu-latest
