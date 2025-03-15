@@ -63,6 +63,43 @@ const static void VerifyEnvironment()
         Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
         std::exit(1);
     }
+
+    // Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam. 
+    const auto steamUpdateBlock = SystemIO::GetSteamPath() / "Steam.cfg";
+
+    const std::string errorMessage = fmt::format("Millennium is incompatible with your {} config. This is a file you likely created to block Steam updates. In order for Millennium to properly function, remove it.", steamUpdateBlock.string());
+
+    if (std::filesystem::exists(steamUpdateBlock)) 
+    {
+        try
+        {
+            std::string steamConfig = SystemIO::ReadFileSync(steamUpdateBlock);
+
+            std::vector<std::string> blackListedKeys = { 
+                "BootStrapperInhibitAll",
+                "BootStrapperForceSelfUpdate",
+                "BootStrapperInhibitClientChecksum",
+                "BootStrapperInhibitBootstrapperChecksum",
+                "BootStrapperInhibitUpdateOnLaunch",
+            };
+
+            for (const auto& key : blackListedKeys) 
+            {
+                if (steamConfig.find(key) != std::string::npos) 
+                {
+                    throw SystemIO::FileException("Steam.cfg contains blacklisted keys");
+                }
+            }
+        }
+        catch(const SystemIO::FileException& e)
+        {
+            #ifdef _WIN32
+            MessageBoxA(NULL, errorMessage.c_str(), MB_ICONERROR | MB_OK);
+            #endif
+
+            LOG_ERROR(errorMessage);
+        }
+    }
 }
 
 /**
