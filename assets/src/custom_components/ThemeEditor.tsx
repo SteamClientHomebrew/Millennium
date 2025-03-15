@@ -21,15 +21,13 @@ import { BBCodeParser } from "../components/ISteamComponents";
 
 interface ConditionalComponent {
     condition: string,
-    value: ICondition,
-    store: ConditionsStore
+    value: ICondition
 }
 
 interface ComponentInterface {
     conditionType: ConditionType,
     values: string[],
-    conditionName: string,
-    store: ConditionsStore
+    conditionName: string
 }
 
 enum ConditionType {
@@ -89,7 +87,6 @@ export class RenderThemeEditor extends React.Component {
                     return result
                 })
                 .then((response: any) => {
-
                     const success = JSON.parse(response)?.success as boolean ?? false
 
                     success && (pluginSelf.ConditionConfigHasChanged = true)
@@ -98,24 +95,29 @@ export class RenderThemeEditor extends React.Component {
         })
     }
 
-    RenderComponentInterface: React.FC<ComponentInterface> = ({ conditionType, values, store, conditionName }) => {
+    RenderComponentInterface: React.FC<ComponentInterface> = ({ conditionType, values, conditionName }) => {
+        let store = pluginSelf?.conditionals?.[pluginSelf.activeTheme.native] as ConditionsStore
 
         /** Dropdown items if given that the component is a dropdown */
         const items = values.map((value: string, index: number) => ({ label: value, data: "componentId" + index }))
 
-        /** Checked status if given that the component is a toggle */
-        const [checked, setChecked] = useState(store?.[conditionName] == "yes" ? true : false)
-        // const [isHovered, setIsHovered] = useState({state: false, target: null});
+        const [isChecked, setIsChecked] = useState(store[conditionName] === "yes")
+
+        useEffect(() => { setIsChecked(store[conditionName] === "yes") }, [store[conditionName]])
 
         const onCheckChange = (enabled: boolean) => {
-
             this.UpdateLocalCondition(conditionName, enabled ? "yes" : "no").then((success) => {
-                success && setChecked(enabled)
+                if (success) {
+                    store && (store[conditionName] = enabled ? "yes" : "no")
+                    setIsChecked(enabled)
+                }
             })
         }
 
         const onDropdownChange = (data: SingleDropdownOption) => {
-            this.UpdateLocalCondition(conditionName, data.label as string)
+            this.UpdateLocalCondition(conditionName, data.label as string).then((success) => {
+                success && (store && (store[conditionName] = data.label as string))
+            })
         }
 
         switch (conditionType) {
@@ -124,20 +126,22 @@ export class RenderThemeEditor extends React.Component {
                 return <Dropdown contextMenuPositionOptions={{ bMatchWidth: false }} onChange={onDropdownChange} rgOptions={items} selectedOption={1} strDefaultLabel={store[conditionName]} />
 
             case ConditionType.Toggle:
-                return <Toggle value={checked} onChange={onCheckChange} />
+                return <Toggle key={conditionName} value={isChecked} onChange={onCheckChange} navRef={conditionName} />
         }
     }
 
-    RenderComponent: React.FC<ConditionalComponent> = ({ condition, value, store }) => {
+    RenderComponent: React.FC<ConditionalComponent> = ({ condition, value }) => {
 
         const conditionType: ConditionType = this.GetConditionType(value.values)
 
         return (
             <Field
                 label={condition}
-                description=<BBCodeParser text={value?.description ?? "No description yet."} />
+                description={<BBCodeParser text={value?.description ?? "No description yet."} />}
+                className={condition}
+                key={condition}
             >
-                <this.RenderComponentInterface conditionType={conditionType} store={store} conditionName={condition} values={Object.keys(value?.values)} />
+                <this.RenderComponentInterface conditionType={conditionType} conditionName={condition} values={Object.keys(value?.values)} />
             </Field>
         )
     }
@@ -172,7 +176,7 @@ export class RenderThemeEditor extends React.Component {
             <Field
                 key={index}
                 label={color?.name ?? color?.color}
-                description=<BBCodeParser text={color?.description ?? "No description yet."} />
+                description={<BBCodeParser text={color?.description ?? "No description yet."} />}
             >
                 {colorState != color.defaultColor && <DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>Reset</DialogButton>}
                 <input type="color" className="colorPicker" name="colorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
@@ -200,11 +204,10 @@ export class RenderThemeEditor extends React.Component {
         );
     }
 
-    render() {
+    RenderThemeEditor: React.FC = () => {
         const activeTheme: ThemeItem = pluginSelf.activeTheme as ThemeItem
 
         const themeConditions: Conditions = activeTheme.data.Conditions
-        const savedConditions = pluginSelf?.conditionals?.[activeTheme.native] as ConditionsStore
         const entries = Object.entries(themeConditions);
 
         const themeHasColors = !!activeTheme.data.RootColors;
@@ -219,6 +222,7 @@ export class RenderThemeEditor extends React.Component {
                 </DialogBody>
             ),
         };
+
         const otherPages: SidebarNavigationPage[] = entries
             .reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
                 const [name, patch] = entry;
@@ -242,28 +246,16 @@ export class RenderThemeEditor extends React.Component {
                 title,
                 content: (
                     <DialogBody className={Classes.SettingsDialogBodyFade}>
-                        {Object.entries(
-                            conditions.reduce((a, b) => Object.assign(a, b)),
-                        ).map(([key, value]) => (
-                            <this.RenderComponent
-                                condition={key}
-                                store={savedConditions}
-                                value={value}
-                            />
-                        ))}
+                        {Object.entries(conditions.reduce((a, b) => Object.assign(a, b))).map(([key, value]) => (<this.RenderComponent condition={key} value={value} />))}
                     </DialogBody>
                 ),
             }));
-        const pageWithoutTitle = {
-            ...otherPages.find((e) => !e.title),
-            title: locale.customThemeSettingsConfig,
-        };
-        const tabs = themeHasTabs
-            ? otherPages.filter((e) => e !== pageWithoutTitle)
-            : [pageWithoutTitle];
+
+        const pageWithoutTitle = { ...otherPages.find((e) => !e.title), title: locale.customThemeSettingsConfig };
+        const tabs = themeHasTabs ? otherPages.filter((e) => e !== pageWithoutTitle) : [pageWithoutTitle];
 
         const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup}`;
-        const pages = [...tabs, colorPage];
+        const pages = [...tabs, "separator", colorPage];
         const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
         return (
@@ -280,5 +272,9 @@ export class RenderThemeEditor extends React.Component {
                 <SidebarNavigation className={className} pages={pages} title={title} />
             </ThemeEditorContainer>
         );
+    }
+
+    render() {
+        return <this.RenderThemeEditor />
     }
 }
