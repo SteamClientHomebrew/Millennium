@@ -37,8 +37,8 @@
 #include <unordered_set>
 #include "csp_bypass.h"
 #include "url_parser.h"
-#include <env.h>
-
+#include "env.h"
+#include "serv.h"
 unsigned long long g_hookedModuleId;
 
 // These URLS are blacklisted from being hooked, to prevent potential security issues.
@@ -101,32 +101,49 @@ std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
 
 void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 {
+    std::string fileContent;
     std::filesystem::path localFilePath = this->ConvertToLoopBack(message["params"]["request"]["url"]);
     std::ifstream localFileStream(localFilePath);
 
     bool bFailedRead = !localFileStream.is_open();
-
     if (bFailedRead)
     {
         LOG_ERROR("failed to retrieve file '{}' info from disk.", localFilePath.string());
     }
 
-    const std::string fileContent((std::istreambuf_iterator<char>(localFileStream)), std::istreambuf_iterator<char>());
+    uint16_t    responseCode    = bFailedRead ? 404 : 200;
+    std::string responseMessage = bFailedRead ? "millennium" : "millennium couldn't read " + localFilePath.string();
+    eFileType   fileType        = EvaluateFileType(localFilePath.string());
 
-    const int responseCode            = bFailedRead ? 404 : 200;
-    const std::string responseMessage = bFailedRead ? "millennium" : "millennium couldn't read " + localFilePath.string();
+    if (IsBinaryFile(fileType)) 
+    {
+        try
+        {
+            fileContent = Base64Encode(SystemIO::ReadFileBytesSync(localFilePath.string()));
+        }
+        catch(const std::exception& error)
+        {
+            LOG_ERROR("Failed to read file bytes from disk: {}", error.what());
+            bFailedRead = true; /** Force fail even if the file exists. */
+        }
+        
+    } 
+    else 
+    {
+        fileContent = Base64Encode(std::string(
+            std::istreambuf_iterator<char>(localFileStream),
+            std::istreambuf_iterator<char>()
+        ));
+    }
 
-    // Get file extension from the file path.
-    const std::string fileExtension = localFilePath.extension().string();
-    const std::string contentType = fileExtension == ".css" ? "text/css" : "application/javascript";
-
-    const nlohmann::json responseHeaders = nlohmann::json::array
+    const auto responseHeaders = nlohmann::json::array
     ({
         { {"name", "Access-Control-Allow-Origin"}, {"value", "*"} },
-        { {"name", "Content-Type"}, {"value", contentType} }
+        { {"name", "Content-Type"}, {"value", fileTypes[fileType]} }
     });
 
-    Sockets::PostGlobal({
+    Sockets::PostGlobal
+    ({
         { "id", 63453 },
         { "method", "Fetch.fulfillRequest" },
         { "params", {
@@ -134,7 +151,7 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
             { "requestId", message["params"]["requestId"] },
             { "responseHeaders", responseHeaders },
             { "responsePhrase", responseMessage },
-            { "body", Base64Encode(fileContent) }
+            { "body", fileContent }
         }}
     });
 }

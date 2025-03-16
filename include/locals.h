@@ -96,6 +96,7 @@ namespace SystemIO
     std::filesystem::path GetInstallPath();
     nlohmann::json ReadJsonSync(const std::string& filename, bool* success = nullptr);
     std::string ReadFileSync(const std::string& filename);
+    std::vector<char> ReadFileBytesSync(const std::string& filePath);
     void WriteFileSync(const std::filesystem::path& filePath, std::string content);
     void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);
 }

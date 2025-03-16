@@ -129,6 +129,27 @@ namespace SystemIO {
         return fileContent;
     }
 
+    
+    std::vector<char> ReadFileBytesSync(const std::string& filePath) 
+    {
+        std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+        if (!file) 
+        {
+            throw std::runtime_error("Failed to open file: " + filePath);
+        }
+    
+        std::streamsize fileSize = file.tellg();
+        file.seekg(0, std::ios::beg);
+    
+        std::vector<char> buffer(fileSize);
+        if (!file.read(buffer.data(), fileSize)) 
+        {
+            throw std::runtime_error("Failed to read file: " + filePath);
+        }
+    
+        return buffer;
+    }
+
     void WriteFileSync(const std::filesystem::path& filePath, std::string content)
     {
         std::ofstream outFile(filePath);

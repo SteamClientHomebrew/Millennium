@@ -47,72 +47,7 @@
 #include "asio.h"
 #include "encoding.h"
 #include "url_parser.h"
-
-/**
- * Enum representing the different types of files.
- * 
- * @enum {number}
- * @readonly
- * @property {number} StyleSheet - Represents a CSS file.
- * @property {number} JavaScript - Represents a JavaScript file.
- * @property {number} Json - Represents a JSON file.
- * @property {number} Python - Represents a Python file.
- * @property {number} Other - Represents other file types.
- */
-enum eFileType
-{
-    StyleSheet,
-    JavaScript,
-    Json,
-    Python,
-    Other
-};
-
-/**
- * A map that associates each file type from the `eFileType` enum to its corresponding MIME type.
- * 
- * - `StyleSheet` maps to "text/css"
- * - `JavaScript` maps to "application/javascript"
- * - `Json` maps to "application/json"
- * - `Python` maps to "text/x-python"
- * - `Other` maps to "text/plain"
- */
-static std::map<eFileType, std::string> fileTypes 
-{
-    { eFileType::StyleSheet, "text/css" },
-    { eFileType::JavaScript, "application/javascript" },
-    { eFileType::Json,       "application/json" },
-    { eFileType::Python,     "text/x-python" },
-    { eFileType::Other,      "text/plain" }
-};
-
-/**
- * Evaluates the file type based on the file extension.
- *
- * @param {std::filesystem::path} filePath - The path to the file to evaluate.
- * @returns {eFileType} - The type of the file, which could be one of the `eFileType` values.
- * 
- * The function checks the file extension and returns the corresponding file type:
- * - `.css` → `eFileType::StyleSheet`
- * - `.js` → `eFileType::JavaScript`
- * - `.json` → `eFileType::Json`
- * - `.py` → `eFileType::Python`
- * - For any other extension, `eFileType::Other` is returned.
- */
-const eFileType EvaluateFileType(std::filesystem::path filePath)
-{
-    const std::string extension = filePath.extension().string();
-
-    if      (extension == ".css")  { return eFileType::StyleSheet; }
-    else if (extension == ".js")   { return eFileType::JavaScript; }
-    else if (extension == ".json") { return eFileType::Json; }
-    else if (extension == ".py")   { return eFileType::Python; }
-
-    else
-    {
-        return eFileType::Other;
-    }
-}
+#include "serv.h"
 
 namespace Crow
 {

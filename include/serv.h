@@ -30,6 +30,96 @@
 
 #pragma once
 
+/**
+ * Enum representing the different types of files.
+ * 
+ * @enum {number}
+ * @readonly
+ * @property {number} StyleSheet - Represents a CSS file.
+ * @property {number} JavaScript - Represents a JavaScript file.
+ * @property {number} Json - Represents a JSON file.
+ * @property {number} Python - Represents a Python file.
+ * @property {number} Other - Represents other file types.
+ */
+enum eFileType
+{
+    css,
+    js,
+    json,
+    py,
+    ttf,
+    otf,
+    woff,
+    woff2,
+    unknown
+};
+
+/**
+ * A map that associates each file type from the `eFileType` enum to its corresponding MIME type.
+ * 
+ * - `StyleSheet` maps to "text/css"
+ * - `JavaScript` maps to "application/javascript"
+ * - `Json` maps to "application/json"
+ * - `Python` maps to "text/x-python"
+ * - `Other` maps to "text/plain"
+ */
+static std::map<eFileType, std::string> fileTypes 
+{
+    { eFileType::css,     "text/css"               },
+    { eFileType::js,      "application/javascript" },
+    { eFileType::json,    "application/json"       },
+    { eFileType::py,      "text/x-python"          },
+    { eFileType::ttf,     "font/ttf"               },
+    { eFileType::otf,     "font/otf"               },
+    { eFileType::woff,    "font/woff"              },
+    { eFileType::woff2,   "font/woff2"             },
+    { eFileType::unknown, "text/plain"             },
+
+};
+
+/**
+ * Checks if the file type is a binary file.
+ * 
+ * @param {eFileType} fileType - The type of the file to check.
+ * @returns {boolean} - `true` if the file type is binary, `false` otherwise.
+ */
+static constexpr bool IsBinaryFile(eFileType fileType)
+{
+    return fileType == eFileType::ttf || fileType == eFileType::otf || fileType == eFileType::woff || fileType == eFileType::woff2 || fileType == eFileType::unknown;
+}
+
+/**
+ * Evaluates the file type based on the file extension.
+ *
+ * @param {std::filesystem::path} filePath - The path to the file to evaluate.
+ * @returns {eFileType} - The type of the file, which could be one of the `eFileType` values.
+ * 
+ * The function checks the file extension and returns the corresponding file type:
+ * - `.css` → `eFileType::StyleSheet`
+ * - `.js` → `eFileType::JavaScript`
+ * - `.json` → `eFileType::Json`
+ * - `.py` → `eFileType::Python`
+ * - For any other extension, `eFileType::Other` is returned.
+ */
+static const eFileType EvaluateFileType(std::filesystem::path filePath)
+{
+    const std::string extension = filePath.extension().string();
+
+    if      (extension == ".css"  ) { return eFileType::css;   }
+    else if (extension == ".js"   ) { return eFileType::js;    }
+    else if (extension == ".json" ) { return eFileType::json;  }
+    else if (extension == ".py"   ) { return eFileType::py;    }
+    else if (extension == ".ttf"  ) { return eFileType::ttf;   }
+    else if (extension == ".otf"  ) { return eFileType::otf;   }
+    else if (extension == ".woff" ) { return eFileType::woff;  }
+    else if (extension == ".woff2") { return eFileType::woff2; }
+
+    else
+    {
+        return eFileType::unknown;
+    }
+}
+
 namespace Crow 
 {
     uint16_t CreateAsyncServer();
