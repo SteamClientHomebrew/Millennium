@@ -73,7 +73,7 @@ const static void VerifyEnvironment()
     {
         try
         {
-            std::string steamConfig = SystemIO::ReadFileSync(steamUpdateBlock);
+            std::string steamConfig = SystemIO::ReadFileSync(steamUpdateBlock.string());
 
             std::vector<std::string> blackListedKeys = { 
                 "BootStrapperInhibitAll",
@@ -94,7 +94,7 @@ const static void VerifyEnvironment()
         catch(const SystemIO::FileException& e)
         {
             #ifdef _WIN32
-            MessageBoxA(NULL, errorMessage.c_str(), MB_ICONERROR | MB_OK);
+            MessageBoxA(NULL, errorMessage.c_str(), "Startup Error", MB_ICONERROR | MB_OK);
             #endif
 
             LOG_ERROR(errorMessage);
