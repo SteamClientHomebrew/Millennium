@@ -109,15 +109,12 @@ class Colors:
     def get_accent_color(accent_color):
 
         if accent_color == "DEFAULT_ACCENT_COLOR":
-
-            logger.log("Using default accent color")
             if os.name == 'nt':
                 return Colors.get_accent_color_win32()
             else:
                 return Colors.get_accent_color_posix()
             
         else:
-            logger.log("Using custom accent color")
             return Colors.extrap_custom_color(accent_color)
 
 
