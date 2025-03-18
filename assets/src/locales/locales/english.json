@@ -34,6 +34,8 @@
     "uninstall": "Uninstall",
     "optionReloadNow": "Reload Now",
     "optionReloadLater": "Reload Later",
+    "optionReloadRequired": "Reload Required",
+    "optionPluginNeedsReload": "To enable or disable this plugin, a restart is required. Are you sure you want to continue?",
     "updatePanelUpdateNotifications": "Push Notifications",
     "updatePanelUpdateNotificationsTooltip": "Get Millennium to give you a reminder when an item in your library has an update!",
     "customThemeSettingsColors": "Colors",

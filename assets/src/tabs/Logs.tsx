@@ -30,6 +30,7 @@ export enum LogLevel {
 }
 
 export const GetLogData = callable<[], LogData[]>("_get_plugin_logs")
+       const CopyText   = callable<[{ data: string }], boolean>("_copy_to_clipboard")
 
 const RenderLogViewer = ({ logs, setSelectedLog }: {
     logs: LogData,
@@ -37,25 +38,25 @@ const RenderLogViewer = ({ logs, setSelectedLog }: {
 }) => {
 
     const [searchedLogs, setSearchedLogs] = useState<LogItem[]>(logs.logs);
-    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [searchQuery,  setSearchQuery]  = useState<string>("");
 
-    const [errorCount, setErrorCount] = useState<number>(0);
+    const [errorCount,   setErrorCount]   = useState<number>(0);
     const [warningCount, setWarningCount] = useState<number>(0);
-    const [copyIcon, setCopyIcon] = useState<any>(<IconsModule.Copy height={"16px"} />);
+    const [copyIcon,     setCopyIcon]     = useState<any>(<IconsModule.Copy height={"16px"} />);
 
     const [logFontSize, setLogFontSize] = useState<number>(16);
 
-    useEffect(() => {
+    const FilterLogs = () => {
         // Count the number of errors and warnings
-        setErrorCount(logs.logs.filter(log => log.level === LogLevel.ERROR).length);
+        setErrorCount  (logs.logs.filter(log => log.level === LogLevel.ERROR  ).length);
         setWarningCount(logs.logs.filter(log => log.level === LogLevel.WARNING).length);
+    }
 
-    }, [logs])
+    useEffect(() => { FilterLogs(); }, [logs])
 
     const CopyLogsToClipboard = () => {
         let logsToCopy = (searchQuery.length ? searchedLogs : logs.logs).map(log => atob(log.message)).join("\n")
 
-        const CopyText = callable<[{ data: string }], boolean>("_copy_to_clipboard")
         if (CopyText({ data: logsToCopy })) {
             console.log("Copied logs to clipboard")
             setCopyIcon(<IconsModule.Checkmark height={"16px"} />)

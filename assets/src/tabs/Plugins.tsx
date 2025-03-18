@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from 'react';
-import { DialogButton, Field, IconsModule, Millennium, Toggle, callable, pluginSelf } from '@steambrew/client';
+import { ConfirmModal, DialogButton, Field, IconsModule, Millennium, Toggle, callable, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
@@ -39,6 +39,10 @@ interface PluginStatusProps {
 	warnings: number
 }
 
+const FindAllPlugins     = callable<[], string>("find_all_plugins")
+const UpdatePluginStatus = callable<[{ plugin_name: string, enabled: boolean }], any>("update_plugin_status")
+const GetPluginsPath     = callable<[], string>("get_plugins_dir")
+
 const PluginViewModal: React.FC = () => {
 
 	const [plugins, setPlugins] = useState<PluginComponent[]>([])
@@ -46,7 +50,8 @@ const PluginViewModal: React.FC = () => {
 	const [pluginsWithLogs, setPluginsWithLogs] = useState<Map<string, PluginStatusProps>>()
 
 	const FetchAllPlugins = () => {
-		Millennium.callServerMethod("find_all_plugins").then((value: string) => {
+		FindAllPlugins()
+		.then((value: string) => {
 			const json: PluginComponent[] = JSON.parse(value)
 
 			setCheckedItems(
@@ -73,25 +78,39 @@ const PluginViewModal: React.FC = () => {
 				setPlugins(json)
 			})
 		})
-			.then((result: any) => {
-				pluginSelf.connectionFailed = false
-				return result
-			})
-			.catch((_: any) => pluginSelf.connectionFailed = true)
+		.then((result: any) => {
+			pluginSelf.connectionFailed = false
+			return result
+		})
+		.catch((_: any) => pluginSelf.connectionFailed = true)
 	}
 
 	useEffect(() => { FetchAllPlugins() }, [])
 
 	const handleCheckboxChange = (index: number) => {
-		/* Prevent users from disabling this plugin, as its vital */
-		const updated: boolean = !checkedItems[index] || plugins[index]?.data?.name === "core"
-		setCheckedItems({ ...checkedItems, [index]: updated });
 
-		Millennium.callServerMethod("update_plugin_status", { plugin_name: plugins[index]?.data?.name, enabled: updated })
-			.then((result: any) => {
-				pluginSelf.connectionFailed = false
-				return result
+		const onOK = () => {
+			/* Prevent users from disabling this plugin, as its vital */
+			const updated: boolean = !checkedItems[index] || plugins[index]?.data?.name === "core"
+			setCheckedItems({ ...checkedItems, [index]: updated });
+
+			UpdatePluginStatus({ plugin_name: plugins[index]?.data?.name, enabled: updated }).catch((_: any) => {
+				pluginSelf.connectionFailed = true
 			})
+		}
+		
+		showModal(
+			<ConfirmModal
+				strTitle={locale.optionReloadRequired}
+				strDescription={locale.optionPluginNeedsReload}
+				strOKButtonText={locale.optionReloadNow}
+				onOK={onOK}
+			/>,
+			pluginSelf.windows["Millennium"],
+			{
+				bNeverPopOut: false,
+			},
+		);
 	};
 
 	const RenderStatusInfo = ({ pluginName }: { pluginName: string }) => {
@@ -135,7 +154,6 @@ const PluginViewModal: React.FC = () => {
 	}
 
 	const OpenPluginsFolder = async () => {
-		const GetPluginsPath = callable<[], string>("get_plugins_dir")
 		const pluginsPath = await GetPluginsPath()
 
 		console.log("Opening plugins folder", pluginsPath)
@@ -164,26 +182,6 @@ const PluginViewModal: React.FC = () => {
 					margin-top: 10px;
 				}
 			`}</style>
-
-			{/* <div className='pluginTabInfo' style={{
-				marginTop: "5px",
-				display: "flex",
-				justifyContent: "space-between",
-				alignItems: "center",
-			}}>
-
-				<p style={{ margin: "0px", fontSize: "13px" }}> Found {plugins.length} plugins, {Object.keys(checkedItems).filter((key: any) => checkedItems[key]).length} plugins enabled</p>
-
-				<div style={{ display: "flex", gap: "10px" }}>
-					<DialogButton onClick={FetchAllPlugins} style={{ padding: "0px 10px 0px" }}>
-						<IconsModule.Refresh height="16" />
-					</DialogButton>
-
-					<DialogButton onClick={OpenPluginsFolder} style={{ padding: "0px 10px 0px" }}>
-						<CustomIcons.Folder />
-					</DialogButton>
-				</div>
-			</div> */}
 
 			<Field
 				label={`Found ${plugins.length} plugin(s), ${Object.keys(checkedItems).filter((key: any) => checkedItems[key]).length} plugin(s) enabled`}
