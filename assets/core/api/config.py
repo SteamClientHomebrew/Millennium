@@ -35,6 +35,7 @@ class Config:
 
 
     def reload_config(self):
+        logger.log("Reloading config...")
         self.config = self.get_config()
         self.validate_theme()
         self.set_config(json.dumps(self.config, indent=4))
@@ -113,7 +114,7 @@ class Config:
         if "webkitJS" in theme["data"] and isinstance(theme["data"]["webkitJS"], str):
             add_browser_js(os.path.join(theme_path, theme["data"]["webkitJS"]))
 
-        add_conditional_data(theme_path, theme["data"])
+        add_conditional_data(theme_path, theme["data"], name)
 
 
     def setup_colors(self, file_path):
@@ -183,11 +184,13 @@ class Config:
 
 
     def set_theme_cb(self):
+        logger.log("Delegating theme callback...")
+
         self.theme = json.loads(self.get_active_theme())
         self.name = self.get_active_theme_name()
 
-        self.start_webkit_hook(self.theme, self.name)
         self.setup_conditionals(self.theme, self.name, self.config)
+        self.start_webkit_hook(self.theme, self.name)
 
         if "data" in self.theme and "RootColors" in self.theme["data"]:
             root_colors = os.path.join(Millennium.steam_path(), "steamui", "skins", self.name, self.theme["data"]["RootColors"])
@@ -198,7 +201,7 @@ class Config:
         if "data" not in self.theme:
             return False
 
-        parsed_data = parse_conditional_patches(self.theme["data"])
+        parsed_data = parse_conditional_patches(self.theme["data"], self.name)
 
         if self.theme["data"].get("UseDefaultPatches", False):
 
@@ -224,8 +227,9 @@ class Config:
             try:
                 with open(css_path, "r", encoding="utf-8") as file:
                     css_content = file.read()
-            except FileNotFoundError:
+            except (FileNotFoundError, UnicodeDecodeError, OSError):
                 return visited
+
 
             # Regex to match @import rules
             import_pattern = re.compile(r'@import\s+(?:url\()?["\']?(.*?)["\']?\)?;')
@@ -258,7 +262,7 @@ class Config:
 
                             if "--SystemAccentColor" in css_content:
                                 return True
-                    except FileNotFoundError:
+                    except (FileNotFoundError, UnicodeDecodeError, OSError):
                         continue
 
         return False
@@ -283,6 +287,8 @@ class Config:
         try:
             self.config["conditions"][theme][condition] = newData
             self.set_config(json.dumps(self.config, indent=4))
+            self.set_theme_cb()
+
             return json.dumps({"success": True})
         except Exception as ex:
             return json.dumps({"success": False, "message": str(ex)})

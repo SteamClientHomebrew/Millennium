@@ -108,7 +108,7 @@ class Plugin:
 
 
     def _load(self):     
-        cfg.set_theme_cb()
+        # cfg.set_theme_cb()
         self.StartWebsocket()
 
         elapsed_time = time.perf_counter() - start_time
