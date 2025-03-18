@@ -1,18 +1,5 @@
 import { CSSProperties, useEffect, useState } from 'react'
-import {
-    DialogBodyText,
-    DialogButton,
-    DialogControlsSection,
-    IconsModule,
-    pluginSelf,
-    Toggle,
-    SteamSpinner,
-    Field,
-    callable,
-    ConfirmModal,
-    showModal,
-} from '@steambrew/client'
-
+import { DialogBodyText, DialogButton, DialogControlsSection, IconsModule, pluginSelf, Toggle, SteamSpinner, Field, callable, ConfirmModal, showModal, } from '@steambrew/client'
 import { locale } from '../locales';
 import { ThemeItem, UpdaterOptionProps } from '../types';
 import { Settings } from '../Settings';

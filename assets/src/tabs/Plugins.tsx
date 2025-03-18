@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { DialogBody, DialogBodyText, DialogButton, DialogFooter, DialogHeader, DialogLabel, Field, IconsModule, Millennium, Navigation, Toggle, callable, classMap, pluginSelf } from '@steambrew/client';
+import React, { Fragment, useEffect, useState } from 'react';
+import { DialogButton, Field, IconsModule, Millennium, Toggle, callable, pluginSelf } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
@@ -62,13 +62,9 @@ const PluginViewModal: React.FC = () => {
 				const logData: LogData[] = JSON.parse(result)
 
 				for (let plugin of logData) {
-					// console.log("Plugin: ", plugin.name)
 					if (pluginNames.includes(plugin.name)) {
-
-						// count the amount of errors and warnings
 						const errors = plugin.logs.filter((log) => log.level === LogLevel.ERROR).length
 						const warnings = plugin.logs.filter((log) => log.level === LogLevel.WARNING).length
-
 						pluginsWithLogs.set(plugin.name, { errors, warnings })
 					}
 				}
@@ -86,13 +82,7 @@ const PluginViewModal: React.FC = () => {
 
 	useEffect(() => { FetchAllPlugins() }, [])
 
-	const checkBoxChange = (index: number, checked: boolean): void => {
-		console.log(checked)
-		setCheckedItems({ ...checkedItems, [index]: checked });
-	}
-
 	const handleCheckboxChange = (index: number) => {
-
 		/* Prevent users from disabling this plugin, as its vital */
 		const updated: boolean = !checkedItems[index] || plugins[index]?.data?.name === "core"
 		setCheckedItems({ ...checkedItems, [index]: updated });
@@ -105,35 +95,38 @@ const PluginViewModal: React.FC = () => {
 	};
 
 	const RenderStatusInfo = ({ pluginName }: { pluginName: string }) => {
-
 		const pluginInfo = pluginsWithLogs?.get(pluginName)
 
+		if (!pluginInfo) {
+			return <Fragment />
+		}
+
+		const HasErrors   = () => pluginInfo?.errors   > 0
+		const HasWarnings = () => pluginInfo?.warnings > 0
+
+		enum Level {
+			Error = "red",
+			Warning = "rgb(255, 175, 0)",
+			OK = "#0ec50e"
+		}
+
 		return (
-			pluginInfo &&
-			<>
-				<p
-					className='pluginStatus'
-					style={{ fontSize: "12px", fontWeight: "500", display: "flex", alignContent: "center", gap: "5px" }}
-				>
-					Status:
-					<p className='statusText' style={{ color: "#0ec50e", margin: "0" }}>Running
-						{pluginInfo?.errors == 0 && pluginInfo?.warnings == 0 &&
-							<span style={{ color: "#0ec50e" }}>, No issue found!</span>
-						}
-					</p>
-					{pluginInfo?.errors > 0 &&
-						<p className='statusText' style={{ color: "red", margin: "0" }}>with {pluginInfo?.errors} errors</p>
-					}
-					{pluginInfo?.warnings > 0 &&
-						<p className='statusText' style={{ color: "rgb(255, 175, 0)", margin: "0" }}>and {pluginInfo?.warnings} warnings</p>
-					}
-
-					{(pluginInfo?.errors > 0 || pluginInfo?.warnings > 0) &&
-						<span>(Check logs tab for more info)</span>
-					}
+			<p className='pluginStatus' style={{ fontSize: "12px", fontWeight: "500", display: "flex", alignContent: "center", gap: "5px" }}>
+				Status:
+				<p className='statusText' style={{ color: Level.OK, margin: "0" }}>
+					Running
+					{/* If no warnings found, let the user know. */}
+					{(!HasErrors() && !HasWarnings()) && <span style={{ color: Level.OK }}>, No issue found!</span>}
 				</p>
-			</>
 
+				{/* Display error count on the running plugin */}
+				{ HasErrors()   && <p className='statusText' style={{ color: Level.Error,   margin: "0" }}>with {pluginInfo?.errors} errors   </p>}
+				{/* Display warning count on the running plugin */}
+				{ HasWarnings() && <p className='statusText' style={{ color: Level.Warning, margin: "0" }}>and {pluginInfo?.warnings} warnings</p>}
+
+				{/* Warn user to check for logs in the logs tab if there are warnings or errors */}
+				{ (HasWarnings() || HasErrors()) && <span>(Check logs tab for more info)</span> }
+			</p>
 		)
 	}
 

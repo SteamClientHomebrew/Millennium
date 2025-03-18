@@ -1,29 +1,11 @@
-import {
-    Millennium,
-    ConfirmModal,
-    Dropdown,
-    DialogHeader,
-    DialogBody,
-    DialogButton,
-    classMap,
-    IconsModule,
-    pluginSelf,
-    Toggle,
-    showModal,
-    Field,
-    callable
-} from '@steambrew/client'
+import { Millennium, ConfirmModal, Dropdown, DialogButton, IconsModule, pluginSelf, Toggle, showModal, Field, callable } from '@steambrew/client'
 import * as CustomIcons from '../custom_components/CustomIcons'
-
 import { useEffect, useRef, useState } from 'react'
 import { RenderThemeEditor } from '../custom_components/ThemeEditor'
 import { ComboItem, ThemeItem } from '../types'
 import { SetupAboutRenderer } from '../custom_components/AboutTheme'
 import { locale } from '../locales'
 import { ConnectionFailed } from '../custom_components/ConnectionFailed'
-import { settingsClasses } from '../classes'
-import { DispatchSystemColors } from '../patcher/SystemColors'
-import { DOMModifier } from '../patcher/Dispatch'
 import { RenderAccentColorPicker } from './AccentColorPicker'
 import ReactDOM from 'react-dom'
 
@@ -77,6 +59,14 @@ interface EditThemeProps {
  * @returns react component
  */
 const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
+    /** Force proper styling on buttons next to dropdowns. */
+    const sideBySideProps = {
+        padding: "9px 10px",
+        margin: "0",
+        marginRight: "10px",
+        display: "flex",
+        width: "auto"
+    };
 
     const Theme = (pluginSelf.activeTheme as ThemeItem)
 
@@ -86,10 +76,7 @@ const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
     }
 
     return (
-        <DialogButton
-            onClick={() => ThemeSettings(active)}
-            className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
-        >
+        <DialogButton onClick={() => ThemeSettings(active)} className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton" style={sideBySideProps}>
             <IconsModule.Settings height="16" />
         </DialogButton>
     )
@@ -247,58 +234,37 @@ const ThemeViewModal: React.FC = () => {
         );
     };
 
+    /** Force proper styling on buttons next to dropdowns. */
+    const sideBySideProps = {
+        padding: "9px 10px",
+        margin: "0",
+        marginRight: "10px",
+        display: "flex",
+        width: "auto"
+    };
+
     return (
         <>
-            <style>
-                {`
-                .DialogDropDown._DialogInputContainer.Panel.Focusable { min-width: max-content !important; }
-                button.millenniumIconButton {
-                    padding: 9px 10px !important; 
-                    margin: 0 !important; 
-                    margin-right: 10px !important;
-                    display: flex;
-                    width: auto;
-                }
-            `}
-            </style>
+            {/* Fix the dropdown not filling the proper width when specific theme names are too long. */}
+            <style>{`.DialogDropDown._DialogInputContainer.Panel.Focusable { min-width: max-content !important; }`}</style>
 
-            {/* <DialogHeader>{locale.settingsPanelThemes}</DialogHeader>
-            <DialogBody className={classMap.SettingsDialogBodyFade}> */}
             <Field
                 label={locale.themePanelClientTheme}
-                description={
-                    <>
-                        {locale.themePanelThemeTooltip}
-                        {". "}
-                        <a href="#" onClick={GetMoreThemes}>
-                            {locale.themePanelGetMoreThemes}
-                        </a>
-                    </>
-                }
+                description={<>{locale.themePanelThemeTooltip}{". "}<a href="#" onClick={GetMoreThemes}>{locale.themePanelGetMoreThemes}</a></>}
             >
                 <RenderEditTheme active={active} />
 
                 {!pluginSelf.isDefaultTheme && (
-                    <DialogButton
-                        onClick={() => SetupAboutRenderer(active)}
-                        className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
-                    >
+                    <DialogButton onClick={() => SetupAboutRenderer(active)} className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton" style={sideBySideProps}>
                         <IconsModule.Information height="16" />
                     </DialogButton>
                 )}
 
-                <DialogButton
-                    onClick={OpenThemesFolder}
-                    className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
-                >
+                <DialogButton onClick={OpenThemesFolder} className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton" style={sideBySideProps}>
                     <CustomIcons.Folder />
                 </DialogButton>
 
-                <div
-                    onMouseEnter={() => setIsHoveringThemeDropdown(true)}
-                    onMouseLeave={() => setIsHoveringThemeDropdown(false)}
-                    className='millenniumThemeDropdown'
-                >
+                <div onMouseEnter={() => setIsHoveringThemeDropdown(true)} onMouseLeave={() => setIsHoveringThemeDropdown(false)} className='millenniumThemeDropdown'>
                     <Dropdown
                         onMenuOpened={async () => await findAllThemes().then((result: ComboItem[]) => setThemes(result))}
                         contextMenuPositionOptions={{ bMatchWidth: false }}
@@ -309,32 +275,20 @@ const ThemeViewModal: React.FC = () => {
                         disabled={themes?.length === 0}
                     />
                 </div>
-
                 {isHoveringThemeDropdown && themes?.length === 0 && <PortalComponent />}
-
             </Field>
 
-            <Field
-                label={locale.themePanelInjectJavascript}
-                description={locale.themePanelInjectJavascriptToolTip}
-            >
-                {jsState !== undefined && (
-                    <Toggle value={jsState} onChange={onScriptToggle} />
-                )}
+            {/* Render inject javascript checkbox */}
+            <Field label={locale.themePanelInjectJavascript} description={locale.themePanelInjectJavascriptToolTip}>
+                {jsState !== undefined && (<Toggle value={jsState} onChange={onScriptToggle} />)}
             </Field>
 
-            <Field
-                label={locale.themePanelInjectCSS}
-                description={locale.themePanelInjectCSSToolTip}
-            >
-                {cssState !== undefined && (
-                    <Toggle value={cssState} onChange={onStyleToggle} />
-                )}
+            {/* Render inject stylesheet checkbox */}
+            <Field label={locale.themePanelInjectCSS} description={locale.themePanelInjectCSSToolTip}>
+                {cssState !== undefined && (<Toggle value={cssState} onChange={onStyleToggle} />)}
             </Field>
 
             <RenderAccentColorPicker currentThemeUsesAccentColor={themeUsesAccentColor} />
-
-            {/* </DialogBody> */}
         </>
     )
 }
