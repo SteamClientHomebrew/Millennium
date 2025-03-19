@@ -67,7 +67,7 @@ For normal users, installing via the installers makes the most sense. However wh
 - ### [Core Modules](/assets/)
   - Manage and load custom user themes into Steam
   - Manage custom plugins for steam
-  - Maintain theme & plugin versions. 
+  - Maintain theme & plugin versions.
   - Manage [embedded Python](https://www.python.org/downloads/release/python-3118/) installation
     - Manage [Millennium Python Developer Tools](https://pypi.org/project/millennium/)
     - Custom package manager for all plugins
@@ -76,7 +76,7 @@ For normal users, installing via the installers makes the most sense. However wh
 
 ## Creating Plugins & Themes
 
-Creating themes and plugins for Millennium is relatively straight foward. Our [documentation](https://docs.steambrew.app/developers) goes over the basics of both, 
+Creating themes and plugins for Millennium is relatively straight foward. Our [documentation](https://docs.steambrew.app/developers) goes over the basics of both,
 and we have examples for both in [examples](./examples)
 
 &nbsp;
@@ -130,13 +130,13 @@ The following guide includes the installation of the following:
 1. Download and install [Visual Studio Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe)
 1. Run `Developer PowerShell for VS 2022` installed from the previous step.
 1. Navigate to somewhere you want to build to
-1. Next, open Powershell to download and build Python 3.11.8 (Win32). 
+1. Next, open Powershell to download and build Python 3.11.8 (Win32).
 
-    - Download & Extract Python 3.11.8 
+    - Download & Extract Python 3.11.8
       ```bash
       $ curl -o python3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
       $ tar -xzvf python3.11.8.tgz
-      $ cd python3.11.8
+      $ cd python-3.11.8
       ```
 
     - Update Build Configuration to be MultiThreaded
@@ -149,7 +149,7 @@ The following guide includes the installation of the following:
       $ ./PCbuild/get_externals.bat
       ```
 
-    - Build Python 
+    - Build Python
       ```bash
       $ msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
       $ msbuild PCBuild/pcbuild.sln /p:Configuration=Debug /p:Platform=Win32 /p:RuntimeLibrary=MT
@@ -164,7 +164,7 @@ The following guide includes the installation of the following:
       ```bash
       # Release binaries, required for building Millennium in release mode
       PCbuild/win32/python311.dll
-      PCbuild/win32/python311.lib 
+      PCbuild/win32/python311.lib
       # Debug binaries, required for building Millennium in debug mode
       PCbuild/win32/python311_d.dll
       PCbuild/win32/python311_d.lib
@@ -194,7 +194,7 @@ The following guide includes the installation of the following:
     $ cmake --build ./build
     ```
 
-1. Next, you'll need to build Millenniums internal plugin from source. 
+1. Next, you'll need to build Millenniums internal plugin from source.
 You can install NodeJs from MinGW, or you could use your local install from PowerShell/CMD
 
     ```bash
@@ -209,6 +209,6 @@ You can install NodeJs from MinGW, or you could use your local install from Powe
     - Steam path (default `C:\Program Files (x86)\Steam`) on Windows
     - `~/.millennium` on Unix
 
-    You can either symlink them or copy them over. 
+    You can either symlink them or copy them over.
 
 
