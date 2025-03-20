@@ -3,12 +3,12 @@ name: Build Millennium
 on:
   workflow_dispatch:
     inputs:
-        build_as_pre_release:
-          description: 'Build as pre-release?'
-          required: true
-          default: 'false'
         release_artifacts:
           description: 'Release build?'
+          required: true
+          default: 'false'
+        build_as_pre_release:
+          description: 'Build as pre-release?'
           required: true
           default: 'false'
 
