@@ -53,7 +53,7 @@
     "DisableUpdates": "Disable Updates",
     "DisableOnlyNotifications": "Just Notifications",
     "message1162025SecurityUpdate": "We're deciding to update our security protocols to better benefit you, and the community as a whole. As of 1/16/2025, we've decided to implement measures to explicitly ask you if you want to receive updates from Millennium.",
-    "message1162025SecurityUpdateTooltip": "(This does NOT include theme and plugin updates, which are handled separately, are were never automatic)",
+    "message1162025SecurityUpdateTooltip": "(This does NOT include theme and plugin updates, which are handled separately, and were never automatic)",
     "toggleWantsMillenniumUpdates": "Do you want Millennium to check for updates?",
     "toggleWantsMillenniumUpdatesTooltip": "If enabled, Millennium will automatically check for updates. Updates will NOT automatically be applied unless you've disabled notifications (the setting below). You will receive a popup box with the option to update or dismiss.",
     "toggleWantsMillenniumUpdatesNotifications": "Do you want to notified when updates are found? (similar to this popup)",
