@@ -323,3 +323,58 @@ jobs:
         include-hidden-files: true
         name: millennium-linux
         path: /home/runner/build/
+  
+  release:
+      needs: [build-windows, build-linux]
+      runs-on: ubuntu-latest
+      if: ${{ inputs.release_artifacts == 'yes' }}
+      steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+  
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+  
+      - name: Install Semantic Release
+        run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-windows
+          path: ./artifacts/windows
+  
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-linux
+          path: ./artifacts/linux
+  
+      - name: Bump Version
+        id: read_version
+        run: bash scripts/ci/posix/bump.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Proccess Artifacts
+        run: |
+          mkdir -p ./artifacts/release
+  
+          cd ./artifacts/windows
+          zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip .
+          cd - # return to the original directory
+  
+          cd ./artifacts/linux
+          tar -czvf ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz .
+          cd - # return to the original directory
+  
+      - name: Create GitHub Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
