@@ -18,6 +18,7 @@ import { UpdatesViewModal } from "../tabs/Updates";
 import { locale } from "../locales";
 import { BugReportViewModal } from "../tabs/BugReport";
 import { LogsViewModal } from "../tabs/Logs";
+import { SettingsViewModal } from "../tabs/Settings";
 
 export class MillenniumSettings extends React.Component {
 
@@ -55,6 +56,12 @@ export class MillenniumSettings extends React.Component {
                 icon: <IconsModule.TextCodeBlock />,
                 content: (<DialogBody className={Classes.SettingsDialogBodyFade}><LogsViewModal /></DialogBody>)
             },
+            {
+                visible: true,
+                title: locale.settingsPanelSettings,
+                icon: <IconsModule.Settings />,
+                content: (<DialogBody className={Classes.SettingsDialogBodyFade}><SettingsViewModal /></DialogBody>)
+            }
         ];
 
         const SettingsClasses = (findClassModule(m => m.SettingsTitleBar && m.SettingsModal) as ClassModule)

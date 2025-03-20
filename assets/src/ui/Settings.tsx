@@ -5,13 +5,11 @@ function RenderSettingsModal(_context: any) {
 	Millennium.findElement(_context.m_popup.document, ".contextMenuItem").then((contextMenuItems: NodeListOf<Element>) => {
 		for (const item of contextMenuItems) {
 			// @ts-ignore
-			const settingsString = LocalizationManager.LocalizeString("#Settings")
-
-			if (item.textContent === settingsString) {
+			if (item.textContent === LocalizationManager.LocalizeString("#Settings")) {
 
 				/** Clone the settings button DOM object and edit its name and onClick */
 				const millenniumContextMenu = Object.assign(item.cloneNode(true), {
-					textContent: "Millennium " + settingsString,
+					textContent: "Millennium",
 					onclick: () => {
 						showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
 							strTitle: "Millennium",

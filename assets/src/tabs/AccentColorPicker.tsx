@@ -46,14 +46,7 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
                     <div>{locale.themePanelCustomAccentColorToolTip}</div>
                     {
                         currentThemeUsesAccentColor !== undefined ?
-
-                            ((!currentThemeUsesAccentColor) ? (
-                                <div className="themeDoesNotUseAccent" style={{ color: "#ae3232" }}>{locale.themePanelCustomColorNotUsed}</div>
-                            )
-                                :
-                                <div className="themeDoesUseAccent" style={{ color: "rgb(71 126 189)" }}>{locale.themePanelCustomColorUsed}</div>
-                            )
-                            :
+                            <div className={currentThemeUsesAccentColor ? "themeDoesUseAccent" : "themeDoesNotUseAccent"}>{locale.themePanelCustomColorNotUsed}</div> :
                             <div>Checking theme information...</div>
                     }
                 </>

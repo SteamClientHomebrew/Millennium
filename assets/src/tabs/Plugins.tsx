@@ -178,8 +178,20 @@ const PluginViewModal: React.FC = () => {
 				.millenniumPluginField {
 					background: var(--main-editor-input-bg-color);
 					border-radius: 4px !important;
-					padding: 15px;
+					padding: 15px 25px 15px 25px;
 					margin-top: 10px;
+				}
+
+				.pluginNameContainer {
+					display: flex;
+					align-items: center;
+					gap: 11px;
+				}
+
+				.pluginStatusDot {
+					width: 8px;
+					height: 8px;
+					border-radius: 50% !important;
 				}
 			`}</style>
 
@@ -207,11 +219,20 @@ const PluginViewModal: React.FC = () => {
 			</Field>
 
 			{plugins.map((plugin: PluginComponent, index: number) => (
-
 				<div className='millenniumPluginField'>
 					<Field
 						key={index}
-						label={plugin?.data?.common_name}
+						label={
+							<div className='pluginNameContainer'>
+								{pluginsWithLogs?.get(plugin?.data?.common_name) &&
+									<div className="pluginStatusDot" style={{ backgroundColor: 
+										pluginsWithLogs?.get(plugin?.data?.common_name)?.errors > 0 ? "red" : 
+										pluginsWithLogs?.get(plugin?.data?.common_name)?.warnings > 0 ? "rgb(255, 175, 0)" : "#0ec50e" }} />
+								}
+								{plugin?.data?.common_name} 
+								{plugin?.data?.version && <div style={{ fontSize: "12px", color: "grey" }}>{plugin?.data?.version}</div>}
+							</div>
+						}
 						description={plugin?.data?.description ?? locale.itemNoDescription}
 
 						padding='standard'
@@ -224,8 +245,6 @@ const PluginViewModal: React.FC = () => {
 							onChange={(_checked: boolean) => handleCheckboxChange(index)}
 						/>
 					</Field>
-
-					<RenderStatusInfo pluginName={plugin?.data?.common_name} />
 				</div>
 			))}
 		</>

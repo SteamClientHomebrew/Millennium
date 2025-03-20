@@ -2,6 +2,8 @@
 import json
 import os
 import pprint
+import sys
+import traceback
 import Millennium # type: ignore
 from util.logger import logger
 
@@ -70,6 +72,7 @@ def parse_conditional_patches(conditional_patches: dict, theme_name: str):
                 seen.add(identifier)
                 unique_webkit_items.append(item)
 
+        logger.log(str(unique_webkit_items))
         return unique_webkit_items
 
 conditional_patches = []
@@ -104,3 +107,5 @@ def add_conditional_data(path: str, data: dict, theme_name: str):
 
     except Exception as e:
         logger.log(f"Error adding conditional data: {e}")
+        # log error to stderr
+        sys.stderr.write(traceback.format_exc())

@@ -103,13 +103,14 @@ export interface Plugin {
     common_name?: string, 
     name: string,
     description?: string,
-    venv?: string
+    venv?: string,
+    version?: string
 }
 
 export interface PluginComponent {
     path: string,
     enabled: boolean,
-    data: Plugin
+    data: Plugin,
 }
 
 /**
