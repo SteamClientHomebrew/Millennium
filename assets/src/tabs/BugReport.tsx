@@ -69,15 +69,9 @@ const UserPromptBugReport = () => {
     );
 }
 
-enum OSType {
-    Windows,
-    Linux
-}
-
 interface BugReportProps {
     issueDescription: string,
-    stepsToReproduce: string,
-    selectedOS: OSType
+    stepsToReproduce: string
 }
 
 const FormatBugReport = async (report: BugReportProps) => {
@@ -100,7 +94,6 @@ ${report.issueDescription}
 ${report.stepsToReproduce}
 
 **Operating System:**
-* Type: ${OSType[report.selectedOS]}
 * Name: ${systemInfo?.sOSName} 
 
 **Submit Date (UTC):**
@@ -110,12 +103,6 @@ ${new Date().toUTCString()}
 
 export const BugReportViewModal: React.FC = () => {
 
-    const operatingSystems: DropdownOption[] = [
-        { label: "Windows", data: OSType.Windows },
-        { label: "Linux", data: OSType.Linux }
-    ];
-
-    const [selectedOS, setSelectedOS] = useState<OSType>(operatingSystems[0].data as OSType);
     const [notCausedByTheme, setNotCausedByTheme] = useState<boolean>(false);
     const [notCausedByPlugin, setNotCausedByPlugin] = useState<boolean>(false);
 
@@ -126,8 +113,7 @@ export const BugReportViewModal: React.FC = () => {
 
         const jsonReport: BugReportProps = {
             issueDescription,
-            stepsToReproduce,
-            selectedOS
+            stepsToReproduce
         }
 
         if (!notCausedByTheme && !notCausedByPlugin) {
@@ -219,19 +205,6 @@ export const BugReportViewModal: React.FC = () => {
 
                 <MultiLineTextField label={"Please describe the issue you are experiencing."} value={issueDescription} onChange={(value) => { setIssueDescription(value) }} />
                 <MultiLineTextField label={"Steps to reproduce bug."} value={stepsToReproduce} onChange={(value) => { setStepsToReproduce(value) }} />
-
-                <Field
-                    label={"Operating System"}
-                    description={"Please select the operating system you are using."}
-                >
-                    <Dropdown
-                        rgOptions={operatingSystems}
-                        selectedOption={0}
-                        contextMenuPositionOptions={{ bMatchWidth: false }}
-                        strDefaultLabel={operatingSystems[0].label as string}
-                        onChange={(selection) => { setSelectedOS(selection.data) }}
-                    />
-                </Field>
             </DialogControlsSection>
 
             <DialogButton onClick={() => { SubmitPluginReport() }} style={{ width: "unset", marginTop: "20px" }} className={settingsClasses.SettingsDialogButton}>Submit Report</DialogButton>
