@@ -1,9 +1,12 @@
 name: Build Millennium
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
+    inputs:
+        custom_message:
+          description: 'Build as pre-release?'
+          required: true
+          default: 'false'
 
 jobs:
   build-windows:
