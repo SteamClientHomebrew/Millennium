@@ -73,7 +73,7 @@ elseif(UNIX)
     endif()
 
     if(NOT ${PYTHON_TEST_RESULT})
-      if(LSB_RELEASE_ID_SHORT STREQUAL "Arch")
+      if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
         include_directories("/opt/python-i686-3.11.8/include/python3.11/")
 
         set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
