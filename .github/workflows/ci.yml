@@ -214,6 +214,8 @@ jobs:
         mkdir -p $HOME/.millennium/ext/data/cache
         tar -xzf python-3.11.8-32-bit.tar.gz -C $HOME/.millennium/ext/data/cache
 
+        ls -la $HOME/.millennium/ext/data/cache
+
         sudo mv $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
 
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
