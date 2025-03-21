@@ -1,10 +1,11 @@
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { ConfirmModal, DialogButton, Field, IconsModule, Millennium, Toggle, callable, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { GetLogData, LogData, LogLevel } from './Logs';
 import * as CustomIcons from '../custom_components/CustomIcons'
+import ReactDOM from 'react-dom';
 
 interface EditPluginProps {
 	plugin: PluginComponent
@@ -164,6 +165,96 @@ const PluginViewModal: React.FC = () => {
 		SteamClient.System.OpenInSystemBrowser("https://steambrew.app/plugins");
 	}
 
+	const RenderStatusTooltip = ({ plugin, index } : { plugin: PluginComponent, index: number }) => {
+		const [position, setPosition] = useState({ top: 0, left: "0px" });
+
+		useEffect(() => {
+			const element: HTMLElement = pluginSelf.windows["Millennium"].document.querySelector(`#pluginStatusDot-${index}`);
+			if (!element) {
+				console.error("Element not found");
+				return;
+			}
+
+			const rect = element.getBoundingClientRect();
+			setPosition({
+				top: rect.top + rect.height + 10,
+				left: rect.right - rect.width + "px",
+			});
+		}, []);
+
+		const errors   = pluginsWithLogs?.get(plugin?.data?.common_name)?.errors;
+		const warnings = pluginsWithLogs?.get(plugin?.data?.common_name)?.warnings;
+
+		const StatusToString = () => {
+			if (errors > 0) {
+				return `Found ${errors} error(s) in ${plugin.data.common_name}! Its possible these errors are not critical, but you should check the logs tab for more info.`;
+			}
+			if (warnings > 0) {
+				return `Found ${warnings} warning(s) in ${plugin.data.common_name}! Its possible these warnings are not critical, but you should check the logs tab for more info.`;
+			}
+			else {
+				return plugin.data.common_name + " is running without any issues!";
+			}
+		}
+
+		return ReactDOM.createPortal(
+			<div className="_3vg1vYU7iTWqONciv9cuJN _1Ye_0niF2UqB8uQTbm8B6B" style={{ top: position.top, left: position.left }}>
+				<div className="_2FxbHJzYoH024ko7zqcJOf" style={{ maxWidth: "50vw" }}>
+					{StatusToString()}
+				</div>
+			</div>,
+			pluginSelf.windows["Millennium"].document.body
+		);
+	};
+
+	const RenderPlugin = ({ plugin, index }: { plugin: PluginComponent, index: number }) => {
+
+		enum Level {
+			Error = "red",
+			Warning = "rgb(255, 175, 0)",
+			OK = "#0ec50e"
+		}
+
+		const pluginLogs = pluginsWithLogs?.get(plugin?.data?.common_name);
+		const backgroundColor = pluginLogs?.errors > 0 ? Level.Error : pluginLogs?.warnings > 0 ? Level.Warning : Level.OK;
+		const [isHovering, setIsHovering] = useState(false);
+
+		return (
+			<div className='millenniumPluginField'>
+				<Field
+					key={index}
+					label={
+						<div className='pluginNameContainer'> 
+							{pluginLogs && 
+								<div 
+									className="pluginStatusDot" 
+									style={{ backgroundColor: backgroundColor }} 
+									id={`pluginStatusDot-${index}`}
+									onMouseEnter={() => setIsHovering(true)} 
+									onMouseLeave={() => setIsHovering(false)} 
+								/> 
+							}
+							{plugin?.data?.common_name} 
+							{plugin?.data?.version && <div style={{ fontSize: "12px", color: "grey" }}>{plugin?.data?.version}</div>}
+						</div>
+					}
+					description={plugin?.data?.description ?? locale.itemNoDescription}
+					padding='standard'
+					bottomSeparator='none'
+				>
+					<EditPlugin plugin={plugin} />
+					<Toggle
+						disabled={plugin?.data?.name == "core"}
+						value={checkedItems[index]}
+						onChange={(_checked: boolean) => handleCheckboxChange(index)}
+					/>
+				</Field>
+
+				{isHovering && <RenderStatusTooltip plugin={plugin} index={index} />}
+			</div>
+		)
+	}
+
 	return (
 		<>
 			<style>{`
@@ -196,7 +287,7 @@ const PluginViewModal: React.FC = () => {
 			`}</style>
 
 			<Field
-				label={`Found ${plugins.length} plugin(s), ${Object.keys(checkedItems).filter((key: any) => checkedItems[key]).length} plugin(s) enabled`}
+				label={`Steam Client Plugins`}
 				bottomSeparator='none'
 				description={
 					<>
@@ -218,35 +309,7 @@ const PluginViewModal: React.FC = () => {
 				</div>
 			</Field>
 
-			{plugins.map((plugin: PluginComponent, index: number) => (
-				<div className='millenniumPluginField'>
-					<Field
-						key={index}
-						label={
-							<div className='pluginNameContainer'>
-								{pluginsWithLogs?.get(plugin?.data?.common_name) &&
-									<div className="pluginStatusDot" style={{ backgroundColor: 
-										pluginsWithLogs?.get(plugin?.data?.common_name)?.errors > 0 ? "red" : 
-										pluginsWithLogs?.get(plugin?.data?.common_name)?.warnings > 0 ? "rgb(255, 175, 0)" : "#0ec50e" }} />
-								}
-								{plugin?.data?.common_name} 
-								{plugin?.data?.version && <div style={{ fontSize: "12px", color: "grey" }}>{plugin?.data?.version}</div>}
-							</div>
-						}
-						description={plugin?.data?.description ?? locale.itemNoDescription}
-
-						padding='standard'
-						bottomSeparator='none'
-					>
-						<EditPlugin plugin={plugin} />
-						<Toggle
-							disabled={plugin?.data?.name == "core"}
-							value={checkedItems[index]}
-							onChange={(_checked: boolean) => handleCheckboxChange(index)}
-						/>
-					</Field>
-				</div>
-			))}
+			{plugins.map((plugin: PluginComponent, index: number) => (<RenderPlugin key={index} plugin={plugin} index={index} />))}
 		</>
 	)
 }
