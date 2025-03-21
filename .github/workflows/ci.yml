@@ -117,7 +117,7 @@ jobs:
       shell: msys2 {0}
       run: |
         mkdir D:/a/Millennium/Millennium/build/artifacts
-        cmake --build build --config Release
+        cmake --build build --config Release -- -j$(nproc)
         cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
         cp /d/a/Millennium/Millennium/build/preload/user32.dll  D:/a/env/user32.dll
         cp /d/a/Millennium/Millennium/build/millennium.dll D:/a/env/millennium.dll
