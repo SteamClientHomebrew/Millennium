@@ -6,11 +6,11 @@ on:
         release_artifacts:
           description: 'Release build?'
           required: true
-          default: 'false'
+          default: 'no'
         build_as_pre_release:
           description: 'Build as pre-release?'
           required: true
-          default: 'false'
+          default: 'no'
 
 jobs:
   build-windows:
@@ -208,57 +208,19 @@ jobs:
           gcc-multilib \
           g++-multilib
 
-    - name: Set up cache for Python source
-      uses: actions/cache@v3
-      id: build-cache
-      with:
-        path: home/runner/.millennium/ext/data/cache
-        key: ${{ runner.os }}-python-linux-3.11.8-build
-        restore-keys: ${{ runner.os }}-python-linux-3.11.8-build-  
-
-    - name: Download Python 3.11.8 source
-      if: steps.build-cache.outputs.cache-hit != 'true'
+    - name: Download Python 3.11.8 Binaries
       run: |
-        wget https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
-        tar -xf Python-3.11.8.tgz
-
-    - name: Configure and build Python 3.11.8 (32-bit)
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
+        wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
         mkdir -p $HOME/.millennium/ext/data/cache
-        cd Python-3.11.8
-        sudo CFLAGS="-m32" LDFLAGS="-m32" ./configure --prefix=$HOME/.millennium/ext/data/cache --enable-optimizations
-        sudo make -j$(nproc)
-        sudo make altinstall
-
-    - name: Setup installation
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      run: |
-        sudo mkdir -p $HOME/.millennium/ext/data/cache/lib/tmp
-        cd $HOME/.millennium/ext/data/cache/lib/tmp
-        sudo ar -x ../libpython3.11.a
-        sudo gcc -m32 -shared -o ../libpython-3.11.8.so *.o
-
-        cd $HOME/.millennium/ext/data/cache/lib
-        sudo rm -rf tmp
-        ls
-
-        sudo mkdir -p $HOME/Documents/LibPython/
-        cd $HOME/.millennium/ext/data/cache/include/python3.11/
-        sudo mv * $HOME/Documents/LibPython/
-
-        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/test/
-        sudo rm -rf $HOME/.millennium/ext/data/cache/share
-        sudo rm -rf $HOME/.millennium/ext/data/cache/include
-        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/__pycache__/
-        sudo rm -rf $HOME/.millennium/ext/data/cache/lib/python3.11/config-3.11-x86_64-linux-gnu/
-        sudo rm $HOME/.millennium/ext/data/cache/lib/libpython3.11.a
+        tar -xzf python-3.11.8-32-bit.tar.gz -C $HOME/.millennium/ext/data/cache
 
         sudo mv $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
 
         $HOME/.millennium/ext/data/cache/bin/python3.11 --version
         mkdir -p /home/runner/env/ext/data
         sudo cp -r $HOME/.millennium/ext/data/cache /home/runner/env/ext/data
+
+
 
     - name: (Generator) Install CMake
       uses: jwlawson/actions-setup-cmake@v2
