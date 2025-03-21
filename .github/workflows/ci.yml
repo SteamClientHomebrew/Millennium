@@ -1,7 +1,16 @@
-name: Build & Release Millennium
+name: Build Millennium
 
 on:
   workflow_dispatch:
+    inputs:
+        release_artifacts:
+          description: 'Release build?'
+          required: true
+          default: 'false'
+        build_as_pre_release:
+          description: 'Build as pre-release?'
+          required: true
+          default: 'false'
 
 jobs:
   build-windows:
@@ -34,6 +43,10 @@ jobs:
       with:
         node-version: 20
 
+    - name: (Setup) Environment Variables
+      run: |
+        echo "${{ secrets.ENVIRONMENT_VARS }}" >> assets/.env
+
     - name: (Setup) Assets Build Environment
       run: cd assets && npm install && npm run build
       env:
@@ -48,13 +61,6 @@ jobs:
     - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
       env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    # dry run to get the next version
-    - name: Bump Version
-      id: read_version
-      run: . scripts\ci\win32\version.ps1
-      env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up cache for Python source
@@ -164,6 +170,10 @@ jobs:
       with:
         node-version: 20
 
+    - name: (Setup) Environment Variables
+      run: |
+        echo "${{ secrets.ENVIRONMENT_VARS }}" >> assets/.env
+
     - name: (Setup) Assets Build Environment
       run: cd assets && npm install && npm run build
       env:
@@ -175,13 +185,6 @@ jobs:
     - name: (Setup) Semantic Release
       run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
       env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    # dry run to get the next version
-    - name: Bump Version
-      id: read_version
-      run: bash scripts/ci/posix/version.sh
-      env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install dependencies
@@ -270,7 +273,7 @@ jobs:
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     - name: (Generator) Configure CMake
-      run: cmake --preset=linux -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+      run: cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
       env: 
         VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
@@ -283,10 +286,10 @@ jobs:
         # ls -laR /home/runner/Millennium/build
 
         mkdir -p /home/runner/env
-        cp ./build/libMillennium.so /home/runner/env/libMillennium.so
+        cp ./build/libmillennium_x86.so /home/runner/env/libmillennium_x86.so
+        cp ./build/cli/millennium /home/runner/env/millennium
         cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
-        cp ./scripts/posix/start.sh /home/runner/env/start.sh
-
+        
         npm install @steambrew/api
         mkdir -p /home/runner/env/ext/data/shims
         cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
@@ -299,12 +302,12 @@ jobs:
 
         # Move assets to usr folder
         mkdir -p ~/build/usr/lib/millennium
-        cp /home/runner/env/libMillennium.so ~/build/usr/lib/millennium/libMillennium.so
+        cp /home/runner/env/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
         cp /home/runner/env/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
 
         # Move scripts to usr folder
         mkdir -p ~/build/usr/bin
-        cp ~/Millennium/posix/millennium ~/build/usr/bin/millennium
+        cp /home/runner/env/millennium ~/build/usr/bin/millennium
         chmod +x ~/build/usr/bin/millennium
 
         mkdir -p ~/build/home/user/.local/share/millennium
@@ -319,59 +322,59 @@ jobs:
       with:
         include-hidden-files: true
         name: millennium-linux
-        path: /home/runner/build
-
+        path: /home/runner/build/
+  
   release:
-    needs: [build-windows, build-linux]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
-
-    - name: Install Semantic Release
-      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-      env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Download Windows Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: millennium-windows
-        path: ./artifacts/windows
-
-    - name: Download Linux Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: millennium-linux
-        path: ./artifacts/linux
-
-    - name: Bump Version
-      id: read_version
-      run: bash scripts/ci/posix/bump.sh
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Proccess Artifacts
-      run: |
-        mkdir -p ./artifacts/release
-
-        cd ./artifacts/windows
-        zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip .
-        cd - # return to the original directory
-
-        cd ./artifacts/linux
-        tar -czvf ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz .
-        cd - # return to the original directory
-
-    - name: Create GitHub Release
-      run: npx semantic-release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+      needs: [build-windows, build-linux]
+      runs-on: ubuntu-latest
+      if: ${{ inputs.release_artifacts == 'yes' }}
+      steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+  
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+  
+      - name: Install Semantic Release
+        run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Download Windows Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-windows
+          path: ./artifacts/windows
+  
+      - name: Download Linux Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-linux
+          path: ./artifacts/linux
+  
+      - name: Bump Version
+        id: read_version
+        run: bash scripts/ci/posix/bump.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+      - name: Proccess Artifacts
+        run: |
+          mkdir -p ./artifacts/release
+  
+          cd ./artifacts/windows
+          zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip .
+          cd - # return to the original directory
+  
+          cd ./artifacts/linux
+          tar -czvf ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz .
+          cd - # return to the original directory
+  
+      - name: Create GitHub Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
