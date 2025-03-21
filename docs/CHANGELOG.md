@@ -1,3 +1,47 @@
+# [2.18.0-beta.1](https://github.com/shdwmtr/millennium/compare/v2.17.2...v2.18.0-beta.1) (2025-03-21)
+
+
+### Bug Fixes
+
+* allow frontend function to send booleans & numbers to backend ([#198](https://github.com/shdwmtr/millennium/issues/198)) ([aa4f054](https://github.com/shdwmtr/millennium/commit/aa4f0547ca68ed3f3480a401de9b81c7e28f26bb))
+* Allow importing raw files like fonts, images, etc. from the webkit. ([fd82cd1](https://github.com/shdwmtr/millennium/commit/fd82cd1ad9fae9c8e956d53b3e627164659a88bb))
+* Closes [#159](https://github.com/shdwmtr/millennium/issues/159) ([2f43350](https://github.com/shdwmtr/millennium/commit/2f433503b506bf3c1366df1bec6abfe4eef5cfa4))
+* Enable automatic proxy detection on Windows ([#219](https://github.com/shdwmtr/millennium/issues/219)) ([f15c932](https://github.com/shdwmtr/millennium/commit/f15c9324fe8187c6acdf35ae176f6d9814f9cc18))
+* Fix [#253](https://github.com/shdwmtr/millennium/issues/253) [#159](https://github.com/shdwmtr/millennium/issues/159) [#148](https://github.com/shdwmtr/millennium/issues/148) ?? ([bebdfb5](https://github.com/shdwmtr/millennium/commit/bebdfb5b08f183e0793e80204accf90ab5c6ee6e))
+* Fix AUR PKGBUILD ([3badb80](https://github.com/shdwmtr/millennium/commit/3badb80b5c687a21e636d2871dda480a3365e67c))
+* Fix custom accent color using RGBA instead of RGB. closes [#229](https://github.com/shdwmtr/millennium/issues/229) ([4b095d6](https://github.com/shdwmtr/millennium/commit/4b095d68693d18575ebde21a9b29c3bd8b6f9c28))
+* Fix debugger port reporting error when the port was not being used. ([00d1b89](https://github.com/shdwmtr/millennium/commit/00d1b89dd54581d4b618a67564e417caee6cf3df))
+* Fix Millennium freezing if a plugin makes an FFI call to a backend that can't acquire the GIL. ([a7e3e1c](https://github.com/shdwmtr/millennium/commit/a7e3e1c3d9d476d9078d238c45750cef4b34bf04))
+* Fix Millennium not shutting down properly & improved developer warnings on potential issues ([b960bfe](https://github.com/shdwmtr/millennium/commit/b960bfe070effe26a5e55d80202089fe77155798))
+* Fix Millennium trying to inject CSS as JS ([4e1cc7f](https://github.com/shdwmtr/millennium/commit/4e1cc7f01476847716760602a231dbe179b8b0b1))
+* Fix package manager to maintain backwards compatibility with old requirements.txt format ([aee4361](https://github.com/shdwmtr/millennium/commit/aee4361bae99dbee8088ff2ad58fffaa3ec27e82))
+* Fix PKGBUILD to use arch based FS ([b9c78f8](https://github.com/shdwmtr/millennium/commit/b9c78f80c57211a88490d6c5580bf7082eaeb73f))
+* Fix plugin webkit shims not injecting after plugin enable. ([3c6de9f](https://github.com/shdwmtr/millennium/commit/3c6de9fdfbd6913e43de0582d99c0dc52ea99e50))
+* Fix README.md code line stats ([afafdf7](https://github.com/shdwmtr/millennium/commit/afafdf7f24aa920ededb16dfdd9c9a53e8595bbd))
+* Generic bug fixes ([82a0b11](https://github.com/shdwmtr/millennium/commit/82a0b11664d2f8949064ccdc421cae39f86ce433))
+* Pipe stdout to Millennium logger. ([8db49ac](https://github.com/shdwmtr/millennium/commit/8db49ac70d873cc4476fa293b72a8d71526e5447))
+* Plugins not loading on UNIX ([58bc696](https://github.com/shdwmtr/millennium/commit/58bc696d4d219da1e1f91bd606ab714820f4d488))
+* Properly set python home directory ([904ad08](https://github.com/shdwmtr/millennium/commit/904ad0814d4bbcca2b4ae08247514616c9b01fb0))
+* **security:** Fix a vulnerability where any website could connect to Millennium and install themes. ([47639c3](https://github.com/shdwmtr/millennium/commit/47639c30aebb6e398537661a2c30a089c60912e3))
+* Show the Steam UI after all plugins are finished loading instead of when the SharedJSContext connects ([b5730a3](https://github.com/shdwmtr/millennium/commit/b5730a325b5790a3cb9cdc60c6bbf3f9d6b0adcb))
+* Some UNIX bug fixes ([d6d8c9c](https://github.com/shdwmtr/millennium/commit/d6d8c9c292635bccc0a294c88a970477347daac8))
+* Whoops, didn't mean to commit those. closes [#249](https://github.com/shdwmtr/millennium/issues/249) ([ef2f0fa](https://github.com/shdwmtr/millennium/commit/ef2f0fa2bb973ddc58acf3d788c528ffcdf1491c))
+
+
+### Features
+
+* Add embedded updater ([24de43b](https://github.com/shdwmtr/millennium/commit/24de43b8a22f116922c05b12e5538f7045370130))
+* Add enabled plugin names to <html> element to make CSS styling easier. [#258](https://github.com/shdwmtr/millennium/issues/258) ([938bb82](https://github.com/shdwmtr/millennium/commit/938bb82c06a82f1d916bf9c28947e5c37f22bdfa))
+* Add Italian localization ([#209](https://github.com/shdwmtr/millennium/issues/209)) ([de5a9d2](https://github.com/shdwmtr/millennium/commit/de5a9d238062366fcc1b1e9e379ffd980223541d))
+* Add more info to plugins page ([1e3a955](https://github.com/shdwmtr/millennium/commit/1e3a955b2a84532cb46a044a6001fcae46a260bd))
+* add Vietnamese localization ([#208](https://github.com/shdwmtr/millennium/issues/208)) ([3e83de5](https://github.com/shdwmtr/millennium/commit/3e83de5c5434fd2d71cc40c28024513859cda0be))
+* Ask users if they want auto updates, or to review updates, or to disable updates entirely. ([62553cf](https://github.com/shdwmtr/millennium/commit/62553cf11599a532cec605cc6b61e68476c495c8))
+* Better UNIX system folder heirarchy ([#247](https://github.com/shdwmtr/millennium/issues/247)) ([cbe1fa1](https://github.com/shdwmtr/millennium/commit/cbe1fa16e3c08cc6a39e83822b5456a4f4016585)), closes [#230](https://github.com/shdwmtr/millennium/issues/230) [#234](https://github.com/shdwmtr/millennium/issues/234)
+* Remove CLI tool, most likely revamping it. ([83c0a56](https://github.com/shdwmtr/millennium/commit/83c0a568ac17d8ab8ad0707a6562d5fa2e627d19))
+* Show welcome modal to new users ([7ea8358](https://github.com/shdwmtr/millennium/commit/7ea8358649270044a35c4bf1e091f7b4bead894e))
+* Warn users of incompatible Steam.cfg files. ([197e574](https://github.com/shdwmtr/millennium/commit/197e5742e9c3862cd9d395405f315d1db345ef81))
+* Warn users when no themes were found instead of showing empty dropdown. ([6731867](https://github.com/shdwmtr/millennium/commit/6731867ff83505e6302369349957c3e53983eecc))
+
 ## [2.17.2](https://github.com/shdwmtr/millennium/compare/v2.17.1...v2.17.2) (2024-12-29)
 
 
