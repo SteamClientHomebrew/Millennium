@@ -233,7 +233,7 @@ jobs:
     - name: Build Millennium
       run: |
         # mkdir -p /home/runner/Millennium/build/artifacts
-        cmake --build build --config Release
+        cmake --build build --config Release -- -j$(nproc)
 
         # ls -laR /home/runner/Millennium/build
 
