@@ -21,7 +21,7 @@ jobs:
 
       - name: Update Package Version
         run: |
-            sed -i "s/pkgver=.*/pkgver=$(sed -n '2p' ./version | tr -d '\n')/" ./pkgbuild/PKGBUILD
+            sed -i "s/pkgver=.*/pkgver=$(sed -n '2p' ./version | tr -d 'v\n')/" ./pkgbuild/PKGBUILD
 
       - name: Publish AUR package
         uses: KSXGitHub/github-actions-deploy-aur@master
