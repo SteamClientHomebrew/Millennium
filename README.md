@@ -29,7 +29,6 @@
 <br>
 <br>
 
-
 Millennium is an **open-source low-code modding framework** to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead.
 
 If you enjoy this tool, please consider starring the project ⭐
@@ -37,7 +36,7 @@ If you enjoy this tool, please consider starring the project ⭐
 <br>
 
 <!-- credits to https://github.com/clawdius for this intro video -->
-https://github.com/user-attachments/assets/ea9028d1-ecfd-4d95-b199-33bb6b657bff
+https://github.com/user-attachments/assets/20dec435-ed47-4042-9fb7-38635480b850
 
 
 <br>
