@@ -37,7 +37,8 @@ If you enjoy this tool, please consider starring the project ⭐
 <br>
 
 <!-- credits to https://github.com/clawdius for this intro video -->
-https://github.com/SteamClientHomebrew/Millennium/assets/81448108/0c4a0ea0-7995-442a-b569-68ca3750fd5e
+https://github.com/user-attachments/assets/ea9028d1-ecfd-4d95-b199-33bb6b657bff
+
 
 <br>
 </div>
