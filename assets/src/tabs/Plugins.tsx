@@ -40,8 +40,13 @@ interface PluginStatusProps {
 	warnings: number
 }
 
+interface UpdatedPluginProps {
+	plugin_name: string
+	enabled: boolean
+}
+
 const FindAllPlugins     = callable<[], string>("find_all_plugins")
-const UpdatePluginStatus = callable<[{ plugin_name: string, enabled: boolean }], any>("update_plugin_status")
+const UpdatePluginStatus = callable<[{ pluginJson: string }], any>("update_plugin_status")
 const GetPluginsPath     = callable<[], string>("get_plugins_dir")
 
 const PluginViewModal: React.FC = () => {
@@ -88,16 +93,21 @@ const PluginViewModal: React.FC = () => {
 
 	useEffect(() => { FetchAllPlugins() }, [])
 
+	const [updatedPlugins, setUpdatedPlugins] = useState<UpdatedPluginProps[]>([])
+
 	const handleCheckboxChange = (index: number) => {
+		/* Prevent users from disabling this plugin, as its vital */
+		const updated: boolean = !checkedItems[index] || plugins[index]?.data?.name === "core"
 
+		setCheckedItems  ({ ...checkedItems, [index]: updated });
+		setUpdatedPlugins([...updatedPlugins, { plugin_name: plugins[index]?.data?.name, enabled: updated }])
+	};
+
+	const SavePluginChanges = () => {
 		const onOK = () => {
-			/* Prevent users from disabling this plugin, as its vital */
-			const updated: boolean = !checkedItems[index] || plugins[index]?.data?.name === "core"
-			setCheckedItems({ ...checkedItems, [index]: updated });
-
-			UpdatePluginStatus({ plugin_name: plugins[index]?.data?.name, enabled: updated }).catch((_: any) => {
-				pluginSelf.connectionFailed = true
-			})
+			UpdatePluginStatus({ pluginJson: JSON.stringify(updatedPlugins) })
+			.then(()        => { pluginSelf.connectionFailed = false })
+			.catch((_: any) => { pluginSelf.connectionFailed = true  })
 		}
 		
 		showModal(
@@ -112,42 +122,6 @@ const PluginViewModal: React.FC = () => {
 				bNeverPopOut: false,
 			},
 		);
-	};
-
-	const RenderStatusInfo = ({ pluginName }: { pluginName: string }) => {
-		const pluginInfo = pluginsWithLogs?.get(pluginName)
-
-		if (!pluginInfo) {
-			return <Fragment />
-		}
-
-		const HasErrors   = () => pluginInfo?.errors   > 0
-		const HasWarnings = () => pluginInfo?.warnings > 0
-
-		enum Level {
-			Error = "red",
-			Warning = "rgb(255, 175, 0)",
-			OK = "#0ec50e"
-		}
-
-		return (
-			<p className='pluginStatus' style={{ fontSize: "12px", fontWeight: "500", display: "flex", alignContent: "center", gap: "5px" }}>
-				Status:
-				<p className='statusText' style={{ color: Level.OK, margin: "0" }}>
-					Running
-					{/* If no warnings found, let the user know. */}
-					{(!HasErrors() && !HasWarnings()) && <span style={{ color: Level.OK }}>, No issue found!</span>}
-				</p>
-
-				{/* Display error count on the running plugin */}
-				{ HasErrors()   && <p className='statusText' style={{ color: Level.Error,   margin: "0" }}>with {pluginInfo?.errors} errors   </p>}
-				{/* Display warning count on the running plugin */}
-				{ HasWarnings() && <p className='statusText' style={{ color: Level.Warning, margin: "0" }}>and {pluginInfo?.warnings} warnings</p>}
-
-				{/* Warn user to check for logs in the logs tab if there are warnings or errors */}
-				{ (HasWarnings() || HasErrors()) && <span>(Check logs tab for more info)</span> }
-			</p>
-		)
 	}
 
 	if (pluginSelf.connectionFailed) {
@@ -284,6 +258,10 @@ const PluginViewModal: React.FC = () => {
 					height: 8px;
 					border-radius: 50% !important;
 				}
+					
+				button.DialogButton._DialogLayout.Secondary.Focusable {
+					width: fit-content;
+				}
 			`}</style>
 
 			<Field
@@ -299,6 +277,12 @@ const PluginViewModal: React.FC = () => {
 				}
 			>
 				<div style={{ display: "flex", gap: "10px" }}>
+					{
+						updatedPlugins.length > 0 &&
+						<DialogButton onClick={SavePluginChanges} style={{ padding: "0px 10px 0px" }}>
+							{locale.optionSaveChanges}
+						</DialogButton>
+					}
 					<DialogButton onClick={FetchAllPlugins} style={{ padding: "0px 10px 0px" }}>
 						<IconsModule.Refresh height="16" />
 					</DialogButton>

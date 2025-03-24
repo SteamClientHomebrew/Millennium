@@ -206,40 +206,97 @@ PyObject* AddBrowserJs(PyObject* self, PyObject* args)
 /* 
 This portion of the API is undocumented but you can use it. 
 */
-PyObject* TogglePluginStatus(PyObject* self, PyObject* args) 
-{ 
-    PyObject* statusObj;
-    const char* pluginName;
+PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
+{
+    PyObject* input;  // Will only accept a list format
     PythonManager& manager = PythonManager::GetInstance();
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-
-    if (!PyArg_ParseTuple(args, "sO", &pluginName, &statusObj))
+    
+    if (!PyArg_ParseTuple(args, "O", &input))
     {
-        PyErr_SetString(PyExc_RuntimeError, "Failed to parse parameters. expected [str, bool]");
+        PyErr_SetString(PyExc_RuntimeError, "Failed to parse parameters");
         return NULL;
     }
-
-    if (!PyBool_Check(statusObj))
+    
+    // Only accept list format
+    if (!PyList_Check(input))
     {
-        PyErr_SetString(PyExc_TypeError, "Second argument must be a boolean");
+        PyErr_SetString(PyExc_TypeError, "Argument must be a list of dictionaries with 'plugin_name' and 'enabled' fields");
         return NULL;
     }
-
-    const bool newToggleStatus = PyObject_IsTrue(statusObj);
-    settingsStore->TogglePluginStatus(pluginName, newToggleStatus);
-
-    /** FIXME: Properly handle threads here. Detaching them is definitely going to cause issues */
-
-    if (!newToggleStatus)
+    
+    // Dictionary to store plugin name to status mapping
+    std::unordered_map<std::string, bool> pluginStatusMap;
+    Py_ssize_t listSize = PyList_Size(input);
+    
+    for (Py_ssize_t i = 0; i < listSize; i++)
     {
-        std::thread([pluginName, &manager] { manager.DestroyPythonInstance(pluginName); }).detach();
+        PyObject* item = PyList_GetItem(input, i);
+        
+        if (!PyDict_Check(item))
+        {
+            PyErr_SetString(PyExc_TypeError, "List items must be dictionaries");
+            return NULL;
+        }
+        
+        PyObject* nameObj = PyDict_GetItemString(item, "plugin_name");
+        PyObject* enabledObj = PyDict_GetItemString(item, "enabled");
+        
+        if (!nameObj || !PyUnicode_Check(nameObj))
+        {
+            PyErr_SetString(PyExc_TypeError, "Each dictionary must have a 'plugin_name' string key");
+            return NULL;
+        }
+        
+        if (!enabledObj || !PyBool_Check(enabledObj))
+        {
+            PyErr_SetString(PyExc_TypeError, "Each dictionary must have an 'enabled' boolean key");
+            return NULL;
+        }
+        
+        const char* pluginName = PyUnicode_AsUTF8(nameObj);
+        const bool newStatus = PyObject_IsTrue(enabledObj);
+        
+        pluginStatusMap[pluginName] = newStatus;
     }
-    else
+    
+    // Now handle all the plugin status changes
+    bool hasEnableRequests = false;
+    std::vector<std::string> pluginsToDisable;
+    
+    // Update settings and prepare lists
+    for (const auto& entry : pluginStatusMap)
     {
-        Logger.Log("requested to enable plugin [{}]", pluginName);
+        const std::string& pluginName = entry.first;
+        const bool newStatus = entry.second;
+        
+        settingsStore->TogglePluginStatus(pluginName.c_str(), newStatus);
+        
+        if (newStatus)
+        {
+            hasEnableRequests = true;
+            Logger.Log("requested to enable plugin [{}]", pluginName);
+        }
+        else
+        {
+            pluginsToDisable.push_back(pluginName);
+            Logger.Log("requested to disable plugin [{}]", pluginName);
+        }
+    }
+    
+    // Handle the actual operations
+    if (hasEnableRequests)
+    {
         std::thread([&manager] { g_pluginLoader->StartBackEnds(manager); }).detach();
     }
-
+    
+    for (const auto& pluginName : pluginsToDisable)
+    {
+        std::thread([pluginName, &manager] { 
+            manager.DestroyPythonInstance(pluginName.c_str()); 
+        }).detach();
+    }
+    
     CoInitializer::ReInjectFrontendShims(g_pluginLoader);
     Py_RETURN_NONE;
 }

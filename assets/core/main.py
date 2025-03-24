@@ -60,8 +60,8 @@ def _webkit_accent_color():
     return Colors.get_accent_color(cfg.get_config()["accentColor"])
 
 
-def update_plugin_status(plugin_name: str, enabled: bool):
-    Millennium.change_plugin_status(plugin_name, enabled)
+def update_plugin_status(pluginJson):
+    Millennium.change_plugin_status(json.loads(pluginJson))
 
 
 def _get_plugin_logs():
