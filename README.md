@@ -36,7 +36,8 @@ If you enjoy this tool, please consider starring the project ⭐
 <br>
 
 <!-- credits to https://github.com/clawdius for this intro video -->
-https://github.com/user-attachments/assets/20dec435-ed47-4042-9fb7-38635480b850
+https://github.com/user-attachments/assets/d7d710a9-f6ca-4190-b2db-f4f7700ccfe1
+
 
 
 <br>
