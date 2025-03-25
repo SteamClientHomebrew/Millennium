@@ -1,15 +1,12 @@
-#include <linux/limits.h>
 #define INCBIN_PREFIX
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 
 #include <CLI/CLI.hpp>
-#include <string>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <limits.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
