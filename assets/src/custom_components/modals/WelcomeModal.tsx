@@ -27,7 +27,7 @@ const HighlightMillenniumSettings = async () => {
     console.log(steamSuperNavDropdown)
 
     const millenniumContextMenuItem: HTMLElement = Array.from(await Millennium.findElement(steamSuperNavDropdown.document, ".contextMenuItem"))
-        .find((element: Element) => (element as HTMLElement).textContent === "Millennium Settings") as HTMLElement
+        .find((element: Element) => (element as HTMLElement).textContent === "Millennium") as HTMLElement
 
     // Color it yellow to highlight it
     millenniumContextMenuItem.style.setProperty("color", "#d04dd0");
