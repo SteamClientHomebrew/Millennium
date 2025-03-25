@@ -86,6 +86,12 @@ std::string GetEnv(std::string key)
     return strVariable;
 }
 
+std::string GetEnvWithFallback(std::string key, std::string fallback)
+{
+    std::string var = GetEnv(key);
+    return var.empty() ? fallback : var;
+}
+
 /**
  * @brief Set up environment variables used throughout the application.
  */
@@ -109,19 +115,22 @@ const void SetupEnvironmentVariables()
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
     #elif __linux__
-    const static std::string pythonEnv = fmt::format("{}/.local/share/millennium/lib/cache", std::getenv("HOME"));
+    const std::string homeDir   = GetEnv("HOME");
+    const std::string configDir = GetEnvWithFallback("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
+    const std::string dataDir   = GetEnvWithFallback("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
+    const static std::string pythonEnv = fmt::format("{}/millennium/lib/cache", dataDir);
 
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
 
-        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     std::getenv("HOME")) },
-        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/.local/share/millennium/plugins",    std::getenv("HOME")) },
-        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/.config/millennium",                 std::getenv("HOME")) },
-        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/.local/share/millennium/logs",       std::getenv("HOME")) },
-        { "MILLENNIUM__DATA_LIB",       fmt::format("{}/.local/share/millennium/lib",        std::getenv("HOME")) },
-        { "MILLENNIUM__SHIMS_PATH",     fmt::format("{}/.local/share/millennium/lib/shims",  std::getenv("HOME")) },
-        { "MILLENNIUM__ASSETS_PATH",    fmt::format("{}/.local/share/millennium/lib/assets", std::getenv("HOME")) },
+        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     homeDir) },
+        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/millennium/plugins",    dataDir) },
+        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/millennium",            configDir) },
+        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/millennium/logs",       dataDir) },
+        { "MILLENNIUM__DATA_LIB",       fmt::format("{}/millennium/lib",        dataDir) },
+        { "MILLENNIUM__SHIMS_PATH",     fmt::format("{}/millennium/lib/shims",  dataDir) },
+        { "MILLENNIUM__ASSETS_PATH",    fmt::format("{}/millennium/lib/assets", dataDir) },
         
         { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
         

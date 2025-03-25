@@ -1,23 +1,26 @@
 #!/bin/bash
 
+: "${XDG_DATA_HOME:=$HOME/.local/share}"
+MILLENNIUM_DIR="$XDG_DATA_HOME/millennium"
+
 post_install() {
     echo -e "\e[1m\e[92m==>\e[0m \e[1mSetting permissions for $SUDO_USER...\e[0m"
-    sudo chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.local/share/millennium
+    sudo chown -R $SUDO_USER:$SUDO_USER "$MILLENNIUM_DIR"
 
     echo -e "\e[1m\e[92m==>\e[0m \e[1mCreating virtual environment...\e[0m"
-    /opt/python-i686-3.11.8/bin/python3.11 -m venv "/home/$SUDO_USER/.local/share/millennium/lib/cache/" --system-site-packages --symlinks
+    /opt/python-i686-3.11.8/bin/python3.11 -m venv "$MILLENNIUM_DIR/lib/cache/" --system-site-packages --symlinks
 
     echo -e "\e[1m\e[92m==>\e[0m \e[1mPlease run 'millennium patch' setup Millennium.\e[0m"
     echo -e "\e[1m\e[92m==>\e[0m \e[1mSee https://docs.steambrew.app/users/installing for help.\e[0m"
 }
 
 post_remove() {
-    sudo rm -rf /home/$SUDO_USER/.local/share/millennium/lib/cache/
+    sudo rm -rf "$MILLENNIUM_DIR/lib/cache/"
 }
 
 post_upgrade() {
     echo -e "\e[1m\e[92m==>\e[0m \e[1mSetting permissions for $SUDO_USER...\e[0m"
-    sudo chown -R $SUDO_USER:$SUDO_USER /home/$SUDO_USER/.local/share/millennium
+    sudo chown -R $SUDO_USER:$SUDO_USER "$MILLENNIUM_DIR"
 
     echo -e "\e[1m\e[92m==>\e[0m \e[1mPlease run 'millennium patch' to update the Millennium's start script.\e[0m"
     echo -e "\e[1m\e[92m==>\e[0m \e[1mSee https://docs.steambrew.app/users/installing for help.\e[0m"
