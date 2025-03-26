@@ -199,7 +199,7 @@ const PluginViewModal: React.FC = () => {
 					key={index}
 					label={
 						<div className='pluginNameContainer'> 
-							{pluginLogs && 
+							{pluginLogs && checkedItems[index] && 
 								<div 
 									className="pluginStatusDot" 
 									style={{ backgroundColor: backgroundColor }} 

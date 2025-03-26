@@ -6,6 +6,7 @@ import requests
 import Millennium # type: ignore
 from util.logger import logger
 from plat_spec.main import config_path
+import semver
 
 class UpdaterProps(Enum):
     UNSET = 0,
@@ -19,6 +20,9 @@ class MillenniumUpdater:
     GITHUB_API_URL = "https://api.github.com/repos/shdwmtr/millennium/releases"
     __has_updates = False
     __latest_version = None
+
+    def parse_version(version: str):
+        return version[1:] if version[0] == "v" else version
 
     def check_for_updates():
 
@@ -37,10 +41,16 @@ class MillenniumUpdater:
                     MillenniumUpdater.__latest_version = release
                     break
 
-            # Compare the latest release with the current version
-            if MillenniumUpdater.__latest_version["tag_name"] != Millennium.version():
+            current_version = MillenniumUpdater.parse_version(Millennium.version())
+            latest_version = MillenniumUpdater.parse_version(MillenniumUpdater.__latest_version["tag_name"])    
+            compare = semver.compare(current_version, latest_version)
+
+            if compare == -1:
                 MillenniumUpdater.__has_updates = True
                 logger.log("New version of Millennium available: " + MillenniumUpdater.__latest_version["tag_name"])
+            
+            elif compare == 1:
+                logger.warn("Millennium is ahead of the latest release.")
             else:
                 logger.log("Millennium is up to date.")
 
