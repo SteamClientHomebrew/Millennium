@@ -41,7 +41,7 @@ build() {
 
 package() {
     cd "$srcdir/millennium"
-    local dataPath="${XDG_DATA_HOME:=$HOME/.local/shrae}"
+    local dataPath="${XDG_DATA_HOME:=$HOME/.local/share}"
     local destinationBase="$pkgdir$dataPath/millennium/lib/assets"
 
     declare -A paths=(
