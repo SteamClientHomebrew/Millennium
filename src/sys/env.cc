@@ -118,6 +118,7 @@ const void SetupEnvironmentVariables()
     const std::string homeDir   = GetEnv("HOME");
     const std::string configDir = GetEnvWithFallback("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
     const std::string dataDir   = GetEnvWithFallback("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
+    const std::string stateDir  = GetEnvWithFallback("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
     const static std::string pythonEnv = fmt::format("{}/millennium/lib/cache", dataDir);
 
     std::map<std::string, std::string> environment_unix = {
@@ -127,7 +128,7 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     homeDir) },
         { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/millennium/plugins",    dataDir) },
         { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/millennium",            configDir) },
-        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/millennium/logs",       dataDir) },
+        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/millennium/logs",       stateDir) },
         { "MILLENNIUM__DATA_LIB",       fmt::format("{}/millennium/lib",        dataDir) },
         { "MILLENNIUM__SHIMS_PATH",     fmt::format("{}/millennium/lib/shims",  dataDir) },
         { "MILLENNIUM__ASSETS_PATH",    fmt::format("{}/millennium/lib/assets", dataDir) },
