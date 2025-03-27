@@ -1,64 +1,62 @@
-import { SingleDropdownOption } from '@steambrew/client'
+import { SingleDropdownOption } from '@steambrew/client';
 
 export interface Patch {
-    MatchRegexString: string, 
-    TargetCss?: string | Array<string>, 
-    TargetJs?: string | Array<string>
+	MatchRegexString: string;
+	TargetCss?: string | Array<string>;
+	TargetJs?: string | Array<string>;
 }
 
 export interface FundingTypes {
-    kofi: string
+	kofi: string;
 }
 
 export interface GitInfo {
-    owner: string,
-    repo_name: string
+	owner: string;
+	repo_name: string;
 }
 
 export interface ConditionalPatch {
-    /**
-     * A list of regex strings to match against the current window. 
-     * ex: ["^Steam$", ".*"]
-     */
-    affects: string[];
-    src: string;
+	/**
+	 * A list of regex strings to match against the current window.
+	 * ex: ["^Steam$", ".*"]
+	 */
+	affects: string[];
+	src: string;
 }
 
-export const CommonPatchTypes = [
-    "TargetCss", "TargetJs"
-]
+export const CommonPatchTypes = ['TargetCss', 'TargetJs'];
 
 export enum ConditionalControlFlowType {
-    TargetCss,
-    TargetJs
+	TargetCss,
+	TargetJs,
 }
 
 export interface ConditionalControlFlow {
-    TargetCss?: ConditionalPatch;
-    TargetJs?: ConditionalPatch;
+	TargetCss?: ConditionalPatch;
+	TargetJs?: ConditionalPatch;
 }
 
 export interface Conditions {
-    [settingName: string]: ICondition;
+	[settingName: string]: ICondition;
 }
 
 export interface ICondition {
-    default?: string;
-    description?: string;
-    /**
-     * Tab to put the condition in.
-     *
-     * If no condition uses them, there will be no tabs.
-     * If some conditions include it, those who don't will be put in a separate tab.
-     */
-    tab?: string;
-    values: {
-        [condition: string]: ConditionalControlFlow
-    };
+	default?: string;
+	description?: string;
+	/**
+	 * Tab to put the condition in.
+	 *
+	 * If no condition uses them, there will be no tabs.
+	 * If some conditions include it, those who don't will be put in a separate tab.
+	 */
+	tab?: string;
+	values: {
+		[condition: string]: ConditionalControlFlow;
+	};
 }
 
 export interface ConditionsStore {
-    [settingName: string]: string
+	[settingName: string]: string;
 }
 
 /**
@@ -66,120 +64,120 @@ export interface ConditionsStore {
  * There is no guarantee a given Theme contains any elements
  */
 export interface Theme {
-    RootColors?: string, // path to root colors
-    Patches?: Patch[],
-    UseDefaultPatches?: boolean,
-    Conditions?: Conditions,
-    author?: string, 
-    description?: string, 
-    funding?: FundingTypes,
-    github?: GitInfo,
-    header_image?: URL,
-    splash_image?: URL,
-    name?: string, 
-    version?: string,
-    source?: string, 
-    tags?: string[]
+	RootColors?: string; // path to root colors
+	Patches?: Patch[];
+	UseDefaultPatches?: boolean;
+	Conditions?: Conditions;
+	author?: string;
+	description?: string;
+	funding?: FundingTypes;
+	github?: GitInfo;
+	header_image?: URL;
+	splash_image?: URL;
+	name?: string;
+	version?: string;
+	source?: string;
+	tags?: string[];
 }
 
 /**
  * Wrapped return from backend to interpolate foldername, and theme config
  */
 export interface ThemeItem {
-    data: Theme,
-    native: string, 
-    // failed to parse the current theme
-    failed: boolean
+	data: Theme;
+	native: string;
+	// failed to parse the current theme
+	failed: boolean;
 }
 
 /**
  * MultiDropdownOption extended to hold theme data
  */
 export interface ComboItem extends SingleDropdownOption {
-    theme: ThemeItem
+	theme: ThemeItem;
 }
 
 export interface Plugin {
-    common_name?: string, 
-    name: string,
-    description?: string,
-    venv?: string,
-    version?: string
+	common_name?: string;
+	name: string;
+	description?: string;
+	venv?: string;
+	version?: string;
 }
 
 export interface PluginComponent {
-    path: string,
-    enabled: boolean,
-    data: Plugin,
+	path: string;
+	enabled: boolean;
+	data: Plugin;
 }
 
 /**
- * SystemAccentColor, High-level abstraction derived from the backend. 
+ * SystemAccentColor, High-level abstraction derived from the backend.
  */
 export interface SystemAccentColor {
-    accent: string, 
-    accentRgb: string, 
-    light1: string, 
-    light1Rgb: string, 
-    light2: string, 
-    light2Rgb: string, 
-    light3: string, 
-    light3Rgb: string, 
-    dark1: string, 
-    dark1Rgb: string, 
-    dark2: string, 
-    dark2Rgb: string, 
-    dark3: string, 
-    dark3Rgb: string, 
+	accent: string;
+	accentRgb: string;
+	light1: string;
+	light1Rgb: string;
+	light2: string;
+	light2Rgb: string;
+	light3: string;
+	light3Rgb: string;
+	dark1: string;
+	dark1Rgb: string;
+	dark2: string;
+	dark2Rgb: string;
+	dark3: string;
+	dark3Rgb: string;
 }
 
 export interface UpdateItem {
-    message: string, 
-    date: string,
-    commit: string,
-    native: string,
-    name: string
+	message: string;
+	date: string;
+	commit: string;
+	native: string;
+	name: string;
 }
 
 export interface Settings {
-    active: string,
-    scripts: boolean,
-    styles: boolean,
-    updateNotifications: boolean
+	active: string;
+	scripts: boolean;
+	styles: boolean;
+	updateNotifications: boolean;
 }
 
 export interface SettingsProps {
-    accent_color: SystemAccentColor,
-    active_theme: ThemeItem,
-    conditions: ConditionsStore,
-    settings: Settings,
-    steamPath: string,
-    installPath: string,
-    useInterface: boolean,
-    millenniumVersion: string,
-    wantsUpdates: boolean,
-    wantsNotify: boolean,
-    enabledPlugins: string
+	accent_color: SystemAccentColor;
+	active_theme: ThemeItem;
+	conditions: ConditionsStore;
+	settings: Settings;
+	steamPath: string;
+	installPath: string;
+	useInterface: boolean;
+	millenniumVersion: string;
+	wantsUpdates: boolean;
+	wantsNotify: boolean;
+	enabledPlugins: string;
 }
 
 export interface ColorProp {
-    ColorName: string, 
-    Description: string, 
-    HexColorCode: string, 
-    OriginalColorCode: string
+	ColorName: string;
+	Description: string;
+	HexColorCode: string;
+	OriginalColorCode: string;
 }
 
 export interface ThemeItemV1 extends Theme {
-    GlobalsColors: ColorProp[]
+	GlobalsColors: ColorProp[];
 }
 
 export enum UpdaterOptionProps {
-    UNSET,
-    YES,
-    NO
+	UNSET,
+	YES,
+	NO,
 }
 
 export enum OSType {
-    Windows,
-    Linux
+	Windows,
+	Linux,
 }

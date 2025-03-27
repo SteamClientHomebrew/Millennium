@@ -1,12 +1,12 @@
-import { pluginSelf } from "@steambrew/client"
-import { SystemAccentColor } from "../types"
+import { pluginSelf } from '@steambrew/client';
+import { SystemAccentColor } from '../types';
 
 /**
  * appends a virtual CSS script into self module
  * @param systemColors SystemAccentColors
  */
 export const DispatchSystemColors = (systemColors: SystemAccentColor) => {
-    pluginSelf.systemColor = `
+	pluginSelf.systemColor = `
     :root {
         --SystemAccentColor: ${systemColors.accent};
         --SystemAccentColor-RGB: ${systemColors.accentRgb};
@@ -22,5 +22,5 @@ export const DispatchSystemColors = (systemColors: SystemAccentColor) => {
         --SystemAccentColorDark2-RGB: ${systemColors.dark2Rgb};
         --SystemAccentColorDark3: ${systemColors.dark3};
         --SystemAccentColorDark3-RGB: ${systemColors.dark3Rgb};
-    }`
-}
+    }`;
+};

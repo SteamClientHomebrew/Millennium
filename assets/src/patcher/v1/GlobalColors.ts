@@ -1,13 +1,13 @@
-import { pluginSelf } from "@steambrew/client"
-import { ColorProp } from "../../types"
+import { pluginSelf } from '@steambrew/client';
+import { ColorProp } from '../../types';
 
 /**
  * appends a virtual CSS script into self module
  * @param globalColors V1 Global Colors struct
  */
 export const DispatchGlobalColors = (globalColors: ColorProp[]) => {
-    pluginSelf.GlobalsColors = `
+	pluginSelf.GlobalsColors = `
     :root {
-        ${globalColors.map((color) => `${color.ColorName}: ${color.HexColorCode};`).join(" ")}
-    }`
-}
+        ${globalColors.map((color) => `${color.ColorName}: ${color.HexColorCode};`).join(' ')}
+    }`;
+};
