@@ -41,7 +41,8 @@ build() {
 
 package() {
     cd "$srcdir/millennium"
-    destinationBase="$pkgdir$HOME/.local/share/millennium/lib/assets"
+    local dataPath="${XDG_DATA_HOME:=$HOME/.local/share}"
+    local destinationBase="$pkgdir$dataPath/millennium/lib/assets"
 
     declare -A paths=(
         ["./assets/.millennium/Dist/index.js"]="$destinationBase/.millennium/Dist/index.js"
@@ -64,10 +65,10 @@ package() {
     install -Dm755 build/cli/millennium "$pkgdir/usr/bin/millennium"
     
     mkdir -p "$pkgdir/usr/lib/millennium"
-    mkdir -p "$pkgdir$HOME/.local/share/millennium/lib/shims"
+    mkdir -p "$pkgdir$dataPath/millennium/lib/shims"
 
-    cp -r ./assets/node_modules/@steambrew/api/dist/webkit_api.js "$pkgdir$HOME/.local/share/millennium/lib/shims/webkit_api.js"
-    cp -r ./assets/node_modules/@steambrew/api/dist/client_api.js "$pkgdir$HOME/.local/share/millennium/lib/shims/client_api.js"
+    cp -r ./assets/node_modules/@steambrew/api/dist/webkit_api.js "$pkgdir$dataPath/millennium/lib/shims/webkit_api.js"
+    cp -r ./assets/node_modules/@steambrew/api/dist/client_api.js "$pkgdir$dataPath/millennium/lib/shims/client_api.js"
 
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

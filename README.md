@@ -104,7 +104,7 @@ Supported Platforms:
 │  │  │  ├─ libpython-3.11.8.so # dynamically linked to millennium, allows user plugin backends to run
 ├─ home/
 │  ├─ $user/
-│  │  ├─ .local/
+│  │  ├─ .local/share
 │  │  │  ├─ millennium/
 │  │  │  │  ├─ lib/
 │  │  │  │  │  ├─ assets/ # builtin plugin that provides base functionality for millennium.

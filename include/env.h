@@ -37,3 +37,4 @@
 
 const void SetupEnvironmentVariables();
 std::string GetEnv(std::string key);
+std::string GetEnvWithFallback(std::string key, std::string fallback);

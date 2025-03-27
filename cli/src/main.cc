@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -125,8 +126,14 @@ const void check_patch_status()
     free(buffer);
 };
 
-const void get_python_path() 
+std::string get_data_path()
 {
+    char *data_home = getenv("XDG_DATA_HOME");
+    if (data_home)
+    {
+        return data_home;
+    }
+
     const char *sudo_user = getenv("SUDO_USER");
     const char *home;
 
@@ -147,34 +154,23 @@ const void get_python_path()
         home = getenv("HOME");
     }
 
-    std::cout << home << "/.local/share/millennium/lib/cache/bin/python3.11" << std::endl;
+    return std::string(home) + "/.local/share";
+}
+
+const void get_python_path() 
+{
+    std::string data_path = get_data_path();
+
+    std::cout << data_path << "/millennium/lib/cache/bin/python3.11" << std::endl;
 };
 
 const void setup_millennium()
 {
     check_sudo();
-    const char *sudo_user = getenv("SUDO_USER");
-    const char *home;
 
-    if (sudo_user) 
-    {
-        struct passwd *pw = getpwnam(sudo_user);
-        if (pw) 
-        {
-            home = pw->pw_dir;
-        } 
-        else 
-        {
-            home = getenv("HOME");
-        }
-    } 
-    else 
-    {
-        home = getenv("HOME");
-    }
-
-    char path[1024];
-    snprintf(path, sizeof(path), "%s/.local/share/millennium", home);
+    std::string data_path = get_data_path();
+    char path[PATH_MAX];
+    snprintf(path, sizeof(path), "%s/millennium", data_path.c_str());
     change_ownership(path);
 
     std::cout << "done.\n";
