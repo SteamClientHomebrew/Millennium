@@ -34,16 +34,21 @@ export const PromptSelectUpdaterOptions = () => {
 		);
 
 		const OnUpdateChange = (newValue: boolean) => {
+			pluginSelf.wantsMillenniumUpdates = newValue;
 			setWantsUpdates(newValue);
 		};
 
 		const OnNotifyChange = (newValue: boolean) => {
+			pluginSelf.wantsMillenniumUpdateNotifications = newValue;
 			setWantsNotify(newValue);
 		};
 
 		const OnContinue = () => {
 			SetUserWantsUpdates({ wantsUpdates: wantsUpdates });
 			SetUserWantsNotifications({ wantsNotify: wantsNotify });
+
+			pluginSelf.wantsMillenniumUpdates = wantsUpdates;
+			pluginSelf.wantsMillenniumUpdateNotifications = wantsNotify;
 			SecurityModalWindow?.Close();
 		};
 

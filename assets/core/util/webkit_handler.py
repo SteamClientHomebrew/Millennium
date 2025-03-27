@@ -72,7 +72,6 @@ def parse_conditional_patches(conditional_patches: dict, theme_name: str):
                 seen.add(identifier)
                 unique_webkit_items.append(item)
 
-        logger.log(str(unique_webkit_items))
         return unique_webkit_items
 
 conditional_patches = []
