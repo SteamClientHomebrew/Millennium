@@ -1,3 +1,12 @@
+## [2.19.1](https://github.com/shdwmtr/millennium/compare/v2.19.0...v2.19.1) (2025-03-28)
+
+
+### Bug Fixes
+
+* Fix the CI ([f416425](https://github.com/shdwmtr/millennium/commit/f4164253ee85991907b93ad54bfb16e9025af504))
+* Fix the CI building against the wrong version of Millennium. ([e12f160](https://github.com/shdwmtr/millennium/commit/e12f1609e681a11b676515a67cc4df264ecb53e4))
+* Fix typo in welcome modal. ([e06c3c1](https://github.com/shdwmtr/millennium/commit/e06c3c163f4e6bb1ed17fc44ddcec7f09e411651))
+
 # [2.19.0](https://github.com/shdwmtr/millennium/compare/v2.18.0...v2.19.0) (2025-03-28)
 
 
