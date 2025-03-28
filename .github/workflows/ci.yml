@@ -50,6 +50,8 @@ jobs:
 
             - name: (Setup) Get Next Version
               run: . scripts\ci\win32\version.ps1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: (Setup) Environment Variables
               run: |
@@ -179,6 +181,8 @@ jobs:
 
             - name: (Setup) Get Next Version
               run: bash scripts/ci/posix/version.sh
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: (Setup) Environment Variables
               run: |
