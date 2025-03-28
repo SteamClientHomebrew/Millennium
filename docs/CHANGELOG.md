@@ -5,6 +5,13 @@
 
 * Add steam://open/millennium URL to open settings ([7bcc7e2](https://github.com/shdwmtr/millennium/commit/7bcc7e2aeebfa2750fbe0b1cc8d25ceccea9e074))
 
+# [2.19.0](https://github.com/shdwmtr/millennium/compare/v2.18.0...v2.19.0) (2025-03-28)
+
+
+### Features
+
+* Add steam://open/millennium URL to open settings ([7bcc7e2](https://github.com/shdwmtr/millennium/commit/7bcc7e2aeebfa2750fbe0b1cc8d25ceccea9e074))
+
 # [2.18.0](https://github.com/shdwmtr/millennium/compare/v2.17.2...v2.18.0) (2025-03-28)
 
 
