@@ -157,9 +157,8 @@ int IsDebuggerPresent()
  */
 const static void EntryMain() 
 {
-    SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
-
     #if _WIN32
+    SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
     #endif
 
