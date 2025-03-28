@@ -1,332 +1,334 @@
 name: Build Millennium
 
 on:
-  workflow_dispatch:
-    inputs:
-        release_artifacts:
-          description: 'Release build?'
-          required: true
-          default: 'no'
-        build_as_pre_release:
-          description: 'Build as pre-release?'
-          required: true
-          default: 'no'
+    workflow_dispatch:
+        inputs:
+            release_artifacts:
+                description: 'Release build?'
+                required: true
+                default: 'no'
+            build_as_pre_release:
+                description: 'Build as pre-release?'
+                required: true
+                default: 'no'
 
 jobs:
-  build-windows:
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+    build-windows:
+        permissions:
+            contents: write
+            issues: write
+            pull-requests: write
 
-    runs-on: windows-latest
+        runs-on: windows-latest
 
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
-    steps:
-    - name: Export GitHub Actions cache environment variables
-      uses: actions/github-script@v7
-      with:
-        script: |
-          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-
-    - name: (Setup) Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
-
-    - name: (Setup) Environment Variables
-      run: |
-        echo "${{ secrets.ENVIRONMENT_VARS }}" >> assets/.env
-
-    - name: (Setup) Assets Build Environment
-      run: cd assets && npm install && npm run build
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: (Setup) Build Assets
-      run: . scripts\ci\win32\mk-assets.ps1
-    
-    - name: (Setup) Construct Python Environment
-      run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
-
-    - name: (Setup) Semantic Release
-      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-      env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up cache for Python source
-      uses: actions/cache@v3
-      id: build-cache
-      with:
-        path: Python-3.11.8/PCbuild/win32
-        key: ${{ runner.os }}-python-3.11.8-build
-        restore-keys: ${{ runner.os }}-python-3.11.8-build-  
-
-    - name: (Python) Add msbuild to PATH
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      uses: microsoft/setup-msbuild@v2
-
-    - name: (Python) Download 3.11.8 win32 source
-      if: steps.build-cache.outputs.cache-hit != 'true'
-      run: . scripts\ci\win32\build-python.ps1
-
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: python 3.11.8 build libraries
-        path: D:/a/Millennium/Millennium/build/python
-
-    - name: Install prerequisites
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: mingw32
-        install: >-
-          mingw-w64-i686-libgcrypt
-          mingw-w64-i686-gcc
-          mingw-w64-i686-cmake
-          mingw-w64-i686-ninja
-          unzip
-
-    - name: (Dependency) Install vcpkg
-      shell: pwsh
-      run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
-
-    - name: (Generator) Configure CMake
-      shell: msys2 {0}
-      run: cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
-
-    - name: Install Node.js and npm
-      shell: msys2 {0}
-      run: |
-        curl -fsSL https://nodejs.org/dist/v16.20.0/node-v16.20.0-win-x86.zip -o node.zip
-        unzip node.zip -d /usr/local
-        export PATH="/usr/local/node-v16.20.0-win-x86:$PATH"
-        node --version
-        npm --version
-    
-    - name: Build Millennium
-      shell: msys2 {0}
-      run: |
-        mkdir D:/a/Millennium/Millennium/build/artifacts
-        cmake --build build --config Release -- -j$(nproc)
-        cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
-        cp /d/a/Millennium/Millennium/build/preload/user32.dll  D:/a/env/user32.dll
-        cp /d/a/Millennium/Millennium/build/millennium.dll D:/a/env/millennium.dll
-        mkdir D:/a/env/ext/bin
-        # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
-        # cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
-
-    - name: Add API modules
-      run: |
-        npm install @steambrew/api
-        New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
-
-        Copy-Item -Path "./node_modules/@steambrew/api/dist/webkit_api.js" -Destination "D:/a/env/ext/data/shims/webkit_api.js" -Force
-        Copy-Item -Path "./node_modules/@steambrew/api/dist/client_api.js" -Destination "D:/a/env/ext/data/shims/client_api.js" -Force
-
-
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        include-hidden-files: true
-        name: millennium-windows
-        path: D:/a/env/
-
-  build-linux:
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-
-    runs-on: ubuntu-latest
-
-    env:
-      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
-    steps:
-    - name: Export GitHub Actions cache environment variables
-      uses: actions/github-script@v7
-      with:
-        script: |
-          core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: true
-
-    - name: (Setup) Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 20
-
-    - name: (Setup) Environment Variables
-      run: |
-        echo "${{ secrets.ENVIRONMENT_VARS }}" >> assets/.env
-
-    - name: (Setup) Assets Build Environment
-      run: cd assets && npm install && npm run build
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: (Setup) Build Assets
-      run: bash scripts/ci/posix/mk-assets.sh
-    
-    - name: (Setup) Semantic Release
-      run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-      env: 
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Install dependencies
-      run: |
-        sudo dpkg --add-architecture i386
-        sudo apt-get update
-        sudo apt-get install -y build-essential gcc-multilib g++-multilib
-
-    - name: Download Python 3.11.8 Binaries
-      run: |
-        wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
-        mkdir -p $HOME/.millennium/ext/data/cache
-        tar -xzf python-3.11.8-32-bit.tar.gz -C $HOME/.millennium/ext/data/cache
-
-        sudo mv $HOME/.millennium/ext/data/cache/python-build/* $HOME/.millennium/ext/data/cache
-        sudo rm -rf $HOME/.millennium/ext/data/cache/python-build
-
-        ls -la $HOME/.millennium/ext/data/cache
-
-        sudo mv $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
-
-        $HOME/.millennium/ext/data/cache/bin/python3.11 --version
-        mkdir -p /home/runner/env/ext/data
-        sudo cp -r $HOME/.millennium/ext/data/cache /home/runner/env/ext/data
-
-
-
-    - name: (Generator) Install CMake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.21.1'
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
-    - name: (Dependency) Install vcpkg & setup environment
-      run: sudo apt install libgtk-3-dev ninja-build &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
-    - name: (Generator) Configure CMake
-      run: cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
-      env: 
-        VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
-
-    - name: Build Millennium
-      run: |
-        # mkdir -p /home/runner/Millennium/build/artifacts
-        cmake --build build --config Release -- -j$(nproc)
-
-        # ls -laR /home/runner/Millennium/build
-
-        mkdir -p /home/runner/env
-        cp ./build/libmillennium_x86.so /home/runner/env/libmillennium_x86.so
-        cp ./build/cli/millennium /home/runner/env/millennium
-        cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
-        
-        npm install @steambrew/api
-        mkdir -p /home/runner/env/ext/data/shims
-        cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
-        cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
-
-    - name: Restructure Filesystem
-      run: |
-
-        mkdir ~/build
-
-        # Move assets to usr folder
-        mkdir -p ~/build/usr/lib/millennium
-        cp /home/runner/env/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
-        cp /home/runner/env/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
-
-        # Move scripts to usr folder
-        mkdir -p ~/build/usr/bin
-        cp /home/runner/env/millennium ~/build/usr/bin/millennium
-        chmod +x ~/build/usr/bin/millennium
-
-        mkdir -p ~/build/home/user/.local/share/millennium
-
-        # Move assets to home folder
-        cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/shims
-        cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/cache
-        cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/assets
-
-    - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        include-hidden-files: true
-        name: millennium-linux
-        path: /home/runner/build/
-  
-  release:
-      needs: [build-windows, build-linux]
-      runs-on: ubuntu-latest
-      if: ${{ inputs.release_artifacts == 'yes' }}
-      steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-  
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-  
-      - name: Install Semantic Release
-        run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-        env: 
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: millennium-windows
-          path: ./artifacts/windows
-  
-      - name: Download Linux Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: millennium-linux
-          path: ./artifacts/linux
-  
-      - name: Bump Version
-        id: read_version
-        run: bash scripts/ci/posix/bump.sh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
-      - name: Proccess Artifacts
-        run: |
-          mkdir -p ./artifacts/release
-  
-          cd ./artifacts/windows
-          zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip .
-          cd - # return to the original directory
-  
-          cd ./artifacts/linux
-          tar -czvf ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz .
-          cd - # return to the original directory
-  
-      - name: Create GitHub Release
-        run: npx semantic-release
+            ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+            VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+
+        steps:
+            - name: Export GitHub Actions cache environment variables
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+                      core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  submodules: true
+
+            - name: (Setup) Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 20
+
+            - name: (Setup) Get Next Version
+              run: . scripts\ci\win32\version.ps1
+
+            - name: (Setup) Environment Variables
+              run: |
+                  echo "${{ secrets.ENVIRONMENT_VARS }}" >> assets/.env
+
+            - name: (Setup) Assets Build Environment
+              run: cd assets && npm install && npm run build
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: (Setup) Build Assets
+              run: . scripts\ci\win32\mk-assets.ps1
+
+            - name: (Setup) Construct Python Environment
+              run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
+
+            - name: (Setup) Semantic Release
+              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Set up cache for Python source
+              uses: actions/cache@v3
+              id: build-cache
+              with:
+                  path: Python-3.11.8/PCbuild/win32
+                  key: ${{ runner.os }}-python-3.11.8-build
+                  restore-keys: ${{ runner.os }}-python-3.11.8-build-
+
+            - name: (Python) Add msbuild to PATH
+              if: steps.build-cache.outputs.cache-hit != 'true'
+              uses: microsoft/setup-msbuild@v2
+
+            - name: (Python) Download 3.11.8 win32 source
+              if: steps.build-cache.outputs.cache-hit != 'true'
+              run: . scripts\ci\win32\build-python.ps1
+
+            - name: Upload Build Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: python 3.11.8 build libraries
+                  path: D:/a/Millennium/Millennium/build/python
+
+            - name: Install prerequisites
+              uses: msys2/setup-msys2@v2
+              with:
+                  msystem: mingw32
+                  install: >-
+                      mingw-w64-i686-libgcrypt
+                      mingw-w64-i686-gcc
+                      mingw-w64-i686-cmake
+                      mingw-w64-i686-ninja
+                      unzip
+
+            - name: (Dependency) Install vcpkg
+              shell: pwsh
+              run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
+
+            - name: (Generator) Configure CMake
+              shell: msys2 {0}
+              run: cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+
+            - name: Install Node.js and npm
+              shell: msys2 {0}
+              run: |
+                  curl -fsSL https://nodejs.org/dist/v16.20.0/node-v16.20.0-win-x86.zip -o node.zip
+                  unzip node.zip -d /usr/local
+                  export PATH="/usr/local/node-v16.20.0-win-x86:$PATH"
+                  node --version
+                  npm --version
+
+            - name: Build Millennium
+              shell: msys2 {0}
+              run: |
+                  mkdir D:/a/Millennium/Millennium/build/artifacts
+                  cmake --build build --config Release -- -j$(nproc)
+                  cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
+                  cp /d/a/Millennium/Millennium/build/preload/user32.dll  D:/a/env/user32.dll
+                  cp /d/a/Millennium/Millennium/build/millennium.dll D:/a/env/millennium.dll
+                  mkdir D:/a/env/ext/bin
+                  # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
+                  # cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
+
+            - name: Add API modules
+              run: |
+                  npm install @steambrew/api
+                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+
+                  Copy-Item -Path "./node_modules/@steambrew/api/dist/webkit_api.js" -Destination "D:/a/env/ext/data/shims/webkit_api.js" -Force
+                  Copy-Item -Path "./node_modules/@steambrew/api/dist/client_api.js" -Destination "D:/a/env/ext/data/shims/client_api.js" -Force
+
+            - name: Upload Build Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  include-hidden-files: true
+                  name: millennium-windows
+                  path: D:/a/env/
+
+    build-linux:
+        permissions:
+            contents: write
+            issues: write
+            pull-requests: write
+
+        runs-on: ubuntu-latest
+
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+
+        steps:
+            - name: Export GitHub Actions cache environment variables
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+                      core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  submodules: true
+
+            - name: (Setup) Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 20
+
+            - name: (Setup) Get Next Version
+              run: bash scripts/ci/posix/version.sh
+
+            - name: (Setup) Environment Variables
+              run: |
+                  echo "${{ secrets.ENVIRONMENT_VARS }}" >> assets/.env
+
+            - name: (Setup) Assets Build Environment
+              run: cd assets && npm install && npm run build
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: (Setup) Build Assets
+              run: bash scripts/ci/posix/mk-assets.sh
+
+            - name: (Setup) Semantic Release
+              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Install dependencies
+              run: |
+                  sudo dpkg --add-architecture i386
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential gcc-multilib g++-multilib
+
+            - name: Download Python 3.11.8 Binaries
+              run: |
+                  wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
+                  mkdir -p $HOME/.millennium/ext/data/cache
+                  tar -xzf python-3.11.8-32-bit.tar.gz -C $HOME/.millennium/ext/data/cache
+
+                  sudo mv $HOME/.millennium/ext/data/cache/python-build/* $HOME/.millennium/ext/data/cache
+                  sudo rm -rf $HOME/.millennium/ext/data/cache/python-build
+
+                  ls -la $HOME/.millennium/ext/data/cache
+
+                  sudo mv $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
+
+                  $HOME/.millennium/ext/data/cache/bin/python3.11 --version
+                  mkdir -p /home/runner/env/ext/data
+                  sudo cp -r $HOME/.millennium/ext/data/cache /home/runner/env/ext/data
+
+            - name: (Generator) Install CMake
+              uses: jwlawson/actions-setup-cmake@v2
+              with:
+                  cmake-version: '3.21.1'
+              env:
+                  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+
+            - name: (Dependency) Install vcpkg & setup environment
+              run: sudo apt install libgtk-3-dev ninja-build &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
+              env:
+                  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+
+            - name: (Generator) Configure CMake
+              run: cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+              env:
+                  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+
+            - name: Build Millennium
+              run: |
+                  # mkdir -p /home/runner/Millennium/build/artifacts
+                  cmake --build build --config Release -- -j$(nproc)
+
+                  # ls -laR /home/runner/Millennium/build
+
+                  mkdir -p /home/runner/env
+                  cp ./build/libmillennium_x86.so /home/runner/env/libmillennium_x86.so
+                  cp ./build/cli/millennium /home/runner/env/millennium
+                  cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
+
+                  npm install @steambrew/api
+                  mkdir -p /home/runner/env/ext/data/shims
+                  cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
+                  cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
+
+            - name: Restructure Filesystem
+              run: |
+
+                  mkdir ~/build
+
+                  # Move assets to usr folder
+                  mkdir -p ~/build/usr/lib/millennium
+                  cp /home/runner/env/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
+                  cp /home/runner/env/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
+
+                  # Move scripts to usr folder
+                  mkdir -p ~/build/usr/bin
+                  cp /home/runner/env/millennium ~/build/usr/bin/millennium
+                  chmod +x ~/build/usr/bin/millennium
+
+                  mkdir -p ~/build/home/user/.local/share/millennium
+
+                  # Move assets to home folder
+                  cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/shims
+                  cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/cache
+                  cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/assets
+
+            - name: Upload Build Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  include-hidden-files: true
+                  name: millennium-linux
+                  path: /home/runner/build/
+
+    release:
+        needs: [build-windows, build-linux]
+        runs-on: ubuntu-latest
+        if: ${{ inputs.release_artifacts == 'yes' }}
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  submodules: true
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 20
+
+            - name: Install Semantic Release
+              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Download Windows Artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: millennium-windows
+                  path: ./artifacts/windows
+
+            - name: Download Linux Artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: millennium-linux
+                  path: ./artifacts/linux
+
+            - name: Bump Version
+              id: read_version
+              run: bash scripts/ci/posix/bump.sh
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Proccess Artifacts
+              run: |
+                  mkdir -p ./artifacts/release
+
+                  cd ./artifacts/windows
+                  zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip .
+                  cd - # return to the original directory
+
+                  cd ./artifacts/linux
+                  tar -czvf ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz .
+                  cd - # return to the original directory
+
+            - name: Create GitHub Release
+              run: npx semantic-release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
