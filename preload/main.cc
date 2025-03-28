@@ -229,8 +229,6 @@ void AllocateDevConsole()
         return;
     }
 
-    SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
-
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
 
@@ -275,7 +273,7 @@ const void BootstrapMillennium(HINSTANCE hinstDLL)
     const std::string strSteamPath = GetSteamPath();
     AllocateDevConsole();
 
-    Print("Loading Bootstrapper@{}", MILLENNIUM_VERSION);
+    Print("Starting Bootstrapper@{}", MILLENNIUM_VERSION);
 
     PatchSharedJSContext(strSteamPath);
     CheckForUpdates(strSteamPath);
