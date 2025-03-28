@@ -59,6 +59,7 @@ def pip(cmd, config: Config):
 
 
 def install_packages(package_names, config: Config):
+    pip(["install", "--upgrade", "pip", "setuptools", "wheel"], config)
     pip(["install"] + package_names, config)
 
 
