@@ -18,7 +18,6 @@ import threading
 import websockets
 
 class WebSocketServer:
-
     def delete_folder(self, pth):
         for sub in pth.iterdir():
             if sub.is_dir():
@@ -38,7 +37,6 @@ class WebSocketServer:
 
     def get_theme_from_gitpair(self, repo, owner):
         themes = json.loads(find_all_themes())
-
         for theme in themes:
             github_data = theme.get("data", {}).get("github", {})
             if github_data.get("owner") == owner and github_data.get("repo_name") == repo:
@@ -48,10 +46,8 @@ class WebSocketServer:
 
 
     def check_install(self, repo, owner):
-
         is_installed = False if self.get_theme_from_gitpair(repo, owner) == None else True
         logger.log(f"Requesting to check install theme: {owner}/{repo} -> {is_installed}")
-
         return is_installed
 
 
@@ -117,7 +113,6 @@ class WebSocketServer:
 
         cfg.change_theme(target_theme["native"])
         Millennium.call_frontend_method("ReloadMillenniumFrontend")
-
         return json.dumps({'success': True})
 
 
@@ -133,15 +128,10 @@ class WebSocketServer:
         return origin == "https://steambrew.app"
 
     async def handler(self, websocket):
-        
-        logger.log("Typeof websocket: " + type(websocket).__name__)
-
         if not self.verify_origin(websocket.request.headers.get("Origin")):
             logger.error("Invalid origin")
             await websocket.close()
             return
-        
-        logger.log("Client connected")
         
         try:
             while not self.stop_event.is_set():
@@ -160,7 +150,6 @@ class WebSocketServer:
                 
                 repo = message["repo"]
                 owner = message["owner"]
-
                 action_handlers = {
                     "checkInstall": lambda: self.check_install(repo, owner),
                     "uninstallTheme": lambda: self.uninstall_theme(repo, owner),
@@ -171,24 +160,18 @@ class WebSocketServer:
                     await websocket.send(json.dumps({ "type": query_type, "data": action_handlers[query_type]() }))
                 else:
                     await self.unknown_message(websocket)
-
         except websockets.ConnectionClosed:
             logger.log("Client disconnected")
 
 
     async def start_server(self):
         try:
-            # Start WebSocket server
             self.server = await websockets.serve(self.handler, self.host, self.port)
-            logger.log(f"Server started on ws://{self.host}:{self.port}")
-
-            # Run server until stop event is set
+            logger.log("Started theme installer pipe. ")
             await self.stop_event.wait()
-
-            # Close server gracefully
             self.server.close()
             await self.server.wait_closed()
-            logger.log("Server stopped")
+            logger.log("Stopped theme installer pipe. ")
 
         except OSError as e:
             if e.errno == 98:  # Errno 98 is typically "Address already in use"

@@ -25,7 +25,6 @@ class MillenniumUpdater:
         return version[1:] if version[0] == "v" else version
 
     def check_for_updates():
-
         if not MillenniumUpdater.user_wants_updates():
             logger.log("User has disabled update checking.")
             return 
@@ -76,12 +75,10 @@ class MillenniumUpdater:
 
     
     def user_wants_updates():
-
         millennium = configparser.ConfigParser()
 
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)
-
             if 'check_for_updates' in millennium['Settings']:
                 return UpdaterProps.YES if millennium.get('Settings', 'check_for_updates', fallback='') == "yes" else UpdaterProps.NO
             else:
@@ -89,44 +86,32 @@ class MillenniumUpdater:
     
 
     def set_user_wants_updates(wantsUpdates: bool):
-
         logger.log("Setting user update preference to: " + str(wantsUpdates))
-
         millennium = configparser.ConfigParser()
 
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)
-
             millennium['Settings']['check_for_updates'] = "yes" if wantsUpdates else "no"
-
             with open(config_path, 'w') as config_file: millennium.write(config_file)
 
         return True
     
 
     def set_user_wants_update_notify(wantsNotify: bool):
-
         logger.log("Setting update notifications to: " + str(wantsNotify))
-
         millennium = configparser.ConfigParser()
-
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)
-
             millennium['Settings']['check_for_update_notify'] = "yes" if wantsNotify else "no"
-
             with open(config_path, 'w') as config_file: millennium.write(config_file)
 
         return True
     
 
     def user_wants_update_notify() -> UpdaterProps:
-
         millennium = configparser.ConfigParser()
-
         with open(config_path, 'r') as config_file: 
             millennium.read_file(config_file)
-
             if 'check_for_update_notify' in millennium['Settings']:
                return UpdaterProps.YES if millennium.get('Settings', 'check_for_update_notify', fallback='') == "yes" else UpdaterProps.NO
             else:

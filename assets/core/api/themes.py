@@ -4,10 +4,8 @@ from util.logger import logger
 class Colors:
 
     @staticmethod
-    # Get user preferred color scheme on windows
     def get_accent_color_win32():
         from winrt.windows.ui.viewmanagement import UISettings, UIColorType # type: ignore
-        # Get the accent color
         settings = UISettings()
 
         def hex(accent):
@@ -32,8 +30,6 @@ class Colors:
 
     @staticmethod
     def get_accent_color_posix():
-        logger.log("[posix] get_accent_color has no implementation")
-
         color_dictionary = {
             'accent': '#000',
             'light1': '#000', 'light2': '#000', 'light3': '#000',
@@ -46,35 +42,26 @@ class Colors:
     
     @staticmethod
     def extrap_custom_color(accent_color: str) -> str:
-
         def adjust_hex_color(hex_color, percent=15):
-            # Remove the '#' character if present
             hex_color = hex_color.lstrip('#')
-            
-            # Convert hex to RGB
             r = int(hex_color[0:2], 16)
             g = int(hex_color[2:4], 16)
             b = int(hex_color[4:6], 16)
 
-            # Calculate the adjusted color
-            if percent < 0:  # Darken the color
+            if percent < 0: 
                 r = max(0, int(r * (1 + percent / 100)))
                 g = max(0, int(g * (1 + percent / 100)))
                 b = max(0, int(b * (1 + percent / 100)))
-            else:  # Lighten the color
+            else:
                 r = min(255, int(r + (255 - r) * (percent / 100)))
                 g = min(255, int(g + (255 - g) * (percent / 100)))
                 b = min(255, int(b + (255 - b) * (percent / 100)))
 
-            # Convert back to hex
             adjusted_hex = f'#{r:02x}{g:02x}{b:02x}'
             return adjusted_hex
 
         def hex_to_rgb(hex_color):
-            # Remove the '#' character if present
             hex_color = hex_color.lstrip('#')
-
-            # Check if the input has an alpha channel (8 characters)
             if len(hex_color) != 6:
                 raise ValueError("Invalid hex color format. Use 6 characters (e.g., #RRGGBB).")
 
@@ -113,7 +100,6 @@ class Colors:
                 return Colors.get_accent_color_win32()
             else:
                 return Colors.get_accent_color_posix()
-            
         else:
             return Colors.extrap_custom_color(accent_color)
 
