@@ -42,7 +42,7 @@ auto currentTimeStamp = std::chrono::duration_cast<std::chrono::seconds>(now.tim
 static const wchar_t* PIPE_NAME = LR"(\\.\pipe\MillenniumStdoutPipe)"; 
 
 static const char* SHIM_LOADER_PATH        = "user32.dll";
-static const char* SHIM_LOADER_QUEUED_PATH = "user32.dll.queued"; // The path of the recently updated shim loader waiting for an update.
+static const char* SHIM_LOADER_QUEUED_PATH = "user32.queue.dll"; // The path of the recently updated shim loader waiting for an update.
 
 namespace WinUtils {
 
