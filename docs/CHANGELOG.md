@@ -1,3 +1,11 @@
+## [2.19.2](https://github.com/shdwmtr/millennium/compare/v2.19.1...v2.19.2) (2025-03-28)
+
+
+### Bug Fixes
+
+* Fix setup tools not updating before installing required packages. ([cf6b67b](https://github.com/shdwmtr/millennium/commit/cf6b67b43c6160f491a06b3671d15db215fe8d24))
+* Temporarily disable 'steam://open/millennium as it broke "View Profile" button on friends list. ([d329f7a](https://github.com/shdwmtr/millennium/commit/d329f7adb306eaba4a9659807ef538ad5f363614))
+
 ## [2.19.1](https://github.com/shdwmtr/millennium/compare/v2.19.0...v2.19.1) (2025-03-28)
 
 
