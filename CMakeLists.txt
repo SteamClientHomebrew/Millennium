@@ -3,6 +3,11 @@ file(STRINGS "${CMAKE_SOURCE_DIR}/version" VERSION_LINES LIMIT_COUNT 2)
 list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
 set(MILLENNIUM_VERSION "${MILLENNIUM_VERSION}")
 
+configure_file(
+  ${CMAKE_SOURCE_DIR}/version.h.in  # Input template file
+  ${CMAKE_BINARY_DIR}/version.h     # Output header file
+)
+
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 
 cmake_minimum_required(VERSION 3.10...3.21)

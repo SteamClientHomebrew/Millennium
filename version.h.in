@@ -1,0 +1,7 @@
+#ifndef VERSION_H
+#define VERSION_H
+
+/** template header which exposes the Millennium version to windres */
+#define MILLENNIUM_VERSION "${MILLENNIUM_VERSION}"
+
+#endif // VERSION_H
