@@ -43,6 +43,11 @@ jobs:
               with:
                   node-version: 20
 
+            - name: (Setup) Semantic Release
+              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
             - name: (Setup) Get Next Version
               run: . scripts\ci\win32\version.ps1
 
@@ -60,11 +65,6 @@ jobs:
 
             - name: (Setup) Construct Python Environment
               run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
-
-            - name: (Setup) Semantic Release
-              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Set up cache for Python source
               uses: actions/cache@v3
@@ -172,6 +172,11 @@ jobs:
               with:
                   node-version: 20
 
+            - name: (Setup) Semantic Release
+              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
             - name: (Setup) Get Next Version
               run: bash scripts/ci/posix/version.sh
 
@@ -186,11 +191,6 @@ jobs:
 
             - name: (Setup) Build Assets
               run: bash scripts/ci/posix/mk-assets.sh
-
-            - name: (Setup) Semantic Release
-              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Install dependencies
               run: |
