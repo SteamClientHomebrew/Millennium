@@ -1,6 +1,6 @@
 import { Millennium, pluginSelf } from '@steambrew/client';
 import { PatchDocumentContext } from './patcher/index';
-import { RenderSettingsModal } from './ui/Settings';
+import { RenderSettingsModal, ShowSettingsModal } from './ui/Settings';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';
@@ -97,5 +97,12 @@ export default async function PluginMain() {
 	const startTime = performance.now();
 	const settings: SettingsProps = await Settings.FetchAllSettings();
 	InitializePatcher(startTime, settings);
+	SteamClient.URL.RegisterForRunSteamURL('open', (_: number, url: string) => {
+		if (url !== 'steam://open/millennium') {
+			return;
+		}
+
+		ShowSettingsModal();
+	});
 	Millennium.AddWindowCreateHook(windowCreated);
 }
