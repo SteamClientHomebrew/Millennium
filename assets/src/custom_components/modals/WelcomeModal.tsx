@@ -84,7 +84,7 @@ export const ShowWelcomeModal = async () =>
 				<DialogBody>
 					<DialogBodyText>
 						<p>
-							We're excited for you to be apart of the community! Since this is your first time launching, it’s the perfect opportunity
+							We're excited for you to be a part of the community! Since this is your first time launching, it’s the perfect opportunity
 							to introduce you to a few things.
 						</p>
 						<Separator />
