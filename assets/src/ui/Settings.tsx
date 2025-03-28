@@ -1,6 +1,14 @@
 import { Millennium, pluginSelf, showModal } from '@steambrew/client';
 import { MillenniumSettings } from '../custom_components/SettingsModal';
 
+function ShowSettingsModal() {
+	showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
+		strTitle: 'Millennium',
+		popupHeight: 601,
+		popupWidth: 842,
+	});
+}
+
 function RenderSettingsModal(_context: any) {
 	Millennium.findElement(_context.m_popup.document, '.contextMenuItem').then((contextMenuItems: NodeListOf<Element>) => {
 		for (const item of contextMenuItems) {
@@ -10,11 +18,7 @@ function RenderSettingsModal(_context: any) {
 				const millenniumContextMenu = Object.assign(item.cloneNode(true), {
 					textContent: 'Millennium',
 					onclick: () => {
-						showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
-							strTitle: 'Millennium',
-							popupHeight: 601,
-							popupWidth: 842,
-						});
+						ShowSettingsModal();
 					},
 				});
 
@@ -24,4 +28,4 @@ function RenderSettingsModal(_context: any) {
 	});
 }
 
-export { RenderSettingsModal };
+export { ShowSettingsModal, RenderSettingsModal };
