@@ -97,12 +97,12 @@ export default async function PluginMain() {
 	const startTime = performance.now();
 	const settings: SettingsProps = await Settings.FetchAllSettings();
 	InitializePatcher(startTime, settings);
-	SteamClient.URL.RegisterForRunSteamURL('open', (_: number, url: string) => {
-		if (url !== 'steam://open/millennium') {
-			return;
-		}
+	// SteamClient.URL.RegisterForRunSteamURL('open', (_: number, url: string) => {
+	// 	if (url !== 'steam://open/millennium') {
+	// 		return;
+	// 	}
 
-		ShowSettingsModal();
-	});
+	// 	ShowSettingsModal();
+	// });
 	Millennium.AddWindowCreateHook(windowCreated);
 }
