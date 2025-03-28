@@ -12,8 +12,7 @@ import {
 	showModal,
 } from '@steambrew/client';
 import { locale } from '../locales';
-import { ThemeItem, UpdaterOptionProps } from '../types';
-import { Settings } from '../Settings';
+import { ThemeItem } from '../types';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
 

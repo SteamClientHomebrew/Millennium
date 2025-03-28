@@ -88,10 +88,14 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', gap: '20px' }}>
 					<div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
-						<DialogBodyText style={{ marginBottom: 'unset', fontSize: '12px', color: errorCount > 0 ? 'red' : 'inherit' }}>{errorCount} Errors </DialogBodyText>
+						<DialogBodyText style={{ marginBottom: 'unset', fontSize: '12px', color: errorCount > 0 ? 'red' : 'inherit' }}>
+							{errorCount} Errors{' '}
+						</DialogBodyText>
 					</div>
 					<div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
-						<DialogBodyText style={{ marginBottom: 'unset', fontSize: '12px', color: warningCount > 0 ? 'rgb(255, 175, 0)' : 'inherit' }}>{warningCount} Warnings </DialogBodyText>
+						<DialogBodyText style={{ marginBottom: 'unset', fontSize: '12px', color: warningCount > 0 ? 'rgb(255, 175, 0)' : 'inherit' }}>
+							{warningCount} Warnings{' '}
+						</DialogBodyText>
 					</div>
 				</div>
 			</div>
@@ -204,5 +208,9 @@ export const LogsViewModal: React.FC = () => {
 		});
 	}, []);
 
-	return selectedLog === undefined ? <RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} /> : <RenderLogViewer logs={selectedLog} setSelectedLog={setSelectedLog} />;
+	return selectedLog === undefined ? (
+		<RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} />
+	) : (
+		<RenderLogViewer logs={selectedLog} setSelectedLog={setSelectedLog} />
+	);
 };
