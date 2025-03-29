@@ -1,3 +1,15 @@
+# [2.20.0](https://github.com/shdwmtr/millennium/compare/v2.19.5...v2.20.0) (2025-03-29)
+
+
+### Bug Fixes
+
+* Prevent the updater modal showing every time the UI reloaded, like from changing themes. ([0ef02bf](https://github.com/shdwmtr/millennium/commit/0ef02bf5e4978d3bd71e7fe22e8d228fefcfa083))
+
+
+### Features
+
+* Update italian localization. ([5856765](https://github.com/shdwmtr/millennium/commit/585676535ab58778d0f95244363135d1129948bd))
+
 ## [2.19.5](https://github.com/shdwmtr/millennium/compare/v2.19.4...v2.19.5) (2025-03-29)
 
 
