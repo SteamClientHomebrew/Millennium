@@ -1,3 +1,10 @@
+## [2.19.4](https://github.com/shdwmtr/millennium/compare/v2.19.3...v2.19.4) (2025-03-29)
+
+
+### Bug Fixes
+
+* Fix Millennium button not showing on some languages. ([b1c107c](https://github.com/shdwmtr/millennium/commit/b1c107c9b92d5f1aafd411dd674ce8f12cc10764))
+
 ## [2.19.3](https://github.com/shdwmtr/millennium/compare/v2.19.2...v2.19.3) (2025-03-28)
 
 
