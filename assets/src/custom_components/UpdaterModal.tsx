@@ -22,6 +22,7 @@ import { OnDoNotShowAgainChange } from './modals/DisableUpdates';
 import { Separator } from '../components/ISteamComponents';
 
 const UpdateMillennium = callable<[{ downloadUrl: string }], void>('MillenniumUpdater.queue_update');
+const ShouldShowUpdateInfo = callable<[], boolean>('should_show_update_modal');
 
 const ContainerURLStyles = {
 	display: 'flex',
@@ -160,6 +161,11 @@ const GetPlatformSpecificAsset = async (releaseInfo: any, currentOSType: OSType)
 };
 
 export const ShowUpdaterModal = async () => {
+	if (!(await ShouldShowUpdateInfo())) {
+		LOG_UPDATE_INFO('Already shown update info, skipping...');
+		return;
+	}
+
 	/** If the user hasn't specified their update options, prompt them */
 	if (pluginSelf.wantsMillenniumUpdateNotifications == UpdaterOptionProps.UNSET || pluginSelf.wantsMillenniumUpdates == UpdaterOptionProps.UNSET) {
 		LOG_UPDATE_INFO("User hasn't specified update options yet, prompting...");

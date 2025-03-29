@@ -90,6 +90,18 @@ def _copy_to_clipboard(data: str):
     except Exception as e:
         logger.error(f"Failed to copy to clipboard: {e}")
         return False
+    
+
+has_shown_update_modal = False
+
+def should_show_update_modal():
+    global has_shown_update_modal
+
+    if not has_shown_update_modal:
+        has_shown_update_modal = True
+        return True
+    
+    return False
 
 
 class Plugin:
