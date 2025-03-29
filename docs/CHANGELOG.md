@@ -1,3 +1,10 @@
+## [2.19.5](https://github.com/shdwmtr/millennium/compare/v2.19.4...v2.19.5) (2025-03-29)
+
+
+### Bug Fixes
+
+* Grammer correction and Swedish localization ([#289](https://github.com/shdwmtr/millennium/issues/289)) ([d4f433c](https://github.com/shdwmtr/millennium/commit/d4f433cb9e993b6ba131d81334946aa5b403a343))
+
 ## [2.19.4](https://github.com/shdwmtr/millennium/compare/v2.19.3...v2.19.4) (2025-03-29)
 
 
