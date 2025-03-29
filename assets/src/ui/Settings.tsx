@@ -11,20 +11,18 @@ function ShowSettingsModal() {
 
 function RenderSettingsModal(_context: any) {
 	Millennium.findElement(_context.m_popup.document, '.contextMenuItem').then((contextMenuItems: NodeListOf<Element>) => {
-		for (const item of contextMenuItems) {
-			// @ts-ignore
-			if (item.textContent === LocalizationManager.LocalizeString('#Settings')) {
-				/** Clone the settings button DOM object and edit its name and onClick */
-				const millenniumContextMenu = Object.assign(item.cloneNode(true), {
-					textContent: 'Millennium',
-					onclick: () => {
-						ShowSettingsModal();
-					},
-				});
+		/** Get second last context menu item */
+		const settingsItem = contextMenuItems[contextMenuItems.length - 2] as HTMLElement;
 
-				item.after(millenniumContextMenu);
-			}
-		}
+		/** Clone the settings button DOM object and edit its name and onClick */
+		const millenniumContextMenu = Object.assign(settingsItem.cloneNode(true), {
+			textContent: 'Millennium',
+			onclick: () => {
+				ShowSettingsModal();
+			},
+		});
+
+		settingsItem.after(millenniumContextMenu);
 	});
 }
 
