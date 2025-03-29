@@ -1,3 +1,10 @@
+## [2.19.3](https://github.com/shdwmtr/millennium/compare/v2.19.2...v2.19.3) (2025-03-28)
+
+
+### Bug Fixes
+
+* Fix wrong Millennium version being put as the developer console title. ([41cfeef](https://github.com/shdwmtr/millennium/commit/41cfeef5f4174337c293a5950fc0329433f8302d))
+
 ## [2.19.2](https://github.com/shdwmtr/millennium/compare/v2.19.1...v2.19.2) (2025-03-28)
 
 
