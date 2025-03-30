@@ -1,5 +1,43 @@
 import { Millennium, pluginSelf, showModal } from '@steambrew/client';
 import { MillenniumSettings } from '../custom_components/SettingsModal';
+import { locale } from '../locales';
+import { pagedSettingsClasses } from '../classes';
+import { Logger } from '../Logger';
+
+declare global {
+	const g_PopupManager: any;
+}
+
+const settingsTabsMap = {
+	themes: locale.settingsPanelThemes,
+	plugins: locale.settingsPanelPlugins,
+	updates: locale.settingsPanelUpdates,
+	report: locale.settingsPanelBugReport,
+	logs: locale.settingsPanelLogs,
+	settings: locale.settingsPanelSettings,
+};
+
+export type SettingsTabs = keyof typeof settingsTabsMap;
+
+export async function OpenSettingsTab(popup: any, activeTab: SettingsTabs) {
+	if (!activeTab) {
+		return;
+	}
+
+	Logger.Log(`OpenSettingsTab( '${activeTab}' )`);
+
+	// shitty routing replacement
+	const tabs = (await Millennium.findElement(
+		popup.m_popup.document,
+		`.${pagedSettingsClasses.PagedSettingsDialog_PageListItem}`,
+	)) as NodeListOf<HTMLElement>;
+	for (const tab of tabs) {
+		if (tab.textContent === settingsTabsMap[activeTab]) {
+			tab.click();
+			break;
+		}
+	}
+}
 
 function ShowSettingsModal() {
 	showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
