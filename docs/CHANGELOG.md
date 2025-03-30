@@ -1,3 +1,19 @@
+# [2.21.0](https://github.com/shdwmtr/millennium/compare/v2.20.1...v2.21.0) (2025-03-30)
+
+
+### Bug Fixes
+
+* Error in Swedish localization fixed ([71211ca](https://github.com/shdwmtr/millennium/commit/71211ca5150f88f87854155076f422649165a03f))
+* Fix Brazilian localization ([a2dd9f5](https://github.com/shdwmtr/millennium/commit/a2dd9f534e7bff838ec61ef7e36299d6105654b4))
+* Fix the "Bug Reports" tab not working 🤦‍♂️ ([236b68e](https://github.com/shdwmtr/millennium/commit/236b68e8bbab34f768d7f63aaf376aced20afbac))
+* Fix the Linux build ([8936dcf](https://github.com/shdwmtr/millennium/commit/8936dcf6fdfd34caa0b889b9d4b267fa0cfc2449))
+
+
+### Features
+
+* Fix and re-implement steam://millennium URL support ([5198a6a](https://github.com/shdwmtr/millennium/commit/5198a6aa8e189edb9f321fc4aad84379b53b1198))
+* steam://millennium URL support ([bb69d19](https://github.com/shdwmtr/millennium/commit/bb69d1900a42252de44ccf3c54114071d297e180))
+
 ## [2.20.1](https://github.com/shdwmtr/millennium/compare/v2.20.0...v2.20.1) (2025-03-30)
 
 
