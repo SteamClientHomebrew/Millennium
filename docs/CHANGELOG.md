@@ -1,3 +1,13 @@
+## [2.20.1](https://github.com/shdwmtr/millennium/compare/v2.20.0...v2.20.1) (2025-03-30)
+
+
+### Bug Fixes
+
+* Fix Brazilian Portuguese locales ([2596ffb](https://github.com/shdwmtr/millennium/commit/2596ffba381e5084e115a3ee80aa886b38f446ea))
+* Fix German locales ([f9b4347](https://github.com/shdwmtr/millennium/commit/f9b4347fcfd7f5dff3d8a31d61266a7c7ba66365))
+* Fix Millennium breaking certain webpages, and prevented it from interacting with sensitive URLs like PayPal. ([106b286](https://github.com/shdwmtr/millennium/commit/106b286fcd2a4000eafccaa0b54ee8dbfd069c46))
+* Small fixes to Italian locales.  ([541aeb0](https://github.com/shdwmtr/millennium/commit/541aeb0786a3ea19d4b48ba15b42aba7074754f7))
+
 # [2.20.0](https://github.com/shdwmtr/millennium/compare/v2.19.5...v2.20.0) (2025-03-29)
 
 
