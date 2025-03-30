@@ -64,7 +64,7 @@ log "Retreiving packages..."
 # ask to proceed
 echo -e "\n${BOLD_PINK}::${RESET} Installing for \"$SUDO_USER\". Proceed with installation? [Y/n] \c"
 
-read -r proceed
+read -r proceed </dev/tty
 
 if [ "$proceed" = "n" ]; then
     exit 1
@@ -82,6 +82,8 @@ log "receiving packages..."
 curl --fail --location --output "$tar" "$download_uri" --silent
 
 log "deflating assets..."
+
+mkdir -p "$extract_path"
 tar xzf "$tar" -C "$extract_path"
 
 mv "$extract_path/home/user" "$extract_path/home/$SUDO_USER"
