@@ -75,6 +75,12 @@ For normal users, installing via the installers makes the most sense. However wh
 
 &nbsp;
 
+## Adding Spoken Language Support
+
+Take a look [here](./assets#adding-languages), it quickly covers what files you'll need to edit in order to add your spoken language to Millennium!
+
+&nbsp;
+
 ## Creating Plugins & Themes
 
 Creating themes and plugins for Millennium is relatively straight foward. Our [documentation](https://docs.steambrew.app/developers) goes over the basics of both,
