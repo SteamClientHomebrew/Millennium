@@ -268,12 +268,12 @@ jobs:
                   cp /home/runner/env/millennium ~/build/usr/bin/millennium
                   chmod +x ~/build/usr/bin/millennium
 
-                  mkdir -p ~/build/home/user/.local/share/millennium
+                  mkdir -p ~/build/home/user/.local/share/millennium/lib
 
                   # Move assets to home folder
-                  cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/shims
-                  cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/cache
-                  cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/assets
+                  cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/lib/shims
+                  cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/lib/cache
+                  cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/lib/assets
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
