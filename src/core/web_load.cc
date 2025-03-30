@@ -41,9 +41,17 @@
 #include "serv.h"
 unsigned long long g_hookedModuleId;
 
-// These URLS are blacklisted from being hooked, to prevent potential security issues.
+// Millennium will not load JavaScript into the following URLs to favor user safety.
+// This is a list of URLs that may have sensitive information or are not safe to load JavaScript into.
 static const std::vector<std::string> g_blackListedUrls = {
     "https://checkout\\.steampowered\\.com/.*"
+};
+
+// Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.)
+static const std::unordered_set<std::string> g_doNotHook = {
+    R"(https?:\/\/(?:[\w-]+\.)*paypal\.com\/[^\s"']*)",
+    R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)",
+    R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
 };
 
 WebkitHandler WebkitHandler::get() 
@@ -160,14 +168,28 @@ void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 {
     const RedirectType statusCode = message["params"]["responseStatusCode"].get<RedirectType>();
 
-    // If the status code is a redirect, we just continue the request. 
-    if (statusCode == REDIRECT || statusCode == MOVED_PERMANENTLY || statusCode == FOUND || statusCode == TEMPORARY_REDIRECT || statusCode == PERMANENT_REDIRECT)
-    {
+    const auto ContinueOriginalRequest = ([message]() {
         Sockets::PostGlobal({
             { "id", 0 },
             { "method", "Fetch.continueRequest" },
             { "params", { { "requestId", message["params"]["requestId"] } }}
         });
+    });
+
+    // Check if the request URL is a do-not-hook URL.
+    for (const auto& doNotHook : g_doNotHook) 
+    {
+        if (std::regex_match(message["params"]["request"]["url"].get<std::string>(), std::regex(doNotHook))) 
+        {
+            ContinueOriginalRequest();
+            return;
+        }
+    }
+
+    // If the status code is a redirect, we just continue the request. 
+    if (statusCode == REDIRECT || statusCode == MOVED_PERMANENTLY || statusCode == FOUND || statusCode == TEMPORARY_REDIRECT || statusCode == PERMANENT_REDIRECT)
+    {
+        ContinueOriginalRequest();
     }
     else
     {
