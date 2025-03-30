@@ -55,7 +55,7 @@
   "messageUpdateDisableClarification": "Vill du stänga av uppdateringskoller helt eller bara notisen? Du kan självklart ändra det här i Millenium-inställningarna senare.",
   "DisableUpdates": "Inga uppdateringar",
   "DisableOnlyNotifications": "Inga notiser",
-  "message1162025SecurityUpdate": "Vi har bestämt oss för att uppdatera våra säkerhetsprotokoll för eran och hela gemenskapen som grupps fördel. 3/27/2025 har vi bästämt att lägga till sätt att explicit fråga er om ni vill få uppdateringar från Millenium.",
+  "message1162025SecurityUpdate": "Vi har bestämt oss för att uppdatera våra säkerhetsprotokoll för eran och hela gemenskapens fördel. 3/27/2025 har vi bästämt att lägga till sätt att explicit fråga er om ni vill få uppdateringar från Millenium.",
   "message1162025SecurityUpdateTooltip": "Det här är endast för Millenium uppdateringar (inte för teman eller plugins som hanteras separat och aldrig automatiskt)",
   "toggleWantsMillenniumUpdates": "Vill du att Millenium ska söka efter uppdateringar automatiskt?",
   "toggleWantsMillenniumUpdatesTooltip": "Om påsatt kommer Millennium automatiskt söka efter uppdateringar. Uppdateringar kommer INTE automatiskt appliceras om du inte har stängt av notiser (se inställning nedan). Du kommer att få en popup-ruta med alternativen att uppdatera eller att vänta med uppdateringen.",
