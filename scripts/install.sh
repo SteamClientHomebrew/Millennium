@@ -17,7 +17,7 @@ BOLD_WHITE="\033[1;37m"
 RESET="\033[0m"
 
 log() {
-    echo -e "$1"
+    printf "%b\n" "$1"
 }
 
 is_root() {
