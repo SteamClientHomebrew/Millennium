@@ -26,7 +26,7 @@
   "updatePanelReleasePatchNotes": "Patch Notes:",
   "updatePanelIsUpdating": "Uppdaterar...",
   "updatePanelUpdate": "Uppdatera",
-  "updatePanelNoUpdatesFound": "Inga nya uppdatering!",
+  "updatePanelNoUpdatesFound": "Inga nya uppdateringar!",
   "ViewMore": "Se mer",
   "aboutThemeAnonymous": "Anonym",
   "aboutThemeTitle": "Om",
@@ -69,6 +69,6 @@
   "strUpdateReject": "Jag stannar kvar",
   "strDontShowAgain": "Visa inte igen",
   "strAnUpdateIsAvailable": "An update is available for Millennium! We're showing you this message because you've opted in to receive updates. If you no longer want to receive these messages, you can turn on automatic updates, or you can disable updates entirely from Millennium Settings.",
-  "updatePanelCheckForUpdates": "Sök efter uppdatering",
+  "updatePanelCheckForUpdates": "Sök efter uppdateringar",
   "updatePanelShowUpdateNotifications": "Visa uppdateringsnotiser"
 }
