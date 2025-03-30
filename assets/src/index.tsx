@@ -138,6 +138,11 @@ async function OnRunSteamURL(_: number, url: string) {
 		return;
 	}
 
+	if ((tab as string) === 'devtools' && action === 'open') {
+		// Open the DevTools window
+		SteamClient.Browser.OpenDevTools();
+	}
+
 	if (tab === 'plugins') {
 		// God, why
 		const plugins: PluginComponent[] = JSON.parse(await FindAllPlugins()).map((e: PluginComponent) => ({ ...e, plugin_name: e.data.name }));
