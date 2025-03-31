@@ -96,4 +96,4 @@ log "cleaning up packages..."
 rm -rf "$millennium_install"
 log "done."
 
-log "\n${BOLD_PINK}::${RESET} To get started, run \"millennium patch\" to load Millennium along side Steam. Your base installation of Steam has not been modified, this is simply an extension."
+log "\n${BOLD_PINK}::${RESET} To get started, see https://docs.steambrew.app/users/installing#post-installation.\n    Your base installation of Steam has not been modified, this is simply an extension."
