@@ -19,7 +19,7 @@
     "themePanelCustomAccentColor": "Color Personalizado",
     "themePanelCustomAccentColorToolTip": "Selecciona un color personalizado para los temas que lo soporten (requiere reiniciar)",
     "themePanelCustomColorNotUsed": "Nota: El tema activo NO utiliza este ajuste.",
-    "themePanelCustomColorUsed": "Note: ¡El tema activo utiliza este ajuste!",
+    "themePanelCustomColorUsed": "Nota: ¡El tema activo utiliza este ajuste!",
     "updatePanelHasUpdates": "¡Actualizaciones Disponibles!",
     "updatePanelHasUpdatesSub": "Millennium ha encontrado las siguientes actualizaciones para tus temas.",
     "updatePanelReleasedTag": "Publicado:",
