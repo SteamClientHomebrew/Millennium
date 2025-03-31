@@ -36,7 +36,7 @@
     "uninstall": "Desinstalar",
     "optionSaveChanges": "Guardar Cambios",
     "optionReloadNow": "Reiniciar Ahora",
-    "optionReloadLater": "Reiniciar Después"
+    "optionReloadLater": "Reiniciar Después",
     "optionReloadRequired": "Se requiere reiniciar",
     "optionPluginNeedsReload": "Para activar o desactivar los complementos seleccionados, se requiere reiniciar. ¿Estás seguro que quieres continuar?",
     "updatePanelUpdateNotifications": "Notificaciones",
