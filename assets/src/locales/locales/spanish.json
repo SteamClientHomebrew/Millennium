@@ -55,7 +55,7 @@
     "messageUpdateDisableClarification": "¿Quieres desactivar la búsqueda de actualizaciones por completo, o solo desactivar las notificaciones de actualizaciones? Puedes cambiarlo en Ajustes de Millenium más adelante.",
     "DisableUpdates": "Desactivar Actualizaciones",
     "DisableOnlyNotifications": "Solo Notificaciones",
-    "message1162025SecurityUpdate": "Hemos decidido actualizar los protocolos de seguridad para beneficiar tanto a ti como a la comunidad. A partir del 3/27/2025, hemos decidido implantar medidas para preguntar directamente si quieres recibir actualizaciones de Millenium.",
+    "message1162025SecurityUpdate": "Hemos decidido actualizar los protocolos de seguridad para beneficiar tanto a ti como a la comunidad. A partir del 27/3/2025, hemos decidido implantar medidas para preguntar directamente si quieres recibir actualizaciones de Millenium.",
     "message1162025SecurityUpdateTooltip": "Estas actualizaciones son solo de Millenium, no de temas y complementos, las cuales se gestionan por separado y nunca fueron automáticas.",
     "toggleWantsMillenniumUpdates": "¿Quieres que Millenium busque actualizaciones?",
     "toggleWantsMillenniumUpdatesTooltip": "Si está activado, Millenium buscará automáticamente actualizaciones. Las actualizaciones no se aplicarán automáticamente a menos que desactives las notificaciones (el ajuste de abajo). Recibirás un aviso con la opción de actualizar o mantener.",
@@ -68,7 +68,7 @@
     "strUpdateNextStartup": "Actualizar en el siguiente Inicio",
     "strUpdateReject": "Rechazar",
     "strDontShowAgain": "No mostrar otra vez",
-    "strAnUpdateIsAvailable": "¡Hay disponible una actualización para Millenium! Estamos mostrándote este mensaje porque tienes activado el ajuste de recibir actualizaciones. Si ya no quieres recivir estos mensajes, puedes activar las actualizaciones automáticas, o puedes desactivar por completo las actualizaciones desde Ajustes de Milleniumn.",
+    "strAnUpdateIsAvailable": "¡Hay disponible una actualización para Millenium! Estamos mostrándote este mensaje porque tienes activado el ajuste de recibir actualizaciones. Si ya no quieres recibir estos mensajes, puedes activar las actualizaciones automáticas, o puedes desactivar por completo las actualizaciones desde Ajustes de Milleniumn.",
     "updatePanelCheckForUpdates": "Comprobar Actualizaciones",
     "updatePanelShowUpdateNotifications": "Mostrar Notificaciones de Actualizaciones"
 }
