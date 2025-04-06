@@ -21,8 +21,8 @@
 
 INCTXT(PATCHED_START_SCRIPT, "../../scripts/posix/start.sh");
 
-#define START_SCRIPT_PATH "/usr/bin/steam-runtime"
-#define BACKUP_PATH "/usr/bin/steam-runtime.millennium.bak"
+#define START_SCRIPT_PATH "/usr/bin/steam"
+#define BACKUP_PATH "/usr/bin/steam.millennium.bak"
 
 void check_sudo() {
     if (getuid() != 0) {
