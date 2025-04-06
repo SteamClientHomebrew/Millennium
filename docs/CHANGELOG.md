@@ -1,3 +1,20 @@
+# [2.22.0](https://github.com/shdwmtr/millennium/compare/v2.21.0...v2.22.0) (2025-04-06)
+
+
+### Bug Fixes
+
+* Fix color analyzer not properly parsing color name and description. ([8f8893b](https://github.com/shdwmtr/millennium/commit/8f8893bf752ff813b59f18f5c184a4a0ac55b3a5))
+* Fix simplified chinese locales ([d061953](https://github.com/shdwmtr/millennium/commit/d061953b65022e9ccb0c0c63ae1f3848d36aaa35))
+* Fix Spanish locales ([57de823](https://github.com/shdwmtr/millennium/commit/57de823c89084c9cc36d67754c5c897d069f1c53))
+* Fix spanish localization ([594b7d1](https://github.com/shdwmtr/millennium/commit/594b7d1aef34d910f29ff32ed7a6706903984bde))
+* **Linux:** Arch removed "-runtime" suffix. ([cf39193](https://github.com/shdwmtr/millennium/commit/cf39193a3999bb86563fed5d993df5ff1adcab47))
+
+
+### Features
+
+* Add french localization.  ([54114e5](https://github.com/shdwmtr/millennium/commit/54114e5727b64d4ef6196e73a5cc094dc38e7987))
+* Open Steam developer tools by running `steam://millennium/devtools/open` ([b2d6aae](https://github.com/shdwmtr/millennium/commit/b2d6aae6f1bd26215726e9a429f0149436e02668))
+
 # [2.21.0](https://github.com/shdwmtr/millennium/compare/v2.20.1...v2.21.0) (2025-03-30)
 
 
