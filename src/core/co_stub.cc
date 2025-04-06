@@ -450,6 +450,10 @@ const void UnPatchSharedJSContext()
 
         std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
     }
+    catch (const std::system_error& e)
+    {
+        Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
+    }
     catch (const std::exception& e)
     {
         Logger.Warn("Failed to restore SharedJSContext: {}", e.what());

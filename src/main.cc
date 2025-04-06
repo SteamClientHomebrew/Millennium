@@ -33,6 +33,7 @@
 #define WIN32_LEAN_AND_MEAN 
 #include <winsock2.h>
 #define _WINSOCKAPI_
+#include <DbgHelp.h>
 #endif
 #include <filesystem>
 #include <fstream>
@@ -102,6 +103,49 @@ const static void VerifyEnvironment()
     }
 }
 
+#include <exception>
+
+#ifdef __linux__
+    #include <execinfo.h>
+#elif _WIN32
+    #include <windows.h>
+#endif
+
+void PrintStackTrace(std::string& errorMessage)
+{
+#ifdef __linux__
+    void* callstack[128];
+    int frames = backtrace(callstack, 128);
+    char** symbols = backtrace_symbols(callstack, frames);
+
+    errorMessage.append("\nStack trace:\n");
+    for (int i = 0; i < frames; i++) 
+    {
+        errorMessage.append(fmt::format("#{}: {}\n", i, symbols[i]));
+    }
+    free(symbols);
+#elif _WIN32
+    void* stack[128];
+    unsigned short frames;
+    SYMBOL_INFO* symbol;
+    HANDLE process = GetCurrentProcess();
+
+    SymInitialize(process, NULL, TRUE);
+    frames = CaptureStackBackTrace(0, 128, stack, NULL);
+    symbol = (SYMBOL_INFO*)malloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char));
+    symbol->MaxNameLen = 255;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+    errorMessage.append("\nStack trace:\n");
+    for (unsigned short i = 0; i < frames; i++) 
+    {
+        SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
+        errorMessage.append(fmt::format("#{}: {}\n", i, symbol->Name));
+    }
+    free(symbol);
+#endif
+}
+
 /**
  * @brief Custom terminate handler for Millennium.
  * This function is called when Millennium encounters a fatal error that it can't recover from.
@@ -121,14 +165,17 @@ void OnTerminate()
         {
             int status;
             errorMessage.append(fmt::format("Terminating with uncaught exception of type `{}`", abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status)));
-            std::rethrow_exception(exceptionPtr); // rethrow the exception to catch its exception message
+            std::rethrow_exception(exceptionPtr);
         }
         catch (const std::exception& e) 
         {
-            errorMessage.append(fmt::format("with `what()` = \"{}\"", e.what()));
+            errorMessage.append(fmt::format(" with `what()` = \"{}\"", e.what()));
         }
         catch (...) { }
     }
+
+    // Capture and print stack trace
+    PrintStackTrace(errorMessage);
 
     #ifdef _WIN32
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
@@ -136,7 +183,6 @@ void OnTerminate()
     std::cerr << errorMessage << std::endl;
     #endif
 }
-
 #ifdef __linux__
 #include <sys/ptrace.h>
 #include <unistd.h>

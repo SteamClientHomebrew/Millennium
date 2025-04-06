@@ -171,6 +171,10 @@ void PatchSharedJSContext(std::string strSteamPath)
         SteamUI << "<!doctype html><html><head><title>SharedJSContext</title></head></html>";
         SteamUI.close();
     }
+    catch (const std::system_error &error) 
+    {
+        Error("Caught system_error while patching SharedJSContext: {}", error.what());
+    }
     catch (const std::exception &exception) 
     {
         Error("Error patching SharedJSContext: {}", exception.what());

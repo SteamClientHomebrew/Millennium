@@ -97,65 +97,78 @@ namespace WinUtils {
 
     const int CreateTerminalPipe(HANDLE hConsolehandle) 
     {
-        const auto filename = SystemIO::GetInstallPath() / "ext" / "data" / "logs" / "stdout.log";
-        std::ofstream outFile;
-        outFile.open(filename, std::ios::trunc);
-
-        HANDLE hNamedPipe = CreateNamedPipe(GetPipeName().c_str(), PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 0, 0, 0, nullptr);
-
-        if (hNamedPipe == INVALID_HANDLE_VALUE) 
+        try 
         {
-            std::cout << "Failed to create named pipe. Error: " << GetLastError() << std::endl;
-            return 1;
-        }
-        
-        if (!ConnectNamedPipe(hNamedPipe, nullptr)) 
-        {
-            std::cout << "Failed to connect named pipe. Error: " << GetLastError() << std::endl;
-            CloseHandle(hNamedPipe);
-            return 1;
-        }
+            const auto filename = SystemIO::GetInstallPath() / "ext" / "data" / "logs" / "stdout.log";
+            std::ofstream outFile;
+            outFile.open(filename, std::ios::trunc);
 
-        char buffer[4096];
-        unsigned long bytesRead;
+            HANDLE hNamedPipe = CreateNamedPipe(GetPipeName().c_str(), PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 0, 0, 0, nullptr);
 
-        SetConsoleOutputCP(CP_UTF8);
-
-        while (true) 
-        {
-            bool success = ReadFile(hNamedPipe, buffer, sizeof(buffer) - 1, &bytesRead, nullptr);
-
-            if (!success || bytesRead == 0) 
+            if (hNamedPipe == INVALID_HANDLE_VALUE) 
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            }
-
-            buffer[bytesRead] = '\0';
-
-            unsigned long charsWritten;
-            std::string strData = std::string(buffer, bytesRead);
-
-            std::vector<wchar_t> wideBuffer(strData.size());
-            int wideLength = MultiByteToWideChar(CP_UTF8, 0, strData.c_str(), strData.size(), wideBuffer.data(), wideBuffer.size());
-
-            if (wideLength > 0) 
-            {
-                DWORD charsWritten;
-                WriteConsoleW(hConsolehandle, wideBuffer.data(), wideLength, &charsWritten, nullptr);
-            }
-
-            if (outFile.is_open()) 
-            {
-                outFile << strData;
-                outFile.flush();
+                std::cout << "Failed to create named pipe. Error: " << GetLastError() << std::endl;
+                return 1;
             }
             
-            RawToLogger("Standard Output", std::string(buffer, bytesRead));
-        }
+            if (!ConnectNamedPipe(hNamedPipe, nullptr)) 
+            {
+                std::cout << "Failed to connect named pipe. Error: " << GetLastError() << std::endl;
+                CloseHandle(hNamedPipe);
+                return 1;
+            }
 
-        CloseHandle(hNamedPipe);
-        FreeConsole();
+            char buffer[4096];
+            unsigned long bytesRead;
+
+            SetConsoleOutputCP(CP_UTF8);
+
+            while (true) 
+            {
+                bool success = ReadFile(hNamedPipe, buffer, sizeof(buffer) - 1, &bytesRead, nullptr);
+
+                if (!success || bytesRead == 0) 
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    continue;
+                }
+
+                buffer[bytesRead] = '\0';
+
+                unsigned long charsWritten;
+                std::string strData = std::string(buffer, bytesRead);
+
+                std::vector<wchar_t> wideBuffer(strData.size());
+                int wideLength = MultiByteToWideChar(CP_UTF8, 0, strData.c_str(), strData.size(), wideBuffer.data(), wideBuffer.size());
+
+                if (wideLength > 0) 
+                {
+                    DWORD charsWritten;
+                    WriteConsoleW(hConsolehandle, wideBuffer.data(), wideLength, &charsWritten, nullptr);
+                }
+
+                if (outFile.is_open()) 
+                {
+                    outFile << strData;
+                    outFile.flush();
+                }
+                
+                RawToLogger("Standard Output", std::string(buffer, bytesRead));
+            }
+
+            CloseHandle(hNamedPipe);
+            FreeConsole();
+        }
+        catch (const std::system_error& e) 
+        {
+            LOG_ERROR("Caught system_error exception, please report to Millennium developers. {}", e.what());
+            return 1;
+        }
+        catch (const std::exception& e) 
+        {
+            LOG_ERROR("Failed to create terminal pipe: {}", e.what());
+            return 1;
+        }
 
         return 0;
     }
