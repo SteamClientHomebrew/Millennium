@@ -342,17 +342,24 @@ const void StartPreloader(PythonManager& manager)
 
         if (mainModuleFilePtr == NULL) 
         {
-            LOG_ERROR("failed to fopen file @ {}", backendMainModule);
+            LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
             ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
             return;
         }
 
-        if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
+        try
         {
-            LOG_ERROR("millennium failed to preload plugins", plugin.pluginName);
-            ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
-            return;
+            if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
+            {
+                LOG_ERROR("Failed to run PIPX preload", plugin.pluginName);
+                ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
+                return;
+            }
         }
+        catch(const std::system_error& error)
+        {
+            LOG_ERROR("Failed to run PIPX preload due to a system error: {}", error.what());
+        } 
 
         Logger.Log("Preloader finished...");
         promise.set_value();
