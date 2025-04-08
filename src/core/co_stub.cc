@@ -517,8 +517,8 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
             {
                 addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
                 hasScriptIdentifier = true;
-                Logger.Log("Successfully injected shims, updating state...");
-                Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
+                Logger.Log("Successfully injected shims, crashing GPU process...");
+                Sockets::PostGlobal({ {"id", PAGE_RELOAD }, {"method", "Browser.crashGpuProcess"} });
                 cvScript.notify_one();  
 
                 Logger.Log("Successfully notified frontend...");
