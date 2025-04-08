@@ -1,3 +1,15 @@
+# [2.23.0](https://github.com/shdwmtr/millennium/compare/v2.22.0...v2.23.0) (2025-04-08)
+
+
+### Bug Fixes
+
+* Fix system error message box ([8751660](https://github.com/shdwmtr/millennium/commit/8751660b3ffb1db36d4f7b3d065c0870343ee856))
+
+
+### Features
+
+* Added danish locales ([8b93e91](https://github.com/shdwmtr/millennium/commit/8b93e911f5daff1899ad8feac34a211a47cc80bc))
+
 # [2.22.0](https://github.com/shdwmtr/millennium/compare/v2.21.0...v2.22.0) (2025-04-06)
 
 
