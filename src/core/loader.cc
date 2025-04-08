@@ -338,7 +338,7 @@ const void StartPreloader(PythonManager& manager)
         SetPluginSecretName(globalDictionary, plugin.pluginName);
 
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
-        FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
+        FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
         if (mainModuleFilePtr == NULL) 
         {
