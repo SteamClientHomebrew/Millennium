@@ -438,7 +438,7 @@ const void UnPatchSharedJSContext()
     #ifdef _WIN32
     Logger.Log("Restoring SharedJSContext...");
 
-    const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
+    const auto SteamUIModulePath       = SystemIO::GetSteamPath() / "steamui" / "index.html";
     const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
 
     try
@@ -461,7 +461,6 @@ const void UnPatchSharedJSContext()
 
     Logger.Log("Restored SharedJSContext...");
     #endif
-    // Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
 }
 
 
@@ -518,6 +517,11 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                 addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
                 hasScriptIdentifier = true;
                 Logger.Log("Successfully injected shims, crashing GPU process...");
+
+                /** 
+                 * Used to use Page.reload up until 4/8/2025, but removed it as it didn't seem to always work. 
+                 * This has the exact same effect as Page.reload, but is more reliable.
+                */
                 Sockets::PostGlobal({ {"id", PAGE_RELOAD }, {"method", "Browser.crashGpuProcess"} });
                 cvScript.notify_one();  
 

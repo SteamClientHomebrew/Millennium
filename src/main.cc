@@ -111,7 +111,7 @@ const static void VerifyEnvironment()
     #include <windows.h>
 #endif
 
-void PrintStackTrace(std::string& errorMessage)
+void CaptureStackTrace(std::string& errorMessage)
 {
 #ifdef __linux__
     void* callstack[128];
@@ -126,13 +126,12 @@ void PrintStackTrace(std::string& errorMessage)
     free(symbols);
 #elif _WIN32
     void* stack[128];
-    unsigned short frames;
-    SYMBOL_INFO* symbol;
     HANDLE process = GetCurrentProcess();
 
     SymInitialize(process, NULL, TRUE);
-    frames = CaptureStackBackTrace(0, 128, stack, NULL);
-    symbol = (SYMBOL_INFO*)malloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char));
+    unsigned short frames = CaptureStackBackTrace(0, 128, stack, NULL);
+
+    SYMBOL_INFO* symbol = (SYMBOL_INFO*)malloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char));
     symbol->MaxNameLen = 255;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
@@ -175,7 +174,7 @@ void OnTerminate()
     }
 
     // Capture and print stack trace
-    PrintStackTrace(errorMessage);
+    CaptureStackTrace(errorMessage);
 
     #ifdef _WIN32
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);

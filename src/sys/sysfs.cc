@@ -70,15 +70,11 @@ namespace SystemIO {
 
     std::filesystem::path GetInstallPath()
     {
-        #ifdef _WIN32
-        {
-            return GetSteamPath();
-        }
-        #elif __linux__
-        {
-            return fmt::format("{}/.millennium", std::getenv("HOME"));
-        }
+        #if defined(__linux__)
+            assert(false && "GetInstallPath is not supported on Linux!"); 
         #endif
+
+        return GetSteamPath();
     }
 
     nlohmann::json ReadJsonSync(const std::string& filename, bool* success)
