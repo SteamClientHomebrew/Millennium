@@ -33,6 +33,7 @@
 #include <iostream>
 #include <tuple>
 #include "logger.h"
+#include "fvisible.h"
 
 /**
  * @brief Create a semantically correct JavaScript function call from a JSON object.
@@ -43,7 +44,7 @@
  * 
  * @return The constructed function call.
  */
-std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
+MILLENNIUM std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
 {
     std::string strFunctionCall = data["methodName"];
     strFunctionCall += "(";
@@ -84,7 +85,7 @@ std::string Python::ConstructFunctionCall(nlohmann::basic_json<> data)
  * 
  * @return { errorMessageString, tracebackString }
  */
-std::tuple<std::string, std::string> Python::ActiveExceptionInformation() 
+MILLENNIUM std::tuple<std::string, std::string> Python::ActiveExceptionInformation() 
 {
     PyObject* typeObj = nullptr;
     PyObject* valueObj = nullptr;
@@ -152,7 +153,7 @@ std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
  * - `Python::Types::String` for string values.
  * - `Python::Types::Error` if an error occurs or an unsupported type is encountered.
  */
-const Python::EvalResult EvaluatePython(std::string pluginName, std::string script) 
+MILLENNIUM const Python::EvalResult EvaluatePython(std::string pluginName, std::string script) 
 {
     PyObject* mainModule = PyImport_AddModule("__main__");
 
@@ -219,7 +220,7 @@ const Python::EvalResult EvaluatePython(std::string pluginName, std::string scri
  *
  * The function ensures that the GIL is properly acquired and released before and after execution.
  */
-Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)
+MILLENNIUM Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)
 {
     auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
@@ -268,7 +269,7 @@ Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::strin
  * 
  * The function ensures that the GIL is properly acquired and released before and after execution.
  */
-void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string script)
+MILLENNIUM void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string script)
 {
     auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 

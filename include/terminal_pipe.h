@@ -242,12 +242,6 @@ namespace WinUtils {
         std::thread(WinUtils::CreateTerminalPipe, hConsole).detach();
         WinUtils::RedirectToPipe();
 
-        // if (WinUtils::CheckShimLoaderVersion(SystemIO::GetInstallPath() / SHIM_LOADER_PATH) == ShimLoaderProps::INVALID) 
-        // {
-        //     MessageBoxA(NULL, "It appears one of Millennium's core assets are out of date, this may cause stability issues. It is recommended that you reinstall Millennium.", "Oops!", MB_ICONERROR | MB_OK);
-        //     return;
-        // }
-
         try 
         {
             if (!std::filesystem::exists(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH))

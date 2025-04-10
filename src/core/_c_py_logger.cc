@@ -32,10 +32,11 @@
 #include <Python.h>
 #include <stdio.h>
 #include <fstream>
+#include "fvisible.h"
 
 std::vector<BackendLogger*> g_loggerList;
 
-static PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     LoggerObject *self;
     self = (LoggerObject *)type->tp_alloc(type, 0);
@@ -71,12 +72,12 @@ static PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *
     return (PyObject *)self;
 }
 
-static void LoggerObject_dealloc(LoggerObject *self)
+MILLENNIUM void LoggerObject_dealloc(LoggerObject *self)
 {
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
-static PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
+MILLENNIUM PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
 {
     const char *message;
     if (!PyArg_ParseTuple(args, "s", &message)) 
@@ -89,7 +90,7 @@ static PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
     return Py_None;
 }
 
-static PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
+MILLENNIUM PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
 {
     const char *message;
     if (!PyArg_ParseTuple(args, "s", &message)) 
@@ -102,7 +103,7 @@ static PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
     return Py_None;
 }
 
-static PyObject* LoggerObject_warning(LoggerObject *self, PyObject *args)
+MILLENNIUM PyObject* LoggerObject_warning(LoggerObject *self, PyObject *args)
 {
     const char *message;
     if (!PyArg_ParseTuple(args, "s", &message)) 
@@ -146,7 +147,7 @@ static struct PyModuleDef g_loggerModuleDef
     .m_methods = LoggerObject_methods,
 };
 
-PyObject* PyInit_Logger(void)
+MILLENNIUM PyObject* PyInit_Logger(void)
 {
     PyObject *loggerModule;
     if (PyType_Ready(&LoggerType) < 0)

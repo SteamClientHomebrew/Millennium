@@ -40,6 +40,7 @@
 #include "co_stub.h"
 #include "logger.h"
 #include "encoding.h"
+#include "fvisible.h"
 
 std::shared_ptr<PluginLoader> g_pluginLoader;
 
@@ -49,19 +50,19 @@ std::map<std::string, JavaScript::Types> typeMap = {
     { "int",  JavaScript::Types::Integer }
 };
 
-PyObject* GetUserSettings(PyObject* self, PyObject* args)
+MILLENNIUM PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "get_user_settings is not implemented yet. It will likely be removed in the future.");
     return NULL;
 }
 
-PyObject* SetUserSettings(PyObject* self, PyObject* args)
+MILLENNIUM PyObject* SetUserSettings(PyObject* self, PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "set_user_settings_key is not implemented yet. It will likely be removed in the future.");
     return NULL;
 }
 
-PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
+MILLENNIUM PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     const char* methodName = NULL;
     PyObject* parameterList = NULL;
@@ -126,22 +127,22 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
     );
 }
 
-PyObject* GetVersionInfo(PyObject* self, PyObject* args) 
+MILLENNIUM PyObject* GetVersionInfo(PyObject* self, PyObject* args) 
 { 
     return PyUnicode_FromString(MILLENNIUM_VERSION);
 }
 
-PyObject* GetSteamPath(PyObject* self, PyObject* args) 
+MILLENNIUM PyObject* GetSteamPath(PyObject* self, PyObject* args) 
 {
     return PyUnicode_FromString(SystemIO::GetSteamPath().string().c_str()); 
 }
 
-PyObject* GetInstallPath(PyObject* self, PyObject* args) 
+MILLENNIUM PyObject* GetInstallPath(PyObject* self, PyObject* args) 
 {
     return PyUnicode_FromString(SystemIO::GetInstallPath().string().c_str()); 
 }
 
-PyObject* RemoveBrowserModule(PyObject* self, PyObject* args) 
+MILLENNIUM PyObject* RemoveBrowserModule(PyObject* self, PyObject* args) 
 { 
     int moduleId;
 
@@ -165,7 +166,7 @@ PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
     return PyBool_FromLong(success);
 }
 
-unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type) 
+MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type) 
 {
     const char* moduleItem;
     const char* regexSelector = ".*"; // Default value if no second parameter is provided
@@ -193,12 +194,12 @@ unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type
     return g_hookedModuleId;
 }
 
-PyObject* AddBrowserCss(PyObject* self, PyObject* args) 
+MILLENNIUM PyObject* AddBrowserCss(PyObject* self, PyObject* args) 
 { 
     return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::STYLESHEET)); 
 }
 
-PyObject* AddBrowserJs(PyObject* self, PyObject* args)  
+MILLENNIUM PyObject* AddBrowserJs(PyObject* self, PyObject* args)  
 { 
     return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::JAVASCRIPT)); 
 }
@@ -206,7 +207,7 @@ PyObject* AddBrowserJs(PyObject* self, PyObject* args)
 /* 
 This portion of the API is undocumented but you can use it. 
 */
-PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
+MILLENNIUM PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
 {
     PyObject* input;  // Will only accept a list format
     PythonManager& manager = PythonManager::GetInstance();
@@ -301,7 +302,7 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     Py_RETURN_NONE;
 }
 
-PyObject* EmitReadyMessage(PyObject* self, PyObject* args) 
+MILLENNIUM PyObject* EmitReadyMessage(PyObject* self, PyObject* args) 
 { 
     PyObject* globals = PyModule_GetDict(PyImport_AddModule("__main__"));
     PyObject* pluginNameObj = PyRun_String("MILLENNIUM_PLUGIN_SECRET_NAME", Py_eval_input, globals, globals);
@@ -320,7 +321,7 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
     return PyBool_FromLong(true);
 }
 
-PyObject* GetPluginLogs(PyObject* self, PyObject* args) 
+MILLENNIUM PyObject* GetPluginLogs(PyObject* self, PyObject* args) 
 {
     nlohmann::json logData = nlohmann::json::array();
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
@@ -369,7 +370,7 @@ PyObject* GetPluginLogs(PyObject* self, PyObject* args)
  * Method API for the Millennium module
  * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
  */
-PyMethodDef* GetMillenniumModule()
+MILLENNIUM PyMethodDef* GetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = 
     {
@@ -407,7 +408,7 @@ PyMethodDef* GetMillenniumModule()
     return moduleMethods;
 }
 
-void SetPluginLoader(std::shared_ptr<PluginLoader> pluginLoader) 
+MILLENNIUM void SetPluginLoader(std::shared_ptr<PluginLoader> pluginLoader) 
 {
     g_pluginLoader = pluginLoader;
 }

@@ -39,6 +39,7 @@
 #include "url_parser.h"
 #include "env.h"
 #include "serv.h"
+#include "fvisible.h"
 unsigned long long g_hookedModuleId;
 
 // Millennium will not load JavaScript into the following URLs to favor user safety.
@@ -54,13 +55,13 @@ static const std::unordered_set<std::string> g_doNotHook = {
     R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
 };
 
-WebkitHandler WebkitHandler::get() 
+MILLENNIUM WebkitHandler WebkitHandler::get() 
 {
     static WebkitHandler webkitHandler;
     return webkitHandler;
 }
 
-void WebkitHandler::SetupGlobalHooks() 
+MILLENNIUM void WebkitHandler::SetupGlobalHooks() 
 {
     Sockets::PostGlobal({
         { "id", 3242 }, { "method", "Fetch.enable" },
@@ -76,7 +77,7 @@ void WebkitHandler::SetupGlobalHooks()
     });
 }
 
-bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message) 
+MILLENNIUM bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message) 
 {
     std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
 
@@ -85,7 +86,7 @@ bool WebkitHandler::IsGetBodyCall(nlohmann::basic_json<> message)
         || requestUrl.find(this->m_oldHookAddress)       != std::string::npos;
 }
 
-std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
+MILLENNIUM std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
 {
     size_t jsPos  = requestUrl.find(this->m_javaScriptVirtualUrl);
     size_t cssPos = requestUrl.find(this->m_styleSheetVirtualUrl);
@@ -107,7 +108,7 @@ std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string requestUrl)
     return std::filesystem::path(PathFromUrl(requestUrl));
 }
 
-void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
+MILLENNIUM void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 {
     std::string fileContent;
     std::filesystem::path localFilePath = this->ConvertToLoopBack(message["params"]["request"]["url"]);
@@ -164,7 +165,7 @@ void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
     });
 }
 
-void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
+MILLENNIUM void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 {
     const RedirectType statusCode = message["params"]["responseStatusCode"].get<RedirectType>();
 
@@ -204,7 +205,7 @@ void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
     }
 }
 
-const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
+MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
     std::string patched = original;
     const std::string webkitPreloadModule = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "webkit_api.js").string());
@@ -262,7 +263,7 @@ const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, s
     return patched.replace(patched.find("<head>"), 6, "<head>" + shimContent);
 }
 
-void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
+MILLENNIUM void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
 {
     for (auto requestIterator = m_requestMap->begin(); requestIterator != m_requestMap->end();)
     {
@@ -310,7 +311,7 @@ void WebkitHandler::HandleHooks(nlohmann::basic_json<> message)
     }
 }
 
-void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
+MILLENNIUM void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
 {
     static std::chrono::time_point lastExceptionTime = std::chrono::system_clock::now();
 

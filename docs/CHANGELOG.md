@@ -1,3 +1,11 @@
+## [2.23.1-beta.1](https://github.com/shdwmtr/millennium/compare/v2.23.0...v2.23.1-beta.1) (2025-04-08)
+
+
+### Bug Fixes
+
+* Fix Steam webhelper hanging it by force crashing it, instead of relying on CEF reload. ([df65b37](https://github.com/shdwmtr/millennium/commit/df65b37a7d7cbfbe00fe21a11c056108c9c88186))
+* Remove write permission from PIPX module ([f9d9931](https://github.com/shdwmtr/millennium/commit/f9d9931622bdcce9d64cdb6783edafdbcf1826c7))
+
 # [2.23.0](https://github.com/shdwmtr/millennium/compare/v2.22.0...v2.23.0) (2025-04-08)
 
 

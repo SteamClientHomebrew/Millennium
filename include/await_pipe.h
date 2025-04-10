@@ -49,6 +49,7 @@
 #endif
 #include "cmd.h"
 
+
 static bool bHasCheckedConnection = false;
 
 class SocketHelpers
