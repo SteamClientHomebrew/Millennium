@@ -1,6 +1,11 @@
 #ifndef MILLENNIUM_EXPORT_H
 #define MILLENNIUM_EXPORT_H
 
+/**
+ * This header is used as a way to force functions to RVA map into the export table. 
+ * This exposes function ordinals externally, which can be used to identify function information from non-debug stripped binaries.
+ * This is useful for debugging purposes on release builds, without having debug overhead. 
+ */
 #if defined(_WIN32) || defined(__CYGWIN__)
     #ifdef __GNUC__
         #define MILLENNIUM __attribute__((dllexport))
