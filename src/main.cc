@@ -324,7 +324,6 @@ const static void EntryMain()
 
 __attribute__((constructor)) void __init_millennium() 
 {
-    std::cout << "Millennium loaded" << std::endl;
     SetupEnvironmentVariables();
 }
 

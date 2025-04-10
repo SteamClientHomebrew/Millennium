@@ -130,10 +130,8 @@ public:
 
         if (!onlyBuffer) 
         {
-            fmt::print("{} ", GetLocalTime());
-    
-            fmt::print("\033[1m\033[34m{}\033[0m\033[0m", formatted);
-            fmt::print("{}\n", message.c_str());
+            std::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", GetLocalTime(), formatted) << message << "\n";
+
             file << formatted << message << "\n";
             file.flush();
         }
@@ -146,8 +144,8 @@ public:
         if (!onlyBuffer)
         {
             std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+            std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
 
-            fmt::print(fg(fmt::color::orange), formatted, "\n");
             file << formatted;
             file.flush();
         }
@@ -160,8 +158,8 @@ public:
         if (!onlyBuffer) 
         {
             std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+            std::cout << COL_RED << formatted << COL_RESET << '\n';
 
-            fmt::print(fg(fmt::color::red), formatted, "\n");
             file << formatted;
             file.flush();
         }

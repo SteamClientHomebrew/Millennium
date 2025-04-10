@@ -153,17 +153,6 @@ void PatchSharedJSContext(std::string strSteamPath)
     try 
     {
         const auto SteamUIModulePath       = std::filesystem::path(strSteamPath) / "steamui" / "index.html";
-        const auto SteamUIModuleBackupPath = std::filesystem::path(strSteamPath) / "steamui" / "orig.html";
-
-        if (std::filesystem::exists(SteamUIModuleBackupPath) && std::filesystem::is_regular_file(SteamUIModuleBackupPath)) 
-        {
-            Print("Removing existing SharedJSContext backup...");
-            std::filesystem::remove(SteamUIModuleBackupPath);
-        }
-
-        Print("Backing up original SharedJSContext...");
-        std::filesystem::rename(SteamUIModulePath, SteamUIModuleBackupPath);
-
         Print("Patching SharedJSContext...");
         
         // Write an empty document to the file, this halts the Steam UI from loading as we've removed the <script>'s
@@ -178,30 +167,6 @@ void PatchSharedJSContext(std::string strSteamPath)
     catch (const std::exception &exception) 
     {
         Error("Error patching SharedJSContext: {}", exception.what());
-    }
-}
-
-/**
- * @brief Restore the SharedJSContext file to its original state.
- * Only ever used if the bootstrap process fails to load Millennium.
- */
-void RestoreSharedJSContext(std::string strSteamPath)
-{
-    const auto SteamUIModulePath       = std::filesystem::path(strSteamPath) / "steamui" / "index.html";
-    const auto SteamUIModulePathBackup = std::filesystem::path(strSteamPath) / "steamui" / "orig.html";
-
-    try
-    {
-        if (std::filesystem::exists(SteamUIModulePathBackup) && std::filesystem::is_regular_file(SteamUIModulePathBackup))
-        {
-            std::filesystem::remove(SteamUIModulePath);
-        }
-
-        std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
-    }
-    catch (const std::exception& e)
-    {
-        Error("Failed to restore SharedJSContext: {}", e.what());
     }
 }
 
@@ -222,21 +187,15 @@ void AllocateDevConsole()
 {
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
-    /** Check if CTRL+SHIFT is being held, Check if developer mode is activated */
-    if (!((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) && !startupParams->HasArgument("-dev")) 
+    if (startupParams->HasArgument("-dev")) 
     {
-        return;
+        (void)static_cast<bool>(AllocConsole());
+
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+
+        EnableVirtualTerminalProcessing();
     }
-
-    if (!static_cast<bool>(AllocConsole())) 
-    {   
-        return;
-    }
-
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-
-    EnableVirtualTerminalProcessing();
 }
 
 /**

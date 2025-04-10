@@ -107,13 +107,14 @@ namespace WinUtils {
 
             if (hNamedPipe == INVALID_HANDLE_VALUE) 
             {
-                std::cout << "Failed to create named pipe. Error: " << GetLastError() << std::endl;
+                MessageBoxA(NULL, fmt::format("Failed to create named pipe. Error: {}", GetLastError()).c_str(), "Error", MB_ICONERROR | MB_OK);
                 return 1;
             }
             
             if (!ConnectNamedPipe(hNamedPipe, nullptr)) 
             {
-                std::cout << "Failed to connect named pipe. Error: " << GetLastError() << std::endl;
+                MessageBoxA(NULL, fmt::format("Failed to connect named pipe. Error: {}", GetLastError()).c_str(), "Error", MB_ICONERROR | MB_OK);
+
                 CloseHandle(hNamedPipe);
                 return 1;
             }
@@ -183,10 +184,17 @@ namespace WinUtils {
             freopen("NUL", "w", stdout);
         }
 
+        auto startTime = std::chrono::steady_clock::now();
         HANDLE hPipe = CreateFileW(GetPipeName().c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 
         while (hPipe == INVALID_HANDLE_VALUE)
         {
+            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(3))
+            {
+                MessageBoxA(NULL, "Failed to connect to pipe within timeout period.", "Error", MB_ICONERROR | MB_OK);
+                return 1;
+            }
+
             hPipe = CreateFileW(GetPipeName().c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
@@ -194,6 +202,8 @@ namespace WinUtils {
         int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
         if (pipeDescriptor == -1)
         {
+            MessageBoxA(NULL, "Failed to open pipe handle.", "Error", MB_ICONERROR | MB_OK);
+
             CloseHandle(hPipe);
             return 1;
         }
@@ -201,12 +211,16 @@ namespace WinUtils {
         FILE* pipeFile = _fdopen(pipeDescriptor, "w");
         if (!pipeFile)
         {
+            MessageBoxA(NULL, "Failed to open pipe file.", "Error", MB_ICONERROR | MB_OK);
+
             CloseHandle(hPipe);
             return 1;
         }
 
         if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
         {
+            MessageBoxA(NULL, "Failed to redirect stdout to pipe.", "Error", MB_ICONERROR | MB_OK);
+
             fclose(pipeFile);
             return 1;
         }
@@ -223,6 +237,18 @@ namespace WinUtils {
         return 0;
     }
 
+    void RedirectToFile()
+    {
+        const auto filename = SystemIO::GetInstallPath() / "ext" / "logs" / "Standard Output_log.log";
+
+        freopen(filename.string().c_str(), "w", stdout);
+        freopen(filename.string().c_str(), "w", stderr);
+        std::cout.flush();
+
+        std::ios::sync_with_stdio(true);
+        std::cout << std::unitbuf;
+    }
+
     __declspec(dllexport) std::unique_ptr<std::thread> terminalPipeThread;
 
     /**
@@ -230,6 +256,8 @@ namespace WinUtils {
      */
     const void SetupWin32Environment()
     {
+        const auto startupParams = std::make_unique<StartupParameters>();
+
         // Get the terminal handle before redirecting it. 
         HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 

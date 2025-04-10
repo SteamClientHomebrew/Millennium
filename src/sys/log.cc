@@ -60,7 +60,7 @@ MILLENNIUM std::string OutputLogger::GetLocalTime()
 MILLENNIUM void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
-	fmt::print("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
+	std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
 }
 
 MILLENNIUM OutputLogger::OutputLogger()
@@ -87,26 +87,6 @@ MILLENNIUM void OutputLogger::LogPluginMessage(std::string pluginName, std::stri
 		return result;
 	};
 
-	fmt::print("{} ", GetLocalTime());
-	fmt::print("\033[1m\033[34m{} \033[0m\033[0m", toUpper(pluginName));
-	fmt::print("{}\n", strMessage);
-}
-
-MILLENNIUM void OutputLogger::LogHead(std::string strHeadTitle, fmt::text_style color) 
-{	
-	std::lock_guard<std::mutex> lock(logMutex);
-	const auto message = fmt::format("\n(┬) {}", strHeadTitle);
-
-	fmt::print(color, "\n(┬) ");
-	fmt::print("{}\n", strHeadTitle);
-}
-
-MILLENNIUM void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, fmt::text_style color) 
-{
-	std::lock_guard<std::mutex> lock(logMutex);
-	std::string connectorPiece = end ? "╰" : "├";
-	const auto message = fmt::format(" {}─({}) {}", connectorPiece, pluginName, strMessage);
-
-	fmt::print(color, " {}─({}) ", connectorPiece, pluginName);
-	fmt::print("{}\n", strMessage);
+	std::string message = fmt::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", GetLocalTime(), toUpper(pluginName), strMessage);
+	std::cout << message;
 }

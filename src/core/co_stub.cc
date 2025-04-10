@@ -48,6 +48,24 @@
 
 static std::string addedScriptOnNewDocumentId = "";
 
+class BackendLoadState {
+private:
+    BackendLoadState() = default;
+    static BackendLoadState& getInstance() {
+        static BackendLoadState instance;
+        return instance;
+    }
+
+public:
+    std::mutex mtx;
+    std::condition_variable cvScript;
+    bool hasScriptIdentifier = false;
+
+    static BackendLoadState& get() {
+        return getInstance();
+    }
+};
+
 /**
  * Constructs a JavaScript bootstrap module that includes the given script modules and a port number.
  *
@@ -444,14 +462,31 @@ MILLENNIUM const void UnPatchSharedJSContext()
     const auto SteamUIModulePath       = SystemIO::GetSteamPath() / "steamui" / "index.html";
     const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
 
+    const auto librariesPath = SystemIO::GetSteamPath() / "steamui" / "libraries";
+
+    std::string libraryChunkJS;
+
     try
     {
-        if (std::filesystem::exists(SteamUIModulePathBackup) && std::filesystem::is_regular_file(SteamUIModulePathBackup))
+        for (const auto& entry : std::filesystem::directory_iterator(librariesPath))
         {
-            std::filesystem::remove(SteamUIModulePath);
+            if (entry.is_regular_file() && entry.path().filename().string().substr(0, 10) == "libraries~" && entry.path().extension() == ".js")
+            {
+                libraryChunkJS = entry.path().filename().string();
+                break;
+            }
         }
+    }
+    catch (const std::filesystem::filesystem_error& e)
+    {
+        Logger.Warn("Failed to find libraries~xxx.js: {}", e.what());
+    }
 
-        std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
+    std::string fileContent = fmt::format(R"(<!doctype html><html style="width: 100%; height: 100%"><head><title>SharedJSContext</title><meta charset="utf-8"><script defer="defer" src="/libraries/{}"></script><script defer="defer" src="/library.js"></script><link href="/css/library.css" rel="stylesheet"></head><body style="width: 100%; height: 100%; margin: 0; overflow: hidden;"><div id="root" style="height:100%; width: 100%"></div><div style="display:none"></div></body></html>)", libraryChunkJS);
+
+    try
+    {
+        SystemIO::WriteFileSync(SteamUIModulePath.string(), fileContent);
     }
     catch (const std::system_error& e)
     {
@@ -502,27 +537,42 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         PAGE_RELOAD = 4
     };
 
-    std::mutex mtx;
-    std::condition_variable cvScript;
-
-    bool hasScriptIdentifier = false;
-
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [&mtx, &cvScript, &hasScriptIdentifier] (const nlohmann::json& eventMessage, std::string listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [] (const nlohmann::json& eventMessage, std::string listenerId)
     {
-        std::unique_lock<std::mutex> lock(mtx);
+        auto& state = BackendLoadState::get();
+        std::unique_lock<std::mutex> lock(state.mtx);
         
         try
         {
-            const int messageId = eventMessage.value("id", -1);
+            const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
 
-            if (messageId == PageMessage::PAGE_SCRIPT)
+            if (messageId == PAGE_ENABLE)
             {
-                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                hasScriptIdentifier = true;
-                Logger.Log("Successfully injected shims, crashing GPU process...");
+                Logger.Log("Injecting script to evaluate on new document...");
+                Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
+            }
+            if (messageId == PAGE_SCRIPT)
+            {
+                Logger.Log("Script injected, waiting for identifier...");
 
-                Sockets::PostGlobal({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
-                cvScript.notify_one();  
+                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                state.hasScriptIdentifier = true;
+                Logger.Log("Successfully injected shims, reloading frontend...");
+
+                Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                state.cvScript.notify_one();  
+
+            }
+            if (messageId == PAGE_RELOAD)
+            {
+                if (eventMessage.contains("error"))
+                {
+                    Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
+                    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                    return;
+                }
+
+                Logger.Log(eventMessage.dump(4));
 
                 Logger.Log("Successfully notified frontend...");
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
@@ -536,13 +586,11 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
-
     {
-        std::unique_lock<std::mutex> lock(mtx);
-        cvScript.wait(lock, [&] { return hasScriptIdentifier; });
+        auto& state = BackendLoadState::get();
+        std::unique_lock<std::mutex> lock(state.mtx);
+        state.cvScript.wait(lock, [&state] { return state.hasScriptIdentifier; });
     }
-
     Logger.Log("Frontend notifier finished!");
 }
 
