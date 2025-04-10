@@ -54,15 +54,8 @@
 class OutputLogger
 {
 private:
-#ifdef _WIN32
-    bool m_bIsVersbose = false;
-#elif __linux__
-    bool m_bIsVersbose = true;
-#endif
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
-    std::shared_ptr<std::ostream> teeStreamPtr;
-    std::shared_ptr<std::ofstream> outputLogStream;
     std::string GetLocalTime();
 
 public:
@@ -72,7 +65,6 @@ public:
     OutputLogger &operator=(const OutputLogger &) = delete;
 
     OutputLogger();
-    ~OutputLogger();
 
     void LogPluginMessage(std::string pname, std::string val);
 

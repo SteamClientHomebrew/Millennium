@@ -38,6 +38,7 @@
 #include <functional>
 #include "asio.h"
 #include "locals.h"
+#include "fvisible.h"
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
@@ -57,7 +58,7 @@ typedef websocketpp::server<websocketpp::config::asio> socketServer;
  * - Integer: Returned as an integer.
  * - Error: Returns a failure message and a flag indicating the failure.
  */
-static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
+MILLENNIUM nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 {
     const std::string fnCallScript = Python::ConstructFunctionCall(message["data"]);
 
@@ -97,7 +98,7 @@ static nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
  * This function evaluates the `plugin._front_end_loaded()` method using the provided plugin name and
  * returns a response indicating the success of the operation.
  */
-static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
+MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 {
     const std::string pluginName = message["data"]["pluginName"];
 
@@ -136,7 +137,7 @@ static nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
  * such as `CallServerMethod` or `OnFrontEndLoaded`. If any exceptions are caught, they are sent back
  * as error messages.
  */
-void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, socketServer::message_ptr msg) 
+MILLENNIUM void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, socketServer::message_ptr msg) 
 {
     socketServer::connection_ptr serverConnection = serv->get_con_from_hdl(hdl);
 
@@ -173,7 +174,7 @@ void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, socketServer
 /**
  * Handles the WebSocket connection open event, starting the server's accept loop.
  */
-void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl hdl) 
+MILLENNIUM void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl hdl) 
 {
     IPCSocketMain->start_accept();
 }
@@ -188,7 +189,7 @@ void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl hdl)
  * listens on the specified port, and runs the server. If any exceptions occur during initialization or handling,
  * they are caught and logged.
  */
-const int OpenIPCSocket(uint16_t ipcPort) 
+MILLENNIUM const int OpenIPCSocket(uint16_t ipcPort) 
 {
     socketServer IPCSocketMain;
 
@@ -222,7 +223,7 @@ const int OpenIPCSocket(uint16_t ipcPort)
  * This function obtains a random open port, initializes the WebSocket server, and runs it in a separate thread.
  * The assigned port number is returned.
  */
-const uint16_t IPCMain::OpenConnection()
+MILLENNIUM const uint16_t IPCMain::OpenConnection()
 {
     uint16_t ipcPort = Asio::GetRandomOpenPort();
     std::thread(OpenIPCSocket, ipcPort).detach();

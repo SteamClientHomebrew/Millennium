@@ -32,6 +32,10 @@
 #include "co_spawn.h"
 #include "loader.h"
 #include <future>
+#include "fvisible.h"
+#include <mutex>
+#include <condition_variable>
+#include "fvisible.h"
 
 struct EvalResult 
 {
@@ -40,9 +44,6 @@ struct EvalResult
 };
 
 #define SHARED_JS_EVALUATE_ID 54999
-
-#include <mutex>
-#include <condition_variable>
 
 /**
  * Executes JavaScript code on the SharedJSContext and retrieves the result.
@@ -63,7 +64,7 @@ struct EvalResult
  * - Uses a `std::mutex` and `std::condition_variable` to ensure safe access to shared data.
  * - The listener is removed once a response is received.
  */
-const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval) 
+MILLENNIUM const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval) 
 {
     std::mutex mtx;
     std::condition_variable cv;
@@ -159,7 +160,7 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
  *
  * If multiple parameters exist, they are separated by commas.
  */
-const std::string JavaScript::ConstructFunctionCall(const char* plugin, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> fnParams)
+MILLENNIUM const std::string JavaScript::ConstructFunctionCall(const char* plugin, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> fnParams)
 {
     std::string strFunctionFormatted = fmt::format("PLUGIN_LIST['{}'].{}(", plugin, methodName);
 
@@ -218,7 +219,7 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
  * - If the frontend is not loaded, a Python `ConnectionError` is set.
  * - If the response cannot be parsed, an error message is returned as a Python string.
  */
-PyObject* JavaScript::EvaluateFromSocket(std::string script)
+MILLENNIUM PyObject* JavaScript::EvaluateFromSocket(std::string script)
 {
     try 
     {
