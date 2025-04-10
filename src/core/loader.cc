@@ -348,8 +348,6 @@ MILLENNIUM const void StartPreloader(PythonManager& manager)
             return;
         }
 
-        throw std::runtime_error("Test error"); // This is just for testing purposes, remove it in production code.
-
         try
         {
             Logger.Log("Starting package manager thread @ {}", backendMainModule);
