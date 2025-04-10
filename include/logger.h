@@ -143,7 +143,7 @@ public:
     {
         if (!onlyBuffer)
         {
-            std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+            std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
             std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
 
             file << formatted;
@@ -157,7 +157,7 @@ public:
     {
         if (!onlyBuffer) 
         {
-            std::string formatted = fmt::format("{}{}{}\n", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+            std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
             std::cout << COL_RED << formatted << COL_RESET << '\n';
 
             file << formatted;
