@@ -108,16 +108,17 @@ const static void VerifyEnvironment()
 #ifdef _WIN32
 #include <windows.h>
 // Helper function to demangle C++ names for MinGW
-std::string DemangleName(const char* mangledName) {
+std::string DemangleName(const char* mangledName) 
+{
     int status = 0;
-    std::unique_ptr<char, void(*)(void*)> demangled(
-        abi::__cxa_demangle(mangledName, nullptr, nullptr, &status),
-        std::free
-    );
+    std::unique_ptr<char, void(*)(void*)> demangled(abi::__cxa_demangle(mangledName, nullptr, nullptr, &status), std::free);
     
-    if (status == 0 && demangled) {
+    if (status == 0 && demangled) 
+    {
         return std::string(demangled.get());
-    } else {
+    } 
+    else 
+    {
         // If demangling fails, return the original name
         return std::string(mangledName);
     }
@@ -125,32 +126,27 @@ std::string DemangleName(const char* mangledName) {
 
 void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
 {
-    // Windows implementation for MinGW
     HANDLE process = GetCurrentProcess();
-    
-    // Initialize symbol handler
     DWORD options = SymGetOptions();
-    // Enable line loading and load all modules, but DO NOT enable SYMOPT_UNDNAME
-    // We want to get the mangled names so we can demangle them ourselves
     options |= SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS;
-    // Make sure SYMOPT_UNDNAME is OFF so we get mangled names
     options &= ~SYMOPT_UNDNAME;
     SymSetOptions(options);
     
-    if (!SymInitialize(process, NULL, TRUE)) {
+    if (!SymInitialize(process, NULL, TRUE)) 
+    {
         DWORD error = GetLastError();
         errorMessage.append(fmt::format("\nFailed to initialize symbol handler: Error {}\n", error));
         return;
     }
     
-    // Allocate space for the stack
     void* stack[maxFrames];
     USHORT frames = CaptureStackBackTrace(0, maxFrames, stack, NULL);
     
-    // Allocate symbol info structure with buffer for name
     constexpr int MAX_NAME_LENGTH = 1024;
     SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(1, sizeof(SYMBOL_INFO) + MAX_NAME_LENGTH * sizeof(CHAR));
-    if (!symbol) {
+
+    if (!symbol) 
+    {
         errorMessage.append("\nFailed to allocate memory for symbols\n");
         SymCleanup(process);
         return;
@@ -158,8 +154,7 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
     
     symbol->MaxNameLen = MAX_NAME_LENGTH - 1;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-    
-    // Allocate line info structure
+
     IMAGEHLP_LINE64 line;
     line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
     
@@ -171,15 +166,18 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
         
         BOOL symbolResult = SymFromAddr(process, address, &displacement, symbol);
         
-        if (symbolResult) {
-            // We now have the mangled name in symbol->Name
+        if (symbolResult) 
+        {
             // Try to demangle it for MinGW-compiled code
             std::string demangledName;
             
             // Check if this looks like a C++ mangled name (typically starts with _Z for GCC/MinGW)
-            if (symbol->Name[0] == '_' && (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N')) {
+            if (symbol->Name[0] == '_' && (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N')) 
+            {
                 demangledName = DemangleName(symbol->Name);
-            } else {
+            } 
+            else 
+            {
                 // Not a GCC-style mangled name, use as is
                 demangledName = symbol->Name;
             }
@@ -188,49 +186,19 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
             DWORD lineDisplacement = 0;
             BOOL lineResult = SymGetLineFromAddr64(process, address, &lineDisplacement, &line);
             
-            if (lineResult) {
-                errorMessage.append(fmt::format("#{}: {} in {} at {}:{} +{}\n", 
-                    i, 
-                    demangledName, 
-                    line.FileName, 
-                    line.LineNumber,
-                    lineDisplacement));
-            } else {
-                // No line info available, just print symbol name and address
-                DWORD lineError = GetLastError();
-                errorMessage.append(fmt::format("#{}: {} at 0x{:X} (no line info, error: {})\n", 
-                    i, 
-                    demangledName, 
-                    address,
-                    lineError));
-            }
-            
-            // // Also show the original mangled name for reference
-            // if (demangledName != symbol->Name) {
-            //     errorMessage.append(fmt::format("    Mangled name: {}\n", symbol->Name));
-            // }
-        } else {
-            DWORD symError = GetLastError();
-            // Failed to get symbol name
-            errorMessage.append(fmt::format("#{}: 0x{:X} (unknown symbol, error: {})\n", 
-                i, 
-                address,
-                symError));
+            if (lineResult) 
+            {
+                errorMessage.append(fmt::format("#{}: {} in {} at {}:{} +{}\n", i, demangledName, line.FileName, line.LineNumber, lineDisplacement));
+            } 
+            else 
+            {
+                errorMessage.append(fmt::format("#{}: {} at 0x{:X} (no line info, error: {})\n", i, demangledName, address, GetLastError()));
+            }   
+        } 
+        else 
+        {
+            errorMessage.append(fmt::format("#{}: 0x{:X} (unknown symbol, error: {})\n", i, address, GetLastError()));
         }
-        
-        // Get module information
-        // IMAGEHLP_MODULE64 moduleInfo;
-        // moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
-        // if (SymGetModuleInfo64(process, address, &moduleInfo)) {
-        //     errorMessage.append(fmt::format("    Module: {} ({})\n", 
-        //         moduleInfo.ModuleName,
-        //         moduleInfo.LoadedImageName));
-            
-        //     // Add module load address information which can be useful for debugging
-        //     errorMessage.append(fmt::format("    Base Address: 0x{:X}, Size: 0x{:X}\n",
-        //         moduleInfo.BaseOfImage,
-        //         moduleInfo.ImageSize));
-        // }
     }
     
     free(symbol);
@@ -270,6 +238,22 @@ void OnTerminate()
     // Capture and print stack trace
     CaptureStackTrace(errorMessage);
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
+
+    auto result = MessageBoxA(
+        NULL, 
+        "Would you like to open your logs folder?\nLook for a file called \"Standard Output_log.log\" "
+        "in the logs folder, that will have important debug information.\n\n"
+        "Please send this file to Millennium developers on our discord (steambrew.app/discord), it will help prevent this error from happening to you or others in the future.", 
+        "Error Recovery",
+        MB_ICONEXCLAMATION| MB_YESNO
+    );
+
+    if (result == IDYES) 
+    {
+        std::string logPath = (SystemIO::GetInstallPath() / "ext" / "logs").string();
+        ShellExecuteA(NULL, "open", logPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
+    }
+
     #elif __linux__
     std::cerr << errorMessage << std::endl;
     #endif
