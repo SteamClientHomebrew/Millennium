@@ -3,6 +3,23 @@
 
 ### Bug Fixes
 
+* Fix Steam UI not showing on launch. ([52ad028](https://github.com/shdwmtr/millennium/commit/52ad0289042de64d16b35a8429c610a96ae55667))
+* Fix Steam webhelper hanging it by force crashing it, instead of relying on CEF reload. ([df65b37](https://github.com/shdwmtr/millennium/commit/df65b37a7d7cbfbe00fe21a11c056108c9c88186))
+* Fix the AUR PKGBUILD (hopefully) ([3fbacbf](https://github.com/shdwmtr/millennium/commit/3fbacbf2484227de78c02442f75b92808de08a4a))
+* Improve error recovery steps. ([11cde53](https://github.com/shdwmtr/millennium/commit/11cde53b7baa5bc09a0a276c66e4e00a504f36f7))
+* Remove test error ([f965201](https://github.com/shdwmtr/millennium/commit/f965201dd6f503a1ab846f7eb9d43bd403bb2e63))
+* Remove write permission from PIPX module ([f9d9931](https://github.com/shdwmtr/millennium/commit/f9d9931622bdcce9d64cdb6783edafdbcf1826c7))
+
+
+### Features
+
+* Better error stack tracing ([e3518c3](https://github.com/shdwmtr/millennium/commit/e3518c3cb32bcde50089ab449b80babc5f513b09))
+
+# [2.24.0](https://github.com/shdwmtr/millennium/compare/v2.23.0...v2.24.0) (2025-04-10)
+
+
+### Bug Fixes
+
 * Fix Steam webhelper hanging it by force crashing it, instead of relying on CEF reload. ([df65b37](https://github.com/shdwmtr/millennium/commit/df65b37a7d7cbfbe00fe21a11c056108c9c88186))
 * Fix the AUR PKGBUILD (hopefully) ([3fbacbf](https://github.com/shdwmtr/millennium/commit/3fbacbf2484227de78c02442f75b92808de08a4a))
 * Improve error recovery steps. ([11cde53](https://github.com/shdwmtr/millennium/commit/11cde53b7baa5bc09a0a276c66e4e00a504f36f7))
