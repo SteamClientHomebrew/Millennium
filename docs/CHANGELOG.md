@@ -1,3 +1,10 @@
+## [2.25.1](https://github.com/shdwmtr/millennium/compare/v2.25.0...v2.25.1) (2025-04-12)
+
+
+### Bug Fixes
+
+* Fix millennium not evaluating symlinks properly ([46e34f7](https://github.com/shdwmtr/millennium/commit/46e34f7d2b0cb0fc4370f4c9221af0ff76b99c96))
+
 # [2.25.0](https://github.com/shdwmtr/millennium/compare/v2.24.0...v2.25.0) (2025-04-12)
 
 
