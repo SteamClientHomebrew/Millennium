@@ -60,8 +60,9 @@ const styles = `
 
 	.MillenniumIconButton {
 		/* Force proper styling on buttons next to dropdowns. */
-		display: flex;
-		width: auto;
+		margin: 0 !important;
+		display: flex !important;
+		width: auto !important;
 	}
 
 	/* Override Steam styles */
@@ -179,7 +180,7 @@ const styles = `
 		height: var(--size);
 
 		&[data-type="success"] {
-			background-color: var(--MillenniumTextColor-success);
+			background-color: var(--MillenniumTextColor-Success);
 		}
 
 		&[data-type="error"] {
@@ -244,13 +245,11 @@ const styles = `
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		height: 100%;
 	}
 
 	.MillenniumUpToDate_Header {
 		color: var(--MillenniumTextColor-Normal);
 		font: var(--MillenniumText-HeadingLarge);
-		margin-top: -120px;
 	}
 
 	.MillenniumUpToDate_Text {

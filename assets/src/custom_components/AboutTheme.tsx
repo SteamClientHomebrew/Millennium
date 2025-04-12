@@ -115,21 +115,14 @@ class AboutThemeRenderer extends React.Component<any> {
 		};
 
 		return (
-			<>
-				{themeOwner && themeRepo && (
-					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ShowSource}>
-						{locale.viewSourceCode}
-					</DialogButton>
-				)}
-				{/* {kofiDonate && <button type="button" style={{width: "unset"}} className={`${settingsClasses.SettingsDialogButton} DialogButton _DialogLayout Secondary Focusable`} onClick={OpenDonateDefault}>Donate</button>} */}
-
-				<DialogFooter>
-					<div className="DialogTwoColLayout _DialogColLayout Panel">
-						<DialogButton onClick={ShowInFolder}>{locale.showInFolder}</DialogButton>
-						<DialogButton onClick={UninstallTheme}>{locale.uninstall}</DialogButton>
-					</div>
-				</DialogFooter>
-			</>
+			<DialogFooter>
+				<div className="DialogTwoColLayout _DialogColLayout Panel">
+					{/* {kofiDonate && <DialogButton onClick={OpenDonateDefault}>Donate</DialogButton>} */}
+					{themeOwner && themeRepo && <DialogButton onClick={ShowSource}>{locale.viewSourceCode}</DialogButton>}
+					<DialogButton onClick={ShowInFolder}>{locale.showInFolder}</DialogButton>
+					<DialogButton onClick={UninstallTheme}>{locale.uninstall}</DialogButton>
+				</div>
+			</DialogFooter>
 		);
 	};
 
@@ -139,11 +132,11 @@ class AboutThemeRenderer extends React.Component<any> {
 				<div className="ModalPosition_Content">
 					<div className="DialogContent _DialogLayout GenericConfirmDialog _DialogCenterVertically">
 						<div className="DialogContent_InnerWidth">
-							<Styles />
 							<DialogHeader>
 								{this.activeTheme?.data?.name ?? this.activeTheme?.native}
 								<span className="MillenniumAboutTheme_Version">{this.activeTheme?.data?.version}</span>
 							</DialogHeader>
+							<Styles />
 							<DialogBody>
 								<this.RenderDeveloperProfile />
 								<this.RenderDescription />
