@@ -335,8 +335,6 @@ __attribute__((constructor)) void __init_millennium()
         path[len] = '\0';
         const char* pathPtr = path;
 
-        Logger.Log("Comparing path: {}, with {}", pathPtr, fmt::format("{}/.local/share/Steam/ubuntu12_32/steam", std::getenv("HOME")).c_str());
-
         // Check if the path is the same as the Steam executable
         if (!IsSamePath(pathPtr, fmt::format("{}/.local/share/Steam/ubuntu12_32/steam", std::getenv("HOME")).c_str()) != 0) {
             return;
