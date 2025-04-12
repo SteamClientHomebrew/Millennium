@@ -324,6 +324,21 @@ const static void EntryMain()
 
 __attribute__((constructor)) void __init_millennium() 
 {
+    char path[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if (len != -1) {
+        path[len] = '\0';
+
+        // Check if the path is the same as the Steam executable
+        if (strcmp(path, fmt::format("{}/.local/share/Steam/ubuntu12_32/steam", std::getenv("HOME")).c_str()) != 0) {
+            return;
+        }
+    } 
+    else {
+        perror("readlink");
+        return;
+    }
+
     SetupEnvironmentVariables();
 }
 
@@ -562,11 +577,15 @@ extern "C"
         int (*main)(int, char **, char **), int argc, char **argv,
         int (*init)(int, char **, char **), void (*fini)(void), void (*rtld_fini)(void), void *stack_end)
     {
+        Logger.Log("Hooked main() with PID: {}", getpid());
+
         /* Save the real main function address */
         fnMainOriginal = main;
 
         /* Get the address of the real __libc_start_main() */
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
+
+        std::cout << "Checking against " << GetEnv("MILLENNIUM__STEAM_EXE_PATH") << std::endl; 
 
         /** not loaded in a invalid child process */
         if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()))
