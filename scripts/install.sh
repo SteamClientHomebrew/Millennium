@@ -92,6 +92,8 @@ log "\nTotal Install Size: $folder_size"
 
 cp -r "$extract_path"/* / || true
 
+chmod +x /usr/bin/millennium
+
 log "cleaning up packages..."
 rm -rf "$millennium_install"
 log "done."
