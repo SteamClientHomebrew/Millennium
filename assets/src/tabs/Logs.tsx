@@ -1,8 +1,9 @@
 import { DialogBodyText, DialogButton, DialogHeader, IconsModule, SteamSpinner, TextField, callable } from '@steambrew/client';
 
 import { useEffect, useState } from 'react';
-import { settingsClasses } from '../classes';
+import { fieldClasses, settingsClasses } from '../classes';
 import Ansi from 'ansi-to-react';
+import { ButtonsSection } from '../custom_components/ButtonsSection';
 import { Separator } from '../components/ISteamComponents';
 
 export type LogItem = {
@@ -71,14 +72,13 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 
 	return (
 		<>
-			<div style={{ display: 'flex', gap: '15px', justifyContent: 'space-between', marginBottom: '20px', marginTop: '5px' }}>
-				<div style={{ display: 'flex', gap: '15px' }}>
+			<div className="MillenniumLogs_Header">
+				<div className="MillenniumLogs_HeaderNav">
 					<DialogButton
 						onClick={() => {
 							setSelectedLog(undefined);
 						}}
-						style={{ width: 'fit-content', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-						className={settingsClasses.SettingsDialogButton}
+						className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
 					>
 						<IconsModule.Carat height={'16px'} />
 						Back
@@ -86,46 +86,28 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 					<DialogHeader>{logs.name} output</DialogHeader>
 				</div>
 
-				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', gap: '20px' }}>
-					<div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
-						<DialogBodyText style={{ marginBottom: 'unset', fontSize: '12px', color: errorCount > 0 ? 'red' : 'inherit' }}>
-							{errorCount} Errors{' '}
-						</DialogBodyText>
+				<div className="MillenniumLogs_HeaderTextTypeContainer">
+					<div className="MillenniumLogs_HeaderTextTypeCount" data-type="error" data-count={errorCount}>
+						{errorCount} Errors{' '}
 					</div>
-					<div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
-						<DialogBodyText style={{ marginBottom: 'unset', fontSize: '12px', color: warningCount > 0 ? 'rgb(255, 175, 0)' : 'inherit' }}>
-							{warningCount} Warnings{' '}
-						</DialogBodyText>
+					<div className="MillenniumLogs_HeaderTextTypeCount" data-type="warning" data-count={warningCount}>
+						{warningCount} Warnings{' '}
 					</div>
 				</div>
 			</div>
 
 			<Separator />
 
-			<style>{`
-                pre {
-                    user-select: text;
-                    white-space: pre-wrap;
-                    position: relative;
-                    height: 100%;
-                    overflow-y: scroll;
-                }
-                . _1Hye7o1wYIfc9TE9QKRW4T {
-                    margin: 0px !important;
-                }
-            `}</style>
+			<div className="MillenniumLogs_TextContainer">
+				<div className="MillenniumLogs_TextControls">
+					<TextField placeholder="Search..." onChange={ShowMatchedLogsFromSearch} />
 
-			<div style={{ display: 'flex', flexDirection: 'column', marginTop: '20px', height: '100%', overflow: 'auto' }}>
-				<div style={{ position: 'relative', marginBottom: '20px', display: 'flex', gap: '10px' }}>
-					<TextField placeholder="Type here to search..." onChange={ShowMatchedLogsFromSearch} />
-
-					<div className="iconContainer" style={{ position: 'absolute', right: '0px', top: '0px', display: 'flex', gap: '10px' }}>
+					<div className="MillenniumLogs_Icons">
 						<DialogButton
 							onClick={() => {
 								setLogFontSize(logFontSize - 1);
 							}}
-							style={{ width: 'fit-content', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-							className={settingsClasses.SettingsDialogButton}
+							className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							<IconsModule.Minus height={'16px'} />
 						</DialogButton>
@@ -134,8 +116,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 							onClick={() => {
 								setLogFontSize(logFontSize + 1);
 							}}
-							style={{ width: 'fit-content', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-							className={settingsClasses.SettingsDialogButton}
+							className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							<IconsModule.Add height={'16px'} />
 						</DialogButton>
@@ -144,15 +125,14 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 							onClick={() => {
 								CopyLogsToClipboard();
 							}}
-							style={{ width: 'fit-content', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
-							className={settingsClasses.SettingsDialogButton}
+							className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							{copyIcon}
 						</DialogButton>
 					</div>
 				</div>
 
-				<pre style={{ fontSize: logFontSize + 'px' }}>
+				<pre className="MillenniumLogs_Text DialogInput DialogTextInputBase" style={{ fontSize: logFontSize + 'px' }}>
 					{(searchQuery.length ? searchedLogs : logs.logs).map((log, index) => (
 						<Ansi key={index}>{atob(log.message)}</Ansi>
 					))}
@@ -176,7 +156,6 @@ const RenderLogSelector: React.FC<RenderLogSelectorProps> = ({ logData, setSelec
 				onClick={() => {
 					SteamClient.Browser.OpenDevTools();
 				}}
-				style={{ width: 'unset', marginTop: '20px' }}
 				className={settingsClasses.SettingsDialogButton}
 			>
 				Open Steam Dev Tools
@@ -188,7 +167,6 @@ const RenderLogSelector: React.FC<RenderLogSelectorProps> = ({ logData, setSelec
 					onClick={() => {
 						setSelectedLog(log ?? undefined);
 					}}
-					style={{ width: 'unset', marginTop: '20px' }}
 					className={settingsClasses.SettingsDialogButton}
 				>
 					{log?.name}
@@ -209,7 +187,9 @@ export const LogsViewModal: React.FC = () => {
 	}, []);
 
 	return selectedLog === undefined ? (
-		<RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} />
+		<ButtonsSection>
+			<RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} />
+		</ButtonsSection>
 	) : (
 		<RenderLogViewer logs={selectedLog} setSelectedLog={setSelectedLog} />
 	);

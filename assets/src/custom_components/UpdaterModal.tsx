@@ -24,13 +24,6 @@ import { Separator } from '../components/ISteamComponents';
 const UpdateMillennium = callable<[{ downloadUrl: string }], void>('MillenniumUpdater.queue_update');
 const ShouldShowUpdateInfo = callable<[], boolean>('should_show_update_modal');
 
-const ContainerURLStyles = {
-	display: 'flex',
-	justifyContent: 'flex-end',
-	fontSize: '13px',
-	marginBottom: '10px',
-};
-
 const LOG_UPDATE_INFO = (...params: any[]) => {
 	console.log(`%c[Millennium Updater]%c`, 'background: lightblue; color: black;', 'background: inherit; color: inherit;', ...params);
 };
@@ -75,13 +68,9 @@ const UpdateAvailablePopup = ({ props, targetAsset, currentOSType }: { props: an
 
 	const RenderWindowsFooter = () => (
 		<>
-			<div className="UpdateLinksContainer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-				<a className="viewDiffLink" onClick={OpenDiffInExternalBrowser} style={ContainerURLStyles}>
-					{locale.strViewUpdateDiffInBrowser}
-				</a>
-				<a className="viewDownloadInfo" onClick={ShowDownloadInformation.bind(null, props, targetAsset)} style={ContainerURLStyles}>
-					{locale.strViewDownloadInfo}
-				</a>
+			<div className="MillenniumRelease_UpdateLinksContainer">
+				<a onClick={OpenDiffInExternalBrowser}>{locale.strViewUpdateDiffInBrowser}</a>
+				<a onClick={ShowDownloadInformation.bind(null, props, targetAsset)}>{locale.strViewDownloadInfo}</a>
 			</div>
 
 			<div className="DialogTwoColLayout _DialogColLayout Panel">
@@ -92,36 +81,27 @@ const UpdateAvailablePopup = ({ props, targetAsset, currentOSType }: { props: an
 				<DialogButton className="Primary" onClick={StartUpdateProcess}>
 					{locale.strUpdateNextStartup}
 				</DialogButton>
-				<DialogButton className="Secondary" onClick={CloseWindow}>
-					{locale.strUpdateReject}
-				</DialogButton>
+				<DialogButton onClick={CloseWindow}>{locale.strUpdateReject}</DialogButton>
 			</div>
 		</>
 	);
 
 	const RenderLinuxFooter = () => (
 		<>
-			<div className="DialogTwoColLayout _DialogColLayout Panel" style={{ alignItems: 'baseline', justifyContent: 'space-between' }}>
+			<div className="DialogTwoColLayout _DialogColLayout Panel">
 				<Field label={locale.strDontShowAgain} bottomSeparator="none">
 					<Toggle value={doNotShowAgain} onChange={(newValue) => OnDoNotShowAgainChange(newValue, setDoNotShowAgain)} />
 				</Field>
 
-				<div className="UpdateLinksContainer" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-					<a className="viewDiffLink" onClick={OpenDiffInExternalBrowser} style={ContainerURLStyles}>
-						{locale.strViewUpdateDiffInBrowser}
-					</a>
-					<a className="viewDownloadInfo" onClick={ShowDownloadInformation.bind(null, props, targetAsset)} style={ContainerURLStyles}>
-						{locale.strViewDownloadInfo}
-					</a>
+				<div className="MillenniumRelease_UpdateLinksContainer">
+					<a onClick={OpenDiffInExternalBrowser}>{locale.strViewUpdateDiffInBrowser}</a>
+					<a onClick={ShowDownloadInformation.bind(null, props, targetAsset)}>{locale.strViewDownloadInfo}</a>
 				</div>
 			</div>
 
 			<div className="DialogTwoColLayout _DialogColLayout Panel">
 				<TextField value={updateScript} />
-
-				<DialogButton className="Secondary" onClick={CloseWindow}>
-					{locale.strUpdateReject}
-				</DialogButton>
+				<DialogButton onClick={CloseWindow}>{locale.strUpdateReject}</DialogButton>
 			</div>
 		</>
 	);
@@ -129,18 +109,16 @@ const UpdateAvailablePopup = ({ props, targetAsset, currentOSType }: { props: an
 	return (
 		<GenericConfirmDialog>
 			<DialogHeader> Update Available! 💫 </DialogHeader>
-			<DialogBody>
-				<DialogBodyText style={{ overflowY: 'scroll', marginBottom: 'unset' }}>
+			<DialogBody className="MillenniumRelease_DialogBody">
+				<DialogBodyText>
 					<p className="updateInfoTidbit">{locale.strAnUpdateIsAvailable}</p>
 					<Separator />
-					<Markdown options={{ overrides: { a: { component: MakeAnchorExternalLink } } }} className="MillenniumReleaseMarkdown">
+					<Markdown options={{ overrides: { a: { component: MakeAnchorExternalLink } } }} className="MillenniumRelease_Markdown">
 						{props.body}
 					</Markdown>
 				</DialogBodyText>
 
-				<DialogFooter style={{ flexDirection: 'column' }}>
-					{currentOSType == OSType.Linux ? <RenderLinuxFooter /> : <RenderWindowsFooter />}
-				</DialogFooter>
+				<DialogFooter>{currentOSType == OSType.Linux ? <RenderLinuxFooter /> : <RenderWindowsFooter />}</DialogFooter>
 			</DialogBody>
 		</GenericConfirmDialog>
 	);

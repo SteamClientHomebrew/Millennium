@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { pluginSelf, Toggle, SteamSpinner, Field, callable } from '@steambrew/client';
+import { pluginSelf, Toggle, SteamSpinner, Field, callable, DialogControlsSection } from '@steambrew/client';
 import { locale } from '../locales';
 import { UpdaterOptionProps } from '../types';
 import { Settings } from '../Settings';
@@ -70,25 +70,22 @@ const SettingsViewModal: React.FC = () => {
 
 	return (
 		<>
-			<SettingsDialogSubHeader>Millennium Updates</SettingsDialogSubHeader>
+			<DialogControlsSection>
+				<SettingsDialogSubHeader>Millennium Updates</SettingsDialogSubHeader>
 
-			<Field label={locale.updatePanelCheckForUpdates} description={locale.toggleWantsMillenniumUpdatesTooltip}>
-				<Toggle value={wantsUpdates} onChange={OnUpdateChange} />
-			</Field>
-			<Field
-				label={locale.updatePanelShowUpdateNotifications}
-				description={locale.toggleWantsMillenniumUpdatesNotificationsTooltip}
-				bottomSeparator="none"
-			>
-				<Toggle value={wantsNotify} onChange={OnNotifyChange} />
-			</Field>
-
-			<div className="SettingsDialogSubHeader" style={{ marginTop: '20px' }}>
-				Plugin & Theme Updates
-			</div>
-			<Field label={locale.updatePanelUpdateNotifications} description={locale.updatePanelUpdateNotificationsTooltip} bottomSeparator="none">
-				{showUpdateNotifications !== undefined && <Toggle value={showUpdateNotifications} onChange={OnNotificationsChange} />}
-			</Field>
+				<Field label={locale.updatePanelCheckForUpdates} description={locale.toggleWantsMillenniumUpdatesTooltip}>
+					<Toggle value={wantsUpdates} onChange={OnUpdateChange} />
+				</Field>
+				<Field label={locale.updatePanelShowUpdateNotifications} description={locale.toggleWantsMillenniumUpdatesNotificationsTooltip}>
+					<Toggle value={wantsNotify} onChange={OnNotifyChange} />
+				</Field>
+			</DialogControlsSection>
+			<DialogControlsSection>
+				<SettingsDialogSubHeader>Plugin & Theme Updates</SettingsDialogSubHeader>
+				<Field label={locale.updatePanelUpdateNotifications} description={locale.updatePanelUpdateNotificationsTooltip}>
+					{showUpdateNotifications !== undefined && <Toggle value={showUpdateNotifications} onChange={OnNotificationsChange} />}
+				</Field>
+			</DialogControlsSection>
 		</>
 	);
 };

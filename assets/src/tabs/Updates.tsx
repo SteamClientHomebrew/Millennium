@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
 	DialogBodyText,
 	DialogButton,
@@ -31,21 +31,9 @@ interface UpdateItemType {
 
 const UpToDateModal: React.FC = () => {
 	return (
-		<div
-			className="__up-to-date-container"
-			style={{
-				display: 'flex',
-				flexDirection: 'column',
-				alignItems: 'center',
-				gap: '20px',
-				height: '100%',
-				justifyContent: 'center',
-			}}
-		>
+		<div className="MillenniumUpToDate_Container">
 			<IconsModule.Checkmark width="64" />
-			<div className="__up-to-date-header" style={{ marginTop: '-120px', color: 'white', fontWeight: '500', fontSize: '15px' }}>
-				{locale.updatePanelNoUpdatesFound}
-			</div>
+			<div className="MillenniumUpToDate_Header">{locale.updatePanelNoUpdatesFound}</div>
 		</div>
 	);
 };
@@ -126,10 +114,6 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
 			ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), LocalizationManager.LocalizeString('#Generic_Error'));
 		}
 	};
-	const fieldButtonsStyles: CSSProperties = { display: 'flex', gap: '8px' };
-	const updateButtonStyles: CSSProperties = { minWidth: '80px' };
-	const updateDescriptionStyles: CSSProperties = { display: 'flex', flexDirection: 'column' };
-	const updateLabelStyles: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px' };
 
 	return (
 		<DialogControlsSection>
@@ -140,19 +124,15 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
 				<>
 					<Field
 						key={index}
+						className="MillenniumUpdateField"
 						label={
-							<div style={updateLabelStyles}>
-								<div
-									className="update-item-type"
-									style={{ color: 'white', fontSize: '12px', padding: '4px', background: '#007eff', borderRadius: '6px' }}
-								>
-									Theme
-								</div>
+							<div className="MillenniumUpdates_Label">
+								<div className="MillenniumUpdates_LabelType">Theme</div>
 								{update.name}
 							</div>
 						}
 						description={
-							<div style={updateDescriptionStyles}>
+							<div className="MillenniumUpdates_Description">
 								<div>
 									<b>{locale.updatePanelReleasedTag}</b> {update?.date}
 								</div>
@@ -161,20 +141,16 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
 								</div>
 							</div>
 						}
-						bottomSeparator={updates.length - 1 === index ? 'none' : 'standard'}
 					>
-						<div style={fieldButtonsStyles}>
-							<DialogButton onClick={() => viewMoreClick(update)} style={updateButtonStyles} className="_3epr8QYWw_FqFgMx38YEEm">
-								{locale.ViewMore}
-							</DialogButton>
-							<DialogButton
-								onClick={() => updateItemMessage(update, index)}
-								style={updateButtonStyles}
-								className="_3epr8QYWw_FqFgMx38YEEm"
-							>
-								{updating[index] ? locale.updatePanelIsUpdating : locale.updatePanelUpdate}
-							</DialogButton>
-						</div>
+						<DialogButton onClick={() => viewMoreClick(update)} className="MillenniumUpdates_ThemeButton _3epr8QYWw_FqFgMx38YEEm">
+							{locale.ViewMore}
+						</DialogButton>
+						<DialogButton
+							onClick={() => updateItemMessage(update, index)}
+							className="MillenniumUpdates_ThemeButton _3epr8QYWw_FqFgMx38YEEm"
+						>
+							{updating[index] ? locale.updatePanelIsUpdating : locale.updatePanelUpdate}
+						</DialogButton>
 					</Field>
 				</>
 			))}

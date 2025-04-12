@@ -1,7 +1,6 @@
 import {
 	callable,
 	DialogBody,
-	DialogBodyText,
 	DialogButton,
 	DialogFooter,
 	DialogHeader,
@@ -16,6 +15,7 @@ import { useState } from 'react';
 import { UpdaterOptionProps } from '../../types';
 import { locale } from '../../locales';
 import { Separator } from '../../components/ISteamComponents';
+import Styles from '../../styles';
 
 const SetUserWantsUpdates = callable<[{ wantsUpdates: boolean }], void>('MillenniumUpdater.set_user_wants_updates');
 const SetUserWantsNotifications = callable<[{ wantsNotify: boolean }], void>('MillenniumUpdater.set_user_wants_update_notify');
@@ -55,17 +55,14 @@ export const PromptSelectUpdaterOptions = () => {
 		return (
 			<GenericConfirmDialog>
 				<DialogHeader>Millennium</DialogHeader>
-				<DialogBody>
-					<DialogBodyText>
-						<p className="updateInfoTidbit" style={{ fontSize: '14px' }}>
-							{locale.message1162025SecurityUpdate}
-							<br />
-							<br />
-							<b>{locale.message1162025SecurityUpdateTooltip}</b>
-						</p>
+				<Styles />
+				<DialogBody className="MillenniumGenericDialog_DialogBody">
+					{locale.message1162025SecurityUpdate}
+					<b>{locale.message1162025SecurityUpdateTooltip}</b>
 
-						<Separator />
+					<Separator />
 
+					<div>
 						<Field
 							label={locale.toggleWantsMillenniumUpdates}
 							description={locale.toggleWantsMillenniumUpdatesTooltip}
@@ -80,23 +77,19 @@ export const PromptSelectUpdaterOptions = () => {
 						>
 							<Toggle value={wantsNotify} onChange={OnNotifyChange} />
 						</Field>
+					</div>
 
-						<p className="updateSecurityWarning" style={{ fontSize: '14px', color: 'yellow' }}>
-							{locale.updateSecurityWarning}
-						</p>
-					</DialogBodyText>
-
-					<DialogFooter>
-						<div className="DialogTwoColLayout _DialogColLayout Panel" style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-							<p className="updateInfoTidbit" style={{ lineHeight: '7px', fontSize: '12px', color: '#acb2b8' }}>
-								{locale.settingsAreChangeableLater}
-							</p>
-							<DialogButton className="Primary" onClick={OnContinue}>
-								Continue
-							</DialogButton>
-						</div>
-					</DialogFooter>
+					<div className="MillenniumSelectUpdate_SecurityWarning">{locale.updateSecurityWarning}</div>
 				</DialogBody>
+
+				<DialogFooter>
+					<div className="DialogTwoColLayout _DialogColLayout Panel" style={{ alignItems: 'center' }}>
+						<div className="MillenniumSelectUpdate_FooterInfo">{locale.settingsAreChangeableLater}</div>
+						<DialogButton className="Primary" onClick={OnContinue}>
+							Continue
+						</DialogButton>
+					</div>
+				</DialogFooter>
 			</GenericConfirmDialog>
 		);
 	};

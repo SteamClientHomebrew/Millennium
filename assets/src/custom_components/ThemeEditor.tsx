@@ -53,17 +53,6 @@ interface ColorProps {
 	defaultColor: string;
 }
 
-const ThemeEditorContainer: React.FC = ({ children }) => (
-	<ModalPosition>
-		<style>
-			{`.DialogBody { margin-bottom: 48px; }
-            input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`}
-		</style>
-
-		{children}
-	</ModalPosition>
-);
-
 export class RenderThemeEditor extends React.Component {
 	GetConditionType = (value: any): ConditionType => {
 		if (Object.keys(value).every((element: string) => element === 'yes' || element === 'no')) {
@@ -188,13 +177,7 @@ export class RenderThemeEditor extends React.Component {
 						Reset
 					</DialogButton>
 				)}
-				<input
-					type="color"
-					className="colorPicker"
-					name="colorPicker"
-					value={colorState}
-					onChange={(event) => UpdateColor(event.target.value)}
-				/>
+				<input type="color" className="MillenniumColorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
 			</Field>
 		);
 	};
@@ -275,7 +258,7 @@ export class RenderThemeEditor extends React.Component {
 		const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
 		return (
-			<ThemeEditorContainer>
+			<ModalPosition>
 				{!themeHasTabs && !themeHasColors && (
 					<style>{`
                         .PageListColumn {
@@ -286,7 +269,7 @@ export class RenderThemeEditor extends React.Component {
 
 				{/* @ts-ignore: className hasn't been added to DFL yet */}
 				<SidebarNavigation className={className} pages={pages} title={title} />
-			</ThemeEditorContainer>
+			</ModalPosition>
 		);
 	};
 

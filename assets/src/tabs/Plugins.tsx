@@ -29,7 +29,7 @@ const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
 	}
 
 	return (
-		<DialogButton className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton">
+		<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton">
 			<IconsModule.Settings height="16" />
 		</DialogButton>
 	);
@@ -149,7 +149,7 @@ const PluginViewModal: React.FC = () => {
 		const [position, setPosition] = useState({ top: 0, left: '0px' });
 
 		useEffect(() => {
-			const element: HTMLElement = pluginSelf.windows['Millennium'].document.querySelector(`#pluginStatusDot-${index}`);
+			const element: HTMLElement = pluginSelf.windows['Millennium'].document.querySelector(`#MillenniumPlugins_StatusDot-${index}`);
 			if (!element) {
 				console.error('Element not found');
 				return;
@@ -187,38 +187,31 @@ const PluginViewModal: React.FC = () => {
 	};
 
 	const RenderPlugin = ({ plugin, index }: { plugin: PluginComponent; index: number }) => {
-		enum Level {
-			Error = 'red',
-			Warning = 'rgb(255, 175, 0)',
-			OK = '#0ec50e',
-		}
-
 		const pluginLogs = pluginsWithLogs?.get(plugin?.data?.common_name);
-		const backgroundColor = pluginLogs?.errors > 0 ? Level.Error : pluginLogs?.warnings > 0 ? Level.Warning : Level.OK;
+		const type = pluginLogs?.errors > 0 ? 'error' : pluginLogs?.warnings > 0 ? 'warning' : 'success';
 		const [isHovering, setIsHovering] = useState(false);
 
 		return (
-			<div className="millenniumPluginField">
+			<>
 				<Field
 					key={index}
 					label={
-						<div className="pluginNameContainer">
+						<div className="MillenniumPlugins_PluginLabel">
 							{pluginLogs && checkedItems[index] && (
 								<div
-									className="pluginStatusDot"
-									style={{ backgroundColor: backgroundColor }}
-									id={`pluginStatusDot-${index}`}
+									className="MillenniumPlugins_StatusDot"
+									data-type={type}
+									id={`MillenniumPlugins_StatusDot-${index}`}
 									onMouseEnter={() => setIsHovering(true)}
 									onMouseLeave={() => setIsHovering(false)}
 								/>
 							)}
 							{plugin?.data?.common_name}
-							{plugin?.data?.version && <div style={{ fontSize: '12px', color: 'grey' }}>{plugin?.data?.version}</div>}
+							{plugin?.data?.version && <div className="MillenniumPlugins_Version">{plugin?.data?.version}</div>}
 						</div>
 					}
 					description={plugin?.data?.description ?? locale.itemNoDescription}
 					padding="standard"
-					bottomSeparator="none"
 				>
 					<EditPlugin plugin={plugin} />
 					<Toggle
@@ -229,48 +222,14 @@ const PluginViewModal: React.FC = () => {
 				</Field>
 
 				{isHovering && <RenderStatusTooltip plugin={plugin} index={index} />}
-			</div>
+			</>
 		);
 	};
 
 	return (
 		<>
-			<style>{`
-				button.millenniumIconButton {
-					padding: 9px 10px !important; 
-					margin: 0 !important; 
-					margin-right: 10px !important;
-					display: flex;
-					width: auto;
-				}
-
-				.millenniumPluginField {
-					background: var(--main-editor-input-bg-color);
-					border-radius: 4px !important;
-					padding: 15px 25px 15px 25px;
-					margin-top: 10px;
-				}
-
-				.pluginNameContainer {
-					display: flex;
-					align-items: center;
-					gap: 11px;
-				}
-
-				.pluginStatusDot {
-					width: 8px;
-					height: 8px;
-					border-radius: 50% !important;
-				}
-					
-				button.DialogButton._DialogLayout.Secondary.Focusable {
-					width: fit-content;
-				}
-			`}</style>
-
 			<Field
 				label={`Steam Client Plugins`}
-				bottomSeparator="none"
 				description={
 					<>
 						{locale.pluginPanelPluginTooltip}
@@ -280,20 +239,18 @@ const PluginViewModal: React.FC = () => {
 					</>
 				}
 			>
-				<div style={{ display: 'flex', gap: '10px' }}>
-					{updatedPlugins.length > 0 && (
-						<DialogButton onClick={SavePluginChanges} style={{ padding: '0px 10px 0px' }}>
-							{locale.optionSaveChanges}
-						</DialogButton>
-					)}
-					<DialogButton onClick={FetchAllPlugins} style={{ padding: '0px 10px 0px' }}>
-						<IconsModule.Refresh height="16" />
+				{updatedPlugins.length > 0 && (
+					<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={SavePluginChanges}>
+						{locale.optionSaveChanges}
 					</DialogButton>
+				)}
+				<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={FetchAllPlugins}>
+					<IconsModule.Refresh height="16" />
+				</DialogButton>
 
-					<DialogButton onClick={OpenPluginsFolder} style={{ padding: '0px 10px 0px' }}>
-						<CustomIcons.Folder />
-					</DialogButton>
-				</div>
+				<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={OpenPluginsFolder}>
+					<CustomIcons.Folder />
+				</DialogButton>
 			</Field>
 
 			{plugins.map((plugin: PluginComponent, index: number) => (

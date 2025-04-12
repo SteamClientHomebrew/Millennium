@@ -3,6 +3,7 @@ import React, { CSSProperties, ReactNode } from 'react';
 import { findModuleExport } from '@steambrew/client';
 import ReactDOM from 'react-dom';
 import { FC } from 'react';
+import { fieldClasses } from '../classes';
 
 interface BBCodeParserProps {
 	bShowShortSpeakerInfo?: boolean;
@@ -92,4 +93,4 @@ export const SettingsDialogSubHeader: React.FC<SettingsDialogSubHeaderProps> = (
 	<div className="SettingsDialogSubHeader">{children}</div>
 );
 
-export const Separator: React.FC = () => <div className={Classes.PageListSeparator} />;
+export const Separator: React.FC = () => <div className={fieldClasses.StandaloneFieldSeparator} />;

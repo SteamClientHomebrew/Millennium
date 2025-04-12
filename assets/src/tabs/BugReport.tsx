@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { locale } from '../locales';
 import { settingsClasses } from '../classes';
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
+import { ButtonsSection } from '../custom_components/ButtonsSection';
 
 declare global {
 	interface Window {
@@ -157,45 +158,30 @@ export const BugReportViewModal: React.FC = () => {
 
 	return (
 		<>
-			<style>
-				{`
-                .DialogDropDown._DialogInputContainer.Panel.Focusable { min-width: max-content !important; }
-                button.millenniumIconButton {
-                    padding: 9px 10px !important; 
-                    margin: 0 !important; 
-                    margin-right: 10px !important;
-                    display: flex;
-                    width: auto;
-                }
-                textarea.DialogInput.DialogInputPlaceholder.DialogTextInputBase.Focusable {
-                    width: 100% !important;
-                }
-                textarea.DialogInput.DialogInputPlaceholder.DialogTextInputBase.Focusable:focus-visible {
-                    margin-left: 2px !important;
-                }
-            `}
-			</style>
+			<DialogControlsSection>
+				<SettingsDialogSubHeader>Check these before proceeding</SettingsDialogSubHeader>
 
-			<Field label={'My issue is not caused by an active theme, and occurs with the vanilla Steam UI.'} description={''}>
-				<Toggle
-					value={notCausedByTheme}
-					onChange={(value) => {
-						setNotCausedByTheme(value);
-					}}
-				/>
-			</Field>
-
-			<Field label={'My issue is not caused by an active plugin, and occurs with no custom plugins enabled.'} description={''}>
-				<Toggle
-					value={notCausedByPlugin}
-					onChange={(value) => {
-						setNotCausedByPlugin(value);
-					}}
-				/>
-			</Field>
+				<Field label={'My issue is not caused by an active theme, and occurs with the vanilla Steam UI.'} description={''}>
+					<Toggle
+						value={notCausedByTheme}
+						onChange={(value) => {
+							setNotCausedByTheme(value);
+						}}
+					/>
+				</Field>
+				<Field label={'My issue is not caused by an active plugin, and occurs with no custom plugins enabled.'} description={''}>
+					<Toggle
+						value={notCausedByPlugin}
+						onChange={(value) => {
+							setNotCausedByPlugin(value);
+						}}
+					/>
+				</Field>
+			</DialogControlsSection>
 
 			<DialogControlsSection>
 				<SettingsDialogSubHeader>Bug Report Form</SettingsDialogSubHeader>
+				{/* This class is used in notifications settings tab (voice too under a different class), but it's fine. */}
 				<DialogBodyText className="_3fPiC9QRyT5oJ6xePCVYz8">
 					Fill out the following to the best of your abilities, the more information the better!
 				</DialogBodyText>
@@ -216,15 +202,16 @@ export const BugReportViewModal: React.FC = () => {
 				/>
 			</DialogControlsSection>
 
-			<DialogButton
-				onClick={() => {
-					SubmitPluginReport();
-				}}
-				style={{ width: 'unset', marginTop: '20px' }}
-				className={settingsClasses.SettingsDialogButton}
-			>
-				Submit Report
-			</DialogButton>
+			<ButtonsSection>
+				<DialogButton
+					onClick={() => {
+						SubmitPluginReport();
+					}}
+					className={`${settingsClasses.SettingsDialogButton} MillenniumBugReport_SubmitButton`}
+				>
+					Submit Report
+				</DialogButton>
+			</ButtonsSection>
 		</>
 	);
 };
