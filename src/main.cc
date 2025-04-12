@@ -324,6 +324,7 @@ const static void EntryMain()
 
 __attribute__((constructor)) void __init_millennium() 
 {
+    #if defined(__linux__)
     char path[PATH_MAX];
     ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
     if (len != -1) {
@@ -338,6 +339,7 @@ __attribute__((constructor)) void __init_millennium()
         perror("readlink");
         return;
     }
+    #endif
 
     SetupEnvironmentVariables();
 }
