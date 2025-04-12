@@ -18,6 +18,7 @@ import { Conditions, ConditionsStore, ICondition, ThemeItem } from '../types';
 import { settingsClasses } from '../classes';
 import { locale } from '../locales';
 import { BBCodeParser } from '../components/ISteamComponents';
+import Styles from '../styles';
 
 interface ConditionalComponent {
 	condition: string;
@@ -253,12 +254,13 @@ export class RenderThemeEditor extends React.Component {
 		const pageWithoutTitle = { ...otherPages.find((e) => !e.title), title: locale.customThemeSettingsConfig };
 		const tabs = themeHasTabs ? otherPages.filter((e) => e !== pageWithoutTitle) : [pageWithoutTitle];
 
-		const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup}`;
+		const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings`;
 		const pages = [...tabs, 'separator', colorPage];
 		const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
 		return (
 			<ModalPosition>
+				<Styles />
 				{!themeHasTabs && !themeHasColors && (
 					<style>{`
                         .PageListColumn {

@@ -78,7 +78,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 						onClick={() => {
 							setSelectedLog(undefined);
 						}}
-						className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
+						className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 					>
 						<IconsModule.Carat height={'16px'} />
 						Back
@@ -107,7 +107,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 							onClick={() => {
 								setLogFontSize(logFontSize - 1);
 							}}
-							className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
+							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							<IconsModule.Minus height={'16px'} />
 						</DialogButton>
@@ -116,7 +116,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 							onClick={() => {
 								setLogFontSize(logFontSize + 1);
 							}}
-							className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
+							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							<IconsModule.Add height={'16px'} />
 						</DialogButton>
@@ -125,7 +125,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 							onClick={() => {
 								CopyLogsToClipboard();
 							}}
-							className={`MillenniumLogs_IconButton ${settingsClasses.SettingsDialogButton}`}
+							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							{copyIcon}
 						</DialogButton>

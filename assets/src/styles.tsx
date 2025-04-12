@@ -59,10 +59,9 @@ const styles = `
 	}
 
 	.MillenniumIconButton {
-		/* Force proper styling on buttons next to dropdowns. */
 		margin: 0 !important;
 		display: flex !important;
-		width: auto !important;
+		align-items: center;
 	}
 
 	/* Override Steam styles */
@@ -146,10 +145,6 @@ const styles = `
 	.MillenniumLogs_Icons {
 		gap: var(--MillenniumSpacing-Normal);
 		display: flex;
-	}
-
-	.MillenniumLogs_IconButton {
-	 	display: flex;
 	}
 
 	.MillenniumLogs_Text {
