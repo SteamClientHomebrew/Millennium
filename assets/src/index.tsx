@@ -10,7 +10,6 @@ import { Settings } from './Settings';
 import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
 import { ShowUpdaterModal } from './custom_components/UpdaterModal';
 import { ShowWelcomeModal } from './custom_components/modals/WelcomeModal';
-import { PromptSelectUpdaterOptions } from './custom_components/modals/SelectUpdatePrefs';
 
 const DEFAULT_THEME_NAME = '__default__';
 
@@ -91,7 +90,6 @@ const InitializePatcher = async (startTime: number, result: SettingsProps) => {
 
 	Object.assign(pluginSelf, {
 		systemColors,
-		PromptSelectUpdaterOptions,
 		conditionals: result?.conditions,
 		scriptsAllowed: result?.settings?.scripts ?? true,
 		stylesAllowed: result?.settings?.styles ?? true,

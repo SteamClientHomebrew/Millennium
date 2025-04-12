@@ -292,6 +292,23 @@ const styles = `
 		display: flex;
 	}
 
+	.MillenniumDownloadInfo_Field {
+		gap: var(--MillenniumSpacing-Small);
+		display: flex;
+	}
+
+	.MillenniumDownloadInfo_Publisher {
+		gap: var(--MillenniumSpacing-Small);
+		display: flex;
+		align-items: center;
+	}
+
+	.MillenniumDownloadInfo_PublisherAvatar {
+		--size: 20px;
+		width: var(--size);
+		height: var(--size);
+	}
+
 	.MillenniumSelectUpdate_FooterInfo {
 		color: var(--MillenniumTextColor-Muted);
 		font: var(--MillenniumText-BodySmall);

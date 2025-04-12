@@ -20,6 +20,7 @@ import { ShowDownloadInformation } from './modals/UpdateInfoModal';
 import { PromptSelectUpdaterOptions } from './modals/SelectUpdatePrefs';
 import { OnDoNotShowAgainChange } from './modals/DisableUpdates';
 import { Separator } from '../components/ISteamComponents';
+import Styles from '../styles';
 
 const UpdateMillennium = callable<[{ downloadUrl: string }], void>('MillenniumUpdater.queue_update');
 const ShouldShowUpdateInfo = callable<[], boolean>('should_show_update_modal');
@@ -109,6 +110,7 @@ const UpdateAvailablePopup = ({ props, targetAsset, currentOSType }: { props: an
 	return (
 		<GenericConfirmDialog>
 			<DialogHeader> Update Available! 💫 </DialogHeader>
+			<Styles />
 			<DialogBody className="MillenniumRelease_DialogBody">
 				<DialogBodyText>
 					<p className="updateInfoTidbit">{locale.strAnUpdateIsAvailable}</p>

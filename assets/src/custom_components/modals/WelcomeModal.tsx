@@ -79,8 +79,8 @@ export const ShowWelcomeModal = async () =>
 
 		const RenderWelcomeModal = () => (
 			<GenericConfirmDialog>
-				<Styles />
 				<DialogHeader> Welcome to Millennium 👋 </DialogHeader>
+				<Styles />
 				<DialogBody className="MillenniumGenericDialog_DialogBody">
 					<div>
 						We're excited for you to be a part of the community! Since this is your first time launching, it’s the perfect opportunity to
