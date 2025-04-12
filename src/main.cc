@@ -587,8 +587,6 @@ extern "C"
         /* Get the address of the real __libc_start_main() */
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
-        std::cout << "Checking against " << GetEnv("MILLENNIUM__STEAM_EXE_PATH") << std::endl; 
-
         /** not loaded in a invalid child process */
         if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()))
         {
