@@ -18,6 +18,7 @@ import { SettingsDialogSubHeader } from '../components/ISteamComponents';
 
 interface UpdateProps {
 	updates: UpdateItemType[];
+	pluginUpdates: any;
 	fetchUpdates: () => Promise<boolean>;
 }
 
@@ -48,6 +49,32 @@ const UpToDateModal: React.FC = () => {
 			</div>
 		</div>
 	);
+};
+
+const timeAgo = (dateString: string) => {
+	const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+	const date = new Date(dateString);
+	const now = new Date();
+	const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+	const intervals = {
+		year: 31536000,
+		month: 2592000,
+		week: 604800,
+		day: 86400,
+		hour: 3600,
+		minute: 60,
+		second: 1,
+	} as const;
+
+	for (const [unit, value] of Object.entries(intervals)) {
+		const diff = Math.floor(seconds / value);
+		if (diff >= 1) {
+			return rtf.format(-diff, unit as Intl.RelativeTimeFormatUnit);
+		}
+	}
+
+	return 'just now';
 };
 
 const UpdateTheme = callable<[{ native: string }], boolean>('updater.update_theme');
@@ -83,7 +110,7 @@ const formatString: FormatString = (template, ...args) => {
 	});
 };
 
-const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }) => {
+const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates, fetchUpdates }) => {
 	const [updating, setUpdating] = useState<Array<any>>([]);
 	const viewMoreClick = (props: UpdateItemType) => SteamClient.System.OpenInSystemBrowser(props?.commit);
 
@@ -131,6 +158,8 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
 	const updateDescriptionStyles: CSSProperties = { display: 'flex', flexDirection: 'column' };
 	const updateLabelStyles: CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px' };
 
+	console.log(IconsModule);
+
 	return (
 		<DialogControlsSection>
 			<SettingsDialogSubHeader>{locale.updatePanelHasUpdates}</SettingsDialogSubHeader>
@@ -161,18 +190,69 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
 								</div>
 							</div>
 						}
-						bottomSeparator={updates.length - 1 === index ? 'none' : 'standard'}
+						bottomSeparator={pluginUpdates.length > 0 ? 'standard' : updates.length - 1 === index ? 'none' : 'standard'}
 					>
 						<div style={fieldButtonsStyles}>
-							<DialogButton onClick={() => viewMoreClick(update)} style={updateButtonStyles} className="_3epr8QYWw_FqFgMx38YEEm">
-								{locale.ViewMore}
+							<DialogButton onClick={() => viewMoreClick(update)} className="_3epr8QYWw_FqFgMx38YEEm">
+								<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
 							</DialogButton>
 							<DialogButton
 								onClick={() => updateItemMessage(update, index)}
-								style={updateButtonStyles}
 								className="_3epr8QYWw_FqFgMx38YEEm"
+								style={{ ...(updating[index] ? { padding: '8px 11px' } : { padding: '8px 14px' }) }}
 							>
-								{updating[index] ? locale.updatePanelIsUpdating : locale.updatePanelUpdate}
+								{updating[index] ? (
+									<SteamSpinner background={'transparent'} style={{ width: '16px', height: '16px' }} />
+								) : (
+									<IconsModule.Download style={{ width: '16px', height: '16px' }} />
+								)}
+							</DialogButton>
+						</div>
+					</Field>
+				</>
+			))}
+
+			{pluginUpdates.map((update: any, index: number) => (
+				<>
+					<Field
+						key={index}
+						label={
+							<div style={updateLabelStyles}>
+								<div
+									className="update-item-type"
+									style={{ color: 'white', fontSize: '12px', padding: '4px', background: '#564688', borderRadius: '6px' }}
+								>
+									Plugin
+								</div>
+								{update?.pluginInfo?.pluginJson?.common_name}
+							</div>
+						}
+						description={
+							<div style={updateDescriptionStyles}>
+								<div>
+									<b>{locale.updatePanelReleasedTag}</b> {timeAgo(update?.pluginInfo?.commitDate)}
+								</div>
+								<div>
+									<b>{locale.updatePanelReleasePatchNotes}</b> {update?.message}
+								</div>
+							</div>
+						}
+						bottomSeparator={pluginUpdates.length - 1 === index ? 'none' : 'standard'}
+					>
+						<div style={fieldButtonsStyles}>
+							<DialogButton onClick={() => viewMoreClick(update)} className="_3epr8QYWw_FqFgMx38YEEm">
+								<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
+							</DialogButton>
+							<DialogButton
+								onClick={() => updateItemMessage(update, index)}
+								className="_3epr8QYWw_FqFgMx38YEEm"
+								style={{ ...(updating[index] ? { padding: '8px 11px' } : { padding: '8px 14px' }) }}
+							>
+								{updating[index] ? (
+									<SteamSpinner background={'transparent'} style={{ width: '16px', height: '16px' }} />
+								) : (
+									<IconsModule.Download style={{ width: '16px', height: '16px' }} />
+								)}
 							</DialogButton>
 						</div>
 					</Field>
@@ -183,18 +263,26 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, fetchUpdates }
 };
 
 const GetUpdateList = callable<[{ force: boolean }], any>('updater.get_update_list');
+const GetPluginUpdates = callable<[], any>('plugin_updater.check_for_updates');
 
 const UpdatesViewModal: React.FC = () => {
 	const [updates, setUpdates] = useState<Array<UpdateItemType>>(null);
+	const [pluginUpdates, setPluginUpdates] = useState<any>(null);
 	const [hasReceivedUpdates, setHasReceivedUpdates] = useState<boolean>(false);
 
 	const FetchAvailableUpdates = async (): Promise<boolean> =>
 		new Promise(async (resolve, reject) => {
 			try {
 				const updateList = JSON.parse(await GetUpdateList({ force: false }));
+				const pluginUpdates = JSON.parse(await GetPluginUpdates());
+
+				console.log(`Plugin updates:`, pluginUpdates);
+				console.log(`Theme updates:`, updateList);
+
 				pluginSelf.connectionFailed = false;
 
 				setUpdates(updateList.updates);
+				setPluginUpdates(pluginUpdates);
 				setHasReceivedUpdates(true);
 				resolve(true);
 			} catch (exception) {
@@ -217,7 +305,25 @@ const UpdatesViewModal: React.FC = () => {
 	return !hasReceivedUpdates ? (
 		<SteamSpinner background={'transparent'} />
 	) : (
-		<>{updates && (!updates.length ? <UpToDateModal /> : <RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} />)}</>
+		<>
+			<style>{`
+				img[alt="Steam Spinner"] {
+					height: 22px !important;
+					width: auto !important;
+				}
+
+				img[alt="Steam Spinner"] + div {
+					display: none !important;
+				}
+			`}</style>
+
+			{updates &&
+				(!updates.length && !pluginUpdates.length ? (
+					<UpToDateModal />
+				) : (
+					<RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} pluginUpdates={pluginUpdates} />
+				))}
+		</>
 	);
 };
 

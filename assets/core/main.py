@@ -24,6 +24,9 @@ from config.ini           import *
 from updater.theme_updater import ThemeUpdater
 updater = ThemeUpdater()
 
+from updater.plugin_updater import PluginUpdater
+plugin_updater = PluginUpdater()
+
 def get_load_config():
     config = cfg.get_config()
 
