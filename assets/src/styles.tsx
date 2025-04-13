@@ -25,6 +25,7 @@ const styles = `
 
 		/* Match Steam's DialogButton border-radius */
 		--MillenniumControls-BorderRadius: 2px;
+		--MillenniumControls-IconSize: 16px;
 	}
 
 	.MillenniumButtonsSection {
@@ -62,6 +63,11 @@ const styles = `
 		margin: 0 !important;
 		display: flex !important;
 		align-items: center;
+
+		svg {
+			width: var(--MillenniumControls-IconSize);
+			height: var(--MillenniumControls-IconSize);
+		}
 	}
 
 	/* Override Steam styles */
@@ -83,6 +89,15 @@ const styles = `
 
 		.${fieldClasses.FieldChildrenInner} {
 			gap: var(--MillenniumSpacing-Normal);
+		}
+
+		img[alt="Steam Spinner"] {
+			width: var(--MillenniumControls-IconSize);
+			height: var(--MillenniumControls-IconSize);
+
+			& + div {
+				display: none;
+			}
 		}
 	}
 
@@ -217,11 +232,18 @@ const styles = `
 	}
 
 	.MillenniumUpdates_LabelType {
-		background-color: #007eff;
 		color: var(--MillenniumTextColor-Normal);
 		font: var(--MillenniumText-BodySmall);
 		border-radius: var(--MillenniumControls-BorderRadius);
 		padding: var(--MillenniumSpacing-Small);
+
+		&[data-type="theme"] {
+			background-color: #007eff;
+		}
+
+		&[data-type="plugin"] {
+			background-color: #564688;
+		}
 	}
 
 	.MillenniumUpdates_Description {

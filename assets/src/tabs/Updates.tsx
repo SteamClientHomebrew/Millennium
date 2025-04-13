@@ -156,7 +156,9 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 						className="MillenniumUpdateField"
 						label={
 							<div className="MillenniumUpdates_Label">
-								<div className="MillenniumUpdates_LabelType">Theme</div>
+								<div className="MillenniumUpdates_LabelType" data-type="theme">
+									Theme
+								</div>
 								{update.name}
 							</div>
 						}
@@ -170,24 +172,13 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 								</div>
 							</div>
 						}
-						bottomSeparator={pluginUpdates.length > 0 ? 'standard' : updates.length - 1 === index ? 'none' : 'standard'}
 					>
-						<div style={fieldButtonsStyles}>
-							<DialogButton onClick={() => viewMoreClick(update)} className="_3epr8QYWw_FqFgMx38YEEm">
-								<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
-							</DialogButton>
-							<DialogButton
-								onClick={() => updateItemMessage(update, index)}
-								className="_3epr8QYWw_FqFgMx38YEEm"
-								style={{ ...(updating[index] ? { padding: '8px 11px' } : { padding: '8px 14px' }) }}
-							>
-								{updating[index] ? (
-									<SteamSpinner background={'transparent'} style={{ width: '16px', height: '16px' }} />
-								) : (
-									<IconsModule.Download style={{ width: '16px', height: '16px' }} />
-								)}
-							</DialogButton>
-						</div>
+						<DialogButton onClick={() => viewMoreClick(update)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
+							<IconsModule.Hyperlink />
+						</DialogButton>
+						<DialogButton onClick={() => updateItemMessage(update, index)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
+							{updating[index] ? <SteamSpinner background={'transparent'} /> : <IconsModule.Download />}
+						</DialogButton>
 					</Field>
 				</>
 			))}
@@ -197,18 +188,15 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 					<Field
 						key={index}
 						label={
-							<div style={updateLabelStyles}>
-								<div
-									className="update-item-type"
-									style={{ color: 'white', fontSize: '12px', padding: '4px', background: '#564688', borderRadius: '6px' }}
-								>
+							<div className="MillenniumUpdates_Label">
+								<div className="MillenniumUpdates_LabelType" data-type="plugin">
 									Plugin
 								</div>
 								{update?.pluginInfo?.pluginJson?.common_name}
 							</div>
 						}
 						description={
-							<div style={updateDescriptionStyles}>
+							<div className="MillenniumUpdates_Description">
 								<div>
 									<b>{locale.updatePanelReleasedTag}</b> {timeAgo(update?.pluginInfo?.commitDate)}
 								</div>
@@ -217,24 +205,13 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 								</div>
 							</div>
 						}
-						bottomSeparator={pluginUpdates.length - 1 === index ? 'none' : 'standard'}
 					>
-						<div style={fieldButtonsStyles}>
-							<DialogButton onClick={() => viewMoreClick(update)} className="_3epr8QYWw_FqFgMx38YEEm">
-								<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
-							</DialogButton>
-							<DialogButton
-								onClick={() => updateItemMessage(update, index)}
-								className="_3epr8QYWw_FqFgMx38YEEm"
-								style={{ ...(updating[index] ? { padding: '8px 11px' } : { padding: '8px 14px' }) }}
-							>
-								{updating[index] ? (
-									<SteamSpinner background={'transparent'} style={{ width: '16px', height: '16px' }} />
-								) : (
-									<IconsModule.Download style={{ width: '16px', height: '16px' }} />
-								)}
-							</DialogButton>
-						</div>
+						<DialogButton onClick={() => viewMoreClick(update)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
+							<IconsModule.Hyperlink />
+						</DialogButton>
+						<DialogButton onClick={() => updateItemMessage(update, index)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
+							{updating[index] ? <SteamSpinner background={'transparent'} /> : <IconsModule.Download />}
+						</DialogButton>
 					</Field>
 				</>
 			))}
@@ -285,25 +262,12 @@ const UpdatesViewModal: React.FC = () => {
 	return !hasReceivedUpdates ? (
 		<SteamSpinner background={'transparent'} />
 	) : (
-		<>
-			<style>{`
-				img[alt="Steam Spinner"] {
-					height: 22px !important;
-					width: auto !important;
-				}
-
-				img[alt="Steam Spinner"] + div {
-					display: none !important;
-				}
-			`}</style>
-
-			{updates &&
-				(!updates.length && !pluginUpdates.length ? (
-					<UpToDateModal />
-				) : (
-					<RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} pluginUpdates={pluginUpdates} />
-				))}
-		</>
+		updates &&
+			(!updates.length && !pluginUpdates.length ? (
+				<UpToDateModal />
+			) : (
+				<RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} pluginUpdates={pluginUpdates} />
+			))
 	);
 };
 
