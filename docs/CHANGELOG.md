@@ -1,3 +1,23 @@
+## [2.25.1](https://github.com/shdwmtr/millennium/compare/v2.25.0...v2.25.1) (2025-04-12)
+
+
+### Bug Fixes
+
+* Fix millennium not evaluating symlinks properly ([46e34f7](https://github.com/shdwmtr/millennium/commit/46e34f7d2b0cb0fc4370f4c9221af0ff76b99c96))
+
+# [2.25.0](https://github.com/shdwmtr/millennium/compare/v2.24.0...v2.25.0) (2025-04-12)
+
+
+### Bug Fixes
+
+* Add start script support for non-arch based distros. ([cda3843](https://github.com/shdwmtr/millennium/commit/cda3843693a18e44ae7fdc1bfe9d0c3b6340fa4a))
+* Fix Millennium on Linux ([30f400d](https://github.com/shdwmtr/millennium/commit/30f400de02c56fd394d1b9c42d492298cf36c571))
+
+
+### Features
+
+* Add automatic AUR helper detection ([c8d20be](https://github.com/shdwmtr/millennium/commit/c8d20bea1b13476c44dcb65616d4796286e8decf))
+
 # [2.24.0](https://github.com/shdwmtr/millennium/compare/v2.23.0...v2.24.0) (2025-04-10)
 
 

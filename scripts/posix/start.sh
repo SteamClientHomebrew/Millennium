@@ -34,11 +34,18 @@ fi
 export LD_PRELOAD="/usr/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
 export LD_LIBRARY_PATH="/usr/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+if grep -qi 'arch' /etc/os-release || command -v pacman &> /dev/null; then
+    STEAM_PATH="/usr/lib/steam/steam"
+else
+    STEAM_PATH="/usr/lib/steam/bin_steam.sh"
+fi
+
+
 # Millennium hooks __libc_start_main to initialize itself, which is a function that is called before main. 
 # Besides that, Millennium does not alter Steam memory and runs completely disjoint.
 if [[ -z "${DEBUGGER-}" ]]; then
     echo "Redirecting Steam output..."
-    exec /usr/lib/steam/steam > >(steam_output) 2>&1 "$@"
+    exec $STEAM_PATH > >(steam_output) 2>&1 "$@"
 else
-    exec /usr/lib/steam/steam "$@"
+    exec $STEAM_PATH "$@"
 fi

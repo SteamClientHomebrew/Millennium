@@ -48,6 +48,10 @@
 #include "executor.h"
 #include <env.h>
 
+#ifdef __linux__
+extern "C" int IsSamePath(const char *path1, const char *path2);
+#endif
+
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
  * .cef-enable-remote-debugging is a special file name that Steam uses to signal CEF to enable remote debugging.
@@ -324,6 +328,24 @@ const static void EntryMain()
 
 __attribute__((constructor)) void __init_millennium() 
 {
+    #if defined(__linux__)
+    char path[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if (len != -1) {
+        path[len] = '\0';
+        const char* pathPtr = path;
+
+        // Check if the path is the same as the Steam executable
+        if (!IsSamePath(pathPtr, fmt::format("{}/.local/share/Steam/ubuntu12_32/steam", std::getenv("HOME")).c_str()) != 0) {
+            return;
+        }
+    } 
+    else {
+        perror("readlink");
+        return;
+    }
+    #endif
+
     SetupEnvironmentVariables();
 }
 
@@ -562,6 +584,8 @@ extern "C"
         int (*main)(int, char **, char **), int argc, char **argv,
         int (*init)(int, char **, char **), void (*fini)(void), void (*rtld_fini)(void), void *stack_end)
     {
+        Logger.Log("Hooked main() with PID: {}", getpid());
+
         /* Save the real main function address */
         fnMainOriginal = main;
 

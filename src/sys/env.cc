@@ -79,7 +79,6 @@ std::string GetEnv(std::string key)
 
     if (szVariable == nullptr)
     {
-        std::cerr << fmt::format("Environment variable '{}' not found.", key) << std::endl;
         return {};
     }
 
@@ -100,8 +99,7 @@ const void SetupEnvironmentVariables()
 {
     std::map<std::string, std::string> environment = {
         { "MILLENNIUM__VERSION",     MILLENNIUM_VERSION },
-        { "MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string() },
-        { "MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string() }
+        { "MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string() }
     };
 
     #ifdef _WIN32
@@ -112,7 +110,8 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__DATA_LIB",       SystemIO::GetInstallPath().string() + "/ext/data" },
         { "MILLENNIUM__PYTHON_ENV",     SystemIO::GetInstallPath().string() + "/ext/data/cache" },
         { "MILLENNIUM__SHIMS_PATH",     SystemIO::GetInstallPath().string() + "/ext/data/shims" },
-        { "MILLENNIUM__ASSETS_PATH",    SystemIO::GetInstallPath().string() + "/ext/data/assets" }
+        { "MILLENNIUM__ASSETS_PATH",    SystemIO::GetInstallPath().string() + "/ext/data/assets" },
+        { "MILLENNIUM__INSTALL_PATH",   SystemIO::GetInstallPath().string() }
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
     #elif __linux__

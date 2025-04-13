@@ -39,6 +39,7 @@
 #include <winsock2.h>
 #include <windows.h>
 #endif
+#include <env.h>
 
 namespace FileSystem = std::filesystem;
 
@@ -72,10 +73,10 @@ namespace SystemIO {
     MILLENNIUM std::filesystem::path GetInstallPath()
     {
         #if defined(__linux__)
-            assert(false && "GetInstallPath is not supported on Linux!"); 
+            return GetEnv("MILLENNIUM__CONFIG_PATH");
+        #elif defined(_WIN32)
+            return GetSteamPath();
         #endif
-
-        return GetSteamPath();
     }
 
     MILLENNIUM nlohmann::json ReadJsonSync(const std::string& filename, bool* success)

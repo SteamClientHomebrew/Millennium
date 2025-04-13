@@ -19,9 +19,6 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN YES)
-
 if(NOT APPLE)
   # set 32-bit build
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   -m32")
@@ -84,12 +81,86 @@ elseif(UNIX)
       if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
         include_directories("/opt/python-i686-3.11.8/include/python3.11/")
 
-        set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
-        set(LIBPYTHON_RUNTIME_BIN_PATH "/opt/python-i686-3.11.8/bin/python3.11")
-        set(LIBPYTHON_BUILTIN_MODULES_PATH "/opt/python-i686-3.11.8/lib/python3.11/")
+        set(LIBPYTHON_RUNTIME_PATH             "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so"    )
+        set(LIBPYTHON_RUNTIME_BIN_PATH         "/opt/python-i686-3.11.8/bin/python3.11"             )
+        set(LIBPYTHON_BUILTIN_MODULES_PATH     "/opt/python-i686-3.11.8/lib/python3.11/"            )
         set(LIBPYTHON_BUILTIN_MODULES_DLL_PATH "/opt/python-i686-3.11.8/lib/python3.11/lib-dynload/")
 
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "yay -Syu millennium")
+        # Function to check if a program exists in PATH
+        function(check_program_exists program_name result_var)
+          find_program(${program_name}_EXECUTABLE ${program_name})
+          if(${program_name}_EXECUTABLE)
+              set(${result_var} TRUE PARENT_SCOPE)
+          else()
+              set(${result_var} FALSE PARENT_SCOPE)
+          endif()
+        endfunction()
+
+        # List of common AUR helpers with their update command syntax for "millennium" package
+        set(AUR_HELPERS
+          "yay"
+          "paru"
+          "aurman"
+          "pikaur"
+          "pamac"
+          "trizen"
+          "pacaur"
+          "aura"
+        )
+
+        # Map AUR helpers to their respective update commands
+        set(yay_UPDATE_COMMAND "yay -Syu millennium")
+        set(paru_UPDATE_COMMAND "paru -Syu millennium")
+        set(aurman_UPDATE_COMMAND "aurman -Syu millennium")
+        set(pikaur_UPDATE_COMMAND "pikaur -Syu millennium")
+        set(pamac_UPDATE_COMMAND "pamac upgrade millennium")
+        set(trizen_UPDATE_COMMAND "trizen -Syu millennium")
+        set(pacaur_UPDATE_COMMAND "pacaur -Syu millennium")
+        set(aura_UPDATE_COMMAND "aura -Ayu millennium")
+
+        # Default fallback for plain pacman (though it won't work for AUR packages directly)
+        set(pacman_UPDATE_COMMAND "sudo pacman -Syu millennium")
+
+        find_program(PACMAN_EXECUTABLE pacman)
+        if(NOT PACMAN_EXECUTABLE)
+          message(STATUS "Not running on an Arch-based system (pacman not found)")
+          set(AUR_HELPER "none")
+          set(UPDATE_COMMAND "")
+          else()
+          message(STATUS "Arch-based system detected")
+
+          set(AUR_HELPER "none")
+          foreach(helper ${AUR_HELPERS})
+              check_program_exists(${helper} HAS_${helper})
+              if(HAS_${helper})
+                  set(AUR_HELPER ${helper})
+                  set(UPDATE_COMMAND ${${helper}_UPDATE_COMMAND})
+                  break()
+              endif()
+          endforeach()
+
+          if(AUR_HELPER STREQUAL "none")
+              message(STATUS "No AUR helper found. User likely uses plain pacman.")
+              message(STATUS "Note: Plain pacman cannot directly install AUR packages.")
+              set(UPDATE_COMMAND ${pacman_UPDATE_COMMAND})
+              message(STATUS "Fallback command: ${UPDATE_COMMAND}")
+          else()
+              message(STATUS "AUR helper found: ${AUR_HELPER}")
+              message(STATUS "Update command: ${UPDATE_COMMAND}")
+          endif()
+        endif()
+
+        set(AUR_HELPER ${AUR_HELPER} CACHE STRING "Detected AUR helper")
+        set(UPDATE_COMMAND ${UPDATE_COMMAND} CACHE STRING "Command to update millennium package")
+
+        if(NOT AUR_HELPER STREQUAL "none")
+          message(STATUS "Using ${UPDATE_COMMAND} as update script to update Millennium.")
+          set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "${UPDATE_COMMAND}")
+        else()
+          message(STATUS "No AUR helper found. Please update Millennium manually.")
+          set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "Couldn't find AUR helper. Please update Millennium manually.")
+        endif()
+
       else()
         include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
         set(LIBPYTHON_RUNTIME_PATH "/usr/lib/millennium/libpython-3.11.8.so")
