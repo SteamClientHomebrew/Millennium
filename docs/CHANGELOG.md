@@ -1,3 +1,10 @@
+# [2.26.0-beta.1](https://github.com/shdwmtr/millennium/compare/v2.25.1...v2.26.0-beta.1) (2025-04-13)
+
+
+### Features
+
+* Add plugin updater. ([5c28c7e](https://github.com/shdwmtr/millennium/commit/5c28c7ef96e576ace25a6be111535c6fa0768cdf))
+
 ## [2.25.1](https://github.com/shdwmtr/millennium/compare/v2.25.0...v2.25.1) (2025-04-12)
 
 
