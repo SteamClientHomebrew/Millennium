@@ -31,7 +31,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 
 	const [errorCount, setErrorCount] = useState<number>(0);
 	const [warningCount, setWarningCount] = useState<number>(0);
-	const [copyIcon, setCopyIcon] = useState<any>(<IconsModule.Copy height={'16px'} />);
+	const [copyIcon, setCopyIcon] = useState<any>(<IconsModule.Copy />);
 
 	const [logFontSize, setLogFontSize] = useState<number>(16);
 
@@ -50,13 +50,13 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 
 		if (CopyText({ data: logsToCopy })) {
 			console.log('Copied logs to clipboard');
-			setCopyIcon(<IconsModule.Checkmark height={'16px'} />);
+			setCopyIcon(<IconsModule.Checkmark />);
 		} else {
 			console.log('Failed to copy logs to clipboard');
 		}
 
 		setTimeout(() => {
-			setCopyIcon(<IconsModule.Copy height={'16px'} />);
+			setCopyIcon(<IconsModule.Copy />);
 		}, 2000);
 	};
 
@@ -80,7 +80,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 						}}
 						className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 					>
-						<IconsModule.Carat height={'16px'} />
+						<IconsModule.Carat />
 						Back
 					</DialogButton>
 					<DialogHeader>{logs.name} output</DialogHeader>
@@ -109,7 +109,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 							}}
 							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 						>
-							<IconsModule.Minus height={'16px'} />
+							<IconsModule.Minus />
 						</DialogButton>
 
 						<DialogButton
@@ -118,7 +118,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 							}}
 							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 						>
-							<IconsModule.Add height={'16px'} />
+							<IconsModule.Add />
 						</DialogButton>
 
 						<DialogButton

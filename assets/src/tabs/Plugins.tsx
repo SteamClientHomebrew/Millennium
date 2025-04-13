@@ -30,7 +30,7 @@ const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
 
 	return (
 		<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton">
-			<IconsModule.Settings height="16" />
+			<IconsModule.Settings />
 		</DialogButton>
 	);
 };
@@ -245,7 +245,7 @@ const PluginViewModal: React.FC = () => {
 					</DialogButton>
 				)}
 				<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={FetchAllPlugins}>
-					<IconsModule.Refresh height="16" />
+					<IconsModule.Refresh />
 				</DialogButton>
 
 				<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={OpenPluginsFolder}>

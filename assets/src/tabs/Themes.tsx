@@ -68,7 +68,7 @@ const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
 
 	return (
 		<DialogButton onClick={() => ThemeSettings(active)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
-			<IconsModule.Settings height="16" />
+			<IconsModule.Settings />
 		</DialogButton>
 	);
 };
@@ -244,7 +244,7 @@ const ThemeViewModal: React.FC = () => {
 
 				{!pluginSelf.isDefaultTheme && (
 					<DialogButton onClick={() => SetupAboutRenderer(active)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
-						<IconsModule.Information height="16" />
+						<IconsModule.Information />
 					</DialogButton>
 				)}
 
