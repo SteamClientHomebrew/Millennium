@@ -362,8 +362,7 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
 
     Logger.Log("Running plugin: {}", plugin.pluginName);
 
-    PyObject* result = PyRun_File(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict);
-    fclose(mainModuleFilePtr);
+    PyObject* result = PyRun_FileEx(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict, 1);
 
     if (!result) 
     {

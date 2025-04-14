@@ -79,7 +79,7 @@ const timeAgo = (dateString: string) => {
 };
 
 const UpdateTheme = callable<[{ native: string }], boolean>('updater.update_theme');
-const UpdatePlugin = callable<[{ id: string; name: string }], boolean>('plugin_updater.download_and_update_plugin');
+const UpdatePlugin = callable<[{ id: string; name: string }], boolean>('plugin_updater.download_plugin_update');
 const FindAllPlugins = callable<[], string>('find_all_plugins');
 
 const ShowMessageBox = (message: string, title?: string) => {
@@ -157,26 +157,28 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 	};
 
 	const StartPluginUpdate = async (updateObject: any, index: number) => {
+		/** Check if the plugin is currently enabled, if so reload */
+		const plugin = JSON.parse(await FindAllPlugins()).find(
+			(plugin: any) => plugin.data.common_name === updateObject?.pluginInfo?.pluginJson?.common_name,
+		);
+
+		if (plugin?.enabled) {
+			await ShowMessageBox(
+				formatString(
+					"Millennium can't update \"{0}\" while it's running, you'll need to disable it first.",
+					updateObject?.pluginInfo?.pluginJson?.common_name,
+				),
+				// @ts-ignore
+				'Hold up!',
+			);
+
+			return;
+		}
+
 		setUpdatingPlugins({ ...updatingPlugins, [index]: true });
 
 		if (await UpdatePlugin({ id: updateObject?.id, name: updateObject?.pluginDirectory })) {
 			await fetchUpdates(true);
-
-			/** Check if the plugin is currently enabled, if so reload */
-			const plugins = JSON.parse(await FindAllPlugins());
-			const plugin = plugins.find((plugin: any) => plugin.id === updateObject?.id);
-
-			if (plugin?.enabled) {
-				const reload = await ShowMessageBox(
-					formatString(locale.updateSuccessfulRestart, updateObject?.pluginDirectory),
-					// @ts-ignore
-					LocalizationManager.LocalizeString('#ImageUpload_SuccessCard'),
-				);
-
-				if (reload) {
-					SteamClient.Browser.RestartJSContext();
-				}
-			}
 		} else {
 			// @ts-ignore
 			ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), LocalizationManager.LocalizeString('#Generic_Error'));
@@ -294,7 +296,7 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 											<SteamSpinner background={'transparent'} style={{ width: '16px', height: '16px' }} />
 										) : (
 											<>
-												{update?.pluginInfo?.diskUsage}
+												{update?.pluginInfo?.downloadSize}
 												<IconsModule.Download style={{ width: '16px', height: '16px' }} />
 											</>
 										)}
