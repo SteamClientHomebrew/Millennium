@@ -124,7 +124,7 @@ class PluginUpdater:
         
         try:
             response = requests.post(
-                "http://localhost:3000/api/v1/plugins/checkupdates",
+                "https://steambrew.app/api/v1/plugins/checkupdates",
                 json=plugin_data,
                 headers={"Content-Type": "application/json"}
             )
