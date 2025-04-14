@@ -44,8 +44,27 @@
 #include "encoding.h"
 #include "url_parser.h"
 #include <env.h>
+#include "fvisible.h"
 
 static std::string addedScriptOnNewDocumentId = "";
+
+class BackendLoadState {
+private:
+    BackendLoadState() = default;
+    static BackendLoadState& getInstance() {
+        static BackendLoadState instance;
+        return instance;
+    }
+
+public:
+    std::mutex mtx;
+    std::condition_variable cvScript;
+    bool hasScriptIdentifier = false;
+
+    static BackendLoadState& get() {
+        return getInstance();
+    }
+};
 
 /**
  * Constructs a JavaScript bootstrap module that includes the given script modules and a port number.
@@ -61,7 +80,7 @@ static std::string addedScriptOnNewDocumentId = "";
  * Error Handling:
  * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
  */
-const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
+MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
 {
     std::string scriptModuleArray;
     std::string scriptContents = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "client_api.js").string());
@@ -95,7 +114,7 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
  * - If the `sys` module cannot be imported, an error is logged.
  * - If the `sys.path` attribute cannot be accessed, no action is taken.
  */
-const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages) 
+MILLENNIUM const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages) 
 {
     PyObject *sysModule = PyImport_ImportModule("sys");
     if (!sysModule) 
@@ -136,7 +155,7 @@ const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
  * - If the `site` module cannot be imported, the error is printed and logged.
  * - If the `addsitedir` function cannot be retrieved or called, an error is printed and logged.
  */
-void AddSitePackagesDirectory(std::filesystem::path customPath)
+MILLENNIUM void AddSitePackagesDirectory(std::filesystem::path customPath)
 {
     PyObject *siteModule = PyImport_ImportModule("site");
 
@@ -169,7 +188,7 @@ void AddSitePackagesDirectory(std::filesystem::path customPath)
  * 
  * @param global_dict The global dictionary of the Python interpreter.
  */
-void StartPluginBackend(PyObject* global_dict, std::string pluginName) 
+MILLENNIUM void StartPluginBackend(PyObject* global_dict, std::string pluginName) 
 {
     const auto PrintError = [&pluginName]() 
     {
@@ -236,7 +255,7 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
  * - If the `__builtins__` dictionary cannot be retrieved, a `RuntimeError` is raised.
  * - If setting the `MILLENNIUM_PLUGIN_SECRET_NAME` in `__builtins__` fails, a `RuntimeError` is raised.
  */
-const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName) 
+MILLENNIUM const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName) 
 {
     /** Set the secret name in the global dictionary, i.e the global scope */
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
@@ -266,7 +285,7 @@ const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pl
  *
  * Both paths are converted to strings and set as Python variables in the global dictionary.
  */
-const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin) 
+MILLENNIUM const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin) 
 {
     PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.pluginBaseDirectory.generic_string().c_str()));
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
@@ -289,7 +308,7 @@ const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const Setti
  * Error Handling:
  * - If any step of the process fails (e.g., file opening, module import), the error is logged and the backend load is marked as failed.
  */
-const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) 
+MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) 
 {
     PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
     const auto backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
@@ -317,7 +336,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
 
     PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
-    FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
+    FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
     if (mainModuleFilePtr == NULL) 
     {
@@ -340,6 +359,8 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         fclose(mainModuleFilePtr);
         return;
     }
+
+    Logger.Log("Running plugin: {}", plugin.pluginName);
 
     PyObject* result = PyRun_File(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict);
     fclose(mainModuleFilePtr);
@@ -406,7 +427,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
  *
  * The constructed module is returned as a string.
  */
-const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort) 
+MILLENNIUM const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort) 
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
@@ -433,22 +454,56 @@ const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort)
  * 
  * @note this function is only applicable to Windows
  */
-const void UnPatchSharedJSContext()
+MILLENNIUM const void UnPatchSharedJSContext()
 {
     #ifdef _WIN32
     Logger.Log("Restoring SharedJSContext...");
 
-    const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
+    const auto SteamUIModulePath       = SystemIO::GetSteamPath() / "steamui" / "index.html";
     const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
+
+    const auto librariesPath = SystemIO::GetSteamPath() / "steamui" / "libraries";
+    std::string libraryChunkJS;
 
     try
     {
-        if (std::filesystem::exists(SteamUIModulePathBackup) && std::filesystem::is_regular_file(SteamUIModulePathBackup))
+        for (const auto& entry : std::filesystem::directory_iterator(librariesPath))
         {
-            std::filesystem::remove(SteamUIModulePath);
+            if (entry.is_regular_file() && entry.path().filename().string().substr(0, 10) == "libraries~" && entry.path().extension() == ".js")
+            {
+                libraryChunkJS = entry.path().filename().string();
+                break;
+            }
         }
+    }
+    catch (const std::filesystem::filesystem_error& e)
+    {
+        Logger.Warn("Failed to find libraries~xxx.js: {}", e.what());
+    }
 
-        std::filesystem::rename(SteamUIModulePathBackup, SteamUIModulePath);
+    if (libraryChunkJS.empty())
+    {
+        MessageBoxA(
+            NULL, 
+            "Millennium failed to find a key library used by Steam. "
+            "Let our developers know if you see this message, it's likely a bug.\n"
+            "You can reach us over at steambrew.app/discord", 
+            "Millennium", 
+            MB_ICONERROR
+        );
+
+        return;
+    }
+
+    std::string fileContent = fmt::format(R"(<!doctype html><html style="width: 100%; height: 100%"><head><title>SharedJSContext</title><meta charset="utf-8"><script defer="defer" src="/libraries/{}"></script><script defer="defer" src="/library.js"></script><link href="/css/library.css" rel="stylesheet"></head><body style="width: 100%; height: 100%; margin: 0; overflow: hidden;"><div id="root" style="height:100%; width: 100%"></div><div style="display:none"></div></body></html>)", libraryChunkJS);
+
+    try
+    {
+        SystemIO::WriteFileSync(SteamUIModulePath.string(), fileContent);
+    }
+    catch (const std::system_error& e)
+    {
+        Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
     }
     catch (const std::exception& e)
     {
@@ -457,7 +512,6 @@ const void UnPatchSharedJSContext()
 
     Logger.Log("Restored SharedJSContext...");
     #endif
-    // Sockets::PostShared({ { "id", 9773 }, { "method", "Page.reload" } });
 }
 
 
@@ -480,7 +534,7 @@ const void UnPatchSharedJSContext()
  * Error Handling:
  * - If any issues occur during the message processing, errors are logged with details.
  */
-void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
+MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 {
     UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
@@ -496,26 +550,42 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         PAGE_RELOAD = 4
     };
 
-    std::mutex mtx;
-    std::condition_variable cvScript;
-
-    bool hasScriptIdentifier = false;
-
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [&mtx, &cvScript, &hasScriptIdentifier] (const nlohmann::json& eventMessage, std::string listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [] (const nlohmann::json& eventMessage, std::string listenerId)
     {
-        std::unique_lock<std::mutex> lock(mtx);
+        auto& state = BackendLoadState::get();
+        std::unique_lock<std::mutex> lock(state.mtx);
         
         try
         {
-            const int messageId = eventMessage.value("id", -1);
+            const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
 
-            if (messageId == PageMessage::PAGE_SCRIPT)
+            if (messageId == PAGE_ENABLE)
             {
+                Logger.Log("Injecting script to evaluate on new document...");
+                Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
+            }
+            if (messageId == PAGE_SCRIPT)
+            {
+                Logger.Log("Script injected, waiting for identifier...");
+
                 addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                hasScriptIdentifier = true;
-                Logger.Log("Successfully injected shims, updating state...");
-                Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"} });
-                cvScript.notify_one();  
+                state.hasScriptIdentifier = true;
+                Logger.Log("Successfully injected shims, reloading frontend...");
+
+                Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                state.cvScript.notify_one();  
+
+            }
+            if (messageId == PAGE_RELOAD)
+            {
+                if (eventMessage.contains("error"))
+                {
+                    Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
+                    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                    return;
+                }
+
+                Logger.Log(eventMessage.dump(4));
 
                 Logger.Log("Successfully notified frontend...");
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
@@ -529,23 +599,21 @@ void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
-    Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
-
     {
-        std::unique_lock<std::mutex> lock(mtx);
-        cvScript.wait(lock, [&] { return hasScriptIdentifier; });
+        auto& state = BackendLoadState::get();
+        std::unique_lock<std::mutex> lock(state.mtx);
+        state.cvScript.wait(lock, [&state] { return state.hasScriptIdentifier; });
     }
-
     Logger.Log("Frontend notifier finished!");
 }
 
-const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
+MILLENNIUM const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }
 
-const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader)
+MILLENNIUM const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader)
 {
     pluginLoader->InjectWebkitShims();
 

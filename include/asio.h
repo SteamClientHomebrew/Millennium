@@ -31,9 +31,10 @@
 #pragma once
 #include <asio.hpp>
 #include <asio/ip/tcp.hpp>
+#include "fvisible.h"
 
 namespace Asio {
-    static asio::ip::port_type GetRandomOpenPort() 
+    MILLENNIUM inline asio::ip::port_type GetRandomOpenPort() 
     {
         asio::io_context io_context;
         asio::ip::tcp::acceptor acceptor(io_context);

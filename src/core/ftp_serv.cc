@@ -48,6 +48,7 @@
 #include "encoding.h"
 #include "url_parser.h"
 #include "serv.h"
+#include "fvisible.h"
 
 namespace Crow
 {
@@ -75,7 +76,7 @@ namespace Crow
      * This function determines the type of the requested file (using `EvaluateFileType`), then reads the content of the file 
      * and returns an appropriate response structure (`ResponseProps`).
      */
-    ResponseProps EvaluateRequest(std::filesystem::path path)
+    MILLENNIUM ResponseProps EvaluateRequest(std::filesystem::path path)
     {
         eFileType fileType = EvaluateFileType(path.string());
         const std::string contentType = fileTypes[fileType];
@@ -96,7 +97,7 @@ namespace Crow
      * This function checks if the requested file exists, sets the correct content type, and writes the content to the response.
      * If the file does not exist, a 404 error response is returned.
      */
-    crow::response HandleRequest(std::string path)
+    MILLENNIUM crow::response HandleRequest(std::string path)
     {
         crow::response response;
         ResponseProps responseProps = EvaluateRequest(PathFromUrl(path));
@@ -123,7 +124,7 @@ namespace Crow
      * This function sets up a `crow::SimpleApp`, binds it to a random open port, and routes all incoming paths 
      * to the `HandleRequest` function for handling.
      */
-    std::tuple<std::shared_ptr<crow::SimpleApp>, uint16_t> BindApplication()
+    MILLENNIUM std::tuple<std::shared_ptr<crow::SimpleApp>, uint16_t> BindApplication()
     {
         uint_least16_t port = Asio::GetRandomOpenPort();
         std::shared_ptr<crow::SimpleApp> app = std::make_shared<crow::SimpleApp>();
@@ -145,7 +146,7 @@ namespace Crow
      * This function initializes the Crow application, binds it to a random open port, 
      * and runs it in a separate thread. It then returns the assigned port number.
      */
-    uint16_t CreateAsyncServer()
+    MILLENNIUM uint16_t CreateAsyncServer()
     {
         auto [app, port] = BindApplication();
         std::thread([app]() mutable { app->multithreaded().run(); }).detach();

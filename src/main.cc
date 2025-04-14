@@ -33,6 +33,7 @@
 #define WIN32_LEAN_AND_MEAN 
 #include <winsock2.h>
 #define _WINSOCKAPI_
+#include <DbgHelp.h>
 #endif
 #include <filesystem>
 #include <fstream>
@@ -46,6 +47,10 @@
 #include "terminal_pipe.h"
 #include "executor.h"
 #include <env.h>
+
+#ifdef __linux__
+extern "C" int IsSamePath(const char *path1, const char *path2);
+#endif
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
@@ -102,6 +107,109 @@ const static void VerifyEnvironment()
     }
 }
 
+#include <exception>
+
+#ifdef _WIN32
+#include <windows.h>
+// Helper function to demangle C++ names for MinGW
+std::string DemangleName(const char* mangledName) 
+{
+    int status = 0;
+    std::unique_ptr<char, void(*)(void*)> demangled(abi::__cxa_demangle(mangledName, nullptr, nullptr, &status), std::free);
+    
+    if (status == 0 && demangled) 
+    {
+        return std::string(demangled.get());
+    } 
+    else 
+    {
+        // If demangling fails, return the original name
+        return std::string(mangledName);
+    }
+}
+
+void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
+{
+    HANDLE process = GetCurrentProcess();
+    DWORD options = SymGetOptions();
+    options |= SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS;
+    options &= ~SYMOPT_UNDNAME;
+    SymSetOptions(options);
+    
+    if (!SymInitialize(process, NULL, TRUE)) 
+    {
+        DWORD error = GetLastError();
+        errorMessage.append(fmt::format("\nFailed to initialize symbol handler: Error {}\n", error));
+        return;
+    }
+    
+    void* stack[maxFrames];
+    USHORT frames = CaptureStackBackTrace(0, maxFrames, stack, NULL);
+    
+    constexpr int MAX_NAME_LENGTH = 1024;
+    SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(1, sizeof(SYMBOL_INFO) + MAX_NAME_LENGTH * sizeof(CHAR));
+
+    if (!symbol) 
+    {
+        errorMessage.append("\nFailed to allocate memory for symbols\n");
+        SymCleanup(process);
+        return;
+    }
+    
+    symbol->MaxNameLen = MAX_NAME_LENGTH - 1;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+    IMAGEHLP_LINE64 line;
+    line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+    
+    errorMessage.append(fmt::format("\nStack trace ({} frames):\n", frames));
+    
+    for (USHORT i = 0; i < frames; i++) {
+        DWORD64 address = (DWORD64)(stack[i]);
+        DWORD64 displacement = 0;
+        
+        BOOL symbolResult = SymFromAddr(process, address, &displacement, symbol);
+        
+        if (symbolResult) 
+        {
+            // Try to demangle it for MinGW-compiled code
+            std::string demangledName;
+            
+            // Check if this looks like a C++ mangled name (typically starts with _Z for GCC/MinGW)
+            if (symbol->Name[0] == '_' && (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N')) 
+            {
+                demangledName = DemangleName(symbol->Name);
+            } 
+            else 
+            {
+                // Not a GCC-style mangled name, use as is
+                demangledName = symbol->Name;
+            }
+            
+            // Get file and line info
+            DWORD lineDisplacement = 0;
+            BOOL lineResult = SymGetLineFromAddr64(process, address, &lineDisplacement, &line);
+            
+            if (lineResult) 
+            {
+                errorMessage.append(fmt::format("#{}: {} in {} at {}:{} +{}\n", i, demangledName, line.FileName, line.LineNumber, lineDisplacement));
+            } 
+            else 
+            {
+                errorMessage.append(fmt::format("#{}: {} at 0x{:X} (no line info, error: {})\n", i, demangledName, address, GetLastError()));
+            }   
+        } 
+        else 
+        {
+            errorMessage.append(fmt::format("#{}: 0x{:X} (unknown symbol, error: {})\n", i, address, GetLastError()));
+        }
+    }
+    
+    free(symbol);
+    SymCleanup(process);
+}
+#endif
+
 /**
  * @brief Custom terminate handler for Millennium.
  * This function is called when Millennium encounters a fatal error that it can't recover from.
@@ -121,22 +229,39 @@ void OnTerminate()
         {
             int status;
             errorMessage.append(fmt::format("Terminating with uncaught exception of type `{}`", abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status)));
-            std::rethrow_exception(exceptionPtr); // rethrow the exception to catch its exception message
+            std::rethrow_exception(exceptionPtr);
         }
         catch (const std::exception& e) 
         {
-            errorMessage.append(fmt::format("with `what()` = \"{}\"", e.what()));
+            errorMessage.append(fmt::format(" with `what()` = \"{}\"", e.what()));
         }
         catch (...) { }
     }
 
     #ifdef _WIN32
+    // Capture and print stack trace
+    CaptureStackTrace(errorMessage);
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
+
+    auto result = MessageBoxA(
+        NULL, 
+        "Would you like to open your logs folder?\nLook for a file called \"Standard Output_log.log\" "
+        "in the logs folder, that will have important debug information.\n\n"
+        "Please send this file to Millennium developers on our discord (steambrew.app/discord), it will help prevent this error from happening to you or others in the future.", 
+        "Error Recovery",
+        MB_ICONEXCLAMATION| MB_YESNO
+    );
+
+    if (result == IDYES) 
+    {
+        std::string logPath = (SystemIO::GetInstallPath() / "ext" / "logs").string();
+        ShellExecuteA(NULL, "open", logPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
+    }
+
     #elif __linux__
     std::cerr << errorMessage << std::endl;
     #endif
 }
-
 #ifdef __linux__
 #include <sys/ptrace.h>
 #include <unistd.h>
@@ -203,7 +328,24 @@ const static void EntryMain()
 
 __attribute__((constructor)) void __init_millennium() 
 {
-    std::cout << "Millennium loaded" << std::endl;
+    #if defined(__linux__)
+    char path[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if (len != -1) {
+        path[len] = '\0';
+        const char* pathPtr = path;
+
+        // Check if the path is the same as the Steam executable
+        if (!IsSamePath(pathPtr, fmt::format("{}/.local/share/Steam/ubuntu12_32/steam", std::getenv("HOME")).c_str()) != 0) {
+            return;
+        }
+    } 
+    else {
+        perror("readlink");
+        return;
+    }
+    #endif
+
     SetupEnvironmentVariables();
 }
 
@@ -442,6 +584,8 @@ extern "C"
         int (*main)(int, char **, char **), int argc, char **argv,
         int (*init)(int, char **, char **), void (*fini)(void), void (*rtld_fini)(void), void *stack_end)
     {
+        Logger.Log("Hooked main() with PID: {}", getpid());
+
         /* Save the real main function address */
         fnMainOriginal = main;
 

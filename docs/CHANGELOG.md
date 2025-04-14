@@ -1,3 +1,108 @@
+## [2.25.1](https://github.com/shdwmtr/millennium/compare/v2.25.0...v2.25.1) (2025-04-12)
+
+
+### Bug Fixes
+
+* Fix millennium not evaluating symlinks properly ([46e34f7](https://github.com/shdwmtr/millennium/commit/46e34f7d2b0cb0fc4370f4c9221af0ff76b99c96))
+
+# [2.25.0](https://github.com/shdwmtr/millennium/compare/v2.24.0...v2.25.0) (2025-04-12)
+
+
+### Bug Fixes
+
+* Add start script support for non-arch based distros. ([cda3843](https://github.com/shdwmtr/millennium/commit/cda3843693a18e44ae7fdc1bfe9d0c3b6340fa4a))
+* Fix Millennium on Linux ([30f400d](https://github.com/shdwmtr/millennium/commit/30f400de02c56fd394d1b9c42d492298cf36c571))
+
+
+### Features
+
+* Add automatic AUR helper detection ([c8d20be](https://github.com/shdwmtr/millennium/commit/c8d20bea1b13476c44dcb65616d4796286e8decf))
+
+# [2.24.0](https://github.com/shdwmtr/millennium/compare/v2.23.0...v2.24.0) (2025-04-10)
+
+
+### Bug Fixes
+
+* Fix Steam UI not showing on launch. ([52ad028](https://github.com/shdwmtr/millennium/commit/52ad0289042de64d16b35a8429c610a96ae55667))
+* Fix Steam webhelper hanging it by force crashing it, instead of relying on CEF reload. ([df65b37](https://github.com/shdwmtr/millennium/commit/df65b37a7d7cbfbe00fe21a11c056108c9c88186))
+* Fix the AUR PKGBUILD (hopefully) ([3fbacbf](https://github.com/shdwmtr/millennium/commit/3fbacbf2484227de78c02442f75b92808de08a4a))
+* Improve error recovery steps. ([11cde53](https://github.com/shdwmtr/millennium/commit/11cde53b7baa5bc09a0a276c66e4e00a504f36f7))
+* Remove test error ([f965201](https://github.com/shdwmtr/millennium/commit/f965201dd6f503a1ab846f7eb9d43bd403bb2e63))
+* Remove write permission from PIPX module ([f9d9931](https://github.com/shdwmtr/millennium/commit/f9d9931622bdcce9d64cdb6783edafdbcf1826c7))
+
+
+### Features
+
+* Better error stack tracing ([e3518c3](https://github.com/shdwmtr/millennium/commit/e3518c3cb32bcde50089ab449b80babc5f513b09))
+
+# [2.24.0](https://github.com/shdwmtr/millennium/compare/v2.23.0...v2.24.0) (2025-04-10)
+
+
+### Bug Fixes
+
+* Fix Steam webhelper hanging it by force crashing it, instead of relying on CEF reload. ([df65b37](https://github.com/shdwmtr/millennium/commit/df65b37a7d7cbfbe00fe21a11c056108c9c88186))
+* Fix the AUR PKGBUILD (hopefully) ([3fbacbf](https://github.com/shdwmtr/millennium/commit/3fbacbf2484227de78c02442f75b92808de08a4a))
+* Improve error recovery steps. ([11cde53](https://github.com/shdwmtr/millennium/commit/11cde53b7baa5bc09a0a276c66e4e00a504f36f7))
+* Remove test error ([f965201](https://github.com/shdwmtr/millennium/commit/f965201dd6f503a1ab846f7eb9d43bd403bb2e63))
+* Remove write permission from PIPX module ([f9d9931](https://github.com/shdwmtr/millennium/commit/f9d9931622bdcce9d64cdb6783edafdbcf1826c7))
+
+
+### Features
+
+* Better error stack tracing ([e3518c3](https://github.com/shdwmtr/millennium/commit/e3518c3cb32bcde50089ab449b80babc5f513b09))
+
+# [2.24.0](https://github.com/shdwmtr/millennium/compare/v2.23.0...v2.24.0) (2025-04-10)
+
+
+### Bug Fixes
+
+* Fix Steam webhelper hanging it by force crashing it, instead of relying on CEF reload. ([df65b37](https://github.com/shdwmtr/millennium/commit/df65b37a7d7cbfbe00fe21a11c056108c9c88186))
+* Fix the AUR PKGBUILD (hopefully) ([3fbacbf](https://github.com/shdwmtr/millennium/commit/3fbacbf2484227de78c02442f75b92808de08a4a))
+* Improve error recovery steps. ([11cde53](https://github.com/shdwmtr/millennium/commit/11cde53b7baa5bc09a0a276c66e4e00a504f36f7))
+* Remove write permission from PIPX module ([f9d9931](https://github.com/shdwmtr/millennium/commit/f9d9931622bdcce9d64cdb6783edafdbcf1826c7))
+
+
+### Features
+
+* Better error stack tracing ([e3518c3](https://github.com/shdwmtr/millennium/commit/e3518c3cb32bcde50089ab449b80babc5f513b09))
+
+## [2.23.1-beta.1](https://github.com/shdwmtr/millennium/compare/v2.23.0...v2.23.1-beta.1) (2025-04-08)
+
+
+### Bug Fixes
+
+* Fix Steam webhelper hanging it by force crashing it, instead of relying on CEF reload. ([df65b37](https://github.com/shdwmtr/millennium/commit/df65b37a7d7cbfbe00fe21a11c056108c9c88186))
+* Remove write permission from PIPX module ([f9d9931](https://github.com/shdwmtr/millennium/commit/f9d9931622bdcce9d64cdb6783edafdbcf1826c7))
+
+# [2.23.0](https://github.com/shdwmtr/millennium/compare/v2.22.0...v2.23.0) (2025-04-08)
+
+
+### Bug Fixes
+
+* Fix system error message box ([8751660](https://github.com/shdwmtr/millennium/commit/8751660b3ffb1db36d4f7b3d065c0870343ee856))
+
+
+### Features
+
+* Added danish locales ([8b93e91](https://github.com/shdwmtr/millennium/commit/8b93e911f5daff1899ad8feac34a211a47cc80bc))
+
+# [2.22.0](https://github.com/shdwmtr/millennium/compare/v2.21.0...v2.22.0) (2025-04-06)
+
+
+### Bug Fixes
+
+* Fix color analyzer not properly parsing color name and description. ([8f8893b](https://github.com/shdwmtr/millennium/commit/8f8893bf752ff813b59f18f5c184a4a0ac55b3a5))
+* Fix simplified chinese locales ([d061953](https://github.com/shdwmtr/millennium/commit/d061953b65022e9ccb0c0c63ae1f3848d36aaa35))
+* Fix Spanish locales ([57de823](https://github.com/shdwmtr/millennium/commit/57de823c89084c9cc36d67754c5c897d069f1c53))
+* Fix spanish localization ([594b7d1](https://github.com/shdwmtr/millennium/commit/594b7d1aef34d910f29ff32ed7a6706903984bde))
+* **Linux:** Arch removed "-runtime" suffix. ([cf39193](https://github.com/shdwmtr/millennium/commit/cf39193a3999bb86563fed5d993df5ff1adcab47))
+
+
+### Features
+
+* Add french localization.  ([54114e5](https://github.com/shdwmtr/millennium/commit/54114e5727b64d4ef6196e73a5cc094dc38e7987))
+* Open Steam developer tools by running `steam://millennium/devtools/open` ([b2d6aae](https://github.com/shdwmtr/millennium/commit/b2d6aae6f1bd26215726e9a429f0149436e02668))
+
 # [2.21.0](https://github.com/shdwmtr/millennium/compare/v2.20.1...v2.21.0) (2025-03-30)
 
 

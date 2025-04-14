@@ -42,6 +42,7 @@
 #include "log.h"
 #include "logger.h"
 #include <env.h>
+#include "fvisible.h"
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -57,7 +58,7 @@ std::shared_ptr<InterpreterMutex> g_threadTerminateFlag = std::make_shared<Inter
  * 
  * @note ID's are managed by the caller. 
  */
-bool Sockets::PostShared(nlohmann::json data) 
+MILLENNIUM bool Sockets::PostShared(nlohmann::json data) 
 {
     if (sharedJsContextSessionId.empty()) 
     {
@@ -74,7 +75,7 @@ bool Sockets::PostShared(nlohmann::json data)
  * 
  * @note ID's are managed by the caller.
  */
-bool Sockets::PostGlobal(nlohmann::json data) 
+MILLENNIUM bool Sockets::PostGlobal(nlohmann::json data) 
 {
     if (browserClient == nullptr) 
     {
@@ -89,7 +90,7 @@ bool Sockets::PostGlobal(nlohmann::json data)
  * @brief Shutdown the browser connection.
  * 
  */
-void Sockets::Shutdown()
+MILLENNIUM void Sockets::Shutdown()
 {
     try
     {
@@ -105,7 +106,7 @@ void Sockets::Shutdown()
     }
 }
 
-class CEFBrowser
+class MILLENNIUM CEFBrowser
 {
     WebkitHandler webKitHandler;
     uint16_t m_ftpPort, m_ipcPort;
@@ -114,7 +115,7 @@ class CEFBrowser
     std::chrono::system_clock::time_point m_startTime;
 public:
 
-    const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
+    MILLENNIUM const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
 
@@ -147,12 +148,12 @@ public:
         webKitHandler.DispatchSocketMessage(json);
     }
 
-    const void SetupSharedJSContext()
+    MILLENNIUM const void SetupSharedJSContext()
     {
         Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.getTargets" } });
     }
 
-    const void onSharedJsConnect()
+    MILLENNIUM const void onSharedJsConnect()
     {
         std::thread([this]() {
             Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
@@ -160,7 +161,7 @@ public:
         }).detach();
     }
 
-    const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
+    MILLENNIUM const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
     {
         m_startTime   = std::chrono::system_clock::now();
         browserClient = client; 
@@ -172,14 +173,14 @@ public:
         webKitHandler.SetupGlobalHooks();
     }
 
-    CEFBrowser(uint16_t ftpPort, uint16_t ipcPort) : m_ftpPort(ftpPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) 
+    MILLENNIUM CEFBrowser(uint16_t ftpPort, uint16_t ipcPort) : m_ftpPort(ftpPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) 
     {
         webKitHandler.SetIPCPort(ipcPort);
         webKitHandler.SetFTPPort(ftpPort);
     }
 };
 
-const void PluginLoader::Initialize()
+MILLENNIUM const void PluginLoader::Initialize()
 {
     
     m_settingsStorePtr  = std::make_unique<SettingsStore>();
@@ -199,13 +200,13 @@ const void PluginLoader::Initialize()
     }
 }
 
-PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
+MILLENNIUM PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
     : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_ftpPort(ftpPort)
 {
     this->Initialize();
 }
 
-std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
+MILLENNIUM std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
 {
     SocketHelpers::ConnectSocketProps browserProps;
 
@@ -221,7 +222,7 @@ std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHan
  * @brief Injects webkit shims into the SteamUI.    
  * All hooks are internally stored in the function and are removed upon re-injection. 
  */
-const void PluginLoader::InjectWebkitShims() 
+MILLENNIUM const void PluginLoader::InjectWebkitShims() 
 {
     Logger.Log("Injecting webkit shims...");
     
@@ -263,7 +264,7 @@ const void PluginLoader::InjectWebkitShims()
     }
 }
 
-const void PluginLoader::StartFrontEnds()
+MILLENNIUM const void PluginLoader::StartFrontEnds()
 {
     CEFBrowser cefBrowserHandler(m_ftpPort, m_ipcPort);
     SocketHelpers socketHelpers;
@@ -297,7 +298,7 @@ const void PluginLoader::StartFrontEnds()
 }
 
 /* debug function, just for developers */
-const void PluginLoader::PrintActivePlugins()
+MILLENNIUM const void PluginLoader::PrintActivePlugins()
 {
     std::string pluginList = "Plugins: { ";
     for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it)
@@ -316,7 +317,7 @@ const void PluginLoader::PrintActivePlugins()
  * All packages are grouped and shared when needed, to prevent wasting space.
  * @see assets\pipx\main.py
  */
-const void StartPreloader(PythonManager& manager)
+MILLENNIUM const void StartPreloader(PythonManager& manager)
 {
     std::promise<void> promise;
 
@@ -338,21 +339,30 @@ const void StartPreloader(PythonManager& manager)
         SetPluginSecretName(globalDictionary, plugin.pluginName);
 
         PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
-        FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r+");
+        FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
         if (mainModuleFilePtr == NULL) 
         {
-            LOG_ERROR("failed to fopen file @ {}", backendMainModule);
+            LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
             ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
             return;
         }
 
-        if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
+        try
         {
-            LOG_ERROR("millennium failed to preload plugins", plugin.pluginName);
-            ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
-            return;
+            Logger.Log("Starting package manager thread @ {}", backendMainModule);
+
+            if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) 
+            {
+                LOG_ERROR("Failed to run PIPX preload", plugin.pluginName);
+                ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
+                return;
+            }
         }
+        catch(const std::system_error& error)
+        {
+            LOG_ERROR("Failed to run PIPX preload due to a system error: {}", error.what());
+        } 
 
         Logger.Log("Preloader finished...");
         promise.set_value();
@@ -363,7 +373,7 @@ const void StartPreloader(PythonManager& manager)
     manager.DestroyPythonInstance("pipx");
 }
 
-const void PluginLoader::StartBackEnds(PythonManager& manager)
+MILLENNIUM const void PluginLoader::StartBackEnds(PythonManager& manager)
 {
     Logger.Log("Starting plugin backends...");
     StartPreloader(manager);

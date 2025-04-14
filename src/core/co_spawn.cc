@@ -35,8 +35,9 @@
 #include "bind_stdout.h"
 #include "logger.h"
 #include "co_stub.h"
+#include "fvisible.h"
 
-PyObject* PyInit_Millennium(void) 
+MILLENNIUM PyObject* PyInit_Millennium(void) 
 {
     static struct PyModuleDef module_def = 
     { 
@@ -46,7 +47,7 @@ PyObject* PyInit_Millennium(void)
     return PyModule_Create(&module_def);
 }
 
-const std::string GetPythonVersion()
+MILLENNIUM const std::string GetPythonVersion()
 {
     PyThreadState* mainThreadState = PyThreadState_New(PyInterpreterState_Main());
     PyEval_RestoreThread(mainThreadState);
@@ -79,7 +80,7 @@ const std::string GetPythonVersion()
     return pythonVersion;
 }
 
-PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
+MILLENNIUM PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
     // initialize global modules
     PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
@@ -131,7 +132,7 @@ done:
     }
 }
 
-PythonManager::~PythonManager()
+MILLENNIUM PythonManager::~PythonManager()
 {
     Logger.Warn("Deconstructing {} plugin(s) and preparing for exit...", this->m_pythonInstances.size());
     
@@ -151,7 +152,7 @@ PythonManager::~PythonManager()
     Logger.Log("Finished shutdown! Bye bye!");
 }
 
-bool PythonManager::DestroyAllPythonInstances()
+MILLENNIUM bool PythonManager::DestroyAllPythonInstances()
 {
     const auto startTime = std::chrono::steady_clock::now();
 
@@ -216,7 +217,8 @@ bool PythonManager::DestroyAllPythonInstances()
     timeOutThread.join();  
     return true;
 }
-bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown)
+
+MILLENNIUM bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown)
 {
     bool successfulShutdown = false;
 
@@ -272,7 +274,7 @@ bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isS
     return successfulShutdown;
 }
 
-bool PythonManager::IsRunning(std::string targetPluginName)
+MILLENNIUM bool PythonManager::IsRunning(std::string targetPluginName)
 {
     for (auto instance : this->m_pythonInstances) 
     {
@@ -286,7 +288,7 @@ bool PythonManager::IsRunning(std::string targetPluginName)
     return false;
 }
 
-bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
+MILLENNIUM bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
 {
     const std::string pluginName = plugin.pluginName;
     std::shared_ptr<InterpreterMutex> interpMutexState = std::make_shared<InterpreterMutex>();
@@ -340,7 +342,7 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
     return true;
 }
 
-std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
+MILLENNIUM std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
 {
     for (auto instance : this->m_pythonInstances) 
     {
@@ -354,7 +356,7 @@ std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStateFromName(s
     return {};
 }
 
-std::string PythonManager::GetPluginNameFromThreadState(PyThreadState* thread) 
+MILLENNIUM std::string PythonManager::GetPluginNameFromThreadState(PyThreadState* thread) 
 {
     for (auto instance : this->m_pythonInstances)
     {

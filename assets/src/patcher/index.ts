@@ -82,7 +82,7 @@ function patchDocumentContext(windowContext: any) {
 	const classList: string[] = getDocumentClassList(windowContext);
 	const documentTitle: string = windowContext.m_strTitle;
 
-	// Append System Accent Colors to global document (publically shared)
+	// Append System Accent Colors to global document (publicly shared)
 	DOMModifier.AddStyleSheetFromText(document, pluginSelf.systemColor, 'SystemAccentColorInject');
 	// Append old global colors struct to DOM
 	pluginSelf?.GlobalsColors && DOMModifier.AddStyleSheetFromText(document, pluginSelf.GlobalsColors, 'GlobalColors');
@@ -94,11 +94,9 @@ function patchDocumentContext(windowContext: any) {
 		pluginSelf.conditionVersion = 1;
 	}
 	activeTheme?.data?.hasOwnProperty('Patches') && EvaluatePatches(activeTheme, documentTitle, classList, document, windowContext);
-	if (activeTheme?.data?.hasOwnProperty('RootColors')) {
-		Millennium.callServerMethod('cfg.get_colors').then((colors: any) => {
-			DOMModifier.AddStyleSheetFromText(document, colors, 'RootColors');
-		});
-	}
+
+	/** Inject root colors */
+	pluginSelf?.RootColors && DOMModifier.AddStyleSheetFromText(document, pluginSelf.RootColors, 'RootColors');
 }
 
 export { patchDocumentContext as PatchDocumentContext };

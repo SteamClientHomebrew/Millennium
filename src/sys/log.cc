@@ -41,10 +41,11 @@
 #endif
 #include "locals.h"
 #include <env.h>
+#include "fvisible.h"
 
 OutputLogger Logger;
 
-std::string OutputLogger::GetLocalTime()
+MILLENNIUM std::string OutputLogger::GetLocalTime()
 {
 	std::stringstream bufferStream;
 	auto now = std::chrono::system_clock::now();
@@ -56,118 +57,36 @@ std::string OutputLogger::GetLocalTime()
 	return fmt::format("[{}]", bufferStream.str());
 }
 
-void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
+MILLENNIUM void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
-
-	if (m_bIsVersbose || m_bIsConsoleEnabled)
-	{
-		fmt::print("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
-	}
-
-	if (m_bIsVersbose)
-		return;
-
-	*outputLogStream << GetLocalTime() << type << message << "\n";
-	outputLogStream->flush();
+	std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
 }
 
-OutputLogger::OutputLogger()
+MILLENNIUM OutputLogger::OutputLogger()
 {
 	#ifdef _WIN32
 	{
 		std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
-
 		m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || startupParams->HasArgument("-dev");
-		m_bIsVersbose = startupParams->HasArgument("-verbose");
 	}
 	#elif __linux__
 	{
 		this->m_bIsConsoleEnabled = true;
-		this->m_bIsVersbose = true;
 	}
-	#endif
-
-	const auto fileName = std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / "debug.log";
-
-	try
-	{
-		std::filesystem::create_directories(fileName.parent_path());
-	}
-	catch (const std::exception& exception)
-	{
-		LOG_ERROR("An error occurred creating debug log directories -> {}", exception.what());
-	}
-
-	outputLogStream = std::make_shared<std::ofstream>(fileName, std::ios::out | std::ios::trunc);
-
-    if (!outputLogStream->is_open()) 
-	{
-		LOG_ERROR("Couldn't open output log stream.");
-        return;
-    }
-
-	//fmt::print("[+] Bootstrapping Millennium@{}\n", MILLENNIUM_VERSION);                                    
+	#endif                 
 }
 
-OutputLogger::~OutputLogger() 
+MILLENNIUM void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
 {
-	outputLogStream->close();
-}
+	std::lock_guard<std::mutex> lock(logMutex);
 
-void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
-{
 	const auto toUpper = [](const std::string& str) {
 		std::string result = str;
 		std::transform(result.begin(), result.end(), result.begin(), ::toupper);
 		return result;
 	};
 
-	if (m_bIsVersbose || m_bIsConsoleEnabled)
-	{
-		fmt::print("{} ", GetLocalTime());
-        fmt::print("\033[1m\033[34m{} \033[0m\033[0m", toUpper(pluginName));
-		fmt::print("{}\n", strMessage);
-	}
-
-	if (m_bIsVersbose)
-		return;
-
-	*outputLogStream << GetLocalTime() << " [" << pluginName << "] " << strMessage << "\n";
-	outputLogStream->flush();
-}
-
-void OutputLogger::LogHead(std::string strHeadTitle, fmt::text_style color) 
-{
-	const auto message = fmt::format("\n(┬) {}", strHeadTitle);
-
-	if (m_bIsVersbose || m_bIsConsoleEnabled)
-	{
-		fmt::print(color, "\n(┬) ");
-		fmt::print("{}\n", strHeadTitle);
-	}
-
-	if (m_bIsVersbose)
-		return;
-
-	*outputLogStream << message << "\n";
-	outputLogStream->flush();
-}
-
-void OutputLogger::LogItem(std::string pluginName, std::string strMessage, bool end, fmt::text_style color) 
-{
-	std::string connectorPiece = end ? "╰" : "├";
-	const auto message = fmt::format(" {}─({}) {}", connectorPiece, pluginName, strMessage);
-	
-	if (m_bIsVersbose || m_bIsConsoleEnabled)
-	{
-		fmt::print(color, " {}─({}) ", connectorPiece, pluginName);
-		fmt::print("{}\n", strMessage);
-	}
-
-	if (m_bIsVersbose)
-		return;
-
-	*outputLogStream << message << "\n";
-	outputLogStream->flush();
+	std::string message = fmt::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", GetLocalTime(), toUpper(pluginName), strMessage);
+	std::cout << message;
 }

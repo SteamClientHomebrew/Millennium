@@ -33,17 +33,19 @@
 #include "log.h"
 #include <fmt/core.h>
 #include <iostream>
+#include "fvisible.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #endif
+#include <env.h>
 
 namespace FileSystem = std::filesystem;
 
 namespace SystemIO {
 
-    std::filesystem::path GetSteamPath()
+    MILLENNIUM std::filesystem::path GetSteamPath()
     {
         #ifdef _WIN32
         {
@@ -68,20 +70,16 @@ namespace SystemIO {
         #endif
     }
 
-    std::filesystem::path GetInstallPath()
+    MILLENNIUM std::filesystem::path GetInstallPath()
     {
-        #ifdef _WIN32
-        {
+        #if defined(__linux__)
+            return GetEnv("MILLENNIUM__CONFIG_PATH");
+        #elif defined(_WIN32)
             return GetSteamPath();
-        }
-        #elif __linux__
-        {
-            return fmt::format("{}/.millennium", std::getenv("HOME"));
-        }
         #endif
     }
 
-    nlohmann::json ReadJsonSync(const std::string& filename, bool* success)
+    MILLENNIUM nlohmann::json ReadJsonSync(const std::string& filename, bool* success)
     {
         std::ifstream outputLogStream(filename);
 
@@ -115,7 +113,7 @@ namespace SystemIO {
         }
     }
 
-    std::string ReadFileSync(const std::string& filename)
+    MILLENNIUM std::string ReadFileSync(const std::string& filename)
     {
         std::ifstream outputLogStream(filename);
 
@@ -129,8 +127,7 @@ namespace SystemIO {
         return fileContent;
     }
 
-    
-    std::vector<char> ReadFileBytesSync(const std::string& filePath) 
+    MILLENNIUM std::vector<char> ReadFileBytesSync(const std::string& filePath) 
     {
         std::ifstream file(filePath, std::ios::binary | std::ios::ate);
         if (!file) 
@@ -150,7 +147,7 @@ namespace SystemIO {
         return buffer;
     }
 
-    void WriteFileSync(const std::filesystem::path& filePath, std::string content)
+    MILLENNIUM void WriteFileSync(const std::filesystem::path& filePath, std::string content)
     {
         std::ofstream outFile(filePath);
 
@@ -161,7 +158,7 @@ namespace SystemIO {
         }
     }
 
-    void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
+    MILLENNIUM void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
     {
         Logger.Log(fmt::format("writing file to: {}", filePath.string()));
 

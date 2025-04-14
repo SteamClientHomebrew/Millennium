@@ -11,6 +11,14 @@ import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
 import { ShowUpdaterModal } from './custom_components/UpdaterModal';
 import { ShowWelcomeModal } from './custom_components/modals/WelcomeModal';
 
+const DEFAULT_THEME_NAME = '__default__';
+
+const ChangeTheme = callable<[{ theme_name: string }]>('cfg.change_theme');
+const FindAllThemes = callable<[], string>('find_all_themes');
+const FindAllPlugins = callable<[], string>('find_all_plugins');
+const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('update_plugin_status');
+const GetRootColors = callable<[], string>('cfg.get_colors');
+
 const PatchMissedDocuments = () => {
 	// @ts-ignore
 	g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
@@ -60,7 +68,7 @@ const windowCreated = (windowContext: any): void => {
 	PatchDocumentContext(windowContext);
 };
 
-const InitializePatcher = (startTime: number, result: SettingsProps) => {
+const InitializePatcher = async (startTime: number, result: SettingsProps) => {
 	Logger.Log(`Received props in [${(performance.now() - startTime).toFixed(3)}ms]`, result);
 
 	const theme: ThemeItem = result.active_theme;
@@ -73,6 +81,11 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
 
 	if (themeV1?.GlobalsColors) {
 		DispatchGlobalColors(themeV1?.GlobalsColors);
+	}
+
+	if (theme?.data?.hasOwnProperty('RootColors')) {
+		Logger.Log('RootColors found in theme, dispatching...');
+		pluginSelf.RootColors = await GetRootColors();
 	}
 
 	Object.assign(pluginSelf, {
@@ -92,19 +105,6 @@ const InitializePatcher = (startTime: number, result: SettingsProps) => {
 	PatchMissedDocuments();
 };
 
-const DEFAULT_THEME_NAME = '__default__';
-
-// Duplicating from tabs/Themes.tsx... import them later
-const ChangeTheme = callable<[{ theme_name: string }]>('cfg.change_theme');
-const FindAllThemes = callable<[], string>('find_all_themes');
-// Duplicating from tabs/Plugins.tsx... import them later
-const FindAllPlugins = callable<[], string>('find_all_plugins');
-const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('update_plugin_status');
-
-function RestartJSContext() {
-	SteamClient.Browser.RestartJSContext();
-}
-
 /**
  * steam://millennium URL support.
  *
@@ -116,7 +116,7 @@ function RestartJSContext() {
  * "steam://millennium/plugins/disable/steam-db" -> Disable the SteamDB plugin using its internal name
  * "steam://millennium/plugins/disable" -> Disable all plugins
  */
-async function OnRunSteamURL(_: number, url: string) {
+const OnRunSteamURL = async (_: number, url: string) => {
 	const [tab, action, item] = url.split('/').slice(3) as [SettingsTabs, string, string];
 	Logger.Log('OnRunSteamURL: Executing %o', url);
 
@@ -162,7 +162,7 @@ async function OnRunSteamURL(_: number, url: string) {
 		}
 
 		UpdatePluginStatus({ pluginJson: JSON.stringify(plugins) });
-		RestartJSContext();
+		SteamClient.Browser.RestartJSContext();
 	}
 
 	if (tab === 'themes') {
@@ -171,15 +171,15 @@ async function OnRunSteamURL(_: number, url: string) {
 		const theme_name = !!theme && action === 'enable' ? theme.native : DEFAULT_THEME_NAME;
 
 		ChangeTheme({ theme_name });
-		RestartJSContext();
+		SteamClient.Browser.RestartJSContext();
 	}
-}
+};
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
 	const startTime = performance.now();
 	const settings: SettingsProps = await Settings.FetchAllSettings();
-	InitializePatcher(startTime, settings);
+	await InitializePatcher(startTime, settings);
 	Millennium.AddWindowCreateHook(windowCreated);
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
 }

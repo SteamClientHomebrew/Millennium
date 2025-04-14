@@ -108,6 +108,7 @@
 		"xutility": "cpp",
 		"resumable": "cpp",
 		"queue": "cpp",
-		"*.in": "cpp"
+		"*.in": "cpp",
+		"stack": "cpp"
 	}
 }

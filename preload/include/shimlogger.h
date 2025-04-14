@@ -31,25 +31,38 @@
 #pragma once
 #include <string>
 #include <fmt/core.h>
+#include <cmd.h>
+
+static bool ShouldLog()
+{
+    static StartupParameters startupParams;
+    return startupParams.HasArgument("-dev");
+}
 
 inline void Print(const std::string& msg) 
 {
-    fmt::print("++ {}\n", msg);
+    if (!ShouldLog()) return;
+    std::cout << "++ " << msg << std::endl;
 }
 
 template <typename... Args>
 inline void Print(const std::string& msg, Args&&... args) 
-{
-    fmt::print("++ " + msg + '\n', std::forward<Args>(args)...);
+{    
+    if (!ShouldLog()) return;
+    std::string message = fmt::format(msg, std::forward<Args>(args)...);
+    std::cout << "++ " << message << std::endl;
 }
 
 inline void Error(const std::string& msg) 
-{
-    fmt::print("!! {}\n", msg);
+{    
+    if (!ShouldLog()) return;
+    std::cout << "!! " << msg << std::endl;
 }
 
 template <typename... Args>
 inline void Error(const std::string& msg, Args&&... args) 
-{
-    fmt::print("!! " + msg + '\n', std::forward<Args>(args)...);
+{    
+    if (!ShouldLog()) return;
+    std::string message = fmt::format(msg, std::forward<Args>(args)...);
+    std::cout << "!! " << message << std::endl;
 }

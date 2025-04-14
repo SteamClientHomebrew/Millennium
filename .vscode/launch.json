@@ -1,63 +1,57 @@
 {
-    "configurations": [
-        {
-            "type": "cppdbg",
-            "request": "launch",
-            "name": "Debug Millennium (Windows)",
-            "program": "C:\\Program Files (x86)\\Steam\\steam.exe",
-            "args": [
-                "-dev",
-                "-skipinitialbootstrap",
-                "-nobootstrapperupdate",
-                "-noverifyfiles"
-            ],
-            "cwd": "C:\\Program Files (x86)\\Steam\\",
-            "stopAtEntry": false,
-            "setupCommands": [
-                {
-                    "description": "Enable break on all exceptions",
-                    "text": "catch throw",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ],
-            "environment": [],
-            "externalConsole": true,
-            "console": "integratedTerminal",
-            "preLaunchTask": "CMake: build"
-        },
-        {
-            "type": "cppdbg",
-            "request": "launch",
-            "name": "Debug Millennium (Linux)",
-            "program": "/home/shadow/.steam/steam/ubuntu12_32/steam",
-            "cwd": "/home/shadow/.steam/steam",
-            "stopAtEntry": false,
-            "setupCommands": [
-                {
-                    "description": "Enable break on all exceptions",
-                    "text": "catch throw",
-                    "ignoreFailures": true
-                },
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ],
-            "environment": [
-                {
-                    "name": "LD_LIBRARY_PATH",
-                    "value": "/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/pinned_libs_32:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/pinned_libs_64:/usr/lib32:/usr/lib/libfakeroot:/usr/lib:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib/i386-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib/i386-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib/x86_64-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib/x86_64-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib"
-                }
-            ],
-            "externalConsole": false,
-            "console": "integratedTerminal",
-            "preLaunchTask": "CMake: build"
-        }
-    ]
+	"configurations": [
+		{
+			"type": "cppdbg",
+			"request": "launch",
+			"name": "Debug Millennium (Windows)",
+			"program": "C:\\Program Files (x86)\\Steam\\steam.exe",
+			"args": ["-dev", "-skipinitialbootstrap", "-nobootstrapperupdate", "-noverifyfiles"],
+			"cwd": "C:\\Program Files (x86)\\Steam\\",
+			"stopAtEntry": false,
+			"setupCommands": [
+				{
+					"description": "Enable break on all exceptions",
+					"text": "catch throw",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			],
+			"environment": [],
+			"externalConsole": false,
+			"preLaunchTask": "CMake: build"
+		},
+		{
+			"type": "cppdbg",
+			"request": "launch",
+			"name": "Debug Millennium (Linux)",
+			"program": "/home/shadow/.steam/steam/ubuntu12_32/steam",
+			"cwd": "/home/shadow/.steam/steam",
+			"stopAtEntry": false,
+			"setupCommands": [
+				{
+					"description": "Enable break on all exceptions",
+					"text": "catch throw",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			],
+			"environment": [
+				{
+					"name": "LD_LIBRARY_PATH",
+					"value": "/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/pinned_libs_32:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/pinned_libs_64:/usr/lib32:/usr/lib/libfakeroot:/usr/lib:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib/i386-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib/i386-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib/x86_64-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib/x86_64-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib"
+				}
+			],
+			"externalConsole": false,
+			"console": "integratedTerminal",
+			"preLaunchTask": "CMake: build"
+		}
+	]
 }

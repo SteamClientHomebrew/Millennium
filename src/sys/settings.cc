@@ -39,10 +39,11 @@
 #include <windows.h>
 #endif
 #include <env.h>
+#include "fvisible.h"
 
 namespace FileSystem = std::filesystem;
 
-SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::INIStructure())
+MILLENNIUM SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::INIStructure())
 {
     const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
 
@@ -69,7 +70,7 @@ SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::I
  * @brief Set a setting in the settings store.
  * The setting key will be placed in the `Settings` section of the INI file.
  */
-void SettingsStore::SetSetting(std::string key, std::string settingsData)
+MILLENNIUM void SettingsStore::SetSetting(std::string key, std::string settingsData)
 {
     this->ini["Settings"][key] = settingsData;
     this->file.write(ini);
@@ -79,7 +80,7 @@ void SettingsStore::SetSetting(std::string key, std::string settingsData)
  * @brief Get a setting from the settings store.
  * The setting key will be retrieved from the `Settings` section of the INI file.
  */
-std::string SettingsStore::GetSetting(std::string key, std::string defaultValue)
+MILLENNIUM std::string SettingsStore::GetSetting(std::string key, std::string defaultValue)
 {
     if (!this->ini["Settings"].has(key))
     {
@@ -94,7 +95,7 @@ std::string SettingsStore::GetSetting(std::string key, std::string defaultValue)
  * INI files don't support arrays, so we need to convert the string to a vector.
  * We use a pipe delimiter to separate the plugins.
  */
-std::vector<std::string> SettingsStore::ParsePluginList()
+MILLENNIUM std::vector<std::string> SettingsStore::ParsePluginList()
 {
     std::vector<std::string> enabledPlugins;
     std::string token;
@@ -113,7 +114,7 @@ std::vector<std::string> SettingsStore::ParsePluginList()
  * INI files don't support arrays, so we need to convert the vector to a string.
  * We use a pipe delimiter to separate the plugins.
  */
-std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
+MILLENNIUM std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
 {
     std::string strEnabledPlugins;
     for (const auto& plugin : enabledPlugins)
@@ -127,7 +128,7 @@ std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
 /** 
  * @brief Initialize and optionally fix the settings store.
  */
-int SettingsStore::InitializeSettingsStore()
+MILLENNIUM int SettingsStore::InitializeSettingsStore()
 {
     auto enabledPlugins = this->ParsePluginList();
 
@@ -150,7 +151,7 @@ int SettingsStore::InitializeSettingsStore()
  * @param pluginName The name of the plugin.
  * @param enabled The status of the plugin.
  */
-bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
+MILLENNIUM bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
 {
     Logger.Log("Opting to {} {}", enabled ? "enable" : "disable", pluginName);
     auto SettingsStore = this->ParsePluginList();
@@ -180,7 +181,7 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
  * @brief Check if a plugin is enabled.
  * @param plugin_name The name of the plugin.
  */
-bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
+MILLENNIUM bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
 {
     for (const auto& plugin : this->ParsePluginList())
     {
@@ -198,7 +199,7 @@ bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
  * @param json The JSON object to lint.
  * @param pluginName The name of the plugin.
  */
-void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
+MILLENNIUM void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
 {
     /** Find a total list of all plugin.json keys in `./plugin-schema.json` */
     const std::map<std::string, bool> pluginFields = {
@@ -232,7 +233,7 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
  * @param entry The directory entry for the plugin.
  * @return SettingsStore::PluginTypeSchema The plugin data.
  */
-SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry)
+MILLENNIUM SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry)
 {
     SettingsStore::PluginTypeSchema plugin;
     const std::string pluginDirName = entry.path().filename().string();
@@ -256,7 +257,7 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
  * 
  * @param plugins The list of plugins to insert the Millennium modules into.
  */
-void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins)
+MILLENNIUM void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins)
 {
     const std::filesystem::directory_entry entry(std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")));
     const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
@@ -295,7 +296,7 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
     }
 }
 
-std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
+MILLENNIUM std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
     std::vector<SettingsStore::PluginTypeSchema> plugins;
     const auto plugin_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
@@ -361,7 +362,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
  * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false. 
  * Not all enabled plugins have backends. 
  */
-std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
+MILLENNIUM std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
 {
     const auto allPlugins = this->ParseAllPlugins();
     std::vector<SettingsStore::PluginTypeSchema> enabledBackends;

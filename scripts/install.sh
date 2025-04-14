@@ -92,6 +92,9 @@ log "\nTotal Install Size: $folder_size"
 
 cp -r "$extract_path"/* / || true
 
+chmod +x /usr/bin/millennium
+chown -R "$SUDO_USER:$SUDO_USER" /home/"$SUDO_USER"/.local/share/millennium
+
 log "cleaning up packages..."
 rm -rf "$millennium_install"
 log "done."

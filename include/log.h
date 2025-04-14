@@ -54,15 +54,8 @@
 class OutputLogger
 {
 private:
-#ifdef _WIN32
-    bool m_bIsVersbose = false;
-#elif __linux__
-    bool m_bIsVersbose = true;
-#endif
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
-    std::shared_ptr<std::ostream> teeStreamPtr;
-    std::shared_ptr<std::ofstream> outputLogStream;
     std::string GetLocalTime();
 
 public:
@@ -72,7 +65,6 @@ public:
     OutputLogger &operator=(const OutputLogger &) = delete;
 
     OutputLogger();
-    ~OutputLogger();
 
     void LogPluginMessage(std::string pname, std::string val);
 
@@ -85,8 +77,8 @@ public:
     template <typename... Args>
     void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args &&...args)
     {
-        this->PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
-        this->PrintMessage(" TRACE ", fmt::format("{} @ {}:{}", function, file, line), COL_RED);
+        PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
+        PrintMessage(" TRACE ", fmt::format("{} @ {}:{}", function, file, line), COL_RED);
     }
 
     template <typename... Args>
@@ -94,9 +86,6 @@ public:
     {
         PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
     }
-
-    void LogHead(std::string val, fmt::text_style color = fg(fmt::color::magenta));
-    void LogItem(std::string pluginName, std::string data, bool end = false, fmt::text_style color = fg(fmt::color::magenta));
 };
 
 extern OutputLogger Logger;

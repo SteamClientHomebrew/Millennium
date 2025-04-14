@@ -87,20 +87,52 @@ def parse_color(color):
 # Lexically analyze the CSS properties of a style rule and construct a map of property names to their respective comments
 def lexically_analyze(rule: cssutils.css.CSSStyleRule):
     propertyMap = {}
-    for item in rule.style.cssText.split(";"):
-        if "/*" in item and "*/" in item:
-            comment = item[item.index("/*"):item.index("*/")+2]
-            item = item.replace(comment, "").strip()
-            
-            name, description = (None, None)
-            for line in comment.split("\n"):
-                if "@name" in line: name = line.split("@name")[1].strip()
-                if "@description" in line: description = line.split("@description")[1].strip()
-        else:
-            item = item.strip().split(":")[0]
-            name, description = (None, None)
-        
-        propertyMap[item] = (name, description)
+    
+    # Get the raw CSS text to extract comments properly
+    rule_text = rule.cssText.decode('utf-8') if hasattr(rule.cssText, 'decode') else rule.cssText
+    
+    # Extract all comments from the rule
+    comments = []
+    current_comment = None
+    lines = rule_text.split('\n')
+    
+    for line in lines:
+        line = line.strip()
+        if '/*' in line:
+            current_comment = line[line.index('/*'):]
+            if '*/' in current_comment:
+                current_comment = current_comment[:current_comment.index('*/')+2]
+                comments.append(current_comment)
+                current_comment = None
+        elif current_comment is not None and '*/' in line:
+            current_comment += '\n' + line[:line.index('*/')+2]
+            comments.append(current_comment)
+            current_comment = None
+        elif current_comment is not None:
+            current_comment += '\n' + line
+    
+    # Process properties and associate them with comments
+    properties = []
+    for prop in rule.style:
+        properties.append(prop.name)
+    
+    # Associate comments with properties
+    if len(comments) > 0 and len(properties) > 0:
+        # If we have comments, try to associate them with properties
+        for i, prop in enumerate(properties):
+            if i < len(comments):
+                comment = comments[i]
+                name, description = None, None
+                
+                for line in comment.split('\n'):
+                    if '@name' in line: 
+                        name = line.split('@name')[1].strip()
+                    if '@description' in line: 
+                        description = line.split('@description')[1].strip()
+                
+                propertyMap[prop] = (name, description)
+            else:
+                propertyMap[prop] = (None, None)
     
     return propertyMap
 
