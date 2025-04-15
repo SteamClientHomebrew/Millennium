@@ -220,7 +220,7 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 							<div style={updateLabelStyles}>
 								<div
 									className="update-item-type"
-									style={{ color: 'white', fontSize: '12px', padding: '4px', background: '#007eff', borderRadius: '6px' }}
+									style={{ color: 'white', fontSize: '12px', padding: '4px 12px', background: '#007eff', borderRadius: '6px' }}
 								>
 									Theme
 								</div>
@@ -270,7 +270,13 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 									<div style={updateLabelStyles}>
 										<div
 											className="update-item-type"
-											style={{ color: 'white', fontSize: '12px', padding: '4px', background: '#564688', borderRadius: '6px' }}
+											style={{
+												color: 'white',
+												fontSize: '12px',
+												padding: '4px 12px',
+												background: '#564688',
+												borderRadius: '6px',
+											}}
 										>
 											Plugin
 										</div>
