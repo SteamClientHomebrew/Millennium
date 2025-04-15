@@ -14,7 +14,7 @@ import { settingsClasses } from '../classes';
 import * as CustomIcons from './CustomIcons';
 import { PluginViewModal } from '../tabs/Plugins';
 import { ThemeViewModal } from '../tabs/Themes';
-import { UpdatesViewModal } from '../tabs/Updates';
+import { RenderUpdatesSettingsTab, UpdatesViewModal } from '../tabs/Updates';
 import { locale } from '../locales';
 import { BugReportViewModal } from '../tabs/BugReport';
 import { LogsViewModal } from '../tabs/Logs';
@@ -47,7 +47,7 @@ export class MillenniumSettings extends React.Component {
 			},
 			{
 				visible: true,
-				title: locale.settingsPanelUpdates,
+				title: <RenderUpdatesSettingsTab />,
 				icon: <IconsModule.Update />,
 				content: (
 					<DialogBody className={Classes.SettingsDialogBodyFade}>

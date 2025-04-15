@@ -158,6 +158,12 @@ export interface SettingsProps {
 	wantsUpdates: boolean;
 	wantsNotify: boolean;
 	enabledPlugins: string;
+	wantsThemeAndPluginNotify: boolean;
+
+	updates: {
+		themes?: UpdateItem[];
+		plugins?: any[];
+	};
 }
 
 export interface ColorProp {

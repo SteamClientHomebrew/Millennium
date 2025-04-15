@@ -19,17 +19,11 @@ from util.theme_installer import *
 
 from config.ini           import *
 
-# This updater module is responsible for updating themes.
-# It DOES NOT automatically do so, it is interfaced in the front-end.
-from updater.theme_updater import ThemeUpdater
-updater = ThemeUpdater()
-
-from updater.plugin_updater import PluginUpdater
-plugin_updater = PluginUpdater()
+from updater.updater import Updater
+updater = Updater()
 
 def get_load_config():
     config = cfg.get_config()
-
     enabled_plugins = []
 
     for plugin in json.loads(find_all_plugins()):
@@ -46,12 +40,14 @@ def get_load_config():
         "installPath": Millennium.get_install_path(),
 
         "useInterface": True if IniConfig.get_config('Settings', 'useInterface', fallback='yes') == "yes" else False,
+        "wantsThemeAndPluginNotify": True if IniConfig.get_config('Settings', 'updateNotifications', fallback='yes') == "yes" else False,
         "millenniumVersion": Millennium.version(),
 
         "wantsUpdates": MillenniumUpdater.user_wants_updates().value,
         "wantsNotify": MillenniumUpdater.user_wants_update_notify().value,
         
-        "enabledPlugins": enabled_plugins
+        "enabledPlugins": enabled_plugins,
+        "updates": updater.check_for_updates(),
     })
 
     
@@ -123,6 +119,7 @@ class Plugin:
 
 
     def _load(self):     
+
         # cfg.set_theme_cb()
         self.StartWebsocket()
 

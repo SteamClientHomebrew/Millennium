@@ -10,8 +10,9 @@ import {
 	callable,
 	ConfirmModal,
 	showModal,
+	findClassModule,
 } from '@steambrew/client';
-import { locale } from '../locales';
+import { formatString, locale } from '../locales';
 import { ThemeItem } from '../types';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
@@ -30,6 +31,17 @@ interface UpdateItemType {
 	native: string; // Folder name in skins folder.
 	name: string; // Common display name
 }
+
+const updateListeners = new Set<() => void>();
+
+const RegisterUpdateListener = (callback: () => void) => {
+	updateListeners.add(callback);
+	return () => updateListeners.delete(callback);
+};
+
+export const NotifyUpdateListeners = () => {
+	updateListeners.forEach((callback) => callback());
+};
 
 const UpToDateModal: React.FC = () => {
 	return (
@@ -50,6 +62,14 @@ const UpToDateModal: React.FC = () => {
 			</div>
 		</div>
 	);
+};
+
+const HasAnyPluginUpdates = (pluginUpdates: any) => {
+	return pluginUpdates?.some((update: any) => update?.hasUpdate);
+};
+
+const HasAnyUpdates = (updates: any, pluginUpdates: any) => {
+	return updates.length > 0 || HasAnyPluginUpdates(pluginUpdates);
 };
 
 const timeAgo = (dateString: string) => {
@@ -78,8 +98,10 @@ const timeAgo = (dateString: string) => {
 	return 'just now';
 };
 
-const UpdateTheme = callable<[{ native: string }], boolean>('updater.update_theme');
-const UpdatePlugin = callable<[{ id: string; name: string }], boolean>('plugin_updater.download_plugin_update');
+const UpdateTheme = callable<[{ native: string }], boolean>('updater.download_theme_update');
+const UpdatePlugin = callable<[{ id: string; name: string }], boolean>('updater.download_plugin_update');
+
+const ResyncUpdates = callable<[], string>('updater.resync_updates');
 const FindAllPlugins = callable<[], string>('find_all_plugins');
 
 const ShowMessageBox = (message: string, title?: string) => {
@@ -103,16 +125,6 @@ const ShowMessageBox = (message: string, title?: string) => {
 	});
 };
 
-interface FormatString {
-	(template: string, ...args: string[]): string;
-}
-
-const formatString: FormatString = (template, ...args) => {
-	return template.replace(/{(\d+)}/g, (match, index) => {
-		return index < args.length ? args[index] : match; // Replace {index} with the corresponding argument or leave it unchanged
-	});
-};
-
 const MakeAnchorExternalLink = ({ children, ...props }: { children: any } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
 	<a {...props} href="#" onClick={() => SteamClient.System.OpenInSystemBrowser(props.href)}>
 		{children}
@@ -129,7 +141,16 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 			`https://github.com/${props?.pluginInfo?.repoOwner}/${props?.pluginInfo?.repoName}/tree/${props?.commit}`,
 		);
 
+	const IsUpdating = () => {
+		/** Check if any theme or plugin is currently being updated. */
+		return updatingThemes.some((updating: any) => updating) || updatingPlugins.some((updating: any) => updating);
+	};
+
 	const StartThemeUpdate = async (updateObject: UpdateItemType, index: number) => {
+		if (IsUpdating()) {
+			return;
+		}
+
 		setUpdatingThemes({ ...updatingThemes, [index]: true });
 
 		if (await UpdateTheme({ native: updateObject.native })) {
@@ -154,24 +175,19 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 			// @ts-ignore
 			ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), LocalizationManager.LocalizeString('#Generic_Error'));
 		}
+
+		setUpdatingThemes({ ...updatingThemes, [index]: false });
 	};
 
 	const StartPluginUpdate = async (updateObject: any, index: number) => {
+		if (IsUpdating()) {
+			return;
+		}
 		/** Check if the plugin is currently enabled, if so reload */
-		const plugin = JSON.parse(await FindAllPlugins()).find(
-			(plugin: any) => plugin.data.common_name === updateObject?.pluginInfo?.pluginJson?.common_name,
-		);
+		const plugin = JSON.parse(await FindAllPlugins()).find((plugin: any) => plugin.data.name === updateObject?.pluginInfo?.pluginJson?.name);
 
 		if (plugin?.enabled) {
-			await ShowMessageBox(
-				formatString(
-					"Millennium can't update \"{0}\" while it's running, you'll need to disable it first.",
-					updateObject?.pluginInfo?.pluginJson?.common_name,
-				),
-				// @ts-ignore
-				'Hold up!',
-			);
-
+			await ShowMessageBox(formatString(locale.updateFailedPluginRunning, updateObject?.pluginInfo?.pluginJson?.common_name), locale.HoldOn);
 			return;
 		}
 
@@ -222,7 +238,7 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 								</div>
 							</div>
 						}
-						bottomSeparator={pluginUpdates.length > 0 ? 'standard' : updates.length - 1 === index ? 'none' : 'standard'}
+						bottomSeparator={HasAnyPluginUpdates(pluginUpdates) ? 'standard' : updates.length - 1 === index ? 'none' : 'standard'}
 					>
 						<div style={fieldButtonsStyles}>
 							<DialogButton onClick={() => viewMoreClick(update)} className="_3epr8QYWw_FqFgMx38YEEm">
@@ -310,40 +326,39 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 	);
 };
 
-const GetUpdateList = callable<[{ force: boolean }], any>('updater.get_update_list');
-const GetPluginUpdates = callable<[{ force: boolean }], any>('plugin_updater.check_for_updates');
-
-const HasAnyUpdates = (updates: any, pluginUpdates: any) => {
-	return updates.length > 0 || pluginUpdates?.some((update: any) => update?.hasUpdate);
-};
-
 const UpdatesViewModal: React.FC = () => {
-	const [updates, setUpdates] = useState<Array<UpdateItemType>>(null);
+	const [updates, setThemeUpdates] = useState<Array<UpdateItemType>>(null);
 	const [pluginUpdates, setPluginUpdates] = useState<any>(null);
 	const [hasReceivedUpdates, setHasReceivedUpdates] = useState<boolean>(false);
 
-	const FetchAvailableUpdates = async (force: boolean = false): Promise<boolean> =>
-		new Promise(async (resolve, reject) => {
-			try {
-				const updateList = JSON.parse(await GetUpdateList({ force: force }));
-				const pluginUpdates = JSON.parse(await GetPluginUpdates({ force: force }));
+	const ForceFetchUpdates = async () => {
+		const updates = JSON.parse(await ResyncUpdates());
 
-				console.log(`Plugin updates:`, pluginUpdates);
-				console.log(`Theme updates:`, updateList);
+		pluginSelf.updates.themes = updates.themes;
+		pluginSelf.updates.plugins = updates.plugins;
 
-				pluginSelf.connectionFailed = false;
+		NotifyUpdateListeners();
+	};
 
-				setUpdates(updateList.updates);
-				setPluginUpdates(pluginUpdates);
-				setHasReceivedUpdates(true);
-				resolve(true);
-			} catch (exception) {
-				console.error('Failed to fetch updates');
-				pluginSelf.connectionFailed = true;
-				reject(false);
+	const FetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
+		try {
+			if (force) {
+				await ForceFetchUpdates();
 			}
-			resolve(true);
-		});
+
+			pluginSelf.connectionFailed = false;
+
+			setThemeUpdates(pluginSelf.updates.themes);
+			setPluginUpdates(pluginSelf.updates.plugins);
+			setHasReceivedUpdates(true);
+
+			return true;
+		} catch (exception) {
+			console.error('Failed to fetch updates');
+			pluginSelf.connectionFailed = true;
+			return false;
+		}
+	};
 
 	useEffect(() => {
 		FetchAvailableUpdates();
@@ -385,4 +400,65 @@ const UpdatesViewModal: React.FC = () => {
 	);
 };
 
-export { UpdatesViewModal };
+const RenderUpdatesSettingsTab = () => {
+	const [updateCount, setUpdateCount] = useState(0);
+
+	useEffect(() => {
+		const unregister = RegisterUpdateListener(() => {
+			setUpdateCount(GetUpdateCount());
+		});
+
+		setUpdateCount(GetUpdateCount());
+		return () => unregister();
+	}, []);
+
+	const sidebarTitleClass = (findClassModule((m) => m.ReturnToPageListButton && m.PageListItem_Title && m.HidePageListButton) as any)
+		?.PageListItem_Title;
+
+	/** Styles to display the updates count in the sidebar */
+	const style = `
+	.PageListColumn .sideBarUpdatesItem {
+		display: flex;
+		gap: 10px;
+		justify-content: space-between;
+		align-items: center;
+		overflow: visible !important;
+	}
+
+	.${sidebarTitleClass} {
+		overflow: visible !important;
+		width: calc(100% - 32px);
+	}
+
+	.PageListColumn .FriendMessageCount {
+		display: flex !important;
+		margin-top: 0px !important;
+		position: initial !important;
+
+		line-height: 20px;
+		height: fit-content !important;
+		width: fit-content !important;
+	}`;
+
+	return (
+		<div className="sideBarUpdatesItem unreadFriend">
+			<style>{style}</style>
+
+			{locale.settingsPanelUpdates}
+			{updateCount > 0 && (
+				<div className="FriendMessageCount" style={{ display: 'none' }}>
+					{updateCount}
+				</div>
+			)}
+		</div>
+	);
+};
+
+const GetUpdateCount = () => {
+	const updates = pluginSelf.updates.themes;
+	const pluginUpdates = pluginSelf.updates.plugins;
+
+	return updates.length + pluginUpdates.filter((update: any) => update?.hasUpdate).length;
+};
+
+export { UpdatesViewModal, RenderUpdatesSettingsTab, GetUpdateCount };

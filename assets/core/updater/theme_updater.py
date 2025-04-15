@@ -1,3 +1,4 @@
+from pathlib import Path
 import Millennium  # type: ignore
 import os, json, shutil, time, requests, arrow, platform
 from datetime import datetime
@@ -16,31 +17,18 @@ else:
 # This module is responsible for updating themes. It does not automatically do so, it is interfaced in the front-end.
 class ThemeUpdater:
 
-    def get_update_list(self, force: bool = False):
-        if force:
-            self.re_initialize()
-        if not self.has_cache:
-            self.process_updates()
-            self.has_cache = True
-        return json.dumps({"updates": self.update_list, "notifications": cfg.get_config()["updateNotifications"]})
-
-
-    def set_update_notifs_status(self, status: bool):
-        cfg.set_config_keypair("updateNotifications", status)
-        return True
-
-
     def query_themes(self):
         themes = json.loads(find_all_themes())
         needs_copy = False
         update_queue = []
+        update_query = []
 
         for theme in themes:
             path = os.path.join(Millennium.steam_path(), "steamui", "skins", theme["native"])
             try:
                 # Use the platform-specific Git repository class
                 repo = GitRepo(path)
-                self.update_query.append((theme, repo))
+                update_query.append((theme, repo))
             except (pygit2.GitError if platform.system() == "Windows" else Exception):
                 if "github" in theme["data"]:
                     needs_copy = True
@@ -64,16 +52,21 @@ class ThemeUpdater:
             if "github" in theme["data"]:
                 self.pull_head(path, theme["data"]["github"])
 
+        return update_query
 
-    def construct_post_body(self):
+    def construct_post_body(self, update_query):
         post_body = []
-        for theme, repo in self.update_query:
-            if "github" in theme.get("data", {}):
-                github_data = theme["data"]["github"]
-                owner = github_data.get("owner")
-                repo = github_data.get("repo_name")
-                if owner and repo:
-                    post_body.append({'owner': owner, 'repo': repo})
+        for theme, repo in update_query:
+            if "github" not in theme.get("data", {}):
+                continue
+
+            github_data = theme["data"]["github"]
+            owner = github_data.get("owner")
+            repo = github_data.get("repo_name")
+
+            if owner and repo:
+                post_body.append({'owner': owner, 'repo': repo})
+
         return post_body
 
 
@@ -89,14 +82,13 @@ class ThemeUpdater:
             logger.log(f"An exception occurred: {e}")
 
 
-    def update_theme(self, native: str) -> bool:
-        logger.log(f"updating theme {native}")
+    def download_theme_update(self, native: str) -> bool:
+
+        logger.log(f"Updating theme {native}")
         try:
-            path = os.path.join(Millennium.steam_path(), "steamui", "skins", native)
-            repo = GitRepo(path)
+            repo = GitRepo(Path(Millennium.steam_path()) / "steamui" / "skins" / native)
             if platform.system() == "Windows":
-                remote_name = 'origin'
-                remote = repo.remotes[remote_name]
+                remote = repo.remotes['origin']
                 # Enable automatic proxy detection
                 remote.fetch(proxy = True)
                 latest_commit = repo.revparse_single('origin/HEAD').id
@@ -105,70 +97,66 @@ class ThemeUpdater:
                 use_system_libs()
                 repo.remotes.origin.pull()
                 unuse_system_libs()
+
         except Exception as e:
             logger.log(f"An exception occurred: {e}")
             return False
-        self.re_initialize()
+
+        logger.log(f"Theme {native} updated successfully.")
         return True
 
 
-    def needs_update(self, remote_commit: str, theme: str, repo) -> bool:
-        if platform.system() == "Windows":
-            local_commit = repo[repo.head.target].id
-        else:
-            local_commit = repo.head.commit.hexsha
-        return str(local_commit) != str(remote_commit)
+    def check_for_update(self, remote_json, theme, repo_name, repo):
+
+        def has_update(remote_commit: str, repo) -> bool:
+            return str(repo[repo.head.target].id if platform.system() == "Windows" else repo.head.commit.hexsha) != str(remote_commit)
+
+        remote = next((item for item in remote_json if item.get("name") == repo_name), None)
+
+        if not remote:
+            return []
+        
+        if not has_update(remote['commit'], repo):
+            return []
+        
+        logger.log(f"Theme {theme['native']} has an update available!")
+
+        return ({
+            'message': remote['message'],
+            'date':    arrow.get(remote['date']).humanize(),
+            'commit':  remote['url'],
+            'native':  theme["native"],
+            'name':    theme["data"].get("name", theme["native"])
+        })
 
 
-    def check_theme(self, theme, repo_name, repo):
-        remote = next((item for item in self.remote_json if item.get("name") == repo_name), None)
-        if remote:
-            if self.needs_update(remote['commit'], theme, repo):
-                self.update_list.append({
-                    'message': remote['message'],
-                    'date': arrow.get(remote['date']).humanize(),
-                    'commit': remote['url'],
-                    'native': theme["native"],
-                    'name': theme["data"].get("name", theme["native"])
-                })
+    def get_request_body(self):
+        update_query = self.query_themes()
+        post_body = self.construct_post_body(update_query)
 
-
-    def re_initialize(self):
-        return self.__init__()
-
-
-    def fetch_updates(self):
-        self.update_list = []
-        self.update_query = []
-        self.query_themes()
-
-        if not self.update_query:
+        if not update_query:
             logger.log("No themes to update!")
-            return
+            return []
 
-        response = requests.post(
-            "https://steambrew.app/api/v2/checkupdates",
-            data=json.dumps(self.construct_post_body()),
-            headers={"Content-Type": "application/json"}
-        )
-        if response.status_code != 200:
-            logger.warn("An error occurred checking for updates!")
-            return
-        return response.json()
+        return (update_query, post_body)
 
 
-    def process_updates(self) -> bool:
-        start_time = time.time()
-        self.remote_json = self.fetch_updates()
-        if self.remote_json:
-            for theme, repo in self.update_query:
-                if "data" in theme and "github" in theme["data"]:
-                    repo_name = theme["data"]["github"].get("repo_name")
-                    if repo_name:
-                        self.check_theme(theme, repo_name, repo)
-            if self.update_list:
-                logger.log(f"found updates for {[theme['native'] for theme in self.update_list]} in {round((time.time() - start_time) * 1000, 4)} ms")
+    def process_updates(self, update_query, remote) -> bool:
+        update_list = []
 
+        if not remote:
+            logger.log("No remote data available")
+            return []
 
-    def __init__(self):
-        self.has_cache = False
+        for theme, repo in update_query:
+
+            if "data" not in theme or "github" not in theme["data"]:
+                continue
+
+            repo_name = theme["data"]["github"].get("repo_name")
+            checked_theme = self.check_for_update(remote, theme, repo_name, repo)
+
+            if repo_name and checked_theme:
+                update_list.append(checked_theme)
+
+        return update_list

@@ -62,3 +62,15 @@ const GetLocalization = async () => {
 
 // setup locales on startup
 GetLocalization();
+
+interface FormatString {
+	(template: string, ...args: string[]): string;
+}
+
+const formatString: FormatString = (template, ...args) => {
+	return template.replace(/{(\d+)}/g, (match, index) => {
+		return index < args.length ? args[index] : match; // Replace {index} with the corresponding argument or leave it unchanged
+	});
+};
+
+export { formatString };

@@ -109,28 +109,5 @@ class PluginUpdater:
             logger.log(f"Failed to update plugin {name}: {e}")
             return False
 
-    def check_for_updates(self, force: bool = False) -> str:
-        """Check for updates for all plugins."""
-        global plugin_updater_cache
-
-        if force:
-            plugin_updater_cache = None
-
-        if plugin_updater_cache:
-            return plugin_updater_cache
-
-        plugin_data = self._get_plugin_data()
-        logger.log(f"Checking for updates for {plugin_data} plugins")
-        
-        try:
-            response = requests.post(
-                "https://steambrew.app/api/v1/plugins/checkupdates",
-                json=plugin_data,
-                headers={"Content-Type": "application/json"}
-            )
-            response.raise_for_status()
-            plugin_updater_cache = response.text
-            return plugin_updater_cache
-        except requests.RequestException as e:
-            print(f"Failed to check for updates: {e}")
-            return "[]"
+    def get_request_body(self):
+        return self._get_plugin_data()
