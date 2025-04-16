@@ -119,15 +119,15 @@ const MakeAnchorExternalLink = ({ children, ...props }: { children: any } & Reac
 	</a>
 );
 
-const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates, fetchUpdates }) => {
+const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates: themeUpdates, pluginUpdates, fetchUpdates }) => {
 	const [updatingThemes, setUpdatingThemes] = useState<boolean[]>([]);
 	const [updatingPlugins, setUpdatingPlugins] = useState<boolean[]>([]);
 
 	const viewMoreClick = (props: UpdateItemType) => SteamClient.System.OpenInSystemBrowser(props?.commit);
 	const pluginViewMoreClick = (props: any) =>
-		SteamClient.System.OpenInSystemBrowser(
-			`https://github.com/${props?.pluginInfo?.repoOwner}/${props?.pluginInfo?.repoName}/tree/${props?.commit}`,
-		);
+		SteamClient.System.OpenInSystemBrowser(`https://github.com/${props?.pluginInfo?.repoOwner}/${props?.pluginInfo?.repoName}/tree/${props?.commit}`);
+
+	const SettingsDialogButtonClass = (findClassModule((m) => m.SettingsDialogSubHeader && m.SettingsDialogBodyText && m.SettingsDialogButton) as any).SettingsDialogButton;
 
 	const IsUpdating = () => {
 		/** Check if any theme or plugin is currently being updated. */
@@ -150,10 +150,7 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 
 			/** Check if the updated theme is currently in use, if so reload */
 			const reload = await ShowMessageBox(
-				formatString(
-					activeTheme?.native === updateObject?.native ? locale.updateSuccessfulRestart : locale.updateSuccessful,
-					updateObject?.name,
-				),
+				formatString(activeTheme?.native === updateObject?.native ? locale.updateSuccessfulRestart : locale.updateSuccessful, updateObject?.name),
 				// @ts-ignore
 				LocalizationManager.LocalizeString('#ImageUpload_SuccessCard'),
 			);
@@ -204,89 +201,77 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 			<SettingsDialogSubHeader>{locale.updatePanelHasUpdates}</SettingsDialogSubHeader>
 			<DialogBodyText className="_3fPiC9QRyT5oJ6xePCVYz8">{locale.updatePanelHasUpdatesSub}</DialogBodyText>
 
-			{updates?.map((update: UpdateItemType, index: number) => (
-				<>
-					<Field
-						key={index}
-						className="MillenniumUpdateField"
-						label={
-							<div className="MillenniumUpdates_Label">
-								<div className="MillenniumUpdates_LabelType" data-type="theme">
-									Theme
-								</div>
-								{update.name}
+			{themeUpdates?.map((update: UpdateItemType, index: number) => (
+				<Field
+					key={index}
+					className="MillenniumUpdateField"
+					label={
+						<div className="MillenniumUpdates_Label">
+							<div className="MillenniumUpdates_LabelType" data-type="theme">
+								Theme
 							</div>
-						}
-						description={
-							<div className="MillenniumUpdates_Description">
-								<div>
-									<b>{locale.updatePanelReleasedTag}</b> {update?.date}
-								</div>
-								<div>
-									<b>{locale.updatePanelReleasePatchNotes}</b>&nbsp;
-									<Markdown options={{ overrides: { a: { component: MakeAnchorExternalLink } } }}>{update?.message}</Markdown>
-								</div>
+							{update.name}
+						</div>
+					}
+					description={
+						<div className="MillenniumUpdates_Description">
+							<div>
+								<b>{locale.updatePanelReleasedTag}</b> {update?.date}
 							</div>
-						}
-					>
-						<DialogButton onClick={() => viewMoreClick(update)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
-							<IconsModule.Hyperlink />
-						</DialogButton>
-						<DialogButton onClick={() => StartThemeUpdate(update, index)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
-							{updatingThemes[index] ? <SteamSpinner background={'transparent'} /> : <IconsModule.Download />}
-						</DialogButton>
-					</Field>
-				</>
+							<div>
+								<b>{locale.updatePanelReleasePatchNotes}</b>&nbsp;
+								<Markdown options={{ overrides: { a: { component: MakeAnchorExternalLink } } }}>{update?.message}</Markdown>
+							</div>
+						</div>
+					}
+				>
+					<DialogButton onClick={() => viewMoreClick(update)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+						<IconsModule.Hyperlink />
+					</DialogButton>
+					<DialogButton onClick={() => StartThemeUpdate(update, index)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+						{updatingThemes[index] ? <SteamSpinner background={'transparent'} /> : <IconsModule.Download />}
+					</DialogButton>
+				</Field>
 			))}
 
-			{pluginUpdates?.map(
-				(update: any, index: number) =>
-					update?.hasUpdate && (
-						<>
-							<Field
-								key={index}
-								label={
-									<div className="MillenniumUpdates_Label">
-										<div className="MillenniumUpdates_LabelType" data-type="plugin">
-											Plugin
-										</div>
-										{update?.pluginInfo?.pluginJson?.common_name}
-									</div>
-								}
-								description={
-									<div className="MillenniumUpdates_Description">
-										<div>
-											<b>{locale.updatePanelReleasedTag}</b> {timeAgo(update?.pluginInfo?.commitDate)}
-										</div>
-										<div>
-											<b>{locale.updatePanelReleasePatchNotes}</b>&nbsp;
-											<Markdown options={{ overrides: { a: { component: MakeAnchorExternalLink } } }}>
-												{update?.commitMessage}
-											</Markdown>
-										</div>
-									</div>
-								}
-							>
-								<DialogButton onClick={() => pluginViewMoreClick(update)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
-									<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
-								</DialogButton>
-								<DialogButton
-									onClick={() => StartPluginUpdate(update, index)}
-									className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm"
-								>
-									{updatingPlugins[index] ? (
-										<SteamSpinner background={'transparent'} />
-									) : (
-										<>
-											{update?.pluginInfo?.downloadSize}
-											<IconsModule.Download />
-										</>
-									)}
-								</DialogButton>
-							</Field>
-						</>
-					),
-			)}
+			{pluginUpdates?.map((update: any, index: number) => (
+				<Field
+					key={index}
+					label={
+						<div className="MillenniumUpdates_Label">
+							<div className="MillenniumUpdates_LabelType" data-type="plugin">
+								Plugin
+							</div>
+							{update?.pluginInfo?.pluginJson?.common_name}
+						</div>
+					}
+					description={
+						<div className="MillenniumUpdates_Description">
+							<div>
+								<b>{locale.updatePanelReleasedTag}</b> {timeAgo(update?.pluginInfo?.commitDate)}
+							</div>
+							<div>
+								<b>{locale.updatePanelReleasePatchNotes}</b>&nbsp;
+								<Markdown options={{ overrides: { a: { component: MakeAnchorExternalLink } } }}>{update?.commitMessage}</Markdown>
+							</div>
+						</div>
+					}
+				>
+					<DialogButton onClick={() => pluginViewMoreClick(update)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+						<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
+					</DialogButton>
+					<DialogButton onClick={() => StartPluginUpdate(update, index)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+						{updatingPlugins[index] ? (
+							<SteamSpinner background={'transparent'} />
+						) : (
+							<>
+								{update?.pluginInfo?.downloadSize}
+								<IconsModule.Download />
+							</>
+						)}
+					</DialogButton>
+				</Field>
+			))}
 		</DialogControlsSection>
 	);
 };
@@ -339,11 +324,11 @@ const UpdatesViewModal: React.FC = () => {
 		return <SteamSpinner background={'transparent'} />;
 	}
 
-	return !HasAnyUpdates(updates, pluginUpdates) ? (
-		<UpToDateModal />
-	) : (
-		<RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} pluginUpdates={pluginUpdates} />
-	);
+	if (!HasAnyUpdates(updates, pluginUpdates)) {
+		return <UpToDateModal />;
+	}
+
+	return <RenderAvailableUpdates updates={updates} fetchUpdates={FetchAvailableUpdates} pluginUpdates={pluginUpdates?.filter((update: any) => update?.hasUpdate)} />;
 };
 
 const RenderUpdatesSettingsTab = () => {
@@ -358,8 +343,7 @@ const RenderUpdatesSettingsTab = () => {
 		return () => unregister();
 	}, []);
 
-	const sidebarTitleClass = (findClassModule((m) => m.ReturnToPageListButton && m.PageListItem_Title && m.HidePageListButton) as any)
-		?.PageListItem_Title;
+	const sidebarTitleClass = (findClassModule((m) => m.ReturnToPageListButton && m.PageListItem_Title && m.HidePageListButton) as any)?.PageListItem_Title;
 
 	/** Styles to display the updates count in the sidebar */
 	const style = `

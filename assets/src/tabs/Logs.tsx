@@ -150,10 +150,6 @@ const RenderLogSelector: React.FC<RenderLogSelectorProps> = ({ logData, setSelec
 	);
 };
 
-const RenderLogHeader = ({ logName }: { logName: string }) => {
-	return <div className="DialogHeader">{logName}</div>;
-};
-
 export const LogsViewModal: React.FC = () => {
 	const [logData, setLogData] = useState<LogData[]>(undefined);
 	const [selectedLog, setSelectedLog] = useState<LogData>(undefined);

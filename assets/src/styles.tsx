@@ -252,6 +252,8 @@ const styles = `
 	font: var(--MillenniumText-BodySmall);
 	border-radius: var(--MillenniumControls-BorderRadius);
 	padding: var(--MillenniumSpacing-Small);
+	width: 45px;
+    text-align: center;
 
 	&[data-type="theme"] {
 		background-color: #007eff;
@@ -348,6 +350,13 @@ const styles = `
 
 .MillenniumSelectUpdate_SecurityWarning {
 	color: var(--MillenniumTextColor-Warning);
+}
+
+button.DialogButton.MillenniumIconButton {
+    width: fit-content;
+    gap: var(--MillenniumSpacing-Normal);
+    display: flex;
+    align-items: center;
 }
 `;
 
