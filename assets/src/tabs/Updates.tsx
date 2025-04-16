@@ -224,6 +224,7 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates: themeUpdates, 
 							</div>
 						</div>
 					}
+					bottomSeparator={pluginUpdates.length > 0 ? 'standard' : index === themeUpdates.length - 1 ? 'none' : 'standard'}
 				>
 					<DialogButton onClick={() => viewMoreClick(update)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
 						<IconsModule.Hyperlink />
@@ -256,6 +257,7 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates: themeUpdates, 
 							</div>
 						</div>
 					}
+					bottomSeparator={index === pluginUpdates.length - 1 ? 'none' : 'standard'}
 				>
 					<DialogButton onClick={() => pluginViewMoreClick(update)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
 						<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
