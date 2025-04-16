@@ -26,13 +26,13 @@ export async function OpenSettingsTab(popup: any, activeTab: SettingsTabs) {
 
 	Logger.Log(`OpenSettingsTab( '${activeTab}' )`);
 
-	// shitty routing replacement
+	/** FIXME: Fix this to use actual router, tried it and it worked but it broke other portions of the UI. */
 	const tabs = (await Millennium.findElement(
 		popup.m_popup.document,
 		`.${pagedSettingsClasses.PagedSettingsDialog_PageListItem}`,
 	)) as NodeListOf<HTMLElement>;
 	for (const tab of tabs) {
-		if (tab.textContent === settingsTabsMap[activeTab]) {
+		if (tab.textContent.includes(settingsTabsMap[activeTab])) {
 			tab.click();
 			break;
 		}

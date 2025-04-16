@@ -10,6 +10,8 @@ import { Settings } from './Settings';
 import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
 import { ShowUpdaterModal } from './custom_components/UpdaterModal';
 import { ShowWelcomeModal } from './custom_components/modals/WelcomeModal';
+import { GetUpdateCount, NotifyUpdateListeners } from './tabs/Updates';
+import { formatString, locale } from './locales';
 
 const DEFAULT_THEME_NAME = '__default__';
 
@@ -68,6 +70,26 @@ const windowCreated = (windowContext: any): void => {
 	PatchDocumentContext(windowContext);
 };
 
+const ProcessUpdates = () => {
+	if (!pluginSelf.wantsMillenniumPluginThemeUpdateNotify) {
+		Logger.Log('User disabled theme & plugin update notifications, skipping...');
+		return;
+	}
+
+	/** Gaben's steam account ID */
+	const steamId = 76561197960287930;
+	const updateCount = GetUpdateCount();
+	const message = formatString(locale.themeAndPluginUpdateNotification, updateCount, updateCount > 1 ? locale.updatePlural : locale.updateSingular);
+
+	setTimeout(() => {
+		SteamClient.ClientNotifications.DisplayClientNotification(
+			1,
+			JSON.stringify({ title: locale.updatePanelHasUpdates, body: message, state: 'online', steamid: steamId }),
+			(_: any) => {},
+		);
+	}, 5000);
+};
+
 const InitializePatcher = async (startTime: number, result: SettingsProps) => {
 	Logger.Log(`Received props in [${(performance.now() - startTime).toFixed(3)}ms]`, result);
 
@@ -99,9 +121,14 @@ const InitializePatcher = async (startTime: number, result: SettingsProps) => {
 		version: result?.millenniumVersion,
 		wantsMillenniumUpdates: result?.wantsUpdates ?? true,
 		wantsMillenniumUpdateNotifications: result?.wantsNotify ?? true,
+		wantsMillenniumPluginThemeUpdateNotify: result?.wantsThemeAndPluginNotify ?? true,
 		enabledPlugins: result?.enabledPlugins ?? [],
+		updates: result?.updates ?? [],
 	});
 
+	NotifyUpdateListeners();
+
+	ProcessUpdates();
 	PatchMissedDocuments();
 };
 

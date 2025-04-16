@@ -1,5 +1,6 @@
 import { Millennium, pluginSelf } from '@steambrew/client';
 import { notificationClasses } from '../classes';
+import { locale } from '../locales';
 
 /**
  * @todo use builtin notification components instead of altering
@@ -24,7 +25,7 @@ const SetClickListener = (doc: Document) => {
 		pluginSelf.OpenOnUpdatesPanel = true;
 
 		/** Open the settings window */
-		window.open('steam://open/settings', '_blank');
+		window.open('steam://millennium/updates', '_blank');
 	});
 };
 
@@ -33,7 +34,7 @@ const PatchNotification = (doc: Document) => {
 		Millennium.findElement(doc, '.' + notificationClasses.GroupMessageTitle).then(async (elements) => {
 			const header = (elements[0] as any).innerText;
 
-			if (header == 'Updates Available') {
+			if (header == locale.updatePanelHasUpdates) {
 				(await Millennium.findElement(doc, '.' + notificationClasses.StandardLogoDimensions))?.[0]?.remove();
 				(await Millennium.findElement(doc, '.' + notificationClasses.AvatarStatus))?.[0]?.remove();
 				(await Millennium.findElement(doc, '.' + notificationClasses.Icon))?.[0]?.remove();

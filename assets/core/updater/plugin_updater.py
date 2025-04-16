@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import requests
 from typing import List, Dict, Optional
 import zipfile
@@ -47,8 +48,17 @@ class PluginUpdater:
                 
         return plugin_data
 
+    def extract_zip(self, zip_path: str, destination: str) -> bool:
+        """Extract a zip file to the specified destination."""
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(destination)
+            return True
+        except zipfile.BadZipFile as e:
+            print(f"Failed to extract {zip_path}: {e}")
+            return False
 
-    def download_and_update_plugin(self, id: str, name: str) -> bool:
+    def download_plugin_update(self, id: str, name: str) -> bool:
         """Download and update a plugin directly into the plugins path."""
         try:
             url = f"https://steambrew.app/api/v1/plugins/download?id={id}&n={name}.zip"
@@ -58,61 +68,46 @@ class PluginUpdater:
             response.raise_for_status()
             logger.log(f"Downloaded plugin {name} from {url}")
 
-            # Ensure plugins directory exists
-            plugins_path = Path(self.plugins_path)
-            plugins_path.mkdir(parents=True, exist_ok=True)
+            # Create temp directory
+            temp_dir = Path(self.plugins_path) / "__tmp_extract"
+            temp_dir.mkdir(parents=True, exist_ok=True)
 
-            # Save zip to a temporary path
-            temp_zip_path = plugins_path / f"{name}.zip"
+            temp_zip_path = temp_dir / f"{name}.zip"
             with open(temp_zip_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-            logger.log(f"Extracting plugin {name} into {plugins_path}")
+            logger.log(f"Extracting plugin {name} into {temp_dir}")
 
-            # Extract directly into plugins_path, overwriting existing files
-            with zipfile.ZipFile(temp_zip_path, 'r') as zip_ref:
-                for member in zip_ref.infolist():
-                    target_path = plugins_path / member.filename
-                    if target_path.exists():
-                        if target_path.is_file():
-                            target_path.unlink()
-                        elif target_path.is_dir():
-                            continue  # Preserve folders, or rmtree if needed
-                    zip_ref.extract(member, plugins_path)
+            # Extract zip
+            if not self.extract_zip(temp_zip_path, temp_dir):
+                shutil.rmtree(temp_dir)
+                return False
 
-            temp_zip_path.unlink()  # Clean up the downloaded zip
-            logger.log(f"Extracted plugin {name} to {plugins_path}")
+            # Detect the extracted folder (assume only one directory is created)
+            extracted_dirs = [d for d in temp_dir.iterdir() if d.is_dir()]
+            if not extracted_dirs:
+                logger.log(f"No directory found in extracted plugin {name}")
+                shutil.rmtree(temp_dir)
+                return False
 
+            extracted_folder = extracted_dirs[0]
+            target_folder = Path(self.plugins_path) / name
+
+            # Replace existing plugin folder
+            if target_folder.exists():
+                shutil.rmtree(target_folder)
+            extracted_folder.rename(target_folder)
+
+            logger.log(f"Plugin {name} installed successfully to {target_folder}")
+
+            # Clean up temp dir
+            shutil.rmtree(temp_dir, ignore_errors=True)
             return True
 
         except Exception as e:
-            print(f"Failed to update plugin {name}: {e}")
+            logger.log(f"Failed to update plugin {name}: {e}")
             return False
 
-
-    def check_for_updates(self, force: bool = False) -> str:
-        """Check for updates for all plugins."""
-        global plugin_updater_cache
-
-        if force:
-            plugin_updater_cache = None
-
-        if plugin_updater_cache:
-            return plugin_updater_cache
-
-        plugin_data = self._get_plugin_data()
-        logger.log(f"Checking for updates for {plugin_data} plugins")
-        
-        try:
-            response = requests.post(
-                "https://steambrew.app/api/v1/plugins/checkupdates",
-                json=plugin_data,
-                headers={"Content-Type": "application/json"}
-            )
-            response.raise_for_status()
-            plugin_updater_cache = response.text
-            return plugin_updater_cache
-        except requests.RequestException as e:
-            print(f"Failed to check for updates: {e}")
-            return "[]"
+    def get_request_body(self):
+        return self._get_plugin_data()
