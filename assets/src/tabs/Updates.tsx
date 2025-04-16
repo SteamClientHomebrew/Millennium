@@ -267,32 +267,22 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 									</div>
 								}
 							>
-								<div style={fieldButtonsStyles}>
-									<DialogButton onClick={() => pluginViewMoreClick(update)} className="_3epr8QYWw_FqFgMx38YEEm">
-										<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
-									</DialogButton>
-									<DialogButton
-										onClick={() => StartPluginUpdate(update, index)}
-										className="_3epr8QYWw_FqFgMx38YEEm"
-										style={{
-											...(updatingPlugins[index] ? { padding: '8px 11px' } : { padding: '8px 14px' }),
-											minWidth: 'fit-content',
-											display: 'flex',
-											justifyContent: 'center',
-											alignItems: 'center',
-											gap: '11px',
-										}}
-									>
-										{updatingPlugins[index] ? (
-											<SteamSpinner background={'transparent'} style={{ width: '16px', height: '16px' }} />
-										) : (
-											<>
-												{update?.pluginInfo?.downloadSize}
-												<IconsModule.Download style={{ width: '16px', height: '16px' }} />
-											</>
-										)}
-									</DialogButton>
-								</div>
+								<DialogButton onClick={() => pluginViewMoreClick(update)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
+									<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
+								</DialogButton>
+								<DialogButton
+									onClick={() => StartPluginUpdate(update, index)}
+									className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm"
+								>
+									{updatingPlugins[index] ? (
+										<SteamSpinner background={'transparent'} />
+									) : (
+										<>
+											{update?.pluginInfo?.downloadSize}
+											<IconsModule.Download />
+										</>
+									)}
+								</DialogButton>
 							</Field>
 						</>
 					),
