@@ -132,8 +132,8 @@ const MakeAnchorExternalLink = ({ children, ...props }: { children: any } & Reac
 );
 
 const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates, fetchUpdates }) => {
-	const [updatingThemes, setUpdatingThemes] = useState<Array<any>>([]);
-	const [updatingPlugins, setUpdatingPlugins] = useState<Array<any>>([]);
+	const [updatingThemes, setUpdatingThemes] = useState<boolean[]>([]);
+	const [updatingPlugins, setUpdatingPlugins] = useState<boolean[]>([]);
 
 	const viewMoreClick = (props: UpdateItemType) => SteamClient.System.OpenInSystemBrowser(props?.commit);
 	const pluginViewMoreClick = (props: any) =>
@@ -143,7 +143,7 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 
 	const IsUpdating = () => {
 		/** Check if any theme or plugin is currently being updated. */
-		return updatingThemes.some((updating: any) => updating) || updatingPlugins.some((updating: any) => updating);
+		return updatingThemes.some((updating) => updating) || updatingPlugins.some((updating) => updating);
 	};
 
 	const StartThemeUpdate = async (updateObject: UpdateItemType, index: number) => {
@@ -151,7 +151,9 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 			return;
 		}
 
-		setUpdatingThemes({ ...updatingThemes, [index]: true });
+		const newUpdatingThemes = [...updatingThemes];
+		newUpdatingThemes[index] = true;
+		setUpdatingThemes(newUpdatingThemes);
 
 		if (await UpdateTheme({ native: updateObject.native })) {
 			/** Check for updates */
@@ -176,7 +178,9 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 			ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), LocalizationManager.LocalizeString('#Generic_Error'));
 		}
 
-		setUpdatingThemes({ ...updatingThemes, [index]: false });
+		const newUpdatingThemesAfter = [...updatingThemes];
+		newUpdatingThemesAfter[index] = false;
+		setUpdatingThemes(newUpdatingThemesAfter);
 	};
 
 	const StartPluginUpdate = async (updateObject: any, index: number) => {
@@ -191,7 +195,9 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 			return;
 		}
 
-		setUpdatingPlugins({ ...updatingPlugins, [index]: true });
+		const newUpdatingPlugins = [...updatingPlugins];
+		newUpdatingPlugins[index] = true;
+		setUpdatingPlugins(newUpdatingPlugins);
 
 		if (await UpdatePlugin({ id: updateObject?.id, name: updateObject?.pluginDirectory })) {
 			await fetchUpdates(true);
@@ -200,7 +206,9 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates, pluginUpdates,
 			ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), LocalizationManager.LocalizeString('#Generic_Error'));
 		}
 
-		setUpdatingPlugins({ ...updatingPlugins, [index]: false });
+		const newUpdatingPluginsAfter = [...updatingPlugins];
+		newUpdatingPluginsAfter[index] = false;
+		setUpdatingPlugins(newUpdatingPluginsAfter);
 	};
 
 	const fieldButtonsStyles: CSSProperties = { display: 'flex', gap: '8px' };
@@ -452,7 +460,7 @@ const RenderUpdatesSettingsTab = () => {
 
 			{locale.settingsPanelUpdates}
 			{updateCount > 0 && (
-				<div className="FriendMessageCount" style={{ display: 'none' }}>
+				<div className="FriendMessageCount MillenniumUpdateCount" style={{ display: 'none' }}>
 					{updateCount}
 				</div>
 			)}
