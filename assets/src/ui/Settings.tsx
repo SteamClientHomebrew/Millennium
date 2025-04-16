@@ -53,7 +53,9 @@ function RenderSettingsModal(_context: any) {
 		const settingsItem = contextMenuItems[contextMenuItems.length - 2] as HTMLElement;
 
 		/** Clone the settings button DOM object and edit its name and onClick */
-		const millenniumContextMenu = Object.assign(settingsItem.cloneNode(true), {
+		const millenniumContextMenu = settingsItem.cloneNode(true) as HTMLElement;
+		millenniumContextMenu.classList.add('MillenniumContextMenuItem');
+		Object.assign(millenniumContextMenu, {
 			textContent: 'Millennium',
 			onclick: () => {
 				ShowSettingsModal();

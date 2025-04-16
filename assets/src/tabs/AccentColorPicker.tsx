@@ -6,6 +6,7 @@ import { locale } from '../locales';
 
 const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentThemeUsesAccentColor: boolean }) => {
 	const [colorState, setColorState] = useState(pluginSelf.systemColors.accent.substring(0, 7));
+	const [isDefaultColor, setDefaultColor] = useState<boolean>(false);
 
 	const UpdateAllWindows = () => {
 		// @ts-ignore
@@ -18,6 +19,7 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
 
 	const UpdateColor = (hexColor: string) => {
 		setColorState(hexColor);
+		setDefaultColor(false);
 
 		Millennium.callServerMethod('cfg.change_accent_color', { new_color: hexColor }).then((result: any) => {
 			DispatchSystemColors(JSON.parse(result));
@@ -29,46 +31,34 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
 		Millennium.callServerMethod('cfg.reset_accent_color').then((result: any) => {
 			DispatchSystemColors(JSON.parse(result));
 			setColorState(pluginSelf.systemColors.accent.substring(0, 7));
+			setDefaultColor(true);
 			UpdateAllWindows();
 		});
 	};
 
 	return (
-		<>
-			<style>
-				{`.DialogBody { margin-bottom: 48px; }
-            input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`}
-			</style>
-
-			<Field
-				label={locale.themePanelCustomAccentColor}
-				description={
-					<>
-						<div>{locale.themePanelCustomAccentColorToolTip}</div>
-						{currentThemeUsesAccentColor !== undefined ? (
-							<div className={currentThemeUsesAccentColor ? 'themeDoesUseAccent' : 'themeDoesNotUseAccent'}>
-								{locale.themePanelCustomColorNotUsed}
-							</div>
-						) : (
-							<div>Checking theme information...</div>
-						)}
-					</>
-				}
-			>
-				{
-					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>
-						Reset
-					</DialogButton>
-				}
-				<input
-					type="color"
-					className="colorPicker"
-					name="colorPicker"
-					value={colorState}
-					onChange={(event) => UpdateColor(event.target.value)}
-				/>
-			</Field>
-		</>
+		<Field
+			className="MillenniumThemes_AccentColorField"
+			data-default-color={isDefaultColor}
+			label={locale.themePanelCustomAccentColor}
+			description={
+				<>
+					<div>{locale.themePanelCustomAccentColorToolTip}</div>
+					{currentThemeUsesAccentColor !== undefined ? (
+						<div className="MillenniumThemes_AccentColorUsage" data-accent-color-in-use={currentThemeUsesAccentColor}>
+							{locale.themePanelCustomColorNotUsed}
+						</div>
+					) : (
+						<div>Checking theme information...</div>
+					)}
+				</>
+			}
+		>
+			<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>
+				Reset
+			</DialogButton>
+			<input type="color" className="MillenniumColorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
+		</Field>
 	);
 };
 

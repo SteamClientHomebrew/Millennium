@@ -7,28 +7,15 @@ export const ConnectionFailed = () => {
 	};
 
 	return (
-		<div
-			className="__up-to-date-container"
-			style={{
-				display: 'flex',
-				flexDirection: 'column',
-				alignItems: 'center',
-				height: '100%',
-				justifyContent: 'center',
-			}}
-		>
+		<div className="MillenniumUpToDate_Container">
 			<IconsModule.Caution width="64" />
 
-			<div className="__up-to-date-header" style={{ marginTop: '20px', color: 'white', fontWeight: '500', fontSize: '15px' }}>
-				Failed to connect to Millennium!
-			</div>
-			<p style={{ fontSize: '12px', color: 'grey', textAlign: 'center', maxWidth: '76%' }}>
+			<div className="MillenniumUpToDate_Header">Failed to connect to Millennium!</div>
+			<div className="MillenniumUpToDate_Text">
 				This issue isn't network related, you're most likely missing a file millennium needs, or are experiencing an unexpected bug.
-			</p>
+			</div>
 
-			<DialogButton onClick={OpenLogsFolder} style={{ width: '50%', marginTop: '20px' }}>
-				Open Logs Folder
-			</DialogButton>
+			<DialogButton onClick={OpenLogsFolder}>Open Logs Folder</DialogButton>
 		</div>
 	);
 };

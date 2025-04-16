@@ -1,6 +1,7 @@
 import { DialogBody, DialogHeader, pluginSelf, showModal } from '@steambrew/client';
 import { GenericConfirmDialog } from '../GenericDialog';
-import React from 'react';
+import React, { FC, ReactNode } from 'react';
+import Styles from '../../styles';
 
 export interface DownloadInformationProps {
 	// Github RESTFUL API types, Im too lazy to type it.
@@ -26,27 +27,37 @@ const DateToLocalTime = (date: string) => {
 	return dateTime.toLocaleString();
 };
 
+interface InfoFieldProps {
+	children: ReactNode;
+	name: string;
+}
+
+const InfoField: FC<InfoFieldProps> = ({ children, name }) => (
+	<div className="MillenniumDownloadInfo_Field">
+		<b>{name}:</b>
+		{children}
+	</div>
+);
+
 const RenderDownloadInformation: React.FC<DownloadInformationProps> = ({ props, targetAsset }) => (
 	<GenericConfirmDialog>
 		<DialogHeader> Download Information </DialogHeader>
+		<Styles />
 		<DialogBody>
-			<div className="DialogBodyText">
-				<p className="updateInfoTidbit">
-					<b>Published By</b>
-					<div className="publisherInformation" style={{ display: 'flex', gap: '10px' }}>
-						<img src={props.author.avatar_url} alt="Author Avatar" style={{ width: '20px', height: '20px' }} />
-						<div className="publisherInfo"> {props.author.login} </div>
-					</div>
-					<br />
-					<b>Version:</b> {props.tag_name} <br />
-					<b>Release Date:</b> {DateToLocalTime(props.published_at)} <br />
-					<b>Download Size:</b> {FormatBytes(targetAsset.size)} <br />
-					<b>Download Link:</b>{' '}
-					<a href={props.html_url} target="_blank">
-						{targetAsset.name}
-					</a>
-				</p>
-			</div>
+			<InfoField name="Published By">
+				<div className="MillenniumDownloadInfo_Publisher">
+					<img className="MillenniumDownloadInfo_PublisherAvatar" src={props.author.avatar_url} />
+					{props.author.login}
+				</div>
+			</InfoField>
+			<InfoField name="Version">{props.tag_name}</InfoField>
+			<InfoField name="Release Date">{DateToLocalTime(props.published_at)}</InfoField>
+			<InfoField name="Download Size">{FormatBytes(targetAsset.size)}</InfoField>
+			<InfoField name="Download Link">
+				<a href={props.html_url} target="_blank">
+					{targetAsset.name}
+				</a>
+			</InfoField>
 		</DialogBody>
 	</GenericConfirmDialog>
 );

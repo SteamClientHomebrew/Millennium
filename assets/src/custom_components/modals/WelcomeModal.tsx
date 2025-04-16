@@ -1,7 +1,6 @@
 import {
 	callable,
 	DialogBody,
-	DialogBodyText,
 	DialogButton,
 	DialogFooter,
 	DialogHeader,
@@ -12,8 +11,9 @@ import {
 } from '@steambrew/client';
 import { GenericConfirmDialog } from '../GenericDialog';
 import { MillenniumSettings } from '../SettingsModal';
-import { steamSuperNavClass } from '../../classes';
+import { contextMenuClasses, steamSuperNavClass } from '../../classes';
 import { Separator } from '../../components/ISteamComponents';
+import Styles from '../../styles';
 
 const OpenMillenniumSettings = () => {
 	showModal(<MillenniumSettings />, pluginSelf.mainWindow, {
@@ -36,18 +36,17 @@ const HighlightMillenniumSettings = async () => {
 	const steamSuperNavDropdown = FindWindow('Steam Root Menu');
 	console.log(steamSuperNavDropdown);
 
-	const millenniumContextMenuItem: HTMLElement = Array.from(await Millennium.findElement(steamSuperNavDropdown.document, '.contextMenuItem')).find(
-		(element: Element) => (element as HTMLElement).textContent === 'Millennium',
-	) as HTMLElement;
+	const millenniumContextMenuItem: HTMLElement = Array.from(
+		await Millennium.findElement(steamSuperNavDropdown.document, '.MillenniumContextMenuItem'),
+	)[0] as HTMLElement;
+	const activeClassName = contextMenuClasses.active;
 
-	// Color it yellow to highlight it
-	millenniumContextMenuItem.style.setProperty('color', '#d04dd0');
-	millenniumContextMenuItem.style.setProperty('font-weight', '700');
+	// Make it hover-styled to highlight it
+	millenniumContextMenuItem.classList.add(activeClassName);
 
 	// Remove it after its hovered.
 	millenniumContextMenuItem?.addEventListener('mouseover', () => {
-		millenniumContextMenuItem.style.removeProperty('color');
-		millenniumContextMenuItem.style.removeProperty('font-weight');
+		millenniumContextMenuItem.classList.remove(activeClassName);
 	});
 
 	const mainSteamWindow = FindWindow('SP Desktop_uid0');
@@ -81,55 +80,46 @@ export const ShowWelcomeModal = async () =>
 		const RenderWelcomeModal = () => (
 			<GenericConfirmDialog>
 				<DialogHeader> Welcome to Millennium 👋 </DialogHeader>
-				<DialogBody>
-					<DialogBodyText>
-						<p>
-							We're excited for you to be a part of the community! Since this is your first time launching, it’s the perfect opportunity
-							to introduce you to a few things.
-						</p>
-						<Separator />
+				<Styles />
+				<DialogBody className="MillenniumGenericDialog_DialogBody">
+					<div>
+						We're excited for you to be a part of the community! Since this is your first time launching, it’s the perfect opportunity to
+						introduce you to a few things.
+					</div>
+					<Separator />
 
-						<p>
-							If you’re not familiar yet, most of Millennium's settings can be accessed{' '}
-							<b>
-								<a href="#" style={{ color: '#d04dd0' }} onClick={OpenMillenniumSettings}>
-									here
-								</a>
-							</b>
-							. You can also find them under{' '}
-							<b>
-								<a href="#" style={{ color: '#d04dd0' }} onClick={HighlightMillenniumSettings}>
-									Steam → Millennium Settings
-								</a>
-							</b>
-							.
-						</p>
-						<p>
-							From there, you'll find directions on where to install themes/plugins, how to enable/disable certain features, and more.
-							<br />
-							And remember, you can always{' '}
-							<b>
-								<a href="#" style={{ color: '#d04dd0' }} onClick={OpenDocumentation}>
-									view our documentation
-								</a>
-							</b>{' '}
-							if you have any questions.
-						</p>
-					</DialogBodyText>
-
-					<DialogFooter>
-						<div className="DialogTwoColLayout _DialogColLayout Panel">
-							<DialogButton
-								className="Secondary"
-								onClick={() => {
-									resolve(welcomeModalWindow.Close());
-								}}
-							>
-								Continue
-							</DialogButton>
-						</div>
-					</DialogFooter>
+					<div>
+						If you’re not familiar yet, most of Millennium's settings can be accessed{' '}
+						<a href="#" onClick={OpenMillenniumSettings}>
+							here
+						</a>
+						. You can also find them under{' '}
+						<a href="#" onClick={HighlightMillenniumSettings}>
+							Steam → Millennium Settings
+						</a>
+						.
+					</div>
+					<div>
+						From there, you'll find directions on where to install themes/plugins, how to enable/disable certain features, and more.
+						<br />
+						And remember, you can always{' '}
+						<a href="#" onClick={OpenDocumentation}>
+							view our documentation
+						</a>{' '}
+						if you have any questions.
+					</div>
 				</DialogBody>
+				<DialogFooter>
+					<div className="DialogTwoColLayout _DialogColLayout Panel">
+						<DialogButton
+							onClick={() => {
+								resolve(welcomeModalWindow.Close());
+							}}
+						>
+							Continue
+						</DialogButton>
+					</div>
+				</DialogFooter>
 			</GenericConfirmDialog>
 		);
 

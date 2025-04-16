@@ -59,15 +59,6 @@ interface EditThemeProps {
  * @returns react component
  */
 const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
-	/** Force proper styling on buttons next to dropdowns. */
-	const sideBySideProps = {
-		padding: '9px 10px',
-		margin: '0',
-		marginRight: '10px',
-		display: 'flex',
-		width: 'auto',
-	};
-
 	const Theme = pluginSelf.activeTheme as ThemeItem;
 
 	/** Current theme is not editable */
@@ -76,8 +67,8 @@ const RenderEditTheme: React.FC<EditThemeProps> = ({ active }) => {
 	}
 
 	return (
-		<DialogButton onClick={() => ThemeSettings(active)} className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton" style={sideBySideProps}>
-			<IconsModule.Settings height="16" />
+		<DialogButton onClick={() => ThemeSettings(active)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
+			<IconsModule.Settings />
 		</DialogButton>
 	);
 };
@@ -206,7 +197,7 @@ const ThemeViewModal: React.FC = () => {
 		const [position, setPosition] = useState({ top: 0, left: '0px' });
 
 		useEffect(() => {
-			const element = pluginSelf.windows['Millennium'].document.querySelector('.millenniumThemeDropdown');
+			const element = pluginSelf.windows['Millennium'].document.querySelector('.DialogDropDown');
 			if (!element) return;
 
 			const rect = element.getBoundingClientRect();
@@ -235,20 +226,8 @@ const ThemeViewModal: React.FC = () => {
 		);
 	};
 
-	/** Force proper styling on buttons next to dropdowns. */
-	const sideBySideProps = {
-		padding: '9px 10px',
-		margin: '0',
-		marginRight: '10px',
-		display: 'flex',
-		width: 'auto',
-	};
-
 	return (
 		<>
-			{/* Fix the dropdown not filling the proper width when specific theme names are too long. */}
-			<style>{`.DialogDropDown._DialogInputContainer.Panel.Focusable { min-width: max-content !important; }`}</style>
-
 			<Field
 				label={locale.themePanelClientTheme}
 				description={
@@ -264,24 +243,16 @@ const ThemeViewModal: React.FC = () => {
 				<RenderEditTheme active={active} />
 
 				{!pluginSelf.isDefaultTheme && (
-					<DialogButton
-						onClick={() => SetupAboutRenderer(active)}
-						className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton"
-						style={sideBySideProps}
-					>
-						<IconsModule.Information height="16" />
+					<DialogButton onClick={() => SetupAboutRenderer(active)} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
+						<IconsModule.Information />
 					</DialogButton>
 				)}
 
-				<DialogButton onClick={OpenThemesFolder} className="_3epr8QYWw_FqFgMx38YEEm millenniumIconButton" style={sideBySideProps}>
+				<DialogButton onClick={OpenThemesFolder} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
 					<CustomIcons.Folder />
 				</DialogButton>
 
-				<div
-					onMouseEnter={() => setIsHoveringThemeDropdown(true)}
-					onMouseLeave={() => setIsHoveringThemeDropdown(false)}
-					className="millenniumThemeDropdown"
-				>
+				<div onMouseEnter={() => setIsHoveringThemeDropdown(true)} onMouseLeave={() => setIsHoveringThemeDropdown(false)}>
 					<Dropdown
 						onMenuOpened={async () => await findAllThemes().then((result: ComboItem[]) => setThemes(result))}
 						contextMenuPositionOptions={{ bMatchWidth: false }}

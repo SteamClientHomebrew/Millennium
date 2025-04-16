@@ -18,6 +18,7 @@ import { Conditions, ConditionsStore, ICondition, ThemeItem } from '../types';
 import { settingsClasses } from '../classes';
 import { locale } from '../locales';
 import { BBCodeParser } from '../components/ISteamComponents';
+import Styles from '../styles';
 
 interface ConditionalComponent {
 	condition: string;
@@ -52,17 +53,6 @@ interface ColorProps {
 	hex: string;
 	defaultColor: string;
 }
-
-const ThemeEditorContainer: React.FC = ({ children }) => (
-	<ModalPosition>
-		<style>
-			{`.DialogBody { margin-bottom: 48px; }
-            input.colorPicker { margin-left: 10px !important; border: unset !important; min-width: 38px; width: 38px !important; height: 38px; !important; background: transparent; padding: unset !important; }`}
-		</style>
-
-		{children}
-	</ModalPosition>
-);
 
 export class RenderThemeEditor extends React.Component {
 	GetConditionType = (value: any): ConditionType => {
@@ -188,13 +178,7 @@ export class RenderThemeEditor extends React.Component {
 						Reset
 					</DialogButton>
 				)}
-				<input
-					type="color"
-					className="colorPicker"
-					name="colorPicker"
-					value={colorState}
-					onChange={(event) => UpdateColor(event.target.value)}
-				/>
+				<input type="color" className="MillenniumColorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
 			</Field>
 		);
 	};
@@ -270,12 +254,13 @@ export class RenderThemeEditor extends React.Component {
 		const pageWithoutTitle = { ...otherPages.find((e) => !e.title), title: locale.customThemeSettingsConfig };
 		const tabs = themeHasTabs ? otherPages.filter((e) => e !== pageWithoutTitle) : [pageWithoutTitle];
 
-		const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup}`;
+		const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings`;
 		const pages = [...tabs, 'separator', colorPage];
 		const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
 
 		return (
-			<ThemeEditorContainer>
+			<ModalPosition>
+				<Styles />
 				{!themeHasTabs && !themeHasColors && (
 					<style>{`
                         .PageListColumn {
@@ -286,7 +271,7 @@ export class RenderThemeEditor extends React.Component {
 
 				{/* @ts-ignore: className hasn't been added to DFL yet */}
 				<SidebarNavigation className={className} pages={pages} title={title} />
-			</ThemeEditorContainer>
+			</ModalPosition>
 		);
 	};
 

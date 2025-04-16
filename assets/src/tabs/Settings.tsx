@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { pluginSelf, Toggle, SteamSpinner, Field, callable } from '@steambrew/client';
+import { pluginSelf, Toggle, SteamSpinner, Field, callable, DialogControlsSection } from '@steambrew/client';
 import { locale } from '../locales';
 import { UpdaterOptionProps } from '../types';
 import { Settings } from '../Settings';

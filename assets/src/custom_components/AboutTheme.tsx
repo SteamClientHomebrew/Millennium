@@ -1,10 +1,21 @@
-import { Classes, DialogBody, DialogBodyText, DialogButton, DialogHeader, DialogSubHeader, Millennium, pluginSelf } from '@steambrew/client';
+import {
+	Classes,
+	DialogBody,
+	DialogBodyText,
+	DialogButton,
+	DialogFooter,
+	DialogHeader,
+	DialogSubHeader,
+	Millennium,
+	pluginSelf,
+} from '@steambrew/client';
 import { ThemeItem } from '../types';
 import React from 'react';
 import { locale } from '../locales';
 import { devClasses, settingsClasses } from '../classes';
 import { FakeFriend } from './FakeFriend';
 import { CreatePopup } from '../components/ISteamComponents';
+import Styles from '../styles';
 
 class AboutThemeRenderer extends React.Component<any> {
 	activeTheme: ThemeItem;
@@ -104,56 +115,33 @@ class AboutThemeRenderer extends React.Component<any> {
 		};
 
 		return (
-			<>
-				{themeOwner && themeRepo && (
-					<DialogButton style={{ width: 'unset' }} className={settingsClasses.SettingsDialogButton} onClick={ShowSource}>
-						{locale.viewSourceCode}
-					</DialogButton>
-				)}
-				{/* {kofiDonate && <button type="button" style={{width: "unset"}} className={`${settingsClasses.SettingsDialogButton} DialogButton _DialogLayout Secondary Focusable`} onClick={OpenDonateDefault}>Donate</button>} */}
-
-				<div className=".flex-btn-container" style={{ display: 'flex', gap: '5px' }}>
-					<DialogButton style={{ width: '50%' }} className={settingsClasses.SettingsDialogButton} onClick={ShowInFolder}>
-						{locale.showInFolder}
-					</DialogButton>
-					<DialogButton style={{ width: '50%' }} className={settingsClasses.SettingsDialogButton} onClick={UninstallTheme}>
-						{locale.uninstall}
-					</DialogButton>
+			<DialogFooter>
+				<div className="DialogTwoColLayout _DialogColLayout Panel">
+					{/* {kofiDonate && <DialogButton onClick={OpenDonateDefault}>Donate</DialogButton>} */}
+					{themeOwner && themeRepo && <DialogButton onClick={ShowSource}>{locale.viewSourceCode}</DialogButton>}
+					<DialogButton onClick={ShowInFolder}>{locale.showInFolder}</DialogButton>
+					<DialogButton onClick={UninstallTheme}>{locale.uninstall}</DialogButton>
 				</div>
-			</>
+			</DialogFooter>
 		);
 	};
 
 	CreateModalBody = () => {
 		return (
 			<div className="ModalPosition" tabIndex={0}>
-				<div className="ModalPosition_Content" style={{ width: '100vw', height: '100vh' }}>
+				<div className="ModalPosition_Content">
 					<div className="DialogContent _DialogLayout GenericConfirmDialog _DialogCenterVertically">
-						<div className="DialogContent_InnerWidth" style={{ flex: 'unset' }}>
-							<DialogHeader
-								style={{
-									display: 'flex',
-									alignItems: 'baseline',
-									gap: '10px',
-								}}
-							>
+						<div className="DialogContent_InnerWidth">
+							<DialogHeader>
 								{this.activeTheme?.data?.name ?? this.activeTheme?.native}
-								<p
-									style={{
-										fontSize: '10px',
-										height: 'min-content',
-										margin: '0',
-										color: 'grey',
-									}}
-								>
-									{this.activeTheme?.data?.version}
-								</p>
+								<span className="MillenniumAboutTheme_Version">{this.activeTheme?.data?.version}</span>
 							</DialogHeader>
-							<DialogBody style={{ flex: 'unset' }}>
+							<Styles />
+							<DialogBody>
 								<this.RenderDeveloperProfile />
 								<this.RenderDescription />
-								<this.RenderInfoRow />
 							</DialogBody>
+							<this.RenderInfoRow />
 						</div>
 					</div>
 				</div>
