@@ -1,10 +1,12 @@
-import { DialogBodyText, DialogButton, DialogHeader, IconsModule, SteamSpinner, TextField, callable } from '@steambrew/client';
-
+import { DialogButton, IconsModule, Millennium, SteamSpinner, TextField, callable, pluginSelf } from '@steambrew/client';
+import { createRoot } from 'react-dom/client';
 import { useEffect, useState } from 'react';
-import { fieldClasses, settingsClasses } from '../classes';
+import { settingsClasses } from '../classes';
 import Ansi from 'ansi-to-react';
 import { ButtonsSection } from '../custom_components/ButtonsSection';
-import { Separator } from '../components/ISteamComponents';
+import ReactDOM from 'react-dom';
+import React from 'react';
+import { locale } from '../locales';
 
 export type LogItem = {
 	level: LogLevel;
@@ -49,10 +51,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 		let logsToCopy = (searchQuery.length ? searchedLogs : logs.logs).map((log) => atob(log.message)).join('\n');
 
 		if (CopyText({ data: logsToCopy })) {
-			console.log('Copied logs to clipboard');
 			setCopyIcon(<IconsModule.Checkmark />);
-		} else {
-			console.log('Failed to copy logs to clipboard');
 		}
 
 		setTimeout(() => {
@@ -63,82 +62,64 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 	const ShowMatchedLogsFromSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setSearchQuery(e.target.value);
 
-		let searchValue = e.target.value.toLowerCase();
-		let matchedLogs = logs.logs.filter((log) => atob(log.message).toLowerCase().includes(searchValue));
-		console.log(matchedLogs);
-
+		let matchedLogs = logs.logs.filter((log) => atob(log.message).toLowerCase().includes(e.target.value.toLowerCase()));
 		setSearchedLogs(matchedLogs);
 	};
 
 	return (
-		<>
-			<div className="MillenniumLogs_Header">
-				<div className="MillenniumLogs_HeaderNav">
+		<div className="MillenniumLogs_TextContainer">
+			<div className="MillenniumLogs_ControlSection">
+				<div className="MillenniumLogs_NavContainer">
 					<DialogButton
 						onClick={() => {
-							setSelectedLog(undefined);
+							setSelectedLog(null);
 						}}
 						className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 					>
 						<IconsModule.Carat />
 						Back
 					</DialogButton>
-					<DialogHeader>{logs.name} output</DialogHeader>
-				</div>
-
-				<div className="MillenniumLogs_HeaderTextTypeContainer">
-					<div className="MillenniumLogs_HeaderTextTypeCount" data-type="error" data-count={errorCount}>
-						{errorCount} Errors{' '}
-					</div>
-					<div className="MillenniumLogs_HeaderTextTypeCount" data-type="warning" data-count={warningCount}>
-						{warningCount} Warnings{' '}
-					</div>
-				</div>
-			</div>
-
-			<Separator />
-
-			<div className="MillenniumLogs_TextContainer">
-				<div className="MillenniumLogs_TextControls">
 					<TextField placeholder="Search..." onChange={ShowMatchedLogsFromSearch} />
+				</div>
+
+				<div className="MillenniumLogs_TextControls">
+					<div className="MillenniumLogs_HeaderTextTypeContainer">
+						<div className="MillenniumLogs_HeaderTextTypeCount" data-type="error" data-count={errorCount}>
+							{errorCount} Errors{' '}
+						</div>
+						<div className="MillenniumLogs_HeaderTextTypeCount" data-type="warning" data-count={warningCount}>
+							{warningCount} Warnings{' '}
+						</div>
+					</div>
 
 					<div className="MillenniumLogs_Icons">
 						<DialogButton
-							onClick={() => {
-								setLogFontSize(logFontSize - 1);
-							}}
+							onClick={setLogFontSize.bind(null, logFontSize - 1)}
 							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							<IconsModule.Minus />
 						</DialogButton>
 
 						<DialogButton
-							onClick={() => {
-								setLogFontSize(logFontSize + 1);
-							}}
+							onClick={setLogFontSize.bind(null, logFontSize + 1)}
 							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
 						>
 							<IconsModule.Add />
 						</DialogButton>
 
-						<DialogButton
-							onClick={() => {
-								CopyLogsToClipboard();
-							}}
-							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
-						>
+						<DialogButton onClick={CopyLogsToClipboard} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
 							{copyIcon}
 						</DialogButton>
 					</div>
 				</div>
-
-				<pre className="MillenniumLogs_Text DialogInput DialogTextInputBase" style={{ fontSize: logFontSize + 'px' }}>
-					{(searchQuery.length ? searchedLogs : logs.logs).map((log, index) => (
-						<Ansi key={index}>{atob(log.message)}</Ansi>
-					))}
-				</pre>
 			</div>
-		</>
+
+			<pre className="MillenniumLogs_Text DialogInput DialogTextInputBase" style={{ fontSize: logFontSize + 'px' }}>
+				{(searchQuery.length ? searchedLogs : logs.logs).map((log, index) => (
+					<Ansi key={index}>{atob(log.message)}</Ansi>
+				))}
+			</pre>
+		</div>
 	);
 };
 
@@ -148,32 +129,29 @@ interface RenderLogSelectorProps {
 }
 
 const RenderLogSelector: React.FC<RenderLogSelectorProps> = ({ logData, setSelectedLog }) => {
-	return logData === undefined ? (
-		<SteamSpinner background={'transparent'} />
-	) : (
+	if (logData === undefined) {
+		return <SteamSpinner background={'transparent'} />;
+	}
+
+	const OpenSteamDevTools = () => SteamClient.Browser.OpenDevTools();
+
+	return (
 		<>
-			<DialogButton
-				onClick={() => {
-					SteamClient.Browser.OpenDevTools();
-				}}
-				className={settingsClasses.SettingsDialogButton}
-			>
+			<DialogButton onClick={OpenSteamDevTools} className={settingsClasses.SettingsDialogButton}>
 				Open Steam Dev Tools
 			</DialogButton>
 
 			{logData.map((log, index) => (
-				<DialogButton
-					key={index}
-					onClick={() => {
-						setSelectedLog(log ?? undefined);
-					}}
-					className={settingsClasses.SettingsDialogButton}
-				>
+				<DialogButton key={index} onClick={setSelectedLog.bind(null, log)} className={settingsClasses.SettingsDialogButton}>
 					{log?.name}
 				</DialogButton>
 			))}
 		</>
 	);
+};
+
+const RenderLogHeader = ({ logName }: { logName: string }) => {
+	return <div className="DialogHeader">{logName}</div>;
 };
 
 export const LogsViewModal: React.FC = () => {
@@ -186,11 +164,21 @@ export const LogsViewModal: React.FC = () => {
 		});
 	}, []);
 
-	return selectedLog === undefined ? (
-		<ButtonsSection>
-			<RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} />
-		</ButtonsSection>
-	) : (
-		<RenderLogViewer logs={selectedLog} setSelectedLog={setSelectedLog} />
-	);
+	useEffect(() => {
+		const container = pluginSelf.windows['Millennium'].document.querySelector('.DialogHeader');
+		if (container) {
+			container.textContent = selectedLog?.name || locale.settingsPanelLogs;
+		}
+	}, [selectedLog]);
+
+	/** No log is currently selected */
+	if (!selectedLog) {
+		return (
+			<ButtonsSection>
+				<RenderLogSelector logData={logData} setSelectedLog={setSelectedLog} />
+			</ButtonsSection>
+		);
+	}
+
+	return <RenderLogViewer logs={selectedLog} setSelectedLog={setSelectedLog} />;
 };

@@ -26,7 +26,8 @@
 		"peerDependencyRules": {
 			"ignoreMissing": [
 				"react",
-				"react-dom"
+				"react-dom",
+				"react-dom/client"
 			]
 		}
 	},

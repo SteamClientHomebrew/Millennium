@@ -29,9 +29,11 @@ const styles = `
 }
 
 .MillenniumButtonsSection {
-	gap: var(--MillenniumSpacing-Normal);
-	display: flex;
-	flex-wrap: wrap;
+    gap: var(--MillenniumSpacing-Normal);
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    margin-top: var(--MillenniumSpacing-Small);
 
 	.DialogButton {
 		width: unset;
@@ -128,7 +130,8 @@ const styles = `
 
 .MillenniumLogs_HeaderTextTypeContainer {
 	display: flex;
-	flex-direction: column;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .MillenniumLogs_HeaderTextTypeCount {
@@ -146,15 +149,27 @@ const styles = `
 
 .MillenniumLogs_TextContainer {
 	gap: var(--MillenniumSpacing-Large);
-	margin-top: var(--MillenniumSpacing-Large);
+	margin-top: var(--MillenniumSpacing-Small);
 	display: flex;
 	flex-direction: column;
+	height: -webkit-fill-available;
 }
 
 .MillenniumLogs_TextControls {
 	gap: var(--MillenniumSpacing-Normal);
 	display: flex;
 	justify-content: space-between;
+}
+
+.MillenniumLogs_ControlSection {
+	gap: var(--MillenniumSpacing-Normal);
+	display: flex;
+	justify-content: space-between;
+}
+
+.MillenniumLogs_NavContainer {
+    display: flex;
+    gap: 10px;
 }
 
 .MillenniumLogs_Icons {
@@ -171,13 +186,14 @@ const styles = `
 	white-space: pre-wrap;
 	height: 100%;
 	user-select: text;
+	font-family: Consolas, "Courier New", monospace;
 }
 
 /**
  * Plugins
  */
 .MillenniumPlugins_PluginLabel {
-	gap: var(--MillenniumSpacing-Small);
+	gap: var(--MillenniumSpacing-Normal);
 	display: flex;
 	align-items: center;
 }
@@ -266,7 +282,7 @@ const styles = `
 
 .MillenniumUpToDate_Header {
 	color: var(--MillenniumTextColor-Normal);
-	font: var(--MillenniumText-HeadingLarge);
+	font: var(--MillenniumText-BodyMedium);
 }
 
 .MillenniumUpToDate_Text {
