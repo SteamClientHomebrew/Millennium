@@ -17,6 +17,7 @@ import { ThemeItem } from '../types';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
 import Markdown from 'markdown-to-jsx';
+import { settingsClasses } from '../classes';
 
 interface UpdateProps {
 	updates: UpdateItemType[];
@@ -127,8 +128,6 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates: themeUpdates, 
 	const pluginViewMoreClick = (props: any) =>
 		SteamClient.System.OpenInSystemBrowser(`https://github.com/${props?.pluginInfo?.repoOwner}/${props?.pluginInfo?.repoName}/tree/${props?.commit}`);
 
-	const SettingsDialogButtonClass = (findClassModule((m) => m.SettingsDialogSubHeader && m.SettingsDialogBodyText && m.SettingsDialogButton) as any).SettingsDialogButton;
-
 	const IsUpdating = () => {
 		/** Check if any theme or plugin is currently being updated. */
 		return updatingThemes.some((updating) => updating) || updatingPlugins.some((updating) => updating);
@@ -226,10 +225,10 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates: themeUpdates, 
 					}
 					bottomSeparator={pluginUpdates.length > 0 ? 'standard' : index === themeUpdates.length - 1 ? 'none' : 'standard'}
 				>
-					<DialogButton onClick={() => viewMoreClick(update)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+					<DialogButton onClick={() => viewMoreClick(update)} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
 						<IconsModule.Hyperlink />
 					</DialogButton>
-					<DialogButton onClick={() => StartThemeUpdate(update, index)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+					<DialogButton onClick={() => StartThemeUpdate(update, index)} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
 						{updatingThemes[index] ? <SteamSpinner background={'transparent'} /> : <IconsModule.Download />}
 					</DialogButton>
 				</Field>
@@ -259,10 +258,10 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ updates: themeUpdates, 
 					}
 					bottomSeparator={index === pluginUpdates.length - 1 ? 'none' : 'standard'}
 				>
-					<DialogButton onClick={() => pluginViewMoreClick(update)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+					<DialogButton onClick={() => pluginViewMoreClick(update)} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
 						<IconsModule.Hyperlink style={{ width: '16px', height: '16px' }} />
 					</DialogButton>
-					<DialogButton onClick={() => StartPluginUpdate(update, index)} className={`MillenniumIconButton ${SettingsDialogButtonClass}`}>
+					<DialogButton onClick={() => StartPluginUpdate(update, index)} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
 						{updatingPlugins[index] ? (
 							<SteamSpinner background={'transparent'} />
 						) : (

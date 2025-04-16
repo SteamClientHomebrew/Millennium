@@ -6,6 +6,7 @@ import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { GetLogData, LogData, LogLevel } from './Logs';
 import * as CustomIcons from '../custom_components/CustomIcons';
 import ReactDOM from 'react-dom';
+import { settingsClasses, toolTipBodyClasses, toolTipClasses } from '../classes';
 
 interface EditPluginProps {
 	plugin: PluginComponent;
@@ -18,9 +19,7 @@ declare global {
 }
 
 const isEditablePlugin = (plugin_name: string) => {
-	return window.PLUGIN_LIST && window.PLUGIN_LIST[plugin_name] && typeof window.PLUGIN_LIST[plugin_name].renderPluginSettings === 'function'
-		? true
-		: false;
+	return window.PLUGIN_LIST && window.PLUGIN_LIST[plugin_name] && typeof window.PLUGIN_LIST[plugin_name].renderPluginSettings === 'function' ? true : false;
 };
 
 const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
@@ -117,12 +116,7 @@ const PluginViewModal: React.FC = () => {
 		};
 
 		showModal(
-			<ConfirmModal
-				strTitle={locale.optionReloadRequired}
-				strDescription={locale.optionPluginNeedsReload}
-				strOKButtonText={locale.optionReloadNow}
-				onOK={onOK}
-			/>,
+			<ConfirmModal strTitle={locale.optionReloadRequired} strDescription={locale.optionPluginNeedsReload} strOKButtonText={locale.optionReloadNow} onOK={onOK} />,
 			pluginSelf.windows['Millennium'],
 			{
 				bNeverPopOut: false,
@@ -177,8 +171,8 @@ const PluginViewModal: React.FC = () => {
 		};
 
 		return ReactDOM.createPortal(
-			<div className="_3vg1vYU7iTWqONciv9cuJN _1Ye_0niF2UqB8uQTbm8B6B" style={{ top: position.top, left: position.left }}>
-				<div className="_2FxbHJzYoH024ko7zqcJOf" style={{ maxWidth: '50vw' }}>
+			<div className={`${toolTipClasses.HoverPosition} ${toolTipClasses.Ready}`} style={{ top: position.top, left: position.left }}>
+				<div className={toolTipBodyClasses.TextToolTip} style={{ maxWidth: '50vw' }}>
 					{StatusToString()}
 				</div>
 			</div>,
@@ -186,7 +180,7 @@ const PluginViewModal: React.FC = () => {
 		);
 	};
 
-	const RenderPlugin = ({ plugin, index }: { plugin: PluginComponent; index: number }) => {
+	const RenderPlugin = ({ plugin, index, isLastPlugin }: { plugin: PluginComponent; index: number; isLastPlugin: boolean }) => {
 		const pluginLogs = pluginsWithLogs?.get(plugin?.data?.common_name);
 		const type = pluginLogs?.errors > 0 ? 'error' : pluginLogs?.warnings > 0 ? 'warning' : 'success';
 		const [isHovering, setIsHovering] = useState(false);
@@ -212,13 +206,10 @@ const PluginViewModal: React.FC = () => {
 					}
 					description={plugin?.data?.description ?? locale.itemNoDescription}
 					padding="standard"
+					bottomSeparator={isLastPlugin ? 'none' : 'standard'}
 				>
 					<EditPlugin plugin={plugin} />
-					<Toggle
-						disabled={plugin?.data?.name == 'core'}
-						value={checkedItems[index]}
-						onChange={(_checked: boolean) => handleCheckboxChange(index)}
-					/>
+					<Toggle disabled={plugin?.data?.name == 'core'} value={checkedItems[index]} onChange={(_checked: boolean) => handleCheckboxChange(index)} />
 				</Field>
 
 				{isHovering && <RenderStatusTooltip plugin={plugin} index={index} />}
@@ -240,21 +231,21 @@ const PluginViewModal: React.FC = () => {
 				}
 			>
 				{updatedPlugins.length > 0 && (
-					<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={SavePluginChanges}>
+					<DialogButton className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} onClick={SavePluginChanges}>
 						{locale.optionSaveChanges}
 					</DialogButton>
 				)}
-				<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={FetchAllPlugins}>
+				<DialogButton className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} onClick={FetchAllPlugins}>
 					<IconsModule.Refresh />
 				</DialogButton>
 
-				<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton" onClick={OpenPluginsFolder}>
+				<DialogButton className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} onClick={OpenPluginsFolder}>
 					<CustomIcons.Folder />
 				</DialogButton>
 			</Field>
 
 			{plugins.map((plugin: PluginComponent, index: number) => (
-				<RenderPlugin key={index} plugin={plugin} index={index} />
+				<RenderPlugin key={index} plugin={plugin} index={index} isLastPlugin={index === plugins.length - 1} />
 			))}
 		</>
 	);

@@ -8,6 +8,7 @@ import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { RenderAccentColorPicker } from './AccentColorPicker';
 import ReactDOM from 'react-dom';
+import { toolTipBodyClasses, toolTipClasses } from '../classes';
 
 const Localize = (token: string): string =>
 	// @ts-ignore
@@ -212,10 +213,10 @@ const ThemeViewModal: React.FC = () => {
 		}, []);
 
 		return ReactDOM.createPortal(
-			<div ref={elementRef} className="_3vg1vYU7iTWqONciv9cuJN _1Ye_0niF2UqB8uQTbm8B6B" style={{ top: position.top, left: position.left }}>
-				<div className="_2FxbHJzYoH024ko7zqcJOf" style={{ maxWidth: '50vw' }}>
-					Millennium can't find any themes in your skins folder. If you have themes installed that aren't showing, verify you've extracted
-					them properly. The skin.json file should be in the root of the theme folder.
+			<div className={`${toolTipClasses.HoverPosition} ${toolTipClasses.Ready}`} style={{ top: position.top, left: position.left }}>
+				<div className={toolTipBodyClasses.TextToolTip} style={{ maxWidth: '50vw' }}>
+					Millennium can't find any themes in your skins folder. If you have themes installed that aren't showing, verify you've extracted them properly. The
+					skin.json file should be in the root of the theme folder.
 					<br />
 					<br />
 					Example:<br></br> <code>Steam/steamui/skins/SkinName/skin.json</code>

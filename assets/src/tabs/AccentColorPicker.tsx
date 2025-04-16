@@ -53,6 +53,7 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
 					)}
 				</>
 			}
+			bottomSeparator="none"
 		>
 			<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>
 				Reset
