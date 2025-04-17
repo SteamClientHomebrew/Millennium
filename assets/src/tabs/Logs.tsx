@@ -48,7 +48,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 	}, [logs]);
 
 	const CopyLogsToClipboard = () => {
-		let logsToCopy = (searchQuery.length ? searchedLogs : logs.logs).map((log) => atob(log.message)).join('\n');
+		let logsToCopy = (searchQuery.length ? searchedLogs : logs.logs).map((log) => atob(log.message)).join('');
 
 		if (CopyText({ data: logsToCopy })) {
 			setCopyIcon(<IconsModule.Checkmark />);
@@ -93,17 +93,11 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 					</div>
 
 					<div className="MillenniumLogs_Icons">
-						<DialogButton
-							onClick={setLogFontSize.bind(null, logFontSize - 1)}
-							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
-						>
+						<DialogButton onClick={setLogFontSize.bind(null, logFontSize - 1)} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
 							<IconsModule.Minus />
 						</DialogButton>
 
-						<DialogButton
-							onClick={setLogFontSize.bind(null, logFontSize + 1)}
-							className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
-						>
+						<DialogButton onClick={setLogFontSize.bind(null, logFontSize + 1)} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
 							<IconsModule.Add />
 						</DialogButton>
 
@@ -129,7 +123,7 @@ interface RenderLogSelectorProps {
 }
 
 const RenderLogSelector: React.FC<RenderLogSelectorProps> = ({ logData, setSelectedLog }) => {
-	if (logData === undefined) {
+	if (!logData) {
 		return <SteamSpinner background={'transparent'} />;
 	}
 

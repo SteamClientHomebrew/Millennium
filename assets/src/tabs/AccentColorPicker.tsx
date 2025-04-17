@@ -1,4 +1,4 @@
-import { DialogButton, Field, Millennium, pluginSelf } from '@steambrew/client';
+import { callable, DialogButton, Field, Millennium, pluginSelf } from '@steambrew/client';
 import { useEffect, useState } from 'react';
 import { DispatchSystemColors } from '../patcher/SystemColors';
 import { settingsClasses } from '../classes';
@@ -16,9 +16,12 @@ const SanitizeHex = (color: string) => {
 	return color;
 };
 
+const ChangeAccentColor = callable<[{ new_color: string }], string>('cfg.change_accent_color');
+const ResetAccentColor = callable<[], string>('cfg.reset_accent_color');
+
 const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentThemeUsesAccentColor: boolean }) => {
 	const [colorState, setColorState] = useState(pluginSelf.systemColors.accent.substring(0, 7));
-	const isDefaultColor = SanitizeHex(colorState) !== SanitizeHex(pluginSelf.systemColors.originalAccent);
+	const isDefaultColor = SanitizeHex(colorState) === SanitizeHex(pluginSelf.systemColors.originalAccent);
 
 	const UpdateAllWindows = () => {
 		// @ts-ignore
@@ -29,25 +32,21 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
 		});
 	};
 
-	const UpdateColor = (hexColor: string) => {
+	const UpdateColor = async (hexColor: string) => {
 		setColorState(hexColor);
+		const result = await ChangeAccentColor({ new_color: hexColor });
 
-		Millennium.callServerMethod('cfg.change_accent_color', { new_color: hexColor }).then((result: any) => {
-			DispatchSystemColors(JSON.parse(result));
-			UpdateAllWindows();
-		});
+		DispatchSystemColors(JSON.parse(result));
+		UpdateAllWindows();
 	};
 
-	const ResetColor = () => {
-		Millennium.callServerMethod('cfg.reset_accent_color').then((result: any) => {
-			DispatchSystemColors(JSON.parse(result));
-			setColorState(pluginSelf.systemColors.accent.substring(0, 7));
-			UpdateAllWindows();
-		});
-	};
+	const ResetColor = async () => {
+		const result = await ResetAccentColor();
 
-	console.log('Current accent color:', colorState);
-	console.log('Original accent color:', pluginSelf.systemColors.originalAccent);
+		DispatchSystemColors(JSON.parse(result));
+		setColorState(pluginSelf.systemColors.accent.substring(0, 7));
+		UpdateAllWindows();
+	};
 
 	return (
 		<Field

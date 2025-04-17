@@ -71,7 +71,7 @@ class Colors:
 
             return (r, g, b)
         
-        original_accent = Colors.get_accent_color_win32() if os.name == 'nt' else Colors.get_accent_color_posix()
+        original_accent = json.loads(Colors.get_accent_color_win32() if os.name == 'nt' else Colors.get_accent_color_posix())["originalAccent"]
         
         return json.dumps({
             'accent': accent_color,
