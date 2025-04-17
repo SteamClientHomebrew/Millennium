@@ -240,6 +240,7 @@ MILLENNIUM PyObject* PyInit_Logger(void)
         return NULL;
     }
 
+    /** Create the logger module */
     PyObject *loggerModule = PyModule_Create(&g_loggerModuleDef);
     if (loggerModule == NULL)
     {

@@ -1,5 +1,4 @@
 import { Millennium, ConfirmModal, Dropdown, DialogButton, IconsModule, pluginSelf, Toggle, showModal, Field, callable } from '@steambrew/client';
-import * as CustomIcons from '../custom_components/CustomIcons';
 import { useEffect, useRef, useState } from 'react';
 import { RenderThemeEditor } from '../custom_components/ThemeEditor';
 import { ComboItem, ThemeItem } from '../types';
@@ -9,6 +8,7 @@ import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { RenderAccentColorPicker } from './AccentColorPicker';
 import ReactDOM from 'react-dom';
 import { toolTipBodyClasses, toolTipClasses } from '../classes';
+import { MillenniumIcons } from '../icons';
 
 const Localize = (token: string): string =>
 	// @ts-ignore
@@ -250,7 +250,7 @@ const ThemeViewModal: React.FC = () => {
 				)}
 
 				<DialogButton onClick={OpenThemesFolder} className="MillenniumIconButton _3epr8QYWw_FqFgMx38YEEm">
-					<CustomIcons.Folder />
+					<MillenniumIcons.Folder />
 				</DialogButton>
 
 				<div onMouseEnter={() => setIsHoveringThemeDropdown(true)} onMouseLeave={() => setIsHoveringThemeDropdown(false)}>

@@ -1,15 +1,14 @@
 import React from 'react';
 import { Classes, DialogBody, IconsModule, ModalPosition, pluginSelf, SidebarNavigation, type SidebarNavigationPage } from '@steambrew/client';
 import { settingsClasses } from '../classes';
-import * as CustomIcons from './CustomIcons';
 import { PluginViewModal } from '../tabs/Plugins';
 import { ThemeViewModal } from '../tabs/Themes';
 import { RenderUpdatesSettingsTab, UpdatesViewModal } from '../tabs/Updates';
 import { locale } from '../locales';
-import { BugReportViewModal } from '../tabs/BugReport';
 import { LogsViewModal } from '../tabs/Logs';
 import { SettingsViewModal } from '../tabs/Settings';
 import Styles from '../styles';
+import { MillenniumIcons } from '../icons';
 
 export class MillenniumSettings extends React.Component {
 	render() {
@@ -19,7 +18,7 @@ export class MillenniumSettings extends React.Component {
 			{
 				visible: true,
 				title: locale.settingsPanelThemes,
-				icon: <CustomIcons.Themes />,
+				icon: <MillenniumIcons.Themes />,
 				content: (
 					<DialogBody className={Classes.SettingsDialogBodyFade}>
 						<ThemeViewModal />
@@ -29,7 +28,7 @@ export class MillenniumSettings extends React.Component {
 			{
 				visible: true,
 				title: locale.settingsPanelPlugins,
-				icon: <CustomIcons.Plugins />,
+				icon: <MillenniumIcons.Plugins />,
 				content: (
 					<DialogBody className={Classes.SettingsDialogBodyFade}>
 						<PluginViewModal />
@@ -43,16 +42,6 @@ export class MillenniumSettings extends React.Component {
 				content: (
 					<DialogBody className={Classes.SettingsDialogBodyFade}>
 						<UpdatesViewModal />
-					</DialogBody>
-				),
-			},
-			{
-				visible: true,
-				title: locale.settingsPanelBugReport,
-				icon: <IconsModule.BugReport />,
-				content: (
-					<DialogBody className={Classes.SettingsDialogBodyFade}>
-						<BugReportViewModal />
 					</DialogBody>
 				),
 			},

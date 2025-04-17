@@ -1,4 +1,4 @@
-import { callable, Millennium, pluginSelf } from '@steambrew/client';
+import { callable, IconsModule, Millennium, pluginSelf } from '@steambrew/client';
 import { PatchDocumentContext } from './patcher/index';
 import { OpenSettingsTab, RenderSettingsModal, SettingsTabs, ShowSettingsModal } from './ui/Settings';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1, PluginComponent } from './types';
@@ -111,7 +111,6 @@ const InitializePatcher = async (startTime: number, result: SettingsProps) => {
 	}
 
 	Object.assign(pluginSelf, {
-		systemColors,
 		conditionals: result?.conditions,
 		scriptsAllowed: result?.settings?.scripts ?? true,
 		stylesAllowed: result?.settings?.styles ?? true,
@@ -204,6 +203,8 @@ const OnRunSteamURL = async (_: number, url: string) => {
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
+	console.log(IconsModule);
+
 	const startTime = performance.now();
 	const settings: SettingsProps = await Settings.FetchAllSettings();
 	await InitializePatcher(startTime, settings);

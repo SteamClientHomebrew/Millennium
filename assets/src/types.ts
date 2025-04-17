@@ -129,6 +129,7 @@ export interface SystemAccentColor {
 	dark2Rgb: string;
 	dark3: string;
 	dark3Rgb: string;
+	originalAccent: string;
 }
 
 export interface UpdateItem {

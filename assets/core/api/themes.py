@@ -24,7 +24,7 @@ class Colors:
             'dark1':  hex(UIColorType.ACCENT_DARK1),   'dark1Rgb': rgb(UIColorType.ACCENT_DARK1),
             'dark2':  hex(UIColorType.ACCENT_DARK2),   'dark2Rgb': rgb(UIColorType.ACCENT_DARK2),
             'dark3':  hex(UIColorType.ACCENT_DARK3),   'dark3Rgb': rgb(UIColorType.ACCENT_DARK3),
-            'systemAccent': True
+            'originalAccent': hex(UIColorType.ACCENT)
         }
         return json.dumps(color_dictionary)
 
@@ -36,7 +36,7 @@ class Colors:
             'dark1': '#000',   'dark2': '#000',   'dark3': '#000',
             'accentRgb': '0, 0, 0', 'light1Rgb': '0, 0, 0', 'light2Rgb': '0, 0, 0', 'light3Rgb': '0, 0, 0',
             'dark1Rgb': '0, 0, 0', 'dark2Rgb': '0, 0, 0', 'dark3Rgb': '0, 0, 0',
-            'systemAccent': True
+            'originalAccent': '#000'
         }
         return json.dumps(color_dictionary)
     
@@ -88,7 +88,6 @@ class Colors:
             'dark1Rgb': hex_to_rgb(adjust_hex_color(accent_color, -15)),
             'dark2Rgb': hex_to_rgb(adjust_hex_color(accent_color, -30)),
             'dark3Rgb': hex_to_rgb(adjust_hex_color(accent_color, -45)),
-            'systemAccent': False,
             'originalAccent': original_accent
         })
 

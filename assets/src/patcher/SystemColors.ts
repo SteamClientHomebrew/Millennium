@@ -23,4 +23,6 @@ export const DispatchSystemColors = (systemColors: SystemAccentColor) => {
         --SystemAccentColorDark3: ${systemColors.dark3};
         --SystemAccentColorDark3-RGB: ${systemColors.dark3Rgb};
     }`;
+
+	pluginSelf.systemColors = systemColors;
 };

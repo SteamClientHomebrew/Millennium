@@ -4,9 +4,9 @@ import { PluginComponent } from '../types';
 import { locale } from '../locales';
 import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { GetLogData, LogData, LogLevel } from './Logs';
-import * as CustomIcons from '../custom_components/CustomIcons';
 import ReactDOM from 'react-dom';
 import { settingsClasses, toolTipBodyClasses, toolTipClasses } from '../classes';
+import { MillenniumIcons } from '../icons';
 
 interface EditPluginProps {
 	plugin: PluginComponent;
@@ -240,7 +240,7 @@ const PluginViewModal: React.FC = () => {
 				</DialogButton>
 
 				<DialogButton className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} onClick={OpenPluginsFolder}>
-					<CustomIcons.Folder />
+					<MillenniumIcons.Folder />
 				</DialogButton>
 			</Field>
 
