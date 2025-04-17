@@ -18,7 +18,7 @@ const SanitizeHex = (color: string) => {
 
 const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentThemeUsesAccentColor: boolean }) => {
 	const [colorState, setColorState] = useState(pluginSelf.systemColors.accent.substring(0, 7));
-	const [isDefaultColor, setDefaultColor] = useState<boolean>(false);
+	const isDefaultColor = SanitizeHex(colorState) !== SanitizeHex(pluginSelf.systemColors.originalAccent);
 
 	const UpdateAllWindows = () => {
 		// @ts-ignore
@@ -31,7 +31,6 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
 
 	const UpdateColor = (hexColor: string) => {
 		setColorState(hexColor);
-		setDefaultColor(false);
 
 		Millennium.callServerMethod('cfg.change_accent_color', { new_color: hexColor }).then((result: any) => {
 			DispatchSystemColors(JSON.parse(result));
@@ -43,7 +42,6 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
 		Millennium.callServerMethod('cfg.reset_accent_color').then((result: any) => {
 			DispatchSystemColors(JSON.parse(result));
 			setColorState(pluginSelf.systemColors.accent.substring(0, 7));
-			setDefaultColor(true);
 			UpdateAllWindows();
 		});
 	};
@@ -70,7 +68,7 @@ const RenderAccentColorPicker = ({ currentThemeUsesAccentColor }: { currentTheme
 			}
 			bottomSeparator="none"
 		>
-			{SanitizeHex(colorState) !== SanitizeHex(pluginSelf.systemColors.originalAccent) && (
+			{!isDefaultColor && (
 				<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>
 					Reset
 				</DialogButton>
