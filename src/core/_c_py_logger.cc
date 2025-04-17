@@ -36,10 +36,24 @@
 
 std::vector<BackendLogger*> g_loggerList;
 
+/**
+ * @brief Creates a new LoggerObject instance.
+ * 
+ * This function creates a new LoggerObject instance and initializes it with the given arguments.
+ * 
+ * @param {PyTypeObject*} type - The type of the object to create.
+ * @param {PyObject*} args - The arguments to pass to the constructor.
+ * @param {PyObject*} kwds - The keyword arguments to pass to the constructor.
+ * 
+ * @returns {PyObject*} - A pointer to the new LoggerObject instance.
+ */ 
 MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     LoggerObject *self;
     self = (LoggerObject *)type->tp_alloc(type, 0);
+    if (!self) {
+        return NULL;
+    }
 
     const char* prefix = NULL;
     if (PyArg_ParseTuple(args, "|s", &prefix) && prefix != NULL) 
@@ -50,14 +64,15 @@ MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObje
     PyObject* builtins = PyEval_GetBuiltins();
     if (!builtins) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
+        Py_DECREF(self);
         return NULL;
     }
 
-    // Get the variable from the __builtins__ dictionary
+    /** Get the variable from the __builtins__ dictionary */
     PyObject* value = PyDict_GetItemString(builtins, "MILLENNIUM_PLUGIN_SECRET_NAME");
     std::string pluginName = value ? PyUnicode_AsUTF8(value) : "ERRNO_PLUGIN_NAME";
 
-    // Check if the logger already exists, and use it if it does
+    /** Check if the logger already exists, and use it if it does */
     for (auto logger : g_loggerList) 
     {
         if (logger->GetPluginName(false) == pluginName) 
@@ -68,15 +83,37 @@ MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObje
     }
 
     self->m_loggerPtr = new BackendLogger(pluginName);
+    if (!self->m_loggerPtr) {
+        Py_DECREF(self);
+        return NULL;
+    }
     g_loggerList.push_back(self->m_loggerPtr);
     return (PyObject *)self;
 }
 
+/**
+ * @brief Deallocates a LoggerObject instance.
+ * 
+ * This function deallocates a LoggerObject instance and does not delete the logger since it's shared in g_loggerList.
+ * 
+ * @param {LoggerObject*} self - The LoggerObject instance to deallocate.
+ */
 MILLENNIUM void LoggerObject_dealloc(LoggerObject *self)
 {
+    /** Don't delete the logger here since it's shared in g_loggerList */
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
+/**
+ * @brief Logs a message.
+ * 
+ * This function logs a message using the LoggerObject instance.
+ * 
+ * @param {LoggerObject*} self - The LoggerObject instance to log the message.
+ * @param {PyObject*} args - The arguments to pass to the log method.
+ * 
+ * @returns {PyObject*} - A pointer to the new LoggerObject instance.
+ */ 
 MILLENNIUM PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
 {
     const char *message;
@@ -90,6 +127,16 @@ MILLENNIUM PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
     return Py_None;
 }
 
+/**
+ * @brief Logs an error message.
+ * 
+ * This function logs an error message using the LoggerObject instance.
+ * 
+ * @param {LoggerObject*} self - The LoggerObject instance to log the error message.
+ * @param {PyObject*} args - The arguments to pass to the error method.
+ * 
+ * @returns {PyObject*} - A pointer to the new LoggerObject instance.
+ */ 
 MILLENNIUM PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
 {
     const char *message;
@@ -103,6 +150,16 @@ MILLENNIUM PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
     return Py_None;
 }
 
+/**
+ * @brief Logs a warning message.
+ * 
+ * This function logs a warning message using the LoggerObject instance.
+ * 
+ * @param {LoggerObject*} self - The LoggerObject instance to log the warning message.
+ * @param {PyObject*} args - The arguments to pass to the warning method.
+ * 
+ * @returns {PyObject*} - A pointer to the new LoggerObject instance.
+ */ 
 MILLENNIUM PyObject* LoggerObject_warning(LoggerObject *self, PyObject *args)
 {
     const char *message;
@@ -116,6 +173,13 @@ MILLENNIUM PyObject* LoggerObject_warning(LoggerObject *self, PyObject *args)
     return Py_None;
 }
 
+/**
+ * @brief The methods for the LoggerObject instance.
+ * 
+ * This array defines the methods for the LoggerObject instance.
+ * 
+ * @returns {PyMethodDef*} - A pointer to the methods for the LoggerObject instance.
+ */
 static PyMethodDef LoggerObject_methods[] = 
 {
     {"log",     (PyCFunction)LoggerObject_log,   METH_VARARGS, "Log a message"        },
@@ -125,6 +189,13 @@ static PyMethodDef LoggerObject_methods[] =
     {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
+/**
+ * @brief The type object for the LoggerObject instance.
+ * 
+ * This object defines the type for the LoggerObject instance.
+ * 
+ * @returns {PyTypeObject*} - A pointer to the type object for the LoggerObject instance.
+ */
 PyTypeObject LoggerType 
 {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -138,6 +209,13 @@ PyTypeObject LoggerType
     .tp_new = LoggerObject_new,
 };
 
+/**
+ * @brief The module definition for the logger module.
+ * 
+ * This object defines the module for the logger module.
+ * 
+ * @returns {PyModuleDef*} - A pointer to the module definition for the logger module.
+ */
 static struct PyModuleDef g_loggerModuleDef 
 {
     .m_base = PyModuleDef_HEAD_INIT,
@@ -147,15 +225,22 @@ static struct PyModuleDef g_loggerModuleDef
     .m_methods = LoggerObject_methods,
 };
 
+/**
+ * @brief Initializes the logger module.
+ * 
+ * This function initializes the logger module.
+ * 
+ * @returns {PyObject*} - A pointer to the logger module.
+ */
 MILLENNIUM PyObject* PyInit_Logger(void)
 {
-    PyObject *loggerModule;
     if (PyType_Ready(&LoggerType) < 0)
     {
+        /** Failing indicates a serious initialization error */
         return NULL;
     }
 
-    loggerModule = PyModule_Create(&g_loggerModuleDef);
+    PyObject *loggerModule = PyModule_Create(&g_loggerModuleDef);
     if (loggerModule == NULL)
     {
         return NULL;
@@ -170,4 +255,18 @@ MILLENNIUM PyObject* PyInit_Logger(void)
     }
 
     return loggerModule;
+}
+
+/** 
+ * @brief Cleans up the global logger list.
+ * 
+ * This function iterates through the global logger list and deletes each logger.
+ * It then clears the list to ensure no memory leaks occur.
+ */
+MILLENNIUM void CleanupLoggers()
+{
+    for (auto logger : g_loggerList) {
+        delete logger;
+    }
+    g_loggerList.clear();
 }

@@ -56,6 +56,9 @@ class MillenniumUpdater:
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to check for updates: {e}")
+
+        except ValueError as e:
+            logger.error(f"Failed to parse version: {e}")
     
 
     def has_any_updates():

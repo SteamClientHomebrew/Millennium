@@ -48,6 +48,13 @@
 
 static std::string addedScriptOnNewDocumentId = "";
 
+/**
+ * @brief A singleton class that manages the state of the backend load.
+ * 
+ * This class is used to manage the state of the backend load.
+ * 
+ * @returns {BackendLoadState} - A singleton instance of the BackendLoadState class.
+ */
 class BackendLoadState {
 private:
     BackendLoadState() = default;
@@ -606,12 +613,27 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     Logger.Log("Frontend notifier finished!");
 }
 
+/**
+ * @brief Injects the frontend shims.
+ * 
+ * This function injects the frontend shims by registering a callback function to be called when the backend is loaded.
+ * 
+ * @param {uint16_t} ftpPort - The FTP port used to access frontend resources.
+ * @param {uint16_t} ipcPort - The IPC port used for backend communication.
+ */
 MILLENNIUM const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
 }
 
+/**
+ * @brief Re-injects the frontend shims.
+ * 
+ * This function re-injects the frontend shims by removing the existing script and injecting a new one.
+ * 
+ * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
+ */
 MILLENNIUM const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader)
 {
     pluginLoader->InjectWebkitShims();

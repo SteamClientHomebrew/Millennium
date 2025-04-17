@@ -233,9 +233,9 @@ MILLENNIUM PyObject* JavaScript::EvaluateFromSocket(std::string script)
 
         std::string type = response.json["type"];
 
-        if      (type == "string") return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
-        else if (type == "boolean")   return PyBool_FromLong(response.json["value"]);
-        else if (type == "number")    return PyLong_FromLong(response.json["value"]);
+        if      (type == "string")  return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
+        else if (type == "boolean") return PyBool_FromLong     (response.json["value"]);
+        else if (type == "number")  return PyLong_FromLong     (response.json["value"]);
         else
             return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
 
