@@ -318,12 +318,10 @@ const static void EntryMain()
     PythonManager& manager = PythonManager::GetInstance();
 
     /** Start the python backends */
-    auto backendThread   = std::thread([&loader, &manager] { loader->StartBackEnds(manager); });
-    /** Start the injection process into the Steam web helper */
-    auto frontendThreads = std::thread([&loader] { loader->StartFrontEnds(); });
+    std::thread(&PluginLoader::StartBackEnds, loader, std::ref(manager)).detach();
 
-    backendThread  .join();
-    frontendThreads.detach();
+    /** Start the injection process into the Steam web helper */
+    loader->StartFrontEnds();
 }
 
 __attribute__((constructor)) void __init_millennium() 
