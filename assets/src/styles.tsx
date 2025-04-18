@@ -273,23 +273,31 @@ const styles = `
 	min-width: 80px;
 }
 
-.MillenniumUpToDate_Container {
+.MillenniumUpToDate_Container, .MillenniumErrorModal_Container {
 	gap: var(--MillenniumSpacing-Large);
 	height: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
+	margin-left: 100px;
+    margin-right: 100px;
 }
 
-.MillenniumUpToDate_Header {
-	color: var(--MillenniumTextColor-Normal);
-	font: var(--MillenniumText-BodyMedium);
-}
-
-.MillenniumUpToDate_Text {
+.MillenniumUpToDate_Header, .MillenniumErrorModal_Header {
 	color: var(--MillenniumTextColor-Normal);
 	font: var(--MillenniumText-BodyLarge);
+}
+
+.MillenniumUpToDate_Text, .MillenniumErrorModal_Text {
+	color: var(--MillenniumTextColor-Muted);
+	font: var(--MillenniumText-BodyMedium);
+	text-align: center;
+}
+
+button.MillenniumErrorModal_Button.DialogButton {
+    width: fit-content;
+    padding: 0px 50px;
 }
 
 /**
@@ -313,10 +321,10 @@ const styles = `
 
 	.DialogFooter {
 		flex-direction: column;
+		gap: var(--MillenniumSpacing-Normal);
 	}
 
 	.DialogTwoColLayout {
-		align-items: center;
 		justify-content: space-between;
 	}
 }
@@ -324,11 +332,22 @@ const styles = `
 .MillenniumRelease_UpdateLinksContainer {
 	gap: var(--MillenniumSpacing-Normal);
 	display: flex;
+
+	a {
+		font: var(--MillenniumText-BodyMedium);
+
+		&:hover {
+			cursor: pointer;
+		}
+	}
 }
 
 .MillenniumDownloadInfo_Field {
 	gap: var(--MillenniumSpacing-Small);
 	display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: var(--MillenniumSpacing-Small);
 }
 
 .MillenniumDownloadInfo_Publisher {

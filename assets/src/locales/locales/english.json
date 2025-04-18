@@ -75,5 +75,11 @@
 	"updateFailedPluginRunning": "Millennium can't update \"{0}\" while it's running, you'll need to disable it first.",
 	"themeAndPluginUpdateNotification": "Millennium found {0} available {1}",
 	"updateSingular": "update",
-	"updatePlural": "updates"
+	"updatePlural": "updates",
+	"updatePanelErrorHeader": "An error occurred while checking for updates!",
+	"updatePanelErrorBody": "Please check your internet connection and try again.",
+	"updatePanelErrorButton": "Retry",
+	"errorFailedConnection": "Failed to connect to Millennium!",
+	"errorFailedConnectionBody": "This issue isn't network related, you're most likely missing a file millennium needs, or are experiencing an unexpected bug.",
+	"errorFailedConnectionButton": "Open Logs Folder"
 }

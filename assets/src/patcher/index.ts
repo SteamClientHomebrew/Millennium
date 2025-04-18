@@ -46,7 +46,7 @@ const EvaluatePatches = (activeTheme: ThemeItem, documentTitle: string, classLis
 		SanitizeTargetModule(patch?.TargetCss, ModuleType.TargetCss, document);
 		SanitizeTargetModule(patch?.TargetJs, ModuleType.TargetJs, document);
 
-		// backwards compatability with old millennium versions.
+		// backwards compatibility with old millennium versions.
 		const PatchV1 = patch as PatchV1;
 
 		if (pluginSelf.conditionVersion == 1 && PatchV1?.Statement !== undefined) {

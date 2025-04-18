@@ -4,11 +4,11 @@ import { RenderThemeEditor } from '../custom_components/ThemeEditor';
 import { ComboItem, ThemeItem } from '../types';
 import { SetupAboutRenderer } from '../custom_components/AboutTheme';
 import { locale } from '../locales';
-import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { RenderAccentColorPicker } from './AccentColorPicker';
 import ReactDOM from 'react-dom';
 import { toolTipBodyClasses, toolTipClasses } from '../classes';
 import { MillenniumIcons } from '../icons';
+import { ErrorModal } from '../custom_components/ErrorModal';
 
 const Localize = (token: string): string =>
 	// @ts-ignore
@@ -179,7 +179,18 @@ const ThemeViewModal: React.FC = () => {
 	};
 
 	if (pluginSelf.connectionFailed) {
-		return <ConnectionFailed />;
+		return (
+			<ErrorModal
+				header={locale.errorFailedConnection}
+				body={locale.errorFailedConnectionBody}
+				options={{
+					buttonText: locale.errorFailedConnectionButton,
+					onClick: () => {
+						SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'));
+					},
+				}}
+			/>
+		);
 	}
 
 	const OpenThemesFolder = () => {

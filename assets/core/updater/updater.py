@@ -7,7 +7,7 @@ from config.ini import IniConfig
 
 class Updater: 
     def __init__(self):
-        self.api_url = "https://steambrew.app/api/checkupdates"
+        self.api_url = "http://localhost:3000/api/checkupdates"
 
         self.theme_updater = ThemeUpdater()
         self.plugin_updater = PluginUpdater()
@@ -26,36 +26,36 @@ class Updater:
         return True
 
     def check_for_updates(self, force = False) -> None:
-
-        if not force and self.cached_updates:
-            logger.log("Using cached updates.")
-            return self.cached_updates
-
-        plugins = self.plugin_updater.get_request_body()
-        update_query, themes  = self.theme_updater.get_request_body()
-
-        request_body = {
-            "plugins": plugins,
-            "themes": themes
-        }
-
         try:
+            if not force and self.cached_updates:
+                logger.log("Using cached updates.")
+                return self.cached_updates
+
+            plugins = self.plugin_updater.get_request_body()
+            update_query, themes  = self.theme_updater.get_request_body()
+
+            request_body = {
+                "plugins": plugins,
+                "themes": themes
+            }
+
             response = requests.post(self.api_url, json=request_body)
             response.raise_for_status()  # Raise an error for bad responses
 
             json = response.json()
             
-            if "themes" in json and json["themes"]:
+            if "themes" in json and json["themes"] and not "error" in json["themes"]:
                 json["themes"] = self.theme_updater.process_updates(update_query, json["themes"])
 
             return json
         
         except Exception as e:
             logger.log(f"An error occurred while checking for updates: {e}")
-            return None
+            return { "themes": { "error": str(e) } }
         
     def resync_updates(self):
         logger.log("Resyncing updates...")
         self.cached_updates = self.check_for_updates(force=True)
+        logger.log("Resync complete.")
 
         return json.dumps(self.cached_updates)

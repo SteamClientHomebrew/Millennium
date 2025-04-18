@@ -2,11 +2,11 @@ import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { ConfirmModal, DialogButton, Field, IconsModule, Millennium, Toggle, callable, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { locale } from '../locales';
-import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { GetLogData, LogData, LogLevel } from './Logs';
 import ReactDOM from 'react-dom';
 import { settingsClasses, toolTipBodyClasses, toolTipClasses } from '../classes';
 import { MillenniumIcons } from '../icons';
+import { ErrorModal } from '../custom_components/ErrorModal';
 
 interface EditPluginProps {
 	plugin: PluginComponent;
@@ -125,7 +125,18 @@ const PluginViewModal: React.FC = () => {
 	};
 
 	if (pluginSelf.connectionFailed) {
-		return <ConnectionFailed />;
+		return (
+			<ErrorModal
+				header={locale.errorFailedConnection}
+				body={locale.errorFailedConnectionBody}
+				options={{
+					buttonText: locale.errorFailedConnectionButton,
+					onClick: () => {
+						SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'));
+					},
+				}}
+			/>
+		);
 	}
 
 	const OpenPluginsFolder = async () => {

@@ -3,8 +3,8 @@ import { pluginSelf, Toggle, SteamSpinner, Field, callable, DialogControlsSectio
 import { locale } from '../locales';
 import { UpdaterOptionProps } from '../types';
 import { Settings } from '../Settings';
-import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
+import { ErrorModal } from '../custom_components/ErrorModal';
 
 const SetUpdateNotificationStatus = callable<[{ status: boolean }], boolean>('updater.set_update_notifs_status');
 const SetUserWantsUpdates = callable<[{ wantsUpdates: boolean }], void>('MillenniumUpdater.set_user_wants_updates');
@@ -42,7 +42,18 @@ const SettingsViewModal: React.FC = () => {
 
 	/** Check if the connection failed, this usually means the backend crashed or couldn't load */
 	if (pluginSelf.connectionFailed) {
-		return <ConnectionFailed />;
+		return (
+			<ErrorModal
+				header={locale.errorFailedConnection}
+				body={locale.errorFailedConnectionBody}
+				options={{
+					buttonText: locale.errorFailedConnectionButton,
+					onClick: () => {
+						SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'));
+					},
+				}}
+			/>
+		);
 	}
 
 	return (
@@ -52,11 +63,7 @@ const SettingsViewModal: React.FC = () => {
 			<Field label={locale.updatePanelCheckForUpdates} description={locale.toggleWantsMillenniumUpdatesTooltip}>
 				<Toggle value={wantsUpdates} onChange={OnUpdateChange} />
 			</Field>
-			<Field
-				label={locale.updatePanelShowUpdateNotifications}
-				description={locale.toggleWantsMillenniumUpdatesNotificationsTooltip}
-				bottomSeparator="none"
-			>
+			<Field label={locale.updatePanelShowUpdateNotifications} description={locale.toggleWantsMillenniumUpdatesNotificationsTooltip} bottomSeparator="none">
 				<Toggle value={wantsNotify} onChange={OnNotifyChange} />
 			</Field>
 

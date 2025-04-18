@@ -14,10 +14,10 @@ import {
 } from '@steambrew/client';
 import { formatString, locale } from '../locales';
 import { ThemeItem } from '../types';
-import { ConnectionFailed } from '../custom_components/ConnectionFailed';
 import { SettingsDialogSubHeader } from '../components/ISteamComponents';
 import Markdown from 'markdown-to-jsx';
 import { settingsClasses } from '../classes';
+import { ErrorModal } from '../custom_components/ErrorModal';
 
 interface UpdateProps {
 	updates: UpdateItemType[];
@@ -281,13 +281,24 @@ const UpdatesViewModal: React.FC = () => {
 	const [updates, setThemeUpdates] = useState<Array<UpdateItemType>>(null);
 	const [pluginUpdates, setPluginUpdates] = useState<any>(null);
 	const [hasReceivedUpdates, setHasReceivedUpdates] = useState<boolean>(false);
+	const [hasUpdateError, setHasUpdateError] = useState<boolean>(false);
+
+	const ParseUpdateErrorMessage = () => {
+		const themeError = pluginSelf?.updates?.themes?.error || '';
+		const pluginError = pluginSelf?.updates?.plugins?.error || '';
+
+		if (themeError && pluginError) {
+			return `${themeError}\n${pluginError}`;
+		}
+
+		return themeError || pluginError;
+	};
 
 	const ForceFetchUpdates = async () => {
 		const updates = JSON.parse(await ResyncUpdates());
 
 		pluginSelf.updates.themes = updates.themes;
 		pluginSelf.updates.plugins = updates.plugins;
-
 		NotifyUpdateListeners();
 	};
 
@@ -301,6 +312,8 @@ const UpdatesViewModal: React.FC = () => {
 
 			setThemeUpdates(pluginSelf.updates.themes);
 			setPluginUpdates(pluginSelf.updates.plugins);
+
+			setHasUpdateError(HasUpdateError());
 			setHasReceivedUpdates(true);
 
 			return true;
@@ -315,9 +328,31 @@ const UpdatesViewModal: React.FC = () => {
 		FetchAvailableUpdates();
 	}, []);
 
+	/** Check if the update failed, if so show an error modal */
+	if (hasUpdateError) {
+		return (
+			<ErrorModal
+				header={locale.updatePanelErrorHeader}
+				body={locale.updatePanelErrorBody + ParseUpdateErrorMessage()}
+				options={{ buttonText: locale.updatePanelErrorButton, onClick: FetchAvailableUpdates.bind(null, true) }}
+			/>
+		);
+	}
+
 	/** Check if the connection failed, this usually means the backend crashed or couldn't load */
 	if (pluginSelf.connectionFailed) {
-		return <ConnectionFailed />;
+		return (
+			<ErrorModal
+				header={locale.errorFailedConnection}
+				body={locale.errorFailedConnectionBody}
+				options={{
+					buttonText: locale.errorFailedConnectionButton,
+					onClick: () => {
+						SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'));
+					},
+				}}
+			/>
+		);
 	}
 
 	/** Check if the updates have been received, if not show a loading spinner */
@@ -333,6 +368,10 @@ const UpdatesViewModal: React.FC = () => {
 };
 
 const RenderUpdatesSettingsTab = () => {
+	if (HasUpdateError()) {
+		return <>{locale.settingsPanelUpdates}</>;
+	}
+
 	const [updateCount, setUpdateCount] = useState(0);
 
 	useEffect(() => {
@@ -392,4 +431,8 @@ const GetUpdateCount = () => {
 	return updates.length + pluginUpdates.filter((update: any) => update?.hasUpdate).length;
 };
 
-export { UpdatesViewModal, RenderUpdatesSettingsTab, GetUpdateCount };
+const HasUpdateError = () => {
+	return pluginSelf?.updates?.themes?.error || pluginSelf?.updates?.plugins?.error;
+};
+
+export { UpdatesViewModal, RenderUpdatesSettingsTab, GetUpdateCount, HasUpdateError };
