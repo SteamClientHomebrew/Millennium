@@ -1,3 +1,10 @@
+# [2.26.0-beta.3](https://github.com/shdwmtr/millennium/compare/v2.26.0-beta.2...v2.26.0-beta.3) (2025-04-18)
+
+
+### Bug Fixes
+
+* Only show "Reset" on system accent color if its not the original accent color. ([4266b17](https://github.com/shdwmtr/millennium/commit/4266b1746a21391ffc984af7c087668893e99c21))
+
 # [2.26.0-beta.2](https://github.com/shdwmtr/millennium/compare/v2.26.0-beta.1...v2.26.0-beta.2) (2025-04-14)
 
 
