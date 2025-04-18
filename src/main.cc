@@ -262,20 +262,6 @@ void OnTerminate()
     std::cerr << errorMessage << std::endl;
     #endif
 }
-#ifdef __linux__
-#include <sys/ptrace.h>
-#include <unistd.h>
-
-/**
- * @brief Check if a debugger is present on Linux.
- * @return True if a debugger is present, false otherwise.
- */
-int IsDebuggerPresent() 
-{
-    return ptrace(PTRACE_TRACEME, 0, 0, 0) == -1;
-}
-
-#endif
 
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
@@ -285,12 +271,11 @@ const static void EntryMain()
     #if _WIN32
     SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
-    #endif
-
     if (!IsDebuggerPresent()) 
     {
         std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
     }
+    #endif
     
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
