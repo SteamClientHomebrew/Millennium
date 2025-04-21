@@ -24,8 +24,8 @@ export enum LogLevel {
 	ERROR,
 }
 
-export const GetLogData = callable<[], LogData[]>('_get_plugin_logs');
-const CopyText = callable<[{ data: string }], boolean>('_copy_to_clipboard');
+export const GetLogData = callable<[], LogData[]>('GetPluginBackendLogs');
+const CopyText = callable<[{ data: string }], boolean>('SetClipboardContent');
 
 const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedLog: React.Dispatch<React.SetStateAction<LogData>> }) => {
 	const [searchedLogs, setSearchedLogs] = useState<LogItem[]>(logs.logs);

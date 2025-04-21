@@ -1,13 +1,7 @@
-import json
-import os
+import json, os, shutil, requests, zipfile
 from pathlib import Path
-import shutil
-import requests
 from typing import List, Dict, Optional
-import zipfile
 from util.logger import logger
-
-plugin_updater_cache = None
 
 class PluginUpdater:
     def __init__(self):

@@ -8,7 +8,7 @@ const DEFAULT_THEME_NAME = '__default__';
 const ChangeTheme = callable<[{ theme_name: string }]>('cfg.change_theme');
 const FindAllThemes = callable<[], string>('find_all_themes');
 const FindAllPlugins = callable<[], string>('find_all_plugins');
-const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('update_plugin_status');
+const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('ChangePluginStatus');
 
 /**
  * steam://millennium URL support.

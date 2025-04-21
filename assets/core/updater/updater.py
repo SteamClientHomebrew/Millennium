@@ -7,7 +7,7 @@ from config.ini import IniConfig
 
 class Updater: 
     def __init__(self):
-        self.api_url = "http://localhost:3000/api/checkupdates"
+        self.api_url = "https://steambrew.app/api/checkupdates"
 
         self.theme_updater = ThemeUpdater()
         self.plugin_updater = PluginUpdater()

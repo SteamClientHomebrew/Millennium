@@ -7,7 +7,7 @@ export const Settings = {
 	FetchAllSettings: () => {
 		return new Promise<SettingsProps>(async (resolve: any, _reject: any) => {
 			const settingsStore: SettingsProps = JSON.parse(
-				await Millennium.callServerMethod('get_load_config')
+				await Millennium.callServerMethod('GetMillenniumConfig')
 					.then((result: any) => {
 						pluginSelf.connectionFailed = false;
 						return result;

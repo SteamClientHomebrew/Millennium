@@ -1,17 +1,5 @@
 import Markdown from 'markdown-to-jsx';
-import {
-	callable,
-	DialogBody,
-	DialogBodyText,
-	DialogButton,
-	DialogFooter,
-	DialogHeader,
-	Field,
-	pluginSelf,
-	showModal,
-	TextField,
-	Toggle,
-} from '@steambrew/client';
+import { callable, DialogBody, DialogBodyText, DialogButton, DialogFooter, DialogHeader, Field, pluginSelf, showModal, TextField, Toggle } from '@steambrew/client';
 import { useEffect, useState } from 'react';
 import { OSType, UpdaterOptionProps } from '../types';
 import { locale } from '../locales';
@@ -23,7 +11,7 @@ import { Separator } from '../components/ISteamComponents';
 import Styles from '../styles';
 
 const UpdateMillennium = callable<[{ downloadUrl: string }], void>('MillenniumUpdater.queue_update');
-const ShouldShowUpdateInfo = callable<[], boolean>('should_show_update_modal');
+const ShouldShowUpdateInfo = callable<[], boolean>('ShouldShowUpdateModal');
 
 const LOG_UPDATE_INFO = (...params: any[]) => {
 	console.log(`%c[Millennium Updater]%c`, 'background: lightblue; color: black;', 'background: inherit; color: inherit;', ...params);
@@ -41,7 +29,7 @@ const UpdateAvailablePopup = ({ props, targetAsset, currentOSType }: { props: an
 
 	const SetupLinux = async () => {
 		if (currentOSType == OSType.Linux) {
-			const GetEnvironmentVar = callable<[{ variable: string }], string>('_get_env_var');
+			const GetEnvironmentVar = callable<[{ variable: string }], string>('GetEnvironmentVar');
 			const updateScript = await GetEnvironmentVar({ variable: 'MILLENNIUM__UPDATE_SCRIPT_PROMPT' });
 
 			setUpdateScript(updateScript);
@@ -53,9 +41,7 @@ const UpdateAvailablePopup = ({ props, targetAsset, currentOSType }: { props: an
 	}, []);
 
 	const OpenDiffInExternalBrowser = () => {
-		SteamClient.System.OpenInSystemBrowser(
-			`https://github.com/shdwmtr/millennium/compare/${pluginSelf.version}...${props.tag_name}#files_bucket`,
-		);
+		SteamClient.System.OpenInSystemBrowser(`https://github.com/shdwmtr/millennium/compare/${pluginSelf.version}...${props.tag_name}#files_bucket`);
 	};
 
 	const CloseWindow = () => {
@@ -169,7 +155,7 @@ export const ShowUpdaterModal = async () => {
 		return;
 	}
 
-	const GetOSType = callable<[], OSType>('_get_os_type');
+	const GetOSType = callable<[], OSType>('GetOperatingSystem');
 	const currentOSType = await GetOSType();
 
 	const targetAsset = await GetPlatformSpecificAsset(updates.newVersion, currentOSType);

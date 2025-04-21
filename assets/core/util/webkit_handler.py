@@ -1,10 +1,5 @@
 # This module is intended to keep track on the webkit hooks that are added to the browser
-import json
-import os
-import pprint
-import sys
-import traceback
-import Millennium # type: ignore
+import Millennium, sys, os, json, traceback
 from util.logger import logger
 
 class WebkitHookStore:
