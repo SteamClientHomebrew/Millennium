@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom';
 import { settingsClasses, toolTipBodyClasses, toolTipClasses } from '../classes';
 import { MillenniumIcons } from '../icons';
 import { ErrorModal } from '../custom_components/ErrorModal';
+import { RenderComponents } from '../custom_components/PluginEditor';
 
 interface EditPluginProps {
 	plugin: PluginComponent;
@@ -14,12 +15,22 @@ interface EditPluginProps {
 
 declare global {
 	interface Window {
-		PLUGIN_LIST: any;
+		MILLENNIUM_PLUGIN_SETTINGS_STORE: any;
 	}
 }
 
 const isEditablePlugin = (plugin_name: string) => {
-	return window.PLUGIN_LIST && window.PLUGIN_LIST[plugin_name] && typeof window.PLUGIN_LIST[plugin_name].renderPluginSettings === 'function' ? true : false;
+	let MillenniumSettings = window?.MILLENNIUM_PLUGIN_SETTINGS_STORE?.[plugin_name];
+
+	if (!MillenniumSettings) {
+		return false;
+	}
+
+	if (!MillenniumSettings?.settingsStore) {
+		return false;
+	}
+
+	return Object.keys(MillenniumSettings.settingsStore).length > 0;
 };
 
 const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
@@ -27,8 +38,20 @@ const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
 		return <></>;
 	}
 
+	const OpenPluginEditor = () => {
+		const onOK = () => {};
+
+		showModal(
+			<ConfirmModal strTitle={plugin?.data?.common_name} strDescription={<RenderComponents plugin={plugin} />} onOK={onOK} strOKButtonText="Done" />,
+			pluginSelf.windows['Millennium'],
+			{
+				bNeverPopOut: false,
+			},
+		);
+	};
+
 	return (
-		<DialogButton className="_3epr8QYWw_FqFgMx38YEEm MillenniumIconButton">
+		<DialogButton className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} onClick={OpenPluginEditor}>
 			<IconsModule.Settings />
 		</DialogButton>
 	);
@@ -45,8 +68,8 @@ interface UpdatedPluginProps {
 }
 
 const FindAllPlugins = callable<[], string>('find_all_plugins');
-const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('update_plugin_status');
-const GetPluginsPath = callable<[], string>('get_plugins_dir');
+const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('ChangePluginStatus');
+const GetEnvironmentVar = callable<[{ variable: string }], string>('GetEnvironmentVar');
 
 const PluginViewModal: React.FC = () => {
 	const [plugins, setPlugins] = useState<PluginComponent[]>([]);
@@ -140,7 +163,7 @@ const PluginViewModal: React.FC = () => {
 	}
 
 	const OpenPluginsFolder = async () => {
-		const pluginsPath = await GetPluginsPath();
+		const pluginsPath = await GetEnvironmentVar({ variable: 'MILLENNIUM__PLUGINS_PATH' });
 
 		console.log('Opening plugins folder', pluginsPath);
 		SteamClient.System.OpenLocalDirectoryInSystemExplorer(pluginsPath);
@@ -220,7 +243,12 @@ const PluginViewModal: React.FC = () => {
 					bottomSeparator={isLastPlugin ? 'none' : 'standard'}
 				>
 					<EditPlugin plugin={plugin} />
-					<Toggle disabled={plugin?.data?.name == 'core'} value={checkedItems[index]} onChange={(_checked: boolean) => handleCheckboxChange(index)} />
+					<Toggle
+						key={plugin?.data?.name}
+						disabled={plugin?.data?.name == 'core'}
+						value={checkedItems[index]}
+						onChange={(_checked: boolean) => handleCheckboxChange(index)}
+					/>
 				</Field>
 
 				{isHovering && <RenderStatusTooltip plugin={plugin} index={index} />}

@@ -248,6 +248,52 @@ MILLENNIUM void StartPluginBackend(PyObject* global_dict, std::string pluginName
 }
 
 /**
+ * Sets up the plugin settings parser in the builtins dictionary.
+ *
+ * This function checks if the `__millennium_plugin_settings_parser__` function exists in the builtins dictionary.
+ * If it does not exist, it creates a placeholder function and adds it to the builtins dictionary.
+ *
+ * Error Handling:
+ * - If the builtins dictionary cannot be retrieved, a `RuntimeError` is raised.
+ * - If creating the placeholder function fails, a `RuntimeError` is raised.
+ */
+MILLENNIUM void SetupPluginSettings()
+{
+    PyObject* builtins = PyEval_GetBuiltins();
+    if (!builtins) 
+    {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
+        return;
+    }
+
+    PyObject* parserFunc = PyDict_GetItemString(builtins, "__millennium_plugin_settings_parser__");
+    if (!parserFunc) 
+    {
+        Logger.PrintMessage(" BOOT ", "Creating __millennium_plugin_settings_parser__ function in builtins.", COL_YELLOW);
+
+        static PyMethodDef methodDef = {
+            "__millennium_plugin_settings_parser__",
+            [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; },
+            METH_NOARGS,
+            "Millennium plugin settings parser placeholder."
+        };
+
+        PyObject* newFunc = PyCFunction_New(&methodDef, nullptr);
+
+        if (newFunc) 
+        {
+            PyDict_SetItemString(builtins, "__millennium_plugin_settings_parser__", newFunc);
+            Py_DECREF(newFunc);
+        } 
+        else 
+        {
+            PyErr_SetString(PyExc_RuntimeError, "Failed to create __millennium_plugin_settings_parser__ function.");
+        }
+    }
+}
+
+
+/**
  * Sets a secret plugin name in both the global dictionary and the builtins dictionary in Python.
  * The plugin secret name is used to identify the plugin in IPC and FFI calls.
  *
@@ -412,6 +458,7 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
         }
     });
 
+    SetupPluginSettings();
     StartPluginBackend(globalDictionary, plugin.pluginName);  
 
     timeOutLockThreadRunning.store(false);

@@ -81,5 +81,6 @@
 	"updatePanelErrorButton": "Retry",
 	"errorFailedConnection": "Failed to connect to Millennium!",
 	"errorFailedConnectionBody": "This issue isn't network related, you're most likely missing a file millennium needs, or are experiencing an unexpected bug.",
-	"errorFailedConnectionButton": "Open Logs Folder"
+	"errorFailedConnectionButton": "Open Logs Folder",
+	"strDone": "Done"
 }

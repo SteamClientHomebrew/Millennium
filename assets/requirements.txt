@@ -12,3 +12,4 @@ watchdog==6.0.0
 PySocks==1.7.1
 pyperclip==1.9.0
 semver==3.0.4
+millennium
