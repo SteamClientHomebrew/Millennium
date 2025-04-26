@@ -61,6 +61,14 @@ MILLENNIUM WebkitHandler WebkitHandler::get()
     return webkitHandler;
 }
 
+MILLENNIUM void WebkitHandler::Init()
+{
+    m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").string()));
+    m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex(GetEnv("MILLENNIUM__PLUGINS_PATH")));
+
+    this->SetupGlobalHooks();
+}
+
 MILLENNIUM void WebkitHandler::SetupGlobalHooks() 
 {
     Sockets::PostGlobal({
@@ -110,8 +118,39 @@ MILLENNIUM std::filesystem::path WebkitHandler::ConvertToLoopBack(std::string re
 
 MILLENNIUM void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> message)
 {
-    std::string fileContent;
     std::filesystem::path localFilePath = this->ConvertToLoopBack(message["params"]["request"]["url"]);
+
+    // Check if the file path is whitelisted
+    bool isWhitelisted = false;
+    for (const auto& pathRegex : *m_whiteListedRegexPathsPtr) {
+        if (std::regex_search(localFilePath.string(), std::regex(pathRegex))) {
+            isWhitelisted = true;
+            break;
+        }
+    }
+
+    if (!isWhitelisted) {
+        std::string errorMessage = fmt::format("Access denied: path '{}' is not in the whitelist", localFilePath.string());
+        LOG_ERROR(errorMessage);
+        Sockets::PostGlobal({
+            { "id", 63453 },
+            { "method", "Fetch.fulfillRequest" },
+            { "params", {
+                { "responseCode", 403 },
+                { "requestId", message["params"]["requestId"] },
+                { "responseHeaders", nlohmann::json::array({
+                    { {"name", "Access-Control-Allow-Origin"}, {"value", "*"} },
+                    { {"name", "Content-Type"}, {"value", "text/plain"} }
+                })},
+                { "responsePhrase", errorMessage },
+                { "body", Base64Encode(errorMessage) }
+            }}
+        });
+        return;
+    }
+
+
+    std::string fileContent;
     std::ifstream localFileStream(localFilePath);
 
     bool bFailedRead = !localFileStream.is_open();
@@ -121,7 +160,7 @@ MILLENNIUM void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> me
     }
 
     uint16_t    responseCode    = bFailedRead ? 404 : 200;
-    std::string responseMessage = bFailedRead ? "millennium couldn't read " + localFilePath.string() : "millennium";
+    std::string responseMessage = bFailedRead ? "millennium couldn't read " + localFilePath.string() : "OK millennium";
     eFileType   fileType        = EvaluateFileType(localFilePath.string());
 
     if (IsBinaryFile(fileType)) 

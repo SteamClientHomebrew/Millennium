@@ -64,6 +64,13 @@ public:
 
     std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
 
+    std::shared_ptr<std::vector<std::string>> m_whiteListedRegexPathsPtr = std::make_shared<std::vector<std::string>>(std::vector<std::string>{
+        "^plugins\\/",
+        "^steamui\\/",
+    });
+
+    void Init();
+
     void DispatchSocketMessage(nlohmann::basic_json<> message);
     void SetupGlobalHooks();
 
@@ -93,6 +100,13 @@ private:
     void GetResponseBody(nlohmann::basic_json<> message);
 
     std::filesystem::path ConvertToLoopBack(std::string requestUrl);
+
+    static std::string EscapeRegex(const std::string str) {
+        std::string result = str;
+        std::replace(result.begin(), result.end(), '\\', '/');
+        static const std::regex special_chars{ R"([-[\]{}()*+?.,\^$|#\s])" };
+        return std::regex_replace(result, special_chars, R"(\$&)");
+    }
 
     struct WebHookItem {
         long long id;

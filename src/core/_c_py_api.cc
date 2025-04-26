@@ -366,6 +366,50 @@ MILLENNIUM PyObject* GetPluginLogs(PyObject* self, PyObject* args)
     return PyUnicode_FromString(logData.dump().c_str());
 }
 
+MILLENNIUM PyObject* AddProxyWhitelistedRegexPath(PyObject* self, PyObject* args)
+{
+    const char* regexPath;
+    
+    if (!PyArg_ParseTuple(args, "s", &regexPath)) {
+        return NULL;
+    }
+    
+    try {
+        Logger.Log("Adding whitelisted regex path: {}", regexPath);
+        WebkitHandler::get().m_whiteListedRegexPathsPtr->push_back(regexPath);
+    }
+    catch (const std::regex_error& e) 
+    {
+        LOG_ERROR("Failed to add whitelisted regex path with invalid regex: {} ({})", regexPath, e.what());
+        ErrorToLogger("executor", fmt::format("Failed to add whitelisted regex path with invalid regex: {} ({})", regexPath, e.what()));
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+MILLENNIUM PyObject* RemoveProxyWhitelistedRegexPath(PyObject* self, PyObject* args)
+{
+    const char* regexPath;
+    
+    if (!PyArg_ParseTuple(args, "s", &regexPath)) {
+        return NULL;
+    }
+    
+    try {
+        auto& paths = *WebkitHandler::get().m_whiteListedRegexPathsPtr;
+        paths.erase(std::remove(paths.begin(), paths.end(), regexPath), paths.end());
+    }
+    catch (const std::regex_error& e) 
+    {
+        LOG_ERROR("Failed to remove whitelisted regex path with invalid regex: {} ({})", regexPath, e.what());
+        ErrorToLogger("executor", fmt::format("Failed to remove whitelisted regex path with invalid regex: {} ({})", regexPath, e.what()));
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
 /** 
  * Method API for the Millennium module
  * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
@@ -394,6 +438,10 @@ MILLENNIUM PyMethodDef* GetMillenniumModule()
         { "get_install_path",      GetInstallPath,                  METH_NOARGS,  NULL },
         /** Get all the current stored logs from all loaded and previously loaded plugins during this instance */
         { "get_plugin_logs" ,      GetPluginLogs,                   METH_NOARGS, NULL },
+        /** Add a regex path to the proxy whitelist */
+        { "add_proxy_whitelisted_regex_path", AddProxyWhitelistedRegexPath,    METH_VARARGS, NULL },
+        /** Remove a regex path from the proxy whitelist */
+        { "remove_proxy_whitelisted_regex_path", RemoveProxyWhitelistedRegexPath, METH_VARARGS, NULL },
 
         /** Call a JavaScript method on the frontend. */
         { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
