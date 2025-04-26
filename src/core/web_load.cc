@@ -121,7 +121,7 @@ MILLENNIUM void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> me
     }
 
     uint16_t    responseCode    = bFailedRead ? 404 : 200;
-    std::string responseMessage = bFailedRead ? "millennium" : "millennium couldn't read " + localFilePath.string();
+    std::string responseMessage = bFailedRead ? "millennium couldn't read " + localFilePath.string() : "millennium";
     eFileType   fileType        = EvaluateFileType(localFilePath.string());
 
     if (IsBinaryFile(fileType)) 
