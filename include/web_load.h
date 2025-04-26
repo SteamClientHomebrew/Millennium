@@ -77,6 +77,13 @@ public:
     void SetIPCPort(uint16_t ipcPort) { m_ipcPort = ipcPort; }
     void SetFTPPort(uint16_t ftpPort) { m_ftpPort = ftpPort; }
 
+    static std::string EscapeRegex(const std::string str) {
+        std::string result = str;
+        std::replace(result.begin(), result.end(), '\\', '/');
+        static const std::regex special_chars{ R"([-[\]{}()*+?.,\^$|#\s])" };
+        return std::regex_replace(result, special_chars, R"(\$&)");
+    }
+
 private:
     uint16_t m_ipcPort, m_ftpPort;
     long long hookMessageId = -69;
@@ -100,13 +107,6 @@ private:
     void GetResponseBody(nlohmann::basic_json<> message);
 
     std::filesystem::path ConvertToLoopBack(std::string requestUrl);
-
-    static std::string EscapeRegex(const std::string str) {
-        std::string result = str;
-        std::replace(result.begin(), result.end(), '\\', '/');
-        static const std::regex special_chars{ R"([-[\]{}()*+?.,\^$|#\s])" };
-        return std::regex_replace(result, special_chars, R"(\$&)");
-    }
 
     struct WebHookItem {
         long long id;

@@ -63,7 +63,7 @@ MILLENNIUM WebkitHandler WebkitHandler::get()
 
 MILLENNIUM void WebkitHandler::Init()
 {
-    m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").string()));
+    m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").generic_string()));
     m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex(GetEnv("MILLENNIUM__PLUGINS_PATH")));
 
     this->SetupGlobalHooks();

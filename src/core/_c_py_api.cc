@@ -179,10 +179,12 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
 
     g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
+    auto webkitHandler = WebkitHandler::get();
 
     try 
     {
-        WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+        webkitHandler.m_hookListPtr->push_back({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+        webkitHandler.m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex(path.generic_string()));
     } 
     catch (const std::regex_error& e) 
     {
