@@ -40,6 +40,7 @@
 #include "env.h"
 #include "serv.h"
 #include "fvisible.h"
+#include "regex.h"
 unsigned long long g_hookedModuleId;
 
 // Millennium will not load JavaScript into the following URLs to favor user safety.
@@ -63,8 +64,8 @@ MILLENNIUM WebkitHandler WebkitHandler::get()
 
 MILLENNIUM void WebkitHandler::Init()
 {
-    m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").generic_string()));
-    m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex(GetEnv("MILLENNIUM__PLUGINS_PATH")));
+    m_whiteListedRegexPathsPtr->push_back(EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").generic_string()));
+    m_whiteListedRegexPathsPtr->push_back(EscapeRegex(GetEnv("MILLENNIUM__PLUGINS_PATH")));
 
     this->SetupGlobalHooks();
 }

@@ -41,6 +41,7 @@
 #include "logger.h"
 #include "encoding.h"
 #include "fvisible.h"
+#include "regex.h"
 
 std::shared_ptr<PluginLoader> g_pluginLoader;
 
@@ -184,7 +185,7 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
     try 
     {
         webkitHandler.m_hookListPtr->push_back({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
-        webkitHandler.m_whiteListedRegexPathsPtr->push_back(WebkitHandler::EscapeRegex(path.generic_string()));
+        webkitHandler.m_whiteListedRegexPathsPtr->push_back(EscapeRegex(path.generic_string()));
     } 
     catch (const std::regex_error& e) 
     {
@@ -368,7 +369,7 @@ MILLENNIUM PyObject* GetPluginLogs(PyObject* self, PyObject* args)
     return PyUnicode_FromString(logData.dump().c_str());
 }
 
-MILLENNIUM PyObject* AddProxyWhitelistedRegexPath(PyObject* self, PyObject* args)
+MILLENNIUM PyObject* AddProxyPattern(PyObject* self, PyObject* args)
 {
     const char* regexPath;
     
@@ -390,7 +391,7 @@ MILLENNIUM PyObject* AddProxyWhitelistedRegexPath(PyObject* self, PyObject* args
     Py_RETURN_NONE;
 }
 
-MILLENNIUM PyObject* RemoveProxyWhitelistedRegexPath(PyObject* self, PyObject* args)
+MILLENNIUM PyObject* RemoveProxyPattern(PyObject* self, PyObject* args)
 {
     const char* regexPath;
     
@@ -441,9 +442,9 @@ MILLENNIUM PyMethodDef* GetMillenniumModule()
         /** Get all the current stored logs from all loaded and previously loaded plugins during this instance */
         { "get_plugin_logs" ,      GetPluginLogs,                   METH_NOARGS, NULL },
         /** Add a regex path to the proxy whitelist */
-        { "add_proxy_whitelisted_regex_path", AddProxyWhitelistedRegexPath,    METH_VARARGS, NULL },
+        { "add_proxy_pattern",     AddProxyPattern,                 METH_VARARGS, NULL },
         /** Remove a regex path from the proxy whitelist */
-        { "remove_proxy_whitelisted_regex_path", RemoveProxyWhitelistedRegexPath, METH_VARARGS, NULL },
+        { "remove_proxy_pattern",  RemoveProxyPattern,              METH_VARARGS, NULL },
 
         /** Call a JavaScript method on the frontend. */
         { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },

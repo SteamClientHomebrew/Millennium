@@ -64,10 +64,13 @@ public:
 
     std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
 
-    std::shared_ptr<std::vector<std::string>> m_whiteListedRegexPathsPtr = std::make_shared<std::vector<std::string>>(std::vector<std::string>{
-        "^plugins\\/",
-        "^steamui\\/",
-    });
+    std::shared_ptr<std::vector<std::string>> m_whiteListedRegexPathsPtr = std::make_shared<std::vector<std::string>>(
+        std::vector<std::string>
+        {
+            "^plugins\\/",
+            "^steamui\\/",
+        }
+    );
 
     void Init();
 
@@ -76,13 +79,6 @@ public:
 
     void SetIPCPort(uint16_t ipcPort) { m_ipcPort = ipcPort; }
     void SetFTPPort(uint16_t ftpPort) { m_ftpPort = ftpPort; }
-
-    static std::string EscapeRegex(const std::string str) {
-        std::string result = str;
-        std::replace(result.begin(), result.end(), '\\', '/');
-        static const std::regex special_chars{ R"([-[\]{}()*+?.,\^$|#\s])" };
-        return std::regex_replace(result, special_chars, R"(\$&)");
-    }
 
 private:
     uint16_t m_ipcPort, m_ftpPort;
