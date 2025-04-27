@@ -1,4 +1,4 @@
-import { callable, Millennium } from '@steambrew/client';
+import { callable, Millennium, constSysfsExpr } from '@steambrew/client';
 import { PluginSettings } from './settings';
 
 class classname {
@@ -7,6 +7,21 @@ class classname {
 		return 'method called';
 	}
 }
+
+const asset1 = constSysfsExpr('file1.txt', {
+	basePath: './assets',
+	encoding: 'utf8',
+});
+
+console.log('asset1', asset1); // file content
+
+const allAssets = constSysfsExpr({
+	basePath: './assets',
+	include: '*.txt',
+	encoding: 'utf8',
+});
+
+console.log('all assets', allAssets); // array of file contents
 
 // export classname class to global context
 Millennium.exposeObj({ classname });
@@ -23,11 +38,8 @@ const backendMethod = callable<[{ message: string; status: boolean; count: numbe
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
-	// @ts-ignore
-	console.log(PluginSettings.__raw_get_internals__);
-	console.log(PluginSettings.doFrontEndCall);
-
-	PluginSettings.frontEndCount += 1;
+	PluginSettings.numberTextInput += 1;
+	console.log(PluginSettings.numberTextInput);
 
 	// Call the backend method
 	const message = await backendMethod({ message: 'Hello World From Frontend!', status: true, count: 69 });
