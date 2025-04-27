@@ -1,4 +1,4 @@
-import { callable, IconsModule, Millennium, pluginSelf } from '@steambrew/client';
+import { callable, findAllModules, findClassModule, findModule, findModuleDetailsByExport, IconsModule, Millennium, pluginSelf } from '@steambrew/client';
 import { PatchDocumentContext } from './patcher/index';
 import { RenderSettingsModal } from './ui/Settings';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
@@ -76,9 +76,15 @@ const ProcessUpdates = () => {
 		return;
 	}
 
+	const updateCount = GetUpdateCount();
+
+	if (updateCount === 0) {
+		Logger.Log('No updates found, skipping...');
+		return;
+	}
+
 	/** Gaben's steam account ID */
 	const steamId = 76561197960287930;
-	const updateCount = GetUpdateCount();
 	const message = formatString(locale.themeAndPluginUpdateNotification, updateCount, updateCount > 1 ? locale.updatePlural : locale.updateSingular);
 
 	setTimeout(() => {
@@ -133,8 +139,6 @@ const InitializePatcher = async (startTime: number, result: SettingsProps) => {
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
-	console.log(IconsModule);
-
 	const startTime = performance.now();
 	const settings: SettingsProps = await Settings.FetchAllSettings();
 	await InitializePatcher(startTime, settings);

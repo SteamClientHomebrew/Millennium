@@ -38,11 +38,11 @@ class Plugin:
 
     def _load(self):     
 
-        PluginSettings.frontEndCount += 1
-        print("PluginSettings.frontEndCount", PluginSettings.frontEndCount)
+        PluginSettings.numberTextInput += 1
+        print("PluginSettings.numberTextInput", PluginSettings.numberTextInput)
 
-        PluginSettings.frontEndCount += 1
-        print("PluginSettings.frontEndCount", PluginSettings.frontEndCount)
+        PluginSettings.numberTextInput += 1
+        print("PluginSettings.numberTextInput", PluginSettings.numberTextInput)
 
         # This code is executed when your plugin loads. 
         # notes: thread safe, running for entire lifespan of millennium

@@ -1,4 +1,4 @@
-import { BindPluginSettings } from '@steambrew/client';
+import { BindPluginSettings } from '@steambrew/webkit';
 
 type CheckBox = true | false;
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dropdown, SingleDropdownOption, Toggle, Field, findClassModule, TextField } from '@steambrew/client';
+import { Dropdown, SingleDropdownOption, Toggle, Field, findClassModule, TextField, SliderField, findModuleDetailsByExport } from '@steambrew/client';
 import Markdown from 'markdown-to-jsx';
 
 interface ComponentInterface {
@@ -19,14 +19,33 @@ enum ComponentType {
 	NumberTextInput,
 	StringTextInput,
 	FloatTextInput,
+	NumberSlider,
+	FloatSlider,
 }
 
 const RenderComponentType: React.FC<ComponentInterface> = ({ pluginName, object, component, type }) => {
 	const settings = window.MILLENNIUM_PLUGIN_SETTINGS_STORE?.[pluginName].settingsStore;
 	const items = component?.options?.map((value: string, index: number) => ({ label: value, data: 'componentId' + index }));
 
+	function isFloat(num: number) {
+		// First, check if the value is actually a number and not NaN or Infinity
+		if (typeof num !== 'number' || !isFinite(num)) {
+			return false;
+		}
+		// Then, check if it's not an integer
+		return !Number.isInteger(num);
+	}
+
+	const PadFloat = (value: number, digits: number) => {
+		const str = value.toString();
+		const decimalIndex = str.indexOf('.');
+		if (decimalIndex === -1) return str + '.0'.padEnd(digits + 2, '0');
+		const decimalPart = str.slice(decimalIndex + 1);
+		return str + '0'.repeat(digits - decimalPart.length);
+	};
+
 	const [checked, setChecked] = useState<boolean>(component.value);
-	const [textValue, setTextValue] = useState<string | number>(component.value);
+	const [textValue, setTextValue] = useState<string | number>(isFloat(component.value) ? PadFloat(component.value, 2) : component.value);
 
 	const OnDropDownChange = (option: SingleDropdownOption) => {
 		settings[object] = option.label;
@@ -37,16 +56,28 @@ const RenderComponentType: React.FC<ComponentInterface> = ({ pluginName, object,
 		setChecked(checked);
 	};
 
-	const OnNumberTextInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+	function OnTextInputChange<T>(type: T, event: React.ChangeEvent<HTMLInputElement>) {
 		console.log('Text input changed', event.target.value);
 
 		try {
-			settings[object] = parseInt(event.target.value);
-			setTextValue(settings[object]);
+			if (type === ComponentType.StringTextInput) {
+				settings[object] = event.target.value;
+			} else if (type === ComponentType.FloatTextInput) {
+				settings[object] = parseFloat(event.target.value);
+			} else if (type === ComponentType.NumberTextInput) {
+				settings[object] = parseInt(event.target.value);
+			}
+
+			setTextValue(isFloat(settings[object]) ? PadFloat(settings[object], 2) : settings[object]);
 		} catch (e) {
 			console.error('Error parsing number', e);
 		}
-	};
+	}
+
+	const textFieldClass = 'DialogInput DialogInputPlaceholder DialogTextInputBase Focusable';
+
+	// const Slider = findModuleDetailsByExport((m) => m?.toString()?.includes('m_elSlider=e.currentTarget,this.m_rectSlider=this.m_elSlider.getBoundingClientRect()'))
+	// console.log(Slider.toString());
 
 	switch (type) {
 		case ComponentType.DropDown:
@@ -65,12 +96,27 @@ const RenderComponentType: React.FC<ComponentInterface> = ({ pluginName, object,
 			return <Toggle key={pluginName + object} value={checked} onChange={OnCheckBoxChange} />;
 
 		case ComponentType.NumberTextInput:
+		case ComponentType.FloatTextInput:
+		case ComponentType.StringTextInput:
+			return <TextField key={pluginName + object} value={textValue as string} onChange={(event) => OnTextInputChange(type, event)} className={textFieldClass} />;
+
+		case ComponentType.NumberSlider:
+		case ComponentType.FloatSlider:
+			console.log(component);
+
 			return (
-				<TextField
+				// @ts-ignore
+				<SliderField
 					key={pluginName + object}
-					value={textValue as string}
-					onChange={OnNumberTextInputChange}
-					className="DialogInput DialogInputPlaceholder DialogTextInputBase Focusable"
+					min={component.range[0]}
+					max={component.range[1]}
+					step={component.step}
+					value={textValue as number}
+					onChange={(value: any) => {
+						settings[object] = value;
+						setTextValue(value);
+					}}
+					showValue={true}
 				/>
 			);
 
@@ -92,6 +138,9 @@ button.DialogButton._DialogLayout.Secondary.Focusable {
 }
 .${SettingsModalClass} {
 	min-width: unset;
+}
+.DialogSlider_Slider {
+    width: 200px;
 }
 `;
 
