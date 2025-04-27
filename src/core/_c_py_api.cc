@@ -185,7 +185,7 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
     try 
     {
         webkitHandler.m_hookListPtr->push_back({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
-        webkitHandler.m_whiteListedRegexPathsPtr->push_back(EscapeRegex(path.generic_string()));
+        m_whiteListedRegexPaths.push_back(EscapeRegex(path.generic_string()));
     } 
     catch (const std::regex_error& e) 
     {
@@ -379,7 +379,7 @@ MILLENNIUM PyObject* AddProxyPattern(PyObject* self, PyObject* args)
     
     try {
         Logger.Log("Adding whitelisted regex path: {}", regexPath);
-        WebkitHandler::get().m_whiteListedRegexPathsPtr->push_back(regexPath);
+        m_whiteListedRegexPaths.push_back(regexPath);
     }
     catch (const std::regex_error& e) 
     {
@@ -400,8 +400,7 @@ MILLENNIUM PyObject* RemoveProxyPattern(PyObject* self, PyObject* args)
     }
     
     try {
-        auto& paths = *WebkitHandler::get().m_whiteListedRegexPathsPtr;
-        paths.erase(std::remove(paths.begin(), paths.end(), regexPath), paths.end());
+        m_whiteListedRegexPaths.erase(std::remove(m_whiteListedRegexPaths.begin(), m_whiteListedRegexPaths.end(), regexPath), m_whiteListedRegexPaths.end());
     }
     catch (const std::regex_error& e) 
     {

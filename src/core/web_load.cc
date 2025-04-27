@@ -56,6 +56,8 @@ static const std::unordered_set<std::string> g_doNotHook = {
     R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
 };
 
+std::vector<std::string> m_whiteListedRegexPaths = {};
+
 MILLENNIUM WebkitHandler WebkitHandler::get() 
 {
     static WebkitHandler webkitHandler;
@@ -64,8 +66,12 @@ MILLENNIUM WebkitHandler WebkitHandler::get()
 
 MILLENNIUM void WebkitHandler::Init()
 {
-    m_whiteListedRegexPathsPtr->push_back(EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").generic_string()));
-    m_whiteListedRegexPathsPtr->push_back(EscapeRegex(GetEnv("MILLENNIUM__PLUGINS_PATH")));
+    m_whiteListedRegexPaths.insert(m_whiteListedRegexPaths.end(), {
+        "^plugins\\/",
+        "^steamui\\/",
+        EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").generic_string()),
+        EscapeRegex(GetEnv("MILLENNIUM__PLUGINS_PATH")),
+    });
 
     this->SetupGlobalHooks();
 }
@@ -123,7 +129,7 @@ MILLENNIUM void WebkitHandler::RetrieveRequestFromDisk(nlohmann::basic_json<> me
 
     // Check if the file path is whitelisted
     bool isWhitelisted = false;
-    for (const auto& pathRegex : *m_whiteListedRegexPathsPtr) {
+    for (const auto& pathRegex : m_whiteListedRegexPaths) {
         if (std::regex_search(localFilePath.string(), std::regex(pathRegex))) {
             isWhitelisted = true;
             break;

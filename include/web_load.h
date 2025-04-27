@@ -37,6 +37,8 @@
 
 extern unsigned long long g_hookedModuleId;
 
+extern std::vector<std::string> m_whiteListedRegexPaths;
+
 class WebkitHandler 
 {
 public:
@@ -63,14 +65,6 @@ public:
     };
 
     std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
-
-    std::shared_ptr<std::vector<std::string>> m_whiteListedRegexPathsPtr = std::make_shared<std::vector<std::string>>(
-        std::vector<std::string>
-        {
-            "^plugins\\/",
-            "^steamui\\/",
-        }
-    );
 
     void Init();
 
