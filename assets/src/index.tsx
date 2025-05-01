@@ -1,4 +1,20 @@
-import { callable, findAllModules, findClassModule, findModule, findModuleDetailsByExport, IconsModule, Millennium, pluginSelf } from '@steambrew/client';
+import {
+	afterPatch,
+	beforePatch,
+	callable,
+	CommonUIModule,
+	findAllModules,
+	findClassModule,
+	findInReactTree,
+	findModule,
+	findModuleByExport,
+	findModuleDetailsByExport,
+	findModuleExport,
+	getReactRoot,
+	IconsModule,
+	Millennium,
+	pluginSelf,
+} from '@steambrew/client';
 import { PatchDocumentContext } from './patcher/index';
 import { RenderSettingsModal } from './ui/Settings';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
@@ -13,6 +29,9 @@ import { ShowWelcomeModal } from './custom_components/modals/WelcomeModal';
 import { GetUpdateCount, HasUpdateError, NotifyUpdateListeners } from './tabs/Updates';
 import { formatString, locale } from './locales';
 import { OnRunSteamURL } from './URLSchemeHandler';
+import { useMemo } from 'react';
+import ReactDOM, { createPortal } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 const GetRootColors = callable<[], string>('cfg.get_colors');
 
@@ -30,12 +49,20 @@ const PatchMissedDocuments = () => {
 	}
 };
 
+const PatchRootMenu = () => {
+	const steamRootMenu = findInReactTree(getReactRoot(document.getElementById('root') as any), (m) => {
+		return m?.pendingProps?.title === 'Steam' && m?.pendingProps?.menuContent;
+	});
+
+	afterPatch(steamRootMenu.pendingProps.menuContent, 'type', RenderSettingsModal.bind(this));
+};
+
 const windowCreated = (windowContext: any): void => {
 	const windowName = windowContext.m_strName;
 	const windowTitle = windowContext.m_strTitle;
 
 	if (windowTitle === 'Steam Root Menu') {
-		pluginSelf.useInterface && RenderSettingsModal(windowContext);
+		PatchRootMenu();
 	}
 
 	if (windowTitle.includes('notificationtoasts')) {

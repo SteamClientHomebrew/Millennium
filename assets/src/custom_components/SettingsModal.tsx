@@ -1,5 +1,5 @@
-import React from 'react';
-import { Classes, DialogBody, IconsModule, ModalPosition, pluginSelf, SidebarNavigation, type SidebarNavigationPage } from '@steambrew/client';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Classes, DialogBody, findModuleDetailsByExport, IconsModule, ModalPosition, pluginSelf, SidebarNavigation, type SidebarNavigationPage } from '@steambrew/client';
 import { settingsClasses } from '../classes';
 import { PluginViewModal } from '../tabs/Plugins';
 import { ThemeViewModal } from '../tabs/Themes';
@@ -9,6 +9,7 @@ import { LogsViewModal } from '../tabs/Logs';
 import { SettingsViewModal } from '../tabs/Settings';
 import Styles from '../styles';
 import { MillenniumIcons } from '../icons';
+import ReactDOM, { createPortal } from 'react-dom';
 
 export class MillenniumSettings extends React.Component {
 	render() {
@@ -68,11 +69,16 @@ export class MillenniumSettings extends React.Component {
 		];
 
 		return (
-			<ModalPosition>
-				<Styles />
-				{/* @ts-ignore */}
-				<SidebarNavigation className={className} pages={pages} title={`Millennium ${pluginSelf.version}`} />
-			</ModalPosition>
+			<>
+				<div className="FullModalOverlay" style={{ display: 'none' }}>
+					<div className="ModalOverlayContent ModalOverlayBackground"></div>
+				</div>
+				<ModalPosition>
+					<Styles />
+					{/* @ts-ignore */}
+					<SidebarNavigation className={className} pages={pages} title={`Millennium ${pluginSelf.version}`} />
+				</ModalPosition>
+			</>
 		);
 	}
 }

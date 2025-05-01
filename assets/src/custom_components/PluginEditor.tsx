@@ -1,6 +1,21 @@
-import React, { useState } from 'react';
-import { Dropdown, SingleDropdownOption, Toggle, Field, findClassModule, TextField, SliderField, findModuleDetailsByExport } from '@steambrew/client';
+import React, { useMemo, useState } from 'react';
+import {
+	Dropdown,
+	SingleDropdownOption,
+	Toggle,
+	Field,
+	findClassModule,
+	TextField,
+	SliderField,
+	findModuleDetailsByExport,
+	ModalPosition,
+	DialogHeader,
+	DialogBody,
+	DialogControlsSection,
+	findModuleByExport,
+} from '@steambrew/client';
 import Markdown from 'markdown-to-jsx';
+import CustomSliderField from './Slider';
 
 interface ComponentInterface {
 	object: string;
@@ -23,29 +38,18 @@ enum ComponentType {
 	FloatSlider,
 }
 
+const SliderComponent = findModuleDetailsByExport(
+	(m) => m?.prototype?.hasOwnProperty('BShouldTriggerHapticOnSnap') && m?.prototype?.hasOwnProperty('ComputeNormalizedValueForMousePosition'),
+)[1];
+console.log('SliderComponent', SliderComponent);
+
 const RenderComponentType: React.FC<ComponentInterface> = ({ pluginName, object, component, type }) => {
 	const settings = window.MILLENNIUM_PLUGIN_SETTINGS_STORE?.[pluginName].settingsStore;
 	const items = component?.options?.map((value: string, index: number) => ({ label: value, data: 'componentId' + index }));
 
-	function isFloat(num: number) {
-		// First, check if the value is actually a number and not NaN or Infinity
-		if (typeof num !== 'number' || !isFinite(num)) {
-			return false;
-		}
-		// Then, check if it's not an integer
-		return !Number.isInteger(num);
-	}
-
-	const PadFloat = (value: number, digits: number) => {
-		const str = value.toString();
-		const decimalIndex = str.indexOf('.');
-		if (decimalIndex === -1) return str + '.0'.padEnd(digits + 2, '0');
-		const decimalPart = str.slice(decimalIndex + 1);
-		return str + '0'.repeat(digits - decimalPart.length);
-	};
-
 	const [checked, setChecked] = useState<boolean>(component.value);
-	const [textValue, setTextValue] = useState<string | number>(isFloat(component.value) ? PadFloat(component.value, 2) : component.value);
+	const [textValue, setTextValue] = useState<string | number>(component.value);
+	const [sliderValue, setSliderValue] = useState<number>(component.value);
 
 	const OnDropDownChange = (option: SingleDropdownOption) => {
 		settings[object] = option.label;
@@ -68,22 +72,23 @@ const RenderComponentType: React.FC<ComponentInterface> = ({ pluginName, object,
 				settings[object] = parseInt(event.target.value);
 			}
 
-			setTextValue(isFloat(settings[object]) ? PadFloat(settings[object], 2) : settings[object]);
+			setTextValue(settings[object]);
 		} catch (e) {
 			console.error('Error parsing number', e);
 		}
 	}
 
-	const textFieldClass = 'DialogInput DialogInputPlaceholder DialogTextInputBase Focusable';
+	function OnSliderChange(newValue: number) {
+		settings[object] = newValue;
+	}
 
-	// const Slider = findModuleDetailsByExport((m) => m?.toString()?.includes('m_elSlider=e.currentTarget,this.m_rectSlider=this.m_elSlider.getBoundingClientRect()'))
-	// console.log(Slider.toString());
+	const textFieldClass = 'DialogInput DialogInputPlaceholder DialogTextInputBase Focusable';
 
 	switch (type) {
 		case ComponentType.DropDown:
 			return (
 				<Dropdown
-					key={pluginName + object}
+					// key={pluginName + object}
 					contextMenuPositionOptions={{ bMatchWidth: false }}
 					onChange={OnDropDownChange}
 					rgOptions={items}
@@ -102,22 +107,22 @@ const RenderComponentType: React.FC<ComponentInterface> = ({ pluginName, object,
 
 		case ComponentType.NumberSlider:
 		case ComponentType.FloatSlider:
-			console.log(component);
-
 			return (
-				// @ts-ignore
-				<SliderField
-					key={pluginName + object}
-					min={component.range[0]}
-					max={component.range[1]}
-					step={component.step}
-					value={textValue as number}
-					onChange={(value: any) => {
-						settings[object] = value;
-						setTextValue(value);
-					}}
-					showValue={true}
-				/>
+				<>
+					<div className="MillenniumPluginSettingsSliderValue">{sliderValue}</div>
+					<SliderComponent
+						min={component.range[0]}
+						max={component.range[1]}
+						step={component.step}
+						value={sliderValue}
+						onChange={(newValue: number) => {
+							setSliderValue(newValue);
+						}}
+						onChangeComplete={(newValue: number) => {
+							OnSliderChange(newValue);
+						}}
+					/>
+				</>
 			);
 
 		default:
@@ -147,29 +152,33 @@ button.DialogButton._DialogLayout.Secondary.Focusable {
 const RenderComponents: React.FC<PluginEditorProps> = ({ plugin }) => {
 	const settings = window.MILLENNIUM_PLUGIN_SETTINGS_STORE?.[plugin?.data?.name].settingsStore.__raw_get_internals__;
 
-	const components = Object.keys(settings).map((name, index) => {
-		const value = settings[name];
+	const components = useMemo(
+		() =>
+			Object.keys(settings).map((name, index) => {
+				const value = settings[name];
 
-		return (
-			<Field
-				label={value.name}
-				description={<Markdown>{value?.desc ?? 'No description yet.'}</Markdown>}
-				key={index}
-				bottomSeparator={Object.keys(settings).length - 1 === index ? 'none' : 'standard'}
-				focusable
-			>
-				<RenderComponentType pluginName={plugin?.data?.name} object={name} component={value} type={ComponentType[value.type as keyof typeof ComponentType]} />
-			</Field>
-		);
-	});
+				return (
+					<Field
+						label={value.name}
+						description={<Markdown>{value?.desc ?? 'No description yet.'}</Markdown>}
+						key={index}
+						bottomSeparator={Object.keys(settings).length - 1 === index ? 'none' : 'standard'}
+						focusable
+						inlineWrap={'shift-children-below'}
+						verticalAlignment={'none'}
+					>
+						<RenderComponentType pluginName={plugin?.data?.name} object={name} component={value} type={ComponentType[value.type as keyof typeof ComponentType]} />
+					</Field>
+				);
+			}),
+		[],
+	);
 
 	return (
-		<>
-			<div className={`${SettingsModalClass} MillenniumSettings Panel`}>
-				<style>{popupStyles}</style>
-				{components}
-			</div>
-		</>
+		<div className="MillenniumPluginSettingsGrid _1u5y7VbwvOwncjMsMqnFUz Panel">
+			<style>{popupStyles}</style>
+			{components}
+		</div>
 	);
 };
 

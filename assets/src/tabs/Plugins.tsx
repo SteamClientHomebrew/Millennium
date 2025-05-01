@@ -41,19 +41,19 @@ const EditPlugin: React.FC<EditPluginProps> = ({ plugin }) => {
 	const OpenPluginEditor = () => {
 		const onOK = () => {};
 
-		showModal(
-			<ConfirmModal strTitle={plugin?.data?.common_name} strDescription={<RenderComponents plugin={plugin} />} onOK={onOK} strOKButtonText="Done" />,
-			pluginSelf.windows['Millennium'],
-			{
-				bNeverPopOut: false,
-			},
-		);
+		showModal(<RenderComponents plugin={plugin} />, pluginSelf.windows['Millennium'], {
+			strTitle: `Editing ${plugin?.data?.common_name}`,
+			popupHeight: 600,
+			popupWidth: 800,
+		});
 	};
 
 	return (
-		<DialogButton className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} onClick={OpenPluginEditor}>
-			<IconsModule.Settings />
-		</DialogButton>
+		// <DialogButton className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} onClick={OpenPluginEditor}>
+		// 	<IconsModule.Settings />
+		// </DialogButton>
+
+		<RenderComponents plugin={plugin} />
 	);
 };
 
@@ -218,6 +218,14 @@ const PluginViewModal: React.FC = () => {
 		const pluginLogs = pluginsWithLogs?.get(plugin?.data?.common_name);
 		const type = pluginLogs?.errors > 0 ? 'error' : pluginLogs?.warnings > 0 ? 'warning' : 'success';
 		const [isHovering, setIsHovering] = useState(false);
+		const canExpand = isEditablePlugin(plugin?.data?.name);
+		const [isExpanded, setIsExpanded] = useState(canExpand);
+
+		const ExpandPluginSettings = () => {
+			// if (canExpand) {
+			// 	setIsExpanded(!isExpanded);
+			// }
+		};
 
 		return (
 			<>
@@ -241,8 +249,20 @@ const PluginViewModal: React.FC = () => {
 					description={plugin?.data?.description ?? locale.itemNoDescription}
 					padding="standard"
 					bottomSeparator={isLastPlugin ? 'none' : 'standard'}
+					className={isExpanded ? 'MillenniumPluginSettingsIsExpanded' : ''}
+					data-is-editable={canExpand}
 				>
-					<EditPlugin plugin={plugin} />
+					{/* <EditPlugin plugin={plugin} /> */}
+					{canExpand && (
+						<button
+							type="button"
+							className="MillenniumPluginSettingsExpandCarat _3aB-C2eTsfVtvZR5sC9N_r DialogButton _DialogLayout Small Focusable"
+							role="button"
+							onClick={ExpandPluginSettings}
+						>
+							<IconsModule.DoubleCarat direction={isExpanded ? 'up' : 'down'} />
+						</button>
+					)}
 					<Toggle
 						key={plugin?.data?.name}
 						disabled={plugin?.data?.name == 'core'}
@@ -251,7 +271,9 @@ const PluginViewModal: React.FC = () => {
 					/>
 				</Field>
 
-				{isHovering && <RenderStatusTooltip plugin={plugin} index={index} />}
+				{isExpanded && <RenderComponents plugin={plugin} />}
+
+				{/* {isHovering && <RenderStatusTooltip plugin={plugin} index={index} />} */}
 			</>
 		);
 	};

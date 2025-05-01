@@ -39,7 +39,7 @@
 	"optionReloadLater": "Reload Later",
 	"optionReloadRequired": "Reload Required",
 	"optionPluginNeedsReload": "To enable or disable the selected plugins, a reload is required. Are you sure you want to continue?",
-	"updatePanelUpdateNotifications": "Push Notifications",
+	"updatePanelUpdateNotifications": "Show Notification Toasts",
 	"updatePanelUpdateNotificationsTooltip": "Get Millennium to give you a reminder when an item in your library has an update!",
 	"customThemeSettingsColors": "Colors",
 	"customThemeSettingsConfig": "Custom Settings",

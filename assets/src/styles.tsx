@@ -76,10 +76,6 @@ const styles = `
 .MillenniumSettings {
 	min-height: unset !important;
 
-	.DialogContent_InnerWidth {
-		max-width: 620px !important;
-	}
-
 	/* Fix the dropdown not filling the proper width when specific theme names are too long. */
 	.DialogDropDown {
 		min-width: max-content !important;
@@ -376,6 +372,47 @@ button.DialogButton.MillenniumIconButton {
     gap: var(--MillenniumSpacing-Normal);
     display: flex;
     align-items: center;
+}
+
+.MillenniumPluginSettingsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 2ex 5ex 2ex 5ex;
+}
+
+._1aw7cA3mAZfWt8idAlVJWi:has(.SliderControlPanelGroup) {
+	width: -webkit-fill-available;
+}
+
+.MillenniumPluginSettingsIsExpanded::after {
+    content: unset !important;
+}
+
+.MillenniumPluginSettingsIsExpanded {
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+	background-color: rgba(59, 63, 72, .5);
+}
+
+.MillenniumPluginSettingsIsExpanded {
+    padding: 15px;
+}
+
+button.MillenniumPluginSettingsExpandCarat {
+    width: 35px;
+}
+
+._2o2fXzn99OddeqZMjbDuxQ {
+    display: flex;
+    align-items: center;
+}
+
+.MillenniumPluginSettingsSliderValue {
+    position: absolute;
+    right: 0;
+    top: 5px;
+    font-size: 14px;
 }
 `;
 

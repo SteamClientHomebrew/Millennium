@@ -1,5 +1,5 @@
 import { callable, Millennium } from '@steambrew/client';
-import { OpenSettingsTab, SettingsTabs, ShowSettingsModal } from './ui/Settings';
+import { OpenSettingsTab, SettingsTabs } from './ui/Settings';
 import { PluginComponent, ThemeItem } from './types';
 import { Logger } from './Logger';
 
@@ -39,7 +39,8 @@ export const OnRunSteamURL = async (_: number, url: string) => {
 		if (!g_PopupManager.m_rgPopupCreatedCallbacks.some((e: any) => e === callback)) {
 			Millennium.AddWindowCreateHook(callback);
 		}
-		ShowSettingsModal();
+		/** FIXME: Since the new Millennium popup window requires it to be rendered from within a React component, we can't do this as of right now */
+		// ShowSettingsModal();
 		return;
 	}
 
