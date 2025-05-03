@@ -222,7 +222,25 @@ MILLENNIUM const Python::EvalResult EvaluatePython(std::string pluginName, std::
  */
 MILLENNIUM Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)
 {
-    auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    const bool hasBackend = PythonManager::GetInstance().HasBackend(pluginName);
+
+    /** Plugin has no backend and therefor the call should not be completed */
+    if (!hasBackend) 
+    {
+        return { "false", Boolean };
+    }
+
+    auto result = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+
+    if (!result.has_value()) 
+    {
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script));
+
+        return { "overstepped partying thread state", Error };
+    }
+
+    auto& [strPluginName, threadState, interpMutex] = *result.value();
 
     if (threadState == nullptr) 
     {
@@ -271,7 +289,25 @@ MILLENNIUM Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName,
  */
 MILLENNIUM void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string script)
 {
-    auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    const bool hasBackend = PythonManager::GetInstance().HasBackend(pluginName);
+
+    /** Plugin has no backend and therefor the call should not be completed */
+    if (!hasBackend) 
+    {
+        return;
+    }
+
+    auto result = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+
+    if (!result.has_value()) 
+    {
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script));
+
+        return;
+    }
+
+    auto& [strPluginName, threadState, interpMutex] = *result.value();
 
     if (threadState == nullptr) 
     {

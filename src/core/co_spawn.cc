@@ -36,6 +36,7 @@
 #include "logger.h"
 #include "co_stub.h"
 #include "fvisible.h"
+#include <optional>
 
 /**
  * @brief Initializes the Millennium module.
@@ -409,6 +410,21 @@ MILLENNIUM bool PythonManager::IsRunning(std::string targetPluginName)
     return false;
 }
 
+MILLENNIUM bool PythonManager::HasBackend(std::string targetPluginName)
+{
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+
+    for (const auto& plugin : settingsStore->GetEnabledBackends()) 
+    {
+        if (plugin.pluginName == targetPluginName) 
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /**
  * @brief Gets the Python thread state from the plugin name.
  * 
@@ -419,7 +435,7 @@ MILLENNIUM bool PythonManager::IsRunning(std::string targetPluginName)
  * 
  * @returns {std::shared_ptr<PythonThreadState>} - The thread state associated with the given plugin name.
  */
-MILLENNIUM std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
+MILLENNIUM std::optional<std::shared_ptr<PythonThreadState>> PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
 {
     for (auto instance : this->m_pythonInstances) 
     {
@@ -430,7 +446,7 @@ MILLENNIUM std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStat
             return instance;
         }
     }
-    return {};
+    return std::nullopt;
 }
 
 /**

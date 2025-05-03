@@ -134,6 +134,7 @@ const RenderMillennium = ({ setIsMillenniumOpen }: { setIsMillenniumOpen: React.
 			return;
 		}
 
+		popup.SteamClient.Window.BringToFront();
 		ModalManagerInstance.RegisterModalManager(g_ModalManagerInstance, popup);
 		popupModalManager.SetMenuManager(popup, m_contextMenuManager);
 	}, [popup]);
@@ -164,7 +165,7 @@ const RenderMillennium = ({ setIsMillenniumOpen }: { setIsMillenniumOpen: React.
 	);
 };
 
-function RenderSettingsModal(root: any, retObj: any) {
+function RenderSettingsModal(_: any, retObj: any) {
 	const index = retObj.props.menuItems.findIndex((prop: any) => prop.name === '#Menu_Settings');
 
 	const [isMillenniumOpen, setIsMillenniumOpen] = useState(false);

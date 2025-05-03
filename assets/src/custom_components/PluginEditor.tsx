@@ -1,21 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {
-	Dropdown,
-	SingleDropdownOption,
-	Toggle,
-	Field,
-	findClassModule,
-	TextField,
-	SliderField,
-	findModuleDetailsByExport,
-	ModalPosition,
-	DialogHeader,
-	DialogBody,
-	DialogControlsSection,
-	findModuleByExport,
-} from '@steambrew/client';
+import { Dropdown, SingleDropdownOption, Toggle, Field, findClassModule, TextField, findModuleDetailsByExport } from '@steambrew/client';
 import Markdown from 'markdown-to-jsx';
-import CustomSliderField from './Slider';
 
 interface ComponentInterface {
 	object: string;

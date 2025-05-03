@@ -1,5 +1,7 @@
 from typing import Literal
-from MillenniumUtils import CheckBox, DefineSetting, DropDown, NumberTextInput, Settings, FloatSlider, StringTextInput, FloatTextInput, NumberSlider
+from MillenniumUtils import CheckBox, DefineSetting, DropDown, NumberTextInput, Settings, FloatSlider, StringTextInput, FloatTextInput, NumberSlider, OnAfterChangeCallback, CallbackLocation
+from logger import logger
+
 
 class PluginSettings(metaclass=Settings):
 
@@ -58,3 +60,18 @@ class PluginSettings(metaclass=Settings):
         default=1234.0
     )
     def floatTextInput(self): pass
+
+    @OnAfterChangeCallback
+    def onChange(self, key: str, value: str, prev: str, origin: CallbackLocation):
+        """
+        This function is triggered whenever a setting is changed, regardless of where the change originates. 
+        For example, if you include the following line inside this function:
+        
+        PluginSettings.numberTextInput += 1
+
+        the function will be immediately be called again, potentially causing an infinite loop if you don't check origin or use flags — so use caution.
+
+        NOTE: There's no need to manually update the frontend, webview, or this setting, as all components are automatically kept in sync.
+        """
+        logger.log(f"Setting {key} changed to {value} from {origin}.")
+

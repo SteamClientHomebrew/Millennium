@@ -1,8 +1,6 @@
 import Millennium, PluginUtils # type: ignore
 from settings import PluginSettings
-
-logger = PluginUtils.Logger()
-
+from logger import logger
 import time
 
 class Backend:
@@ -39,10 +37,10 @@ class Plugin:
     def _load(self):     
 
         PluginSettings.numberTextInput += 1
-        print("PluginSettings.numberTextInput", PluginSettings.numberTextInput)
+        logger.log("PluginSettings.numberTextInput: " + str(PluginSettings.numberTextInput))
 
         PluginSettings.numberTextInput += 1
-        print("PluginSettings.numberTextInput", PluginSettings.numberTextInput)
+        logger.log("PluginSettings.numberTextInput: " + str(PluginSettings.numberTextInput))
 
         # This code is executed when your plugin loads. 
         # notes: thread safe, running for entire lifespan of millennium
