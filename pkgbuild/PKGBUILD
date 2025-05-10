@@ -67,8 +67,7 @@ package() {
     mkdir -p "$pkgdir/usr/lib/millennium"
     mkdir -p "$pkgdir$dataPath/millennium/lib/shims"
 
-    cp -r ./assets/node_modules/@steambrew/api/dist/webkit_api.js "$pkgdir$dataPath/millennium/lib/shims/webkit_api.js"
-    cp -r ./assets/node_modules/@steambrew/api/dist/client_api.js "$pkgdir$dataPath/millennium/lib/shims/client_api.js"
+    cp -r ./shims/build/* "$pkgdir$dataPath/millennium/lib/shims/"
 
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

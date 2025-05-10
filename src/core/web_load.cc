@@ -208,7 +208,7 @@ MILLENNIUM void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
     std::string patched = original;
-    const std::string webkitPreloadModule = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "webkit_api.js").string());
+    const std::string webkitPreloadModule = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js").string());
 
     if (webkitPreloadModule.empty()) 
     {
@@ -245,7 +245,13 @@ MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string re
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
-    std::string shimContent = fmt::format("<script type=\"module\" id=\"millennium-injected\" defer>{}millennium_components({}, [{}])\n</script>\n{}", webkitPreloadModule, m_ipcPort, scriptModuleArray, cssShimContent);
+
+    const std::filesystem::path preloadPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js";
+    const std::string ftpPath = UrlFromPath(m_javaScriptVirtualUrl, preloadPath.generic_string());
+    const std::string scriptContent = fmt::format("module.default({}, [{}]);", m_ipcPort, scriptModuleArray);
+
+    std::string importScript = fmt::format("import('{}').then(module => {{ {} }}).catch(error => window.location.reload())", ftpPath, scriptContent);
+    std::string shimContent = fmt::format("<script type=\"module\" id=\"millennium-injected\" defer>{}</script>\n{}", importScript, cssShimContent);
 
     for (const auto& blackListedUrl : g_blackListedUrls)        
     {

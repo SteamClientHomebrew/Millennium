@@ -102,8 +102,7 @@ RUN set -ex \
     && cp -v ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so \
     && cp -v scripts/posix/start.sh /home/runner/env/start.sh \
     && npm install @steambrew/api \
-    && cp -v node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js \
-    && cp -v node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
+    && cp -v shims/build/* /home/runner/env/ext/data/shims/
 
 #  Restructure Filesystem and compress to build-millennium.tar.gz
 WORKDIR /home/runner

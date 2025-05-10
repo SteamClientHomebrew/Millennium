@@ -62,7 +62,7 @@ const windowCreated = (windowContext: any): void => {
 	const windowTitle = windowContext.m_strTitle;
 
 	if (windowTitle === 'Steam Root Menu') {
-		PatchRootMenu();
+		// PatchRootMenu();
 	}
 
 	if (windowTitle.includes('notificationtoasts')) {

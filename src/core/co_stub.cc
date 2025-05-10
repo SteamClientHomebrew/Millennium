@@ -87,14 +87,14 @@ public:
  * Error Handling:
  * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
  */
-MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
+MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t ftpPort, const uint16_t ipcPort)
 {
     std::string scriptModuleArray;
-    std::string scriptContents = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "client_api.js").string());
+    std::string scriptContents = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js").string());
 
     if (scriptContents.empty())
     {
-        LOG_ERROR("Missing webkit preload module. Please re-install Millennium.");
+        LOG_ERROR("Missing client preload module. Please re-install Millennium.");
         #ifdef _WIN32
         MessageBoxA(NULL, "Missing client preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
         #endif
@@ -105,7 +105,14 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
-    return fmt::format("{}\nmillennium_components({}, [{}]);", scriptContents, port, scriptModuleArray);
+    const std::filesystem::path preloadPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js";
+    const std::string ftpPath = UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), preloadPath.generic_string());
+    const std::string scriptContent = fmt::format("module.default({}, [{}]);", ipcPort, scriptModuleArray);
+
+    std::string importScript = fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
+
+    std::cout << importScript << std::endl;
+    return importScript;
 }
 
 /**
@@ -498,7 +505,7 @@ MILLENNIUM const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ip
         scriptImportTable.push_back(UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), frontEndAbs));
     }
 
-    return GetBootstrapModule(scriptImportTable, ipcPort);
+    return GetBootstrapModule(scriptImportTable, ftpPort, ipcPort);
 }
 
 /**
