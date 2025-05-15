@@ -24,8 +24,8 @@ importers:
         specifier: ^12.1.1
         version: 12.1.2(rollup@4.40.2)(tslib@2.8.1)(typescript@5.8.3)
       '@steambrew/client':
-        specifier: ^5.2.10
-        version: 5.2.11
+        specifier: ^5.2.16
+        version: 5.2.16
       rollup:
         specifier: ^4.17.2
         version: 4.40.2
@@ -299,8 +299,8 @@ packages:
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
 
-  '@steambrew/client@5.2.11':
-    resolution: {integrity: sha512-+Y17Og1CywqtX+9H0iGT4p5f7O2YFKM4e5PGqDxhKxsRHMclBloTgmEySe2eBut1sNny4lHkYRDltSy0WRJsVA==}
+  '@steambrew/client@5.2.16':
+    resolution: {integrity: sha512-4YrUC2frGDnlgMLadKh95pxOSAwo3RIFwmrbqV4RUTUZ3HVuWfvSWyW9sMypH/77iLqhYrURjM2XXKc/8loAYw==}
 
   '@types/estree@1.0.7':
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
@@ -945,7 +945,7 @@ snapshots:
 
   '@sinclair/typebox@0.27.8': {}
 
-  '@steambrew/client@5.2.11':
+  '@steambrew/client@5.2.16':
     dependencies:
       '@rollup/plugin-commonjs': 25.0.8(rollup@4.40.2)
       '@rollup/plugin-json': 6.1.0(rollup@4.40.2)

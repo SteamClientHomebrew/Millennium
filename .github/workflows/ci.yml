@@ -7,10 +7,6 @@ on:
                 description: 'Release build?'
                 required: true
                 default: 'no'
-            build_as_pre_release:
-                description: 'Build as pre-release?'
-                required: true
-                default: 'no'
 
 jobs:
     build-windows:
@@ -132,9 +128,10 @@ jobs:
 
             - name: Add API modules
               run: |
-                  npm install @steambrew/api
-                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+                  cd ./shims
+                  pnpm install
 
+                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
                   Copy-Item -Path "./shims/build/*" -Destination "D:/a/env/ext/data/shims/" -Force
 
             - name: Upload Build Artifact
@@ -268,8 +265,12 @@ jobs:
 
                   mkdir -p ~/build/home/user/.local/share/millennium/lib
 
+                  cd ./shims
+                  pnpm install
+                  cp -r ./shims/build/* ~/build/home/user/.local/share/millennium/lib/shims
+
+
                   # Move assets to home folder
-                  cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/lib/shims
                   cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/lib/cache
                   cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/lib/assets
 
