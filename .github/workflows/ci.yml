@@ -134,7 +134,7 @@ jobs:
                   pnpm run build
 
                   New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
-                  Copy-Item -Path "./shims/build/*" -Destination "D:/a/env/ext/data/shims/" -Force
+                  Copy-Item -Path "./build/*" -Destination "D:/a/env/ext/data/shims/" -Force
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
