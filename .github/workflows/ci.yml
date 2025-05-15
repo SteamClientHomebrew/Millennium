@@ -130,6 +130,7 @@ jobs:
               run: |
                   cd ./shims
                   pnpm install
+                  pnpm run build
 
                   New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
                   Copy-Item -Path "./shims/build/*" -Destination "D:/a/env/ext/data/shims/" -Force
@@ -244,7 +245,8 @@ jobs:
                   cp ./build/cli/millennium /home/runner/env/millennium
                   cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
 
-                  npm install @steambrew/api
+                  cd shims 
+                  pnpm install && pnpm run build
                   mkdir -p /home/runner/env/ext/data/shims
                   cp -r ./shims/build/* /home/runner/env/ext/data/shims/
 
@@ -265,14 +267,18 @@ jobs:
 
                   mkdir -p ~/build/home/user/.local/share/millennium/lib
 
-                  cd ./shims
-                  pnpm install
-                  cp -r ./shims/build/* ~/build/home/user/.local/share/millennium/lib/shims
-
-
                   # Move assets to home folder
+                  cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/lib/shims
                   cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/lib/cache
                   cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/lib/assets
+
+            - name: Add API modules
+              run: |
+                  cd ./shims
+                  pnpm install
+
+
+                  Copy-Item -Path "./shims/build/*" -Destination "D:/a/env/ext/data/shims/" -Force
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
