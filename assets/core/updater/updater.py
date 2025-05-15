@@ -34,10 +34,17 @@ class Updater:
             plugins = self.plugin_updater.get_request_body()
             update_query, themes  = self.theme_updater.get_request_body()
 
-            request_body = {
-                "plugins": plugins,
-                "themes": themes
-            }
+            request_body = {}
+
+            if plugins is not None:
+                request_body["plugins"] = plugins
+
+            if themes is not None:
+                request_body["themes"] = themes
+
+            if not request_body:
+                logger.log("No themes or plugins to update!")   
+                return { "themes": [], "plugins": [] }
 
             response = requests.post(self.api_url, json=request_body)
             response.raise_for_status()  # Raise an error for bad responses

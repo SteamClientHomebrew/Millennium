@@ -78,7 +78,7 @@
 	"updateSingular": "update",
 	"updatePlural": "updates",
 	"updatePanelErrorHeader": "An error occurred while checking for updates!",
-	"updatePanelErrorBody": "Please check your internet connection and try again.",
+	"updatePanelErrorBody": "Please check your internet connection and try again. ",
 	"updatePanelErrorButton": "Retry",
 	"errorFailedConnection": "Failed to connect to Millennium!",
 	"errorFailedConnectionBody": "This issue isn't network related, you're most likely missing a file millennium needs, or are experiencing an unexpected bug.",

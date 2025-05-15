@@ -104,4 +104,4 @@ class PluginUpdater:
             return False
 
     def get_request_body(self):
-        return self._get_plugin_data()
+        return self._get_plugin_data() or None

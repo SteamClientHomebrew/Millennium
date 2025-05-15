@@ -136,7 +136,7 @@ class ThemeUpdater:
 
         if not update_query:
             logger.log("No themes to update!")
-            return []
+            return (None, None)
 
         return (update_query, post_body)
 
