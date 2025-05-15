@@ -129,6 +129,7 @@ jobs:
             - name: Add API modules
               run: |
                   cd ./shims
+                  npm install -g pnpm
                   pnpm install
                   pnpm run build
 
@@ -246,6 +247,7 @@ jobs:
                   cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
 
                   cd shims 
+                  npm install -g pnpm
                   pnpm install && pnpm run build
                   mkdir -p /home/runner/env/ext/data/shims
                   cp -r ./shims/build/* /home/runner/env/ext/data/shims/
@@ -271,14 +273,6 @@ jobs:
                   cp -r ~/env/ext/data/shims ~/build/home/user/.local/share/millennium/lib/shims
                   cp -r ~/env/ext/data/cache ~/build/home/user/.local/share/millennium/lib/cache
                   cp -r ~/env/ext/data/assets ~/build/home/user/.local/share/millennium/lib/assets
-
-            - name: Add API modules
-              run: |
-                  cd ./shims
-                  pnpm install
-
-
-                  Copy-Item -Path "./shims/build/*" -Destination "D:/a/env/ext/data/shims/" -Force
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
