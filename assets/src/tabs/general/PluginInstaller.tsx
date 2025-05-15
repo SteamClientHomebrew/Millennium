@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Styles from '../../styles';
 import { RendererProps } from './Installer';
 import { UpdatePluginStatus } from '../Plugins';
+import { API_URL } from '../../globals';
 
 const StartPluginInstallerBackend = callable<[{ download_url: string; total_size: number }], void>('pluginInstaller.install_plugin');
 const StartThemeUninstallerBackend = callable<[{ download_url: string }], void>('pluginInstaller.uninstall_plugin');
@@ -94,7 +95,7 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 
 	console.log('Plugin is not installed, continuing...');
 
-	const downloadUrl = 'https://steambrew.app' + data?.downloadUrl;
+	const downloadUrl = API_URL + data?.downloadUrl;
 
 	StartPluginInstallerBackend({ download_url: downloadUrl, total_size: data?.fileSize }).then((result: any) => {
 		try {

@@ -17,6 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { StartThemeInstaller } from './ThemeInstaller';
 import { IProgressProps } from '../../types';
 import { StartPluginInstaller } from './PluginInstaller';
+import { API_URL } from '../../globals';
 
 export enum InstallType {
 	Plugin = 'plugin',
@@ -25,7 +26,7 @@ export enum InstallType {
 
 const FetchPluginInfo = async (id: string) => {
 	try {
-		const response = await fetch(`http://localhost:3000/api/v1/plugin/${id}`);
+		const response = await fetch(`${API_URL}/api/v1/plugin/${id}`);
 		if (!response.ok) {
 			const errorText = await response.text().catch(() => '');
 			throw new Error(`Failed to fetch plugin info: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
@@ -39,7 +40,7 @@ const FetchPluginInfo = async (id: string) => {
 
 const FetchThemeInfo = async (id: string) => {
 	try {
-		const response = await fetch(`http://localhost:3000/api/v2/details/${id}`);
+		const response = await fetch(`${API_URL}/api/v2/details/${id}`);
 		if (!response.ok) {
 			const errorText = await response.text().catch(() => '');
 			throw new Error(`Failed to fetch theme info: ${response.status} ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
