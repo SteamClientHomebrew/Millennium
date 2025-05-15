@@ -17,7 +17,6 @@
 		"@rollup/plugin-replace": "^5.0.5",
 		"@rollup/plugin-terser": "^0.4.4",
 		"@rollup/plugin-typescript": "^12.1.1",
-		"@steambrew/client": "^5.2.10",
 		"rollup": "^4.17.2",
 		"rollup-plugin-external-globals": "^0.13.0",
 		"terser": "^5.36.0",

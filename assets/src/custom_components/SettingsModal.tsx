@@ -6,16 +6,26 @@ import { ThemeViewModal } from '../tabs/Themes';
 import { RenderUpdatesSettingsTab, UpdatesViewModal } from '../tabs/Updates';
 import { locale } from '../locales';
 import { LogsViewModal } from '../tabs/Logs';
-import { SettingsViewModal } from '../tabs/Settings';
 import Styles from '../styles';
 import { MillenniumIcons } from '../icons';
 import ReactDOM, { createPortal } from 'react-dom';
+import { GeneralViewModal } from '../tabs/general';
 
 export class MillenniumSettings extends React.Component {
 	render() {
 		const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings`;
 
 		const pages: SidebarNavigationPage[] = [
+			{
+				visible: true,
+				title: locale.settingsPanelGeneral,
+				icon: <IconsModule.Settings />,
+				content: (
+					<DialogBody className={Classes.SettingsDialogBodyFade}>
+						<GeneralViewModal />
+					</DialogBody>
+				),
+			},
 			{
 				visible: true,
 				title: locale.settingsPanelThemes,
@@ -53,16 +63,6 @@ export class MillenniumSettings extends React.Component {
 				content: (
 					<DialogBody className={Classes.SettingsDialogBodyFade}>
 						<LogsViewModal />
-					</DialogBody>
-				),
-			},
-			{
-				visible: true,
-				title: locale.settingsPanelSettings,
-				icon: <IconsModule.Settings />,
-				content: (
-					<DialogBody className={Classes.SettingsDialogBodyFade}>
-						<SettingsViewModal />
 					</DialogBody>
 				),
 			},

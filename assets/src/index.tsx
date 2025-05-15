@@ -1,20 +1,4 @@
-import {
-	afterPatch,
-	beforePatch,
-	callable,
-	CommonUIModule,
-	findAllModules,
-	findClassModule,
-	findInReactTree,
-	findModule,
-	findModuleByExport,
-	findModuleDetailsByExport,
-	findModuleExport,
-	getReactRoot,
-	IconsModule,
-	Millennium,
-	pluginSelf,
-} from '@steambrew/client';
+import { afterPatch, callable, findInReactTree, getReactRoot, Millennium, pluginSelf } from '@steambrew/client';
 import { PatchDocumentContext } from './patcher/index';
 import { RenderSettingsModal } from './ui/Settings';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
@@ -29,9 +13,6 @@ import { ShowWelcomeModal } from './custom_components/modals/WelcomeModal';
 import { GetUpdateCount, HasUpdateError, NotifyUpdateListeners } from './tabs/Updates';
 import { formatString, locale } from './locales';
 import { OnRunSteamURL } from './URLSchemeHandler';
-import { useMemo } from 'react';
-import ReactDOM, { createPortal } from 'react-dom';
-import { createRoot } from 'react-dom/client';
 
 const GetRootColors = callable<[], string>('cfg.get_colors');
 
@@ -62,7 +43,7 @@ const windowCreated = (windowContext: any): void => {
 	const windowTitle = windowContext.m_strTitle;
 
 	if (windowTitle === 'Steam Root Menu') {
-		// PatchRootMenu();
+		PatchRootMenu();
 	}
 
 	if (windowTitle.includes('notificationtoasts')) {
@@ -110,17 +91,17 @@ const ProcessUpdates = () => {
 		return;
 	}
 
-	/** Gaben's steam account ID */
-	const steamId = 76561197960287930;
 	const message = formatString(locale.themeAndPluginUpdateNotification, updateCount, updateCount > 1 ? locale.updatePlural : locale.updateSingular);
 
-	setTimeout(() => {
-		SteamClient.ClientNotifications.DisplayClientNotification(
-			1,
-			JSON.stringify({ title: locale.updatePanelHasUpdates, body: message, state: 'online', steamid: steamId }),
-			(_: any) => {},
-		);
-	}, 5000);
+	// setTimeout(() => {
+	// 	toaster.toast({
+	// 		title: locale.updatePanelHasUpdates,
+	// 		body: message,
+	// 		logo: <IconsModule.Settings />,
+	// 		icon: <IconsModule.Settings />,
+	// 		onClick: () => Navigation.Navigate('/decky/settings/plugins'),
+	// 	});
+	// }, 10000);
 };
 
 const InitializePatcher = async (startTime: number, result: SettingsProps) => {
@@ -170,5 +151,7 @@ export default async function PluginMain() {
 	const settings: SettingsProps = await Settings.FetchAllSettings();
 	await InitializePatcher(startTime, settings);
 	Millennium.AddWindowCreateHook(windowCreated);
+
+	// @ts-ignore
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
 }

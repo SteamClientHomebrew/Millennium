@@ -4,7 +4,7 @@ import os
 import platform
 import subprocess
 import threading
-from core.api.plugins import find_all_plugins
+from plugins.plugins import find_all_plugins
 from core.util.logger import logger
 import platform
 from config import Config

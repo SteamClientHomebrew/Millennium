@@ -1,4 +1,4 @@
-import { findModuleDetailsByExport, Millennium } from '@steambrew/client';
+import { findModuleDetailsByExport, Millennium, pluginSelf } from '@steambrew/client';
 import { MillenniumSettings } from '../custom_components/SettingsModal';
 import { locale } from '../locales';
 import { pagedSettingsClasses } from '../classes';
@@ -118,6 +118,8 @@ const RenderMillennium = ({ setIsMillenniumOpen }: { setIsMillenniumOpen: React.
 	const m_contextMenuManager = useMemo(() => new contextMenuManager(), []);
 	const [activeMenu, setActiveMenu] = useState(m_contextMenuManager.m_ActiveMenu);
 	const { popup, element } = createWindowContext('MillenniumDesktopPopup', windowConfig, windowHandler('Window_MillenniumDesktop'));
+
+	pluginSelf.MillenniumSettingsWindowRef = popup;
 
 	useEffect(() => {
 		m_contextMenuManager.OnMenusChanged.m_vecCallbacks.push(

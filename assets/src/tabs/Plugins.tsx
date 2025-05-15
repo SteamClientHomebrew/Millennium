@@ -68,7 +68,7 @@ interface UpdatedPluginProps {
 }
 
 const FindAllPlugins = callable<[], string>('find_all_plugins');
-const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('ChangePluginStatus');
+export const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('ChangePluginStatus');
 const GetEnvironmentVar = callable<[{ variable: string }], string>('GetEnvironmentVar');
 
 const PluginViewModal: React.FC = () => {

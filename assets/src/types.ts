@@ -1,4 +1,4 @@
-import { SingleDropdownOption } from '@steambrew/client';
+import { ConfirmModalProps, ShowModalResult, SingleDropdownOption } from '@steambrew/client';
 
 export interface Patch {
 	MatchRegexString: string;
@@ -187,4 +187,16 @@ export enum UpdaterOptionProps {
 export enum OSType {
 	Windows,
 	Linux,
+}
+
+export interface IProgressProps {
+	progress: number;
+	status: string;
+	isComplete: boolean;
+}
+
+export interface InstallerProps {
+	updateInstallerState: (element: React.ReactNode) => void;
+	ShowMessageBox: (message: React.ReactNode, title: React.ReactNode, props?: ConfirmModalProps) => void;
+	modal: ShowModalResult;
 }

@@ -81,9 +81,9 @@ interface TitleBarProps {
 	style?: CSSProperties;
 }
 
-export const TitleBar: React.FC<TitleBarProps> = findModuleExport(
+export const TitleBar = findModuleExport(
 	(m) => typeof m === 'function' && m.toString().includes('className:"title-area-highlight"'),
-);
+) as React.FC<TitleBarProps>;
 
 interface SettingsDialogSubHeaderProps {
 	children: ReactNode;

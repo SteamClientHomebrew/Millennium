@@ -380,7 +380,10 @@ const RenderUpdatesSettingsTab = () => {
 		});
 
 		setUpdateCount(GetUpdateCount());
-		return () => unregister();
+
+		return () => {
+			unregister(); // Call it, but don't return its value
+		};
 	}, []);
 
 	const sidebarTitleClass = (findClassModule((m) => m.ReturnToPageListButton && m.PageListItem_Title && m.HidePageListButton) as any)?.PageListItem_Title;

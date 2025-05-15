@@ -1,7 +1,7 @@
 from util.logger import logger
 import json, os
 import Millennium
-from api.themes import Colors
+from themes.themes import Colors
 from api.config import cfg
 
 def GetSystemColors():

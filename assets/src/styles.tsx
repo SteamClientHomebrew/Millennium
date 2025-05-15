@@ -414,6 +414,15 @@ button.MillenniumPluginSettingsExpandCarat {
     top: 5px;
     font-size: 14px;
 }
+
+.InstallerProgressBar * { 
+	width: 100%; 
+	text-align: right;
+}
+
+.InstallerProgressBar::after {
+	content: unset !important;
+}
 `;
 
 const Styles = () => <style>{styles}</style>;

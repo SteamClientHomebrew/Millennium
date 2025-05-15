@@ -3,8 +3,8 @@ import cssutils
 import Millennium, json, os # type: ignore
 
 from api.css_analyzer import ColorTypes, convert_from_hex, convert_to_hex, parse_root
-from api.themes import Colors, is_valid
-from util.webkit_handler import WebkitHookStore, add_browser_css, add_browser_js, add_conditional_data, parse_conditional_patches
+from themes.themes import Colors, is_valid
+from themes.webkit_handler import WebkitHookStore, add_browser_css, add_browser_js, add_conditional_data, parse_conditional_patches
 from util.logger import logger
 
 

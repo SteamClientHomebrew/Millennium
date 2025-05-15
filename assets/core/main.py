@@ -2,7 +2,8 @@ import builtins
 import time, Millennium, json 
 initialStartTime = time.perf_counter()
 
-from util.util                    import GetSystemColors, GetOperatingSystem, SetClipboardContent, GetEnvironmentVar, ChangePluginStatus, GetPluginBackendLogs, ShouldShowUpdateModal
+from plugins.plugin_installer import PluginInstaller
+from IPC                    import GetSystemColors, GetOperatingSystem, SetClipboardContent, GetEnvironmentVar, ChangePluginStatus, GetPluginBackendLogs, ShouldShowUpdateModal
 from updater.millennium_updater   import MillenniumUpdater
 from util.logger                  import logger
 
@@ -10,12 +11,12 @@ logger.log(f"Loading Millennium-Core@{Millennium.version()}")
 
 from util.decorators      import *
 from api.css_analyzer     import *
-from api.themes           import *
-from api.themes           import *
-from api.plugins          import *
+from themes.themes           import *
+from themes.themes           import *
+from plugins.plugins          import *
 from api.config           import *
-from util.webkit_handler  import *
-from util.theme_installer import *
+from themes.webkit_handler  import *
+from themes.theme_installer import *
 from config.ini           import *
 
 # Check for updates on plugins and themes.
@@ -23,6 +24,9 @@ from updater.updater import Updater
 updater = Updater()
 # Check for updates on Millennium itself. 
 MillenniumUpdater.check_for_updates()
+
+themeInstaller = ThemeInstaller()
+pluginInstaller = PluginInstaller()
 
 def GetMillenniumConfig():
     config = cfg.get_config()
@@ -48,15 +52,6 @@ def GetMillenniumConfig():
 class Plugin:
     def _front_end_loaded(self):
         logger.log("SteamUI successfully loaded!")
-
-    def StartWebsocket(self):
-        self.server = WebSocketServer()
-
-        try:
-            logger.log("Starting the websocket for theme installer...")
-            self.server.start()
-        except Exception as e:
-            logger.error("Failed to start the websocket for theme installer! trace: " + str(e))
 
     def StopWebsocket(self):
         logger.log("Stopping the websocket server...")
@@ -84,7 +79,6 @@ class Plugin:
 
     # Called when the plugin is initially loaded. 
     def _load(self):     
-        self.StartWebsocket()
         self.StartUnixSocket()
 
         logger.log(f"Ready in {round((time.perf_counter() - initialStartTime) * 1000, 3)} milliseconds!")
@@ -93,8 +87,6 @@ class Plugin:
     # Called whenever Millennium is unloaded. It can be used to clean up resources, save settings, etc.
     def _unload(self):
         logger.log("Millennium-Core is unloading...")
-        
-        self.StopWebsocket()
         self.StopUnixSocket()
 
         logger.log("Millennium-Core has been unloaded!")

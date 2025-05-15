@@ -1,6 +1,7 @@
 {
 	"settingsPanelPlugins": "Plugins",
 	"settingsPanelThemes": "Themes",
+	"settingsPanelGeneral": "General",
 	"settingsPanelUpdates": "Updates",
 	"settingsPanelLogs": "Logs",
 	"settingsPanelSettings": "Settings",

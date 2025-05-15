@@ -18,6 +18,11 @@ export default {
 		},
 		sourcemap: true,
 	},
+	preserveEntrySignatures: true,
+	treeshake: {
+		pureExternalImports: false,
+		preset: 'smallest',
+	},
 	plugins: [
 		resolve(),
 		commonjs(),

@@ -79,6 +79,7 @@ const RenderLogViewer = ({ logs, setSelectedLog }: { logs: LogData; setSelectedL
 						<IconsModule.Carat />
 						Back
 					</DialogButton>
+					{/* @ts-ignore */}
 					<TextField placeholder="Search..." onChange={ShowMatchedLogsFromSearch} />
 				</div>
 

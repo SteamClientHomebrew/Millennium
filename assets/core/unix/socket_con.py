@@ -4,7 +4,7 @@ import socket
 import os
 from enum import Enum, auto
 
-from api.plugins import find_all_plugins
+from plugins.plugins import find_all_plugins
 from util.logger import logger
 
 import Millennium  # type: ignore

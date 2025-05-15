@@ -1,6 +1,4 @@
 import configparser
-import os
-import Millennium # type: ignore
 from plat_spec.main import config_path
 
 class IniConfig:

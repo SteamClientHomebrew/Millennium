@@ -1,14 +1,4 @@
-import {
-	Classes,
-	DialogBody,
-	DialogBodyText,
-	DialogButton,
-	DialogFooter,
-	DialogHeader,
-	DialogSubHeader,
-	Millennium,
-	pluginSelf,
-} from '@steambrew/client';
+import { Classes, DialogBody, DialogBodyText, DialogButton, DialogFooter, DialogHeader, DialogSubHeader, Millennium, pluginSelf } from '@steambrew/client';
 import { ThemeItem } from '../types';
 import React from 'react';
 import { locale } from '../locales';
@@ -28,8 +18,7 @@ class AboutThemeRenderer extends React.Component<any> {
 
 	RenderDeveloperProfile = () => {
 		const OpenDeveloperProfile = () => {
-			this.activeTheme?.data?.github?.owner &&
-				SteamClient.System.OpenInSystemBrowser(`https://github.com/${this.activeTheme?.data?.github?.owner}/`);
+			this.activeTheme?.data?.github?.owner && SteamClient.System.OpenInSystemBrowser(`https://github.com/${this.activeTheme?.data?.github?.owner}/`);
 		};
 
 		return (
@@ -65,9 +54,7 @@ class AboutThemeRenderer extends React.Component<any> {
 		return (
 			<>
 				<DialogSubHeader className={settingsClasses.SettingsDialogSubHeader}>{locale.aboutThemeTitle}</DialogSubHeader>
-				<DialogBodyText className={Classes.FriendsDescription}>
-					{this.activeTheme?.data?.description ?? locale.itemNoDescription}
-				</DialogBodyText>
+				<DialogBodyText className={Classes.FriendsDescription}>{this.activeTheme?.data?.description ?? locale.itemNoDescription}</DialogBodyText>
 			</>
 		);
 	};
@@ -166,6 +153,6 @@ export const SetupAboutRenderer = (active: string) => {
 		replace_existing_popup: false,
 	};
 
-	const popupWND = new CreatePopup(AboutThemeRenderer, 'about_theme', params);
+	const popupWND = new CreatePopup(<AboutThemeRenderer />, 'about_theme', params);
 	popupWND.Show();
 };

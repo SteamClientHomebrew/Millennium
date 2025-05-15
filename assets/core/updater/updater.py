@@ -1,7 +1,7 @@
 import json
 import requests
-from updater.plugin_updater import PluginUpdater
-from updater.theme_updater import ThemeUpdater
+from plugins.plugin_updater import PluginUpdater
+from themes.theme_updater import ThemeUpdater
 from util.logger import logger
 from config.ini import IniConfig
 

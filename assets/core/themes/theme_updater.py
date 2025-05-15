@@ -2,7 +2,7 @@ from pathlib import Path
 import Millennium  # type: ignore
 import os, json, shutil, time, requests, arrow, platform
 from datetime import datetime
-from api.themes import find_all_themes
+from themes.themes import find_all_themes
 from api.config import cfg
 from unix.use_system import unuse_system_libs, use_system_libs
 from util.logger import logger
