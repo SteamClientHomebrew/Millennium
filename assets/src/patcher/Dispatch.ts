@@ -1,5 +1,6 @@
 import { pluginSelf } from '@steambrew/client';
 import { CommonPatchTypes, ConditionalControlFlow, ConditionalPatch, ConditionalControlFlowType as ModuleType } from '../types';
+import { settingsManager } from '../settings-manager';
 
 export const DOMModifier = {
 	/**
@@ -19,7 +20,7 @@ export const DOMModifier = {
 	 * @param localPath relative/absolute path to CSS module
 	 */
 	AddStyleSheet: (document: Document, localPath: string) => {
-		if (!pluginSelf.stylesAllowed) return;
+		if (!settingsManager.config.general.injectCSS) return;
 		if (document.querySelectorAll(`link[href='${localPath}']`).length) return;
 
 		document.head.appendChild(
@@ -36,7 +37,7 @@ export const DOMModifier = {
 	 * @param localPath relative/absolute path to CSS module
 	 */
 	AddJavaScript: (document: Document, localPath: string) => {
-		if (!pluginSelf.scriptsAllowed) return;
+		if (!settingsManager.config.general.injectJavascript) return;
 		if (document.querySelectorAll(`script[src='${localPath}'][type='module']`).length) return;
 
 		document.head.appendChild(
@@ -62,13 +63,7 @@ export const classListMatch = (classList: string[], affectee: string) => {
 	return false;
 };
 
-export const EvaluatePatch = (
-	type: ModuleType,
-	modulePatch: ConditionalControlFlow,
-	documentTitle: string,
-	classList: string[],
-	document: Document,
-) => {
+export const EvaluatePatch = (type: ModuleType, modulePatch: ConditionalControlFlow, documentTitle: string, classList: string[], document: Document) => {
 	if ((modulePatch as any)?.[CommonPatchTypes?.[type]] === undefined) {
 		return;
 	}
@@ -80,17 +75,11 @@ export const EvaluatePatch = (
 
 		switch (type) {
 			case ModuleType.TargetCss: {
-				DOMModifier.AddStyleSheet(
-					document,
-					constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src),
-				);
+				DOMModifier.AddStyleSheet(document, constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src));
 				break;
 			}
 			case ModuleType.TargetJs: {
-				DOMModifier.AddJavaScript(
-					document,
-					constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src),
-				);
+				DOMModifier.AddJavaScript(document, constructThemePath(pluginSelf.activeTheme.native, (modulePatch as any)[CommonPatchTypes[type]].src));
 				break;
 			}
 		}

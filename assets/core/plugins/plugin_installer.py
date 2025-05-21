@@ -3,25 +3,37 @@ import json
 import os
 import time
 import Millennium
-from plugins.plugins import find_all_plugins
+from util.ipc_functions import ChangePluginStatus
+from plugins.plugins import find_all_plugins, get_plugin_from_name
 from util.logger import logger
 import requests
 import zipfile
+import uuid
+import shutil
 
 class PluginInstaller:
 
     def check_install(self, plugin_name: str) -> bool:
-        plugins = json.loads(find_all_plugins())
+        return True if get_plugin_from_name(plugin_name) is not None else False
+    
+    def uninstall_plugin(self, pluginName: str):
+        try:
+            plugin = get_plugin_from_name(pluginName) 
 
-        for plugin in plugins:
-            if "data" in plugin and "name" in plugin["data"] and plugin["data"]["name"] == plugin_name:
-                return True
-            
-        return False
+            # disable the plugin before uninstalling it
+            Millennium.change_plugin_status([{
+                "plugin_name": pluginName,
+                "enabled": False
+            }])
+
+            shutil.rmtree(plugin["path"])
+            return True
+        except Exception as e:
+            logger.error(f"Failed to uninstall {pluginName}: {str(e)}")
+            return False
     
 
     def download_with_progress(self, url, dest_path, progress_callback):
-        import requests
         response = requests.get(url, stream=True)
         total = int(response.headers.get('content-length', 0))
         downloaded = 0
@@ -42,7 +54,7 @@ class PluginInstaller:
 
             for i, file in enumerate(files, 1):
                 zip_ref.extract(file, extract_to)
-                percent = 50 + (50.0 * (i / total))
+                percent = 50 + (45.0 * (i / total))
                 self.emit_message("Extracting plugin archive...", percent, False)
 
 
@@ -65,7 +77,7 @@ class PluginInstaller:
         download_path = Millennium.steam_path()
         
         try:
-            zip_path = os.path.join(download_path, "plugin.zip")
+            zip_path = os.path.join(download_path, uuid.uuid4().hex)
 
             def progress(downloaded, total):
                 percent = (downloaded / total_size) * 100 if total_size else 0
@@ -76,9 +88,13 @@ class PluginInstaller:
 
             self.emit_message("Setting up installed plugin...", 50, False)
 
-            extract_dir = os.path.join(download_path, "plugin_extracted")  # Adjust path
+            extract_dir = os.path.join(download_path, "plugins")  # Adjust path
             os.makedirs(extract_dir, exist_ok=True)
             self.extract_zip_with_progress(zip_path, extract_dir)
+
+            self.emit_message("Cleaning up...", 95, False)
+            os.remove(zip_path)
+            time.sleep(2)
 
             self.emit_message("Done!", 100, True)
             return json.dumps({'success': True})

@@ -1,10 +1,9 @@
 from pathlib import Path
 import Millennium  # type: ignore
-import os, json, shutil, time, requests, arrow, platform
+import os, json, shutil, arrow, platform
 from datetime import datetime
-from themes.themes import find_all_themes
-from api.config import cfg
-from unix.use_system import unuse_system_libs, use_system_libs
+from themes.accent_color import find_all_themes
+from util.use_system import use_system_libs
 from util.logger import logger
 
 # Conditional import for Git library based on OS
@@ -83,7 +82,6 @@ class ThemeUpdater:
 
 
     def download_theme_update(self, native: str) -> bool:
-
         logger.log(f"Updating theme {native}")
         try:
             repo = GitRepo(Path(Millennium.steam_path()) / "steamui" / "skins" / native)
@@ -94,9 +92,7 @@ class ThemeUpdater:
                 latest_commit = repo.revparse_single('origin/HEAD').id
                 repo.reset(latest_commit, pygit2.GIT_RESET_HARD)
             else:
-                use_system_libs()
-                repo.remotes.origin.pull()
-                unuse_system_libs()
+                use_system_libs(lambda: repo.remotes.origin.pull())
 
         except Exception as e:
             logger.log(f"An exception occurred: {e}")
@@ -107,20 +103,14 @@ class ThemeUpdater:
 
 
     def check_for_update(self, remote_json, theme, repo_name, repo):
-
         def has_update(remote_commit: str, repo) -> bool:
             return str(repo[repo.head.target].id if platform.system() == "Windows" else repo.head.commit.hexsha) != str(remote_commit)
 
         remote = next((item for item in remote_json if item.get("name") == repo_name), None)
-
-        if not remote:
-            return []
-        
-        if not has_update(remote['commit'], repo):
+        if not remote or not has_update(remote['commit'], repo):
             return []
         
         logger.log(f"Theme {theme['native']} has an update available!")
-
         return ({
             'message': remote['message'],
             'date':    arrow.get(remote['date']).humanize(),
@@ -133,29 +123,23 @@ class ThemeUpdater:
     def get_request_body(self):
         update_query = self.query_themes()
         post_body = self.construct_post_body(update_query)
-
         if not update_query:
             logger.log("No themes to update!")
             return (None, None)
 
         return (update_query, post_body)
 
-
     def process_updates(self, update_query, remote) -> bool:
         update_list = []
-
         if not remote:
             logger.log("No remote data available")
             return []
 
         for theme, repo in update_query:
-
             if "data" not in theme or "github" not in theme["data"]:
                 continue
-
             repo_name = theme["data"]["github"].get("repo_name")
             checked_theme = self.check_for_update(remote, theme, repo_name, repo)
-
             if repo_name and checked_theme:
                 update_list.append(checked_theme)
 

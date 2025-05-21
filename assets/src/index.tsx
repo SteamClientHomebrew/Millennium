@@ -1,119 +1,23 @@
-import { afterPatch, callable, findInReactTree, getReactRoot, Millennium, pluginSelf } from '@steambrew/client';
-import { PatchDocumentContext } from './patcher/index';
-import { RenderSettingsModal } from './ui/Settings';
+import { Millennium, pluginSelf } from '@steambrew/client';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';
-import { Logger } from './Logger';
-import { PatchNotification } from './ui/Notifications';
-import { Settings } from './Settings';
+import { Logger } from './utils/Logger';
 import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
-import { ShowUpdaterModal } from './custom_components/UpdaterModal';
-import { ShowWelcomeModal } from './custom_components/modals/WelcomeModal';
-import { GetUpdateCount, HasUpdateError, NotifyUpdateListeners } from './tabs/Updates';
-import { formatString, locale } from './locales';
-import { OnRunSteamURL } from './URLSchemeHandler';
+import { OnRunSteamURL } from './utils/url-scheme-handler';
+import { PyGetRootColors, PyGetStartupConfig } from './utils/ffi';
+import { onWindowCreatedCallback, patchMissedDocuments } from './patcher';
 
-const GetRootColors = callable<[], string>('cfg.get_colors');
+async function initializeMillennium(settings: SettingsProps) {
+	Logger.Log(`Received props`, settings);
 
-const PatchMissedDocuments = () => {
-	// @ts-ignore
-	g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
-		if (element?.value_?.m_popup?.window?.HAS_INJECTED_THEME === undefined) {
-			PatchDocumentContext(element?.value_);
-		}
-	});
-
-	// @ts-ignore
-	if (g_PopupManager?.m_mapPopups?.data_?.length === 0) {
-		Logger.Warn('windowCreated callback called, but no popups found...');
-	}
-};
-
-const PatchRootMenu = () => {
-	const steamRootMenu = findInReactTree(getReactRoot(document.getElementById('root') as any), (m) => {
-		return m?.pendingProps?.title === 'Steam' && m?.pendingProps?.menuContent;
-	});
-
-	afterPatch(steamRootMenu.pendingProps.menuContent, 'type', RenderSettingsModal.bind(this));
-};
-
-const windowCreated = (windowContext: any): void => {
-	const windowName = windowContext.m_strName;
-	const windowTitle = windowContext.m_strTitle;
-
-	if (windowTitle === 'Steam Root Menu') {
-		PatchRootMenu();
-	}
-
-	if (windowTitle.includes('notificationtoasts')) {
-		PatchNotification(windowContext.m_popup.document);
-	}
-
-	pluginSelf.windows ??= {};
-
-	Object.assign(pluginSelf.windows, {
-		[windowName]: windowContext.m_popup.window,
-		...(windowName !== windowTitle && { [windowTitle]: windowContext.m_popup.window }),
-	});
-
-	// @ts-ignore
-	g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
-		if (element?.value_?.m_strName === 'SP Desktop_uid0') {
-			pluginSelf.mainWindow = element?.value_?.m_popup?.window;
-
-			if (pluginSelf.mainWindow?.HAS_SHOWN_UPDATER === undefined) {
-				setTimeout(() => ShowWelcomeModal().then(ShowUpdaterModal.bind(null)), 1000);
-				pluginSelf.mainWindow.HAS_SHOWN_UPDATER = true;
-			}
-		}
-	});
-
-	PatchMissedDocuments();
-	PatchDocumentContext(windowContext);
-};
-
-const ProcessUpdates = () => {
-	if (HasUpdateError()) {
-		Logger.Log('Update error found, skipping...');
-		return;
-	}
-
-	if (!pluginSelf.wantsMillenniumPluginThemeUpdateNotify) {
-		Logger.Log('User disabled theme & plugin update notifications, skipping...');
-		return;
-	}
-
-	const updateCount = GetUpdateCount();
-
-	if (updateCount === 0) {
-		Logger.Log('No updates found, skipping...');
-		return;
-	}
-
-	const message = formatString(locale.themeAndPluginUpdateNotification, updateCount, updateCount > 1 ? locale.updatePlural : locale.updateSingular);
-
-	// setTimeout(() => {
-	// 	toaster.toast({
-	// 		title: locale.updatePanelHasUpdates,
-	// 		body: message,
-	// 		logo: <IconsModule.Settings />,
-	// 		icon: <IconsModule.Settings />,
-	// 		onClick: () => Navigation.Navigate('/decky/settings/plugins'),
-	// 	});
-	// }, 10000);
-};
-
-const InitializePatcher = async (startTime: number, result: SettingsProps) => {
-	Logger.Log(`Received props in [${(performance.now() - startTime).toFixed(3)}ms]`, result);
-
-	const theme: ThemeItem = result.active_theme;
-	const systemColors: SystemAccentColor = result.accent_color;
+	const theme: ThemeItem = settings.active_theme;
+	const systemColors: SystemAccentColor = settings.accent_color;
 
 	ParseLocalTheme(theme);
 	DispatchSystemColors(systemColors);
 
-	const themeV1: ThemeItemV1 = result?.active_theme?.data as ThemeItemV1;
+	const themeV1: ThemeItemV1 = settings?.active_theme?.data as ThemeItemV1;
 
 	if (themeV1?.GlobalsColors) {
 		DispatchGlobalColors(themeV1?.GlobalsColors);
@@ -121,36 +25,25 @@ const InitializePatcher = async (startTime: number, result: SettingsProps) => {
 
 	if (theme?.data?.hasOwnProperty('RootColors')) {
 		Logger.Log('RootColors found in theme, dispatching...');
-		pluginSelf.RootColors = await GetRootColors();
+		pluginSelf.RootColors = await PyGetRootColors();
 	}
 
 	Object.assign(pluginSelf, {
-		conditionals: result?.conditions,
-		scriptsAllowed: result?.settings?.scripts ?? true,
-		stylesAllowed: result?.settings?.styles ?? true,
-		steamPath: result?.steamPath,
-		installPath: result?.installPath,
-		useInterface: result?.useInterface ?? true,
-		version: result?.millenniumVersion,
-		wantsMillenniumUpdates: result?.wantsUpdates ?? true,
-		wantsMillenniumUpdateNotifications: result?.wantsNotify ?? true,
-		wantsMillenniumPluginThemeUpdateNotify: result?.wantsThemeAndPluginNotify ?? true,
-		enabledPlugins: result?.enabledPlugins ?? [],
-		updates: result?.updates ?? [],
+		conditionals: settings?.conditions,
+		steamPath: settings?.steamPath,
+		installPath: settings?.installPath,
+		version: settings?.millenniumVersion,
+		enabledPlugins: settings?.enabledPlugins ?? [],
+		updates: settings?.updates ?? [],
 	});
 
-	NotifyUpdateListeners();
-
-	ProcessUpdates();
-	PatchMissedDocuments();
-};
+	patchMissedDocuments();
+}
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
-	const startTime = performance.now();
-	const settings: SettingsProps = await Settings.FetchAllSettings();
-	await InitializePatcher(startTime, settings);
-	Millennium.AddWindowCreateHook(windowCreated);
+	await initializeMillennium(JSON.parse(await PyGetStartupConfig()));
+	Millennium.AddWindowCreateHook(onWindowCreatedCallback);
 
 	// @ts-ignore
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);

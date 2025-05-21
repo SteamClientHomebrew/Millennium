@@ -3,7 +3,6 @@ import requests
 from plugins.plugin_updater import PluginUpdater
 from themes.theme_updater import ThemeUpdater
 from util.logger import logger
-from config.ini import IniConfig
 
 class Updater: 
     def __init__(self):
@@ -20,10 +19,6 @@ class Updater:
     
     def download_theme_update(self, native: str) -> bool:
         return self.theme_updater.download_theme_update(native)
-
-    def set_update_notifs_status(self, status: bool):
-        IniConfig.set_config("Settings", "updateNotifications", "yes" if status else "no")
-        return True
 
     def check_for_updates(self, force = False) -> None:
         try:

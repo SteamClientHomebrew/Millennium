@@ -31,6 +31,8 @@
 	},
 	"dependencies": {
 		"ansi-to-react": "^6.1.6",
-		"markdown-to-jsx": "^7.7.3"
+		"immer": "^10.1.1",
+		"markdown-to-jsx": "^7.7.3",
+		"react-icons": "^5.5.0"
 	}
 }

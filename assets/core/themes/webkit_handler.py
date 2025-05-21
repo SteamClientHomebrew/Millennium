@@ -1,5 +1,6 @@
 # This module is intended to keep track on the webkit hooks that are added to the browser
 import Millennium, sys, os, json, traceback
+from config.manager import get_config
 from util.logger import logger
 
 class WebkitHookStore:
@@ -22,52 +23,47 @@ class WebkitHookStore:
 
 def parse_conditional_patches(conditional_patches: dict, theme_name: str):
     webkit_items = []
+    theme_conditions = get_config()["themes.conditions"]
 
-    with open(os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "themes.json")) as file:
-        theme_conditions = json.load(file).get("conditions", {})
-
-        # Add condition keys into the webkit_items array
-        for item, condition in conditional_patches.get('Conditions', {}).items():
-            for value, control_flow in condition.get('values', {}).get(theme_conditions[theme_name][item], {}).items():
-                if isinstance(control_flow, dict): 
-                    affects = control_flow.get('affects', [])
-                    if isinstance(affects, list): 
-                        for match_string in affects:
-                            target_path = control_flow.get('src')
-
-                            webkit_items.append({
-                                'matchString': match_string,
-                                'targetPath': target_path,
-                                'fileType': value
-                            })
-                
-
-        patches = conditional_patches.get('Patches', [])
-        for patch in patches:  
-            for inject_type in ['TargetCss', 'TargetJs']:
-
-                if inject_type in patch:
-                    target_css = patch[inject_type]
-                    if isinstance(target_css, str):
-                        target_css = [target_css]
-
-                    for target in target_css:
+    # Add condition keys into the webkit_items array
+    for item, condition in conditional_patches.get('Conditions', {}).items():
+        for value, control_flow in condition.get('values', {}).get(theme_conditions[theme_name][item], {}).items():
+            if isinstance(control_flow, dict): 
+                affects = control_flow.get('affects', [])
+                if isinstance(affects, list): 
+                    for match_string in affects:
+                        target_path = control_flow.get('src')
                         webkit_items.append({
-                            'matchString': patch['MatchRegexString'],
-                            'targetPath': target,
-                            'fileType': inject_type
+                            'matchString': match_string,
+                            'targetPath': target_path,
+                            'fileType': value
                         })
+            
 
-        # Remove duplicates
-        seen = set()
-        unique_webkit_items = []
-        for item in webkit_items:
-            identifier = (item['matchString'], item['targetPath'])
-            if identifier not in seen:
-                seen.add(identifier)
-                unique_webkit_items.append(item)
+    patches = conditional_patches.get('Patches', [])
+    for patch in patches:  
+        for inject_type in ['TargetCss', 'TargetJs']:
+            if inject_type in patch:
+                target_css = patch[inject_type]
+                if isinstance(target_css, str):
+                    target_css = [target_css]
+                for target in target_css:
+                    webkit_items.append({
+                        'matchString': patch['MatchRegexString'],
+                        'targetPath': target,
+                        'fileType': inject_type
+                    })
 
-        return unique_webkit_items
+    # Remove duplicates
+    seen = set()
+    unique_webkit_items = []
+    for item in webkit_items:
+        identifier = (item['matchString'], item['targetPath'])
+        if identifier not in seen:
+            seen.add(identifier)
+            unique_webkit_items.append(item)
+
+    return unique_webkit_items
 
 conditional_patches = []
 
@@ -89,7 +85,6 @@ def add_conditional_data(path: str, data: dict, theme_name: str):
     try:
         remove_all_patches()
         parsed_patches = parse_conditional_patches(data, theme_name)
-
         for patch in parsed_patches:
             if patch['fileType'] == 'TargetCss' and patch['targetPath'] is not None and patch['matchString'] is not None:
                 target_path = os.path.join(path, patch['targetPath'])

@@ -78,12 +78,31 @@ namespace Crow
      */
     MILLENNIUM ResponseProps EvaluateRequest(std::filesystem::path path)
     {
+        std::string fileContent;
         eFileType fileType = EvaluateFileType(path.string());
+
+        if (IsBinaryFile(fileType))
+        {   
+            try 
+            {
+                const auto fileBytes = SystemIO::ReadFileBytesSync(path.string());
+                fileContent = std::string(fileBytes.begin(), fileBytes.end());
+            }
+            catch (const std::exception& e) 
+            {
+                LOG_ERROR("Error reading file: {}", e.what());
+            }
+        }
+        else
+        {
+            fileContent = SystemIO::ReadFileSync(path.string());
+        }
+
         const std::string contentType = fileTypes[fileType];
 
         return {
             contentType,
-            SystemIO::ReadFileSync(path.string()),
+            fileContent,
             std::filesystem::exists(path)
         };
     }

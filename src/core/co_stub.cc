@@ -109,10 +109,7 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
     const std::string ftpPath = UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), preloadPath.generic_string());
     const std::string scriptContent = fmt::format("module.default({}, [{}]);", ipcPort, scriptModuleArray);
 
-    std::string importScript = fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
-
-    std::cout << importScript << std::endl;
-    return importScript;
+    return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
 }
 
 /**
@@ -594,7 +591,7 @@ MILLENNIUM const void UnPatchSharedJSContext()
  * Error Handling:
  * - If any issues occur during the message processing, errors are logged with details.
  */
-MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
+MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort, bool reloadFrontend)
 {
     UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
@@ -610,7 +607,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         PAGE_RELOAD = 4
     };
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [] (const nlohmann::json& eventMessage, std::string listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [reloadFrontend] (const nlohmann::json& eventMessage, std::string listenerId)
     {
         auto& state = BackendLoadState::get();
         std::unique_lock<std::mutex> lock(state.mtx);
@@ -632,7 +629,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                 state.hasScriptIdentifier = true;
                 Logger.Log("Successfully injected shims, reloading frontend...");
 
-                Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                if (reloadFrontend) Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
                 state.cvScript.notify_one();  
 
             }
@@ -641,7 +638,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                 if (eventMessage.contains("error"))
                 {
                     Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
-                    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                    if (reloadFrontend) Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
                     return;
                 }
 
@@ -675,10 +672,10 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
  * @param {uint16_t} ftpPort - The FTP port used to access frontend resources.
  * @param {uint16_t} ipcPort - The IPC port used for backend communication.
  */
-MILLENNIUM const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
+MILLENNIUM const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort, bool reloadFrontend) 
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
-    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
+    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort, reloadFrontend));
 }
 
 /**
@@ -688,10 +685,10 @@ MILLENNIUM const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint1
  * 
  * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
  */
-MILLENNIUM const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader)
+MILLENNIUM const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
 {
     pluginLoader->InjectWebkitShims();
 
     Sockets::PostShared({ {"id", 0 }, {"method", "Page.removeScriptToEvaluateOnNewDocument"}, {"params", {{ "identifier", addedScriptOnNewDocumentId }}} });
-    InjectFrontendShims();
+    InjectFrontendShims(reloadFrontend);
 }

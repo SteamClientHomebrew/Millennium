@@ -51,7 +51,8 @@ MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObje
 {
     LoggerObject *self;
     self = (LoggerObject *)type->tp_alloc(type, 0);
-    if (!self) {
+    if (!self) 
+    {
         return NULL;
     }
 
@@ -62,7 +63,8 @@ MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObje
     }
 
     PyObject* builtins = PyEval_GetBuiltins();
-    if (!builtins) {
+    if (!builtins) 
+    {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
         Py_DECREF(self);
         return NULL;
@@ -83,10 +85,12 @@ MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObje
     }
 
     self->m_loggerPtr = new BackendLogger(pluginName);
-    if (!self->m_loggerPtr) {
+    if (!self->m_loggerPtr) 
+    {
         Py_DECREF(self);
         return NULL;
     }
+    
     g_loggerList.push_back(self->m_loggerPtr);
     return (PyObject *)self;
 }

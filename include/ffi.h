@@ -57,6 +57,7 @@ namespace Python {
 	enum Types {
 		Boolean,
 		String,
+        JSON,
 		Integer,
 		Error,
 		Unknown // non-atomic ADT's

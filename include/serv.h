@@ -51,6 +51,7 @@ enum eFileType
     otf,
     woff,
     woff2,
+    gif,
     unknown
 };
 
@@ -73,6 +74,7 @@ static std::map<eFileType, std::string> fileTypes
     { eFileType::otf,     "font/otf"               },
     { eFileType::woff,    "font/woff"              },
     { eFileType::woff2,   "font/woff2"             },
+    { eFileType::gif,     "image/gif"              },
     { eFileType::unknown, "text/plain"             },
 
 };
@@ -85,7 +87,7 @@ static std::map<eFileType, std::string> fileTypes
  */
 static constexpr bool IsBinaryFile(eFileType fileType)
 {
-    return fileType == eFileType::ttf || fileType == eFileType::otf || fileType == eFileType::woff || fileType == eFileType::woff2 || fileType == eFileType::unknown;
+    return fileType == eFileType::ttf || fileType == eFileType::otf || fileType == eFileType::woff || fileType == eFileType::woff2 || fileType == eFileType::gif || fileType == eFileType::unknown;
 }
 
 /**
@@ -113,7 +115,8 @@ static const eFileType EvaluateFileType(std::filesystem::path filePath)
     else if (extension == ".otf"  ) { return eFileType::otf;   }
     else if (extension == ".woff" ) { return eFileType::woff;  }
     else if (extension == ".woff2") { return eFileType::woff2; }
-
+    else if (extension == ".gif"  ) { return eFileType::gif;   }
+    
     else
     {
         return eFileType::unknown;

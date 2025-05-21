@@ -1,7 +1,5 @@
 import Millennium # type: ignore
 import configparser, os, json
-from plat_spec.main import config_path
-
 try:
     from util.logger import logger
 except ImportError:
@@ -10,7 +8,7 @@ except ImportError:
 def is_enabled(plugin_name: str) -> bool:
     config = configparser.ConfigParser()
 
-    with open(config_path, 'r') as enabled:
+    with open(os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "millennium.ini"), 'r') as enabled:
         config.read_file(enabled)
     
     enabled_plugins = config.get('Settings', 'enabled_plugins', fallback='').split('|')
@@ -39,3 +37,13 @@ def find_all_plugins(_logger = None) -> str:
         search_dirs(subdir, plugins, logger if _logger is None else _logger)
 
     return json.dumps(plugins)
+
+
+def get_plugin_from_name(plugin_name: str):
+    plugins = json.loads(find_all_plugins())
+
+    for plugin in plugins:
+        if "data" in plugin and "name" in plugin["data"] and plugin["data"]["name"] == plugin_name:
+            return plugin
+        
+    return None

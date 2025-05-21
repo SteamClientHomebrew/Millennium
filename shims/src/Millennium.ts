@@ -11,7 +11,8 @@ declare global {
 	}
 }
 
-type IPC_types = string | number | boolean;
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+type IPC_types = string | number | boolean | Json;
 declare const g_PopupManager: any;
 
 const backendIPC = {
@@ -46,9 +47,6 @@ export const Millennium = {
 		const query = { pluginName, methodName, ...(kwargs && { argumentList: kwargs }) };
 
 		return backendIPC.postMessage(0, query).then((res: any) => {
-			if (res?.failedRequest) {
-				throw `IPC call failed [plugin: ${pluginName}, method: ${methodName}] -> ${res.failMessage}`;
-			}
 			return typeof res.returnValue === 'string' ? atob(res.returnValue) : res.returnValue;
 		});
 	},

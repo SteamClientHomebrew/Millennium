@@ -3,9 +3,14 @@ import { ConditionalControlFlowType as ModuleType, Patch, ThemeItem } from '../t
 import { DOMModifier, classListMatch, constructThemePath } from './Dispatch';
 import { EvaluateConditions } from './v2/Conditions';
 import { PatchV1, EvaluateStatements } from './v1/Conditions';
+import { PatchRootMenu } from './RootMenu';
+import { PatchNotification } from '../utils/notification-patcherr';
+import { Logger } from '../utils/Logger';
 
 const EvaluateModule = (module: string, type: ModuleType, document: Document) => {
 	const activeTheme: ThemeItem = pluginSelf.activeTheme;
+
+	Logger.Log(`Evaluating module:`, module, type);
 
 	switch (type) {
 		case ModuleType.TargetCss:
@@ -67,7 +72,7 @@ const getDocumentClassList = (context: any): string[] => {
 	return `${bodyClass} ${htmlClass}`.split(' ').map((className: string) => '.' + className);
 };
 
-function patchDocumentContext(windowContext: any) {
+export function patchDocumentContext(windowContext: any) {
 	const document: Document = windowContext.m_popup.document;
 
 	for (const plugin of pluginSelf.enabledPlugins) {
@@ -99,4 +104,52 @@ function patchDocumentContext(windowContext: any) {
 	pluginSelf?.RootColors && DOMModifier.AddStyleSheetFromText(document, pluginSelf.RootColors, 'RootColors');
 }
 
-export { patchDocumentContext as PatchDocumentContext };
+export function patchMissedDocuments() {
+	// @ts-ignore
+	g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
+		if (element?.value_?.m_popup?.window?.HAS_INJECTED_THEME === undefined) {
+			patchDocumentContext(element?.value_);
+		}
+	});
+
+	// @ts-ignore
+	if (g_PopupManager?.m_mapPopups?.data_?.length === 0) {
+		Logger.Warn('windowCreated callback called, but no popups found...');
+	}
+}
+
+export function onWindowCreatedCallback(windowContext: any): void {
+	const windowName = windowContext.m_strName;
+	const windowTitle = windowContext.m_strTitle;
+
+	if (windowTitle === 'Steam Root Menu') {
+		PatchRootMenu();
+	}
+
+	if (windowTitle.includes('notificationtoasts')) {
+		PatchNotification(windowContext.m_popup.document);
+	}
+
+	pluginSelf.windows ??= {};
+
+	Object.assign(pluginSelf.windows, {
+		[windowName]: windowContext.m_popup.window,
+		...(windowName !== windowTitle && { [windowTitle]: windowContext.m_popup.window }),
+	});
+
+	// @ts-ignore
+	g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
+		if (element?.value_?.m_strName === 'SP Desktop_uid0') {
+			pluginSelf.mainWindow = element?.value_?.m_popup?.window;
+
+			if (pluginSelf.mainWindow?.HAS_SHOWN_UPDATER === undefined) {
+				// TODO: Fix this
+				// setTimeout(() => ShowWelcomeModal().then(ShowUpdaterModal.bind(null)), 1000);
+				pluginSelf.mainWindow.HAS_SHOWN_UPDATER = true;
+			}
+		}
+	});
+
+	patchMissedDocuments();
+	patchDocumentContext(windowContext);
+}

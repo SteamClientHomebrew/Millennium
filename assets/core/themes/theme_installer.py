@@ -1,8 +1,8 @@
 import gc
 import time
 import Millennium # type: ignore
-import os, stat, json, shutil, websockets, asyncio
-from unix.use_system import unuse_system_libs, use_system_libs
+import os, stat, json, shutil
+from util.use_system import use_system_libs
 from util.logger import logger
 
 import platform
@@ -11,11 +11,8 @@ if platform.system() == "Windows":
 elif platform.system() == "Linux":
     import git
 
-from api.config import cfg
-from themes.themes import find_all_themes
-import pathlib
+from themes.accent_color import find_all_themes
 import asyncio
-import threading
 import websockets
 
 class ThemeInstaller:
@@ -26,7 +23,6 @@ class ThemeInstaller:
             else:
                 sub.unlink()
         pth.rmdir()
-
 
     def error_message(self, websocket, message):
         return json.dumps({"type": "error", "message": message})
@@ -106,11 +102,8 @@ class ThemeInstaller:
                 pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
 
             elif platform.system() == "Linux":
-
-                use_system_libs()
                 logger.log("Attempting to clone repo from system git")
-                git.Repo.clone_from(f"https://github.com/{owner}/{repo}.git", path) 
-                unuse_system_libs()
+                use_system_libs(lambda: git.Repo.clone_from(f"https://github.com/{owner}/{repo}.git", path))
 
             self.emit_message(f"Done!", 100, True)
             gc.collect()
@@ -120,13 +113,3 @@ class ThemeInstaller:
         except Exception as e:
             return json.dumps({'success': False, 'message': "Failed to clone the theme repository!"})
         
-
-    def handle_set_active_theme(self, repo, owner):
-        target_theme = self.get_theme_from_gitpair(repo, owner)
-
-        if target_theme == None:
-            return json.dumps({'success': False, 'message': "Couldn't locate the target theme on disk!"})
-
-        cfg.change_theme(target_theme["native"])
-        Millennium.call_frontend_method("ReloadMillenniumFrontend")
-        return json.dumps({'success': True})

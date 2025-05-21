@@ -39,7 +39,7 @@ export function parseTheme(incomingPatches: Patch[]) {
  * @param theme ThemeItem
  * @returns void
  */
-export const ParseLocalTheme = (theme: ThemeItem) => {
+export function ParseLocalTheme(theme: ThemeItem) {
 	if (theme?.failed) {
 		pluginSelf.isDefaultTheme = true;
 		return;
@@ -47,4 +47,4 @@ export const ParseLocalTheme = (theme: ThemeItem) => {
 
 	theme?.data?.UseDefaultPatches && (theme.data.Patches = parseTheme(theme?.data?.Patches ?? []));
 	pluginSelf.activeTheme = theme as ThemeItem;
-};
+}
