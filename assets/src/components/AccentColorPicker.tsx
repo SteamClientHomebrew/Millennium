@@ -1,8 +1,9 @@
-import { DialogButton, Field } from '@steambrew/client';
+import { DialogButton, Field, pluginSelf } from '@steambrew/client';
 import { settingsClasses } from '../utils/classes';
 import { locale } from '../../locales';
-import { useMillenniumState, useUpdateConfig } from '../config-provider';
 import { settingsManager } from '../settings-manager';
+import { useState, useRef } from 'react';
+import { PyChangeAccentColor } from '../utils/ffi';
 
 const SanitizeHex = (color: string) => {
 	if (color.startsWith('#')) {
@@ -17,10 +18,9 @@ const SanitizeHex = (color: string) => {
 };
 
 const RenderAccentColorPicker = () => {
-	const config = useMillenniumState();
-	const updateConfig = useUpdateConfig();
-
-	const isDefaultColor = SanitizeHex(config.general.accentColor.accent) === SanitizeHex(config.general.accentColor.originalAccent);
+	const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+	const [accentColor, setAccentColor] = useState<string>(pluginSelf.accentColor.accent);
+	const isDefaultColor = SanitizeHex(pluginSelf.accentColor.accent) === SanitizeHex(pluginSelf.accentColor.originalAccent);
 
 	const UpdateAllWindows = () => {
 		g_PopupManager.m_mapPopups.data_.forEach((element: any) => {
@@ -30,14 +30,7 @@ const RenderAccentColorPicker = () => {
 		});
 	};
 
-	const UpdateColor = async (hexColor: string) => {
-		updateConfig((draft) => {
-			draft.general.accentColor.accent = hexColor;
-		});
-		UpdateAllWindows();
-	};
-
-	const ResetColor = () => UpdateColor(config.general.accentColor.originalAccent);
+	const ResetColor = () => handleColorChange(pluginSelf.accentColor.originalAccent);
 
 	const ResetButton = () => {
 		if (isDefaultColor) {
@@ -51,6 +44,23 @@ const RenderAccentColorPicker = () => {
 		);
 	};
 
+	function handleColorChange(newColor: string) {
+		const sanitizedColor = SanitizeHex(newColor);
+
+		setAccentColor(sanitizedColor);
+		pluginSelf.accentColor.accent = sanitizedColor;
+
+		if (debounceTimer.current) {
+			clearTimeout(debounceTimer.current);
+		}
+
+		debounceTimer.current = setTimeout(() => {
+			setAccentColor(sanitizedColor);
+			UpdateAllWindows();
+			PyChangeAccentColor({ new_color: sanitizedColor });
+		}, 300);
+	}
+
 	return (
 		<Field
 			className="MillenniumThemes_AccentColorField"
@@ -60,7 +70,7 @@ const RenderAccentColorPicker = () => {
 			bottomSeparator="none"
 		>
 			<ResetButton />
-			<input type="color" className="MillenniumColorPicker" value={config.general.accentColor.accent} onChange={(event) => UpdateColor(event.target.value)} />
+			<input type="color" className="MillenniumColorPicker" value={SanitizeHex(accentColor)} onChange={(event) => handleColorChange(event.target.value)} />
 		</Field>
 	);
 };

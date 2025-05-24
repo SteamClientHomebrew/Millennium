@@ -1,4 +1,3 @@
-
 import Millennium, json 
 from config.manager import get_config
 
@@ -39,7 +38,8 @@ def GetMillenniumConfig():
         "installPath":               Millennium.get_install_path(),
         "millenniumVersion":         Millennium.version(),
         "enabledPlugins":            enabledPlugins,
-        "updates":                   updater.check_for_updates(),
+        "updates":                   updater.get_cached_updates(),
+        "hasCheckedForUpdates":      updater.get_has_checked_for_updates()
     }
 
 

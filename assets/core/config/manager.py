@@ -1,5 +1,6 @@
 import enum
 import os
+import traceback
 import Millennium
 
 import json
@@ -7,6 +8,7 @@ import threading
 from typing import Callable, Dict, Any, Mapping, Optional
 
 from config.default_settings import default_config
+from util.logger import logger
 
 class ConfigManager:
     _instance = None
@@ -26,16 +28,17 @@ class ConfigManager:
         self._lock = threading.RLock()
         self._listeners = []  # type: list[Callable[[str, Any, Any], None]]
         self._defaults = {}
+        self._data = {}
         self._filename = os.path.join(Millennium.steam_path(), "ext", filename)
 
-        self.load_from_file(filename)
+        self.load_from_file()
         self.set_defaults()
 
     def get(self, key: str, default: Any = None) -> Any:
         with self._lock:
             return self._data.get(key, self._defaults.get(key, default))
 
-    def set(self, key: str, value: Any):
+    def set(self, key: str, value: Any, skip_propagation: bool = False):
         with self._lock:
             keys = key.split(".")
             current = self._data
@@ -46,10 +49,16 @@ class ConfigManager:
 
             last_key = keys[-1]
             old_value = current.get(last_key)
+
             if old_value != value:
                 current[last_key] = value
                 self._notify_listeners(key, old_value, value)
-                self._auto_save()
+                logger.log("set() setting changed")
+                self._auto_save(skip_propagation=skip_propagation)
+            else:
+                logger.log("old value: " + json.dumps(old_value, indent=4))
+                logger.log("new value: " + json.dumps(value, indent=4))
+                logger.log("are they equal? " + str(old_value == value))
 
     def delete(self, key: str):
         with self._lock:
@@ -57,6 +66,7 @@ class ConfigManager:
                 old_value = self._data[key]
                 del self._data[key]
                 self._notify_listeners(key, old_value, None)
+                logger.log("delete() setting changed")
                 self._auto_save()
 
     def _notify_listeners(self, key: str, old_value: Any, new_value: Any):
@@ -76,23 +86,46 @@ class ConfigManager:
             if listener in self._listeners:
                 self._listeners.remove(listener)
 
-    def load_from_file(self, filepath: Optional[str] = None):
-        filepath = filepath or self._filename
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
+    def load_from_file(self):
+        if not os.path.exists(self._filename):
+            logger.log(f"Config file not found. Creating new config file: {self._filename}")
+            try:
+                with open(self._filename, "w", encoding="utf-8") as f:
+                    json.dump({}, f, indent=2, default=self.custom_encoder)
+            except (IOError, PermissionError) as e:
+                logger.log(f"Error creating config file: {e}")
+                self._data = {}
+                return
+            
+        try:
+            with open(self._filename, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    logger.log("Invalid JSON in config file. Creating new config.")
+                    data = {}
+                    # Write the new empty config in a separate operation
+                    with open(self._filename, "w", encoding="utf-8") as f:
+                        json.dump(data, f, indent=2, default=self.custom_encoder)
+        except (IOError, PermissionError) as e:
+            logger.log(f"Error accessing config file: {e}")
+            data = {}
+            
         with self._lock:
             self._data = data
         for k, v in data.items():
             self._notify_listeners(k, None, v)
 
-    def save_to_file(self, filepath: Optional[str] = None, skip_propagation: bool = False):
-        filepath = filepath or self._filename
+    def save_to_file(self, skip_propagation: bool = False):
         with self._lock:
-            with open(filepath, "w", encoding="utf-8") as f:
+            logger.log("Saving config to file: " + self._filename + " skip_propagation: " + str(skip_propagation))
+
+            with open(self._filename, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2, default=self.custom_encoder)
 
                 if not skip_propagation:
                     try:
+                        logger.log("Calling OnBackendConfigUpdate")
                         Millennium.call_frontend_method("OnBackendConfigUpdate", params=[json.dumps(self._data, default=self.custom_encoder)])
                     except ConnectionError as e:
                         pass # Millennium frontend not connected
@@ -107,6 +140,7 @@ class ConfigManager:
                     self._notify_listeners(k, old_value, v)
                     changed = True
             if changed:
+                logger.log("update() setting changed")
                 self._auto_save()
 
     def set_default(self, key: str, value: Any):
@@ -133,12 +167,11 @@ class ConfigManager:
                     self._notify_listeners(key, old_value, new_value)
                     changed = True
             if changed:
+                logger.log("set_all() setting changed")
                 self._auto_save(skip_propagation=skip_propagation)
-
 
     def custom_encoder(self, obj):
         if isinstance(obj, enum.Enum):
-            print(f"Encoding enum: {obj} {obj.value}")
             return obj.value
         elif isinstance(obj, bytes):
             return obj.decode("utf-8", errors="replace")
@@ -196,7 +229,6 @@ class ConfigManager:
         return f"ConfigManager({self.get_all()})"
 
     def _auto_save(self, skip_propagation: bool = False):
-        
         self.save_to_file(skip_propagation=skip_propagation)
 
     def set_defaults(self, prefix: str = ""):
@@ -204,10 +236,8 @@ class ConfigManager:
             for key, value in incoming.items():
                 full_key = f"{path}.{key}" if path else key
                 if isinstance(value, dict):
-                    existing = current.get(key, {})
-                    if not isinstance(existing, dict):
-                        continue  # skip if incompatible type
-                    current[key] = existing
+                    if key not in current or not isinstance(current[key], dict):
+                        current[key] = {}
                     _merge(current[key], value, full_key)
                 else:
                     if key not in current:
@@ -216,6 +246,7 @@ class ConfigManager:
 
         with self._lock:
             _merge(self._data, default_config, "")
+            logger.log("Setting default settings")
             self._auto_save()
 
 # Helper function to get the singleton instance easily

@@ -1,7 +1,6 @@
 import { callable, DialogButton, Field, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { Separator } from '../../components/SteamComponents';
-import { useState } from 'react';
 import { RenderThemeEditor } from '../../components/ThemeEditor';
 import { Utils } from '../../utils';
 import { formatString, locale } from '../../../locales';
@@ -75,7 +74,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 		const isActive = this.isActive;
 
 		function onClose() {
-			if (isActive || !pluginSelf.ConditionConfigHasChanged) return;
+			if (!isActive || !pluginSelf.ConditionConfigHasChanged) return;
 
 			/** After the new config is set, we need to reload the UI for changes to be reflected */
 			Utils.PromptReload(() => SteamClient.Browser.RestartJSContext());
@@ -83,7 +82,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 		}
 
 		showModal(<RenderThemeEditor theme={theme} />, pluginSelf.mainWindow, {
-			strTitle: (theme?.data?.name ?? theme.native) + ' Settings',
+			strTitle: theme?.data?.name,
 			popupHeight: 675,
 			popupWidth: 850,
 			fnOnClose: onClose,

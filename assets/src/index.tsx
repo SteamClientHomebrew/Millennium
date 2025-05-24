@@ -29,12 +29,14 @@ async function initializeMillennium(settings: SettingsProps) {
 	}
 
 	Object.assign(pluginSelf, {
+		accentColor: settings?.accent_color,
 		conditionals: settings?.conditions,
 		steamPath: settings?.steamPath,
 		installPath: settings?.installPath,
 		version: settings?.millenniumVersion,
 		enabledPlugins: settings?.enabledPlugins ?? [],
 		updates: settings?.updates ?? [],
+		hasCheckedForUpdates: settings?.hasCheckedForUpdates ?? false,
 	});
 
 	patchMissedDocuments();

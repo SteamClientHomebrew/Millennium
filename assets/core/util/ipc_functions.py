@@ -2,10 +2,10 @@ from util.logger import logger
 import json, os
 import Millennium
 from themes.accent_color import Colors
-from themes.theme_config import theme_config
+from config.manager import get_config
 
 def GetSystemColors():
-    return Colors.get_accent_color(theme_config.get_config()["general.accentColor"])
+    return Colors.get_accent_color(get_config()["general.accentColor"])
 
 
 def ChangePluginStatus(pluginJson):

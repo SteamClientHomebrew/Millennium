@@ -28,3 +28,6 @@ export const PyGetStartupConfig = callable<[], string>('GetMillenniumConfig');
 export const PyGetLogData = callable<[], any[]>('GetPluginBackendLogs');
 export const PySetClipboardText = callable<[{ data: string }], boolean>('SetClipboardContent');
 export const PyGetRootColors = callable<[], string>('theme_config.get_colors');
+export const PyChangeCondition = callable<[{ theme: string; newData: string; condition: string }], boolean>('theme_config.change_condition');
+export const PyChangeColor = callable<[{ theme: string; new_color: string; color_name: string; type: number }], boolean>('theme_config.change_color');
+export const PyChangeAccentColor = callable<[{ new_color: string }], boolean>('theme_config.change_accent_color');

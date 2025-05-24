@@ -26,7 +26,7 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 	);
 
 	await setUpdateState({
-		statusText: 'Updating theme...',
+		statusText: locale.strUpdatingTheme,
 		progress: 30,
 		uxSleepLength: 1000,
 	});
@@ -35,7 +35,7 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 
 	if (updateSuccess) {
 		await setUpdateState({
-			statusText: 'Finished updating!',
+			statusText: locale.strFinishedUpdating,
 			progress: 100,
 			uxSleepLength: 1000,
 		});

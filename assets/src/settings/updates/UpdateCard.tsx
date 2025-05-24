@@ -65,7 +65,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		}
 
 		return (
-			<DialogButtonPrimary onClick={onUpdateClick} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
+			<DialogButtonPrimary onClick={onUpdateClick} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} data-update-button>
 				Download <IconsModule.Download key="download-icon" />
 			</DialogButtonPrimary>
 		);

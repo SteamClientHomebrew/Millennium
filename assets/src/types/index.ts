@@ -154,12 +154,9 @@ export interface SettingsProps {
 	settings: Settings;
 	steamPath: string;
 	installPath: string;
-	useInterface: boolean;
 	millenniumVersion: string;
-	wantsUpdates: boolean;
-	wantsNotify: boolean;
 	enabledPlugins: string;
-	wantsThemeAndPluginNotify: boolean;
+	hasCheckedForUpdates: boolean;
 
 	updates: {
 		themes?: UpdateItem[];

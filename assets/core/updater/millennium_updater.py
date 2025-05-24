@@ -26,7 +26,7 @@ class MillenniumUpdater:
 
     def check_for_updates():
         if not get_config()["general.checkForMillenniumUpdates"]:
-            logger.log("User has disabled update checking.")
+            logger.warn("User has disabled update checking for Millennium.")
             return 
 
         logger.log("Checking for updates...")

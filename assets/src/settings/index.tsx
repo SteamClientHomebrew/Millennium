@@ -137,7 +137,7 @@ export function MillenniumSettings({ popup }: { popup: ShowModalResult }) {
 			<ModalPosition>
 				<Styles />
 				{/* @ts-ignore */}
-				<SidebarNavigation className={className} pages={pages} title={``} />
+				<SidebarNavigation className={className} pages={pages} title={'Millennium'} />
 			</ModalPosition>
 		</ConfigProvider>
 	);
@@ -148,7 +148,7 @@ function RenderSettingsModal(_: any, retObj: any) {
 
 	if (index !== -1) {
 		retObj.props.menuItems.splice(index + 1, 0, {
-			name: 'Millennium Settings',
+			name: 'Millennium',
 			onClick: () => {
 				let modal: any = {};
 				Object.assign(

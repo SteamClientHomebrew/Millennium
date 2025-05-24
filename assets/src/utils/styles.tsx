@@ -101,15 +101,6 @@ const styles = `
 	.${fieldClasses.FieldChildrenInner} {
 		gap: var(--MillenniumSpacing-Normal);
 	}
-
-	img[alt="Steam Spinner"] {
-		width: var(--MillenniumControls-IconSize);
-		height: var(--MillenniumControls-IconSize);
-
-		& + div {
-			display: none;
-		}
-	}
 }
 
 /**

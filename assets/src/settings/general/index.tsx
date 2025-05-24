@@ -1,10 +1,10 @@
-import { Dropdown, Field, Toggle } from '@steambrew/client';
+import { Dropdown, Field, IconsModule, Toggle } from '@steambrew/client';
 import React from 'react';
 import { locale } from '../../../locales';
 import { OnMillenniumUpdate } from '../../types';
 import { RenderAccentColorPicker } from '../../components/AccentColorPicker';
 import { useMillenniumState, useUpdateConfig } from '../../config-provider';
-import { SettingsDialogSubHeader } from '../../components/SteamComponents';
+import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { AppConfig } from '../../AppConfig';
 
 export const GeneralViewModal: React.FC = () => {
@@ -18,42 +18,54 @@ export const GeneralViewModal: React.FC = () => {
 	};
 
 	const OnMillenniumUpdateOpts = [
-		{ label: 'Do nothing', data: OnMillenniumUpdate.DO_NOTHING },
-		{ label: 'Notify me', data: OnMillenniumUpdate.NOTIFY },
-		{ label: 'Automatically install', data: OnMillenniumUpdate.AUTO_INSTALL },
+		{ label: locale.eOnMillenniumUpdateDoNothing, data: OnMillenniumUpdate.DO_NOTHING },
+		{ label: locale.eOnMillenniumUpdateNotify, data: OnMillenniumUpdate.NOTIFY },
+		{ label: locale.eOnMillenniumUpdateAutoInstall, data: OnMillenniumUpdate.AUTO_INSTALL },
 	];
 
 	return (
 		<>
-			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>On Startup</SettingsDialogSubHeader>
+			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>{locale.headerOnStartup}</SettingsDialogSubHeader>
 
-			<Field label={'Check for Millennium updates'}>
+			<Field label={locale.optionCheckForMillenniumUpdates}>
 				<Toggle value={config.general.checkForMillenniumUpdates} onChange={(e) => handleChange('checkForMillenniumUpdates', e)} />
 			</Field>
 
-			<Field label={'Check for theme & plugin updates'} bottomSeparator="none">
+			<Field label={locale.optionCheckForThemeAndPluginUpdates} bottomSeparator="none">
 				<Toggle value={config.general.checkForPluginAndThemeUpdates} onChange={(e) => handleChange('checkForPluginAndThemeUpdates', e)} />
 			</Field>
 
-			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>Updates</SettingsDialogSubHeader>
+			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>{locale.headerUpdates}</SettingsDialogSubHeader>
 
-			<Field label={'When an update for Millennium is available'} bottomSeparator="none">
+			<Field
+				label={locale.optionWhenAnUpdateForMillenniumIsAvailable}
+				bottomSeparator="none"
+				disabled={!config.general.checkForMillenniumUpdates}
+				icon={
+					!config.general.checkForMillenniumUpdates && (
+						<DesktopTooltip toolTipContent={locale.tooltipCheckForMillenniumUpdates} direction="top" style={{ height: '16px', width: '20px', marginTop: '-5px' }}>
+							<IconsModule.ExclamationPoint color={'#ffc82c'} />
+						</DesktopTooltip>
+					)
+				}
+			>
 				<Dropdown
+					disabled={!config.general.checkForMillenniumUpdates}
 					rgOptions={OnMillenniumUpdateOpts}
 					selectedOption={OnMillenniumUpdateOpts.findIndex((opt) => opt.data === config.general.onMillenniumUpdate)}
 					onChange={(e) => handleChange('onMillenniumUpdate', e.data)}
 					contextMenuPositionOptions={{ bMatchWidth: false }}
-					strDefaultLabel={'Automatically install'}
+					strDefaultLabel={OnMillenniumUpdateOpts.find((opt) => opt.data === config.general.onMillenniumUpdate)?.label}
 				/>
 			</Field>
 
-			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>Notifications</SettingsDialogSubHeader>
+			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>{locale.headerNotifications}</SettingsDialogSubHeader>
 
-			<Field label={'When a plugin or theme update is available'} bottomSeparator="none">
+			<Field label={locale.optionWhenAPluginOrThemeUpdateIsAvailable} bottomSeparator="none">
 				<Toggle value={config.general.shouldShowThemePluginUpdateNotifications} onChange={(e) => handleChange('shouldShowThemePluginUpdateNotifications', e)} />
 			</Field>
 
-			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>Themes</SettingsDialogSubHeader>
+			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>{locale.headerThemes}</SettingsDialogSubHeader>
 
 			<Field label={locale.themePanelInjectJavascript}>
 				<Toggle value={config.general.injectJavascript} onChange={(e) => handleChange('injectJavascript', e)} />

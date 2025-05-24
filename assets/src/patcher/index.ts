@@ -3,7 +3,7 @@ import { ConditionalControlFlowType as ModuleType, Patch, ThemeItem } from '../t
 import { DOMModifier, classListMatch, constructThemePath } from './Dispatch';
 import { EvaluateConditions } from './v2/Conditions';
 import { PatchV1, EvaluateStatements } from './v1/Conditions';
-import { PatchRootMenu } from './RootMenu';
+import { PatchRootMenu } from '../utils/root-menu';
 import { PatchNotification } from '../utils/notification-patcherr';
 import { Logger } from '../utils/Logger';
 
@@ -39,10 +39,10 @@ const SanitizeTargetModule = (module: string | Array<string>, type: ModuleType, 
 	}
 };
 
-const EvaluatePatches = (activeTheme: ThemeItem, documentTitle: string, classList: string[], document: Document, context: any) => {
+const EvaluatePatches = (activeTheme: ThemeItem, documentTitle: string, classList: string[], document: Document, popup: any) => {
 	activeTheme.data.Patches.forEach((patch: Patch) => {
 		const match = patch.MatchRegexString;
-		context.m_popup.window.HAS_INJECTED_THEME = true;
+		popup.window.HAS_INJECTED_THEME = true;
 
 		if (!documentTitle.match(match) && !classListMatch(classList, match)) {
 			return;
@@ -66,14 +66,14 @@ const EvaluatePatches = (activeTheme: ThemeItem, documentTitle: string, classLis
  * @returns
  */
 const getDocumentClassList = (context: any): string[] => {
-	const bodyClass: string = context?.m_rgParams?.body_class ?? String();
-	const htmlClass: string = context?.m_rgParams?.html_class ?? String();
+	const bodyClass: string = context?.params?.body_class ?? String();
+	const htmlClass: string = context?.params?.html_class ?? String();
 
 	return `${bodyClass} ${htmlClass}`.split(' ').map((className: string) => '.' + className);
 };
 
 export function patchDocumentContext(windowContext: any) {
-	const document: Document = windowContext.m_popup.document;
+	const document: Document = windowContext.window.document;
 
 	for (const plugin of pluginSelf.enabledPlugins) {
 		document.documentElement.classList.add(plugin);
@@ -85,7 +85,7 @@ export function patchDocumentContext(windowContext: any) {
 
 	const activeTheme: ThemeItem = pluginSelf.activeTheme;
 	const classList: string[] = getDocumentClassList(windowContext);
-	const documentTitle: string = windowContext.m_strTitle;
+	const documentTitle: string = windowContext.title;
 
 	// Append System Accent Colors to global document (publicly shared)
 	DOMModifier.AddStyleSheetFromText(document, pluginSelf.systemColor, 'SystemAccentColorInject');
@@ -105,50 +105,26 @@ export function patchDocumentContext(windowContext: any) {
 }
 
 export function patchMissedDocuments() {
-	// @ts-ignore
-	g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
-		if (element?.value_?.m_popup?.window?.HAS_INJECTED_THEME === undefined) {
-			patchDocumentContext(element?.value_);
+	for (const popup of g_PopupManager?.GetPopups()) {
+		if (popup?.window?.HAS_INJECTED_THEME === undefined) {
+			patchDocumentContext(popup);
 		}
-	});
+	}
 
-	// @ts-ignore
 	if (g_PopupManager?.m_mapPopups?.data_?.length === 0) {
 		Logger.Warn('windowCreated callback called, but no popups found...');
 	}
 }
 
 export function onWindowCreatedCallback(windowContext: any): void {
-	const windowName = windowContext.m_strName;
 	const windowTitle = windowContext.m_strTitle;
 
+	/** Patch the steam root menu to add the Millennium root menu */
 	if (windowTitle === 'Steam Root Menu') {
 		PatchRootMenu();
 	}
 
-	if (windowTitle.includes('notificationtoasts')) {
-		PatchNotification(windowContext.m_popup.document);
-	}
-
-	pluginSelf.windows ??= {};
-
-	Object.assign(pluginSelf.windows, {
-		[windowName]: windowContext.m_popup.window,
-		...(windowName !== windowTitle && { [windowTitle]: windowContext.m_popup.window }),
-	});
-
-	// @ts-ignore
-	g_PopupManager?.m_mapPopups?.data_?.forEach((element: any) => {
-		if (element?.value_?.m_strName === 'SP Desktop_uid0') {
-			pluginSelf.mainWindow = element?.value_?.m_popup?.window;
-
-			if (pluginSelf.mainWindow?.HAS_SHOWN_UPDATER === undefined) {
-				// TODO: Fix this
-				// setTimeout(() => ShowWelcomeModal().then(ShowUpdaterModal.bind(null)), 1000);
-				pluginSelf.mainWindow.HAS_SHOWN_UPDATER = true;
-			}
-		}
-	});
+	pluginSelf.mainWindow = g_PopupManager?.GetExistingPopup?.('SP Desktop_uid0')?.m_popup?.window;
 
 	patchMissedDocuments();
 	patchDocumentContext(windowContext);

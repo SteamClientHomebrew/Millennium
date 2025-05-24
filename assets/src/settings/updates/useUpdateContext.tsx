@@ -81,7 +81,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		NotifyUpdateListeners();
 	};
 
-	ParseUpdateErrorMessage = () => {
+	parseUpdateErrorMessage = () => {
 		const themeError = pluginSelf?.updates?.themes?.error || '';
 		const pluginError = pluginSelf?.updates?.plugins?.error || '';
 		if (themeError && pluginError) return `${themeError}\n${pluginError}`;
@@ -90,7 +90,10 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 	fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
 		try {
-			if (force) await this.forceFetchUpdates();
+			if (force || !pluginSelf.hasCheckedForUpdates) {
+				await this.forceFetchUpdates();
+				pluginSelf.hasCheckedForUpdates = true;
+			}
 			pluginSelf.connectionFailed = false;
 
 			this.setState({
@@ -123,7 +126,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 			return (
 				<ErrorModal
 					header={locale.updatePanelErrorHeader}
-					body={locale.updatePanelErrorBody + this.ParseUpdateErrorMessage()}
+					body={locale.updatePanelErrorBody + this.parseUpdateErrorMessage()}
 					options={{ buttonText: locale.updatePanelErrorButton, onClick: this.fetchAvailableUpdates.spread(true) }}
 				/>
 			);

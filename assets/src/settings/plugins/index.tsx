@@ -166,17 +166,26 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 						className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`}
 						onClick={this.SavePluginChanges.bind(this)}
 						disabled={!this.state.updatedPlugins.length}
+						data-button-type={'save'}
 					>
 						<FaSave />
 						{locale.optionSaveChanges}
 					</DialogButton>
-					<DialogButton className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`} onClick={this.InstallPluginMenu.bind(this)}>
+					<DialogButton
+						className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`}
+						onClick={this.InstallPluginMenu.bind(this)}
+						data-button-type={'install-plugin'}
+					>
 						<FaStore />
-						Install a plugin
+						{locale.optionInstallPlugin}
 					</DialogButton>
-					<DialogButton className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`} onClick={this.OpenPluginsFolder.bind(this)}>
+					<DialogButton
+						className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`}
+						onClick={this.OpenPluginsFolder.bind(this)}
+						data-button-type={'browse-plugin-local-files'}
+					>
 						<FaFolderOpen />
-						Browse local files
+						{locale.optionBrowseLocalFiles}
 					</DialogButton>
 				</div>
 				{this.state.plugins.map((plugin, index) => this.renderPluginComponent({ plugin, index }))}

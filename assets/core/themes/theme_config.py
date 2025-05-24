@@ -1,9 +1,10 @@
 import re
 import Millennium, json, os # type: ignore
+import traceback
 
 from config.manager import get_config
 from themes.css_analyzer import ColorTypes, convert_from_hex, convert_to_hex, parse_root
-from themes.accent_color import Colors, is_valid
+from themes.accent_color import Colors, find_all_themes, is_valid
 from themes.webkit_handler import WebkitHookStore, add_browser_css, add_browser_js, add_conditional_data, parse_conditional_patches
 from util.logger import logger
 
@@ -18,10 +19,11 @@ class Config:
             WebkitHookStore().unregister_all()
             self.setup_theme_hooks()
         except Exception as ex:
-            logger.error(f"Error in theme config change: {ex}")
+            logger.error(f"Error in theme config change: {ex}\nTraceback:\n{traceback.format_exc()}")
 
     def __init__(self):
         self.themes_path = os.path.join(Millennium.steam_path(), "steamui", "skins")
+        self.colors = {}
 
         self.on_config_change() # Initial validation
         get_config().register_listener(self.on_config_change)
@@ -48,7 +50,7 @@ class Config:
         self.set_config("themes.activeTheme", theme_name)
 
     def get_accent_color(self) -> str:
-        return get_config()["general.accentColor"] if "general.accentColor" in get_config() else Colors.get_accent_color("DEFAULT_ACCENT_COLOR")
+        return json.loads(Colors.get_accent_color(get_config()["general.accentColor"]))
 
     def get_active_theme(self) -> str:
         active_theme = get_config()["themes.activeTheme"]
@@ -80,19 +82,28 @@ class Config:
         add_conditional_data(theme_path, theme["data"], name)
 
 
-    def setup_colors(self, file_path):
-        self.colors = json.loads(parse_root(file_path))
-        if "themes.themeColors" not in get_config():
-            get_config().set("themes.themeColors", {})
+    def setup_colors(self):
+        themes = json.loads(find_all_themes())
+        for theme in themes:
+            if "failed" in theme:
+                continue
 
-        if self.name not in get_config()["themes.themeColors"]:
-            get_config().set(f"themes.themeColors.{self.name}", {})
+            if "data" in theme and "RootColors" in theme["data"]:
+                root_colors = os.path.join(Millennium.steam_path(), "steamui", "skins", theme['native'], theme["data"]["RootColors"])
 
-        for color in self.colors:
-            color_name = color["color"]
-            color_value = convert_from_hex(color["defaultColor"], ColorTypes(color["type"]))
-            if color_name not in get_config()[f"themes.themeColors.{self.name}"]:
-                get_config().set(f"themes.themeColors.{self.name}.{color_name}", color_value)
+                self.colors[theme['native']] = json.loads(parse_root(root_colors))
+
+                if "themes.themeColors" not in get_config():
+                    get_config().set("themes.themeColors", {})
+
+                if theme['native'] not in get_config()["themes.themeColors"]:
+                    get_config().set(f"themes.themeColors.{theme['native']}", {})
+
+                for color in self.colors[theme['native']] :
+                    color_name = color["color"]
+                    color_value = convert_from_hex(color["defaultColor"], ColorTypes(color["type"]))
+                    if color_name not in get_config()[f"themes.themeColors.{theme['native']}"]:
+                        get_config().set(f"themes.themeColors.{theme['native']}.{color_name}", color_value)
 
 
     def get_colors(self):
@@ -113,32 +124,34 @@ class Config:
 
 
     def get_color_opts(self, theme_name: str):
-        root_colors = self.colors
-        for saved_color in get_config()[f"themes.themeColors.{self.name}"]:
+        root_colors = self.colors[theme_name]
+        for saved_color in get_config()[f"themes.themeColors.{theme_name}"]:
             for color in root_colors:
                 if color["color"] == saved_color:
-                    color["hex"] = convert_to_hex(get_config()[f"themes.themeColors.{self.name}.{saved_color}"], ColorTypes(color["type"]))
+                    color["hex"] = convert_to_hex(get_config()[f"themes.themeColors.{theme_name}.{saved_color}"], ColorTypes(color["type"]))
         return json.dumps(root_colors, indent=4)
 
 
-    def change_color(self, color_name: str, new_color: str, type: int) -> None:
+    def change_color(self, theme: str, color_name: str, new_color: str, type: int) -> None:
+        logger.log(f"Changing color {color_name} to {new_color} in theme {theme}")
+
         type = ColorTypes(type)
-        for color in get_config()[f"themes.themeColors.{self.name}"]:
+        for color in get_config()[f"themes.themeColors.{theme}"]:
             if color != color_name:
                 continue
             parsed_color = convert_from_hex(new_color, type)
-            self.set_config(f"themes.themeColors.{self.name}.{color}", parsed_color)
+            get_config().set(f"themes.themeColors.{theme}.{color}", parsed_color, skip_propagation=True)
             return parsed_color
         
     def change_accent_color(self, new_color: str) -> None:
         get_config()["general.accentColor"] = new_color
-        self.set_config(json.dumps(get_config(), indent=4))
+        get_config()._auto_save()
 
         return Colors.get_accent_color(get_config()["general.accentColor"])
     
     def reset_accent_color(self) -> None:
         get_config()["general.accentColor"] = "DEFAULT_ACCENT_COLOR"
-        self.set_config(json.dumps(get_config(), indent=4))
+        get_config()._auto_save()
 
         return Colors.get_accent_color(get_config()["general.accentColor"])
 
@@ -147,12 +160,9 @@ class Config:
         self.theme = self.get_active_theme()
         self.name = get_config()["themes.activeTheme"]
 
-        self.setup_conditionals(self.theme, self.name, get_config())
+        self.setup_conditionals(self.theme, get_config())
         self.start_webkit_hook(self.theme, self.name)
-
-        if "data" in self.theme and "RootColors" in self.theme["data"]:
-            root_colors = os.path.join(Millennium.steam_path(), "steamui", "skins", self.name, self.theme["data"]["RootColors"])
-            self.setup_colors(root_colors)
+        self.setup_colors()
 
     def does_theme_use_accent_color(self) -> bool:
 
@@ -243,21 +253,25 @@ class Config:
 
     def change_condition(self, theme, newData, condition):
         try:
-            get_config().set(f"themes.conditions.{theme}.{condition}", newData)
+            get_config().set(f"themes.conditions.{theme}.{condition}", newData, skip_propagation=True)
             return json.dumps({"success": True})
         except Exception as ex:
             return json.dumps({"success": False, "message": str(ex)})
 
 
-    def setup_conditionals(self, theme, name, config):
+    def setup_conditionals(self, theme, config):
         if "themes.conditions" not in config:
             get_config().set("themes.conditions", {})
-        if "failed" in theme or "Conditions" not in theme["data"]:
-            return
-        for condition_name, condition_value in theme["data"]["Conditions"].items():
-            self.is_invalid_condition(config["themes.conditions"], name, condition_name, condition_value)
 
-        get_config().set(f"themes.conditions.{name}", config[f"themes.conditions.{name}"])
+        themes = json.loads(find_all_themes())
+        for theme in themes:
+            if "failed" in theme or "Conditions" not in theme["data"]:
+                continue
+
+            for condition_name, condition_value in theme["data"]["Conditions"].items():
+                self.is_invalid_condition(config["themes.conditions"], theme["native"], condition_name, condition_value)
+
+            get_config().save_to_file()
 
 
 theme_config = Config()

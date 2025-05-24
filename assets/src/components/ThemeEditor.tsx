@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
 	Classes,
 	DialogBody,
 	DialogButton,
-	DialogHeader,
 	Dropdown,
-	Millennium,
 	ModalPosition,
 	SidebarNavigation,
 	type SidebarNavigationPage,
@@ -19,11 +17,12 @@ import { settingsClasses } from '../utils/classes';
 import { locale } from '../../locales';
 import { BBCodeParser } from './SteamComponents';
 import Styles from '../utils/styles';
-import { PyGetThemeColorOptions } from '../utils/ffi';
+import { PyChangeColor, PyChangeCondition, PyGetRootColors, PyGetThemeColorOptions } from '../utils/ffi';
 
 interface ConditionalComponent {
 	condition: string;
 	value: ICondition;
+	isLastItem: boolean;
 }
 
 interface ComponentInterface {
@@ -72,26 +71,22 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const activeTheme: ThemeItem = this.props.theme as ThemeItem;
 
 		return new Promise<boolean>((resolve) => {
-			Millennium.callServerMethod('theme_config.change_condition', {
+			PyChangeCondition({
 				theme: activeTheme.native,
 				newData: newData,
 				condition: conditionName,
-			})
-				.then((result: any) => {
-					pluginSelf.connectionFailed = false;
-					return result;
-				})
-				.then((response: any) => {
-					const success = (JSON.parse(response)?.success as boolean) ?? false;
+			}).then((response: any) => {
+				const success = (JSON.parse(response)?.success as boolean) ?? false;
 
-					success && (pluginSelf.ConditionConfigHasChanged = true);
-					resolve(success);
-				});
+				success && (pluginSelf.ConditionConfigHasChanged = true);
+				resolve(success);
+			});
 		});
 	};
 
 	RenderComponentInterface: React.FC<ComponentInterface> = ({ conditionType, values, conditionName }) => {
 		let store = pluginSelf?.conditionals?.[this.props.theme.native] as ConditionsStore;
+		console.log(store, this.props.theme);
 
 		/** Dropdown items if given that the component is a dropdown */
 		const items = values.map((value: string, index: number) => ({ label: value, data: 'componentId' + index }));
@@ -135,48 +130,63 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		}
 	};
 
-	RenderComponent: React.FC<ConditionalComponent> = ({ condition, value }) => {
+	UpdateCSSColors = (color: ColorProps, newColor: string) => {
+		for (const popup of g_PopupManager.GetPopups()) {
+			const rootColors = popup.window.document.getElementById('RootColors');
+			rootColors.innerHTML = rootColors.innerHTML.replace(new RegExp(`${color.color}:.*?;`, 'g'), `${color.color}: ${newColor};`);
+		}
+	};
+
+	RenderComponent: React.FC<ConditionalComponent> = ({ condition, value, isLastItem }) => {
 		const conditionType: ConditionType = this.GetConditionType(value.values);
 
 		return (
-			<Field label={condition} description={<BBCodeParser text={value?.description ?? 'No description yet.'} />} className={condition} key={condition}>
+			<Field
+				label={condition}
+				description={<BBCodeParser text={value?.description ?? 'No description yet.'} />}
+				className={condition}
+				key={condition}
+				bottomSeparator={isLastItem ? 'none' : 'standard'}
+			>
 				<this.RenderComponentInterface conditionType={conditionType} conditionName={condition} values={Object.keys(value?.values)} />
 			</Field>
 		);
 	};
 
 	RenderColorComponent: React.FC<{ color: ColorProps; index: number }> = ({ color, index }) => {
+		const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 		const [colorState, setColorState] = useState(color?.hex ?? '#000000');
-		(window as any).lastColorChangeTime = performance.now();
 
-		const UpdateColor = (hexColor: string) => {
-			if (performance.now() - (window as any).lastColorChangeTime < 5) {
-				return;
-			}
-
-			setColorState(hexColor);
-
-			Millennium.callServerMethod('theme_config.change_color', { color_name: color.color, new_color: hexColor, type: color.type }).then((result: any) => {
-				// @ts-ignore
-				g_PopupManager.m_mapPopups.data_.forEach((element: any) => {
-					var rootColors = element.value_.m_popup.window.document.getElementById('RootColors');
-					rootColors.innerHTML = rootColors.innerHTML.replace(new RegExp(`${color.color}:.*?;`, 'g'), `${color.color}: ${result};`);
-				});
-			});
+		const saveColor = async (hexColor: string) => {
+			PyChangeColor({ theme: this.props.theme.native, color_name: color.color, new_color: hexColor, type: color.type });
+			pluginSelf.RootColors = await PyGetRootColors();
 		};
 
-		const ResetColor = () => {
-			UpdateColor(color.defaultColor);
+		const debounceColorUpdate = (hexColor: string) => {
+			setColorState(hexColor);
+			this.UpdateCSSColors(color, hexColor);
+
+			if (debounceTimer.current) {
+				clearTimeout(debounceTimer.current);
+			}
+
+			debounceTimer.current = setTimeout(saveColor.spread(hexColor), 300);
+		};
+
+		const resetColor = () => {
+			this.UpdateCSSColors(color, color.defaultColor);
+			setColorState(color.defaultColor);
+			saveColor(color.defaultColor);
 		};
 
 		return (
 			<Field key={index} label={color?.name ?? color?.color} description={<BBCodeParser text={color?.description ?? 'No description yet.'} />}>
 				{colorState != color.defaultColor && (
-					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>
+					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={resetColor}>
 						Reset
 					</DialogButton>
 				)}
-				<input type="color" className="MillenniumColorPicker" value={colorState} onChange={(event) => UpdateColor(event.target.value)} />
+				<input type="color" className="MillenniumColorPicker" value={colorState} onChange={(event) => debounceColorUpdate(event.target.value)} />
 			</Field>
 		);
 	};
@@ -192,7 +202,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 
 		return (
 			<>
-				{themeColors?.map((color, index) => (
+				{themeColors?.map?.((color, index) => (
 					<this.RenderColorComponent color={color} index={index} />
 				))}
 			</>
@@ -200,72 +210,66 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 	};
 
 	RenderThemeEditor: React.FC = () => {
-		const activeTheme: ThemeItem = this.props.theme as ThemeItem;
-
-		const themeConditions: Conditions = activeTheme.data.Conditions;
+		const activeTheme = this.props.theme as ThemeItem;
+		const {
+			data: { Conditions: themeConditions, RootColors, name },
+		} = activeTheme;
 		const entries = Object.entries(themeConditions);
 
-		const themeHasColors = !!activeTheme.data.RootColors;
-		const themeHasTabs = entries.map((e) => e[1]).some((e) => !!e.tab);
+		const hasColors = !!RootColors;
+		const hasTabs = entries.some(([, { tab }]) => !!tab);
 
-		const colorPage: SidebarNavigationPage = {
-			visible: themeHasColors,
+		const createColorPage = (): SidebarNavigationPage => ({
 			title: locale.customThemeSettingsColors,
 			content: (
 				<DialogBody className={Classes.SettingsDialogBodyFade}>
 					<this.RenderColorsOpts />
 				</DialogBody>
 			),
-		};
+		});
 
-		const otherPages: SidebarNavigationPage[] = entries
-			.reduce<{ title: string; conditions: Conditions[] }[]>((vec, entry) => {
-				const [name, patch] = entry;
+		const createContentPage = (conditions: Record<string, any>) => (
+			<DialogBody className={Classes.SettingsDialogBodyFade}>
+				{Object.entries(conditions).map(([key, value], index) => (
+					<this.RenderComponent condition={key} value={value} key={key} isLastItem={index === Object.keys(conditions).length - 1} />
+				))}
+			</DialogBody>
+		);
+
+		const createTabPages = () => {
+			const pages = entries.reduce<{ title: string; conditions: Record<string, any>[] }[]>((acc, [name, patch]) => {
 				const { tab } = patch;
 				const condition = { [name]: patch };
-				const page = {
-					title: tab,
-					conditions: [condition],
-				};
 
-				const foundTab = vec.find((e) => e.title === tab);
-				if (foundTab) {
-					foundTab.conditions.push(condition);
-					return vec;
+				const existingTab = acc.find((p) => p.title === tab);
+				if (existingTab) {
+					existingTab.conditions.push(condition);
+					return acc;
 				}
 
-				vec.push(page);
-				return vec;
-			}, [])
-			.map(({ title, conditions }) => ({
+				acc.push({ title: tab, conditions: [condition] });
+				return acc;
+			}, []);
+
+			return pages.map(({ title, conditions }) => ({
 				title,
-				content: (
-					<DialogBody className={Classes.SettingsDialogBodyFade}>
-						{Object.entries(conditions.reduce((a, b) => Object.assign(a, b))).map(([key, value]) => (
-							<this.RenderComponent condition={key} value={value} />
-						))}
-					</DialogBody>
-				),
+				content: createContentPage(conditions.reduce((a, b) => ({ ...a, ...b }), {})),
 			}));
+		};
 
-		const pageWithoutTitle = { ...otherPages.find((e) => !e.title), title: locale.customThemeSettingsConfig };
-		const tabs = themeHasTabs ? otherPages.filter((e) => e !== pageWithoutTitle) : [pageWithoutTitle];
+		const tabPages = createTabPages();
+		const defaultPage = { ...tabPages.find((p) => !p.title), title: locale.customThemeSettingsConfig };
+		const finalTabs = hasTabs ? tabPages.filter((p) => p !== defaultPage) : [defaultPage];
+		const className = [settingsClasses.SettingsModal, settingsClasses.DesktopPopup, 'MillenniumSettings'].join(' ');
+		const pages = [...finalTabs, ...(hasColors ? ['separator', createColorPage()] : [])];
+		const title = name ?? activeTheme.native;
 
-		const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings`;
-		const pages = [...tabs, 'separator', colorPage];
-		const title = `Editing ${activeTheme?.data?.name ?? activeTheme.native}`;
+		const hidePageListStyles = !hasTabs && !hasColors ? <style>{`.PageListColumn { display: none !important; }`}</style> : null;
 
 		return (
 			<ModalPosition>
 				<Styles />
-				{!themeHasTabs && !themeHasColors && (
-					<style>{`
-                        .PageListColumn {
-                            display: none !important;
-                        }
-                    `}</style>
-				)}
-
+				{hidePageListStyles}
 				{/* @ts-ignore: className hasn't been added to DFL yet */}
 				<SidebarNavigation className={className} pages={pages} title={title} />
 			</ModalPosition>

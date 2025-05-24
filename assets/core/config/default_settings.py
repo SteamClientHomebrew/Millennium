@@ -15,7 +15,7 @@ default_config = {
 		"checkForPluginAndThemeUpdates": True,
 		"onMillenniumUpdate": OnMillenniumUpdate.AUTO_INSTALL,
 		"shouldShowThemePluginUpdateNotifications": True,
-		"accentColor": json.loads(Colors.get_accent_color("DEFAULT_ACCENT_COLOR")),
+		"accentColor": "DEFAULT_ACCENT_COLOR",
 	},
 	"misc": {
 		"hasShownWelcomeModal": False,

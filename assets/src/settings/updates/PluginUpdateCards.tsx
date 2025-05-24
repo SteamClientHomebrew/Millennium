@@ -33,7 +33,7 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, setUpdateState
 	);
 
 	await setUpdateState({
-		statusText: 'Preparing...',
+		statusText: locale.strPreparing,
 		progress: 10,
 		uxSleepLength: 1000,
 	});
@@ -53,7 +53,7 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, setUpdateState
 	}
 
 	await setUpdateState({
-		statusText: 'Updating plugin...',
+		statusText: locale.strUpdatingPlugin,
 		progress: 60,
 		uxSleepLength: 1000,
 	});
@@ -61,7 +61,7 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, setUpdateState
 	const updateSuccess = await PyUpdatePlugin({ id: updateObject?.id, name: updateObject?.pluginDirectory });
 
 	await setUpdateState({
-		statusText: 'Complete!',
+		statusText: locale.strComplete,
 		progress: 100,
 		uxSleepLength: 1000,
 	});

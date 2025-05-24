@@ -8,6 +8,7 @@ import { ChangeActiveTheme, ThemeItemComponent, UIReloadProps } from './ThemeCom
 import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
 import { showInstallThemeModal } from './ThemeInstallerModal';
 import { FaFolderOpen, FaStore } from 'react-icons/fa';
+import { Utils } from '../../utils';
 
 const findAllThemes = async (): Promise<ThemeItem[]> => {
 	return JSON.parse(await PyFindAllThemes());
@@ -69,6 +70,11 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 		);
 	};
 
+	openThemesFolder = () => {
+		const themesPath = [pluginSelf.steamPath, 'steamui', 'skins'].join('/');
+		Utils.BrowseLocalFolder(themesPath);
+	};
+
 	render() {
 		if (pluginSelf.connectionFailed) {
 			return (
@@ -92,11 +98,11 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 				>
 					<DialogButton className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`} onClick={showInstallThemeModal}>
 						<FaStore />
-						Install a theme
+						{locale.optionInstallTheme}
 					</DialogButton>
-					<DialogButton className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`} onClick={() => {}}>
+					<DialogButton className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`} onClick={this.openThemesFolder}>
 						<FaFolderOpen />
-						Browse local files
+						{locale.optionBrowseLocalFiles}
 					</DialogButton>
 				</div>
 				{themes?.map((theme, i) => this.renderThemeItem(theme, i === themes.length - 1, i))}

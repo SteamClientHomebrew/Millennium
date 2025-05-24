@@ -27,8 +27,10 @@ const SetBackendConfig = async (config: AppConfig): Promise<void> => config && (
 
 export const ConfigProvider = ({ children }: { children: React.ReactNode }) => {
 	const [config, setConfig] = useState<AppConfig>(settingsManager.getConfig());
+	const [isLocalUpdate, setIsLocalUpdate] = useState<boolean>(false);
 
 	const OnConfigChange = (event: CustomEvent<AppConfig>) => {
+		setIsLocalUpdate(false); // Reset the flag when receiving backend updates
 		setConfig(event.detail);
 		settingsManager.setConfigDirect(event.detail);
 	};
@@ -47,6 +49,7 @@ export const ConfigProvider = ({ children }: { children: React.ReactNode }) => {
 	}, []);
 
 	const updateConfig = useCallback((recipe: (draft: AppConfig) => void) => {
+		setIsLocalUpdate(true); // Set the flag when making local updates
 		setConfig((prev: AppConfig) => {
 			const next = produce(prev!, recipe);
 			settingsManager.setConfigDirect(next);
@@ -59,8 +62,11 @@ export const ConfigProvider = ({ children }: { children: React.ReactNode }) => {
 	}, [updateConfig]);
 
 	useEffect(() => {
+		if (!isLocalUpdate) {
+			return; // Don't propagate if this wasn't a local update
+		}
 		SetBackendConfig(config);
-	}, [config]);
+	}, [config, isLocalUpdate]);
 
 	return <ConfigContext.Provider value={{ config, updateConfig }}>{children}</ConfigContext.Provider>;
 };
