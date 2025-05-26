@@ -17,7 +17,7 @@ class UpdaterProps(Enum):
 # i.e this does NOT update themes and/or plugins.
 class MillenniumUpdater:
 
-    GITHUB_API_URL = "https://api.github.com/repos/shdwmtr/millennium/releases"
+    GITHUB_API_URL = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
     __has_updates = False
     __latest_version = None
 
