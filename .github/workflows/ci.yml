@@ -61,11 +61,30 @@ jobs:
             - name: (Setup) Build Assets
               run: . scripts\ci\win32\mk-assets.ps1
 
-            - name: (Setup) Download Prebuilt Python 3.11.8
-              run: |
-                  Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.0.7/python-windows.zip" -OutFile "python-windows.zip"
-                  Expand-Archive -Path "python-windows.zip" -DestinationPath "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32" -Force
-                  Remove-Item "python-windows.zip"
+            - name: (Setup) Construct Python Environment
+              run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
+
+            - name: Set up cache for Python source
+              uses: actions/cache@v3
+              id: build-cache
+              with:
+                  path: Python-3.11.8/PCbuild/win32
+                  key: ${{ runner.os }}-python-3.11.8-build
+                  restore-keys: ${{ runner.os }}-python-3.11.8-build-
+
+            - name: (Python) Add msbuild to PATH
+              if: steps.build-cache.outputs.cache-hit != 'true'
+              uses: microsoft/setup-msbuild@v2
+
+            - name: (Python) Download 3.11.8 win32 source
+              if: steps.build-cache.outputs.cache-hit != 'true'
+              run: . scripts\ci\win32\build-python.ps1
+
+            - name: Upload Build Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: python 3.11.8 build libraries
+                  path: D:/a/Millennium/Millennium/build/python
 
             - name: Install prerequisites
               uses: msys2/setup-msys2@v2
