@@ -250,7 +250,7 @@ jobs:
                   npm install -g pnpm
                   pnpm install && pnpm run build
                   mkdir -p /home/runner/env/ext/data/shims
-                  cp -r /home/runner/work/millennium/millennium/shims/build/* /home/runner/env/ext/data/shims/
+                  cp -r ./build/* /home/runner/env/ext/data/shims/
 
             - name: Restructure Filesystem
               run: |
