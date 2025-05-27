@@ -1,5 +1,5 @@
 import { produce } from 'immer';
-import { PyGetBackendConfig } from './utils/ffi';
+import { PyGetBackendConfig, PySetBackendConfig } from './utils/ffi';
 import { AppConfig } from './AppConfig';
 
 class SettingsManager {
@@ -44,6 +44,15 @@ class SettingsManager {
 
 	public setConfigDirect(newConfig: AppConfig) {
 		this.settings = newConfig;
+	}
+
+	/**
+	 * Force save the config to the backend.
+	 * This is useful when the config is changed, but no config provider is available.
+	 * In the case no provider is available, the config will not be saved; so this function is used to force the config to be saved.
+	 */
+	public forceSaveConfig() {
+		PySetBackendConfig({ config: JSON.stringify(this.settings), skip_propagation: true });
 	}
 }
 

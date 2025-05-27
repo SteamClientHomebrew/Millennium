@@ -118,14 +118,11 @@ class ConfigManager:
 
     def save_to_file(self, skip_propagation: bool = False):
         with self._lock:
-            logger.log("Saving config to file: " + self._filename + " skip_propagation: " + str(skip_propagation))
-
             with open(self._filename, "w", encoding="utf-8") as f:
                 json.dump(self._data, f, indent=2, default=self.custom_encoder)
 
                 if not skip_propagation:
                     try:
-                        logger.log("Calling OnBackendConfigUpdate")
                         Millennium.call_frontend_method("OnBackendConfigUpdate", params=[json.dumps(self._data, default=self.custom_encoder)])
                     except ConnectionError as e:
                         pass # Millennium frontend not connected
@@ -140,7 +137,6 @@ class ConfigManager:
                     self._notify_listeners(k, old_value, v)
                     changed = True
             if changed:
-                logger.log("update() setting changed")
                 self._auto_save()
 
     def set_default(self, key: str, value: Any):
@@ -167,7 +163,6 @@ class ConfigManager:
                     self._notify_listeners(key, old_value, new_value)
                     changed = True
             if changed:
-                logger.log("set_all() setting changed")
                 self._auto_save(skip_propagation=skip_propagation)
 
     def custom_encoder(self, obj):

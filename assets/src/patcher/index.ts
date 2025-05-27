@@ -6,6 +6,7 @@ import { PatchV1, EvaluateStatements } from './v1/Conditions';
 import { PatchRootMenu } from '../utils/root-menu';
 import { PatchNotification } from '../utils/notification-patcherr';
 import { Logger } from '../utils/Logger';
+import { ShowWelcomeModal } from '../components/WelcomeModal';
 
 const EvaluateModule = (module: string, type: ModuleType, document: Document) => {
 	const activeTheme: ThemeItem = pluginSelf.activeTheme;
@@ -111,8 +112,9 @@ export function patchMissedDocuments() {
 		}
 	}
 
-	if (g_PopupManager?.m_mapPopups?.data_?.length === 0) {
-		Logger.Warn('windowCreated callback called, but no popups found...');
+	if (pluginSelf?.mainWindow && !pluginSelf?.mainWindow?.__millennium_hasShownWelcomeModal) {
+		ShowWelcomeModal();
+		pluginSelf.mainWindow.__millennium_hasShownWelcomeModal = true;
 	}
 }
 

@@ -1,5 +1,5 @@
 from enum import Enum
-import json
+import json, os
 from themes.accent_color import Colors
 
 class OnMillenniumUpdate(Enum):
@@ -18,7 +18,8 @@ default_config = {
 		"accentColor": "DEFAULT_ACCENT_COLOR",
 	},
 	"misc": {
-		"hasShownWelcomeModal": False,
+		# This used to be an old file Millennium used. its no longer used anymore so its a good indicator on whether Millennium was just installed.
+		"hasShownWelcomeModal": os.path.exists(os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "themes.json")),
     },
 	"themes": {
         "activeTheme": "default",

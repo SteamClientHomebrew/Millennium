@@ -127,5 +127,8 @@
 	"optionInstallPlugin": "Install a plugin",
 	"optionInstallTheme": "Install a theme",
 	"optionBrowseLocalFiles": "Browse local files",
-	"tooltipCheckForMillenniumUpdates": "Checking for updates is disabled, this setting will not take effect."
+	"tooltipCheckForMillenniumUpdates": "Checking for updates is disabled, this setting will not take effect.",
+	"strWelcomeModalTitle": "Welcome to Millennium 👋",
+	"strWelcomeModalDescription": "We're thrilled to welcome you to the community! Since this is your first time launching, it's the perfect moment to give you a quick introduction to a few key features.\n\nIf you're not familiar yet, most of Millennium's settings can be accessed from Steam → Millennium Settings.\n\nFrom there, you'll find directions on where to install themes/plugins, how to enable/disable certain features, and more. And remember, you can always [view our documentation](https://docs.steambrew.app) if you have any questions.",
+	"strWelcomeModalOKButton": "Got it!"
 }
