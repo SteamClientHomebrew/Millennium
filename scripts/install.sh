@@ -86,7 +86,9 @@ log "deflating assets..."
 mkdir -p "$extract_path"
 tar xzf "$tar" -C "$extract_path"
 
-mv "$extract_path/home/user" "$extract_path/home/$SUDO_USER"
+if [ "$SUDO_USER" != "user" ]; then
+    mv "$extract_path/home/user" "$extract_path/home/$SUDO_USER"
+fi
 folder_size=$(du -sb "$extract_path" | awk '{print $1}' | numfmt --to=iec-i --suffix=B --padding=7 | sed 's/\([0-9]\)\([A-Za-z]\)/\1 \2/')
 log "\nTotal Install Size: $folder_size"
 
