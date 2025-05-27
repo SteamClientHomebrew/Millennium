@@ -64,7 +64,7 @@ jobs:
             - name: (Setup) Download Prebuilt Python 3.11.8
               run: |
                   Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.0.7/python-windows.zip" -OutFile "python-windows.zip"
-                  Expand-Archive -Path "python-windows.zip" -DestinationPath "D:/a/Millennium/Millennium/build/python" -Force
+                  Expand-Archive -Path "python-windows.zip" -DestinationPath "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32" -Force
                   Remove-Item "python-windows.zip"
 
             - name: Install prerequisites
