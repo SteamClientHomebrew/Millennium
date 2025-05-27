@@ -59,7 +59,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	componentDidUpdate(_prevProps: {}, prevState: RenderLogViewerState) {
 		/** Kinda a hacky way to change the title, but its good enough and doesn't interfere with anything */
 		if (this.state.selectedLog !== prevState.selectedLog) {
-			const container = pluginSelf.mainWindow.document.querySelector('.DialogHeader');
+			const container = pluginSelf.mainWindow.document.querySelector('.MillenniumSettings .DialogHeader');
 			if (container) {
 				container.textContent = this.state.selectedLog?.name || locale.settingsPanelLogs;
 			}

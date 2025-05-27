@@ -2,7 +2,7 @@ import { ConfirmModal, pluginSelf, showModal, ShowModalResult, SuspensefulImage,
 import React, { Component, useEffect } from 'react';
 import { Utils } from '../../utils';
 
-import FindPluginIdGif from '../../../static/plugin_id.gif';
+import FindThemeIdGif from '../../../static/theme_id.gif';
 import { THEMES_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
 
@@ -55,7 +55,7 @@ async function cacheImage(url: string) {
 
 export async function showInstallThemeModal() {
 	let modal: ShowModalResult;
-	const tutorialImageUrl = [await Utils.GetPluginAssetUrl(), FindPluginIdGif].join('/');
+	const tutorialImageUrl = [await Utils.GetPluginAssetUrl(), FindThemeIdGif].join('/');
 	const installer = new Installer();
 
 	await cacheImage(tutorialImageUrl);
