@@ -57,6 +57,7 @@ enum eFileType
     gif,
     webp,
     svg,
+    html,
     unknown,
 };
 
@@ -85,6 +86,7 @@ static std::map<eFileType, std::string> fileTypes
     { eFileType::gif,     "image/gif"              },
     { eFileType::webp,    "image/webp"             },
     { eFileType::svg,     "image/svg+xml"          },
+    { eFileType::html,    "text/html"              },
     { eFileType::unknown, "text/plain"             },
 
 };
@@ -107,6 +109,7 @@ static constexpr bool IsBinaryFile(eFileType fileType)
         || fileType == eFileType::gif
         || fileType == eFileType::webp
         || fileType == eFileType::svg
+        || fileType == eFileType::html
         || fileType == eFileType::unknown;
 }
 
@@ -141,6 +144,7 @@ static const eFileType EvaluateFileType(std::filesystem::path filePath)
     else if (extension == ".gif"  ) { return eFileType::gif;   }
     else if (extension == ".webp" ) { return eFileType::webp;  }
     else if (extension == ".svg"  ) { return eFileType::svg;   }
+    else if (extension == ".html") { return eFileType::html;  }
 
     else
     {

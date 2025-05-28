@@ -70,6 +70,7 @@ MILLENNIUM void WebkitHandler::Init()
         "^plugins\\/",
         "^steamui\\/",
         EscapeRegex((SystemIO::GetSteamPath() / "steamui" / "skins").generic_string()),
+        EscapeRegex((SystemIO::GetSteamPath() / "ext" / "data" / "shims").generic_string()),
         EscapeRegex(GetEnv("MILLENNIUM__PLUGINS_PATH")),
     });
 
