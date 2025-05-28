@@ -7,10 +7,6 @@ on:
                 description: 'Release build?'
                 required: true
                 default: 'no'
-            build_as_pre_release:
-                description: 'Build as pre-release?'
-                required: true
-                default: 'no'
 
 jobs:
     build-windows:
@@ -132,11 +128,13 @@ jobs:
 
             - name: Add API modules
               run: |
-                  npm install @steambrew/api
-                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+                  cd ./shims
+                  npm install -g pnpm
+                  pnpm install
+                  pnpm run build
 
-                  Copy-Item -Path "./node_modules/@steambrew/api/dist/webkit_api.js" -Destination "D:/a/env/ext/data/shims/webkit_api.js" -Force
-                  Copy-Item -Path "./node_modules/@steambrew/api/dist/client_api.js" -Destination "D:/a/env/ext/data/shims/client_api.js" -Force
+                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+                  Copy-Item -Path "./build/*" -Destination "D:/a/env/ext/data/shims/" -Force
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
@@ -248,10 +246,11 @@ jobs:
                   cp ./build/cli/millennium /home/runner/env/millennium
                   cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
 
-                  npm install @steambrew/api
+                  cd shims 
+                  npm install -g pnpm
+                  pnpm install && pnpm run build
                   mkdir -p /home/runner/env/ext/data/shims
-                  cp -r ./node_modules/@steambrew/api/dist/webkit_api.js /home/runner/env/ext/data/shims/webkit_api.js
-                  cp -r ./node_modules/@steambrew/api/dist/client_api.js /home/runner/env/ext/data/shims/client_api.js
+                  cp -r ./build/* /home/runner/env/ext/data/shims/
 
             - name: Restructure Filesystem
               run: |

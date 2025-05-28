@@ -2,7 +2,7 @@
 
 # This file is part of the Millennium project.
 # This script is used to install Millennium on a Linux machine.
-# https://github.com/shdwmtr/millennium/blob/main/scripts/install.sh
+# https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.sh
 # Copyright (c) 2025 Millennium
 set -e
 
@@ -43,7 +43,7 @@ command -v grep >/dev/null || { log "grep isn't installed! Install it from your 
 command -v jq >/dev/null || { log "jq isn't installed! Install it from your package manager." >&2; exit 1; }
 
 # download uri
-releases_uri="https://api.github.com/repos/shdwmtr/millennium/releases"
+releases_uri="https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 if [ -z "$tag" ]; then
     tag=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
     # get the bytes size of the release assets
@@ -52,7 +52,7 @@ fi
 
 tag=${tag#v}
 size=${size:-0}
-download_uri=https://github.com/shdwmtr/millennium/releases/download/v$tag/millennium-v$tag-$target.tar.gz
+download_uri=https://github.com/SteamClientHomebrew/Millennium/releases/download/v$tag/millennium-v$tag-$target.tar.gz
 
 # convert bytes to human readable format
 size=$(echo $size | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }')
@@ -86,7 +86,9 @@ log "deflating assets..."
 mkdir -p "$extract_path"
 tar xzf "$tar" -C "$extract_path"
 
-mv "$extract_path/home/user" "$extract_path/home/$SUDO_USER"
+if [ "$SUDO_USER" != "user" ]; then
+    mv "$extract_path/home/user" "$extract_path/home/$SUDO_USER"
+fi
 folder_size=$(du -sb "$extract_path" | awk '{print $1}' | numfmt --to=iec-i --suffix=B --padding=7 | sed 's/\([0-9]\)\([A-Za-z]\)/\1 \2/')
 log "\nTotal Install Size: $folder_size"
 

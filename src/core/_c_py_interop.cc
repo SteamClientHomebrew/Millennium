@@ -137,6 +137,54 @@ MILLENNIUM std::tuple<std::string, std::string> Python::ActiveExceptionInformati
 }
 
 /**
+ * Converts a Python object to a JSON string using the `json.dumps()` function.
+ *
+ * @param {PyObject*} obj - The Python object to convert to JSON.
+ * @returns {std::optional<std::string>} - The JSON string representation of the object, or an empty optional if conversion fails.
+ *
+ * This function attempts to serialize a Python object into a JSON string using the `json` module's `dumps()` function.
+ * If the conversion is successful, it returns the JSON string. If it fails, it returns an empty optional.
+ */
+MILLENNIUM const std::optional<std::string> PyObjectToJsonString(PyObject* obj) 
+{
+    // Import json module
+    static PyObject* jsonModule = PyImport_ImportModule("json");
+    if (!jsonModule) 
+    {
+        return std::nullopt;
+    }
+
+    // Get dumps function
+    static PyObject* jsonDumpsFunc = PyObject_GetAttrString(jsonModule, "dumps");
+    if (!jsonDumpsFunc || !PyCallable_Check(jsonDumpsFunc)) 
+    {
+        return std::nullopt;
+    }
+
+    PyObject* args = PyTuple_Pack(1, obj);
+    if (!args) 
+    {
+        return std::nullopt;
+    }
+
+    PyObject* jsonStrObj = PyObject_CallObject(jsonDumpsFunc, args);
+    Py_DECREF(args);
+
+    if (!jsonStrObj) 
+    {
+        PyErr_Clear();  // Clear any error from json.dumps call failure
+        return std::nullopt;
+    }
+
+    const char* jsonCStr = PyUnicode_AsUTF8(jsonStrObj);
+    std::string jsonStr = jsonCStr ? jsonCStr : "";
+
+    Py_DECREF(jsonStrObj);
+    return jsonStr;
+}
+
+
+/**
  * Evaluates a given Python script within the `__main__` module context.
  *
  * @param {std::string} pluginName - The name of the plugin invoking the evaluation.
@@ -177,7 +225,7 @@ MILLENNIUM const Python::EvalResult EvaluatePython(std::string pluginName, std::
 
     if (EvaluatedObj == nullptr || EvaluatedObj == Py_None) 
     {
-        return { "0", Python::Types::Integer }; // whitelist NoneType
+        return { "0", Python::Types::Integer }; // whitelist NoneType as integer 0
     }
     if (PyBool_Check(EvaluatedObj)) 
     {
@@ -191,6 +239,26 @@ MILLENNIUM const Python::EvalResult EvaluatePython(std::string pluginName, std::
     {
         return { PyUnicode_AsUTF8(EvaluatedObj), Python::Types::String };
     }
+    else if (PyDict_Check(EvaluatedObj) || PyList_Check(EvaluatedObj) || PyTuple_Check(EvaluatedObj)) 
+    {
+        // Attempt to serialize to JSON string
+        auto jsonStrOpt = PyObjectToJsonString(EvaluatedObj);
+        if (jsonStrOpt.has_value()) 
+        {
+            return { jsonStrOpt.value(), Python::Types::JSON }; // Return JSON as string type
+        }
+        else 
+        {
+            // Fallback: failed JSON serialization
+            PyObject* objectType = PyObject_Type(EvaluatedObj);
+            PyObject* strObjectType = PyObject_Str(objectType);
+            const char* strTypeName = PyUnicode_AsUTF8(strObjectType);
+            PyErr_Clear();
+            Py_XDECREF(objectType);
+            Py_XDECREF(strObjectType);
+            return { fmt::format("Failed to serialize return value of type [{}] to JSON", strTypeName), Python::Types::Error };
+        }
+    }
 
     PyObject* objectType = PyObject_Type(EvaluatedObj);
     PyObject* strObjectType = PyObject_Str(objectType);
@@ -199,7 +267,7 @@ MILLENNIUM const Python::EvalResult EvaluatePython(std::string pluginName, std::
     Py_XDECREF(objectType);
     Py_XDECREF(strObjectType);
 
-    return { fmt::format("Millennium expected return type [int, str, bool] but received [{}]", strTypeName) , Python::Types::Error };
+    return { fmt::format("Millennium expected return type [int, str, bool, JSON-serializable dict/list/tuple] but received [{}]", strTypeName) , Python::Types::Error };
 }
 
 /**
@@ -222,7 +290,25 @@ MILLENNIUM const Python::EvalResult EvaluatePython(std::string pluginName, std::
  */
 MILLENNIUM Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName, std::string script)
 {
-    auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    const bool hasBackend = PythonManager::GetInstance().HasBackend(pluginName);
+
+    /** Plugin has no backend and therefor the call should not be completed */
+    if (!hasBackend) 
+    {
+        return { "false", Boolean };
+    }
+
+    auto result = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+
+    if (!result.has_value()) 
+    {
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script));
+
+        return { "overstepped partying thread state", Error };
+    }
+
+    auto& [strPluginName, threadState, interpMutex] = *result.value();
 
     if (threadState == nullptr) 
     {
@@ -271,7 +357,25 @@ MILLENNIUM Python::EvalResult Python::LockGILAndEvaluate(std::string pluginName,
  */
 MILLENNIUM void Python::LockGILAndDiscardEvaluate(std::string pluginName, std::string script)
 {
-    auto& [strPluginName, threadState, interpMutex] = *PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    const bool hasBackend = PythonManager::GetInstance().HasBackend(pluginName);
+
+    /** Plugin has no backend and therefor the call should not be completed */
+    if (!hasBackend) 
+    {
+        return;
+    }
+
+    auto result = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+
+    if (!result.has_value()) 
+    {
+        LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to evaluate ->\n{}", pluginName, script));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script));
+
+        return;
+    }
+
+    auto& [strPluginName, threadState, interpMutex] = *result.value();
 
     if (threadState == nullptr) 
     {

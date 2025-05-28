@@ -301,7 +301,7 @@ MILLENNIUM PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         }).detach();
     }
     
-    CoInitializer::ReInjectFrontendShims(g_pluginLoader);
+    CoInitializer::ReInjectFrontendShims(g_pluginLoader, false);
     Py_RETURN_NONE;
 }
 

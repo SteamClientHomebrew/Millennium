@@ -27,7 +27,10 @@ endif()
 
 # Strip binary on release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -s")
+  if(NOT UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+  endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 endif()
 
@@ -168,7 +171,7 @@ elseif(UNIX)
         set(LIBPYTHON_BUILTIN_MODULES_PATH "<UNKNOWN>")
         set(LIBPYTHON_BUILTIN_MODULES_DLL_PATH "<UNKNOWN>")
 
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/shdwmtr/millennium/refs/heads/main/scripts/install.sh' | sh")
+        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
       endif()
     endif()
   endif()
@@ -199,10 +202,6 @@ endif()
 
 # Set version information
 add_compile_definitions(MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
-
-if(UNIX)
-  set(CMAKE_CXX_FLAGS "-fpermissive")
-endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src

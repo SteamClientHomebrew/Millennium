@@ -204,7 +204,7 @@ int main(int argc, char* argv[])
     // plugins->add_subcommand("status", "Get the status of a current plugin")->callback([]() { send_message(Millennium::GET_PLUGIN_STATUS, nullptr); });
 
     app.set_version_flag("-v,--version", get_millennium_version());
-    app.footer("If you have any issues, please report them at: <https://github.com/shdwmtr/millennium/issues>");
+    app.footer("If you have any issues, please report them at: <https://github.com/SteamClientHomebrew/Millennium/issues>");
 
     CLI11_PARSE(app, argc, argv);
 }

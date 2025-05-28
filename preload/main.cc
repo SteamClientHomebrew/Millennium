@@ -39,7 +39,7 @@
 #include "cmd.h"
 #include <thread>
 
-static const char* GITHUB_API_URL = "https://api.github.com/repos/shdwmtr/millennium/releases";
+static const char* GITHUB_API_URL = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
 
 /**
  * @brief Unload and release the library from memory.
