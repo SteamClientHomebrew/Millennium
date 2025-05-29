@@ -4,9 +4,9 @@
 		"prod": "millennium-ttc --build prod"
 	},
 	"devDependencies": {
+		"@steambrew/client": "^5.2.16",
 		"@steambrew/ttc": "^2.5.3",
 		"@steambrew/webkit": "^5.2.16",
-		"@steambrew/client": "^5.2.16",
 		"@types/node": "^20.14.9",
 		"@types/react": "18.3.3",
 		"@types/react-dom": "18.3.0",
@@ -28,7 +28,10 @@
 				"react-dom",
 				"react-dom/client"
 			]
-		}
+		},
+		"onlyBuiltDependencies": [
+			"@parcel/watcher"
+		]
 	},
 	"dependencies": {
 		"ansi-to-react": "^6.1.6",
