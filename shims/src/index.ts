@@ -4,6 +4,7 @@ import Logger from './logger';
 
 const logger = new Logger('Core');
 const isClient = window.location.hostname === 'steamloopback.host';
+const startTime = performance.now(); // Start timing
 
 declare global {
 	interface Window {
@@ -17,12 +18,16 @@ const CreateWebSocket = (url: string): Promise<WebSocket> => {
 	return new Promise((resolve) => {
 		try {
 			let socket = new WebSocket(url);
+
 			socket.addEventListener('open', () => {
-				logger.log('Successfully connected to IPC server.');
+				const endTime = performance.now(); // End timing
+				const connectionTime = endTime - startTime;
+				logger.log(`Successfully connected to IPC server in ${connectionTime.toFixed(2)} ms.`);
 				resolve(socket);
 			});
+
 			socket.addEventListener('error', () => {
-				console.log('Failed to connect to IPC server:', url);
+				console.error('Failed to connect to IPC server:', url);
 				window.location.reload(); // Reload the page if the connection fails
 			});
 		} catch (error) {
@@ -94,11 +99,8 @@ const StartPreloader = async (port: number, shimList?: string[]) => {
 
 	if (isClient) {
 		await WaitForSPReactDOM();
-	}
-
-	logger.log('Injecting ');
-
-	if (!isClient) {
+	} else {
+		/** Webkit */
 		window.MILLENNIUM_API = await import('./Millennium');
 		AppendAccentColor();
 	}
@@ -115,6 +117,10 @@ const StartPreloader = async (port: number, shimList?: string[]) => {
 				}),
 			),
 	);
+
+	const endTime = performance.now(); // End timing
+	const connectionTime = endTime - startTime;
+	logger.log(`Successfully injected shims into the DOM in ${connectionTime.toFixed(2)} ms.`);
 };
 
 export default StartPreloader;

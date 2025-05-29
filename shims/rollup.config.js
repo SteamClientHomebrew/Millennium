@@ -4,6 +4,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import externalGlobals from 'rollup-plugin-external-globals';
+import del from 'rollup-plugin-del';
 
 export default {
 	input: 'src/index.ts',
@@ -24,6 +25,9 @@ export default {
 		preset: 'smallest',
 	},
 	plugins: [
+		del({
+			targets: ['build/**/*'],
+		}),
 		resolve(),
 		commonjs(),
 		externalGlobals({
