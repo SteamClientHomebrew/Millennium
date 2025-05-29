@@ -85,7 +85,7 @@ function formatCssVarKey(key: string): string {
 
 const StartPreloader = async (port: number, shimList?: string[]) => {
 	logger.log(`Successfully bound to ${isClient ? 'client' : 'webkit'} DOM...`);
-	const socket = await CreateWebSocket('ws://localhost:' + port);
+	const socket = await CreateWebSocket('ws://127.0.0.1:' + port);
 
 	/** Setup IPC */
 	window.MILLENNIUM_IPC_PORT = port;
