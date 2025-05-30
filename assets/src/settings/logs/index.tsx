@@ -160,12 +160,12 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 
 		if (millenniumItems.length) {
 			components.push(<SettingsDialogSubHeader>Millennium Logs</SettingsDialogSubHeader>);
-			millenniumItems.map((log) => this.renderLogItemButton(log));
+			components.push(millenniumItems.map((log) => this.renderLogItemButton(log)));
 		}
 
 		if (userPlugins.length) {
 			components.push(<SettingsDialogSubHeader style={{ marginTop: '20px' }}>User Plugins</SettingsDialogSubHeader>);
-			userPlugins.map((log) => this.renderLogItemButton(log));
+			components.push(userPlugins.map((log) => this.renderLogItemButton(log)));
 		}
 
 		return components;

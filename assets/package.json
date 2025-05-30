@@ -4,7 +4,6 @@
 		"prod": "millennium-ttc --build prod"
 	},
 	"devDependencies": {
-		"@steambrew/client": "^5.2.16",
 		"@steambrew/ttc": "^2.5.3",
 		"@steambrew/webkit": "^5.2.16",
 		"@types/node": "^20.14.9",
@@ -31,7 +30,10 @@
 		},
 		"onlyBuiltDependencies": [
 			"@parcel/watcher"
-		]
+		],
+		"overrides": {
+			"@steambrew/client": "link:@steambrew/client"
+		}
 	},
 	"dependencies": {
 		"ansi-to-react": "^6.1.6",

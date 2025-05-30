@@ -1,4 +1,4 @@
-import { Dropdown, Field, IconsModule, Toggle } from '@steambrew/client';
+import { Dropdown, Field, IconsModule, pluginSelf, Toggle } from '@steambrew/client';
 import React from 'react';
 import { locale } from '../../../locales';
 import { OnMillenniumUpdate } from '../../types';
@@ -75,6 +75,16 @@ export const GeneralViewModal: React.FC = () => {
 			</Field>
 
 			<RenderAccentColorPicker />
+
+			<SettingsDialogSubHeader style={{ marginTop: '20px' }}>{locale.strAbout}</SettingsDialogSubHeader>
+
+			<Field label={locale.strAboutVersion}>{pluginSelf.version}</Field>
+			<Field label={'Client API version'}>{window.MILLENNIUM_FRONTEND_LIB_VERSION}</Field>
+			<Field label={'Browser API version'}>{window.MILLENNIUM_BROWSER_LIB_VERSION}</Field>
+			<Field label={locale.strAboutBuildDate}>{new Date(pluginSelf.buildDate).toLocaleString(navigator.language)}</Field>
+			<Field label={'Loader build date'} bottomSeparator="none">
+				{new Date(window.MILLENNIUM_LOADER_BUILD_DATE).toLocaleString(navigator.language)}
+			</Field>
 		</>
 	);
 };

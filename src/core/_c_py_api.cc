@@ -366,6 +366,45 @@ MILLENNIUM PyObject* GetPluginLogs(PyObject* self, PyObject* args)
     return PyUnicode_FromString(logData.dump().c_str());
 }
 
+// Helper to convert month abbreviation to number
+std::string getMonthNumber(const std::string& monthAbbr) 
+{
+    static std::map<std::string, std::string> monthMap 
+    {
+        {"Jan", "01"}, {"Feb", "02"}, {"Mar", "03"}, {"Apr", "04"},
+        {"May", "05"}, {"Jun", "06"}, {"Jul", "07"}, {"Aug", "08"},
+        {"Sep", "09"}, {"Oct", "10"}, {"Nov", "11"}, {"Dec", "12"}
+    };
+    return monthMap[monthAbbr];
+}
+
+std::string getBuildTimestamp() 
+{
+#ifdef __DATE__
+    std::string date = __DATE__;
+#else
+    std::string date = "Jan 01 1970";
+#endif
+
+#ifdef __TIME__
+    std::string time = __TIME__;
+#else
+    std::string time = "00:00:00";
+#endif
+
+    std::string month = getMonthNumber(date.substr(0, 3));
+    std::string day = date.substr(4, 2);
+    std::string year = date.substr(7, 4);
+
+    if (day[0] == ' ') day[0] = '0';
+    return year + "-" + month + "-" + day + "T" + time;
+}
+
+MILLENNIUM PyObject* GetBuildDate(PyObject* self, PyObject* args)
+{
+    return PyUnicode_FromString(getBuildTimestamp().c_str());
+} 
+
 /** 
  * Method API for the Millennium module
  * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
@@ -402,6 +441,9 @@ MILLENNIUM PyMethodDef* GetMillenniumModule()
          * Used to toggle the status of a plugin, used in the Millennium settings page.
         */
         { "change_plugin_status",  TogglePluginStatus,              METH_VARARGS, NULL },
+
+        /** For internal use, but can be used if its useful */
+        { "__internal_get_build_date",  GetBuildDate,               METH_VARARGS, NULL },
         {NULL, NULL, 0, NULL} // Sentinel
     };
 

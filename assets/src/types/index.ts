@@ -162,6 +162,8 @@ export interface SettingsProps {
 		themes?: UpdateItem[];
 		plugins?: any[];
 	};
+
+	buildDate: string;
 }
 
 export interface ColorProp {

@@ -39,7 +39,8 @@ def GetMillenniumConfig():
         "millenniumVersion":         Millennium.version(),
         "enabledPlugins":            enabledPlugins,
         "updates":                   updater.get_cached_updates(),
-        "hasCheckedForUpdates":      updater.get_has_checked_for_updates()
+        "hasCheckedForUpdates":      updater.get_has_checked_for_updates(),
+        "buildDate":                 Millennium.__internal_get_build_date(),
     }
 
 
