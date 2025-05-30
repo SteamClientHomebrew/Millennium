@@ -9,6 +9,7 @@ import {
 	ShowModalResult,
 	SidebarNavigation,
 	SidebarNavigationPage,
+	Navigation,
 } from '@steambrew/client';
 import { locale } from '../../locales';
 import { pagedSettingsClasses, settingsClasses } from '../utils/classes';
@@ -27,7 +28,7 @@ declare global {
 	const g_PopupManager: any;
 }
 
-const tabSpotGeneral = {
+const tabSpotGeneral: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelGeneral,
 	icon: <IconsModule.Settings />,
@@ -36,9 +37,10 @@ const tabSpotGeneral = {
 			<GeneralViewModal />
 		</DialogBody>
 	),
+	route: '/millennium/settings/general',
 };
 
-const tabSpotSettings = {
+const tabSpotSettings: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelThemes,
 	icon: <MillenniumIcons.Themes />,
@@ -47,9 +49,10 @@ const tabSpotSettings = {
 			<ThemeViewModal />
 		</DialogBody>
 	),
+	route: '/millennium/settings/themes',
 };
 
-const tabSpotPlugins = {
+const tabSpotPlugins: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelPlugins,
 	icon: <MillenniumIcons.Plugins />,
@@ -58,9 +61,10 @@ const tabSpotPlugins = {
 			<PluginViewModal />
 		</DialogBody>
 	),
+	route: '/millennium/settings/plugins',
 };
 
-const tabSpotUpdates = {
+const tabSpotUpdates: SidebarNavigationPage = {
 	visible: true,
 	title: <RenderUpdatesSettingsTab />,
 	icon: <IconsModule.Update />,
@@ -71,9 +75,10 @@ const tabSpotUpdates = {
 			</UpdateContextProvider>
 		</DialogBody>
 	),
+	route: '/millennium/settings/updates',
 };
 
-const tabSpotLogs = {
+const tabSpotLogs: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelLogs,
 	icon: <IconsModule.TextCodeBlock />,
@@ -82,63 +87,18 @@ const tabSpotLogs = {
 			<RenderLogViewer />
 		</DialogBody>
 	),
+	route: '/millennium/settings/logs',
 };
 
-const settingsTabsMap = {
-	themes: locale.settingsPanelThemes,
-	plugins: locale.settingsPanelPlugins,
-	updates: locale.settingsPanelUpdates,
-	report: locale.settingsPanelBugReport,
-	logs: locale.settingsPanelLogs,
-	settings: locale.settingsPanelSettings,
-};
-
-export type SettingsTabs = keyof typeof settingsTabsMap;
-
-export async function OpenSettingsTab(popup: any, activeTab: SettingsTabs) {
-	if (!activeTab) {
-		return;
-	}
-
-	/** FIXME: Fix this to use actual router, tried it and it worked but it broke other portions of the UI. */
-	const tabs = (await Millennium.findElement(popup.m_popup.document, `.${pagedSettingsClasses.PagedSettingsDialog_PageListItem}`)) as NodeListOf<HTMLElement>;
-	for (const tab of tabs) {
-		if (tab.textContent.includes(settingsTabsMap[activeTab])) {
-			tab.click();
-			break;
-		}
-	}
-}
-
-export function MillenniumSettings({ popup }: { popup: ShowModalResult }) {
+export function MillenniumSettings() {
 	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings`;
-	const pages: SidebarNavigationPage[] = [tabSpotGeneral, tabSpotSettings, tabSpotPlugins, tabSpotUpdates, tabSpotLogs];
-
-	/**
-	 * For some reason, putting a sidebar navigation inside a modal causes the modal to not close when clicking outside of it.
-	 * This is a workaround to fix that.
-	 */
-	useEffect(() => {
-		const handleClick = (event: MouseEvent) => {
-			if ((event.target as HTMLElement).className === 'ModalPosition') {
-				popup.Close();
-			}
-		};
-
-		pluginSelf.mainWindow.document.addEventListener('click', handleClick);
-
-		return () => {
-			pluginSelf.mainWindow.document.removeEventListener('click', handleClick);
-		};
-	}, []);
+	const settingsPages: SidebarNavigationPage[] = [tabSpotGeneral, tabSpotSettings, tabSpotPlugins, tabSpotUpdates, tabSpotLogs];
 
 	return (
 		<ConfigProvider>
-			<ModalPosition>
-				<Styles />
-				{/* @ts-ignore */}
-				<SidebarNavigation className={className} pages={pages} title={'Millennium'} />
-			</ModalPosition>
+			<Styles />
+			{/* @ts-ignore */}
+			<SidebarNavigation className={className} pages={settingsPages} title={<></>} />
 		</ConfigProvider>
 	);
 }
@@ -150,13 +110,7 @@ function RenderSettingsModal(_: any, retObj: any) {
 		retObj.props.menuItems.splice(index + 1, 0, {
 			name: 'Millennium',
 			onClick: () => {
-				let modal: any = {};
-				Object.assign(
-					modal,
-					showModal(<MillenniumSettings popup={modal} />, pluginSelf.mainWindow, {
-						bNeverPopOut: true,
-					}),
-				);
+				Navigation.Navigate('/millennium/settings');
 			},
 			visible: true,
 		});

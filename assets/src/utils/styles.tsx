@@ -87,7 +87,7 @@ const styles = `
 
 /* Override Steam styles */
 .MillenniumSettings {
-	min-height: unset !important;
+	min-height: 100% !important;
 
 	/* Fix the dropdown not filling the proper width when specific theme names are too long. */
 	.DialogDropDown {

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { produce } from 'immer';
-import { callable, Millennium } from '@steambrew/client';
-import { OnMillenniumUpdate } from './types';
+import { Millennium } from '@steambrew/client';
 import { settingsManager } from './settings-manager';
 import { PyGetBackendConfig, PySetBackendConfig } from './utils/ffi';
 import { AppConfig } from './AppConfig';

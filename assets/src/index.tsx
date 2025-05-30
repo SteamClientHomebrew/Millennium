@@ -1,4 +1,4 @@
-import { Millennium, pluginSelf } from '@steambrew/client';
+import { IconsModule, Millennium, Navigation, pluginSelf, routerHook, sleep, toaster } from '@steambrew/client';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';
@@ -7,8 +7,34 @@ import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
 import { OnRunSteamURL } from './utils/url-scheme-handler';
 import { PyGetRootColors, PyGetStartupConfig } from './utils/ffi';
 import { onWindowCreatedCallback, patchMissedDocuments } from './patcher';
+import { MillenniumSettings } from './settings';
+
+async function notifyUpdates() {
+	await sleep(1000); // Wait for the toaster to be ready
+
+	const themeUpdates: any[] = pluginSelf.updates.themes;
+	const pluginUpdates: any[] = pluginSelf.updates.plugins;
+
+	const updateCount = themeUpdates?.length + pluginUpdates?.filter?.((update: any) => update?.hasUpdate)?.length || 0;
+
+	if (updateCount === 0) {
+		Logger.Log('No updates found, skipping notification.');
+		return;
+	}
+
+	toaster.toast({
+		title: `Updates Available`,
+		body: `We've found ${updateCount} updates for items in your library!`,
+		logo: <IconsModule.Download />,
+		duration: 10000,
+		onClick: () => {
+			Navigation.Navigate('/millennium/settings/updates');
+		},
+	});
+}
 
 async function initializeMillennium(settings: SettingsProps) {
+	notifyUpdates();
 	Logger.Log(`Received props`, settings);
 
 	const theme: ThemeItem = settings.active_theme;
@@ -37,6 +63,7 @@ async function initializeMillennium(settings: SettingsProps) {
 		enabledPlugins: settings?.enabledPlugins ?? [],
 		updates: settings?.updates ?? [],
 		hasCheckedForUpdates: settings?.hasCheckedForUpdates ?? false,
+		buildDate: settings?.buildDate,
 	});
 
 	patchMissedDocuments();
@@ -46,6 +73,8 @@ async function initializeMillennium(settings: SettingsProps) {
 export default async function PluginMain() {
 	await initializeMillennium(JSON.parse(await PyGetStartupConfig()));
 	Millennium.AddWindowCreateHook(onWindowCreatedCallback);
+
+	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });
 
 	// @ts-ignore
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);

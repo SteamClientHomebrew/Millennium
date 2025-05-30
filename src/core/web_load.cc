@@ -268,6 +268,7 @@ MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string re
 
     std::vector<std::string> scriptModules;
     std::string cssShimContent, scriptModuleArray;
+    std::string linkPreloadsArray;
 
     for (auto& hookItem : *m_hookListPtr) 
     {
@@ -283,7 +284,9 @@ MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string re
             if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
 
-            scriptModules.push_back(UrlFromPath(this->m_javaScriptVirtualUrl, hookItem.path));
+            auto jsPath = UrlFromPath(this->m_javaScriptVirtualUrl, hookItem.path);
+            scriptModules.push_back(jsPath);
+            linkPreloadsArray.append(fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", jsPath));
         }
     }
 
@@ -295,10 +298,12 @@ MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string re
 
     const std::filesystem::path preloadPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js";
     const std::string ftpPath = UrlFromPath(m_javaScriptVirtualUrl, preloadPath.generic_string());
-    const std::string scriptContent = fmt::format("module.default({}, [{}]);", m_ipcPort, scriptModuleArray);
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, [{}]);", m_ipcPort, scriptModuleArray);
+
+    linkPreloadsArray.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
 
     std::string importScript = fmt::format("import('{}').then(module => {{ {} }}).catch(error => window.location.reload())", ftpPath, scriptContent);
-    std::string shimContent = fmt::format("<script type=\"module\" id=\"millennium-injected\" defer>{}</script>\n{}", importScript, cssShimContent);
+    std::string shimContent = fmt::format("{}<script type=\"module\" async id=\"millennium-injected\">{}</script>\n{}", linkPreloadsArray, importScript, cssShimContent);
 
     for (const auto& blackListedUrl : g_blackListedUrls)        
     {

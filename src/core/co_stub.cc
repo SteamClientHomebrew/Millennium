@@ -107,7 +107,7 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
 
     const std::filesystem::path preloadPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js";
     const std::string ftpPath = UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), preloadPath.generic_string());
-    const std::string scriptContent = fmt::format("module.default({}, [{}]);", ipcPort, scriptModuleArray);
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, [{}]);", ipcPort, scriptModuleArray);
 
     return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
 }
