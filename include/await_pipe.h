@@ -40,6 +40,7 @@
 #pragma comment(lib, "iphlpapi.lib")
 #include <tlhelp32.h>
 #include <psapi.h>
+#include <commctrl.h>
 #elif __linux__
 #include <fstream>
 #include <sstream>
@@ -49,6 +50,39 @@
 #endif
 #include "cmd.h"
 
+
+#define PORTARG "-devtools-port="
+#define PORT "12418"
+const TASKDIALOG_BUTTON portdialogbtns[] = {
+    {301, L"Restart Steam with different port"},
+    {302, L"Exit"},
+};
+const TASKDIALOGCONFIG portdialog = {
+    sizeof(TASKDIALOGCONFIG),
+    0,
+    0,
+    0,
+    0,
+    L"Fatal Error",
+    {.pszMainIcon = TD_ERROR_ICON},
+    L"Millennium thinks smth using 8080, should we try different port?",
+    0,
+    2,
+    portdialogbtns,
+    301,
+    0,
+    0,
+    0,
+    L"Remember my choice.",
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+};
 
 static bool bHasCheckedConnection = false;
 
@@ -196,7 +230,7 @@ public:
         }
 
         auto [canConnect, processName] = this->GetSteamConnectionProps();
-        if (!canConnect)
+        if (1)
         {
             const std::string message = fmt::format(
                 "Millennium can't connect to Steam because the target port '{}' is currently being used by '{}'.\n"
@@ -205,7 +239,63 @@ public:
             );
 
             #ifdef _WIN32
-            MessageBoxA(nullptr, message.c_str(), "Fatal Error", MB_ICONERROR);
+            LPWSTR *argvW;
+            LPSTR *argv;
+            int argc = 0;
+            argvW = CommandLineToArgvW(GetCommandLineW(), &argc);
+            if (!argvW)
+                exit(1);
+            argv = (LPSTR *)malloc((argc + 2) * sizeof(LPSTR));
+            for (int i = 0; i < argc; i++) {
+                int len = WideCharToMultiByte(CP_UTF8, 0, argvW[i], -1, 0, 0, 0, 0);
+                if (len <= 0) {
+                    // while (i--) {
+                    //   free(argv[i]);
+                    // }
+                    // free(argv);
+                    // LocalFree(argvW);
+                    exit(1);
+                }
+                LPSTR buffer = (LPSTR)malloc(len * sizeof(CHAR));
+                WideCharToMultiByte(CP_UTF8, 0, argvW[i], -1, buffer, len, 0, 0);
+                argv[i] = buffer;
+                if (strncmp(PORTARG, buffer, strlen(PORTARG)) == 0) {
+                    // if it got here and had port switched nothing we can do now
+                    TaskDialog(NULL, NULL, L"Fatal Error", L"Too bad", NULL, 0,
+                            TD_ERROR_ICON, 0);
+                    // while (i--) {
+                    //   free(argv[i]);
+                    // }
+                    // free(argv);
+                    // LocalFree(argvW);
+                    exit(1);
+                }
+            }
+            LocalFree(argvW);
+            argv[argc++] = PORTARG PORT;
+            argv[argc] = NULL;
+
+            int btn = 0;
+            WINBOOL check = 0;
+            TaskDialogIndirect(&portdialog, &btn, 0, &check);
+
+            if (check) {
+                printf("saving choice, %d", btn);
+            }
+
+            if (btn == 301) {
+                _execv(argv[0], argv);
+                // for (int i = 0; argv[i]; i++) {
+                //   free(argv[i]);
+                // }
+                // free(argv);
+                exit(errno);
+            }
+            // for (int i = 0; argv[i]; i++) {
+            //   free(argv[i]);
+            // }
+            // free(argv);
+            exit(0);
             #endif
             Logger.Warn(message);
             std::exit(1);
