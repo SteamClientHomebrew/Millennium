@@ -35,6 +35,7 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <mini/ini.h>
+#include <optional>
 
 class SettingsStore
 {
@@ -99,4 +100,5 @@ namespace SystemIO
     std::vector<char> ReadFileBytesSync(const std::string& filePath);
     void WriteFileSync(const std::filesystem::path& filePath, std::string content);
     void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);
+    std::optional<std::string> GetMillenniumPreloadPath();
 }

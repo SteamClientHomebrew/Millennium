@@ -90,9 +90,9 @@ public:
 MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t ftpPort, const uint16_t ipcPort)
 {
     std::string scriptModuleArray;
-    std::string scriptContents = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js").string());
+    std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
 
-    if (scriptContents.empty())
+    if (!millenniumPreloadPath.has_value())
     {
         LOG_ERROR("Missing client preload module. Please re-install Millennium.");
         #ifdef _WIN32
@@ -105,8 +105,7 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
-    const std::filesystem::path preloadPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js";
-    const std::string ftpPath = UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), preloadPath.generic_string());
+    const std::string ftpPath = UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), millenniumPreloadPath.value_or(std::string()));
     const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, [{}]);", ipcPort, scriptModuleArray);
 
     return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);

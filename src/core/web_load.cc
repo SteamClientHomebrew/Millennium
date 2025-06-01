@@ -208,9 +208,9 @@ MILLENNIUM void WebkitHandler::GetResponseBody(nlohmann::basic_json<> message)
 MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string requestUrl, std::string original) 
 {
     std::string patched = original;
-    const std::string webkitPreloadModule = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js").string());
+    std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
 
-    if (webkitPreloadModule.empty()) 
+    if (!millenniumPreloadPath.has_value()) 
     {
         LOG_ERROR("Missing webkit preload module. Please re-install Millennium.");
         #ifdef _WIN32
@@ -248,9 +248,7 @@ MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string re
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
-
-    const std::filesystem::path preloadPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "preload.js";
-    const std::string ftpPath = UrlFromPath(m_javaScriptVirtualUrl, preloadPath.generic_string());
+    const std::string ftpPath = UrlFromPath(m_javaScriptVirtualUrl, millenniumPreloadPath.value_or(std::string()));
     const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, [{}]);", m_ipcPort, scriptModuleArray);
 
     linkPreloadsArray.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));

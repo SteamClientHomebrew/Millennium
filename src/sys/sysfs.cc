@@ -40,6 +40,8 @@
 #include <windows.h>
 #endif
 #include <env.h>
+#include <optional>
+#include <regex>
 
 namespace FileSystem = std::filesystem;
 
@@ -177,5 +179,28 @@ namespace SystemIO {
         }
 
         fileStream.close();
+    }
+
+    MILLENNIUM std::optional<std::string> GetMillenniumPreloadPath()
+    {
+        const std::filesystem::path dirPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH"));
+
+        // Regex for files starting with "millennium" and ending with ".js"
+        const std::regex pattern("^millennium.*\\.js$", std::regex_constants::icase);
+
+        for (const auto& entry : std::filesystem::directory_iterator(dirPath))
+        {
+            if (entry.is_regular_file())
+            {
+                const std::string filename = entry.path().filename().string();
+                if (std::regex_match(filename, pattern))
+                {
+                    // Ensure forward slashes in the path
+                    return entry.path().generic_string();
+                }
+            }
+        }
+
+        return std::nullopt;
     }
 }
