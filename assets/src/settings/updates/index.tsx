@@ -29,7 +29,7 @@ const UpdatesViewModal: React.FC = () => {
 
 	return (
 		<RenderAvailableUpdates
-			millenniumUpdates={pluginSelf.cachedMillenniumUpdateProps}
+			millenniumUpdates={pluginSelf.millenniumUpdates}
 			themeUpdates={themeUpdates}
 			pluginUpdates={pluginUpdates?.filter((update: any) => update?.hasUpdate)}
 		/>

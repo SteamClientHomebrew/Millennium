@@ -10,7 +10,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		return [
 			'Millennium',
 			<div className="MillenniumItem_Version">
-				{pluginSelf.version} {'->'} {millenniumUpdates?.updates?.newVersion?.tag_name}
+				{pluginSelf.version} {'->'} {millenniumUpdates?.newVersion?.tag_name}
 			</div>,
 		];
 	}
@@ -20,9 +20,9 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		<UpdateCard
 			update={{
 				name: <VersionInformation />,
-				message: millenniumUpdates?.updates?.newVersion?.body,
-				date: Utils.toTimeAgo(millenniumUpdates?.updates?.newVersion?.published_at),
-				commit: millenniumUpdates?.updates?.newVersion?.html_url,
+				message: millenniumUpdates?.newVersion?.body,
+				date: Utils.toTimeAgo(millenniumUpdates?.newVersion?.published_at),
+				commit: millenniumUpdates?.newVersion?.html_url,
 			}}
 			index={0}
 			totalCount={1}

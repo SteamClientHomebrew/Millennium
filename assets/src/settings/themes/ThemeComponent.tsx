@@ -158,6 +158,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				}
 				padding="standard"
 				bottomSeparator={isLastItem ? 'none' : 'standard'}
+				className="MillenniumThemes_ThemeItem"
 				{...(isActive && { icon: <FaCheck /> })}
 				{...(shouldShowMore && { description: this.renderExpandableShowMore() })}
 			>

@@ -10,9 +10,6 @@ import { ShowWelcomeModal } from '../components/WelcomeModal';
 
 const EvaluateModule = (module: string, type: ModuleType, document: Document) => {
 	const activeTheme: ThemeItem = pluginSelf.activeTheme;
-
-	Logger.Log(`Evaluating module:`, module, type);
-
 	switch (type) {
 		case ModuleType.TargetCss:
 			DOMModifier.AddStyleSheet(document, constructThemePath(activeTheme.native, module));

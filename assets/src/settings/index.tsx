@@ -31,7 +31,7 @@ declare global {
 const tabSpotGeneral: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelGeneral,
-	icon: <IconsModule.Settings />,
+	icon: <MillenniumIcons.SteamBrewLogo />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<GeneralViewModal />
@@ -91,7 +91,7 @@ const tabSpotLogs: SidebarNavigationPage = {
 };
 
 export function MillenniumSettings() {
-	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings`;
+	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings ModalDialogPopup`;
 	const settingsPages: SidebarNavigationPage[] = [tabSpotGeneral, tabSpotSettings, tabSpotPlugins, tabSpotUpdates, tabSpotLogs];
 
 	return (

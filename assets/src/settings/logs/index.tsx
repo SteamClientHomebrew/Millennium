@@ -120,12 +120,6 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 					<IconsModule.ExclamationPoint color={color} style={{ height: '16px', width: '16px' }} />
 				</DesktopTooltip>
 			);
-		} else {
-			ErrorTooltip = (
-				<DesktopTooltip toolTipContent={`${log.name} has no errors or warnings.`} direction="top" style={{ height: '16px', width: '16px' }}>
-					<FaCircleCheck color="green" style={{ height: '16px', width: '16px' }} />
-				</DesktopTooltip>
-			);
 		}
 
 		return (

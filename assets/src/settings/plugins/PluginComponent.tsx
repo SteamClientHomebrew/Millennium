@@ -95,6 +95,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				padding="standard"
 				bottomSeparator={isLastPlugin ? 'none' : 'standard'}
 				data-icon-status={type}
+				className='MillenniumPlugins_PluginField'
 			>
 				<Toggle key={plugin.data.name} disabled={plugin.data.name === 'core'} value={isEnabled} onChange={onSelectionChange.bind(null, index)} />
 				<DialogButton onClick={this.showCtxMenu} style={{ width: '32px' }}>

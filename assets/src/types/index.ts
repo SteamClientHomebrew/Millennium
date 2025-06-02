@@ -162,6 +162,10 @@ export interface SettingsProps {
 		themes?: UpdateItem[];
 		plugins?: any[];
 	};
+	millenniumUpdates?: {
+		hasUpdate: boolean;
+		newVersion?: GitHubRelease;
+	};
 
 	buildDate: string;
 }

@@ -60,13 +60,30 @@ class MillenniumUpdater:
         except ValueError as e:
             logger.error(f"Failed to parse version: {e}")
     
+    def find_asset(release_info: dict):
+        if os.name == "nt":
+            return next(
+                (asset for asset in release_info.get("assets", [])
+                if asset.get("name") == f"millennium-{release_info.get('tag_name')}-windows-x86_64.zip"),
+                None
+            )
+        elif os.name == "posix":
+            return next(
+                (asset for asset in release_info.get("assets", [])
+                if asset.get("name") == f"millennium-{release_info.get('tag_name')}-linux-x86_64.tar.gz"),
+                None
+            )
+        else:
+            print("Invalid platform, can't find platform specific assets")
+            return None
 
     def has_any_updates():
         # We don't actually handle updates here, that is done from the bootstrap module in %root%/win32
-        return json.dumps({
-            "hasUpdate": MillenniumUpdater.__has_updates,
-            "newVersion": MillenniumUpdater.__latest_version
-        })
+        return {
+            "hasUpdate": True,
+            "newVersion": MillenniumUpdater.__latest_version,
+            "platformRelease": MillenniumUpdater.find_asset(MillenniumUpdater.__latest_version) if MillenniumUpdater.__latest_version else None,
+        }
     
 
     def queue_update(downloadUrl: str):
