@@ -130,7 +130,7 @@ jobs:
               run: |
                   New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
                   npm install -g @steambrew/api
-                  $pkgPath = Join-Path (npm root -g) "@steambrew/api/build"
+                  $pkgPath = Join-Path (npm root -g) "@steambrew/api/build/*"
                   Copy-Item -Recurse -Force $pkgPath "D:/a/env/ext/data/shims/"
 
             - name: Upload Build Artifact
@@ -239,7 +239,7 @@ jobs:
 
                   mkdir -p /home/runner/env/ext/data/shims/
                   npm install -g @steambrew/api
-                  cp -r $(npm root -g)/@steambrew/api/build /home/runner/env/ext/data/shims/
+                  cp -r $(npm root -g)/@steambrew/api/build/* /home/runner/env/ext/data/shims/
 
             - name: Restructure Filesystem
               run: |
