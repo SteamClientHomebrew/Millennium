@@ -151,8 +151,8 @@ jobs:
 
         runs-on: ubuntu-latest
 
-        env:
-            VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+        # env:
+        #     VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
 
         steps:
             - name: Export GitHub Actions cache environment variables
@@ -221,18 +221,12 @@ jobs:
               uses: jwlawson/actions-setup-cmake@v2
               with:
                   cmake-version: '3.21.1'
-              env:
-                  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
 
             - name: (Dependency) Install vcpkg & setup environment
               run: sudo apt install libgtk-3-dev ninja-build &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
-              env:
-                  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
 
             - name: (Generator) Configure CMake
               run: cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
-              env:
-                  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
 
             - name: Build Millennium
               run: |
