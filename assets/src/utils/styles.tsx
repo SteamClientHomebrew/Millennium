@@ -265,8 +265,10 @@ const styles = `
 }
 
 .MillenniumUpdates_Description {
-	display: flex;
-	flex-direction: column;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.5s ease;
 }
 
 .MillenniumUpdates_ThemeButton {
@@ -478,6 +480,10 @@ const updateCountStyles = `
 	line-height: 20px;
 	height: fit-content !important;
 	width: fit-content !important;
+}
+	
+.MillenniumIconButton svg {
+    transition: all 0.3s ease !important;
 }`;
 
 export const UpdateCountStyle = () => <style>{updateCountStyles}</style>;
