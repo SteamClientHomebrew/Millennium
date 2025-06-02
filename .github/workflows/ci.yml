@@ -128,13 +128,9 @@ jobs:
 
             - name: Add API modules
               run: |
-                  cd ./shims
-                  npm install -g pnpm
-                  pnpm install
-                  pnpm run build
-
                   New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
-                  Copy-Item -Path "./build/*" -Destination "D:/a/env/ext/data/shims/" -Force
+                  npm install -g @steambrew/api
+                  cp -r $(npm root -g)/@steambrew/api/build D:/a/env/ext/data/shims/
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
