@@ -130,7 +130,8 @@ jobs:
               run: |
                   New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
                   npm install -g @steambrew/api
-                  cp -r $(npm root -g)/@steambrew/api/build D:/a/env/ext/data/shims/
+                  $pkgPath = Join-Path (npm root -g) "@steambrew/api/build"
+                  Copy-Item -Recurse -Force $pkgPath "D:/a/env/ext/data/shims/"
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
@@ -236,11 +237,9 @@ jobs:
                   cp ./build/cli/millennium /home/runner/env/millennium
                   cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
 
-                  cd shims 
-                  npm install -g pnpm
-                  pnpm install && pnpm run build
-                  mkdir -p /home/runner/env/ext/data/shims
-                  cp -r ./build/* /home/runner/env/ext/data/shims/
+                  mkdir -p /home/runner/env/ext/data/shims/
+                  npm install -g @steambrew/api
+                  cp -r $(npm root -g)/@steambrew/api/build /home/runner/env/ext/data/shims/
 
             - name: Restructure Filesystem
               run: |
