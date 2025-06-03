@@ -63,7 +63,7 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 }
 
 export function ThemeUpdateCard({ themeUpdates }: { themeUpdates: UpdateItemType[] }) {
-	if (!themeUpdates) return null;
+	if (!themeUpdates || !themeUpdates.length) return null;
 
 	const ctx = useUpdateContext();
 	const [updateState, setUpdateState] = useState<UpdateState>(null);

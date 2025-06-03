@@ -4,6 +4,8 @@ import { useState } from 'react';
 interface ErrorModalProps {
 	header: string;
 	body: string;
+	showIcon?: boolean;
+	icon?: React.ReactNode;
 
 	options?: {
 		buttonText?: string;
@@ -11,7 +13,7 @@ interface ErrorModalProps {
 	};
 }
 
-export const ErrorModal: React.FC<ErrorModalProps> = ({ header, body, options }) => {
+export const ErrorModal: React.FC<ErrorModalProps> = ({ header, body, options, showIcon, icon }) => {
 	const [callBackRunning, setCallBackRunning] = useState(false);
 
 	const DelegateCallback = async (callback: () => void) => {
@@ -26,7 +28,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({ header, body, options })
 
 	return (
 		<div className="MillenniumErrorModal_Container">
-			<IconsModule.Caution width="64" />
+			{showIcon && (icon ? icon : <IconsModule.Caution width="64" />)}
 
 			<div className="MillenniumErrorModal_Header">{header}</div>
 			<div className="MillenniumErrorModal_Text">{body}</div>

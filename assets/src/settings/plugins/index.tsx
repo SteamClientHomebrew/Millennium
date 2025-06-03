@@ -155,6 +155,20 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 			);
 		}
 
+		if (this.state.plugins || !this.state.plugins.length) {
+			return (
+				<ErrorModal
+					header={'No Plugins Found'}
+					body={"It appears you don't have any plugin yet!"}
+					showIcon={false}
+					options={{
+						buttonText: 'Install a Plugin',
+						onClick: this.InstallPluginMenu.bind(this),
+					}}
+				/>
+			);
+		}
+
 		return (
 			<>
 				<Styles />

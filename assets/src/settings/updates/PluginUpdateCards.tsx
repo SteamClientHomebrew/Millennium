@@ -82,7 +82,7 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, setUpdateState
 };
 
 export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
-	if (!pluginUpdates) return null;
+	if (!pluginUpdates || !pluginUpdates.length) return null;
 
 	const ctx = useUpdateContext();
 	const [updateState, setUpdateState] = useState<UpdateState>(null);
