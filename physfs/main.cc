@@ -217,32 +217,9 @@ int main() {
         std::cout << "  " << file << std::endl;
     }
 
-    // Read a specific file (replace with actual filename from your zip)
-    std::string desired_file = "loader/millennium-pre.c5.2.20.b5.2.20.js"; // Change this to a file in your zip
-    // std::string target_file;
-
-    // // Check if desired file exists in the archive
-    // for (const auto& file : files) {
-    //     if (file == desired_file) {
-    //         target_file = file;
-    //         break;
-    //     }
-    // }
-
-    // // If not found, fall back to first real file
-    // if (target_file.empty()) {
-    //     for (const auto& file : files) {
-    //         if (!file.empty() && file.back() != '/') {  // Skip directories
-    //             target_file = file;
-    //             break;
-    //         }
-    //     }
-    // }
-
-    
+    std::string desired_file = "loader/millennium-pre.c5.2.20.b5.2.20.js";
     std::cout << "\nReading file: " << desired_file << std::endl;
     
-    // For text files
     std::string text_content = reader.readTextFileFromZip(desired_file);
     if (!text_content.empty()) {
         std::cout << "Text content (" << text_content.size() << " bytes):" << std::endl;

@@ -80,7 +80,7 @@ class MillenniumUpdater:
     def has_any_updates():
         # We don't actually handle updates here, that is done from the bootstrap module in %root%/win32
         return {
-            "hasUpdate": True,
+            "hasUpdate": MillenniumUpdater.__has_updates,
             "newVersion": MillenniumUpdater.__latest_version,
             "platformRelease": MillenniumUpdater.find_asset(MillenniumUpdater.__latest_version) if MillenniumUpdater.__latest_version else None,
         }
