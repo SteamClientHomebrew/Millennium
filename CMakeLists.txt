@@ -229,6 +229,8 @@ if(WIN32)
   add_subdirectory(preload)
 endif()
 
+add_subdirectory(physfs)
+
 set(SOURCE_FILES
   "src/main.cc"
   "src/core/loader.cc"
