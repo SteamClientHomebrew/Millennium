@@ -80,6 +80,11 @@ export class NotificationService {
 			this.notifyLibraryUpdates();
 		}
 
+		if (!pluginSelf?.millenniumUpdates?.hasUpdate) {
+			Logger.Log('No Millennium updates found, skipping notification.');
+			return;
+		}
+
 		switch (this.onMillenniumUpdates) {
 			case OnMillenniumUpdate.AUTO_INSTALL: {
 				this.updateMillennium();
