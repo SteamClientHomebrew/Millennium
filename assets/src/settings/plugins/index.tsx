@@ -155,10 +155,15 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 			);
 		}
 
-		if (this.state.plugins || !this.state.plugins.length) {
+		/** Haven't received the plugins yet from the backend */
+		if (this.state.plugins === undefined) {
+			return null;
+		}
+
+		if (!this.state.plugins || !this.state.plugins.length) {
 			return (
 				<ErrorModal
-					header={'No Plugins Found'}
+					header={'No Plugins Found.'}
 					body={"It appears you don't have any plugin yet!"}
 					showIcon={false}
 					options={{

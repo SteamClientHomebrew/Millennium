@@ -4,6 +4,8 @@ import { locale } from '../../locales';
 import { settingsManager } from '../settings-manager';
 import { useState, useRef } from 'react';
 import { PyChangeAccentColor } from '../utils/ffi';
+import { DispatchSystemColors } from '../patcher/SystemColors';
+import { SystemAccentColor } from '../types';
 
 const SanitizeHex = (color: string) => {
 	if (color.startsWith('#')) {
@@ -22,10 +24,11 @@ const RenderAccentColorPicker = () => {
 	const [accentColor, setAccentColor] = useState<string>(pluginSelf.accentColor.accent);
 	const isDefaultColor = SanitizeHex(pluginSelf.accentColor.accent) === SanitizeHex(pluginSelf.accentColor.originalAccent);
 
-	const UpdateAllWindows = () => {
+	const UpdateAllWindows = (newColors: SystemAccentColor) => {
 		g_PopupManager.m_mapPopups.data_.forEach((element: any) => {
 			element.value_.m_popup.window.document.querySelectorAll('#SystemAccentColorInject').forEach((element: any) => {
-				element.innerText = settingsManager.config.general.accentColor;
+				DispatchSystemColors(newColors);
+				element.innerText = pluginSelf.systemColor;
 			});
 		});
 	};
@@ -54,10 +57,9 @@ const RenderAccentColorPicker = () => {
 			clearTimeout(debounceTimer.current);
 		}
 
-		debounceTimer.current = setTimeout(() => {
+		debounceTimer.current = setTimeout(async () => {
 			setAccentColor(sanitizedColor);
-			UpdateAllWindows();
-			PyChangeAccentColor({ new_color: sanitizedColor });
+			UpdateAllWindows(JSON.parse(await PyChangeAccentColor({ new_color: sanitizedColor })));
 		}, 300);
 	}
 

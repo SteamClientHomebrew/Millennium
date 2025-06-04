@@ -89,6 +89,25 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 			);
 		}
 
+		/** Haven't received the themes yet from the backend */
+		if (this.state.themes === undefined) {
+			return null;
+		}
+
+		if (!this.state.themes || !this.state.themes.length) {
+			return (
+				<ErrorModal
+					header={'No Themes Found.'}
+					body={"It appears you don't have any themes yet!"}
+					showIcon={false}
+					options={{
+						buttonText: 'Install a Theme',
+						onClick: showInstallThemeModal,
+					}}
+				/>
+			);
+		}
+
 		const { themes } = this.state;
 		return (
 			<>
