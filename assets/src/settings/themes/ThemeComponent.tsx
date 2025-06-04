@@ -161,6 +161,8 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				className="MillenniumThemes_ThemeItem"
 				{...(isActive && { icon: <FaCheck /> })}
 				{...(shouldShowMore && { description: this.renderExpandableShowMore() })}
+				data-theme-name={theme?.data?.name}
+				data-theme-folder-name-on-disk={theme?.native}
 			>
 				{shouldShowMore && theme?.data?.funding?.kofi && (
 					<DialogButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)} style={{ width: '32px' }}>
