@@ -29,7 +29,7 @@ class ConfigManager:
         self._listeners = []  # type: list[Callable[[str, Any, Any], None]]
         self._defaults = {}
         self._data = {}
-        self._filename = os.path.join(Millennium.steam_path(), "ext", filename)
+        self._filename = os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "ext", filename)
 
         self.load_from_file()
         self.set_defaults()

@@ -26,8 +26,9 @@ async function initializeMillennium(settings: SettingsProps) {
 	}
 
 	if (theme?.data?.hasOwnProperty('RootColors')) {
-		Logger.Log('RootColors found in theme, dispatching...');
-		pluginSelf.RootColors = await PyGetRootColors();
+		const rootColors = await PyGetRootColors();
+		Logger.Log('RootColors found in theme, dispatching...', rootColors);
+		pluginSelf.RootColors = rootColors;
 	}
 
 	Object.assign(pluginSelf, {

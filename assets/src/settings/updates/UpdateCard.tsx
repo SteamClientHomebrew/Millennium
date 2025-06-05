@@ -141,7 +141,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 			>
 				{this.showInteractables()}
 				<DialogButton onClick={this.handleToggle} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton} ${showingMore ? 'expanded' : ''}`}>
-					<IconsModule.Carat direction="up" {...(showingMore && { style: { transform: 'rotate(180deg)' } })} />
+					<IconsModule.Carat direction="down" {...(showingMore && { style: { transform: 'rotate(180deg)' } })} />
 				</DialogButton>
 			</Field>
 		);
