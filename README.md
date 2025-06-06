@@ -126,22 +126,21 @@ Supported Platforms:
 1.  Download and install [MSYS2](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20241208.exe)
 1.  Download and install [Visual Studio Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe)
 1.  Download and install [Visual Studio Code](https://code.visualstudio.com/)
-
-1.  Open MSYS2, any of the shells should work fine.
-1.  Run the following and close the shell.
-    ```bash
-     $ pacman -Syu && pacman -S --needed git mingw-w64-i686-cmake base-devel mingw-w64-i686-toolchain
-    ```
 1.  Open the MinGW32 shell and run
+
     ```cmd
-    $ git clone https://github.com/SteamClientHomebrew/Millennium --recursive
-    $ cd Millennium
+    cd somewhere/you/want/to/put/millennium
+    pacman -Syu && pacman -S --needed git mingw-w64-i686-cmake base-devel mingw-w64-i686-toolchain
+
+    git clone https://github.com/SteamClientHomebrew/Millennium --recursive
+    cd Millennium
     ```
+
 1.  Download Millennium's [python backend](https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/tag/v1.0.7) for Windows, and copy the files to `%MILLENNIUM_SRC_DIR%/vendor/python`
 1.  Build Millennium
 
     ```cmd
-    $ code .
+    code .
     ```
 
     In Visual Studio Code, make sure you have:
