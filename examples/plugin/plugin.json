@@ -1,7 +1,0 @@
-{
-    "$schema": "https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/main/src/sys/plugin-schema.json",
-
-    "name": "__plugin__",
-    "common_name": "Plugin Example",
-    "description": "A template plugin for Millennium."
-}

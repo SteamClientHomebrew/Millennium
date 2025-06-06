@@ -102,15 +102,31 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string() }
     };
 
+    constexpr bool bUseCustomSDK = !USE_DEFAULT_SDK;
+    constexpr bool bUseDevelopmentModeFrontend = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE;
+    
+    #define DEFAULT_SYMBOL "DEFAULT_SYMBOL"
+
+    #if !USE_DEFAULT_SDK
+        #pragma message("Using custom SDK path: " MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
+    #endif
+
+    #if MILLENNIUM_FRONTEND_DEVELOPMENT_MODE
+        #pragma message("Using development mode frontend: " MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
+    #endif
+
     #ifdef _WIN32
+    const auto assetsPath = !bUseDevelopmentModeFrontend ? SystemIO::GetInstallPath().string() + "/ext/data/assets" : MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
+    const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
+
     std::map<std::string, std::string> environment_windows = {
         { "MILLENNIUM__PLUGINS_PATH",   SystemIO::GetInstallPath().string() + "/plugins" },
         { "MILLENNIUM__CONFIG_PATH",    SystemIO::GetInstallPath().string() + "/ext" },
         { "MILLENNIUM__LOGS_PATH",      SystemIO::GetInstallPath().string() + "/ext/logs" },
-        { "MILLENNIUM__DATA_LIB",       SystemIO::GetInstallPath().string() + "/ext/data" },
+        { "MILLENNIUM__DATA_LIB",       dataLibPath },
         { "MILLENNIUM__PYTHON_ENV",     SystemIO::GetInstallPath().string() + "/ext/data/cache" },
-        { "MILLENNIUM__SHIMS_PATH",     SystemIO::GetInstallPath().string() + "/ext/data/shims" },
-        { "MILLENNIUM__ASSETS_PATH",    SystemIO::GetInstallPath().string() + "/ext/data/assets" },
+        { "MILLENNIUM__SHIMS_PATH",     !bUseCustomSDK ? SystemIO::GetInstallPath().string() + "/ext/data/shims" : MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS },
+        { "MILLENNIUM__ASSETS_PATH",    assetsPath },
         { "MILLENNIUM__INSTALL_PATH",   SystemIO::GetInstallPath().string() }
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
@@ -126,6 +142,9 @@ const void SetupEnvironmentVariables()
         std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
 
+    const auto assetsPath = !bUseDevelopmentModeFrontend ? "/usr/share/millennium/assets" : MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
+    const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
+
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
@@ -134,9 +153,9 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/millennium/plugins",    dataDir) },
         { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/millennium",            configDir) },
         { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/millennium/logs",       stateDir) },
-        { "MILLENNIUM__DATA_LIB",       "/usr/share/millennium" },
-        { "MILLENNIUM__SHIMS_PATH",     "/usr/share/millennium/shims" },
-        { "MILLENNIUM__ASSETS_PATH",    "/usr/share/millennium/assets" },
+        { "MILLENNIUM__DATA_LIB",       dataLibPath },
+        { "MILLENNIUM__SHIMS_PATH",     !bUseCustomSDK ? "/usr/share/millennium/shims" : MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS },
+        { "MILLENNIUM__ASSETS_PATH",    assetsPath },
         
         { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
         

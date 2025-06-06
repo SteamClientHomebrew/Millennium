@@ -32,8 +32,8 @@ if [ -n "$DISPLAY" ]; then
 fi
 
 export OPENSSL_CONF=/dev/null
-export LD_PRELOAD="/usr/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
-export LD_LIBRARY_PATH="/usr/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_PRELOAD="/home/shadow/dev/Millennium/build/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
+export LD_LIBRARY_PATH="/home/shadow/dev/Millennium/build/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 if grep -qi 'arch' /etc/os-release || command -v pacman &> /dev/null; then
     STEAM_PATH="/usr/lib/steam/steam"

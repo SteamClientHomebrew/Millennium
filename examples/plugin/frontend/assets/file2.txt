@@ -1,4 +1,0 @@
-This is a random text file
-
-It has multiple lines,
-its here just an example on how to use constSysfsExpr

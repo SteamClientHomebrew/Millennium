@@ -8,6 +8,20 @@ configure_file(
   ${CMAKE_BINARY_DIR}/version.h     # Output header file
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build")
+  set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/assets")
+
+  add_compile_definitions(USE_DEFAULT_SDK=0)
+  add_compile_definitions(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE=1)
+
+  add_compile_definitions(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}")
+  add_compile_definitions(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}")
+else()
+  add_compile_definitions(USE_DEFAULT_SDK=1)
+  add_compile_definitions(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE=0)
+endif()
+
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 
 cmake_minimum_required(VERSION 3.10...3.21)
@@ -165,8 +179,8 @@ elseif(UNIX)
       else()
         include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
 
-        set(MILLENNIUM__PYTHON_ENV "/opt/millennium-python") 
-        set(LIBPYTHON_RUNTIME_PATH "/opt/millennium-python/lib/libpython-3.11.8.so")
+        set(MILLENNIUM__PYTHON_ENV "/opt/python-i686-3.11.8") 
+        set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
 
         set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
       endif()
@@ -319,7 +333,7 @@ elseif(UNIX)
       if(PYTHON_TEST_RESULT)
         target_link_libraries(Millennium Python::Module)
       else()
-        target_link_libraries(Millennium "/opt/millennium-python/lib/libpython-3.11.8.so")
+        target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
       endif()
     endif()
   endif()
