@@ -121,104 +121,34 @@ Supported Platforms:
 
 ## Building from source
 
-### Windows 10/11
-
-Building Millennium will require a long list of steps, however everything should work smoothly given you follow the instructions
-
-The following guide includes the installation of the following:
-
--   [MSYS2](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20241208.exe) (MinGW32 specifically)
--   [Visual Studio Build Tools ](https://aka.ms/vs/17/release/vs_BuildTools.exe)
-
-### Build Steps
+### Windows
 
 1.  Download and install [MSYS2](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20241208.exe)
 1.  Download and install [Visual Studio Build Tools](https://aka.ms/vs/17/release/vs_BuildTools.exe)
-1.  Run `Developer PowerShell for VS 2022` installed from the previous step.
-1.  Navigate to somewhere you want to build to
-1.  Next, open Powershell to download and build Python 3.11.8 (Win32).
+1.  Download and install [Visual Studio Code](https://code.visualstudio.com/)
 
-    - Download & Extract Python 3.11.8
-
-        ```bash
-        $ curl -o python3.11.8.tgz https://www.python.org/ftp/python/3.11.8/Python-3.11.8.tgz
-        $ tar -xzvf python3.11.8.tgz
-        $ cd python-3.11.8
-        ```
-
-    - Update Build Configuration to be MultiThreaded
-
-        ```ps1
-        $ (Get-Content "PCbuild/pythoncore.vcxproj" -Raw) -replace '</ClCompile>', '<RuntimeLibrary Condition="`$(Configuration)|`$(Platform)"=="Release|Win32">MultiThreaded</RuntimeLibrary><RuntimeLibrary Condition="`$(Configuration)|`$(Platform)"=="Debug|Win32">MultiThreadedDebug</RuntimeLibrary></ClCompile>' | Set-Content "PCbuild/pythoncore.vcxproj"
-        ```
-
-    - Bootstrap Python builder
-
-        ```bash
-        $ ./PCbuild/get_externals.bat
-        ```
-
-    - Build Python
-
-        ```bash
-        $ msbuild PCBuild/pcbuild.sln /p:Configuration=Release /p:Platform=Win32 /p:RuntimeLibrary=MT
-        $ msbuild PCBuild/pcbuild.sln /p:Configuration=Debug /p:Platform=Win32 /p:RuntimeLibrary=MT
-        ```
-
-    - Check Python version
-
-        ```bash
-        $ ./PCbuild/win32/python.exe --version
-        ```
-
-    - Check the following items have been built, you'll need them later
-        ```bash
-        # Release binaries, required for building Millennium in release mode
-        PCbuild/win32/python311.dll
-        PCbuild/win32/python311.lib
-        # Debug binaries, required for building Millennium in debug mode
-        PCbuild/win32/python311_d.dll
-        PCbuild/win32/python311_d.lib
-        ```
-
-1.  Now, open MSYS2, any of the shells should work fine.
+1.  Open MSYS2, any of the shells should work fine.
 1.  Run the following and close the shell.
     ```bash
-     $ pacman -Syu
-     $ pacman -S mingw-w64-i686-cmake
-     $ pacman -S --needed base-devel mingw-w64-i686-toolchain
-     $ pacman -S git
+     $ pacman -Syu && pacman -S --needed git mingw-w64-i686-cmake base-devel mingw-w64-i686-toolchain
     ```
-1.  Open CMD, and navigate to somewhere you want to build millennium and then run:
-    `C:\msys64\msys2_shell.cmd -defterm -no-start -mingw32` this will put you in the MinGW shell
-1.  Clone the Millennium repository
+1.  Open the MinGW32 shell and run
     ```cmd
     $ git clone https://github.com/SteamClientHomebrew/Millennium --recursive
-    $ cd millennium
+    $ cd Millennium
     ```
-1.  From the previous step, where we built python, copy the files to `%MILLENNIUM_SRC_DIR%/vendor/python`
+1.  Download Millennium's [python backend](https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/tag/v1.0.7) for Windows, and copy the files to `%MILLENNIUM_SRC_DIR%/vendor/python`
 1.  Build Millennium
 
-    ```bash
-    $ cmake --preset="windows-mingw-debug"
-    # or for release
-    $ cmake --preset="windows-mingw-release"
-    $ cmake --build ./build
+    ```cmd
+    $ code .
     ```
 
-1.  Next, you'll need to build Millenniums internal plugin from source.
-    You can install NodeJs from MinGW, or you could use your local install from PowerShell/CMD
+    In Visual Studio Code, make sure you have:
 
-        ```bash
-        $ cd "%MILLENNIUM_SRC_DIR%/assets"
-        $ npm install
-        $ npm run dev
-        ```
+    -   C/C++ Extension Pack
+    -   Prettier
 
-        Millennium expects these shim assets to be at `%MILLENNIUM_DIR%/ext/data/assets`
-
-        where `%MILLENNIUM_DIR%` is:
-        - Steam path (default `C:\Program Files (x86)\Steam`) on Windows
-        - `~/.millennium` on Unix
-
-        You can either symlink them or copy them over.
+    Then use CTRL+SHIFT+B
+    This will build Millennium and all of its submodules.
+    You can then run Steam with Millennium.
