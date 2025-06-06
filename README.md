@@ -134,6 +134,7 @@ Supported Platforms:
 
     git clone https://github.com/SteamClientHomebrew/Millennium --recursive
     cd Millennium
+    ./vendor/vcpkg/bootstrap-vcpkg.sh
     ```
 
 1.  Download Millennium's [python backend](https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/tag/v1.0.7) for Windows, and copy the files to `%MILLENNIUM_SRC_DIR%/vendor/python`
@@ -149,5 +150,36 @@ Supported Platforms:
     -   Prettier
 
     Then use CTRL+SHIFT+B
+    This will build Millennium and all of its submodules.
+    You can then run Steam with Millennium.
+
+### Linux
+
+> [!NOTE]  
+> This guide assumes you're using Visual Studio Code to develop. If you're using an IDE like CLion or Code::Blocks, steps are _probably_
+> similar but they aren't documented here yet.
+>
+> If you're using just a basic code editor like emacs, vim, micro, etc. you'll need to run build commands manually.
+
+1.  Setup
+
+    In Visual Studio Code, make sure you have:
+
+        * C/C++ Extension Pack
+        * Prettier
+
+1.  Clone and Setup Repository
+
+    ```bash
+    cd somewhere/you/want/to/put/millennium
+    git clone https://github.com/SteamClientHomebrew/Millennium --recursive
+    cd Millennium
+    ./vendor/vcpkg/bootstrap-vcpkg.sh
+    ```
+
+1.  Build Millennium
+
+    Use CTRL+SHIFT+B
+
     This will build Millennium and all of its submodules.
     You can then run Steam with Millennium.
