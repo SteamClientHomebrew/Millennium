@@ -52,7 +52,7 @@ interface PluginViewModalState {
 
 class PluginViewModal extends Component<{}, PluginViewModalState> {
 	state: PluginViewModalState = {
-		plugins: [],
+		plugins: undefined,
 		checkedItems: {},
 		pluginsWithLogs: undefined,
 		updatedPlugins: [],

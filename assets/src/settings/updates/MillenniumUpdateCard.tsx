@@ -4,7 +4,7 @@ import { UpdateCard } from './UpdateCard';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 
 export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
-	if (!millenniumUpdates) return null;
+	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) return null;
 
 	function VersionInformation() {
 		return [
