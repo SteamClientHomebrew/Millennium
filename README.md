@@ -19,7 +19,6 @@
       <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
   </a>
 </kbd>
-<kbd>
 
 <br>
 <br>
