@@ -20,10 +20,6 @@
   </a>
 </kbd>
 <kbd>
-  <a href="#"  title="Lines of Code">
-      <img alt="Static Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Floc-counter.onrender.com%2F%3Frepo%3Dshdwmtr%2Fmillennium%26branch%3Dmain%26languages%3DC%252B%252B%2CC%2520Header%26ignored%3Dvendor&style=for-the-badge&labelColor=%23151B23&color=%23151B23&logo=coderwall&label=%20Lines of Code&logoColor=white">
-  </a>
-</kbd>
 
 <br>
 <br>
@@ -31,12 +27,6 @@
 Millennium is an **open-source low-code modding framework** to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead.
 
 If you enjoy this tool, please consider starring the project ⭐
-
-<br>
-
-<!-- credits to https://github.com/clawdius for this intro video -->
-
-https://github.com/user-attachments/assets/20dec435-ed47-4042-9fb7-38635480b850
 
 <br>
 </div>
