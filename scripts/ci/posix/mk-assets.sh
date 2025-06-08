@@ -1,6 +1,4 @@
 #!/bin/bash
-
-cd "/home/runner/work/Millennium/Millennium"
 destinationBase="/home/runner/env/ext/data/assets"
 
 declare -A paths=(

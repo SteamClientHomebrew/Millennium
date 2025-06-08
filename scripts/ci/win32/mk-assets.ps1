@@ -1,4 +1,3 @@
-Set-Location -Path "D:/a/Millennium/Millennium"
 $destinationBase = "D:/a/env/ext/data/assets"
 
 $paths = @{
