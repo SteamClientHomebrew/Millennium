@@ -1,18 +1,6 @@
-import {
-	Classes,
-	DialogBody,
-	IconsModule,
-	Millennium,
-	ModalPosition,
-	pluginSelf,
-	showModal,
-	ShowModalResult,
-	SidebarNavigation,
-	SidebarNavigationPage,
-	Navigation,
-} from '@steambrew/client';
+import { Classes, DialogBody, IconsModule, SidebarNavigation, SidebarNavigationPage, Navigation, DefinePluginFn } from '@steambrew/client';
 import { locale } from '../../locales';
-import { pagedSettingsClasses, settingsClasses } from '../utils/classes';
+import { settingsClasses } from '../utils/classes';
 import { GeneralViewModal } from './general';
 import { MillenniumIcons } from '../components/Icons';
 import { ThemeViewModal } from './themes';
@@ -20,7 +8,6 @@ import { PluginViewModal } from './plugins';
 import { RenderUpdatesSettingsTab, UpdatesViewModal } from './updates';
 import { UpdateContextProvider } from './updates/useUpdateContext';
 import { RenderLogViewer } from './logs';
-import { useEffect } from 'react';
 import { ConfigProvider } from '../config-provider';
 import Styles from '../utils/styles';
 
@@ -91,8 +78,20 @@ const tabSpotLogs: SidebarNavigationPage = {
 };
 
 export function MillenniumSettings() {
+	const pluginList: Array<Partial<DefinePluginFn> | string> = Object.entries(window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS)?.map(([key, panel]: [string, any]) => ({
+		title: panel.title,
+		content: <DialogBody className={Classes.SettingsDialogBodyFade}>{panel.content}</DialogBody>,
+		icon: panel.icon,
+		route: `/millennium/settings/${key
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-+|-+$/g, '')}`,
+	}));
+
+	pluginList.length && pluginList.unshift('separator');
+
 	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings ModalDialogPopup`;
-	const settingsPages: SidebarNavigationPage[] = [tabSpotGeneral, tabSpotSettings, tabSpotPlugins, tabSpotUpdates, tabSpotLogs];
+	const settingsPages = [tabSpotGeneral, tabSpotSettings, tabSpotPlugins, tabSpotUpdates, tabSpotLogs, ...pluginList];
 
 	return (
 		<ConfigProvider>

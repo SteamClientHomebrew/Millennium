@@ -82,10 +82,11 @@
 		},
 		{
 			"label": "Build All",
+			"detail": "build all components of Millennium",
 			"dependsOn": ["Build Millennium", "Build Millennium Frontend", "Build Millennium SDK"],
 			"group": {
 				"kind": "build",
-				"isDefault": true
+				"isDefault": false
 			},
 			"problemMatcher": [],
 			"presentation": {

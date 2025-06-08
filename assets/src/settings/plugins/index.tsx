@@ -1,25 +1,10 @@
-import React, { Component, useEffect, useState } from 'react';
-import {
-	ClassModule,
-	ConfirmModal,
-	DialogButton,
-	Field,
-	IconsModule,
-	Menu,
-	MenuItem,
-	Toggle,
-	findClassModule,
-	pluginSelf,
-	showContextMenu,
-	showModal,
-} from '@steambrew/client';
+import { Component } from 'react';
+import { ConfirmModal, DialogButton, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../../types';
 import { locale } from '../../../locales';
 import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
 import { ErrorModal } from '../../components/ErrorModal';
-import { RenderComponents } from '../../components/PluginEditor';
-import { FaEllipsisH, FaFolderOpen, FaSave, FaStore } from 'react-icons/fa';
-import { DesktopTooltip, Separator } from '../../components/SteamComponents';
+import { FaFolderOpen, FaSave, FaStore } from 'react-icons/fa';
 import { Utils } from '../../utils';
 import { PyFindAllPlugins, PyGetEnvironmentVar, PyGetLogData, PyUpdatePluginStatus } from '../../utils/ffi';
 import { showInstallPluginModal } from './PluginInstallerModal';

@@ -17,9 +17,9 @@ interface UpdateProps {
 const RenderAvailableUpdates: React.FC<UpdateProps> = ({ millenniumUpdates, themeUpdates, pluginUpdates }) => {
 	return (
 		<DialogControlsSection>
-			<MillenniumUpdateCard millenniumUpdates={millenniumUpdates} />
-			<ThemeUpdateCard themeUpdates={themeUpdates} />
-			<PluginUpdateCard pluginUpdates={pluginUpdates} />
+			{MillenniumUpdateCard({ millenniumUpdates })}
+			{ThemeUpdateCard({ themeUpdates })}
+			{PluginUpdateCard({ pluginUpdates })}
 		</DialogControlsSection>
 	);
 };

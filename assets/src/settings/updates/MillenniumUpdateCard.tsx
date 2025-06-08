@@ -19,7 +19,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		<SettingsDialogSubHeader style={{ marginTop: '20px' }}>Millennium</SettingsDialogSubHeader>,
 		<UpdateCard
 			update={{
-				name: <VersionInformation />,
+				name: VersionInformation(),
 				message: millenniumUpdates?.newVersion?.body,
 				date: Utils.toTimeAgo(millenniumUpdates?.newVersion?.published_at),
 				commit: millenniumUpdates?.newVersion?.html_url,
