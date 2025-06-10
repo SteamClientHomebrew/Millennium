@@ -127,7 +127,7 @@ public:
             if (targetIterator != targets.end() && !m_sharedJsConnected) 
             {
                 Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } } });
-                Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.exposeDevToolsProtocol" }, { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL" } } } });
+                Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.exposeDevToolsProtocol" }, { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" } } } });
                 m_sharedJsConnected = true;
             }
             else if (!m_sharedJsConnected)

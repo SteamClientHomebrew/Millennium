@@ -40,8 +40,11 @@ def pip(cmd, config: Config):
     os.makedirs(os.path.dirname(pip_logs), exist_ok=True)
 
     with open(pip_logs, 'w') as f:
+        command = [python_bin, '-m', 'pip'] + cmd + ["--no-warn-script-location"]
+        logger.log(f"Running command: {' '.join(command)}")
+
         proc = subprocess.Popen(
-            [python_bin, '-m', 'pip'] + cmd + ["--no-warn-script-location"],
+            command,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             bufsize=1, universal_newlines=True,
             creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == 'Windows' else 0
@@ -55,6 +58,7 @@ def pip(cmd, config: Config):
         output_handler_thread.join()
 
         if proc.returncode != 0:
+            
             logger.error(f"PIP failed with exit code {proc.returncode}")
 
 

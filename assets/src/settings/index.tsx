@@ -1,4 +1,4 @@
-import { Classes, DialogBody, IconsModule, SidebarNavigation, SidebarNavigationPage, Navigation, DefinePluginFn } from '@steambrew/client';
+import { Classes, DialogBody, IconsModule, SidebarNavigation, SidebarNavigationPage, DefinePluginFn } from '@steambrew/client';
 import { locale } from '../../locales';
 import { settingsClasses } from '../utils/classes';
 import { GeneralViewModal } from './general';
@@ -10,6 +10,7 @@ import { UpdateContextProvider } from './updates/useUpdateContext';
 import { RenderLogViewer } from './logs';
 import { ConfigProvider } from '../config-provider';
 import Styles from '../utils/styles';
+import { setDesktopMenuOpen } from '../quick-access/desktopMenuStore';
 
 declare global {
 	const g_PopupManager: any;
@@ -109,7 +110,7 @@ function RenderSettingsModal(_: any, retObj: any) {
 		retObj.props.menuItems.splice(index + 1, 0, {
 			name: 'Millennium',
 			onClick: () => {
-				Navigation.Navigate('/millennium/settings');
+				setDesktopMenuOpen(true);
 			},
 			visible: true,
 		});

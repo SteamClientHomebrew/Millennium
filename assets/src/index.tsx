@@ -9,6 +9,9 @@ import { PyGetRootColors, PyGetStartupConfig } from './utils/ffi';
 import { onWindowCreatedCallback, patchMissedDocuments } from './patcher';
 import { MillenniumSettings } from './settings';
 import { NotificationService } from './update-notification-service';
+import { EUIMode } from '@steambrew/client/build/globals/steam-client/shared';
+import { MillenniumDesktopSidebar } from './quick-access';
+import { DesktopMenuProvider } from './quick-access/DesktopMenuContext';
 
 async function initializeMillennium(settings: SettingsProps) {
 	Logger.Log(`Received props`, settings);
@@ -56,6 +59,15 @@ export default async function PluginMain() {
 	Millennium.AddWindowCreateHook(onWindowCreatedCallback);
 
 	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });
+	routerHook.addGlobalComponent(
+		'MillenniumDesktopUI',
+		() => (
+			<DesktopMenuProvider>
+				<MillenniumDesktopSidebar />
+			</DesktopMenuProvider>
+		),
+		EUIMode.Desktop,
+	);
 
 	// @ts-ignore
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
