@@ -264,7 +264,7 @@ jobs:
 
                   mkdir -p ~/build/opt
 
-                  cp -r ~/env/ext/data/cache ~/build/opt/millennium-python
+                  cp -r ~/env/ext/data/cache ~/build/opt/python-i686-3.11.8
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
