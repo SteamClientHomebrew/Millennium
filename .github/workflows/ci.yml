@@ -199,7 +199,7 @@ jobs:
             - name: Download Python 3.11.8 Binaries
               run: |
                   wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
-                  mkdir -p ~/build/opt
+                  mkdir -p ~/build/opt/python-i686-3.11.8
 
                   tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
                   cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
