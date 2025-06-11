@@ -199,11 +199,11 @@ jobs:
             - name: Download Python 3.11.8 Binaries
               run: |
                   wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
-                  mkdir -p $HOME/.millennium/ext/data/cache
+                  mkdir -p ~/build/opt
 
-                  tar -xzf python-3.11.8-32-bit.tar.gz -C $HOME/.millennium/ext/data/cache --strip-components=1
-                  cp $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
-                  $HOME/.millennium/ext/data/cache/bin/python3.11 --version
+                  tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
+                  cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
+                  ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
 
             - name: (Generator) Install CMake
               uses: jwlawson/actions-setup-cmake@v2
@@ -234,14 +234,12 @@ jobs:
                   cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
                   cp ./build/cli/millennium ~/build/usr/bin/millennium
                   chmod +x ~/build/usr/bin/millennium
-                  cp ~/.millennium/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
 
                   # Copy npm package data
                   cp -r $(npm root -g)/@steambrew/api/build/* ~/build/usr/share/millennium/shims/
 
                   # Copy additional assets
                   cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
-                  cp -r ~/env/ext/data/cache ~/build/opt/millennium-python
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
