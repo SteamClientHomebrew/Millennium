@@ -10,7 +10,7 @@ on:
 
 concurrency:
     group: ci-build
-    cancel-in-progress: false
+    cancel-in-progress: true
 
 jobs:
     build-windows:
