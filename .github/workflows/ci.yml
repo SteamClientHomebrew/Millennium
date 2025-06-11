@@ -84,7 +84,7 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: python 3.11.8 build libraries
-                  path: D:/a/Millennium/Millennium/build/python
+                  path: ./build/python
 
             - name: Install prerequisites
               uses: msys2/setup-msys2@v2
@@ -117,14 +117,14 @@ jobs:
             - name: Build Millennium
               shell: msys2 {0}
               run: |
-                  mkdir D:/a/Millennium/Millennium/build/artifacts
+                  mkdir ./build/artifacts
                   cmake --build build --config Release -- -j$(nproc)
-                  cp D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
-                  cp /d/a/Millennium/Millennium/build/preload/user32.dll  D:/a/env/user32.dll
-                  cp /d/a/Millennium/Millennium/build/millennium.dll D:/a/env/millennium.dll
+                  cp ./Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
+                  cp ./build/preload/user32.dll  D:/a/env/user32.dll
+                  cp ./build/millennium.dll D:/a/env/millennium.dll
                   mkdir D:/a/env/ext/bin
                   # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
-                  # cp /d/a/Millennium/Millennium/build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
+                  # cp ./build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
             - name: Add API modules
               run: |
