@@ -8,6 +8,10 @@ on:
                 required: true
                 default: 'no'
 
+concurrency:
+    group: ci-build
+    cancel-in-progress: true
+
 jobs:
     build-windows:
         permissions:
@@ -90,12 +94,7 @@ jobs:
               uses: msys2/setup-msys2@v2
               with:
                   msystem: mingw32
-                  install: >-
-                      mingw-w64-i686-libgcrypt
-                      mingw-w64-i686-gcc
-                      mingw-w64-i686-cmake
-                      mingw-w64-i686-ninja
-                      unzip
+                  install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja unzip
 
             - name: (Dependency) Install vcpkg
               shell: pwsh
@@ -200,19 +199,15 @@ jobs:
             - name: Download Python 3.11.8 Binaries
               run: |
                   wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
-                  mkdir -p $HOME/.millennium/ext/data/cache
-                  tar -xzf python-3.11.8-32-bit.tar.gz -C $HOME/.millennium/ext/data/cache
+                  mkdir -p ~/build/opt/python-i686-3.11.8
+                  mkdir -p ~/build/usr/lib/millennium
 
-                  sudo mv $HOME/.millennium/ext/data/cache/python-build/* $HOME/.millennium/ext/data/cache
-                  sudo rm -rf $HOME/.millennium/ext/data/cache/python-build
+                  tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
+                  mv ~/build/opt/python-i686-3.11.8/python-build/* ~/build/opt/python-i686-3.11.8/
+                  ls -R ~/build/opt/python-i686-3.11.8
 
-                  ls -la $HOME/.millennium/ext/data/cache
-
-                  sudo mv $HOME/.millennium/ext/data/cache/lib/libpython-3.11.8.so $HOME/.millennium/libpython-3.11.8.so
-
-                  $HOME/.millennium/ext/data/cache/bin/python3.11 --version
-                  mkdir -p /home/runner/env/ext/data
-                  sudo cp -r $HOME/.millennium/ext/data/cache /home/runner/env/ext/data
+                  cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
+                  ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
 
             - name: (Generator) Install CMake
               uses: jwlawson/actions-setup-cmake@v2
@@ -225,53 +220,37 @@ jobs:
             - name: (Generator) Configure CMake
               run: cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
 
-            - name: Build Millennium
+            - name: Build and Package Millennium
               run: |
-                  # mkdir -p /home/runner/Millennium/build/artifacts
+                  # Build the project
                   cmake --build build --config Release -- -j$(nproc)
 
-                  # ls -laR /home/runner/Millennium/build
-
-                  mkdir -p /home/runner/env
-                  cp ./build/libmillennium_x86.so /home/runner/env/libmillennium_x86.so
-                  cp ./build/cli/millennium /home/runner/env/millennium
-                  cp ~/.millennium/libpython-3.11.8.so /home/runner/env/libpython-3.11.8.so
-
-                  mkdir -p /home/runner/env/ext/data/shims/
+                  # Install npm dependencies
                   npm install -g @steambrew/api
-                  cp -r $(npm root -g)/@steambrew/api/build/* /home/runner/env/ext/data/shims/
 
-            - name: Restructure Filesystem
-              run: |
-
-                  mkdir ~/build
-
-                  # Move assets to usr folder
+                  # Create final directory structure
                   mkdir -p ~/build/usr/lib/millennium
-                  cp /home/runner/env/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
-                  cp /home/runner/env/libpython-3.11.8.so ~/build/usr/lib/millennium/libpython-3.11.8.so
-
-                  # Move scripts to usr folder
                   mkdir -p ~/build/usr/bin
-                  cp /home/runner/env/millennium ~/build/usr/bin/millennium
-                  chmod +x ~/build/usr/bin/millennium
-
                   mkdir -p ~/build/usr/share/millennium
-
-                  # Move assets to home folder
-                  cp -r ~/env/ext/data/shims ~/build/usr/share/millennium/shims
-                  cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
-
                   mkdir -p ~/build/opt
 
-                  cp -r ~/env/ext/data/cache ~/build/opt/python-i686-3.11.8
+                  # Copy binaries and libraries directly to final locations
+                  cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
+                  cp ./build/cli/millennium ~/build/usr/bin/millennium
+                  chmod +x ~/build/usr/bin/millennium
+
+                  # Copy npm package data
+                  cp -r $(npm root -g)/@steambrew/api/build/* ~/build/usr/share/millennium/shims/
+
+                  # Copy additional assets
+                  cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
               with:
                   include-hidden-files: true
                   name: millennium-linux
-                  path: /home/runner/build/
+                  path: ~/build/
 
     release:
         needs: [build-windows, build-linux]
@@ -314,14 +293,8 @@ jobs:
             - name: Proccess Artifacts
               run: |
                   mkdir -p ./artifacts/release
-
-                  cd ./artifacts/windows
-                  zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip .
-                  cd - # return to the original directory
-
-                  cd ./artifacts/linux
-                  tar -czvf ../release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz .
-                  cd - # return to the original directory
+                  zip -r ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip ./artifacts/windows/*
+                  tar -czvf ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
 
             - name: Create GitHub Release
               run: npx semantic-release

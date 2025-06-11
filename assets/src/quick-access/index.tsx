@@ -3,10 +3,10 @@ import { Component, createRef } from 'react';
 import { PyFindAllPlugins } from '../utils/ffi';
 import { PluginComponent } from '../types';
 import { TitleView } from '../components/QuickAccessTitle';
-import { QuickAccessVisibleState } from './QuickAccessContext';
 import { PluginSelectorView, RenderPluginView } from './PluginView';
 import { getActivePlugin, getDesktopMenuOpen, subscribeActivePlugin, subscribeDesktopMenu, setDesktopMenuOpen, setActivePlugin } from './desktopMenuStore';
 import { BrowserManagerHook } from './browserHook';
+import { MillenniumDesktopSidebarStyles } from '../utils/styles';
 
 interface MillenniumDesktopSidebarState {
 	closed: boolean;
@@ -60,16 +60,16 @@ export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSid
 
 		PyFindAllPlugins().then((pluginsJson: string) => this.setState({ plugins: JSON.parse(pluginsJson) }));
 
-		const unsubMenu = subscribeDesktopMenu((open) => {
+		const unsubscribeFromDesktopMenu = subscribeDesktopMenu((open) => {
 			this.setState({ desktopMenuOpen: open });
 			this.handleMenuToggle(open);
 		});
 
-		const unsubPlugin = subscribeActivePlugin((plugin) => {
+		const unsubscribeFromActivePlugin = subscribeActivePlugin((plugin) => {
 			this.setState({ activePlugin: plugin });
 		});
 
-		this.unsubscribes.push(unsubMenu, unsubPlugin);
+		this.unsubscribes.push(unsubscribeFromDesktopMenu, unsubscribeFromActivePlugin);
 
 		this.setAnimStart(getDesktopMenuOpen());
 	}
@@ -79,7 +79,7 @@ export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSid
 
 		if (this.closedInterval) clearTimeout(this.closedInterval);
 		cancelAnimationFrame(this.animFrame);
-		this.unsubscribes.forEach((unsub) => unsub());
+		this.unsubscribes.forEach((unsubscribeCallback) => unsubscribeCallback());
 
 		this.browserManagerHook.unhook();
 	}
@@ -92,23 +92,28 @@ export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSid
 		return getParentWindow(this.ref.current);
 	}
 
-	handleMenuToggle = async (desktopMenuOpen: boolean) => {
-		this.browserManagerHook.setShouldBlockRequest(desktopMenuOpen);
-
-		if (this.closedInterval) clearTimeout(this.closedInterval);
-
+	closeQuickAccess = async () => {
 		const hostWindow = this.getHostWindow();
 
-		if (desktopMenuOpen) {
-			setActivePlugin(null); // Reset active plugin when menu opens
-			await this.browserManagerHook.setBrowserVisible(hostWindow, false);
-			this.setState({ closed: false });
-		} else {
-			this.closedInterval = setTimeout(() => {
-				this.setState({ closed: true });
-				this.browserManagerHook.setBrowserVisible(hostWindow, true);
-			}, 500);
-		}
+		this.closedInterval = setTimeout(() => {
+			this.setState({ closed: true });
+			this.browserManagerHook.setBrowserVisible(hostWindow, true);
+		}, 500);
+	};
+
+	openQuickAccess = async () => {
+		const hostWindow = this.getHostWindow();
+
+		setActivePlugin(null); // Reset active plugin when menu opens
+		await this.browserManagerHook.setBrowserVisible(hostWindow, false);
+		this.setState({ closed: false });
+	};
+
+	handleMenuToggle = async (desktopMenuOpen: boolean) => {
+		this.browserManagerHook.setShouldBlockRequest(desktopMenuOpen);
+		if (this.closedInterval) clearTimeout(this.closedInterval);
+
+		desktopMenuOpen ? await this.openQuickAccess() : await this.closeQuickAccess();
 
 		cancelAnimationFrame(this.animFrame);
 		this.animFrame = requestAnimationFrame(() => {
@@ -123,53 +128,13 @@ export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSid
 	render() {
 		const { closed, openAnimStart, plugins, desktopMenuOpen, activePlugin } = this.state;
 
-		const style = `
-    .iconContainer {
-      width: 22px;
-      height: 22px;
-    }
-    .title-area { 
-      z-index: 999999 !important; 
-    }
-    .MillenniumDesktopSidebarDim {
-      position: absolute;
-      height: 100%;
-      width: 100%;
-      top: 0px;
-      left: 0px;
-      z-index: 998;
-      background: rgba(0, 0, 0, 0.7);
-      opacity: ${openAnimStart ? 1 : 0};
-      display: ${desktopMenuOpen || !closed ? 'flex' : 'none'};
-      transition: opacity 0.4s cubic-bezier(0.65, 0, 0.35, 1);
-    }
-    .MillenniumDesktopSidebar {
-      position: absolute;
-      height: 100%;
-      width: 350px;
-      top: 0px;
-      right: 0px;
-      z-index: 999;
-      transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
-      transform: ${openAnimStart ? 'translateX(0px)' : 'translateX(366px)'};
-      overflow-y: auto;
-      display: ${desktopMenuOpen || !closed ? 'flex' : 'none'};
-      flex-direction: column;
-      background: #171d25;
-    }
-    `;
-
 		return (
 			<ErrorBoundary>
-				<style>{style}</style>
+				<MillenniumDesktopSidebarStyles isDesktopMenuOpen={desktopMenuOpen || !closed} openAnimStart={openAnimStart} isViewingPlugin={!!activePlugin} />
 				<div className="MillenniumDesktopSidebarDim" onClick={this.handleSidebarDimClick} />
 				<div className="MillenniumDesktopSidebar" ref={this.ref}>
-					<QuickAccessVisibleState.Provider value={desktopMenuOpen || !closed}>
-						<TitleView />
-						<div style={{ padding: activePlugin ? '16px 20px 0px 20px' : '16px 0 0 0' }}>
-							{activePlugin ? <RenderPluginView /> : <PluginSelectorView plugins={plugins} />}
-						</div>
-					</QuickAccessVisibleState.Provider>
+					<TitleView />
+					<div className="MillenniumDesktopSidebarContent">{activePlugin ? <RenderPluginView /> : <PluginSelectorView plugins={plugins} />}</div>
 				</div>
 			</ErrorBoundary>
 		);

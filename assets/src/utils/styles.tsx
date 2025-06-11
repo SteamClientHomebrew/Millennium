@@ -486,6 +486,58 @@ const updateCountStyles = `
     transition: all 0.3s ease !important;
 }`;
 
+export const MillenniumDesktopSidebarStyles = ({
+	openAnimStart,
+	isDesktopMenuOpen,
+	isViewingPlugin,
+}: {
+	openAnimStart: boolean;
+	isDesktopMenuOpen: boolean;
+	isViewingPlugin: boolean;
+}) => {
+	const styles = `
+    .iconContainer {
+      	width: 22px;
+      	height: 22px;
+    }
+    .title-area { 
+      	z-index: 999999 !important; 
+    }
+    .MillenniumDesktopSidebarDim {
+		position: absolute;
+		height: 100%;
+		width: 100%;
+		top: 0px;
+		left: 0px;
+		z-index: 998;
+		background: rgba(0, 0, 0, 0.7);
+		opacity: ${openAnimStart ? 1 : 0};
+		display: ${isDesktopMenuOpen ? 'flex' : 'none'};
+		transition: opacity 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    .MillenniumDesktopSidebar {
+		position: absolute;
+		height: 100%;
+		width: 350px;
+		top: 0px;
+		right: 0px;
+		z-index: 999;
+		transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+		transform: ${openAnimStart ? 'translateX(0px)' : 'translateX(366px)'};
+		overflow-y: auto;
+		display: ${isDesktopMenuOpen ? 'flex' : 'none'};
+		flex-direction: column;
+		background: #171d25;
+    }
+
+	.MillenniumDesktopSidebarContent {
+	  	padding: ${isViewingPlugin ? '16px 20px 0px 20px' : '16px 0 0 0'};
+	}
+    `;
+
+	return <style>{styles}</style>;
+};
+
 export const UpdateCountStyle = () => <style>{updateCountStyles}</style>;
 
 const Styles = () => <style>{styles}</style>;
