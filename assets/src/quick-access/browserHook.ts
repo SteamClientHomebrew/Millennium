@@ -68,13 +68,17 @@ export class BrowserManagerHook {
 
 		// Remove the pseudo background when dismounting
 		if (inputBlocker && visible) {
-			await sleep(1000); // No rush to remove the background its not visible anyway
+			await sleep(50); // No rush to remove the background its not visible anyway
 			inputBlocker.style.background = '';
 		}
 	}
 
 	public async hook(skipCheckHealth: boolean = false) {
-		while (typeof MainWindowBrowserManager === 'undefined' || MainWindowBrowserManager?.m_browser?.SetBounds === undefined) {
+		while (
+			typeof MainWindowBrowserManager === 'undefined' ||
+			MainWindowBrowserManager?.m_browser?.SetBounds === undefined ||
+			MainWindowBrowserManager?.m_browser?.SetVisible === undefined
+		) {
 			await sleep(10);
 		}
 

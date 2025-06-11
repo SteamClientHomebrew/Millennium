@@ -5,7 +5,7 @@ import { PluginComponent } from '../types';
 import { TitleView } from '../components/QuickAccessTitle';
 import { QuickAccessVisibleState } from './QuickAccessContext';
 import { PluginSelectorView, RenderPluginView } from './PluginView';
-import { getActivePlugin, getDesktopMenuOpen, subscribeActivePlugin, subscribeDesktopMenu, setDesktopMenuOpen } from './desktopMenuStore';
+import { getActivePlugin, getDesktopMenuOpen, subscribeActivePlugin, subscribeDesktopMenu, setDesktopMenuOpen, setActivePlugin } from './desktopMenuStore';
 import { BrowserManagerHook } from './browserHook';
 
 interface MillenniumDesktopSidebarState {
@@ -17,6 +17,7 @@ interface MillenniumDesktopSidebarState {
 }
 
 export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSidebarState> {
+	lastKeydownTime = 0;
 	ref = createRef<HTMLDivElement>();
 	closedInterval: ReturnType<typeof setTimeout> | null = null;
 	unsubscribes: (() => void)[] = [];
@@ -38,7 +39,23 @@ export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSid
 		};
 	}
 
+	handleKeyDown = (e: KeyboardEvent) => {
+		if (!(e.ctrlKey && e.key === '2')) {
+			return;
+		}
+
+		const now = Date.now();
+		if (now - this.lastKeydownTime < 500) return;
+		this.lastKeydownTime = now;
+
+		e.preventDefault();
+
+		this.setState({ desktopMenuOpen: !this.state.desktopMenuOpen });
+		this.handleMenuToggle(!this.state.desktopMenuOpen);
+	};
+
 	componentDidMount() {
+		this.getHostWindow()?.document?.addEventListener?.('keydown', this.handleKeyDown, true);
 		this.browserManagerHook.hook();
 
 		PyFindAllPlugins().then((pluginsJson: string) => this.setState({ plugins: JSON.parse(pluginsJson) }));
@@ -58,6 +75,8 @@ export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSid
 	}
 
 	componentWillUnmount() {
+		this.getHostWindow()?.document?.removeEventListener?.('keydown', this.handleKeyDown, true);
+
 		if (this.closedInterval) clearTimeout(this.closedInterval);
 		cancelAnimationFrame(this.animFrame);
 		this.unsubscribes.forEach((unsub) => unsub());
@@ -81,6 +100,7 @@ export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSid
 		const hostWindow = this.getHostWindow();
 
 		if (desktopMenuOpen) {
+			setActivePlugin(null); // Reset active plugin when menu opens
 			await this.browserManagerHook.setBrowserVisible(hostWindow, false);
 			this.setState({ closed: false });
 		} else {
