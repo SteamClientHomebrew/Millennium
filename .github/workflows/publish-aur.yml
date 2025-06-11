@@ -1,11 +1,8 @@
 name: Publish to AUR
 
 on:
-    # workflow_run:
-    #   workflows: ["Build Millennium"]
-    #   types:
-    #     - completed
-    workflow_dispatch:
+    release:
+        types: [published]
 
 concurrency:
     group: aur-publish

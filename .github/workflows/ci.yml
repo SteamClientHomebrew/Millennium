@@ -8,6 +8,10 @@ on:
                 required: true
                 default: 'no'
 
+concurrency:
+    group: ci-build
+    cancel-in-progress: false
+
 jobs:
     build-windows:
         permissions:
