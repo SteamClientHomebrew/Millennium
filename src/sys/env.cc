@@ -154,8 +154,6 @@ const void SetupEnvironmentVariables()
         std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
 
-    const auto assetsPath = !bUseDevelopmentModeFrontend ? "/usr/share/millennium/assets" : MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
-
     #if MILLENNIUM_FRONTEND_DEVELOPMENT_MODE
     const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
     #else
