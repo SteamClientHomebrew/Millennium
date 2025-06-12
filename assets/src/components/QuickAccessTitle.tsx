@@ -1,4 +1,4 @@
-import { DialogButton, Focusable, Navigation, staticClasses } from '@steambrew/client';
+import { DialogButton, Focusable, Navigation, quickAccessMenuClasses } from '@steambrew/client';
 import { useDesktopMenu } from '../quick-access/DesktopMenuContext';
 import { CSSProperties } from 'react';
 import { BsGearFill } from 'react-icons/bs';
@@ -14,11 +14,11 @@ const titleStyles: CSSProperties & any = {
 };
 
 export const TitleView = () => {
-	const { setDesktopMenuOpen, activePlugin, setActivePlugin } = useDesktopMenu();
+	const { closeMenu, activePlugin, setActivePlugin } = useDesktopMenu();
 
 	const onSettingsClick = () => {
 		Navigation.Navigate('/millennium/settings');
-		setDesktopMenuOpen(false);
+		closeMenu();
 	};
 
 	const buttonStyles = {
@@ -34,7 +34,7 @@ export const TitleView = () => {
 
 	if (!activePlugin) {
 		return (
-			<Focusable style={titleStyles} className={staticClasses.Title}>
+			<Focusable style={titleStyles} className={quickAccessMenuClasses.Title}>
 				<div style={{ marginRight: 'auto', flex: 0.9 }}>Millennium</div>
 				<DialogButton style={buttonStyles} onClick={onSettingsClick}>
 					<BsGearFill style={{ marginTop: '-4px', display: 'block' }} />
@@ -44,7 +44,7 @@ export const TitleView = () => {
 	}
 
 	return (
-		<Focusable style={titleStyles} className={staticClasses.Title}>
+		<Focusable style={titleStyles} className={quickAccessMenuClasses.Title}>
 			<DialogButton style={buttonStyles} onClick={setActivePlugin.bind(null, null)}>
 				<FaArrowLeft style={{ marginTop: '-4px', display: 'block' }} />
 			</DialogButton>

@@ -9,7 +9,7 @@ export const RenderPluginViews = ({ plugins, pluginName, pluginView }: { plugins
 
 	return (
 		<PanelSectionRow key={pluginName}>
-			<DialogButton style={{ padding: '0px 10px 0px 10px', width: '-webkit-fill-available' }} onClick={setActivePlugin.bind(null, plugin)}>
+			<DialogButton style={{ padding: '0px 10px 0px 10px', width: '-webkit-fill-available' }} onClick={setActivePlugin.spread(plugin)}>
 				<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
 					<div className="iconContainer">{pluginView?.icon}</div>
 					<div>{plugin?.data?.common_name}</div>
@@ -36,10 +36,14 @@ export const RenderPluginView = () => {
 	return <ErrorBoundary>{renderer}</ErrorBoundary>;
 };
 
-export const PluginSelectorView = ({ plugins }: { plugins: PluginComponent[] }) => (
-	<PanelSection>
-		{Object.entries(window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS)?.map(([key, panel]: [string, any]) => (
-			<RenderPluginViews plugins={plugins} key={key} pluginName={key} pluginView={panel} />
-		))}
-	</PanelSection>
-);
+export const PluginSelectorView = () => {
+	const { plugins } = useDesktopMenu();
+
+	return (
+		<PanelSection>
+			{Object.entries(window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS)?.map(([key, panel]: [string, any]) => (
+				<RenderPluginViews plugins={plugins} key={key} pluginName={key} pluginView={panel} />
+			))}
+		</PanelSection>
+	);
+};
