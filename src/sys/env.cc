@@ -102,7 +102,6 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string() }
     };
 
-    #ifdef MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS
     #if defined(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
         #pragma message("Using custom SDK path: " MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
         const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
