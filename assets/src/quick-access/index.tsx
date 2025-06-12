@@ -1,142 +1,128 @@
 import { ErrorBoundary, getParentWindow } from '@steambrew/client';
-import { Component, createRef } from 'react';
-import { PyFindAllPlugins } from '../utils/ffi';
-import { PluginComponent } from '../types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { TitleView } from '../components/QuickAccessTitle';
 import { PluginSelectorView, RenderPluginView } from './PluginView';
-import { getActivePlugin, getDesktopMenuOpen, subscribeActivePlugin, subscribeDesktopMenu, setDesktopMenuOpen, setActivePlugin } from './desktopMenuStore';
 import { BrowserManagerHook } from './browserHook';
 import { MillenniumDesktopSidebarStyles } from '../utils/styles';
+import { useDesktopMenu } from './DesktopMenuContext';
 
-interface MillenniumDesktopSidebarState {
-	closed: boolean;
-	openAnimStart: boolean;
-	plugins?: PluginComponent[];
-	desktopMenuOpen: boolean;
-	activePlugin?: PluginComponent;
-}
+export const MillenniumDesktopSidebar: React.FC = () => {
+	const { isOpen, activePlugin, closeMenu, toggleMenu, setActivePlugin } = useDesktopMenu();
 
-export class MillenniumDesktopSidebar extends Component<{}, MillenniumDesktopSidebarState> {
-	lastKeydownTime = 0;
-	ref = createRef<HTMLDivElement>();
-	closedInterval: ReturnType<typeof setTimeout> | null = null;
-	unsubscribes: (() => void)[] = [];
-	animFrame: number = 0;
-	browserManagerHook = new BrowserManagerHook();
+	const [openAnimStart, setOpenAnimStartState] = useState(false);
+	const [closed, setClosed] = useState(true);
+	const ref = useRef<HTMLDivElement>(null);
+	const closedInterval = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const animFrame = useRef<number>(0);
+	const browserManagerHook = useRef(new BrowserManagerHook());
 
-	constructor(props: {}) {
-		super(props);
+	const getHostWindow = useCallback(() => {
+		return getParentWindow(ref.current);
+	}, []);
 
-		const desktopMenuOpen = getDesktopMenuOpen();
-		const activePlugin = getActivePlugin();
+	const setAnimStart = useCallback((value: boolean) => {
+		setOpenAnimStartState(value);
+	}, []);
 
-		this.state = {
-			closed: !desktopMenuOpen,
-			openAnimStart: desktopMenuOpen,
-			plugins: undefined,
-			desktopMenuOpen,
-			activePlugin,
-		};
-	}
+	const closeQuickAccess = useCallback(async () => {
+		const hostWindow = getHostWindow();
 
-	handleKeyDown = (e: KeyboardEvent) => {
-		if (!(e.ctrlKey && e.key === '2')) {
-			return;
+		if (closedInterval.current) {
+			clearTimeout(closedInterval.current);
+			closedInterval.current = null;
 		}
 
-		const now = Date.now();
-		if (now - this.lastKeydownTime < 500) return;
-		this.lastKeydownTime = now;
-
-		e.preventDefault();
-
-		this.setState({ desktopMenuOpen: !this.state.desktopMenuOpen });
-		this.handleMenuToggle(!this.state.desktopMenuOpen);
-	};
-
-	componentDidMount() {
-		this.getHostWindow()?.document?.addEventListener?.('keydown', this.handleKeyDown, true);
-		this.browserManagerHook.hook();
-
-		PyFindAllPlugins().then((pluginsJson: string) => this.setState({ plugins: JSON.parse(pluginsJson) }));
-
-		const unsubscribeFromDesktopMenu = subscribeDesktopMenu((open) => {
-			this.setState({ desktopMenuOpen: open });
-			this.handleMenuToggle(open);
+		cancelAnimationFrame(animFrame.current);
+		animFrame.current = requestAnimationFrame(() => {
+			setAnimStart(false);
 		});
 
-		const unsubscribeFromActivePlugin = subscribeActivePlugin((plugin) => {
-			this.setState({ activePlugin: plugin });
-		});
+		closedInterval.current = setTimeout(() => {
+			setClosed(true);
+			browserManagerHook.current.setBrowserVisible(hostWindow, true);
+			closedInterval.current = null;
+			setActivePlugin(undefined);
+		}, 300);
+	}, [getHostWindow, setAnimStart]);
 
-		this.unsubscribes.push(unsubscribeFromDesktopMenu, unsubscribeFromActivePlugin);
+	const openQuickAccess = useCallback(async () => {
+		const hostWindow = getHostWindow();
 
-		this.setAnimStart(getDesktopMenuOpen());
-	}
+		if (closedInterval.current) {
+			clearTimeout(closedInterval.current);
+			closedInterval.current = null;
+		}
 
-	componentWillUnmount() {
-		this.getHostWindow()?.document?.removeEventListener?.('keydown', this.handleKeyDown, true);
+		try {
+			await browserManagerHook.current.setBrowserVisible(hostWindow, false);
+		} catch (error) {
+			console.error('Error setting browser visibility:', error);
+		}
 
-		if (this.closedInterval) clearTimeout(this.closedInterval);
-		cancelAnimationFrame(this.animFrame);
-		this.unsubscribes.forEach((unsubscribeCallback) => unsubscribeCallback());
+		setClosed(false);
 
-		this.browserManagerHook.unhook();
-	}
+		setTimeout(() => {
+			cancelAnimationFrame(animFrame.current);
+			animFrame.current = requestAnimationFrame(() => {
+				setAnimStart(true);
+			});
+		}, 8);
+	}, [getHostWindow, setAnimStart]);
 
-	setAnimStart = (value: boolean) => {
-		this.setState({ openAnimStart: value });
-	};
+	const handleKeyDown = useCallback(
+		(e: KeyboardEvent) => {
+			if (!(e.ctrlKey && e.key === '2')) {
+				return;
+			}
 
-	getHostWindow() {
-		return getParentWindow(this.ref.current);
-	}
+			e.preventDefault();
+			e.stopPropagation();
 
-	closeQuickAccess = async () => {
-		const hostWindow = this.getHostWindow();
+			toggleMenu();
+		},
+		[toggleMenu, isOpen],
+	);
 
-		this.closedInterval = setTimeout(() => {
-			this.setState({ closed: true });
-			this.browserManagerHook.setBrowserVisible(hostWindow, true);
-		}, 500);
-	};
+	const handleSidebarDimClick = useCallback(() => {
+		closeMenu();
+	}, [closeMenu]);
 
-	openQuickAccess = async () => {
-		const hostWindow = this.getHostWindow();
+	useEffect(() => {
+		if (isOpen && closed) {
+			openQuickAccess();
+		} else if (!isOpen && !closed) {
+			closeQuickAccess();
+		}
+	}, [isOpen, closed, openQuickAccess, closeQuickAccess]);
 
-		setActivePlugin(null); // Reset active plugin when menu opens
-		await this.browserManagerHook.setBrowserVisible(hostWindow, false);
-		this.setState({ closed: false });
-	};
+	useEffect(() => {
+		const hostWindow = getHostWindow();
+		hostWindow?.document?.addEventListener?.('keydown', handleKeyDown, true);
+		browserManagerHook.current.hook();
 
-	handleMenuToggle = async (desktopMenuOpen: boolean) => {
-		this.browserManagerHook.setShouldBlockRequest(desktopMenuOpen);
-		if (this.closedInterval) clearTimeout(this.closedInterval);
+		return () => {
+			hostWindow?.document?.removeEventListener?.('keydown', handleKeyDown, true);
+			if (closedInterval.current) {
+				clearTimeout(closedInterval.current);
+				closedInterval.current = null;
+			}
+			cancelAnimationFrame(animFrame.current);
+			try {
+				browserManagerHook.current.unhook();
+			} catch (error) {
+				console.error('Error during cleanup:', error);
+			}
+		};
+	}, []);
 
-		desktopMenuOpen ? await this.openQuickAccess() : await this.closeQuickAccess();
-
-		cancelAnimationFrame(this.animFrame);
-		this.animFrame = requestAnimationFrame(() => {
-			this.setAnimStart(desktopMenuOpen);
-		});
-	};
-
-	handleSidebarDimClick = () => {
-		setDesktopMenuOpen(false);
-	};
-
-	render() {
-		const { closed, openAnimStart, plugins, desktopMenuOpen, activePlugin } = this.state;
-
-		return (
-			<ErrorBoundary>
-				<MillenniumDesktopSidebarStyles isDesktopMenuOpen={desktopMenuOpen || !closed} openAnimStart={openAnimStart} isViewingPlugin={!!activePlugin} />
-				<div className="MillenniumDesktopSidebarDim" onClick={this.handleSidebarDimClick} />
-				<div className="MillenniumDesktopSidebar" ref={this.ref}>
-					<TitleView />
-					<div className="MillenniumDesktopSidebarContent">{activePlugin ? <RenderPluginView /> : <PluginSelectorView plugins={plugins} />}</div>
-				</div>
-			</ErrorBoundary>
-		);
-	}
-}
+	return (
+		<ErrorBoundary>
+			<MillenniumDesktopSidebarStyles isDesktopMenuOpen={isOpen || !closed} openAnimStart={openAnimStart} isViewingPlugin={!!activePlugin} />
+			<div className="MillenniumDesktopSidebarDim" onClick={handleSidebarDimClick} />
+			<div className="MillenniumDesktopSidebar" ref={ref}>
+				<TitleView />
+				<div className="MillenniumDesktopSidebarContent">{activePlugin ? <RenderPluginView /> : <PluginSelectorView />}</div>
+			</div>
+		</ErrorBoundary>
+	);
+};

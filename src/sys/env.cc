@@ -103,6 +103,7 @@ const void SetupEnvironmentVariables()
     };
 
     #ifdef MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS
+    #if defined(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
         #pragma message("Using custom SDK path: " MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
         const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
     #else
@@ -113,7 +114,7 @@ const void SetupEnvironmentVariables()
         #endif
     #endif
 
-    #ifdef MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS
+    #if defined(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
         #pragma message("Using development mode frontend: " MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
         const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
     #else
@@ -125,6 +126,7 @@ const void SetupEnvironmentVariables()
     #endif
 
     const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
+  
     #ifdef _WIN32
     std::map<std::string, std::string> environment_windows = {
         { "MILLENNIUM__PLUGINS_PATH",   SystemIO::GetInstallPath().string() + "/plugins" },
@@ -148,7 +150,7 @@ const void SetupEnvironmentVariables()
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
         std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
-
+  
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },

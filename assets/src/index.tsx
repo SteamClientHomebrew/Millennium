@@ -59,6 +59,7 @@ export default async function PluginMain() {
 	Millennium.AddWindowCreateHook(onWindowCreatedCallback);
 
 	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });
+
 	routerHook.addGlobalComponent(
 		'MillenniumDesktopUI',
 		() => (
