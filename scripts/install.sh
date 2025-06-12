@@ -41,6 +41,7 @@ command -v curl >/dev/null || { log "curl isn't installed! Install it from your 
 command -v tar >/dev/null || { log "tar isn't installed! Install it from your package manager." >&2; exit 1; }
 command -v grep >/dev/null || { log "grep isn't installed! Install it from your package manager." >&2; exit 1; }
 command -v jq >/dev/null || { log "jq isn't installed! Install it from your package manager." >&2; exit 1; }
+command -v git >/dev/null || { log "git isn't installed! Install it from your package manager." >&2; exit 1; }
 
 # download uri
 releases_uri="https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"

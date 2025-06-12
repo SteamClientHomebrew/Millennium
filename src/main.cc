@@ -319,7 +319,7 @@ __attribute__((constructor)) void __init_millennium()
         const char* pathPtr = path;
 
         // Check if the path is the same as the Steam executable
-        if (!IsSamePath(pathPtr, fmt::format("{}/.local/share/Steam/ubuntu12_32/steam", std::getenv("HOME")).c_str()) != 0) {
+        if (!IsSamePath(pathPtr, fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME")).c_str())) {
             return;
         }
     } 

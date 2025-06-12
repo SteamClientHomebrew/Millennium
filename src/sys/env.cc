@@ -108,7 +108,7 @@ const void SetupEnvironmentVariables()
     #else
         #ifdef _WIN32
             const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
-        #else
+        #elif __linux__
             const auto shimsPath = "/usr/share/millennium/shims";
         #endif
     #endif
@@ -119,14 +119,14 @@ const void SetupEnvironmentVariables()
     #else
         #ifdef _WIN32
             const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
-        #else
+        #elif __linux__
             const auto assetsPath = "/usr/share/millennium/assets";
         #endif
     #endif
 
-    #ifdef _WIN32
     const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
-
+  
+    #ifdef _WIN32
     std::map<std::string, std::string> environment_windows = {
         { "MILLENNIUM__PLUGINS_PATH",   SystemIO::GetInstallPath().string() + "/plugins" },
         { "MILLENNIUM__CONFIG_PATH",    SystemIO::GetInstallPath().string() + "/ext" },
@@ -149,9 +149,7 @@ const void SetupEnvironmentVariables()
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
         std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
-
-    const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
-
+  
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },

@@ -89,11 +89,12 @@ elseif(UNIX)
     endif()
 
     if(NOT ${PYTHON_TEST_RESULT})
+    
+      set(MILLENNIUM__PYTHON_ENV "/opt/python-i686-3.11.8") 
+      set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
+
       if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
         include_directories("/opt/python-i686-3.11.8/include/python3.11/")
-
-        set(MILLENNIUM__PYTHON_ENV "/opt/python-i686-3.11.8") 
-        set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
 
         # Function to check if a program exists in PATH
         function(check_program_exists program_name result_var)
@@ -172,9 +173,6 @@ elseif(UNIX)
 
       else()
         include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
-
-        set(MILLENNIUM__PYTHON_ENV "/opt/python-i686-3.11.8") 
-        set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
 
         set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
       endif()
@@ -319,16 +317,10 @@ elseif(UNIX)
   if(APPLE)
     target_link_libraries(Millennium "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
   else()
-    if(GITHUB_ACTION_BUILD)
-      target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
-    elseif(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
-      target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
+    if(PYTHON_TEST_RESULT)
+      target_link_libraries(Millennium Python::Module)
     else()
-      if(PYTHON_TEST_RESULT)
-        target_link_libraries(Millennium Python::Module)
-      else()
-        target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
-      endif()
+      target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
     endif()
   endif()
 endif()
