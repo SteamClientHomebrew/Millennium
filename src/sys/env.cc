@@ -102,33 +102,29 @@ const void SetupEnvironmentVariables()
         { "MILLENNIUM__STEAM_PATH",   SystemIO::GetSteamPath()  .string() }
     };
 
-    constexpr bool bUseCustomSDK = !USE_DEFAULT_SDK;
-    constexpr bool bUseDevelopmentModeFrontend = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE;
-    
-    #define DEFAULT_SYMBOL "DEFAULT_SYMBOL"
-
-    #if !USE_DEFAULT_SDK
+    #if defined(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
         #pragma message("Using custom SDK path: " MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
+        const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
+    #else
+        #ifdef _WIN32
+            const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
+        #else
+            const auto shimsPath = "/usr/share/millennium/shims";
+        #endif
     #endif
 
-    #if MILLENNIUM_FRONTEND_DEVELOPMENT_MODE
+    #if defined(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
         #pragma message("Using development mode frontend: " MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
+        const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
+    #else
+        #ifdef _WIN32
+            const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
+        #else
+            const auto assetsPath = "/usr/share/millennium/assets";
+        #endif
     #endif
 
     #ifdef _WIN32
-
-    #if MILLENNIUM_FRONTEND_DEVELOPMENT_MODE
-    const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
-    #else
-    const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
-    #endif
-
-    #if USE_DEFAULT_SDK
-    const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
-    #else
-    const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
-    #endif
-
     const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
 
     std::map<std::string, std::string> environment_windows = {
@@ -153,18 +149,6 @@ const void SetupEnvironmentVariables()
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
         std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
-
-    #if MILLENNIUM_FRONTEND_DEVELOPMENT_MODE
-    const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
-    #else
-    const auto assetsPath = "/usr/share/millennium/assets";
-    #endif
-
-    #if USE_DEFAULT_SDK
-    const auto shimsPath = "/usr/share/millennium/shims";
-    #else
-    const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
-    #endif
 
     const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
 
