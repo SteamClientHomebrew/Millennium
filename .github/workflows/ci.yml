@@ -204,7 +204,6 @@ jobs:
 
                   tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
                   mv ~/build/opt/python-i686-3.11.8/python-build/* ~/build/opt/python-i686-3.11.8/
-                  ls -R ~/build/opt/python-i686-3.11.8
 
                   cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so /opt/python-i686-3.11.8/lib/libpython-3.11.8.so
                   ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
