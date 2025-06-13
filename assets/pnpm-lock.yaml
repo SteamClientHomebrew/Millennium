@@ -24,6 +24,9 @@ importers:
       react-icons:
         specifier: 5.3.0
         version: 5.3.0(react@17.0.2)
+      zustand:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/react@18.3.3)(immer@10.1.1)(react@17.0.2)
     devDependencies:
       '@steambrew/client':
         specifier: link:../sdk/typescript-packages/client
@@ -1503,6 +1506,24 @@ packages:
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
+
+  zustand@5.0.5:
+    resolution: {integrity: sha512-mILtRfKW9xM47hqxGIxCv12gXusoY/xTSHBYApXozR0HmQv299whhBeeAcRy+KrPPybzosvJBCOmVjq6x12fCg==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
 
 snapshots:
 
@@ -3049,3 +3070,9 @@ snapshots:
   wrappy@1.0.2: {}
 
   yallist@3.1.1: {}
+
+  zustand@5.0.5(@types/react@18.3.3)(immer@10.1.1)(react@17.0.2):
+    optionalDependencies:
+      '@types/react': 18.3.3
+      immer: 10.1.1
+      react: 17.0.2

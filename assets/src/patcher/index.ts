@@ -4,8 +4,6 @@ import { DOMModifier, classListMatch, constructThemePath } from './Dispatch';
 import { EvaluateConditions } from './v2/Conditions';
 import { PatchV1, EvaluateStatements } from './v1/Conditions';
 import { PatchRootMenu } from '../utils/root-menu';
-import { PatchNotification } from '../utils/notification-patcherr';
-import { Logger } from '../utils/Logger';
 import { ShowWelcomeModal } from '../components/WelcomeModal';
 
 const EvaluateModule = (module: string, type: ModuleType, document: Document) => {

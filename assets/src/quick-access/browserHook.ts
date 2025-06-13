@@ -17,7 +17,6 @@ export class BrowserManagerHook {
 	private inputBlockerClass = findClassModule((m) => m.BrowserWrapper && m.Browser) || {};
 
 	private async captureBrowserSnapshot() {
-		console.time('captureBrowserSnapshot');
 		const targetInfos: any = await ChromeDevToolsProtocol.send('Target.getTargets');
 
 		const browserTarget = targetInfos?.targetInfos?.find((target: any) => target?.url === MainWindowBrowserManager.m_URL);
@@ -36,7 +35,6 @@ export class BrowserManagerHook {
 			attachedTarget?.sessionId,
 		);
 
-		console.timeEnd('captureBrowserSnapshot');
 		return `data:image/jpeg;base64,${screenshot?.data}`;
 	}
 
@@ -73,6 +71,18 @@ export class BrowserManagerHook {
 		}
 	}
 
+	private setBoundsHookCb() {
+		console.warn('MainWindowBrowserManager.SetVisible called, blocking request', this.shouldBlockRequest);
+
+		return this.shouldBlockRequest ? null : callOriginal;
+	}
+
+	private setVisibleHookCb() {
+		console.warn('MainWindowBrowserManager.SetVisible called, blocking request', this.shouldBlockRequest);
+
+		return this.shouldBlockRequest ? null : callOriginal;
+	}
+
 	public async hook(skipCheckHealth: boolean = false) {
 		while (
 			typeof MainWindowBrowserManager === 'undefined' ||
@@ -82,8 +92,8 @@ export class BrowserManagerHook {
 			await sleep(10);
 		}
 
-		this.setBrowserBoundsPatched = replacePatch(MainWindowBrowserManager.m_browser, 'SetBounds', () => (this.shouldBlockRequest ? null : callOriginal));
-		this.setBrowserVisiblePatched = replacePatch(MainWindowBrowserManager.m_browser, 'SetVisible', () => (this.shouldBlockRequest ? null : callOriginal));
+		this.setBrowserBoundsPatched = replacePatch(MainWindowBrowserManager.m_browser, 'SetBounds', this.setBoundsHookCb.bind(this));
+		this.setBrowserVisiblePatched = replacePatch(MainWindowBrowserManager.m_browser, 'SetVisible', this.setVisibleHookCb.bind(this));
 
 		if (!skipCheckHealth) {
 			this.hookHealthCheck();

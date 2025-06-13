@@ -10,6 +10,7 @@ import { UpdateContextProvider } from './updates/useUpdateContext';
 import { RenderLogViewer } from './logs';
 import { ConfigProvider } from '../config-provider';
 import Styles from '../utils/styles';
+import { useQuickAccessStore } from '../quick-access/quickAccessStore';
 
 declare global {
 	const g_PopupManager: any;
@@ -109,7 +110,7 @@ function RenderSettingsModal(_: any, retObj: any) {
 		retObj.props.menuItems.splice(index + 1, 0, {
 			name: 'Millennium',
 			onClick: () => {
-				// setDesktopMenuOpen(true);
+				useQuickAccessStore.getState().openQuickAccess();
 			},
 			visible: true,
 		});

@@ -5,9 +5,10 @@ import { PluginSelectorView, RenderPluginView } from './PluginView';
 import { BrowserManagerHook } from './browserHook';
 import { MillenniumDesktopSidebarStyles } from '../utils/styles';
 import { useDesktopMenu } from './DesktopMenuContext';
+import { useQuickAccessStore } from './quickAccessStore';
 
 export const MillenniumDesktopSidebar: React.FC = () => {
-	const { isOpen, activePlugin, closeMenu, toggleMenu, setActivePlugin } = useDesktopMenu();
+	const { isOpen, activePlugin, closeMenu, openMenu, toggleMenu, setActivePlugin } = useDesktopMenu();
 
 	const [openAnimStart, setOpenAnimStartState] = useState(false);
 	const [closed, setClosed] = useState(true);
@@ -22,6 +23,23 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 
 	const setAnimStart = useCallback((value: boolean) => {
 		setOpenAnimStartState(value);
+	}, []);
+
+	useEffect(() => {
+		const unsubscribeOpen = useQuickAccessStore.getState().subscribeToOpen(() => {
+			openMenu();
+			openQuickAccess();
+		});
+
+		const unsubscribeClose = useQuickAccessStore.getState().subscribeToClose(() => {
+			closeMenu();
+			closeQuickAccess();
+		});
+
+		return () => {
+			unsubscribeOpen();
+			unsubscribeClose();
+		};
 	}, []);
 
 	const closeQuickAccess = useCallback(async () => {
@@ -43,9 +61,12 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 			closedInterval.current = null;
 			setActivePlugin(undefined);
 		}, 300);
+
+		browserManagerHook.current.setShouldBlockRequest(false);
 	}, [getHostWindow, setAnimStart]);
 
 	const openQuickAccess = useCallback(async () => {
+		browserManagerHook.current.setShouldBlockRequest(true);
 		const hostWindow = getHostWindow();
 
 		if (closedInterval.current) {
