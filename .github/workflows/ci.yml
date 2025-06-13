@@ -232,6 +232,7 @@ jobs:
                   mkdir -p ~/build/usr/lib/millennium
                   mkdir -p ~/build/usr/bin
                   mkdir -p ~/build/usr/share/millennium
+                  mkdir -p ~/build/usr/share/millennium/shims
                   mkdir -p ~/build/opt
 
                   # Copy binaries and libraries directly to final locations
