@@ -1,7 +1,7 @@
 import { DialogButton, ErrorBoundary, PanelSection, PanelSectionRow } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { useDesktopMenu } from './DesktopMenuContext';
-import { getPluginView } from '../utils/globals';
+import { getPluginRenderers, getPluginView } from '../utils/globals';
 
 export const RenderPluginViews = ({ plugins, pluginName, pluginView }: { plugins: PluginComponent[]; pluginName: string; pluginView: any }) => {
 	const { setActivePlugin } = useDesktopMenu();
@@ -41,7 +41,7 @@ export const PluginSelectorView = () => {
 
 	return (
 		<PanelSection>
-			{Object.entries(window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS)?.map(([key, panel]: [string, any]) => (
+			{Object.entries(getPluginRenderers())?.map(([key, panel]: [string, any]) => (
 				<RenderPluginViews plugins={plugins} key={key} pluginName={key} pluginView={panel} />
 			))}
 		</PanelSection>

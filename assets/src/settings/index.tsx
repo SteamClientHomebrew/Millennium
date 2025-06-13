@@ -11,6 +11,7 @@ import { RenderLogViewer } from './logs';
 import { ConfigProvider } from '../config-provider';
 import Styles from '../utils/styles';
 import { useQuickAccessStore } from '../quick-access/quickAccessStore';
+import { getPluginRenderers } from '../utils/globals';
 
 declare global {
 	const g_PopupManager: any;
@@ -79,7 +80,7 @@ const tabSpotLogs: SidebarNavigationPage = {
 };
 
 export function MillenniumSettings() {
-	const pluginList: Array<Partial<DefinePluginFn> | string> = Object.entries(window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS)?.map(([key, panel]: [string, any]) => ({
+	const pluginList: Array<Partial<DefinePluginFn> | string> = Object.entries(getPluginRenderers())?.map(([key, panel]: [string, any]) => ({
 		title: panel.title,
 		content: <DialogBody className={Classes.SettingsDialogBodyFade}>{panel.content}</DialogBody>,
 		icon: panel.icon,
