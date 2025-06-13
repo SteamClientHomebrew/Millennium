@@ -1,3 +1,32 @@
+# [2.26.0-beta.4](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.3...v2.26.0-beta.4) (2025-06-13)
+
+
+### Bug Fixes
+
+* Fix CI ([997747d](https://github.com/SteamClientHomebrew/Millennium/commit/997747dabdca59c87268b56356f1540651ecb275))
+* Fix CI ([0465205](https://github.com/SteamClientHomebrew/Millennium/commit/0465205991313d833ef9321fcb0c0e136d05a26d))
+* Fix CI ([6704435](https://github.com/SteamClientHomebrew/Millennium/commit/6704435d1a000ec84e53ea0892b91031060caa05))
+* Fix encoding issue when calling a JS method from the backend. ([d03134c](https://github.com/SteamClientHomebrew/Millennium/commit/d03134ce679dfc7dfe4e5c77a3e4462e577011b0))
+* Fix FFI propagating backend call on plugins with no backend. ([cbb873d](https://github.com/SteamClientHomebrew/Millennium/commit/cbb873dd06d3afddf4dee7b283a8a2262915e101))
+* Fix install script failing if the username is 'user'. closes [#343](https://github.com/SteamClientHomebrew/Millennium/issues/343) ([e3c04c6](https://github.com/SteamClientHomebrew/Millennium/commit/e3c04c67422d1fe4c4b016736320f0bbed869b43))
+* Fix Millennium showing updates when none are actually available ([ee26150](https://github.com/SteamClientHomebrew/Millennium/commit/ee2615032b3c0b2b1c093cc60368c9b83f02644c))
+* Fix OpenSSL issues ([78f8fa4](https://github.com/SteamClientHomebrew/Millennium/commit/78f8fa4276bd897bff5c838858e8ca1f3a74e0cb))
+
+
+### Features
+
+* Add `constSysfsExpr`,a way to embed assets into plugin bundle at compile time. ([4a8d1d0](https://github.com/SteamClientHomebrew/Millennium/commit/4a8d1d0bd43e44abdb309d4f125b8e019e62b867))
+* Add plugin settings [#183](https://github.com/SteamClientHomebrew/Millennium/issues/183) ([643c1a0](https://github.com/SteamClientHomebrew/Millennium/commit/643c1a0c695b89a65f4e637c1f5229135b42915f))
+* Add quick access menu to Millennium ([b22f3c7](https://github.com/SteamClientHomebrew/Millennium/commit/b22f3c7b6782a24a31ac5fe10b354f94544b233c))
+* CTRL+2 to open Millennium quick access ([0b06a10](https://github.com/SteamClientHomebrew/Millennium/commit/0b06a1001c905e921cbd4a0385de6b5db24ac286))
+* Overhauled Swedish translation. ([013763a](https://github.com/SteamClientHomebrew/Millennium/commit/013763a28aa26d58fda827cfa63772898e796ce2))
+* Properly use Steam's internal components to create Millennium's Settings window. ([c2a4285](https://github.com/SteamClientHomebrew/Millennium/commit/c2a4285df72630fb6a41ff645afc4f75c19e297d))
+
+
+### Performance Improvements
+
+* improved webkit load performance by ~350ms ([f0100c4](https://github.com/SteamClientHomebrew/Millennium/commit/f0100c4fd0e6dda71d2a65d5f23da5d379756f6e))
+
 # [2.26.0-beta.3](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.2...v2.26.0-beta.3) (2025-04-18)
 
 ### Bug Fixes
