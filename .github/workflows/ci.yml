@@ -84,12 +84,6 @@ jobs:
               if: steps.build-cache.outputs.cache-hit != 'true'
               run: . scripts\ci\win32\build-python.ps1
 
-            - name: Upload Build Artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: python 3.11.8 build libraries
-                  path: ./build/python
-
             - name: Install prerequisites
               uses: msys2/setup-msys2@v2
               with:
