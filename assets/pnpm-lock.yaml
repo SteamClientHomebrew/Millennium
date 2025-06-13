@@ -25,8 +25,8 @@ importers:
         specifier: 5.3.0
         version: 5.3.0(react@17.0.2)
       zustand:
-        specifier: ^5.0.5
-        version: 5.0.5(@types/react@18.3.3)(immer@10.1.1)(react@17.0.2)
+        specifier: ^4.4.1
+        version: 4.4.1(@types/react@18.3.3)(immer@10.1.1)(react@17.0.2)
     devDependencies:
       '@steambrew/client':
         specifier: link:../sdk/typescript-packages/client
@@ -1488,6 +1488,11 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
+  use-sync-external-store@1.2.0:
+    resolution: {integrity: sha512-eEgnFxGQ1Ife9bzYs6VLi8/4X6CObHMw9Qr9tPY43iKwsPw8xE8+EFsf/2cFZ5S3esXgpWgtSCtLNS41F+sKPA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -1507,22 +1512,19 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
-  zustand@5.0.5:
-    resolution: {integrity: sha512-mILtRfKW9xM47hqxGIxCv12gXusoY/xTSHBYApXozR0HmQv299whhBeeAcRy+KrPPybzosvJBCOmVjq6x12fCg==}
-    engines: {node: '>=12.20.0'}
+  zustand@4.4.1:
+    resolution: {integrity: sha512-QCPfstAS4EBiTQzlaGP1gmorkh/UL1Leaj2tdj+zZCZ/9bm0WS7sI2wnfD5lpOszFqWJ1DcPnGoY8RDL61uokw==}
+    engines: {node: '>=12.7.0'}
     peerDependencies:
-      '@types/react': '>=18.0.0'
-      immer: '>=9.0.6'
-      react: '>=18.0.0'
-      use-sync-external-store: '>=1.2.0'
+      '@types/react': '>=16.8'
+      immer: '>=9.0'
+      react: '>=16.8'
     peerDependenciesMeta:
       '@types/react':
         optional: true
       immer:
         optional: true
       react:
-        optional: true
-      use-sync-external-store:
         optional: true
 
 snapshots:
@@ -3051,6 +3053,10 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
+  use-sync-external-store@1.2.0(react@17.0.2):
+    dependencies:
+      react: 17.0.2
+
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
@@ -3071,7 +3077,9 @@ snapshots:
 
   yallist@3.1.1: {}
 
-  zustand@5.0.5(@types/react@18.3.3)(immer@10.1.1)(react@17.0.2):
+  zustand@4.4.1(@types/react@18.3.3)(immer@10.1.1)(react@17.0.2):
+    dependencies:
+      use-sync-external-store: 1.2.0(react@17.0.2)
     optionalDependencies:
       '@types/react': 18.3.3
       immer: 10.1.1
