@@ -143,9 +143,6 @@ jobs:
 
         runs-on: ubuntu-latest
 
-        # env:
-        #     VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
-
         steps:
             - name: Export GitHub Actions cache environment variables
               uses: actions/github-script@v7
