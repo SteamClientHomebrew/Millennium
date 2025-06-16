@@ -59,6 +59,7 @@ public:
         return false;
     }
 
+    #ifdef _WIN32
     unsigned short GetRemoteDebuggerPort() const 
     {
         const unsigned short defaultPort = 8080; 
@@ -104,6 +105,7 @@ public:
             return defaultPort;
         }
     }
+    #endif
 
     std::vector<std::string> GetArgumentList()
     {
