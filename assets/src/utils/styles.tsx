@@ -87,6 +87,7 @@ const styles = `
 
 /* Override Steam styles */
 .MillenniumSettings {
+	border-top: 1px solid rgba(61, 68, 80, .65);
 	min-height: 100% !important;
 
 	/* Fix the dropdown not filling the proper width when specific theme names are too long. */

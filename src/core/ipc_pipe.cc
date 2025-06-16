@@ -39,8 +39,12 @@
 #include "asio.h"
 #include "locals.h"
 #include "fvisible.h"
+#include <fmt/core.h>
+#include "co_spawn.h"
+
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
+
 
 /**
  * Calls a server method based on the provided JSON message and returns a response.
@@ -60,15 +64,13 @@ typedef websocketpp::server<websocketpp::config::asio> socketServer;
  */
 MILLENNIUM nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 {
-    const std::string fnCallScript = Python::ConstructFunctionCall(message["data"]);
-
     if (!message["data"].contains("pluginName")) 
     {
         LOG_ERROR("no plugin backend specified, doing nothing...");
         return {};
     }
 
-    Python::EvalResult response = Python::LockGILAndEvaluate(message["data"]["pluginName"], fnCallScript);
+    Python::EvalResult response = Python::LockGILAndInvokeMethod(message["data"]["pluginName"], message["data"]);
     nlohmann::json responseMessage;
 
     responseMessage["returnType"] = response.type;
@@ -116,7 +118,7 @@ MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
             if (plugin.pluginJson.value("useBackend", true)) 
             {  
                 Logger.Log("Delegating frontend load for plugin: {}", pluginName);
-                Python::LockGILAndDiscardEvaluate(pluginName, "plugin._front_end_loaded()");
+                Python::CallFrontEndLoaded(pluginName);
             }
             break;
         }
@@ -183,6 +185,23 @@ MILLENNIUM void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl 
 }
 
 /**
+ * Validates the WebSocket connection by checking the User-Agent header.
+ * Block any connection request that doesn't originate from the Valve Steam Client.
+ */
+MILLENNIUM bool ValidateConnection(socketServer* serv, websocketpp::connection_hdl hdl) 
+{
+    socketServer::connection_ptr con = serv->get_con_from_hdl(hdl);
+    std::string userAgent = con->get_request_header("User-Agent");
+    
+    if (userAgent.find("Valve Steam Client") == std::string::npos) {
+        LOG_ERROR("Rejected connection from User-Agent: {}", userAgent);
+        return false; 
+    }
+
+    return true; 
+}
+
+/**
  * Opens a WebSocket server for IPC communication on a specified port.
  *
  * @param {uint16_t} ipcPort - The port number to open the WebSocket server on.
@@ -203,6 +222,7 @@ MILLENNIUM const int OpenIPCSocket(uint16_t ipcPort)
         IPCSocketMain.set_error_channels(websocketpp::log::elevel::none);
 
         IPCSocketMain.init_asio();
+        IPCSocketMain.set_validate_handler(bind(&ValidateConnection, &IPCSocketMain, std::placeholders::_1));
         IPCSocketMain.set_message_handler(bind(OnMessage, &IPCSocketMain, std::placeholders::_1, std::placeholders::_2));
         IPCSocketMain.set_open_handler(bind(&OnOpen, &IPCSocketMain, std::placeholders::_1));
 
