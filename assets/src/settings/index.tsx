@@ -29,7 +29,7 @@ const tabSpotGeneral: SidebarNavigationPage = {
 	route: '/millennium/settings/general',
 };
 
-const tabSpotSettings: SidebarNavigationPage = {
+const tabSpotThemes: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelThemes,
 	icon: <MillenniumIcons.Themes />,
@@ -80,20 +80,8 @@ const tabSpotLogs: SidebarNavigationPage = {
 };
 
 export function MillenniumSettings() {
-	const pluginList: Array<Partial<DefinePluginFn> | string> = Object.entries(getPluginRenderers())?.map(([key, panel]: [string, any]) => ({
-		title: panel.title,
-		content: <DialogBody className={Classes.SettingsDialogBodyFade}>{panel.content}</DialogBody>,
-		icon: panel.icon,
-		route: `/millennium/settings/${key
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/^-+|-+$/g, '')}`,
-	}));
-
-	pluginList.length && pluginList.unshift('separator');
-
 	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings ModalDialogPopup`;
-	const settingsPages = [tabSpotGeneral, tabSpotSettings, tabSpotPlugins, tabSpotUpdates, tabSpotLogs, ...pluginList];
+	const settingsPages = [tabSpotGeneral, 'separator', tabSpotThemes, tabSpotPlugins, 'separator', tabSpotUpdates, tabSpotLogs];
 
 	return (
 		<ConfigProvider>

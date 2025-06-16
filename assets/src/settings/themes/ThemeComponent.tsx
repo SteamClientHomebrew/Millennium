@@ -109,8 +109,10 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 		const { shouldShowMore } = this.state;
 		const isActive = this.isActive;
 
+		console.log('Menu', Menu);
+
 		showContextMenu(
-			<Menu label="MillenniumPluginContextMenu">
+			<Menu label={theme?.data?.name}>
 				<MenuItem disabled tone="emphasis" bInteractableItem={false}>
 					{theme?.data?.name} {theme?.data?.version && <>v{theme.data.version}</>}
 				</MenuItem>
