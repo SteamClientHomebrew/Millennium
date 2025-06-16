@@ -122,7 +122,7 @@ jobs:
             - name: Add API modules
               run: |
                   New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
-                  npm install -g @steambrew/api
+                  npm install -g @steambrew/api@latest
                   $pkgPath = Join-Path (npm root -g) "@steambrew/api/build/*"
                   Copy-Item -Recurse -Force $pkgPath "D:/a/env/ext/data/shims/"
 
@@ -220,7 +220,7 @@ jobs:
                   cmake --build build --config Release -- -j$(nproc)
 
                   # Install npm dependencies
-                  npm install -g @steambrew/api
+                  npm install -g @steambrew/api@latest
 
                   # Create final directory structure
                   mkdir -p ~/build/usr/lib/millennium
