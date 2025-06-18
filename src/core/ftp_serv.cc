@@ -116,13 +116,20 @@ namespace Crow
      * This function checks if the requested file exists, sets the correct content type, and writes the content to the response.
      * If the file does not exist, a 404 error response is returned.
      */
-    MILLENNIUM crow::response HandleRequest(std::string path)
+    MILLENNIUM crow::response HandleRequest(const crow::request& request, const std::string& path)
     {
         crow::response response;
-        ResponseProps responseProps = EvaluateRequest(PathFromUrl(path));
+        response.add_header("Access-Control-Allow-Origin", "https://steamloopback.host");
 
+        if (request.get_header_value("Origin") != "https://steamloopback.host")
+        {
+            response.code = 403;
+            response.write("403 Forbidden: Access denied.");
+            return response;
+        }
+
+        ResponseProps responseProps = EvaluateRequest(PathFromUrl(path));
         response.add_header("Content-Type", responseProps.contentType);
-        response.add_header("Access-Control-Allow-Origin", "*");
 
         if (!responseProps.exists)
         {

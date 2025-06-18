@@ -45,6 +45,7 @@
 #include "url_parser.h"
 #include <env.h>
 #include "fvisible.h"
+#include <secure_socket.h>
 
 static std::string addedScriptOnNewDocumentId = "";
 
@@ -105,8 +106,10 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
+    const std::string millenniumAuthToken = GetAuthToken();
+
     const std::string ftpPath = UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), millenniumPreloadPath.value_or(std::string()));
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, [{}]);", ipcPort, scriptModuleArray);
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, '{}', [{}]);", ipcPort, millenniumAuthToken, scriptModuleArray);
 
     return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
 }
@@ -640,9 +643,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort, bool reloadFro
                     if (reloadFrontend) Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
                     return;
                 }
-
-                Logger.Log(eventMessage.dump(4));
-
+                
                 Logger.Log("Successfully notified frontend...");
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }

@@ -40,6 +40,7 @@
 #include "env.h"
 #include "serv.h"
 #include "fvisible.h"
+#include <secure_socket.h>
 unsigned long long g_hookedModuleId;
 
 // Millennium will not load JavaScript into the following URLs to favor user safety.
@@ -248,8 +249,10 @@ MILLENNIUM const std::string WebkitHandler::PatchDocumentContents(std::string re
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
+    const std::string millenniumAuthToken = GetAuthToken();
+
     const std::string ftpPath = UrlFromPath(m_javaScriptVirtualUrl, millenniumPreloadPath.value_or(std::string()));
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, [{}]);", m_ipcPort, scriptModuleArray);
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, '{}', [{}]);", m_ipcPort, millenniumAuthToken, scriptModuleArray);
 
     linkPreloadsArray.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
 

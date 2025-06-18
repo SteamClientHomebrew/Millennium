@@ -247,7 +247,7 @@ public:
 
             websocketpp::lib::error_code errorCode;
             auto con = socketClient.get_connection(socketUrl, errorCode);
-    
+
             if (errorCode)
             {
                 LOG_ERROR("[{}] Failed to establish connection: {} [{}]", commonName, errorCode.message(), errorCode.value());

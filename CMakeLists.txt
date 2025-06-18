@@ -246,6 +246,7 @@ set(SOURCE_FILES
   "src/core/web_load.cc"
   "src/core/ipc_pipe.cc"
   "src/core/ftp_serv.cc"
+  "src/core/secure_socket.cc"
   "src/sys/log.cc"
   "src/sys/sysfs.cc"
   "src/sys/settings.cc"

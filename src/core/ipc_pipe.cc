@@ -41,7 +41,7 @@
 #include "fvisible.h"
 #include <fmt/core.h>
 #include "co_spawn.h"
-
+#include <secure_socket.h>
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
@@ -131,6 +131,29 @@ MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
     });
 }
 
+
+MILLENNIUM bool IsAuthenticatedRequest(socketServer::connection_ptr serverConnection, socketServer::message_ptr msg, const nlohmann::basic_json<>& jsonPayload)
+{
+    if (!jsonPayload.contains("millenniumAuthToken")) 
+    {
+        Logger.Warn("No authentication token provided in the request. Request: {}", jsonPayload.dump(4));
+        serverConnection->send(std::string("Authentication token is required."), msg->get_opcode());
+        return false;
+    }
+
+    const std::string& authToken = jsonPayload["millenniumAuthToken"];
+
+    if (authToken != GetAuthToken()) // Replace with actual token validation logic
+    {
+        LOG_ERROR("Invalid authentication token provided. Request: {}", jsonPayload.dump(4));
+        serverConnection->send(std::string("Invalid authentication token."), msg->get_opcode());
+        return false;
+    }
+
+    return true;
+}
+
+
 /**
  * Handles incoming WebSocket messages and dispatches them to the appropriate handler function.
  *
@@ -148,19 +171,24 @@ MILLENNIUM void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, s
 
     try
     {
-        auto json_data = nlohmann::json::parse(msg->get_payload());
+        auto jsonPayload = nlohmann::json::parse(msg->get_payload());
         std::string responseMessage;
 
-        switch (json_data["id"].get<int>()) 
+        if (!IsAuthenticatedRequest(serverConnection, msg, jsonPayload)) 
+        {
+            return; // Authentication failed, response already sent
+        }
+
+        switch (jsonPayload["id"].get<int>()) 
         {
             case IPCMain::Builtins::CALL_SERVER_METHOD: 
             {
-                responseMessage = CallServerMethod(json_data).dump(); 
+                responseMessage = CallServerMethod(jsonPayload).dump(); 
                 break;
             }
             case IPCMain::Builtins::FRONT_END_LOADED: 
             {
-                responseMessage = OnFrontEndLoaded(json_data).dump(); 
+                responseMessage = OnFrontEndLoaded(jsonPayload).dump(); 
                 break;
             }
         }
@@ -192,10 +220,25 @@ MILLENNIUM bool ValidateConnection(socketServer* serv, websocketpp::connection_h
 {
     socketServer::connection_ptr con = serv->get_con_from_hdl(hdl);
     std::string userAgent = con->get_request_header("User-Agent");
-    
-    if (userAgent.find("Valve Steam Client") == std::string::npos) {
-        LOG_ERROR("Rejected connection from User-Agent: {}", userAgent);
-        return false; 
+    con->append_header("Server", fmt::format("millennium/{}", MILLENNIUM_VERSION));
+
+    try
+    {
+        std::string processName = GetProcessNameFromConnectionHandle(serv, hdl);
+        Logger.Log("Validating IPC peer packet request:\n\tUser-Agent: {}\n\tProcess Name: {}", userAgent, processName);
+
+        const std::filesystem::path processPath = std::filesystem::path(processName);
+        const std::filesystem::path webHelperPath = std::filesystem::path(GetEnv("MILLENNIUM__STEAM_PATH")) / "bin" / "cef" / "cef.win7x64" / "steamwebhelper.exe";
+
+        if (userAgent.find("Valve Steam Client") == std::string::npos || processPath != webHelperPath) {
+            Logger.Warn("Failed to resolve secure connection to peer. User-Agent: {}, Process Name: {}", userAgent, processName);
+            return false; 
+        }
+    }
+    catch (const std::exception& e) 
+    {
+        LOG_ERROR("Error validating connection: {}", e.what());
+        return false; // Reject connection on error
     }
 
     return true; 
