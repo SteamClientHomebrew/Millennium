@@ -75,10 +75,10 @@ jobs:
                   New-Item -ItemType Directory -Force -Path "./build/python"
                   ls ./Python-3.11.8
 
-                  Copy-Item ./Python-3.11.8/python311.dll ./build/python/python311.dll
-                  Copy-Item ./Python-3.11.8/python311_d.dll ./build/python/python311_d.dll
-                  Copy-Item ./Python-3.11.8/python311.lib ./build/python/python311.lib
-                  Copy-Item ./Python-3.11.8/python311_d.lib ./build/python/python311_d.lib
+                  Copy-Item ./Python-3.11.8/python3.dll ./build/python/python311.dll
+                  Copy-Item ./Python-3.11.8/python3_d.dll ./build/python/python311_d.dll
+                  Copy-Item ./Python-3.11.8/python3.lib ./build/python/python311.lib
+                  Copy-Item ./Python-3.11.8/python3_d.lib ./build/python/python311_d.lib
 
             - name: Install prerequisites
               uses: msys2/setup-msys2@v2
