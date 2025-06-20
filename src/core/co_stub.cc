@@ -34,7 +34,7 @@
 #include "co_spawn.h"
 #include "log.h"
 #include "loader.h"
-#include "web_load.h"
+#include "http_hooks.h"
 #include "ffi.h"
 #include <tuple>
 #include "logger.h"

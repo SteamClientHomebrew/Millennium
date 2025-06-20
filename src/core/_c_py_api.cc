@@ -36,7 +36,7 @@
 #include <fstream>
 #include "log.h"
 #include "locals.h"
-#include "web_load.h"
+#include "http_hooks.h"
 #include "co_stub.h"
 #include "logger.h"
 #include "encoding.h"
@@ -152,12 +152,12 @@ MILLENNIUM PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
     }
 
     bool success = false;
-    WebkitHandler::get().RemoveHook(moduleId);
+    HttpHookManager::get().RemoveHook(moduleId);
 
     return PyBool_FromLong(success);
 }
 
-MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type) 
+MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes type) 
 {
     const char* moduleItem;
     const char* regexSelector = ".*"; // Default value if no second parameter is provided
@@ -173,7 +173,7 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
 
     try 
     {
-        WebkitHandler::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
     } 
     catch (const std::regex_error& e) 
     {
@@ -187,12 +187,12 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
 
 MILLENNIUM PyObject* AddBrowserCss(PyObject* self, PyObject* args) 
 { 
-    return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::STYLESHEET)); 
+    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET)); 
 }
 
 MILLENNIUM PyObject* AddBrowserJs(PyObject* self, PyObject* args)  
 { 
-    return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::JAVASCRIPT)); 
+    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT)); 
 }
 
 /* 
@@ -289,7 +289,7 @@ MILLENNIUM PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         }).detach();
     }
     
-    CoInitializer::ReInjectFrontendShims(g_pluginLoader, false);
+    CoInitializer::ReInjectFrontendShims(g_pluginLoader, true);
     Py_RETURN_NONE;
 }
 

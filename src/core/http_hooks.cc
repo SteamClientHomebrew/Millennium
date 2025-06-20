@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "web_load.h"
+#include "http_hooks.h"
 #include <nlohmann/json.hpp>
 #include "loader.h"
 #include "ffi.h"
@@ -43,6 +43,8 @@
 #include "ipc.h"
 #include <thread>
 #include <chrono>
+
+using namespace nlohmann;
 
 /**
  * Enum representing the different types of files.
@@ -144,26 +146,26 @@ static const std::unordered_set<std::string> g_doNotHook = {
 };
 
 // Thread-safe singleton implementation
-WebkitHandler& WebkitHandler::get() 
+HttpHookManager& HttpHookManager::get() 
 {
-    static WebkitHandler instance;
+    static HttpHookManager instance;
     return instance;
 }
 
 // Thread-safe hook list operations
-void WebkitHandler::SetHookList(std::shared_ptr<std::vector<HookType>> hookList)
+void HttpHookManager::SetHookList(std::shared_ptr<std::vector<HookType>> hookList)
 {
     std::unique_lock<std::shared_mutex> lock(m_hookListMutex);
     m_hookListPtr = hookList;
 }
 
-std::vector<WebkitHandler::HookType> WebkitHandler::GetHookListCopy() const
+std::vector<HttpHookManager::HookType> HttpHookManager::GetHookListCopy() const
 {
     std::shared_lock<std::shared_mutex> lock(m_hookListMutex);
     return m_hookListPtr ? *m_hookListPtr : std::vector<HookType>();
 }
 
-void WebkitHandler::AddHook(const HookType& hook)
+void HttpHookManager::AddHook(const HookType& hook)
 {
     std::unique_lock<std::shared_mutex> lock(m_hookListMutex);
     if (m_hookListPtr) {
@@ -171,7 +173,7 @@ void WebkitHandler::AddHook(const HookType& hook)
     }
 }
 
-bool WebkitHandler::RemoveHook(unsigned long long moduleId)
+bool HttpHookManager::RemoveHook(unsigned long long moduleId)
 {
     std::unique_lock<std::shared_mutex> lock(m_hookListMutex);
     
@@ -192,14 +194,14 @@ bool WebkitHandler::RemoveHook(unsigned long long moduleId)
 }
 
 // Thread-safe request management
-void WebkitHandler::AddRequest(const WebHookItem& request)
+void HttpHookManager::AddRequest(const WebHookItem& request)
 {
     std::unique_lock<std::shared_mutex> lock(m_requestMapMutex);
     m_requestMap->push_back(request);
 }
 
 template<typename Func>
-void WebkitHandler::ProcessRequests(Func processor)
+void HttpHookManager::ProcessRequests(Func processor)
 {
     std::unique_lock<std::shared_mutex> lock(m_requestMapMutex);
     for (auto it = m_requestMap->begin(); it != m_requestMap->end();) {
@@ -212,14 +214,14 @@ void WebkitHandler::ProcessRequests(Func processor)
 }
 
 // Thread-safe socket communication
-void WebkitHandler::PostGlobalMessage(const nlohmann::json& message)
+void HttpHookManager::PostGlobalMessage(const nlohmann::json& message)
 {
     std::lock_guard<std::mutex> lock(m_socketMutex);
     Sockets::PostGlobal(message);
 }
 
 // Exception throttling
-bool WebkitHandler::ShouldLogException()
+bool HttpHookManager::ShouldLogException()
 {
     std::lock_guard<std::mutex> lock(m_exceptionTimeMutex);
     auto now = std::chrono::system_clock::now();
@@ -230,17 +232,17 @@ bool WebkitHandler::ShouldLogException()
     return false;
 }
 
-void WebkitHandler::SetupGlobalHooks() 
+void HttpHookManager::SetupGlobalHooks() 
 {
     PostGlobalMessage({
         { "id", 3242 }, { "method", "Fetch.enable" },
         { "params", {
             { "patterns", {
                 { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Response" } },     
+                { { "urlPattern", fmt::format("{}*", this->m_ipcHookAddress      ) }, { "requestStage", "Request" } },
+                { { "urlPattern", fmt::format("{}*", this->m_ftpHookAddress      ) }, { "requestStage", "Request" } },
                 /** Maintain backwards compatibility for themes that explicitly rely on this url */
                 { { "urlPattern", fmt::format("{}*", this->m_oldHookAddress      ) }, { "requestStage", "Request" } },
-                { { "urlPattern", fmt::format("{}*", "https://millennium.ipc") }, { "requestStage", "Request" } },
-                { { "urlPattern", fmt::format("{}*", this->m_newHookAddress      ) }, { "requestStage", "Request" } },
                 { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } },
                 { { "urlPattern", fmt::format("{}*", this->m_styleSheetVirtualUrl) }, { "requestStage", "Request" } }
             }
@@ -248,32 +250,32 @@ void WebkitHandler::SetupGlobalHooks()
     });
 }
 
-bool WebkitHandler::IsGetBodyCall(const nlohmann::basic_json<>& message) 
+bool HttpHookManager::IsGetBodyCall(const nlohmann::basic_json<>& message) 
 {
     std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
 
     return requestUrl.find(this->m_javaScriptVirtualUrl) != std::string::npos
         || requestUrl.find(this->m_styleSheetVirtualUrl) != std::string::npos
         || requestUrl.find(this->m_oldHookAddress)       != std::string::npos
-        || requestUrl.find(this->m_newHookAddress)       != std::string::npos;
+        || requestUrl.find(this->m_ftpHookAddress)       != std::string::npos;
 }
 
-bool IsIpcCall(const nlohmann::basic_json<>& message) 
+bool HttpHookManager::IsIpcCall(const nlohmann::basic_json<>& message) 
 {
     std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
-    return requestUrl.find("https://millennium.ipc") != std::string::npos;
+    return requestUrl.find(this->m_ipcHookAddress) != std::string::npos;
 }
 
-std::filesystem::path WebkitHandler::ConvertToLoopBack(const std::string& requestUrl)
+std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requestUrl)
 {
     std::string url = requestUrl;
     
-    size_t newPos  = url.find(this->m_newHookAddress);
+    size_t newPos  = url.find(this->m_ftpHookAddress);
     size_t jsPos   = url.find(this->m_javaScriptVirtualUrl);
     size_t cssPos  = url.find(this->m_styleSheetVirtualUrl);
     size_t oldPos  = url.find(this->m_oldHookAddress);
  
-    if      (newPos != std::string::npos) url.erase(newPos, std::string(this->m_newHookAddress).length());
+    if      (newPos != std::string::npos) url.erase(newPos, std::string(this->m_ftpHookAddress).length());
     else if (jsPos != std::string::npos ) url.erase(jsPos, std::string(this->m_javaScriptVirtualUrl).length());
     else if (cssPos != std::string::npos) url.erase(cssPos, std::string(this->m_styleSheetVirtualUrl).length());
     else if (oldPos != std::string::npos) url.erase(oldPos, std::string(this->m_oldHookAddress).length());
@@ -281,7 +283,7 @@ std::filesystem::path WebkitHandler::ConvertToLoopBack(const std::string& reques
     return std::filesystem::path(PathFromUrl(url));
 }
 
-void WebkitHandler::RetrieveRequestFromDisk(const nlohmann::basic_json<>& message)
+void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& message)
 {
     std::string fileContent;
     std::filesystem::path localFilePath = this->ConvertToLoopBack(message["params"]["request"]["url"]);
@@ -307,8 +309,7 @@ void WebkitHandler::RetrieveRequestFromDisk(const nlohmann::basic_json<>& messag
         {
             LOG_ERROR("Failed to read file bytes from disk: {}", error.what());
             bFailedRead = true; /** Force fail even if the file exists. */
-        }
-        
+        }       
     } 
     else 
     {
@@ -337,7 +338,7 @@ void WebkitHandler::RetrieveRequestFromDisk(const nlohmann::basic_json<>& messag
     });
 }
 
-void WebkitHandler::GetResponseBody(const nlohmann::basic_json<>& message)
+void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
 {
     const RedirectType statusCode = message["params"]["responseStatusCode"].get<RedirectType>();
 
@@ -386,7 +387,7 @@ void WebkitHandler::GetResponseBody(const nlohmann::basic_json<>& message)
     }
 }
 
-const std::string WebkitHandler::PatchDocumentContents(const std::string& requestUrl, const std::string& original) 
+const std::string HttpHookManager::PatchDocumentContents(const std::string& requestUrl, const std::string& original) 
 {
     std::string patched = original;
     std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
@@ -414,14 +415,14 @@ const std::string WebkitHandler::PatchDocumentContents(const std::string& reques
             if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
 
-            cssShimContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", UrlFromPath(m_newHookAddress, hookItem.path))); 
+            cssShimContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", UrlFromPath(m_ftpHookAddress, hookItem.path))); 
         }
         else if (hookItem.type == TagTypes::JAVASCRIPT) 
         {
             if (!std::regex_match(requestUrl, hookItem.urlPattern)) 
                 continue;
 
-            auto jsPath = UrlFromPath(this->m_newHookAddress, hookItem.path);
+            auto jsPath = UrlFromPath(this->m_ftpHookAddress, hookItem.path);
             scriptModules.push_back(jsPath);
             linkPreloadsArray.append(fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", jsPath));
         }
@@ -433,7 +434,7 @@ const std::string WebkitHandler::PatchDocumentContents(const std::string& reques
     }
 
     const std::string millenniumAuthToken = GetAuthToken();
-    const std::string ftpPath = UrlFromPath(m_newHookAddress, millenniumPreloadPath.value_or(std::string()));
+    const std::string ftpPath = UrlFromPath(m_ftpHookAddress, millenniumPreloadPath.value_or(std::string()));
     const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}]);", millenniumAuthToken, scriptModuleArray);
 
     linkPreloadsArray.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
@@ -457,7 +458,7 @@ const std::string WebkitHandler::PatchDocumentContents(const std::string& reques
     return patched.replace(patched.find("<head>"), 6, "<head>" + shimContent);
 }
 
-void WebkitHandler::HandleHooks(const nlohmann::basic_json<>& message)
+void HttpHookManager::HandleHooks(const nlohmann::basic_json<>& message)
 {
     ProcessRequests([&](auto requestIterator) -> bool
     {
@@ -465,15 +466,15 @@ void WebkitHandler::HandleHooks(const nlohmann::basic_json<>& message)
         {
             auto [id, requestId, type, response] = (*requestIterator);
            
-            int64_t messageId = message.value("/id"_json_pointer, int64_t(0));
-            bool base64Encoded = message.value("/result/base64Encoded"_json_pointer, false);
+            int64_t messageId = message.value(json::json_pointer("/id"), int64_t(0));
+            bool base64Encoded = message.value(json::json_pointer("/result/base64Encoded"), false);
            
             if (messageId != id || (messageId == id && !base64Encoded)) {
                 return false; 
             }
            
-            std::string requestUrl = response.value("/params/request/url"_json_pointer, std::string{});
-            std::string responseBody = message.value("/result/body"_json_pointer, std::string{});
+            std::string requestUrl = response.value(json::json_pointer("/params/request/url"), std::string{});
+            std::string responseBody = message.value(json::json_pointer("/result/body"), std::string{});
            
             if (requestUrl.empty() || responseBody.empty()) {
                 return true; 
@@ -482,9 +483,9 @@ void WebkitHandler::HandleHooks(const nlohmann::basic_json<>& message)
             const std::string patchedContent = this->PatchDocumentContents(requestUrl, Base64Decode(responseBody));
             BypassCSP();
            
-            const int responseCode = response.value("/params/responseStatusCode"_json_pointer, 200);
-            const std::string responseMessage = response.value("/params/responseStatusText"_json_pointer, std::string{"OK"});
-            nlohmann::json responseHeaders = response.value("/params/responseHeaders"_json_pointer, nlohmann::json::array());
+            const int responseCode = response.value(json::json_pointer("/params/responseStatusCode"), 200);
+            const std::string responseMessage = response.value(json::json_pointer("/params/responseStatusText"), std::string{"OK"});
+            nlohmann::json responseHeaders = response.value(json::json_pointer("/params/responseHeaders"), nlohmann::json::array());
            
             PostGlobalMessage({
                 { "id", 63453 },
@@ -512,7 +513,7 @@ void WebkitHandler::HandleHooks(const nlohmann::basic_json<>& message)
     });
 }
 
-void WebkitHandler::HandleIpcMessage(nlohmann::json message)
+void HttpHookManager::HandleIpcMessage(nlohmann::json message)
 {
     nlohmann::json responseJson = {
         { "id", 63453 },
@@ -532,13 +533,13 @@ void WebkitHandler::HandleIpcMessage(nlohmann::json message)
     };
 
     /** If the HTTP method is OPTIONS, we don't need to require auth token */
-    if (message.value("/params/request/method"_json_pointer, "") == "OPTIONS")
+    if (message.value(json::json_pointer("/params/request/method"), std::string{}) == "OPTIONS")
     {
         this->PostGlobalMessage(responseJson);
         return;
     }
-    
-    std::string authToken = message.value("/params/request/headers/X-Millennium-Auth"_json_pointer, "");
+
+    std::string authToken = message.value(json::json_pointer("/params/request/headers/X-Millennium-Auth"), std::string{});
     if (authToken.empty() || GetAuthToken() != authToken) 
     {
         LOG_ERROR("Invalid or missing X-Millennium-Auth in IPC request.");
@@ -548,7 +549,7 @@ void WebkitHandler::HandleIpcMessage(nlohmann::json message)
     }
 
     nlohmann::json postData;
-    std::string strPostData = message.value("/params/request/postData"_json_pointer, "");
+    std::string strPostData = message.value(json::json_pointer("/params/request/postData"), std::string{});
 
     if (!strPostData.empty()) 
     {
@@ -594,7 +595,7 @@ void WebkitHandler::HandleIpcMessage(nlohmann::json message)
     this->PostGlobalMessage(responseJson);
 }
 
-void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
+void HttpHookManager::DispatchSocketMessage(nlohmann::basic_json<> message)
 {
     try 
     {
@@ -602,7 +603,7 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
         {
             if (IsIpcCall(message)) 
             {
-                std::thread(std::bind(&WebkitHandler::HandleIpcMessage, this, std::move(message))).detach();
+                std::thread(std::bind(&HttpHookManager::HandleIpcMessage, this, std::move(message))).detach();
                 return;
             }
 
@@ -630,3 +631,5 @@ void WebkitHandler::DispatchSocketMessage(nlohmann::basic_json<> message)
         }
     }
 }
+
+HttpHookManager::HttpHookManager() : m_hookListPtr(std::make_shared<std::vector<HookType>>()), m_requestMap(std::make_shared<std::vector<WebHookItem>>()) { }

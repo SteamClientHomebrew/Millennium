@@ -38,7 +38,7 @@
 #include "ipc.h"
 #include "ffi.h"
 #include "http.h"
-#include "web_load.h"
+#include "http_hooks.h"
 #include "log.h"
 #include "logger.h"
 #include <env.h>
@@ -108,7 +108,7 @@ MILLENNIUM void Sockets::Shutdown()
 
 class MILLENNIUM CEFBrowser
 {
-    WebkitHandler& webKitHandler;
+    HttpHookManager& webKitHandler;
     bool m_sharedJsConnected = false;
 
     std::chrono::system_clock::time_point m_startTime;
@@ -173,7 +173,7 @@ public:
         webKitHandler.SetupGlobalHooks();
     }
 
-    MILLENNIUM CEFBrowser() : webKitHandler(WebkitHandler::get()) {}
+    MILLENNIUM CEFBrowser() : webKitHandler(HttpHookManager::get()) {}
 };
 
 MILLENNIUM const void PluginLoader::Initialize()
@@ -218,7 +218,7 @@ MILLENNIUM const void PluginLoader::InjectWebkitShims()
     /** Clear all previous hooks if there are any */
     if (!hookIds.empty())
     {
-        std::vector<WebkitHandler::HookType, std::allocator<WebkitHandler::HookType>> moduleList = WebkitHandler::get().GetHookListCopy();
+        std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::get().GetHookListCopy();
 
         for (auto it = moduleList.begin(); it != moduleList.end();)
         {
@@ -230,7 +230,7 @@ MILLENNIUM const void PluginLoader::InjectWebkitShims()
             else ++it;
         }
 
-        WebkitHandler::get().SetHookList(std::make_shared<std::vector<WebkitHandler::HookType>>(moduleList));
+        HttpHookManager::get().SetHookList(std::make_shared<std::vector<HttpHookManager::HookType>>(moduleList));
     }
 
     const auto allPlugins = this->m_settingsStorePtr->ParseAllPlugins();
@@ -247,7 +247,7 @@ MILLENNIUM const void PluginLoader::InjectWebkitShims()
             hookIds.push_back(g_hookedModuleId);
 
             Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId.load());
-            WebkitHandler::get().AddHook({ absolutePath.generic_string(), std::regex(".*"), WebkitHandler::TagTypes::JAVASCRIPT, g_hookedModuleId });
+            HttpHookManager::get().AddHook({ absolutePath.generic_string(), std::regex(".*"), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
         }
     }
 }

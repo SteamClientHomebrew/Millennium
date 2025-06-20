@@ -243,7 +243,7 @@ set(SOURCE_FILES
   "src/core/_js_interop.cc"
   "src/core/co_stub.cc"
   "src/core/events.cc"
-  "src/core/web_load.cc"
+  "src/core/http_hooks.cc"
   "src/core/ipc.cc"
   "src/core/secure_socket.cc"
   "src/sys/log.cc"

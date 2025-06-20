@@ -40,10 +40,10 @@
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 
-class WebkitHandler
+class HttpHookManager
 {
 public:
-    static WebkitHandler& get();
+    static HttpHookManager& get();
     
     enum TagTypes {
         STYLESHEET,
@@ -75,11 +75,11 @@ public:
     std::vector<HookType> GetHookListCopy() const;
 
     // Delete copy constructor and assignment operator for singleton
-    WebkitHandler(const WebkitHandler&) = delete;
-    WebkitHandler& operator=(const WebkitHandler&) = delete;
+    HttpHookManager(const HttpHookManager&) = delete;
+    HttpHookManager& operator=(const HttpHookManager&) = delete;
 
 private:
-    WebkitHandler() = default;
+    HttpHookManager();
     
     // Thread synchronization
     mutable std::shared_mutex m_hookListMutex;
@@ -94,15 +94,16 @@ private:
     // Exception throttling
     std::chrono::time_point<std::chrono::system_clock> m_lastExceptionTime;
     
+    const char* m_ftpHookAddress       = "https://millennium.ftp/";
+    const char* m_ipcHookAddress       = "https://millennium.ipc/";
+
     /** Maintain backwards compatibility for themes that explicitly rely on this url */
     const char* m_oldHookAddress       = "https://pseudo.millennium.app/";
-    const char* m_newHookAddress       = "https://millennium.ftp/";
-    /** New hook URLS (1/21/2025) */
     const char* m_javaScriptVirtualUrl = "https://js.millennium.app/";
     const char* m_styleSheetVirtualUrl = "https://css.millennium.app/";
     
     // Protected data structures
-    std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
+    std::shared_ptr<std::vector<HookType>> m_hookListPtr;
     
     struct WebHookItem {
         long long id;
@@ -110,9 +111,10 @@ private:
         std::string type;
         nlohmann::basic_json<> message;
     };
-    std::shared_ptr<std::vector<WebHookItem>> m_requestMap = std::make_shared<std::vector<WebHookItem>>();
+    std::shared_ptr<std::vector<WebHookItem>> m_requestMap;
     
     // Private methods
+    bool IsIpcCall(const nlohmann::basic_json<>& message);
     bool IsGetBodyCall(const nlohmann::basic_json<>& message);
     std::string HandleCssHook(const std::string& body);
     std::string HandleJsHook(const std::string& body);
