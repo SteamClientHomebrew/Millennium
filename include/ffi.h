@@ -68,11 +68,10 @@ namespace Python {
 		Types type;
 	};
 
-	std::string ConstructFunctionCall(nlohmann::basic_json<> data);
     std::tuple<std::string, std::string> ActiveExceptionInformation();
 
-	EvalResult LockGILAndEvaluate(std::string pluginName, std::string script);
-	void LockGILAndDiscardEvaluate(std::string pluginName, std::string script);
+	EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
+	void CallFrontEndLoaded(std::string pluginName);
 }
 
 namespace JavaScript {

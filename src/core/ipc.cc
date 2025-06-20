@@ -31,16 +31,19 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
-#include "pipe.h"
+#include "ipc.h"
 #include "ffi.h"
 #include "encoding.h"
-#include "pipe.h"
 #include <functional>
 #include "asio.h"
 #include "locals.h"
 #include "fvisible.h"
+#include <fmt/core.h>
+#include "co_spawn.h"
+#include <secure_socket.h>
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
+
 
 /**
  * Calls a server method based on the provided JSON message and returns a response.
@@ -60,15 +63,13 @@ typedef websocketpp::server<websocketpp::config::asio> socketServer;
  */
 MILLENNIUM nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 {
-    const std::string fnCallScript = Python::ConstructFunctionCall(message["data"]);
-
     if (!message["data"].contains("pluginName")) 
     {
         LOG_ERROR("no plugin backend specified, doing nothing...");
         return {};
     }
 
-    Python::EvalResult response = Python::LockGILAndEvaluate(message["data"]["pluginName"], fnCallScript);
+    Python::EvalResult response = Python::LockGILAndInvokeMethod(message["data"]["pluginName"], message["data"]);
     nlohmann::json responseMessage;
 
     responseMessage["returnType"] = response.type;
@@ -116,7 +117,7 @@ MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
             if (plugin.pluginJson.value("useBackend", true)) 
             {  
                 Logger.Log("Delegating frontend load for plugin: {}", pluginName);
-                Python::LockGILAndDiscardEvaluate(pluginName, "plugin._front_end_loaded()");
+                Python::CallFrontEndLoaded(pluginName);
             }
             break;
         }
@@ -129,6 +130,7 @@ MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
     });
 }
 
+
 /**
  * Handles incoming WebSocket messages and dispatches them to the appropriate handler function.
  *
@@ -140,95 +142,33 @@ MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
  * such as `CallServerMethod` or `OnFrontEndLoaded`. If any exceptions are caught, they are sent back
  * as error messages.
  */
-MILLENNIUM void OnMessage(socketServer* serv, websocketpp::connection_hdl hdl, socketServer::message_ptr msg) 
+MILLENNIUM nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload) 
 {
-    socketServer::connection_ptr serverConnection = serv->get_con_from_hdl(hdl);
-
     try
     {
-        auto json_data = nlohmann::json::parse(msg->get_payload());
-        std::string responseMessage;
+        nlohmann::json responseMessage;
 
-        switch (json_data["id"].get<int>()) 
+        switch (jsonPayload["id"].get<int>()) 
         {
             case IPCMain::Builtins::CALL_SERVER_METHOD: 
             {
-                responseMessage = CallServerMethod(json_data).dump(); 
+                responseMessage = CallServerMethod(jsonPayload); 
                 break;
             }
             case IPCMain::Builtins::FRONT_END_LOADED: 
             {
-                responseMessage = OnFrontEndLoaded(json_data).dump(); 
+                responseMessage = OnFrontEndLoaded(jsonPayload); 
                 break;
             }
         }
-        serverConnection->send(responseMessage, msg->get_opcode());
+        return responseMessage;
     }
     catch (nlohmann::detail::exception& ex) 
     {
-        serverConnection->send(std::string(ex.what()), msg->get_opcode());
+        return {{ "error", fmt::format("JSON parsing error: {}", ex.what()), "type", IPCMain::ErrorType::INTERNAL_ERROR }};
     }
     catch (std::exception& ex) 
     {
-        serverConnection->send(std::string(ex.what()), msg->get_opcode());
+        return {{ "error", fmt::format("An error occurred while processing the message: {}", ex.what())}, {"type", IPCMain::ErrorType::INTERNAL_ERROR }};
     }
-}
-
-/**
- * Handles the WebSocket connection open event, starting the server's accept loop.
- */
-MILLENNIUM void OnOpen(socketServer* IPCSocketMain, websocketpp::connection_hdl hdl) 
-{
-    IPCSocketMain->start_accept();
-}
-
-/**
- * Opens a WebSocket server for IPC communication on a specified port.
- *
- * @param {uint16_t} ipcPort - The port number to open the WebSocket server on.
- * @returns {int} - Returns `true` if the WebSocket server was successfully opened, `false` if an error occurred.
- * 
- * This function initializes a WebSocket server, sets up necessary handlers for incoming messages and connections,
- * listens on the specified port, and runs the server. If any exceptions occur during initialization or handling,
- * they are caught and logged.
- */
-MILLENNIUM const int OpenIPCSocket(uint16_t ipcPort) 
-{
-    socketServer IPCSocketMain;
-
-    try 
-    {
-        IPCSocketMain.set_access_channels(websocketpp::log::alevel::none);
-        IPCSocketMain.clear_error_channels(websocketpp::log::elevel::none);
-        IPCSocketMain.set_error_channels(websocketpp::log::elevel::none);
-
-        IPCSocketMain.init_asio();
-        IPCSocketMain.set_message_handler(bind(OnMessage, &IPCSocketMain, std::placeholders::_1, std::placeholders::_2));
-        IPCSocketMain.set_open_handler(bind(&OnOpen, &IPCSocketMain, std::placeholders::_1));
-
-        IPCSocketMain.listen(ipcPort);
-        IPCSocketMain.start_accept();
-        IPCSocketMain.run();
-    }
-    catch (const std::exception& error) 
-    {
-        LOG_ERROR("[ipcMain] uncaught error -> {}", error.what());
-        return false;
-    }
-    return true;
-}
-
-/**
- * Opens an asynchronous WebSocket connection for IPC communication.
- *
- * @returns {uint16_t} - The port number on which the WebSocket server is running.
- * 
- * This function obtains a random open port, initializes the WebSocket server, and runs it in a separate thread.
- * The assigned port number is returned.
- */
-MILLENNIUM const uint16_t IPCMain::OpenConnection()
-{
-    uint16_t ipcPort = Asio::GetRandomOpenPort();
-    std::thread(OpenIPCSocket, ipcPort).detach();
-    return ipcPort;
 }

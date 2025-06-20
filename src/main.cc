@@ -41,7 +41,6 @@
 #include <log.h>
 #include "loader.h"
 #include "co_spawn.h"
-#include <serv.h>
 #include <signal.h>
 #include <cxxabi.h>
 #include "terminal_pipe.h"
@@ -289,15 +288,10 @@ const static void EntryMain()
     WinUtils::SetupWin32Environment();  
     #endif 
 
-    /**
-     * Create an FTP server to allow plugins to be loaded from the host machine.
-     */
-    uint16_t ftpPort = Crow::CreateAsyncServer();
-
     const auto startTime = std::chrono::system_clock::now();
     VerifyEnvironment();
 
-    std::shared_ptr<PluginLoader> loader = std::make_shared<PluginLoader>(startTime, ftpPort);
+    std::shared_ptr<PluginLoader> loader = std::make_shared<PluginLoader>(startTime);
     SetPluginLoader(loader);
 
     PythonManager& manager = PythonManager::GetInstance();

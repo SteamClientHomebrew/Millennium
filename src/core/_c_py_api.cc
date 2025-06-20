@@ -152,17 +152,8 @@ MILLENNIUM PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
     }
 
     bool success = false;
-    const auto moduleList = WebkitHandler::get().m_hookListPtr;
+    WebkitHandler::get().RemoveHook(moduleId);
 
-    for (auto it = moduleList->begin(); it != moduleList->end();)
-    {
-        if (it->id == moduleId) 
-        {
-            it = moduleList->erase(it);
-            success = true;
-        } 
-        else ++it;
-    }
     return PyBool_FromLong(success);
 }
 
@@ -182,7 +173,7 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
 
     try 
     {
-        WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+        WebkitHandler::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
     } 
     catch (const std::regex_error& e) 
     {

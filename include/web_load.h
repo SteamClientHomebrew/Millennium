@@ -33,27 +33,30 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 #include <mutex>
+#include <shared_mutex>
+#include <atomic>
 #include <regex>
+#include <filesystem>
 
-extern unsigned long long g_hookedModuleId;
+extern std::atomic<unsigned long long> g_hookedModuleId;
 
-class WebkitHandler 
+class WebkitHandler
 {
 public:
-    static WebkitHandler get();
-
+    static WebkitHandler& get();
+    
     enum TagTypes {
         STYLESHEET,
         JAVASCRIPT
     };
-
+    
     struct HookType {
         std::string path;
         std::regex urlPattern;
         TagTypes type;
         unsigned long long id;
     };
-
+    
     enum RedirectType {
         REDIRECT = 301,
         MOVED_PERMANENTLY = 302,
@@ -62,44 +65,68 @@ public:
         PERMANENT_REDIRECT = 308
     };
 
-    std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
-
     void DispatchSocketMessage(nlohmann::basic_json<> message);
     void SetupGlobalHooks();
+    void AddHook(const HookType& hook);
+    bool RemoveHook(unsigned long long hookId);
 
-    void SetIPCPort(uint16_t ipcPort) { m_ipcPort = ipcPort; }
-    void SetFTPPort(uint16_t ftpPort) { m_ftpPort = ftpPort; }
+    // Thread-safe hook list operations
+    void SetHookList(std::shared_ptr<std::vector<HookType>> hookList);
+    std::vector<HookType> GetHookListCopy() const;
+
+    // Delete copy constructor and assignment operator for singleton
+    WebkitHandler(const WebkitHandler&) = delete;
+    WebkitHandler& operator=(const WebkitHandler&) = delete;
 
 private:
-    uint16_t m_ipcPort, m_ftpPort;
-    long long hookMessageId = -69;
+    WebkitHandler() = default;
+    
+    // Thread synchronization
+    mutable std::shared_mutex m_hookListMutex;
+    mutable std::shared_mutex m_requestMapMutex;
+    mutable std::mutex m_socketMutex;
+    mutable std::mutex m_configMutex;
+    mutable std::mutex m_exceptionTimeMutex;
+    
 
+    std::atomic<long long> hookMessageId{-69};
+    
+    // Exception throttling
+    std::chrono::time_point<std::chrono::system_clock> m_lastExceptionTime;
+    
     /** Maintain backwards compatibility for themes that explicitly rely on this url */
     const char* m_oldHookAddress       = "https://pseudo.millennium.app/";
-
+    const char* m_newHookAddress       = "https://millennium.ftp/";
     /** New hook URLS (1/21/2025) */
     const char* m_javaScriptVirtualUrl = "https://js.millennium.app/";
     const char* m_styleSheetVirtualUrl = "https://css.millennium.app/";
-
-    bool IsGetBodyCall(nlohmann::basic_json<> message);
-
-    std::string HandleCssHook(std::string body);
-    std::string HandleJsHook(std::string body);
-
-    const std::string PatchDocumentContents(std::string requestUrl, std::string original);
-    void HandleHooks(nlohmann::basic_json<> message);
-
-    void RetrieveRequestFromDisk(nlohmann::basic_json<> message);
-    void GetResponseBody(nlohmann::basic_json<> message);
-
-    std::filesystem::path ConvertToLoopBack(std::string requestUrl);
-
+    
+    // Protected data structures
+    std::shared_ptr<std::vector<HookType>> m_hookListPtr = std::make_shared<std::vector<HookType>>();
+    
     struct WebHookItem {
         long long id;
         std::string requestId;
         std::string type;
         nlohmann::basic_json<> message;
     };
-
     std::shared_ptr<std::vector<WebHookItem>> m_requestMap = std::make_shared<std::vector<WebHookItem>>();
+    
+    // Private methods
+    bool IsGetBodyCall(const nlohmann::basic_json<>& message);
+    std::string HandleCssHook(const std::string& body);
+    std::string HandleJsHook(const std::string& body);
+    const std::string PatchDocumentContents(const std::string& requestUrl, const std::string& original);
+    void HandleHooks(const nlohmann::basic_json<>& message);
+    void RetrieveRequestFromDisk(const nlohmann::basic_json<>& message);
+    void GetResponseBody(const nlohmann::basic_json<>& message);
+    void HandleIpcMessage(nlohmann::json message);
+    std::filesystem::path ConvertToLoopBack(const std::string& requestUrl);
+    
+    // Thread-safe utilities
+    void PostGlobalMessage(const nlohmann::json& message);
+    bool ShouldLogException();
+    void AddRequest(const WebHookItem& request);
+    template<typename Func>
+    void ProcessRequests(Func processor);
 };
