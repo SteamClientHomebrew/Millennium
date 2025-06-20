@@ -70,21 +70,15 @@ jobs:
             - name: (Setup) Construct Python Environment
               run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
 
-            - name: Set up cache for Python source
-              uses: actions/cache@v3
-              id: build-cache
-              with:
-                  path: Python-3.11.8/PCbuild/win32
-                  key: ${{ runner.os }}-python-3.11.8-build
-                  restore-keys: ${{ runner.os }}-python-3.11.8-build-
-
-            - name: (Python) Add msbuild to PATH
-              if: steps.build-cache.outputs.cache-hit != 'true'
-              uses: microsoft/setup-msbuild@v2
-
             - name: (Python) Download 3.11.8 win32 source
-              if: steps.build-cache.outputs.cache-hit != 'true'
-              run: . scripts\ci\win32\build-python.ps1
+              run: |
+                  Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.0.7/python-windows.zip" -OutFile "python-windows.zip"
+                  Expand-Archive -Path "python-windows.zip" -DestinationPath "./Python-3.11.8" -Force
+
+                  Copy-Item ./Python-3.11.8/python311.dll ./build/python/python311.dll
+                  Copy-Item ./Python-3.11.8/python311_d.dll ./build/python/python311_d.dll
+                  Copy-Item ./Python-3.11.8/python311.lib ./build/python/python311.lib
+                  Copy-Item ./Python-3.11.8/python311_d.lib ./build/python/python311_d.lib
 
             - name: Install prerequisites
               uses: msys2/setup-msys2@v2
@@ -114,7 +108,7 @@ jobs:
               run: |
                   mkdir ./build/artifacts
                   cmake --build build --config Release -- -j$(nproc)
-                  cp ./Python-3.11.8/PCbuild/win32/python311.dll D:/a/env/python311.dll
+                  cp ./Python-3.11.8/python311.dll D:/a/env/python311.dll
                   cp ./build/preload/user32.dll  D:/a/env/user32.dll
                   cp ./build/millennium.dll D:/a/env/millennium.dll
                   mkdir D:/a/env/ext/bin
