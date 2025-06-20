@@ -98,7 +98,7 @@ namespace CoInitializer
 		std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
 	};
 
-	const void InjectFrontendShims(uint16_t ftpPort = 0, uint16_t ipcPort = 0, bool reloadFrontend = true);
+	const void InjectFrontendShims(bool reloadFrontend = true);
 	const void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend = true);
 	const void BackendStartCallback(SettingsStore::PluginTypeSchema plugin);
 }

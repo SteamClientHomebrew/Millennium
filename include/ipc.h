@@ -30,6 +30,7 @@
 
 #pragma once
 #include <nlohmann/json.hpp>
+#include "fvisible.h"
 
 extern "C" 
 {
@@ -41,6 +42,12 @@ extern "C"
 			FRONT_END_LOADED
 		};
 
-		const uint16_t OpenConnection();
+		enum ErrorType 
+		{
+			AUTHENTICATION_ERROR,
+			INTERNAL_ERROR
+		};
+
+		MILLENNIUM nlohmann::json HandleEventMessage(nlohmann::json jsonPayload);
 	}
 }

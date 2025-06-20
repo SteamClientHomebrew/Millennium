@@ -46,7 +46,7 @@ extern std::shared_ptr<InterpreterMutex> g_threadTerminateFlag;
 class PluginLoader {
 public:
 
-	PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort);
+	PluginLoader(std::chrono::system_clock::time_point startTime);
 	// ~PluginLoader();
 
 	const void StartBackEnds(PythonManager& manager);
@@ -62,7 +62,6 @@ private:
 	std::unique_ptr<SettingsStore> m_settingsStorePtr;
 	std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;
 	std::chrono::system_clock::time_point m_startTime;
-	uint16_t m_ftpPort, m_ipcPort;
 
 	std::vector<std::thread> m_threadPool;
 };

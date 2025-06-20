@@ -88,7 +88,7 @@ public:
  * Error Handling:
  * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
  */
-MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t ftpPort, const uint16_t ipcPort)
+MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
 {
     std::string scriptModuleArray;
     std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
@@ -108,8 +108,8 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
 
     const std::string millenniumAuthToken = GetAuthToken();
 
-    const std::string ftpPath = UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), millenniumPreloadPath.value_or(std::string()));
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader({}, '{}', [{}]);", ipcPort, millenniumAuthToken, scriptModuleArray);
+    const std::string ftpPath = UrlFromPath("https://millennium.ftp/", millenniumPreloadPath.value_or(std::string()));
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}]);", millenniumAuthToken, scriptModuleArray);
 
     return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
 }
@@ -474,8 +474,6 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
 /**
  * Constructs a module for loading plugins based on the given FTP and IPC ports.
  *
- * @param {uint16_t} ftpPort - The FTP port used for accessing the frontend files.
- * @param {uint16_t} ipcPort - The IPC port used for communication.
  * @returns {std::string} - A string representing the constructed module containing the list of plugin URLs and bootstrap configuration.
  *
  * This function performs the following tasks:
@@ -486,7 +484,7 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
  *
  * The constructed module is returned as a string.
  */
-MILLENNIUM const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort) 
+MILLENNIUM const std::string ConstructOnLoadModule() 
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
@@ -501,10 +499,10 @@ MILLENNIUM const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ip
         }
 
         const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
-        scriptImportTable.push_back(UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), frontEndAbs));
+        scriptImportTable.push_back(UrlFromPath("https://millennium.ftp/", frontEndAbs));
     }
 
-    return GetBootstrapModule(scriptImportTable, ftpPort, ipcPort);
+    return GetBootstrapModule(scriptImportTable);
 }
 
 /**
@@ -576,9 +574,6 @@ MILLENNIUM const void UnPatchSharedJSContext()
 
 /**
  * Notifies the frontend of the backend load and handles script injection and state updates.
- *
- * @param {uint16_t} ftpPort - The FTP port used to access frontend resources.
- * @param {uint16_t} ipcPort - The IPC port used for backend communication.
  * 
  * This function performs the following tasks:
  * 1. Logs the start of the backend load notification process.
@@ -593,13 +588,10 @@ MILLENNIUM const void UnPatchSharedJSContext()
  * Error Handling:
  * - If any issues occur during the message processing, errors are logged with details.
  */
-MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort, bool reloadFrontend)
+MILLENNIUM void OnBackendLoad(bool reloadFrontend)
 {
     UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
-
-    static uint16_t m_ftpPort = ftpPort;
-    static uint16_t m_ipcPort = ipcPort;
 
     enum PageMessage
     {
@@ -621,7 +613,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort, bool reloadFro
             if (messageId == PAGE_ENABLE)
             {
                 Logger.Log("Injecting script to evaluate on new document...");
-                Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
+                Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule() }}} });
             }
             if (messageId == PAGE_SCRIPT)
             {
@@ -669,13 +661,11 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort, bool reloadFro
  * 
  * This function injects the frontend shims by registering a callback function to be called when the backend is loaded.
  * 
- * @param {uint16_t} ftpPort - The FTP port used to access frontend resources.
- * @param {uint16_t} ipcPort - The IPC port used for backend communication.
  */
-MILLENNIUM const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort, bool reloadFrontend) 
+MILLENNIUM const void CoInitializer::InjectFrontendShims(bool reloadFrontend) 
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
-    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort, reloadFrontend));
+    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, reloadFrontend));
 }
 
 /**

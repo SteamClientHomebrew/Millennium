@@ -47,6 +47,7 @@ function ThemeIdModal({ tutorialImageUrl, installer, modal }: ThemeIdModalProps)
 async function cacheImage(url: string) {
 	return new Promise((resolve, reject) => {
 		const img = new Image();
+		img.referrerPolicy = 'origin';
 		img.src = url;
 		img.onload = () => resolve(img);
 		img.onerror = (err) => reject(err);

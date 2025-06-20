@@ -109,6 +109,7 @@
 		"resumable": "cpp",
 		"queue": "cpp",
 		"*.in": "cpp",
-		"stack": "cpp"
+		"stack": "cpp",
+		"shared_mutex": "cpp"
 	}
 }
