@@ -308,7 +308,7 @@ if(WIN32)
   target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp)
 
   if(GITHUB_ACTION_BUILD)
-    target_link_libraries(Millennium "${CMAKE_SOURCE_DIR}/Python-3.11.8/PCbuild/win32/python311.lib")
+    target_link_libraries(Millennium "${CMAKE_SOURCE_DIR}/Python-3.11.8/python3.lib")
   else()
     target_link_libraries(Millennium ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
   endif()
