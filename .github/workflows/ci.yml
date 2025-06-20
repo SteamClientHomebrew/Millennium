@@ -49,9 +49,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: (Setup) Get Next Version
-              run: |
-                  npx semantic-release --dry-run
-                  . scripts\ci\win32\version.ps1
+              run: . scripts\ci\win32\version.ps1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
