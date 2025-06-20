@@ -35,4 +35,3 @@
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
 const std::string GetAuthToken();
-std::string GetProcessNameFromConnectionHandle(socketServer* serv, websocketpp::connection_hdl hdl);
