@@ -603,7 +603,15 @@ void HttpHookManager::DispatchSocketMessage(nlohmann::basic_json<> message)
         {
             if (IsIpcCall(message)) 
             {
-                std::thread(std::bind(&HttpHookManager::HandleIpcMessage, this, std::move(message))).detach();
+                if (m_threadPool) {
+                    m_threadPool->enqueue([this, msg = std::move(message)]() {
+                        this->HandleIpcMessage(std::move(msg));
+                    });
+                }
+                else 
+                {
+                    LOG_ERROR("Thread pool is not initialized, cannot handle IPC message.");
+                }
                 return;
             }
 
@@ -632,4 +640,69 @@ void HttpHookManager::DispatchSocketMessage(nlohmann::basic_json<> message)
     }
 }
 
-HttpHookManager::HttpHookManager() : m_hookListPtr(std::make_shared<std::vector<HookType>>()), m_requestMap(std::make_shared<std::vector<WebHookItem>>()) { }
+HttpHookManager::ThreadPool::ThreadPool(size_t numThreads) 
+{
+    for (size_t i = 0; i < numThreads; ++i) 
+    {
+        workers.emplace_back([this] 
+        {
+            while (true) 
+            {
+                std::function<void()> task;
+                {
+                    std::unique_lock<std::mutex> lock(queueMutex);
+                    condition.wait(lock, [this] { return stop || !tasks.empty(); });
+                    
+                    if (stop && tasks.empty()) return;
+                    
+                    task = std::move(tasks.front());
+                    tasks.pop();
+                }
+                task();
+            }
+        });
+    }
+}
+
+HttpHookManager::ThreadPool::~ThreadPool() 
+{
+    shutdown();
+}
+
+void HttpHookManager::ThreadPool::shutdown() 
+{
+    {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        stop = true;
+    }
+    condition.notify_all();
+    
+    for (std::thread& worker : workers) 
+    {
+        if (worker.joinable()) 
+        {
+            worker.join();
+        }
+    }
+}
+
+template<typename F>
+void HttpHookManager::ThreadPool::enqueue(F&& f) 
+{
+    {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        if (stop) return; // Don't accept new tasks if shutting down
+        tasks.emplace(std::forward<F>(f));
+    }
+    condition.notify_one();
+}
+
+HttpHookManager::HttpHookManager() : m_hookListPtr(std::make_shared<std::vector<HookType>>()), m_requestMap(std::make_shared<std::vector<WebHookItem>>()), m_lastExceptionTime{}, m_threadPool(std::make_unique<ThreadPool>(2)) // 2 threads for IPC
+{ }
+
+HttpHookManager::~HttpHookManager() 
+{
+    // Ensure all threads are joined or completed before destruction
+    m_hookListPtr.reset();
+    m_requestMap.reset();
+}

@@ -29,14 +29,20 @@
  */
 
 #pragma once
-#include <string>
-#include <nlohmann/json.hpp>
-#include <vector>
+#include <thread>
+#include <queue>
+#include <condition_variable>
 #include <mutex>
 #include <shared_mutex>
 #include <atomic>
+#include <functional>
+#include <memory>
+#include <vector>
+#include <string>
 #include <regex>
 #include <filesystem>
+#include <chrono>
+#include <nlohmann/json.hpp>
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 
@@ -80,6 +86,26 @@ public:
 
 private:
     HttpHookManager();
+    ~HttpHookManager();
+
+    class ThreadPool {
+    public:
+        ThreadPool(size_t numThreads = 4);
+        ~ThreadPool();
+        
+        template<typename F>
+        void enqueue(F&& f);
+        void shutdown();
+        
+    private:
+        std::vector<std::thread> workers;
+        std::queue<std::function<void()>> tasks;
+        std::mutex queueMutex;
+        std::condition_variable condition;
+        std::atomic<bool> stop{false};
+    };
+    
+    std::unique_ptr<ThreadPool> m_threadPool;
     
     // Thread synchronization
     mutable std::shared_mutex m_hookListMutex;
