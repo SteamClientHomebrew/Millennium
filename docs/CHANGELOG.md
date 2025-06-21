@@ -1,3 +1,17 @@
+# [2.26.0-beta.5](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.4...v2.26.0-beta.5) (2025-06-21)
+
+
+### Bug Fixes
+
+* Remove vcpkg cache from CI ([dd3d74d](https://github.com/SteamClientHomebrew/Millennium/commit/dd3d74d9eac5a29cad773d2eeb5bc46de7b2dfd1))
+* **security:** Prevent FFI from directly executing raw python code. ([d338e25](https://github.com/SteamClientHomebrew/Millennium/commit/d338e2529d4a6235e0e11ba31555cfa8b2b63cf0))
+
+
+### Features
+
+* Add authentication to IPC, and block external apps from connecting to it. ([2f58684](https://github.com/SteamClientHomebrew/Millennium/commit/2f586844921df29155a6b5f9692e3e06d02e1b84))
+* Completely virtual FTP and IPC making them inaccessible outside of Steam. ([a5ede25](https://github.com/SteamClientHomebrew/Millennium/commit/a5ede254cd524ece3474604ae1bb6e943dda54a3))
+
 # [2.26.0-beta.4](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.3...v2.26.0-beta.4) (2025-06-13)
 
 
