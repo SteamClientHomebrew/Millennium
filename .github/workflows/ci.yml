@@ -33,27 +33,27 @@ jobs:
                       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
                       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-            - name: ⬇️ Checkout repository
+            - name: ⚙️ Checkout repository
               uses: actions/checkout@v4
               with:
                   submodules: true
 
-            - name: ⬇️ Download Node.js
+            - name: ⚙️ Download Node.js
               uses: actions/setup-node@v3
               with:
                   node-version: 20
 
-            - name: ⬇️ Download Semantic Release
+            - name: ⚙️ Download Semantic Release
               run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: 🧰 Get Next Version
+            - name: ⚙️ Get Next Version
               run: . scripts\ci\win32\version.ps1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: ⬇️ Download Python Dependencies
+            - name: ⚙️ Download Python Dependencies
               run: |
                   Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.0.9/python-windows.zip" -OutFile "python-windows.zip"
                   Expand-Archive -Path "python-windows.zip" -DestinationPath "./Python-3.11.8" -Force
@@ -64,17 +64,17 @@ jobs:
                   Copy-Item ./Python-3.11.8/artifacts/windows/python311.lib ./build/python/python311.lib
                   Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.lib ./build/python/python311_d.lib
 
-            - name: ⬇️ Download Msys2
+            - name: ⚙️ Download Msys2
               uses: msys2/setup-msys2@v2
               with:
                   msystem: mingw32
                   install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja unzip
 
-            - name: ⬇️ Install VCPKG
+            - name: ⚙️ Install VCPKG
               shell: pwsh
               run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
 
-            - name: Install Node.js and npm
+            - name: ⚙️ Install Node
               shell: msys2 {0}
               run: |
                   curl -fsSL https://nodejs.org/dist/v16.20.0/node-v16.20.0-win-x86.zip -o node.zip
@@ -107,10 +107,12 @@ jobs:
                   # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
                   # cp ./build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
-                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+                  mkdir -p "D:/a/env/ext/data/shims"
                   npm install -g @steambrew/api@latest
-                  $pkgPath = Join-Path (npm root -g) "@steambrew/api/build/*"
-                  Copy-Item -Recurse -Force $pkgPath "D:/a/env/ext/data/shims/"
+                  npm_root=$(npm root -g)
+                  pkg_path="$npm_root/@steambrew/api/build"
+                  cp -rf "$pkg_path"/* "D:/a/env/ext/data/shims/"
+                  cp -r ./assets/build/* D:/a/env/ext/data/assets/
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
