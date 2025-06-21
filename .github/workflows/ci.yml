@@ -257,6 +257,7 @@ jobs:
               run: |
                   mkdir -p ./artifacts/release
                   cd ./artifacts/windows && zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip .
+                  cd ..
                   tar -czvf ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
                   npx semantic-release
               env:
