@@ -145,7 +145,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 			return null;
 		}
 
-		if (!this.state.plugins || !this.state.plugins.length) {
+		if (!this.state.plugins || !this.state.plugins.length || (this.state.plugins.length === 1 && this.state.plugins[0].data.name === 'core')) {
 			return (
 				<ErrorModal
 					header={'No Plugins Found.'}

@@ -29,18 +29,10 @@
  */
 
 #include "secure_socket.h"
-#include <winsock2.h>
-#include <windows.h>
-#include "url_parser.h"
 #include <fmt/format.h>
-#include <optional>
 #include <iostream>
 #include <string>
 #include <random>
-#include <ws2tcpip.h>
-#include <iprtrmib.h>
-#include <iphlpapi.h>
-#include <psapi.h>
 #include <log.h>
 
 std::string GenerateAuthToken(size_t length) 
