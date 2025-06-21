@@ -68,20 +68,11 @@ jobs:
               uses: msys2/setup-msys2@v2
               with:
                   msystem: mingw32
-                  install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja unzip
+                  install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja unzip mingw-w64-i686-nodejs mingw-w64-i686-npm
 
             - name: ⚙️ Install VCPKG
               shell: pwsh
               run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
-
-            - name: ⚙️ Install Node
-              shell: msys2 {0}
-              run: |
-                  curl -fsSL https://nodejs.org/dist/v16.20.0/node-v16.20.0-win-x86.zip -o node.zip
-                  unzip node.zip -d /usr/local
-                  export PATH="/usr/local/node-v16.20.0-win-x86:$PATH"
-                  node --version
-                  npm --version
 
             - name: 🛠️ Build Millennium Frontend
               env:
