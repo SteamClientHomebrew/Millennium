@@ -74,7 +74,7 @@ class PluginInstaller:
         self.emit_message("Starting Plugin Installer...", 0, False)
         time.sleep(2)
 
-        download_path = Millennium.steam_path()
+        download_path = os.getenv("MILLENNIUM__PLUGINS_PATH")
         
         try:
             zip_path = os.path.join(download_path, uuid.uuid4().hex)
