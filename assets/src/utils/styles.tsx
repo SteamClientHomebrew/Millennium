@@ -534,6 +534,23 @@ export const MillenniumDesktopSidebarStyles = ({
 	.MillenniumDesktopSidebarContent {
 	  	padding: ${isViewingPlugin ? '16px 20px 0px 20px' : '16px 0 0 0'};
 	}
+
+	.NoPluginsFoundSection {
+		height: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.MillenniumDesktopSidebarContent {
+		height: 100%;
+	}
+
+	.NoPluginsFoundMessage {
+		margin-top: -100px;
+		padding: 33px;
+		text-align: center;
+	}
     `;
 
 	return <style>{styles}</style>;
