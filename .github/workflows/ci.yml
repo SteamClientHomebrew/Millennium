@@ -33,66 +33,46 @@ jobs:
                       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
                       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-            - name: Checkout repository
+            - name: ⬇️ Checkout repository
               uses: actions/checkout@v4
               with:
                   submodules: true
 
-            - name: (Setup) Node.js
+            - name: ⬇️ Download Node.js
               uses: actions/setup-node@v3
               with:
                   node-version: 20
 
-            - name: (Setup) Semantic Release
+            - name: ⬇️ Download Semantic Release
               run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: (Setup) Get Next Version
+            - name: 🧰 Get Next Version
               run: . scripts\ci\win32\version.ps1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: (Setup) Environment Variables
-              run: |
-                  echo "${{ secrets.ENVIRONMENT_VARS }}" >> assets/.env
-
-            - name: (Setup) Assets Build Environment
-              run: cd assets && npm install && npm run build
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: (Setup) Build Assets
-              run: . scripts\ci\win32\mk-assets.ps1
-
-            - name: (Setup) Construct Python Environment
-              run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
-
-            - name: (Python) Download 3.11.8 win32 source
+            - name: ⬇️ Download Python Dependencies
               run: |
                   Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.0.9/python-windows.zip" -OutFile "python-windows.zip"
                   Expand-Archive -Path "python-windows.zip" -DestinationPath "./Python-3.11.8" -Force
                   New-Item -ItemType Directory -Force -Path "./build/python"
-                  ls ./Python-3.11.8
 
                   Copy-Item ./Python-3.11.8/artifacts/windows/python311.dll ./build/python/python311.dll
                   Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.dll ./build/python/python311_d.dll
                   Copy-Item ./Python-3.11.8/artifacts/windows/python311.lib ./build/python/python311.lib
                   Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.lib ./build/python/python311_d.lib
 
-            - name: Install prerequisites
+            - name: ⬇️ Download Msys2
               uses: msys2/setup-msys2@v2
               with:
                   msystem: mingw32
                   install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja unzip
 
-            - name: (Dependency) Install vcpkg
+            - name: ⬇️ Install VCPKG
               shell: pwsh
               run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
-
-            - name: (Generator) Configure CMake
-              shell: msys2 {0}
-              run: cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
 
             - name: Install Node.js and npm
               shell: msys2 {0}
@@ -103,9 +83,21 @@ jobs:
                   node --version
                   npm --version
 
-            - name: Build Millennium
+            - name: 🛠️ Build Millennium Frontend
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  cd assets && npm install && npm run build
+                  cd ..
+                  . scripts\ci\win32\mk-assets.ps1
+
+            - name: 🛠️ Build Millennium Plugin Backend
+              run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
+
+            - name: 🛠️ Build Millennium Backend
               shell: msys2 {0}
               run: |
+                  cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
                   mkdir ./build/artifacts
                   cmake --build build --config Release -- -j$(nproc)
                   cp ./build/python/python311.dll D:/a/env/python311.dll
@@ -115,8 +107,6 @@ jobs:
                   # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
                   # cp ./build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
 
-            - name: Add API modules
-              run: |
                   New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
                   npm install -g @steambrew/api@latest
                   $pkgPath = Join-Path (npm root -g) "@steambrew/api/build/*"
