@@ -1,3 +1,13 @@
+# [2.26.0-beta.6](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.5...v2.26.0-beta.6) (2025-06-21)
+
+
+### Bug Fixes
+
+* fix build structure on windows ([88236a8](https://github.com/SteamClientHomebrew/Millennium/commit/88236a861cf319c4ca43783e546154143d59d830))
+* fix Millennium finding incorrect API modules. ([906e6a4](https://github.com/SteamClientHomebrew/Millennium/commit/906e6a456f951e992a7bfbc2a505c6e84adfaa1f))
+* Fix plugin downloader on linux ([f1c8f51](https://github.com/SteamClientHomebrew/Millennium/commit/f1c8f5194bbbdd75b3531999b9ee8c32ba2dd90f))
+* Show that no plugins are configurable instead of rendering empty quick access menu. ([5a4236e](https://github.com/SteamClientHomebrew/Millennium/commit/5a4236e61ddd271f785bd6f3d7eb909bc38ccfb1))
+
 # [2.26.0-beta.5](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.4...v2.26.0-beta.5) (2025-06-21)
 
 
