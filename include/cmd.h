@@ -36,8 +36,6 @@
 #include <shellapi.h>
 #endif
 
-typedef const char* (__stdcall* Plat_CommandLineParamValue_t)(const char* param);
-
 class StartupParameters 
 {
 public:
@@ -60,6 +58,8 @@ public:
     }
 
     #ifdef _WIN32
+    typedef const char* (__stdcall* Plat_CommandLineParamValue_t)(const char* param);
+
     unsigned short GetRemoteDebuggerPort() const 
     {
         const unsigned short defaultPort = 8080; 
