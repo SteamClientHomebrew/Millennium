@@ -74,6 +74,13 @@ jobs:
               shell: pwsh
               run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
 
+            - name: ⚙️ Download Millennium API
+              run: |
+                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
+                  npm install -g @steambrew/api@latest
+                  $pkgPath = Join-Path (npm root -g) "@steambrew/api/build/*"
+                  Copy-Item -Recurse -Force $pkgPath "D:/a/env/ext/data/shims/"
+
             - name: 🛠️ Build Millennium Frontend
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -95,15 +102,6 @@ jobs:
                   cp ./build/preload/user32.dll  D:/a/env/user32.dll
                   cp ./build/millennium.dll D:/a/env/millennium.dll
                   mkdir D:/a/env/ext/bin
-                  # Disable Millennium CLI for now, as it keeps get false positive detections for no apparent reason
-                  # cp ./build/cli/millennium.exe D:/a/env/ext/bin/millennium.exe
-
-                  mkdir -p "D:/a/env/ext/data/shims"
-                  npm install -g @steambrew/api@latest
-                  npm_root=$(npm root -g)
-                  pkg_path="$npm_root/@steambrew/api/build"
-                  cp -rf "$pkg_path"/* "D:/a/env/ext/data/shims/"
-                  cp -r ./assets/build/* D:/a/env/ext/data/assets/
 
             - name: Upload Build Artifact
               uses: actions/upload-artifact@v4
