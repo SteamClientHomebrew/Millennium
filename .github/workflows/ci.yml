@@ -22,25 +22,16 @@ jobs:
         runs-on: windows-latest
 
         env:
-            USERNAME: SteamClientHomebrew
-            VCPKG_EXE: ${{ github.workspace }}/vendor/vcpkg/vcpkg.exe
-            FEED_URL: https://nuget.pkg.github.com/SteamClientHomebrew/index.json
-            VCPKG_BINARY_SOURCES: 'clear;nuget,https://nuget.pkg.github.com/SteamClientHomebrew/index.json,readwrite'
+            ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+            VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
 
         steps:
-            - name: Add NuGet sources
-              shell: pwsh
-              run: |
-                  .$(${{ env.VCPKG_EXE }} fetch nuget) `
-                    sources add `
-                    -Source "${{ env.FEED_URL }}" `
-                    -StorePasswordInClearText `
-                    -Name GitHubPackages `
-                    -UserName "${{ env.USERNAME }}" `
-                    -Password "${{ secrets.GH_PACKAGES_TOKEN }}"
-                  .$(${{ env.VCPKG_EXE }} fetch nuget) `
-                    setapikey "${{ secrets.GH_PACKAGES_TOKEN }}" `
-                    -Source "${{ env.FEED_URL }}"
+            - name: ⚙️ Export GitHub Actions cache environment variables
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+                      core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
             - name: ⚙️ Checkout repository
               uses: actions/checkout@v4
