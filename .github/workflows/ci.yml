@@ -87,7 +87,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  cd assets && pnpm install --frozen-lockfile && pnpm run build && cd ..
+                  cd assets && pnpm install && pnpm run build && cd ..
                   . scripts\ci\win32\mk-assets.ps1
 
             - name: 🛠️ Build Millennium Plugin Backend
@@ -174,13 +174,13 @@ jobs:
                   cmake-version: '3.21.1'
 
             - name: ⚙️ Install VCPKG
-              run: sudo apt install libgtk-3-dev ninja-build &&  ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
+              run: sudo apt install libgtk-3-dev ninja-build && ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
 
             - name: 🛠️ Build Millennium Frontend
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  cd assets && pnpm install --frozen-lockfile && npm run build && cd ..
+                  cd assets && pnpm install && npm run build && cd ..
                   bash scripts/ci/posix/mk-assets.sh
 
             - name: 🛠️ Build Millennium Backend
