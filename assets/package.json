@@ -4,9 +4,9 @@
 		"prod": "millennium-ttc --build prod"
 	},
 	"devDependencies": {
-		"@steambrew/client": "latest",
+		"@steambrew/client": "link:../sdk/typescript-packages/client",
+		"@steambrew/webkit": "link:../sdk/typescript-packages/client",
 		"@steambrew/ttc": "latest",
-		"@steambrew/webkit": "latest",
 		"@types/node": "^20.14.9",
 		"@types/react": "18.3.3",
 		"@types/react-dom": "18.3.0",
@@ -31,11 +31,7 @@
 		},
 		"onlyBuiltDependencies": [
 			"@parcel/watcher"
-		],
-		"overrides": {
-			"@steambrew/client": "link:../sdk/typescript-packages/client",
-			"@steambrew/webkit": "link:../sdk/typescript-packages/client"
-		}
+		]
 	},
 	"dependencies": {
 		"ansi-to-react": "^6.1.6",

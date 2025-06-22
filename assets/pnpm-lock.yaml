@@ -4,10 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@steambrew/client': link:../sdk/typescript-packages/client
-  '@steambrew/webkit': link:../sdk/typescript-packages/client
-
 importers:
 
   .:
