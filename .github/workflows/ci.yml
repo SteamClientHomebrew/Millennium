@@ -22,16 +22,25 @@ jobs:
         runs-on: windows-latest
 
         env:
-            ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-            VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+            USERNAME: SteamClientHomebrew
+            VCPKG_EXE: ${{ github.workspace }}/vendor/vcpkg/vcpkg
+            FEED_URL: https://nuget.pkg.github.com/SteamClientHomebrew/index.json
+            VCPKG_BINARY_SOURCES: 'clear;nuget,https://nuget.pkg.github.com/SteamClientHomebrew/index.json,readwrite'
 
         steps:
-            - name: ⚙️ Export GitHub Actions cache environment variables
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-                      core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+            - name: Add NuGet sources
+              shell: pwsh
+              run: |
+                  .$(${{ env.VCPKG_EXE }} fetch nuget) `
+                    sources add `
+                    -Source "${{ env.FEED_URL }}" `
+                    -StorePasswordInClearText `
+                    -Name GitHubPackages `
+                    -UserName "${{ env.USERNAME }}" `
+                    -Password "${{ secrets.GH_PACKAGES_TOKEN }}"
+                  .$(${{ env.VCPKG_EXE }} fetch nuget) `
+                    setapikey "${{ secrets.GH_PACKAGES_TOKEN }}" `
+                    -Source "${{ env.FEED_URL }}"
 
             - name: ⚙️ Checkout repository
               uses: actions/checkout@v4
@@ -85,8 +94,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  cd assets && npm install && npm run build
-                  cd ..
+                  cd assets && pnpm install && pnpm run build && cd ..
                   . scripts\ci\win32\mk-assets.ps1
 
             - name: 🛠️ Build Millennium Plugin Backend
@@ -137,7 +145,9 @@ jobs:
                   node-version: 20
 
             - name: ⚙️ Download Semantic Release
-              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+              run: |
+                  pnpm install -g pnpm
+                  pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -177,8 +187,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  cd assets && npm install && npm run build
-                  cd ..
+                  cd assets && pnpm install && npm run build && cd ..
                   bash scripts/ci/posix/mk-assets.sh
 
             - name: 🛠️ Build Millennium Backend
