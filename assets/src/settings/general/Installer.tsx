@@ -109,7 +109,6 @@ export class Installer {
 				bNeverPopOut: true,
 				popupWidth: 500,
 				popupHeight: 275,
-				strTitle: formatString(locale.strInstallPlugin, itemName),
 			});
 		});
 	}

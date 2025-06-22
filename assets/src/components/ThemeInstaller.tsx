@@ -40,6 +40,7 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 		return (
 			<>
 				<Styles />
+				<style>{`.DialogContent._DialogLayout.GenericConfirmDialog._DialogCenterVertically { width: 460px }`}</style>
 				<ProgressBarWithInfo
 					/* @ts-ignore */
 					className="InstallerProgressBar"
