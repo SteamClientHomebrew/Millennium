@@ -88,7 +88,7 @@ class PluginInstaller:
 
             self.emit_message("Setting up installed plugin...", 50, False)
 
-            extract_dir = os.path.join(download_path, "plugins")  # Adjust path
+            extract_dir = os.path.join(download_path)  # Adjust path
             os.makedirs(extract_dir, exist_ok=True)
             self.extract_zip_with_progress(zip_path, extract_dir)
 
