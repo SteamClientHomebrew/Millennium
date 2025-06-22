@@ -1,3 +1,10 @@
+# [2.26.0-beta.7](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.6...v2.26.0-beta.7) (2025-06-22)
+
+
+### Bug Fixes
+
+* Fix simultaneous backend calls crashing python interpreter. ([1272230](https://github.com/SteamClientHomebrew/Millennium/commit/12722306c3112fdd73d3928b9e1d7d1ca52647e6))
+
 # [2.26.0-beta.6](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.5...v2.26.0-beta.6) (2025-06-21)
 
 
