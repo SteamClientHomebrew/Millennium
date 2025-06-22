@@ -697,7 +697,7 @@ void HttpHookManager::ThreadPool::enqueue(F&& f)
     condition.notify_one();
 }
 
-HttpHookManager::HttpHookManager() : m_hookListPtr(std::make_shared<std::vector<HookType>>()), m_requestMap(std::make_shared<std::vector<WebHookItem>>()), m_lastExceptionTime{}, m_threadPool(std::make_unique<ThreadPool>(2)) // 2 threads for IPC
+HttpHookManager::HttpHookManager() : m_hookListPtr(std::make_shared<std::vector<HookType>>()), m_requestMap(std::make_shared<std::vector<WebHookItem>>()), m_lastExceptionTime{}, m_threadPool(std::make_unique<ThreadPool>(1))
 { }
 
 HttpHookManager::~HttpHookManager() 
