@@ -1,3 +1,12 @@
+# [2.26.0-beta.9](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.8...v2.26.0-beta.9) (2025-06-22)
+
+
+### Bug Fixes
+
+* **CI:** use pnpm instead of npm and cache vcpkg properly ([d58e2a8](https://github.com/SteamClientHomebrew/Millennium/commit/d58e2a859fd2739bf0787824a28b30e9e77a341c))
+* fix Quick Access Menu being empty when no plugins are configurable. ([c37b200](https://github.com/SteamClientHomebrew/Millennium/commit/c37b20048ceb6f45c54ae3d2727d1046dcf4bc2b))
+* remove stdout patch as it causes too many issues ([75e5d08](https://github.com/SteamClientHomebrew/Millennium/commit/75e5d0838b128e819be02edcc60cee2a3d48f9d4))
+
 # [2.26.0-beta.8](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.7...v2.26.0-beta.8) (2025-06-22)
 
 
