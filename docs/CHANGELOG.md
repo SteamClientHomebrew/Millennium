@@ -1,3 +1,11 @@
+# [2.26.0-beta.10](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.9...v2.26.0-beta.10) (2025-06-22)
+
+
+### Bug Fixes
+
+* fix plugin installer popping out of main window. ([3058d43](https://github.com/SteamClientHomebrew/Millennium/commit/3058d43b69775b85c8cf4fa6d87147cc674b8b6f))
+* fix windows build not working. ([5b63615](https://github.com/SteamClientHomebrew/Millennium/commit/5b63615e182b55982ed9a53cd6077c0e7edee915))
+
 # [2.26.0-beta.9](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.8...v2.26.0-beta.9) (2025-06-22)
 
 
