@@ -44,7 +44,9 @@ jobs:
                   node-version: 20
 
             - name: ⚙️ Download Semantic Release
-              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+              run: |
+                  npm install -g pnpm
+                  npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -85,7 +87,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  cd assets && pnpm install && pnpm run build && cd ..
+                  cd assets && pnpm install --frozen-lockfile && pnpm run build && cd ..
                   . scripts\ci\win32\mk-assets.ps1
 
             - name: 🛠️ Build Millennium Plugin Backend
@@ -137,7 +139,7 @@ jobs:
 
             - name: ⚙️ Download Semantic Release
               run: |
-                  pnpm install -g pnpm
+                  npm install -g pnpm
                   pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -178,7 +180,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  cd assets && pnpm install && npm run build && cd ..
+                  cd assets && pnpm install --frozen-lockfile && npm run build && cd ..
                   bash scripts/ci/posix/mk-assets.sh
 
             - name: 🛠️ Build Millennium Backend
