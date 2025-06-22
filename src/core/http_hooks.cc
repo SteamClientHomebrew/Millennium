@@ -701,8 +701,4 @@ HttpHookManager::HttpHookManager() : m_hookListPtr(std::make_shared<std::vector<
 { }
 
 HttpHookManager::~HttpHookManager() 
-{
-    // Ensure all threads are joined or completed before destruction
-    m_hookListPtr.reset();
-    m_requestMap.reset();
-}
+{ }
