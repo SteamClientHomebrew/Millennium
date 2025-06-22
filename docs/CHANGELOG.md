@@ -1,3 +1,10 @@
+# [2.26.0-beta.8](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.7...v2.26.0-beta.8) (2025-06-22)
+
+
+### Bug Fixes
+
+* fix plugins installing to wrong folder ([20a9ad7](https://github.com/SteamClientHomebrew/Millennium/commit/20a9ad7c76a6211613dcf4a341e02ac328418da1))
+
 # [2.26.0-beta.7](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.6...v2.26.0-beta.7) (2025-06-22)
 
 
