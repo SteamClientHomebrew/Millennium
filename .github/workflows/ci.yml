@@ -23,7 +23,7 @@ jobs:
 
         env:
             USERNAME: SteamClientHomebrew
-            VCPKG_EXE: ${{ github.workspace }}/vendor/vcpkg/vcpkg
+            VCPKG_EXE: ${{ github.workspace }}/vendor/vcpkg/vcpkg.exe
             FEED_URL: https://nuget.pkg.github.com/SteamClientHomebrew/index.json
             VCPKG_BINARY_SOURCES: 'clear;nuget,https://nuget.pkg.github.com/SteamClientHomebrew/index.json,readwrite'
 
