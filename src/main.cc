@@ -344,7 +344,6 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
         }
         case DLL_PROCESS_DETACH: 
         {
-            WinUtils::RestoreStdout();
             // Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
 
             // g_threadTerminateFlag->flag.store(true);
