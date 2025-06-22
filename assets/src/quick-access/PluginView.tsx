@@ -38,10 +38,9 @@ export const RenderPluginView = () => {
 
 export const PluginSelectorView = () => {
 	const { plugins } = useDesktopMenu();
+	const pluginRenderers = getPluginRenderers();
 
-	console.log('PluginSelectorView', plugins);
-
-	if (!plugins || plugins.length === 0 || (plugins.length === 1 && plugins[0].data.name === 'core')) {
+	if (!pluginRenderers || Object.keys(pluginRenderers).length === 0) {
 		return (
 			<div className="NoPluginsFoundSection">
 				<div className="NoPluginsFoundMessage">Configurable plugins will appear here. No loaded plugins are currently configurable.</div>
@@ -51,7 +50,7 @@ export const PluginSelectorView = () => {
 
 	return (
 		<PanelSection>
-			{Object.entries(getPluginRenderers())?.map(([key, panel]: [string, any]) => (
+			{Object.entries(pluginRenderers)?.map(([key, panel]: [string, any]) => (
 				<RenderPluginViews plugins={plugins} key={key} pluginName={key} pluginView={panel} />
 			))}
 		</PanelSection>
