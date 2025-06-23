@@ -88,11 +88,11 @@ def add_conditional_data(path: str, data: dict, theme_name: str):
         for patch in parsed_patches:
             if patch['fileType'] == 'TargetCss' and patch['targetPath'] is not None and patch['matchString'] is not None:
                 target_path = os.path.join(path, patch['targetPath'])
-                conditional_patches.append((target_path, Millennium.add_browser_css(target_path, patch['matchString'])))
+                conditional_patches.append((target_path, add_browser_css(target_path, patch['matchString'])))
 
             elif patch['fileType'] == 'TargetJs' and patch['targetPath'] is not None and patch['matchString'] is not None:
                 target_path = os.path.join(path, patch['targetPath'])
-                conditional_patches.append((target_path, Millennium.add_browser_js(target_path, patch['matchString'])))
+                conditional_patches.append((target_path, add_browser_js(target_path, patch['matchString'])))
 
     except Exception as e:
         logger.log(f"Error adding conditional data: {e}")
