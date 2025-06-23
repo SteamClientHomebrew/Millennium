@@ -1,3 +1,10 @@
+# [2.26.0-beta.11](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.10...v2.26.0-beta.11) (2025-06-23)
+
+
+### Bug Fixes
+
+* Fix CI not building Millennium API properly ([9564eb2](https://github.com/SteamClientHomebrew/Millennium/commit/9564eb2d075f950b939442624441d24a8a62e95a))
+
 # [2.26.0-beta.10](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.9...v2.26.0-beta.10) (2025-06-22)
 
 
