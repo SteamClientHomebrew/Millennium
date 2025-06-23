@@ -1,6 +1,7 @@
 name: Push Arch User Repository (AUR) Package
 
 on:
+    workflow_dispatch:
     release:
         types: [published]
 
