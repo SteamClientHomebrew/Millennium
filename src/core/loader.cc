@@ -39,8 +39,8 @@
 #include "ffi.h"
 #include "http.h"
 #include "http_hooks.h"
-#include "log.h"
-#include "logger.h"
+#include "internal_logger.h"
+#include "plugin_logger.h"
 #include <env.h>
 #include "fvisible.h"
 

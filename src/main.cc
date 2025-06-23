@@ -38,7 +38,7 @@
 #include <filesystem>
 #include <fstream>
 #include <fmt/core.h>
-#include <log.h>
+#include <internal_logger.h>
 #include "loader.h"
 #include "co_spawn.h"
 #include <signal.h>

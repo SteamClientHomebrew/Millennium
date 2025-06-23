@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "logger.h"
+#include "plugin_logger.h"
 #include <Python.h>
 #include <stdio.h>
 #include <fstream>

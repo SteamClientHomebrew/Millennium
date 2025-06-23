@@ -32,9 +32,9 @@
 #ifdef _WIN32
 #include <winbase.h>
 #include <io.h>
-#include "log.h"
+#include "internal_logger.h"
 #include <fcntl.h>
-#include "logger.h"
+#include "plugin_logger.h"
 
 static const char* SHIM_LOADER_PATH        = "user32.dll";
 static const char* SHIM_LOADER_QUEUED_PATH = "user32.queue.dll"; // The path of the recently updated shim loader waiting for an update.

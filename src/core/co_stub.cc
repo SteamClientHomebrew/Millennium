@@ -32,12 +32,12 @@
 #include <vector>
 #include <fmt/core.h>
 #include "co_spawn.h"
-#include "log.h"
+#include "internal_logger.h"
 #include "loader.h"
 #include "http_hooks.h"
 #include "ffi.h"
 #include <tuple>
-#include "logger.h"
+#include "plugin_logger.h"
 #include <mutex>
 #include <condition_variable>
 #include <thread>

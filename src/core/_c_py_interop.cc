@@ -32,7 +32,7 @@
 #include "co_spawn.h"
 #include <iostream>
 #include <tuple>
-#include "logger.h"
+#include "plugin_logger.h"
 #include "fvisible.h"
 
 using json = nlohmann::json;

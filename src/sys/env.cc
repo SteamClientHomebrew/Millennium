@@ -38,7 +38,7 @@
 #include <string> 
 #include <locals.h>
 #include <fmt/core.h>
-#include <log.h>
+#include <internal_logger.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "fvisible.h"

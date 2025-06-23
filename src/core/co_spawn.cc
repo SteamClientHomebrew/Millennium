@@ -33,7 +33,7 @@
 #include "loader.h"
 #include "ffi.h"
 #include "bind_stdout.h"
-#include "logger.h"
+#include "plugin_logger.h"
 #include "co_stub.h"
 #include "fvisible.h"
 #include <optional>

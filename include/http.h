@@ -32,7 +32,7 @@
 #include <string>
 #include <chrono>
 #include <thread>
-#include "log.h"
+#include "internal_logger.h"
 #include <curl/curl.h>
 
 static size_t WriteByteCallback(char* ptr, size_t size, size_t nmemb, std::string* data) 

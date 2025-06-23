@@ -37,7 +37,7 @@
 #include "locals.h"
 #include <condition_variable>
 #include <atomic>
-#include "log.h"
+#include "internal_logger.h"
 #include <filesystem>
 #include "env.h"
 #include <optional>

@@ -37,9 +37,9 @@
 #include <iostream>
 #include <Python.h>
 #include "co_spawn.h"
-#include "log.h"
+#include "internal_logger.h"
 #include <fmt/core.h>
-#include "logger.h"
+#include "plugin_logger.h"
 
 /**
  * @brief Write a message buffer to the logger. The buffer is un-flushed. 

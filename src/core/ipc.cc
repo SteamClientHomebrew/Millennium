@@ -35,7 +35,6 @@
 #include "ffi.h"
 #include "encoding.h"
 #include <functional>
-#include "asio.h"
 #include "locals.h"
 #include "fvisible.h"
 #include <fmt/core.h>

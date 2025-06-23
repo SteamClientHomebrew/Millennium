@@ -34,11 +34,11 @@
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
 #include <fstream>
-#include "log.h"
+#include "internal_logger.h"
 #include "locals.h"
 #include "http_hooks.h"
 #include "co_stub.h"
-#include "logger.h"
+#include "plugin_logger.h"
 #include "encoding.h"
 #include "fvisible.h"
 

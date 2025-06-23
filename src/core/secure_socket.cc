@@ -33,7 +33,7 @@
 #include <iostream>
 #include <string>
 #include <random>
-#include <log.h>
+#include <internal_logger.h>
 
 std::string GenerateAuthToken(size_t length) 
 {

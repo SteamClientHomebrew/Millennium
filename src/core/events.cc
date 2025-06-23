@@ -29,7 +29,7 @@
  */
 
 #include "co_stub.h"
-#include "log.h"
+#include "internal_logger.h"
 #include "co_spawn.h"
 #include "fvisible.h"
 

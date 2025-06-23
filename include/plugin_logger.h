@@ -39,7 +39,7 @@
 #include <fmt/core.h>
 #include <fmt/color.h>
 #include "locals.h"
-#include "log.h"
+#include "internal_logger.h"
 #include <vector>
 #include "env.h"
 

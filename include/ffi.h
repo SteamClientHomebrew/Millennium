@@ -33,7 +33,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
-#include "log.h"
+#include "internal_logger.h"
 #include <thread>
 
 class PythonGIL : public std::enable_shared_from_this<PythonGIL>
