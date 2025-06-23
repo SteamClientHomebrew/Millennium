@@ -1,3 +1,51 @@
+# [2.26.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.25.1...v2.26.0) (2025-06-23)
+
+
+### Bug Fixes
+
+* **CI:** use pnpm instead of npm and cache vcpkg properly ([d58e2a8](https://github.com/SteamClientHomebrew/Millennium/commit/d58e2a859fd2739bf0787824a28b30e9e77a341c))
+* fix build structure on windows ([88236a8](https://github.com/SteamClientHomebrew/Millennium/commit/88236a861cf319c4ca43783e546154143d59d830))
+* Fix CI ([997747d](https://github.com/SteamClientHomebrew/Millennium/commit/997747dabdca59c87268b56356f1540651ecb275))
+* Fix CI ([0465205](https://github.com/SteamClientHomebrew/Millennium/commit/0465205991313d833ef9321fcb0c0e136d05a26d))
+* Fix CI ([6704435](https://github.com/SteamClientHomebrew/Millennium/commit/6704435d1a000ec84e53ea0892b91031060caa05))
+* Fix CI not building Millennium API properly ([9564eb2](https://github.com/SteamClientHomebrew/Millennium/commit/9564eb2d075f950b939442624441d24a8a62e95a))
+* Fix encoding issue when calling a JS method from the backend. ([d03134c](https://github.com/SteamClientHomebrew/Millennium/commit/d03134ce679dfc7dfe4e5c77a3e4462e577011b0))
+* Fix FFI propagating backend call on plugins with no backend. ([cbb873d](https://github.com/SteamClientHomebrew/Millennium/commit/cbb873dd06d3afddf4dee7b283a8a2262915e101))
+* Fix install script failing if the username is 'user'. closes [#343](https://github.com/SteamClientHomebrew/Millennium/issues/343) ([e3c04c6](https://github.com/SteamClientHomebrew/Millennium/commit/e3c04c67422d1fe4c4b016736320f0bbed869b43))
+* fix Millennium finding incorrect API modules. ([906e6a4](https://github.com/SteamClientHomebrew/Millennium/commit/906e6a456f951e992a7bfbc2a505c6e84adfaa1f))
+* Fix Millennium showing updates when none are actually available ([ee26150](https://github.com/SteamClientHomebrew/Millennium/commit/ee2615032b3c0b2b1c093cc60368c9b83f02644c))
+* Fix OpenSSL issues ([78f8fa4](https://github.com/SteamClientHomebrew/Millennium/commit/78f8fa4276bd897bff5c838858e8ca1f3a74e0cb))
+* Fix plugin downloader on linux ([f1c8f51](https://github.com/SteamClientHomebrew/Millennium/commit/f1c8f5194bbbdd75b3531999b9ee8c32ba2dd90f))
+* fix plugin installer popping out of main window. ([3058d43](https://github.com/SteamClientHomebrew/Millennium/commit/3058d43b69775b85c8cf4fa6d87147cc674b8b6f))
+* Fix plugin updater sometimes extracting to wrong path, updating while plugin is running, and fixed backend memory management issues., ([7c47e88](https://github.com/SteamClientHomebrew/Millennium/commit/7c47e887a948c2f83d51ba5108814f35e0ff62d0))
+* fix plugins installing to wrong folder ([20a9ad7](https://github.com/SteamClientHomebrew/Millennium/commit/20a9ad7c76a6211613dcf4a341e02ac328418da1))
+* fix Quick Access Menu being empty when no plugins are configurable. ([c37b200](https://github.com/SteamClientHomebrew/Millennium/commit/c37b20048ceb6f45c54ae3d2727d1046dcf4bc2b))
+* Fix simultaneous backend calls crashing python interpreter. ([1272230](https://github.com/SteamClientHomebrew/Millennium/commit/12722306c3112fdd73d3928b9e1d7d1ca52647e6))
+* fix windows build not working. ([5b63615](https://github.com/SteamClientHomebrew/Millennium/commit/5b63615e182b55982ed9a53cd6077c0e7edee915))
+* Only show "Reset" on system accent color if its not the original accent color. ([4266b17](https://github.com/SteamClientHomebrew/Millennium/commit/4266b1746a21391ffc984af7c087668893e99c21))
+* remove stdout patch as it causes too many issues ([75e5d08](https://github.com/SteamClientHomebrew/Millennium/commit/75e5d0838b128e819be02edcc60cee2a3d48f9d4))
+* Remove vcpkg cache from CI ([dd3d74d](https://github.com/SteamClientHomebrew/Millennium/commit/dd3d74d9eac5a29cad773d2eeb5bc46de7b2dfd1))
+* **security:** Prevent FFI from directly executing raw python code. ([d338e25](https://github.com/SteamClientHomebrew/Millennium/commit/d338e2529d4a6235e0e11ba31555cfa8b2b63cf0))
+* Show that no plugins are configurable instead of rendering empty quick access menu. ([5a4236e](https://github.com/SteamClientHomebrew/Millennium/commit/5a4236e61ddd271f785bd6f3d7eb909bc38ccfb1))
+
+
+### Features
+
+* Add `constSysfsExpr`,a way to embed assets into plugin bundle at compile time. ([4a8d1d0](https://github.com/SteamClientHomebrew/Millennium/commit/4a8d1d0bd43e44abdb309d4f125b8e019e62b867))
+* Add authentication to IPC, and block external apps from connecting to it. ([2f58684](https://github.com/SteamClientHomebrew/Millennium/commit/2f586844921df29155a6b5f9692e3e06d02e1b84))
+* Add plugin settings [#183](https://github.com/SteamClientHomebrew/Millennium/issues/183) ([643c1a0](https://github.com/SteamClientHomebrew/Millennium/commit/643c1a0c695b89a65f4e637c1f5229135b42915f))
+* Add plugin updater. ([5c28c7e](https://github.com/SteamClientHomebrew/Millennium/commit/5c28c7ef96e576ace25a6be111535c6fa0768cdf))
+* Add quick access menu to Millennium ([b22f3c7](https://github.com/SteamClientHomebrew/Millennium/commit/b22f3c7b6782a24a31ac5fe10b354f94544b233c))
+* Completely virtual FTP and IPC making them inaccessible outside of Steam. ([a5ede25](https://github.com/SteamClientHomebrew/Millennium/commit/a5ede254cd524ece3474604ae1bb6e943dda54a3))
+* CTRL+2 to open Millennium quick access ([0b06a10](https://github.com/SteamClientHomebrew/Millennium/commit/0b06a1001c905e921cbd4a0385de6b5db24ac286))
+* Overhauled Swedish translation. ([013763a](https://github.com/SteamClientHomebrew/Millennium/commit/013763a28aa26d58fda827cfa63772898e796ce2))
+* Properly use Steam's internal components to create Millennium's Settings window. ([c2a4285](https://github.com/SteamClientHomebrew/Millennium/commit/c2a4285df72630fb6a41ff645afc4f75c19e297d))
+
+
+### Performance Improvements
+
+* improved webkit load performance by ~350ms ([f0100c4](https://github.com/SteamClientHomebrew/Millennium/commit/f0100c4fd0e6dda71d2a65d5f23da5d379756f6e))
+
 # [2.26.0-beta.11](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.10...v2.26.0-beta.11) (2025-06-23)
 
 
