@@ -19,3 +19,6 @@
 [submodule "vendor/ini"]
 	path = vendor/ini
 	url = https://github.com/metayeti/mINI.git
+[submodule "sdk"]
+	path = sdk
+	url = https://github.com/SteamClientHomebrew/SDK.git

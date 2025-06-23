@@ -35,12 +35,12 @@
 #include "executor.h"
 #include "co_stub.h"
 #include "co_spawn.h"
-#include "pipe.h"
+#include "ipc.h"
 #include "ffi.h"
 #include "http.h"
-#include "web_load.h"
-#include "log.h"
-#include "logger.h"
+#include "http_hooks.h"
+#include "internal_logger.h"
+#include "plugin_logger.h"
 #include <env.h>
 #include "fvisible.h"
 
@@ -108,8 +108,7 @@ MILLENNIUM void Sockets::Shutdown()
 
 class MILLENNIUM CEFBrowser
 {
-    WebkitHandler webKitHandler;
-    uint16_t m_ftpPort, m_ipcPort;
+    HttpHookManager& webKitHandler;
     bool m_sharedJsConnected = false;
 
     std::chrono::system_clock::time_point m_startTime;
@@ -127,6 +126,7 @@ public:
             if (targetIterator != targets.end() && !m_sharedJsConnected) 
             {
                 Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.attachToTarget" }, { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } } });
+                Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.exposeDevToolsProtocol" }, { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" } } } });
                 m_sharedJsConnected = true;
             }
             else if (!m_sharedJsConnected)
@@ -157,7 +157,7 @@ public:
     {
         std::thread([this]() {
             Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
-            CoInitializer::InjectFrontendShims(m_ftpPort, m_ipcPort);
+            CoInitializer::InjectFrontendShims();
         }).detach();
     }
 
@@ -173,11 +173,7 @@ public:
         webKitHandler.SetupGlobalHooks();
     }
 
-    MILLENNIUM CEFBrowser(uint16_t ftpPort, uint16_t ipcPort) : m_ftpPort(ftpPort), m_ipcPort(ipcPort), webKitHandler(WebkitHandler::get()) 
-    {
-        webKitHandler.SetIPCPort(ipcPort);
-        webKitHandler.SetFTPPort(ftpPort);
-    }
+    MILLENNIUM CEFBrowser() : webKitHandler(HttpHookManager::get()) {}
 };
 
 MILLENNIUM const void PluginLoader::Initialize()
@@ -188,20 +184,10 @@ MILLENNIUM const void PluginLoader::Initialize()
     m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
 
     m_settingsStorePtr->InitializeSettingsStore();
-
-    static bool hasCreatedIPC = false;
-
-    if (!hasCreatedIPC)
-    {
-        m_ipcPort = IPCMain::OpenConnection();
-        Logger.Log("Ports: {{ FTP: {}, IPC: {} }}", m_ftpPort, m_ipcPort);
-
-        hasCreatedIPC = true;
-    }
 }
 
-MILLENNIUM PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime, uint16_t ftpPort) 
-    : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_ftpPort(ftpPort)
+MILLENNIUM PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) 
+    : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr)
 {
     this->Initialize();
 }
@@ -232,17 +218,19 @@ MILLENNIUM const void PluginLoader::InjectWebkitShims()
     /** Clear all previous hooks if there are any */
     if (!hookIds.empty())
     {
-        auto moduleList = WebkitHandler::get().m_hookListPtr;
+        std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::get().GetHookListCopy();
 
-        for (auto it = moduleList->begin(); it != moduleList->end();)
+        for (auto it = moduleList.begin(); it != moduleList.end();)
         {
             if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end())
             {
                 Logger.Log("Removing hook for module id: {}", it->id);
-                it = moduleList->erase(it);
+                it = moduleList.erase(it);
             }
             else ++it;
         }
+
+        HttpHookManager::get().SetHookList(std::make_shared<std::vector<HttpHookManager::HookType>>(moduleList));
     }
 
     const auto allPlugins = this->m_settingsStorePtr->ParseAllPlugins();
@@ -258,15 +246,15 @@ MILLENNIUM const void PluginLoader::InjectWebkitShims()
             g_hookedModuleId++;
             hookIds.push_back(g_hookedModuleId);
 
-            Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId);
-            WebkitHandler::get().m_hookListPtr->push_back({ absolutePath.generic_string(), std::regex(".*"), WebkitHandler::TagTypes::JAVASCRIPT, g_hookedModuleId });
+            Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId.load());
+            HttpHookManager::get().AddHook({ absolutePath.generic_string(), std::regex(".*"), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
         }
     }
 }
 
 MILLENNIUM const void PluginLoader::StartFrontEnds()
 {
-    CEFBrowser cefBrowserHandler(m_ftpPort, m_ipcPort);
+    CEFBrowser cefBrowserHandler;
     SocketHelpers socketHelpers;
 
     this->InjectWebkitShims();

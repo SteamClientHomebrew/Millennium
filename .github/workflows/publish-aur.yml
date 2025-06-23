@@ -1,36 +1,33 @@
 name: Publish to AUR
 
 on:
-  workflow_run:
-    workflows: ["Build Millennium"]
-    types:
-      - completed
-  workflow_dispatch:
+    release:
+        types: [published]
 
 concurrency:
-  group: aur-publish
-  cancel-in-progress: false
+    group: aur-publish
+    cancel-in-progress: false
 
 jobs:
-  aur-push:
-    runs-on: ubuntu-latest
+    aur-push:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Update Package Version
-        run: |
-            sed -i "s/pkgver=.*/pkgver=$(sed -n '2p' ./version | tr -d 'v\n')/" ./pkgbuild/PKGBUILD
+            - name: Update Package Version
+              run: |
+                  sed -i "s/pkgver=.*/pkgver=$(sed -n '2p' ./version | tr -d 'v\n')/" ./pkgbuild/PKGBUILD
 
-      - name: Publish AUR package
-        uses: KSXGitHub/github-actions-deploy-aur@master
-        with:
-          pkgname: millennium
-          pkgbuild: ./pkgbuild/PKGBUILD
-          assets: ./pkgbuild/millennium.install
-          commit_username: GitHub Actions
-          commit_email: github-actions@github.com
-          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: Update AUR package
-          ssh_keyscan_types: rsa,ecdsa,ed25519
+            - name: Publish AUR package
+              uses: KSXGitHub/github-actions-deploy-aur@master
+              with:
+                  pkgname: millennium
+                  pkgbuild: ./pkgbuild/PKGBUILD
+                  assets: ./pkgbuild/millennium.install
+                  commit_username: GitHub Actions
+                  commit_email: github-actions@github.com
+                  ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+                  commit_message: Update AUR package
+                  ssh_keyscan_types: rsa,ecdsa,ed25519

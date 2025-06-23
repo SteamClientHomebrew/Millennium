@@ -3,17 +3,95 @@
 	"tasks": [
 		{
 			"type": "cmake",
-			"label": "CMake: build",
+			"label": "Build Millennium",
 			"command": "build",
-			"targets": [
-				"all"
-			],
+			"targets": ["all"],
 			"preset": "${command:cmake.activeBuildPresetName}",
 			"group": "build",
 			"problemMatcher": [],
-			"detail": "CMake template build task",
+			"detail": "build the core of the plugin loader",
 			"presentation": {
 				"clear": true,
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "Build Millennium Frontend - Setup",
+			"type": "shell",
+			"command": "pnpm install --ignore-scripts",
+			"options": {
+				"cwd": "${workspaceFolder}/assets"
+			},
+			"presentation": {
+				"echo": false,
+				"clear": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Millennium SDK - Setup",
+			"type": "shell",
+			"command": "pnpm install",
+			"options": {
+				"cwd": "${workspaceFolder}/sdk"
+			},
+			"presentation": {
+				"echo": false,
+				"clear": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"path": "assets",
+			"group": "build",
+			"problemMatcher": [],
+			"dependsOn": ["Build Millennium Frontend - Setup"],
+			"label": "Build Millennium Frontend",
+			"detail": "build the frontend assets that are injected into Steam",
+			"presentation": {
+				"clear": true,
+				"reveal": "always"
+			}
+		},
+		{
+			"type": "cmake",
+			"label": "Clean Rebuild Millennium",
+			"command": "cleanRebuild",
+			"targets": ["all"],
+			"preset": "${command:cmake.activeBuildPresetName}",
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "rebuild the core of the plugin loader",
+			"presentation": {
+				"clear": true
+			}
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"group": "build",
+			"problemMatcher": [],
+			"label": "Build Millennium SDK",
+			"detail": "build the Millennium software developement kit",
+			"dependsOn": ["Build Millennium SDK - Setup"],
+			"options": {
+				"cwd": "${workspaceFolder}/sdk"
+			}
+		},
+		{
+			"label": "Build All",
+			"detail": "build all components of Millennium",
+			"dependsOn": ["Build Millennium", "Build Millennium Frontend", "Build Millennium SDK"],
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"problemMatcher": [],
+			"presentation": {
+				"clear": true,
+				"reveal": "always"
 			}
 		}
 	]

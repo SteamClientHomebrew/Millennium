@@ -33,7 +33,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
-#include "log.h"
+#include "internal_logger.h"
 #include <thread>
 
 class PythonGIL : public std::enable_shared_from_this<PythonGIL>
@@ -57,6 +57,7 @@ namespace Python {
 	enum Types {
 		Boolean,
 		String,
+        JSON,
 		Integer,
 		Error,
 		Unknown // non-atomic ADT's
@@ -67,11 +68,10 @@ namespace Python {
 		Types type;
 	};
 
-	std::string ConstructFunctionCall(nlohmann::basic_json<> data);
     std::tuple<std::string, std::string> ActiveExceptionInformation();
 
-	EvalResult LockGILAndEvaluate(std::string pluginName, std::string script);
-	void LockGILAndDiscardEvaluate(std::string pluginName, std::string script);
+	EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
+	void CallFrontEndLoaded(std::string pluginName);
 }
 
 namespace JavaScript {

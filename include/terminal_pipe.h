@@ -32,14 +32,9 @@
 #ifdef _WIN32
 #include <winbase.h>
 #include <io.h>
-#include "log.h"
+#include "internal_logger.h"
 #include <fcntl.h>
-#include "logger.h"
-
-auto now = std::chrono::system_clock::now();
-auto currentTimeStamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-
-static const wchar_t* PIPE_NAME = LR"(\\.\pipe\MillenniumStdoutPipe)"; 
+#include "plugin_logger.h"
 
 static const char* SHIM_LOADER_PATH        = "user32.dll";
 static const char* SHIM_LOADER_QUEUED_PATH = "user32.queue.dll"; // The path of the recently updated shim loader waiting for an update.
@@ -51,13 +46,6 @@ namespace WinUtils {
         INVALID,
         FAILED
     };
-
-    const static std::wstring GetPipeName() 
-    {
-        std::wstringstream pipeNameStream;
-        pipeNameStream << PIPE_NAME << L"_" << currentTimeStamp;
-        return pipeNameStream.str();
-    }
 
     const static ShimLoaderProps CheckShimLoaderVersion(std::filesystem::path shimPath)
     {
@@ -95,180 +83,12 @@ namespace WinUtils {
         return ShimLoaderProps::VALID;
     }
 
-    const int CreateTerminalPipe(HANDLE hConsolehandle) 
-    {
-        try 
-        {
-            const auto filename = SystemIO::GetInstallPath() / "ext" / "data" / "logs" / "stdout.log";
-            std::ofstream outFile;
-            outFile.open(filename, std::ios::trunc);
-
-            HANDLE hNamedPipe = CreateNamedPipe(GetPipeName().c_str(), PIPE_ACCESS_INBOUND, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 0, 0, 0, nullptr);
-
-            if (hNamedPipe == INVALID_HANDLE_VALUE) 
-            {
-                MessageBoxA(NULL, fmt::format("Failed to create named pipe. Error: {}", GetLastError()).c_str(), "Error", MB_ICONERROR | MB_OK);
-                return 1;
-            }
-            
-            if (!ConnectNamedPipe(hNamedPipe, nullptr)) 
-            {
-                MessageBoxA(NULL, fmt::format("Failed to connect named pipe. Error: {}", GetLastError()).c_str(), "Error", MB_ICONERROR | MB_OK);
-
-                CloseHandle(hNamedPipe);
-                return 1;
-            }
-
-            char buffer[4096];
-            unsigned long bytesRead;
-
-            SetConsoleOutputCP(CP_UTF8);
-
-            while (true) 
-            {
-                bool success = ReadFile(hNamedPipe, buffer, sizeof(buffer) - 1, &bytesRead, nullptr);
-
-                if (!success || bytesRead == 0) 
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    continue;
-                }
-
-                buffer[bytesRead] = '\0';
-
-                unsigned long charsWritten;
-                std::string strData = std::string(buffer, bytesRead);
-
-                std::vector<wchar_t> wideBuffer(strData.size());
-                int wideLength = MultiByteToWideChar(CP_UTF8, 0, strData.c_str(), strData.size(), wideBuffer.data(), wideBuffer.size());
-
-                if (wideLength > 0) 
-                {
-                    DWORD charsWritten;
-                    WriteConsoleW(hConsolehandle, wideBuffer.data(), wideLength, &charsWritten, nullptr);
-                }
-
-                if (outFile.is_open()) 
-                {
-                    outFile << strData;
-                    outFile.flush();
-                }
-                
-                RawToLogger("Standard Output", std::string(buffer, bytesRead));
-            }
-
-            CloseHandle(hNamedPipe);
-            FreeConsole();
-        }
-        catch (const std::system_error& e) 
-        {
-            LOG_ERROR("Caught system_error exception, please report to Millennium developers. {}", e.what());
-            return 1;
-        }
-        catch (const std::exception& e) 
-        {
-            LOG_ERROR("Failed to create terminal pipe: {}", e.what());
-            return 1;
-        }
-
-        return 0;
-    }
-
-    const int RedirectToPipe()
-    {
-        if ((HANDLE)_get_osfhandle(_fileno(stdout)) == INVALID_HANDLE_VALUE)
-        {
-            // If for some reason the console is not allocated, stdout would be an invalid pipe handle,
-            // so we first need to redirect it to a valid handle to pipe it.
-            // Using NUL as a file name will redirect stdout to the void, but it's still a valid handle.
-            freopen("NUL", "w", stdout);
-        }
-
-        auto startTime = std::chrono::steady_clock::now();
-        HANDLE hPipe = CreateFileW(GetPipeName().c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-
-        while (hPipe == INVALID_HANDLE_VALUE)
-        {
-            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(3))
-            {
-                MessageBoxA(NULL, "Failed to connect to pipe within timeout period.", "Error", MB_ICONERROR | MB_OK);
-                return 1;
-            }
-
-            hPipe = CreateFileW(GetPipeName().c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-
-        int pipeDescriptor = _open_osfhandle((intptr_t)hPipe, _O_WRONLY);
-        if (pipeDescriptor == -1)
-        {
-            MessageBoxA(NULL, "Failed to open pipe handle.", "Error", MB_ICONERROR | MB_OK);
-
-            CloseHandle(hPipe);
-            return 1;
-        }
-
-        FILE* pipeFile = _fdopen(pipeDescriptor, "w");
-        if (!pipeFile)
-        {
-            MessageBoxA(NULL, "Failed to open pipe file.", "Error", MB_ICONERROR | MB_OK);
-
-            CloseHandle(hPipe);
-            return 1;
-        }
-
-        if (_dup2(_fileno(pipeFile), _fileno(stdout)) == -1)
-        {
-            MessageBoxA(NULL, "Failed to redirect stdout to pipe.", "Error", MB_ICONERROR | MB_OK);
-
-            fclose(pipeFile);
-            return 1;
-        }
-
-        setvbuf(stdout, NULL, _IONBF, 0);
-        return 0;
-    }
-
-    const int RestoreStdout()
-    {
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
-
-        return 0;
-    }
-
-    void RedirectToFile()
-    {
-        const auto filename = SystemIO::GetInstallPath() / "ext" / "logs" / "Standard Output_log.log";
-
-        freopen(filename.string().c_str(), "w", stdout);
-        freopen(filename.string().c_str(), "w", stderr);
-        std::cout.flush();
-
-        std::ios::sync_with_stdio(true);
-        std::cout << std::unitbuf;
-    }
-
-    __declspec(dllexport) std::unique_ptr<std::thread> terminalPipeThread;
-
     /**
      * @brief Redirects the standard output to a pipe to be processed by the plugin logger, and verifies the shim loader.
      */
     const void SetupWin32Environment()
     {
         const auto startupParams = std::make_unique<StartupParameters>();
-
-        // Get the terminal handle before redirecting it. 
-        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-
-        if (hConsole == INVALID_HANDLE_VALUE) 
-        {
-            MessageBoxA(NULL, "Failed to get console handle, try restarting Steam.", "Oops!", MB_ICONERROR | MB_OK);
-            return;
-        }
-
-        std::thread(WinUtils::CreateTerminalPipe, hConsole).detach();
-        WinUtils::RedirectToPipe();
 
         try 
         {

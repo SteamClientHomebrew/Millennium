@@ -8,6 +8,14 @@ configure_file(
   ${CMAKE_BINARY_DIR}/version.h     # Output header file
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build")
+  set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/assets")
+
+  add_compile_definitions(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}")
+  add_compile_definitions(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}")
+endif()
+
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 
 cmake_minimum_required(VERSION 3.10...3.21)
@@ -27,7 +35,10 @@ endif()
 
 # Strip binary on release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -s")
+  if(NOT UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+  endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 endif()
 
@@ -68,6 +79,7 @@ elseif(UNIX)
       if(PYTHON_TEST_RESULT)
         message(STATUS "Found suitable Python version ${Python_VERSION}")
         set(LIBPYTHON_RUNTIME_PATH ${Python_LIBRARIES})
+        set(MILLENNIUM__PYTHON_ENV ${Python_ROOT_DIR})
       else()
         message(STATUS "Python ABI mismatch, rolling back to default one")
       endif()
@@ -78,13 +90,12 @@ elseif(UNIX)
     endif()
 
     if(NOT ${PYTHON_TEST_RESULT})
+    
+      set(MILLENNIUM__PYTHON_ENV "/opt/python-i686-3.11.8") 
+      set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
+
       if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
         include_directories("/opt/python-i686-3.11.8/include/python3.11/")
-
-        set(LIBPYTHON_RUNTIME_PATH             "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so"    )
-        set(LIBPYTHON_RUNTIME_BIN_PATH         "/opt/python-i686-3.11.8/bin/python3.11"             )
-        set(LIBPYTHON_BUILTIN_MODULES_PATH     "/opt/python-i686-3.11.8/lib/python3.11/"            )
-        set(LIBPYTHON_BUILTIN_MODULES_DLL_PATH "/opt/python-i686-3.11.8/lib/python3.11/lib-dynload/")
 
         # Function to check if a program exists in PATH
         function(check_program_exists program_name result_var)
@@ -163,12 +174,8 @@ elseif(UNIX)
 
       else()
         include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
-        set(LIBPYTHON_RUNTIME_PATH "/usr/lib/millennium/libpython-3.11.8.so")
-        set(LIBPYTHON_RUNTIME_BIN_PATH "<UNKNOWN>")
-        set(LIBPYTHON_BUILTIN_MODULES_PATH "<UNKNOWN>")
-        set(LIBPYTHON_BUILTIN_MODULES_DLL_PATH "<UNKNOWN>")
 
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/shdwmtr/millennium/refs/heads/main/scripts/install.sh' | sh")
+        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
       endif()
     endif()
   endif()
@@ -199,10 +206,6 @@ endif()
 
 # Set version information
 add_compile_definitions(MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
-
-if(UNIX)
-  set(CMAKE_CXX_FLAGS "-fpermissive")
-endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
@@ -241,9 +244,9 @@ set(SOURCE_FILES
   "src/core/_js_interop.cc"
   "src/core/co_stub.cc"
   "src/core/events.cc"
-  "src/core/web_load.cc"
-  "src/core/ipc_pipe.cc"
-  "src/core/ftp_serv.cc"
+  "src/core/http_hooks.cc"
+  "src/core/ipc.cc"
+  "src/core/secure_socket.cc"
   "src/sys/log.cc"
   "src/sys/sysfs.cc"
   "src/sys/settings.cc"
@@ -259,10 +262,8 @@ elseif(UNIX)
   add_compile_definitions(MILLENNIUM_SHARED)
 
   if(NOT APPLE)
+    target_compile_definitions(Millennium PRIVATE MILLENNIUM__PYTHON_ENV="${MILLENNIUM__PYTHON_ENV}")
     target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_PATH="${LIBPYTHON_RUNTIME_PATH}")
-    target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_BIN_PATH="${LIBPYTHON_RUNTIME_BIN_PATH}")
-    target_compile_definitions(Millennium PRIVATE LIBPYTHON_BUILTIN_MODULES_PATH="${LIBPYTHON_BUILTIN_MODULES_PATH}")
-    target_compile_definitions(Millennium PRIVATE LIBPYTHON_BUILTIN_MODULES_DLL_PATH="${LIBPYTHON_BUILTIN_MODULES_DLL_PATH}")
     target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
   endif()
 endif()
@@ -308,7 +309,7 @@ if(WIN32)
   target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp)
 
   if(GITHUB_ACTION_BUILD)
-    target_link_libraries(Millennium "D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib")
+    target_link_libraries(Millennium "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
   else()
     target_link_libraries(Millennium ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
   endif()
@@ -317,16 +318,10 @@ elseif(UNIX)
   if(APPLE)
     target_link_libraries(Millennium "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
   else()
-    if(GITHUB_ACTION_BUILD)
-      target_link_libraries(Millennium "$ENV{HOME}/.millennium/libpython-3.11.8.so")
-    elseif(DISTRO_ARCH)
-      target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
+    if(PYTHON_TEST_RESULT)
+      target_link_libraries(Millennium Python::Module)
     else()
-      if(PYTHON_TEST_RESULT)
-        target_link_libraries(Millennium Python::Module)
-      else()
-        target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
-      endif()
+      target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
     endif()
   endif()
 endif()

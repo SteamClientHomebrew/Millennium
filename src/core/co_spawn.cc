@@ -33,10 +33,18 @@
 #include "loader.h"
 #include "ffi.h"
 #include "bind_stdout.h"
-#include "logger.h"
+#include "plugin_logger.h"
 #include "co_stub.h"
 #include "fvisible.h"
+#include <optional>
 
+/**
+ * @brief Initializes the Millennium module.
+ * 
+ * This function initializes the Millennium module.
+ * 
+ * @returns {PyObject*} - A pointer to the Millennium module.
+ */
 MILLENNIUM PyObject* PyInit_Millennium(void) 
 {
     static struct PyModuleDef module_def = 
@@ -47,6 +55,13 @@ MILLENNIUM PyObject* PyInit_Millennium(void)
     return PyModule_Create(&module_def);
 }
 
+/**
+ * @brief Gets the Python version.
+ * 
+ * This function gets the Python version.
+ * 
+ * @returns {std::string} - The Python version in string format.
+ */
 MILLENNIUM const std::string GetPythonVersion()
 {
     PyThreadState* mainThreadState = PyThreadState_New(PyInterpreterState_Main());
@@ -80,6 +95,18 @@ MILLENNIUM const std::string GetPythonVersion()
     return pythonVersion;
 }
 
+/**
+ * @brief Constructor for the PythonManager class.
+ * 
+ * This constructor initializes the Python interpreter and global modules.
+ * - It hooks the stdout and stderr to the Millennium logger.
+ * - It initializes the global modules.
+ * - It verifies the Python environment.
+ * - It initializes the Python interpreter from the config.
+ * - It sets the Python version to 3.11.8.
+ * 
+ * @returns {PythonManager} - A new PythonManager instance.
+ */
 MILLENNIUM PythonManager::PythonManager() : m_InterpreterThreadSave(nullptr)
 {
     // initialize global modules
@@ -132,6 +159,11 @@ done:
     }
 }
 
+/**
+ * @brief Destroys all Python instances.
+ * 
+ * This function destroys all Python instances and removes them from the list of Python instances.
+ */
 MILLENNIUM PythonManager::~PythonManager()
 {
     Logger.Warn("Deconstructing {} plugin(s) and preparing for exit...", this->m_pythonInstances.size());
@@ -152,6 +184,13 @@ MILLENNIUM PythonManager::~PythonManager()
     Logger.Log("Finished shutdown! Bye bye!");
 }
 
+/**
+ * @brief Destroys all Python instances.
+ * 
+ * This function destroys all Python instances and removes them from the list of Python instances.
+ * 
+ * @returns {bool} - True if the Python instances were destroyed successfully, false otherwise.
+ */
 MILLENNIUM bool PythonManager::DestroyAllPythonInstances()
 {
     const auto startTime = std::chrono::steady_clock::now();
@@ -218,6 +257,16 @@ MILLENNIUM bool PythonManager::DestroyAllPythonInstances()
     return true;
 }
 
+/**
+ * @brief Destroys a Python instance for a plugin.
+ * 
+ * This function destroys a Python instance for a plugin and removes it from the list of Python instances.
+ * 
+ * @param {std::string} targetPluginName - The name of the plugin to destroy the Python instance for.
+ * @param {bool} isShuttingDown - Whether the plugin is shutting down.
+ * 
+ * @returns {bool} - True if the Python instance was destroyed successfully, false otherwise.
+ */
 MILLENNIUM bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown)
 {
     bool successfulShutdown = false;
@@ -274,20 +323,16 @@ MILLENNIUM bool PythonManager::DestroyPythonInstance(std::string targetPluginNam
     return successfulShutdown;
 }
 
-MILLENNIUM bool PythonManager::IsRunning(std::string targetPluginName)
-{
-    for (auto instance : this->m_pythonInstances) 
-    {
-        const auto& [pluginName, thread_ptr, interpMutex] = *instance;
-
-        if (targetPluginName == pluginName) 
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
+/**
+ * @brief Creates a new Python instance for a plugin.
+ * 
+ * This function creates a new Python instance for a plugin and delegates the callback function to the thread.
+ * 
+ * @param {SettingsStore::PluginTypeSchema} plugin - The plugin to create a Python instance for.
+ * @param {std::function<void(SettingsStore::PluginTypeSchema)>} callback - The callback function to delegate to the thread.
+ * 
+ * @returns {bool} - True if the Python instance was created successfully, false otherwise.
+ */
 MILLENNIUM bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback)
 {
     const std::string pluginName = plugin.pluginName;
@@ -342,7 +387,55 @@ MILLENNIUM bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSch
     return true;
 }
 
-MILLENNIUM std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
+/**
+ * @brief Checks if a plugin is running.
+ * 
+ * This function iterates through the list of Python instances and returns true if the plugin is running.
+ * 
+ * @param {std::string} targetPluginName - The name of the plugin to check if it is running.
+ * 
+ * @returns {bool} - True if the plugin is running, false otherwise.
+ */ 
+MILLENNIUM bool PythonManager::IsRunning(std::string targetPluginName)
+{
+    for (auto instance : this->m_pythonInstances) 
+    {
+        const auto& [pluginName, thread_ptr, interpMutex] = *instance;
+
+        if (targetPluginName == pluginName) 
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+MILLENNIUM bool PythonManager::HasBackend(std::string targetPluginName)
+{
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+
+    for (const auto& plugin : settingsStore->GetEnabledBackends()) 
+    {
+        if (plugin.pluginName == targetPluginName) 
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+/**
+ * @brief Gets the Python thread state from the plugin name.
+ * 
+ * This function iterates through the list of Python instances and returns the thread state
+ * associated with the given plugin name.
+ * 
+ * @param {std::string} targetPluginName - The name of the plugin to get the thread state from.
+ * 
+ * @returns {std::shared_ptr<PythonThreadState>} - The thread state associated with the given plugin name.
+ */
+MILLENNIUM std::optional<std::shared_ptr<PythonThreadState>> PythonManager::GetPythonThreadStateFromName(std::string targetPluginName)
 {
     for (auto instance : this->m_pythonInstances) 
     {
@@ -353,9 +446,19 @@ MILLENNIUM std::shared_ptr<PythonThreadState> PythonManager::GetPythonThreadStat
             return instance;
         }
     }
-    return {};
+    return std::nullopt;
 }
 
+/**
+ * @brief Gets the plugin name from the thread state.
+ * 
+ * This function iterates through the list of Python instances and returns the plugin name
+ * associated with the given thread state.
+ * 
+ * @param {PyThreadState*} thread - The thread state to get the plugin name from.
+ * 
+ * @returns {std::string} - The plugin name associated with the given thread state.
+ */
 MILLENNIUM std::string PythonManager::GetPluginNameFromThreadState(PyThreadState* thread) 
 {
     for (auto instance : this->m_pythonInstances)

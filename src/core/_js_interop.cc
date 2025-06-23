@@ -142,6 +142,47 @@ MILLENNIUM const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 }
 
 /**
+ * Escapes special characters in a JavaScript string.
+ */
+std::string EscapeJavaScriptString(const std::string& input)
+{
+    std::ostringstream escaped;
+    escaped << std::hex;
+
+    for (unsigned char c : input) 
+    {
+        switch (c) 
+        {
+            case '\"': escaped << "\\\""; break;
+            case '\\': escaped << "\\\\"; break;
+            case '\b': escaped << "\\b";  break;
+            case '\f': escaped << "\\f";  break;
+            case '\n': escaped << "\\n";  break;
+            case '\r': escaped << "\\r";  break;
+            case '\t': escaped << "\\t";  break;
+
+            default:
+                if (c < 0x20 || c == 0x2028 || c == 0x2029) 
+                {
+                    // Escape control and unsafe unicode chars as \uXXXX
+                    escaped << "\\u"
+                            << std::uppercase
+                            << std::setw(4)
+                            << std::setfill('0')
+                            << static_cast<int>(c);
+                } 
+                else 
+                {
+                    escaped << c;
+                }
+                break;
+        }
+    }
+
+    return escaped.str();
+}
+
+/**
  * Constructs a JavaScript function call string for a given plugin and method.
  *
  * @param {const char*} plugin - The name of the plugin containing the JavaScript function.
@@ -178,7 +219,7 @@ MILLENNIUM const std::string JavaScript::ConstructFunctionCall(const char* plugi
         {
             case JavaScript::Types::String: 
             {
-                strFunctionFormatted += fmt::format("\"{}\"", param.pluginName);
+                strFunctionFormatted += fmt::format("\"{}\"", EscapeJavaScriptString(param.pluginName));
                 break;
             }
             case JavaScript::Types::Boolean: 
@@ -233,9 +274,9 @@ MILLENNIUM PyObject* JavaScript::EvaluateFromSocket(std::string script)
 
         std::string type = response.json["type"];
 
-        if      (type == "string") return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
-        else if (type == "boolean")   return PyBool_FromLong(response.json["value"]);
-        else if (type == "number")    return PyLong_FromLong(response.json["value"]);
+        if      (type == "string")  return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
+        else if (type == "boolean") return PyBool_FromLong     (response.json["value"]);
+        else if (type == "number")  return PyLong_FromLong     (response.json["value"]);
         else
             return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
 

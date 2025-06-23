@@ -27,9 +27,9 @@ msbuild PCBuild/pcbuild.sln /p:Configuration=Debug /p:Platform=Win32 /p:RuntimeL
 PCbuild/win32/python.exe --version
 
 
-mkdir D:/a/Millennium/Millennium/build/python
+mkdir ./build/python
 # Move the python311.dll binary to the release directory
-Copy-Item D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.dll D:/a/Millennium/Millennium/build/python/python311.dll
-Copy-Item D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311_d.dll D:/a/Millennium/Millennium/build/python/python311_d.dll
-Copy-Item D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311.lib D:/a/Millennium/Millennium/build/python/python311.lib
-Copy-Item D:/a/Millennium/Millennium/Python-3.11.8/PCbuild/win32/python311_d.lib D:/a/Millennium/Millennium/build/python/python311_d.lib
+Copy-Item ./Python-3.11.8/PCbuild/win32/python311.dll ./build/python/python311.dll
+Copy-Item ./Python-3.11.8/PCbuild/win32/python311_d.dll ./build/python/python311_d.dll
+Copy-Item ./Python-3.11.8/PCbuild/win32/python311.lib ./build/python/python311.lib
+Copy-Item ./Python-3.11.8/PCbuild/win32/python311_d.lib ./build/python/python311_d.lib

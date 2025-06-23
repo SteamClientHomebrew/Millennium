@@ -30,7 +30,7 @@
 
 #include "locals.h"
 #include <fstream>
-#include "log.h"
+#include "internal_logger.h"
 #include <fmt/core.h>
 #include <iostream>
 #include "fvisible.h"
@@ -40,6 +40,8 @@
 #include <windows.h>
 #endif
 #include <env.h>
+#include <optional>
+#include <regex>
 
 namespace FileSystem = std::filesystem;
 
@@ -177,5 +179,25 @@ namespace SystemIO {
         }
 
         fileStream.close();
+    }
+
+    MILLENNIUM std::optional<std::string> GetMillenniumPreloadPath()
+    {
+        auto dirPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH"));
+        auto preloadPath = dirPath / "millennium.js";
+        
+        if (!std::filesystem::is_directory(dirPath)) 
+        {
+            LOG_ERROR("Directory does not exist: {}", dirPath.generic_string());
+            return std::nullopt;
+        }
+        
+        if (!std::filesystem::exists(preloadPath)) 
+        {
+            LOG_ERROR("Preload file does not exist: {}", preloadPath.generic_string());
+            return std::nullopt;
+        }
+        
+        return preloadPath.generic_string();
     }
 }

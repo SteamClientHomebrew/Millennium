@@ -37,9 +37,10 @@
 #include "locals.h"
 #include <condition_variable>
 #include <atomic>
-#include "log.h"
+#include "internal_logger.h"
 #include <filesystem>
 #include "env.h"
+#include <optional>
 
 struct InterpreterMutex {
     std::mutex mtx;
@@ -85,8 +86,9 @@ public:
 	bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
 
 	bool IsRunning(std::string pluginName);
+	bool HasBackend(std::string pluginName);
 
-	std::shared_ptr<PythonThreadState> GetPythonThreadStateFromName(std::string pluginName);
+	std::optional<std::shared_ptr<PythonThreadState>> GetPythonThreadStateFromName(std::string pluginName);
 	std::string GetPluginNameFromThreadState(PyThreadState* thread);
 
 	static PythonManager& GetInstance() {

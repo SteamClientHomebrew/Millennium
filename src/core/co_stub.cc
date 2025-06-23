@@ -32,12 +32,12 @@
 #include <vector>
 #include <fmt/core.h>
 #include "co_spawn.h"
-#include "log.h"
+#include "internal_logger.h"
 #include "loader.h"
-#include "web_load.h"
+#include "http_hooks.h"
 #include "ffi.h"
 #include <tuple>
-#include "logger.h"
+#include "plugin_logger.h"
 #include <mutex>
 #include <condition_variable>
 #include <thread>
@@ -45,9 +45,17 @@
 #include "url_parser.h"
 #include <env.h>
 #include "fvisible.h"
+#include <secure_socket.h>
 
 static std::string addedScriptOnNewDocumentId = "";
 
+/**
+ * @brief A singleton class that manages the state of the backend load.
+ * 
+ * This class is used to manage the state of the backend load.
+ * 
+ * @returns {BackendLoadState} - A singleton instance of the BackendLoadState class.
+ */
 class BackendLoadState {
 private:
     BackendLoadState() = default;
@@ -80,14 +88,14 @@ public:
  * Error Handling:
  * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
  */
-MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules, const uint16_t port)
+MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
 {
     std::string scriptModuleArray;
-    std::string scriptContents = SystemIO::ReadFileSync((std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH")) / "client_api.js").string());
+    std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
 
-    if (scriptContents.empty())
+    if (!millenniumPreloadPath.has_value())
     {
-        LOG_ERROR("Missing webkit preload module. Please re-install Millennium.");
+        LOG_ERROR("Missing client preload module. Please re-install Millennium.");
         #ifdef _WIN32
         MessageBoxA(NULL, "Missing client preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
         #endif
@@ -98,7 +106,12 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
-    return fmt::format("{}\nmillennium_components({}, [{}]);", scriptContents, port, scriptModuleArray);
+    const std::string millenniumAuthToken = GetAuthToken();
+
+    const std::string ftpPath = UrlFromPath("https://millennium.ftp/", millenniumPreloadPath.value_or(std::string()));
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}]);", millenniumAuthToken, scriptModuleArray);
+
+    return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
 }
 
 /**
@@ -241,6 +254,52 @@ MILLENNIUM void StartPluginBackend(PyObject* global_dict, std::string pluginName
 }
 
 /**
+ * Sets up the plugin settings parser in the builtins dictionary.
+ *
+ * This function checks if the `__millennium_plugin_settings_parser__` function exists in the builtins dictionary.
+ * If it does not exist, it creates a placeholder function and adds it to the builtins dictionary.
+ *
+ * Error Handling:
+ * - If the builtins dictionary cannot be retrieved, a `RuntimeError` is raised.
+ * - If creating the placeholder function fails, a `RuntimeError` is raised.
+ */
+MILLENNIUM void SetupPluginSettings()
+{
+    PyObject* builtins = PyEval_GetBuiltins();
+    if (!builtins) 
+    {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
+        return;
+    }
+
+    PyObject* parserFunc = PyDict_GetItemString(builtins, "__millennium_plugin_settings_parser__");
+    if (!parserFunc) 
+    {
+        Logger.PrintMessage(" BOOT ", "Creating __millennium_plugin_settings_parser__ function in builtins.", COL_YELLOW);
+
+        static PyMethodDef methodDef = {
+            "__millennium_plugin_settings_parser__",
+            [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; },
+            METH_NOARGS,
+            "Millennium plugin settings parser placeholder."
+        };
+
+        PyObject* newFunc = PyCFunction_New(&methodDef, nullptr);
+
+        if (newFunc) 
+        {
+            PyDict_SetItemString(builtins, "__millennium_plugin_settings_parser__", newFunc);
+            Py_DECREF(newFunc);
+        } 
+        else 
+        {
+            PyErr_SetString(PyExc_RuntimeError, "Failed to create __millennium_plugin_settings_parser__ function.");
+        }
+    }
+}
+
+
+/**
  * Sets a secret plugin name in both the global dictionary and the builtins dictionary in Python.
  * The plugin secret name is used to identify the plugin in IPC and FFI calls.
  *
@@ -362,8 +421,7 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
 
     Logger.Log("Running plugin: {}", plugin.pluginName);
 
-    PyObject* result = PyRun_File(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict);
-    fclose(mainModuleFilePtr);
+    PyObject* result = PyRun_FileEx(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict, 1);
 
     if (!result) 
     {
@@ -406,6 +464,7 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
         }
     });
 
+    SetupPluginSettings();
     StartPluginBackend(globalDictionary, plugin.pluginName);  
 
     timeOutLockThreadRunning.store(false);
@@ -415,8 +474,6 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
 /**
  * Constructs a module for loading plugins based on the given FTP and IPC ports.
  *
- * @param {uint16_t} ftpPort - The FTP port used for accessing the frontend files.
- * @param {uint16_t} ipcPort - The IPC port used for communication.
  * @returns {std::string} - A string representing the constructed module containing the list of plugin URLs and bootstrap configuration.
  *
  * This function performs the following tasks:
@@ -427,7 +484,7 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
  *
  * The constructed module is returned as a string.
  */
-MILLENNIUM const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ipcPort) 
+MILLENNIUM const std::string ConstructOnLoadModule() 
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
@@ -442,10 +499,10 @@ MILLENNIUM const std::string ConstructOnLoadModule(uint16_t ftpPort, uint16_t ip
         }
 
         const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
-        scriptImportTable.push_back(UrlFromPath(fmt::format("http://localhost:{}/", ftpPort), frontEndAbs));
+        scriptImportTable.push_back(UrlFromPath("https://millennium.ftp/", frontEndAbs));
     }
 
-    return GetBootstrapModule(scriptImportTable, ipcPort);
+    return GetBootstrapModule(scriptImportTable);
 }
 
 /**
@@ -517,9 +574,6 @@ MILLENNIUM const void UnPatchSharedJSContext()
 
 /**
  * Notifies the frontend of the backend load and handles script injection and state updates.
- *
- * @param {uint16_t} ftpPort - The FTP port used to access frontend resources.
- * @param {uint16_t} ipcPort - The IPC port used for backend communication.
  * 
  * This function performs the following tasks:
  * 1. Logs the start of the backend load notification process.
@@ -534,13 +588,10 @@ MILLENNIUM const void UnPatchSharedJSContext()
  * Error Handling:
  * - If any issues occur during the message processing, errors are logged with details.
  */
-MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
+MILLENNIUM void OnBackendLoad(bool reloadFrontend)
 {
     UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
-
-    static uint16_t m_ftpPort = ftpPort;
-    static uint16_t m_ipcPort = ipcPort;
 
     enum PageMessage
     {
@@ -550,7 +601,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
         PAGE_RELOAD = 4
     };
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [] (const nlohmann::json& eventMessage, std::string listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [reloadFrontend] (const nlohmann::json& eventMessage, std::string listenerId)
     {
         auto& state = BackendLoadState::get();
         std::unique_lock<std::mutex> lock(state.mtx);
@@ -562,7 +613,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
             if (messageId == PAGE_ENABLE)
             {
                 Logger.Log("Injecting script to evaluate on new document...");
-                Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule(m_ftpPort, m_ipcPort) }}} });
+                Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule() }}} });
             }
             if (messageId == PAGE_SCRIPT)
             {
@@ -572,7 +623,7 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                 state.hasScriptIdentifier = true;
                 Logger.Log("Successfully injected shims, reloading frontend...");
 
-                Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                if (reloadFrontend) Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
                 state.cvScript.notify_one();  
 
             }
@@ -581,12 +632,10 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
                 if (eventMessage.contains("error"))
                 {
                     Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
-                    Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
+                    if (reloadFrontend) Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
                     return;
                 }
-
-                Logger.Log(eventMessage.dump(4));
-
+                
                 Logger.Log("Successfully notified frontend...");
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
@@ -607,16 +656,29 @@ MILLENNIUM void OnBackendLoad(uint16_t ftpPort, uint16_t ipcPort)
     Logger.Log("Frontend notifier finished!");
 }
 
-MILLENNIUM const void CoInitializer::InjectFrontendShims(uint16_t ftpPort, uint16_t ipcPort) 
+/**
+ * @brief Injects the frontend shims.
+ * 
+ * This function injects the frontend shims by registering a callback function to be called when the backend is loaded.
+ * 
+ */
+MILLENNIUM const void CoInitializer::InjectFrontendShims(bool reloadFrontend) 
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
-    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, ftpPort, ipcPort));
+    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, reloadFrontend));
 }
 
-MILLENNIUM const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader)
+/**
+ * @brief Re-injects the frontend shims.
+ * 
+ * This function re-injects the frontend shims by removing the existing script and injecting a new one.
+ * 
+ * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
+ */
+MILLENNIUM const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
 {
     pluginLoader->InjectWebkitShims();
 
     Sockets::PostShared({ {"id", 0 }, {"method", "Page.removeScriptToEvaluateOnNewDocument"}, {"params", {{ "identifier", addedScriptOnNewDocumentId }}} });
-    InjectFrontendShims();
+    InjectFrontendShims(reloadFrontend);
 }

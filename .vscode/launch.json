@@ -10,11 +10,6 @@
 			"stopAtEntry": false,
 			"setupCommands": [
 				{
-					"description": "Enable break on all exceptions",
-					"text": "catch throw",
-					"ignoreFailures": true
-				},
-				{
 					"description": "Enable pretty-printing for gdb",
 					"text": "-enable-pretty-printing",
 					"ignoreFailures": true
@@ -25,33 +20,17 @@
 			"preLaunchTask": "CMake: build"
 		},
 		{
-			"type": "cppdbg",
+			"name": "Debug Millennium (Unix)",
+			"type": "node",
 			"request": "launch",
-			"name": "Debug Millennium (Linux)",
-			"program": "/home/shadow/.steam/steam/ubuntu12_32/steam",
-			"cwd": "/home/shadow/.steam/steam",
-			"stopAtEntry": false,
-			"setupCommands": [
-				{
-					"description": "Enable break on all exceptions",
-					"text": "catch throw",
-					"ignoreFailures": true
-				},
-				{
-					"description": "Enable pretty-printing for gdb",
-					"text": "-enable-pretty-printing",
-					"ignoreFailures": true
-				}
-			],
-			"environment": [
-				{
-					"name": "LD_LIBRARY_PATH",
-					"value": "/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/pinned_libs_32:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/pinned_libs_64:/usr/lib32:/usr/lib/libfakeroot:/usr/lib:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib/i386-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib/i386-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib/x86_64-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib/x86_64-linux-gnu:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/lib:/home/shadow/.steam/steam/ubuntu12_32/steam-runtime/usr/lib"
-				}
-			],
-			"externalConsole": false,
+			"program": "${workspaceFolder}/scripts/posix/start.sh",
 			"console": "integratedTerminal",
-			"preLaunchTask": "CMake: build"
+			"env": {
+				"LD_PRELOAD": "${workspaceFolder}/build/libmillennium_x86.so"
+			},
+			"cwd": "${workspaceFolder}",
+			"runtimeExecutable": "/bin/bash",
+			"runtimeArgs": ["-c", "${workspaceFolder}/scripts/posix/start.sh -dev"]
 		}
 	]
 }

@@ -1,161 +1,59 @@
-import time
-start_time = time.perf_counter()
+import Millennium, json 
+from config.manager import get_config
 
-from updater.millennium import MillenniumUpdater
+from util.ipc_functions import GetSystemColors, GetOperatingSystem, SetClipboardContent, GetEnvironmentVar, ChangePluginStatus, GetPluginBackendLogs, ShouldShowUpdateModal
 
-import Millennium, json # type: ignore
-from util.logger import logger
+from updater.millennium_updater import *
+from plugins.plugin_installer import *
+from themes.theme_installer import *
+from util.logger import *
+from util.decorators import *
+from themes.css_analyzer import *
+from themes.accent_color import *
+from themes.accent_color import *
+from plugins.plugins import *
+from themes.theme_config import *
+from themes.webkit_handler import *
 
-logger.log(f"Loading Millennium-Core@{Millennium.version()}")
+config = get_config()
 
-from api.css_analyzer     import *
-from api.themes           import *
-from api.themes           import *
-from api.plugins          import *
-from api.config           import *
+# Check for updates on plugins and themes.
+from updater.updater import Updater
+updater = Updater()
+# Check for updates on Millennium itself. 
+MillenniumUpdater.check_for_updates()
 
-from util.webkit_handler  import *
-from util.theme_installer import *
+themeInstaller = ThemeInstaller()
+pluginInstaller = PluginInstaller()
 
-from config.ini           import *
+def GetMillenniumConfig():
+    enabledPlugins = [plugin["data"]["name"] for plugin in json.loads(find_all_plugins()) if plugin["enabled"]]
 
-# This updater module is responsible for updating themes.
-# It DOES NOT automatically do so, it is interfaced in the front-end.
-from updater.theme_updater import ThemeUpdater
-updater = ThemeUpdater()
-
-from updater.plugin_updater import PluginUpdater
-plugin_updater = PluginUpdater()
-
-def get_load_config():
-    config = cfg.get_config()
-
-    enabled_plugins = []
-
-    for plugin in json.loads(find_all_plugins()):
-        if plugin["enabled"]:
-            enabled_plugins.append(plugin["data"]["name"])
-
-    return json.dumps({
-        "accent_color": json.loads(Colors.get_accent_color(config["accentColor"])), 
-        "conditions": config["conditions"] if "conditions" in config else None, 
-        "active_theme": json.loads(cfg.get_active_theme()),
-        "settings": config,
-
-        "steamPath": Millennium.steam_path(),
-        "installPath": Millennium.get_install_path(),
-
-        "useInterface": True if IniConfig.get_config('Settings', 'useInterface', fallback='yes') == "yes" else False,
-        "millenniumVersion": Millennium.version(),
-
-        "wantsUpdates": MillenniumUpdater.user_wants_updates().value,
-        "wantsNotify": MillenniumUpdater.user_wants_update_notify().value,
-        
-        "enabledPlugins": enabled_plugins
-    })
-
-    
-def get_plugins_dir():
-    return os.getenv("MILLENNIUM__PLUGINS_PATH")
-
-
-def _webkit_accent_color():
-    return Colors.get_accent_color(cfg.get_config()["accentColor"])
-
-
-def update_plugin_status(pluginJson):
-    Millennium.change_plugin_status(json.loads(pluginJson))
-
-
-def _get_plugin_logs():
-    return Millennium.get_plugin_logs()
-
-
-def _get_env_var(variable: str):
-    return os.getenv(variable)
-
-
-def _get_os_type():
-    # Get OS type and translate to enum types on the frontend
-    if os.name == "nt":
-        return 0
-    elif os.name == "posix":
-        return 1
-    else:
-        raise ValueError("Unsupported OS")
-    
-
-def _copy_to_clipboard(data: str):
-    try:
-        import pyperclip
-        pyperclip.copy(data)
-        return True
-    except Exception as e:
-        logger.error(f"Failed to copy to clipboard: {e}")
-        return False
-    
-
-has_shown_update_modal = False
-
-def should_show_update_modal():
-    global has_shown_update_modal
-
-    if not has_shown_update_modal:
-        has_shown_update_modal = True
-        return True
-    
-    return False
+    return {
+        "accent_color":              theme_config.get_accent_color(), 
+        "conditions":                config["themes.conditions"] if "themes.conditions" in config else None, 
+        "active_theme":              theme_config.get_active_theme(),
+        "settings":                  config._sanitize(),
+        "steamPath":                 Millennium.steam_path(),
+        "installPath":               Millennium.get_install_path(),
+        "millenniumVersion":         Millennium.version(),
+        "enabledPlugins":            enabledPlugins,
+        "updates":                   updater.get_cached_updates(),
+        "hasCheckedForUpdates":      updater.get_has_checked_for_updates(),
+        "buildDate":                 Millennium.__internal_get_build_date(),
+        "millenniumUpdates":         MillenniumUpdater.has_any_updates(),
+    }
 
 
 class Plugin:
     def _front_end_loaded(self):
         logger.log("SteamUI successfully loaded!")
 
-
-    def StartWebsocket(self):
-        self.server = WebSocketServer()
-
-        try:
-            logger.log("Starting the websocket for theme installer...")
-            self.server.start()
-        except Exception as e:
-            logger.error("Failed to start the websocket for theme installer! trace: " + str(e))
-
-
+    # Called when the plugin is initially loaded. 
     def _load(self):     
-        # cfg.set_theme_cb()
-        self.StartWebsocket()
-
-        elapsed_time = time.perf_counter() - start_time
-        logger.log(f"Ready in {round(elapsed_time * 1000, 3)} milliseconds!")
+        logger.log(f"Loading Millennium-Core@{Millennium.version()}")
         Millennium.ready()
 
-        if os.name == "posix":
-            from unix.socket_con import MillenniumSocketServer
-            logger.log("Starting UNIX socket server...")
-
-            self.unix_server = MillenniumSocketServer()
-
-            # Function to run the server in a thread
-            def start_server():
-                self.unix_server.serve()
-
-            # Start the server in a separate thread
-            server_thread = threading.Thread(target=start_server, daemon=True)
-            server_thread.start()
-
-        # This CHECKS for updates on Millennium given the user has it enabled in settings.
-        # It DOES NOT automatically update, it is interfaced in the front-end.
-        MillenniumUpdater.check_for_updates()
-
-
+    # Called whenever Millennium is unloaded. It can be used to clean up resources, save settings, etc.
     def _unload(self):
-        logger.log("Millennium-Core is unloading...")
-        self.server.stop()
-        logger.log("Websocket server has been stopped!")
-
-        if os.name == "posix":
-            logger.log("Stopping UNIX socket server...")
-            self.unix_server.stop()
-
         logger.log("Millennium-Core has been unloaded!")

@@ -34,11 +34,11 @@
 #include <nlohmann/json.hpp>
 #include <fmt/core.h>
 #include <fstream>
-#include "log.h"
+#include "internal_logger.h"
 #include "locals.h"
-#include "web_load.h"
+#include "http_hooks.h"
 #include "co_stub.h"
-#include "logger.h"
+#include "plugin_logger.h"
 #include "encoding.h"
 #include "fvisible.h"
 
@@ -152,21 +152,12 @@ MILLENNIUM PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
     }
 
     bool success = false;
-    const auto moduleList = WebkitHandler::get().m_hookListPtr;
+    HttpHookManager::get().RemoveHook(moduleId);
 
-    for (auto it = moduleList->begin(); it != moduleList->end();)
-    {
-        if (it->id == moduleId) 
-        {
-            it = moduleList->erase(it);
-            success = true;
-        } 
-        else ++it;
-    }
     return PyBool_FromLong(success);
 }
 
-MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::TagTypes type) 
+MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes type) 
 {
     const char* moduleItem;
     const char* regexSelector = ".*"; // Default value if no second parameter is provided
@@ -182,7 +173,7 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
 
     try 
     {
-        WebkitHandler::get().m_hookListPtr->push_back({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
     } 
     catch (const std::regex_error& e) 
     {
@@ -196,12 +187,12 @@ MILLENNIUM unsigned long long AddBrowserModule(PyObject* args, WebkitHandler::Ta
 
 MILLENNIUM PyObject* AddBrowserCss(PyObject* self, PyObject* args) 
 { 
-    return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::STYLESHEET)); 
+    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET)); 
 }
 
 MILLENNIUM PyObject* AddBrowserJs(PyObject* self, PyObject* args)  
 { 
-    return PyLong_FromLong((long)AddBrowserModule(args, WebkitHandler::TagTypes::JAVASCRIPT)); 
+    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT)); 
 }
 
 /* 
@@ -298,7 +289,7 @@ MILLENNIUM PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         }).detach();
     }
     
-    CoInitializer::ReInjectFrontendShims(g_pluginLoader);
+    CoInitializer::ReInjectFrontendShims(g_pluginLoader, true);
     Py_RETURN_NONE;
 }
 
@@ -366,6 +357,45 @@ MILLENNIUM PyObject* GetPluginLogs(PyObject* self, PyObject* args)
     return PyUnicode_FromString(logData.dump().c_str());
 }
 
+// Helper to convert month abbreviation to number
+std::string getMonthNumber(const std::string& monthAbbr) 
+{
+    static std::map<std::string, std::string> monthMap 
+    {
+        {"Jan", "01"}, {"Feb", "02"}, {"Mar", "03"}, {"Apr", "04"},
+        {"May", "05"}, {"Jun", "06"}, {"Jul", "07"}, {"Aug", "08"},
+        {"Sep", "09"}, {"Oct", "10"}, {"Nov", "11"}, {"Dec", "12"}
+    };
+    return monthMap[monthAbbr];
+}
+
+std::string getBuildTimestamp() 
+{
+#ifdef __DATE__
+    std::string date = __DATE__;
+#else
+    std::string date = "Jan 01 1970";
+#endif
+
+#ifdef __TIME__
+    std::string time = __TIME__;
+#else
+    std::string time = "00:00:00";
+#endif
+
+    std::string month = getMonthNumber(date.substr(0, 3));
+    std::string day = date.substr(4, 2);
+    std::string year = date.substr(7, 4);
+
+    if (day[0] == ' ') day[0] = '0';
+    return year + "-" + month + "-" + day + "T" + time;
+}
+
+MILLENNIUM PyObject* GetBuildDate(PyObject* self, PyObject* args)
+{
+    return PyUnicode_FromString(getBuildTimestamp().c_str());
+} 
+
 /** 
  * Method API for the Millennium module
  * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
@@ -402,6 +432,9 @@ MILLENNIUM PyMethodDef* GetMillenniumModule()
          * Used to toggle the status of a plugin, used in the Millennium settings page.
         */
         { "change_plugin_status",  TogglePluginStatus,              METH_VARARGS, NULL },
+
+        /** For internal use, but can be used if its useful */
+        { "__internal_get_build_date",  GetBuildDate,               METH_VARARGS, NULL },
         {NULL, NULL, 0, NULL} // Sentinel
     };
 

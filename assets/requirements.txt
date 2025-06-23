@@ -1,7 +1,7 @@
 arrow==1.3.0
 psutil==7.0.0
 pywin32==308 | Windows
-requests==2.32.3
+requests==2.32.4
 winrt-Windows.UI.ViewManagement==2.3.0 | Windows
 winrt-Windows.UI==2.3.0 | Windows
 pygit2==1.16.0 | Windows
@@ -12,3 +12,5 @@ watchdog==6.0.0
 PySocks==1.7.1
 pyperclip==1.9.0
 semver==3.0.4
+millennium==5.2.3
+millennium-core-utils==5.2.3

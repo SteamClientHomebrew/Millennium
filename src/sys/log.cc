@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "log.h"
+#include "internal_logger.h"
 #include <chrono>
 #include <string>
 #include <iostream>
