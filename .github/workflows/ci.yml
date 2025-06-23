@@ -81,6 +81,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   cd sdk && pnpm install && pnpm run build && cd ..
+                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
                   Copy-Item -Recurse -Force ./sdk/typescript-packages/loader/build/* D:/a/env/ext/data/shims/
 
                   cd assets && pnpm install && pnpm run build && cd ..
@@ -180,6 +181,7 @@ jobs:
                   cd assets && pnpm install && npm run build && cd ..
                   bash scripts/ci/posix/mk-assets.sh
 
+                  mkdir -p ~/build/usr/share/millennium/shims
                   cp -r ./sdk/typescript-packages/loader/build/* ~/build/usr/share/millennium/shims/
 
             - name: 🛠️ Build Millennium Backend
@@ -192,7 +194,6 @@ jobs:
                   mkdir -p ~/build/usr/lib/millennium
                   mkdir -p ~/build/usr/bin
                   mkdir -p ~/build/usr/share/millennium
-                  mkdir -p ~/build/usr/share/millennium/shims
                   mkdir -p ~/build/opt
 
                   # Copy binaries and libraries directly to final locations
