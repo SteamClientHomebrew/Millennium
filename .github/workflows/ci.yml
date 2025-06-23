@@ -76,17 +76,13 @@ jobs:
               shell: pwsh
               run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
 
-            - name: ⚙️ Download Millennium API
-              run: |
-                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
-                  npm install -g @steambrew/api@latest
-                  $pkgPath = Join-Path (npm root -g) "@steambrew/api/build/*"
-                  Copy-Item -Recurse -Force $pkgPath "D:/a/env/ext/data/shims/"
-
             - name: 🛠️ Build Millennium Frontend
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
+                  cd sdk && pnpm install && pnpm run build && cd ..
+                  Copy-Item -Recurse -Force ./sdk/typescript-packages/loader/build/* D:/a/env/ext/data/shims/
+
                   cd assets && pnpm install && pnpm run build && cd ..
                   . scripts\ci\win32\mk-assets.ps1
 
@@ -180,17 +176,17 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
+                  cd sdk && pnpm install && pnpm run build && cd ..
                   cd assets && pnpm install && npm run build && cd ..
                   bash scripts/ci/posix/mk-assets.sh
+
+                  cp -r ./sdk/typescript-packages/loader/build/* ~/build/usr/share/millennium/shims/
 
             - name: 🛠️ Build Millennium Backend
               run: |
                   cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
                   # Build the project
                   cmake --build build --config Release -- -j$(nproc)
-
-                  # Install npm dependencies
-                  npm install -g @steambrew/api@latest
 
                   # Create final directory structure
                   mkdir -p ~/build/usr/lib/millennium
@@ -203,9 +199,6 @@ jobs:
                   cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
                   cp ./build/cli/millennium ~/build/usr/bin/millennium
                   chmod +x ~/build/usr/bin/millennium
-
-                  # Copy npm package data
-                  cp -r $(npm root -g)/@steambrew/api/build/* ~/build/usr/share/millennium/shims/
 
                   # Copy additional assets
                   cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
