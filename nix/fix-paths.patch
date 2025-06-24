@@ -1,24 +1,28 @@
 diff --git a/src/sys/env.cc b/src/sys/env.cc
-index aabe7de8..0939eb6f 100644
+index 20f31970..c3e6a1ab 100644
 --- a/src/sys/env.cc
 +++ b/src/sys/env.cc
-@@ -157,11 +157,11 @@ const void SetupEnvironmentVariables()
-     #if MILLENNIUM_FRONTEND_DEVELOPMENT_MODE
-     const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
-     #else
--    const auto assetsPath = "/usr/share/millennium/assets";
-+    const auto assetsPath = "@assets@/share/millennium/assets";
+@@ -109,7 +109,7 @@ const void SetupEnvironmentVariables()
+         #ifdef _WIN32
+             const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
+         #elif __linux__
+-            const auto shimsPath = "/usr/share/millennium/shims";
++            const auto shimsPath = "@shims@/share/millennium/shims";
+         #endif
      #endif
  
-     #if USE_DEFAULT_SDK
--    const auto shimsPath = "/usr/share/millennium/shims";
-+    const auto shimsPath = "@shims@/share/millennium/shims";
-     #else
-     const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
+@@ -120,7 +120,7 @@ const void SetupEnvironmentVariables()
+         #ifdef _WIN32
+             const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
+         #elif __linux__
+-            const auto assetsPath = "/usr/share/millennium/assets";
++            const auto assetsPath = "@assets@/share/millennium/assets";
+         #endif
      #endif
-@@ -169,7 +169,7 @@ const void SetupEnvironmentVariables()
-     const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
  
+@@ -151,7 +151,7 @@ const void SetupEnvironmentVariables()
+     }
+   
      std::map<std::string, std::string> environment_unix = {
 -        { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
 +        { "MILLENNIUM_RUNTIME_PATH", "@OUT@/lib/millennium/libmillennium_x86.so" },
