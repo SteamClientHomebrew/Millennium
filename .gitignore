@@ -13,3 +13,5 @@
 /assets/src/env.ts
 
 /.direnv
+/result
+/sdk/result
