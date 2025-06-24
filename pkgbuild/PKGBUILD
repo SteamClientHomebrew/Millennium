@@ -10,7 +10,6 @@ makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs')
 depends_x86_64=('python-i686-bin')
 source=("git+$url.git")
 sha256sums=('SKIP')
-validpgpkeys=('D4A49B8AB39D704F')
 options=(!debug)
 install=millennium.install
 
