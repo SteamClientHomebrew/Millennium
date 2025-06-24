@@ -1,15 +1,9 @@
 diff --git a/scripts/posix/start.sh b/scripts/posix/start.sh
-index 08772444..7dc394cc 100755
+index d444ad77..660c075b 100755
 --- a/scripts/posix/start.sh
 +++ b/scripts/posix/start.sh
-@@ -32,14 +32,10 @@ if [ -n "$DISPLAY" ]; then
- fi
- 
- export OPENSSL_CONF=/dev/null
--export LD_PRELOAD="/home/shadow/dev/Millennium/build/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
--export LD_LIBRARY_PATH="/home/shadow/dev/Millennium/build/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-+export LD_PRELOAD="@OUT@/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
-+export LD_LIBRARY_PATH="@OUT@/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+@@ -1,14 +1,10 @@
+ #!/bin/bash
  
 -if grep -qi 'arch' /etc/os-release || command -v pacman &> /dev/null; then
 -    STEAM_PATH="/usr/lib/steam/steam"
@@ -18,5 +12,11 @@ index 08772444..7dc394cc 100755
 -fi
 +STEAM_PATH="@steam@/bin/steam"
  
+ export OPENSSL_CONF=/dev/null
+-export LD_PRELOAD="/usr/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
+-export LD_LIBRARY_PATH="/usr/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
++export LD_PRELOAD="@OUT@/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
++export LD_LIBRARY_PATH="@OUT@/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
  
  # Millennium hooks __libc_start_main to initialize itself, which is a function that is called before main. 
+ # Besides that, Millennium does not alter Steam memory and runs completely disjoint.
