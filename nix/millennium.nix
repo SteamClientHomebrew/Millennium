@@ -10,7 +10,28 @@
 let
   shims = callPackage ./typescript/shims.nix { };
   assets = callPackage ./assets.nix { };
-  
+  venv = pkgsi686Linux.python311.withPackages (
+    py:
+    (with py; [
+      setuptools
+      pip
+
+      arrow
+      psutil
+      requests
+      gitpython
+      cssutils
+      websockets
+      watchdog
+      pysocks
+      pyperclip
+      semver
+    ])
+    ++ [
+      (callPackage ./python/millennium.nix)
+      (callPackage ./python/core-utils.nix)
+    ]
+  );
 in
 pkgsi686Linux.stdenv.mkDerivation {
   pname = "millennium";
@@ -24,7 +45,7 @@ pkgsi686Linux.stdenv.mkDerivation {
       OUT = null;
     })
     (replaceVars ./patches/fix-paths.patch {
-      inherit shims assets;
+      inherit shims assets venv;
       OUT = null;
     })
     ./patches/cmake.patch
