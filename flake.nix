@@ -8,10 +8,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     self.submodules = true; # Requires *Nix* >= 2.27
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
   outputs =
-    { nixpkgs, self, ... }:
+    { nixpkgs, ... }:
     let
       pkgs = import nixpkgs {
         system = "x86_64-linux";
@@ -19,17 +20,7 @@
       };
     in
     {
-      # TODO: move shell to separate file to
-      #       let users without flakes use it too
-      devShells."x86_64-linux".default = pkgs.mkShellNoCC {
-        stdenv = pkgs.stdenv_32bit;
-        name = "Millennium";
-        packages = with pkgs; [
-          nixd
-          nixfmt-rfc-style
-          mypy
-        ];
-      };
+      devShells."x86_64-linux".default = import ./shell.nix { inherit pkgs; };
 
       packages."x86_64-linux" = {
         millennium = pkgs.callPackage ./nix/millennium.nix { };
