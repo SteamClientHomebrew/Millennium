@@ -1,0 +1,22 @@
+diff --git a/setup.py b/setup.py
+index 35ac677..ee1e136 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,7 +1,7 @@
+ import json
+ from setuptools import setup, find_packages
+ 
+-with open('../../package.json', 'r') as f:
++with open('./package.json', 'r') as f:
+     package_info = json.load(f)
+ 
+ setup(
+@@ -9,7 +9,7 @@ setup(
+     version=package_info.get('version'),
+     author='Steam Client Homebrew',
+     description='A support library for creating plugins with Millennium.',
+-    long_description=open('../../README.md').read(),
++    long_description=open('./README.md').read(),
+     long_description_content_type='text/markdown',
+     url='https://github.com/SteamClientHomebrew/PluginComponents',
+     packages=find_packages(),
