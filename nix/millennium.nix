@@ -8,8 +8,9 @@
   lib,
 }:
 let
-  shims = callPackage ./shims.nix { };
+  shims = callPackage ./typescript/shims.nix { };
   assets = callPackage ./assets.nix { };
+  
 in
 pkgsi686Linux.stdenv.mkDerivation {
   pname = "millennium";
@@ -17,16 +18,16 @@ pkgsi686Linux.stdenv.mkDerivation {
 
   src = ../.;
   patches = [
-    ./disable-cli.patch
-    (replaceVars ./start-script.patch {
+    ./patches/disable-cli.patch
+    (replaceVars ./patches/start-script.patch {
       inherit steam;
       OUT = null;
     })
-    (replaceVars ./fix-paths.patch {
+    (replaceVars ./patches/fix-paths.patch {
       inherit shims assets;
       OUT = null;
     })
-    ./cmake.patch
+    ./patches/cmake.patch
   ];
 
   buildInputs = [

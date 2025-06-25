@@ -24,7 +24,7 @@
 
       packages."x86_64-linux" = {
         millennium = pkgs.callPackage ./nix/millennium.nix { };
-        shims = pkgs.callPackage ./nix/shims.nix { };
+        shims = pkgs.callPackage ./nix/typescript/shims.nix { };
         assets = pkgs.callPackage ./nix/assets.nix { };
       };
     };

@@ -8,7 +8,7 @@ stdenv.mkDerivation rec {
   pname = "millennium-sdk";
   version = "git";
 
-  src = ../sdk;
+  src = ../../sdk;
   pnpmDeps = pnpm.fetchDeps {
     inherit src version pname;
     #TODO: automatic hash update
