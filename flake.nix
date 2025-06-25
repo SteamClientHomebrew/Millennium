@@ -26,7 +26,10 @@
         millennium = pkgs.callPackage ./nix/millennium.nix { };
         shims = pkgs.callPackage ./nix/typescript/shims.nix { };
         assets = pkgs.callPackage ./nix/assets.nix { };
-        python.millennium = pkgs.callPackage ./nix/python/millennium.nix { };
+        python = {
+          millennium = pkgs.callPackage ./nix/python/millennium.nix { };
+          core-utils = pkgs.callPackage ./nix/python/core-utils.nix { };
+        };
       };
     };
 }
