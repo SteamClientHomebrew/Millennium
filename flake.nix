@@ -12,7 +12,7 @@
   };
 
   outputs =
-    { nixpkgs, ... }:
+    { nixpkgs, self, ... }:
     let
       pkgs = import nixpkgs {
         system = "x86_64-linux";
@@ -23,6 +23,7 @@
       devShells."x86_64-linux".default = import ./shell.nix { inherit pkgs; };
 
       packages."x86_64-linux" = {
+        default = self.packages."x86_64-linux".millennium;
         millennium = pkgs.callPackage ./nix/millennium.nix { };
         shims = pkgs.callPackage ./nix/typescript/shims.nix { };
         assets = pkgs.callPackage ./nix/assets.nix { };
