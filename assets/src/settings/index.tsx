@@ -87,7 +87,7 @@ export function MillenniumSettings() {
 		<ConfigProvider>
 			<Styles />
 			{/* @ts-ignore */}
-			<SidebarNavigation className={className} pages={settingsPages} title={<></>} />
+			<SidebarNavigation className={className} pages={settingsPages} title={'Millennium'} />
 		</ConfigProvider>
 	);
 }
