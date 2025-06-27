@@ -151,7 +151,7 @@ const void SetupEnvironmentVariables()
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
 
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
   
     std::map<std::string, std::string> environment_unix = {
@@ -183,7 +183,7 @@ const void SetupEnvironmentVariables()
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
 
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
   
     std::map<std::string, std::string> environment_macos = {
