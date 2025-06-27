@@ -76,10 +76,9 @@ static const std::string UrlDecode(const std::string &url)
     return decoded;
 }
 
-static const std::string UrlFromPath(const std::string baseAddress, const std::string path) {
-
-
-    #ifdef __linux__
+static const std::string UrlFromPath(const std::string baseAddress, const std::string path) 
+{
+    #if defined(__linux__) || defined(__APPLE__)
     {
         return baseAddress + UrlEncode(path.substr(1));
     }
@@ -92,7 +91,7 @@ static const std::string UrlFromPath(const std::string baseAddress, const std::s
 
 static const std::string PathFromUrl(const std::string& path)
 {
-    #ifdef __linux__
+    #if defined(__linux__) || defined(__APPLE__)
     {
         return "/" + UrlDecode(path);
     }

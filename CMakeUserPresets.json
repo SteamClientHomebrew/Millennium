@@ -1,86 +1,106 @@
 {
-  "version": 2,
-  "configurePresets": [
-    {
-      "name": "default",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build",
-      "hidden": true,
-      "architecture": {
-        "value": "x86",
-        "strategy": "external"
-      },
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake"
-      }
-    },
-    {
-      "name": "windows",
-      "inherits": "default",
-      "generator": "Ninja",
-      "displayName": "windows-msvc",
-      "description": "Build using MSVC compiler",
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x86-windows-static"
-      }
-    },
-    {
-      "name": "windows-mingw",
-      "hidden": true,
-      "inherits": "default",
-      "generator": "Ninja",
-      "displayName": "windows-mingw",
-      "description": "Build using g++ compiler",
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x86-mingw-static",
-        "CMAKE_CXX_STANDARD": "17",
-        "CMAKE_C_STANDARD": "23",
-        "CMAKE_CXX_FLAGS": "-static-libstdc++ -static-libgcc -static -lpthread"
-      }
-    },
-    {
-      "inherits": "windows-mingw",
-      "name": "windows-mingw-release",
-      "displayName": "windows-mingw-release",
-      "description": "mingw windows release build.",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "inherits": "windows-mingw",
-      "name": "windows-mingw-debug",
-      "displayName": "windows-mingw-debug",
-      "description": "mingw windows debug build.",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "linux-debug",
-      "inherits": "default",
-      "generator": "Ninja",
-      "displayName": "linux-debug-x86",
-      "description": "Debug build for Linux",
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x86-linux",
-        "CMAKE_CXX_FLAGS": "-m32",
-        "CMAKE_C_FLAGS": "-m32",
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "linux-release",
-      "inherits": "default",
-      "generator": "Ninja",
-      "displayName": "linux-release-x86",
-      "description": "Release build for Linux",
-      "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x86-linux",
-        "CMAKE_CXX_FLAGS": "-m32",
-        "CMAKE_C_FLAGS": "-m32",
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    }
-  ]
+	"version": 2,
+	"configurePresets": [
+		{
+			"name": "default",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build",
+			"hidden": true,
+			"architecture": {
+				"value": "x86",
+				"strategy": "external"
+			},
+			"cacheVariables": {
+				"CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake"
+			}
+		},
+		{
+			"name": "windows",
+			"inherits": "default",
+			"generator": "Ninja",
+			"displayName": "windows-msvc",
+			"description": "Build using MSVC compiler",
+			"cacheVariables": {
+				"VCPKG_TARGET_TRIPLET": "x86-windows-static"
+			}
+		},
+		{
+			"name": "windows-mingw",
+			"hidden": true,
+			"inherits": "default",
+			"generator": "Ninja",
+			"displayName": "windows-mingw",
+			"description": "Build using g++ compiler",
+			"cacheVariables": {
+				"VCPKG_TARGET_TRIPLET": "x86-mingw-static",
+				"CMAKE_CXX_STANDARD": "17",
+				"CMAKE_C_STANDARD": "23",
+				"CMAKE_CXX_FLAGS": "-static-libstdc++ -static-libgcc -static -lpthread"
+			}
+		},
+		{
+			"inherits": "windows-mingw",
+			"name": "windows-mingw-release",
+			"displayName": "windows-mingw-release",
+			"description": "mingw windows release build.",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"inherits": "windows-mingw",
+			"name": "windows-mingw-debug",
+			"displayName": "windows-mingw-debug",
+			"description": "mingw windows debug build.",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"inherits": "default",
+			"name": "osx-release",
+			"displayName": "osx-release",
+			"description": "MacOS release build.",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release",
+				"VCPKG_TARGET_TRIPLET": "arm64-osx-dynamic"
+			}
+		},
+		{
+			"inherits": "default",
+			"name": "osx-debug",
+			"displayName": "osx-debug",
+			"description": "MacOS debug build.",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"VCPKG_TARGET_TRIPLET": "arm64-osx-dynamic"
+			}
+		},
+		{
+			"name": "linux-debug",
+			"inherits": "default",
+			"generator": "Ninja",
+			"displayName": "linux-debug-x86",
+			"description": "Debug build for Linux",
+			"cacheVariables": {
+				"VCPKG_TARGET_TRIPLET": "x86-linux",
+				"CMAKE_CXX_FLAGS": "-m32",
+				"CMAKE_C_FLAGS": "-m32",
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "linux-release",
+			"inherits": "default",
+			"generator": "Ninja",
+			"displayName": "linux-release-x86",
+			"description": "Release build for Linux",
+			"cacheVariables": {
+				"VCPKG_TARGET_TRIPLET": "x86-linux",
+				"CMAKE_CXX_FLAGS": "-m32",
+				"CMAKE_C_FLAGS": "-m32",
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		}
+	]
 }

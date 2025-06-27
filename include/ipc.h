@@ -32,22 +32,19 @@
 #include <nlohmann/json.hpp>
 #include "fvisible.h"
 
-extern "C" 
+namespace IPCMain 
 {
-	namespace IPCMain 
+	enum Builtins 
 	{
-		enum Builtins 
-		{
-			CALL_SERVER_METHOD,
-			FRONT_END_LOADED
-		};
+		CALL_SERVER_METHOD,
+		FRONT_END_LOADED
+	};
 
-		enum ErrorType 
-		{
-			AUTHENTICATION_ERROR,
-			INTERNAL_ERROR
-		};
+	enum ErrorType 
+	{
+		AUTHENTICATION_ERROR,
+		INTERNAL_ERROR
+	};
 
-		MILLENNIUM nlohmann::json HandleEventMessage(nlohmann::json jsonPayload);
-	}
+	MILLENNIUM nlohmann::json HandleEventMessage(nlohmann::json jsonPayload);
 }
