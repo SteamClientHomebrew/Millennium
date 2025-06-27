@@ -9,9 +9,9 @@ import { PyGetRootColors, PyGetStartupConfig } from './utils/ffi';
 import { onWindowCreatedCallback, patchMissedDocuments } from './patcher';
 import { MillenniumSettings } from './settings';
 import { NotificationService } from './update-notification-service';
-import { EUIMode } from '@steambrew/client/build/globals/steam-client/shared';
 import { MillenniumDesktopSidebar } from './quick-access';
 import { DesktopMenuProvider } from './quick-access/DesktopMenuContext';
+import { EUIMode } from '@steambrew/client';
 
 async function initializeMillennium(settings: SettingsProps) {
 	Logger.Log(`Received props`, settings);
