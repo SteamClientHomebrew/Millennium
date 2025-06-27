@@ -5,6 +5,7 @@ import { FaEllipsisH } from 'react-icons/fa';
 import { Utils } from '../../utils';
 import { Component } from 'react';
 import { PyUninstallPlugin } from '../../utils/ffi';
+import { IconButton } from '../../components/IconButton';
 
 interface PluginComponentProps {
 	plugin: PluginComponent;
@@ -94,16 +95,16 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				icon={content}
 				padding="standard"
 				bottomSeparator={isLastPlugin ? 'none' : 'standard'}
-				data-icon-status={type}
 				className="MillenniumPlugins_PluginField"
 				data-plugin-name={plugin.data.name}
 				data-plugin-version={plugin.data.version}
 				data-plugin-common-name={plugin.data.common_name}
+				data-plugin-status={type}
 			>
 				<Toggle key={plugin.data.name} disabled={plugin.data.name === 'core'} value={isEnabled} onChange={onSelectionChange.bind(null, index)} />
-				<DialogButton onClick={this.showCtxMenu} style={{ width: '32px' }}>
+				<IconButton onClick={this.showCtxMenu}>
 					<FaEllipsisH />
-				</DialogButton>
+				</IconButton>
 			</Field>
 		);
 	}

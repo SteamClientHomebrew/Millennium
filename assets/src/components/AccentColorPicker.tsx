@@ -35,18 +35,6 @@ const RenderAccentColorPicker = () => {
 
 	const ResetColor = () => handleColorChange(pluginSelf.accentColor.originalAccent);
 
-	const ResetButton = () => {
-		if (isDefaultColor) {
-			return <></>;
-		}
-
-		return (
-			<DialogButton className={settingsClasses.SettingsDialogButton} onClick={ResetColor}>
-				Reset
-			</DialogButton>
-		);
-	};
-
 	function handleColorChange(newColor: string) {
 		const sanitizedColor = SanitizeHex(newColor);
 
@@ -71,7 +59,9 @@ const RenderAccentColorPicker = () => {
 			description={locale.themePanelCustomAccentColorToolTip}
 			bottomSeparator="none"
 		>
-			<ResetButton />
+			<DialogButton className={settingsClasses.SettingsDialogButton} disabled={isDefaultColor} onClick={ResetColor}>
+				Reset
+			</DialogButton>
 			<input type="color" className="MillenniumColorPicker" value={SanitizeHex(accentColor)} onChange={(event) => handleColorChange(event.target.value)} />
 		</Field>
 	);

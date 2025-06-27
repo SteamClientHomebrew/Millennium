@@ -21,13 +21,12 @@ function PluginIdModal({ tutorialImageUrl, installer, modal }: PluginIdModalProp
 			strDescription={
 				<>
 					Install a user plugin from an ID. These ID's can be found after selecting a plugin at <Utils.URLComponent url={PLUGINS_URL} />
-					<SuspensefulImage src={tutorialImageUrl} style={{ width: '100%', height: 'auto', marginTop: '10px' }} />
+					<SuspensefulImage className="MillenniumInstallDialog_TutorialImage" src={tutorialImageUrl} />
 					<TextField
 						// @ts-ignore
 						placeholder={'Enter an ID here...'}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
-						style={{ marginTop: '20px' }}
 					/>
 				</>
 			}

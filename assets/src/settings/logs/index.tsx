@@ -1,4 +1,4 @@
-import { DialogButton, DialogControlsSection, IconsModule, TextField, callable, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, TextField, callable, joinClassNames, pluginSelf } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';
@@ -6,6 +6,7 @@ import { locale } from '../../../locales';
 import { PyGetLogData, PySetClipboardText } from '../../utils/ffi';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { FaCircleCheck } from 'react-icons/fa6';
+import { IconButton } from '../../components/IconButton';
 
 export type LogItem = {
 	level: LogLevel;
@@ -105,31 +106,22 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	};
 
 	renderLogItemButton = (log: LogData) => {
-		const hasError = log.logs.some((log) => log.level === LogLevel.ERROR);
-		const hasWarning = log.logs.some((log) => log.level === LogLevel.WARNING);
+		const errors = log.logs.filter((log) => log.level === LogLevel.ERROR);
+		const warnings = log.logs.filter((log) => log.level === LogLevel.WARNING);
 
-		let ErrorTooltip = null;
-
-		if (hasError || hasWarning) {
-			const isError = hasError;
-			const messageType = isError ? 'encountered errors' : 'issued warnings';
-			const color = isError ? 'red' : '#ffc82c';
-
-			ErrorTooltip = (
-				<DesktopTooltip toolTipContent={`${log.name} ${messageType}.`} direction="top" style={{ height: '16px', width: '16px' }}>
-					<IconsModule.ExclamationPoint color={color} style={{ height: '16px', width: '16px' }} />
-				</DesktopTooltip>
-			);
-		}
+		const messageType = errors.length !== 0 ? 'encountered errors' : 'issued warnings';
 
 		return (
 			<DialogButton
 				key={log.name}
 				onClick={() => this.setState({ selectedLog: log, searchedLogs: log.logs })}
-				className={settingsClasses.SettingsDialogButton}
-				style={{ display: 'flex', gap: '10px' }}
+				className={joinClassNames('MillenniumButton', 'MillenniumLogs_LogItemButton', settingsClasses.SettingsDialogButton)}
+				data-error-count={errors.length}
+				data-warning-count={warnings.length}
 			>
-				{ErrorTooltip}
+				<DesktopTooltip bDisabled={errors.length === 0 && warnings.length === 0} toolTipContent={`${log.name} ${messageType}.`} direction="top">
+					<IconsModule.ExclamationPoint />
+				</DesktopTooltip>
 				{log?.name}
 			</DialogButton>
 		);
@@ -153,13 +145,21 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		let components = [];
 
 		if (millenniumItems.length) {
-			components.push(<SettingsDialogSubHeader>Millennium Logs</SettingsDialogSubHeader>);
-			components.push(millenniumItems.map((log) => this.renderLogItemButton(log)));
+			components.push(
+				<DialogControlsSection>
+					<SettingsDialogSubHeader>Millennium Logs</SettingsDialogSubHeader>
+					<div className="MillenniumButtonsSection">{millenniumItems.map((log) => this.renderLogItemButton(log))}</div>
+				</DialogControlsSection>,
+			);
 		}
 
 		if (userPlugins.length) {
-			components.push(<SettingsDialogSubHeader style={{ marginTop: '20px' }}>User Plugins</SettingsDialogSubHeader>);
-			components.push(userPlugins.map((log) => this.renderLogItemButton(log)));
+			components.push(
+				<DialogControlsSection>
+					<SettingsDialogSubHeader>User Plugins</SettingsDialogSubHeader>
+					<div className="MillenniumButtonsSection">{userPlugins.map((log) => this.renderLogItemButton(log))}</div>
+				</DialogControlsSection>,
+			);
 		}
 
 		return components;
@@ -172,7 +172,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 			<div className="MillenniumLogs_TextContainer">
 				<div className="MillenniumLogs_ControlSection">
 					<div className="MillenniumLogs_NavContainer">
-						<DialogButton onClick={() => this.setState({ selectedLog: null })} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
+						<DialogButton onClick={() => this.setState({ selectedLog: null })} className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`}>
 							<IconsModule.Carat direction="left" />
 							Back
 						</DialogButton>
@@ -191,21 +191,13 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 						</div>
 
 						<div className="MillenniumLogs_Icons">
-							<DialogButton
-								onClick={() => this.setState({ logFontSize: logFontSize - 1 })}
-								className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
-							>
+							<IconButton onClick={() => this.setState({ logFontSize: logFontSize - 1 })}>
 								<IconsModule.Minus />
-							</DialogButton>
-							<DialogButton
-								onClick={() => this.setState({ logFontSize: logFontSize + 1 })}
-								className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}
-							>
+							</IconButton>
+							<IconButton onClick={() => this.setState({ logFontSize: logFontSize + 1 })}>
 								<IconsModule.Add />
-							</DialogButton>
-							<DialogButton onClick={this.exportToClipBoard} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`}>
-								{copyIcon}
-							</DialogButton>
+							</IconButton>
+							<IconButton onClick={this.exportToClipBoard}>{copyIcon}</IconButton>
 						</div>
 					</div>
 				</div>
@@ -221,6 +213,6 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 
 	render() {
 		const { selectedLog } = this.state;
-		return <DialogControlsSection className="MillenniumButtonsSection">{!selectedLog ? this.renderSelector() : this.renderViewer()}</DialogControlsSection>;
+		return !selectedLog ? this.renderSelector() : this.renderViewer();
 	}
 }

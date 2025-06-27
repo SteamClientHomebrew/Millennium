@@ -1,7 +1,8 @@
-import { DialogButton, ErrorBoundary, PanelSection, PanelSectionRow } from '@steambrew/client';
+import { DialogButton, ErrorBoundary, IconsModule, PanelSection, PanelSectionRow } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { useDesktopMenu } from './DesktopMenuContext';
 import { getPluginRenderers, getPluginView } from '../utils/globals';
+import { Placeholder } from '../components/Placeholder';
 
 export const RenderPluginViews = ({ plugins, pluginName, pluginView }: { plugins: PluginComponent[]; pluginName: string; pluginView: any }) => {
 	const { setActivePlugin } = useDesktopMenu();
@@ -42,9 +43,11 @@ export const PluginSelectorView = () => {
 
 	if (!pluginRenderers || Object.keys(pluginRenderers).length === 0) {
 		return (
-			<div className="NoPluginsFoundSection">
-				<div className="NoPluginsFoundMessage">Configurable plugins will appear here. No loaded plugins are currently configurable.</div>
-			</div>
+			<Placeholder
+				icon={<IconsModule.TextCode />}
+				header="No configurable plugins"
+				body="Configurable plugins will appear here. No loaded plugins are currently configurable."
+			/>
 		);
 	}
 

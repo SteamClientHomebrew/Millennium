@@ -1,9 +1,8 @@
 import { Component } from 'react';
-import { ConfirmModal, DialogButton, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, DialogButton, DialogControlsSection, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../../types';
 import { locale } from '../../../locales';
 import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
-import { ErrorModal } from '../../components/ErrorModal';
 import { FaFolderOpen, FaSave, FaStore } from 'react-icons/fa';
 import { Utils } from '../../utils';
 import { PyFindAllPlugins, PyGetEnvironmentVar, PyGetLogData, PyUpdatePluginStatus } from '../../utils/ffi';
@@ -11,6 +10,8 @@ import { showInstallPluginModal } from './PluginInstallerModal';
 import { LogData, LogLevel } from '../logs';
 import { RenderPluginComponent } from './PluginComponent';
 import Styles from '../../utils/styles';
+import { Placeholder } from '../../components/Placeholder';
+import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 
 declare global {
 	interface Window {
@@ -127,16 +128,15 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 	render() {
 		if (pluginSelf.connectionFailed) {
 			return (
-				<ErrorModal
-					header={locale.errorFailedConnection}
-					body={locale.errorFailedConnectionBody}
-					options={{
-						buttonText: locale.errorFailedConnectionButton,
-						onClick: () => {
+				<Placeholder header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
+					<DialogButton
+						onClick={() => {
 							Utils.BrowseLocalFolder([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'));
-						},
-					}}
-				/>
+						}}
+					>
+						{locale.errorFailedConnectionButton}
+					</DialogButton>
+				</Placeholder>
 			);
 		}
 
@@ -147,27 +147,17 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 
 		if (!this.state.plugins || !this.state.plugins.length || (this.state.plugins.length === 1 && this.state.plugins[0].data.name === 'core')) {
 			return (
-				<ErrorModal
-					header={'No Plugins Found.'}
-					body={"It appears you don't have any plugin yet!"}
-					showIcon={false}
-					options={{
-						buttonText: 'Install a Plugin',
-						onClick: this.InstallPluginMenu.bind(this),
-					}}
-				/>
+				<Placeholder header={'No Plugins Found.'} body={"It appears you don't have any plugin yet!"}>
+					<DialogButton onClick={this.InstallPluginMenu.bind(this)}>Install a plugin</DialogButton>
+				</Placeholder>
 			);
 		}
 
 		return (
 			<>
-				<Styles />
-				<div
-					className={`DialogControlsSection ${DialogControlSectionClass} MillenniumPluginsDialogControlsSection`}
-					style={{ marginBottom: '10px', marginTop: '10px' }}
-				>
+				<DialogControlsSection className="MillenniumButtonsSection">
 					<DialogButton
-						className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`}
+						className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`}
 						onClick={this.SavePluginChanges.bind(this)}
 						disabled={!this.state.updatedPlugins.length}
 						data-button-type={'save'}
@@ -176,7 +166,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 						{locale.optionSaveChanges}
 					</DialogButton>
 					<DialogButton
-						className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`}
+						className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`}
 						onClick={this.InstallPluginMenu.bind(this)}
 						data-button-type={'install-plugin'}
 					>
@@ -184,14 +174,14 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 						{locale.optionInstallPlugin}
 					</DialogButton>
 					<DialogButton
-						className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`}
+						className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`}
 						onClick={this.OpenPluginsFolder.bind(this)}
 						data-button-type={'browse-plugin-local-files'}
 					>
 						<FaFolderOpen />
 						{locale.optionBrowseLocalFiles}
 					</DialogButton>
-				</div>
+				</DialogControlsSection>
 				{this.state.plugins.map((plugin, index) => this.renderPluginComponent({ plugin, index }))}
 			</>
 		);

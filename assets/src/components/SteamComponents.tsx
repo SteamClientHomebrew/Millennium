@@ -17,11 +17,7 @@ interface SettingsDialogSubHeaderProps extends React.HTMLProps<HTMLDivElement> {
 	children: ReactNode;
 }
 
-export const SettingsDialogSubHeader: React.FC<SettingsDialogSubHeaderProps> = ({ style, children }) => (
-	<div className="SettingsDialogSubHeader" style={style}>
-		{children}
-	</div>
-);
+export const SettingsDialogSubHeader: React.FC<SettingsDialogSubHeaderProps> = ({ children }) => <div className="SettingsDialogSubHeader">{children}</div>;
 
 export const Separator: React.FC = () => <div className={fieldClasses.StandaloneFieldSeparator} />;
 

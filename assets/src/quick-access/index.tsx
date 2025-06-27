@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { TitleView } from '../components/QuickAccessTitle';
 import { PluginSelectorView, RenderPluginView } from './PluginView';
 import { BrowserManagerHook } from './browserHook';
-import { MillenniumDesktopSidebarStyles } from '../utils/styles';
+import Styles, { MillenniumDesktopSidebarStyles } from '../utils/styles';
 import { useDesktopMenu } from './DesktopMenuContext';
 import { useQuickAccessStore } from './quickAccessStore';
 
@@ -138,11 +138,12 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 
 	return (
 		<ErrorBoundary>
+			<Styles />
 			<MillenniumDesktopSidebarStyles isDesktopMenuOpen={isOpen || !closed} openAnimStart={openAnimStart} isViewingPlugin={!!activePlugin} />
-			<div className="MillenniumDesktopSidebarDim" onClick={handleSidebarDimClick} />
+			<div className="MillenniumDesktopSidebar_Overlay" onClick={handleSidebarDimClick} />
 			<div className="MillenniumDesktopSidebar" ref={ref}>
 				<TitleView />
-				<div className="MillenniumDesktopSidebarContent">{activePlugin ? <RenderPluginView /> : <PluginSelectorView />}</div>
+				<div className="MillenniumDesktopSidebar_Content">{activePlugin ? <RenderPluginView /> : <PluginSelectorView />}</div>
 			</div>
 		</ErrorBoundary>
 	);

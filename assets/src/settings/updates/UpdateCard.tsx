@@ -1,8 +1,9 @@
-import { DialogButton, DialogButtonPrimary, Field, IconsModule, ProgressBarWithInfo } from '@steambrew/client';
+import { DialogButton, Field, IconsModule, ProgressBarWithInfo } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
-import { Component, ReactNode, createRef } from 'react';
+import { Component, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../../../locales';
+import { IconButton } from '../../components/IconButton';
 
 interface UpdateProps {
 	message: string;
@@ -34,37 +35,14 @@ interface UpdateCardState {
 }
 
 export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
-	private descriptionRef: React.RefObject<HTMLDivElement>;
-	private descriptionHeight: number = 0;
-
 	constructor(props: UpdateCardProps) {
 		super(props);
 		this.state = {
 			showingMore: false,
 		};
 
-		this.descriptionRef = createRef();
-
 		this.handleToggle = this.handleToggle.bind(this);
 		this.makeAnchorExternalLink = this.makeAnchorExternalLink.bind(this);
-	}
-
-	componentDidMount() {
-		this.measureDescriptionHeight();
-	}
-
-	componentDidUpdate(prevProps: UpdateCardProps, prevState: UpdateCardState) {
-		// Re-measure if content or visibility changes
-		if (prevProps.update?.message !== this.props.update?.message || prevState.showingMore !== this.state.showingMore) {
-			this.measureDescriptionHeight();
-		}
-	}
-
-	private measureDescriptionHeight() {
-		if (this.descriptionRef.current) {
-			this.descriptionHeight = this.descriptionRef.current.offsetHeight;
-			this.forceUpdate(); // Needed to re-render with the measured height
-		}
 	}
 
 	handleToggle() {
@@ -78,8 +56,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 			return (
 				<ProgressBarWithInfo
 					// @ts-ignore
-					style={{ padding: 'unset' }}
-					className="UpdaterProgressBar"
+					className="MillenniumUpdates_ProgressBar"
 					sOperationText={statusText}
 					nProgress={progress}
 					nTransitionSec={1000}
@@ -88,9 +65,9 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		}
 
 		return (
-			<DialogButtonPrimary onClick={onUpdateClick} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} data-update-button>
-				Update <IconsModule.Update key="download-icon" />
-			</DialogButtonPrimary>
+			<IconButton onClick={onUpdateClick}>
+				<IconsModule.Update key="download-icon" />
+			</IconButton>
 		);
 	}
 
@@ -103,25 +80,16 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	private renderDescription() {
-		const { showingMore } = this.state;
 		const { update } = this.props;
 
-		const containerStyle = {
-			height: showingMore ? `${this.descriptionHeight}px` : '0px',
-			overflow: 'hidden',
-			transition: 'height 0.3s ease',
-		};
-
 		return (
-			<div className={`MillenniumUpdates_Description ${showingMore ? 'expanded' : ''}`} style={containerStyle}>
-				<div ref={this.descriptionRef}>
-					<div>
-						<b>{locale.updatePanelReleasedTag}</b> {update?.date}
-					</div>
-					<div>
-						<b>{locale.updatePanelReleasePatchNotes}</b>&nbsp;
-						<Markdown options={{ overrides: { a: { component: this.makeAnchorExternalLink } } }}>{update?.message}</Markdown>
-					</div>
+			<div className="MillenniumUpdates_Description">
+				<div>
+					<b>{locale.updatePanelReleasedTag}</b> {update?.date}
+				</div>
+				<div>
+					<b>{locale.updatePanelReleasePatchNotes}</b>&nbsp;
+					<Markdown options={{ overrides: { a: { component: this.makeAnchorExternalLink } } }}>{update?.message}</Markdown>
 				</div>
 			</div>
 		);
@@ -134,15 +102,16 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		return (
 			<Field
 				key={index}
-				className="MillenniumUpdateField"
-				label={<div className="MillenniumUpdates_Label">{update.name}</div>}
+				className="MillenniumUpdates_Field"
+				label={update.name}
 				bottomSeparator={index === totalCount - 1 ? 'none' : 'standard'}
 				description={this.renderDescription()}
+				data-expanded={showingMore}
 			>
 				{this.showInteractables()}
-				<DialogButton onClick={this.handleToggle} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton} ${showingMore ? 'expanded' : ''}`}>
-					<IconsModule.Carat direction="down" {...(showingMore && { style: { transform: 'rotate(180deg)' } })} />
-				</DialogButton>
+				<IconButton onClick={this.handleToggle} className="MillenniumUpdates_ExpandButton">
+					<IconsModule.Carat direction="up" />
+				</IconButton>
 			</Field>
 		);
 	}

@@ -1,6 +1,7 @@
 import { findClassModule } from '@steambrew/client';
 
 export const contextMenuClasses = findClassModule((m) => m.ContextMenuMouseOverlay) as any;
+export const deferredSettingLabelClasses = findClassModule((m) => m.DeferredSettingLabel) as any;
 export const devClasses = findClassModule((m) => m.richPresenceLabel && m.blocked) as any;
 export const fieldClasses: any = findClassModule((m) => m.FieldLabel && !m.GyroButtonPickerDialog && !m.ControllerOutline && !m.AwaitingEmailConfIcon);
 

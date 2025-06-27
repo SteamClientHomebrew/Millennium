@@ -1,4 +1,4 @@
-import { callable, DialogButton, Field, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
+import { callable, Field, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { Separator } from '../../components/SteamComponents';
 import { RenderThemeEditor } from '../../components/ThemeEditor';
@@ -8,6 +8,7 @@ import { FaCheck, FaEllipsisH } from 'react-icons/fa';
 import { SiKofi } from 'react-icons/si';
 import { Component } from 'react';
 import { PyUninstallTheme } from '../../utils/ffi';
+import { IconButton } from '../../components/IconButton';
 
 interface ThemeItemComponentProps {
 	theme: ThemeItem;
@@ -167,13 +168,13 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				data-theme-folder-name-on-disk={theme?.native}
 			>
 				{shouldShowMore && theme?.data?.funding?.kofi && (
-					<DialogButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)} style={{ width: '32px' }}>
+					<IconButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}>
 						<SiKofi />
-					</DialogButton>
+					</IconButton>
 				)}
-				<DialogButton onClick={this.showCtxMenu} style={{ width: '32px' }}>
+				<IconButton onClick={this.showCtxMenu}>
 					<FaEllipsisH />
-				</DialogButton>
+				</IconButton>
 			</Field>
 		);
 	}

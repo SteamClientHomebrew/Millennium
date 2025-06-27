@@ -4,6 +4,7 @@ import { settingsManager } from './settings-manager';
 import { OnMillenniumUpdate, OSType } from './types';
 import { PyUpdateMillennium } from './utils/ffi';
 import { MillenniumIcons } from './components/Icons';
+import { deferredSettingLabelClasses } from './utils/classes';
 
 /**
  * Notify the user about available updates in their library.
@@ -58,7 +59,7 @@ export class NotificationService {
 			toaster.toast({
 				title: `Millennium Update Error`,
 				body: `No download URL found for update.`,
-				logo: <IconsModule.ExclamationPoint color={'#ffc82c'} />,
+				logo: <IconsModule.ExclamationPoint className={deferredSettingLabelClasses.Icon} />,
 				duration: 5000,
 				critical: true,
 				sound: 3,

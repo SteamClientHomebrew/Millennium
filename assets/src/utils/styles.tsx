@@ -15,31 +15,49 @@ const styles = `
 	--MillenniumTextColor-Normal: #fff;
 	/* Matches body and .ModalPosition */
 	--MillenniumTextColor-Muted: #969696;
-	/* Base for these: hsl(41 75% 50% / 1) */
-	--MillenniumTextColor-Success: #4fdf20;
-	--MillenniumTextColor-Error: #df4020;
-	--MillenniumTextColor-Warning:rgb(223, 140, 32);
+	/* Base for these: #59bf40, stolen from Steam Guard icon in Settings -> Security */
+	--MillenniumTextColor-Success: #59bf40;
+	--MillenniumTextColor-Error: #bf4040;
+	--MillenniumTextColor-Warning: #bfbd40;
 
 	--MillenniumSpacing-Small: 5px;
 	--MillenniumSpacing-Normal: 10px;
 	--MillenniumSpacing-Large: 20px;
 
-	/* Match Steam's DialogButton border-radius */
+	/* Match Steam's .DialogButton border-radius */
 	--MillenniumControls-BorderRadius: 2px;
 	--MillenniumControls-IconSize: 16px;
 }
 
 .MillenniumButtonsSection {
-	height: -webkit-fill-available;	
-    gap: var(--MillenniumSpacing-Normal);
     display: flex;
     flex-wrap: wrap;
-    flex-direction: column;
-    margin-top: var(--MillenniumSpacing-Small);
+    gap: var(--MillenniumSpacing-Normal);
+    margin-top: var(--MillenniumSpacing-Normal);
 
 	.DialogButton {
 		width: unset;
 	}
+}
+
+.MillenniumButton {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: var(--MillenniumSpacing-Normal) !important;
+
+	svg {
+		width: var(--MillenniumControls-IconSize);
+		height: var(--MillenniumControls-IconSize);
+	}
+}
+
+/* Inherits .MillenniumButton */
+.MillenniumIconButton {
+	--size: 32px;
+	padding: 0 !important;
+	width: var(--size) !important;
+	height: var(--size) !important;
 }
 
 .MillenniumColorPicker {
@@ -63,32 +81,46 @@ const styles = `
 	}
 }
 
-.MillenniumSpanningIconButton {
-	display: flex !important;
-	align-items: center !important;
-	gap: var(--MillenniumSpacing-Normal) !important;
-	justify-content: center !important;
-}
-
-.MillenniumIconButton {
-	margin: 0 !important;
-	display: flex !important;
+/**
+ * Placeholder
+ */
+.MillenniumPlaceholder_Container {
+	gap: var(--MillenniumSpacing-Normal);
+	width: 75%;
+	display: flex;
+	flex-direction: column;
 	align-items: center;
-
-	svg {
-		width: var(--MillenniumControls-IconSize);
-		height: var(--MillenniumControls-IconSize);
-	}
+	text-align: center;
 }
 
-.MillenniumSettings .DialogContentTransition {
-	max-width: unset !important;
+.MillenniumPlaceholder_Icon {
+	width: 64px;
+}
+
+.MillenniumPlaceholder_Header {
+	color: var(--MillenniumTextColor-Normal);
+	font: var(--MillenniumText-HeadingMedium);
+}
+
+.MillenniumPlaceholder_Text {
+	color: var(--MillenniumTextColor-Muted);
+	font: var(--MillenniumText-BodyLarge);
 }
 
 /* Override Steam styles */
 .MillenniumSettings {
+	/* <SidebarNavigation> is not supposed to be in the main window, so add a
+	 * border to distinguish it from the nav bar. */
 	border-top: 1px solid rgba(61, 68, 80, .65);
 	min-height: 100% !important;
+
+	.DialogContent_InnerWidth {
+		max-width: unset !important;
+	}
+
+	.DialogContentTransition {
+		max-width: unset !important;
+	}
 
 	/* Fix the dropdown not filling the proper width when specific theme names are too long. */
 	.DialogDropDown {
@@ -99,34 +131,36 @@ const styles = `
 		width: 100% !important;
 	}
 
+	.PageListColumn {
+		min-height: unset !important;
+	}
+
 	.${fieldClasses.FieldChildrenInner} {
 		gap: var(--MillenniumSpacing-Normal);
 	}
 }
 
 /**
- * Bug Report
- */
-.MillenniumBugReport_SubmitButton {
-	width: unset;
-}
-
-/**
  * Logs
  */
-.MillenniumLogs_Header {
-	gap: var(--MillenniumSpacing-Normal);
-	/* Match <Field> padding */
-	margin-top: var(--MillenniumSpacing-Normal);
-	margin-bottom: var(--MillenniumSpacing-Large);
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-}
+.MillenniumLogs_LogItemButton {
+	/* Nothing to display */
+	&[data-warning-count="0"][data-error-count="0"] svg {
+		/* Just hide to not fuck up the spacing */
+		visibility: hidden;
+	}
 
-.MillenniumLogs_HeaderNav {
-	gap: var(--MillenniumSpacing-Normal);
-	display: flex;
+	&:not([data-warning-count="0"]) svg {
+		color: var(--MillenniumTextColor-Warning);
+	}
+
+	&:not([data-error-count="0"]) svg {
+		color: var(--MillenniumTextColor-Error);
+	}
+
+	& > .tool-tip-source {
+		display: flex;
+	}
 }
 
 .MillenniumLogs_HeaderTextTypeContainer {
@@ -170,7 +204,7 @@ const styles = `
 
 .MillenniumLogs_NavContainer {
     display: flex;
-    gap: 10px;
+    gap: var(--MillenniumSpacing-Normal);
 }
 
 .MillenniumLogs_Icons {
@@ -193,30 +227,11 @@ const styles = `
 /**
  * Plugins
  */
-.MillenniumPlugins_PluginLabel, .MillenniumThemes_ThemeLabel {
+.MillenniumPlugins_PluginLabel,
+.MillenniumThemes_ThemeLabel {
 	gap: var(--MillenniumSpacing-Normal);
 	display: flex;
 	align-items: center;
-}
-
-.MillenniumPlugins_StatusDot {
-	--size: 8px;
-	border-radius: 50%;
-	display: inline-block;
-	width: var(--size);
-	height: var(--size);
-
-	&[data-type="success"] {
-		background-color: var(--MillenniumTextColor-Success);
-	}
-
-	&[data-type="error"] {
-		background-color: var(--MillenniumTextColor-Error);
-	}
-
-	&[data-type="warning"] {
-		background-color: var(--MillenniumTextColor-Warning);
-	}
 }
 
 .MillenniumItem_Version {
@@ -233,38 +248,9 @@ const styles = `
 	}
 }
 
-.MillenniumThemes_AccentColorUsage {
-	&[data-accent-color-in-use="false"] {
-		color: var(--MillenniumTextColor-Warning);
-	}
-}
-
 /**
  * Updates
  */
-.MillenniumUpdates_Label {
-	gap: var(--MillenniumSpacing-Normal);
-	display: flex;
-	align-items: center;
-}
-
-.MillenniumUpdates_LabelType {
-	color: var(--MillenniumTextColor-Normal);
-	font: var(--MillenniumText-BodySmall);
-	border-radius: var(--MillenniumControls-BorderRadius);
-	padding: var(--MillenniumSpacing-Small);
-	width: 45px;
-    text-align: center;
-
-	&[data-type="theme"] {
-		background-color: #007eff;
-	}
-
-	&[data-type="plugin"] {
-		background-color: #564688;
-	}
-}
-
 .MillenniumUpdates_Description {
     display: flex;
     flex-direction: column;
@@ -272,142 +258,60 @@ const styles = `
     transition: all 0.5s ease;
 }
 
-.MillenniumUpdates_ThemeButton {
-	min-width: 80px;
+.MillenniumUpdates_Field[data-expanded="false"] {
+	.MillenniumUpdates_ExpandButton > svg {
+		transform: rotate(180deg);
+	}
+
+	.MillenniumUpdates_Description {
+		height: 0;
+	}
 }
 
-.MillenniumUpToDate_Container, .MillenniumErrorModal_Container {
-	gap: var(--MillenniumSpacing-Large);
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	margin-left: 100px;
-    margin-right: 100px;
-}
+/* Actually a <Field>... */
+.MillenniumUpdates_ProgressBar {
+	padding: 0 !important;
+	height: 32px !important;
 
-.MillenniumUpToDate_Header, .MillenniumErrorModal_Header {
-	color: var(--MillenniumTextColor-Normal);
-	font: var(--MillenniumText-BodyLarge);
-}
-
-.MillenniumUpToDate_Text, .MillenniumErrorModal_Text {
-	color: var(--MillenniumTextColor-Muted);
-	font: var(--MillenniumText-BodyMedium);
-	text-align: center;
-}
-
-button.MillenniumErrorModal_Button.DialogButton {
-    width: fit-content;
-    padding: 0px 50px;
+	&::after {
+		content: unset !important;
+	}
 }
 
 /**
  * Dialogs
  */
-.MillenniumGenericDialog_DialogBody {
-	gap: var(--MillenniumSpacing-Large);
+.MillenniumInstallerDialog {
+	width: 450px;
 }
 
-.MillenniumAboutTheme_Version {
-	color: var(--MillenniumTextColor-Muted);
-	font: var(--MillenniumText-HeadingSmall);
-	margin-left: var(--MillenniumSpacing-Small);
-}
-
-.MillenniumRelease_DialogBody {
-	.DialogBodyText {
-		margin: 0;
-		overflow-y: scroll;
+.MillenniumInstallerDialog_ProgressBar {
+	&::after {
+		content: unset !important;
 	}
 
-	.DialogFooter {
-		flex-direction: column;
-		gap: var(--MillenniumSpacing-Normal);
-	}
-
-	.DialogTwoColLayout {
-		justify-content: space-between;
+	* { 
+		width: 100%; 
+		text-align: start;
 	}
 }
 
-.MillenniumRelease_UpdateLinksContainer {
-	gap: var(--MillenniumSpacing-Normal);
-	display: flex;
-
-	a {
-		font: var(--MillenniumText-BodyMedium);
-
-		&:hover {
-			cursor: pointer;
-		}
-	}
+.MillenniumInstallDialog_TutorialImage {
+	margin-block: var(--MillenniumSpacing-Normal);
 }
 
-.MillenniumDownloadInfo_Field {
-	gap: var(--MillenniumSpacing-Small);
-	display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    margin-top: var(--MillenniumSpacing-Small);
-}
-
-.MillenniumDownloadInfo_Publisher {
-	gap: var(--MillenniumSpacing-Small);
-	display: flex;
-	align-items: center;
-}
-
-.MillenniumDownloadInfo_PublisherAvatar {
-	--size: 20px;
-	width: var(--size);
-	height: var(--size);
-}
-
-.MillenniumSelectUpdate_FooterInfo {
-	color: var(--MillenniumTextColor-Muted);
-	font: var(--MillenniumText-BodySmall);
-}
-
-.MillenniumSelectUpdate_SecurityWarning {
-	color: var(--MillenniumTextColor-Warning);
-}
-
-button.DialogButton.MillenniumIconButton {
-    width: fit-content;
-    gap: var(--MillenniumSpacing-Normal);
-    display: flex;
-    align-items: center;
-}
-
+/**
+ * Other
+ */
 .MillenniumPluginSettingsGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: var(--MillenniumSpacing-Large);
     padding: 2ex 5ex 2ex 5ex;
 }
 
 ._1aw7cA3mAZfWt8idAlVJWi:has(.SliderControlPanelGroup) {
 	width: -webkit-fill-available;
-}
-
-.MillenniumPluginSettingsIsExpanded::after {
-    content: unset !important;
-}
-
-.MillenniumPluginSettingsIsExpanded {
-    border-bottom-left-radius: 0px;
-    border-bottom-right-radius: 0px;
-	background-color: rgba(59, 63, 72, .5);
-}
-
-.MillenniumPluginSettingsIsExpanded {
-    padding: 15px;
-}
-
-button.MillenniumPluginSettingsExpandCarat {
-    width: 35px;
 }
 
 ._2o2fXzn99OddeqZMjbDuxQ {
@@ -421,40 +325,6 @@ button.MillenniumPluginSettingsExpandCarat {
     top: 5px;
     font-size: 14px;
 }
-
-.InstallerProgressBar * { 
-	width: 100%; 
-	text-align: right;
-}
-
-.InstallerProgressBar::after {
-	content: unset !important;
-}
-
-.UpdaterProgressBar::after {
-	content: unset !important;
-}
-
-.UpdaterProgressBar {
-	padding-bottom: 0px !important;
-	padding-top: 0px !important;
-}
-
-.UpdaterProgressBar[role="button"] {
-    height: 34px;
-}
-
-.MillenniumSettings .PageListColumn.Panel {
-    min-height: unset !important;
-}
-
-.MillenniumSettings .DialogContent_InnerWidth {
-    max-width: unset !important;
-}
-	
-.MillenniumSettings .DialogBody {
-	padding-right: 20px !important;
-}
 `;
 
 const sidebarTitleClass = (findClassModule((m) => m.ReturnToPageListButton && m.PageListItem_Title && m.HidePageListButton) as any)?.PageListItem_Title;
@@ -462,7 +332,7 @@ const sidebarTitleClass = (findClassModule((m) => m.ReturnToPageListButton && m.
 const updateCountStyles = `
 .PageListColumn .sideBarUpdatesItem {
 	display: flex;
-	gap: 10px;
+	gap: var(--MillenniumSpacing-Normal);
 	justify-content: space-between;
 	align-items: center;
 	overflow: visible !important;
@@ -482,10 +352,7 @@ const updateCountStyles = `
 	height: fit-content !important;
 	width: fit-content !important;
 }
-	
-.MillenniumIconButton svg {
-    transition: all 0.3s ease !important;
-}`;
+`;
 
 export const MillenniumDesktopSidebarStyles = ({
 	openAnimStart,
@@ -497,25 +364,10 @@ export const MillenniumDesktopSidebarStyles = ({
 	isViewingPlugin: boolean;
 }) => {
 	const styles = `
-    .iconContainer {
-      	width: 22px;
-      	height: 22px;
-    }
     .title-area { 
       	z-index: 999999 !important; 
     }
-    .MillenniumDesktopSidebarDim {
-		position: absolute;
-		height: 100%;
-		width: 100%;
-		top: 0px;
-		left: 0px;
-		z-index: 998;
-		background: rgba(0, 0, 0, 0.7);
-		opacity: ${openAnimStart ? 1 : 0};
-		display: ${isDesktopMenuOpen ? 'flex' : 'none'};
-		transition: opacity 0.4s cubic-bezier(0.65, 0, 0.35, 1);
-    }
+
     .MillenniumDesktopSidebar {
 		position: absolute;
 		height: 100%;
@@ -531,25 +383,40 @@ export const MillenniumDesktopSidebarStyles = ({
 		background: #171d25;
     }
 
+	.MillenniumDesktopSidebar_Content {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+
+		.MillenniumPlaceholder_Container {
+			margin: auto;
+		}
+	}
+
+    .MillenniumDesktopSidebar_Overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 998;
+		/* Match .ModalOverlayBackground */
+		background: rgba(0, 0, 0, 0.8);
+		opacity: ${openAnimStart ? 1 : 0};
+		display: ${isDesktopMenuOpen ? 'flex' : 'none'};
+		transition: opacity 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+	.MillenniumDesktopSidebar_Title {
+		--titlebar-height: 32px;
+		--spacing: 8px;
+		padding-block-start: calc(var(--titlebar-height) + var(--spacing));
+		padding-inline: calc(var(--spacing) * 2);
+		justify-content: space-between;
+		position: sticky;
+		top: 0;
+		-webkit-app-region: no-drag;
+	}
+
 	.MillenniumDesktopSidebarContent {
 	  	padding: ${isViewingPlugin ? '16px 20px 0px 20px' : '16px 0 0 0'};
-	}
-
-	.NoPluginsFoundSection {
-		height: 100%;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-
-	.MillenniumDesktopSidebarContent {
-		height: 100%;
-	}
-
-	.NoPluginsFoundMessage {
-		margin-top: -100px;
-		padding: 33px;
-		text-align: center;
 	}
     `;
 
