@@ -1,0 +1,15 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3a80a513..fc344b90 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -50,10 +50,6 @@ endif()
+ 
+ project(Millennium LANGUAGES CXX)
+ 
+-if(UNIX)
+-  add_subdirectory(cli)
+-endif()
+-
+ find_program(LSB_RELEASE_EXEC lsb_release)
+ execute_process(COMMAND ${LSB_RELEASE_EXEC} -is
+   OUTPUT_VARIABLE LSB_RELEASE_ID_SHORT

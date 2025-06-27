@@ -1,0 +1,15 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+old mode 100644
+new mode 100755
+index 26964128..f45b0258
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -307,6 +307,8 @@ endif()
+ 
+ find_package(CURL REQUIRED) # used for web requests.
+ target_link_libraries(Millennium CURL::libcurl)
++find_package(OpenSSL REQUIRED)
++target_link_libraries(Millennium OpenSSL::SSL)
+ 
+ if(WIN32)
+   target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp)
