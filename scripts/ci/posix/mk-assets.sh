@@ -1,5 +1,6 @@
 #!/bin/bash
-destinationBase="/home/runner/env/ext/data/assets"
+destinationBase="${1:-/home/runner/env/ext/data/assets}"
+echo "Copying assets to $destinationBase"
 
 declare -A paths=(
     ["./assets/.millennium/Dist"]="$destinationBase/.millennium/Dist"

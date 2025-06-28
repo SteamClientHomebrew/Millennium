@@ -615,7 +615,7 @@ void HttpHookManager::DispatchSocketMessage(nlohmann::basic_json<> message)
                 return;
             }
 
-            switch (this->IsGetBodyCall(message))
+            switch ((int)this->IsGetBodyCall(message))
             {
                 case true:  { this->RetrieveRequestFromDisk(message); break; }
                 case false: { this->GetResponseBody(message);         break; }

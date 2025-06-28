@@ -5,7 +5,7 @@
 	},
 	"devDependencies": {
 		"@steambrew/client": "link:../sdk/typescript-packages/client",
-		"@steambrew/webkit": "link:../sdk/typescript-packages/client",
+		"@steambrew/webkit": "link:../sdk/typescript-packages/webkit",
 		"@steambrew/ttc": "latest",
 		"@types/node": "^20.14.9",
 		"@types/react": "18.3.3",

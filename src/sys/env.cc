@@ -110,6 +110,8 @@ const void SetupEnvironmentVariables()
             const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
         #elif __linux__
             const auto shimsPath = "/usr/share/millennium/shims";
+        #elif __APPLE__
+            const auto shimsPath = "/usr/local/share/millennium/shims";
         #endif
     #endif
 
@@ -121,6 +123,8 @@ const void SetupEnvironmentVariables()
             const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
         #elif __linux__
             const auto assetsPath = "/usr/share/millennium/assets";
+        #elif __APPLE__
+            const auto assetsPath = "/usr/local/share/millennium/assets";
         #endif
     #endif
 
@@ -147,7 +151,7 @@ const void SetupEnvironmentVariables()
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
 
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        std::system(fmt::format("{}/bin/python3.11 -m venv {} --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
   
     std::map<std::string, std::string> environment_unix = {
@@ -170,11 +174,43 @@ const void SetupEnvironmentVariables()
         { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV) }
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
-    #endif
+    #elif __APPLE__
+    const std::string homeDir   = GetEnv("HOME");
+    const std::string configDir = fmt::format("{}/Library/Application Support", homeDir);
+    const std::string dataDir   = fmt::format("{}/Library/Application Support", homeDir);
+    const std::string stateDir  = fmt::format("{}/Library/Logs", homeDir);
+    const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
+    const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
 
+    if (access(pythonEnvBin.c_str(), F_OK) == -1) {
+        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+    }
+  
+    std::map<std::string, std::string> environment_macos = {
+        { "MILLENNIUM_RUNTIME_PATH", "/usr/local/lib/millennium/libmillennium_x86.dylib" },
+        { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
+
+        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
+        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/millennium/plugins",    dataDir) },
+        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/millennium",            configDir) },
+        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/millennium",            stateDir) },
+        { "MILLENNIUM__DATA_LIB",       dataLibPath },
+        { "MILLENNIUM__SHIMS_PATH",     shimsPath },
+        { "MILLENNIUM__ASSETS_PATH",    assetsPath },
+        
+        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
+        
+        { "MILLENNIUM__PYTHON_ENV",             pythonEnv },
+        { "LIBPYTHON_RUNTIME_BIN_PATH",         pythonEnvBin },
+        { "LIBPYTHON_BUILTIN_MODULES_PATH",     fmt::format("{}/lib/python3.11",             MILLENNIUM__PYTHON_ENV) },
+        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV) }
+    };
+    environment.insert(environment_macos.begin(), environment_macos.end());
+    #endif 
+    
     for (const auto& [key, value] : environment)
     {
-        #ifdef __linux__
+        #if defined(__linux__) || defined(__APPLE__)
         #define RED "\033[31m"
         #define RESET "\033[0m"
 

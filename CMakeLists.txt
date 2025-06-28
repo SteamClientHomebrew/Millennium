@@ -44,7 +44,7 @@ endif()
 
 project(Millennium LANGUAGES CXX)
 
-if(UNIX)
+if(UNIX AND NOT APPLE)
   add_subdirectory(cli)
 endif()
 
@@ -63,6 +63,9 @@ if(WIN32)
 elseif(UNIX)
   if(APPLE)
     include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
+
+    set(MILLENNIUM__PYTHON_ENV "$ENV{HOME}/.pyenv/versions/3.11.8")
+    set(LIBPYTHON_RUNTIME_PATH "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
   else()
     # Try to find required version of Python
     # Python guarantee to have API and ABI compatible within a same major and minor versions
@@ -79,6 +82,9 @@ elseif(UNIX)
       if(PYTHON_TEST_RESULT)
         message(STATUS "Found suitable Python version ${Python_VERSION}")
         set(LIBPYTHON_RUNTIME_PATH ${Python_LIBRARIES})
+        if(NOT Python_ROOT_DIR)
+          cmake_path(GET Python_LIBRARY_DIRS PARENT_PATH Python_ROOT_DIR)
+        endif()
         set(MILLENNIUM__PYTHON_ENV ${Python_ROOT_DIR})
       else()
         message(STATUS "Python ABI mismatch, rolling back to default one")
@@ -261,11 +267,9 @@ elseif(UNIX)
   add_library(Millennium SHARED "${SOURCE_FILES}")
   add_compile_definitions(MILLENNIUM_SHARED)
 
-  if(NOT APPLE)
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__PYTHON_ENV="${MILLENNIUM__PYTHON_ENV}")
-    target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_PATH="${LIBPYTHON_RUNTIME_PATH}")
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
-  endif()
+  target_compile_definitions(Millennium PRIVATE MILLENNIUM__PYTHON_ENV="${MILLENNIUM__PYTHON_ENV}")
+  target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_PATH="${LIBPYTHON_RUNTIME_PATH}")
+  target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
 endif()
 
 if(NOT APPLE)

@@ -1,3 +1,33 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _                     
+ *  |     |_| | |___ ___ ___|_|_ _ _____           
+ *  | | | | | | | -_|   |   | | | |     |          
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
+ * 
+ * ==================================================
+ * 
+ * Copyright (c) 2025 Project Millennium
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #define INCBIN_PREFIX
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 
@@ -14,7 +44,6 @@
 #include <iostream>
 
 #include "incbin.h"
-#include "sock_serv.h"
 #include "chown.h"
 
 #include <fmt/core.h>
@@ -195,13 +224,6 @@ int main(int argc, char* argv[])
     app.add_subcommand("patch",   "Patch the Steam runtime to load Millennium" )->callback(patch_steam);
     app.add_subcommand("status",  "Check the status of the Steam runtime patch")->callback(check_patch_status);
     app.add_subcommand("python",  "Get the path to the Python binary"          )->callback(get_python_path);
-    // app.add_subcommand("logs",    "View the instance logs of Millennium"       )->callback([]() { send_message(Millennium::GET_PLUGIN_LOGS, nullptr); });
-
-    // auto* plugins = app.add_subcommand("plugins", "Manage installed user-plugins");
-
-    // plugins->require_subcommand(1);
-    // plugins->add_subcommand("list", "List all the installed plugins"  )->callback([]() { send_message(Millennium::LIST_PLUGINS, nullptr); });
-    // plugins->add_subcommand("status", "Get the status of a current plugin")->callback([]() { send_message(Millennium::GET_PLUGIN_STATUS, nullptr); });
 
     app.set_version_flag("-v,--version", get_millennium_version());
     app.footer("If you have any issues, please report them at: <https://github.com/SteamClientHomebrew/Millennium/issues>");

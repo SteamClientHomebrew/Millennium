@@ -31,8 +31,8 @@ importers:
         specifier: latest
         version: 2.5.3(@babel/core@7.27.4)(typescript@4.9.5)
       '@steambrew/webkit':
-        specifier: link:../sdk/typescript-packages/client
-        version: link:../sdk/typescript-packages/client
+        specifier: link:../sdk/typescript-packages/webkit
+        version: link:../sdk/typescript-packages/webkit
       '@types/node':
         specifier: ^20.14.9
         version: 20.17.46
