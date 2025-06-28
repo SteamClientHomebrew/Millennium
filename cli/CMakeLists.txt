@@ -21,7 +21,7 @@ add_compile_definitions(
 find_package(CLI11 CONFIG REQUIRED)
 
 # Add the executable
-add_executable(cli src/main.cc src/sock_serv.cc)
+add_executable(cli src/main.cc)
 
 target_link_libraries(cli PRIVATE CLI11::CLI11)
 add_compile_definitions(MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
