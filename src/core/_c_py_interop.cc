@@ -112,46 +112,17 @@ Python::EvalResult PyObjectCastEvalResult(PyObject* obj)
     
     if (!obj) 
     {
-        if (PyErr_Occurred()) 
-        {
-            PyObject* exc_type, *exceptionValue, *exc_traceback;
-            PyErr_Fetch(&exc_type, &exceptionValue, &exc_traceback);
-            if (exceptionValue) 
-            {
-                PyObject* exceptionString = PyObject_Str(exceptionValue);
-                if (exceptionString) 
-                {
-                    const char* error_msg = PyUnicode_AsUTF8(exceptionString);
-                    result.plain = error_msg ? error_msg : "Unknown Python error";
-                    Py_DECREF(exceptionString);
-                } 
-                else 
-                {
-                    result.plain = "Failed to get error message";
-                }
-            } 
-            else 
-            {
-                result.plain = "Unknown Python error occurred";
-            }
-            
-            Py_XDECREF(exc_type);
-            Py_XDECREF(exceptionValue);
-            Py_XDECREF(exc_traceback);
-        } 
-        else 
-        {
-            result.plain = "Function call returned NULL";
-        }
+        const auto [errorMessage, tracebackText] = Python::ActiveExceptionInformation();
 
         result.type = Python::Types::Error;
+        result.plain = errorMessage + tracebackText; // Get the error message from the active exception
         return result;
     }
     
     if (PyBool_Check(obj)) 
     {
         result.type = Python::Types::Boolean;
-        result.plain = (obj == Py_True) ? "true" : "false";
+        result.plain = (obj == Py_True) ? "True" : "False";
     }
     else if (PyLong_Check(obj)) 
     {
