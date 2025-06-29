@@ -36,13 +36,13 @@ jobs:
               run: |
                   # Get tag name from the latest release
                   TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-                  TAG=${TAG//-/_}
+                  CLEAN_TAG=${TAG//-/_}
 
                   # Get the commit hash for this tag (handle both lightweight and annotated tags)
                   COMMIT=$(gh api repos/${{ github.repository }}/git/refs/tags/$TAG --jq '.object.sha')
 
                   # Update version and source to use specific commit
-                  sed -i "s/pkgver=.*/pkgver=$TAG/" ./pkgbuild/PKGBUILD
+                  sed -i "s/pkgver=.*/pkgver=$CLEAN_TAG/" ./pkgbuild/PKGBUILD
                   sed -i "s|source=(\"git+\$url\.git.*\")|source=(\"git+\$url.git#commit=$COMMIT\")|" ./pkgbuild/PKGBUILD
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
