@@ -59,6 +59,6 @@ export const PyGetLogData = callable<[], any[]>('GetPluginBackendLogs');
 export const PySetClipboardText = callable<[{ data: string }], boolean>('SetClipboardContent');
 export const PyGetRootColors = callable<[], string>('theme_config.get_colors');
 export const PyChangeCondition = callable<[{ theme: string; newData: string; condition: string }], boolean>('theme_config.change_condition');
-export const PyChangeColor = callable<[{ theme: string; new_color: string; color_name: string; type: number }], boolean>('theme_config.change_color');
+export const PyChangeColor = callable<[{ theme: string; new_color: string; color_name: string; color_type: number }], string>('theme_config.change_color');
 export const PyChangeAccentColor = callable<[{ new_color: string }], string>('theme_config.change_accent_color');
 export const PyUpdateMillennium = callable<[{ downloadUrl: string }], void>('MillenniumUpdater.queue_update');

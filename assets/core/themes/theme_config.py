@@ -160,14 +160,14 @@ class Config:
         return json.dumps(root_colors, indent=4)
 
 
-    def change_color(self, theme: str, color_name: str, new_color: str, type: int) -> None:
+    def change_color(self, theme: str, color_name: str, new_color: str, color_type: int) -> None:
         logger.log(f"Changing color {color_name} to {new_color} in theme {theme}")
 
-        type = ColorTypes(type)
+        color_type = ColorTypes(color_type)
         for color in get_config()[f"themes.themeColors.{theme}"]:
             if color != color_name:
                 continue
-            parsed_color = convert_from_hex(new_color, type)
+            parsed_color = convert_from_hex(new_color, color_type)
             get_config().set(f"themes.themeColors.{theme}.{color}", parsed_color, skip_propagation=True)
             return parsed_color
         
