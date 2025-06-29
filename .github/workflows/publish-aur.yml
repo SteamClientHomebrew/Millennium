@@ -19,12 +19,18 @@ jobs:
             - name: Set branch based on release type
               id: set-branch
               run: |
-                  if [ "${{ github.event.release.prerelease }}" == "true" ]; then
-                      echo "branch=next" >> $GITHUB_OUTPUT
-                      echo "Using next branch for prerelease"
-                  else
-                      echo "branch=main" >> $GITHUB_OUTPUT
-                      echo "Using main branch for regular release"
+                  if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+                      CURRENT_BRANCH="${{ github.ref_name }}"
+                      echo "branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+                      echo "Using current branch for workflow dispatch: $CURRENT_BRANCH"
+                  elif [ "${{ github.event_name }}" == "release" ]; then
+                      if [ "${{ github.event.release.prerelease }}" == "true" ]; then
+                          echo "branch=next" >> $GITHUB_OUTPUT
+                          echo "Using next branch for prerelease"
+                      else
+                          echo "branch=main" >> $GITHUB_OUTPUT
+                          echo "Using main branch for regular release"
+                      fi
                   fi
 
             - name: Checkout correct branch
