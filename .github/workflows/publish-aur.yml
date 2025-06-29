@@ -19,9 +19,8 @@ jobs:
 
             - name: Update Package Version
               run: |
-                  git fetch --tags
-                  latest_tag=$(git describe --tags --abbrev=0 | sed 's/^v//')
-                  sed -i "s/pkgver=.*/pkgver=$latest_tag/" ./pkgbuild/PKGBUILD
+                  TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+                  sed -i "s/pkgver=.*/pkgver=$TAG/" ./pkgbuild/PKGBUILD
 
             - name: Publish AUR package
               uses: KSXGitHub/github-actions-deploy-aur@master
