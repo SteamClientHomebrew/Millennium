@@ -19,11 +19,6 @@ prepare() {
     git submodule update --init --recursive
 }
 
-pkgver() {
-    cd "Millennium"
-    git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
-}
-
 build() {
     export NODE_NO_WARNINGS=1
     cd "$srcdir/Millennium"
