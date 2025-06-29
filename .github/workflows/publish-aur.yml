@@ -20,6 +20,7 @@ jobs:
             - name: Update Package Version
               run: |
                   TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+                  TAG=${TAG//-/_}
                   sed -i "s/pkgver=.*/pkgver=$TAG/" ./pkgbuild/PKGBUILD
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
