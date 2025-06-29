@@ -6,12 +6,21 @@ arch=('x86_64')
 url="https://github.com/SteamClientHomebrew/Millennium"
 license=('MIT')
 depends=('git' 'steam')
-makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs' 'pnpm')
+makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs')
 depends_x86_64=('python-i686-bin')
 source=("git+$url.git")
 sha256sums=('SKIP')
 options=(!debug)
 install=millennium.install
+
+pre_install() {
+    if ! command -v pnpm &> /dev/null; then
+        echo "pnpm is required but not found. Install it via npm OR pacman:"
+        echo "  pacman -S pnpm "
+        echo "  npm install -g pnpm"
+        exit 1
+    fi
+}
 
 prepare() {
     cd "Millennium"
