@@ -12,18 +12,48 @@ concurrency:
 jobs:
     aur-push:
         runs-on: ubuntu-latest
-
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Update Package Version
+            - name: Set branch based on release type
+              id: set-branch
               run: |
+                  if [ "${{ github.event.release.prerelease }}" == "true" ]; then
+                      echo "branch=next" >> $GITHUB_OUTPUT
+                      echo "Using next branch for prerelease"
+                  else
+                      echo "branch=main" >> $GITHUB_OUTPUT
+                      echo "Using main branch for regular release"
+                  fi
+
+            - name: Checkout correct branch
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ steps.set-branch.outputs.branch }}
+
+            - name: Update Package Version and Branch
+              run: |
+                  # Get tag name from the latest release
                   TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
                   TAG=${TAG//-/_}
+
+                  # Get the commit hash for this tag (handle both lightweight and annotated tags)
+                  COMMIT=$(gh api repos/${{ github.repository }}/git/refs/tags/$TAG --jq '.object.sha')
+
+                  # Update version and source to use specific commit
                   sed -i "s/pkgver=.*/pkgver=$TAG/" ./pkgbuild/PKGBUILD
+                  sed -i "s|source=(\"git+\$url\.git.*\")|source=(\"git+\$url.git#commit=$COMMIT\")|" ./pkgbuild/PKGBUILD
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Commit and push PKGBUILD changes
+              run: |
+                  git config --local user.email "github-actions@github.com"
+                  git config --local user.name "GitHub Actions"
+                  git add ./pkgbuild/PKGBUILD
+                  git commit -m "Update PKGBUILD for release ${{ github.event.release.tag_name }}" || exit 0
+                  git push origin ${{ steps.set-branch.outputs.branch }}
 
             - name: Publish AUR package
               uses: KSXGitHub/github-actions-deploy-aur@master
