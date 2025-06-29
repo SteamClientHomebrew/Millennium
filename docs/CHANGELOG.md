@@ -1,3 +1,19 @@
+# [2.26.0-beta.13](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.12...v2.26.0-beta.13) (2025-06-29)
+
+
+### Bug Fixes
+
+* Fix color picker outputting hex instead of proper format ([99f705a](https://github.com/SteamClientHomebrew/Millennium/commit/99f705af6c106dbe10629f5dcdec4841ed01126b))
+* Fix failing FFI calls sometimes not logging the python error ([a28075a](https://github.com/SteamClientHomebrew/Millennium/commit/a28075abd612741c93c1185d249250558bec96e9))
+* Fix lock issues when saving config to file ([ee4080a](https://github.com/SteamClientHomebrew/Millennium/commit/ee4080a8b8959645bc175b500ad0fa320ed0e541))
+* Fix webkit handler module removal throwing errors ([779ded3](https://github.com/SteamClientHomebrew/Millennium/commit/779ded3c4385c0c0bfd6e116b8e09257b9b3c76d))
+* Make AUR package use git tags ([a770e90](https://github.com/SteamClientHomebrew/Millennium/commit/a770e90b43fdba7e0cabb87a62d7609e095c71ac))
+
+
+### Features
+
+* added extra supported file types to file proxy ([15cf14a](https://github.com/SteamClientHomebrew/Millennium/commit/15cf14a4b05b2b5d14da0438d3ca78f10c20a886))
+
 # [2.26.0-beta.12](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.11...v2.26.0-beta.12) (2025-06-29)
 
 
