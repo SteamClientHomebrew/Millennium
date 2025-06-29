@@ -21,6 +21,8 @@ jobs:
               run: |
                   TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
                   sed -i "s/pkgver=.*/pkgver=$TAG/" ./pkgbuild/PKGBUILD
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Publish AUR package
               uses: KSXGitHub/github-actions-deploy-aur@master
