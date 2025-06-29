@@ -407,6 +407,12 @@ MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginN
     PyObject* globalDictionaryObj = PyModule_GetDict(mainModule);
     Python::EvalResult response = PyObjectCastEvalResult(InvokePythonFunction(functionCall));
 
+    if (response.type == Python::Types::Error) 
+    {
+        LOG_ERROR(fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
+    }
+
     pythonGilLock->ReleaseAndUnLockGIL();
     return response;
 }
