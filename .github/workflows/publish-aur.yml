@@ -3,7 +3,7 @@ name: Push Arch User Repository (AUR) Package
 on:
     workflow_dispatch:
     release:
-        types: [published]
+        types: [published, prereleased]
 
 concurrency:
     group: aur-publish
@@ -19,7 +19,9 @@ jobs:
 
             - name: Update Package Version
               run: |
-                  sed -i "s/pkgver=.*/pkgver=$(sed -n '2p' ./version | tr -d 'v\n')/" ./pkgbuild/PKGBUILD
+                  git fetch --tags
+                  latest_tag=$(git describe --tags --abbrev=0 | sed 's/^v//')
+                  sed -i "s/pkgver=.*/pkgver=$latest_tag/" ./pkgbuild/PKGBUILD
 
             - name: Publish AUR package
               uses: KSXGitHub/github-actions-deploy-aur@master
