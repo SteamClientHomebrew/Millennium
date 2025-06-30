@@ -286,6 +286,7 @@ const styles = `
     flex-direction: column;
     overflow: hidden;
     transition: all 0.5s ease;
+	height: 2lh;
 }
 
 .MillenniumUpdates_Field[data-expanded="false"] {

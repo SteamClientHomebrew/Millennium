@@ -153,7 +153,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 		if (!hasReceivedUpdates) return <SteamSpinner background="transparent" />;
 		if (!this.hasAnyUpdates()) {
-			return <Placeholder icon={<IconsModule.Checkmark />} header="No updates" body={locale.updatePanelNoUpdatesFound} />;
+			return <Placeholder icon={<IconsModule.Checkmark />} header={locale.updatePanelNoUpdatesFoundHeader} body={locale.updatePanelNoUpdatesFound} />;
 		}
 
 		return (
