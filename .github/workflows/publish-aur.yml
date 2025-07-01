@@ -42,7 +42,8 @@ jobs:
               run: |
                   # Get tag name from the latest release
                   TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-                  CLEAN_TAG=${TAG//-/_}
+                  CLEAN_TAG=${TAG#v}
+                  CLEAN_TAG=${CLEAN_TAG//-/_}
 
                   # Get the commit hash for this tag (handle both lightweight and annotated tags)
                   COMMIT=$(gh api repos/${{ github.repository }}/git/refs/tags/$TAG --jq '.object.sha')
