@@ -28,7 +28,8 @@
  * SOFTWARE.
  */
 
-#pragma once  
+#pragma once
+#include "internal_logger.h"
 #include <string>
 #include <vector>
 #ifdef _WIN32
@@ -60,14 +61,14 @@ public:
     #ifdef _WIN32
     typedef const char* (__stdcall* Plat_CommandLineParamValue_t)(const char* param);
 
-    unsigned short GetRemoteDebuggerPort() const 
+    u_short GetRemoteDebuggerPort() const 
     {
-        const unsigned short defaultPort = 8080; 
+        const u_short defaultPort = 8080; 
         const HMODULE hModule = GetModuleHandleA("tier0_s.dll");
 
         if (!hModule) 
         {
-            std::cout << "Failed to get handle for 'tier0_s.dll'. Using default port: " << defaultPort << std::endl;
+            Logger.Warn("Failed to get handle for 'tier0_s.dll'. Using default port: {}", defaultPort);
             return defaultPort; 
         }
 
@@ -75,7 +76,7 @@ public:
 
         if (!Plat_CommandLineParamValue) 
         {
-            std::cout << "Failed to get 'Plat_CommandLineParamValue' function address. Using default port: " << defaultPort << std::endl;
+            Logger.Warn("Failed to get 'Plat_CommandLineParamValue' function address. Using default port: {}", defaultPort);
             return defaultPort;
         }
 
@@ -87,21 +88,22 @@ public:
             if (portValue && *portValue) 
             {
                 int value = std::stoi(portValue);
-                if (value < std::numeric_limits<unsigned short>::min() || value > std::numeric_limits<unsigned short>::max()) {
-                    throw std::out_of_range("Value out of short range");
+                if (value < std::numeric_limits<u_short>::min() || value > std::numeric_limits<u_short>::max()) 
+                {
+                    throw std::out_of_range("Value out of u_short range");
                 }
 
-                return static_cast<short>(value);
+                return static_cast<u_short>(value);
             } 
             else 
             {
-                std::cout << "No valid port value found for '-devtools-port'. Using default port: " << defaultPort << std::endl;
+                Logger.Warn("No valid '-devtools-port' argument found. Using default port: {}", defaultPort);
                 return defaultPort;
             }
         } 
         catch (const std::exception& e) 
         {
-            std::cout << "Error parsing '-devtools-port' value: " << e.what() << ". Using default port: " << defaultPort << std::endl;
+            Logger.Warn("Error parsing '-devtools-port' value: {}. Using default port: {}", e.what(), defaultPort);
             return defaultPort;
         }
     }
