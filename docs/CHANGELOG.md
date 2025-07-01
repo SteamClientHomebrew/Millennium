@@ -1,3 +1,10 @@
+# [2.26.0-beta.14](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.13...v2.26.0-beta.14) (2025-07-01)
+
+
+### Bug Fixes
+
+* **Linux:** Fix Millennium accidentally DoS'ing Steam's webhelper, causing Steam to crash. ([29c841a](https://github.com/SteamClientHomebrew/Millennium/commit/29c841a735ad11367d37bb0df6a2362d69227e0b))
+
 # [2.26.0-beta.13](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.12...v2.26.0-beta.13) (2025-06-29)
 
 
