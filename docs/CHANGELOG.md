@@ -1,3 +1,56 @@
+# [2.26.0-beta.14](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.13...v2.26.0-beta.14) (2025-07-01)
+
+
+### Bug Fixes
+
+* **Linux:** Fix Millennium accidentally DoS'ing Steam's webhelper, causing Steam to crash. ([29c841a](https://github.com/SteamClientHomebrew/Millennium/commit/29c841a735ad11367d37bb0df6a2362d69227e0b))
+
+# [2.26.0-beta.13](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.12...v2.26.0-beta.13) (2025-06-29)
+
+
+### Bug Fixes
+
+* Fix color picker outputting hex instead of proper format ([99f705a](https://github.com/SteamClientHomebrew/Millennium/commit/99f705af6c106dbe10629f5dcdec4841ed01126b))
+* Fix failing FFI calls sometimes not logging the python error ([a28075a](https://github.com/SteamClientHomebrew/Millennium/commit/a28075abd612741c93c1185d249250558bec96e9))
+* Fix lock issues when saving config to file ([ee4080a](https://github.com/SteamClientHomebrew/Millennium/commit/ee4080a8b8959645bc175b500ad0fa320ed0e541))
+* Fix webkit handler module removal throwing errors ([779ded3](https://github.com/SteamClientHomebrew/Millennium/commit/779ded3c4385c0c0bfd6e116b8e09257b9b3c76d))
+* Make AUR package use git tags ([a770e90](https://github.com/SteamClientHomebrew/Millennium/commit/a770e90b43fdba7e0cabb87a62d7609e095c71ac))
+
+
+### Features
+
+* added extra supported file types to file proxy ([15cf14a](https://github.com/SteamClientHomebrew/Millennium/commit/15cf14a4b05b2b5d14da0438d3ca78f10c20a886))
+
+# [2.26.0-beta.12](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.11...v2.26.0-beta.12) (2025-06-29)
+
+
+### Bug Fixes
+
+* Accidentally linked client to webkit in dev build ([844fd0b](https://github.com/SteamClientHomebrew/Millennium/commit/844fd0ba4aff617ab2865054403e61f2a101d052))
+* assets deps hash ([b6066eb](https://github.com/SteamClientHomebrew/Millennium/commit/b6066eb326e9c00b2047cc03e611457642c4e183))
+* **deps:** add pnpm to deps in pkgbuild ([5a081f7](https://github.com/SteamClientHomebrew/Millennium/commit/5a081f77c1fc27ee16e477eb30741bc43fd04bb1))
+* fix AUR package build ([e6156d5](https://github.com/SteamClientHomebrew/Millennium/commit/e6156d5e8e274d4491c524f37d500bc126b5d7e3))
+* Fix FFI returning false on functions that return true. ([90d879a](https://github.com/SteamClientHomebrew/Millennium/commit/90d879ad4290507b0045b99337f8210aeaea0ad8))
+* fix macos build. note: no macos release is being actively developed. this is simply a build fix; nothing more. ([560245f](https://github.com/SteamClientHomebrew/Millennium/commit/560245fd3b6192bb69b827304f14012a77dd2713))
+* Fix python venv not generating if there is a space in the path ([0da9b1d](https://github.com/SteamClientHomebrew/Millennium/commit/0da9b1d7798d7270675c7f6328d0269e62c7cfaa))
+* fix some browser css & js not removing properly when unloading a theme. closes [#356](https://github.com/SteamClientHomebrew/Millennium/issues/356) ([677e6cc](https://github.com/SteamClientHomebrew/Millennium/commit/677e6ccc9126ccd2227cef90a182556716409c6e))
+* library paths patch ([9fb91d1](https://github.com/SteamClientHomebrew/Millennium/commit/9fb91d122390dd42c9a070f96eef2ea4833865f7))
+* start-script patch ([afb98ae](https://github.com/SteamClientHomebrew/Millennium/commit/afb98aef9f4e8efb0be5c677932743e03a16c46f))
+
+
+### Features
+
+* assets nix package ([cc668d3](https://github.com/SteamClientHomebrew/Millennium/commit/cc668d3f86a8c39afc9ee997cdf851b7b14ca887))
+* flake init ([0cf03d3](https://github.com/SteamClientHomebrew/Millennium/commit/0cf03d339893e02e495335ddc3859a746ccef704))
+* flake packages ([23b959a](https://github.com/SteamClientHomebrew/Millennium/commit/23b959a8177163aff940bb2eb59555453da4c1b1))
+* immutable python env ([49f793f](https://github.com/SteamClientHomebrew/Millennium/commit/49f793f9f7338082ab77c5ce91cb88c75690c83c))
+* main nix package ([9d8bb55](https://github.com/SteamClientHomebrew/Millennium/commit/9d8bb55aff6ab242464becc1f3d9518a2baf4ba5))
+* millennium coreutils python package ([78a2b71](https://github.com/SteamClientHomebrew/Millennium/commit/78a2b713413ebede2d058dfec931454151282de2))
+* millennium python package ([76cffdd](https://github.com/SteamClientHomebrew/Millennium/commit/76cffdd6ae2cc014be4795c2e395fe96f71fff4e))
+* nix build patches ([8553854](https://github.com/SteamClientHomebrew/Millennium/commit/85538548df36adde71b4facb1dbf6c8d110f1462))
+* nixpkgs overlay ([5a530f0](https://github.com/SteamClientHomebrew/Millennium/commit/5a530f09e6ba199b71e7008555ff9a7c2082d2e0))
+* shims nix package ([1527664](https://github.com/SteamClientHomebrew/Millennium/commit/1527664d82b47bb193c85b722ac617e27cfce537))
+
 # [2.26.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.25.1...v2.26.0) (2025-06-23)
 
 

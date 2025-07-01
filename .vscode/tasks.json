@@ -83,7 +83,8 @@
 		{
 			"label": "Build All",
 			"detail": "build all components of Millennium",
-			"dependsOn": ["Build Millennium", "Build Millennium Frontend", "Build Millennium SDK"],
+			"dependsOrder": "sequence",
+			"dependsOn": ["Build Millennium", "Build Millennium SDK", "Build Millennium Frontend"],
 			"group": {
 				"kind": "build",
 				"isDefault": false
