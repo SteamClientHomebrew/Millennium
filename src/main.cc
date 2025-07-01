@@ -552,6 +552,21 @@ extern "C"
         return 1;  // Paths are the same, including symlinks to each other
     }
 
+    /** 
+     * As of 1/7/2025 Steam offloads update checker to a child process. We don't want to hook that process. 
+     */
+    bool IsChildUpdaterProc(int argc, char **argv) 
+    {
+        for (int i = 0; i < argc; ++i) 
+        {
+            if (strcmp(argv[i], "-child-update-ui") == 0 || strcmp(argv[i], "-child-update-ui-socket") == 0) 
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*
     * Trampoline for __libc_start_main() that replaces the real main
     * function with our hooked version.
@@ -560,8 +575,6 @@ extern "C"
         int (*main)(int, char **, char **), int argc, char **argv,
         int (*init)(int, char **, char **), void (*fini)(void), void (*rtld_fini)(void), void *stack_end)
     {
-        Logger.Log("Hooked main() with PID: {}", getpid());
-
         /* Save the real main function address */
         fnMainOriginal = main;
 
@@ -569,12 +582,12 @@ extern "C"
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
         /** not loaded in a invalid child process */
-        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()))
+        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv)) 
         {
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }
 
-        Logger.Log("Hooked __libc_start_main() {}", argv[0]);
+        Logger.Log("Hooked __libc_start_main() {} pid: {}", argv[0], getpid());
 
         /* Remove the Millennium library from LD_PRELOAD */
         RemoveFromLdPreload();
