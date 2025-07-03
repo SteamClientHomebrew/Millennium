@@ -21,25 +21,7 @@
     in
     {
       overlays.default = final: prev: {
-        steam-unwrapped = prev.steam-unwrapped.overrideAttrs {
-          postInstall =
-            (prev.postInstall or '''')
-            + ''
-              rm -rf $out/share/applications
-              rm $out/lib/steam/steam.desktop
-            '';
-        };
-        millennium = self.packages."x86_64-linux".millennium.overrideAttrs {
-          installPhase =
-            (self.packages."x86_64-linux".millennium.installPhase or '''')
-            + ''
-              mkdir -p $out/share/applications
-              cp ${prev.steam-unwrapped}/share/applications/steam.desktop $out/share/applications
-              substituteInPlace $out/share/applications/steam.desktop \
-                --replace-fail "steam" "$out/bin/steam"
-              mv $out/bin/millennium $out/bin/steam
-            '';
-        };
+        inherit (self.packages."x86_64-linux") millennium;
       };
 
       devShells."x86_64-linux".default = import ./shell.nix { inherit pkgs; };
