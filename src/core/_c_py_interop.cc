@@ -276,7 +276,7 @@ PyObject* PyObjectFromJson(const nlohmann::json& json)
     PyObject* pObject = nullptr;
     
     if      (json.is_string())         pObject = PyUnicode_FromString(json.get<std::string>().c_str());
-    else if (json.is_number_integer()) pObject = PyLong_FromLong(json.get<int>());
+    else if (json.is_number_integer()) pObject = PyLong_FromLongLong(json.get<long long>());
     else if (json.is_number_float())   pObject = PyFloat_FromDouble(json.get<double>());
     else if (json.is_boolean())        pObject = PyBool_FromLong(json.get<bool>() ? 1 : 0);
     else if (json.is_array())
