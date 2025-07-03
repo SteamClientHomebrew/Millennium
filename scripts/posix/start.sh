@@ -11,6 +11,8 @@ export OPENSSL_CONF=/dev/null
 # Only set LD_PRELOAD if CUSTOM_LD_PRELOAD is not set
 if [ -z "${CUSTOM_LD_PRELOAD}" ]; then
     export LD_PRELOAD="/usr/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
+else
+    export LD_PRELOAD="${CUSTOM_LD_PRELOAD}${LD_PRELOAD:+:$LD_PRELOAD}" # use custom LD_PRELOAD if set
 fi
 
 export LD_LIBRARY_PATH="/usr/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"

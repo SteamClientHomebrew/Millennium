@@ -413,89 +413,47 @@ extern "C"
         #endif
     }
 
-    void RemoveFromLdPreload() 
+    void RemoveFromLdPreload()
     {
-        const char* ldPreload = getenv("LD_PRELOAD");
-        if (!ldPreload)  
+        const char* ldPreload = std::getenv("LD_PRELOAD");
+        if (!ldPreload)
         {
-            fprintf(stderr, "LD_PRELOAD is not set.\n");
+            LOG_ERROR("LD_PRELOAD environment variable is not set, this shouldn't be possible?");
             return;
         }
+        
+        std::string ldPreloadStr(ldPreload);
+        std::string millenniumPath = GetEnv("MILLENNIUM_RUNTIME_PATH");
 
-        char* ldPreloadStr = strdup(ldPreload);
-        if (!ldPreloadStr) 
+        Logger.Log("Removing Millennium from LD_PRELOAD: {}", millenniumPath);
+        
+        // Tokenize the LD_PRELOAD string
+        std::vector<std::string> tokens;
+        std::stringstream ss(ldPreloadStr);
+        std::string token;
+        
+        while (ss >> token)
         {
-            perror("strdup");
-            return;
-        }
-
-        char* token, *rest = ldPreloadStr;
-        size_t tokenCount = 0, tokenArraySize = 8; 
-        char** tokens = (char**)malloc(tokenArraySize * sizeof(char*));
-
-        if (!tokens) 
-        {
-            perror("malloc");
-            free(ldPreloadStr);
-            return;
-        }
-
-        while ((token = strtok_r(rest, " ", &rest))) 
-        {
-            if (strcmp(token, GetEnv("MILLENNIUM_RUNTIME_PATH").c_str()) != 0) 
+            if (token != millenniumPath)
             {
-                if (tokenCount >= tokenArraySize) 
-                {
-                    tokenArraySize *= 2;
-                    char** temp = (char**)realloc(tokens, tokenArraySize * sizeof(char*));
-                    if (!temp) 
-                    {
-                        perror("realloc");
-                        free(ldPreloadStr);
-                        free(tokens);
-                        return;
-                    }
-                    tokens = temp;
-                }
-                tokens[tokenCount++] = token;
+                tokens.push_back(token);
             }
         }
-
-        size_t newSize = 0;
-        for (size_t i = 0; i < tokenCount; ++i) 
+        
+        std::string updatedLdPreload;
+        for (size_t i = 0; i < tokens.size(); ++i)
         {
-            newSize += strlen(tokens[i]) + 1;
+            if (i > 0) updatedLdPreload += " ";
+            updatedLdPreload += tokens[i];
         }
-
-        char* updatedLdPreload = (char*)malloc(newSize > 0 ? newSize : 1);
-        if (!updatedLdPreload) 
+        
+        std::cout << "Updating LD_PRELOAD from [" << ldPreloadStr 
+                << "] to [" << updatedLdPreload << "]\n";
+        
+        if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0)
         {
-            perror("malloc");
-            free(ldPreloadStr);
-            free(tokens);
-            return;
+            std::perror("setenv");
         }
-
-        updatedLdPreload[0] = '\0';
-        for (size_t i = 0; i < tokenCount; ++i) 
-        {
-            if (i > 0) 
-            {
-                strcat(updatedLdPreload, " ");
-            }
-            strcat(updatedLdPreload, tokens[i]);
-        }
-
-        printf("Updating LD_PRELOAD from [%s] to [%s]\n", ldPreloadStr, updatedLdPreload);
-
-        if (setenv("LD_PRELOAD", updatedLdPreload, 1) != 0) 
-        {
-            perror("setenv");
-        }
-
-        free(ldPreloadStr);
-        free(updatedLdPreload);
-        free(tokens);
     }
     #ifdef MILLENNIUM_SHARED
 

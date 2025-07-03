@@ -153,9 +153,12 @@ const void SetupEnvironmentVariables()
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
         std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
+
+    const std::string customLdPreload = GetEnv("CUSTOM_LD_PRELOAD");
+
   
     std::map<std::string, std::string> environment_unix = {
-        { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
+        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so" },
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
 
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     homeDir) },
