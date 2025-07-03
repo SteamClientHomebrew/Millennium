@@ -289,8 +289,12 @@ PyObject* PyObjectFromJson(const nlohmann::json& json)
 
             if( pListItem )
             {
-                if(PyList_SetItem(pObject, counter, pListItem) < 0)
+                if(PyList_SetItem(pObject, i, pListItem) < 0)
                 {
+                    Py_DECREF(pObject);
+
+                    LOG_ERROR("Failed to parse list");
+
                     return nullptr;
                 }
                 i++;
