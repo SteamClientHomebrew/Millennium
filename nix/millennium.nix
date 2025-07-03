@@ -1,5 +1,6 @@
 {
   steam,
+  steam-unwrapped,
   pkgsi686Linux,
   replaceVars,
   cmake,
@@ -101,9 +102,10 @@ pkgsi686Linux.stdenv.mkDerivation {
     cmake --build . --config Release -- -j$(nproc)
   '';
   installPhase = ''
-    mkdir -p $out/bin $out/lib/millennium
+    mkdir -p $out/bin $out/lib/millennium $out/share/applications
     cp libmillennium_x86.so $out/lib/millennium
-    cp scripts/posix/start.sh $out/bin/millennium
+    cp scripts/posix/start.sh $out/bin/steam
+    cp ${steam-unwrapped}/share/applications/steam.desktop $out/share/applications
   '';
   NIX_CFLAGS_COMPILE = [
     "-isystem ${pkgsi686Linux.python311}/include/${pkgsi686Linux.python311.libPrefix}"
