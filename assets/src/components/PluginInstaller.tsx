@@ -63,10 +63,9 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 		return (
 			<>
 				<Styles />
-				<style>{`.DialogContent._DialogLayout.GenericConfirmDialog._DialogCenterVertically { width: 460px }`}</style>
 				<ProgressBarWithInfo
 					/* @ts-ignore */
-					className="InstallerProgressBar"
+					className="MillenniumInstallerDialog_ProgressBar"
 					sOperationText={status}
 					nProgress={progress}
 					nTransitionSec={0.5}
@@ -77,6 +76,7 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 
 	return (
 		<ConfirmModal
+			className="MillenniumInstallerDialog"
 			strTitle={locale.strInstallProgress}
 			strDescription={<RenderBody />}
 			bHideCloseIcon={true}
