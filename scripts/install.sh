@@ -46,15 +46,14 @@ command -v git >/dev/null || { log "git isn't installed! Install it from your pa
 # download uri
 releases_uri="https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 if [ -z "$tag" ]; then
-    tag=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)] | .[0].tag_name')
+    tag=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '.[0].tag_name')
     # get the bytes size of the release assets
-    size=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)] | .[0].assets | .[0].size')
+    size=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '.[0].assets | .[0].size')
 fi
 
 tag=${tag#v}
 size=${size:-0}
-download_uri=https://github.com/SteamClientHomebrew/Millennium/releases/download/v$tag/millennium-v$tag-$target.tar.gz
-
+download_uri=https://github.com/SteamClientHomebrew/Millennium/releases/download/v$tag/millennium-v${tag%-*}-$target.tar.gz
 # convert bytes to human readable format
 size=$(echo $size | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }')
 
@@ -93,6 +92,7 @@ log "\nTotal Install Size: $folder_size"
 cp -r "$extract_path"/* / || true
 
 chmod +x /usr/bin/millennium
+chmod +x /opt/python-i686-3.11.8/bin/python3.11
 
 log "cleaning up packages..."
 rm -rf "$millennium_install"
