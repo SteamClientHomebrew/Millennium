@@ -265,6 +265,62 @@ PyObject* resolveDottedAttribute(const std::string& dottedPath)
     return current;
 }
 
+/*
+ * Returns a representation of the given JSON data as a PyObject*
+ *
+ * @param json The JSON object to be converted
+ * @return A PyObject* representing the passed JSON object
+ */
+PyObject* PyObjectFromJson(const nlohmann::json& json)
+{
+    PyObject* pObject = nullptr;
+    
+    if      (json.is_string())         pObject = PyUnicode_FromString(json.get<std::string>().c_str());
+    else if (json.is_number_integer()) pObject = PyLong_FromLongLong(json.get<long long>());
+    else if (json.is_number_float())   pObject = PyFloat_FromDouble(json.get<double>());
+    else if (json.is_boolean())        pObject = PyBool_FromLong(json.get<bool>() ? 1 : 0);
+    else if (json.is_array())
+    {
+        pObject = PyList_New(json.size());
+
+        if (!pObject) 
+        {
+            LOG_ERROR("Failed to allocate a new Python list of size: {}", json.size());
+            return nullptr;
+        }
+
+        int i = 0;
+        for (const auto& arrayItem : json)
+        {
+            PyObject* pListItem = PyObjectFromJson(arrayItem);
+            if (pListItem)
+            {
+                if (PyList_SetItem(pObject, i, pListItem) < 0)
+                {
+                    Py_DECREF(pObject);
+                    LOG_ERROR("Failed to set item in Python list at index: {}, json data: {}", i, json.dump(4));
+                    return nullptr;
+                }
+                i++;
+            }
+            else
+            {
+                // Clean up and return error if recursive call failed
+                Py_DECREF(pObject);
+                LOG_ERROR("Failed to convert array item to Python object");
+                return nullptr;
+            }
+        }
+    }
+    else if (json.is_null()) 
+    {
+        pObject = Py_None;
+        Py_INCREF(Py_None);
+    }
+
+    return pObject;
+}
+
 /** 
  * Calls a Python function with the provided JSON data.
  * 
@@ -296,19 +352,7 @@ PyObject* InvokePythonFunction(const nlohmann::json& jsonData)
         
         for (auto& [key, value] : argumentList.items()) 
         {
-            PyObject* pValue = nullptr;
-            
-            if      (value.is_string())         pValue = PyUnicode_FromString(value.get<std::string>().c_str());
-            else if (value.is_number_integer()) pValue = PyLong_FromLong(value.get<int>());
-            else if (value.is_number_float())   pValue = PyFloat_FromDouble(value.get<double>());
-            else if (value.is_boolean())        pValue = PyBool_FromLong(value.get<bool>() ? 1 : 0);
-            
-
-            else if (value.is_null()) 
-            {
-                pValue = Py_None;
-                Py_INCREF(Py_None);
-            }
+            PyObject* pValue = PyObjectFromJson(value);
 
             if (pValue) 
             {
