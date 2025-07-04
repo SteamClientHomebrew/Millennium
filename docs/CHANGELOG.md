@@ -1,3 +1,22 @@
+# [2.26.0-beta.15](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.14...v2.26.0-beta.15) (2025-07-04)
+
+
+### Bug Fixes
+
+* Add pnpm to PKGBUILD. ([a74fc44](https://github.com/SteamClientHomebrew/Millennium/commit/a74fc440da4a81802b81f0d0b72f4d48363c1026))
+* **AUR:** Remove v suffix from pkgver to comply with vercmp ([b96aa36](https://github.com/SteamClientHomebrew/Millennium/commit/b96aa36ad18f187aefc8ede48740632a77d4814b))
+* **dev-tools:** Ensure port isn't truncated, and switched to 127.0.0.1, instead of resolving localhost. ([c69bcf4](https://github.com/SteamClientHomebrew/Millennium/commit/c69bcf42f80669f4ffffabefe088e6e81362a91e))
+* **FFI array handling:** handle allocation fails and recursive call fails ([2bba7ef](https://github.com/SteamClientHomebrew/Millennium/commit/2bba7efe6e79d57fb5fd46108328e94deadf8989))
+* Fix FFI InvokePythonFunction not handling arrays ([591bd10](https://github.com/SteamClientHomebrew/Millennium/commit/591bd10ddfc5f10a61f3e6e0add22c57ee7dee7e))
+* Fix truncation of JSON integers passed to Python ([79315b1](https://github.com/SteamClientHomebrew/Millennium/commit/79315b16af02c55c6afdbe90978a0a0de23ec90d))
+* Improve handling of a PyList_SetItem call ([1d3e786](https://github.com/SteamClientHomebrew/Millennium/commit/1d3e78657717f219f7be4f161d005c5da857f6ae))
+* recreate nix build patches ([9ed674d](https://github.com/SteamClientHomebrew/Millennium/commit/9ed674d928d575d58f01057dd353a8bfce113ce0))
+
+
+### Features
+
+* **dev:** ability to run start.sh/steam with CUSTOM_LD_PRELOAD to load a custom millennium build. ([e90c4a3](https://github.com/SteamClientHomebrew/Millennium/commit/e90c4a31daa8d2054d332f822d3f25a5faaecc35))
+
 # [2.26.0-beta.14](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.13...v2.26.0-beta.14) (2025-07-01)
 
 
