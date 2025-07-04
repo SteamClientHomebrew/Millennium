@@ -282,22 +282,33 @@ PyObject* PyObjectFromJson(const nlohmann::json& json)
     else if (json.is_array())
     {
         pObject = PyList_New(json.size());
+
+        if (!pObject) 
+        {
+            LOG_ERROR("Failed to allocate a new Python list of size: {}", json.size());
+            return nullptr;
+        }
+
         int i = 0;
-        for (auto& arrayItem : json)
+        for (const auto& arrayItem : json)
         {
             PyObject* pListItem = PyObjectFromJson(arrayItem);
-
-            if( pListItem )
+            if (pListItem)
             {
-                if(PyList_SetItem(pObject, i, pListItem) < 0)
+                if (PyList_SetItem(pObject, i, pListItem) < 0)
                 {
                     Py_DECREF(pObject);
-
-                    LOG_ERROR("Failed to parse list");
-
+                    LOG_ERROR("Failed to set item in Python list at index: {}, json data: {}", i, json.dump(4));
                     return nullptr;
                 }
                 i++;
+            }
+            else
+            {
+                // Clean up and return error if recursive call failed
+                Py_DECREF(pObject);
+                LOG_ERROR("Failed to convert array item to Python object");
+                return nullptr;
             }
         }
     }
