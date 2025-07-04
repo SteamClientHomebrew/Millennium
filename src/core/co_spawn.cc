@@ -230,7 +230,7 @@ MILLENNIUM bool PythonManager::DestroyAllPythonInstances()
         Logger.Log("Notified plugin [{}] to shut down...", pluginName);
 
         // Join and remove the corresponding thread safely
-        auto threadIt = std::find_if(this->m_threadPool.begin(), this->m_threadPool.end(), [&](const auto& t) { return std::get<0>(t) == pluginName; }); 
+        auto threadIt = std::find_if(this->m_threadPool.begin(), this->m_threadPool.end(), [pluginName = pluginName](const auto& t) { return std::get<0>(t) == pluginName; }); 
 
         if (threadIt != this->m_threadPool.end()) 
         {
