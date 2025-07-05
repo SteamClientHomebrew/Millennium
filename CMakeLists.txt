@@ -8,6 +8,20 @@ configure_file(
   ${CMAKE_BINARY_DIR}/version.h     # Output header file
 )
 
+execute_process(
+    COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Define it as a preprocessor macro
+add_compile_definitions(GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
+
+# Add project root folder to preprocessor definitions
+add_compile_definitions(MILLENNIUM_ROOT="${CMAKE_SOURCE_DIR}")
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build")
   set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/assets")

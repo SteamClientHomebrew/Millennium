@@ -42,10 +42,9 @@
 			"problemMatcher": []
 		},
 		{
-			"type": "npm",
-			"script": "build",
-			"path": "assets",
 			"group": "build",
+			"type": "shell",
+			"command": "pnpm run build",
 			"problemMatcher": [],
 			"dependsOn": ["Build Millennium Frontend - Setup"],
 			"label": "Build Millennium Frontend",
@@ -53,6 +52,9 @@
 			"presentation": {
 				"clear": true,
 				"reveal": "always"
+			},
+			"options": {
+				"cwd": "${workspaceFolder}/assets"
 			}
 		},
 		{
@@ -69,8 +71,8 @@
 			}
 		},
 		{
-			"type": "npm",
-			"script": "build",
+			"type": "shell",
+			"command": "pnpm run build",
 			"group": "build",
 			"problemMatcher": [],
 			"label": "Build Millennium SDK",
