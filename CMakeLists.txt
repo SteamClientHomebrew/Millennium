@@ -16,6 +16,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_definitions(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}")
 endif()
 
+if(DEFINED ENV{NIX_OS})
+  message(STATUS "Building Millennium for Nix")
+  set(NIX_BUILD ON)
+endif()
+
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 
 cmake_minimum_required(VERSION 3.10...3.21)

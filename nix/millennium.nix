@@ -91,6 +91,9 @@ pkgsi686Linux.stdenv.mkDerivation {
     cmake
     ninja
   ];
+  env = {
+    NIX_OS = 1;
+  };
   configurePhase = ''
     cmake -G Ninja
     substituteInPlace scripts/posix/start.sh \
