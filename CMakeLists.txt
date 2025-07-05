@@ -49,7 +49,7 @@ endif()
 
 project(Millennium LANGUAGES CXX)
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT NIX_BUILD)
   add_subdirectory(cli)
 endif()
 

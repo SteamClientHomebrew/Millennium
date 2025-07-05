@@ -40,7 +40,6 @@ pkgsi686Linux.stdenv.mkDerivation {
 
   src = ../.;
   patches = [
-    ./patches/disable-cli.patch
     (replaceVars ./patches/start-script.patch {
       inherit steam;
       OUT = null;
