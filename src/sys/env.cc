@@ -136,11 +136,7 @@ const void SetupEnvironmentVariables()
         #endif
     #endif
 
-    #ifndef _NIX_OS
-        const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
-    #else
-        const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
-    #endif
+    const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
   
     #ifdef _WIN32
     std::map<std::string, std::string> environment_windows = {
