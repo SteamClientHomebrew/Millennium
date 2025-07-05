@@ -58,6 +58,14 @@ private:
     std::mutex logMutex;
     std::string GetLocalTime();
 
+    constexpr std::string_view ConstexprGetSourceFile(const char* file) 
+    {
+        std::string_view srcPath(file);
+        std::string_view root(MILLENNIUM_ROOT);
+
+        return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
+    }
+
 public:
     void PrintMessage(std::string type, const std::string &message, std::string color = COL_WHITE);
 
@@ -77,8 +85,11 @@ public:
     template <typename... Args>
     void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args &&...args)
     {
+        std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
+
         PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
-        PrintMessage(" TRACE ", fmt::format("{} @ {}:{}", function, file, line), COL_RED);
+        PrintMessage(" * FUNCTION: ", function, COL_RED);
+        PrintMessage(" * LOCATION: ", remoteRepository, COL_RED);
     }
 
     template <typename... Args>
