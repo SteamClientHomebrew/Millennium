@@ -13,46 +13,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <filesystem>
-
-#define COLOR_RESET "\033[0m"
-#define COLOR_INFO "\033[1;34m"
-#define COLOR_ERROR "\033[1;31m"
-#define COLOR_WARN "\033[1;33m"
-
-#define GET_TIMESTAMP() ({ \
-    struct timeval tv; \
-    struct tm *tm_info; \
-    gettimeofday(&tv, NULL); \
-    tm_info = localtime(&tv.tv_sec); \
-    static char timestamp_buf[16]; \
-    snprintf(timestamp_buf, sizeof(timestamp_buf), "[%02d:%02d.%03d]", tm_info->tm_min, tm_info->tm_sec, (int)(tv.tv_usec / 10000)); \
-    timestamp_buf; \
-})
-
-#define LOG_INFO(fmt, ...) fprintf(stdout, "%s " COLOR_INFO "BOOTSTRAP-INFO " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
-#define LOG_ERROR(fmt, ...) fprintf(stderr, "%s " COLOR_ERROR "BOOTSTRAP-ERROR " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
-#define LOG_WARN(fmt, ...) fprintf(stderr, "%s " COLOR_WARN "BOOTSTRAP-WARN " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
-
-void* g_originalXtstInstance = NULL;
-
-#define HOOK_FUNC(name, ret_type, params, args) \
-ret_type name params { \
-    static ret_type (*orig) params = NULL; \
-    if (!orig) { \
-        orig = (ret_type (*) params)dlsym(g_originalXtstInstance, #name); \
-        if (!orig) { \
-            LOG_ERROR("Cannot find original %s", #name); \
-            return False; \
-        } \
-    } \
-    return orig args; \
-}
-
-HOOK_FUNC(XTestFakeButtonEvent, int, (Display *dpy, unsigned int button, Bool is_press, unsigned long delay), (dpy, button, is_press, delay))
-HOOK_FUNC(XTestFakeKeyEvent, int, (Display *dpy, unsigned int keycode, Bool is_press, unsigned long delay), (dpy, keycode, is_press, delay))
-HOOK_FUNC(XTestQueryExtension, int, (Display *dpy, int *event_basep, int *error_basep, int *major_versionp, int *minor_versionp), (dpy, event_basep, error_basep, major_versionp, minor_versionp))
-HOOK_FUNC(XTestFakeRelativeMotionEvent, int, (Display *dpy, int x, int y, unsigned long delay), (dpy, x, y, delay))
-HOOK_FUNC(XTestFakeMotionEvent, int, (Display *dpy, int screen_number, int x, int y, unsigned long delay), (dpy, screen_number, x, y, delay))
+#include "proxy-trampoline.h"
 
 static const std::string kMillenniumLibraryPath = []() {
     const char* envPath = std::getenv("MILLENNIUM_RUNTIME_PATH");
@@ -62,7 +23,6 @@ static const std::string kMillenniumLibraryPath = []() {
 class ProxySentinel 
 {
     void* m_millenniumInstanceHandle = nullptr;
-    void* m_originalXTstInstance = nullptr;
 
     typedef int (*StartMillennium_t)(void);
     typedef int (*StopMillennium_t)(void);
@@ -157,8 +117,8 @@ class ProxySentinel
             return;
         }
 
-        m_originalXTstInstance = dlopen(libXTstPath.string().c_str(), RTLD_LAZY | RTLD_GLOBAL);
-        if (!m_originalXTstInstance) 
+        g_originalXTstInstance = dlopen(libXTstPath.string().c_str(), RTLD_LAZY | RTLD_GLOBAL);
+        if (!g_originalXTstInstance) 
         {
             fprintf(stderr, "Failed to load libXtst: %s\n", dlerror());
         }
@@ -168,10 +128,10 @@ public:
     ProxySentinel() 
     {
         LOG_INFO("Setting up proxy hooks...");
-        SetupHooks();
+        this->SetupHooks();
 
         LOG_INFO("Bootstrap library loaded successfully. Using Millennium library at: %s", kMillenniumLibraryPath.c_str());
-        if (LoadAndStartMillennium()) 
+        if (this->LoadAndStartMillennium()) 
         {
             LOG_INFO("Starting Millennium...");
         }
@@ -179,14 +139,14 @@ public:
     
     ~ProxySentinel() 
     {
-        LOG_INFO("Unhooking libXtst...");
-        if (m_originalXTstInstance) 
+        if (g_originalXTstInstance) 
         {
-            dlclose(m_originalXTstInstance);
+            LOG_INFO("Unhooking libXTst...");
+            dlclose(g_originalXTstInstance);
         }
 
         LOG_INFO("Unloading Millennium library...");
-        StopAndUnloadMillennium();
+        this->StopAndUnloadMillennium();
     }
 };
 
