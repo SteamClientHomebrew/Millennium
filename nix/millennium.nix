@@ -44,11 +44,6 @@ pkgsi686Linux.stdenv.mkDerivation {
       inherit steam;
       OUT = null;
     })
-    (replaceVars ./patches/fix-paths.patch {
-      inherit shims assets venv;
-      OUT = null;
-    })
-    ./patches/cmake.patch
   ];
 
   buildInputs = [
@@ -92,12 +87,11 @@ pkgsi686Linux.stdenv.mkDerivation {
   ];
   env = {
     NIX_OS = 1;
+    inherit venv assets shims;
   };
   configurePhase = ''
     cmake -G Ninja
     substituteInPlace scripts/posix/start.sh \
-      --replace-fail '@OUT@' "$out"
-    substituteInPlace src/sys/env.cc \
       --replace-fail '@OUT@' "$out"
   '';
   buildPhase = ''

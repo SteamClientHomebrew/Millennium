@@ -72,6 +72,14 @@ elseif(UNIX)
     set(MILLENNIUM__PYTHON_ENV "$ENV{HOME}/.pyenv/versions/3.11.8")
     set(LIBPYTHON_RUNTIME_PATH "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
   else()
+    if(NIX_BUILD)
+      add_compile_definitions(_NIX_OS=ON)
+      add_compile_definitions(__NIX_SELF_PATH="$ENV{out}") 
+      add_compile_definitions(__NIX_SHIMS_PATH="$ENV{shims}")
+      add_compile_definitions(__NIX_ASSETS_PATH="$ENV{assets}")
+      add_compile_definitions(__NIX_VENV_PATH="$ENV{venv}")
+    endif()
+
     # Try to find required version of Python
     # Python guarantee to have API and ABI compatible within a same major and minor versions
     # Harden version range to to find only 3.11 python
