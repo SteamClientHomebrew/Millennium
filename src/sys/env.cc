@@ -109,7 +109,11 @@ const void SetupEnvironmentVariables()
         #ifdef _WIN32
             const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
         #elif __linux__
-            const auto shimsPath = "/usr/share/millennium/shims";
+            #ifdef _NIX_OS
+                const auto shimsPath = fmt::format("{}/share/millennium/shims", __NIX_SHIMS_PATH);
+            #else
+                const auto shimsPath = "/usr/share/millennium/shims";
+            #endif
         #elif __APPLE__
             const auto shimsPath = "/usr/local/share/millennium/shims";
         #endif
@@ -122,7 +126,11 @@ const void SetupEnvironmentVariables()
         #ifdef _WIN32
             const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
         #elif __linux__
-            const auto assetsPath = "/usr/share/millennium/assets";
+            #ifdef _NIX_OS
+                const auto assetsPath = fmt::format("{}/share/millennium/assets", __NIX_ASSETS_PATH);
+            #else
+                const auto assetsPath = "/usr/share/millennium/assets";
+            #endif
         #elif __APPLE__
             const auto assetsPath = "/usr/local/share/millennium/assets";
         #endif
@@ -147,18 +155,30 @@ const void SetupEnvironmentVariables()
     const std::string configDir = GetEnvWithFallback("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
     const std::string dataDir   = GetEnvWithFallback("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
     const std::string stateDir  = GetEnvWithFallback("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
-    const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
+    #ifdef _NIX_OS
+        const static std::string pythonEnv = __NIX_VENV_PATH;
+    #else
+        const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
+    #endif
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
-
-    if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
-    }
+    #ifndef _NIX_OS
+        if (access(pythonEnvBin.c_str(), F_OK) == -1) {
+            std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+        }
+    #endif
 
     const std::string customLdPreload = GetEnv("CUSTOM_LD_PRELOAD");
 
   
     std::map<std::string, std::string> environment_unix = {
-        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so" },
+        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : 
+        #ifdef _NIX_OS
+            fmt::format("{}/lib/millennium/libMillennium_x86.so", _NIX_SELF_PATH)
+        #else
+            "/usr/lib/millennium/libmillennium_x86.so"
+        #endif
+        },
+
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
 
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     homeDir) },
