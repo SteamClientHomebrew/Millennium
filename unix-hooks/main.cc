@@ -112,7 +112,6 @@ class ProxySentinel
     void SetupHooks()
     {
         const char* currentModulePath = GetSteamPath();
-        LOG_ERROR("Current module path: %s", currentModulePath ? currentModulePath : "NULL");
 
         if (!currentModulePath) 
         {

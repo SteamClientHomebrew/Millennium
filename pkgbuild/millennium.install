@@ -1,11 +1,23 @@
 #!/bin/bash
 
 post_install() {
+    if [ -n "$SUDO_USER" ]; then
+        USER_HOME=$(eval echo ~$SUDO_USER)
+    else
+        USER_HOME="$HOME"
+    fi
+    
     # Link millennium to the Steam runtime
-    ln -s /usr/lib/millennium/libmillennium_bootstrap_86x.so ~/.local/share/Steam/ubuntu12_32/libXtst.so.6
+    ln -s /usr/lib/millennium/libmillennium_bootstrap_86x.so "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
 }
 
 post_remove() {
+    if [ -n "$SUDO_USER" ]; then
+        USER_HOME=$(eval echo ~$SUDO_USER)
+    else
+        USER_HOME="$HOME"
+    fi
+    
     # Remove the symlink created during post_install
-    rm -f ~/.local/share/Steam/ubuntu12_32/libXtst.so.6
+    rm -f "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
 }
