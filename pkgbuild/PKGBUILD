@@ -1,4 +1,4 @@
-pkgver=2.26.0_beta.15
+pkgver=2.26.0_beta.16
 pkgname="millennium"
 pkgrel=1
 pkgdesc="Millennium is an open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead."
@@ -8,7 +8,7 @@ license=('MIT')
 depends=('git' 'steam')
 makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs' 'pnpm')
 depends_x86_64=('python-i686-bin')
-source=("git+$url.git#commit=879336def233fccac5b361158a6edb9c2dfed609")
+source=("git+$url.git#commit=8c42280b0e89a1dd59ce0276a9cf95cdc3a97a44")
 sha256sums=('SKIP')
 options=(!debug)
 install=millennium.install
