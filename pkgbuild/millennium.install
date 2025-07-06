@@ -1,11 +1,11 @@
 #!/bin/bash
 
 post_install() {
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mPlease run 'millennium patch' setup Millennium.\e[0m"
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mSee https://docs.steambrew.app/users/installing for help.\e[0m"
+    # Link millennium to the Steam runtime
+    ln -s /usr/lib/millennium/libmillennium_bootstrap_86x.so ~/.local/share/Steam/ubuntu12_32/libXtst.so.6
 }
 
-post_upgrade() {
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mPlease run 'millennium patch' to update the Millennium's start script.\e[0m"
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mSee https://docs.steambrew.app/users/installing for help.\e[0m"
+post_remove() {
+    # Remove the symlink created during post_install
+    rm -f ~/.local/share/Steam/ubuntu12_32/libXtst.so.6
 }

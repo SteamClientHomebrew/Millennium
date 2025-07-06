@@ -49,11 +49,10 @@ package() {
     mkdir -p "$pkgdir/usr/lib/millennium"
 
     install -Dm755 build/libmillennium_x86.so "$pkgdir/usr/lib/millennium/libmillennium_x86.so"
-    install -Dm755 build/cli/millennium "$pkgdir/usr/bin/millennium"
+    install -Dm755 build/unix-hooks/libmillennium_bootstrap_86x.so "$pkgdir/usr/lib/millennium/libmillennium_bootstrap_86x.so"
     
     mkdir -p "$pkgdir/usr/share/millennium/shims"
 
     cp -r ./shims/build/* "$pkgdir/usr/share/millennium/shims/"
-
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
