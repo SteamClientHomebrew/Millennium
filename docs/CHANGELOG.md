@@ -1,3 +1,11 @@
+# [2.26.0-beta.17](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.16...v2.26.0-beta.17) (2025-07-06)
+
+
+### Bug Fixes
+
+* generic AUR bug fixes ([fa1c2c8](https://github.com/SteamClientHomebrew/Millennium/commit/fa1c2c8dbe7616c56caa5a0e4c114b6954943c4f))
+* update PKGBUILD to reflect new Millennium bootstrapper ([558526f](https://github.com/SteamClientHomebrew/Millennium/commit/558526f163f4aca937b3c9e22c2191f8b2fa99b2))
+
 # [2.26.0-beta.16](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.15...v2.26.0-beta.16) (2025-07-06)
 
 
