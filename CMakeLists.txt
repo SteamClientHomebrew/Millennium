@@ -65,6 +65,7 @@ project(Millennium LANGUAGES CXX)
 
 if(UNIX AND NOT APPLE AND NOT NIX_BUILD)
   add_subdirectory(cli)
+  add_subdirectory(unix-hooks)
 endif()
 
 find_program(LSB_RELEASE_EXEC lsb_release)

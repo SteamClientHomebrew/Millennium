@@ -167,8 +167,7 @@ const void SetupEnvironmentVariables()
         }
     #endif
 
-    const std::string customLdPreload = GetEnv("CUSTOM_LD_PRELOAD");
-
+    const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
   
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : 
