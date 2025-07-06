@@ -1,3 +1,10 @@
+# [2.26.0-beta.18](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.17...v2.26.0-beta.18) (2025-07-06)
+
+
+### Bug Fixes
+
+* **AUR:** Remove legacy patches when upgrading or installing. ([1385399](https://github.com/SteamClientHomebrew/Millennium/commit/1385399f963feb3f48f996ed80d927dc077923a1))
+
 # [2.26.0-beta.17](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.16...v2.26.0-beta.17) (2025-07-06)
 
 
