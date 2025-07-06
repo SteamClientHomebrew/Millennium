@@ -15,10 +15,18 @@
 #include <filesystem>
 #include "proxy-trampoline.h"
 
+/**
+ * When built in debug mode, MILLENNIUM_RUNTIME_PATH is set. 
+ * In release you can choose wether to use MILLENNIUM_RUNTIME_PATH as a environment variable or not.
+ */
+#ifdef MILLENNIUM_RUNTIME_PATH
+static const std::string kMillenniumLibraryPath = MILLENNIUM_RUNTIME_PATH;
+#else
 static const std::string kMillenniumLibraryPath = []() {
     const char* envPath = std::getenv("MILLENNIUM_RUNTIME_PATH");
     return envPath ? std::string(envPath) : "/usr/lib/millennium/libmillennium_x86.so";
 }();
+#endif
 
 class ProxySentinel 
 {
@@ -83,26 +91,29 @@ class ProxySentinel
         m_millenniumInstanceHandle = nullptr;
     }
 
-    static const char* GetCurrentDirectory() 
+    char* GetSteamPath() 
     {
-        Dl_info dl_info;
-        static char abs_path[PATH_MAX];
-        static char parent_path[PATH_MAX];
-        
-        if (dladdr((void*)GetCurrentDirectory, &dl_info)) 
+        static char path[PATH_MAX];
+        ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+        if (len != -1) 
         {
-            const char* path = realpath(dl_info.dli_fname, abs_path) ? abs_path : dl_info.dli_fname;
-            strncpy(parent_path, path, sizeof(parent_path) - 1);
-            parent_path[sizeof(parent_path) - 1] = '\0';
-            return dirname(parent_path);
+            path[len] = '\0';
+            char* lastSlash = strrchr(path, '/');
+            if (lastSlash != NULL) 
+            {
+                *lastSlash = '\0';
+            }
+            
+            return path;
         }
-        
-        return nullptr;
+        return NULL;
     }
 
     void SetupHooks()
     {
-        const char* currentModulePath = GetCurrentDirectory();
+        const char* currentModulePath = GetSteamPath();
+        LOG_ERROR("Current module path: %s", currentModulePath ? currentModulePath : "NULL");
+
         if (!currentModulePath) 
         {
             LOG_ERROR("Failed to retrieve current directory.");

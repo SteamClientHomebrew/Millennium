@@ -378,6 +378,7 @@ extern "C"
     */
     static constexpr const char* __LIBPYTHON_RUNTIME_PATH = LIBPYTHON_RUNTIME_PATH;
 
+    /** New interop funcs that receive calls from hooked libXtst */
     namespace HookInterop
     {
         int StartMillennium()
