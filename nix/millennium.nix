@@ -1,6 +1,4 @@
 {
-  steam,
-  steam-unwrapped,
   pkgsi686Linux,
   replaceVars,
   cmake,
@@ -39,12 +37,6 @@ pkgsi686Linux.stdenv.mkDerivation {
   version = "git";
 
   src = ../.;
-  patches = [
-    (replaceVars ./patches/start-script.patch {
-      inherit steam;
-      OUT = null;
-    })
-  ];
 
   buildInputs = [
     shims
@@ -89,19 +81,13 @@ pkgsi686Linux.stdenv.mkDerivation {
     NIX_OS = 1;
     inherit venv assets shims;
   };
-  configurePhase = ''
-    cmake -G Ninja
-    substituteInPlace scripts/posix/start.sh \
-      --replace-fail '@OUT@' "$out"
-  '';
-  buildPhase = ''
-    cmake --build . --config Release -- -j$(nproc)
-  '';
   installPhase = ''
-    mkdir -p $out/bin $out/lib/millennium $out/share/applications
+    runHook preInstall
+
+    mkdir -p $out/lib/millennium
     cp libmillennium_x86.so $out/lib/millennium
-    cp scripts/posix/start.sh $out/bin/steam
-    cp ${steam-unwrapped}/share/applications/steam.desktop $out/share/applications
+    
+    runHook postInstall
   '';
   NIX_CFLAGS_COMPILE = [
     "-isystem ${pkgsi686Linux.python311}/include/${pkgsi686Linux.python311.libPrefix}"
