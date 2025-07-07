@@ -173,7 +173,7 @@ const void SetupEnvironmentVariables()
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : 
         #ifdef _NIX_OS
-            fmt::format("{}/lib/millennium/libMillennium_x86.so", _NIX_SELF_PATH)
+            fmt::format("{}/lib/millennium/libMillennium_x86.so", __NIX_SELF_PATH)
         #else
             "/usr/lib/millennium/libmillennium_x86.so"
         #endif
