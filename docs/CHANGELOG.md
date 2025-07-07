@@ -1,3 +1,30 @@
+# [2.26.0-beta.18](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.17...v2.26.0-beta.18) (2025-07-06)
+
+
+### Bug Fixes
+
+* **AUR:** Remove legacy patches when upgrading or installing. ([1385399](https://github.com/SteamClientHomebrew/Millennium/commit/1385399f963feb3f48f996ed80d927dc077923a1))
+
+# [2.26.0-beta.17](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.16...v2.26.0-beta.17) (2025-07-06)
+
+
+### Bug Fixes
+
+* generic AUR bug fixes ([fa1c2c8](https://github.com/SteamClientHomebrew/Millennium/commit/fa1c2c8dbe7616c56caa5a0e4c114b6954943c4f))
+* update PKGBUILD to reflect new Millennium bootstrapper ([558526f](https://github.com/SteamClientHomebrew/Millennium/commit/558526f163f4aca937b3c9e22c2191f8b2fa99b2))
+
+# [2.26.0-beta.16](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.15...v2.26.0-beta.16) (2025-07-06)
+
+
+### Features
+
+* Add dll proxy to load Millennium directly into Steam without a custom start script. ([e77cca0](https://github.com/SteamClientHomebrew/Millennium/commit/e77cca0b0083dad63f991ebecadc46ed45b01c20))
+* better error logging that includes GitHub source file URL ([e6eca68](https://github.com/SteamClientHomebrew/Millennium/commit/e6eca688bbc1c174996169b18c4d352aebd95b3f))
+* cmake configuration instead of patches ([89ba4b0](https://github.com/SteamClientHomebrew/Millennium/commit/89ba4b0c14aa0766f8bec5a51cadf544228d8c17))
+* disable cli when nix build ([a3c68e3](https://github.com/SteamClientHomebrew/Millennium/commit/a3c68e3ae70302d6129bc571860c46efb67f63d7))
+* link openssl if nix build ([13b541b](https://github.com/SteamClientHomebrew/Millennium/commit/13b541bfb7a3e4a62c9f581d0978fcc16c281c44))
+* nix paths directly in env.cc ([7a608e2](https://github.com/SteamClientHomebrew/Millennium/commit/7a608e2b46e11ab275657da8c55f901808b0dd0e))
+
 # [2.26.0-beta.15](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.14...v2.26.0-beta.15) (2025-07-04)
 
 

@@ -161,8 +161,7 @@ const void SetupEnvironmentVariables()
         std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
 
-    const std::string customLdPreload = GetEnv("CUSTOM_LD_PRELOAD");
-
+    const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
   
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : 

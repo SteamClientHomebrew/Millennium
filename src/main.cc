@@ -267,7 +267,9 @@ void OnTerminate()
  */
 const static void EntryMain() 
 {
-    #if _WIN32
+    #if defined(__linux__)
+    putenv((char*)"OPENSSL_CONF=/dev/null"); // Disable OpenSSL configuration file to prevent issues with Steam's OpenSSL version
+    #elif defined(_WIN32)
     SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
     if (!IsDebuggerPresent()) 
@@ -378,6 +380,40 @@ extern "C"
     */
     static constexpr const char* __LIBPYTHON_RUNTIME_PATH = LIBPYTHON_RUNTIME_PATH;
 
+    /** New interop funcs that receive calls from hooked libXtst */
+    namespace HookInterop
+    {
+        int StartMillennium()
+        {
+            Logger.Log("Hooked main() with PID: {}", getpid());
+            Logger.Log("Loading python libraries from {}", __LIBPYTHON_RUNTIME_PATH);
+
+            if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) 
+            {
+                LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
+            }
+
+            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+            Logger.Log("Millennium started successfully.");
+            return 0;
+        }
+
+        int StopMillennium() 
+        {
+            Logger.Log("Unloading Millennium...");
+            g_threadTerminateFlag->flag.store(true);
+            
+            Sockets::Shutdown();
+            if (g_millenniumThread && g_millenniumThread->joinable()) 
+            {
+                g_millenniumThread->join();
+            }
+
+            Logger.Log("Millennium unloaded successfully.");
+            return 0;
+        }
+    }
+
     /* Our fake main() that gets called by __libc_start_main() */
     int MainHooked(int argc, char **argv, char **envp)
     {
@@ -447,8 +483,7 @@ extern "C"
             updatedLdPreload += tokens[i];
         }
         
-        std::cout << "Updating LD_PRELOAD from [" << ldPreloadStr 
-                << "] to [" << updatedLdPreload << "]\n";
+        std::cout << "Updating LD_PRELOAD from [" << ldPreloadStr << "] to [" << updatedLdPreload << "]\n";
         
         if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0)
         {

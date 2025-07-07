@@ -1,6 +1,6 @@
-pkgver=2.26.0_beta.15
+pkgver=2.26.0_beta.18
 pkgname="millennium"
-pkgrel=1
+pkgrel=2
 pkgdesc="Millennium is an open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead."
 arch=('x86_64')
 url="https://github.com/SteamClientHomebrew/Millennium"
@@ -8,7 +8,7 @@ license=('MIT')
 depends=('git' 'steam')
 makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs' 'pnpm')
 depends_x86_64=('python-i686-bin')
-source=("git+$url.git#commit=879336def233fccac5b361158a6edb9c2dfed609")
+source=("git+$url.git#commit=3bd6d196435a0be49fd76ec8a7aac64d61e502a5")
 sha256sums=('SKIP')
 options=(!debug)
 install=millennium.install
@@ -49,11 +49,10 @@ package() {
     mkdir -p "$pkgdir/usr/lib/millennium"
 
     install -Dm755 build/libmillennium_x86.so "$pkgdir/usr/lib/millennium/libmillennium_x86.so"
-    install -Dm755 build/cli/millennium "$pkgdir/usr/bin/millennium"
+    install -Dm755 build/unix-hooks/libmillennium_bootstrap_86x.so "$pkgdir/usr/lib/millennium/libmillennium_bootstrap_86x.so"
     
     mkdir -p "$pkgdir/usr/share/millennium/shims"
 
     cp -r ./shims/build/* "$pkgdir/usr/share/millennium/shims/"
-
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
