@@ -81,12 +81,7 @@ class ConfigManager:
             if old_value != value:
                 current[last_key] = value
                 self._notify_listeners(key, old_value, value)
-                logger.log("set() setting changed")
                 self._auto_save(skip_propagation=skip_propagation)
-            else:
-                logger.log("old value: " + json.dumps(old_value, indent=4))
-                logger.log("new value: " + json.dumps(value, indent=4))
-                logger.log("are they equal? " + str(old_value == value))
 
     def delete(self, key: str):
         with self._lock:
