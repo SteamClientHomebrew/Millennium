@@ -1,3 +1,11 @@
+# [2.26.0-beta.19](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.18...v2.26.0-beta.19) (2025-07-07)
+
+
+### Bug Fixes
+
+* Auto upgrade old settings data. closes [#398](https://github.com/SteamClientHomebrew/Millennium/issues/398) ([89494de](https://github.com/SteamClientHomebrew/Millennium/commit/89494de6490d7a154f48a58c7ad3227f30a7c26e))
+* **build:** use ESM window type for setTimeout instead of implicit global usage. ([1fe9946](https://github.com/SteamClientHomebrew/Millennium/commit/1fe994698303d9c14ed592d35aeb82050968af3d))
+
 # [2.26.0-beta.18](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.17...v2.26.0-beta.18) (2025-07-06)
 
 
