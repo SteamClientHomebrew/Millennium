@@ -92,7 +92,6 @@ elseif(UNIX)
       add_compile_definitions(__NIX_SELF_PATH="$ENV{out}") 
       add_compile_definitions(__NIX_SHIMS_PATH="$ENV{shims}")
       add_compile_definitions(__NIX_ASSETS_PATH="$ENV{assets}")
-      add_compile_definitions(__NIX_VENV_PATH="$ENV{venv}")
     endif()
 
     # Try to find required version of Python

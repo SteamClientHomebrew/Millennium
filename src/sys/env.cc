@@ -155,24 +155,18 @@ const void SetupEnvironmentVariables()
     const std::string configDir = GetEnvWithFallback("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
     const std::string dataDir   = GetEnvWithFallback("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
     const std::string stateDir  = GetEnvWithFallback("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
-    #ifdef _NIX_OS
-        const static std::string pythonEnv = __NIX_VENV_PATH;
-    #else
-        const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
-    #endif
+    const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
-    #ifndef _NIX_OS
-        if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-            std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
-        }
-    #endif
+    if (access(pythonEnvBin.c_str(), F_OK) == -1) {
+        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+    }
 
     const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
   
     std::map<std::string, std::string> environment_unix = {
         { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : 
         #ifdef _NIX_OS
-            fmt::format("{}/lib/millennium/libMillennium_x86.so", _NIX_SELF_PATH)
+            fmt::format("{}/lib/millennium/libMillennium_x86.so", __NIX_SELF_PATH)
         #else
             "/usr/lib/millennium/libmillennium_x86.so"
         #endif
