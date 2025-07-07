@@ -20,8 +20,16 @@
       };
     in
     {
-      overlays.default = final: prev: {
+      overlays.default = final: prev: rec {
         inherit (self.packages."x86_64-linux") millennium;
+        steam-millennium = final.steam.override (prev: {
+          extraProfile =
+            ''
+              export LD_LIBRARY_PATH="${millennium}/lib/millenium/''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+              export LD_PRELOAD="${millennium}/lib/millennium/libmillennium_x86.so''${LD_PRELOAD:+:$LD_PRELOAD}"
+            ''
+            + (prev.extraProfile or "");
+        });
       };
 
       devShells."x86_64-linux".default = import ./shell.nix { inherit pkgs; };
