@@ -123,8 +123,8 @@
 	"headerOnStartup": "Başlangıçta",
 	"headerUpdates": "Güncellemeler",
 	"headerNotifications": "Bildirimler",
-	"headerThemes": "Temalar",T
-	"optionInstallPlugin": "Bir eklenti yükle",T
+	"headerThemes": "Temalar",
+	"optionInstallPlugin": "Bir eklenti yükle",
 	"optionInstallTheme": "Bir tema yükle",
 	"optionBrowseLocalFiles": "Yerel dosyalara göz at",
 	"tooltipCheckForMillenniumUpdates": "Güncellemeleri kontrol etme devre dışı bırakıldı, bu ayar etkili olmayacak.",
