@@ -43,6 +43,60 @@
 #include <unistd.h>
 #include "fvisible.h"
 
+#if defined(__linux__) || defined(__APPLE__)
+extern char** environ;
+class environment 
+{
+    private:
+    static std::vector<std::unique_ptr<char[]>> allocated_strings;
+    
+    public:
+    static bool set(const std::string& name, const std::string& value) 
+    {
+        std::string strEnv = name + "=" + value;
+        
+        auto stored_string = std::make_unique<char[]>(strEnv.length() + 1);
+        std::strcpy(stored_string.get(), strEnv.c_str());
+        
+        for (int i = 0; environ[i] != nullptr; ++i) 
+        {
+            std::string current(environ[i]);
+            if (current.substr(0, name.length() + 1) == name + "=") 
+            {
+                environ[i] = stored_string.get();
+                allocated_strings.push_back(std::move(stored_string));
+                return true;
+            }
+        }
+        
+        return add(std::move(stored_string));
+    }
+    
+    private:
+    static bool add(std::unique_ptr<char[]> strEnv) 
+    {
+        int count = 0;
+        while (environ[count] != nullptr) count++;
+        
+        char** new_environ = new char*[count + 2];
+        
+        for (int i = 0; i < count; ++i) 
+        {
+            new_environ[i] = environ[i];
+        }
+        
+        new_environ[count] = strEnv.get();
+        new_environ[count + 1] = nullptr;
+        
+        environ = new_environ;
+        allocated_strings.push_back(std::move(strEnv));
+        
+        return true;
+    }
+};
+std::vector<std::unique_ptr<char[]>> environment::allocated_strings;
+#endif
+
 const void SetupEnvironmentVariables();
 
 void SetEnv(const std::string& key, const std::string& value) 
@@ -50,16 +104,7 @@ void SetEnv(const std::string& key, const std::string& value)
     #ifdef _WIN32
     _putenv_s(key.c_str(), value.c_str());  // Windows
     #else
-    setenv(key.c_str(), value.c_str(), 1);  // Linux/macOS (1 = overwrite existing)
-    #endif
-}
-    
-void UnsetEnv(const std::string& key) 
-{
-    #ifdef _WIN32
-    _putenv_s(key.c_str(), "");  // Windows: Setting to empty removes it
-    #else
-    unsetenv(key.c_str());  // Linux/macOS
+    environment::set(key, value); 
     #endif
 }
 
@@ -164,6 +209,7 @@ const void SetupEnvironmentVariables()
     const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
   
     std::map<std::string, std::string> environment_unix = {
+        { "OPENSSL_CONF", "/dev/null"},
         { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : 
         #ifdef _NIX_OS
             fmt::format("{}/lib/millennium/libMillennium_x86.so", __NIX_SELF_PATH)
@@ -223,6 +269,8 @@ const void SetupEnvironmentVariables()
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
     #endif 
+
+    const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
     
     for (const auto& [key, value] : environment)
     {
@@ -230,7 +278,7 @@ const void SetupEnvironmentVariables()
         #define RED "\033[31m"
         #define RESET "\033[0m"
 
-        std::cout << fmt::format("{}={}", key, value) << std::endl;
+        if (shouldLog) std::cout << fmt::format("{}={}", key, value) << std::endl;
         #endif
         SetEnv(key, value);
     }

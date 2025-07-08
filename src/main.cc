@@ -267,9 +267,7 @@ void OnTerminate()
  */
 const static void EntryMain() 
 {
-    #if defined(__linux__)
-    putenv((char*)"OPENSSL_CONF=/dev/null"); // Disable OpenSSL configuration file to prevent issues with Steam's OpenSSL version
-    #elif defined(_WIN32)
+    #if defined(_WIN32)
     SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
     if (!IsDebuggerPresent()) 
