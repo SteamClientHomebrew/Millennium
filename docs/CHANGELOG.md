@@ -1,3 +1,10 @@
+# [2.26.0-beta.20](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.19...v2.26.0-beta.20) (2025-07-08)
+
+
+### Bug Fixes
+
+* Fix ConfirmModal be undefined on Steam Beta. ([c84577a](https://github.com/SteamClientHomebrew/Millennium/commit/c84577a8764b02ad352f49d1eeb0f17b4e747750))
+
 # [2.26.0-beta.19](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.18...v2.26.0-beta.19) (2025-07-07)
 
 
