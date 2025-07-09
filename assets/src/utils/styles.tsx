@@ -439,7 +439,6 @@ export const MillenniumDesktopSidebarStyles = ({
 		--spacing: 8px;
 		padding-block-start: calc(var(--titlebar-height) + var(--spacing));
 		padding-inline: calc(var(--spacing) * 2);
-		justify-content: space-between;
 		position: sticky;
 		top: 0;
 		-webkit-app-region: no-drag;
