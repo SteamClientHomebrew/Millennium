@@ -69,6 +69,10 @@ const styles = `
 	}
 }
 
+.MillenniumLogsSection .DialogButton {
+	width: -webkit-fill-available;
+}
+
 .MillenniumButton {
 	display: flex !important;
 	align-items: center !important;
@@ -362,6 +366,7 @@ const styles = `
 
 .MillenniumInstallDialog_TutorialImage {
 	margin-block: var(--MillenniumSpacing-Normal);
+	width: 100%;
 }
 
 /**
@@ -383,6 +388,10 @@ const styles = `
     right: 0;
     top: 5px;
     font-size: 14px;
+}
+
+.MillenniumPlaceholder_Button {
+	min-width: fit-content;
 }
 `;
 

@@ -29,19 +29,18 @@
  */
 
 import { Component } from 'react';
-import { ConfirmModal, DialogButton, DialogControlsSection, IconsModule, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, DialogButton, DialogControlsSection, IconsModule, joinClassNames, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../../types';
 import { locale } from '../../../locales';
-import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
+import { settingsClasses } from '../../utils/classes';
 import { FaFolderOpen, FaSave, FaStore } from 'react-icons/fa';
+import { PiPlugsFill } from 'react-icons/pi';
 import { Utils } from '../../utils';
 import { PyFindAllPlugins, PyGetEnvironmentVar, PyGetLogData, PyUpdatePluginStatus } from '../../utils/ffi';
 import { showInstallPluginModal } from './PluginInstallerModal';
 import { LogData, LogLevel } from '../logs';
 import { RenderPluginComponent } from './PluginComponent';
-import Styles from '../../utils/styles';
 import { Placeholder } from '../../components/Placeholder';
-import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 
 declare global {
 	interface Window {
@@ -178,9 +177,12 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 
 		if (!this.state.plugins || !this.state.plugins.length || (this.state.plugins.length === 1 && this.state.plugins[0].data.name === 'core')) {
 			return (
-				<Placeholder icon={<IconsModule.TextCode />} header={'No Plugins Found.'} body={"It appears you don't have any plugin yet!"}>
-					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={this.InstallPluginMenu.bind(this)}>
+				<Placeholder icon={<PiPlugsFill className="SVGIcon_Button" />} header={'No Plugins Found.'} body={"It appears you don't have any plugin yet!"}>
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.InstallPluginMenu.bind(this)}>
 						Install a plugin
+					</DialogButton>
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.OpenPluginsFolder.bind(this)}>
+						Browse plugin folder
 					</DialogButton>
 				</Placeholder>
 			);

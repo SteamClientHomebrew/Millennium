@@ -178,7 +178,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 			components.push(
 				<DialogControlsSection>
 					<SettingsDialogSubHeader>Millennium Logs</SettingsDialogSubHeader>
-					<div className="MillenniumButtonsSection">{millenniumItems.map((log) => this.renderLogItemButton(log))}</div>
+					<div className="MillenniumButtonsSection MillenniumLogsSection">{millenniumItems.map((log) => this.renderLogItemButton(log))}</div>
 				</DialogControlsSection>,
 			);
 		}
@@ -187,7 +187,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 			components.push(
 				<DialogControlsSection>
 					<SettingsDialogSubHeader>User Plugins</SettingsDialogSubHeader>
-					<div className="MillenniumButtonsSection">{userPlugins.map((log) => this.renderLogItemButton(log))}</div>
+					<div className="MillenniumButtonsSection MillenniumLogsSection">{userPlugins.map((log) => this.renderLogItemButton(log))}</div>
 				</DialogControlsSection>,
 			);
 		}

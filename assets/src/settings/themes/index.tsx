@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, IconsModule, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, joinClassNames, pluginSelf } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { locale } from '../../../locales';
 import { Placeholder } from '../../components/Placeholder';
@@ -37,9 +37,10 @@ import { Component } from 'react';
 import { ChangeActiveTheme, ThemeItemComponent, UIReloadProps } from './ThemeComponent';
 import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
 import { showInstallThemeModal } from './ThemeInstallerModal';
-import { FaFolderOpen, FaStore } from 'react-icons/fa';
+import { FaFolderOpen, FaPaintRoller, FaStore } from 'react-icons/fa';
 import { Utils } from '../../utils';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
+import { MillenniumIcons } from '../../components/Icons';
 
 const findAllThemes = async (): Promise<ThemeItem[]> => {
 	return JSON.parse(await PyFindAllThemes());
@@ -127,9 +128,12 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 
 		if (!this.state.themes || !this.state.themes.length) {
 			return (
-				<Placeholder icon={<IconsModule.ExclamationPoint />} header="No themes found" body="It appears you don't have any themes yet!">
-					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={showInstallThemeModal}>
+				<Placeholder icon={<FaPaintRoller className="SVGIcon_Button" />} header="No themes found" body="It appears you don't have any themes yet!">
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={showInstallThemeModal}>
 						Install a theme
+					</DialogButton>
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={showInstallThemeModal}>
+						Browse themes folder
 					</DialogButton>
 				</Placeholder>
 			);
