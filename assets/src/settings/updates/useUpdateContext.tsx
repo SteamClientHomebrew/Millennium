@@ -34,6 +34,7 @@ import { DialogButton, IconsModule, pluginSelf, SteamSpinner } from '@steambrew/
 import { UpdateItemType } from './UpdateCard';
 import { locale } from '../../../locales';
 import { Placeholder } from '../../components/Placeholder';
+import { settingsClasses } from '../../utils/classes';
 
 type UpdateContextProviderProps = {
 	children: React.ReactNode;
@@ -145,8 +146,14 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 		if (hasUpdateError) {
 			return (
-				<Placeholder header={locale.updatePanelErrorHeader} body={locale.updatePanelErrorBody + this.parseUpdateErrorMessage()}>
-					<DialogButton onClick={this.fetchAvailableUpdates.spread(true)}>{locale.updatePanelErrorButton}</DialogButton>
+				<Placeholder
+					icon={<IconsModule.ExclamationPoint />}
+					header={locale.updatePanelErrorHeader}
+					body={locale.updatePanelErrorBody + this.parseUpdateErrorMessage()}
+				>
+					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={this.fetchAvailableUpdates.spread(true)}>
+						{locale.updatePanelErrorButton}
+					</DialogButton>
 				</Placeholder>
 			);
 		}

@@ -28,8 +28,7 @@
  * SOFTWARE.
  */
 
-import { findClassModule } from '@steambrew/client';
-import { fieldClasses } from './classes';
+import { fieldClasses, pagedSettingsClasses } from './classes';
 
 const styles = `
 :root {
@@ -116,10 +115,12 @@ const styles = `
  */
 .MillenniumPlaceholder_Container {
 	gap: var(--MillenniumSpacing-Normal);
-	width: 75%;
+	width: 100%;
+	height: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	justify-content: center;
 	text-align: center;
 }
 
@@ -135,6 +136,11 @@ const styles = `
 .MillenniumPlaceholder_Text {
 	color: var(--MillenniumTextColor-Muted);
 	font: var(--MillenniumText-BodyLarge);
+}
+
+.MillenniumPlaceholder_Buttons {
+	gap: var(--MillenniumSpacing-Normal);
+	display: flex;
 }
 
 /* Override Steam styles */
@@ -167,6 +173,30 @@ const styles = `
 
 	.${fieldClasses.FieldChildrenInner} {
 		gap: var(--MillenniumSpacing-Normal);
+		align-items: center;
+	}
+
+	.${pagedSettingsClasses.PageListItem_Title} {
+		overflow: visible !important;
+		flex-grow: 1;
+	}
+
+	.sideBarUpdatesItem {
+		display: flex;
+		gap: var(--MillenniumSpacing-Normal);
+		justify-content: space-between;
+		align-items: center;
+		overflow: visible !important;
+	}
+
+	.FriendMessageCount {
+		display: flex !important;
+		margin-top: 0px !important;
+		position: initial !important;
+
+		line-height: 20px;
+		height: fit-content !important;
+		width: fit-content !important;
 	}
 }
 
@@ -174,18 +204,17 @@ const styles = `
  * Logs
  */
 .MillenniumLogs_LogItemButton {
-	/* Nothing to display */
-	&[data-warning-count="0"][data-error-count="0"] svg {
-		/* Just hide to not fuck up the spacing */
-		visibility: hidden;
-	}
-
 	&:not([data-warning-count="0"]) svg {
 		color: var(--MillenniumTextColor-Warning);
 	}
 
 	&:not([data-error-count="0"]) svg {
 		color: var(--MillenniumTextColor-Error);
+	}
+
+	/* Nothing to display */
+	&[data-warning-count="0"][data-error-count="0"] > .tool-tip-source {
+		display: none;
 	}
 
 	& > .tool-tip-source {
@@ -286,7 +315,6 @@ const styles = `
     flex-direction: column;
     overflow: hidden;
     transition: all 0.5s ease;
-	height: 2lh;
 }
 
 .MillenniumUpdates_Field[data-expanded="false"] {
@@ -295,17 +323,22 @@ const styles = `
 	}
 
 	.MillenniumUpdates_Description {
-		height: 0;
+		height: 0 !important;
 	}
 }
 
-/* Actually a <Field>... */
 .MillenniumUpdates_ProgressBar {
-	padding: 0 !important;
-	height: 32px !important;
+	/* <Field> override */
+	align-self: baseline;
 
-	&::after {
-		content: unset !important;
+	&:not([role="progressbar"]) {
+		padding: 0 !important;
+		/* icon button size + .DialogButton margin-block * 2 */
+		height: calc(32px + 2px * 2) !important;
+
+		&::after {
+			content: unset !important;
+		}
 	}
 }
 
@@ -345,43 +378,11 @@ const styles = `
 	width: -webkit-fill-available;
 }
 
-._2o2fXzn99OddeqZMjbDuxQ {
-    display: flex;
-    align-items: center;
-}
-
 .MillenniumPluginSettingsSliderValue {
     position: absolute;
     right: 0;
     top: 5px;
     font-size: 14px;
-}
-`;
-
-const sidebarTitleClass = (findClassModule((m) => m.ReturnToPageListButton && m.PageListItem_Title && m.HidePageListButton) as any)?.PageListItem_Title;
-
-const updateCountStyles = `
-.PageListColumn .sideBarUpdatesItem {
-	display: flex;
-	gap: var(--MillenniumSpacing-Normal);
-	justify-content: space-between;
-	align-items: center;
-	overflow: visible !important;
-}
-
-.${sidebarTitleClass} {
-	overflow: visible !important;
-	width: calc(100% - 32px);
-}
-
-.PageListColumn .FriendMessageCount {
-	display: flex !important;
-	margin-top: 0px !important;
-	position: initial !important;
-
-	line-height: 20px;
-	height: fit-content !important;
-	width: fit-content !important;
 }
 `;
 
@@ -400,14 +401,15 @@ export const MillenniumDesktopSidebarStyles = ({
     }
 
     .MillenniumDesktopSidebar {
+		--sidebar-width: 350px;
 		position: absolute;
 		height: 100%;
-		width: 350px;
+		width: var(--sidebar-width);
 		top: 0px;
 		right: 0px;
 		z-index: 999;
 		transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
-		transform: ${openAnimStart ? 'translateX(0px)' : 'translateX(366px)'};
+		transform: ${openAnimStart ? 'translateX(0px)' : 'translateX(calc(var(--sidebar-width) + 16px))'};
 		overflow-y: auto;
 		display: ${isDesktopMenuOpen ? 'flex' : 'none'};
 		flex-direction: column;
@@ -415,13 +417,10 @@ export const MillenniumDesktopSidebarStyles = ({
     }
 
 	.MillenniumDesktopSidebar_Content {
+		padding: ${isViewingPlugin ? '16px 20px 0px 20px' : '16px 0 0 0'};
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-
-		.MillenniumPlaceholder_Container {
-			margin: auto;
-		}
 	}
 
     .MillenniumDesktopSidebar_Overlay {
@@ -445,16 +444,10 @@ export const MillenniumDesktopSidebarStyles = ({
 		top: 0;
 		-webkit-app-region: no-drag;
 	}
-
-	.MillenniumDesktopSidebarContent {
-	  	padding: ${isViewingPlugin ? '16px 20px 0px 20px' : '16px 0 0 0'};
-	}
     `;
 
 	return <style>{styles}</style>;
 };
-
-export const UpdateCountStyle = () => <style>{updateCountStyles}</style>;
 
 const Styles = () => <style>{styles}</style>;
 

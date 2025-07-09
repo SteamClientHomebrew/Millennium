@@ -18,7 +18,7 @@ export function Placeholder(props: PlaceholderProps) {
 			<div className="MillenniumPlaceholder_Icon">{icon}</div>
 			<div className="MillenniumPlaceholder_Header">{header}</div>
 			<div className="MillenniumPlaceholder_Text">{body}</div>
-			{children}
+			{children && <div className="MillenniumPlaceholder_Buttons">{children}</div>}
 		</div>
 	);
 }

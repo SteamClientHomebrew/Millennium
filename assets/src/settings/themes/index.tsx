@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, pluginSelf } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { locale } from '../../../locales';
 import { Placeholder } from '../../components/Placeholder';
@@ -109,8 +109,11 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 	render() {
 		if (pluginSelf.connectionFailed) {
 			return (
-				<Placeholder header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
-					<DialogButton onClick={() => SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'))}>
+				<Placeholder icon={<IconsModule.ExclamationPoint />} header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
+					<DialogButton
+						className={settingsClasses.SettingsDialogButton}
+						onClick={() => SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'))}
+					>
 						{locale.errorFailedConnectionButton}
 					</DialogButton>
 				</Placeholder>
@@ -124,8 +127,10 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 
 		if (!this.state.themes || !this.state.themes.length) {
 			return (
-				<Placeholder header="No themes found" body="It appears you don't have any themes yet!">
-					<DialogButton onClick={showInstallThemeModal}>Install a theme</DialogButton>
+				<Placeholder icon={<IconsModule.ExclamationPoint />} header="No themes found" body="It appears you don't have any themes yet!">
+					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={showInstallThemeModal}>
+						Install a theme
+					</DialogButton>
 				</Placeholder>
 			);
 		}

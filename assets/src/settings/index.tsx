@@ -85,7 +85,7 @@ const tabSpotPlugins: SidebarNavigationPage = {
 
 const tabSpotUpdates: SidebarNavigationPage = {
 	visible: true,
-	title: <RenderUpdatesSettingsTab />,
+	title: locale.settingsPanelUpdates,
 	icon: <IconsModule.Update />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>

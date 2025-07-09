@@ -29,7 +29,7 @@
  */
 
 import { Component } from 'react';
-import { ConfirmModal, DialogButton, DialogControlsSection, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, DialogButton, DialogControlsSection, IconsModule, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../../types';
 import { locale } from '../../../locales';
 import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
@@ -158,8 +158,9 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 	render() {
 		if (pluginSelf.connectionFailed) {
 			return (
-				<Placeholder header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
+				<Placeholder icon={<IconsModule.ExclamationPoint />} header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
 					<DialogButton
+						className={settingsClasses.SettingsDialogButton}
 						onClick={() => {
 							Utils.BrowseLocalFolder([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'));
 						}}
@@ -177,8 +178,10 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 
 		if (!this.state.plugins || !this.state.plugins.length || (this.state.plugins.length === 1 && this.state.plugins[0].data.name === 'core')) {
 			return (
-				<Placeholder header={'No Plugins Found.'} body={"It appears you don't have any plugin yet!"}>
-					<DialogButton onClick={this.InstallPluginMenu.bind(this)}>Install a plugin</DialogButton>
+				<Placeholder icon={<IconsModule.TextCode />} header={'No Plugins Found.'} body={"It appears you don't have any plugin yet!"}>
+					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={this.InstallPluginMenu.bind(this)}>
+						Install a plugin
+					</DialogButton>
 				</Placeholder>
 			);
 		}
