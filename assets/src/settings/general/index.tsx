@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Dropdown, Field, IconsModule, pluginSelf, Toggle } from '@steambrew/client';
+import { DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, Toggle } from '@steambrew/client';
 import React from 'react';
 import { locale } from '../../../locales';
 import { OnMillenniumUpdate } from '../../types';

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, IconsModule, TextField, callable, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, TextField, callable, joinClassNames, pluginSelf } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';

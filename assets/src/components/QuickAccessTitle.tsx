@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, Focusable, Navigation, quickAccessMenuClasses } from '@steambrew/client';
+import { DialogButton, Focusable, joinClassNames, Navigation, quickAccessMenuClasses } from '@steambrew/client';
 import { useDesktopMenu } from '../quick-access/DesktopMenuContext';
 import { BsGearFill } from 'react-icons/bs';
 import { FaArrowLeft } from 'react-icons/fa';

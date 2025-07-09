@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, pluginSelf } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { locale } from '../../../locales';
 import { Placeholder } from '../../components/Placeholder';
