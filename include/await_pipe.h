@@ -55,10 +55,9 @@ static bool bHasCheckedConnection = false;
 class SocketHelpers
 {
 private:
+    u_short debuggerPort;
 
-    unsigned short debuggerPort;
-
-    const short GetDebuggerPort()
+    const u_short GetDebuggerPort()
     {
         #ifdef _WIN32
         {
@@ -71,7 +70,7 @@ private:
 
     const std::string GetDebuggerUrl()
     {
-        return fmt::format("http://localhost:{}", debuggerPort);
+        return fmt::format("http://127.0.0.1:{}", debuggerPort);
     }
 
     struct SteamConnectionProps

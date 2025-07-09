@@ -20,26 +20,16 @@
       };
     in
     {
-      overlays.default = final: prev: {
-        steam-unwrapped = prev.steam-unwrapped.overrideAttrs {
-          postInstall =
-            (prev.postInstall or '''')
-            + ''
-              rm -rf $out/share/applications
-              rm $out/lib/steam/steam.desktop
-            '';
-        };
-        millennium = self.packages."x86_64-linux".millennium.overrideAttrs {
-          installPhase =
-            (self.packages."x86_64-linux".millennium.installPhase or '''')
-            + ''
-              mkdir -p $out/share/applications
-              cp ${prev.steam-unwrapped}/share/applications/steam.desktop $out/share/applications
-              substituteInPlace $out/share/applications/steam.desktop \
-                --replace-fail "steam" "$out/bin/steam"
-              mv $out/bin/millennium $out/bin/steam
-            '';
-        };
+      overlays.default = final: prev: rec {
+        inherit (self.packages."x86_64-linux") millennium;
+        steam-millennium = final.steam.override (prev: {
+          extraProfile =
+            ''
+              export LD_LIBRARY_PATH="${millennium}/lib/millenium/''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+              export LD_PRELOAD="${millennium}/lib/millennium/libmillennium_x86.so''${LD_PRELOAD:+:$LD_PRELOAD}"
+            ''
+            + (prev.extraProfile or "");
+        });
       };
 
       devShells."x86_64-linux".default = import ./shell.nix { inherit pkgs; };

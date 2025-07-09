@@ -104,15 +104,10 @@ def add_browser_js(js_path: str, regex=".*") -> None:
     stack.push(Millennium.add_browser_js(js_path, regex))
 
 def remove_all_patches() -> None:
-    index = 0
-    while index < len(conditional_patches):
-        try:
-            Millennium.remove_browser_module(conditional_patches[index][1])
-            del conditional_patches[index] 
-        except Exception as e:
-            logger.log(f"Error removing patch at index {index}: {e}")
-            sys.stderr.write(traceback.format_exc())
-            index += 1
+    for target_path, module_id in conditional_patches:
+        if module_id is not None:  # Check for None
+            Millennium.remove_browser_module(module_id)
+    conditional_patches.clear()
 
 def add_conditional_data(path: str, data: dict, theme_name: str):
     try:

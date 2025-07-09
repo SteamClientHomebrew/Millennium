@@ -81,11 +81,6 @@ MILLENNIUM nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
         case Python::Types::Integer: { responseMessage["returnValue"] = stoi(response.plain);                      break; }
 
         case Python::Types::Unknown: 
-        {
-            responseMessage["failedRequest"] = true;
-            responseMessage["failMessage"] = "Unknown return type from Python evaluation.";
-            break;
-        }
         case Python::Types::Error: 
         {
             responseMessage["failedRequest"] = true;

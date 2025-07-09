@@ -41,10 +41,9 @@ def get_installed_packages():
     logger.log("Installed packages:")
     
     package_map = {dist.metadata["Name"]: dist.version for dist in importlib.metadata.distributions()}
-    
-    for name, version in package_map.items():
-        logger.log(f"  {name}=={version}")
-    
+    str_packages = [f"{name}=={version}" for name, version in package_map.items()]
+
+    logger.log(" ".join(str_packages))
     return package_map
 
 def process_output_handler(proc, outfile, terminate_flag):
