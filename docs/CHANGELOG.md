@@ -1,3 +1,11 @@
+# [2.26.0-beta.21](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.20...v2.26.0-beta.21) (2025-07-10)
+
+
+### Bug Fixes
+
+* Fix unsafe setenv call warnings. ([2ca55b8](https://github.com/SteamClientHomebrew/Millennium/commit/2ca55b88e024a3775e891110056a4ee6bb97fb65))
+* **linux:** Fix Millennium accidentally loading into Steam overlay process, breaking already loaded instances. ([26aeaa1](https://github.com/SteamClientHomebrew/Millennium/commit/26aeaa18e18015c3f4837e91b6d932ca5a2f38e2))
+
 # [2.26.0-beta.20](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.19...v2.26.0-beta.20) (2025-07-08)
 
 
