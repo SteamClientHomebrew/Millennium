@@ -31,6 +31,7 @@ static const std::string kMillenniumLibraryPath = []() {
 class ProxySentinel 
 {
     void* m_millenniumInstanceHandle = nullptr;
+    bool m_hasLoadedMillennium = false;
 
     typedef int (*StartMillennium_t)(void);
     typedef int (*StopMillennium_t)(void);
@@ -91,27 +92,35 @@ class ProxySentinel
         m_millenniumInstanceHandle = nullptr;
     }
 
-    char* GetSteamPath() 
+    char* GetProcessPath()
     {
         static char path[PATH_MAX];
         ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
-        if (len != -1) 
+        if (len != -1)
         {
             path[len] = '\0';
-            char* lastSlash = strrchr(path, '/');
-            if (lastSlash != NULL) 
-            {
-                *lastSlash = '\0';
-            }
-            
             return path;
         }
-        return NULL;
+        return nullptr;
+    }
+
+    char* GetProcessPathParent()
+    {
+        static char parentPath[PATH_MAX];
+        char* exePath = GetProcessPath();
+        if (!exePath) return nullptr;
+
+        strncpy(parentPath, exePath, PATH_MAX - 1);
+        parentPath[PATH_MAX - 1] = '\0';
+        char* lastSlash = strrchr(parentPath, '/');
+
+        if (lastSlash) *lastSlash = '\0';
+        return parentPath;
     }
 
     void SetupHooks()
     {
-        const char* currentModulePath = GetSteamPath();
+        const char* currentModulePath = GetProcessPathParent();
 
         if (!currentModulePath) 
         {
@@ -134,11 +143,40 @@ class ProxySentinel
         }
     }
 
+    bool IsSteamProcess()
+    {
+        char* exePath = GetProcessPath();
+        if (!exePath) return false;
+
+        char resolvedPath[PATH_MAX];
+        if (!realpath(exePath, resolvedPath)) return false;
+
+        const char* homeDir = getenv("HOME");
+        if (!homeDir) return false;
+
+        std::string steamPath = std::string(homeDir) + "/.steam/steam/ubuntu12_32/steam";
+
+        char resolvedSteamPath[PATH_MAX];
+        if (!realpath(steamPath.c_str(), resolvedSteamPath)) return false;
+
+        return strcmp(resolvedPath, resolvedSteamPath) == 0;
+    }
+
 public:
     ProxySentinel() 
     {
+        const bool isSteamProcess = IsSteamProcess();
+
+        if (!isSteamProcess) 
+        {
+            LOG_INFO("Skipping Millennium setup for non-Steam process. Process path: %s", GetProcessPath());
+            return;
+        }
+
         LOG_INFO("Setting up proxy hooks...");
         this->SetupHooks();
+
+        m_hasLoadedMillennium = true;
 
         LOG_INFO("Bootstrap library loaded successfully. Using Millennium library at: %s", kMillenniumLibraryPath.c_str());
         if (this->LoadAndStartMillennium()) 
@@ -151,8 +189,12 @@ public:
     {
         if (g_originalXTstInstance) 
         {
-            LOG_INFO("Unhooking libXTst...");
             dlclose(g_originalXTstInstance);
+        }
+
+        if (!m_hasLoadedMillennium) 
+        {
+            return;
         }
 
         LOG_INFO("Unloading Millennium library...");
