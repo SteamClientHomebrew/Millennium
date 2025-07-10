@@ -66,6 +66,7 @@ const styles = `
 
 	.DialogButton {
 		width: unset;
+		flex-grow: 1;
 	}
 }
 
