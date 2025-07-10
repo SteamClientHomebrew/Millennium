@@ -444,10 +444,11 @@ export const MillenniumDesktopSidebarStyles = ({
     }
 
 	.MillenniumDesktopSidebar_Title {
-		--titlebar-height: 32px;
-		--spacing: 8px;
-		padding-block-start: calc(var(--titlebar-height) + var(--spacing));
-		padding-inline: calc(var(--spacing) * 2);
+		/* Use the top bar's height, since -webkit-app-region is for some reason
+		 * unreliable (but set it anyway) here when it touches the top bar, not
+		 * letting us press the button but drag the window instead. */
+		padding-block-start: 65px;
+		padding-inline: 16px;
 		position: sticky;
 		top: 0;
 		-webkit-app-region: no-drag;
