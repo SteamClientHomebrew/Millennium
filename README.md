@@ -34,7 +34,7 @@ If you enjoy this tool, please consider starring the project ⭐
 
 ### Automatic Installation (Recommended)
 
-Installing Millennium is only a few steps. See [this page](https://docs.steambrew.app/users/installing#automatic) for a more detailed guide.
+Installing Millennium is only a few steps. See [this page](https://docs.steambrew.app/users/installing) for a more detailed guide.
 
 ### Manual Installation
 
