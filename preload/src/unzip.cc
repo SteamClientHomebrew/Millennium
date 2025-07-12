@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <direct.h>
+#include <winsock2.h>
 #include <windows.h> 
 #include <minizip/unzip.h>
 #include <iostream>
