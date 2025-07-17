@@ -96,6 +96,109 @@ MILLENNIUM std::tuple<std::string, std::string> Python::ActiveExceptionInformati
     return { errorMessage, tracebackText };
 }
 
+namespace Python
+{
+    namespace ObjectHandler
+    {
+        EvalResult HandleActiveException() 
+        {
+            const auto [errorMessage, tracebackText] = ActiveExceptionInformation();
+            return {Types::Error, errorMessage + tracebackText};
+        }
+
+        EvalResult HandleBooleanObject(PyObject* obj) 
+        {
+            return {Types::Boolean, (obj == Py_True) ? "True" : "False"};
+        }
+
+        EvalResult HandleIntegerObject(PyObject* obj) 
+        {
+            long longValue = PyLong_AsLong(obj);
+            if (PyErr_Occurred()) return HandleActiveException();
+            return {Types::Integer, std::to_string(longValue)};
+        }
+
+        EvalResult HandleFloatObject(PyObject* obj) 
+        {
+            double doubleValue = PyFloat_AsDouble(obj);
+            if (PyErr_Occurred()) return HandleActiveException();
+            return {Types::String, std::to_string(doubleValue)};
+        }
+
+        EvalResult HandleUnicodeObject(PyObject* obj)
+        {
+            const char* valueStr = PyUnicode_AsUTF8(obj);
+            if (PyErr_Occurred()) return HandleActiveException();
+            return {Types::String, valueStr ? std::string(valueStr) : std::string("")};
+        }
+
+        EvalResult HandleBytesObject(PyObject* obj) 
+        {
+            char* bytesValue = PyBytes_AsString(obj);
+            if (!bytesValue) return {Types::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string."};
+
+            Py_ssize_t size = PyBytes_Size(obj);
+            if (size < 0) return {Types::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object."};
+
+            return {Types::String, std::string(bytesValue, size)};
+        }
+
+        EvalResult HandleContainerObject(PyObject* obj) 
+        {
+            PyObject* jsonModule = PyImport_ImportModule("json");
+            if (jsonModule) 
+            {
+                PyObject* dumpsFunction = PyObject_GetAttrString(jsonModule, "dumps");
+                if (dumpsFunction) 
+                {
+                    PyObject* jsonStr = PyObject_CallFunction(dumpsFunction, "O", obj);
+                    if (jsonStr && PyUnicode_Check(jsonStr)) 
+                    {
+                        const char* utf8JsonStr = PyUnicode_AsUTF8(jsonStr);
+                        std::string result = utf8JsonStr ? utf8JsonStr : "{}";
+                        Py_XDECREF(jsonStr);
+                        Py_DECREF(dumpsFunction);
+                        Py_DECREF(jsonModule);
+                        return {Types::JSON, result};
+                    }
+                    Py_XDECREF(jsonStr);
+                    Py_DECREF(dumpsFunction);
+                }
+                Py_DECREF(jsonModule);
+            }
+            
+            PyErr_Clear();
+            PyObject* objRepresentation = PyObject_Repr(obj);
+            if (objRepresentation) 
+            {
+                const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
+                std::string result = unicodeRepresentation ? unicodeRepresentation : "{}";
+                Py_DECREF(objRepresentation);
+                return {Types::JSON, result};
+            }
+            
+            return {Types::JSON, "{}"};
+        }
+
+        EvalResult HandleNoneObject() 
+        {
+            return {Types::JSON, "null"};
+        }
+
+        EvalResult HandleUnknownObject(PyObject* obj) 
+        {
+            PyObject* objRepresentation = PyObject_Repr(obj);
+            if (objRepresentation) 
+            {
+                const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
+                std::string result = unicodeRepresentation ? unicodeRepresentation : "<unknown object>";
+                Py_DECREF(objRepresentation);
+                return {Types::Unknown, result};
+            }
+            return {Types::Unknown, "<unknown object>"};
+        }
+    }
+}
 
 /**
 * Converts a Python object to an EvalResult with appropriate type classification and string representation.
@@ -108,132 +211,18 @@ MILLENNIUM std::tuple<std::string, std::string> Python::ActiveExceptionInformati
 */
 Python::EvalResult PyObjectCastEvalResult(PyObject* obj) 
 {
-    Python::EvalResult result;
+    if (!obj) return Python::ObjectHandler::HandleActiveException();
     
-    if (!obj) 
-    {
-        const auto [errorMessage, tracebackText] = Python::ActiveExceptionInformation();
+    if      (PyBool_Check(obj))                                            return Python::ObjectHandler::HandleBooleanObject(obj);
+    else if (PyLong_Check(obj))                                            return Python::ObjectHandler::HandleIntegerObject(obj);
+    else if (PyFloat_Check(obj))                                           return Python::ObjectHandler::HandleFloatObject(obj);
+    else if (PyUnicode_Check(obj))                                         return Python::ObjectHandler::HandleUnicodeObject(obj);
+    else if (PyBytes_Check(obj))                                           return Python::ObjectHandler::HandleBytesObject(obj);
+    else if (PyList_Check(obj) || PyTuple_Check(obj) || PyDict_Check(obj)) return Python::ObjectHandler::HandleContainerObject(obj);
+    else if (obj == Py_None)                                               return Python::ObjectHandler::HandleNoneObject();
 
-        result.type = Python::Types::Error;
-        result.plain = errorMessage + tracebackText; // Get the error message from the active exception
-        return result;
-    }
-    
-    if (PyBool_Check(obj)) 
-    {
-        result.type = Python::Types::Boolean;
-        result.plain = (obj == Py_True) ? "True" : "False";
-    }
-    else if (PyLong_Check(obj)) 
-    {
-        result.type = Python::Types::Integer;
-        long longValue = PyLong_AsLong(obj);
-        if (PyErr_Occurred()) 
-        {
-            PyErr_Clear();
-            result.type =  Python::Types::Error;
-            result.plain = "Integer overflow or conversion error";
-        } 
-        else 
-        {
-            result.plain = std::to_string(longValue);
-        }
-    }
-    else if (PyFloat_Check(obj)) 
-    {
-        result.type = Python::Types::String;
-        double doubleValue = PyFloat_AsDouble(obj);
-        result.plain = std::to_string(doubleValue);
-    }
-    else if (PyUnicode_Check(obj)) 
-    {
-        result.type = Python::Types::String;
-        const char* valueStr = PyUnicode_AsUTF8(obj);
-        result.plain = valueStr ? valueStr : "";
-    }
-    else if (PyBytes_Check(obj)) 
-    {
-        result.type = Python::Types::String;
-        char* bytesValue = PyBytes_AsString(obj);
-        Py_ssize_t size = PyBytes_Size(obj);
-        result.plain = std::string(bytesValue, size);
-    }
-    else if (PyList_Check(obj) || PyTuple_Check(obj) || PyDict_Check(obj)) 
-    {
-        result.type = Python::Types::JSON;
-        
-        PyObject* jsonModule = PyImport_ImportModule("json");
-        if (jsonModule) 
-        {
-            PyObject* dumpsFunction = PyObject_GetAttrString(jsonModule, "dumps");
-            if (dumpsFunction) 
-            {
-                PyObject* json_str = PyObject_CallFunction(dumpsFunction, "O", obj);
-                if (json_str && PyUnicode_Check(json_str)) 
-                {
-                    const char* utf8JsonStr = PyUnicode_AsUTF8(json_str);
-                    result.plain = utf8JsonStr ? utf8JsonStr : "{}";
-                } 
-                else 
-                {
-                    PyErr_Clear();
-                    PyObject* representationObj = PyObject_Repr(obj);
-                    if (representationObj) 
-                    {
-                        const char* representationString = PyUnicode_AsUTF8(representationObj);
-                        result.plain = representationString ? representationString : "{}";
-                        Py_DECREF(representationObj);
-                    }
-                    else 
-                    {
-                        result.plain = "{}";
-                    }
-                }
-                Py_XDECREF(json_str);
-                Py_DECREF(dumpsFunction);
-            }
-            Py_DECREF(jsonModule);
-        } 
-        else 
-        {
-            PyErr_Clear();
-            PyObject* representationObj = PyObject_Repr(obj);
-            if (representationObj) 
-            {
-                const char* representationStr = PyUnicode_AsUTF8(representationObj);
-                result.plain = representationStr ? representationStr : "{}";
-                Py_DECREF(representationObj);
-            } 
-            else 
-            {
-                result.plain = "{}";
-            }
-        }
-    }
-    else if (obj == Py_None)
-    {
-        result.type = Python::Types::JSON;
-        result.plain = "null";
-    }
-    else 
-    {
-        result.type = Python::Types::Unknown;
-        PyObject* representationObj = PyObject_Repr(obj);
-        if (representationObj) 
-        {
-            const char* representationStr = PyUnicode_AsUTF8(representationObj);
-            result.plain = representationStr ? representationStr : "<unknown object>";
-            Py_DECREF(representationObj);
-        } 
-        else 
-        {
-            result.plain = "<unknown object>";
-        }
-    }
-    
-    return result;
+    else return Python::ObjectHandler::HandleUnknownObject(obj);
 }
-
 /** 
  *  Resolves a dotted attribute path to a Python object.
  * 
@@ -276,20 +265,76 @@ PyObject* resolveDottedAttribute(const std::string& dottedPath)
     return current;
 }
 
+/*
+ * Returns a representation of the given JSON data as a PyObject*
+ *
+ * @param json The JSON object to be converted
+ * @return A PyObject* representing the passed JSON object
+ */
+PyObject* PyObjectFromJson(const nlohmann::json& json)
+{
+    PyObject* pObject = nullptr;
+    
+    if      (json.is_string())         pObject = PyUnicode_FromString(json.get<std::string>().c_str());
+    else if (json.is_number_integer()) pObject = PyLong_FromLongLong(json.get<long long>());
+    else if (json.is_number_float())   pObject = PyFloat_FromDouble(json.get<double>());
+    else if (json.is_boolean())        pObject = PyBool_FromLong(json.get<bool>() ? 1 : 0);
+    else if (json.is_array())
+    {
+        pObject = PyList_New(json.size());
+
+        if (!pObject) 
+        {
+            LOG_ERROR("Failed to allocate a new Python list of size: {}", json.size());
+            return nullptr;
+        }
+
+        int i = 0;
+        for (const auto& arrayItem : json)
+        {
+            PyObject* pListItem = PyObjectFromJson(arrayItem);
+            if (pListItem)
+            {
+                if (PyList_SetItem(pObject, i, pListItem) < 0)
+                {
+                    Py_DECREF(pObject);
+                    LOG_ERROR("Failed to set item in Python list at index: {}, json data: {}", i, json.dump(4));
+                    return nullptr;
+                }
+                i++;
+            }
+            else
+            {
+                // Clean up and return error if recursive call failed
+                Py_DECREF(pObject);
+                LOG_ERROR("Failed to convert array item to Python object");
+                return nullptr;
+            }
+        }
+    }
+    else if (json.is_null()) 
+    {
+        pObject = Py_None;
+        Py_INCREF(Py_None);
+    }
+
+    return pObject;
+}
+
 /** 
  * Calls a Python function with the provided JSON data.
  * 
  * @param jsonData The JSON object containing the method name and arguments.
  * @return A PyObject* representing the result of the function call, or nullptr on failure.
  */
-PyObject* callPythonFunctionWithJson(const nlohmann::json& jsonData) 
+PyObject* InvokePythonFunction(const nlohmann::json& jsonData) 
 {
     std::string methodName = jsonData["methodName"];
     
     PyObject* pFunc = resolveDottedAttribute(methodName);
     if (!pFunc || !PyCallable_Check(pFunc)) 
     {
-        std::cerr << "Function " << methodName << " not found or not callable" << std::endl;
+        LOG_ERROR(fmt::format("Failed to resolve or call function: {}. Call data {}", methodName, jsonData.dump(4)));
         Py_XDECREF(pFunc);
         return nullptr;
     }
@@ -307,19 +352,7 @@ PyObject* callPythonFunctionWithJson(const nlohmann::json& jsonData)
         
         for (auto& [key, value] : argumentList.items()) 
         {
-            PyObject* pValue = nullptr;
-            
-            if      (value.is_string())         pValue = PyUnicode_FromString(value.get<std::string>().c_str());
-            else if (value.is_number_integer()) pValue = PyLong_FromLong(value.get<int>());
-            else if (value.is_number_float())   pValue = PyFloat_FromDouble(value.get<double>());
-            else if (value.is_boolean())        pValue = PyBool_FromLong(value.get<bool>() ? 1 : 0);
-            
-
-            else if (value.is_null()) 
-            {
-                pValue = Py_None;
-                Py_INCREF(Py_None);
-            }
+            PyObject* pValue = PyObjectFromJson(value);
 
             if (pValue) 
             {
@@ -371,7 +404,7 @@ MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginN
     /** Plugin has no backend and therefor the call should not be completed */
     if (!hasBackend) 
     {
-        return { "false", Boolean };
+        return { Boolean, "false" };
     }
 
     auto result = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
@@ -381,7 +414,7 @@ MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginN
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return { "overstepped partying thread state", Error };
+        return { Error, "overstepped partying thread state" };
     }
 
     auto& [strPluginName, threadState, interpMutex] = *result.value();
@@ -391,7 +424,7 @@ MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginN
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return { "overstepped partying thread state", Error };
+        return { Error, "overstepped partying thread state" };
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
@@ -402,7 +435,7 @@ MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginN
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return { "thread state was nullptr", Error };
+        return { Error, "thread state was nullptr" };
     }
 
     PyObject* mainModule = PyImport_AddModule("__main__");
@@ -412,11 +445,17 @@ MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginN
         const auto message = fmt::format("Failed to fetch python module on [{}]. This usually means the GIL could not be acquired either because the backend froze or crashed", pluginName);
 
         ErrorToLogger(pluginName, message);
-        return { message, Python::Types::Error };
+        return { Error, message };
     }
 
     PyObject* globalDictionaryObj = PyModule_GetDict(mainModule);
-    Python::EvalResult response = PyObjectCastEvalResult(callPythonFunctionWithJson(functionCall));
+    Python::EvalResult response = PyObjectCastEvalResult(InvokePythonFunction(functionCall));
+
+    if (response.type == Python::Types::Error) 
+    {
+        LOG_ERROR(fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
+    }
 
     pythonGilLock->ReleaseAndUnLockGIL();
     return response;

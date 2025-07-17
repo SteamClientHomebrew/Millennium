@@ -81,12 +81,7 @@ class ConfigManager:
             if old_value != value:
                 current[last_key] = value
                 self._notify_listeners(key, old_value, value)
-                logger.log("set() setting changed")
                 self._auto_save(skip_propagation=skip_propagation)
-            else:
-                logger.log("old value: " + json.dumps(old_value, indent=4))
-                logger.log("new value: " + json.dumps(value, indent=4))
-                logger.log("are they equal? " + str(old_value == value))
 
     def delete(self, key: str):
         with self._lock:
@@ -145,15 +140,17 @@ class ConfigManager:
             self._notify_listeners(k, None, v)
 
     def save_to_file(self, skip_propagation: bool = False):
-        with self._lock:
-            with open(self._filename, "w", encoding="utf-8") as f:
-                json.dump(self._data, f, indent=2, default=self.custom_encoder)
+        data_copy = self._data.copy()
+        
+        with open(self._filename, "w", encoding="utf-8") as f:
+            json.dump(data_copy, f, indent=2, default=self.custom_encoder)
 
-                if not skip_propagation:
-                    try:
-                        Millennium.call_frontend_method("OnBackendConfigUpdate", params=[json.dumps(self._data, default=self.custom_encoder)])
-                    except ConnectionError as e:
-                        pass # Millennium frontend not connected
+        if not skip_propagation:
+            try:
+                Millennium.call_frontend_method("OnBackendConfigUpdate", 
+                    params=[json.dumps(data_copy, default=self.custom_encoder)])
+            except ConnectionError as e:
+                pass
 
     def update(self, update_dict: Dict[str, Any]):
         with self._lock:

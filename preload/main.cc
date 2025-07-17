@@ -28,6 +28,12 @@
  * SOFTWARE.
  */
 
+#ifdef _WIN32
+/** Force include of winsock before windows */
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #include <windows.h>
 #include <nlohmann/json.hpp>
 #include <iostream>
