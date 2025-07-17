@@ -144,41 +144,65 @@ MILLENNIUM const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 /**
  * Escapes special characters in a JavaScript string.
  */
+#include <string>
+#include <sstream>
+#include <iomanip>
+
 std::string EscapeJavaScriptString(const std::string& input)
 {
     std::ostringstream escaped;
-    escaped << std::hex;
-
-    for (unsigned char c : input) 
+    
+    for (size_t i = 0; i < input.length(); ++i)
     {
-        switch (c) 
+        unsigned char c = static_cast<unsigned char>(input[i]);
+        
+        switch (c)
         {
             case '\"': escaped << "\\\""; break;
             case '\\': escaped << "\\\\"; break;
-            case '\b': escaped << "\\b";  break;
-            case '\f': escaped << "\\f";  break;
-            case '\n': escaped << "\\n";  break;
-            case '\r': escaped << "\\r";  break;
-            case '\t': escaped << "\\t";  break;
-
+            case '\b': escaped << "\\b"; break;
+            case '\f': escaped << "\\f"; break;
+            case '\n': escaped << "\\n"; break;
+            case '\r': escaped << "\\r"; break;
+            case '\t': escaped << "\\t"; break;
             default:
-                if (c < 0x20 || c == 0x2028 || c == 0x2029) 
+                if (c < 0x20)
                 {
-                    // Escape control and unsafe unicode chars as \uXXXX
+                    // Escape control characters as \uXXXX
                     escaped << "\\u"
-                            << std::uppercase
-                            << std::setw(4)
-                            << std::setfill('0')
+                            << std::hex << std::uppercase
+                            << std::setw(4) << std::setfill('0')
                             << static_cast<int>(c);
-                } 
-                else 
+                }
+                else if (c == 0xE2 && i + 2 < input.length())
+                {
+                    // Check for UTF-8 encoded U+2028 (0xE2 0x80 0xA8) and U+2029 (0xE2 0x80 0xA9)
+                    unsigned char c1 = static_cast<unsigned char>(input[i + 1]);
+                    unsigned char c2 = static_cast<unsigned char>(input[i + 2]);
+                    
+                    if (c1 == 0x80 && c2 == 0xA8)
+                    {
+                        escaped << "\\u2028";
+                        i += 2;
+                    }
+                    else if (c1 == 0x80 && c2 == 0xA9)
+                    {
+                        escaped << "\\u2029";
+                        i += 2;
+                    }
+                    else
+                    {
+                        escaped << c;
+                    }
+                }
+                else
                 {
                     escaped << c;
                 }
                 break;
         }
     }
-
+    
     return escaped.str();
 }
 

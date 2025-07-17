@@ -52,6 +52,10 @@ if(NOT APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 endif()
 
+if (APPLE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address -fno-omit-frame-pointer")
+endif()
+
 # Strip binary on release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
   if(NOT UNIX)
@@ -291,7 +295,11 @@ if(WIN32)
 elseif(UNIX)
   # add_executable(Millennium "${SOURCE_FILES}")
   # add_compile_definitions(MILLENNIUM_EXECUTABLE)
-  add_library(Millennium SHARED "${SOURCE_FILES}")
+  if (APPLE)
+    add_executable(Millennium "${SOURCE_FILES}")
+  else()
+    add_library(Millennium SHARED "${SOURCE_FILES}")
+  endif()
   add_compile_definitions(MILLENNIUM_SHARED)
 
   target_compile_definitions(Millennium PRIVATE MILLENNIUM__PYTHON_ENV="${MILLENNIUM__PYTHON_ENV}")

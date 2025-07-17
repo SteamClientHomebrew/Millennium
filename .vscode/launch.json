@@ -20,6 +20,26 @@
 			"preLaunchTask": "CMake: build"
 		},
 		{
+			"type": "cppdbg",
+			"request": "launch",
+			"MIMode": "lldb",
+			"name": "Debug Millennium (MacOS)",
+			"program": "${workspaceFolder}/build/Millennium",
+			"args": ["-dev", "-skipinitialbootstrap", "-nobootstrapperupdate", "-noverifyfiles"],
+			"cwd": "${workspaceFolder}",
+			"stopAtEntry": false,
+			"setupCommands": [
+				{
+					"description": "Enable pretty-printing for gdb",
+					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				}
+			],
+			"environment": [],
+			"externalConsole": false,
+			"preLaunchTask": "CMake: build"
+		},
+		{
 			"name": "Debug Millennium (Unix)",
 			"type": "node",
 			"request": "launch",

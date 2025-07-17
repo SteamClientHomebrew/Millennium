@@ -69,12 +69,16 @@ namespace SystemIO {
         {
             return fmt::format("{}/.steam/steam/", std::getenv("HOME"));
         }
+        #elif __APPLE__
+        {
+            return fmt::format("{}/Library/Application Support/Steam/", std::getenv("HOME"));
+        }
         #endif
     }
 
     MILLENNIUM std::filesystem::path GetInstallPath()
     {
-        #if defined(__linux__)
+        #if defined(__linux__) || defined(__APPLE__)
             return GetEnv("MILLENNIUM__CONFIG_PATH");
         #elif defined(_WIN32)
             return GetSteamPath();
