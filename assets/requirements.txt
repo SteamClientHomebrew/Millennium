@@ -5,6 +5,7 @@ requests==2.32.4
 winrt-Windows.UI.ViewManagement==2.3.0 | Windows
 winrt-Windows.UI==2.3.0 | Windows
 pygit2==1.16.0 | Windows
+pygit2==1.16.0 | Darwin
 GitPython==3.1.44 | Linux
 cssutils==2.11.1
 websockets==15.0.1

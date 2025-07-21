@@ -71,7 +71,7 @@ namespace SystemIO {
         }
         #elif __APPLE__
         {
-            return fmt::format("{}/Library/Application Support/Steam/", std::getenv("HOME"));
+            return fmt::format("{}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS", std::getenv("HOME"));
         }
         #endif
     }

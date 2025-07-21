@@ -62,7 +62,23 @@ const static void VerifyEnvironment()
     // Steam's CEF Remote Debugger isn't exposed to port 8080
     if (!std::filesystem::exists(filePath)) 
     {
-        std::ofstream(filePath).close();
+        try 
+        {
+            std::ofstream file(filePath);
+            if (!file) 
+            {
+                throw std::runtime_error(fmt::format("Failed to create '{}': {}", filePath.string(), std::strerror(errno)));
+            }
+            file.close();
+        } 
+        catch (const std::exception& e) 
+        {
+            LOG_ERROR("Error enabling CEF remote debugging: {}", e.what());
+            #ifdef _WIN32
+            MessageBoxA(NULL, e.what(), "File Error", MB_ICONERROR | MB_OK);
+            #endif
+            std::exit(EXIT_FAILURE);
+        }
 
         Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
         std::exit(1);

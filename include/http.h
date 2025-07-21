@@ -67,9 +67,9 @@ namespace Http
                     break;
                 }
 
-                #if defined(_WIN32) || defined(__APPLE__)
+                #if defined(_WIN32)
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
-                #elif defined(__linux__)
+                #elif defined(__linux__) || defined(__APPLE__)
                 /** Calling the server to quickly seems to accident DoS it on unix. */
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 #endif
