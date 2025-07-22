@@ -295,6 +295,7 @@ const static void EntryMain()
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
+
     #ifdef _WIN32
     /**
     * Windows requires a special environment setup to redirect stdout to a pipe.
@@ -450,7 +451,6 @@ extern "C"
         #ifdef __APPLE__
         {
             EntryMain();
-            Sockets::Shutdown();
             Logger.Log("Shutting down Millennium...");
 
             return 0;
@@ -630,6 +630,14 @@ extern "C"
 
 int main(int argc, char **argv, char **envp)
 {
-    return MainHooked(argc, argv, envp);
+    signal(SIGTERM, [](int signalCode) {
+        Logger.Warn("Received terminate signal...");
+        g_threadTerminateFlag->flag.store(true);
+    });
+
+    int result = MainHooked(argc, argv, envp);
+    Logger.Log("Millennium main returned: {}", result);
+
+    return result;
 }
 #endif

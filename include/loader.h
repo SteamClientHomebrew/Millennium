@@ -38,10 +38,10 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include "locals.h"
-#include "await_pipe.h"
 #include "co_spawn.h"
 
 extern std::shared_ptr<InterpreterMutex> g_threadTerminateFlag;
+#include "await_pipe.h"
 
 class PluginLoader {
 public:
