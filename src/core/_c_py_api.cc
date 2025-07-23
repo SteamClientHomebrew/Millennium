@@ -293,6 +293,25 @@ MILLENNIUM PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     Py_RETURN_NONE;
 }
 
+/** 
+ * A utility function to check if a plugin is enabled. 
+ */
+MILLENNIUM PyObject* IsPluginEnable(PyObject* self, PyObject* args)
+{
+    const char* pluginName = NULL;
+
+    if (!PyArg_ParseTuple(args, "s", &pluginName)) 
+    {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to parse parameters");
+        return NULL;
+    }
+
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    bool isEnabled = settingsStore->IsEnabledPlugin(pluginName);
+    return PyBool_FromLong(isEnabled);
+}
+
+
 MILLENNIUM PyObject* EmitReadyMessage(PyObject* self, PyObject* args) 
 { 
     PyObject* globals = PyModule_GetDict(PyImport_AddModule("__main__"));
@@ -432,6 +451,11 @@ MILLENNIUM PyMethodDef* GetMillenniumModule()
          * Used to toggle the status of a plugin, used in the Millennium settings page.
         */
         { "change_plugin_status",  TogglePluginStatus,              METH_VARARGS, NULL },
+        /** 
+         * @note Internal Use Only 
+         * Used to check if a plugin is enabled, used in the Millennium settings page.
+         */
+        { "is_plugin_enabled",     IsPluginEnable,                  METH_VARARGS, NULL },
 
         /** For internal use, but can be used if its useful */
         { "__internal_get_build_date",  GetBuildDate,               METH_VARARGS, NULL },

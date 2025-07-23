@@ -46,6 +46,9 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 		}
 	};
 
+	/** Refetch theme data after installation */
+	props?.refetchDataCb();
+
 	return (
 		<ConfirmModal
 			strTitle={locale.strInstallComplete}
@@ -69,13 +72,13 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 		return (
 			<>
 				<Styles />
-				<style>{`.DialogContent._DialogLayout.GenericConfirmDialog._DialogCenterVertically { width: 460px }`}</style>
 				<ProgressBarWithInfo
 					/* @ts-ignore */
-					className="InstallerProgressBar"
+					className="MillenniumInstallerDialog_ProgressBar"
 					sOperationText={status}
 					nProgress={progress}
 					nTransitionSec={0.5}
+					key={`installer-progress-${progress}`}
 				/>
 			</>
 		);
@@ -83,6 +86,7 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 
 	return (
 		<ConfirmModal
+			className="MillenniumInstallerDialog"
 			strTitle={locale.strInstallProgress}
 			strDescription={<RenderBody />}
 			bHideCloseIcon={true}

@@ -102,14 +102,10 @@ export class BrowserManagerHook {
 	}
 
 	private setBoundsHookCb() {
-		console.warn('MainWindowBrowserManager.SetVisible called, blocking request', this.shouldBlockRequest);
-
 		return this.shouldBlockRequest ? null : callOriginal;
 	}
 
 	private setVisibleHookCb() {
-		console.warn('MainWindowBrowserManager.SetVisible called, blocking request', this.shouldBlockRequest);
-
 		return this.shouldBlockRequest ? null : callOriginal;
 	}
 
@@ -145,7 +141,6 @@ export class BrowserManagerHook {
 			const browser = MainWindowBrowserManager?.m_browser;
 
 			if (browser?.SetBounds !== this.setBrowserBoundsPatched.patchedFunction || browser?.SetVisible !== this.setBrowserVisiblePatched.patchedFunction) {
-				console.warn('MainWindowBrowserManager changed, re-hooking...');
 				this.hook(true);
 			}
 		}, 100);

@@ -27,6 +27,7 @@
 	"updatePanelReleasePatchNotes": "Patch Notes:",
 	"updatePanelIsUpdating": "Updating...",
 	"updatePanelUpdate": "Update",
+	"updatePanelNoUpdatesFoundHeader": "No updates",
 	"updatePanelNoUpdatesFound": "No updates available. Everything's up to date!",
 	"ViewMore": "View More",
 	"aboutThemeAnonymous": "Anonymous",
