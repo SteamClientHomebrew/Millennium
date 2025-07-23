@@ -28,20 +28,21 @@
  * SOFTWARE.
  */
 
-import { Classes, DialogBody, IconsModule, SidebarNavigation, SidebarNavigationPage, DefinePluginFn } from '@steambrew/client';
+import { Classes, DialogBody, IconsModule, SidebarNavigation, SidebarNavigationPage } from '@steambrew/client';
 import { locale } from '../../locales';
 import { settingsClasses } from '../utils/classes';
 import { GeneralViewModal } from './general';
 import { MillenniumIcons } from '../components/Icons';
 import { ThemeViewModal } from './themes';
 import { PluginViewModal } from './plugins';
-import { RenderUpdatesSettingsTab, UpdatesViewModal } from './updates';
+import { UpdatesViewModal } from './updates';
 import { UpdateContextProvider } from './updates/useUpdateContext';
 import { RenderLogViewer } from './logs';
 import { ConfigProvider } from '../config-provider';
 import Styles from '../utils/styles';
 import { useQuickAccessStore } from '../quick-access/quickAccessStore';
-import { getPluginRenderers } from '../utils/globals';
+import { FaPaintRoller } from 'react-icons/fa';
+import { PiPlugsFill } from 'react-icons/pi';
 
 declare global {
 	const g_PopupManager: any;
@@ -62,7 +63,7 @@ const tabSpotGeneral: SidebarNavigationPage = {
 const tabSpotThemes: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelThemes,
-	icon: <MillenniumIcons.Themes />,
+	icon: <FaPaintRoller style={{ height: '20px', width: '20px' }} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<ThemeViewModal />
@@ -74,7 +75,7 @@ const tabSpotThemes: SidebarNavigationPage = {
 const tabSpotPlugins: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelPlugins,
-	icon: <MillenniumIcons.Plugins />,
+	icon: <PiPlugsFill style={{ height: '20px', width: '20px' }} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<PluginViewModal />
@@ -85,7 +86,7 @@ const tabSpotPlugins: SidebarNavigationPage = {
 
 const tabSpotUpdates: SidebarNavigationPage = {
 	visible: true,
-	title: <RenderUpdatesSettingsTab />,
+	title: locale.settingsPanelUpdates,
 	icon: <IconsModule.Update />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>

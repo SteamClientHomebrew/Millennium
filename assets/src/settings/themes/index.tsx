@@ -28,17 +28,19 @@
  * SOFTWARE.
  */
 
-import { DialogButton, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, joinClassNames, pluginSelf } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { locale } from '../../../locales';
-import { ErrorModal } from '../../components/ErrorModal';
+import { Placeholder } from '../../components/Placeholder';
 import { PyFindAllThemes } from '../../utils/ffi';
 import { Component } from 'react';
 import { ChangeActiveTheme, ThemeItemComponent, UIReloadProps } from './ThemeComponent';
 import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
 import { showInstallThemeModal } from './ThemeInstallerModal';
-import { FaFolderOpen, FaStore } from 'react-icons/fa';
+import { FaFolderOpen, FaPaintRoller, FaStore } from 'react-icons/fa';
 import { Utils } from '../../utils';
+import { SettingsDialogSubHeader } from '../../components/SteamComponents';
+import { MillenniumIcons } from '../../components/Icons';
 
 const findAllThemes = async (): Promise<ThemeItem[]> => {
 	return JSON.parse(await PyFindAllThemes());
@@ -64,58 +66,66 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 		const active = pluginSelf.isDefaultTheme ? 'Default' : activeTheme?.data?.name ?? activeTheme?.native;
 
 		this.setState({ active });
-
-		findAllThemes().then((themes) => {
-			this.setState({ themes });
-		});
+		this.FetchAllPlugins();
 	}
 
-	useDefaultTheme = () => {
+	UseDefaultTheme = () => {
 		/** Default theme object */
-		this.changeActiveTheme({ native: 'default', data: null, failed: false });
+		this.ChangeActiveTheme({ native: 'default', data: null, failed: false });
 	};
 
-	changeActiveTheme = (item: ThemeItem) => {
+	ChangeActiveTheme = (item: ThemeItem) => {
 		ChangeActiveTheme(item.native, UIReloadProps.Prompt).then((hasClickedOk) => {
 			/** Reload the themes */
 			!hasClickedOk && findAllThemes().then((themes) => this.setState({ themes }));
 		});
 	};
 
-	isActiveTheme = (theme: ThemeItem): boolean => {
+	IsActiveTheme = (theme: ThemeItem): boolean => {
 		const { active } = this.state;
 		return theme?.data?.name === active || theme?.native === active;
 	};
 
-	renderThemeItem = (theme: ThemeItem, isLastItem: boolean, index: number) => {
+	RenderThemeItem = (theme: ThemeItem, isLastItem: boolean, index: number) => {
 		return (
 			<ThemeItemComponent
 				key={index}
 				theme={theme}
 				isLastItem={isLastItem}
 				activeTheme={this.state.active}
-				onChangeTheme={this.changeActiveTheme}
-				onUseDefault={this.useDefaultTheme}
+				onChangeTheme={this.ChangeActiveTheme}
+				onUseDefault={this.UseDefaultTheme}
+				fetchThemes={this.FetchAllPlugins.bind(this)}
 			/>
 		);
 	};
 
-	openThemesFolder = () => {
+	FetchAllPlugins = () => {
+		findAllThemes().then((themes) => {
+			this.setState({ themes });
+		});
+	};
+
+	OpenThemesFolder = () => {
 		const themesPath = [pluginSelf.steamPath, 'steamui', 'skins'].join('/');
 		Utils.BrowseLocalFolder(themesPath);
+	};
+
+	InstallPluginMenu = () => {
+		showInstallThemeModal(this.FetchAllPlugins);
 	};
 
 	render() {
 		if (pluginSelf.connectionFailed) {
 			return (
-				<ErrorModal
-					header={locale.errorFailedConnection}
-					body={locale.errorFailedConnectionBody}
-					options={{
-						buttonText: locale.errorFailedConnectionButton,
-						onClick: () => SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/')),
-					}}
-				/>
+				<Placeholder icon={<IconsModule.ExclamationPoint />} header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
+					<DialogButton
+						className={settingsClasses.SettingsDialogButton}
+						onClick={() => SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'))}
+					>
+						{locale.errorFailedConnectionButton}
+					</DialogButton>
+				</Placeholder>
 			);
 		}
 
@@ -126,35 +136,33 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 
 		if (!this.state.themes || !this.state.themes.length) {
 			return (
-				<ErrorModal
-					header={'No Themes Found.'}
-					body={"It appears you don't have any themes yet!"}
-					showIcon={false}
-					options={{
-						buttonText: 'Install a Theme',
-						onClick: showInstallThemeModal,
-					}}
-				/>
+				<Placeholder icon={<FaPaintRoller className="SVGIcon_Button" />} header="No themes found" body="It appears you don't have any themes yet!">
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.InstallPluginMenu.bind(this)}>
+						<FaStore />
+						{locale.optionInstallTheme}
+					</DialogButton>
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.OpenThemesFolder}>
+						<FaFolderOpen />
+						{locale.optionBrowseLocalFiles}
+					</DialogButton>
+				</Placeholder>
 			);
 		}
 
 		const { themes } = this.state;
 		return (
 			<>
-				<div
-					className={`DialogControlsSection ${DialogControlSectionClass} MillenniumPluginsDialogControlsSection`}
-					style={{ marginBottom: '10px', marginTop: '10px' }}
-				>
-					<DialogButton className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`} onClick={showInstallThemeModal}>
+				<DialogControlsSection className="MillenniumButtonsSection">
+					<DialogButton className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`} onClick={this.InstallPluginMenu.bind(this)}>
 						<FaStore />
 						{locale.optionInstallTheme}
 					</DialogButton>
-					<DialogButton className={`MillenniumSpanningIconButton ${settingsClasses.SettingsDialogButton}`} onClick={this.openThemesFolder}>
+					<DialogButton className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`} onClick={this.OpenThemesFolder}>
 						<FaFolderOpen />
 						{locale.optionBrowseLocalFiles}
 					</DialogButton>
-				</div>
-				{themes?.map((theme, i) => this.renderThemeItem(theme, i === themes.length - 1, i))}
+				</DialogControlsSection>
+				{themes?.map((theme, i) => this.RenderThemeItem(theme, i === themes.length - 1, i))}
 			</>
 		);
 	}

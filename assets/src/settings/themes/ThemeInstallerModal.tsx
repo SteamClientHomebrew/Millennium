@@ -40,9 +40,10 @@ interface ThemeIdModalProps {
 	tutorialImageUrl: string;
 	installer: Installer;
 	modal: ShowModalResult;
+	refetchDataCb: () => void;
 }
 
-function ThemeIdModal({ tutorialImageUrl, installer, modal }: ThemeIdModalProps) {
+function ThemeIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: ThemeIdModalProps) {
 	const [installID, setInstallID] = React.useState(String());
 
 	return (
@@ -51,19 +52,18 @@ function ThemeIdModal({ tutorialImageUrl, installer, modal }: ThemeIdModalProps)
 			strDescription={
 				<>
 					Install a user theme from an ID. These ID's can be found after selecting a theme at <Utils.URLComponent url={THEMES_URL} />
-					<SuspensefulImage src={tutorialImageUrl} style={{ width: '100%', height: 'auto', marginTop: '10px' }} />
+					<SuspensefulImage className="MillenniumInstallDialog_TutorialImage" src={tutorialImageUrl} />
 					<TextField
 						// @ts-ignore
 						placeholder={'Enter an ID here...'}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
-						style={{ marginTop: '20px' }}
 					/>
 				</>
 			}
 			bHideCloseIcon={true}
 			onOK={() => {
-				installer.OpenInstallPrompt(installID);
+				installer.OpenInstallPrompt(installID, refetchDataCb);
 				modal?.Close();
 			}}
 			onCancel={() => {
@@ -84,7 +84,7 @@ async function cacheImage(url: string) {
 	});
 }
 
-export async function showInstallThemeModal() {
+export async function showInstallThemeModal(refetchDataCb: () => void) {
 	let modal: ShowModalResult;
 	const tutorialImageUrl = [await Utils.GetPluginAssetUrl(), FindThemeIdGif].join('/');
 	const installer = new Installer();
@@ -98,7 +98,7 @@ export async function showInstallThemeModal() {
 			setModalInstance(modal);
 		}, []);
 
-		return <ThemeIdModal tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
+		return <ThemeIdModal refetchDataCb={refetchDataCb} tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
 	};
 
 	modal = showModal(<WrappedModal />, pluginSelf.mainWindow, {

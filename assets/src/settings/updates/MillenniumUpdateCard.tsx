@@ -46,7 +46,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 	}
 
 	return [
-		<SettingsDialogSubHeader style={{ marginTop: '20px' }}>Millennium</SettingsDialogSubHeader>,
+		<SettingsDialogSubHeader>Millennium</SettingsDialogSubHeader>,
 		<UpdateCard
 			update={{
 				name: VersionInformation(),

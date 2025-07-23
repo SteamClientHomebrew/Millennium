@@ -47,11 +47,13 @@ class PluginInstaller:
         try:
             plugin = get_plugin_from_name(pluginName) 
 
-            # disable the plugin before uninstalling it
-            Millennium.change_plugin_status([{
-                "plugin_name": pluginName,
-                "enabled": False
-            }])
+            # check if the plugin is enabled
+            if Millennium.is_plugin_enabled(pluginName):
+                # disable the plugin before uninstalling it
+                Millennium.change_plugin_status([{
+                    "plugin_name": pluginName,
+                    "enabled": False
+                }])
 
             shutil.rmtree(plugin["path"])
             return True
