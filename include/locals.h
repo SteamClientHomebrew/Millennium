@@ -58,6 +58,7 @@ public:
 
     std::vector<PluginTypeSchema> ParseAllPlugins();
     std::vector<PluginTypeSchema> GetEnabledBackends();
+    std::vector<PluginTypeSchema> GetEnabledPlugins();
 
     bool IsEnabledPlugin(std::string pluginName);
     bool TogglePluginStatus(std::string pluginName, bool enabled);

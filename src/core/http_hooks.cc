@@ -43,6 +43,7 @@
 #include "ipc.h"
 #include <thread>
 #include <chrono>
+#include <ranges>
 
 using namespace nlohmann;
 
@@ -460,9 +461,18 @@ const std::string HttpHookManager::PatchDocumentContents(const std::string& requ
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
+    std::string strEnabledPlugins;
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    const auto& plugins = settingsStore->GetEnabledPlugins();
+
+    for (size_t i = 0; i < plugins.size(); ++i)
+    {
+        strEnabledPlugins.append(fmt::format("'{}',", plugins[i].pluginName));
+    }
+
     const std::string millenniumAuthToken = GetAuthToken();
     const std::string ftpPath = UrlFromPath(m_ftpHookAddress, millenniumPreloadPath.value_or(std::string()));
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}]);", millenniumAuthToken, scriptModuleArray);
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}], [{}]);", millenniumAuthToken, scriptModuleArray, strEnabledPlugins);
 
     linkPreloadsArray.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
 
