@@ -214,12 +214,22 @@ public:
 
     void ConnectSocket(ConnectSocketProps socketProps)
     {
+        std::string socketUrl;
         websocketpp::client<websocketpp::config::asio_client> socketClient;
 
         const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
-        
-        // Fetch socket URL
-        const std::string socketUrl = fetchSocketUrl();
+ 
+        try
+        {
+            socketUrl = fetchSocketUrl();
+        }
+        /** The request was broke early before it was received. Likely because Millennium is shutting down. */
+        catch (HttpError& exception)
+        {
+            Logger.Warn("Failed to get Steam browser context: {}", exception.GetMessage());
+            return;
+        }
+
         if (socketUrl.empty())
         {
             LOG_ERROR("[{}] Socket URL is empty. Aborting connection.", commonName);

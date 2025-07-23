@@ -62,7 +62,23 @@ const static void VerifyEnvironment()
     // Steam's CEF Remote Debugger isn't exposed to port 8080
     if (!std::filesystem::exists(filePath)) 
     {
-        std::ofstream(filePath).close();
+        try 
+        {
+            std::ofstream file(filePath);
+            if (!file) 
+            {
+                throw std::runtime_error(fmt::format("Failed to create '{}': {}", filePath.string(), std::strerror(errno)));
+            }
+            file.close();
+        } 
+        catch (const std::exception& e) 
+        {
+            LOG_ERROR("Error enabling CEF remote debugging: {}", e.what());
+            #ifdef _WIN32
+            MessageBoxA(NULL, e.what(), "File Error", MB_ICONERROR | MB_OK);
+            #endif
+            std::exit(EXIT_FAILURE);
+        }
 
         Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
         std::exit(1);
@@ -279,6 +295,7 @@ const static void EntryMain()
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
+
     #ifdef _WIN32
     /**
     * Windows requires a special environment setup to redirect stdout to a pipe.
@@ -323,7 +340,15 @@ __attribute__((constructor)) void __init_millennium()
     }
     #endif
 
-    SetupEnvironmentVariables();
+    try
+    {
+        SetupEnvironmentVariables();
+    }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR("Failed to set up environment variables: {}", e.what());
+        std::exit(EXIT_FAILURE);
+    }
 }
 
 #ifdef _WIN32
@@ -357,7 +382,7 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     return true;
 }
 
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 #include <stdio.h>
 #include <stdlib.h>
 #include "helpers.h"
@@ -423,26 +448,37 @@ extern "C"
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
 
-        #ifdef MILLENNIUM_SHARED
+        #ifdef __APPLE__
         {
-            /** Start Millennium on a new thread to prevent I/O blocking */
-            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
-            int steam_main = fnMainOriginal(argc, argv, envp);
-            Logger.Log("Hooked Steam entry returned {}", steam_main);
-
-            g_threadTerminateFlag->flag.store(true);
-            Sockets::Shutdown();
-            g_millenniumThread->join();
-
+            EntryMain();
             Logger.Log("Shutting down Millennium...");
-            return steam_main;
+
+            return 0;
         }
         #else
         {
-            g_threadTerminateFlag->flag.store(true);
-            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
-            g_millenniumThread->join();
-            return 0;
+            #ifdef MILLENNIUM_SHARED
+            {
+                /** Start Millennium on a new thread to prevent I/O blocking */
+                g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+                int steam_main = fnMainOriginal(argc, argv, envp);
+                Logger.Log("Hooked Steam entry returned {}", steam_main);
+
+                g_threadTerminateFlag->flag.store(true);
+                Sockets::Shutdown();
+                g_millenniumThread->join();
+
+                Logger.Log("Shutting down Millennium...");
+                return steam_main;
+            }
+            #else
+            {
+                g_threadTerminateFlag->flag.store(true);
+                g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+                g_millenniumThread->join();
+                return 0;
+            }
+            #endif
         }
         #endif
     }
@@ -583,7 +619,9 @@ extern "C"
         /* Remove the Millennium library from LD_PRELOAD */
         RemoveFromLdPreload();
         /* Log that we've loaded Millennium */
+        #ifdef __linux__
         Logger.Log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
+        #endif
         /* ... and call it with our custom main function */
         return orig(MainHooked, argc, argv, init, fini, rtld_fini, stack_end);
     }
@@ -592,6 +630,14 @@ extern "C"
 
 int main(int argc, char **argv, char **envp)
 {
-    return MainHooked(argc, argv, envp);
+    signal(SIGTERM, [](int signalCode) {
+        Logger.Warn("Received terminate signal...");
+        g_threadTerminateFlag->flag.store(true);
+    });
+
+    int result = MainHooked(argc, argv, envp);
+    Logger.Log("Millennium main returned: {}", result);
+
+    return result;
 }
 #endif

@@ -73,7 +73,7 @@ class Config:
 
         if _platform == "Windows":
             self.PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "python.exe")  
-        elif _platform == "Linux":
+        elif _platform == "Linux" or  _platform == "Darwin":
             self.PYTHON_BIN = os.getenv("LIBPYTHON_RUNTIME_BIN_PATH")
 
             # check if the binary is executable

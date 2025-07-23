@@ -20,6 +20,17 @@
 			"preLaunchTask": "CMake: build"
 		},
 		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug Millennium (MacOS)",
+			"program": "${workspaceFolder}/build/Millennium",
+			"args": ["-dev", "-skipinitialbootstrap", "-nobootstrapperupdate", "-noverifyfiles"],
+			"cwd": "${workspaceFolder}",
+			"preLaunchTask": "CMake: build",
+			"preRunCommands": ["breakpoint name configure --disable cpp_exception"],
+			"console": "integratedTerminal"
+		},
+		{
 			"name": "Debug Millennium (Unix)",
 			"type": "node",
 			"request": "launch",

@@ -241,7 +241,7 @@ const void SetupEnvironmentVariables()
     const std::string configDir = fmt::format("{}/Library/Application Support", homeDir);
     const std::string dataDir   = fmt::format("{}/Library/Application Support", homeDir);
     const std::string stateDir  = fmt::format("{}/Library/Logs", homeDir);
-    const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
+    const static std::string pythonEnv = fmt::format("{}/Millennium/runtime", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
 
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
@@ -253,9 +253,9 @@ const void SetupEnvironmentVariables()
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
 
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
-        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/millennium/plugins",    dataDir) },
-        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/millennium",            configDir) },
-        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/millennium",            stateDir) },
+        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/Millennium/plugins",    dataDir) },
+        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/Millennium",            configDir) },
+        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/Millennium/logs",       stateDir) },
         { "MILLENNIUM__DATA_LIB",       dataLibPath },
         { "MILLENNIUM__SHIMS_PATH",     shimsPath },
         { "MILLENNIUM__ASSETS_PATH",    assetsPath },

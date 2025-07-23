@@ -40,6 +40,7 @@ import swedish from './locales/swedish.json';
 import vietnamese from './locales/vietnamese.json';
 import brazilian from './locales/brazilian.json';
 import french from './locales/french.json';
+import turkish from './locales/turkish.json';
 import { Logger } from '../src/utils/Logger';
 
 interface LocalizationData {
@@ -76,6 +77,7 @@ const localizationFiles: { [key: string]: LocalizationData } = {
 	swedish,
 	brazilian,
 	french,
+	turkish,
 	// Add other languages here
 };
 

@@ -1,3 +1,24 @@
+# [2.26.0-beta.22](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.21...v2.26.0-beta.22) (2025-07-23)
+
+
+### Bug Fixes
+
+* allow query params in ftp file protocol ([f0e5ee8](https://github.com/SteamClientHomebrew/Millennium/commit/f0e5ee81187617773251a55c4b8b4954d648d9e2))
+* update pnpmDeps hash ([3b751e2](https://github.com/SteamClientHomebrew/Millennium/commit/3b751e2cebefb0405d2f716e7b125f9c0f2e0587))
+
+
+### Features
+
+* MacOS support. There is no official build yet, nor will there be help building or troubleshooting. ([3942bc4](https://github.com/SteamClientHomebrew/Millennium/commit/3942bc46219e97b35b98443fc02f54bf9d014a26))
+
+# [2.26.0-beta.21](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.20...v2.26.0-beta.21) (2025-07-10)
+
+
+### Bug Fixes
+
+* Fix unsafe setenv call warnings. ([2ca55b8](https://github.com/SteamClientHomebrew/Millennium/commit/2ca55b88e024a3775e891110056a4ee6bb97fb65))
+* **linux:** Fix Millennium accidentally loading into Steam overlay process, breaking already loaded instances. ([26aeaa1](https://github.com/SteamClientHomebrew/Millennium/commit/26aeaa18e18015c3f4837e91b6d932ca5a2f38e2))
+
 # [2.26.0-beta.20](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.19...v2.26.0-beta.20) (2025-07-08)
 
 

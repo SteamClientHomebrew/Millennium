@@ -35,10 +35,10 @@ from util.use_system import use_system_libs
 from util.logger import logger
 
 # Conditional import for Git library based on OS
-if platform.system() == "Windows":
+if platform.system() == "Windows" or platform.system() == "Darwin":
     import pygit2
     GitRepo = pygit2.Repository
-else:
+elif platform.system() == "Linux":
     from git import Repo as GitRepo  # Use GitPython on Unix
 
 # This module is responsible for updating themes. It does not automatically do so, it is interfaced in the front-end.

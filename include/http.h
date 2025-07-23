@@ -41,6 +41,17 @@ static size_t WriteByteCallback(char* ptr, size_t size, size_t nmemb, std::strin
     return size * nmemb;
 }
 
+class HttpError : public std::exception 
+{
+public:
+    HttpError(const std::string& message) : message(message) {}
+
+    const std::string& GetMessage() const { return message; }
+
+private:
+    std::string message;
+};
+
 namespace Http 
 {
     static std::string Get(const char* url, bool retry = true) 
@@ -67,9 +78,15 @@ namespace Http
                     break;
                 }
 
-                #if defined(_WIN32) || defined(__APPLE__)
+                #if defined(_WIN32)
                 std::this_thread::sleep_for(std::chrono::milliseconds(3));
-                #elif defined(__linux__)
+                #elif defined(__linux__) || defined(__APPLE__)
+
+                if (g_threadTerminateFlag->flag.load())
+                {
+                    throw HttpError("Thread termination flag is set, aborting HTTP request.");
+                }
+
                 /** Calling the server to quickly seems to accident DoS it on unix. */
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 #endif
