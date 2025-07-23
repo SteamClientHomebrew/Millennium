@@ -1,3 +1,15 @@
+# [2.26.0-beta.23](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.22...v2.26.0-beta.23) (2025-07-23)
+
+
+### Bug Fixes
+
+* add & remove remote debugging flag when installing/uninstalling AUR package ([40e7787](https://github.com/SteamClientHomebrew/Millennium/commit/40e77877ba4fe879d9bb5e4fa12bdd6489d341d7))
+
+
+### Features
+
+* Better plugin breadcrumbs. You can now check which plugins are enabled in CSS with `html[data-millennium-plugin~="plugin-name"]` ([03bc509](https://github.com/SteamClientHomebrew/Millennium/commit/03bc5093ff02c053673df8f61f99f676463a711c))
+
 # [2.26.0-beta.22](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.21...v2.26.0-beta.22) (2025-07-23)
 
 
