@@ -29,6 +29,9 @@ post_install() {
     # Link millennium to the Steam runtime
     rm -f "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
     ln -s /usr/lib/millennium/libmillennium_bootstrap_86x.so "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
+
+    # Setup Steam remote debugging
+    touch "${USER_HOME}/.steam/steam/.cef-enable-remote-debugging"
 }
 
 post_upgrade() {
@@ -44,4 +47,7 @@ post_remove() {
     
     # Remove the symlink created during post_install
     rm -f "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
+
+    # Disable Steam remote debugging
+    rm -f "${USER_HOME}/.steam/steam/.cef-enable-remote-debugging"
 }
