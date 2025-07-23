@@ -354,6 +354,10 @@ const styles = `
 	width: 450px;
 }
 
+.MillenniumInstallerDialog_ProgressBar div {
+	transition: all 0.5s ease 0s !important;
+}
+
 .MillenniumInstallerDialog_ProgressBar {
 	&::after {
 		content: unset !important;
@@ -361,7 +365,7 @@ const styles = `
 
 	* { 
 		width: 100%; 
-		text-align: start;
+		text-align: right;
 	}
 }
 

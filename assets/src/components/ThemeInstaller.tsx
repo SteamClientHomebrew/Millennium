@@ -46,6 +46,9 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 		}
 	};
 
+	/** Refetch theme data after installation */
+	props?.refetchDataCb();
+
 	return (
 		<ConfirmModal
 			strTitle={locale.strInstallComplete}
@@ -75,6 +78,7 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 					sOperationText={status}
 					nProgress={progress}
 					nTransitionSec={0.5}
+					key={`installer-progress-${progress}`}
 				/>
 			</>
 		);

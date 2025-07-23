@@ -66,45 +66,53 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 		const active = pluginSelf.isDefaultTheme ? 'Default' : activeTheme?.data?.name ?? activeTheme?.native;
 
 		this.setState({ active });
-
-		findAllThemes().then((themes) => {
-			this.setState({ themes });
-		});
+		this.FetchAllPlugins();
 	}
 
-	useDefaultTheme = () => {
+	UseDefaultTheme = () => {
 		/** Default theme object */
-		this.changeActiveTheme({ native: 'default', data: null, failed: false });
+		this.ChangeActiveTheme({ native: 'default', data: null, failed: false });
 	};
 
-	changeActiveTheme = (item: ThemeItem) => {
+	ChangeActiveTheme = (item: ThemeItem) => {
 		ChangeActiveTheme(item.native, UIReloadProps.Prompt).then((hasClickedOk) => {
 			/** Reload the themes */
 			!hasClickedOk && findAllThemes().then((themes) => this.setState({ themes }));
 		});
 	};
 
-	isActiveTheme = (theme: ThemeItem): boolean => {
+	IsActiveTheme = (theme: ThemeItem): boolean => {
 		const { active } = this.state;
 		return theme?.data?.name === active || theme?.native === active;
 	};
 
-	renderThemeItem = (theme: ThemeItem, isLastItem: boolean, index: number) => {
+	RenderThemeItem = (theme: ThemeItem, isLastItem: boolean, index: number) => {
 		return (
 			<ThemeItemComponent
 				key={index}
 				theme={theme}
 				isLastItem={isLastItem}
 				activeTheme={this.state.active}
-				onChangeTheme={this.changeActiveTheme}
-				onUseDefault={this.useDefaultTheme}
+				onChangeTheme={this.ChangeActiveTheme}
+				onUseDefault={this.UseDefaultTheme}
+				fetchThemes={this.FetchAllPlugins.bind(this)}
 			/>
 		);
 	};
 
-	openThemesFolder = () => {
+	FetchAllPlugins = () => {
+		findAllThemes().then((themes) => {
+			this.setState({ themes });
+		});
+	};
+
+	OpenThemesFolder = () => {
 		const themesPath = [pluginSelf.steamPath, 'steamui', 'skins'].join('/');
 		Utils.BrowseLocalFolder(themesPath);
+	};
+
+	InstallPluginMenu = () => {
+		showInstallThemeModal(this.FetchAllPlugins);
 	};
 
 	render() {
@@ -129,11 +137,13 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 		if (!this.state.themes || !this.state.themes.length) {
 			return (
 				<Placeholder icon={<FaPaintRoller className="SVGIcon_Button" />} header="No themes found" body="It appears you don't have any themes yet!">
-					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={showInstallThemeModal}>
-						Install a theme
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.InstallPluginMenu.bind(this)}>
+						<FaStore />
+						{locale.optionInstallTheme}
 					</DialogButton>
-					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={showInstallThemeModal}>
-						Browse themes folder
+					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.OpenThemesFolder}>
+						<FaFolderOpen />
+						{locale.optionBrowseLocalFiles}
 					</DialogButton>
 				</Placeholder>
 			);
@@ -143,16 +153,16 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 		return (
 			<>
 				<DialogControlsSection className="MillenniumButtonsSection">
-					<DialogButton className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`} onClick={showInstallThemeModal}>
+					<DialogButton className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`} onClick={this.InstallPluginMenu.bind(this)}>
 						<FaStore />
 						{locale.optionInstallTheme}
 					</DialogButton>
-					<DialogButton className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`} onClick={this.openThemesFolder}>
+					<DialogButton className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`} onClick={this.OpenThemesFolder}>
 						<FaFolderOpen />
 						{locale.optionBrowseLocalFiles}
 					</DialogButton>
 				</DialogControlsSection>
-				{themes?.map((theme, i) => this.renderThemeItem(theme, i === themes.length - 1, i))}
+				{themes?.map((theme, i) => this.RenderThemeItem(theme, i === themes.length - 1, i))}
 			</>
 		);
 	}

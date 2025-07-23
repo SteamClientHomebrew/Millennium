@@ -61,7 +61,7 @@ export namespace Utils {
 			.map((part) => encodeURIComponent(part))
 			.join('/');
 
-		return `http://${url.hostname}:${url.port}/${encoded}/.millennium/Dist`;
+		return `https://${url.hostname}:${url.port}/${encoded}/.millennium/Dist`;
 	}
 
 	export const PromptReload = (callback: (hasClickedOk: boolean) => void) => {

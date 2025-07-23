@@ -40,9 +40,10 @@ interface ThemeIdModalProps {
 	tutorialImageUrl: string;
 	installer: Installer;
 	modal: ShowModalResult;
+	refetchDataCb: () => void;
 }
 
-function ThemeIdModal({ tutorialImageUrl, installer, modal }: ThemeIdModalProps) {
+function ThemeIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: ThemeIdModalProps) {
 	const [installID, setInstallID] = React.useState(String());
 
 	return (
@@ -62,7 +63,7 @@ function ThemeIdModal({ tutorialImageUrl, installer, modal }: ThemeIdModalProps)
 			}
 			bHideCloseIcon={true}
 			onOK={() => {
-				installer.OpenInstallPrompt(installID);
+				installer.OpenInstallPrompt(installID, refetchDataCb);
 				modal?.Close();
 			}}
 			onCancel={() => {
@@ -83,7 +84,7 @@ async function cacheImage(url: string) {
 	});
 }
 
-export async function showInstallThemeModal() {
+export async function showInstallThemeModal(refetchDataCb: () => void) {
 	let modal: ShowModalResult;
 	const tutorialImageUrl = [await Utils.GetPluginAssetUrl(), FindThemeIdGif].join('/');
 	const installer = new Installer();
@@ -97,7 +98,7 @@ export async function showInstallThemeModal() {
 			setModalInstance(modal);
 		}, []);
 
-		return <ThemeIdModal tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
+		return <ThemeIdModal refetchDataCb={refetchDataCb} tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
 	};
 
 	modal = showModal(<WrappedModal />, pluginSelf.mainWindow, {

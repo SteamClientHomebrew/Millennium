@@ -34,6 +34,7 @@ import { Component, createRef, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../../../locales';
 import { IconButton } from '../../components/IconButton';
+import { DesktopTooltip } from '../../components/SteamComponents';
 
 interface UpdateProps {
 	message: string;
@@ -103,7 +104,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	private showInteractables() {
-		const { isUpdating, statusText, progress, onUpdateClick } = this.props;
+		const { isUpdating, statusText, progress, onUpdateClick, update } = this.props;
 
 		if (isUpdating) {
 			return (
@@ -118,9 +119,11 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		}
 
 		return (
-			<IconButton onClick={onUpdateClick}>
-				<IconsModule.Update key="download-icon" />
-			</IconButton>
+			<DesktopTooltip toolTipContent={`Update ${update.name}`} direction="left">
+				<IconButton onClick={onUpdateClick}>
+					<IconsModule.Download key="download-icon" />
+				</IconButton>
+			</DesktopTooltip>
 		);
 	}
 

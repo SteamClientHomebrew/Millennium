@@ -41,6 +41,9 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 		await PyUpdatePluginStatus({ pluginJson: JSON.stringify([{ plugin_name: data?.pluginJson?.name, enabled: true }]) });
 	};
 
+	/** Refetch plugin data after installation */
+	props?.refetchDataCb();
+
 	return (
 		<ConfirmModal
 			strTitle={locale.strInstallComplete}
@@ -69,6 +72,7 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 					sOperationText={status}
 					nProgress={progress}
 					nTransitionSec={0.5}
+					key={`installer-progress-${progress}`}
 				/>
 			</>
 		);

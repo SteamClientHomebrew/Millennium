@@ -46,6 +46,7 @@ interface ThemeItemComponentProps {
 	activeTheme?: string;
 	onChangeTheme: (item: ThemeItem) => void;
 	onUseDefault: () => void;
+	fetchThemes: () => Promise<void>;
 }
 
 interface ThemeItemComponentState {
@@ -127,11 +128,18 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 		Utils.BrowseLocalFolder(themesPath);
 	}
 
-	uninstallTheme() {
-		const { theme } = this.props;
+	async uninstallTheme() {
+		const { theme, fetchThemes } = this.props;
+
+		const shouldUninstall = await Utils.ShowMessageBox(`Are you sure you want to uninstall ${theme.data.name}?`, 'Heads up!');
+		if (!shouldUninstall) return;
 
 		PyUninstallTheme({ owner: theme.data.github.owner, repo: theme.data.github.repo_name }).then(() => {
-			SteamClient.Browser.RestartJSContext();
+			if (this.isActive) {
+				SteamClient.Browser.RestartJSContext();
+			} else {
+				fetchThemes();
+			}
 		});
 	}
 

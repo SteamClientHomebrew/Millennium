@@ -232,6 +232,7 @@ export interface InstallerProps {
 	updateInstallerState: (element: React.ReactNode) => void;
 	ShowMessageBox: (message: React.ReactNode, title: React.ReactNode, props?: ConfirmModalProps) => void;
 	modal: ShowModalResult;
+	refetchDataCb?: () => void;
 }
 
 export interface GitHubRelease {

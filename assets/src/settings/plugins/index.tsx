@@ -134,7 +134,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 	}
 
 	async InstallPluginMenu() {
-		await showInstallPluginModal();
+		await showInstallPluginModal(this.FetchAllPlugins.bind(this));
 	}
 
 	renderPluginComponent({ plugin, index }: { plugin: PluginComponent; index: number }) {
@@ -179,10 +179,12 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 			return (
 				<Placeholder icon={<PiPlugsFill className="SVGIcon_Button" />} header={'No Plugins Found.'} body={"It appears you don't have any plugin yet!"}>
 					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.InstallPluginMenu.bind(this)}>
-						Install a plugin
+						<FaStore />
+						{locale.optionInstallPlugin}
 					</DialogButton>
 					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.OpenPluginsFolder.bind(this)}>
-						Browse plugin folder
+						<FaFolderOpen />
+						{locale.optionBrowseLocalFiles}
 					</DialogButton>
 				</Placeholder>
 			);

@@ -40,9 +40,10 @@ interface PluginIdModalProps {
 	tutorialImageUrl: string;
 	installer: Installer;
 	modal: ShowModalResult;
+	refetchDataCb: () => void;
 }
 
-function PluginIdModal({ tutorialImageUrl, installer, modal }: PluginIdModalProps) {
+function PluginIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: PluginIdModalProps) {
 	const [installID, setInstallID] = React.useState(String());
 
 	return (
@@ -62,7 +63,7 @@ function PluginIdModal({ tutorialImageUrl, installer, modal }: PluginIdModalProp
 			}
 			bHideCloseIcon={true}
 			onOK={() => {
-				installer.OpenInstallPrompt(installID);
+				installer.OpenInstallPrompt(installID, refetchDataCb);
 				modal?.Close();
 			}}
 			onCancel={() => {
@@ -82,7 +83,7 @@ async function cacheImage(url: string) {
 	});
 }
 
-export async function showInstallPluginModal() {
+export async function showInstallPluginModal(refetchDataCb: () => void) {
 	let modal: ShowModalResult;
 	const tutorialImageUrl = [await Utils.GetPluginAssetUrl(), FindPluginIdGif].join('/');
 	const installer = new Installer();
@@ -96,7 +97,7 @@ export async function showInstallPluginModal() {
 			setModalInstance(modal);
 		}, []);
 
-		return <PluginIdModal tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
+		return <PluginIdModal refetchDataCb={refetchDataCb} tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
 	};
 
 	modal = showModal(<WrappedModal />, pluginSelf.mainWindow, {

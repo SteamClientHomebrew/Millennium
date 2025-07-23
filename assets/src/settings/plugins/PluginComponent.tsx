@@ -57,6 +57,10 @@ enum TooltipType {
 export class RenderPluginComponent extends Component<PluginComponentProps> {
 	async uninstallPlugin() {
 		const { plugin, refetchPlugins } = this.props;
+
+		const shouldUninstall = await Utils.ShowMessageBox(`Are you sure you want to uninstall ${plugin.data.common_name}?`, 'Heads up!');
+		if (!shouldUninstall) return;
+
 		const success = await PyUninstallPlugin({ pluginName: plugin.data.name });
 
 		if (success == false) {
