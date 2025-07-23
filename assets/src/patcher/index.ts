@@ -75,6 +75,8 @@ export function patchDocumentContext(windowContext: any) {
 		document.documentElement.classList.add(plugin);
 	}
 
+	document.documentElement.setAttribute('data-millennium-plugin', pluginSelf?.enabledPlugins?.join(' '));
+
 	if (pluginSelf.isDefaultTheme) {
 		return;
 	}
