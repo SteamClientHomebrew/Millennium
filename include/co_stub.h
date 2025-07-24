@@ -69,6 +69,11 @@ namespace CoInitializer
 		{
 			std::string pluginName;
 			eBackendLoadEvents event;
+
+			bool operator==(const PluginTypeSchema& other) const 
+			{
+				return pluginName == other.pluginName && event == other.event;
+			}
 		};
 
 		using EventCallback = std::function<void()>;

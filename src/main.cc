@@ -284,6 +284,7 @@ void OnTerminate()
 const static void EntryMain() 
 {
     #if defined(_WIN32)
+    SetProcessDPIAware();
     SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
     if (!IsDebuggerPresent()) 
