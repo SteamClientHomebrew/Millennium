@@ -4,7 +4,6 @@ import { DOMModifier, classListMatch, constructThemePath } from './Dispatch';
 import { EvaluateConditions } from './v2/Conditions';
 import { PatchV1, EvaluateStatements } from './v1/Conditions';
 import { PatchRootMenu } from '../utils/root-menu';
-import { ShowWelcomeModal } from '../components/WelcomeModal';
 
 const EvaluateModule = (module: string, type: ModuleType, document: Document) => {
 	const activeTheme: ThemeItem = pluginSelf.activeTheme;
@@ -107,11 +106,6 @@ export function patchMissedDocuments() {
 		if (popup?.window?.HAS_INJECTED_THEME === undefined) {
 			patchDocumentContext(popup);
 		}
-	}
-
-	if (pluginSelf?.mainWindow && !pluginSelf?.mainWindow?.__millennium_hasShownWelcomeModal) {
-		ShowWelcomeModal();
-		pluginSelf.mainWindow.__millennium_hasShownWelcomeModal = true;
 	}
 }
 
