@@ -1,3 +1,15 @@
+# [2.26.0-beta.24](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.23...v2.26.0-beta.24) (2025-07-26)
+
+
+### Bug Fixes
+
+* Fix welcome modal not showing. ([702a53e](https://github.com/SteamClientHomebrew/Millennium/commit/702a53ea13e9cb579d8d614fecc37ebf4edda5ad))
+
+
+### Features
+
+*  Improved error logging when plugins fail to load/install dependencies ([9830da0](https://github.com/SteamClientHomebrew/Millennium/commit/9830da04ae28ebf02755533795d9702b287cb4e0))
+
 # [2.26.0-beta.23](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0-beta.22...v2.26.0-beta.23) (2025-07-23)
 
 
