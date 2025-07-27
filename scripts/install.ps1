@@ -415,5 +415,7 @@ if ($isUpdater) {
     exit
 }
 
-Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete!"
-Write-Host "${BoldGreen}++${ResetColor} See ${BoldLightBlue}https://docs.steambrew.app/users/getting-started${ResetColor} for more information."
+Write-Host "`n${BoldGreen}++${ResetColor} Millennium has successfully loaded. Installation complete, you can now start Steam."
+Write-Host "${BoldYellow}++${ResetColor} Your first Steam launch will take longer than usual while it sets up - don't close or interact with Steam during this process."
+
+Write-Host "${BoldGreen}++${ResetColor} See ${BoldLightBlue}https://docs.steambrew.app/users${ResetColor} for more information."
