@@ -32,11 +32,12 @@ import { ConfirmModal, pluginSelf, showModal, ShowModalResult } from '@steambrew
 import { settingsManager } from '../settings-manager';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../../locales';
+import { useEffect } from 'react';
 
-export const ShowWelcomeModal = async () =>
-	new Promise(async (resolve) => {
+export const WelcomeModalComponent = (): JSX.Element => {
+	useEffect(() => {
 		if (settingsManager.config.misc.hasShownWelcomeModal) {
-			return resolve(undefined);
+			return;
 		} else {
 			settingsManager.config.misc.hasShownWelcomeModal = true;
 			settingsManager.forceSaveConfig();
@@ -55,7 +56,6 @@ export const ShowWelcomeModal = async () =>
 					bHideCloseIcon={true}
 					onOK={() => {
 						welcomeModalWindow?.Close();
-						resolve(undefined);
 					}}
 				/>
 			);
@@ -65,4 +65,7 @@ export const ShowWelcomeModal = async () =>
 			popupHeight: 475,
 			popupWidth: 625,
 		});
-	});
+	}, []);
+
+	return null;
+};

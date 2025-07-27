@@ -143,7 +143,7 @@ export class Installer {
 		});
 	}
 
-	async OpenInstallPrompt(id: string) {
+	async OpenInstallPrompt(id: string, refetchDataCb: () => void) {
 		let modal: ShowModalResult;
 		let renderProps: RendererProps;
 
@@ -202,14 +202,14 @@ export class Installer {
 
 			switch (type) {
 				case InstallType.Plugin: {
-					const result = await StartPluginInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal });
+					const result = await StartPluginInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal, refetchDataCb });
 					if (!result) return;
 
 					renderProps = result as RendererProps;
 					break;
 				}
 				case InstallType.Theme: {
-					const result = await StartThemeInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal });
+					const result = await StartThemeInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal, refetchDataCb });
 					if (!result) return;
 
 					renderProps = result as RendererProps;

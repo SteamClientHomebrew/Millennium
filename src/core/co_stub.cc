@@ -450,14 +450,30 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
             if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30)) 
             {
                 std::string errorMessage = fmt::format(
-                    "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. "
-                    "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading."
-                    "\nLearn more: https://www.geeksforgeeks.org/multithreading-python-set-1/"
-                    "\nThis error is not fatal but this plugin will NOT be able to properly shutdown with may leave steam hanging on exit.", plugin.pluginName
+                    "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
+                    "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.", plugin.pluginName
                 );
 
                 LOG_ERROR(errorMessage);
                 ErrorToLogger(plugin.pluginName, errorMessage);
+
+                #ifdef _WIN32
+                const int result = MessageBoxA(
+                    NULL, 
+                    fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects or break the Steam UI. Would you like to disable it on next Steam startup?", plugin.pluginName).c_str(), 
+                    "Millennium - Startup Error", 
+                    MB_ICONERROR | MB_YESNO
+                );
+
+                if (result == IDYES) 
+                {
+                    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+                    settingsStore->TogglePluginStatus(plugin.pluginName, false);
+                }
+                #endif
+
+                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+                backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
 
                 break;
             }

@@ -163,9 +163,12 @@ MILLENNIUM void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema 
         Logger.Log("Successfully loaded '{}'", plugin.pluginName);
     }
 
-    this->emittedPlugins.push_back(plugin);
-
-    this->StatusDispatch();
+    /** Check if its already emitted */
+    if (std::find(this->emittedPlugins.begin(), this->emittedPlugins.end(), plugin) == this->emittedPlugins.end())
+    {
+        this->emittedPlugins.push_back(plugin);
+        this->StatusDispatch();
+    }
 }
 
 /**

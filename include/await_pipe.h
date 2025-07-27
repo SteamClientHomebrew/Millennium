@@ -55,10 +55,9 @@ static bool bHasCheckedConnection = false;
 class SocketHelpers
 {
 private:
+    u_short debuggerPort;
 
-    unsigned short debuggerPort;
-
-    const short GetDebuggerPort()
+    const u_short GetDebuggerPort()
     {
         #ifdef _WIN32
         {
@@ -71,7 +70,7 @@ private:
 
     const std::string GetDebuggerUrl()
     {
-        return fmt::format("http://localhost:{}", debuggerPort);
+        return fmt::format("http://127.0.0.1:{}", debuggerPort);
     }
 
     struct SteamConnectionProps
@@ -215,12 +214,22 @@ public:
 
     void ConnectSocket(ConnectSocketProps socketProps)
     {
+        std::string socketUrl;
         websocketpp::client<websocketpp::config::asio_client> socketClient;
 
         const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
-        
-        // Fetch socket URL
-        const std::string socketUrl = fetchSocketUrl();
+ 
+        try
+        {
+            socketUrl = fetchSocketUrl();
+        }
+        /** The request was broke early before it was received. Likely because Millennium is shutting down. */
+        catch (HttpError& exception)
+        {
+            Logger.Warn("Failed to get Steam browser context: {}", exception.GetMessage());
+            return;
+        }
+
         if (socketUrl.empty())
         {
             LOG_ERROR("[{}] Socket URL is empty. Aborting connection.", commonName);

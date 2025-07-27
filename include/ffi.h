@@ -64,8 +64,8 @@ namespace Python {
 	};
 
 	struct EvalResult {
-		std::string plain;
 		Types type;
+		std::string plain;
 	};
 
     std::tuple<std::string, std::string> ActiveExceptionInformation();

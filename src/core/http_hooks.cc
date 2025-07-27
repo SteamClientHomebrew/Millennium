@@ -43,6 +43,7 @@
 #include "ipc.h"
 #include <thread>
 #include <chrono>
+#include <ranges>
 
 using namespace nlohmann;
 
@@ -67,8 +68,14 @@ enum eFileType
     otf,
     woff,
     woff2,
+    png,
+    jpeg,
+    jpg,
     gif,
-    unknown
+    webp,
+    svg,
+    html,
+    unknown,
 };
 
 /**
@@ -90,7 +97,13 @@ static std::map<eFileType, std::string> fileTypes
     { eFileType::otf,     "font/otf"               },
     { eFileType::woff,    "font/woff"              },
     { eFileType::woff2,   "font/woff2"             },
+    { eFileType::png,     "image/png"              },
+    { eFileType::jpeg,    "image/jpeg"             },
+    { eFileType::jpg,     "image/jpg"              },
     { eFileType::gif,     "image/gif"              },
+    { eFileType::webp,    "image/webp"             },
+    { eFileType::svg,     "image/svg+xml"          },
+    { eFileType::html,    "text/html"              },
     { eFileType::unknown, "text/plain"             },
 };
 
@@ -102,9 +115,18 @@ static std::map<eFileType, std::string> fileTypes
  */
 static constexpr bool IsBinaryFile(eFileType fileType)
 {
-    return fileType == eFileType::ttf || fileType == eFileType::otf || 
-           fileType == eFileType::woff || fileType == eFileType::woff2 || 
-           fileType == eFileType::gif || fileType == eFileType::unknown;
+    return fileType == eFileType::ttf 
+        || fileType == eFileType::otf 
+        || fileType == eFileType::woff 
+        || fileType == eFileType::woff2 
+        || fileType == eFileType::gif 
+        || fileType == eFileType::png 
+        || fileType == eFileType::jpeg 
+        || fileType == eFileType::jpg 
+        || fileType == eFileType::webp 
+        || fileType == eFileType::svg 
+        || fileType == eFileType::html 
+        || fileType == eFileType::unknown;
 }
 
 /**
@@ -123,6 +145,12 @@ static const eFileType EvaluateFileType(std::filesystem::path filePath)
     else if (extension == ".woff" ) { return eFileType::woff;  }
     else if (extension == ".woff2") { return eFileType::woff2; }
     else if (extension == ".gif"  ) { return eFileType::gif;   }
+    else if (extension == ".png"  ) { return eFileType::png;   }
+    else if (extension == ".jpeg" ) { return eFileType::jpeg;  }
+    else if (extension == ".jpg"  ) { return eFileType::jpg;   }
+    else if (extension == ".webp" ) { return eFileType::webp;  }
+    else if (extension == ".svg"  ) { return eFileType::svg;   }
+    else if (extension == ".html" ) { return eFileType::html;  }
     
     else
     {
@@ -296,7 +324,7 @@ void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& mess
     }
 
     uint16_t    responseCode    = bFailedRead ? 404 : 200;
-    std::string responseMessage = bFailedRead ? "millennium" : "millennium couldn't read " + localFilePath.string();
+    std::string responseMessage = bFailedRead ? "millennium couldn't read " + localFilePath.string() : "OK millennium";
     eFileType   fileType        = EvaluateFileType(localFilePath.string());
 
     if (IsBinaryFile(fileType)) 
@@ -433,9 +461,18 @@ const std::string HttpHookManager::PatchDocumentContents(const std::string& requ
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
+    std::string strEnabledPlugins;
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    const auto& plugins = settingsStore->GetEnabledPlugins();
+
+    for (size_t i = 0; i < plugins.size(); ++i)
+    {
+        strEnabledPlugins.append(fmt::format("'{}',", plugins[i].pluginName));
+    }
+
     const std::string millenniumAuthToken = GetAuthToken();
     const std::string ftpPath = UrlFromPath(m_ftpHookAddress, millenniumPreloadPath.value_or(std::string()));
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}]);", millenniumAuthToken, scriptModuleArray);
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}], [{}]);", millenniumAuthToken, scriptModuleArray, strEnabledPlugins);
 
     linkPreloadsArray.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
 
@@ -542,7 +579,7 @@ void HttpHookManager::HandleIpcMessage(nlohmann::json message)
     std::string authToken = message.value(json::json_pointer("/params/request/headers/X-Millennium-Auth"), std::string{});
     if (authToken.empty() || GetAuthToken() != authToken) 
     {
-        LOG_ERROR("Invalid or missing X-Millennium-Auth in IPC request.");
+        LOG_ERROR("Invalid or missing X-Millennium-Auth in IPC request. Request: {}", message.dump());
         responseJson["params"]["responseCode"] = 401; // Unauthorized
         this->PostGlobalMessage(responseJson);
         return;

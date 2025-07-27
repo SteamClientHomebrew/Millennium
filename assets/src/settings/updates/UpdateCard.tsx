@@ -30,9 +30,11 @@
 
 import { DialogButton, DialogButtonPrimary, Field, IconsModule, ProgressBarWithInfo } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
-import { Component, ReactNode, createRef } from 'react';
+import { Component, createRef, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../../../locales';
+import { IconButton } from '../../components/IconButton';
+import { DesktopTooltip } from '../../components/SteamComponents';
 
 interface UpdateProps {
 	message: string;
@@ -102,14 +104,13 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	private showInteractables() {
-		const { isUpdating, statusText, progress, onUpdateClick } = this.props;
+		const { isUpdating, statusText, progress, onUpdateClick, update } = this.props;
 
 		if (isUpdating) {
 			return (
 				<ProgressBarWithInfo
 					// @ts-ignore
-					style={{ padding: 'unset' }}
-					className="UpdaterProgressBar"
+					className="MillenniumUpdates_ProgressBar"
 					sOperationText={statusText}
 					nProgress={progress}
 					nTransitionSec={1000}
@@ -118,9 +119,11 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		}
 
 		return (
-			<DialogButtonPrimary onClick={onUpdateClick} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton}`} data-update-button>
-				Update <IconsModule.Update key="download-icon" />
-			</DialogButtonPrimary>
+			<DesktopTooltip toolTipContent={`Update ${update.name}`} direction="left">
+				<IconButton onClick={onUpdateClick}>
+					<IconsModule.Download key="download-icon" />
+				</IconButton>
+			</DesktopTooltip>
 		);
 	}
 
@@ -133,17 +136,10 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	private renderDescription() {
-		const { showingMore } = this.state;
 		const { update } = this.props;
 
-		const containerStyle = {
-			height: showingMore ? `${this.descriptionHeight}px` : '0px',
-			overflow: 'hidden',
-			transition: 'height 0.3s ease',
-		};
-
 		return (
-			<div className={`MillenniumUpdates_Description ${showingMore ? 'expanded' : ''}`} style={containerStyle}>
+			<div className="MillenniumUpdates_Description" style={{ height: this.descriptionHeight }}>
 				<div ref={this.descriptionRef}>
 					<div>
 						<b>{locale.updatePanelReleasedTag}</b> {update?.date}
@@ -164,15 +160,16 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		return (
 			<Field
 				key={index}
-				className="MillenniumUpdateField"
-				label={<div className="MillenniumUpdates_Label">{update.name}</div>}
+				className="MillenniumUpdates_Field"
+				label={update.name}
 				bottomSeparator={index === totalCount - 1 ? 'none' : 'standard'}
 				description={this.renderDescription()}
+				data-expanded={showingMore}
 			>
 				{this.showInteractables()}
-				<DialogButton onClick={this.handleToggle} className={`MillenniumIconButton ${settingsClasses.SettingsDialogButton} ${showingMore ? 'expanded' : ''}`}>
-					<IconsModule.Carat direction="down" {...(showingMore && { style: { transform: 'rotate(180deg)' } })} />
-				</DialogButton>
+				<IconButton onClick={this.handleToggle} className="MillenniumUpdates_ExpandButton">
+					<IconsModule.Carat direction="up" />
+				</IconButton>
 			</Field>
 		);
 	}

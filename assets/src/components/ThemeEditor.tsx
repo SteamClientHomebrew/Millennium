@@ -188,25 +188,28 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const [colorState, setColorState] = useState(color?.hex ?? '#000000');
 
 		const saveColor = async (hexColor: string) => {
-			PyChangeColor({ theme: this.props.theme.native, color_name: color.color, new_color: hexColor, type: color.type });
+			const newColor = await PyChangeColor({ theme: this.props.theme.native, color_name: color.color, new_color: hexColor, color_type: color.type });
 			pluginSelf.RootColors = await PyGetRootColors();
+			return newColor;
 		};
 
 		const debounceColorUpdate = (hexColor: string) => {
 			setColorState(hexColor);
-			this.UpdateCSSColors(color, hexColor);
 
 			if (debounceTimer.current) {
 				clearTimeout(debounceTimer.current);
 			}
 
-			debounceTimer.current = setTimeout(saveColor.spread(hexColor), 300);
+			debounceTimer.current = setTimeout(async () => {
+				const newColor = await saveColor(hexColor);
+				this.UpdateCSSColors(color, newColor);
+			}, 300);
 		};
 
-		const resetColor = () => {
-			this.UpdateCSSColors(color, color.defaultColor);
+		const resetColor = async () => {
 			setColorState(color.defaultColor);
-			saveColor(color.defaultColor);
+			const defaultColor = await saveColor(color.defaultColor);
+			this.UpdateCSSColors(color, defaultColor);
 		};
 
 		return (

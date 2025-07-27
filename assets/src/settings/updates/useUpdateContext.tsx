@@ -30,10 +30,11 @@
 
 import React, { createContext, useContext } from 'react';
 import { PyResyncUpdates } from '../../utils/ffi';
-import { IconsModule, pluginSelf, SteamSpinner } from '@steambrew/client';
+import { DialogButton, IconsModule, pluginSelf, SteamSpinner } from '@steambrew/client';
 import { UpdateItemType } from './UpdateCard';
 import { locale } from '../../../locales';
-import { ErrorModal } from '../../components/ErrorModal';
+import { Placeholder } from '../../components/Placeholder';
+import { settingsClasses } from '../../utils/classes';
 
 type UpdateContextProviderProps = {
 	children: React.ReactNode;
@@ -140,30 +141,27 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		}
 	};
 
-	RenderUpToDateModal: React.FC = () => {
-		return (
-			<div className="MillenniumUpToDate_Container">
-				<IconsModule.Checkmark width="64" />
-				<div className="MillenniumUpToDate_Header">{locale.updatePanelNoUpdatesFound}</div>
-			</div>
-		);
-	};
-
 	render() {
 		const { updatingThemes, updatingPlugins, hasReceivedUpdates, hasUpdateError } = this.state;
 
 		if (hasUpdateError) {
 			return (
-				<ErrorModal
+				<Placeholder
+					icon={<IconsModule.ExclamationPoint />}
 					header={locale.updatePanelErrorHeader}
 					body={locale.updatePanelErrorBody + this.parseUpdateErrorMessage()}
-					options={{ buttonText: locale.updatePanelErrorButton, onClick: this.fetchAvailableUpdates.spread(true) }}
-				/>
+				>
+					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={this.fetchAvailableUpdates.spread(true)}>
+						{locale.updatePanelErrorButton}
+					</DialogButton>
+				</Placeholder>
 			);
 		}
 
 		if (!hasReceivedUpdates) return <SteamSpinner background="transparent" />;
-		if (!this.hasAnyUpdates()) return <this.RenderUpToDateModal />;
+		if (!this.hasAnyUpdates()) {
+			return <Placeholder icon={<IconsModule.Checkmark />} header={locale.updatePanelNoUpdatesFoundHeader} body={locale.updatePanelNoUpdatesFound} />;
+		}
 
 		return (
 			<UpdateContext.Provider

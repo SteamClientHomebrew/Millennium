@@ -62,7 +62,23 @@ const static void VerifyEnvironment()
     // Steam's CEF Remote Debugger isn't exposed to port 8080
     if (!std::filesystem::exists(filePath)) 
     {
-        std::ofstream(filePath).close();
+        try 
+        {
+            std::ofstream file(filePath);
+            if (!file) 
+            {
+                throw std::runtime_error(fmt::format("Failed to create '{}': {}", filePath.string(), std::strerror(errno)));
+            }
+            file.close();
+        } 
+        catch (const std::exception& e) 
+        {
+            LOG_ERROR("Error enabling CEF remote debugging: {}", e.what());
+            #ifdef _WIN32
+            MessageBoxA(NULL, e.what(), "File Error", MB_ICONERROR | MB_OK);
+            #endif
+            std::exit(EXIT_FAILURE);
+        }
 
         Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
         std::exit(1);
@@ -267,7 +283,8 @@ void OnTerminate()
  */
 const static void EntryMain() 
 {
-    #if _WIN32
+    #if defined(_WIN32)
+    SetProcessDPIAware();
     SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
     if (!IsDebuggerPresent()) 
@@ -278,6 +295,7 @@ const static void EntryMain()
     
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
+
 
     #ifdef _WIN32
     /**
@@ -323,7 +341,15 @@ __attribute__((constructor)) void __init_millennium()
     }
     #endif
 
-    SetupEnvironmentVariables();
+    try
+    {
+        SetupEnvironmentVariables();
+    }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR("Failed to set up environment variables: {}", e.what());
+        std::exit(EXIT_FAILURE);
+    }
 }
 
 #ifdef _WIN32
@@ -357,7 +383,7 @@ int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     return true;
 }
 
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 #include <stdio.h>
 #include <stdlib.h>
 #include "helpers.h"
@@ -378,6 +404,40 @@ extern "C"
     */
     static constexpr const char* __LIBPYTHON_RUNTIME_PATH = LIBPYTHON_RUNTIME_PATH;
 
+    /** New interop funcs that receive calls from hooked libXtst */
+    namespace HookInterop
+    {
+        int StartMillennium()
+        {
+            Logger.Log("Hooked main() with PID: {}", getpid());
+            Logger.Log("Loading python libraries from {}", __LIBPYTHON_RUNTIME_PATH);
+
+            if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) 
+            {
+                LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
+            }
+
+            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+            Logger.Log("Millennium started successfully.");
+            return 0;
+        }
+
+        int StopMillennium() 
+        {
+            Logger.Log("Unloading Millennium...");
+            g_threadTerminateFlag->flag.store(true);
+            
+            Sockets::Shutdown();
+            if (g_millenniumThread && g_millenniumThread->joinable()) 
+            {
+                g_millenniumThread->join();
+            }
+
+            Logger.Log("Millennium unloaded successfully.");
+            return 0;
+        }
+    }
+
     /* Our fake main() that gets called by __libc_start_main() */
     int MainHooked(int argc, char **argv, char **envp)
     {
@@ -389,113 +449,81 @@ extern "C"
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
 
-        #ifdef MILLENNIUM_SHARED
+        #ifdef __APPLE__
         {
-            /** Start Millennium on a new thread to prevent I/O blocking */
-            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
-            int steam_main = fnMainOriginal(argc, argv, envp);
-            Logger.Log("Hooked Steam entry returned {}", steam_main);
-
-            g_threadTerminateFlag->flag.store(true);
-            Sockets::Shutdown();
-            g_millenniumThread->join();
-
+            EntryMain();
             Logger.Log("Shutting down Millennium...");
-            return steam_main;
+
+            return 0;
         }
         #else
         {
-            g_threadTerminateFlag->flag.store(true);
-            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
-            g_millenniumThread->join();
-            return 0;
+            #ifdef MILLENNIUM_SHARED
+            {
+                /** Start Millennium on a new thread to prevent I/O blocking */
+                g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+                int steam_main = fnMainOriginal(argc, argv, envp);
+                Logger.Log("Hooked Steam entry returned {}", steam_main);
+
+                g_threadTerminateFlag->flag.store(true);
+                Sockets::Shutdown();
+                g_millenniumThread->join();
+
+                Logger.Log("Shutting down Millennium...");
+                return steam_main;
+            }
+            #else
+            {
+                g_threadTerminateFlag->flag.store(true);
+                g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+                g_millenniumThread->join();
+                return 0;
+            }
+            #endif
         }
         #endif
     }
 
-    void RemoveFromLdPreload() 
+    void RemoveFromLdPreload()
     {
-        const char* ldPreload = getenv("LD_PRELOAD");
-        if (!ldPreload)  
+        const char* ldPreload = std::getenv("LD_PRELOAD");
+        if (!ldPreload)
         {
-            fprintf(stderr, "LD_PRELOAD is not set.\n");
+            LOG_ERROR("LD_PRELOAD environment variable is not set, this shouldn't be possible?");
             return;
         }
+        
+        std::string ldPreloadStr(ldPreload);
+        std::string millenniumPath = GetEnv("MILLENNIUM_RUNTIME_PATH");
 
-        char* ldPreloadStr = strdup(ldPreload);
-        if (!ldPreloadStr) 
+        Logger.Log("Removing Millennium from LD_PRELOAD: {}", millenniumPath);
+        
+        // Tokenize the LD_PRELOAD string
+        std::vector<std::string> tokens;
+        std::stringstream ss(ldPreloadStr);
+        std::string token;
+        
+        while (ss >> token)
         {
-            perror("strdup");
-            return;
-        }
-
-        char* token, *rest = ldPreloadStr;
-        size_t tokenCount = 0, tokenArraySize = 8; 
-        char** tokens = (char**)malloc(tokenArraySize * sizeof(char*));
-
-        if (!tokens) 
-        {
-            perror("malloc");
-            free(ldPreloadStr);
-            return;
-        }
-
-        while ((token = strtok_r(rest, " ", &rest))) 
-        {
-            if (strcmp(token, GetEnv("MILLENNIUM_RUNTIME_PATH").c_str()) != 0) 
+            if (token != millenniumPath)
             {
-                if (tokenCount >= tokenArraySize) 
-                {
-                    tokenArraySize *= 2;
-                    char** temp = (char**)realloc(tokens, tokenArraySize * sizeof(char*));
-                    if (!temp) 
-                    {
-                        perror("realloc");
-                        free(ldPreloadStr);
-                        free(tokens);
-                        return;
-                    }
-                    tokens = temp;
-                }
-                tokens[tokenCount++] = token;
+                tokens.push_back(token);
             }
         }
-
-        size_t newSize = 0;
-        for (size_t i = 0; i < tokenCount; ++i) 
+        
+        std::string updatedLdPreload;
+        for (size_t i = 0; i < tokens.size(); ++i)
         {
-            newSize += strlen(tokens[i]) + 1;
+            if (i > 0) updatedLdPreload += " ";
+            updatedLdPreload += tokens[i];
         }
-
-        char* updatedLdPreload = (char*)malloc(newSize > 0 ? newSize : 1);
-        if (!updatedLdPreload) 
+        
+        std::cout << "Updating LD_PRELOAD from [" << ldPreloadStr << "] to [" << updatedLdPreload << "]\n";
+        
+        if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0)
         {
-            perror("malloc");
-            free(ldPreloadStr);
-            free(tokens);
-            return;
+            std::perror("setenv");
         }
-
-        updatedLdPreload[0] = '\0';
-        for (size_t i = 0; i < tokenCount; ++i) 
-        {
-            if (i > 0) 
-            {
-                strcat(updatedLdPreload, " ");
-            }
-            strcat(updatedLdPreload, tokens[i]);
-        }
-
-        printf("Updating LD_PRELOAD from [%s] to [%s]\n", ldPreloadStr, updatedLdPreload);
-
-        if (setenv("LD_PRELOAD", updatedLdPreload, 1) != 0) 
-        {
-            perror("setenv");
-        }
-
-        free(ldPreloadStr);
-        free(updatedLdPreload);
-        free(tokens);
     }
     #ifdef MILLENNIUM_SHARED
 
@@ -552,6 +580,21 @@ extern "C"
         return 1;  // Paths are the same, including symlinks to each other
     }
 
+    /** 
+     * As of 1/7/2025 Steam offloads update checker to a child process. We don't want to hook that process. 
+     */
+    bool IsChildUpdaterProc(int argc, char **argv) 
+    {
+        for (int i = 0; i < argc; ++i) 
+        {
+            if (strcmp(argv[i], "-child-update-ui") == 0 || strcmp(argv[i], "-child-update-ui-socket") == 0) 
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*
     * Trampoline for __libc_start_main() that replaces the real main
     * function with our hooked version.
@@ -560,8 +603,6 @@ extern "C"
         int (*main)(int, char **, char **), int argc, char **argv,
         int (*init)(int, char **, char **), void (*fini)(void), void (*rtld_fini)(void), void *stack_end)
     {
-        Logger.Log("Hooked main() with PID: {}", getpid());
-
         /* Save the real main function address */
         fnMainOriginal = main;
 
@@ -569,17 +610,19 @@ extern "C"
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
         /** not loaded in a invalid child process */
-        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()))
+        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv)) 
         {
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }
 
-        Logger.Log("Hooked __libc_start_main() {}", argv[0]);
+        Logger.Log("Hooked __libc_start_main() {} pid: {}", argv[0], getpid());
 
         /* Remove the Millennium library from LD_PRELOAD */
         RemoveFromLdPreload();
         /* Log that we've loaded Millennium */
+        #ifdef __linux__
         Logger.Log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
+        #endif
         /* ... and call it with our custom main function */
         return orig(MainHooked, argc, argv, init, fini, rtld_fini, stack_end);
     }
@@ -588,6 +631,14 @@ extern "C"
 
 int main(int argc, char **argv, char **envp)
 {
-    return MainHooked(argc, argv, envp);
+    signal(SIGTERM, [](int signalCode) {
+        Logger.Warn("Received terminate signal...");
+        g_threadTerminateFlag->flag.store(true);
+    });
+
+    int result = MainHooked(argc, argv, envp);
+    Logger.Log("Millennium main returned: {}", result);
+
+    return result;
 }
 #endif

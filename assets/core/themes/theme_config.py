@@ -49,7 +49,85 @@ class Config:
         except Exception as ex:
             logger.error(f"Error in theme config change: {ex}\nTraceback:\n{traceback.format_exc()}")
 
+    def upgrade_old_config(self):
+        # Old config path
+        themes_json_path = os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "themes.json")
+        old_config_data = None
+
+        if os.path.isfile(themes_json_path):
+            try:
+                with open(themes_json_path, "r", encoding="utf-8") as f:
+                    old_config_data = json.load(f)
+            except Exception as ex:
+                logger.error(f"Failed to upgrade old config from {themes_json_path}: {ex}")
+
+        if old_config_data is None:
+            return
+
+        # Migrate old config data to the new structure
+        if "conditions" in old_config_data and isinstance(old_config_data["conditions"], dict):
+            # iterate over each theme in the old config
+            for theme_name, conditions in old_config_data["conditions"].items():
+                # Ensure the themes.conditions structure exists
+                if "themes.conditions" not in get_config():
+                    get_config().set("themes.conditions", {}, skip_propagation=True)
+
+                if theme_name not in get_config()["themes.conditions"]:
+                    get_config().set(f"themes.conditions.{theme_name}", {}, skip_propagation=True)
+
+                # Iterate over each condition in the theme
+                for condition_name, condition_value in conditions.items():
+                    logger.log(f"Upgrading condition '{condition_name}' for theme '{theme_name}'")
+                    # Set the condition in the new config structure
+                    get_config().set(f"themes.conditions.{theme_name}.{condition_name}", condition_value, skip_propagation=True)
+
+        # Migrate colors
+        if "colors" in old_config_data and isinstance(old_config_data["colors"], dict):
+            # iterate over each theme in the old config
+            for theme_name, colors in old_config_data["colors"].items():
+                # Upgrade colors for the theme
+                if "themes.themeColors" not in get_config():
+                    get_config().set("themes.themeColors", {}, skip_propagation=True)
+
+                if theme_name not in get_config()["themes.themeColors"]:
+                    get_config().set(f"themes.themeColors.{theme_name}", {}, skip_propagation=True)
+
+                # Iterate over each color in the theme
+                for color_name, color_value in colors.items():
+                    logger.log(f"Upgrading color '{color_name}' for theme '{theme_name}' with value '{color_value}'")
+                    # Set the color in the new config structure
+                    get_config().set(f"themes.themeColors.{theme_name}.{color_name}", color_value, skip_propagation=True)
+
+        # Migrate active theme
+        if "active" in old_config_data:
+            logger.log("Migrating active theme from old config: " + str(old_config_data["active"]))
+            get_config().set("themes.activeTheme", old_config_data["active"], skip_propagation=True)
+
+        # Migrate accent color
+        if "accentColor" in old_config_data:
+            logger.log("Migrating accent color from old config: " + str(old_config_data["accentColor"]))
+            get_config().set("general.accentColor", old_config_data["accentColor"], skip_propagation=True)
+
+        # Merge CSS and JS settings
+        if "styles" in old_config_data:
+            logger.log("Migrating styles from old config: " + str(old_config_data["styles"]))
+            get_config().set("themes.allowedStyles", old_config_data["styles"], skip_propagation=True)
+
+        if "scripts" in old_config_data:
+            logger.log("Migrating scripts from old config: " + str(old_config_data["scripts"]))
+            get_config().set("themes.allowedScripts", old_config_data["scripts"], skip_propagation=True)
+
+        # Delete the old config file
+        try:
+            os.remove(themes_json_path)
+            logger.log(f"Successfully removed old config file: {themes_json_path}")
+        except Exception as ex:
+            logger.error(f"Failed to remove old config file {themes_json_path}: {ex}")
+
+
     def __init__(self):
+        self.upgrade_old_config()
+
         self.themes_path = os.path.join(Millennium.steam_path(), "steamui", "skins")
         self.colors = {}
 
@@ -160,14 +238,14 @@ class Config:
         return json.dumps(root_colors, indent=4)
 
 
-    def change_color(self, theme: str, color_name: str, new_color: str, type: int) -> None:
+    def change_color(self, theme: str, color_name: str, new_color: str, color_type: int) -> None:
         logger.log(f"Changing color {color_name} to {new_color} in theme {theme}")
 
-        type = ColorTypes(type)
+        color_type = ColorTypes(color_type)
         for color in get_config()[f"themes.themeColors.{theme}"]:
             if color != color_name:
                 continue
-            parsed_color = convert_from_hex(new_color, type)
+            parsed_color = convert_from_hex(new_color, color_type)
             get_config().set(f"themes.themeColors.{theme}.{color}", parsed_color, skip_propagation=True)
             return parsed_color
         

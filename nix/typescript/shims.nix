@@ -13,6 +13,7 @@ stdenv.mkDerivation rec {
     inherit src version pname;
     #TODO: automatic hash update
     hash = "sha256-LofHepVz6CjbAXkUwwNFVzlbmPq+g/gJvkBka9I/gHo=";
+    fetcherVersion = 9;
   };
 
   nativeBuildInputs = [

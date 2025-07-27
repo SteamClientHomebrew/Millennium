@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Millennium, pluginSelf, routerHook } from '@steambrew/client';
+import { ConfirmModal, Millennium, pluginSelf, routerHook, showModal } from '@steambrew/client';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';
@@ -42,6 +42,9 @@ import { NotificationService } from './update-notification-service';
 import { MillenniumDesktopSidebar } from './quick-access';
 import { DesktopMenuProvider } from './quick-access/DesktopMenuContext';
 import { EUIMode } from '@steambrew/client';
+import { useEffect } from 'react';
+import { settingsManager } from './settings-manager';
+import { WelcomeModalComponent } from './components/WelcomeModal';
 
 async function initializeMillennium(settings: SettingsProps) {
 	Logger.Log(`Received props`, settings);
@@ -99,6 +102,9 @@ export default async function PluginMain() {
 		),
 		EUIMode.Desktop,
 	);
+
+	/** Render welcome modal for new users */
+	routerHook.addGlobalComponent('MillenniumWelcomeModal', () => <WelcomeModalComponent />, EUIMode.Desktop);
 
 	// @ts-ignore
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);

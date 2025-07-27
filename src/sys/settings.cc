@@ -356,6 +356,25 @@ MILLENNIUM std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllP
     return plugins;
 }
 
+/**
+ * @brief Get all the enabled plugins from the plugin list.
+ */
+MILLENNIUM std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
+{
+    const auto allPlugins = this->ParseAllPlugins();
+    std::vector<SettingsStore::PluginTypeSchema> enabledPlugins;
+
+    for (auto& plugin : allPlugins)
+    {
+        if (this->IsEnabledPlugin(plugin.pluginName))
+        {
+            enabledPlugins.push_back(plugin);
+        }
+    }
+
+    return enabledPlugins;
+}
+
 /** 
  * @brief Get all the enabled backends from the plugin list.
  * 

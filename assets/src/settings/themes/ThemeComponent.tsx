@@ -38,6 +38,7 @@ import { FaCheck, FaEllipsisH } from 'react-icons/fa';
 import { SiKofi } from 'react-icons/si';
 import { Component } from 'react';
 import { PyUninstallTheme } from '../../utils/ffi';
+import { IconButton } from '../../components/IconButton';
 
 interface ThemeItemComponentProps {
 	theme: ThemeItem;
@@ -45,6 +46,7 @@ interface ThemeItemComponentProps {
 	activeTheme?: string;
 	onChangeTheme: (item: ThemeItem) => void;
 	onUseDefault: () => void;
+	fetchThemes: () => Promise<void>;
 }
 
 interface ThemeItemComponentState {
@@ -126,11 +128,18 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 		Utils.BrowseLocalFolder(themesPath);
 	}
 
-	uninstallTheme() {
-		const { theme } = this.props;
+	async uninstallTheme() {
+		const { theme, fetchThemes } = this.props;
+
+		const shouldUninstall = await Utils.ShowMessageBox(`Are you sure you want to uninstall ${theme.data.name}?`, 'Heads up!');
+		if (!shouldUninstall) return;
 
 		PyUninstallTheme({ owner: theme.data.github.owner, repo: theme.data.github.repo_name }).then(() => {
-			SteamClient.Browser.RestartJSContext();
+			if (this.isActive) {
+				SteamClient.Browser.RestartJSContext();
+			} else {
+				fetchThemes();
+			}
 		});
 	}
 
@@ -197,13 +206,13 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				data-theme-folder-name-on-disk={theme?.native}
 			>
 				{shouldShowMore && theme?.data?.funding?.kofi && (
-					<DialogButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)} style={{ width: '32px' }}>
+					<IconButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}>
 						<SiKofi />
-					</DialogButton>
+					</IconButton>
 				)}
-				<DialogButton onClick={this.showCtxMenu} style={{ width: '32px' }}>
+				<IconButton onClick={this.showCtxMenu}>
 					<FaEllipsisH />
-				</DialogButton>
+				</IconButton>
 			</Field>
 		);
 	}

@@ -41,10 +41,9 @@ def get_installed_packages():
     logger.log("Installed packages:")
     
     package_map = {dist.metadata["Name"]: dist.version for dist in importlib.metadata.distributions()}
-    
-    for name, version in package_map.items():
-        logger.log(f"  {name}=={version}")
-    
+    str_packages = [f"{name}=={version}" for name, version in package_map.items()]
+
+    logger.log(" ".join(str_packages))
     return package_map
 
 def process_output_handler(proc, outfile, terminate_flag):
@@ -86,7 +85,18 @@ def pip(cmd, config: Config):
         output_handler_thread.join()
 
         if proc.returncode != 0:
-            
+            logs_file = os.path.join(os.environ.get("MILLENNIUM__LOGS_PATH", pip_logs), "pipx_log.log")
+            str_error = f"Millennium's package manager failed with exit code {proc.returncode}. This is likely a fatal issue, and will cause breaking side effects on loaded plugins, and or Millennium. Please check the log file at {logs_file} for more details."
+
+            if platform.system() == 'Windows':
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(
+                    None,
+                    str_error,
+                    "Millennium - Package manager error",
+                    0x10 | 0x0
+                )
+
             logger.error(f"PIP failed with exit code {proc.returncode}")
 
 

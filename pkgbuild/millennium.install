@@ -1,11 +1,53 @@
 #!/bin/bash
 
+# Remove legacy patches that Millennium used to use prior to JUL/6/2025
+remove_deprecated_patches() {
+    if test -f "/usr/bin/steam.millennium.bak"; then
+        if grep -q "LD_PRELOAD" /usr/bin/steam.millennium.bak; then
+            printf '#!/bin/sh\nexec /usr/lib/steam/steam "$@"\n' > /usr/bin/steam
+        else
+            mv /usr/bin/steam.millennium.bak /usr/bin/steam
+        fi
+    else
+        # Check /usr/bin/steam directly if backup doesn't exist
+        if test -f "/usr/bin/steam" && grep -q "LD_PRELOAD" /usr/bin/steam; then
+            printf '#!/bin/sh\nexec /usr/lib/steam/steam "$@"\n' > /usr/bin/steam
+        fi
+    fi
+}
+
 post_install() {
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mPlease run 'millennium patch' setup Millennium.\e[0m"
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mSee https://docs.steambrew.app/users/installing for help.\e[0m"
+    if [ -n "$SUDO_USER" ]; then
+        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    else
+        USER_HOME="$HOME"
+    fi
+    
+    # Remove any deprecated patches from the Steam binary
+    remove_deprecated_patches
+    
+    # Link millennium to the Steam runtime
+    rm -f "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
+    ln -s /usr/lib/millennium/libmillennium_bootstrap_86x.so "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
+
+    # Setup Steam remote debugging
+    touch "${USER_HOME}/.steam/steam/.cef-enable-remote-debugging"
 }
 
 post_upgrade() {
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mPlease run 'millennium patch' to update the Millennium's start script.\e[0m"
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mSee https://docs.steambrew.app/users/installing for help.\e[0m"
+    post_install
+}
+
+post_remove() {
+    if [ -n "$SUDO_USER" ]; then
+        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+    else
+        USER_HOME="$HOME"
+    fi
+    
+    # Remove the symlink created during post_install
+    rm -f "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
+
+    # Disable Steam remote debugging
+    rm -f "${USER_HOME}/.steam/steam/.cef-enable-remote-debugging"
 }

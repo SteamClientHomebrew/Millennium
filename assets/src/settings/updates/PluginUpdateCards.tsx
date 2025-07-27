@@ -123,7 +123,7 @@ export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
 	};
 
 	return [
-		<SettingsDialogSubHeader style={{ marginTop: '20px' }}>Plugins</SettingsDialogSubHeader>,
+		<SettingsDialogSubHeader>Plugins</SettingsDialogSubHeader>,
 		pluginUpdates?.map((update: any, index: number) => (
 			<UpdateCard
 				update={{

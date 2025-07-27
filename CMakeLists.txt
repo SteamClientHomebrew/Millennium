@@ -8,12 +8,31 @@ configure_file(
   ${CMAKE_BINARY_DIR}/version.h     # Output header file
 )
 
+execute_process(
+    COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Define it as a preprocessor macro
+add_compile_definitions(GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
+message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
+
+# Add project root folder to preprocessor definitions
+add_compile_definitions(MILLENNIUM_ROOT="${CMAKE_SOURCE_DIR}")
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build")
   set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/assets")
 
   add_compile_definitions(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}")
   add_compile_definitions(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}")
+endif()
+
+if(DEFINED ENV{NIX_OS})
+  message(STATUS "Building Millennium for Nix")
+  set(NIX_BUILD ON)
 endif()
 
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
@@ -33,6 +52,10 @@ if(NOT APPLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 endif()
 
+if (APPLE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address -fno-omit-frame-pointer")
+endif()
+
 # Strip binary on release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
   if(NOT UNIX)
@@ -44,8 +67,11 @@ endif()
 
 project(Millennium LANGUAGES CXX)
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT NIX_BUILD)
   add_subdirectory(cli)
+  add_subdirectory(unix-hooks)
+elseif(UNIX AND APPLE)
+  add_subdirectory(darwin)
 endif()
 
 find_program(LSB_RELEASE_EXEC lsb_release)
@@ -67,6 +93,13 @@ elseif(UNIX)
     set(MILLENNIUM__PYTHON_ENV "$ENV{HOME}/.pyenv/versions/3.11.8")
     set(LIBPYTHON_RUNTIME_PATH "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
   else()
+    if(NIX_BUILD)
+      add_compile_definitions(_NIX_OS=ON)
+      add_compile_definitions(__NIX_SELF_PATH="$ENV{out}") 
+      add_compile_definitions(__NIX_SHIMS_PATH="$ENV{shims}")
+      add_compile_definitions(__NIX_ASSETS_PATH="$ENV{assets}")
+    endif()
+
     # Try to find required version of Python
     # Python guarantee to have API and ABI compatible within a same major and minor versions
     # Harden version range to to find only 3.11 python
@@ -264,7 +297,11 @@ if(WIN32)
 elseif(UNIX)
   # add_executable(Millennium "${SOURCE_FILES}")
   # add_compile_definitions(MILLENNIUM_EXECUTABLE)
-  add_library(Millennium SHARED "${SOURCE_FILES}")
+  if (APPLE)
+    add_executable(Millennium "${SOURCE_FILES}")
+  else()
+    add_library(Millennium SHARED "${SOURCE_FILES}")
+  endif()
   add_compile_definitions(MILLENNIUM_SHARED)
 
   target_compile_definitions(Millennium PRIVATE MILLENNIUM__PYTHON_ENV="${MILLENNIUM__PYTHON_ENV}")
@@ -308,6 +345,10 @@ endif()
 
 find_package(CURL REQUIRED) # used for web requests.
 target_link_libraries(Millennium CURL::libcurl)
+if(NIX_BUILD)
+  find_package(OpenSSL REQUIRED)
+  target_link_libraries(Millennium OpenSSL::SSL)
+endif()
 
 if(WIN32)
   target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp)

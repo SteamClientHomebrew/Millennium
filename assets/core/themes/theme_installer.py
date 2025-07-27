@@ -34,7 +34,7 @@ from util.use_system import use_system_libs
 from util.logger import logger
 
 import platform
-if platform.system() == "Windows":
+if platform.system() == "Windows" or platform.system() == "Darwin":
     import pygit2
 elif platform.system() == "Linux":
     import git
@@ -126,7 +126,7 @@ class ThemeInstaller:
         try:
             self.emit_message("Receiving remote objects...", 40, False)
 
-            if platform.system() == "Windows":
+            if platform.system() == "Windows" or platform.system() == "Darwin":
                 pygit2.clone_repository(f"https://github.com/{owner}/{repo}.git", path)
 
             elif platform.system() == "Linux":

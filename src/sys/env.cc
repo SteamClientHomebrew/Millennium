@@ -43,6 +43,60 @@
 #include <unistd.h>
 #include "fvisible.h"
 
+#if defined(__linux__) || defined(__APPLE__)
+extern char** environ;
+class environment 
+{
+    private:
+    static std::vector<std::unique_ptr<char[]>> allocated_strings;
+    
+    public:
+    static bool set(const std::string& name, const std::string& value) 
+    {
+        std::string strEnv = name + "=" + value;
+        
+        auto stored_string = std::make_unique<char[]>(strEnv.length() + 1);
+        std::strcpy(stored_string.get(), strEnv.c_str());
+        
+        for (int i = 0; environ[i] != nullptr; ++i) 
+        {
+            std::string current(environ[i]);
+            if (current.substr(0, name.length() + 1) == name + "=") 
+            {
+                environ[i] = stored_string.get();
+                allocated_strings.push_back(std::move(stored_string));
+                return true;
+            }
+        }
+        
+        return add(std::move(stored_string));
+    }
+    
+    private:
+    static bool add(std::unique_ptr<char[]> strEnv) 
+    {
+        int count = 0;
+        while (environ[count] != nullptr) count++;
+        
+        char** new_environ = new char*[count + 2];
+        
+        for (int i = 0; i < count; ++i) 
+        {
+            new_environ[i] = environ[i];
+        }
+        
+        new_environ[count] = strEnv.get();
+        new_environ[count + 1] = nullptr;
+        
+        environ = new_environ;
+        allocated_strings.push_back(std::move(strEnv));
+        
+        return true;
+    }
+};
+std::vector<std::unique_ptr<char[]>> environment::allocated_strings;
+#endif
+
 const void SetupEnvironmentVariables();
 
 void SetEnv(const std::string& key, const std::string& value) 
@@ -50,16 +104,7 @@ void SetEnv(const std::string& key, const std::string& value)
     #ifdef _WIN32
     _putenv_s(key.c_str(), value.c_str());  // Windows
     #else
-    setenv(key.c_str(), value.c_str(), 1);  // Linux/macOS (1 = overwrite existing)
-    #endif
-}
-    
-void UnsetEnv(const std::string& key) 
-{
-    #ifdef _WIN32
-    _putenv_s(key.c_str(), "");  // Windows: Setting to empty removes it
-    #else
-    unsetenv(key.c_str());  // Linux/macOS
+    environment::set(key, value); 
     #endif
 }
 
@@ -109,7 +154,11 @@ const void SetupEnvironmentVariables()
         #ifdef _WIN32
             const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
         #elif __linux__
-            const auto shimsPath = "/usr/share/millennium/shims";
+            #ifdef _NIX_OS
+                const auto shimsPath = fmt::format("{}/share/millennium/shims", __NIX_SHIMS_PATH);
+            #else
+                const auto shimsPath = "/usr/share/millennium/shims";
+            #endif
         #elif __APPLE__
             const auto shimsPath = "/usr/local/share/millennium/shims";
         #endif
@@ -122,7 +171,11 @@ const void SetupEnvironmentVariables()
         #ifdef _WIN32
             const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
         #elif __linux__
-            const auto assetsPath = "/usr/share/millennium/assets";
+            #ifdef _NIX_OS
+                const auto assetsPath = fmt::format("{}/share/millennium/assets", __NIX_ASSETS_PATH);
+            #else
+                const auto assetsPath = "/usr/share/millennium/assets";
+            #endif
         #elif __APPLE__
             const auto assetsPath = "/usr/local/share/millennium/assets";
         #endif
@@ -149,13 +202,22 @@ const void SetupEnvironmentVariables()
     const std::string stateDir  = GetEnvWithFallback("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
     const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
-
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
         std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
+
+    const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
   
     std::map<std::string, std::string> environment_unix = {
-        { "MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so" },
+        { "OPENSSL_CONF", "/dev/null"},
+        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : 
+        #ifdef _NIX_OS
+            fmt::format("{}/lib/millennium/libMillennium_x86.so", __NIX_SELF_PATH)
+        #else
+            "/usr/lib/millennium/libmillennium_x86.so"
+        #endif
+        },
+
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
 
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam",     homeDir) },
@@ -179,7 +241,7 @@ const void SetupEnvironmentVariables()
     const std::string configDir = fmt::format("{}/Library/Application Support", homeDir);
     const std::string dataDir   = fmt::format("{}/Library/Application Support", homeDir);
     const std::string stateDir  = fmt::format("{}/Library/Logs", homeDir);
-    const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
+    const static std::string pythonEnv = fmt::format("{}/Millennium/runtime", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
 
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
@@ -191,9 +253,9 @@ const void SetupEnvironmentVariables()
         { "LIBPYTHON_RUNTIME_PATH",  LIBPYTHON_RUNTIME_PATH },
 
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
-        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/millennium/plugins",    dataDir) },
-        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/millennium",            configDir) },
-        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/millennium",            stateDir) },
+        { "MILLENNIUM__PLUGINS_PATH",   fmt::format("{}/Millennium/plugins",    dataDir) },
+        { "MILLENNIUM__CONFIG_PATH",    fmt::format("{}/Millennium",            configDir) },
+        { "MILLENNIUM__LOGS_PATH",      fmt::format("{}/Millennium/logs",       stateDir) },
         { "MILLENNIUM__DATA_LIB",       dataLibPath },
         { "MILLENNIUM__SHIMS_PATH",     shimsPath },
         { "MILLENNIUM__ASSETS_PATH",    assetsPath },
@@ -207,6 +269,8 @@ const void SetupEnvironmentVariables()
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
     #endif 
+
+    const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
     
     for (const auto& [key, value] : environment)
     {
@@ -214,7 +278,7 @@ const void SetupEnvironmentVariables()
         #define RED "\033[31m"
         #define RESET "\033[0m"
 
-        std::cout << fmt::format("{}={}", key, value) << std::endl;
+        if (shouldLog) std::cout << fmt::format("{}={}", key, value) << std::endl;
         #endif
         SetEnv(key, value);
     }
