@@ -1,3 +1,12 @@
+## [2.26.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0...v2.26.1) (2025-07-28)
+
+
+### Bug Fixes
+
+* Delay load python runtime libraries ([a779d65](https://github.com/SteamClientHomebrew/Millennium/commit/a779d653802b7b7cf0f71a9deefd7ecfb2b55b7f))
+* Remove PE function exporter from release builds ([805bd11](https://github.com/SteamClientHomebrew/Millennium/commit/805bd110e7f4f465331e8a99ba4a40f46558fd2b))
+* revert python version update ([d1d3bda](https://github.com/SteamClientHomebrew/Millennium/commit/d1d3bda740e57167f17d8c7bdba6770ef11bbae2))
+
 # [2.26.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.25.1...v2.26.0) (2025-07-27)
 
 
