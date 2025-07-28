@@ -28,13 +28,36 @@
  * SOFTWARE.
  */
 
-import { pluginSelf } from '@steambrew/client';
+import { ConfirmModal, pluginSelf, showModal } from '@steambrew/client';
 import { Utils } from '../../utils';
 import { UpdateCard } from './UpdateCard';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
+import { updateMillennium } from '../../updateMillennium';
+import { useState } from 'react';
+import { formatString, locale } from '../../../locales';
 
 export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
 	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) return null;
+
+	const [isUpdateInProgress, setIsUpdateInProgress] = useState(pluginSelf?.millenniumUpdates?.updateInProgress || false);
+
+	const startUpdate = () => {
+		setIsUpdateInProgress(true);
+
+		showModal(
+			<ConfirmModal
+				strTitle={locale.millenniumUpdateSuccessTitle}
+				strDescription={formatString(locale.millenniumUpdateSuccessMessage, millenniumUpdates?.newVersion?.tag_name)}
+				bAlertDialog={true}
+			/>,
+			pluginSelf.mainWindow,
+			{ bNeverPopOut: false },
+		);
+	};
+
+	if (isUpdateInProgress) {
+		return null;
+	}
 
 	function VersionInformation() {
 		return [
@@ -59,7 +82,11 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 			isUpdating={false}
 			progress={0}
 			statusText={String()}
-			onUpdateClick={() => {}}
+			onUpdateClick={() => {
+				updateMillennium();
+				startUpdate();
+			}}
+			toolTipText={'Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
 		/>,
 	];
 };

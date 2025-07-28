@@ -35,6 +35,7 @@ import { OnMillenniumUpdate, OSType } from './types';
 import { PyUpdateMillennium } from './utils/ffi';
 import { MillenniumIcons } from './components/Icons';
 import { deferredSettingLabelClasses } from './utils/classes';
+import { updateMillennium } from './updateMillennium';
 
 /**
  * Notify the user about available updates in their library.
@@ -82,23 +83,6 @@ export class NotificationService {
 		});
 	}
 
-	async updateMillennium() {
-		const downloadUrl = pluginSelf.millenniumUpdates?.platformRelease?.browser_download_url;
-
-		if (!downloadUrl) {
-			toaster.toast({
-				title: `Millennium Update Error`,
-				body: `No download URL found for update.`,
-				logo: <IconsModule.ExclamationPoint className={deferredSettingLabelClasses.Icon} />,
-				duration: 5000,
-				critical: true,
-				sound: 3,
-			});
-		}
-
-		PyUpdateMillennium({ downloadUrl });
-	}
-
 	constructor() {
 		this.shouldNotifyLibraryUpdates = settingsManager.config.general.shouldShowThemePluginUpdateNotifications;
 		this.onMillenniumUpdates = settingsManager.config.general.onMillenniumUpdate;
@@ -118,7 +102,7 @@ export class NotificationService {
 
 		switch (this.onMillenniumUpdates) {
 			case OnMillenniumUpdate.AUTO_INSTALL: {
-				this.updateMillennium();
+				updateMillennium();
 				break;
 			}
 			case OnMillenniumUpdate.NOTIFY: {

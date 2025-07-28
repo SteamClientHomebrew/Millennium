@@ -105,9 +105,14 @@ class MillenniumUpdater:
             print("Invalid platform, can't find platform specific assets")
             return None
 
+    def is_update_in_progress():
+        update_flag_path = os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "ext", "update.flag")
+        return os.path.exists(update_flag_path) and os.path.getsize(update_flag_path) > 0
+
     def has_any_updates():
         # We don't actually handle updates here, that is done from the bootstrap module in %root%/win32
         return {
+            "updateInProgress": MillenniumUpdater.is_update_in_progress(),
             "hasUpdate": MillenniumUpdater.__has_updates,
             "newVersion": MillenniumUpdater.__latest_version,
             "platformRelease": MillenniumUpdater.find_asset(MillenniumUpdater.__latest_version) if MillenniumUpdater.__latest_version else None,

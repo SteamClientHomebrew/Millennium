@@ -134,5 +134,7 @@
 	"strWelcomeModalOKButton": "Got it!",
 	"strAbout": "About",
 	"strAboutVersion": "Millennium version",
-	"strAboutBuildDate": "Millennium build date"
+	"strAboutBuildDate": "Millennium build date",
+	"millenniumUpdateSuccessTitle": "Successfully updated!",
+	"millenniumUpdateSuccessMessage": "Successfully updated Millennium to {0}. Changes will take effect after a restart."
 }

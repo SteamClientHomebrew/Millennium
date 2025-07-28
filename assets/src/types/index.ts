@@ -195,6 +195,7 @@ export interface SettingsProps {
 	millenniumUpdates?: {
 		hasUpdate: boolean;
 		newVersion?: GitHubRelease;
+		updateInProgress: boolean;
 	};
 
 	buildDate: string;

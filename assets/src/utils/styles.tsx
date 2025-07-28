@@ -299,8 +299,9 @@ const styles = `
 }
 
 .MillenniumItem_Version {
-	color: var(--MillenniumTextColor-Muted);
+	color: #8b929a;
 	font: var(--MillenniumText-BodySmall);
+	margin-left: var(--MillenniumSpacing-Normal);
 }
 
 /**

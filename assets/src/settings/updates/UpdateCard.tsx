@@ -50,6 +50,7 @@ interface UpdateCardProps {
 	isUpdating: boolean;
 	progress: number;
 	statusText: string;
+	toolTipText?: string;
 	onUpdateClick: () => void;
 }
 
@@ -104,7 +105,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	private showInteractables() {
-		const { isUpdating, statusText, progress, onUpdateClick, update } = this.props;
+		const { isUpdating, statusText, progress, onUpdateClick, update, toolTipText } = this.props;
 
 		if (isUpdating) {
 			return (
@@ -119,7 +120,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		}
 
 		return (
-			<DesktopTooltip toolTipContent={`Update ${update.name}`} direction="left">
+			<DesktopTooltip toolTipContent={`Update ${toolTipText || update.name}`} direction="left">
 				<IconButton onClick={onUpdateClick}>
 					<IconsModule.Download key="download-icon" />
 				</IconButton>
