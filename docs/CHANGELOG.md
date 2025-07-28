@@ -1,3 +1,11 @@
+## [2.27.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.27.0...v2.27.1) (2025-07-28)
+
+
+### Bug Fixes
+
+* Fix Millennium updater in "Updates" tab not working properly ([f008f99](https://github.com/SteamClientHomebrew/Millennium/commit/f008f9983c95a639dcbd88f5ea9b10b81cd98566))
+* Possibly fix Millennium getting stuck at "Plugin 'core' finished delegating callback function..." for some users ([82f5ad7](https://github.com/SteamClientHomebrew/Millennium/commit/82f5ad71b38a3b04ff5293338edd62db71c47533))
+
 # [2.27.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.1...v2.27.0) (2025-07-28)
 
 
