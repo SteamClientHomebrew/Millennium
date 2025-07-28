@@ -1,3 +1,10 @@
+# [2.27.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.1...v2.27.0) (2025-07-28)
+
+
+### Features
+
+* Reduce binary size by removing static dependency exports ([3b47fdc](https://github.com/SteamClientHomebrew/Millennium/commit/3b47fdcb55eb8d8e906b59ce073565f2072387aa))
+
 ## [2.26.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.26.0...v2.26.1) (2025-07-28)
 
 
