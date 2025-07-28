@@ -355,7 +355,7 @@ std::unique_ptr<std::thread> g_millenniumThread;
  * @param fdwReason The reason for calling the DLL.
  * @return True if the DLL was successfully loaded, false otherwise.
  */
-int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+extern "C" __attribute__((dllexport)) int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
     switch (fdwReason) 
     {
