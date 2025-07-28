@@ -41,7 +41,7 @@
 #include <internal_logger.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "fvisible.h"
+
 
 #if defined(__linux__) || defined(__APPLE__)
 extern char** environ;

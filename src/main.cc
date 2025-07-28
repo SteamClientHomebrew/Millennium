@@ -284,13 +284,9 @@ void OnTerminate()
 const static void EntryMain() 
 {
     #if defined(_WIN32)
-    SetProcessDPIAware();
     SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
-    if (!IsDebuggerPresent()) 
-    {
-        std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
-    }
+    std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
     #endif
     
     /** Handle signal interrupts (^C) */

@@ -33,7 +33,7 @@
 #include <iostream>
 #include <tuple>
 #include "plugin_logger.h"
-#include "fvisible.h"
+
 
 using json = nlohmann::json;
 
@@ -45,7 +45,7 @@ using json = nlohmann::json;
  * 
  * @return { errorMessageString, tracebackString }
  */
-MILLENNIUM std::tuple<std::string, std::string> Python::ActiveExceptionInformation() 
+std::tuple<std::string, std::string> Python::ActiveExceptionInformation() 
 {
     PyObject* typeObj = nullptr;
     PyObject* valueObj = nullptr;
@@ -397,7 +397,7 @@ PyObject* InvokePythonFunction(const nlohmann::json& jsonData)
  *
  * The function ensures that the GIL is properly acquired and released before and after execution.
  */
-MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json functionCall)
+Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json functionCall)
 {
     const bool hasBackend = PythonManager::GetInstance().HasBackend(pluginName);
 
@@ -481,7 +481,7 @@ MILLENNIUM Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginN
  * 
  * The function ensures that the GIL is properly acquired and released before and after execution.
  */
-MILLENNIUM void Python::CallFrontEndLoaded(std::string pluginName)
+void Python::CallFrontEndLoaded(std::string pluginName)
 {
     const bool hasBackend = PythonManager::GetInstance().HasBackend(pluginName);
 

@@ -36,7 +36,7 @@
 #include "encoding.h"
 #include <functional>
 #include "locals.h"
-#include "fvisible.h"
+
 #include <fmt/core.h>
 #include "co_spawn.h"
 #include <secure_socket.h>
@@ -60,7 +60,7 @@ typedef websocketpp::server<websocketpp::config::asio> socketServer;
  * - Integer: Returned as an integer.
  * - Error: Returns a failure message and a flag indicating the failure.
  */
-MILLENNIUM nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
+nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 {
     if (!message["data"].contains("pluginName")) 
     {
@@ -102,7 +102,7 @@ MILLENNIUM nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
  * This function evaluates the `plugin._front_end_loaded()` method using the provided plugin name and
  * returns a response indicating the success of the operation.
  */
-MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
+nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 {
     const std::string pluginName = message["data"]["pluginName"];
 
@@ -142,7 +142,7 @@ MILLENNIUM nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
  * such as `CallServerMethod` or `OnFrontEndLoaded`. If any exceptions are caught, they are sent back
  * as error messages.
  */
-MILLENNIUM nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload) 
+nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload) 
 {
     try
     {

@@ -41,11 +41,11 @@
 #endif
 #include "locals.h"
 #include <env.h>
-#include "fvisible.h"
+
 
 OutputLogger Logger;
 
-MILLENNIUM std::string OutputLogger::GetLocalTime()
+std::string OutputLogger::GetLocalTime()
 {
 	std::stringstream bufferStream;
 	auto now = std::chrono::system_clock::now();
@@ -57,13 +57,13 @@ MILLENNIUM std::string OutputLogger::GetLocalTime()
 	return fmt::format("[{}]", bufferStream.str());
 }
 
-MILLENNIUM void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
+void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 	std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
 }
 
-MILLENNIUM OutputLogger::OutputLogger()
+OutputLogger::OutputLogger()
 {
 	#ifdef _WIN32
 	{
@@ -77,7 +77,7 @@ MILLENNIUM OutputLogger::OutputLogger()
 	#endif                 
 }
 
-MILLENNIUM void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
+void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
 {
 	std::lock_guard<std::mutex> lock(logMutex);
 

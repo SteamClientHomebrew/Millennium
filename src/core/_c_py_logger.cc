@@ -32,7 +32,7 @@
 #include <Python.h>
 #include <stdio.h>
 #include <fstream>
-#include "fvisible.h"
+
 
 std::vector<BackendLogger*> g_loggerList;
 
@@ -47,7 +47,7 @@ std::vector<BackendLogger*> g_loggerList;
  * 
  * @returns {PyObject*} - A pointer to the new LoggerObject instance.
  */ 
-MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
     LoggerObject *self;
     self = (LoggerObject *)type->tp_alloc(type, 0);
@@ -102,7 +102,7 @@ MILLENNIUM PyObject* LoggerObject_new(PyTypeObject *type, PyObject *args, PyObje
  * 
  * @param {LoggerObject*} self - The LoggerObject instance to deallocate.
  */
-MILLENNIUM void LoggerObject_dealloc(LoggerObject *self)
+void LoggerObject_dealloc(LoggerObject *self)
 {
     /** Don't delete the logger here since it's shared in g_loggerList */
     Py_TYPE(self)->tp_free((PyObject *)self);
@@ -118,7 +118,7 @@ MILLENNIUM void LoggerObject_dealloc(LoggerObject *self)
  * 
  * @returns {PyObject*} - A pointer to the new LoggerObject instance.
  */ 
-MILLENNIUM PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
+PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
 {
     const char *message;
     if (!PyArg_ParseTuple(args, "s", &message)) 
@@ -141,7 +141,7 @@ MILLENNIUM PyObject* LoggerObject_log(LoggerObject *self, PyObject *args)
  * 
  * @returns {PyObject*} - A pointer to the new LoggerObject instance.
  */ 
-MILLENNIUM PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
+PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
 {
     const char *message;
     if (!PyArg_ParseTuple(args, "s", &message)) 
@@ -164,7 +164,7 @@ MILLENNIUM PyObject* LoggerObject_error(LoggerObject *self, PyObject *args)
  * 
  * @returns {PyObject*} - A pointer to the new LoggerObject instance.
  */ 
-MILLENNIUM PyObject* LoggerObject_warning(LoggerObject *self, PyObject *args)
+PyObject* LoggerObject_warning(LoggerObject *self, PyObject *args)
 {
     const char *message;
     if (!PyArg_ParseTuple(args, "s", &message)) 
@@ -236,7 +236,7 @@ static struct PyModuleDef g_loggerModuleDef
  * 
  * @returns {PyObject*} - A pointer to the logger module.
  */
-MILLENNIUM PyObject* PyInit_Logger(void)
+PyObject* PyInit_Logger(void)
 {
     if (PyType_Ready(&LoggerType) < 0)
     {
@@ -268,7 +268,7 @@ MILLENNIUM PyObject* PyInit_Logger(void)
  * This function iterates through the global logger list and deletes each logger.
  * It then clears the list to ensure no memory leaks occur.
  */
-MILLENNIUM void CleanupLoggers()
+void CleanupLoggers()
 {
     for (auto logger : g_loggerList) {
         delete logger;

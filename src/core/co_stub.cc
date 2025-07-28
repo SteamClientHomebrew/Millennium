@@ -44,7 +44,7 @@
 #include "encoding.h"
 #include "url_parser.h"
 #include <env.h>
-#include "fvisible.h"
+
 #include <secure_socket.h>
 
 static std::string addedScriptOnNewDocumentId = "";
@@ -88,7 +88,7 @@ public:
  * Error Handling:
  * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
  */
-MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
+const std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
 {
     std::string scriptModuleArray;
     std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
@@ -127,7 +127,7 @@ MILLENNIUM const std::string GetBootstrapModule(const std::vector<std::string> s
  * - If the `sys` module cannot be imported, an error is logged.
  * - If the `sys.path` attribute cannot be accessed, no action is taken.
  */
-MILLENNIUM const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages) 
+const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages) 
 {
     PyObject *sysModule = PyImport_ImportModule("sys");
     if (!sysModule) 
@@ -168,7 +168,7 @@ MILLENNIUM const void AppendSysPathModules(std::vector<std::filesystem::path> si
  * - If the `site` module cannot be imported, the error is printed and logged.
  * - If the `addsitedir` function cannot be retrieved or called, an error is printed and logged.
  */
-MILLENNIUM void AddSitePackagesDirectory(std::filesystem::path customPath)
+void AddSitePackagesDirectory(std::filesystem::path customPath)
 {
     PyObject *siteModule = PyImport_ImportModule("site");
 
@@ -201,7 +201,7 @@ MILLENNIUM void AddSitePackagesDirectory(std::filesystem::path customPath)
  * 
  * @param global_dict The global dictionary of the Python interpreter.
  */
-MILLENNIUM void StartPluginBackend(PyObject* global_dict, std::string pluginName) 
+void StartPluginBackend(PyObject* global_dict, std::string pluginName) 
 {
     const auto PrintError = [&pluginName]() 
     {
@@ -263,7 +263,7 @@ MILLENNIUM void StartPluginBackend(PyObject* global_dict, std::string pluginName
  * - If the builtins dictionary cannot be retrieved, a `RuntimeError` is raised.
  * - If creating the placeholder function fails, a `RuntimeError` is raised.
  */
-MILLENNIUM void SetupPluginSettings()
+void SetupPluginSettings()
 {
     PyObject* builtins = PyEval_GetBuiltins();
     if (!builtins) 
@@ -314,7 +314,7 @@ MILLENNIUM void SetupPluginSettings()
  * - If the `__builtins__` dictionary cannot be retrieved, a `RuntimeError` is raised.
  * - If setting the `MILLENNIUM_PLUGIN_SECRET_NAME` in `__builtins__` fails, a `RuntimeError` is raised.
  */
-MILLENNIUM const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName) 
+const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName) 
 {
     /** Set the secret name in the global dictionary, i.e the global scope */
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
@@ -344,7 +344,7 @@ MILLENNIUM const void SetPluginSecretName(PyObject* globalDictionary, const std:
  *
  * Both paths are converted to strings and set as Python variables in the global dictionary.
  */
-MILLENNIUM const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin) 
+const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin) 
 {
     PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.pluginBaseDirectory.generic_string().c_str()));
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
@@ -367,7 +367,7 @@ MILLENNIUM const void SetPluginEnvironmentVariables(PyObject* globalDictionary, 
  * Error Handling:
  * - If any step of the process fails (e.g., file opening, module import), the error is logged and the backend load is marked as failed.
  */
-MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) 
+const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) 
 {
     PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
     const auto backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
@@ -500,7 +500,7 @@ MILLENNIUM const void CoInitializer::BackendStartCallback(SettingsStore::PluginT
  *
  * The constructed module is returned as a string.
  */
-MILLENNIUM const std::string ConstructOnLoadModule() 
+const std::string ConstructOnLoadModule() 
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
@@ -527,7 +527,7 @@ MILLENNIUM const std::string ConstructOnLoadModule()
  * 
  * @note this function is only applicable to Windows
  */
-MILLENNIUM const void UnPatchSharedJSContext()
+const void UnPatchSharedJSContext()
 {
     #ifdef _WIN32
     Logger.Log("Restoring SharedJSContext...");
@@ -604,7 +604,7 @@ MILLENNIUM const void UnPatchSharedJSContext()
  * Error Handling:
  * - If any issues occur during the message processing, errors are logged with details.
  */
-MILLENNIUM void OnBackendLoad(bool reloadFrontend)
+void OnBackendLoad(bool reloadFrontend)
 {
     UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
@@ -678,7 +678,7 @@ MILLENNIUM void OnBackendLoad(bool reloadFrontend)
  * This function injects the frontend shims by registering a callback function to be called when the backend is loaded.
  * 
  */
-MILLENNIUM const void CoInitializer::InjectFrontendShims(bool reloadFrontend) 
+const void CoInitializer::InjectFrontendShims(bool reloadFrontend) 
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, reloadFrontend));
@@ -691,7 +691,7 @@ MILLENNIUM const void CoInitializer::InjectFrontendShims(bool reloadFrontend)
  * 
  * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
  */
-MILLENNIUM const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
+const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
 {
     pluginLoader->InjectWebkitShims();
 

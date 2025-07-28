@@ -30,7 +30,7 @@
 
 #pragma once
 #include <nlohmann/json.hpp>
-#include "fvisible.h"
+
 
 namespace IPCMain 
 {
@@ -46,5 +46,5 @@ namespace IPCMain
 		INTERNAL_ERROR
 	};
 
-	MILLENNIUM nlohmann::json HandleEventMessage(nlohmann::json jsonPayload);
+	nlohmann::json HandleEventMessage(nlohmann::json jsonPayload);
 }

@@ -38,7 +38,6 @@
 #include "csp_bypass.h"
 #include "url_parser.h"
 #include "env.h"
-#include "fvisible.h"
 #include <secure_socket.h>
 #include "ipc.h"
 #include <thread>

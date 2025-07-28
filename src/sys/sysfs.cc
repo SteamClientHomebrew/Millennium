@@ -33,7 +33,7 @@
 #include "internal_logger.h"
 #include <fmt/core.h>
 #include <iostream>
-#include "fvisible.h"
+
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -47,7 +47,7 @@ namespace FileSystem = std::filesystem;
 
 namespace SystemIO {
 
-    MILLENNIUM std::filesystem::path GetSteamPath()
+    std::filesystem::path GetSteamPath()
     {
         #ifdef _WIN32
         {
@@ -76,7 +76,7 @@ namespace SystemIO {
         #endif
     }
 
-    MILLENNIUM std::filesystem::path GetInstallPath()
+    std::filesystem::path GetInstallPath()
     {
         #if defined(__linux__) || defined(__APPLE__)
             return GetEnv("MILLENNIUM__CONFIG_PATH");
@@ -85,7 +85,7 @@ namespace SystemIO {
         #endif
     }
 
-    MILLENNIUM nlohmann::json ReadJsonSync(const std::string& filename, bool* success)
+    nlohmann::json ReadJsonSync(const std::string& filename, bool* success)
     {
         std::ifstream outputLogStream(filename);
 
@@ -119,7 +119,7 @@ namespace SystemIO {
         }
     }
 
-    MILLENNIUM std::string ReadFileSync(const std::string& filename)
+    std::string ReadFileSync(const std::string& filename)
     {
         std::ifstream outputLogStream(filename);
 
@@ -133,7 +133,7 @@ namespace SystemIO {
         return fileContent;
     }
 
-    MILLENNIUM std::vector<char> ReadFileBytesSync(const std::string& filePath) 
+    std::vector<char> ReadFileBytesSync(const std::string& filePath) 
     {
         std::ifstream file(filePath, std::ios::binary | std::ios::ate);
         if (!file) 
@@ -153,7 +153,7 @@ namespace SystemIO {
         return buffer;
     }
 
-    MILLENNIUM void WriteFileSync(const std::filesystem::path& filePath, std::string content)
+    void WriteFileSync(const std::filesystem::path& filePath, std::string content)
     {
         std::ofstream outFile(filePath);
 
@@ -164,7 +164,7 @@ namespace SystemIO {
         }
     }
 
-    MILLENNIUM void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
+    void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
     {
         Logger.Log(fmt::format("writing file to: {}", filePath.string()));
 
@@ -185,7 +185,7 @@ namespace SystemIO {
         fileStream.close();
     }
 
-    MILLENNIUM std::optional<std::string> GetMillenniumPreloadPath()
+    std::optional<std::string> GetMillenniumPreloadPath()
     {
         auto dirPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH"));
         auto preloadPath = dirPath / "millennium.js";

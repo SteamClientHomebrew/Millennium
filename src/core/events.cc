@@ -31,7 +31,7 @@
 #include "co_stub.h"
 #include "internal_logger.h"
 #include "co_spawn.h"
-#include "fvisible.h"
+
 
 /**
  * Retrieves a comma-separated string of backend plugins that failed to load.
@@ -44,7 +44,7 @@
  * indicates failure (`BACKEND_LOAD_FAILED`), and appends their names to the result string.
  * If no plugins fail to load, it returns `"none"`.
  */
-MILLENNIUM std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
+std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
 {
     std::string failedBackends;
 
@@ -70,7 +70,7 @@ MILLENNIUM std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
  * indicates success (`BACKEND_LOAD_SUCCESS`), and appends their names to the result string.
  * If no plugins are successfully loaded, it returns `"none"`.
  */
-MILLENNIUM std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
+std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
 {
     std::string successfulBackends;
 
@@ -92,7 +92,7 @@ MILLENNIUM std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr
  *         the number of enabled plugins), otherwise `false`.
  * 
  */
-MILLENNIUM bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
+bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     const std::size_t pluginCount = settingsStore->GetEnabledBackends().size();
@@ -124,7 +124,7 @@ MILLENNIUM bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
  * Error Handling:
  * - If the backend status is not ready, the function does nothing.
  */
-MILLENNIUM void CoInitializer::BackendCallbacks::StatusDispatch()
+void CoInitializer::BackendCallbacks::StatusDispatch()
 {
     if (this->EvaluateBackendStatus())
     {
@@ -152,7 +152,7 @@ MILLENNIUM void CoInitializer::BackendCallbacks::StatusDispatch()
  *
  * @param {PluginTypeSchema} plugin - The plugin whose loading status is being processed.
  */
-MILLENNIUM void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
+void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 {
     if (plugin.event == BACKEND_LOAD_FAILED)
     {
@@ -176,7 +176,7 @@ MILLENNIUM void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema 
  * 
  * @param {PluginTypeSchema} plugin - The plugin whose unloading status is being processed.
  */
-MILLENNIUM void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown)
+void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown)
 {
     assert(plugin.pluginName.empty() == false);
 
@@ -201,7 +201,7 @@ MILLENNIUM void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchem
 /**
  * Resets the backend callbacks by clearing all emitted plugins, listeners, and missed events.
  */
-MILLENNIUM void CoInitializer::BackendCallbacks::Reset() 
+void CoInitializer::BackendCallbacks::Reset() 
 {
     emittedPlugins.clear();
     listeners.clear();
@@ -211,7 +211,7 @@ MILLENNIUM void CoInitializer::BackendCallbacks::Reset()
 /**
  * Registers a callback for the backend load event.
  */
-MILLENNIUM void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback) 
+void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback) 
 {
     Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
     listeners[ON_BACKEND_READY_EVENT].push_back(callback);

@@ -42,7 +42,7 @@
 #include "internal_logger.h"
 #include "plugin_logger.h"
 #include <env.h>
-#include "fvisible.h"
+
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -58,7 +58,7 @@ std::shared_ptr<InterpreterMutex> g_threadTerminateFlag = std::make_shared<Inter
  * 
  * @note ID's are managed by the caller. 
  */
-MILLENNIUM bool Sockets::PostShared(nlohmann::json data) 
+bool Sockets::PostShared(nlohmann::json data) 
 {
     if (sharedJsContextSessionId.empty()) 
     {
@@ -75,7 +75,7 @@ MILLENNIUM bool Sockets::PostShared(nlohmann::json data)
  * 
  * @note ID's are managed by the caller.
  */
-MILLENNIUM bool Sockets::PostGlobal(nlohmann::json data) 
+bool Sockets::PostGlobal(nlohmann::json data) 
 {
     if (browserClient == nullptr) 
     {
@@ -90,7 +90,7 @@ MILLENNIUM bool Sockets::PostGlobal(nlohmann::json data)
  * @brief Shutdown the browser connection.
  * 
  */
-MILLENNIUM void Sockets::Shutdown()
+void Sockets::Shutdown()
 {
     try
     {
@@ -106,7 +106,7 @@ MILLENNIUM void Sockets::Shutdown()
     }
 }
 
-class MILLENNIUM CEFBrowser
+class CEFBrowser
 {
     HttpHookManager& webKitHandler;
     bool m_sharedJsConnected = false;
@@ -114,7 +114,7 @@ class MILLENNIUM CEFBrowser
     std::chrono::system_clock::time_point m_startTime;
 public:
 
-    MILLENNIUM const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
+    const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
     {
         const auto json = nlohmann::json::parse(msg->get_payload());
 
@@ -148,12 +148,12 @@ public:
         webKitHandler.DispatchSocketMessage(json);
     }
 
-    MILLENNIUM const void SetupSharedJSContext()
+    const void SetupSharedJSContext()
     {
         Sockets::PostGlobal({ { "id", 0 }, { "method", "Target.getTargets" } });
     }
 
-    MILLENNIUM const void onSharedJsConnect()
+    const void onSharedJsConnect()
     {
         std::thread([this]() {
             Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
@@ -161,7 +161,7 @@ public:
         }).detach();
     }
 
-    MILLENNIUM const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
+    const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
     {
         m_startTime   = std::chrono::system_clock::now();
         browserClient = client; 
@@ -173,10 +173,10 @@ public:
         webKitHandler.SetupGlobalHooks();
     }
 
-    MILLENNIUM CEFBrowser() : webKitHandler(HttpHookManager::get()) {}
+    CEFBrowser() : webKitHandler(HttpHookManager::get()) {}
 };
 
-MILLENNIUM const void PluginLoader::Initialize()
+const void PluginLoader::Initialize()
 {
     
     m_settingsStorePtr  = std::make_unique<SettingsStore>();
@@ -186,13 +186,13 @@ MILLENNIUM const void PluginLoader::Initialize()
     m_settingsStorePtr->InitializeSettingsStore();
 }
 
-MILLENNIUM PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) 
+PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) 
     : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr)
 {
     this->Initialize();
 }
 
-MILLENNIUM std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
+std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
 {
     SocketHelpers::ConnectSocketProps browserProps;
 
@@ -208,7 +208,7 @@ MILLENNIUM std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* ce
  * @brief Injects webkit shims into the SteamUI.    
  * All hooks are internally stored in the function and are removed upon re-injection. 
  */
-MILLENNIUM const void PluginLoader::InjectWebkitShims() 
+const void PluginLoader::InjectWebkitShims() 
 {
     Logger.Log("Injecting webkit shims...");
     
@@ -252,7 +252,7 @@ MILLENNIUM const void PluginLoader::InjectWebkitShims()
     }
 }
 
-MILLENNIUM const void PluginLoader::StartFrontEnds()
+const void PluginLoader::StartFrontEnds()
 {
     CEFBrowser cefBrowserHandler;
     SocketHelpers socketHelpers;
@@ -286,7 +286,7 @@ MILLENNIUM const void PluginLoader::StartFrontEnds()
 }
 
 /* debug function, just for developers */
-MILLENNIUM const void PluginLoader::PrintActivePlugins()
+const void PluginLoader::PrintActivePlugins()
 {
     std::string pluginList = "Plugins: { ";
     for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it)
@@ -305,7 +305,7 @@ MILLENNIUM const void PluginLoader::PrintActivePlugins()
  * All packages are grouped and shared when needed, to prevent wasting space.
  * @see assets\pipx\main.py
  */
-MILLENNIUM const void StartPreloader(PythonManager& manager)
+const void StartPreloader(PythonManager& manager)
 {
     std::promise<void> promise;
 
@@ -361,7 +361,7 @@ MILLENNIUM const void StartPreloader(PythonManager& manager)
     manager.DestroyPythonInstance("pipx");
 }
 
-MILLENNIUM const void PluginLoader::StartBackEnds(PythonManager& manager)
+const void PluginLoader::StartBackEnds(PythonManager& manager)
 {
     Logger.Log("Starting plugin backends...");
     StartPreloader(manager);
