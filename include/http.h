@@ -79,7 +79,7 @@ namespace Http
                 }
 
                 #if defined(_WIN32)
-                std::this_thread::sleep_for(std::chrono::milliseconds(3));
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 #elif defined(__linux__) || defined(__APPLE__)
 
                 if (g_threadTerminateFlag->flag.load())
