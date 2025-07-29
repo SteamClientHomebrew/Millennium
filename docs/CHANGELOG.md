@@ -1,3 +1,10 @@
+# [2.28.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.27.1...v2.28.0) (2025-07-29)
+
+
+### Features
+
+* Remove Millennium quick access until further notice. ([ac542d7](https://github.com/SteamClientHomebrew/Millennium/commit/ac542d76aca866999217ed9c1a2499de86cbcecd))
+
 ## [2.27.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.27.0...v2.27.1) (2025-07-28)
 
 
