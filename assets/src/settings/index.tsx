@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Classes, DialogBody, IconsModule, SidebarNavigation, SidebarNavigationPage } from '@steambrew/client';
+import { Classes, DialogBody, IconsModule, Navigation, SidebarNavigation, SidebarNavigationPage } from '@steambrew/client';
 import { locale } from '../../locales';
 import { settingsClasses } from '../utils/classes';
 import { GeneralViewModal } from './general';
@@ -40,7 +40,6 @@ import { UpdateContextProvider } from './updates/useUpdateContext';
 import { RenderLogViewer } from './logs';
 import { ConfigProvider } from '../config-provider';
 import Styles from '../utils/styles';
-import { useQuickAccessStore } from '../quick-access/quickAccessStore';
 import { FaPaintRoller } from 'react-icons/fa';
 import { PiPlugsFill } from 'react-icons/pi';
 
@@ -130,7 +129,7 @@ function RenderSettingsModal(_: any, retObj: any) {
 		retObj.props.menuItems.splice(index + 1, 0, {
 			name: 'Millennium',
 			onClick: () => {
-				useQuickAccessStore.getState().openQuickAccess();
+				Navigation.Navigate('/millennium/settings');
 			},
 			visible: true,
 		});
