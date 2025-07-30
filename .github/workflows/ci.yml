@@ -109,7 +109,7 @@ jobs:
                   github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
                   wait-for-completion: true
                   parameters: |
-                      version: ${{ steps.get_version.outputs.version }}
+                      version: ${{ toJson(steps.get_version.outputs.version) }}
 
     build-linux:
         permissions:
