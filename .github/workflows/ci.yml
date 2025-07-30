@@ -40,6 +40,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: ⚙️ Get Next Version
+              id: get_version
               run: . scripts\ci\win32\version.ps1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -91,11 +92,24 @@ jobs:
                   mkdir D:/a/env/ext/bin
 
             - name: 📤 Upload Build Artifact
+              id: upload-unsigned-artifact
               uses: actions/upload-artifact@v4
               with:
                   include-hidden-files: true
                   name: millennium-windows
                   path: D:/a/env/
+
+            - id: sign_artifact
+              uses: signpath/github-action-submit-signing-request@v1.1
+              with:
+                  api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+                  organization-id: 'f90532fc-e58c-4863-bc0d-72623720335f'
+                  project-slug: 'Millennium'
+                  signing-policy-slug: 'test-signing'
+                  github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
+                  wait-for-completion: true
+                  parameters: |
+                      version: ${{ steps.get_version.outputs.version }}
 
     build-linux:
         permissions:
