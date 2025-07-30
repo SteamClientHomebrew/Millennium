@@ -35,6 +35,8 @@ import { IProgressProps } from '../../types';
 import { StartPluginInstaller } from '../../components/PluginInstaller';
 import { API_URL } from '../../utils/globals';
 import { formatString, locale } from '../../../locales';
+import { Logger } from '../../utils/Logger';
+import { IncrementPluginDownloadFromId, IncrementThemeDownloadFromId } from '../../utils/update-bump';
 
 export enum InstallType {
 	Plugin,
@@ -202,6 +204,10 @@ export class Installer {
 
 			switch (type) {
 				case InstallType.Plugin: {
+					Logger.Log(`Installing plugin with ID: ${id}`);
+
+					IncrementPluginDownloadFromId(id);
+
 					const result = await StartPluginInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal, refetchDataCb });
 					if (!result) return;
 
@@ -209,6 +215,10 @@ export class Installer {
 					break;
 				}
 				case InstallType.Theme: {
+					Logger.Log(`Installing theme with ID: ${id}`);
+
+					IncrementThemeDownloadFromId(id);
+
 					const result = await StartThemeInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal, refetchDataCb });
 					if (!result) return;
 
