@@ -35,19 +35,35 @@ import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { updateMillennium } from '../../updateMillennium';
 import { useState } from 'react';
 import { formatString, locale } from '../../../locales';
+import { OSType } from '../../types';
+import Markdown from 'markdown-to-jsx';
 
 export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
 	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) return null;
 
 	const [isUpdateInProgress, setIsUpdateInProgress] = useState(pluginSelf?.millenniumUpdates?.updateInProgress || false);
 
-	const startUpdate = () => {
+	const startUpdateWindows = () => {
 		setIsUpdateInProgress(true);
 
 		showModal(
 			<ConfirmModal
 				strTitle={locale.millenniumUpdateSuccessTitle}
 				strDescription={formatString(locale.millenniumUpdateSuccessMessage, millenniumUpdates?.newVersion?.tag_name)}
+				bAlertDialog={true}
+			/>,
+			pluginSelf.mainWindow,
+			{ bNeverPopOut: false },
+		);
+	};
+
+	const startUpdateLinux = () => {
+		showModal(
+			<ConfirmModal
+				strTitle={'Update Millennium'}
+				strDescription={
+					<Markdown>{`To update Millennium to ${millenniumUpdates?.newVersion?.tag_name}, run the following command in your terminal:\n\n\`${pluginSelf.millenniumLinuxUpdateScript}\``}</Markdown>
+				}
 				bAlertDialog={true}
 			/>,
 			pluginSelf.mainWindow,
@@ -83,8 +99,12 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 			progress={0}
 			statusText={String()}
 			onUpdateClick={() => {
-				updateMillennium();
-				startUpdate();
+				if (pluginSelf.platformType === OSType.Windows) {
+					updateMillennium();
+					startUpdateWindows();
+				} else if (pluginSelf.platformType === OSType.Linux) {
+					startUpdateLinux();
+				}
 			}}
 			toolTipText={'Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
 		/>,

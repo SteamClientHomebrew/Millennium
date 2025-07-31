@@ -199,6 +199,8 @@ export interface SettingsProps {
 	};
 
 	buildDate: string;
+	platformType: OSType;
+	millenniumLinuxUpdateScript?: string;
 }
 
 export interface ColorProp {
@@ -221,6 +223,7 @@ export enum UpdaterOptionProps {
 export enum OSType {
 	Windows,
 	Linux,
+	Darwin, // macOS
 }
 
 export interface IProgressProps {

@@ -27,7 +27,7 @@
 # SOFTWARE.
 
 from enum import Enum
-import json, os
+import os, platform
 from themes.accent_color import Colors
 
 class OnMillenniumUpdate(Enum):
@@ -41,7 +41,7 @@ default_config = {
 		"injectCSS": True,
 		"checkForMillenniumUpdates": True,
 		"checkForPluginAndThemeUpdates": True,
-		"onMillenniumUpdate": OnMillenniumUpdate.AUTO_INSTALL,
+		"onMillenniumUpdate": OnMillenniumUpdate.AUTO_INSTALL if platform.system() == "Windows" else OnMillenniumUpdate.NOTIFY,
 		"shouldShowThemePluginUpdateNotifications": True,
 		"accentColor": "DEFAULT_ACCENT_COLOR",
 	},

@@ -78,6 +78,8 @@ async function initializeMillennium(settings: SettingsProps) {
 		hasCheckedForUpdates: settings?.hasCheckedForUpdates ?? false,
 		buildDate: settings?.buildDate,
 		millenniumUpdates: settings?.millenniumUpdates ?? {},
+		platformType: settings?.platformType,
+		millenniumLinuxUpdateScript: settings?.millenniumLinuxUpdateScript,
 	});
 
 	patchMissedDocuments();

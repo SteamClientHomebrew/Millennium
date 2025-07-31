@@ -28,15 +28,15 @@
 
 import enum
 import os
-import traceback
 import Millennium
 
 import json
 import threading
-from typing import Callable, Dict, Any, Mapping, Optional
+from typing import Callable, Dict, Any, Optional
 
-from config.default_settings import default_config
+from config.default_settings import OnMillenniumUpdate, default_config
 from util.logger import logger
+import platform
 
 class ConfigManager:
     _instance = None
@@ -61,6 +61,7 @@ class ConfigManager:
 
         self.load_from_file()
         self.set_defaults()
+        self.verify_config()
 
     def get(self, key: str, default: Any = None) -> Any:
         with self._lock:
@@ -268,6 +269,26 @@ class ConfigManager:
             _merge(self._data, default_config, "")
             logger.log("Setting default settings")
             self._auto_save()
+
+    def verify_config(self):
+        logger.log("Verifying configuration settings...")
+
+        with self._lock:
+            system = platform.system()
+            if system not in ("Linux", "Darwin"):
+                logger.log("skipping verify_config on non-Linux/macOS system")
+                return 
+            
+            try:
+                on_update = self["general.onMillenniumUpdate"]
+                logger.log(f"Current onMillenniumUpdate setting: {on_update}")
+
+                if on_update == OnMillenniumUpdate.AUTO_INSTALL.value:
+                    logger.warn("OnMillenniumUpdate is set to AUTO_INSTALL on a non-Windows system. Changing to NOTIFY.")
+                    self.set("general.onMillenniumUpdate", OnMillenniumUpdate.NOTIFY.value)
+
+            except KeyError as e:
+                logger.error(f"KeyError in verify_config: {e}")
 
 # Helper function to get the singleton instance easily
 def get_config() -> ConfigManager:

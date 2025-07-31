@@ -31,7 +31,7 @@
 import { DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, Toggle } from '@steambrew/client';
 import React from 'react';
 import { locale } from '../../../locales';
-import { OnMillenniumUpdate } from '../../types';
+import { OnMillenniumUpdate, OSType } from '../../types';
 import { RenderAccentColorPicker } from '../../components/AccentColorPicker';
 import { useMillenniumState, useUpdateConfig } from '../../config-provider';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
@@ -51,8 +51,11 @@ export const GeneralViewModal: React.FC = () => {
 	const OnMillenniumUpdateOpts = [
 		{ label: locale.eOnMillenniumUpdateDoNothing, data: OnMillenniumUpdate.DO_NOTHING },
 		{ label: locale.eOnMillenniumUpdateNotify, data: OnMillenniumUpdate.NOTIFY },
-		{ label: locale.eOnMillenniumUpdateAutoInstall, data: OnMillenniumUpdate.AUTO_INSTALL },
 	];
+
+	if (pluginSelf?.platformType === OSType.Windows) {
+		OnMillenniumUpdateOpts.push({ label: locale.eOnMillenniumUpdateAutoInstall, data: OnMillenniumUpdate.AUTO_INSTALL });
+	}
 
 	return (
 		<>

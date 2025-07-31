@@ -26,7 +26,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import Millennium, json 
+import Millennium, json, platform
 from config.manager import get_config
 
 from util.ipc_functions import GetSystemColors, GetOperatingSystem, SetClipboardContent, GetEnvironmentVar, ChangePluginStatus, GetPluginBackendLogs, ShouldShowUpdateModal
@@ -57,19 +57,23 @@ pluginInstaller = PluginInstaller()
 def GetMillenniumConfig():
     enabledPlugins = [plugin["data"]["name"] for plugin in json.loads(find_all_plugins()) if plugin["enabled"]]
 
+    platform_type = {"Windows": 0, "Linux": 1, "Darwin": 2}.get(platform.system(), 0)
+
     return {
-        "accent_color":              theme_config.get_accent_color(), 
-        "conditions":                config["themes.conditions"] if "themes.conditions" in config else None, 
-        "active_theme":              theme_config.get_active_theme(),
-        "settings":                  config._sanitize(),
-        "steamPath":                 Millennium.steam_path(),
-        "installPath":               Millennium.get_install_path(),
-        "millenniumVersion":         Millennium.version(),
-        "enabledPlugins":            enabledPlugins,
-        "updates":                   updater.get_cached_updates(),
-        "hasCheckedForUpdates":      updater.get_has_checked_for_updates(),
-        "buildDate":                 Millennium.__internal_get_build_date(),
-        "millenniumUpdates":         MillenniumUpdater.has_any_updates(),
+        "accent_color":                theme_config.get_accent_color(), 
+        "conditions":                  config["themes.conditions"] if "themes.conditions" in config else None, 
+        "active_theme":                theme_config.get_active_theme(),
+        "settings":                    config._sanitize(),
+        "steamPath":                   Millennium.steam_path(),
+        "installPath":                 Millennium.get_install_path(),
+        "millenniumVersion":           Millennium.version(),
+        "enabledPlugins":              enabledPlugins,
+        "updates":                     updater.get_cached_updates(),
+        "hasCheckedForUpdates":        updater.get_has_checked_for_updates(),
+        "buildDate":                   Millennium.__internal_get_build_date(),
+        "millenniumUpdates":           MillenniumUpdater.has_any_updates(),
+        "platformType":                platform_type,
+        "millenniumLinuxUpdateScript": os.getenv("MILLENNIUM__UPDATE_SCRIPT_PROMPT", "unknown"),
     }
 
 
