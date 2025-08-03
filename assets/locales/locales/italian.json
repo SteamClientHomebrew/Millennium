@@ -106,7 +106,7 @@
   "errorFailedToFetchTheme": "Impossibile recuperare le info del tema: ",
   "errorFailedToFetchPlugin": "Impossibile recuperare le info del plugin: ",
   "errorInvalidID": "L'ID è vuoto o non valido",
-  "warnProceedInstallation": "Sei sicuro di voler porcedere con l'installazione?",
+  "warnProceedInstallation": "Sei sicuro di voler procedere con l'installazione?",
   "strMillenniumUpdate": "Aggiornamenti di Millennium",
   "strByAuthor": "Di {0}",
   "strUpdatingTheme": "Aggiornamento del tema...",
@@ -134,5 +134,7 @@
   "strWelcomeModalOKButton": "Ricevuto!",
   "strAbout": "Informazioni",
   "strAboutVersion": "Versione di Millennium",
-  "strAboutBuildDate": "Data della build di Millennium"
+  "strAboutBuildDate": "Data della build di Millennium",
+	"millenniumUpdateSuccessTitle": "Aggiornato con successo!",
+	"millenniumUpdateSuccessMessage": "Millennium è stato aggiornato con successo alla {0}. I cambiamenti avranno effetto dopo il riavvio."
 }
