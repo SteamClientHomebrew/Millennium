@@ -135,6 +135,6 @@
   "strAbout": "Informazioni",
   "strAboutVersion": "Versione di Millennium",
   "strAboutBuildDate": "Data della build di Millennium",
-	"millenniumUpdateSuccessTitle": "Aggiornato con successo!",
-	"millenniumUpdateSuccessMessage": "Millennium è stato aggiornato con successo alla {0}. I cambiamenti avranno effetto dopo il riavvio."
+  "millenniumUpdateSuccessTitle": "Aggiornato con successo!",
+  "millenniumUpdateSuccessMessage": "Millennium è stato aggiornato con successo alla {0}. I cambiamenti avranno effetto dopo il riavvio."
 }
