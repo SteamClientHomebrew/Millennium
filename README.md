@@ -62,6 +62,17 @@ For normal users, installing via the installers makes the most sense. However wh
 
 &nbsp;
 
+## Official Plugin Repository
+
+Millennium is designed to be fully extensible through plugins.  
+To ensure version compatibility and safety, we maintain a separate, curated [PluginDatabase](https://github.com/SteamClientHomebrew/PluginDatabase) repository.  
+
+All plugins in the PluginDatabase are versioned and reviewed to work seamlessly with the current Millennium release, reducing the risk of conflicts or instability when adding new features.
+
+**For more related information, checkout the [plugin database](https://github.com/SteamClientHomebrew/PluginDatabase)**.
+
+&nbsp;
+
 ## Adding Spoken Language Support
 
 Take a look [here](./assets#adding-languages), it quickly covers what files you'll need to edit in order to add your spoken language to Millennium!
