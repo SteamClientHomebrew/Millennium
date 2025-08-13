@@ -116,10 +116,12 @@ class PluginUpdater:
             extracted_folder = extracted_dirs[0]
             target_folder = Path(self.plugins_path) / name
 
-            # Replace existing plugin folder
-            if target_folder.exists():
-                shutil.rmtree(target_folder)
-            extracted_folder.rename(target_folder)
+            # Merge the extracted folder with the target folder
+            if not target_folder.exists():
+                target_folder.mkdir(parents=True)
+            shutil.copytree(extracted_folder, target_folder, dirs_exist_ok=True)
+            # Cleanup
+            shutil.rmtree(extracted_folder)
 
             logger.log(f"Plugin {name} installed successfully to {target_folder}")
 
