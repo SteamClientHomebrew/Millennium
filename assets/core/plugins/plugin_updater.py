@@ -120,8 +120,6 @@ class PluginUpdater:
             if not target_folder.exists():
                 target_folder.mkdir(parents=True)
             shutil.copytree(extracted_folder, target_folder, dirs_exist_ok=True)
-            # Cleanup
-            shutil.rmtree(extracted_folder)
 
             logger.log(f"Plugin {name} installed successfully to {target_folder}")
 
