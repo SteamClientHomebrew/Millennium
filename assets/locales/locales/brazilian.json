@@ -128,7 +128,7 @@
   "optionInstallTheme": "Instalar um tema",
   "optionBrowseLocalFiles": "Procurar arquivos locais",
   "tooltipCheckForMillenniumUpdates": "A verificação de atualizações está desativada, esta configuração não terá efeito.",
-  "strWelcomeModalTitle": "Bem-vindo ao Millennium 👋🇧🇷",
+  "strWelcomeModalTitle": "Bem-vindo ao Millennium 👋",
   "strWelcomeModalDescription": "Estamos muito felizes em recebê-lo na comunidade! Como esta é sua primeira vez abrindo o programa, este é o momento perfeito para apresentar rapidamente alguns recursos importantes.\n\nSe ainda não conhece, a maioria das configurações do Millennium podem ser acessadas em Steam → Millennium.\n\nLá você encontrará instruções sobre onde instalar temas/plugins, como ativar/desativar certos recursos e muito mais. E lembre-se, você sempre pode [ver nossa documentação](https://docs.steambrew.app) se tiver alguma dúvida.",
   "strWelcomeModalOKButton": "Entendi!",
   "strAbout": "Sobre",
