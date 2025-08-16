@@ -133,7 +133,7 @@
   "strWelcomeModalOKButton": "Entendi!",
   "strAbout": "Sobre",
   "strAboutVersion": "Versão do Millennium",
-  "strAboutBuildDate": "Data da build do Millennium"
+  "strAboutBuildDate": "Data da build do Millennium",
   "millenniumUpdateSuccessTitle": "Atualizado com sucesso!",
   "millenniumUpdateSuccessMessage": "Millennium atualizado com sucesso para {0}. As alterações entrarão em vigor após a reinicialização."
 }
