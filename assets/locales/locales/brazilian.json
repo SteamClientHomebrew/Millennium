@@ -71,7 +71,7 @@
   "strDontShowAgain": "Não mostre isso novamente",
   "strAnUpdateIsAvailable": "Uma atualização está disponível para o Millennium! Estamos mostrando esta mensagem porque você optou por receber atualizações. Se não quiser mais receber essas mensagens, você pode ativar as atualizações automáticas ou desativar totalmente as atualizações nas configurações do Millennium.",
   "updatePanelCheckForUpdates": "Verifique se há atualizações",
-  "updatePanelShowUpdateNotifications": "Mostrar notificações de atualização"
+  "updatePanelShowUpdateNotifications": "Mostrar notificações de atualização",
   "HoldOn": "Peraê!",
   "updateFailedPluginRunning": "O Millennium não pode atualizar \"{0}\" enquanto ele está em execução, você precisa desativá-lo primeiro.",
   "themeAndPluginUpdateNotification": "O Millennium encontrou {0} disponíveis {1}",
