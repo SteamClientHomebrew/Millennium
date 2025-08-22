@@ -136,5 +136,5 @@
   "strAboutClientVersion": "客户端 API 版本",
   "strAboutBrowserVersion": "浏览器 API 版本",
   "strAboutBuildDate": "Millennium 构建日期",
-  "strAboutLoaderBuildDate": "加载器构建日期",
+  "strAboutLoaderBuildDate": "加载器构建日期"
 }
