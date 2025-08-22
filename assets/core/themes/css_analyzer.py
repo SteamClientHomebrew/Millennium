@@ -70,7 +70,7 @@ def convert_to_hex(color, type: ColorTypes):
     if type in {ColorTypes.RawRGB, ColorTypes.RawRGBA}:
         values = [int(x.strip()) for x in color.split(',')]
     elif type in {ColorTypes.RGB, ColorTypes.RGBA}:
-        values = [int(x.strip()) for x in color[color.index('(')+1:-1].split(',')]
+        values = [int(float(x.strip())) for x in color[color.index('(')+1:-1].split(',')]
     
     if type in {ColorTypes.RawRGB, ColorTypes.RGB}:
         r, g, b = values[:3]
