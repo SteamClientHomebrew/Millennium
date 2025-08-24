@@ -4,7 +4,9 @@ This sub-project is responsible for everything you see from within the Steam Cli
 
 ### Adding Languages
 
-To add your spoken language to Millennium, fork this repository and place your language json (based on the [english locale](./src/locales/locales/english.json)) among the [current locales](./src/locales/locales/). Name the file `{your_language}.json` and append the target file to the `localizationFiles` in [this file](./src/locales/index.ts).
+Only languages officially supported by the Steam can be added to the Millennium. Check the list [here](https://partner.steamgames.com/doc/store/localization/languages) in the `Full Platform Supported Languages` section.
+
+To add your spoken language to Millennium, fork this repository and place your language json (based on the [english locale](./locales/locales/english.json)) among the [current locales](./locales/locales/). Name the file `{your_language}.json` and append the target file to the `localizationFiles` in [this file](./locales/index.ts).
 
 Millennium is only maintaining the english language, and if any changes are made to the english locales that don't reflect on a target language, contributors are responsible for updating them.
 
