@@ -1,24 +1,24 @@
 /**
  * ==================================================
- *   _____ _ _ _             _                     
- *  |     |_| | |___ ___ ___|_|_ _ _____           
- *  | | | | | | | -_|   |   | | | |     |          
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
- * 
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
  * ==================================================
- * 
+ *
  * Copyright (c) 2025 Project Millennium
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,16 +28,15 @@
  * SOFTWARE.
  */
 
-#include "ffi.h"
 #include "co_spawn.h"
+#include "ffi.h"
 #include "loader.h"
 #include <future>
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
-
-struct EvalResult 
+struct EvalResult
 {
     nlohmann::basic_json<> json;
     bool successfulCall;
@@ -52,7 +51,7 @@ struct EvalResult
  * @returns {EvalResult} - The result of the evaluation, containing the evaluated value and a success flag.
  *
  * This function sends a message via a socket to request JavaScript evaluation. It listens for a response,
- * processes the result, and stores it in `evalResult`. The function waits for the result using a 
+ * processes the result, and stores it in `evalResult`. The function waits for the result using a
  * condition variable before returning.
  *
  * Error handling:
@@ -64,76 +63,75 @@ struct EvalResult
  * - Uses a `std::mutex` and `std::condition_variable` to ensure safe access to shared data.
  * - The listener is removed once a response is received.
  */
-const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval) 
+const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 {
     std::mutex mtx;
     std::condition_variable cv;
     EvalResult evalResult;
-    bool resultReady = false;  // Flag to indicate when the result is ready
+    bool resultReady = false; // Flag to indicate when the result is ready
 
-    bool messageSendSuccess = Sockets::PostShared(nlohmann::json({ 
-        { "id", SHARED_JS_EVALUATE_ID },
-        { "method", "Runtime.evaluate" }, 
-        { "params", {
-            { "expression", javaScriptEval }, 
-            { "awaitPromise", true }
-        }} 
+    bool messageSendSuccess = Sockets::PostShared(nlohmann::json({
+        {"id",     SHARED_JS_EVALUATE_ID                                   },
+        {"method", "Runtime.evaluate"                                      },
+        {"params", {{"expression", javaScriptEval}, {"awaitPromise", true}}}
     }));
 
-    if (!messageSendSuccess) 
+    if (!messageSendSuccess)
     {
         throw std::runtime_error("couldn't send message to socket");
     }
 
-    std::string listenerId = JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "ExecuteOnSharedJsContext", [&](const nlohmann::json& eventMessage, std::string listenerId) 
-    {
-        std::lock_guard<std::mutex> lock(mtx);  // Lock mutex for safe access
-
-        nlohmann::json response = eventMessage;
-        std::string method = response.value("method", std::string());
-
-        if (method.find("Debugger") != std::string::npos || method.find("Console") != std::string::npos) 
+    std::string listenerId = JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage(
+        "msg", "ExecuteOnSharedJsContext",
+        [&](const nlohmann::json& eventMessage, std::string listenerId)
         {
-            return;
-        }
+            std::lock_guard<std::mutex> lock(mtx); // Lock mutex for safe access
 
-        try 
-        {
-            if (!response.contains("id") || (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID))
+            nlohmann::json response = eventMessage;
+            std::string method = response.value("method", std::string());
+
+            if (method.find("Debugger") != std::string::npos || method.find("Console") != std::string::npos)
             {
                 return;
             }
 
-            if (response["result"].contains("exceptionDetails"))
+            try
             {
-                const std::string classType = response["result"]["exceptionDetails"]["exception"]["className"];
+                if (!response.contains("id") || (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID))
+                {
+                    return;
+                }
 
-                // Custom exception type thrown from CallFrontendMethod in executor.cc
-                if (classType == "MillenniumFrontEndError") 
-                    evalResult = { "__CONNECTION_ERROR__", false };
+                if (response["result"].contains("exceptionDetails"))
+                {
+                    const std::string classType = response["result"]["exceptionDetails"]["exception"]["className"];
+
+                    // Custom exception type thrown from CallFrontendMethod in executor.cc
+                    if (classType == "MillenniumFrontEndError")
+                        evalResult = {"__CONNECTION_ERROR__", false};
+                    else
+                        evalResult = {response["result"]["exceptionDetails"]["exception"]["description"], false};
+                }
                 else
-                    evalResult = { response["result"]["exceptionDetails"]["exception"]["description"], false };
-            }
-            else 
-            {
-                evalResult = { response["result"]["result"], true };
-            }
+                {
+                    evalResult = {response["result"]["result"], true};
+                }
 
-            resultReady = true;
-            cv.notify_one();  // Signal that result is ready
-            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-        }
-        catch (nlohmann::detail::exception& ex) 
-        {
-            LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
-        }
-    });
+                resultReady = true;
+                cv.notify_one(); // Signal that result is ready
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+            }
+            catch (nlohmann::detail::exception& ex)
+            {
+                LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+            }
+        });
 
     // Wait for the result to be ready
     std::unique_lock<std::mutex> lock(mtx);
     cv.wait(lock, [&] { return resultReady; });
 
-    if (!evalResult.successfulCall && evalResult.json == "__CONNECTION_ERROR__") 
+    if (!evalResult.successfulCall && evalResult.json == "__CONNECTION_ERROR__")
     {
         throw std::runtime_error("frontend is not loaded!");
     }
@@ -144,42 +142,53 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 /**
  * Escapes special characters in a JavaScript string.
  */
-#include <string>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <string>
 
 std::string EscapeJavaScriptString(const std::string& input)
 {
     std::ostringstream escaped;
-    
+
     for (size_t i = 0; i < input.length(); ++i)
     {
         unsigned char c = static_cast<unsigned char>(input[i]);
-        
+
         switch (c)
         {
-            case '\"': escaped << "\\\""; break;
-            case '\\': escaped << "\\\\"; break;
-            case '\b': escaped << "\\b"; break;
-            case '\f': escaped << "\\f"; break;
-            case '\n': escaped << "\\n"; break;
-            case '\r': escaped << "\\r"; break;
-            case '\t': escaped << "\\t"; break;
+            case '\"':
+                escaped << "\\\"";
+                break;
+            case '\\':
+                escaped << "\\\\";
+                break;
+            case '\b':
+                escaped << "\\b";
+                break;
+            case '\f':
+                escaped << "\\f";
+                break;
+            case '\n':
+                escaped << "\\n";
+                break;
+            case '\r':
+                escaped << "\\r";
+                break;
+            case '\t':
+                escaped << "\\t";
+                break;
             default:
                 if (c < 0x20)
                 {
                     // Escape control characters as \uXXXX
-                    escaped << "\\u"
-                            << std::hex << std::uppercase
-                            << std::setw(4) << std::setfill('0')
-                            << static_cast<int>(c);
+                    escaped << "\\u" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(c);
                 }
                 else if (c == 0xE2 && i + 2 < input.length())
                 {
                     // Check for UTF-8 encoded U+2028 (0xE2 0x80 0xA8) and U+2029 (0xE2 0x80 0xA9)
                     unsigned char c1 = static_cast<unsigned char>(input[i + 1]);
                     unsigned char c2 = static_cast<unsigned char>(input[i + 2]);
-                    
+
                     if (c1 == 0x80 && c2 == 0xA8)
                     {
                         escaped << "\\u2028";
@@ -202,7 +211,7 @@ std::string EscapeJavaScriptString(const std::string& input)
                 break;
         }
     }
-    
+
     return escaped.str();
 }
 
@@ -211,7 +220,7 @@ std::string EscapeJavaScriptString(const std::string& input)
  *
  * @param {const char*} plugin - The name of the plugin containing the JavaScript function.
  * @param {const char*} methodName - The name of the method to be called on the plugin.
- * @param {std::vector<JavaScript::JsFunctionConstructTypes>} fnParams - A list of function parameters, 
+ * @param {std::vector<JavaScript::JsFunctionConstructTypes>} fnParams - A list of function parameters,
  *        each containing a type and value.
  * @returns {std::string} - A formatted JavaScript function call string.
  *
@@ -229,41 +238,41 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
 {
     std::string strFunctionFormatted = fmt::format("PLUGIN_LIST['{}'].{}(", plugin, methodName);
 
-    std::map<std::string, std::string> boolMap
-    {
-        { "True", "true" },
-        { "False", "false" }
+    std::map<std::string, std::string> boolMap{
+        {"True",  "true" },
+        {"False", "false"}
     };
 
-    for (auto iterator = fnParams.begin(); iterator != fnParams.end(); ++iterator) 
+    for (auto iterator = fnParams.begin(); iterator != fnParams.end(); ++iterator)
     {
         auto& param = *iterator;
 
         switch (param.type)
         {
-            case JavaScript::Types::String: 
+            case JavaScript::Types::String:
             {
                 strFunctionFormatted += fmt::format("\"{}\"", EscapeJavaScriptString(param.pluginName));
                 break;
             }
-            case JavaScript::Types::Boolean: 
+            case JavaScript::Types::Boolean:
             {
                 strFunctionFormatted += boolMap[param.pluginName];
                 break;
             }
-            default: 
+            default:
             {
                 strFunctionFormatted += param.pluginName;
                 break;
             }
         }
 
-        if (std::next(iterator) != fnParams.end()) 
+        if (std::next(iterator) != fnParams.end())
         {
             strFunctionFormatted += ", ";
         }
     }
-    strFunctionFormatted += ");"; return strFunctionFormatted;
+    strFunctionFormatted += ");";
+    return strFunctionFormatted;
 }
 
 /**
@@ -272,7 +281,7 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
  * @param {std::string} script - The JavaScript code to be executed.
  * @returns {PyObject*} - A Python object representing the evaluation result.
  *
- * This function sends the script for evaluation using `ExecuteOnSharedJsContext()`, processes the response, 
+ * This function sends the script for evaluation using `ExecuteOnSharedJsContext()`, processes the response,
  * and converts the returned JavaScript value into an appropriate Python type:
  * - JavaScript strings → `PyUnicode_FromString`
  * - JavaScript booleans → `PyBool_FromLong`
@@ -286,11 +295,11 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
  */
 PyObject* JavaScript::EvaluateFromSocket(std::string script)
 {
-    try 
+    try
     {
         EvalResult response = ExecuteOnSharedJsContext(script);
 
-        if (!response.successfulCall) 
+        if (!response.successfulCall)
         {
             PyErr_SetString(PyExc_RuntimeError, response.json.get<std::string>().c_str());
             return NULL;
@@ -298,12 +307,14 @@ PyObject* JavaScript::EvaluateFromSocket(std::string script)
 
         std::string type = response.json["type"];
 
-        if      (type == "string")  return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
-        else if (type == "boolean") return PyBool_FromLong     (response.json["value"]);
-        else if (type == "number")  return PyLong_FromLong     (response.json["value"]);
+        if (type == "string")
+            return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
+        else if (type == "boolean")
+            return PyBool_FromLong(response.json["value"]);
+        else if (type == "number")
+            return PyLong_FromLong(response.json["value"]);
         else
             return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
-
     }
     catch (nlohmann::detail::exception& ex)
     {

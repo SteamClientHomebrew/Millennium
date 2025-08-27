@@ -1,24 +1,24 @@
 /**
  * ==================================================
- *   _____ _ _ _             _                     
- *  |     |_| | |___ ___ ___|_|_ _ _____           
- *  | | | | | | | -_|   |   | | | |     |          
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
- * 
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
  * ==================================================
- * 
+ *
  * Copyright (c) 2025 Project Millennium
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,17 +29,18 @@
  */
 
 #include "locals.h"
+#include <fmt/core.h>
 #include <fstream>
 #include <internal_logger.h>
-#include <fmt/core.h>
 #include <iostream>
 
+
 #ifdef _WIN32
-#include <winsock2.h>
 #include <windows.h>
+#include <winsock2.h>
+
 #endif
 #include <env.h>
-
 
 namespace FileSystem = std::filesystem;
 
@@ -53,7 +54,7 @@ SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::I
         std::ofstream outputFile(path.string());
     }
 
-    try 
+    try
     {
         this->file = mINI::INIFile(path.string());
 
@@ -66,7 +67,7 @@ SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::I
     }
 }
 
-/** 
+/**
  * @brief Set a setting in the settings store.
  * The setting key will be placed in the `Settings` section of the INI file.
  */
@@ -109,7 +110,7 @@ std::vector<std::string> SettingsStore::ParsePluginList()
     return enabledPlugins;
 }
 
-/** 
+/**
  * @brief Convert a vector of strings to a single string.
  * INI files don't support arrays, so we need to convert the vector to a string.
  * We use a pipe delimiter to separate the plugins.
@@ -125,7 +126,7 @@ std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
     return strEnabledPlugins.substr(0, strEnabledPlugins.size() - 1);
 }
 
-/** 
+/**
  * @brief Initialize and optionally fix the settings store.
  */
 int SettingsStore::InitializeSettingsStore()
@@ -145,9 +146,9 @@ int SettingsStore::InitializeSettingsStore()
     return 0;
 }
 
-/** 
+/**
  * @brief Toggle the status of a plugin.
- * 
+ *
  * @param pluginName The name of the plugin.
  * @param enabled The status of the plugin.
  */
@@ -177,7 +178,7 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
     return true;
 }
 
-/** 
+/**
  * @brief Check if a plugin is enabled.
  * @param plugin_name The name of the plugin.
  */
@@ -195,7 +196,7 @@ bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
 
 /**
  * @brief Lint the plugin data to ensure that it contains the required fields.
- * 
+ *
  * @param json The JSON object to lint.
  * @param pluginName The name of the plugin.
  */
@@ -203,9 +204,9 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
 {
     /** Find a total list of all plugin.json keys in `./plugin-schema.json` */
     const std::map<std::string, bool> pluginFields = {
-        { "name", true },
-        { "description", false },
-        { "common_name", false },
+        {"name",        true },
+        {"description", false},
+        {"common_name", false},
     };
 
     for (const auto& field : pluginFields)
@@ -228,8 +229,8 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
 
 /**
  * @brief Get the internal data for a plugin.
- * 
- * @param json The JSON object from the plugins plugin.json file. 
+ *
+ * @param json The JSON object from the plugins plugin.json file.
  * @param entry The directory entry for the plugin.
  * @return SettingsStore::PluginTypeSchema The plugin data.
  */
@@ -240,13 +241,13 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
 
     /** Check if the plugin json contains all the required fields */
     LintPluginData(json, pluginDirName);
-    
+
     plugin.pluginJson = json;
     plugin.pluginName = json["name"];
-    plugin.pluginBaseDirectory       = entry.path();
-    plugin.backendAbsoluteDirectory  = entry.path() / json.value("backend", "backend") / "main.py";
+    plugin.pluginBaseDirectory = entry.path();
+    plugin.backendAbsoluteDirectory = entry.path() / json.value("backend", "backend") / "main.py";
     plugin.frontendAbsoluteDirectory = entry.path() / ".millennium" / "Dist" / "index.js";
-    plugin.webkitAbsolutePath        = entry.path() / ".millennium" / "Dist" / "webkit.js";
+    plugin.webkitAbsolutePath = entry.path() / ".millennium" / "Dist" / "webkit.js";
 
     return plugin;
 }
@@ -254,7 +255,7 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
 /**
  * @brief Insert the Millennium modules into the plugin list.
  * As the Millennium modules are internal, they are not stored in the plugins directory and needs to be added manually.
- * 
+ *
  * @param plugins The list of plugins to insert the Millennium modules into.
  */
 void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins)
@@ -278,10 +279,10 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
 
         plugin.pluginJson = pluginJson;
         plugin.pluginName = pluginJson["name"];
-        plugin.pluginBaseDirectory       = entry.path();
-        plugin.backendAbsoluteDirectory  = entry.path() / pluginJson.value("backend", "backend") / "main.py";
+        plugin.pluginBaseDirectory = entry.path();
+        plugin.backendAbsoluteDirectory = entry.path() / pluginJson.value("backend", "backend") / "main.py";
         plugin.frontendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "index.js";
-        plugin.webkitAbsolutePath        = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "webkit.js";
+        plugin.webkitAbsolutePath = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "webkit.js";
         plugin.isInternal = true; /** Internal plugin */
 
         plugins.push_back(plugin);
@@ -375,11 +376,11 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
     return enabledPlugins;
 }
 
-/** 
+/**
  * @brief Get all the enabled backends from the plugin list.
- * 
- * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false. 
- * Not all enabled plugins have backends. 
+ *
+ * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false.
+ * Not all enabled plugins have backends.
  */
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
 {

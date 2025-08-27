@@ -1,24 +1,24 @@
 /**
  * ==================================================
- *   _____ _ _ _             _                     
- *  |     |_| | |___ ___ ___|_|_ _ _____           
- *  | | | | | | | -_|   |   | | | |     |          
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
- * 
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
  * ==================================================
- * 
+ *
  * Copyright (c) 2025 Project Millennium
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,19 +29,19 @@
  */
 
 #pragma once
-#include <Python.h>
-#include <memory>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <chrono>
-#include <iomanip>
-#include <fmt/core.h>
-#include <fmt/color.h>
-#include "locals.h"
-#include "internal_logger.h"
-#include <vector>
 #include "env.h"
+#include "internal_logger.h"
+#include "locals.h"
+#include <Python.h>
+#include <chrono>
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <vector>
 
 #define RED "\033[31m"
 #define GREEN "\033[32m"
@@ -52,21 +52,23 @@
 #define WHITE "\033[37m"
 #define RESET "\033[0m"
 
-class BackendLogger 
+class BackendLogger
 {
-public:
-    enum LogLevel {
+  public:
+    enum LogLevel
+    {
         _INFO,
         _WARN,
         _ERROR
     };
 
-    struct LogEntry {
+    struct LogEntry
+    {
         std::string message;
         LogLevel level;
     };
 
-private:
+  private:
     std::ofstream file;
     std::string filename;
     std::string pluginName;
@@ -98,18 +100,17 @@ private:
         std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
         std::tm localeTime = *std::localtime(&timeNow);
 
-        int year  = localeTime.tm_year + 1900;
+        int year = localeTime.tm_year + 1900;
         int month = localeTime.tm_mon + 1;
-        int day   = localeTime.tm_mday;
-        int hour  = localeTime.tm_hour;
-        int min   = localeTime.tm_min;
-        int sec   = localeTime.tm_sec;
+        int day = localeTime.tm_mday;
+        int hour = localeTime.tm_hour;
+        int min = localeTime.tm_min;
+        int sec = localeTime.tm_sec;
 
         return fmt::format("[{}-{}-{} @ {}:{}:{}]", year, month, day, hour, min, sec);
     }
 
-public:
-
+  public:
     BackendLogger(const std::string& pluginName) : pluginName(pluginName)
     {
         this->filename = (std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / fmt::format("{}_log.log", pluginName)).generic_string();
@@ -119,16 +120,16 @@ public:
         file.flush();
     }
 
-    ~BackendLogger() 
+    ~BackendLogger()
     {
         file.close();
     }
 
-    void Log(const std::string& message, bool onlyBuffer = false) 
-    {        
+    void Log(const std::string& message, bool onlyBuffer = false)
+    {
         std::string formatted = fmt::format("{} ", GetPluginName());
 
-        if (!onlyBuffer) 
+        if (!onlyBuffer)
         {
             std::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", GetLocalTime(), formatted) << message << "\n";
 
@@ -136,10 +137,10 @@ public:
             file.flush();
         }
 
-        logBuffer.push_back({ WHITE + GetLocalTime(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", _INFO });
+        logBuffer.push_back({WHITE + GetLocalTime(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", _INFO});
     }
 
-    void Warn(const std::string& message, bool onlyBuffer = false) 
+    void Warn(const std::string& message, bool onlyBuffer = false)
     {
         if (!onlyBuffer)
         {
@@ -150,12 +151,12 @@ public:
             file.flush();
         }
 
-        logBuffer.push_back({ WHITE + GetLocalTime(true) + YELLOW + " " + GetPluginName() + " " + message + RESET + "\n", _WARN });
+        logBuffer.push_back({WHITE + GetLocalTime(true) + YELLOW + " " + GetPluginName() + " " + message + RESET + "\n", _WARN});
     }
 
-    void Error(const std::string& message, bool onlyBuffer = false) 
+    void Error(const std::string& message, bool onlyBuffer = false)
     {
-        if (!onlyBuffer) 
+        if (!onlyBuffer)
         {
             std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
             std::cout << COL_RED << formatted << COL_RESET << '\n';
@@ -164,48 +165,54 @@ public:
             file.flush();
         }
 
-        logBuffer.push_back({ RED + message + RESET, _ERROR });
+        logBuffer.push_back({RED + message + RESET, _ERROR});
     }
 
-    void Print(const std::string& message) 
+    void Print(const std::string& message)
     {
         file << message;
         file.flush();
 
-        logBuffer.push_back({ message, _INFO });
+        logBuffer.push_back({message, _INFO});
     }
 
-    std::vector<LogEntry> CollectLogs() 
+    std::vector<LogEntry> CollectLogs()
     {
         return logBuffer;
     }
 
-    std::string GetPluginName(bool upperCase = true) 
-    { 
-        const auto toUpper = [](const std::string& str) 
+    std::string GetPluginName(bool upperCase = true)
+    {
+        const auto toUpper = [](const std::string& str)
         {
             std::string result = str;
             std::transform(result.begin(), result.end(), result.begin(), ::toupper);
             return result;
         };
 
-        return upperCase ? toUpper(pluginName) : pluginName;    
+        return upperCase ? toUpper(pluginName) : pluginName;
     }
 };
 
 extern std::vector<BackendLogger*> g_loggerList;
 
-static void AddLoggerMessage(const std::string pluginName, const std::string message, BackendLogger::LogLevel level) 
+static void AddLoggerMessage(const std::string pluginName, const std::string message, BackendLogger::LogLevel level)
 {
-    for (auto logger : g_loggerList) 
+    for (auto logger : g_loggerList)
     {
-        if (logger->GetPluginName(false) == pluginName) 
+        if (logger->GetPluginName(false) == pluginName)
         {
-            switch (level) 
+            switch (level)
             {
-                case BackendLogger::_INFO:  logger->Log(message, true);   break;
-                case BackendLogger::_WARN:  logger->Warn(message, true);  break;
-                case BackendLogger::_ERROR: logger->Error(message, true); break;
+                case BackendLogger::_INFO:
+                    logger->Log(message, true);
+                    break;
+                case BackendLogger::_WARN:
+                    logger->Warn(message, true);
+                    break;
+                case BackendLogger::_ERROR:
+                    logger->Error(message, true);
+                    break;
             }
             return;
         }
@@ -213,25 +220,40 @@ static void AddLoggerMessage(const std::string pluginName, const std::string mes
 
     BackendLogger* newLogger = new BackendLogger(pluginName);
 
-    switch (level) 
+    switch (level)
     {
-        case BackendLogger::_INFO:  newLogger->Log(message, true);   break;
-        case BackendLogger::_WARN:  newLogger->Warn(message, true);  break;
-        case BackendLogger::_ERROR: newLogger->Error(message, true); break;
+        case BackendLogger::_INFO:
+            newLogger->Log(message, true);
+            break;
+        case BackendLogger::_WARN:
+            newLogger->Warn(message, true);
+            break;
+        case BackendLogger::_ERROR:
+            newLogger->Error(message, true);
+            break;
     }
 
     g_loggerList.push_back(newLogger);
 }
 
-static const void InfoToLogger (const std::string pluginNme, const std::string message) { AddLoggerMessage(pluginNme, message, BackendLogger::_INFO);  }
-static const void WarnToLogger (const std::string pluginNme, const std::string message) { AddLoggerMessage(pluginNme, message, BackendLogger::_WARN);  }
-static const void ErrorToLogger(const std::string pluginNme, const std::string message) { AddLoggerMessage(pluginNme, message, BackendLogger::_ERROR); }
-
-static const void RawToLogger(const std::string pluginName, const std::string message) 
+static const void InfoToLogger(const std::string pluginNme, const std::string message)
 {
-    for (auto logger : g_loggerList) 
+    AddLoggerMessage(pluginNme, message, BackendLogger::_INFO);
+}
+static const void WarnToLogger(const std::string pluginNme, const std::string message)
+{
+    AddLoggerMessage(pluginNme, message, BackendLogger::_WARN);
+}
+static const void ErrorToLogger(const std::string pluginNme, const std::string message)
+{
+    AddLoggerMessage(pluginNme, message, BackendLogger::_ERROR);
+}
+
+static const void RawToLogger(const std::string pluginName, const std::string message)
+{
+    for (auto logger : g_loggerList)
     {
-        if (logger->GetPluginName(false) == pluginName) 
+        if (logger->GetPluginName(false) == pluginName)
         {
             logger->Print(message);
             return;
@@ -243,13 +265,12 @@ static const void RawToLogger(const std::string pluginName, const std::string me
     g_loggerList.push_back(newLogger);
 }
 
-typedef struct 
+typedef struct
 {
     PyObject ob_base;
-    char *prefix;
+    char* prefix;
     BackendLogger* m_loggerPtr;
-} 
-LoggerObject;
+} LoggerObject;
 
 extern PyTypeObject LoggerType;
 PyObject* PyInit_Logger(void);

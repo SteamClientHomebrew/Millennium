@@ -1,24 +1,24 @@
 /**
  * ==================================================
- *   _____ _ _ _             _                     
- *  |     |_| | |___ ___ ___|_|_ _ _____           
- *  | | | | | | | -_|   |   | | | |     |          
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
- * 
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
  * ==================================================
- * 
+ *
  * Copyright (c) 2025 Project Millennium
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,22 +28,23 @@
  * SOFTWARE.
  */
 
-#include "co_stub.h"
-#include <vector>
-#include <fmt/core.h>
 #include "co_spawn.h"
+#include "co_stub.h"
+#include "encoding.h"
+#include "ffi.h"
+#include "http_hooks.h"
 #include "internal_logger.h"
 #include "loader.h"
-#include "http_hooks.h"
-#include "ffi.h"
-#include <tuple>
 #include "plugin_logger.h"
-#include <mutex>
-#include <condition_variable>
-#include <thread>
-#include "encoding.h"
 #include "url_parser.h"
+#include <condition_variable>
 #include <env.h>
+#include <fmt/core.h>
+#include <mutex>
+#include <thread>
+#include <tuple>
+#include <vector>
+
 
 #include <secure_socket.h>
 
@@ -51,25 +52,28 @@ static std::string addedScriptOnNewDocumentId = "";
 
 /**
  * @brief A singleton class that manages the state of the backend load.
- * 
+ *
  * This class is used to manage the state of the backend load.
- * 
+ *
  * @returns {BackendLoadState} - A singleton instance of the BackendLoadState class.
  */
-class BackendLoadState {
-private:
+class BackendLoadState
+{
+  private:
     BackendLoadState() = default;
-    static BackendLoadState& getInstance() {
+    static BackendLoadState& getInstance()
+    {
         static BackendLoadState instance;
         return instance;
     }
 
-public:
+  public:
     std::mutex mtx;
     std::condition_variable cvScript;
     bool hasScriptIdentifier = false;
 
-    static BackendLoadState& get() {
+    static BackendLoadState& get()
+    {
         return getInstance();
     }
 };
@@ -80,7 +84,7 @@ public:
  * @param {std::vector<std::string>} scriptModules - A list of script module names to include in the bootstrap.
  * @param {uint16_t} port - The port number to be included in the bootstrap call.
  * @returns {std::string} - The constructed JavaScript module as a string.
- * 
+ *
  * This function reads a plugin helper module part of my plugutil repository, `client_api.js`,
  * and appends the provided script modules to it. The port number is also included in the final script.
  * The final script is returned as a string, ready for use.
@@ -96,9 +100,9 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
     if (!millenniumPreloadPath.has_value())
     {
         LOG_ERROR("Missing client preload module. Please re-install Millennium.");
-        #ifdef _WIN32
+#ifdef _WIN32
         MessageBoxA(NULL, "Missing client preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
-        #endif
+#endif
     }
 
     for (int i = 0; i < scriptModules.size(); i++)
@@ -118,7 +122,7 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
  * Appends custom directories to the Python `sys.path`.
  *
  * @param {std::vector<std::filesystem::path>} sitePackages - A list of custom paths to be added to the Python `sys.path`.
- * 
+ *
  * This function imports the Python `sys` module and appends the provided list of directories to the `sys.path`
  * list, which Python uses to search for modules. On Windows, the function clears the existing `sys.path` to
  * prevent conflicts with installed Python versions before appending the new directories.
@@ -127,18 +131,18 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
  * - If the `sys` module cannot be imported, an error is logged.
  * - If the `sys.path` attribute cannot be accessed, no action is taken.
  */
-const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages) 
+const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
 {
-    PyObject *sysModule = PyImport_ImportModule("sys");
-    if (!sysModule) 
+    PyObject* sysModule = PyImport_ImportModule("sys");
+    if (!sysModule)
     {
         LOG_ERROR("couldn't import system module");
         return;
     }
 
-    PyObject *systemPath = PyObject_GetAttrString(sysModule, "path");
+    PyObject* systemPath = PyObject_GetAttrString(sysModule, "path");
 
-    if (systemPath) 
+    if (systemPath)
     {
 #ifdef _WIN32
         // Wipe the system path clean when on windows
@@ -146,7 +150,7 @@ const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
         PyList_SetSlice(systemPath, 0, PyList_Size(systemPath), NULL);
 #endif
 
-        for (const auto& systemPathItem : sitePackages) 
+        for (const auto& systemPathItem : sitePackages)
         {
             PyList_Append(systemPath, PyUnicode_FromString(systemPathItem.generic_string().c_str()));
         }
@@ -159,7 +163,7 @@ const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
  * Adds a custom directory to the Python site module's path.
  *
  * @param {std::filesystem::path} customPath - The custom path to be added to the Python site directory.
- * 
+ *
  * This function imports the Python `site` module and calls its `addsitedir` function to add a custom directory
  * to the Python path. If the `site` module or the `addsitedir` function cannot be found, or if an error occurs
  * during the function call, an error is logged.
@@ -170,25 +174,25 @@ const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
  */
 void AddSitePackagesDirectory(std::filesystem::path customPath)
 {
-    PyObject *siteModule = PyImport_ImportModule("site");
+    PyObject* siteModule = PyImport_ImportModule("site");
 
-    if (!siteModule) 
+    if (!siteModule)
     {
         PyErr_Print();
         LOG_ERROR("couldn't import site module");
         return;
     }
 
-    PyObject *addSiteDirFunc = PyObject_GetAttrString(siteModule, "addsitedir");
-    if (addSiteDirFunc && PyCallable_Check(addSiteDirFunc)) 
+    PyObject* addSiteDirFunc = PyObject_GetAttrString(siteModule, "addsitedir");
+    if (addSiteDirFunc && PyCallable_Check(addSiteDirFunc))
     {
-        PyObject *args = PyTuple_Pack(1, PyUnicode_FromString(customPath.generic_string().c_str()));
-        PyObject *result = PyObject_CallObject(addSiteDirFunc, args);
+        PyObject* args = PyTuple_Pack(1, PyUnicode_FromString(customPath.generic_string().c_str()));
+        PyObject* result = PyObject_CallObject(addSiteDirFunc, args);
         Py_XDECREF(result);
         Py_XDECREF(args);
         Py_XDECREF(addSiteDirFunc);
-    } 
-    else 
+    }
+    else
     {
         PyErr_Print();
         LOG_ERROR("Failed to get addsitedir function");
@@ -198,12 +202,12 @@ void AddSitePackagesDirectory(std::filesystem::path customPath)
 
 /**
  * @brief Starts the plugin backend by calling the _load method on the plugin instance.
- * 
+ *
  * @param global_dict The global dictionary of the Python interpreter.
  */
-void StartPluginBackend(PyObject* global_dict, std::string pluginName) 
+void StartPluginBackend(PyObject* global_dict, std::string pluginName)
 {
-    const auto PrintError = [&pluginName]() 
+    const auto PrintError = [&pluginName]()
     {
         const auto [errorMessage, traceback] = Python::ActiveExceptionInformation();
         PyErr_Clear();
@@ -214,39 +218,39 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
         Logger.PrintMessage(" BOOT ", formattedMessage, COL_RED);
     };
 
-    PyObject *pluginComponent = PyDict_GetItemString(global_dict, "Plugin");
+    PyObject* pluginComponent = PyDict_GetItemString(global_dict, "Plugin");
 
-    if (!pluginComponent || !PyCallable_Check(pluginComponent)) 
+    if (!pluginComponent || !PyCallable_Check(pluginComponent))
     {
         PrintError();
         return;
     }
 
-    PyObject *pluginComponentInstance = PyObject_CallObject(pluginComponent, NULL);
+    PyObject* pluginComponentInstance = PyObject_CallObject(pluginComponent, NULL);
 
-    if (!pluginComponentInstance) 
+    if (!pluginComponentInstance)
     {
         PrintError();
         return;
     }
 
     PyDict_SetItemString(global_dict, "plugin", pluginComponentInstance);
-    PyObject *loadMethodAttribute = PyObject_GetAttrString(pluginComponentInstance, "_load");
+    PyObject* loadMethodAttribute = PyObject_GetAttrString(pluginComponentInstance, "_load");
 
-    if (!loadMethodAttribute || !PyCallable_Check(loadMethodAttribute)) 
+    if (!loadMethodAttribute || !PyCallable_Check(loadMethodAttribute))
     {
         PrintError();
         return;
     }
 
-    PyObject *result = PyObject_CallObject(loadMethodAttribute, NULL);
-    if (result == NULL) 
+    PyObject* result = PyObject_CallObject(loadMethodAttribute, NULL);
+    if (result == NULL)
     {
         PrintError();
-    } 
-    else 
+    }
+    else
     {
-        Py_DECREF(result); 
+        Py_DECREF(result);
     }
 
     Py_DECREF(loadMethodAttribute);
@@ -266,38 +270,33 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
 void SetupPluginSettings()
 {
     PyObject* builtins = PyEval_GetBuiltins();
-    if (!builtins) 
+    if (!builtins)
     {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
         return;
     }
 
     PyObject* parserFunc = PyDict_GetItemString(builtins, "__millennium_plugin_settings_parser__");
-    if (!parserFunc) 
+    if (!parserFunc)
     {
         Logger.PrintMessage(" BOOT ", "Creating __millennium_plugin_settings_parser__ function in builtins.", COL_YELLOW);
 
-        static PyMethodDef methodDef = {
-            "__millennium_plugin_settings_parser__",
-            [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; },
-            METH_NOARGS,
-            "Millennium plugin settings parser placeholder."
-        };
+        static PyMethodDef methodDef = {"__millennium_plugin_settings_parser__", [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; }, METH_NOARGS,
+                                        "Millennium plugin settings parser placeholder."};
 
         PyObject* newFunc = PyCFunction_New(&methodDef, nullptr);
 
-        if (newFunc) 
+        if (newFunc)
         {
             PyDict_SetItemString(builtins, "__millennium_plugin_settings_parser__", newFunc);
             Py_DECREF(newFunc);
-        } 
-        else 
+        }
+        else
         {
             PyErr_SetString(PyExc_RuntimeError, "Failed to create __millennium_plugin_settings_parser__ function.");
         }
     }
 }
-
 
 /**
  * Sets a secret plugin name in both the global dictionary and the builtins dictionary in Python.
@@ -305,7 +304,7 @@ void SetupPluginSettings()
  *
  * @param {PyObject*} globalDictionary - The global dictionary where the secret name is stored.
  * @param {std::string} pluginName - The name of the plugin to set as the secret name.
- * 
+ *
  * This function sets the `MILLENNIUM_PLUGIN_SECRET_NAME` variable in both:
  * 1. The provided `globalDictionary`.
  * 2. The Python `__builtins__` dictionary.
@@ -314,37 +313,39 @@ void SetupPluginSettings()
  * - If the `__builtins__` dictionary cannot be retrieved, a `RuntimeError` is raised.
  * - If setting the `MILLENNIUM_PLUGIN_SECRET_NAME` in `__builtins__` fails, a `RuntimeError` is raised.
  */
-const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName) 
+const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName)
 {
     /** Set the secret name in the global dictionary, i.e the global scope */
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
 
     PyObject* builtins = PyEval_GetBuiltins();
-    if (!builtins) {
+    if (!builtins)
+    {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
         return;
     }
 
     // Set the variable in the __builtins__ dictionary
-    if (PyDict_SetItemString(builtins, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str())) < 0) {
+    if (PyDict_SetItemString(builtins, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str())) < 0)
+    {
         PyErr_SetString(PyExc_RuntimeError, "Failed to set the variable in __builtins__.");
     }
 }
 
 /**
- * Sets environment variables for a plugin in the global dictionary. 
- * __file__ is not initially set by Python, so we set it here. 
+ * Sets environment variables for a plugin in the global dictionary.
+ * __file__ is not initially set by Python, so we set it here.
  *
  * @param {PyObject*} globalDictionary - The global dictionary where the environment variables are set.
  * @param {SettingsStore::PluginTypeSchema} plugin - The plugin information containing the base directory and backend directory.
- * 
+ *
  * This function sets the following environment variables in the provided `globalDictionary`:
  * 1. `PLUGIN_BASE_DIR` - The base directory of the plugin.
  * 2. `__file__` - The path to the `main.py` file in the plugin's backend directory.
  *
  * Both paths are converted to strings and set as Python variables in the global dictionary.
  */
-const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin) 
+const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin)
 {
     PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.pluginBaseDirectory.generic_string().c_str()));
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
@@ -355,19 +356,20 @@ const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const Setti
  * and executing the plugin's main module.
  *
  * @param {SettingsStore::PluginTypeSchema} plugin - The plugin configuration containing the plugin name, directories, and other settings.
- * 
+ *
  * This function performs the following tasks:
  * 1. Sets the plugin's secret name and environment variables in the Python global dictionary.
  * 2. Modifies the Python `sys.path` to include directories related to the plugin and its dependencies.
  * 3. For Windows, adjusts the virtual PATH and adds required directories for Python binaries and libraries.
  * 4. Appends the plugin's virtual environment and site-packages directory to `sys.path`.
- * 5. Attempts to open and execute the main module of the plugin. If the file cannot be opened or there is an error during execution, it logs the error and notifies the backend handler.
+ * 5. Attempts to open and execute the main module of the plugin. If the file cannot be opened or there is an error during execution, it logs the error and notifies the backend
+ * handler.
  * 6. If successful, it calls `StartPluginBackend` to continue the plugin startup process.
  *
  * Error Handling:
  * - If any step of the process fails (e.g., file opening, module import), the error is logged and the backend load is marked as failed.
  */
-const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin) 
+const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin)
 {
     PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
     const auto backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
@@ -379,7 +381,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     std::vector<std::filesystem::path> sysPath;
     sysPath.push_back(plugin.pluginBaseDirectory / plugin.backendAbsoluteDirectory.parent_path());
 
-    #ifdef _WIN32
+#ifdef _WIN32
     {
         /* Add local python binaries to virtual PATH to prevent changing actual PATH */
         AddDllDirectory(pythonModulesBaseDir.wstring().c_str());
@@ -387,34 +389,34 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         sysPath.push_back(pythonPath);
         sysPath.push_back(pythonLibs);
     }
-    #endif
+#endif
 
     AppendSysPathModules(sysPath);
     AddSitePackagesDirectory(pythonUserLibs);
 
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
 
-    PyObject *mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
-    FILE *mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
+    PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
+    FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
-    if (mainModuleFilePtr == NULL) 
+    if (mainModuleFilePtr == NULL)
     {
         Logger.Warn("failed to fopen file @ {}", backendMainModule);
         ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
 
-        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
         return;
     }
 
-    PyObject* mainModule     = PyImport_AddModule("__main__");
+    PyObject* mainModule = PyImport_AddModule("__main__");
     PyObject* mainModuleDict = PyModule_GetDict(mainModule);
 
-    if (!mainModule || !mainModuleDict) 
+    if (!mainModule || !mainModuleDict)
     {
         Logger.Warn("Millennium failed to initialize the main module.");
         ErrorToLogger(plugin.pluginName, "Failed to initialize the main module.");
 
-        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
         fclose(mainModuleFilePtr);
         return;
     }
@@ -423,16 +425,17 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
 
     PyObject* result = PyRun_FileEx(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict, 1);
 
-    if (!result) 
+    if (!result)
     {
         const auto [errorMessage, traceback] = Python::ActiveExceptionInformation();
 
         Logger.PrintMessage(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
         Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
 
-        ErrorToLogger(plugin.pluginName, fmt::format("Failed to start plugin: {}. This is likely due to failing module side effects, unrelated to Millennium.\n\n{}", plugin.pluginName, traceback));
+        ErrorToLogger(plugin.pluginName,
+                      fmt::format("Failed to start plugin: {}. This is likely due to failing module side effects, unrelated to Millennium.\n\n{}", plugin.pluginName, traceback));
 
-        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
         return;
     }
 
@@ -441,50 +444,51 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     const auto startTime = std::chrono::steady_clock::now();
     std::atomic<bool> timeOutLockThreadRunning = true;
 
-    std::thread timeOutThread([&timeOutLockThreadRunning, startTime, plugin] 
-    {
-        while (timeOutLockThreadRunning.load()) 
+    std::thread timeOutThread(
+        [&timeOutLockThreadRunning, startTime, plugin]
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30)) 
+            while (timeOutLockThreadRunning.load())
             {
-                std::string errorMessage = fmt::format(
-                    "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
-                    "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.", plugin.pluginName
-                );
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-                LOG_ERROR(errorMessage);
-                ErrorToLogger(plugin.pluginName, errorMessage);
-
-                #ifdef _WIN32
-                const int result = MessageBoxA(
-                    NULL, 
-                    fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects or break the Steam UI. Would you like to disable it on next Steam startup?", plugin.pluginName).c_str(), 
-                    "Millennium - Startup Error", 
-                    MB_ICONERROR | MB_YESNO
-                );
-
-                if (result == IDYES) 
+                if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30))
                 {
-                    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-                    settingsStore->TogglePluginStatus(plugin.pluginName, false);
+                    std::string errorMessage = fmt::format(
+                        "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
+                        "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.",
+                        plugin.pluginName);
+
+                    LOG_ERROR(errorMessage);
+                    ErrorToLogger(plugin.pluginName, errorMessage);
+
+#ifdef _WIN32
+                    const int result = MessageBoxA(NULL,
+                                                   fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
+                                                               "or break the Steam UI. Would you like to disable it on next Steam startup?",
+                                                               plugin.pluginName)
+                                                       .c_str(),
+                                                   "Millennium - Startup Error", MB_ICONERROR | MB_YESNO);
+
+                    if (result == IDYES)
+                    {
+                        std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+                        settingsStore->TogglePluginStatus(plugin.pluginName, false);
+                    }
+#endif
+
+                    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+                    backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+
+                    break;
                 }
-                #endif
-
-                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
-                backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
-
-                break;
             }
-        }
-    });
+        });
 
     SetupPluginSettings();
-    StartPluginBackend(globalDictionary, plugin.pluginName);  
+    StartPluginBackend(globalDictionary, plugin.pluginName);
 
     timeOutLockThreadRunning.store(false);
-    timeOutThread.join();  
+    timeOutThread.join();
 }
 
 /**
@@ -500,17 +504,17 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
  *
  * The constructed module is returned as a string.
  */
-const std::string ConstructOnLoadModule() 
+const std::string ConstructOnLoadModule()
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
 
     std::vector<std::string> scriptImportTable;
-    
-    for (auto& plugin : plugins)  
+
+    for (auto& plugin : plugins)
     {
-        if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) 
-        {    
+        if (!settingsStore->IsEnabledPlugin(plugin.pluginName))
+        {
             continue;
         }
 
@@ -524,15 +528,15 @@ const std::string ConstructOnLoadModule()
 /**
  * Restores the original `SharedJSContext` by renaming the backup file to the original file.
  * It reverses the patches done in the preloader module
- * 
+ *
  * @note this function is only applicable to Windows
  */
 const void UnPatchSharedJSContext()
 {
-    #ifdef _WIN32
+#ifdef _WIN32
     Logger.Log("Restoring SharedJSContext...");
 
-    const auto SteamUIModulePath       = SystemIO::GetSteamPath() / "steamui" / "index.html";
+    const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
     const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
 
     const auto librariesPath = SystemIO::GetSteamPath() / "steamui" / "libraries";
@@ -556,19 +560,18 @@ const void UnPatchSharedJSContext()
 
     if (libraryChunkJS.empty())
     {
-        MessageBoxA(
-            NULL, 
-            "Millennium failed to find a key library used by Steam. "
-            "Let our developers know if you see this message, it's likely a bug.\n"
-            "You can reach us over at steambrew.app/discord", 
-            "Millennium", 
-            MB_ICONERROR
-        );
+        MessageBoxA(NULL,
+                    "Millennium failed to find a key library used by Steam. "
+                    "Let our developers know if you see this message, it's likely a bug.\n"
+                    "You can reach us over at steambrew.app/discord",
+                    "Millennium", MB_ICONERROR);
 
         return;
     }
 
-    std::string fileContent = fmt::format(R"(<!doctype html><html style="width: 100%; height: 100%"><head><title>SharedJSContext</title><meta charset="utf-8"><script defer="defer" src="/libraries/{}"></script><script defer="defer" src="/library.js"></script><link href="/css/library.css" rel="stylesheet"></head><body style="width: 100%; height: 100%; margin: 0; overflow: hidden;"><div id="root" style="height:100%; width: 100%"></div><div style="display:none"></div></body></html>)", libraryChunkJS);
+    std::string fileContent = fmt::format(
+        R"(<!doctype html><html style="width: 100%; height: 100%"><head><title>SharedJSContext</title><meta charset="utf-8"><script defer="defer" src="/libraries/{}"></script><script defer="defer" src="/library.js"></script><link href="/css/library.css" rel="stylesheet"></head><body style="width: 100%; height: 100%; margin: 0; overflow: hidden;"><div id="root" style="height:100%; width: 100%"></div><div style="display:none"></div></body></html>)",
+        libraryChunkJS);
 
     try
     {
@@ -584,13 +587,12 @@ const void UnPatchSharedJSContext()
     }
 
     Logger.Log("Restored SharedJSContext...");
-    #endif
+#endif
 }
-
 
 /**
  * Notifies the frontend of the backend load and handles script injection and state updates.
- * 
+ *
  * This function performs the following tasks:
  * 1. Logs the start of the backend load notification process.
  * 2. Sets up a message listener to handle the frontend's response, specifically waiting for a script identifier.
@@ -600,7 +602,7 @@ const void UnPatchSharedJSContext()
  *
  * Synchronization:
  * - Uses a mutex and condition variable to ensure thread-safe waiting for the frontend's script injection acknowledgment.
- * 
+ *
  * Error Handling:
  * - If any issues occur during the message processing, errors are logged with details.
  */
@@ -617,53 +619,71 @@ void OnBackendLoad(bool reloadFrontend)
         PAGE_RELOAD = 4
     };
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [reloadFrontend] (const nlohmann::json& eventMessage, std::string listenerId)
-    {
-        auto& state = BackendLoadState::get();
-        std::unique_lock<std::mutex> lock(state.mtx);
-        
-        try
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage(
+        "msg", "OnBackendLoad",
+        [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
         {
-            const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
+            auto& state = BackendLoadState::get();
+            std::unique_lock<std::mutex> lock(state.mtx);
 
-            if (messageId == PAGE_ENABLE)
+            try
             {
-                Logger.Log("Injecting script to evaluate on new document...");
-                Sockets::PostShared({ {"id", PAGE_SCRIPT }, {"method", "Page.addScriptToEvaluateOnNewDocument"}, {"params", {{ "source", ConstructOnLoadModule() }}} });
-            }
-            if (messageId == PAGE_SCRIPT)
-            {
-                Logger.Log("Script injected, waiting for identifier...");
+                const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
 
-                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                state.hasScriptIdentifier = true;
-                Logger.Log("Successfully injected shims, reloading frontend...");
-
-                if (reloadFrontend) Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
-                state.cvScript.notify_one();  
-
-            }
-            if (messageId == PAGE_RELOAD)
-            {
-                if (eventMessage.contains("error"))
+                if (messageId == PAGE_ENABLE)
                 {
-                    Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
-                    if (reloadFrontend) Sockets::PostShared({ {"id", PAGE_RELOAD }, {"method", "Page.reload"}, { "params", { { "ignoreCache", true } }} });
-                    return;
+                    Logger.Log("Injecting script to evaluate on new document...");
+                    Sockets::PostShared({
+                        {"id",     PAGE_SCRIPT                            },
+                        {"method", "Page.addScriptToEvaluateOnNewDocument"},
+                        {"params", {{"source", ConstructOnLoadModule()}}  }
+                    });
                 }
-                
-                Logger.Log("Successfully notified frontend...");
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                if (messageId == PAGE_SCRIPT)
+                {
+                    Logger.Log("Script injected, waiting for identifier...");
+
+                    addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                    state.hasScriptIdentifier = true;
+                    Logger.Log("Successfully injected shims, reloading frontend...");
+
+                    if (reloadFrontend)
+                        Sockets::PostShared({
+                            {"id",     PAGE_RELOAD            },
+                            {"method", "Page.reload"          },
+                            {"params", {{"ignoreCache", true}}}
+                        });
+                    state.cvScript.notify_one();
+                }
+                if (messageId == PAGE_RELOAD)
+                {
+                    if (eventMessage.contains("error"))
+                    {
+                        Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
+                        if (reloadFrontend)
+                            Sockets::PostShared({
+                                {"id",     PAGE_RELOAD            },
+                                {"method", "Page.reload"          },
+                                {"params", {{"ignoreCache", true}}}
+                            });
+                        return;
+                    }
+
+                    Logger.Log("Successfully notified frontend...");
+                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                }
             }
-        }
-        catch (nlohmann::detail::exception& ex)
-        {
-            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
-        }
-    });
+            catch (nlohmann::detail::exception& ex)
+            {
+                LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+            }
+        });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    Sockets::PostShared({ {"id", PAGE_ENABLE }, {"method", "Page.enable"} });
+    Sockets::PostShared({
+        {"id",     PAGE_ENABLE  },
+        {"method", "Page.enable"}
+    });
     {
         auto& state = BackendLoadState::get();
         std::unique_lock<std::mutex> lock(state.mtx);
@@ -674,11 +694,11 @@ void OnBackendLoad(bool reloadFrontend)
 
 /**
  * @brief Injects the frontend shims.
- * 
+ *
  * This function injects the frontend shims by registering a callback function to be called when the backend is loaded.
- * 
+ *
  */
-const void CoInitializer::InjectFrontendShims(bool reloadFrontend) 
+const void CoInitializer::InjectFrontendShims(bool reloadFrontend)
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, reloadFrontend));
@@ -686,15 +706,19 @@ const void CoInitializer::InjectFrontendShims(bool reloadFrontend)
 
 /**
  * @brief Re-injects the frontend shims.
- * 
+ *
  * This function re-injects the frontend shims by removing the existing script and injecting a new one.
- * 
+ *
  * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
  */
 const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
 {
     pluginLoader->InjectWebkitShims();
 
-    Sockets::PostShared({ {"id", 0 }, {"method", "Page.removeScriptToEvaluateOnNewDocument"}, {"params", {{ "identifier", addedScriptOnNewDocumentId }}} });
+    Sockets::PostShared({
+        {"id",     0                                           },
+        {"method", "Page.removeScriptToEvaluateOnNewDocument"  },
+        {"params", {{"identifier", addedScriptOnNewDocumentId}}}
+    });
     InjectFrontendShims(reloadFrontend);
 }

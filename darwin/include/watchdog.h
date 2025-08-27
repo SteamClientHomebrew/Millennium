@@ -1,13 +1,14 @@
 #pragma once
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef void (*SteamWatchDogCallback)();
+    typedef void (*SteamWatchDogCallback)();
 
-void* SteamWatchDog_Start(SteamWatchDogCallback onLaunch, SteamWatchDogCallback onQuit);
-void  SteamWatchDog_Stop(void* instance);
+    void* SteamWatchDog_Start(SteamWatchDogCallback onLaunch, SteamWatchDogCallback onQuit);
+    void SteamWatchDog_Stop(void* instance);
 
 #ifdef __cplusplus
 }

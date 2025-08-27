@@ -2,10 +2,11 @@
 #include <unistd.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-pid_t StartMillennium();
+    pid_t StartMillennium();
 
 #ifdef __cplusplus
 }

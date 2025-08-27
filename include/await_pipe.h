@@ -1,24 +1,24 @@
 /**
  * ==================================================
- *   _____ _ _ _             _                     
- *  |     |_| | |___ ___ ___|_|_ _ _____           
- *  | | | | | | | -_|   |   | | | |     |          
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
- * 
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
  * ==================================================
- * 
+ *
  * Copyright (c) 2025 Project Millennium
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,42 +29,42 @@
  */
 
 #include "http.h"
-#include <thread>
-#include <nlohmann/json.hpp>
 #include <filesystem>
+#include <nlohmann/json.hpp>
+#include <thread>
 
 #ifdef _WIN32
-#include <winsock2.h>
 #include <iphlpapi.h>
-#include <tchar.h>
-#pragma comment(lib, "iphlpapi.lib")
-#include <tlhelp32.h>
 #include <psapi.h>
+#include <tchar.h>
+#include <tlhelp32.h>
+#include <winsock2.h>
+
 #elif __linux__
 #include <fstream>
 #include <sstream>
 #elif __APPLE__
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
+
 #endif
 #include "cmd.h"
-
 
 static bool bHasCheckedConnection = false;
 
 class SocketHelpers
 {
-private:
+  private:
     u_short debuggerPort;
 
     const u_short GetDebuggerPort()
     {
-        #ifdef _WIN32
+#ifdef _WIN32
         {
             std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
             return startupParams->GetRemoteDebuggerPort();
         }
-        #endif
+#endif
         return 8080;
     }
 
@@ -80,7 +80,7 @@ private:
     };
 
 #ifdef _WIN32
-    std::string GetProcessName(DWORD processID) 
+    std::string GetProcessName(DWORD processID)
     {
         char Buffer[MAX_PATH];
         HANDLE Handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
@@ -107,13 +107,10 @@ private:
         GetTcpTable2(nullptr, &size, TRUE);
         tcpTable = (PMIB_TCPTABLE2)malloc(size);
 
-        if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR) 
+        if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR)
         {
             free(tcpTable);
-            return { 
-                false,
-                "Error getting TCP table"
-            };
+            return {false, "Error getting TCP table"};
         }
 
         for (DWORD i = 0; i < tcpTable->dwNumEntries; i++)
@@ -128,34 +125,27 @@ private:
                     continue;
                 }
 
-                return { 
-                    targetProcess.filename().string() == "steamwebhelper.exe", 
-                    targetProcess.string()
-                };
+                return {targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string()};
             }
         }
 #endif
-        return { true };
+        return {true};
     }
 
-public:
+  public:
     struct ConnectSocketProps
     {
         std::string commonName;
         std::function<std::string()> fetchSocketUrl;
 
-        std::function<void(
-            websocketpp::client<websocketpp::config::asio_client>*,
-            websocketpp::connection_hdl)> onConnect;
+        std::function<void(websocketpp::client<websocketpp::config::asio_client>*, websocketpp::connection_hdl)> onConnect;
 
-        std::function<void(
-            websocketpp::client<websocketpp::config::asio_client>*,
-            websocketpp::connection_hdl,
-            std::shared_ptr<websocketpp::config::core_client::message_type>)> onMessage;
+        std::function<void(websocketpp::client<websocketpp::config::asio_client>*, websocketpp::connection_hdl, std::shared_ptr<websocketpp::config::core_client::message_type>)>
+            onMessage;
     };
 
     /**
-     * @brief Verify the socket connection was opened by the Steam Client 
+     * @brief Verify the socket connection was opened by the Steam Client
      * (i.e owned by Steam), and if not report a faulty connection.
      */
     const void VerifySteamConnection()
@@ -168,15 +158,15 @@ public:
         auto [canConnect, processName] = this->GetSteamConnectionProps();
         if (!canConnect)
         {
-            const std::string message = fmt::format(
-                "Millennium can't connect to Steam because the target port '{}' is currently being used by '{}'.\n"
-                "To address this you must uninstall/close the conflicting app, change the port it uses (assuming its possible), or uninstall Millennium.\n\n"
-                "Millennium & Steam will now close until further action is taken.", debuggerPort, processName
-            );
+            const std::string message =
+                fmt::format("Millennium can't connect to Steam because the target port '{}' is currently being used by '{}'.\n"
+                            "To address this you must uninstall/close the conflicting app, change the port it uses (assuming its possible), or uninstall Millennium.\n\n"
+                            "Millennium & Steam will now close until further action is taken.",
+                            debuggerPort, processName);
 
-            #ifdef _WIN32
+#ifdef _WIN32
             MessageBoxA(nullptr, message.c_str(), "Fatal Error", MB_ICONERROR);
-            #endif
+#endif
             Logger.Warn(message);
             std::exit(1);
         }
@@ -193,7 +183,7 @@ public:
     /**
      * @brief Get the Steam browser context.
      * It can locally be accessed at localhost:%PORT%/json/version
-     * 
+     *
      * @return std::string The Steam browser context.
      */
     const std::string GetSteamBrowserContext()
@@ -207,7 +197,8 @@ public:
         }
         catch (nlohmann::detail::exception& exception)
         {
-            LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}", debuggerPort, exception.what());
+            LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}",
+                      debuggerPort, exception.what());
             std::exit(1);
         }
     }
@@ -218,7 +209,7 @@ public:
         websocketpp::client<websocketpp::config::asio_client> socketClient;
 
         const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
- 
+
         try
         {
             socketUrl = fetchSocketUrl();
@@ -235,22 +226,22 @@ public:
             LOG_ERROR("[{}] Socket URL is empty. Aborting connection.", commonName);
             return;
         }
-    
+
         try
         {
             socketClient.set_access_channels(websocketpp::log::alevel::none);
             socketClient.clear_error_channels(websocketpp::log::elevel::none);
             socketClient.set_error_channels(websocketpp::log::elevel::all);
-    
+
             socketClient.init_asio();
-    
+
             // Validate handlers before binding
             if (!onConnect || !onMessage)
             {
                 LOG_ERROR("[{}] Invalid event handlers. Connection aborted.", commonName);
                 return;
             }
-    
+
             socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
             socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
 
@@ -262,7 +253,7 @@ public:
                 LOG_ERROR("[{}] Failed to establish connection: {} [{}]", commonName, errorCode.message(), errorCode.value());
                 return;
             }
-    
+
             socketClient.connect(con);
             socketClient.run();
         }
@@ -278,7 +269,7 @@ public:
         {
             LOG_ERROR("[{}] Unknown exception caught.", commonName);
         }
-    
+
         Logger.Log("Disconnected from [{}] module...", commonName);
     }
 };
