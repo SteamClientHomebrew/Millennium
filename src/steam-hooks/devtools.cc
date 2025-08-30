@@ -60,7 +60,7 @@ Plat_CommandLineParamValue_t fpOriginalPlat_CommandLineParamValue = nullptr;
 Plat_CommandLineParamExists_t fpPlat_CommandLineParamExists = nullptr;
 CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
 
-HMODULE steamTier0Module, steamSteamUIModule;
+HMODULE steamTier0Module;
 std::string STEAM_DEVELOPER_TOOLS_PORT;
 
 asio::ip::port_type GetRandomOpenPort()

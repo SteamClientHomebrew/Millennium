@@ -81,6 +81,8 @@ class PluginLoader
     std::vector<std::thread> m_threadPool;
 };
 
+extern std::shared_ptr<PluginLoader> g_pluginLoader;
+
 namespace Sockets
 {
 bool PostShared(nlohmann::json data);

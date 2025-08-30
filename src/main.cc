@@ -263,38 +263,29 @@ void OnTerminate()
  */
 const static void EntryMain()
 {
-#if defined(_WIN32)
-    SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
-    SetupEnvironmentVariables();
-    std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
-#endif
-
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
-#ifdef _WIN32
-    /**
-     * Windows requires a special environment setup to redirect stdout to a pipe.
-     * This is necessary for the logger component to capture stdout from Millennium.
-     * This is also necessary to update the updater module from cache.
-     */
-    WinUtils::SetupWin32Environment();
+#if defined(_WIN32)
+    SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
+    SetupEnvironmentVariables();
+
+    std::set_terminate(OnTerminate); // Set custom terminate handler for easier debugging
+    WinUtils::Win32_UpdatePreloader();
 #endif
 
     const auto startTime = std::chrono::system_clock::now();
     VerifyEnvironment();
 
-    std::shared_ptr<PluginLoader> loader = std::make_shared<PluginLoader>(startTime);
-    SetPluginLoader(loader);
-
     PythonManager& manager = PythonManager::GetInstance();
+    g_pluginLoader = std::make_shared<PluginLoader>(startTime);
 
     /** Start the injection process into the Steam web helper */
-    loader->StartBackEnds(manager);
-    loader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
+    g_pluginLoader->StartBackEnds(manager);
+    g_pluginLoader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
 
     /** Shutdown backend service once frontend disconnects*/
-    (&manager)->ShutDown();
+    (&manager)->Shutdown();
 }
 
 __attribute__((constructor)) void __init_millennium()
@@ -347,7 +338,8 @@ void Win32_AttachMillennium(void)
     EntryMain();
 
     /** Shutdown cron threads that manage Steam HTTP hooks */
-    HttpHookManager::get().shutdown();
+    HttpHookManager& hookManager = HttpHookManager::get();
+    (&hookManager)->Shutdown();
 
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();

@@ -754,7 +754,7 @@ HttpHookManager::ThreadPool::ThreadPool(size_t numThreads) : stop(false), shutdo
     }
 }
 
-void HttpHookManager::shutdown()
+void HttpHookManager::Shutdown()
 {
     if (m_shutdown.exchange(true))
     {

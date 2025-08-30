@@ -110,6 +110,8 @@
 		"queue": "cpp",
 		"*.in": "cpp",
 		"stack": "cpp",
-		"shared_mutex": "cpp"
+		"shared_mutex": "cpp",
+		"*.rh": "cpp",
+		"*.def": "cpp"
 	}
 }

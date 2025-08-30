@@ -161,7 +161,7 @@ done:
  *
  * This function destroys all Python instances and removes them from the list of Python instances.
  */
-void PythonManager::ShutDown()
+void PythonManager::Shutdown()
 {
     Logger.Warn("Deconstructing {} plugin(s) and preparing for exit...", this->m_pythonInstances.size());
 

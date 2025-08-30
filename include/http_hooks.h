@@ -87,7 +87,7 @@ class HttpHookManager
     HttpHookManager(const HttpHookManager&) = delete;
     HttpHookManager& operator=(const HttpHookManager&) = delete;
 
-    void shutdown();
+    void Shutdown();
 
   private:
     HttpHookManager();

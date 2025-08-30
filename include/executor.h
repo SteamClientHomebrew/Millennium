@@ -33,4 +33,3 @@
 #include "loader.h"
 
 PyMethodDef* GetMillenniumModule();
-void SetPluginLoader(std::shared_ptr<PluginLoader> pluginLoader);

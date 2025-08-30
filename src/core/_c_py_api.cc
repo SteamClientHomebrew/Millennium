@@ -41,9 +41,6 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-
-std::shared_ptr<PluginLoader> g_pluginLoader;
-
 std::map<std::string, JavaScript::Types> typeMap = {
     {"str",  JavaScript::Types::String },
     {"bool", JavaScript::Types::Boolean},
@@ -465,9 +462,4 @@ PyMethodDef* GetMillenniumModule()
     };
 
     return moduleMethods;
-}
-
-void SetPluginLoader(std::shared_ptr<PluginLoader> pluginLoader)
-{
-    g_pluginLoader = pluginLoader;
 }
