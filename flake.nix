@@ -44,6 +44,9 @@
           millennium = pkgs.callPackage ./nix/python/millennium.nix { };
           core-utils = pkgs.callPackage ./nix/python/core-utils.nix { };
         };
+        # basic script to update pnpm hashes in the shims and assets package definitions
+        # usage: nix run .#update-pnpm-hashes
+        update-pnpm-hashes = pkgs.callPackage ./nix/update.nix { };
       };
     };
 }
