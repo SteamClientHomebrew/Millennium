@@ -45,7 +45,6 @@
 #include <tuple>
 #include <vector>
 
-
 #include <secure_socket.h>
 
 static std::string addedScriptOnNewDocumentId = "";
@@ -526,71 +525,6 @@ const std::string ConstructOnLoadModule()
 }
 
 /**
- * Restores the original `SharedJSContext` by renaming the backup file to the original file.
- * It reverses the patches done in the preloader module
- *
- * @note this function is only applicable to Windows
- */
-const void UnPatchSharedJSContext()
-{
-#ifdef _WIN32
-    Logger.Log("Restoring SharedJSContext...");
-
-    const auto SteamUIModulePath = SystemIO::GetSteamPath() / "steamui" / "index.html";
-    const auto SteamUIModulePathBackup = SystemIO::GetSteamPath() / "steamui" / "orig.html";
-
-    const auto librariesPath = SystemIO::GetSteamPath() / "steamui" / "libraries";
-    std::string libraryChunkJS;
-
-    try
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(librariesPath))
-        {
-            if (entry.is_regular_file() && entry.path().filename().string().substr(0, 10) == "libraries~" && entry.path().extension() == ".js")
-            {
-                libraryChunkJS = entry.path().filename().string();
-                break;
-            }
-        }
-    }
-    catch (const std::filesystem::filesystem_error& e)
-    {
-        Logger.Warn("Failed to find libraries~xxx.js: {}", e.what());
-    }
-
-    if (libraryChunkJS.empty())
-    {
-        MessageBoxA(NULL,
-                    "Millennium failed to find a key library used by Steam. "
-                    "Let our developers know if you see this message, it's likely a bug.\n"
-                    "You can reach us over at steambrew.app/discord",
-                    "Millennium", MB_ICONERROR);
-
-        return;
-    }
-
-    std::string fileContent = fmt::format(
-        R"(<!doctype html><html style="width: 100%; height: 100%"><head><title>SharedJSContext</title><meta charset="utf-8"><script defer="defer" src="/libraries/{}"></script><script defer="defer" src="/library.js"></script><link href="/css/library.css" rel="stylesheet"></head><body style="width: 100%; height: 100%; margin: 0; overflow: hidden;"><div id="root" style="height:100%; width: 100%"></div><div style="display:none"></div></body></html>)",
-        libraryChunkJS);
-
-    try
-    {
-        SystemIO::WriteFileSync(SteamUIModulePath.string(), fileContent);
-    }
-    catch (const std::system_error& e)
-    {
-        Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
-    }
-    catch (const std::exception& e)
-    {
-        Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
-    }
-
-    Logger.Log("Restored SharedJSContext...");
-#endif
-}
-
-/**
  * Notifies the frontend of the backend load and handles script injection and state updates.
  *
  * This function performs the following tasks:
@@ -608,7 +542,6 @@ const void UnPatchSharedJSContext()
  */
 void OnBackendLoad(bool reloadFrontend)
 {
-    UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
 
     enum PageMessage
@@ -639,7 +572,7 @@ void OnBackendLoad(bool reloadFrontend)
                         {"params", {{"source", ConstructOnLoadModule()}}  }
                     });
                 }
-                if (messageId == PAGE_SCRIPT)
+                if (messageId == PAGE_SCRIPT && eventMessage.contains("result") && eventMessage["result"].contains("identifier"))
                 {
                     Logger.Log("Script injected, waiting for identifier...");
 

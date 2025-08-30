@@ -29,38 +29,37 @@
  */
 
 #pragma once
-#include <string>
-// clang-format off
+#define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
+#define _WINSOCKAPI_
+#include "MinHook.h"
+#include <asio.hpp>
+#include <asio/ip/tcp.hpp>
+#include <iostream>
+#include <thread>
 #include <windows.h>
-// clang-format on
+#include <winternl.h>
 
-/** If no steam path can be retrieved from the registry, this is the fallback */
-static const char* FALLBACK_STEAM_PATH = "C:/Program Files (x86)/Steam";
+#define LDR_DLL_NOTIFICATION_REASON_LOADED 1
+#define DEFAULT_DEVTOOLS_PORT "8080"
 
-std::string GetSteamPath();
+extern std::string STEAM_DEVELOPER_TOOLS_PORT;
 
-namespace CommandLineArguments
+typedef struct _LDR_DLL_NOTIFICATION_DATA
 {
-static bool HasArgument(const std::string& targetArgument)
-{
-    int argc = 0;
-    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (!argv)
-        return false;
+    ULONG Flags;
+    PCUNICODE_STRING FullDllName;
+    PCUNICODE_STRING BaseDllName;
+    PVOID DllBase;
+    ULONG SizeOfImage;
+} DR_DLL_NOTIFICATION_DATA, *PLDR_DLL_NOTIFICATION_DATA;
 
-    bool found = false;
-    for (int i = 0; i < argc; ++i)
-    {
-        std::wstring argW(argv[i]);
-        std::string arg(argW.begin(), argW.end());
-        if (arg == targetArgument)
-        {
-            found = true;
-            break;
-        }
-    }
-    LocalFree(argv);
-    return found;
-}
-} // namespace CommandLineArguments
+typedef VOID(CALLBACK* PLDR_DLL_NOTIFICATION_FUNCTION)(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context);
+typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction, PVOID Context, PVOID* Cookie);
+typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
+
+BOOL HookCefArgs();
+const char* GetAppropriateDevToolsPort();
+
+bool Millennium_Plat_CommandLineIsSetup();
+bool SetupEntryPointHook();

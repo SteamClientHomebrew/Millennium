@@ -302,6 +302,7 @@ set(SOURCE_FILES
   "src/sys/sysfs.cc"
   "src/sys/settings.cc"
   "src/sys/env.cc"
+  "src/steam-hooks/devtools.cc"
 )
 
 if(WIN32)
@@ -357,13 +358,15 @@ endif()
 
 find_package(CURL REQUIRED) # used for web requests.
 target_link_libraries(Millennium CURL::libcurl)
+
 if(NIX_BUILD)
   find_package(OpenSSL REQUIRED)
   target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
 if(WIN32)
-  target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp)
+  find_package(minhook CONFIG REQUIRED)
+  target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp minhook::minhook)
 
   if(GITHUB_ACTION_BUILD)
     target_link_libraries(Millennium "${CMAKE_SOURCE_DIR}/build/python/python311.lib")

@@ -35,13 +35,28 @@
 #endif
 #include "co_spawn.h"
 #include "locals.h"
+#include <http_hooks.h>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
-extern std::shared_ptr<InterpreterMutex> g_threadTerminateFlag;
+extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 #include "await_pipe.h"
+
+class CEFBrowser
+{
+    HttpHookManager& webKitHandler;
+    bool m_sharedJsConnected = false;
+    std::chrono::system_clock::time_point m_startTime;
+
+  public:
+    CEFBrowser();
+    const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
+    const void SetupSharedJSContext();
+    const void onSharedJsConnect();
+    const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle);
+};
 
 class PluginLoader
 {
@@ -57,7 +72,7 @@ class PluginLoader
     const void Initialize();
 
     const void PrintActivePlugins();
-    std::shared_ptr<std::thread> ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers);
+    std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
 
     std::unique_ptr<SettingsStore> m_settingsStorePtr;
     std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;

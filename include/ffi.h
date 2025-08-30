@@ -102,6 +102,7 @@ class SharedJSMessageEmitter
     {
     }
 
+    std::mutex mtx;
     std::unordered_map<std::string, std::vector<std::pair<std::string, EventHandler>>> events;
     std::unordered_map<std::string, std::vector<nlohmann::json>> missedMessages; // New data structure for missed messages
 
@@ -117,6 +118,7 @@ class SharedJSMessageEmitter
 
     std::string OnMessage(const std::string& event, const std::string name, EventHandler handler)
     {
+        std::lock_guard<std::mutex> lock(mtx);
         events[event].push_back(std::make_pair(name, handler));
         // Deliver any missed messages
         auto it = missedMessages.find(event);
@@ -150,8 +152,10 @@ class SharedJSMessageEmitter
         }
     }
 
-    void EmitMessage(const std::string& event, const nlohmann::json& data)
+    void EmitMessage(const std::string& event, const nlohmann::json data)
     {
+        std::lock_guard<std::mutex> lock(mtx);
+
         auto it = events.find(event);
         if (it != events.end())
         {

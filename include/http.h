@@ -83,18 +83,13 @@ static std::string Get(const char* url, bool retry = true)
                 break;
             }
 
-#if defined(_WIN32)
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-#elif defined(__linux__) || defined(__APPLE__)
-
-            if (g_threadTerminateFlag->flag.load())
+            if (g_shouldTerminateMillennium->flag.load())
             {
                 throw HttpError("Thread termination flag is set, aborting HTTP request.");
             }
 
-            /** Calling the server to quickly seems to accident DoS it on unix. */
+            /** Calling the server to quickly seems to accident DoS. */
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-#endif
         }
         curl_easy_cleanup(curl);
     }

@@ -88,7 +88,7 @@ class PythonManager
 
   public:
     PythonManager();
-    ~PythonManager();
+    void ShutDown();
 
     bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
     bool DestroyAllPythonInstances();

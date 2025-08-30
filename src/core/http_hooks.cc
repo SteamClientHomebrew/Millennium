@@ -713,7 +713,7 @@ void HttpHookManager::DispatchSocketMessage(nlohmann::basic_json<> message)
     }
 }
 
-HttpHookManager::ThreadPool::ThreadPool(size_t numThreads)
+HttpHookManager::ThreadPool::ThreadPool(size_t numThreads) : stop(false), shutdownCalled(false)
 {
     for (size_t i = 0; i < numThreads; ++i)
     {
@@ -726,43 +726,83 @@ HttpHookManager::ThreadPool::ThreadPool(size_t numThreads)
                     {
                         std::unique_lock<std::mutex> lock(queueMutex);
                         condition.wait(lock, [this] { return stop || !tasks.empty(); });
-
                         if (stop && tasks.empty())
+                        {
+                            Logger.Log("ThreadPool worker exiting");
                             return;
-
-                        task = std::move(tasks.front());
-                        tasks.pop();
+                        }
+                        if (!tasks.empty())
+                        {
+                            task = std::move(tasks.front());
+                            tasks.pop();
+                        }
+                        else
+                        {
+                            continue;
+                        }
                     }
-                    task();
+                    try
+                    {
+                        task();
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        Logger.Log(std::string("ThreadPool worker exception: ") + ex.what());
+                    }
                 }
             });
     }
 }
 
-HttpHookManager::ThreadPool::~ThreadPool()
+void HttpHookManager::shutdown()
 {
-    shutdown();
+    if (m_shutdown.exchange(true))
+    {
+        Logger.Log("HttpHookManager::shutdown() called more than once, ignoring.");
+        return;
+    }
+    Logger.Log("Shutting down HttpHookManager...");
+    if (m_threadPool)
+    {
+        m_threadPool->shutdown();
+    }
+    Logger.Log("HttpHookManager shut down successfully.");
 }
 
 void HttpHookManager::ThreadPool::shutdown()
 {
+    if (shutdownCalled.exchange(true))
+    {
+        Logger.Log("ThreadPool::shutdown() called more than once, ignoring.");
+        return;
+    }
+    Logger.Log("Shutting down thread pool...");
     {
         std::unique_lock<std::mutex> lock(queueMutex);
         stop = true;
+        // Clear any remaining tasks to avoid executing after shutdown
+        while (!tasks.empty())
+            tasks.pop();
     }
     condition.notify_all();
-
     for (std::thread& worker : workers)
     {
         if (worker.joinable())
         {
+            Logger.Log("Joining thread pool worker...");
             worker.join();
         }
     }
+    Logger.Log("Thread pool shut down successfully.");
 }
 
 template <typename F> void HttpHookManager::ThreadPool::enqueue(F&& f)
 {
+    if (stop || shutdownCalled)
+    {
+        Logger.Log("enqueue() called after shutdown, ignoring task.");
+        return;
+    }
     {
         std::unique_lock<std::mutex> lock(queueMutex);
         if (stop)

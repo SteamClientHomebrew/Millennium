@@ -29,14 +29,13 @@
  */
 
 #pragma once
-#include <cmd.h>
 #include <fmt/core.h>
+#include <steam.h>
 #include <string>
 
 static bool ShouldLog()
 {
-    static StartupParameters startupParams;
-    return startupParams.HasArgument("-dev");
+    return CommandLineArguments::HasArgument("-dev");
 }
 
 inline void Print(const std::string& msg)

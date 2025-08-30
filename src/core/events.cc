@@ -132,11 +132,13 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
         {
             auto& callbacks = listeners[ON_BACKEND_READY_EVENT];
 
-            for (auto callbackIterator = callbacks.begin(); callbackIterator != callbacks.end();)
+            // Copy callbacks to avoid iterator invalidation if a callback modifies the vector
+            std::vector<EventCallback> callbacksCopy = callbacks;
+            callbacks.clear();
+            for (auto& cb : callbacksCopy)
             {
-                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&(*callbackIterator));
-                (*callbackIterator)();                                // Call the callback
-                callbackIterator = callbacks.erase(callbackIterator); // Remove callback after calling
+                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&cb);
+                cb();
             }
             isReadyForCallback = true;
         }

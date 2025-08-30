@@ -36,106 +36,53 @@
 #include <Windows.h>
 #include <shellapi.h>
 #endif
+#include <steam_hooks.h>
 
-class StartupParameters
+namespace CommandLineArguments
 {
-  public:
-    StartupParameters()
+static bool HasArgument(const std::string& targetArgument)
+{
+#ifdef _WIN32
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv)
     {
-        this->ParseCommandLine();
-    }
-
-    bool HasArgument(const std::string& targetArgument) const
-    {
-        for (const std::string& argument : m_argumentList)
+        std::wstring targetW(targetArgument.begin(), targetArgument.end());
+        for (int i = 0; i < argc; ++i)
         {
-            if (argument == targetArgument)
+            if (targetW == argv[i])
             {
+                LocalFree(argv);
                 return true;
             }
         }
-        return false;
+        LocalFree(argv);
     }
+    return false;
+#else
+    assert(!"Command line argument parsing not implemented for this platform");
+    return false;
+#endif
+}
 
 #ifdef _WIN32
-    typedef const char*(__stdcall* Plat_CommandLineParamValue_t)(const char* param);
+static u_short GetRemoteDebuggerPort()
+{
+    const char* portValue = GetAppropriateDevToolsPort();
 
-    u_short GetRemoteDebuggerPort() const
+    if (!portValue)
     {
-        const u_short defaultPort = 8080;
-        const HMODULE hModule = GetModuleHandleA("tier0_s.dll");
-
-        if (!hModule)
-        {
-            Logger.Warn("Failed to get handle for 'tier0_s.dll'. Using default port: {}", defaultPort);
-            return defaultPort;
-        }
-
-        FARPROC Plat_CommandLineParamValue = GetProcAddress(hModule, "Plat_CommandLineParamValue");
-
-        if (!Plat_CommandLineParamValue)
-        {
-            Logger.Warn("Failed to get 'Plat_CommandLineParamValue' function address. Using default port: {}", defaultPort);
-            return defaultPort;
-        }
-
-        Plat_CommandLineParamValue_t commandLineParamValue = reinterpret_cast<Plat_CommandLineParamValue_t>(Plat_CommandLineParamValue);
-        const char* portValue = commandLineParamValue("-devtools-port");
-
-        try
-        {
-            if (portValue && *portValue)
-            {
-                int value = std::stoi(portValue);
-                if (value < std::numeric_limits<u_short>::min() || value > std::numeric_limits<u_short>::max())
-                {
-                    throw std::out_of_range("Value out of u_short range");
-                }
-
-                return static_cast<u_short>(value);
-            }
-            else
-            {
-                Logger.Warn("No valid '-devtools-port' argument found. Using default port: {}", defaultPort);
-                return defaultPort;
-            }
-        }
-        catch (const std::exception& e)
-        {
-            Logger.Warn("Error parsing '-devtools-port' value: {}. Using default port: {}", e.what(), defaultPort);
-            return defaultPort;
-        }
+        return 0;
     }
+
+    try
+    {
+        return static_cast<u_short>(std::stoi(portValue));
+    }
+    catch (const std::exception&)
+    {
+        return 0;
+    }
+}
 #endif
-
-    std::vector<std::string> GetArgumentList()
-    {
-        return this->m_argumentList;
-    }
-
-  private:
-    void ParseCommandLine()
-    {
-#ifdef _WIN32
-        int argc = 0;
-        wchar_t** argvW = CommandLineToArgvW(GetCommandLineW(), &argc);
-        if (!argvW)
-            return;
-
-        for (int i = 0; i < argc; ++i)
-        {
-            int len = WideCharToMultiByte(CP_UTF8, 0, argvW[i], -1, NULL, 0, NULL, NULL);
-            if (len <= 0)
-                return;
-
-            std::vector<char> buffer(len);
-            WideCharToMultiByte(CP_UTF8, 0, argvW[i], -1, buffer.data(), len, NULL, NULL);
-
-            m_argumentList.emplace_back(buffer.data());
-        }
-        LocalFree(argvW);
-#endif
-    }
-
-    std::vector<std::string> m_argumentList;
-};
+}; // namespace CommandLineArguments

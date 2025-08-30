@@ -57,33 +57,6 @@ extern "C" int IsSamePath(const char* path1, const char* path2);
  */
 const static void VerifyEnvironment()
 {
-    const auto filePath = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
-
-    // Steam's CEF Remote Debugger isn't exposed to port 8080
-    if (!std::filesystem::exists(filePath))
-    {
-        try
-        {
-            std::ofstream file(filePath);
-            if (!file)
-            {
-                throw std::runtime_error(fmt::format("Failed to create '{}': {}", filePath.string(), std::strerror(errno)));
-            }
-            file.close();
-        }
-        catch (const std::exception& e)
-        {
-            LOG_ERROR("Error enabling CEF remote debugging: {}", e.what());
-#ifdef _WIN32
-            MessageBoxA(NULL, e.what(), "File Error", MB_ICONERROR | MB_OK);
-#endif
-            std::exit(EXIT_FAILURE);
-        }
-
-        Logger.Log("Successfully enabled CEF remote debugging, you can now restart Steam...");
-        std::exit(1);
-    }
-
     // Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam.
     const auto steamUpdateBlock = SystemIO::GetSteamPath() / "Steam.cfg";
 
@@ -127,7 +100,10 @@ const static void VerifyEnvironment()
 #include <exception>
 
 #ifdef _WIN32
+#include <http_hooks.h>
+#include <steam_hooks.h>
 #include <windows.h>
+
 // Helper function to demangle C++ names for MinGW
 std::string DemangleName(const char* mangledName)
 {
@@ -313,11 +289,12 @@ const static void EntryMain()
 
     PythonManager& manager = PythonManager::GetInstance();
 
-    /** Start the python backends */
-    std::thread(&PluginLoader::StartBackEnds, loader, std::ref(manager)).detach();
-
     /** Start the injection process into the Steam web helper */
-    loader->StartFrontEnds();
+    loader->StartBackEnds(manager);
+    loader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
+
+    /** Shutdown backend service once frontend disconnects*/
+    (&manager)->ShutDown();
 }
 
 __attribute__((constructor)) void __init_millennium()
@@ -355,7 +332,61 @@ __attribute__((constructor)) void __init_millennium()
 }
 
 #ifdef _WIN32
-std::unique_ptr<std::thread> g_millenniumThread;
+std::thread g_millenniumThread;
+
+void Win32_AttachMillennium(void)
+{
+    /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
+    const bool hooked = HookCefArgs();
+    if (!hooked)
+    {
+        /** Error already handled. */
+        return;
+    }
+
+    EntryMain();
+
+    /** Shutdown cron threads that manage Steam HTTP hooks */
+    HttpHookManager::get().shutdown();
+
+    MH_DisableHook(MH_ALL_HOOKS);
+    MH_Uninitialize();
+
+    /** Deallocate the developer console */
+    if (CommandLineArguments::HasArgument("-dev"))
+    {
+        FreeConsole();
+    }
+}
+
+/**
+ * Cleans up resources and gracefully shuts down Millennium on Windows.
+ *
+ * @warning This cleanup function assumes EntryMain has returned with success, otherwise this detach function will deadlock.
+ * It depends on Python being uninitialized with all threads terminated, and all frontend hooks detached.
+ */
+void Win32_DetachMillennium(void)
+{
+    Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
+
+    g_shouldTerminateMillennium->flag.store(true);
+    Logger.Log("Set terminate flag");
+
+    /** There should be 0% chance the socket is still somehow open, but we free it just in case to prevent deadlocks */
+    Sockets::Shutdown();
+
+    Logger.Log("Waiting for Millennium thread to exit...");
+
+    if (!g_millenniumThread.joinable())
+    {
+        MessageBoxA(NULL, "Millennium thread is not joinable, skipping join. This is likely because Millennium failed to start properly.", "Warning", MB_ICONWARNING);
+        return;
+    }
+
+    g_millenniumThread.join();
+    Logger.Log("Millennium thread has exited.");
+}
+
 /**
  * @brief Entry point for Millennium on Windows.
  * @param fdwReason The reason for calling the DLL.
@@ -367,17 +398,12 @@ extern "C" __attribute__((dllexport)) int __stdcall DllMain(HINSTANCE hinstDLL, 
     {
         case DLL_PROCESS_ATTACH:
         {
-            g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+            g_millenniumThread = std::thread(Win32_AttachMillennium);
             break;
         }
         case DLL_PROCESS_DETACH:
         {
-            // Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
-
-            // g_threadTerminateFlag->flag.store(true);
-            // Sockets::Shutdown();
-            // g_millenniumThread->join();
-            std::exit(0);
+            Win32_DetachMillennium();
             break;
         }
     }

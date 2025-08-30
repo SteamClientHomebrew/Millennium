@@ -87,6 +87,8 @@ class HttpHookManager
     HttpHookManager(const HttpHookManager&) = delete;
     HttpHookManager& operator=(const HttpHookManager&) = delete;
 
+    void shutdown();
+
   private:
     HttpHookManager();
     ~HttpHookManager();
@@ -95,7 +97,6 @@ class HttpHookManager
     {
       public:
         ThreadPool(size_t numThreads = 4);
-        ~ThreadPool();
 
         template <typename F> void enqueue(F&& f);
         void shutdown();
@@ -105,7 +106,8 @@ class HttpHookManager
         std::queue<std::function<void()>> tasks;
         std::mutex queueMutex;
         std::condition_variable condition;
-        std::atomic<bool> stop{false};
+        bool stop = false;
+        std::atomic<bool> shutdownCalled{false};
     };
 
     std::unique_ptr<ThreadPool> m_threadPool;
@@ -117,6 +119,7 @@ class HttpHookManager
     mutable std::mutex m_configMutex;
     mutable std::mutex m_exceptionTimeMutex;
 
+    std::atomic<bool> m_shutdown{false};
     std::atomic<long long> hookMessageId{-69};
 
     // Exception throttling

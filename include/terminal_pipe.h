@@ -90,8 +90,6 @@ const static ShimLoaderProps CheckShimLoaderVersion(std::filesystem::path shimPa
  */
 const void SetupWin32Environment()
 {
-    const auto startupParams = std::make_unique<StartupParameters>();
-
     try
     {
         if (!std::filesystem::exists(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH))

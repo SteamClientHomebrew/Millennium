@@ -36,7 +36,6 @@
 #include "loader.h"
 #include "plugin_logger.h"
 
-
 #include <optional>
 
 /**
@@ -162,7 +161,7 @@ done:
  *
  * This function destroys all Python instances and removes them from the list of Python instances.
  */
-PythonManager::~PythonManager()
+void PythonManager::ShutDown()
 {
     Logger.Warn("Deconstructing {} plugin(s) and preparing for exit...", this->m_pythonInstances.size());
 

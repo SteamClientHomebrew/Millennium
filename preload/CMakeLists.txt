@@ -35,12 +35,14 @@ add_compile_definitions(
   CURL_STATICLIB
 )
 
+find_package(MinHook REQUIRED)
+
 # Add the executable
-add_library(preload SHARED main.cc src/steam.cc src/http.cc src/unzip.cc)
+add_library(preload SHARED main.cc src/steam.cc src/http.cc src/unzip.cc src/exports.def)
 target_link_libraries(preload ${CMAKE_BINARY_DIR}/version.o)
 
-target_link_libraries(preload CURL::libcurl unofficial::minizip::minizip)
+target_link_libraries(preload CURL::libcurl unofficial::minizip::minizip minhook::minhook)
 
-set_target_properties(preload PROPERTIES OUTPUT_NAME "user32")
+set_target_properties(preload PROPERTIES OUTPUT_NAME "version")
 set_target_properties(preload PROPERTIES PREFIX "")
 set_target_properties(preload PROPERTIES NO_EXPORT TRUE)
