@@ -1,4 +1,4 @@
-{pkgs}: 
+{ pkgs }:
 pkgs.python311Packages.buildPythonPackage {
   pname = "millennium";
   version = "git";
