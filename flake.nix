@@ -1,7 +1,7 @@
 # Special thanks to @Sk7Str1p3, @mourogurt, @kaeeraa, @mctrxw for help with this flake and packages
 {
   description = ''
-    Millennium - an open-source low-code modding framework to create, 
+    Millennium - an open-source low-code modding framework to create,
     manage and use themes/plugins for the desktop Steam Client
   '';
 
