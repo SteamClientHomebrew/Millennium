@@ -1,4 +1,4 @@
-{pkgs}: 
+{ pkgs }:
 pkgs.python311Packages.buildPythonPackage {
   pname = "millennium-core-utils";
   version = "git";
