@@ -164,13 +164,12 @@ void ShowErrorMessage(DWORD errorCode)
  */
 void AllocateDevConsole()
 {
+
     if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev"))
     {
         (void)static_cast<bool>(AllocConsole());
-
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
-
         EnableVirtualTerminalProcessing();
     }
 }

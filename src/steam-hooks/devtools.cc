@@ -75,14 +75,14 @@ asio::ip::port_type GetRandomOpenPort()
     return acceptor.local_endpoint().port();
 }
 
+const bool IsDeveloperMode(void)
+{
+    return CommandLineArguments::HasArgument("-dev");
+}
+
 const char* GetAppropriateDevToolsPort()
 {
-    if (CommandLineArguments::HasArgument("-dev"))
-    {
-        return DEFAULT_DEVTOOLS_PORT;
-    }
-
-    return STEAM_DEVELOPER_TOOLS_PORT.c_str();
+    return IsDeveloperMode() ? DEFAULT_DEVTOOLS_PORT : STEAM_DEVELOPER_TOOLS_PORT.c_str();
 }
 
 void AppendParameter(std::string& input, const std::string& parameter)
@@ -117,9 +117,8 @@ std::string ExtractExecutablePath(const std::string& input)
 
 /**
  * Prevent the developer tools from being accessed on the browser programmatically.
- * i.e through fetch() etc, its still accessible by the end user.
  */
-void ReplaceRemoteAllowOrigins(std::string& input)
+void BlockDeveloperToolsAccess(std::string& input)
 {
     const std::string target = ARG_REMOTE_ALLOW_ORIGINS "=*";
     const std::string replacement = ARG_REMOTE_ALLOW_ORIGINS;
@@ -175,7 +174,12 @@ const char* SanitizeCommandLine(const char* cmd)
         return _strdup(cmd);
     }
 
-    ReplaceRemoteAllowOrigins(input);
+    /** If developer mode is enabled, disable restrictions */
+    if (!IsDeveloperMode())
+    {
+        BlockDeveloperToolsAccess(input);
+    }
+
     EnsureRemoteDebuggingAddress(input);
     EnsureRemoteDebuggingPort(input);
 
