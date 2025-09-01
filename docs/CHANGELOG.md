@@ -1,3 +1,10 @@
+## [2.29.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.0...v2.29.1) (2025-09-01)
+
+
+### Bug Fixes
+
+* Properly release signed artifact of Millennium 🤦 ([2a67879](https://github.com/SteamClientHomebrew/Millennium/commit/2a67879d241e22ae9f50f6fced116207bfd99e47))
+
 # [2.29.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.28.0...v2.29.0) (2025-09-01)
 
 
