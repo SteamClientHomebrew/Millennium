@@ -108,7 +108,7 @@ jobs:
                   signing-policy-slug: 'release-signing'
                   artifact-configuration-slug: 'millennium-release-config'
                   github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
-                  output-artifact-directory: 'D:/a/env/signed-millennium'
+                  output-artifact-directory: 'signed-millennium'
                   wait-for-completion: true
                   parameters: |
                       version: ${{ toJson(steps.get_version.outputs.version) }}
@@ -119,7 +119,7 @@ jobs:
               with:
                   include-hidden-files: true
                   name: millennium-windows-signed
-                  path: D:/a/env/signed-millennium
+                  path: D:\a\Millennium\Millennium\signed-millennium
 
     build-linux:
         permissions:
