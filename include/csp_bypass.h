@@ -47,60 +47,58 @@
 
 const void BypassCSP(void)
 {
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage(
-        "msg", "BypassCSP",
-        [&](const nlohmann::json& message, std::string listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
+    {
+        try
         {
-            try
+            if (message.contains("id") && message.value("id", -1) == 96876)
             {
-                if (message.contains("id") && message.value("id", -1) == 96876)
+                for (auto& target : message["result"]["targetInfos"])
                 {
-                    for (auto& target : message["result"]["targetInfos"])
-                    {
-                        const std::string targetUrl = target["url"].get<std::string>();
+                    const std::string targetUrl = target["url"].get<std::string>();
 
-                        // make sure the only target none client pages.
-                        if (target["type"] == "page" && targetUrl.find("steamloopback.host") == std::string::npos && targetUrl.find("about:blank?") == std::string::npos)
-                        {
-                            Sockets::PostGlobal({
-                                {"id",     567844                                               },
-                                {"method", "Target.attachToTarget"                              },
-                                {"params", {{"targetId", target["targetId"]}, {"flatten", true}}}
-                            });
-                        }
+                    // make sure the only target none client pages.
+                    if (target["type"] == "page" && targetUrl.find("steamloopback.host") == std::string::npos && targetUrl.find("about:blank?") == std::string::npos)
+                    {
+                        Sockets::PostGlobal({
+                            { "id",     567844                                                      },
+                            { "method", "Target.attachToTarget"                                     },
+                            { "params", { { "targetId", target["targetId"] }, { "flatten", true } } }
+                        });
                     }
                 }
+            }
 
-                if (message.value("method", std::string()) == "Target.attachedToTarget")
-                {
-                    Sockets::PostGlobal({
-                        {"id",        1235377                       },
-                        {"method",    "Page.setBypassCSP"           },
-                        {"sessionId", message["params"]["sessionId"]},
-                        {"params",
-                         {
-                             {"enabled", true},
-                         }                                          }
-                    });
-                }
+            if (message.value("method", std::string()) == "Target.attachedToTarget")
+            {
+                Sockets::PostGlobal({
+                    { "id",        1235377                        },
+                    { "method",    "Page.setBypassCSP"            },
+                    { "sessionId", message["params"]["sessionId"] },
+                    { "params",
+                     {
+                          { "enabled", true },
+                      }                                           }
+                });
+            }
 
-                if (message.contains("id") && message.value("id", -1) == 1235377)
-                {
-                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                }
-            }
-            catch (const nlohmann::detail::exception& e)
+            if (message.contains("id") && message.value("id", -1) == 1235377)
             {
-                LOG_ERROR("error bypassing CSP -> {}", e.what());
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
-            catch (const std::exception& e)
-            {
-                LOG_ERROR("error bypassing CSP -> {}", e.what());
-            }
-        });
+        }
+        catch (const nlohmann::detail::exception& e)
+        {
+            LOG_ERROR("error bypassing CSP -> {}", e.what());
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR("error bypassing CSP -> {}", e.what());
+        }
+    });
 
     Sockets::PostGlobal({
-        {"id",     96876              },
-        {"method", "Target.getTargets"}
+        { "id",     96876               },
+        { "method", "Target.getTargets" }
     });
 }

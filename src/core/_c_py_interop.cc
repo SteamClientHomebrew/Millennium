@@ -55,7 +55,7 @@ std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
 
     if (!valueObj)
     {
-        return {"Unknown Error.", "Unknown Error."};
+        return { "Unknown Error.", "Unknown Error." };
     }
 
     PyObject* pStrErrorMessage = PyObject_Str(valueObj);
@@ -92,7 +92,7 @@ std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
     Py_XDECREF(traceBackObj);
     Py_XDECREF(pStrErrorMessage);
 
-    return {errorMessage, tracebackText};
+    return { errorMessage, tracebackText };
 }
 
 namespace Python
@@ -102,12 +102,12 @@ namespace ObjectHandler
 EvalResult HandleActiveException()
 {
     const auto [errorMessage, tracebackText] = ActiveExceptionInformation();
-    return {Types::Error, errorMessage + tracebackText};
+    return { Types::Error, errorMessage + tracebackText };
 }
 
 EvalResult HandleBooleanObject(PyObject* obj)
 {
-    return {Types::Boolean, (obj == Py_True) ? "True" : "False"};
+    return { Types::Boolean, (obj == Py_True) ? "True" : "False" };
 }
 
 EvalResult HandleIntegerObject(PyObject* obj)
@@ -115,7 +115,7 @@ EvalResult HandleIntegerObject(PyObject* obj)
     long longValue = PyLong_AsLong(obj);
     if (PyErr_Occurred())
         return HandleActiveException();
-    return {Types::Integer, std::to_string(longValue)};
+    return { Types::Integer, std::to_string(longValue) };
 }
 
 EvalResult HandleFloatObject(PyObject* obj)
@@ -123,7 +123,7 @@ EvalResult HandleFloatObject(PyObject* obj)
     double doubleValue = PyFloat_AsDouble(obj);
     if (PyErr_Occurred())
         return HandleActiveException();
-    return {Types::String, std::to_string(doubleValue)};
+    return { Types::String, std::to_string(doubleValue) };
 }
 
 EvalResult HandleUnicodeObject(PyObject* obj)
@@ -131,20 +131,20 @@ EvalResult HandleUnicodeObject(PyObject* obj)
     const char* valueStr = PyUnicode_AsUTF8(obj);
     if (PyErr_Occurred())
         return HandleActiveException();
-    return {Types::String, valueStr ? std::string(valueStr) : std::string("")};
+    return { Types::String, valueStr ? std::string(valueStr) : std::string("") };
 }
 
 EvalResult HandleBytesObject(PyObject* obj)
 {
     char* bytesValue = PyBytes_AsString(obj);
     if (!bytesValue)
-        return {Types::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string."};
+        return { Types::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string." };
 
     Py_ssize_t size = PyBytes_Size(obj);
     if (size < 0)
-        return {Types::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object."};
+        return { Types::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object." };
 
-    return {Types::String, std::string(bytesValue, size)};
+    return { Types::String, std::string(bytesValue, size) };
 }
 
 EvalResult HandleContainerObject(PyObject* obj)
@@ -163,7 +163,7 @@ EvalResult HandleContainerObject(PyObject* obj)
                 Py_XDECREF(jsonStr);
                 Py_DECREF(dumpsFunction);
                 Py_DECREF(jsonModule);
-                return {Types::JSON, result};
+                return { Types::JSON, result };
             }
             Py_XDECREF(jsonStr);
             Py_DECREF(dumpsFunction);
@@ -178,15 +178,15 @@ EvalResult HandleContainerObject(PyObject* obj)
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
         std::string result = unicodeRepresentation ? unicodeRepresentation : "{}";
         Py_DECREF(objRepresentation);
-        return {Types::JSON, result};
+        return { Types::JSON, result };
     }
 
-    return {Types::JSON, "{}"};
+    return { Types::JSON, "{}" };
 }
 
 EvalResult HandleNoneObject()
 {
-    return {Types::JSON, "null"};
+    return { Types::JSON, "null" };
 }
 
 EvalResult HandleUnknownObject(PyObject* obj)
@@ -197,9 +197,9 @@ EvalResult HandleUnknownObject(PyObject* obj)
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
         std::string result = unicodeRepresentation ? unicodeRepresentation : "<unknown object>";
         Py_DECREF(objRepresentation);
-        return {Types::Unknown, result};
+        return { Types::Unknown, result };
     }
-    return {Types::Unknown, "<unknown object>"};
+    return { Types::Unknown, "<unknown object>" };
 }
 } // namespace ObjectHandler
 } // namespace Python
@@ -421,7 +421,7 @@ Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohma
     /** Plugin has no backend and therefor the call should not be completed */
     if (!hasBackend)
     {
-        return {Boolean, "false"};
+        return { Boolean, "false" };
     }
 
     auto result = PythonManager::GetInstance().GetPythonThreadStateFromName(pluginName);
@@ -431,7 +431,7 @@ Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohma
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return {Error, "overstepped partying thread state"};
+        return { Error, "overstepped partying thread state" };
     }
 
     auto& [strPluginName, threadState, interpMutex] = *result.value();
@@ -441,7 +441,7 @@ Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohma
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return {Error, "overstepped partying thread state"};
+        return { Error, "overstepped partying thread state" };
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
@@ -452,7 +452,7 @@ Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohma
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return {Error, "thread state was nullptr"};
+        return { Error, "thread state was nullptr" };
     }
 
     PyObject* mainModule = PyImport_AddModule("__main__");
@@ -463,7 +463,7 @@ Python::EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohma
             fmt::format("Failed to fetch python module on [{}]. This usually means the GIL could not be acquired either because the backend froze or crashed", pluginName);
 
         ErrorToLogger(pluginName, message);
-        return {Error, message};
+        return { Error, message };
     }
 
     PyObject* globalDictionaryObj = PyModule_GetDict(mainModule);

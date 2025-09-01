@@ -141,13 +141,13 @@ class SharedJSMessageEmitter
             auto& handlers = it->second;
             handlers.erase(std::remove_if(handlers.begin(), handlers.end(),
                                           [listenerId](const auto& handler)
-                                          {
-                                              if (handler.first == listenerId)
-                                              {
-                                                  return true;
-                                              }
-                                              return false;
-                                          }),
+            {
+                if (handler.first == listenerId)
+                {
+                    return true;
+                }
+                return false;
+            }),
                            handlers.end());
         }
     }

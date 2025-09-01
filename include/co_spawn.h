@@ -46,7 +46,7 @@ struct InterpreterMutex
 {
     std::mutex mtx;
     std::condition_variable cv;
-    std::atomic<bool> flag{false};
+    std::atomic<bool> flag{ false };
 };
 
 struct PythonThreadState

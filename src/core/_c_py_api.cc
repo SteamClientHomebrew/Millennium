@@ -42,9 +42,9 @@
 #include <nlohmann/json.hpp>
 
 std::map<std::string, JavaScript::Types> typeMap = {
-    {"str",  JavaScript::Types::String },
-    {"bool", JavaScript::Types::Boolean},
-    {"int",  JavaScript::Types::Integer}
+    { "str",  JavaScript::Types::String  },
+    { "bool", JavaScript::Types::Boolean },
+    { "int",  JavaScript::Types::Integer }
 };
 
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
@@ -64,7 +64,7 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
     const char* methodName = NULL;
     PyObject* parameterList = NULL;
 
-    static const char* keywordArgsList[] = {"method_name", "params", NULL};
+    static const char* keywordArgsList[] = { "method_name", "params", NULL };
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)keywordArgsList, &methodName, &parameterList))
     {
@@ -91,7 +91,7 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
 
             try
             {
-                params.push_back({strValue, typeMap[valueType]});
+                params.push_back({ strValue, typeMap[valueType] });
             }
             catch (const std::exception&)
             {
@@ -167,7 +167,7 @@ unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes ty
 
     try
     {
-        HttpHookManager::get().AddHook({path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId});
+        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
     }
     catch (const std::regex_error& e)
     {
@@ -317,7 +317,7 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
 
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
-    backendHandler.BackendLoaded({pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS});
+    backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
 
     return PyBool_FromLong(true);
 }
@@ -336,8 +336,8 @@ PyObject* GetPluginLogs(PyObject* self, PyObject* args)
         for (auto [message, logLevel] : logger->CollectLogs())
         {
             logDataItem.push_back({
-                {"message", Base64Encode(message)},
-                {"level",   logLevel             }
+                { "message", Base64Encode(message) },
+                { "level",   logLevel              }
             });
         }
 
@@ -359,8 +359,8 @@ PyObject* GetPluginLogs(PyObject* self, PyObject* args)
         }
 
         logData.push_back({
-            {"name", pluginName },
-            {"logs", logDataItem}
+            { "name", pluginName  },
+            { "logs", logDataItem }
         });
     }
 
@@ -371,18 +371,18 @@ PyObject* GetPluginLogs(PyObject* self, PyObject* args)
 std::string getMonthNumber(const std::string& monthAbbr)
 {
     static std::map<std::string, std::string> monthMap{
-        {"Jan", "01"},
-        {"Feb", "02"},
-        {"Mar", "03"},
-        {"Apr", "04"},
-        {"May", "05"},
-        {"Jun", "06"},
-        {"Jul", "07"},
-        {"Aug", "08"},
-        {"Sep", "09"},
-        {"Oct", "10"},
-        {"Nov", "11"},
-        {"Dec", "12"}
+        { "Jan", "01" },
+        { "Feb", "02" },
+        { "Mar", "03" },
+        { "Apr", "04" },
+        { "May", "05" },
+        { "Jun", "06" },
+        { "Jul", "07" },
+        { "Aug", "08" },
+        { "Sep", "09" },
+        { "Oct", "10" },
+        { "Nov", "11" },
+        { "Dec", "12" }
     };
     return monthMap[monthAbbr];
 }
@@ -423,42 +423,42 @@ PyMethodDef* GetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = {
         /** Called *one time* after your plugin has finished bootstrapping. Its used to let Millennium know what plugins crashes/loaded etc.  */
-        {"ready",                     EmitReadyMessage,                METH_NOARGS,                  NULL},
+        { "ready",                     EmitReadyMessage,                METH_NOARGS,                  NULL },
 
         /** Add a CSS file to the browser webkit hook list */
-        {"add_browser_css",           AddBrowserCss,                   METH_VARARGS,                 NULL},
+        { "add_browser_css",           AddBrowserCss,                   METH_VARARGS,                 NULL },
         /** Add a JavaScript file to the browser webkit hook list */
-        {"add_browser_js",            AddBrowserJs,                    METH_VARARGS,                 NULL},
+        { "add_browser_js",            AddBrowserJs,                    METH_VARARGS,                 NULL },
         /** Remove a CSS or JavaScript file, passing the ModuleID provided from add_browser_js/css */
-        {"remove_browser_module",     RemoveBrowserModule,             METH_VARARGS,                 NULL},
+        { "remove_browser_module",     RemoveBrowserModule,             METH_VARARGS,                 NULL },
 
-        {"get_user_settings",         GetUserSettings,                 METH_NOARGS,                  NULL},
-        {"set_user_settings_key",     SetUserSettings,                 METH_VARARGS,                 NULL},
+        { "get_user_settings",         GetUserSettings,                 METH_NOARGS,                  NULL },
+        { "set_user_settings_key",     SetUserSettings,                 METH_VARARGS,                 NULL },
         /** Get the version of Millennium. In semantic versioning format. */
-        {"version",                   GetVersionInfo,                  METH_NOARGS,                  NULL},
+        { "version",                   GetVersionInfo,                  METH_NOARGS,                  NULL },
         /** Get the path to the Steam directory */
-        {"steam_path",                GetSteamPath,                    METH_NOARGS,                  NULL},
+        { "steam_path",                GetSteamPath,                    METH_NOARGS,                  NULL },
         /** Get the path to the Millennium install directory */
-        {"get_install_path",          GetInstallPath,                  METH_NOARGS,                  NULL},
+        { "get_install_path",          GetInstallPath,                  METH_NOARGS,                  NULL },
         /** Get all the current stored logs from all loaded and previously loaded plugins during this instance */
-        {"get_plugin_logs",           GetPluginLogs,                   METH_NOARGS,                  NULL},
+        { "get_plugin_logs",           GetPluginLogs,                   METH_NOARGS,                  NULL },
 
         /** Call a JavaScript method on the frontend. */
-        {"call_frontend_method",      (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL},
+        { "call_frontend_method",      (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
         /**
          * @note Internal Use Only
          * Used to toggle the status of a plugin, used in the Millennium settings page.
          */
-        {"change_plugin_status",      TogglePluginStatus,              METH_VARARGS,                 NULL},
+        { "change_plugin_status",      TogglePluginStatus,              METH_VARARGS,                 NULL },
         /**
          * @note Internal Use Only
          * Used to check if a plugin is enabled, used in the Millennium settings page.
          */
-        {"is_plugin_enabled",         IsPluginEnable,                  METH_VARARGS,                 NULL},
+        { "is_plugin_enabled",         IsPluginEnable,                  METH_VARARGS,                 NULL },
 
         /** For internal use, but can be used if its useful */
-        {"__internal_get_build_date", GetBuildDate,                    METH_VARARGS,                 NULL},
-        {NULL,                        NULL,                            0,                            NULL}  // Sentinel
+        { "__internal_get_build_date", GetBuildDate,                    METH_VARARGS,                 NULL },
+        { NULL,                        NULL,                            0,                            NULL }  // Sentinel
     };
 
     return moduleMethods;

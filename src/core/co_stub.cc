@@ -280,8 +280,8 @@ void SetupPluginSettings()
     {
         Logger.PrintMessage(" BOOT ", "Creating __millennium_plugin_settings_parser__ function in builtins.", COL_YELLOW);
 
-        static PyMethodDef methodDef = {"__millennium_plugin_settings_parser__", [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; }, METH_NOARGS,
-                                        "Millennium plugin settings parser placeholder."};
+        static PyMethodDef methodDef = { "__millennium_plugin_settings_parser__", [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; }, METH_NOARGS,
+                                         "Millennium plugin settings parser placeholder." };
 
         PyObject* newFunc = PyCFunction_New(&methodDef, nullptr);
 
@@ -403,7 +403,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         Logger.Warn("failed to fopen file @ {}", backendMainModule);
         ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
 
-        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
     }
 
@@ -415,7 +415,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         Logger.Warn("Millennium failed to initialize the main module.");
         ErrorToLogger(plugin.pluginName, "Failed to initialize the main module.");
 
-        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         fclose(mainModuleFilePtr);
         return;
     }
@@ -434,7 +434,7 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
         ErrorToLogger(plugin.pluginName,
                       fmt::format("Failed to start plugin: {}. This is likely due to failing module side effects, unrelated to Millennium.\n\n{}", plugin.pluginName, traceback));
 
-        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
     }
 
@@ -443,45 +443,44 @@ const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema p
     const auto startTime = std::chrono::steady_clock::now();
     std::atomic<bool> timeOutLockThreadRunning = true;
 
-    std::thread timeOutThread(
-        [&timeOutLockThreadRunning, startTime, plugin]
+    std::thread timeOutThread([&timeOutLockThreadRunning, startTime, plugin]
+    {
+        while (timeOutLockThreadRunning.load())
         {
-            while (timeOutLockThreadRunning.load())
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30))
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::string errorMessage = fmt::format(
+                    "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
+                    "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.",
+                    plugin.pluginName);
 
-                if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30))
-                {
-                    std::string errorMessage = fmt::format(
-                        "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
-                        "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.",
-                        plugin.pluginName);
-
-                    LOG_ERROR(errorMessage);
-                    ErrorToLogger(plugin.pluginName, errorMessage);
+                LOG_ERROR(errorMessage);
+                ErrorToLogger(plugin.pluginName, errorMessage);
 
 #ifdef _WIN32
-                    const int result = MessageBoxA(NULL,
-                                                   fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
-                                                               "or break the Steam UI. Would you like to disable it on next Steam startup?",
-                                                               plugin.pluginName)
-                                                       .c_str(),
-                                                   "Millennium - Startup Error", MB_ICONERROR | MB_YESNO);
+                const int result = MessageBoxA(NULL,
+                                               fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
+                                                           "or break the Steam UI. Would you like to disable it on next Steam startup?",
+                                                           plugin.pluginName)
+                                                   .c_str(),
+                                               "Millennium - Startup Error", MB_ICONERROR | MB_YESNO);
 
-                    if (result == IDYES)
-                    {
-                        std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-                        settingsStore->TogglePluginStatus(plugin.pluginName, false);
-                    }
+                if (result == IDYES)
+                {
+                    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+                    settingsStore->TogglePluginStatus(plugin.pluginName, false);
+                }
 #endif
 
-                    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
-                    backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+                backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
 
-                    break;
-                }
+                break;
             }
-        });
+        }
+    });
 
     SetupPluginSettings();
     StartPluginBackend(globalDictionary, plugin.pluginName);
@@ -552,70 +551,68 @@ void OnBackendLoad(bool reloadFrontend)
         PAGE_RELOAD = 4
     };
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage(
-        "msg", "OnBackendLoad",
-        [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
+    {
+        auto& state = BackendLoadState::get();
+        std::unique_lock<std::mutex> lock(state.mtx);
+
+        try
         {
-            auto& state = BackendLoadState::get();
-            std::unique_lock<std::mutex> lock(state.mtx);
+            const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
 
-            try
+            if (messageId == PAGE_ENABLE)
             {
-                const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
+                Logger.Log("Injecting script to evaluate on new document...");
+                Sockets::PostShared({
+                    { "id",     PAGE_SCRIPT                               },
+                    { "method", "Page.addScriptToEvaluateOnNewDocument"   },
+                    { "params", { { "source", ConstructOnLoadModule() } } }
+                });
+            }
+            if (messageId == PAGE_SCRIPT && eventMessage.contains("result") && eventMessage["result"].contains("identifier"))
+            {
+                Logger.Log("Script injected, waiting for identifier...");
 
-                if (messageId == PAGE_ENABLE)
-                {
-                    Logger.Log("Injecting script to evaluate on new document...");
+                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                state.hasScriptIdentifier = true;
+                Logger.Log("Successfully injected shims, reloading frontend...");
+
+                if (reloadFrontend)
                     Sockets::PostShared({
-                        {"id",     PAGE_SCRIPT                            },
-                        {"method", "Page.addScriptToEvaluateOnNewDocument"},
-                        {"params", {{"source", ConstructOnLoadModule()}}  }
+                        { "id",     PAGE_RELOAD                 },
+                        { "method", "Page.reload"               },
+                        { "params", { { "ignoreCache", true } } }
                     });
-                }
-                if (messageId == PAGE_SCRIPT && eventMessage.contains("result") && eventMessage["result"].contains("identifier"))
+                state.cvScript.notify_one();
+            }
+            if (messageId == PAGE_RELOAD)
+            {
+                if (eventMessage.contains("error"))
                 {
-                    Logger.Log("Script injected, waiting for identifier...");
-
-                    addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                    state.hasScriptIdentifier = true;
-                    Logger.Log("Successfully injected shims, reloading frontend...");
-
+                    Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
                     if (reloadFrontend)
                         Sockets::PostShared({
-                            {"id",     PAGE_RELOAD            },
-                            {"method", "Page.reload"          },
-                            {"params", {{"ignoreCache", true}}}
+                            { "id",     PAGE_RELOAD                 },
+                            { "method", "Page.reload"               },
+                            { "params", { { "ignoreCache", true } } }
                         });
-                    state.cvScript.notify_one();
+                    return;
                 }
-                if (messageId == PAGE_RELOAD)
-                {
-                    if (eventMessage.contains("error"))
-                    {
-                        Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
-                        if (reloadFrontend)
-                            Sockets::PostShared({
-                                {"id",     PAGE_RELOAD            },
-                                {"method", "Page.reload"          },
-                                {"params", {{"ignoreCache", true}}}
-                            });
-                        return;
-                    }
 
-                    Logger.Log("Successfully notified frontend...");
-                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                }
+                Logger.Log("Successfully notified frontend...");
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
-            catch (nlohmann::detail::exception& ex)
-            {
-                LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
-            }
-        });
+        }
+        catch (nlohmann::detail::exception& ex)
+        {
+            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+        }
+    });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     Sockets::PostShared({
-        {"id",     PAGE_ENABLE  },
-        {"method", "Page.enable"}
+        { "id",     PAGE_ENABLE   },
+        { "method", "Page.enable" }
     });
     {
         auto& state = BackendLoadState::get();
@@ -649,9 +646,9 @@ const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pl
     pluginLoader->InjectWebkitShims();
 
     Sockets::PostShared({
-        {"id",     0                                           },
-        {"method", "Page.removeScriptToEvaluateOnNewDocument"  },
-        {"params", {{"identifier", addedScriptOnNewDocumentId}}}
+        { "id",     0                                                },
+        { "method", "Page.removeScriptToEvaluateOnNewDocument"       },
+        { "params", { { "identifier", addedScriptOnNewDocumentId } } }
     });
     InjectFrontendShims(reloadFrontend);
 }

@@ -87,22 +87,22 @@ enum eFileType
  * - `Other` maps to "text/plain"
  */
 static std::map<eFileType, std::string> fileTypes{
-    {eFileType::css,     "text/css"              },
-    {eFileType::js,      "application/javascript"},
-    {eFileType::json,    "application/json"      },
-    {eFileType::py,      "text/x-python"         },
-    {eFileType::ttf,     "font/ttf"              },
-    {eFileType::otf,     "font/otf"              },
-    {eFileType::woff,    "font/woff"             },
-    {eFileType::woff2,   "font/woff2"            },
-    {eFileType::png,     "image/png"             },
-    {eFileType::jpeg,    "image/jpeg"            },
-    {eFileType::jpg,     "image/jpg"             },
-    {eFileType::gif,     "image/gif"             },
-    {eFileType::webp,    "image/webp"            },
-    {eFileType::svg,     "image/svg+xml"         },
-    {eFileType::html,    "text/html"             },
-    {eFileType::unknown, "text/plain"            },
+    { eFileType::css,     "text/css"               },
+    { eFileType::js,      "application/javascript" },
+    { eFileType::json,    "application/json"       },
+    { eFileType::py,      "text/x-python"          },
+    { eFileType::ttf,     "font/ttf"               },
+    { eFileType::otf,     "font/otf"               },
+    { eFileType::woff,    "font/woff"              },
+    { eFileType::woff2,   "font/woff2"             },
+    { eFileType::png,     "image/png"              },
+    { eFileType::jpeg,    "image/jpeg"             },
+    { eFileType::jpg,     "image/jpg"              },
+    { eFileType::gif,     "image/gif"              },
+    { eFileType::webp,    "image/webp"             },
+    { eFileType::svg,     "image/svg+xml"          },
+    { eFileType::html,    "text/html"              },
+    { eFileType::unknown, "text/plain"             },
 };
 
 /**
@@ -192,11 +192,11 @@ static const eFileType EvaluateFileType(std::filesystem::path filePath)
     }
 }
 
-std::atomic<unsigned long long> g_hookedModuleId{0};
+std::atomic<unsigned long long> g_hookedModuleId{ 0 };
 
 // Millennium will not load JavaScript into the following URLs to favor user safety.
 // This is a list of URLs that may have sensitive information or are not safe to load JavaScript into.
-static const std::vector<std::string> g_blackListedUrls = {"https://checkout\\.steampowered\\.com/.*"};
+static const std::vector<std::string> g_blackListedUrls = { "https://checkout\\.steampowered\\.com/.*" };
 
 // Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.)
 static const std::unordered_set<std::string> g_doNotHook = {
@@ -298,17 +298,17 @@ bool HttpHookManager::ShouldLogException()
 void HttpHookManager::SetupGlobalHooks()
 {
     PostGlobalMessage({
-        {"id",     3242                                                                                       },
-        {"method", "Fetch.enable"                                                                             },
-        {"params",
-         {{"patterns",
-           {{{"urlPattern", "*"}, {"resourceType", "Document"}, {"requestStage", "Response"}},
-            {{"urlPattern", fmt::format("{}*", this->m_ipcHookAddress)}, {"requestStage", "Request"}},
-            {{"urlPattern", fmt::format("{}*", this->m_ftpHookAddress)}, {"requestStage", "Request"}},
-            /** Maintain backwards compatibility for themes that explicitly rely on this url */
-            {{"urlPattern", fmt::format("{}*", this->m_oldHookAddress)}, {"requestStage", "Request"}},
-            {{"urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl)}, {"requestStage", "Request"}},
-            {{"urlPattern", fmt::format("{}*", this->m_styleSheetVirtualUrl)}, {"requestStage", "Request"}}}}}}
+        { "id",     3242                                                                                                    },
+        { "method", "Fetch.enable"                                                                                          },
+        { "params",
+         { { "patterns",
+              { { { "urlPattern", "*" }, { "resourceType", "Document" }, { "requestStage", "Response" } },
+                { { "urlPattern", fmt::format("{}*", this->m_ipcHookAddress) }, { "requestStage", "Request" } },
+                { { "urlPattern", fmt::format("{}*", this->m_ftpHookAddress) }, { "requestStage", "Request" } },
+                /** Maintain backwards compatibility for themes that explicitly rely on this url */
+                { { "urlPattern", fmt::format("{}*", this->m_oldHookAddress) }, { "requestStage", "Request" } },
+                { { "urlPattern", fmt::format("{}*", this->m_javaScriptVirtualUrl) }, { "requestStage", "Request" } },
+                { { "urlPattern", fmt::format("{}*", this->m_styleSheetVirtualUrl) }, { "requestStage", "Request" } } } } } }
     });
 }
 
@@ -381,19 +381,19 @@ void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& mess
     }
 
     const auto responseHeaders = nlohmann::json::array({
-        {{"name", "Access-Control-Allow-Origin"}, {"value", "*"}                },
-        {{"name", "Content-Type"},                {"value", fileTypes[fileType]}}
+        { { "name", "Access-Control-Allow-Origin" }, { "value", "*" }                 },
+        { { "name", "Content-Type" },                { "value", fileTypes[fileType] } }
     });
 
     PostGlobalMessage({
-        {"id",     63453                 },
-        {"method", "Fetch.fulfillRequest"},
-        {"params",
-         {{"responseCode", responseCode},
-          {"requestId", message["params"]["requestId"]},
-          {"responseHeaders", responseHeaders},
-          {"responsePhrase", responseMessage},
-          {"body", fileContent}}         }
+        { "id",     63453                  },
+        { "method", "Fetch.fulfillRequest" },
+        { "params",
+         { { "responseCode", responseCode },
+            { "requestId", message["params"]["requestId"] },
+            { "responseHeaders", responseHeaders },
+            { "responsePhrase", responseMessage },
+            { "body", fileContent } }      }
     });
 }
 
@@ -404,9 +404,9 @@ void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
     const auto ContinueOriginalRequest = [this, &message]()
     {
         PostGlobalMessage({
-            {"id",     0                                              },
-            {"method", "Fetch.continueRequest"                        },
-            {"params", {{"requestId", message["params"]["requestId"]}}}
+            { "id",     0                                                   },
+            { "method", "Fetch.continueRequest"                             },
+            { "params", { { "requestId", message["params"]["requestId"] } } }
         });
     };
 
@@ -429,15 +429,15 @@ void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
     {
         long long currentMessageId = hookMessageId.fetch_sub(1) - 1;
 
-        WebHookItem item = {currentMessageId, message.value("/params/requestId"_json_pointer, std::string{}), message.value("/params/resourceType"_json_pointer, std::string{}),
-                            message};
+        WebHookItem item = { currentMessageId, message.value("/params/requestId"_json_pointer, std::string{}), message.value("/params/resourceType"_json_pointer, std::string{}),
+                             message };
 
         AddRequest(item);
 
         PostGlobalMessage({
-            {"id",     currentMessageId                               },
-            {"method", "Fetch.getResponseBody"                        },
-            {"params", {{"requestId", message["params"]["requestId"]}}}
+            { "id",     currentMessageId                                    },
+            { "method", "Fetch.getResponseBody"                             },
+            { "params", { { "requestId", message["params"]["requestId"] } } }
         });
     }
 }
@@ -524,78 +524,77 @@ const std::string HttpHookManager::PatchDocumentContents(const std::string& requ
 
 void HttpHookManager::HandleHooks(const nlohmann::basic_json<>& message)
 {
-    ProcessRequests(
-        [&](auto requestIterator) -> bool
+    ProcessRequests([&](auto requestIterator) -> bool
+    {
+        try
         {
-            try
+            auto [id, requestId, type, response] = (*requestIterator);
+
+            int64_t messageId = message.value(json::json_pointer("/id"), int64_t(0));
+            bool base64Encoded = message.value(json::json_pointer("/result/base64Encoded"), false);
+
+            if (messageId != id || (messageId == id && !base64Encoded))
             {
-                auto [id, requestId, type, response] = (*requestIterator);
+                return false;
+            }
 
-                int64_t messageId = message.value(json::json_pointer("/id"), int64_t(0));
-                bool base64Encoded = message.value(json::json_pointer("/result/base64Encoded"), false);
+            std::string requestUrl = response.value(json::json_pointer("/params/request/url"), std::string{});
+            std::string responseBody = message.value(json::json_pointer("/result/body"), std::string{});
 
-                if (messageId != id || (messageId == id && !base64Encoded))
-                {
-                    return false;
-                }
-
-                std::string requestUrl = response.value(json::json_pointer("/params/request/url"), std::string{});
-                std::string responseBody = message.value(json::json_pointer("/result/body"), std::string{});
-
-                if (requestUrl.empty() || responseBody.empty())
-                {
-                    return true;
-                }
-
-                const std::string patchedContent = this->PatchDocumentContents(requestUrl, Base64Decode(responseBody));
-                BypassCSP();
-
-                const int responseCode = response.value(json::json_pointer("/params/responseStatusCode"), 200);
-                const std::string responseMessage = response.value(json::json_pointer("/params/responseStatusText"), std::string{"OK"});
-                nlohmann::json responseHeaders = response.value(json::json_pointer("/params/responseHeaders"), nlohmann::json::array());
-
-                PostGlobalMessage({
-                    {"id",     63453                         },
-                    {"method", "Fetch.fulfillRequest"        },
-                    {"params",
-                     {{"requestId", requestId},
-                      {"responseCode", responseCode},
-                      {"responseHeaders", responseHeaders},
-                      {"responsePhrase", responseMessage.empty() ? "OK" : responseMessage},
-                      {"body", Base64Encode(patchedContent)}}}
-                });
+            if (requestUrl.empty() || responseBody.empty())
+            {
                 return true;
             }
-            catch (const nlohmann::detail::exception& ex)
-            {
-                if (ShouldLogException())
-                    LOG_ERROR("JSON error in HandleHooks -> {}", ex.what());
-                return true;
-            }
-            catch (const std::exception& ex)
-            {
-                if (ShouldLogException())
-                    LOG_ERROR("Error in HandleHooks -> {}", ex.what());
-                return true;
-            }
-        });
+
+            const std::string patchedContent = this->PatchDocumentContents(requestUrl, Base64Decode(responseBody));
+            BypassCSP();
+
+            const int responseCode = response.value(json::json_pointer("/params/responseStatusCode"), 200);
+            const std::string responseMessage = response.value(json::json_pointer("/params/responseStatusText"), std::string{ "OK" });
+            nlohmann::json responseHeaders = response.value(json::json_pointer("/params/responseHeaders"), nlohmann::json::array());
+
+            PostGlobalMessage({
+                { "id",     63453                              },
+                { "method", "Fetch.fulfillRequest"             },
+                { "params",
+                 { { "requestId", requestId },
+                    { "responseCode", responseCode },
+                    { "responseHeaders", responseHeaders },
+                    { "responsePhrase", responseMessage.empty() ? "OK" : responseMessage },
+                    { "body", Base64Encode(patchedContent) } } }
+            });
+            return true;
+        }
+        catch (const nlohmann::detail::exception& ex)
+        {
+            if (ShouldLogException())
+                LOG_ERROR("JSON error in HandleHooks -> {}", ex.what());
+            return true;
+        }
+        catch (const std::exception& ex)
+        {
+            if (ShouldLogException())
+                LOG_ERROR("Error in HandleHooks -> {}", ex.what());
+            return true;
+        }
+    });
 }
 
 void HttpHookManager::HandleIpcMessage(nlohmann::json message)
 {
     nlohmann::json responseJson = {
-        {"id",     63453                   },
-        {"method", "Fetch.fulfillRequest"  },
-        {"params",
-         {{"responseCode", 200},
-          {"requestId", message["params"]["requestId"]},
-          {"responseHeaders",
-           nlohmann::json::array({{{"name", "Access-Control-Allow-Origin"}, {"value", "*"}},
-                                  {{"name", "Access-Control-Allow-Headers"}, {"value", "Origin, X-Requested-With, X-Millennium-Auth, Content-Type, Accept, Authorization"}},
-                                  {{"name", "Access-Control-Allow-Methods"}, {"value", "GET, POST, PUT, DELETE, OPTIONS"}},
-                                  {{"name", "Access-Control-Max-Age"}, {"value", "86400"}},
-                                  {{"name", "Content-Type"}, {"value", "application/json"}}})},
-          {"responsePhrase", "Millennium"}}}
+        { "id",     63453                        },
+        { "method", "Fetch.fulfillRequest"       },
+        { "params",
+         { { "responseCode", 200 },
+            { "requestId", message["params"]["requestId"] },
+            { "responseHeaders", nlohmann::json::array({ { { "name", "Access-Control-Allow-Origin" }, { "value", "*" } },
+                                                         { { "name", "Access-Control-Allow-Headers" },
+                                                           { "value", "Origin, X-Requested-With, X-Millennium-Auth, Content-Type, Accept, Authorization" } },
+                                                         { { "name", "Access-Control-Allow-Methods" }, { "value", "GET, POST, PUT, DELETE, OPTIONS" } },
+                                                         { { "name", "Access-Control-Max-Age" }, { "value", "86400" } },
+                                                         { { "name", "Content-Type" }, { "value", "application/json" } } }) },
+            { "responsePhrase", "Millennium" } } }
     };
 
     /** If the HTTP method is OPTIONS, we don't need to require auth token */
@@ -717,40 +716,39 @@ HttpHookManager::ThreadPool::ThreadPool(size_t numThreads) : stop(false), shutdo
 {
     for (size_t i = 0; i < numThreads; ++i)
     {
-        workers.emplace_back(
-            [this]
+        workers.emplace_back([this]
+        {
+            while (true)
             {
-                while (true)
+                std::function<void()> task;
                 {
-                    std::function<void()> task;
+                    std::unique_lock<std::mutex> lock(queueMutex);
+                    condition.wait(lock, [this] { return stop || !tasks.empty(); });
+                    if (stop && tasks.empty())
                     {
-                        std::unique_lock<std::mutex> lock(queueMutex);
-                        condition.wait(lock, [this] { return stop || !tasks.empty(); });
-                        if (stop && tasks.empty())
-                        {
-                            Logger.Log("ThreadPool worker exiting");
-                            return;
-                        }
-                        if (!tasks.empty())
-                        {
-                            task = std::move(tasks.front());
-                            tasks.pop();
-                        }
-                        else
-                        {
-                            continue;
-                        }
+                        Logger.Log("ThreadPool worker exiting");
+                        return;
                     }
-                    try
+                    if (!tasks.empty())
                     {
-                        task();
+                        task = std::move(tasks.front());
+                        tasks.pop();
                     }
-                    catch (const std::exception& ex)
+                    else
                     {
-                        Logger.Log(std::string("ThreadPool worker exception: ") + ex.what());
+                        continue;
                     }
                 }
-            });
+                try
+                {
+                    task();
+                }
+                catch (const std::exception& ex)
+                {
+                    Logger.Log(std::string("ThreadPool worker exception: ") + ex.what());
+                }
+            }
+        });
     }
 }
 

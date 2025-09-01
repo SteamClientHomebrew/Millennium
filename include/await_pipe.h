@@ -109,7 +109,7 @@ class SocketHelpers
         if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR)
         {
             free(tcpTable);
-            return {false, "Error getting TCP table"};
+            return { false, "Error getting TCP table" };
         }
 
         for (DWORD i = 0; i < tcpTable->dwNumEntries; i++)
@@ -124,11 +124,11 @@ class SocketHelpers
                     continue;
                 }
 
-                return {targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string()};
+                return { targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string() };
             }
         }
 #endif
-        return {true};
+        return { true };
     }
 
   public:

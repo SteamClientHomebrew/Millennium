@@ -140,8 +140,8 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 
     /** Return a success message. */
     return nlohmann::json({
-        {"id",      message["iteration"]},
-        {"success", true                }
+        { "id",      message["iteration"] },
+        { "success", true                 }
     });
 }
 
@@ -180,14 +180,14 @@ nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload)
     catch (nlohmann::detail::exception& ex)
     {
         return {
-            {"error", fmt::format("JSON parsing error: {}", ex.what()), "type", IPCMain::ErrorType::INTERNAL_ERROR}
+            { "error", fmt::format("JSON parsing error: {}", ex.what()), "type", IPCMain::ErrorType::INTERNAL_ERROR }
         };
     }
     catch (std::exception& ex)
     {
         return {
-            {"error", fmt::format("An error occurred while processing the message: {}", ex.what())},
-            {"type", IPCMain::ErrorType::INTERNAL_ERROR}
+            { "error", fmt::format("An error occurred while processing the message: {}", ex.what()) },
+            { "type", IPCMain::ErrorType::INTERNAL_ERROR }
         };
     }
 }

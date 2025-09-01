@@ -216,7 +216,7 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
          * Used in the creation of the Steam web helper -- this is the actual function that spawns the child process. We can hook it directly and
          * edit the commandline before its passed to the system.
          */
-        {"CreateSimpleProcess", reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess)}
+        { "CreateSimpleProcess", reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess) }
     };
 
     for (const auto& hook : hooks)

@@ -47,7 +47,7 @@
  */
 PyObject* PyInit_Millennium(void)
 {
-    static struct PyModuleDef module_def = {PyModuleDef_HEAD_INIT, "Millennium", NULL, -1, (PyMethodDef*)GetMillenniumModule()};
+    static struct PyModuleDef module_def = { PyModuleDef_HEAD_INIT, "Millennium", NULL, -1, (PyMethodDef*)GetMillenniumModule() };
 
     return PyModule_Create(&module_def);
 }
@@ -195,25 +195,24 @@ bool PythonManager::DestroyAllPythonInstances()
     std::atomic<bool> timeOutLockThreadRunning = true;
     std::unique_lock<std::mutex> lock(this->m_pythonMutex); // Lock for thread safety
 
-    std::thread timeOutThread(
-        [&timeOutLockThreadRunning, startTime]
+    std::thread timeOutThread([&timeOutLockThreadRunning, startTime]
+    {
+        while (timeOutLockThreadRunning.load())
         {
-            while (timeOutLockThreadRunning.load())
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-                if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(10))
-                {
-                    LOG_ERROR("Exceeded 10 second timeout for shutting down plugins, force terminating Steam. This is likely a plugin issue, unrelated to Millennium.");
+            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(10))
+            {
+                LOG_ERROR("Exceeded 10 second timeout for shutting down plugins, force terminating Steam. This is likely a plugin issue, unrelated to Millennium.");
 
 #ifdef _WIN32
-                    std::exit(1);
+                std::exit(1);
 #elif __linux__
-                    raise(SIGINT);
+                raise(SIGINT);
 #endif
-                }
             }
-        });
+        }
+    });
 
     for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */)
     {
@@ -239,7 +238,7 @@ bool PythonManager::DestroyAllPythonInstances()
             Logger.Log("Successfully joined thread");
 
             this->m_threadPool.erase(threadIt);
-            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({pluginName}, true);
+            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, true);
         }
         else
         {
@@ -303,7 +302,7 @@ bool PythonManager::DestroyPythonInstance(std::string targetPluginName, bool isS
 
                 Logger.Log("Successfully joined thread");
                 threadIt = this->m_threadPool.erase(threadIt); // Safe erase
-                CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({targetPluginName}, isShuttingDown);
+                CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ targetPluginName }, isShuttingDown);
                 break;
             }
             else
@@ -336,51 +335,50 @@ bool PythonManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin
     const std::string pluginName = plugin.pluginName;
     std::shared_ptr<InterpreterMutex> interpMutexState = std::make_shared<InterpreterMutex>();
 
-    auto thread = std::thread(
-        [this, pluginName, callback, plugin, interpMutexStatePtr = interpMutexState]
+    auto thread = std::thread([this, pluginName, callback, plugin, interpMutexStatePtr = interpMutexState]
+    {
+        PyThreadState* threadStateMain = PyThreadState_New(PyInterpreterState_Main());
+        PyEval_RestoreThread(threadStateMain);
+
+        PyThreadState* interpreterState = Py_NewInterpreter();
+        PyThreadState_Swap(interpreterState);
+
+        std::shared_ptr<PythonThreadState> threadState = std::make_shared<PythonThreadState>(std::string(pluginName), interpreterState, interpMutexStatePtr);
+
+        this->m_pythonInstances.push_back(threadState);
+        RedirectOutput();
+        callback(plugin);
+
+        Logger.Log("Plugin '{}' finished delegating callback function...", pluginName);
+
+        PyThreadState_Clear(threadStateMain);
+        PyThreadState_Swap(threadStateMain);
+        PyThreadState_DeleteCurrent();
+
+        std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
+
+        interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { return interpMutexStatePtr->flag.load(); });
+
+        Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
+
+        std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
+        pythonGilLock->HoldAndLockGILOnThread(interpreterState);
+
+        if (pluginName != "pipx" && PyRun_SimpleString("plugin._unload()") != 0)
         {
-            PyThreadState* threadStateMain = PyThreadState_New(PyInterpreterState_Main());
-            PyEval_RestoreThread(threadStateMain);
+            PyErr_Print();
+            Logger.Warn("'{}' refused to shutdown properly, force shutting down plugin...", pluginName);
+            ErrorToLogger(pluginName, "Failed to shut down plugin properly, force shutting down plugin...");
+        }
 
-            PyThreadState* interpreterState = Py_NewInterpreter();
-            PyThreadState_Swap(interpreterState);
+        Logger.Log("Shutting down plugin '{}'", pluginName);
+        Py_EndInterpreter(interpreterState);
+        Logger.Log("Ended sub-interpreter...", pluginName);
+        pythonGilLock->ReleaseAndUnLockGIL();
+        Logger.Log("Shut down plugin '{}'", pluginName);
+    });
 
-            std::shared_ptr<PythonThreadState> threadState = std::make_shared<PythonThreadState>(std::string(pluginName), interpreterState, interpMutexStatePtr);
-
-            this->m_pythonInstances.push_back(threadState);
-            RedirectOutput();
-            callback(plugin);
-
-            Logger.Log("Plugin '{}' finished delegating callback function...", pluginName);
-
-            PyThreadState_Clear(threadStateMain);
-            PyThreadState_Swap(threadStateMain);
-            PyThreadState_DeleteCurrent();
-
-            std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
-
-            interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { return interpMutexStatePtr->flag.load(); });
-
-            Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
-
-            std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-            pythonGilLock->HoldAndLockGILOnThread(interpreterState);
-
-            if (pluginName != "pipx" && PyRun_SimpleString("plugin._unload()") != 0)
-            {
-                PyErr_Print();
-                Logger.Warn("'{}' refused to shutdown properly, force shutting down plugin...", pluginName);
-                ErrorToLogger(pluginName, "Failed to shut down plugin properly, force shutting down plugin...");
-            }
-
-            Logger.Log("Shutting down plugin '{}'", pluginName);
-            Py_EndInterpreter(interpreterState);
-            Logger.Log("Ended sub-interpreter...", pluginName);
-            pythonGilLock->ReleaseAndUnLockGIL();
-            Logger.Log("Shut down plugin '{}'", pluginName);
-        });
-
-    this->m_threadPool.push_back({pluginName, std::move(thread)});
+    this->m_threadPool.push_back({ pluginName, std::move(thread) });
     return true;
 }
 

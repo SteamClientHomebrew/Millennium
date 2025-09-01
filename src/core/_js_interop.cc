@@ -71,9 +71,9 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
     bool resultReady = false; // Flag to indicate when the result is ready
 
     bool messageSendSuccess = Sockets::PostShared(nlohmann::json({
-        {"id",     SHARED_JS_EVALUATE_ID                                   },
-        {"method", "Runtime.evaluate"                                      },
-        {"params", {{"expression", javaScriptEval}, {"awaitPromise", true}}}
+        { "id",     SHARED_JS_EVALUATE_ID                                          },
+        { "method", "Runtime.evaluate"                                             },
+        { "params", { { "expression", javaScriptEval }, { "awaitPromise", true } } }
     }));
 
     if (!messageSendSuccess)
@@ -81,51 +81,50 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
         throw std::runtime_error("couldn't send message to socket");
     }
 
-    std::string listenerId = JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage(
-        "msg", "ExecuteOnSharedJsContext",
-        [&](const nlohmann::json& eventMessage, std::string listenerId)
+    std::string listenerId =
+        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "ExecuteOnSharedJsContext", [&](const nlohmann::json& eventMessage, std::string listenerId)
+    {
+        std::lock_guard<std::mutex> lock(mtx); // Lock mutex for safe access
+
+        nlohmann::json response = eventMessage;
+        std::string method = response.value("method", std::string());
+
+        if (method.find("Debugger") != std::string::npos || method.find("Console") != std::string::npos)
         {
-            std::lock_guard<std::mutex> lock(mtx); // Lock mutex for safe access
+            return;
+        }
 
-            nlohmann::json response = eventMessage;
-            std::string method = response.value("method", std::string());
-
-            if (method.find("Debugger") != std::string::npos || method.find("Console") != std::string::npos)
+        try
+        {
+            if (!response.contains("id") || (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID))
             {
                 return;
             }
 
-            try
+            if (response["result"].contains("exceptionDetails"))
             {
-                if (!response.contains("id") || (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID))
-                {
-                    return;
-                }
+                const std::string classType = response["result"]["exceptionDetails"]["exception"]["className"];
 
-                if (response["result"].contains("exceptionDetails"))
-                {
-                    const std::string classType = response["result"]["exceptionDetails"]["exception"]["className"];
-
-                    // Custom exception type thrown from CallFrontendMethod in executor.cc
-                    if (classType == "MillenniumFrontEndError")
-                        evalResult = {"__CONNECTION_ERROR__", false};
-                    else
-                        evalResult = {response["result"]["exceptionDetails"]["exception"]["description"], false};
-                }
+                // Custom exception type thrown from CallFrontendMethod in executor.cc
+                if (classType == "MillenniumFrontEndError")
+                    evalResult = { "__CONNECTION_ERROR__", false };
                 else
-                {
-                    evalResult = {response["result"]["result"], true};
-                }
-
-                resultReady = true;
-                cv.notify_one(); // Signal that result is ready
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                    evalResult = { response["result"]["exceptionDetails"]["exception"]["description"], false };
             }
-            catch (nlohmann::detail::exception& ex)
+            else
             {
-                LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+                evalResult = { response["result"]["result"], true };
             }
-        });
+
+            resultReady = true;
+            cv.notify_one(); // Signal that result is ready
+            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+        }
+        catch (nlohmann::detail::exception& ex)
+        {
+            LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+        }
+    });
 
     // Wait for the result to be ready
     std::unique_lock<std::mutex> lock(mtx);
@@ -239,8 +238,8 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
     std::string strFunctionFormatted = fmt::format("PLUGIN_LIST['{}'].{}(", plugin, methodName);
 
     std::map<std::string, std::string> boolMap{
-        {"True",  "true" },
-        {"False", "false"}
+        { "True",  "true"  },
+        { "False", "false" }
     };
 
     for (auto iterator = fnParams.begin(); iterator != fnParams.end(); ++iterator)

@@ -306,6 +306,12 @@ set(SOURCE_FILES
 )
 
 if(WIN32)
+  list(APPEND SOURCE_FILES "src/plat/win32.cc")
+elseif(UNIX)
+  list(APPEND SOURCE_FILES "src/plat/posix.cc")
+endif()
+
+if(WIN32)
   add_library(Millennium SHARED "${SOURCE_FILES}")
 elseif(UNIX)
   # add_executable(Millennium "${SOURCE_FILES}")

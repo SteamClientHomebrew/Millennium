@@ -52,7 +52,7 @@ enum ShimLoaderProps
 const static ShimLoaderProps CheckShimLoaderVersion(std::filesystem::path shimPath)
 {
     /** Load the shim loader with DONT_RESOLVE_DLL_REFERENCES to prevent DllMain from causing a boot loop/realloc on deallocated memory */
-    HMODULE hModule = LoadLibraryEx(shimPath.wstring().c_str(), NULL, DONT_RESOLVE_DLL_REFERENCES);
+    HMODULE hModule = LoadLibraryExW(shimPath.wstring().c_str(), NULL, DONT_RESOLVE_DLL_REFERENCES);
 
     if (!hModule)
     {
@@ -88,7 +88,7 @@ const static ShimLoaderProps CheckShimLoaderVersion(std::filesystem::path shimPa
 /**
  * @brief Redirects the standard output to a pipe to be processed by the plugin logger, and verifies the shim loader.
  */
-const void Win32_UpdatePreloader()
+const static void Win32_UpdatePreloader()
 {
     try
     {
