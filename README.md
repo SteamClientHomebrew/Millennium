@@ -1,24 +1,20 @@
-<div align="center">
-<!-- <img src="https://i.imgur.com/9qYPFSA.png" alt="Alt text" width="40">
-  ## Millennium for Steam® -->
+<img width="3844" height="793" alt="image" src="https://github.com/user-attachments/assets/2c662772-bca1-4de4-988f-5304d7dfd87d" />
 
-<h3><img align="center" height="40" src="https://i.imgur.com/9qYPFSA.png"> &nbsp; &nbsp;Millennium for Steam®</h3>
 
-<kbd>
+<br/>
+<br/>
+
+
+
   <a href="https://steambrew.app/discord">
-      <img alt="Static Badge" src="https://img.shields.io/badge/discord-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=discord&logoColor=white" href="#">
+      <img alt="Static Badge" src="https://img.shields.io/badge/discord-green?labelColor=404040&color=353535&style=for-the-badge&logo=discord&logoColor=white" href="#">
   </a>
-</kbd>
-<kbd>
   <a href="https://steambrew.app">
-      <img alt="Static Badge" src="https://img.shields.io/badge/website-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=firefoxbrowser&logoColor=white" href="#">
+      <img alt="Static Badge" src="https://img.shields.io/badge/website-green?labelColor=404040&color=353535&style=for-the-badge&logo=firefoxbrowser&logoColor=white" href="#">
   </a>
-</kbd>
-<kbd>
   <a href="https://docs.steambrew.app">
-      <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=151B23&color=151B23&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
+      <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=404040&color=353535&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
   </a>
-</kbd>
 
 <br>
 <br>
@@ -27,8 +23,6 @@ Millennium is an **open-source low-code modding framework** to create, manage an
 
 If you enjoy this tool, please consider starring the project ⭐
 
-<br>
-</div>
 
 ## Installation
 
@@ -40,7 +34,6 @@ Installing Millennium is only a few steps. See [this page](https://docs.steambre
 
 For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Check our [documentation](https://docs.steambrew.app/users/installing#manual) for a guide on how to do this.
 
-&nbsp;
 
 ## Core Features
 
@@ -71,20 +64,17 @@ All plugins in the PluginDatabase are versioned and reviewed to work seamlessly 
 
 **For more related information, checkout the [plugin database](https://github.com/SteamClientHomebrew/PluginDatabase)**.
 
-&nbsp;
 
 ## Adding Spoken Language Support
 
 Take a look [here](./assets#adding-languages), it quickly covers what files you'll need to edit in order to add your spoken language to Millennium!
 
-&nbsp;
 
 ## Creating Plugins & Themes
 
 Creating themes and plugins for Millennium is relatively straight foward. Our [documentation](https://docs.steambrew.app/developers) goes over the basics of both,
 and we have examples for both in [examples](./examples)
 
-&nbsp;
 
 ## Platform Support
 
@@ -94,32 +84,6 @@ Supported Platforms:
 -   Linux (x86/x86_64/i686/i386)
 -   OSX (Support planned, WIP)
 
-&nbsp;
-
-## Unix File Structure
-
-```bash
-/
-├─ usr/
-│  ├─ lib/
-│  │  ├─ millennium/
-│  │  │  ├─ libMillennium.so # millennium
-│  │  │  ├─ libpython-3.11.8.so # dynamically linked to millennium, allows user plugin backends to run
-│  ├─ share/
-│  │  ├─ assets/ # builtin plugin that provides base functionality for millennium.
-│  │  ├─ shims/
-├─ home/
-│  ├─ $user/
-│  │  ├─ .local/share
-│  │  │  ├─ millennium/
-│  │  │  │  ├─ .venv/
-│  │  │  │  ├─ logs/
-│  │  │  │  ├─ plugins/ # user plugins
-│  │  ├─ .config/
-│  │  │  ├─ millennium/ # config files
-```
-
-&nbsp;
 
 ## Building from source
 
