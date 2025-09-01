@@ -1,3 +1,27 @@
+## [2.29.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.0...v2.29.1) (2025-09-01)
+
+
+### Bug Fixes
+
+* Properly release signed artifact of Millennium 🤦 ([2a67879](https://github.com/SteamClientHomebrew/Millennium/commit/2a67879d241e22ae9f50f6fced116207bfd99e47))
+
+# [2.29.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.28.0...v2.29.0) (2025-09-01)
+
+
+### Bug Fixes
+
+* Better error handling on Millennium updater ([4a15f8c](https://github.com/SteamClientHomebrew/Millennium/commit/4a15f8c6ebc64158faa0d3ea69b3dedfd156db79))
+* Fix theme installer page hanging. closes [#415](https://github.com/SteamClientHomebrew/Millennium/issues/415) ([35f2397](https://github.com/SteamClientHomebrew/Millennium/commit/35f239795fd0d7c30628b4dcd6b54d11e38353b1))
+* **Linux:** Fix updater module to properly show how to update Millennium ([c5a03ef](https://github.com/SteamClientHomebrew/Millennium/commit/c5a03ef6015d3a6083f9edfcf565ac1120072a4f))
+* **nix:** set pnpm's fetcherVersion to a supported value ([62128bc](https://github.com/SteamClientHomebrew/Millennium/commit/62128bc7cc7cbd3689640da18093ebca6540ec1c))
+* plugin updater merge instead of replacing ([1695b7a](https://github.com/SteamClientHomebrew/Millennium/commit/1695b7a63134d7de2b547759f9a14d874bc5ba3d))
+* properly bump theme and plugin download count ([c341d44](https://github.com/SteamClientHomebrew/Millennium/commit/c341d44c5d3ce7ec5c6708c6dc205dd3fc101b16))
+
+
+### Features
+
+* Add SignPath test signing ([d580d61](https://github.com/SteamClientHomebrew/Millennium/commit/d580d618954229d61b66fabb390b8f30ec4eaadb))
+
 # [2.28.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.27.1...v2.28.0) (2025-07-29)
 
 

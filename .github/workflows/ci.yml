@@ -105,12 +105,21 @@ jobs:
                   api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
                   organization-id: 'f90532fc-e58c-4863-bc0d-72623720335f'
                   project-slug: 'Millennium'
-                  signing-policy-slug: 'test-signing'
+                  signing-policy-slug: 'release-signing'
                   artifact-configuration-slug: 'millennium-release-config'
                   github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
+                  output-artifact-directory: 'signed-millennium'
                   wait-for-completion: true
                   parameters: |
                       version: ${{ toJson(steps.get_version.outputs.version) }}
+
+            - name: 📤 Upload Signed Build Release
+              id: upload-signed-artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  include-hidden-files: true
+                  name: millennium-windows-signed
+                  path: D:\a\Millennium\Millennium\signed-millennium
 
     build-linux:
         permissions:
@@ -232,7 +241,7 @@ jobs:
             - name: ⚙️ Download Windows Build
               uses: actions/download-artifact@v4
               with:
-                  name: millennium-windows
+                  name: millennium-windows-signed
                   path: ./artifacts/windows
 
             - name: ⚙️ Download Linux Build
