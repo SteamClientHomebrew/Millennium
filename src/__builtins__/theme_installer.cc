@@ -19,9 +19,9 @@ void ThemeInstaller::EmitMessage(const std::string& status, int progress, bool i
 {
     Logger.Log("emitting message " + status + " " + std::to_string(progress) + " " + (isComplete ? "true" : "false"));
     json j = {
-        {"status",     status    },
-        {"progress",   progress  },
-        {"isComplete", isComplete}
+        { "status",     status     },
+        { "progress",   progress   },
+        { "isComplete", isComplete }
     };
     Logger.Log("emitting message " + j.dump());
 }
@@ -29,15 +29,15 @@ void ThemeInstaller::EmitMessage(const std::string& status, int progress, bool i
 nlohmann::json ThemeInstaller::ErrorMessage(const std::string& message)
 {
     return json({
-        {"success", false  },
-        {"message", message}
+        { "success", false   },
+        { "message", message }
     });
 }
 
 nlohmann::json ThemeInstaller::SuccessMessage()
 {
     return json({
-        {"success", true}
+        { "success", true }
     });
 }
 
@@ -197,14 +197,14 @@ std::vector<std::pair<json, fs::path>> ThemeInstaller::QueryThemesForUpdate()
             if (!fs::exists(path) || !IsGitRepo(path))
                 throw std::runtime_error("Not a git repo");
 
-            updateQuery.push_back({theme, path});
+            updateQuery.push_back({ theme, path });
         }
         catch (...)
         {
             if (theme["data"].contains("github"))
             {
                 needsCopy = true;
-                updateQuery.push_back({theme, path});
+                updateQuery.push_back({ theme, path });
             }
         }
     }
@@ -306,8 +306,8 @@ nlohmann::json ThemeInstaller::ConstructPostBody(const std::vector<nlohmann::jso
         if (!owner.empty() && !repo_name.empty())
         {
             post_body.push_back({
-                {"owner", owner    },
-                {"repo",  repo_name}
+                { "owner", owner     },
+                { "repo",  repo_name }
             });
         }
     }
@@ -322,23 +322,22 @@ nlohmann::json ThemeInstaller::GetRequestBody(void)
     try
     {
         auto update_query = QueryThemesForUpdate();
-        auto post_body = ConstructPostBody(
-            [&update_query]
+        auto post_body = ConstructPostBody([&update_query]
+        {
+            std::vector<nlohmann::json> themes;
+            for (const auto& pair : update_query)
             {
-                std::vector<nlohmann::json> themes;
-                for (const auto& pair : update_query)
-                {
-                    themes.push_back(pair.first);
-                }
-                return themes;
-            }());
+                themes.push_back(pair.first);
+            }
+            return themes;
+        }());
 
         if (update_query.empty())
         {
             Logger.Log("No themes to update!");
             return {
-                {"update_query", nullptr},
-                {"post_body",    nullptr}
+                { "update_query", nullptr },
+                { "post_body",    nullptr }
             };
         }
 
@@ -380,11 +379,11 @@ json ThemeInstaller::ProcessUpdates(const nlohmann::json& updateQuery, const jso
                 if (localCommit != remoteCommit)
                 {
                     updatedThemes.push_back({
-                        {"message", it->value("message", "No commit message.")},
-                        {"date", it->value("date", "unknown")},
-                        {"commit", it->value("url", "")},
-                        {"native", theme["native"]},
-                        {"name", theme["data"].value("name", theme["native"])}
+                        { "message", it->value("message", "No commit message.") },
+                        { "date", it->value("date", "unknown") },
+                        { "commit", it->value("url", "") },
+                        { "native", theme["native"] },
+                        { "name", theme["data"].value("name", theme["native"]) }
                     });
                 }
             }

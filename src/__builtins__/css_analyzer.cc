@@ -191,11 +191,11 @@ nlohmann::json Millennium::CSSParser::generateColorMetadata(const std::map<std::
         auto hex = convertToHex(expanded, type).value_or("");
 
         result.push_back({
-            {"color",        prop                  },
-            {"name",         name                  },
-            {"description",  description           },
-            {"type",         static_cast<int>(type)},
-            {"defaultColor", hex                   }
+            { "color",        prop                   },
+            { "name",         name                   },
+            { "description",  description            },
+            { "type",         static_cast<int>(type) },
+            { "defaultColor", hex                    }
         });
     }
 
@@ -259,7 +259,7 @@ void Millennium::CSSParser::parseProperties(const std::string& block, std::map<s
                 lastComment.clear();
             }
 
-            propertyMap[propName] = {name, description};
+            propertyMap[propName] = { name, description };
         }
     }
 }

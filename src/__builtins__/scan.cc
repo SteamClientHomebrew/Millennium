@@ -29,102 +29,30 @@
  */
 
 #include "__builtins__/scan.h"
-
-using json = nlohmann::json;
-namespace fs = std::filesystem;
-
-std::string Millennium::Config::GetConfigPath()
-{
-    const char* env = std::getenv("MILLENNIUM__CONFIG_PATH");
-    return env ? env : "";
-}
-
-bool Millennium::Config::IsEnabled(const std::string& plugin_name)
-{
-    std::ifstream file(GetConfigPath() + "/millennium.ini");
-    if (!file.is_open())
-        return false;
-
-    std::string line;
-    while (std::getline(file, line))
-    {
-        if (line.find("enabled_plugins") != std::string::npos)
-        {
-            auto pos = line.find("=");
-            if (pos != std::string::npos)
-            {
-                std::string plugins_str = line.substr(pos + 1);
-                std::stringstream ss(plugins_str);
-                std::string item;
-                while (std::getline(ss, item, '|'))
-                {
-                    if (item == plugin_name)
-                        return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-void Millennium::Plugins::SearchDirectories(const std::string& path, std::vector<Plugin>& plugins)
-{
-    for (const auto& entry : fs::directory_iterator(path))
-    {
-        if (!entry.is_directory())
-            continue;
-
-        std::string plugin_json_path = entry.path().string() + "/plugin.json";
-        if (!fs::exists(plugin_json_path))
-            continue;
-
-        try
-        {
-            std::ifstream json_file(plugin_json_path);
-            json skin_data;
-            json_file >> skin_data;
-
-            std::string plugin_name = skin_data.value("name", "undefined_plugin_name");
-            plugins.push_back({entry.path().string(), Config::IsEnabled(plugin_name), skin_data});
-        }
-        catch (const json::parse_error&)
-        {
-            std::cerr << "Error parsing " << plugin_json_path << ". Invalid JSON format.\n";
-        }
-    }
-}
+#include <env.h>
 
 nlohmann::json Millennium::Plugins::FindAllPlugins()
 {
-    std::vector<Plugin> plugins;
+    nlohmann::json result = nlohmann::json::array();
 
-    const char* internal_path = std::getenv("MILLENNIUM__DATA_LIB");
-    const char* user_path = std::getenv("MILLENNIUM__PLUGINS_PATH");
+    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    const auto foundPlugins = settingsStore->ParseAllPlugins();
 
-    for (const char* dir : {internal_path, user_path})
-    {
-        if (dir && fs::exists(dir))
-        {
-            SearchDirectories(dir, plugins);
-        }
-    }
-
-    json result = json::array();
-    for (const auto& p : plugins)
+    for (const auto& plugin : foundPlugins)
     {
         result.push_back({
-            {"path",    p.path   },
-            {"enabled", p.enabled},
-            {"data",    p.data   }
+            { "path",    plugin.pluginBaseDirectory.generic_string()       },
+            { "enabled", settingsStore->IsEnabledPlugin(plugin.pluginName) },
+            { "data",    plugin.pluginJson                                 }
         });
     }
+
     return result;
 }
 
-std::optional<json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name)
+std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name)
 {
-    json plugins = FindAllPlugins();
-    for (const auto& plugin : plugins)
+    for (const auto& plugin : FindAllPlugins())
     {
         if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name)
         {
@@ -134,71 +62,61 @@ std::optional<json> Millennium::Plugins::GetPluginFromName(const std::string& pl
     return std::nullopt;
 }
 
+/**
+ * Check if a theme is valid by verifying the existence and validity of skin.json
+ * @param theme_native_name The native name of the theme (folder name).
+ */
 bool Millennium::Themes::IsValid(const std::string& theme_native_name)
 {
-    fs::path file_path = fs::path(SystemIO::GetSteamPath()) / "steamui" / "skins" / theme_native_name / "skin.json";
+    std::filesystem::path file_path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins" / theme_native_name / "skin.json";
 
-    if (!fs::is_regular_file(file_path))
+    if (!std::filesystem::is_regular_file(file_path))
         return false;
 
-    try
-    {
-        std::ifstream file(file_path);
-        json j;
-        file >> j;
-        return true;
-    }
-    catch (const json::exception&)
-    {
-        return false;
-    }
+    std::ifstream file(file_path);
+    return nlohmann::json::accept(file);
 }
 
+/**
+ * Find all themes in the skins directory.
+ * @return A JSON array of themes, each containing "native" (the theme folder name) and "data" (and skin data) fields.
+ */
 nlohmann::json Millennium::Themes::FindAllThemes()
 {
-    fs::path path = fs::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
-    fs::create_directories(path);
+    auto path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
+    std::filesystem::create_directories(path);
 
-    json themes = json::array();
+    nlohmann::json themes = nlohmann::json::array();
 
     try
     {
-        std::vector<std::string> theme_dirs;
-        for (const auto& entry : fs::directory_iterator(path))
+        std::vector<std::filesystem::directory_entry> dirs;
+        std::copy_if(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator{}, std::back_inserter(dirs),
+                     [](const auto& entry) { return entry.is_directory(); });
+
+        std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) { return a.path().filename() < b.path().filename(); });
+
+        for (const auto& dir : dirs)
         {
-            if (entry.is_directory())
-                theme_dirs.push_back(entry.path().filename().string());
-        }
-
-        std::sort(theme_dirs.begin(), theme_dirs.end());
-
-        for (const auto& theme : theme_dirs)
-        {
-            fs::path skin_json_path = path / theme / "skin.json";
-
-            if (!fs::exists(skin_json_path))
+            auto skinJsonPath = dir.path() / "skin.json";
+            if (!std::filesystem::exists(skinJsonPath))
                 continue;
 
-            try
-            {
-                std::ifstream json_file(skin_json_path);
-                json skin_data;
-                json_file >> skin_data;
+            std::ifstream file(skinJsonPath);
+            if (!file.is_open())
+                continue;
 
-                json theme_entry = {
-                    {"native", theme    },
-                    {"data",   skin_data}
-                };
+            nlohmann::json skinData;
+            if (!(file >> skinData))
+                continue; /** invalid json from stream */
 
-                themes.push_back(theme_entry);
-            }
-            catch (const json::exception&)
-            {
-                Logger.Log("Error parsing " + skin_json_path.string() + ". Invalid JSON format.");
-            }
+            themes.push_back({
+                { "native", dir.path().filename().string() },
+                { "data",   std::move(skinData)            }
+            });
         }
     }
-    catch (const fs::filesystem_error& e)
+    catch (const std::filesystem::filesystem_error& e)
     {
         Logger.Log("Filesystem error: " + std::string(e.what()));
     }

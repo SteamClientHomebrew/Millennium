@@ -39,8 +39,13 @@
 #include <sstream>
 #include <vector>
 
-using json = nlohmann::json;
-namespace fs = std::filesystem;
+/** piss off C */
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 struct AccentColors
 {
@@ -168,7 +173,7 @@ nlohmann::json Colors::GetAccentColorWin32()
  */
 nlohmann::json Colors::GetAccentColorPosix()
 {
-    json color_dictionary = {
+    nlohmann::json color_dictionary = {
         { "accent",         "#000"    },
         { "light1",         "#000"    },
         { "light2",         "#000"    },
@@ -195,7 +200,7 @@ nlohmann::json Colors::GetAccentColorPosix()
  */
 std::string Colors::AdjustColorIntensity(const std::string& hex_color, int percent)
 {
-    auto clamp = [](int v) { return max(0, min(255, v)); };
+    auto clamp = [](int v) { return std::max(0, std::min(255, v)); };
     std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
     if (color.length() != 6)
         return hex_color;
@@ -250,7 +255,7 @@ nlohmann::json Colors::ExtrapolateCustomColor(const std::string& accentColor)
     std::string originalAccent = GetAccentColorPosix()["originalAccent"];
 #endif
 
-    json result = {
+    nlohmann::json result = {
         { "accent", accentColor },
         { "light1", AdjustColorIntensity(accentColor, 15) },
         { "light2", AdjustColorIntensity(accentColor, 30) },

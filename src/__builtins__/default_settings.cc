@@ -42,8 +42,6 @@
 #define MILLENNIUM_PLATFORM_LINUX
 #endif
 
-using nlohmann::json;
-
 nlohmann::json GetDefaultConfig()
 {
     // Detect platform for update behavior
@@ -53,22 +51,21 @@ nlohmann::json GetDefaultConfig()
     OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::NOTIFY;
 #endif
 
-    // Detect old file to determine welcome modal status
+    /** Detect old file to determine welcome modal status */
     bool hasShownWelcomeModal = std::filesystem::exists(std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "themes.json");
 
-    // Build default configuration
-    json default_config = {
-        {"general",
-         {{"injectJavascript", true},
-          {"injectCSS", true},
-          {"checkForMillenniumUpdates", true},
-          {"checkForPluginAndThemeUpdates", true},
-          {"onMillenniumUpdate", static_cast<int>(updateBehavior)},
-          {"shouldShowThemePluginUpdateNotifications", true},
-          {"accentColor", "DEFAULT_ACCENT_COLOR"}}                                                                           },
-        {"misc",          {{"hasShownWelcomeModal", hasShownWelcomeModal}}                                                   },
-        {"themes",        {{"activeTheme", "default"}, {"allowedStyles", true}, {"allowedScripts", true}}                    },
-        {"notifications", {{"showNotifications", true}, {"showUpdateNotifications", true}, {"showPluginNotifications", true}}}
+    nlohmann::json default_config = {
+        { "general",
+         { { "injectJavascript", true },
+            { "injectCSS", true },
+            { "checkForMillenniumUpdates", true },
+            { "checkForPluginAndThemeUpdates", true },
+            { "onMillenniumUpdate", static_cast<int>(updateBehavior) },
+            { "shouldShowThemePluginUpdateNotifications", true },
+            { "accentColor", "DEFAULT_ACCENT_COLOR" } }                                                                                },
+        { "misc",          { { "hasShownWelcomeModal", hasShownWelcomeModal } }                                                        },
+        { "themes",        { { "activeTheme", "default" }, { "allowedStyles", true }, { "allowedScripts", true } }                     },
+        { "notifications", { { "showNotifications", true }, { "showUpdateNotifications", true }, { "showPluginNotifications", true } } }
     };
 
     return default_config;

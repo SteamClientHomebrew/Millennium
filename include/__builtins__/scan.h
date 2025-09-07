@@ -42,12 +42,6 @@
 
 namespace Millennium
 {
-namespace Config
-{
-std::string GetConfigPath();
-bool IsEnabled(const std::string& plugin_name);
-} // namespace Config
-
 namespace Plugins
 {
 struct Plugin
@@ -57,7 +51,6 @@ struct Plugin
     nlohmann::json data;
 };
 
-void SearchDirectories(const std::string& path, std::vector<Plugin>& plugins);
 nlohmann::json FindAllPlugins();
 std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
 } // namespace Plugins

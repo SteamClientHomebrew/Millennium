@@ -13,9 +13,9 @@
 #include <sstream>
 #include <thread>
 
-fs::path PluginInstaller::PluginsPath()
+std::filesystem::path PluginInstaller::PluginsPath()
 {
-    return fs::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
+    return std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
 }
 
 bool PluginInstaller::CheckInstall(const std::string& pluginName)
@@ -36,11 +36,11 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
         if (settingsStore->IsEnabledPlugin(pluginName))
         {
             Millennium_TogglePluginStatus({
-                PluginStatus{pluginName, false}
+                PluginStatus{ pluginName, false }
             });
         }
 
-        fs::remove_all(pluginOpt->at("path").get<std::string>());
+        std::filesystem::remove_all(pluginOpt->at("path").get<std::string>());
         return true;
     }
     catch (const std::exception& e)
@@ -58,7 +58,7 @@ size_t WriteCallback(void* ptr, size_t size, size_t nmemb, void* userdata)
     return written;
 }
 
-void PluginInstaller::DownloadWithProgress(const std::string& url, const fs::path& destPath, std::function<void(size_t, size_t)> progressCallback)
+void PluginInstaller::DownloadWithProgress(const std::string& url, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
 {
     CURL* curl = curl_easy_init();
     if (!curl)
@@ -77,10 +77,10 @@ void PluginInstaller::DownloadWithProgress(const std::string& url, const fs::pat
     curl_easy_cleanup(curl);
 
     if (progressCallback)
-        progressCallback(fs::file_size(destPath), fs::file_size(destPath));
+        progressCallback(std::filesystem::file_size(destPath), std::filesystem::file_size(destPath));
 }
 
-void PluginInstaller::ExtractZipWithProgress(const fs::path& zipPath, const fs::path& extractTo)
+void PluginInstaller::ExtractZipWithProgress(const std::filesystem::path& zipPath, const std::filesystem::path& extractTo)
 {
     unzFile zip = unzOpen(zipPath.string().c_str());
     if (!zip)
@@ -96,7 +96,7 @@ void PluginInstaller::ExtractZipWithProgress(const fs::path& zipPath, const fs::
         unzGetCurrentFileInfo(zip, &fileInfo, filename, sizeof(filename), nullptr, 0, nullptr, 0);
 
         std::string outPath = (extractTo / filename).string();
-        fs::create_directories(fs::path(outPath).parent_path());
+        std::filesystem::create_directories(std::filesystem::path(outPath).parent_path());
 
         if (unzOpenCurrentFile(zip) == UNZ_OK)
         {
@@ -119,10 +119,10 @@ void PluginInstaller::ExtractZipWithProgress(const fs::path& zipPath, const fs::
 
 void PluginInstaller::EmitMessage(const std::string& status, double progress, bool isComplete)
 {
-    json j = {
-        {"status",     status    },
-        {"progress",   progress  },
-        {"isComplete", isComplete}
+    nlohmann::json message = {
+        { "status",     status     },
+        { "progress",   progress   },
+        { "isComplete", isComplete }
     };
 
     // Millennium::CallFrontendMethod("InstallerMessageEmitter", {j.dump()});
@@ -154,7 +154,7 @@ bool PluginInstaller::InstallPlugin(const std::string& downloadUrl, size_t total
 
         std::string uuidStr = ss.str();
 
-        fs::path zipPath = downloadPath / uuidStr;
+        std::filesystem::path zipPath = downloadPath / uuidStr;
 
         auto progressCallback = [&](size_t downloaded, size_t total)
         {
@@ -166,11 +166,11 @@ bool PluginInstaller::InstallPlugin(const std::string& downloadUrl, size_t total
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         EmitMessage("Setting up installed plugin...", 50, false);
-        fs::create_directories(downloadPath);
+        std::filesystem::create_directories(downloadPath);
         ExtractZipWithProgress(zipPath, downloadPath);
 
         EmitMessage("Cleaning up...", 95, false);
-        fs::remove(zipPath);
+        std::filesystem::remove(zipPath);
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         EmitMessage("Done!", 100, true);
@@ -183,24 +183,24 @@ bool PluginInstaller::InstallPlugin(const std::string& downloadUrl, size_t total
     }
 }
 
-std::optional<json> PluginInstaller::ReadMetadata(const fs::path& pluginPath)
+std::optional<nlohmann::json> PluginInstaller::ReadMetadata(const std::filesystem::path& pluginPath)
 {
-    fs::path metadataPath = pluginPath / "metadata.json";
-    if (!fs::exists(metadataPath))
+    std::filesystem::path metadataPath = pluginPath / "metadata.json";
+    if (!std::filesystem::exists(metadataPath))
         return std::nullopt;
 
     try
     {
         std::ifstream in(metadataPath);
-        json metadata;
+        nlohmann::json metadata;
         in >> metadata;
 
         if (metadata.contains("id") && metadata.contains("commit"))
         {
-            return json{
-                {"id",     metadata["id"]                },
-                {"commit", metadata["commit"]            },
-                {"name",   pluginPath.filename().string()}
+            return nlohmann::json{
+                { "id",     metadata["id"]                 },
+                { "commit", metadata["commit"]             },
+                { "name",   pluginPath.filename().string() }
             };
         }
     }
@@ -211,10 +211,10 @@ std::optional<json> PluginInstaller::ReadMetadata(const fs::path& pluginPath)
     return std::nullopt;
 }
 
-std::vector<json> PluginInstaller::GetPluginData()
+std::vector<nlohmann::json> PluginInstaller::GetPluginData()
 {
-    std::vector<json> pluginData;
-    for (const auto& entry : fs::directory_iterator(PluginsPath()))
+    std::vector<nlohmann::json> pluginData;
+    for (const auto& entry : std::filesystem::directory_iterator(PluginsPath()))
     {
         if (!entry.is_directory())
             continue;
@@ -233,11 +233,11 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         std::string url = "https://steambrew.app/api/v1/plugins/download?id=" + id + "&n=" + name + ".zip";
         Logger.Log("Starting plugin update for '{}'. Download URL: {}", name, url);
 
-        fs::path tempDir = PluginsPath() / "__tmp_extract";
+        std::filesystem::path tempDir = PluginsPath() / "__tmp_extract";
         Logger.Log("Creating temporary extraction directory: {}", tempDir.string());
-        fs::create_directories(tempDir);
+        std::filesystem::create_directories(tempDir);
 
-        fs::path tempZipPath = tempDir / (name + ".zip");
+        std::filesystem::path tempZipPath = tempDir / (name + ".zip");
         Logger.Log("Temporary zip path: {}", tempZipPath.string());
 
         Logger.Log("Downloading plugin archive...");
@@ -247,9 +247,9 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         ExtractZipWithProgress(tempZipPath, tempDir);
         Logger.Log("Extraction complete.");
 
-        fs::path extractedFolder;
+        std::filesystem::path extractedFolder;
         Logger.Log("Searching for extracted plugin directory...");
-        for (auto& entry : fs::directory_iterator(tempDir))
+        for (auto& entry : std::filesystem::directory_iterator(tempDir))
         {
             Logger.Log("Found entry in temp dir: {}", entry.path().string());
             if (entry.is_directory())
@@ -263,34 +263,34 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         if (extractedFolder.empty())
         {
             Logger.Log("No directory found in extracted plugin '{}'. Cleaning up.", name);
-            fs::remove_all(tempDir);
+            std::filesystem::remove_all(tempDir);
             return false;
         }
 
-        fs::path targetFolder = PluginsPath() / name;
+        std::filesystem::path targetFolder = PluginsPath() / name;
         Logger.Log("Preparing target plugin directory: {}", targetFolder.string());
-        fs::create_directories(targetFolder);
+        std::filesystem::create_directories(targetFolder);
 
         Logger.Log("Copying plugin files to target directory...");
-        for (auto& p : fs::recursive_directory_iterator(extractedFolder))
+        for (auto& p : std::filesystem::recursive_directory_iterator(extractedFolder))
         {
-            auto rel = fs::relative(p.path(), extractedFolder);
-            fs::path dest = targetFolder / rel;
-            if (fs::is_directory(p))
+            auto rel = std::filesystem::relative(p.path(), extractedFolder);
+            std::filesystem::path dest = targetFolder / rel;
+            if (std::filesystem::is_directory(p))
             {
                 Logger.Log("Creating directory: {}", dest.string());
-                fs::create_directories(dest);
+                std::filesystem::create_directories(dest);
             }
             else
             {
                 Logger.Log("Copying file: {} -> {}", p.path().string(), dest.string());
-                fs::copy_file(p, dest, fs::copy_options::overwrite_existing);
+                std::filesystem::copy_file(p, dest, std::filesystem::copy_options::overwrite_existing);
             }
         }
 
         Logger.Log("Plugin '{}' installed successfully to '{}'", name, targetFolder.string());
         Logger.Log("Cleaning up temporary files...");
-        fs::remove_all(tempDir);
+        std::filesystem::remove_all(tempDir);
         Logger.Log("Update process for plugin '{}' completed successfully.", name);
         return true;
     }
@@ -301,8 +301,8 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
     }
 }
 
-json PluginInstaller::GetRequestBody()
+nlohmann::json PluginInstaller::GetRequestBody()
 {
     auto data = GetPluginData();
-    return data.empty() ? json::array() : json(data);
+    return data.empty() ? nlohmann::json::array() : nlohmann::json(data);
 }

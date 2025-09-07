@@ -142,11 +142,10 @@ void ConfigManager::UnregisterListener(Listener listener)
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     _listeners.erase(std::remove_if(_listeners.begin(), _listeners.end(),
                                     [&](const Listener& l)
-                                    {
-                                        return l.target_type() == listener.target_type() &&
-                                               l.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>() ==
-                                                   listener.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>();
-                                    }),
+    {
+        return l.target_type() == listener.target_type() && l.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>() ==
+                                                                listener.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>();
+    }),
                      _listeners.end());
 }
 

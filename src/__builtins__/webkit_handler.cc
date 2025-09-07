@@ -37,8 +37,6 @@
 #include <locals.h>
 #include <unordered_set>
 
-using nlohmann::json;
-
 int Millennium::AddBrowserCss(const std::string& targetPath, const std::string& regex)
 {
     g_hookedModuleId++;
@@ -75,7 +73,10 @@ int Millennium::AddBrowserJs(const std::string& targetPath, const std::string& r
     return g_hookedModuleId;
 }
 
-bool Millennium::RemoveBrowserModule(int id) { return HttpHookManager::get().RemoveHook(id); }
+bool Millennium::RemoveBrowserModule(int id)
+{
+    return HttpHookManager::get().RemoveHook(id);
+}
 
 WebkitHookStore& WebkitHookStore::Instance()
 {
@@ -83,7 +84,10 @@ WebkitHookStore& WebkitHookStore::Instance()
     return instance;
 }
 
-void WebkitHookStore::Push(int moduleId) { stack.push_back(moduleId); }
+void WebkitHookStore::Push(int moduleId)
+{
+    stack.push_back(moduleId);
+}
 
 void WebkitHookStore::UnregisterAll()
 {
@@ -94,11 +98,11 @@ void WebkitHookStore::UnregisterAll()
     stack.clear();
 }
 
-std::vector<WebkitItem> ParseConditionalPatches(const json& conditional_patches, const std::string& theme_name)
+std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditional_patches, const std::string& theme_name)
 {
     std::vector<WebkitItem> webkit_items;
 
-    json theme_conditions = CONFIG.GetNested("themes.conditions." + theme_name, json::object());
+    nlohmann::json theme_conditions = CONFIG.GetNested("themes.conditions." + theme_name, nlohmann::json::object());
 
     if (conditional_patches.contains("Conditions"))
     {
@@ -143,10 +147,10 @@ std::vector<WebkitItem> ParseConditionalPatches(const json& conditional_patches,
             {
                 if (patch.contains(inject_type))
                 {
-                    json targets = patch[inject_type];
+                    nlohmann::json targets = patch[inject_type];
                     if (targets.is_string())
                     {
-                        targets = json::array({ targets });
+                        targets = nlohmann::json::array({ targets });
                     }
                     for (auto& target : targets)
                     {
@@ -188,7 +192,7 @@ int AddBrowserJs(const std::string& js_path, const std::string& regex)
     return id;
 }
 
-void AddConditionalData(const std::string& path, const json& data, const std::string& theme_name)
+void AddConditionalData(const std::string& path, const nlohmann::json& data, const std::string& theme_name)
 {
     try
     {

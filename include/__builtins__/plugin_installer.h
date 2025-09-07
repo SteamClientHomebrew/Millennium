@@ -5,9 +5,6 @@
 #include <optional>
 #include <string>
 
-namespace fs = std::filesystem;
-using json = nlohmann::json;
-
 class PluginInstaller
 {
   public:
@@ -15,14 +12,14 @@ class PluginInstaller
     bool UninstallPlugin(const std::string& pluginName);
     bool InstallPlugin(const std::string& downloadUrl, size_t totalSize);
     bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    json GetRequestBody();
+    nlohmann::json GetRequestBody();
 
   private:
     void EmitMessage(const std::string& status, double progress, bool isComplete);
-    void DownloadWithProgress(const std::string& url, const fs::path& destPath, std::function<void(size_t, size_t)> progressCallback);
-    void ExtractZipWithProgress(const fs::path& zipPath, const fs::path& extractTo);
-    fs::path PluginsPath();
+    void DownloadWithProgress(const std::string& url, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback);
+    void ExtractZipWithProgress(const std::filesystem::path& zipPath, const std::filesystem::path& extractTo);
+    std::filesystem::path PluginsPath();
 
-    std::optional<json> ReadMetadata(const fs::path& pluginPath);
-    std::vector<json> GetPluginData();
+    std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);
+    std::vector<nlohmann::json> GetPluginData();
 };
