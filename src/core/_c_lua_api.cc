@@ -41,6 +41,7 @@
 #include <fstream>
 #include <lua.hpp>
 #include <nlohmann/json.hpp>
+#include <luaconf.h>
 
 int Lua_GetUserSettings(lua_State* L)
 {
@@ -62,11 +63,9 @@ int Lua_CallFrontendMethod(lua_State* L)
             return luaL_error(L, "params must be a table");
         }
 
-        // LuaJIT: use lua_objlen instead of lua_len
-        int len = (int)lua_objlen(L, 2);
+        int len = (int)lua_rawlen(L, 2);
 
         for (int i = 1; i <= len; ++i) {
-            // LuaJIT: use lua_rawgeti instead of lua_geti
             lua_rawgeti(L, 2, i);
 
             std::string valueType;

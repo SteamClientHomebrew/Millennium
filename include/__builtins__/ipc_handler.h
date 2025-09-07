@@ -35,7 +35,7 @@
 #include <string>
 #include <unordered_map>
 
-extern std::unordered_map<std::string, std::any> __CORE_EXPORTS__;
+std::unordered_map<std::string, std::any>& GetCoreExports();
 
 #define MILLENNIUM_IPC_DECL(name)                                                                                                                                                  \
     nlohmann::json _impl_##name(const nlohmann::json& ARGS);                                                                                                                       \
@@ -43,7 +43,7 @@ extern std::unordered_map<std::string, std::any> __CORE_EXPORTS__;
     {                                                                                                                                                                              \
         _##name##_registrar()                                                                                                                                                      \
         {                                                                                                                                                                          \
-            __CORE_EXPORTS__[#name] = std::function<nlohmann::json(const nlohmann::json&)>([](const nlohmann::json& j) -> nlohmann::json                                           \
+            GetCoreExports()[#name] = std::function<nlohmann::json(const nlohmann::json&)>([](const nlohmann::json& j) -> nlohmann::json                                           \
             {                                                                                                                                                                      \
                 if constexpr (std::is_same_v<decltype(_impl_##name(j)), void>) {                                                                                                   \
                     _impl_##name(j);                                                                                                                                               \

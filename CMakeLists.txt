@@ -422,30 +422,29 @@ set_target_properties(Millennium PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRE
 target_compile_features(Millennium PUBLIC cxx_std_17)
 
 find_package(unofficial-minizip CONFIG REQUIRED) # used for extracting zip files
+find_package(CURL REQUIRED) # used for web requests
 find_package(PkgConfig REQUIRED)
+
 pkg_check_modules(LIBGIT2 REQUIRED libgit2)
 
 include_directories(${LIBGIT2_INCLUDE_DIRS})
 link_directories(${LIBGIT2_LIBRARY_DIRS})
 add_definitions(${LIBGIT2_CFLAGS_OTHER})
 
+if (WIN32)
 set(LIBGIT2_LIBRARIES
   ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libgit2.a
   ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libhttp_parser.a
   ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libpcre.a
   ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libzlib.a
 )
-
-find_package(CURL REQUIRED) # used for web requests.
-target_link_libraries(Millennium 
-  CURL::libcurl 
-  -Wl,--whole-archive ${LUAJIT_STATIC} -Wl,--no-whole-archive
-  unofficial::minizip::minizip
-   ${LIBGIT2_LIBRARIES}
+elseif(UNIX)
+set(LIBGIT2_LIBRARIES
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libgit2.a
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libhttp_parser.a
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libpcre.a
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libz.a
 )
-if(NIX_BUILD)
-  find_package(OpenSSL REQUIRED)
-  target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
 if(WIN32)
@@ -468,3 +467,10 @@ elseif(UNIX)
     endif()
   endif()
 endif()
+
+# Link required libraries for all platforms
+target_link_libraries(Millennium 
+  unofficial::minizip::minizip 
+  CURL::libcurl 
+  ${LIBGIT2_LIBRARIES}
+)

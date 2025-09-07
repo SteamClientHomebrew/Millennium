@@ -30,10 +30,14 @@
 
 #pragma once
 #include "internal_logger.h"
+#include "co_spawn.h"
 #include <chrono>
 #include <curl/curl.h>
 #include <string>
 #include <thread>
+#include <memory>
+#include <atomic>
+extern std::shared_ptr<InterpreterMutex> g_threadTerminateFlag;
 
 static size_t WriteByteCallback(char* ptr, size_t size, size_t nmemb, std::string* data)
 {

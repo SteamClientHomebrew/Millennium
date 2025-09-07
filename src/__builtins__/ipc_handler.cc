@@ -35,7 +35,11 @@
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
-std::unordered_map<std::string, std::any> __CORE_EXPORTS__;
+std::unordered_map<std::string, std::any>& GetCoreExports()
+{
+    static std::unordered_map<std::string, std::any> instance;
+    return instance;
+}
 
 nlohmann::json HandleIpcMessage(const std::string& function_name, const nlohmann::json& args)
 {
@@ -43,8 +47,8 @@ nlohmann::json HandleIpcMessage(const std::string& function_name, const nlohmann
     if (function_name == "__builtins__.__millennium_plugin_settings_parser__")
         throw std::runtime_error("Not applicable to this plugin");
 
-    auto it = __CORE_EXPORTS__.find(function_name);
-    if (it != __CORE_EXPORTS__.end()) {
+    auto it = GetCoreExports().find(function_name);
+    if (it != GetCoreExports().end()) {
         using FuncType = std::function<nlohmann::json(const nlohmann::json&)>;
         if (it->second.type() == typeid(FuncType)) {
             auto func = std::any_cast<FuncType>(it->second);

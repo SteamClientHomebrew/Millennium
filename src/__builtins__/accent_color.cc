@@ -55,9 +55,6 @@ struct AccentColors
 
 #define UX_THEME_DLL "uxtheme.dll"
 
-typedef int(WINAPI* GetImmersiveUserColorSetPreference_t)(int forceCheckRegistry, int skipCheckOnFail);
-typedef unsigned long(WINAPI* GetImmersiveColorFromColorSetEx_t)(unsigned int colorSet, unsigned int colorType, int ignoreHighContrast, int dwHighContrastCacheMode);
-typedef int(WINAPI* GetImmersiveColorTypeFromName_t)(const wchar_t* name);
 
 /**
  * Retrieves the current Windows accent colors using undocumented WinRT APIs.
@@ -68,6 +65,10 @@ typedef int(WINAPI* GetImmersiveColorTypeFromName_t)(const wchar_t* name);
 AccentColors GetAccentColors()
 {
     AccentColors colors = {};
+    #ifdef _WIN32
+    typedef int(WINAPI* GetImmersiveUserColorSetPreference_t)(int forceCheckRegistry, int skipCheckOnFail);
+    typedef unsigned long(WINAPI* GetImmersiveColorFromColorSetEx_t)(unsigned int colorSet, unsigned int colorType, int ignoreHighContrast, int dwHighContrastCacheMode);
+    typedef int(WINAPI* GetImmersiveColorTypeFromName_t)(const wchar_t* name);
 
     HMODULE hUxTheme = LoadLibraryW(L"" UX_THEME_DLL);
     if (!hUxTheme) {
@@ -101,6 +102,7 @@ AccentColors GetAccentColors()
     }
 
     FreeLibrary(hUxTheme);
+    #endif
     return colors;
 }
 
@@ -111,7 +113,7 @@ AccentColors GetAccentColors()
 /**
  * Converts a DWORD color to a hex string "#RRGGBB"
  */
-std::string CastToHex(DWORD color)
+std::string CastToHex(unsigned long color)
 {
     return fmt::format("#{0:02x}{1:02x}{2:02x}", R(color), G(color), B(color));
 }
@@ -119,7 +121,7 @@ std::string CastToHex(DWORD color)
 /**
  * Converts a DWORD color to an RGB string "r, g, b"
  */
-std::string CastToRgb(DWORD color)
+std::string CastToRgb(unsigned long  color)
 {
     return fmt::format("{}, {}, {}", R(color), G(color), B(color));
 }
@@ -155,6 +157,7 @@ nlohmann::json Colors::GetAccentColorWin32()
         return {};
     }
 #endif
+    return {};
 }
 
 /**
