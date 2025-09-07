@@ -1,0 +1,69 @@
+/*
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2025 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#pragma once
+#include <map>
+#include <nlohmann/json.hpp>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace Millennium
+{
+enum class ColorTypes
+{
+    RawRGB = 1,
+    RGB = 2,
+    RawRGBA = 3,
+    RGBA = 4,
+    Hex = 5,
+    Unknown = 6
+};
+
+class CSSParser
+{
+  public:
+    static std::optional<std::string> convertFromHex(const std::string& color, ColorTypes type);
+    static std::optional<std::string> convertToHex(const std::string& color, ColorTypes type);
+    static std::string expandHexColor(const std::string& shortHex);
+    static ColorTypes parseColor(const std::string& color);
+    static ColorTypes tryRawParse(const std::string& color);
+
+    static nlohmann::json parseRootColors(const std::string& filePath);
+
+  private:
+    static std::string extractRootBlock(const std::string& fileContent);
+    static void parseProperties(const std::string& block, std::map<std::string, std::string>& properties, std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
+    static std::string trim(const std::string& str);
+
+    static nlohmann::json generateColorMetadata(const std::map<std::string, std::string>& properties,
+                                                const std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
+};
+}

@@ -1,0 +1,189 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2025 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "__builtins__/ipc_handler.h"
+#include <any>
+#include <nlohmann/json.hpp>
+#include <string>
+#include <unordered_map>
+
+#ifdef _WIN32
+// clang-format off
+#include <winsock2.h>
+#include <windows.h>
+#include <winbase.h>
+#include <winuser.h>
+// clang-format on
+#endif
+#include "__builtins__/scan.h"
+#include "__builtins__/theme_config.h"
+#include "__builtins__/theme_installer.h"
+#include "__builtins__/updater.h"
+#include <_millennium_api.h>
+#include <encoding.h>
+#include <executor.h>
+#include <locals.h>
+#include <plugin_logger.h>
+
+std::shared_ptr<ThemeConfig> themeConfig;
+std::shared_ptr<Updater> updater;
+std::unique_ptr<SettingsStore> settingsStore;
+
+int GetOperatingSystemType()
+{
+#if defined(_WIN32)
+    return 0; // Windows
+#elif defined(__APPLE__) || defined(__linux__)
+    return 1; // macOS or Linux
+#else
+    return -1; // Unknown
+#endif
+}
+
+MILLENNIUM_IPC_DECL(Core_SetClipboardText)
+{
+    std::string text = ARGS["text"];
+
+#ifdef _WIN32
+    if (OpenClipboard(nullptr))
+    {
+        EmptyClipboard();
+        HGLOBAL hGlob = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
+        if (hGlob)
+        {
+            memcpy(GlobalLock(hGlob), text.c_str(), text.size() + 1);
+            GlobalUnlock(hGlob);
+            SetClipboardData(CF_TEXT, hGlob);
+        }
+        CloseClipboard();
+        GlobalFree(hGlob);
+    }
+#elif __linux__
+    std::string command = "echo \"" + text + "\" | xclip -selection clipboard";
+    system(command.c_str());
+#elif __APPLE__
+    std::string command = "echo \"" + text + "\" | pbcopy";
+    system(command.c_str());
+#endif
+
+    return {};
+}
+
+MILLENNIUM_IPC_DECL(Core_GetStartConfig)
+{
+    nlohmann::json enabledPlugins = nlohmann::json::array();
+    std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->GetEnabledPlugins();
+
+    /** only add the plugin name. */
+    std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
+
+    try
+    {
+        return {
+            { "accent_color", themeConfig->GetAccentColor() },
+            { "conditions", CONFIG.GetNested("themes.conditions", nlohmann::json::object()) },
+            { "active_theme", themeConfig->GetActiveTheme() },
+            { "settings", CONFIG.GetAll() },
+            { "steamPath", SystemIO::GetSteamPath() },
+            { "installPath", SystemIO::GetInstallPath() },
+            { "millenniumVersion", MILLENNIUM_VERSION },
+            { "enabledPlugins", enabledPlugins },
+            { "updates", nlohmann::json::object() },
+            { "hasCheckedForUpdates", false },
+            { "buildDate", getBuildTimestamp() },
+            { "millenniumUpdates", nlohmann::json::object() },
+            { "platformType", GetOperatingSystemType() },
+            { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") }
+        };
+    }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR("Failed to generate start config: {}", e.what());
+    }
+
+    return {};
+}
+
+/** General utilities */
+IPC_RET(Core_GetSteamPath, SystemIO::GetSteamPath())
+IPC_RET(Core_FindAllThemes, Millennium::Themes::FindAllThemes())
+IPC_RET(Core_FindAllPlugins, Millennium::Plugins::FindAllPlugins())
+IPC_RET(Core_GetEnvironmentVar, GetEnv(ARGS["variable"]))
+IPC_RET(Core_GetOperatingSystem, GetOperatingSystemType())
+IPC_RET(Core_GetBackendConfig, CONFIG.GetAll())
+IPC_RET(Core_SetBackendConfig, CONFIG.SetAll(nlohmann::json::parse(ARGS["config"].get<std::string>()), ARGS.value("skipPropagation", false)))
+
+/** Theme and Plugin update API */
+IPC_RET(Core_GetUpdates, updater->CheckForUpdates(ARGS.value("force", false)).value_or(nullptr))
+
+/** Theme manager API */
+IPC_RET(Core_GetActiveTheme, themeConfig->GetActiveTheme())
+IPC_NIL(Core_ChangeActiveTheme, themeConfig->ChangeTheme(ARGS["theme_name"]))
+IPC_RET(Core_GetSystemColors, themeConfig->GetAccentColor())
+IPC_NIL(Core_ChangeAccentColor, themeConfig->ChangeAccentColor(ARGS["new_color"]))
+IPC_NIL(Core_ChangeColor, themeConfig->ChangeColor(ARGS["theme"], ARGS["color_name"], ARGS["new_color"], ARGS["color_type"]))
+IPC_NIL(Core_ChangeCondition, themeConfig->ChangeCondition(ARGS["theme"], nlohmann::json::parse(ARGS["newData"].get<std::string>()), ARGS["condition"]))
+IPC_RET(Core_GetRootColors, themeConfig->GetColors())
+IPC_RET(Core_DoesThemeUseAccentColor, true) /** placeholder, too lazy to implement */
+IPC_RET(Core_GetThemeColorOptions, themeConfig->GetColorOpts(ARGS["theme_name"]))
+
+/** Theme installer related API's */
+IPC_RET(Core_InstallTheme, updater->GetThemeUpdater().InstallTheme(ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_UninstallTheme, updater->GetThemeUpdater().UninstallTheme(ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_IsThemeInstalled, updater->GetThemeUpdater().CheckInstall(ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_GetThemeFromGitPair, updater->GetThemeUpdater().GetThemeFromGitPair(ARGS["repo"], ARGS["owner"], ARGS.value("asString", false)).value_or(nullptr))
+IPC_RET(Core_DownloadThemeUpdate, updater->DownloadThemeUpdate(ARGS["native"]))
+
+/** Plugin related API's */
+IPC_RET(Core_DownloadPluginUpdate, updater->DownloadPluginUpdate(ARGS["id"], ARGS["name"]))
+IPC_RET(Core_InstallPlugin, updater->GetPluginUpdater().InstallPlugin(ARGS["download_url"], ARGS["total_size"]))
+IPC_RET(Core_IsPluginInstalled, updater->GetPluginUpdater().CheckInstall(ARGS["plugin_name"]))
+
+/** Get plugin backend logs */
+IPC_RET(Core_GetPluginBackendLogs, Millennium_GetPluginLogs())
+
+/**
+ * Initialize core components
+ * Called before any other plugin is loaded.
+ */
+void Core_Load()
+{
+    settingsStore = std::make_unique<SettingsStore>();
+    updater = std::make_shared<Updater>();
+    themeConfig = std::make_shared<ThemeConfig>();
+}
+
+/** TODO: unused, impl later. shouldn't cause any issues on shutdown though. */
+void Core_Unload()
+{
+    settingsStore.reset();
+    updater.reset();
+    themeConfig.reset();
+}
