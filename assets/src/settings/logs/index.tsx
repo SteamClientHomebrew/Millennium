@@ -28,14 +28,13 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, IconsModule, TextField, callable, joinClassNames, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, TextField, joinClassNames, pluginSelf } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';
 import { locale } from '../../../locales';
-import { PyGetLogData, PySetClipboardText } from '../../utils/ffi';
+import { PyGetLogData } from '../../utils/ffi';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
-import { FaCircleCheck } from 'react-icons/fa6';
 import { IconButton } from '../../components/IconButton';
 
 export type LogItem = {
@@ -117,13 +116,18 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 			/** Strip all ANSI colors that were provided by Millennium */
 			.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 
-		if (PySetClipboardText({ data: logsToCopy })) {
-			this.setState({ copyIcon: <IconsModule.Checkmark /> });
+		const textarea = document.createElement('textarea');
+		textarea.value = logsToCopy;
+		document.body.appendChild(textarea);
+		textarea.select();
+		document.execCommand('copy');
+		document.body.removeChild(textarea);
 
-			setTimeout(() => {
-				this.setState({ copyIcon: <IconsModule.Copy /> });
-			}, 2000);
-		}
+		this.setState({ copyIcon: <IconsModule.Checkmark /> });
+
+		setTimeout(() => {
+			this.setState({ copyIcon: <IconsModule.Copy /> });
+		}, 2000);
 	};
 
 	filterLogsBySearchQuery = (e: React.ChangeEvent<HTMLInputElement>) => {

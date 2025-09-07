@@ -295,6 +295,19 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
 }
 
 /**
+ * @brief Get the names of all enabled plugins.
+ */
+std::vector<std::string> SettingsStore::GetEnabledPluginNames()
+{
+    std::vector<std::string> enabledPlugins;
+    std::vector<SettingsStore::PluginTypeSchema> plugins = this->GetEnabledPlugins();
+
+    /** only add the plugin name. */
+    std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
+    return enabledPlugins;
+}
+
+/**
  * @brief Get all the enabled backends from the plugin list.
  *
  * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false.

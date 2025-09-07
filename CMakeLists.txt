@@ -357,6 +357,32 @@ set(SOURCE_FILES
   "src/__builtins__/updater.cc"
 )
 
+if(MINGW)
+  execute_process(
+    COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static"
+    RESULT_VARIABLE LUAJIT_BUILD_RESULT
+    OUTPUT_VARIABLE LUAJIT_BUILD_OUTPUT
+    ERROR_VARIABLE LUAJIT_BUILD_ERROR
+  )
+  if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to build LuaJIT static library:\n${LUAJIT_BUILD_ERROR}")
+  else()
+    message(STATUS "LuaJIT static library built successfully.")
+  endif()
+elseif(UNIX)
+  execute_process(
+    COMMAND make -C "${CMAKE_SOURCE_DIR}/vendor/lua" CC="gcc -m32" CFLAGS="-m32 -O2 -fPIC" BUILDMODE=static
+    RESULT_VARIABLE LUAJIT_BUILD_RESULT
+    OUTPUT_VARIABLE LUAJIT_BUILD_OUTPUT
+    ERROR_VARIABLE LUAJIT_BUILD_ERROR
+  )
+  if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to build LuaJIT static library:\n${LUAJIT_BUILD_ERROR}")
+  else()
+    message(STATUS "LuaJIT static library built successfully.")
+  endif()
+endif()
+
 set(LUAJIT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/src)
 set(LUAJIT_STATIC ${LUAJIT_DIR}/libluajit.a)
 
@@ -365,7 +391,6 @@ list(APPEND SOURCE_FILES
   "vendor/lua-cjson/strbuf.c"
   "vendor/lua-cjson/${FPCONV_SOURCES}"
 )
-
 
 if(WIN32)
   add_library(Millennium SHARED "${SOURCE_FILES}")
@@ -448,13 +473,21 @@ set(LIBGIT2_LIBRARIES
 endif()
 
 if(WIN32)
-  target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp winhttp rpcrt4)
-
   if(GITHUB_ACTION_BUILD)
-    target_link_libraries(Millennium "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
+    set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
   else()
-    target_link_libraries(Millennium ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
+    set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
   endif()
+
+  target_link_libraries(Millennium
+    ${LIBGIT2_LIBRARIES}
+    wsock32
+    Iphlpapi
+    DbgHelp
+    rpcrt4
+    winhttp
+    ${PYTHON_LIB}
+  )
 
 elseif(UNIX)
   if(APPLE)
@@ -472,5 +505,6 @@ endif()
 target_link_libraries(Millennium 
   unofficial::minizip::minizip 
   CURL::libcurl 
+  ${LUAJIT_STATIC}
   ${LIBGIT2_LIBRARIES}
 )

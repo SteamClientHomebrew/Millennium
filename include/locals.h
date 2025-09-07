@@ -66,6 +66,7 @@ class SettingsStore
     std::vector<PluginTypeSchema> ParseAllPlugins();
     std::vector<PluginTypeSchema> GetEnabledBackends();
     std::vector<PluginTypeSchema> GetEnabledPlugins();
+    std::vector<std::string> GetEnabledPluginNames();
 
     bool IsEnabledPlugin(std::string pluginName);
     bool TogglePluginStatus(std::string pluginName, bool enabled);

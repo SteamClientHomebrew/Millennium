@@ -143,7 +143,6 @@ const void SetupEnvironmentVariables()
     };
 
 #if defined(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
-#pragma message("Using custom SDK path: " MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
     const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
 #else
 #ifdef _WIN32
@@ -160,7 +159,6 @@ const void SetupEnvironmentVariables()
 #endif
 
 #if defined(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
-#pragma message("Using development mode frontend: " MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
     const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
 #else
 #ifdef _WIN32

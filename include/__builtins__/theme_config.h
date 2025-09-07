@@ -37,7 +37,7 @@
 #include <set>
 #include <sstream>
 
-class ThemeConfig : public ConfigManager
+class ThemeConfig
 {
   public:
     ThemeConfig();
@@ -65,7 +65,7 @@ class ThemeConfig : public ConfigManager
 
     bool DoesThemeUseAccentColor();
     std::string GetConditionals();
-    void ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition);
+    nlohmann::json ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition);
 
   private:
     void SetupConditionals(const nlohmann::json& theme_data);

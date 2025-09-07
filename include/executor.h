@@ -58,7 +58,7 @@ static std::string getMonthNumber(const std::string& monthAbbr)
     return monthMap[monthAbbr];
 }
 
-static std::string getBuildTimestamp()
+static std::string GetBuildTimestamp()
 {
 #ifdef __DATE__
     std::string date = __DATE__;

@@ -63,67 +63,51 @@ int GetOperatingSystemType()
 #elif defined(__APPLE__) || defined(__linux__)
     return 1; // macOS or Linux
 #else
+#error "Unsupported platform"
     return -1; // Unknown
 #endif
 }
 
-MILLENNIUM_IPC_DECL(Core_SetClipboardText)
+/**
+ * Enable/disable plugins
+ */
+MILLENNIUM_IPC_DECL(Core_ChangePluginStatus)
 {
-    std::string text = ARGS["text"];
+    std::vector<PluginStatus> plugins;
+    auto pluginJson = nlohmann::json::parse(ARGS["pluginJson"].get<std::string>());
 
-#ifdef _WIN32
-    if (OpenClipboard(nullptr)) {
-        EmptyClipboard();
-        HGLOBAL hGlob = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
-        if (hGlob) {
-            memcpy(GlobalLock(hGlob), text.c_str(), text.size() + 1);
-            GlobalUnlock(hGlob);
-            SetClipboardData(CF_TEXT, hGlob);
+    for (const auto& item : pluginJson) {
+        if (item.contains("name") && item.contains("enabled")) {
+            plugins.push_back({ item["name"], item["enabled"] });
         }
-        CloseClipboard();
-        GlobalFree(hGlob);
     }
-#elif __linux__
-    std::string command = "echo \"" + text + "\" | xclip -selection clipboard";
-    system(command.c_str());
-#elif __APPLE__
-    std::string command = "echo \"" + text + "\" | pbcopy";
-    system(command.c_str());
-#endif
 
+    Millennium_TogglePluginStatus(plugins);
     return {};
 }
 
+/**
+ * Get the configuration needed to start the frontend
+ * @note exceptions are caught by the IPC handler
+ */
 MILLENNIUM_IPC_DECL(Core_GetStartConfig)
 {
-    nlohmann::json enabledPlugins = nlohmann::json::array();
-    std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->GetEnabledPlugins();
-
-    /** only add the plugin name. */
-    std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
-
-    try {
-        return {
-            { "accent_color", themeConfig->GetAccentColor() },
-            { "conditions", CONFIG.GetNested("themes.conditions", nlohmann::json::object()) },
-            { "active_theme", themeConfig->GetActiveTheme() },
-            { "settings", CONFIG.GetAll() },
-            { "steamPath", SystemIO::GetSteamPath() },
-            { "installPath", SystemIO::GetInstallPath() },
-            { "millenniumVersion", MILLENNIUM_VERSION },
-            { "enabledPlugins", enabledPlugins },
-            { "updates", nlohmann::json::object() },
-            { "hasCheckedForUpdates", false },
-            { "buildDate", getBuildTimestamp() },
-            { "millenniumUpdates", nlohmann::json::object() },
-            { "platformType", GetOperatingSystemType() },
-            { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") }
-        };
-    } catch (const std::exception& e) {
-        LOG_ERROR("Failed to generate start config: {}", e.what());
-    }
-
-    return {};
+    return {
+        { "accent_color", themeConfig->GetAccentColor() },
+        { "conditions", CONFIG.GetNested("themes.conditions", nlohmann::json::object()) },
+        { "active_theme", themeConfig->GetActiveTheme() },
+        { "settings", CONFIG.GetAll() },
+        { "steamPath", SystemIO::GetSteamPath() },
+        { "installPath", SystemIO::GetInstallPath() },
+        { "millenniumVersion", MILLENNIUM_VERSION },
+        { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
+        { "updates", nlohmann::json::object() },
+        { "hasCheckedForUpdates", false },
+        { "buildDate", GetBuildTimestamp() },
+        { "millenniumUpdates", nlohmann::json::object() },
+        { "platformType", GetOperatingSystemType() },
+        { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") }
+    };
 }
 
 /** General utilities */
@@ -131,7 +115,6 @@ IPC_RET(Core_GetSteamPath, SystemIO::GetSteamPath())
 IPC_RET(Core_FindAllThemes, Millennium::Themes::FindAllThemes())
 IPC_RET(Core_FindAllPlugins, Millennium::Plugins::FindAllPlugins())
 IPC_RET(Core_GetEnvironmentVar, GetEnv(ARGS["variable"]))
-IPC_RET(Core_GetOperatingSystem, GetOperatingSystemType())
 IPC_RET(Core_GetBackendConfig, CONFIG.GetAll())
 IPC_RET(Core_SetBackendConfig, CONFIG.SetAll(nlohmann::json::parse(ARGS["config"].get<std::string>()), ARGS.value("skipPropagation", false)))
 
@@ -144,7 +127,7 @@ IPC_NIL(Core_ChangeActiveTheme, themeConfig->ChangeTheme(ARGS["theme_name"]))
 IPC_RET(Core_GetSystemColors, themeConfig->GetAccentColor())
 IPC_NIL(Core_ChangeAccentColor, themeConfig->ChangeAccentColor(ARGS["new_color"]))
 IPC_NIL(Core_ChangeColor, themeConfig->ChangeColor(ARGS["theme"], ARGS["color_name"], ARGS["new_color"], ARGS["color_type"]))
-IPC_NIL(Core_ChangeCondition, themeConfig->ChangeCondition(ARGS["theme"], nlohmann::json::parse(ARGS["newData"].get<std::string>()), ARGS["condition"]))
+IPC_RET(Core_ChangeCondition, themeConfig->ChangeCondition(ARGS["theme"], ARGS["newData"], ARGS["condition"]))
 IPC_RET(Core_GetRootColors, themeConfig->GetColors())
 IPC_RET(Core_DoesThemeUseAccentColor, true) /** placeholder, too lazy to implement */
 IPC_RET(Core_GetThemeColorOptions, themeConfig->GetColorOpts(ARGS["theme_name"]))

@@ -2,6 +2,7 @@
 #include <co_spawn.h>
 #include <co_stub.h>
 #include <encoding.h>
+#include <http_hooks.h>
 #include <loader.h>
 #include <plugin_logger.h>
 
@@ -42,6 +43,22 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
     }
 
     CoInitializer::ReInjectFrontendShims(g_pluginLoader, true);
+}
+
+unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, HttpHookManager::TagTypes type)
+{
+    g_hookedModuleId++;
+    auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
+
+    try {
+        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+    } catch (const std::regex_error& e) {
+        LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", regexSelector, e.what());
+        ErrorToLogger("executor", fmt::format("Failed to add browser module with invalid regex: {} ({})", regexSelector, e.what()));
+        return 0;
+    }
+
+    return g_hookedModuleId;
 }
 
 nlohmann::json Millennium_GetPluginLogs()

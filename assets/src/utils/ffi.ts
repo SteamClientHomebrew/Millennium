@@ -33,7 +33,7 @@ import { callable } from '@steambrew/client';
 export const PyGetSteamPath = callable<[], string>('Core_GetSteamPath');
 export const PyFindAllPlugins = callable<[], string>('Core_FindAllPlugins');
 export const PyFindAllThemes = callable<[], string>('Core_FindAllThemes');
-export const PyUpdatePluginStatus = callable<[{ pluginJson: string }], any>('ChangePluginStatus');
+export const PyUpdatePluginStatus = callable<[{ pluginJson: string }], any>('Core_ChangePluginStatus');
 export const PyGetEnvironmentVar = callable<[{ variable: string }], string>('Core_GetEnvironmentVar');
 export const PyInstallTheme = callable<[{ owner: string; repo: string }], void>('Core_InstallTheme');
 export const PyUninstallTheme = callable<[{ owner: string; repo: string }], void>('Core_UninstallTheme');
@@ -55,7 +55,6 @@ export const PySetBackendConfig = callable<[{ config: string; skip_propagation: 
 export const PyGetBackendConfig = callable<[], string>('Core_GetBackendConfig');
 export const PyGetStartupConfig = callable<[], string>('Core_GetStartConfig');
 export const PyGetLogData = callable<[], any[]>('Core_GetPluginBackendLogs');
-export const PySetClipboardText = callable<[{ data: string }], boolean>('Core_SetClipboardText');
 export const PyGetRootColors = callable<[], string>('Core_GetRootColors');
 export const PyChangeCondition = callable<[{ theme: string; newData: string; condition: string }], boolean>('Core_ChangeCondition');
 export const PyChangeColor = callable<[{ theme: string; new_color: string; color_name: string; color_type: number }], string>('Core_ChangeColor');

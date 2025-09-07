@@ -101,11 +101,14 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const activeTheme: ThemeItem = this.props.theme as ThemeItem;
 
 		return new Promise<boolean>((resolve) => {
+			console.log('Updating condition:', activeTheme.native, conditionName, newData);
 			PyChangeCondition({
 				theme: activeTheme.native,
 				newData: newData,
 				condition: conditionName,
 			}).then((response: any) => {
+				console.log('Condition update response:', response);
+
 				const success = (JSON.parse(response)?.success as boolean) ?? false;
 
 				success && (pluginSelf.ConditionConfigHasChanged = true);

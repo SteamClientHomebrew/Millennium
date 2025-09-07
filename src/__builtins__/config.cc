@@ -30,8 +30,8 @@
 
 #include "__builtins__/config.h"
 #include <__builtins__/default_settings.h>
-#include <internal_logger.h>
 #include <env.h>
+#include <internal_logger.h>
 
 ConfigManager& ConfigManager::Instance()
 {
@@ -190,6 +190,7 @@ void ConfigManager::SaveToFile()
         return;
     }
 
+    Logger.Log("Saving config");
     file << _data.dump(2);
 }
 
@@ -234,7 +235,7 @@ nlohmann::json ConfigManager::GetAll()
 
 ConfigManager::ConfigManager()
 {
-    _filename = GetEnv("MILLENNIUM__CONFIG_PATH");
+    _filename = GetEnv("MILLENNIUM__CONFIG_PATH") + "/config.json";
     _defaults = GetDefaultConfig();
 
     LoadFromFile();

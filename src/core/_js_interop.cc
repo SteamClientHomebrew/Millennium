@@ -209,8 +209,12 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
     std::string strFunctionFormatted = fmt::format("PLUGIN_LIST['{}'].{}(", plugin, methodName);
 
     std::map<std::string, std::string> boolMap{
+        /** compatibility with Python */
         { "True",  "true"  },
-        { "False", "false" }
+        { "False", "false" },
+        /** compatibility with lua */
+        { "true",  "true"  },
+        { "false", "false" }
     };
 
     for (auto iterator = fnParams.begin(); iterator != fnParams.end(); ++iterator) {

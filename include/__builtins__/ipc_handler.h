@@ -38,24 +38,29 @@
 std::unordered_map<std::string, std::any>& GetCoreExports();
 
 #define MILLENNIUM_IPC_DECL(name)                                                                                                                                                  \
-    nlohmann::json _impl_##name(const nlohmann::json& ARGS);                                                                                                                       \
-    struct _##name##_registrar                                                                                                                                                     \
+    nlohmann::json impl##name(const nlohmann::json& ARGS);                                                                                                                         \
+    struct name##registrar                                                                                                                                                         \
     {                                                                                                                                                                              \
-        _##name##_registrar()                                                                                                                                                      \
+        name##registrar()                                                                                                                                                          \
         {                                                                                                                                                                          \
             GetCoreExports()[#name] = std::function<nlohmann::json(const nlohmann::json&)>([](const nlohmann::json& j) -> nlohmann::json                                           \
             {                                                                                                                                                                      \
-                if constexpr (std::is_same_v<decltype(_impl_##name(j)), void>) {                                                                                                   \
-                    _impl_##name(j);                                                                                                                                               \
+                try {                                                                                                                                                              \
+                    if constexpr (std::is_same_v<decltype(impl##name(j)), void>) {                                                                                                 \
+                        impl##name(j);                                                                                                                                             \
+                        return {};                                                                                                                                                 \
+                    } else {                                                                                                                                                       \
+                        return impl##name(j);                                                                                                                                      \
+                    }                                                                                                                                                              \
+                } catch (...) {                                                                                                                                                    \
+                    LOG_ERROR("Failed to call {}", #name);                                                                                                                         \
                     return {};                                                                                                                                                     \
-                } else {                                                                                                                                                           \
-                    return _impl_##name(j);                                                                                                                                        \
                 }                                                                                                                                                                  \
             });                                                                                                                                                                    \
         }                                                                                                                                                                          \
     };                                                                                                                                                                             \
-    static _##name##_registrar _##name##_registrar_instance;                                                                                                                       \
-    nlohmann::json _impl_##name(const nlohmann::json& ARGS)
+    static name##registrar name##registrar_instance;                                                                                                                               \
+    nlohmann::json impl##name(const nlohmann::json& ARGS)
 
 /** ffi function that returns a value */
 #define IPC_RET(name, expr)                                                                                                                                                        \
