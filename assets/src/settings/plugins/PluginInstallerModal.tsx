@@ -29,21 +29,19 @@
  */
 
 import { ConfirmModal, pluginSelf, showModal, ShowModalResult, SuspensefulImage, TextField } from '@steambrew/client';
-import React, { Component, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Utils } from '../../utils';
 
-import FindPluginIdGif from '../../../static/plugin_id.gif';
 import { PLUGINS_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
 
 interface PluginIdModalProps {
-	tutorialImageUrl: string;
 	installer: Installer;
 	modal: ShowModalResult;
 	refetchDataCb: () => void;
 }
 
-function PluginIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: PluginIdModalProps) {
+function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) {
 	const [installID, setInstallID] = React.useState(String());
 
 	return (
@@ -52,7 +50,8 @@ function PluginIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: Pl
 			strDescription={
 				<>
 					Install a user plugin from an ID. These ID's can be found after selecting a plugin at <Utils.URLComponent url={PLUGINS_URL} />
-					<SuspensefulImage className="MillenniumInstallDialog_TutorialImage" src={tutorialImageUrl} />
+					<br />
+					<br />
 					<TextField
 						// @ts-ignore
 						placeholder={'Enter an ID here...'}
@@ -69,26 +68,14 @@ function PluginIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: Pl
 			onCancel={() => {
 				modal?.Close();
 			}}
-			strOKButtonText="Install"
+			strOKButtonText="Download & Install"
 		/>
 	);
 }
 
-async function cacheImage(url: string) {
-	return new Promise((resolve, reject) => {
-		const img = new Image();
-		img.src = url;
-		img.onload = () => resolve(img);
-		img.onerror = (err) => reject(err);
-	});
-}
-
 export async function showInstallPluginModal(refetchDataCb: () => void) {
 	let modal: ShowModalResult;
-	const tutorialImageUrl = [await Utils.GetPluginAssetUrl(), FindPluginIdGif].join('/');
 	const installer = new Installer();
-
-	await cacheImage(tutorialImageUrl);
 
 	const WrappedModal = () => {
 		const [modalInstance, setModalInstance] = React.useState<ShowModalResult | null>(null);
@@ -97,7 +84,7 @@ export async function showInstallPluginModal(refetchDataCb: () => void) {
 			setModalInstance(modal);
 		}, []);
 
-		return <PluginIdModal refetchDataCb={refetchDataCb} tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
+		return <PluginIdModal refetchDataCb={refetchDataCb} installer={installer} modal={modalInstance} />;
 	};
 
 	modal = showModal(<WrappedModal />, pluginSelf.mainWindow, {

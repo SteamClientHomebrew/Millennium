@@ -37,13 +37,12 @@ import { THEMES_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
 
 interface ThemeIdModalProps {
-	tutorialImageUrl: string;
 	installer: Installer;
 	modal: ShowModalResult;
 	refetchDataCb: () => void;
 }
 
-function ThemeIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: ThemeIdModalProps) {
+function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 	const [installID, setInstallID] = React.useState(String());
 
 	return (
@@ -52,7 +51,8 @@ function ThemeIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: The
 			strDescription={
 				<>
 					Install a user theme from an ID. These ID's can be found after selecting a theme at <Utils.URLComponent url={THEMES_URL} />
-					<SuspensefulImage className="MillenniumInstallDialog_TutorialImage" src={tutorialImageUrl} />
+					<br />
+					<br />
 					<TextField
 						// @ts-ignore
 						placeholder={'Enter an ID here...'}
@@ -69,27 +69,14 @@ function ThemeIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: The
 			onCancel={() => {
 				modal?.Close();
 			}}
-			strOKButtonText="Install"
+			strOKButtonText="Download & Install"
 		/>
 	);
 }
 
-async function cacheImage(url: string) {
-	return new Promise((resolve, reject) => {
-		const img = new Image();
-		img.referrerPolicy = 'origin';
-		img.src = url;
-		img.onload = () => resolve(img);
-		img.onerror = (err) => reject(err);
-	});
-}
-
 export async function showInstallThemeModal(refetchDataCb: () => void) {
 	let modal: ShowModalResult;
-	const tutorialImageUrl = [await Utils.GetPluginAssetUrl(), FindThemeIdGif].join('/');
 	const installer = new Installer();
-
-	await cacheImage(tutorialImageUrl);
 
 	const WrappedModal = () => {
 		const [modalInstance, setModalInstance] = React.useState<ShowModalResult | null>(null);
@@ -98,7 +85,7 @@ export async function showInstallThemeModal(refetchDataCb: () => void) {
 			setModalInstance(modal);
 		}, []);
 
-		return <ThemeIdModal refetchDataCb={refetchDataCb} tutorialImageUrl={tutorialImageUrl} installer={installer} modal={modalInstance} />;
+		return <ThemeIdModal refetchDataCb={refetchDataCb} installer={installer} modal={modalInstance} />;
 	};
 
 	modal = showModal(<WrappedModal />, pluginSelf.mainWindow, {

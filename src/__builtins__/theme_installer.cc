@@ -10,15 +10,15 @@
 #include <system_error>
 #include <thread>
 
-fs::path ThemeInstaller::SkinsRoot()
+std::filesystem::path ThemeInstaller::SkinsRoot()
 {
-    return fs::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
+    return std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
 }
 
 void ThemeInstaller::EmitMessage(const std::string& status, int progress, bool isComplete)
 {
     Logger.Log("emitting message " + status + " " + std::to_string(progress) + " " + (isComplete ? "true" : "false"));
-    json j = {
+    nlohmann::json j = {
         { "status",     status     },
         { "progress",   progress   },
         { "isComplete", isComplete }
@@ -28,7 +28,7 @@ void ThemeInstaller::EmitMessage(const std::string& status, int progress, bool i
 
 nlohmann::json ThemeInstaller::ErrorMessage(const std::string& message)
 {
-    return json({
+    return nlohmann::json({
         { "success", false   },
         { "message", message }
     });
@@ -36,35 +36,35 @@ nlohmann::json ThemeInstaller::ErrorMessage(const std::string& message)
 
 nlohmann::json ThemeInstaller::SuccessMessage()
 {
-    return json({
+    return nlohmann::json({
         { "success", true }
     });
 }
 
-void ThemeInstaller::MakeWritable(const fs::path& p)
+void ThemeInstaller::MakeWritable(const std::filesystem::path& p)
 {
     std::error_code ec;
-    auto perms = fs::status(p, ec).permissions();
+    auto perms = std::filesystem::status(p, ec).permissions();
     if (!ec)
-        fs::permissions(p, perms | fs::perms::owner_write, ec);
+        std::filesystem::permissions(p, perms | std::filesystem::perms::owner_write, ec);
 }
 
-bool ThemeInstaller::DeleteFolder(const fs::path& p)
+bool ThemeInstaller::DeleteFolder(const std::filesystem::path& p)
 {
-    if (!fs::exists(p))
+    if (!std::filesystem::exists(p))
         return true;
 
     std::error_code ec;
-    fs::remove_all(p, ec);
+    std::filesystem::remove_all(p, ec);
     if (!ec)
         return true;
 
     Logger.Log("DeleteFolder failed initially: {} — retrying with writable perms.", ec.message());
-    for (auto it = fs::recursive_directory_iterator(p, fs::directory_options::skip_permission_denied, ec); it != fs::recursive_directory_iterator(); ++it)
+    for (auto it = std::filesystem::recursive_directory_iterator(p, std::filesystem::directory_options::skip_permission_denied, ec); it != std::filesystem::recursive_directory_iterator(); ++it)
         MakeWritable(it->path());
 
     ec.clear();
-    fs::remove_all(p, ec);
+    std::filesystem::remove_all(p, ec);
     if (ec) {
         LOG_ERROR("Failed to delete folder {}: {}", p.string(), ec.message());
         return false;
@@ -72,13 +72,13 @@ bool ThemeInstaller::DeleteFolder(const fs::path& p)
     return true;
 }
 
-std::optional<json> ThemeInstaller::GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString)
+std::optional<nlohmann::json> ThemeInstaller::GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString)
 {
-    json themes = Millennium::Themes::FindAllThemes();
+    nlohmann::json themes = Millennium::Themes::FindAllThemes();
     for (auto& theme : themes) {
-        auto github = theme.value("data", json::object()).value("github", json::object());
+        auto github = theme.value("data", nlohmann::json::object()).value("github", nlohmann::json::object());
         if (github.value("owner", "") == owner && github.value("repo_name", "") == repo)
-            return asString ? json(theme.dump()) : theme;
+            return asString ? nlohmann::json(theme.dump()) : theme;
     }
     return std::nullopt;
 }
@@ -92,13 +92,17 @@ bool ThemeInstaller::CheckInstall(const std::string& repo, const std::string& ow
 
 nlohmann::json ThemeInstaller::UninstallTheme(const std::string& repo, const std::string& owner)
 {
-    Logger.Log("UninstallTheme: " + owner + "/" + repo);
+    Logger.Log("UninstallTheme: {}/{}", owner, repo);
+
     auto themeOpt = GetThemeFromGitPair(repo, owner);
     if (!themeOpt)
         return ErrorMessage("Couldn't locate theme on disk!");
 
-    fs::path path = SkinsRoot() / themeOpt->value("native", "");
-    if (!fs::exists(path))
+    if (!themeOpt->contains("native"))
+        return ErrorMessage("Theme does not have a native path!");
+
+    std::filesystem::path path = SkinsRoot() / themeOpt->value("native", std::string());
+    if (!std::filesystem::exists(path))
         return ErrorMessage("Theme path does not exist!");
 
     if (!DeleteFolder(path))
@@ -112,7 +116,7 @@ static void SetupRemoteCallbacks(git_remote_callbacks& callbacks)
     git_remote_init_callbacks(&callbacks, GIT_REMOTE_CALLBACKS_VERSION);
 }
 
-int ThemeInstaller::CloneWithLibgit2(const std::string& url, const fs::path& dstPath, std::string& outErr)
+int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr)
 {
     git_libgit2_init();
     git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
@@ -141,17 +145,17 @@ int ThemeInstaller::CloneWithLibgit2(const std::string& url, const fs::path& dst
 
 std::string ThemeInstaller::InstallTheme(const std::string& repo, const std::string& owner)
 {
-    fs::path finalPath = SkinsRoot() / repo;
+    std::filesystem::path finalPath = SkinsRoot() / repo;
     std::error_code ec;
 
     // Remove existing folder
-    if (fs::exists(finalPath)) {
+    if (std::filesystem::exists(finalPath)) {
         if (!DeleteFolder(finalPath))
             return ErrorMessage("Failed to remove existing target path");
     }
 
     std::string tmpName = repo + ".tmp-" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
-    fs::path tmpPath = finalPath.parent_path() / tmpName;
+    std::filesystem::path tmpPath = finalPath.parent_path() / tmpName;
 
     EmitMessage("Starting Installer...", 10, false);
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -162,14 +166,14 @@ std::string ThemeInstaller::InstallTheme(const std::string& repo, const std::str
     int rc = CloneWithLibgit2(url, tmpPath, cloneErr);
 
     if (rc != 0) {
-        fs::remove_all(tmpPath, ec);
+        std::filesystem::remove_all(tmpPath, ec);
         return ErrorMessage("Failed to clone theme repository: " + cloneErr);
     }
 
-    fs::rename(tmpPath, finalPath, ec);
+    std::filesystem::rename(tmpPath, finalPath, ec);
     if (ec) {
         Logger.Log("Rename failed, fallback to copy: " + ec.message());
-        fs::copy(tmpPath, finalPath, fs::copy_options::recursive | fs::copy_options::overwrite_existing, ec);
+        std::filesystem::copy(tmpPath, finalPath, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
         DeleteFolder(tmpPath);
     }
 
@@ -177,16 +181,16 @@ std::string ThemeInstaller::InstallTheme(const std::string& repo, const std::str
     return SuccessMessage();
 }
 
-std::vector<std::pair<json, fs::path>> ThemeInstaller::QueryThemesForUpdate()
+std::vector<std::pair<nlohmann::json, std::filesystem::path>> ThemeInstaller::QueryThemesForUpdate()
 {
-    std::vector<std::pair<json, fs::path>> updateQuery;
-    json themes = Millennium::Themes::FindAllThemes();
+    std::vector<std::pair<nlohmann::json, std::filesystem::path>> updateQuery;
+    nlohmann::json themes = Millennium::Themes::FindAllThemes();
     bool needsCopy = false;
 
     for (auto& theme : themes) {
-        fs::path path = SkinsRoot() / theme.value("native", "");
+        std::filesystem::path path = SkinsRoot() / theme.value("native", "");
         try {
-            if (!fs::exists(path) || !IsGitRepo(path))
+            if (!std::filesystem::exists(path) || !IsGitRepo(path))
                 throw std::runtime_error("Not a git repo");
 
             updateQuery.push_back({ theme, path });
@@ -199,9 +203,9 @@ std::vector<std::pair<json, fs::path>> ThemeInstaller::QueryThemesForUpdate()
     }
 
     if (needsCopy) {
-        fs::path src = SkinsRoot();
-        fs::path dst = SkinsRoot().parent_path() / ("skins-backup-" + std::to_string(std::time(nullptr)));
-        fs::copy(src, dst, fs::copy_options::recursive | fs::copy_options::skip_symlinks);
+        std::filesystem::path src = SkinsRoot();
+        std::filesystem::path dst = SkinsRoot().parent_path() / ("skins-backup-" + std::to_string(std::time(nullptr)));
+        std::filesystem::copy(src, dst, std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_symlinks);
     }
 
     return updateQuery;
@@ -210,7 +214,7 @@ std::vector<std::pair<json, fs::path>> ThemeInstaller::QueryThemesForUpdate()
 bool ThemeInstaller::UpdateTheme(const std::string& native)
 {
     Logger.Log("Updating theme " + native);
-    fs::path path = SkinsRoot() / native;
+    std::filesystem::path path = SkinsRoot() / native;
 
     try {
         if (git_libgit2_init() < 0) {
@@ -327,42 +331,73 @@ nlohmann::json ThemeInstaller::GetRequestBody(void)
     return result;
 }
 
-json ThemeInstaller::ProcessUpdates(const nlohmann::json& updateQuery, const json& remote)
+nlohmann::json ThemeInstaller::ProcessUpdates(const nlohmann::json& updateQuery, const nlohmann::json& remote)
 {
-    json updatedThemes = json::array();
-
-    for (auto updateItem : updateQuery) {
-        fs::path path = updateItem[1];
-        json theme = updateItem[0];
-
-        if (!theme["data"].contains("github"))
+    nlohmann::json updatedThemes = nlohmann::json::array();
+    
+    for (const auto& updateItem : updateQuery) {
+        const std::filesystem::path path = updateItem[1];
+        const nlohmann::json theme = updateItem[0];
+        
+        if (!HasGithubData(theme)) {
             continue;
-
-        json githubData = theme["data"]["github"];
-        std::string repo_name = githubData.value("repo_name", "");
-        if (remote.is_array()) {
-            auto it = std::find_if(remote.begin(), remote.end(), [&](const json& item) { return item.value("name", "") == repo_name; });
-            if (it != remote.end()) {
-                std::string remoteCommit = it->value("commit", "");
-                std::string localCommit = GetLocalCommitHash(path);
-
-                if (localCommit != remoteCommit) {
-                    updatedThemes.push_back({
-                        { "message", it->value("message", "No commit message.") },
-                        { "date", it->value("date", "unknown") },
-                        { "commit", it->value("url", "") },
-                        { "native", theme["native"] },
-                        { "name", theme["data"].value("name", theme["native"]) }
-                    });
-                }
-            }
+        }
+        
+        const std::string repoName = GetRepoName(theme);
+        const auto remoteTheme = FindRemoteTheme(remote, repoName);
+        
+        if (remoteTheme != nullptr && HasUpdates(path, *remoteTheme)) {
+            updatedThemes.push_back(CreateUpdateInfo(theme, *remoteTheme));
         }
     }
-
+    
     return updatedThemes;
 }
 
-std::string ThemeInstaller::GetLocalCommitHash(const fs::path& repoPath)
+bool ThemeInstaller::HasGithubData(const nlohmann::json& theme)
+{
+    return theme["data"].contains("github");
+}
+
+std::string ThemeInstaller::GetRepoName(const nlohmann::json& theme)
+{
+    const nlohmann::json& githubData = theme["data"]["github"];
+    return githubData.value("repo_name", "");
+}
+
+const nlohmann::json* ThemeInstaller::FindRemoteTheme(const nlohmann::json& remote, const std::string& repoName)
+{
+    if (!remote.is_array()) {
+        return nullptr;
+    }
+    
+    auto it = std::find_if(remote.begin(), remote.end(), 
+        [&repoName](const nlohmann::json& item) {
+            return item.value("name", "") == repoName;
+        });
+    
+    return (it != remote.end()) ? &(*it) : nullptr;
+}
+
+bool ThemeInstaller::HasUpdates(const std::filesystem::path& path, const nlohmann::json& remoteTheme)
+{
+    const std::string remoteCommit = remoteTheme.value("commit", "");
+    const std::string localCommit = GetLocalCommitHash(path);
+    return localCommit != remoteCommit;
+}
+
+nlohmann::json ThemeInstaller::CreateUpdateInfo(const nlohmann::json& theme, const nlohmann::json& remoteTheme)
+{
+    return nlohmann::json{
+        {"message", remoteTheme.value("message", "No commit message.")},
+        {"date", remoteTheme.value("date", "unknown")},
+        {"commit", remoteTheme.value("url", "")},
+        {"native", theme["native"]},
+        {"name", theme["data"].value("name", theme["native"])}
+    };
+}
+
+std::string ThemeInstaller::GetLocalCommitHash(const std::filesystem::path& repoPath)
 {
     git_libgit2_init();
     git_repository* repo = nullptr;
@@ -389,7 +424,7 @@ std::string ThemeInstaller::GetLocalCommitHash(const fs::path& repoPath)
     return std::string(hash);
 }
 
-bool ThemeInstaller::IsGitRepo(const fs::path& path)
+bool ThemeInstaller::IsGitRepo(const std::filesystem::path& path)
 {
     git_libgit2_init();
     git_repository* repo = nullptr;

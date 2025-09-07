@@ -34,18 +34,10 @@
 #include <env.h>
 #include <filesystem>
 
-#if defined(_WIN32) || defined(_WIN64)
-#define MILLENNIUM_PLATFORM_WINDOWS
-#elif defined(__APPLE__)
-#define MILLENNIUM_PLATFORM_MACOS
-#else
-#define MILLENNIUM_PLATFORM_LINUX
-#endif
-
 nlohmann::json GetDefaultConfig()
 {
-    // Detect platform for update behavior
-#ifdef MILLENNIUM_PLATFORM_WINDOWS
+    /** Use auto install on windows, otherwise just notify (auto install/upgrade is only supported on windows as linux primarily uses pm) */
+#ifdef _WIN32
     OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::AUTO_INSTALL;
 #else
     OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::NOTIFY;

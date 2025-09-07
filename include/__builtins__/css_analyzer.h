@@ -50,20 +50,20 @@ enum class ColorTypes
 class CSSParser
 {
   public:
-    static std::optional<std::string> convertFromHex(const std::string& color, ColorTypes type);
-    static std::optional<std::string> convertToHex(const std::string& color, ColorTypes type);
-    static std::string expandHexColor(const std::string& shortHex);
-    static ColorTypes parseColor(const std::string& color);
-    static ColorTypes tryRawParse(const std::string& color);
+    static std::optional<std::string> ConvertFromHex(const std::string& color, ColorTypes type);
+    static std::optional<std::string> ConvertToHex(const std::string& color, ColorTypes type);
+    static std::string ExpandShorthandHexColor(const std::string& shortHex);
+    static ColorTypes ParseColor(const std::string& color);
+    static ColorTypes TryRawParse(const std::string& color);
 
-    static nlohmann::json parseRootColors(const std::string& filePath);
+    static nlohmann::json ParseRootColors(const std::string& filePath);
 
   private:
-    static std::string extractRootBlock(const std::string& fileContent);
-    static void parseProperties(const std::string& block, std::map<std::string, std::string>& properties, std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
-    static std::string trim(const std::string& str);
+    static std::string ExtractRootBlock(const std::string& fileContent);
+    static void ParseProperties(const std::string& block, std::map<std::string, std::string>& properties, std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
+    static std::string Trim(const std::string& str);
 
-    static nlohmann::json generateColorMetadata(const std::map<std::string, std::string>& properties,
+    static nlohmann::json GenerateColorMetadata(const std::map<std::string, std::string>& properties,
                                                 const std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
 };
 }

@@ -226,7 +226,7 @@ void ThemeConfig::SetupColors()
         std::string rootFile = theme["data"]["RootColors"].get<std::string>();
         const auto colorsPath = SystemIO::GetSteamPath() / "steamui" / "skins" / nativeName / rootFile;
 
-        colors[nativeName] = Millennium::CSSParser::parseRootColors(colorsPath.generic_string());
+        colors[nativeName] = Millennium::CSSParser::ParseRootColors(colorsPath.generic_string());
 
         if (GetNested("themes.themeColors", nullptr).is_null())
             SetNested("themes.themeColors", nlohmann::json::object(), /*skipPropagation=*/false);
@@ -239,7 +239,7 @@ void ThemeConfig::SetupColors()
             std::string defaultHex = color["defaultColor"].get<std::string>();
             int typeEnum = color["type"].get<int>();
 
-            auto colorValue = Millennium::CSSParser::convertFromHex(defaultHex, static_cast<Millennium::ColorTypes>(typeEnum));
+            auto colorValue = Millennium::CSSParser::ConvertFromHex(defaultHex, static_cast<Millennium::ColorTypes>(typeEnum));
 
             if (GetNested("themes.themeColors." + nativeName + "." + colorName, nullptr).is_null())
                 SetNested("themes.themeColors." + nativeName + "." + colorName, colorValue.value_or(""), /*skipPropagation=*/false);
@@ -277,7 +277,7 @@ nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
     for (auto& color : root_colors) {
         std::string cname = color["color"].get<std::string>();
         if (saved_colors.contains(cname)) {
-            const auto hex_color = Millennium::CSSParser::convertToHex(saved_colors[cname].get<std::string>(), static_cast<Millennium::ColorTypes>(color["type"].get<int>()));
+            const auto hex_color = Millennium::CSSParser::ConvertToHex(saved_colors[cname].get<std::string>(), static_cast<Millennium::ColorTypes>(color["type"].get<int>()));
             if (hex_color.has_value())
                 color["hex"] = hex_color.value();
         }
@@ -288,7 +288,7 @@ nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
 
 void ThemeConfig::ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type)
 {
-    std::optional<std::string> parsed_color = Millennium::CSSParser::convertFromHex(new_color, static_cast<Millennium::ColorTypes>(color_type));
+    std::optional<std::string> parsed_color = Millennium::CSSParser::ConvertFromHex(new_color, static_cast<Millennium::ColorTypes>(color_type));
 
     if (!parsed_color.has_value()) {
         LOG_ERROR("Failed to parse color: {}", new_color);

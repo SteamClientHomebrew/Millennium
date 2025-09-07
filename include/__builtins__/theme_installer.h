@@ -34,37 +34,88 @@
 #include <optional>
 #include <string>
 
-using nlohmann::json;
-namespace fs = std::filesystem;
-
 class ThemeInstaller
 {
   public:
-    fs::path SkinsRoot();
+    std::filesystem::path SkinsRoot();
 
     void EmitMessage(const std::string& status, int progress, bool isComplete);
     nlohmann::json ErrorMessage(const std::string& message);
     nlohmann::json SuccessMessage();
 
-    void MakeWritable(const fs::path& p);
-    bool DeleteFolder(const fs::path& p);
+    void MakeWritable(const std::filesystem::path& p);
+    bool DeleteFolder(const std::filesystem::path& p);
 
-    std::optional<json> GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString = false);
+    std::optional<nlohmann::json> GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString = false);
     bool CheckInstall(const std::string& repo, const std::string& owner);
     nlohmann::json UninstallTheme(const std::string& repo, const std::string& owner);
     std::string InstallTheme(const std::string& repo, const std::string& owner);
 
-    int CloneWithLibgit2(const std::string& url, const fs::path& dstPath, std::string& outErr);
+    int CloneWithLibgit2(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr);
     bool UpdateTheme(const std::string& native);
 
-    std::vector<std::pair<json, fs::path>> QueryThemesForUpdate();
-    json ProcessUpdates(const nlohmann::json& updateQuery, const json& remote);
+    std::vector<std::pair<nlohmann::json, std::filesystem::path>> QueryThemesForUpdate();
+    nlohmann::json ProcessUpdates(const nlohmann::json& updateQuery, const nlohmann::json& remote);
 
     nlohmann::json GetRequestBody(void);
     nlohmann::json ConstructPostBody(const std::vector<nlohmann::json>& update_query);
 
   private:
-    std::string MakeTempDirName(const fs::path& base, const std::string& repo);
-    bool IsGitRepo(const fs::path& path);
-    std::string GetLocalCommitHash(const fs::path& path);
+    /**
+     * @brief Attempt to delete a folder, making files writable if necessary
+     * @param p Path to the folder to delete
+     */
+    std::string MakeTempDirName(const std::filesystem::path& base, const std::string& repo);
+
+    /**
+     * @brief Check if a directory is a Git repository
+     * @param path Directory path to check
+     * @return true if directory is a Git repository, false otherwise
+     */
+    bool IsGitRepo(const std::filesystem::path& path);
+
+    /**
+     * @brief Check if theme contains GitHub data
+     * @param theme Theme JSON object to check
+     * @return true if theme has GitHub data, false otherwise
+     */
+    bool HasGithubData(const nlohmann::json& theme);
+
+    /**
+     * @brief Extract repository name from theme's GitHub data
+     * @param theme Theme JSON object
+     * @return Repository name as string, empty if not found
+     */
+    std::string GetRepoName(const nlohmann::json& theme);
+
+    /**
+     * @brief Find matching remote theme by repository name
+     * @param remote Array of remote themes
+     * @param repoName Repository name to search for
+     * @return Pointer to matching remote theme, nullptr if not found
+     */
+    const nlohmann::json* FindRemoteTheme(const nlohmann::json& remote, const std::string& repoName);
+
+    /**
+     * @brief Check if local theme has updates available
+     * @param path Local theme path
+     * @param remoteTheme Remote theme information
+     * @return true if updates are available, false otherwise
+     */
+    bool HasUpdates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
+
+    /**
+     * @brief Create update information object
+     * @param theme Local theme data
+     * @param remoteTheme Remote theme data
+     * @return JSON object containing update information
+     */
+    nlohmann::json CreateUpdateInfo(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
+
+    /**
+     * @brief Get local commit hash for a theme
+     * @param path Local theme path
+     * @return Commit hash as string
+     */
+    std::string GetLocalCommitHash(const std::filesystem::path& path);
 };

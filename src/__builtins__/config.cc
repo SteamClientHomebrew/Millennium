@@ -31,6 +31,7 @@
 #include "__builtins__/config.h"
 #include <__builtins__/default_settings.h>
 #include <internal_logger.h>
+#include <env.h>
 
 ConfigManager& ConfigManager::Instance()
 {
@@ -233,8 +234,7 @@ nlohmann::json ConfigManager::GetAll()
 
 ConfigManager::ConfigManager()
 {
-    const char* env = std::getenv("MILLENNIUM__CONFIG_PATH");
-    _filename = std::string(env ? env : ".") + "/config.json";
+    _filename = GetEnv("MILLENNIUM__CONFIG_PATH");
     _defaults = GetDefaultConfig();
 
     LoadFromFile();

@@ -35,27 +35,44 @@
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
+/** 
+ * stored in a static instance only instantiated after its called once. 
+ * This avoids static initialization order issues.
+ */
 std::unordered_map<std::string, std::any>& GetCoreExports()
 {
     static std::unordered_map<std::string, std::any> instance;
     return instance;
 }
 
-nlohmann::json HandleIpcMessage(const std::string& function_name, const nlohmann::json& args)
+/**
+ * @brief handle IPC messages from Millennium frontend
+ * @param functionName Name of the function to call
+ * @param args JSON arguments to pass to the function. Args must be an object, mapping kwargs to values.
+ */
+nlohmann::json HandleIpcMessage(const std::string& functionName, const nlohmann::json& args)
 {
-    /** Not applicable to this plugin, so skip it */
-    if (function_name == "__builtins__.__millennium_plugin_settings_parser__")
+    // Skip plugin settings parser as it's not applicable
+    if (functionName == "__builtins__.__millennium_plugin_settings_parser__") {
         throw std::runtime_error("Not applicable to this plugin");
-
-    auto it = GetCoreExports().find(function_name);
-    if (it != GetCoreExports().end()) {
-        using FuncType = std::function<nlohmann::json(const nlohmann::json&)>;
-        if (it->second.type() == typeid(FuncType)) {
-            auto func = std::any_cast<FuncType>(it->second);
-            return func(args);
-        }
     }
 
-    LOG_ERROR("Function not found or invalid type: {}", function_name);
-    throw std::runtime_error("Function not found or invalid type: " + function_name);
+    const auto& exports = GetCoreExports();
+    const auto it = exports.find(functionName);
+    
+    if (it == exports.end()) {
+        const std::string errorMsg = "Function not found: " + functionName;
+        LOG_ERROR("{}", errorMsg);
+        throw std::runtime_error(errorMsg);
+    }
+
+    using FuncType = std::function<nlohmann::json(const nlohmann::json&)>;
+    if (it->second.type() != typeid(FuncType)) {
+        const std::string errorMsg = "Invalid function type: " + functionName;
+        LOG_ERROR("{}", errorMsg);
+        throw std::runtime_error(errorMsg);
+    }
+
+    /** call the functions with provided args */
+    return (std::any_cast<FuncType>(it->second))(args);
 }
