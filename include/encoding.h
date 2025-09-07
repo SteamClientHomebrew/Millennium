@@ -51,14 +51,12 @@ static std::string Base64Decode(const std::string& in)
         T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
 
     int val = 0, valb = -8;
-    for (unsigned char c : in)
-    {
+    for (unsigned char c : in) {
         if (T[c] == -1)
             break;
         val = (val << 6) + T[c];
         valb += 6;
-        if (valb >= 0)
-        {
+        if (valb >= 0) {
             out.push_back(char((val >> valb) & 0xFF));
             valb -= 8;
         }
@@ -74,29 +72,24 @@ static std::string Base64Encode(const std::vector<char>& data)
     unsigned char char_array_3[3];
     unsigned char char_array_4[4];
 
-    for (size_t j = 0; j < dataSize; j++)
-    {
+    for (size_t j = 0; j < dataSize; j++) {
         char_array_3[i++] = data[j];
 
-        if (i == 3)
-        {
+        if (i == 3) {
             char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
             char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
             char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
             char_array_4[3] = char_array_3[2] & 0x3f;
 
-            for (i = 0; i < 4; i++)
-            {
+            for (i = 0; i < 4; i++) {
                 encoded += base64_chars[char_array_4[i]];
             }
             i = 0;
         }
     }
 
-    if (i)
-    {
-        for (size_t j = i; j < 3; j++)
-        {
+    if (i) {
+        for (size_t j = i; j < 3; j++) {
             char_array_3[j] = '\0';
         }
 
@@ -105,13 +98,11 @@ static std::string Base64Encode(const std::vector<char>& data)
         char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
         char_array_4[3] = char_array_3[2] & 0x3f;
 
-        for (size_t j = 0; j < i + 1; j++)
-        {
+        for (size_t j = 0; j < i + 1; j++) {
             encoded += base64_chars[char_array_4[j]];
         }
 
-        while (i++ < 3)
-        {
+        while (i++ < 3) {
             encoded += '=';
         }
     }
@@ -124,12 +115,10 @@ static std::string Base64Encode(const std::string& in)
     std::string out;
 
     int val = 0, valb = -6;
-    for (unsigned char c : in)
-    {
+    for (unsigned char c : in) {
         val = (val << 8) + c;
         valb += 8;
-        while (valb >= 0)
-        {
+        while (valb >= 0) {
             out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(val >> valb) & 0x3F]);
             valb -= 6;
         }

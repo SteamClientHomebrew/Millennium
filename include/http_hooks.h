@@ -105,7 +105,7 @@ class HttpHookManager
         std::queue<std::function<void()>> tasks;
         std::mutex queueMutex;
         std::condition_variable condition;
-        std::atomic<bool> stop{false};
+        std::atomic<bool> stop{ false };
     };
 
     std::unique_ptr<ThreadPool> m_threadPool;
@@ -117,7 +117,7 @@ class HttpHookManager
     mutable std::mutex m_configMutex;
     mutable std::mutex m_exceptionTimeMutex;
 
-    std::atomic<long long> hookMessageId{-69};
+    std::atomic<long long> hookMessageId{ -69 };
 
     // Exception throttling
     std::chrono::time_point<std::chrono::system_clock> m_lastExceptionTime;

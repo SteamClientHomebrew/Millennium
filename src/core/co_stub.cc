@@ -97,16 +97,14 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
     std::string scriptModuleArray;
     std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
 
-    if (!millenniumPreloadPath.has_value())
-    {
+    if (!millenniumPreloadPath.has_value()) {
         LOG_ERROR("Missing client preload module. Please re-install Millennium.");
 #ifdef _WIN32
         MessageBoxA(NULL, "Missing client preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
 #endif
     }
 
-    for (int i = 0; i < scriptModules.size(); i++)
-    {
+    for (int i = 0; i < scriptModules.size(); i++) {
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
@@ -134,24 +132,21 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
 const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
 {
     PyObject* sysModule = PyImport_ImportModule("sys");
-    if (!sysModule)
-    {
+    if (!sysModule) {
         LOG_ERROR("couldn't import system module");
         return;
     }
 
     PyObject* systemPath = PyObject_GetAttrString(sysModule, "path");
 
-    if (systemPath)
-    {
+    if (systemPath) {
 #ifdef _WIN32
         // Wipe the system path clean when on windows
         // - Prevents clashing installed python versions
         PyList_SetSlice(systemPath, 0, PyList_Size(systemPath), NULL);
 #endif
 
-        for (const auto& systemPathItem : sitePackages)
-        {
+        for (const auto& systemPathItem : sitePackages) {
             PyList_Append(systemPath, PyUnicode_FromString(systemPathItem.generic_string().c_str()));
         }
         Py_DECREF(systemPath);
@@ -176,24 +171,20 @@ void AddSitePackagesDirectory(std::filesystem::path customPath)
 {
     PyObject* siteModule = PyImport_ImportModule("site");
 
-    if (!siteModule)
-    {
+    if (!siteModule) {
         PyErr_Print();
         LOG_ERROR("couldn't import site module");
         return;
     }
 
     PyObject* addSiteDirFunc = PyObject_GetAttrString(siteModule, "addsitedir");
-    if (addSiteDirFunc && PyCallable_Check(addSiteDirFunc))
-    {
+    if (addSiteDirFunc && PyCallable_Check(addSiteDirFunc)) {
         PyObject* args = PyTuple_Pack(1, PyUnicode_FromString(customPath.generic_string().c_str()));
         PyObject* result = PyObject_CallObject(addSiteDirFunc, args);
         Py_XDECREF(result);
         Py_XDECREF(args);
         Py_XDECREF(addSiteDirFunc);
-    }
-    else
-    {
+    } else {
         PyErr_Print();
         LOG_ERROR("Failed to get addsitedir function");
     }
@@ -220,16 +211,14 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
 
     PyObject* pluginComponent = PyDict_GetItemString(global_dict, "Plugin");
 
-    if (!pluginComponent || !PyCallable_Check(pluginComponent))
-    {
+    if (!pluginComponent || !PyCallable_Check(pluginComponent)) {
         PrintError();
         return;
     }
 
     PyObject* pluginComponentInstance = PyObject_CallObject(pluginComponent, NULL);
 
-    if (!pluginComponentInstance)
-    {
+    if (!pluginComponentInstance) {
         PrintError();
         return;
     }
@@ -237,19 +226,15 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
     PyDict_SetItemString(global_dict, "plugin", pluginComponentInstance);
     PyObject* loadMethodAttribute = PyObject_GetAttrString(pluginComponentInstance, "_load");
 
-    if (!loadMethodAttribute || !PyCallable_Check(loadMethodAttribute))
-    {
+    if (!loadMethodAttribute || !PyCallable_Check(loadMethodAttribute)) {
         PrintError();
         return;
     }
 
     PyObject* result = PyObject_CallObject(loadMethodAttribute, NULL);
-    if (result == NULL)
-    {
+    if (result == NULL) {
         PrintError();
-    }
-    else
-    {
+    } else {
         Py_DECREF(result);
     }
 
@@ -270,29 +255,24 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
 void SetupPluginSettings()
 {
     PyObject* builtins = PyEval_GetBuiltins();
-    if (!builtins)
-    {
+    if (!builtins) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
         return;
     }
 
     PyObject* parserFunc = PyDict_GetItemString(builtins, "__millennium_plugin_settings_parser__");
-    if (!parserFunc)
-    {
+    if (!parserFunc) {
         Logger.PrintMessage(" BOOT ", "Creating __millennium_plugin_settings_parser__ function in builtins.", COL_YELLOW);
 
-        static PyMethodDef methodDef = {"__millennium_plugin_settings_parser__", [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; }, METH_NOARGS,
-                                        "Millennium plugin settings parser placeholder."};
+        static PyMethodDef methodDef = { "__millennium_plugin_settings_parser__", [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; }, METH_NOARGS,
+                                         "Millennium plugin settings parser placeholder." };
 
         PyObject* newFunc = PyCFunction_New(&methodDef, nullptr);
 
-        if (newFunc)
-        {
+        if (newFunc) {
             PyDict_SetItemString(builtins, "__millennium_plugin_settings_parser__", newFunc);
             Py_DECREF(newFunc);
-        }
-        else
-        {
+        } else {
             PyErr_SetString(PyExc_RuntimeError, "Failed to create __millennium_plugin_settings_parser__ function.");
         }
     }
@@ -319,15 +299,13 @@ const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pl
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
 
     PyObject* builtins = PyEval_GetBuiltins();
-    if (!builtins)
-    {
+    if (!builtins) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
         return;
     }
 
     // Set the variable in the __builtins__ dictionary
-    if (PyDict_SetItemString(builtins, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str())) < 0)
-    {
+    if (PyDict_SetItemString(builtins, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str())) < 0) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to set the variable in __builtins__.");
     }
 }
@@ -381,8 +359,7 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
 
     lua_pop(L, 2);
 
-    if (luaL_dofile(L, (plugin.backendAbsoluteDirectory).string().c_str()) != LUA_OK)
-    {
+    if (luaL_dofile(L, (plugin.backendAbsoluteDirectory).string().c_str()) != LUA_OK) {
         LOG_ERROR("Lua error: {}", lua_tostring(L, -1));
         lua_pop(L, 1);
         lua_close(L);
@@ -394,8 +371,7 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
     lua_pushvalue(L, -1); // duplicate the returned table
     lua_setglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
 
-    if (!lua_istable(L, -1))
-    {
+    if (!lua_istable(L, -1)) {
         LOG_ERROR("Lua file should return a table with functions");
         lua_pop(L, 1);
         lua_close(L);
@@ -404,8 +380,7 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
     }
 
     lua_getfield(L, -1, "on_load");
-    if (!lua_isfunction(L, -1))
-    {
+    if (!lua_isfunction(L, -1)) {
         LOG_ERROR("Failed to locate 'on_load' function in plugin backend for '{}'", plugin.pluginName);
         lua_pop(L, 2);
         lua_close(L);
@@ -413,8 +388,7 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
         return;
     }
 
-    if (lua_pcall(L, 0, 0, 0) != LUA_OK)
-    {
+    if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
         LOG_ERROR("Error calling on_load in plugin backend for '{}': {}", plugin.pluginName, lua_tostring(L, -1));
         lua_pop(L, 1);
     }
@@ -471,24 +445,22 @@ const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema
     PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
-    if (mainModuleFilePtr == NULL)
-    {
+    if (mainModuleFilePtr == NULL) {
         Logger.Warn("failed to fopen file @ {}", backendMainModule);
         ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
 
-        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
     }
 
     PyObject* mainModule = PyImport_AddModule("__main__");
     PyObject* mainModuleDict = PyModule_GetDict(mainModule);
 
-    if (!mainModule || !mainModuleDict)
-    {
+    if (!mainModule || !mainModuleDict) {
         Logger.Warn("Millennium failed to initialize the main module.");
         ErrorToLogger(plugin.pluginName, "Failed to initialize the main module.");
 
-        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         fclose(mainModuleFilePtr);
         return;
     }
@@ -497,8 +469,7 @@ const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema
 
     PyObject* result = PyRun_FileEx(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict, 1);
 
-    if (!result)
-    {
+    if (!result) {
         const auto [errorMessage, traceback] = Python::ActiveExceptionInformation();
 
         Logger.PrintMessage(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
@@ -507,7 +478,7 @@ const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema
         ErrorToLogger(plugin.pluginName,
                       fmt::format("Failed to start plugin: {}. This is likely due to failing module side effects, unrelated to Millennium.\n\n{}", plugin.pluginName, traceback));
 
-        backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
         return;
     }
 
@@ -516,45 +487,41 @@ const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema
     const auto startTime = std::chrono::steady_clock::now();
     std::atomic<bool> timeOutLockThreadRunning = true;
 
-    std::thread timeOutThread(
-        [&timeOutLockThreadRunning, startTime, plugin]
-        {
-            while (timeOutLockThreadRunning.load())
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::thread timeOutThread([&timeOutLockThreadRunning, startTime, plugin]
+    {
+        while (timeOutLockThreadRunning.load()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-                if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30))
-                {
-                    std::string errorMessage = fmt::format(
-                        "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
-                        "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.",
-                        plugin.pluginName);
+            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30)) {
+                std::string errorMessage = fmt::format(
+                    "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
+                    "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.",
+                    plugin.pluginName);
 
-                    LOG_ERROR(errorMessage);
-                    ErrorToLogger(plugin.pluginName, errorMessage);
+                LOG_ERROR(errorMessage);
+                ErrorToLogger(plugin.pluginName, errorMessage);
 
 #ifdef _WIN32
-                    const int result = MessageBoxA(NULL,
-                                                   fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
-                                                               "or break the Steam UI. Would you like to disable it on next Steam startup?",
-                                                               plugin.pluginName)
-                                                       .c_str(),
-                                                   "Millennium - Startup Error", MB_ICONERROR | MB_YESNO);
+                const int result = MessageBoxA(NULL,
+                                               fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
+                                                           "or break the Steam UI. Would you like to disable it on next Steam startup?",
+                                                           plugin.pluginName)
+                                                   .c_str(),
+                                               "Millennium - Startup Error", MB_ICONERROR | MB_YESNO);
 
-                    if (result == IDYES)
-                    {
-                        std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-                        settingsStore->TogglePluginStatus(plugin.pluginName, false);
-                    }
+                if (result == IDYES) {
+                    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+                    settingsStore->TogglePluginStatus(plugin.pluginName, false);
+                }
 #endif
 
-                    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
-                    backendHandler.BackendLoaded({plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED});
+                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+                backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
 
-                    break;
-                }
+                break;
             }
-        });
+        }
+    });
 
     SetupPluginSettings();
     StartPluginBackend(globalDictionary, plugin.pluginName);
@@ -583,10 +550,8 @@ const std::string ConstructOnLoadModule()
 
     std::vector<std::string> scriptImportTable;
 
-    for (auto& plugin : plugins)
-    {
-        if (!settingsStore->IsEnabledPlugin(plugin.pluginName))
-        {
+    for (auto& plugin : plugins) {
+        if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) {
             continue;
         }
 
@@ -618,24 +583,18 @@ const void UnPatchSharedJSContext()
     const auto librariesPath = SystemIO::GetSteamPath() / "steamui" / "libraries";
     std::string libraryChunkJS;
 
-    try
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(librariesPath))
-        {
-            if (entry.is_regular_file() && entry.path().filename().string().substr(0, 10) == "libraries~" && entry.path().extension() == ".js")
-            {
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(librariesPath)) {
+            if (entry.is_regular_file() && entry.path().filename().string().substr(0, 10) == "libraries~" && entry.path().extension() == ".js") {
                 libraryChunkJS = entry.path().filename().string();
                 break;
             }
         }
-    }
-    catch (const std::filesystem::filesystem_error& e)
-    {
+    } catch (const std::filesystem::filesystem_error& e) {
         Logger.Warn("Failed to find libraries~xxx.js: {}", e.what());
     }
 
-    if (libraryChunkJS.empty())
-    {
+    if (libraryChunkJS.empty()) {
         MessageBoxA(NULL,
                     "Millennium failed to find a key library used by Steam. "
                     "Let our developers know if you see this message, it's likely a bug.\n"
@@ -649,16 +608,11 @@ const void UnPatchSharedJSContext()
         R"(<!doctype html><html style="width: 100%; height: 100%"><head><title>SharedJSContext</title><meta charset="utf-8"><script defer="defer" src="/libraries/{}"></script><script defer="defer" src="/library.js"></script><link href="/css/library.css" rel="stylesheet"></head><body style="width: 100%; height: 100%; margin: 0; overflow: hidden;"><div id="root" style="height:100%; width: 100%"></div><div style="display:none"></div></body></html>)",
         libraryChunkJS);
 
-    try
-    {
+    try {
         SystemIO::WriteFileSync(SteamUIModulePath.string(), fileContent);
-    }
-    catch (const std::system_error& e)
-    {
+    } catch (const std::system_error& e) {
         Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         Logger.Warn("Failed to restore SharedJSContext: {}", e.what());
     }
 
@@ -695,70 +649,61 @@ void OnBackendLoad(bool reloadFrontend)
         PAGE_RELOAD = 4
     };
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage(
-        "msg", "OnBackendLoad",
-        [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
-        {
-            auto& state = BackendLoadState::get();
-            std::unique_lock<std::mutex> lock(state.mtx);
+    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
+    {
+        auto& state = BackendLoadState::get();
+        std::unique_lock<std::mutex> lock(state.mtx);
 
-            try
-            {
-                const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
+        try {
+            const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
 
-                if (messageId == PAGE_ENABLE)
-                {
-                    Logger.Log("Injecting script to evaluate on new document...");
+            if (messageId == PAGE_ENABLE) {
+                Logger.Log("Injecting script to evaluate on new document...");
+                Sockets::PostShared({
+                    { "id",     PAGE_SCRIPT                               },
+                    { "method", "Page.addScriptToEvaluateOnNewDocument"   },
+                    { "params", { { "source", ConstructOnLoadModule() } } }
+                });
+            }
+            if (messageId == PAGE_SCRIPT && eventMessage.contains("result") && eventMessage["result"].contains("identifier")) {
+                Logger.Log("Script injected, waiting for identifier...");
+
+                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
+                state.hasScriptIdentifier = true;
+                Logger.Log("Successfully injected shims, reloading frontend...");
+
+                if (reloadFrontend)
                     Sockets::PostShared({
-                        {"id",     PAGE_SCRIPT                            },
-                        {"method", "Page.addScriptToEvaluateOnNewDocument"},
-                        {"params", {{"source", ConstructOnLoadModule()}}  }
+                        { "id",     PAGE_RELOAD                 },
+                        { "method", "Page.reload"               },
+                        { "params", { { "ignoreCache", true } } }
                     });
-                }
-                if (messageId == PAGE_SCRIPT && eventMessage.contains("result") && eventMessage["result"].contains("identifier"))
-                {
-                    Logger.Log("Script injected, waiting for identifier...");
-
-                    addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                    state.hasScriptIdentifier = true;
-                    Logger.Log("Successfully injected shims, reloading frontend...");
-
+                state.cvScript.notify_one();
+            }
+            if (messageId == PAGE_RELOAD) {
+                if (eventMessage.contains("error")) {
+                    Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
                     if (reloadFrontend)
                         Sockets::PostShared({
-                            {"id",     PAGE_RELOAD            },
-                            {"method", "Page.reload"          },
-                            {"params", {{"ignoreCache", true}}}
+                            { "id",     PAGE_RELOAD                 },
+                            { "method", "Page.reload"               },
+                            { "params", { { "ignoreCache", true } } }
                         });
-                    state.cvScript.notify_one();
+                    return;
                 }
-                if (messageId == PAGE_RELOAD)
-                {
-                    if (eventMessage.contains("error"))
-                    {
-                        Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
-                        if (reloadFrontend)
-                            Sockets::PostShared({
-                                {"id",     PAGE_RELOAD            },
-                                {"method", "Page.reload"          },
-                                {"params", {{"ignoreCache", true}}}
-                            });
-                        return;
-                    }
 
-                    Logger.Log("Successfully notified frontend...");
-                    JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
-                }
+                Logger.Log("Successfully notified frontend...");
+                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
-            catch (nlohmann::detail::exception& ex)
-            {
-                LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
-            }
-        });
+        } catch (nlohmann::detail::exception& ex) {
+            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+        }
+    });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     Sockets::PostShared({
-        {"id",     PAGE_ENABLE  },
-        {"method", "Page.enable"}
+        { "id",     PAGE_ENABLE   },
+        { "method", "Page.enable" }
     });
     {
         auto& state = BackendLoadState::get();
@@ -792,9 +737,9 @@ const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pl
     pluginLoader->InjectWebkitShims();
 
     Sockets::PostShared({
-        {"id",     0                                           },
-        {"method", "Page.removeScriptToEvaluateOnNewDocument"  },
-        {"params", {{"identifier", addedScriptOnNewDocumentId}}}
+        { "id",     0                                                },
+        { "method", "Page.removeScriptToEvaluateOnNewDocument"       },
+        { "params", { { "identifier", addedScriptOnNewDocumentId } } }
     });
     InjectFrontendShims(reloadFrontend);
 }

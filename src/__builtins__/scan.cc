@@ -38,8 +38,7 @@ nlohmann::json Millennium::Plugins::FindAllPlugins()
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
     const auto foundPlugins = settingsStore->ParseAllPlugins();
 
-    for (const auto& plugin : foundPlugins)
-    {
+    for (const auto& plugin : foundPlugins) {
         result.push_back({
             { "path",    plugin.pluginBaseDirectory.generic_string()       },
             { "enabled", settingsStore->IsEnabledPlugin(plugin.pluginName) },
@@ -52,10 +51,8 @@ nlohmann::json Millennium::Plugins::FindAllPlugins()
 
 std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name)
 {
-    for (const auto& plugin : FindAllPlugins())
-    {
-        if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name)
-        {
+    for (const auto& plugin : FindAllPlugins()) {
+        if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name) {
             return plugin;
         }
     }
@@ -88,16 +85,14 @@ nlohmann::json Millennium::Themes::FindAllThemes()
 
     nlohmann::json themes = nlohmann::json::array();
 
-    try
-    {
+    try {
         std::vector<std::filesystem::directory_entry> dirs;
         std::copy_if(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator{}, std::back_inserter(dirs),
                      [](const auto& entry) { return entry.is_directory(); });
 
         std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) { return a.path().filename() < b.path().filename(); });
 
-        for (const auto& dir : dirs)
-        {
+        for (const auto& dir : dirs) {
             auto skinJsonPath = dir.path() / "skin.json";
             if (!std::filesystem::exists(skinJsonPath))
                 continue;
@@ -115,9 +110,7 @@ nlohmann::json Millennium::Themes::FindAllThemes()
                 { "data",   std::move(skinData)            }
             });
         }
-    }
-    catch (const std::filesystem::filesystem_error& e)
-    {
+    } catch (const std::filesystem::filesystem_error& e) {
         Logger.Log("Filesystem error: " + std::string(e.what()));
     }
 

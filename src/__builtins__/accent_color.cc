@@ -70,8 +70,7 @@ AccentColors GetAccentColors()
     AccentColors colors = {};
 
     HMODULE hUxTheme = LoadLibraryW(L"" UX_THEME_DLL);
-    if (!hUxTheme)
-    {
+    if (!hUxTheme) {
         LOG_ERROR("Failed to load " UX_THEME_DLL);
         return colors;
     }
@@ -81,8 +80,7 @@ AccentColors GetAccentColors()
     /** GetImmersiveColorTypeFromName is exported in without a name. its consistently ordinal 96 on windows 10/11 though */
     auto GetColorTypeFromName = (GetImmersiveColorTypeFromName_t)GetProcAddress(hUxTheme, ((LPSTR)((ULONG_PTR)((WORD)(96)))));
 
-    if (!GetColorSet || !GetColorFromSet || !GetColorTypeFromName)
-    {
+    if (!GetColorSet || !GetColorFromSet || !GetColorTypeFromName) {
         Logger.Warn("Failed to get function addresses from " UX_THEME_DLL);
         FreeLibrary(hUxTheme);
         return colors;
@@ -91,19 +89,14 @@ AccentColors GetAccentColors()
     std::array<const wchar_t*, 7> names = { L"ImmersiveSystemAccent",      L"ImmersiveSystemAccentLight1", L"ImmersiveSystemAccentLight2", L"ImmersiveSystemAccentLight3",
                                             L"ImmersiveSystemAccentDark1", L"ImmersiveSystemAccentDark2",  L"ImmersiveSystemAccentDark3" };
 
-    try
-    {
-        for (size_t i = 0; i < names.size(); ++i)
-        {
+    try {
+        for (size_t i = 0; i < names.size(); ++i) {
             int colorType = GetColorTypeFromName(names[i]);
-            if (colorType != -1)
-            {
+            if (colorType != -1) {
                 (&colors.baseAccent)[i] = GetColorFromSet(GetColorSet(FALSE, FALSE), colorType, FALSE, 0);
             }
         }
-    }
-    catch (...)
-    {
+    } catch (...) {
         LOG_ERROR("Exception occurred while retrieving accent colors");
     }
 
@@ -137,8 +130,7 @@ std::string CastToRgb(DWORD color)
 nlohmann::json Colors::GetAccentColorWin32()
 {
 #ifdef _WIN32
-    try
-    {
+    try {
         AccentColors colors = GetAccentColors();
 
         return {
@@ -158,9 +150,7 @@ nlohmann::json Colors::GetAccentColorWin32()
             { "dark3Rgb",       CastToRgb(colors.darkAccent3)  },
             { "originalAccent", CastToHex(colors.baseAccent)   }
         };
-    }
-    catch (...)
-    {
+    } catch (...) {
         LOG_ERROR("Failed to get Windows accent colors");
         return {};
     }
@@ -226,8 +216,7 @@ std::string Colors::AdjustColorIntensity(const std::string& hex_color, int perce
 std::string Colors::Hex2Rgb(const std::string& hex_color)
 {
     std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
-    if (color.length() != 6)
-    {
+    if (color.length() != 6) {
         return "0, 0, 0";
     }
 
@@ -278,16 +267,13 @@ nlohmann::json Colors::ExtrapolateCustomColor(const std::string& accentColor)
 
 nlohmann::json Colors::GetAccentColor(const std::string& accentColor)
 {
-    if (accentColor == "DEFAULT_ACCENT_COLOR")
-    {
+    if (accentColor == "DEFAULT_ACCENT_COLOR") {
 #ifdef _WIN32
         return GetAccentColorWin32();
 #else
         return GetAccentColorPosix();
 #endif
-    }
-    else
-    {
+    } else {
         return ExtrapolateCustomColor(accentColor);
     }
 }

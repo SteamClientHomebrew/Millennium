@@ -72,12 +72,10 @@ MILLENNIUM_IPC_DECL(Core_SetClipboardText)
     std::string text = ARGS["text"];
 
 #ifdef _WIN32
-    if (OpenClipboard(nullptr))
-    {
+    if (OpenClipboard(nullptr)) {
         EmptyClipboard();
         HGLOBAL hGlob = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
-        if (hGlob)
-        {
+        if (hGlob) {
             memcpy(GlobalLock(hGlob), text.c_str(), text.size() + 1);
             GlobalUnlock(hGlob);
             SetClipboardData(CF_TEXT, hGlob);
@@ -104,8 +102,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
     /** only add the plugin name. */
     std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
 
-    try
-    {
+    try {
         return {
             { "accent_color", themeConfig->GetAccentColor() },
             { "conditions", CONFIG.GetNested("themes.conditions", nlohmann::json::object()) },
@@ -122,9 +119,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
             { "platformType", GetOperatingSystemType() },
             { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") }
         };
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to generate start config: {}", e.what());
     }
 

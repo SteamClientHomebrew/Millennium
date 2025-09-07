@@ -34,26 +34,26 @@
 #include "loader.h"
 
 static std::map<std::string, JavaScript::Types> typeMap = {
-    {"string",  JavaScript::Types::String },
-    {"boolean", JavaScript::Types::Boolean},
-    {"number",  JavaScript::Types::Integer}
+    { "string",  JavaScript::Types::String  },
+    { "boolean", JavaScript::Types::Boolean },
+    { "number",  JavaScript::Types::Integer }
 };
 
 static std::string getMonthNumber(const std::string& monthAbbr)
 {
     static std::map<std::string, std::string> monthMap{
-        {"Jan", "01"},
-        {"Feb", "02"},
-        {"Mar", "03"},
-        {"Apr", "04"},
-        {"May", "05"},
-        {"Jun", "06"},
-        {"Jul", "07"},
-        {"Aug", "08"},
-        {"Sep", "09"},
-        {"Oct", "10"},
-        {"Nov", "11"},
-        {"Dec", "12"}
+        { "Jan", "01" },
+        { "Feb", "02" },
+        { "Mar", "03" },
+        { "Apr", "04" },
+        { "May", "05" },
+        { "Jun", "06" },
+        { "Jul", "07" },
+        { "Aug", "08" },
+        { "Sep", "09" },
+        { "Oct", "10" },
+        { "Nov", "11" },
+        { "Dec", "12" }
     };
     return monthMap[monthAbbr];
 }

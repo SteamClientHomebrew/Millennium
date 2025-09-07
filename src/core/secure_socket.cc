@@ -35,7 +35,6 @@
 #include <random>
 #include <string>
 
-
 std::string GenerateAuthToken(size_t length)
 {
     const std::string charset = "0123456789"
@@ -49,8 +48,7 @@ std::string GenerateAuthToken(size_t length)
     std::string token;
     token.reserve(length);
 
-    for (size_t i = 0; i < length; ++i)
-    {
+    for (size_t i = 0; i < length; ++i) {
         token += charset[dist(generator)];
     }
 

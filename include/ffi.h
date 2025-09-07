@@ -137,16 +137,14 @@ class SharedJSMessageEmitter
             std::lock_guard<std::mutex> lock(mtx);
             events[event].push_back(std::make_pair(name, handler));
             auto it = missedMessages.find(event);
-            if (it != missedMessages.end())
-            {
+            if (it != missedMessages.end()) {
                 messages = std::move(it->second);
                 missedMessages.erase(it);
             }
         }
 
         /** call cb outside lock -- avoid deadlocks */
-        for (const auto& message : messages)
-        {
+        for (const auto& message : messages) {
             handler(message, name);
         }
         return name;
@@ -157,18 +155,16 @@ class SharedJSMessageEmitter
         std::lock_guard<std::mutex> lock(mtx);
 
         auto it = events.find(event);
-        if (it != events.end())
-        {
+        if (it != events.end()) {
             auto& handlers = it->second;
             handlers.erase(std::remove_if(handlers.begin(), handlers.end(),
                                           [listenerId](const auto& handler)
-                                          {
-                                              if (handler.first == listenerId)
-                                              {
-                                                  return true;
-                                              }
-                                              return false;
-                                          }),
+            {
+                if (handler.first == listenerId) {
+                    return true;
+                }
+                return false;
+            }),
                            handlers.end());
         }
     }
@@ -180,26 +176,19 @@ class SharedJSMessageEmitter
             std::lock_guard<std::mutex> lock(mtx);
 
             auto it = events.find(event);
-            if (it != events.end())
-            {
+            if (it != events.end()) {
                 handlersCopy = it->second; /** cp handlers */
-            }
-            else
-            {
+            } else {
                 missedMessages[event].push_back(data);
                 return;
             }
         }
 
         /** call cb outside lock -- avoid deadlocks */
-        for (const auto& handler : handlersCopy)
-        {
-            try
-            {
+        for (const auto& handler : handlersCopy) {
+            try {
                 handler.second(data, handler.first);
-            }
-            catch (const std::bad_function_call& e)
-            {
+            } catch (const std::bad_function_call& e) {
                 Logger.Warn("Failed to emit message on {}. exception: {}", handler.first, e.what());
             }
         }

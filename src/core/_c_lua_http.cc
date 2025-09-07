@@ -14,8 +14,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, HTTPRespo
     size_t realsize = size * nmemb;
     char* ptr = (char*)realloc(response->data, response->size + realsize + 1);
 
-    if (ptr == NULL)
-    {
+    if (ptr == NULL) {
         return 0; // Out of memory
     }
 
@@ -35,21 +34,18 @@ static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* use
     lua_pushstring(L, "response_headers");
     lua_gettable(L, LUA_REGISTRYINDEX);
 
-    if (lua_istable(L, -1))
-    {
+    if (lua_istable(L, -1)) {
         char* header_line = (char*)malloc(realsize + 1);
         memcpy(header_line, buffer, realsize);
         header_line[realsize] = '\0';
 
         char* end = header_line + strlen(header_line) - 1;
-        while (end > header_line && (*end == '\r' || *end == '\n'))
-        {
+        while (end > header_line && (*end == '\r' || *end == '\n')) {
             *end = '\0';
             end--;
         }
 
-        if (strlen(header_line) > 0 && strchr(header_line, ':') != NULL)
-        {
+        if (strlen(header_line) > 0 && strchr(header_line, ':') != NULL) {
             char* colon = strchr(header_line, ':');
             *colon = '\0';
             char* value = colon + 1;
@@ -73,7 +69,7 @@ static int Lua_HttpRequest(lua_State* L)
 {
     CURL* curl;
     CURLcode res;
-    HTTPResponse response = {0};
+    HTTPResponse response = { 0 };
     struct curl_slist* headers = NULL;
 
     const char* url = luaL_checkstring(L, 1);
@@ -88,63 +84,53 @@ static int Lua_HttpRequest(lua_State* L)
     const char* auth_pass = NULL;
     const char* proxy = NULL;
 
-    if (lua_istable(L, 2))
-    {
+    if (lua_istable(L, 2)) {
         lua_getfield(L, 2, "method");
-        if (lua_isstring(L, -1))
-        {
+        if (lua_isstring(L, -1)) {
             method = lua_tostring(L, -1);
         }
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "data");
-        if (lua_isstring(L, -1))
-        {
+        if (lua_isstring(L, -1)) {
             data = lua_tostring(L, -1);
         }
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "timeout");
-        if (lua_isnumber(L, -1))
-        {
+        if (lua_isnumber(L, -1)) {
             timeout = lua_tointeger(L, -1);
         }
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "follow_redirects");
-        if (lua_isboolean(L, -1))
-        {
+        if (lua_isboolean(L, -1)) {
             follow_redirects = lua_toboolean(L, -1);
         }
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "verify_ssl");
-        if (lua_isboolean(L, -1))
-        {
+        if (lua_isboolean(L, -1)) {
             verify_ssl = lua_toboolean(L, -1);
         }
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "user_agent");
-        if (lua_isstring(L, -1))
-        {
+        if (lua_isstring(L, -1)) {
             user_agent = lua_tostring(L, -1);
         }
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "auth");
-        if (lua_istable(L, -1))
-        {
+        if (lua_istable(L, -1)) {
             lua_getfield(L, -1, "user");
-            if (lua_isstring(L, -1))
-            {
+            if (lua_isstring(L, -1)) {
                 auth_user = lua_tostring(L, -1);
             }
             lua_pop(L, 1);
 
             lua_getfield(L, -1, "pass");
-            if (lua_isstring(L, -1))
-            {
+            if (lua_isstring(L, -1)) {
                 auth_pass = lua_tostring(L, -1);
             }
             lua_pop(L, 1);
@@ -152,20 +138,16 @@ static int Lua_HttpRequest(lua_State* L)
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "proxy");
-        if (lua_isstring(L, -1))
-        {
+        if (lua_isstring(L, -1)) {
             proxy = lua_tostring(L, -1);
         }
         lua_pop(L, 1);
 
         lua_getfield(L, 2, "headers");
-        if (lua_istable(L, -1))
-        {
+        if (lua_istable(L, -1)) {
             lua_pushnil(L);
-            while (lua_next(L, -2) != 0)
-            {
-                if (lua_isstring(L, -2) && lua_isstring(L, -1))
-                {
+            while (lua_next(L, -2) != 0) {
+                if (lua_isstring(L, -2) && lua_isstring(L, -1)) {
                     const char* key = lua_tostring(L, -2);
                     const char* value = lua_tostring(L, -1);
 
@@ -183,8 +165,7 @@ static int Lua_HttpRequest(lua_State* L)
     }
 
     curl = curl_easy_init();
-    if (!curl)
-    {
+    if (!curl) {
         lua_pushnil(L);
         lua_pushstring(L, "Failed to initialize curl");
         return 2;
@@ -207,48 +188,33 @@ static int Lua_HttpRequest(lua_State* L)
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, L);
 
-    if (strcmp(method, "POST") == 0)
-    {
+    if (strcmp(method, "POST") == 0) {
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
-        if (data)
-        {
+        if (data) {
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(data));
         }
-    }
-    else if (strcmp(method, "PUT") == 0)
-    {
+    } else if (strcmp(method, "PUT") == 0) {
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-        if (data)
-        {
+        if (data) {
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(data));
         }
-    }
-    else if (strcmp(method, "DELETE") == 0)
-    {
+    } else if (strcmp(method, "DELETE") == 0) {
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-    }
-    else if (strcmp(method, "PATCH") == 0)
-    {
+    } else if (strcmp(method, "PATCH") == 0) {
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
-        if (data)
-        {
+        if (data) {
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(data));
         }
-    }
-    else if (strcmp(method, "HEAD") == 0)
-    {
+    } else if (strcmp(method, "HEAD") == 0) {
         curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    }
-    else if (strcmp(method, "OPTIONS") == 0)
-    {
+    } else if (strcmp(method, "OPTIONS") == 0) {
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "OPTIONS");
     }
 
-    if (auth_user && auth_pass)
-    {
+    if (auth_user && auth_pass) {
         char* auth_string = (char*)malloc(strlen(auth_user) + strlen(auth_pass) + 2);
         sprintf(auth_string, "%s:%s", auth_user, auth_pass);
         curl_easy_setopt(curl, CURLOPT_USERPWD, auth_string);
@@ -256,13 +222,11 @@ static int Lua_HttpRequest(lua_State* L)
         free(auth_string);
     }
 
-    if (proxy)
-    {
+    if (proxy) {
         curl_easy_setopt(curl, CURLOPT_PROXY, proxy);
     }
 
-    if (headers)
-    {
+    if (headers) {
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     }
 
@@ -278,10 +242,8 @@ static int Lua_HttpRequest(lua_State* L)
     lua_pushnil(L);
     lua_settable(L, LUA_REGISTRYINDEX);
 
-    if (res != CURLE_OK)
-    {
-        if (response.data)
-        {
+    if (res != CURLE_OK) {
+        if (response.data) {
             free(response.data);
         }
         lua_pushnil(L);
@@ -291,13 +253,10 @@ static int Lua_HttpRequest(lua_State* L)
 
     lua_newtable(L);
     lua_pushstring(L, "body");
-    if (response.data)
-    {
+    if (response.data) {
         lua_pushlstring(L, response.data, response.size);
         free(response.data);
-    }
-    else
-    {
+    } else {
         lua_pushstring(L, "");
     }
     lua_settable(L, -3);
@@ -326,11 +285,9 @@ static int Lua_HttpGet(lua_State* L)
     lua_pushstring(L, "GET");
     lua_settable(L, -3);
 
-    if (lua_istable(L, 2))
-    {
+    if (lua_istable(L, 2)) {
         lua_pushnil(L);
-        while (lua_next(L, 2) != 0)
-        {
+        while (lua_next(L, 2) != 0) {
             lua_pushvalue(L, -2);
             lua_insert(L, -2);
             lua_settable(L, -4);
@@ -345,8 +302,7 @@ static int Lua_HttpPost(lua_State* L)
     const char* url = luaL_checkstring(L, 1);
     const char* data = NULL;
 
-    if (lua_isstring(L, 2))
-    {
+    if (lua_isstring(L, 2)) {
         data = lua_tostring(L, 2);
     }
 
@@ -357,18 +313,15 @@ static int Lua_HttpPost(lua_State* L)
     lua_pushstring(L, "POST");
     lua_settable(L, -3);
 
-    if (data)
-    {
+    if (data) {
         lua_pushstring(L, "data");
         lua_pushstring(L, data);
         lua_settable(L, -3);
     }
 
-    if (lua_istable(L, 3))
-    {
+    if (lua_istable(L, 3)) {
         lua_pushnil(L);
-        while (lua_next(L, 3) != 0)
-        {
+        while (lua_next(L, 3) != 0) {
             lua_pushvalue(L, -2);
             lua_insert(L, -2);
             lua_settable(L, -4);
@@ -383,8 +336,7 @@ static int Lua_HttpPut(lua_State* L)
     const char* url = luaL_checkstring(L, 1);
     const char* data = NULL;
 
-    if (lua_isstring(L, 2))
-    {
+    if (lua_isstring(L, 2)) {
         data = lua_tostring(L, 2);
     }
 
@@ -395,18 +347,15 @@ static int Lua_HttpPut(lua_State* L)
     lua_pushstring(L, "PUT");
     lua_settable(L, -3);
 
-    if (data)
-    {
+    if (data) {
         lua_pushstring(L, "data");
         lua_pushstring(L, data);
         lua_settable(L, -3);
     }
 
-    if (lua_istable(L, 3))
-    {
+    if (lua_istable(L, 3)) {
         lua_pushnil(L);
-        while (lua_next(L, 3) != 0)
-        {
+        while (lua_next(L, 3) != 0) {
             lua_pushvalue(L, -2);
             lua_insert(L, -2);
             lua_settable(L, -4);
@@ -427,11 +376,9 @@ static int Lua_HttpDelete(lua_State* L)
     lua_pushstring(L, "DELETE");
     lua_settable(L, -3);
 
-    if (lua_istable(L, 2))
-    {
+    if (lua_istable(L, 2)) {
         lua_pushnil(L);
-        while (lua_next(L, 2) != 0)
-        {
+        while (lua_next(L, 2) != 0) {
             lua_pushvalue(L, -2);
             lua_insert(L, -2);
             lua_settable(L, -4);
@@ -442,12 +389,12 @@ static int Lua_HttpDelete(lua_State* L)
 }
 
 static const luaL_Reg httpFunctions[] = {
-    {"request", Lua_HttpRequest},
-    {"get",     Lua_HttpGet    },
-    {"post",    Lua_HttpPost   },
-    {"put",     Lua_HttpPut    },
-    {"delete",  Lua_HttpDelete },
-    {NULL,      NULL           }
+    { "request", Lua_HttpRequest },
+    { "get",     Lua_HttpGet     },
+    { "post",    Lua_HttpPost    },
+    { "put",     Lua_HttpPut     },
+    { "delete",  Lua_HttpDelete  },
+    { NULL,      NULL            }
 };
 
 extern "C" int Lua_OpenHttpLibrary(lua_State* L)

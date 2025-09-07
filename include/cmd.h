@@ -47,10 +47,8 @@ class StartupParameters
 
     bool HasArgument(const std::string& targetArgument) const
     {
-        for (const std::string& argument : m_argumentList)
-        {
-            if (argument == targetArgument)
-            {
+        for (const std::string& argument : m_argumentList) {
+            if (argument == targetArgument) {
                 return true;
             }
         }
@@ -65,16 +63,14 @@ class StartupParameters
         const u_short defaultPort = 8080;
         const HMODULE hModule = GetModuleHandleA("tier0_s.dll");
 
-        if (!hModule)
-        {
+        if (!hModule) {
             Logger.Warn("Failed to get handle for 'tier0_s.dll'. Using default port: {}", defaultPort);
             return defaultPort;
         }
 
         FARPROC Plat_CommandLineParamValue = GetProcAddress(hModule, "Plat_CommandLineParamValue");
 
-        if (!Plat_CommandLineParamValue)
-        {
+        if (!Plat_CommandLineParamValue) {
             Logger.Warn("Failed to get 'Plat_CommandLineParamValue' function address. Using default port: {}", defaultPort);
             return defaultPort;
         }
@@ -82,26 +78,19 @@ class StartupParameters
         Plat_CommandLineParamValue_t commandLineParamValue = reinterpret_cast<Plat_CommandLineParamValue_t>(Plat_CommandLineParamValue);
         const char* portValue = commandLineParamValue("-devtools-port");
 
-        try
-        {
-            if (portValue && *portValue)
-            {
+        try {
+            if (portValue && *portValue) {
                 int value = std::stoi(portValue);
-                if (value < std::numeric_limits<u_short>::min() || value > std::numeric_limits<u_short>::max())
-                {
+                if (value < std::numeric_limits<u_short>::min() || value > std::numeric_limits<u_short>::max()) {
                     throw std::out_of_range("Value out of u_short range");
                 }
 
                 return static_cast<u_short>(value);
-            }
-            else
-            {
+            } else {
                 Logger.Warn("No valid '-devtools-port' argument found. Using default port: {}", defaultPort);
                 return defaultPort;
             }
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             Logger.Warn("Error parsing '-devtools-port' value: {}. Using default port: {}", e.what(), defaultPort);
             return defaultPort;
         }
@@ -122,8 +111,7 @@ class StartupParameters
         if (!argvW)
             return;
 
-        for (int i = 0; i < argc; ++i)
-        {
+        for (int i = 0; i < argc; ++i) {
             int len = WideCharToMultiByte(CP_UTF8, 0, argvW[i], -1, NULL, 0, NULL, NULL);
             if (len <= 0)
                 return;

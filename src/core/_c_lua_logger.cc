@@ -71,18 +71,17 @@ static int LuaLogError(lua_State* L)
 }
 
 static const luaL_Reg loggerFunctions[] = {
-    {"info",  LuaLogInfo },
-    {"warn",  LuaLogWarn },
-    {"error", LuaLogError},
-    {NULL,    NULL       }
+    { "info",  LuaLogInfo  },
+    { "warn",  LuaLogWarn  },
+    { "error", LuaLogError },
+    { NULL,    NULL        }
 };
 
 extern "C" int Lua_OpenLoggerLibrary(lua_State* L)
 {
     const char* pluginName = nullptr;
     lua_getglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
-    if (lua_isstring(L, -1))
-    {
+    if (lua_isstring(L, -1)) {
         pluginName = lua_tostring(L, -1);
     }
     lua_pop(L, 1);

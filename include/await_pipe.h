@@ -85,10 +85,8 @@ class SocketHelpers
         char Buffer[MAX_PATH];
         HANDLE Handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
 
-        if (Handle)
-        {
-            if (GetModuleFileNameExA(Handle, 0, Buffer, MAX_PATH))
-            {
+        if (Handle) {
+            if (GetModuleFileNameExA(Handle, 0, Buffer, MAX_PATH)) {
                 return std::string(Buffer);
             }
             CloseHandle(Handle);
@@ -107,29 +105,25 @@ class SocketHelpers
         GetTcpTable2(nullptr, &size, TRUE);
         tcpTable = (PMIB_TCPTABLE2)malloc(size);
 
-        if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR)
-        {
+        if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR) {
             free(tcpTable);
-            return {false, "Error getting TCP table"};
+            return { false, "Error getting TCP table" };
         }
 
-        for (DWORD i = 0; i < tcpTable->dwNumEntries; i++)
-        {
-            if (ntohs((u_short)tcpTable->table[i].dwLocalPort) == debuggerPort)
-            {
+        for (DWORD i = 0; i < tcpTable->dwNumEntries; i++) {
+            if (ntohs((u_short)tcpTable->table[i].dwLocalPort) == debuggerPort) {
                 const auto targetProcess = std::filesystem::path(GetProcessName(tcpTable->table[i].dwOwningPid));
 
-                if (targetProcess.string().empty())
-                {
+                if (targetProcess.string().empty()) {
                     // Skip if we can't get the process name
                     continue;
                 }
 
-                return {targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string()};
+                return { targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string() };
             }
         }
 #endif
-        return {true};
+        return { true };
     }
 
   public:
@@ -150,14 +144,12 @@ class SocketHelpers
      */
     const void VerifySteamConnection()
     {
-        if (bHasCheckedConnection)
-        {
+        if (bHasCheckedConnection) {
             return;
         }
 
         auto [canConnect, processName] = this->GetSteamConnectionProps();
-        if (!canConnect)
-        {
+        if (!canConnect) {
             const std::string message =
                 fmt::format("Millennium can't connect to Steam because the target port '{}' is currently being used by '{}'.\n"
                             "To address this you must uninstall/close the conflicting app, change the port it uses (assuming its possible), or uninstall Millennium.\n\n"
@@ -188,15 +180,12 @@ class SocketHelpers
      */
     const std::string GetSteamBrowserContext()
     {
-        try
-        {
+        try {
             std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
             nlohmann::basic_json<> instance = nlohmann::json::parse(Http::Get(browserUrl.c_str()));
 
             return instance["webSocketDebuggerUrl"];
-        }
-        catch (nlohmann::detail::exception& exception)
-        {
+        } catch (nlohmann::detail::exception& exception) {
             LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}",
                       debuggerPort, exception.what());
             std::exit(1);
@@ -210,25 +199,21 @@ class SocketHelpers
 
         const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
 
-        try
-        {
+        try {
             socketUrl = fetchSocketUrl();
         }
         /** The request was broke early before it was received. Likely because Millennium is shutting down. */
-        catch (HttpError& exception)
-        {
+        catch (HttpError& exception) {
             Logger.Warn("Failed to get Steam browser context: {}", exception.GetMessage());
             return;
         }
 
-        if (socketUrl.empty())
-        {
+        if (socketUrl.empty()) {
             LOG_ERROR("[{}] Socket URL is empty. Aborting connection.", commonName);
             return;
         }
 
-        try
-        {
+        try {
             socketClient.set_access_channels(websocketpp::log::alevel::none);
             socketClient.clear_error_channels(websocketpp::log::elevel::none);
             socketClient.set_error_channels(websocketpp::log::elevel::all);
@@ -236,8 +221,7 @@ class SocketHelpers
             socketClient.init_asio();
 
             // Validate handlers before binding
-            if (!onConnect || !onMessage)
-            {
+            if (!onConnect || !onMessage) {
                 LOG_ERROR("[{}] Invalid event handlers. Connection aborted.", commonName);
                 return;
             }
@@ -248,25 +232,18 @@ class SocketHelpers
             websocketpp::lib::error_code errorCode;
             auto con = socketClient.get_connection(socketUrl, errorCode);
 
-            if (errorCode)
-            {
+            if (errorCode) {
                 LOG_ERROR("[{}] Failed to establish connection: {} [{}]", commonName, errorCode.message(), errorCode.value());
                 return;
             }
 
             socketClient.connect(con);
             socketClient.run();
-        }
-        catch (const websocketpp::exception& ex)
-        {
+        } catch (const websocketpp::exception& ex) {
             LOG_ERROR("[{}] WebSocket exception thrown -> {}", commonName, ex.what());
-        }
-        catch (const std::exception& ex)
-        {
+        } catch (const std::exception& ex) {
             LOG_ERROR("[{}] Standard exception caught -> {}", commonName, ex.what());
-        }
-        catch (...)
-        {
+        } catch (...) {
             LOG_ERROR("[{}] Unknown exception caught.", commonName);
         }
 

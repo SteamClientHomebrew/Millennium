@@ -54,8 +54,7 @@ const static ShimLoaderProps CheckShimLoaderVersion(std::filesystem::path shimPa
     /** Load the shim loader with DONT_RESOLVE_DLL_REFERENCES to prevent DllMain from causing a boot loop/realloc on deallocated memory */
     HMODULE hModule = LoadLibraryEx(shimPath.wstring().c_str(), NULL, DONT_RESOLVE_DLL_REFERENCES);
 
-    if (!hModule)
-    {
+    if (!hModule) {
         LOG_ERROR("Failed to load {}: {}", shimPath.string(), GetLastError());
         return ShimLoaderProps::FAILED;
     }
@@ -64,8 +63,7 @@ const static ShimLoaderProps CheckShimLoaderVersion(std::filesystem::path shimPa
     typedef const char* (*GetShimVersion)();
     GetShimVersion getShimVersion = (GetShimVersion)GetProcAddress(hModule, "__get_shim_version");
 
-    if (!getShimVersion)
-    {
+    if (!getShimVersion) {
         LOG_ERROR("Failed to get __get_shim_version: {}", GetLastError());
         FreeLibrary(hModule);
         return ShimLoaderProps::FAILED;
@@ -74,8 +72,7 @@ const static ShimLoaderProps CheckShimLoaderVersion(std::filesystem::path shimPa
     std::string shimVersion = getShimVersion();
     Logger.Log("Shim version: {}", shimVersion);
 
-    if (shimVersion != MILLENNIUM_VERSION)
-    {
+    if (shimVersion != MILLENNIUM_VERSION) {
         LOG_ERROR("Shim version mismatch: {} != {}", shimVersion, MILLENNIUM_VERSION);
         FreeLibrary(hModule);
         return ShimLoaderProps::INVALID;
@@ -92,16 +89,13 @@ const void SetupWin32Environment()
 {
     const auto startupParams = std::make_unique<StartupParameters>();
 
-    try
-    {
-        if (!std::filesystem::exists(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH))
-        {
+    try {
+        if (!std::filesystem::exists(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH)) {
             Logger.Log("No queued shim loader found...");
             return;
         }
 
-        if (CheckShimLoaderVersion(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH) == ShimLoaderProps::INVALID)
-        {
+        if (CheckShimLoaderVersion(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH) == ShimLoaderProps::INVALID) {
             MessageBoxA(NULL,
                         "There is a version mismatch between two of Millenniums core assets 'user32.queue.dll' and 'millennium.dll' in the Steam directory. Try removing "
                         "'user32.queue.dll', and if that doesn't work reinstall Millennium.",
@@ -115,17 +109,12 @@ const void SetupWin32Environment()
         auto startTime = std::chrono::steady_clock::now();
 
         // Wait for the preloader to be removed, as sometimes it's still in use for a few milliseconds.
-        while (true)
-        {
-            try
-            {
+        while (true) {
+            try {
                 std::filesystem::remove(SystemIO::GetInstallPath() / SHIM_LOADER_PATH);
                 break;
-            }
-            catch (std::filesystem::filesystem_error& e)
-            {
-                if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(TIMEOUT_IN_SECONDS))
-                {
+            } catch (std::filesystem::filesystem_error& e) {
+                if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(TIMEOUT_IN_SECONDS)) {
                     throw std::runtime_error("Timed out while waiting for the preloader to be removed.");
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -136,9 +125,7 @@ const void SetupWin32Environment()
 
         std::filesystem::rename(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH, SystemIO::GetInstallPath() / SHIM_LOADER_PATH);
         Logger.Log("Successfully updated {}!", SHIM_LOADER_PATH);
-    }
-    catch (std::exception& e)
-    {
+    } catch (std::exception& e) {
         LOG_ERROR("Failed to update {}: {}", SHIM_LOADER_PATH, e.what());
         MessageBoxA(NULL, fmt::format("Failed to update {}, it's recommended that you reinstall Millennium.", SHIM_LOADER_PATH).c_str(), "Oops!", MB_ICONERROR | MB_OK);
     }

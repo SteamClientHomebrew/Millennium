@@ -34,8 +34,7 @@
 
 int Lua_Sleep(lua_State* L)
 {
-    if (!lua_isnumber(L, 1))
-    {
+    if (!lua_isnumber(L, 1)) {
         lua_pushstring(L, "Invalid argument to sleep. Expected number of milliseconds.");
         lua_error(L);
         return 0;
@@ -46,8 +45,8 @@ int Lua_Sleep(lua_State* L)
     return 0;
 }
 static const luaL_Reg millennium_lib[] = {
-    {"sleep", Lua_Sleep},
-    {NULL,    NULL     }  // Sentinel
+    { "sleep", Lua_Sleep },
+    { NULL,    NULL      }  // Sentinel
 };
 
 extern "C" int Lua_OpenUtilsLibrary(lua_State* L)

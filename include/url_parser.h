@@ -37,8 +37,7 @@ static std::string UrlEncode(const std::string& value)
 {
     std::ostringstream encoded;
 
-    for (unsigned char c : value)
-    {
+    for (unsigned char c : value) {
         if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '/')
             encoded << c;
         else if (c == ' ')
@@ -55,12 +54,9 @@ static const std::string UrlDecode(const std::string& url)
     char ch;
     int hexValue;
 
-    for (size_t i = 0; i < url.length(); ++i)
-    {
-        if (url[i] == '%')
-        {
-            if (i + 2 < url.length() && std::isxdigit(url[i + 1]) && std::isxdigit(url[i + 2]))
-            {
+    for (size_t i = 0; i < url.length(); ++i) {
+        if (url[i] == '%') {
+            if (i + 2 < url.length() && std::isxdigit(url[i + 1]) && std::isxdigit(url[i + 2])) {
                 std::stringstream ss;
                 ss << std::hex << url.substr(i + 1, 2);
                 ss >> hexValue;
@@ -68,13 +64,9 @@ static const std::string UrlDecode(const std::string& url)
                 decoded += ch;
                 i += 2;
             }
-        }
-        else if (url[i] == '+')
-        {
+        } else if (url[i] == '+') {
             decoded += ' ';
-        }
-        else
-        {
+        } else {
             decoded += url[i];
         }
     }
@@ -99,8 +91,7 @@ static const std::string PathFromUrl(const std::string& path)
     // Remove query parameters for file path
     std::string cleanPath = path;
     size_t queryPos = cleanPath.find('?');
-    if (queryPos != std::string::npos)
-    {
+    if (queryPos != std::string::npos) {
         cleanPath = cleanPath.substr(0, queryPos);
     }
 

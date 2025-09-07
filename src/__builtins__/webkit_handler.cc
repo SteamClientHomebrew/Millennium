@@ -42,12 +42,9 @@ int Millennium::AddBrowserCss(const std::string& targetPath, const std::string& 
     g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / targetPath;
 
-    try
-    {
+    try {
         HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::STYLESHEET, g_hookedModuleId });
-    }
-    catch (const std::regex_error& e)
-    {
+    } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", ".*", e.what());
         return 0;
     }
@@ -60,12 +57,9 @@ int Millennium::AddBrowserJs(const std::string& targetPath, const std::string& r
     g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / targetPath;
 
-    try
-    {
+    try {
         HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
-    }
-    catch (const std::regex_error& e)
-    {
+    } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", ".*", e.what());
         return 0;
     }
@@ -91,8 +85,7 @@ void WebkitHookStore::Push(int moduleId)
 
 void WebkitHookStore::UnregisterAll()
 {
-    for (int id : stack)
-    {
+    for (int id : stack) {
         Millennium::RemoveBrowserModule(id);
     }
     stack.clear();
@@ -104,25 +97,19 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
 
     nlohmann::json theme_conditions = CONFIG.GetNested("themes.conditions." + theme_name, nlohmann::json::object());
 
-    if (conditional_patches.contains("Conditions"))
-    {
-        for (auto& [item, condition] : conditional_patches["Conditions"].items())
-        {
+    if (conditional_patches.contains("Conditions")) {
+        for (auto& [item, condition] : conditional_patches["Conditions"].items()) {
             if (!theme_conditions.contains(item))
                 continue;
             std::string current_value = theme_conditions[item].get<std::string>();
 
-            if (condition.contains("values") && condition["values"].is_object())
-            {
+            if (condition.contains("values") && condition["values"].is_object()) {
                 auto values = condition["values"];
-                if (values.contains(current_value) && values[current_value].is_object())
-                {
+                if (values.contains(current_value) && values[current_value].is_object()) {
                     auto control_flow = values[current_value];
 
-                    if (control_flow.contains("affects") && control_flow["affects"].is_array())
-                    {
-                        for (auto& match_string : control_flow["affects"])
-                        {
+                    if (control_flow.contains("affects") && control_flow["affects"].is_array()) {
+                        for (auto& match_string : control_flow["affects"]) {
                             if (!match_string.is_string())
                                 continue;
 
@@ -135,25 +122,19 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
         }
     }
 
-    if (conditional_patches.contains("Patches") && conditional_patches["Patches"].is_array())
-    {
-        for (auto& patch : conditional_patches["Patches"])
-        {
+    if (conditional_patches.contains("Patches") && conditional_patches["Patches"].is_array()) {
+        for (auto& patch : conditional_patches["Patches"]) {
             if (!patch.contains("MatchRegexString"))
                 continue;
             std::string regex = patch["MatchRegexString"].get<std::string>();
 
-            for (auto& inject_type : { "TargetCss", "TargetJs" })
-            {
-                if (patch.contains(inject_type))
-                {
+            for (auto& inject_type : { "TargetCss", "TargetJs" }) {
+                if (patch.contains(inject_type)) {
                     nlohmann::json targets = patch[inject_type];
-                    if (targets.is_string())
-                    {
+                    if (targets.is_string()) {
                         targets = nlohmann::json::array({ targets });
                     }
-                    for (auto& target : targets)
-                    {
+                    for (auto& target : targets) {
                         if (!target.is_string())
                             continue;
                         webkit_items.push_back({ regex, target.get<std::string>(), inject_type });
@@ -166,11 +147,9 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
     std::unordered_set<std::string> seen;
     std::vector<WebkitItem> unique_items;
 
-    for (auto& item : webkit_items)
-    {
+    for (auto& item : webkit_items) {
         std::string identifier = item.matchString + "|" + item.targetPath;
-        if (seen.insert(identifier).second)
-        {
+        if (seen.insert(identifier).second) {
             unique_items.push_back(item);
         }
     }
@@ -194,26 +173,19 @@ int AddBrowserJs(const std::string& js_path, const std::string& regex)
 
 void AddConditionalData(const std::string& path, const nlohmann::json& data, const std::string& theme_name)
 {
-    try
-    {
+    try {
         auto parsed_patches = ParseConditionalPatches(data, theme_name);
 
-        for (auto& patch : parsed_patches)
-        {
-            if (patch.fileType == "TargetCss" && !patch.targetPath.empty() && !patch.matchString.empty())
-            {
+        for (auto& patch : parsed_patches) {
+            if (patch.fileType == "TargetCss" && !patch.targetPath.empty() && !patch.matchString.empty()) {
                 std::string full_path = (std::filesystem::path(path) / patch.targetPath).generic_string();
                 AddBrowserCss(full_path, patch.matchString);
-            }
-            else if (patch.fileType == "TargetJs" && !patch.targetPath.empty() && !patch.matchString.empty())
-            {
+            } else if (patch.fileType == "TargetJs" && !patch.targetPath.empty() && !patch.matchString.empty()) {
                 std::string full_path = (std::filesystem::path(path) / patch.targetPath).generic_string();
                 AddBrowserJs(full_path, patch.matchString);
             }
         }
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Error adding conditional data: {}", e.what());
     }
 }

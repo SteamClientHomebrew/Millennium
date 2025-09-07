@@ -60,24 +60,20 @@ std::optional<std::string> Millennium::CSSParser::convertFromHex(const std::stri
     int b = std::stoi(hex.substr(4, 2), nullptr, 16);
 
     std::ostringstream out;
-    if (type == ColorTypes::RawRGB)
-    {
+    if (type == ColorTypes::RawRGB) {
         out << r << ", " << g << ", " << b;
         return out.str();
     }
-    if (type == ColorTypes::RGB)
-    {
+    if (type == ColorTypes::RGB) {
         out << "rgb(" << r << ", " << g << ", " << b << ")";
         return out.str();
     }
 
-    if (type == ColorTypes::RawRGBA || type == ColorTypes::RGBA)
-    {
+    if (type == ColorTypes::RawRGBA || type == ColorTypes::RGBA) {
         double a = 1.0;
         if (hex.size() == 8)
             a = std::stoi(hex.substr(6, 2), nullptr, 16) / 255.0;
-        if (type == ColorTypes::RawRGBA)
-        {
+        if (type == ColorTypes::RawRGBA) {
             out << r << ", " << g << ", " << b << ", " << std::fixed << std::setprecision(2) << a;
             return out.str();
         }
@@ -94,15 +90,12 @@ std::optional<std::string> Millennium::CSSParser::convertToHex(const std::string
         return color;
 
     std::vector<int> values;
-    if (type == ColorTypes::RawRGB || type == ColorTypes::RawRGBA)
-    {
+    if (type == ColorTypes::RawRGB || type == ColorTypes::RawRGBA) {
         std::istringstream ss(color);
         std::string token;
         while (std::getline(ss, token, ','))
             values.push_back(std::stoi(token));
-    }
-    else if (type == ColorTypes::RGB || type == ColorTypes::RGBA)
-    {
+    } else if (type == ColorTypes::RGB || type == ColorTypes::RGBA) {
         auto start = color.find('(') + 1;
         auto end = color.find(')');
         std::string inner = color.substr(start, end - start);
@@ -115,16 +108,14 @@ std::optional<std::string> Millennium::CSSParser::convertToHex(const std::string
     std::ostringstream out;
     out << '#';
     out << std::hex << std::setfill('0');
-    if (type == ColorTypes::RawRGB || type == ColorTypes::RGB)
-    {
+    if (type == ColorTypes::RawRGB || type == ColorTypes::RGB) {
         out << std::setw(2) << values[0];
         out << std::setw(2) << values[1];
         out << std::setw(2) << values[2];
         return out.str();
     }
 
-    if (type == ColorTypes::RawRGBA || type == ColorTypes::RGBA)
-    {
+    if (type == ColorTypes::RawRGBA || type == ColorTypes::RGBA) {
         int a = static_cast<int>(values[3] * 255.0);
         out << std::setw(2) << values[0];
         out << std::setw(2) << values[1];
@@ -138,8 +129,7 @@ std::optional<std::string> Millennium::CSSParser::convertToHex(const std::string
 
 std::string Millennium::CSSParser::expandHexColor(const std::string& shortHex)
 {
-    if (shortHex.size() == 4 && shortHex[0] == '#')
-    {
+    if (shortHex.size() == 4 && shortHex[0] == '#') {
         std::ostringstream out;
         out << '#';
         for (size_t i = 1; i < 4; ++i)
@@ -177,8 +167,7 @@ nlohmann::json Millennium::CSSParser::generateColorMetadata(const std::map<std::
 {
     nlohmann::json result = nlohmann::json::array();
 
-    for (const auto& [prop, value] : properties)
-    {
+    for (const auto& [prop, value] : properties) {
         std::string expanded = expandHexColor(value);
         ColorTypes type = parseColor(expanded);
         if (type == ColorTypes::Unknown)
@@ -218,20 +207,17 @@ void Millennium::CSSParser::parseProperties(const std::string& block, std::map<s
     std::string lastComment;
     bool inComment = false;
 
-    while (std::getline(ss, line))
-    {
+    while (std::getline(ss, line)) {
         line = trim(line);
         if (line.empty())
             continue;
 
-        if (line.rfind("/*", 0) == 0)
-        {
+        if (line.rfind("/*", 0) == 0) {
             lastComment.clear();
             inComment = true;
         }
 
-        if (inComment)
-        {
+        if (inComment) {
             lastComment += line + "\n";
             if (line.find("*/") != std::string::npos)
                 inComment = false;
@@ -240,15 +226,13 @@ void Millennium::CSSParser::parseProperties(const std::string& block, std::map<s
 
         std::regex propRegex(R"(([\w-]+)\s*:\s*([^;]+);)");
         std::smatch match;
-        if (std::regex_match(line, match, propRegex))
-        {
+        if (std::regex_match(line, match, propRegex)) {
             std::string propName = match[1].str();
             std::string propValue = trim(match[2].str());
             properties[propName] = propValue;
 
             std::string name, description;
-            if (!lastComment.empty())
-            {
+            if (!lastComment.empty()) {
                 std::regex nameRegex(R"(@name\s+([^\*]+))");
                 std::regex descRegex(R"(@description\s+([^\*]+))");
                 std::smatch nameMatch, descMatch;

@@ -77,15 +77,12 @@ void DownloadLatestAsset(std::string queuedDownloadUrl, std::string steam_path)
     Print("Downloading asset: {}", queuedDownloadUrl);
     const std::string localDownloadPath = (std::filesystem::temp_directory_path() / "millennium.zip").string();
 
-    if (DownloadResource(queuedDownloadUrl, localDownloadPath))
-    {
+    if (DownloadResource(queuedDownloadUrl, localDownloadPath)) {
         Print("Successfully downloaded asset...");
 
         ExtractZippedArchive(localDownloadPath.c_str(), steam_path.c_str());
         remove(localDownloadPath.c_str());
-    }
-    else
-    {
+    } else {
         Error("Failed to download asset: {}", queuedDownloadUrl);
     }
 }
@@ -104,8 +101,7 @@ const void CheckForUpdates(std::string strSteamPath)
 
     const auto updateFlagPath = std::filesystem::path(strSteamPath) / "ext" / "update.flag";
 
-    if (!std::filesystem::exists(updateFlagPath))
-    {
+    if (!std::filesystem::exists(updateFlagPath)) {
         Print("No updates were queried...");
         return;
     }
@@ -114,8 +110,7 @@ const void CheckForUpdates(std::string strSteamPath)
     std::string updateFlagContent((std::istreambuf_iterator<char>(updateFlagFile)), std::istreambuf_iterator<char>());
     updateFlagFile.close();
 
-    if (std::remove(updateFlagPath.string().c_str()) != 0)
-    {
+    if (std::remove(updateFlagPath.string().c_str()) != 0) {
         Error("Failed to remove update.flag file...");
     }
 
@@ -132,20 +127,17 @@ const void CheckForUpdates(std::string strSteamPath)
 void EnableVirtualTerminalProcessing()
 {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE)
-    {
+    if (hOut == INVALID_HANDLE_VALUE) {
         return;
     }
 
     DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode))
-    {
+    if (!GetConsoleMode(hOut, &dwMode)) {
         return;
     }
 
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode))
-    {
+    if (!SetConsoleMode(hOut, dwMode)) {
         return;
     }
 }
@@ -157,8 +149,7 @@ void EnableVirtualTerminalProcessing()
  */
 void PatchSharedJSContext(std::string strSteamPath)
 {
-    try
-    {
+    try {
         const auto SteamUIModulePath = std::filesystem::path(strSteamPath) / "steamui" / "index.html";
         Print("Patching SharedJSContext...");
 
@@ -166,13 +157,9 @@ void PatchSharedJSContext(std::string strSteamPath)
         std::ofstream SteamUI(SteamUIModulePath, std::ios::trunc);
         SteamUI << "<!doctype html><html><head><title>SharedJSContext</title></head></html>";
         SteamUI.close();
-    }
-    catch (const std::system_error& error)
-    {
+    } catch (const std::system_error& error) {
         Error("Caught system_error while patching SharedJSContext: {}", error.what());
-    }
-    catch (const std::exception& exception)
-    {
+    } catch (const std::exception& exception) {
         Error("Error patching SharedJSContext: {}", exception.what());
     }
 }
@@ -194,8 +181,7 @@ void AllocateDevConsole()
 {
     std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
-    if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || startupParams->HasArgument("-dev"))
-    {
+    if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || startupParams->HasArgument("-dev")) {
         (void)static_cast<bool>(AllocConsole());
 
         freopen("CONOUT$", "w", stdout);
@@ -214,8 +200,7 @@ void UnloadMillennium()
     // Check if millennium.dll is already loaded in process memory, and if so, unload it.
     HMODULE hLoadedMillennium = GetModuleHandleA("millennium.dll");
 
-    if (hLoadedMillennium != nullptr)
-    {
+    if (hLoadedMillennium != nullptr) {
         Print("Unloading millennium.dll and reloading...");
         FreeLibrary(hLoadedMillennium);
     }
@@ -229,8 +214,7 @@ void UnloadMillennium()
 void LoadMillennium()
 {
     // Check if the load was successful.
-    if (LoadLibraryA("millennium.dll") == nullptr)
-    {
+    if (LoadLibraryA("millennium.dll") == nullptr) {
         DWORD errorCode = GetLastError();
         ShowErrorMessage(errorCode);
         return;
@@ -257,8 +241,7 @@ const void BootstrapMillennium(HINSTANCE hinstDLL)
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-    if (fdwReason == DLL_PROCESS_ATTACH)
-    {
+    if (fdwReason == DLL_PROCESS_ATTACH) {
         // Detach from the main thread as to not wakeup the watchdog from Steam's debugger.
         std::thread(BootstrapMillennium, hinstDLL).detach();
     }

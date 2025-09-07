@@ -62,8 +62,7 @@ typedef websocketpp::server<websocketpp::config::asio> socketServer;
  */
 nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 {
-    if (!message["data"].contains("pluginName"))
-    {
+    if (!message["data"].contains("pluginName")) {
         LOG_ERROR("no plugin backend specified, doing nothing...");
         return {};
     }
@@ -72,10 +71,8 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
     const auto pluginName = message["data"]["pluginName"].get<std::string>();
 
     /** An internal IPC call, handle it in C++ instead of Python or Lua */
-    if (pluginName == "core")
-    {
-        try
-        {
+    if (pluginName == "core") {
+        try {
             const auto& functionName = message["data"]["methodName"].get<std::string>();
             const auto& args = message["data"].contains("argumentList") ? message["data"]["argumentList"] : nlohmann::json::object();
 
@@ -91,24 +88,18 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
                 response.type = FFI_Type::Integer;
             else if (result.is_object() || result.is_array())
                 response.type = FFI_Type::JSON;
-            else
-            {
+            else {
                 response.type = FFI_Type::UnknownType;
                 response.plain = "core IPC call returned unknown type";
             }
-        }
-        catch (const std::exception& ex)
-        {
+        } catch (const std::exception& ex) {
             response.type = FFI_Type::Error;
             response.plain = ex.what();
         }
-    }
-    else
-    {
+    } else {
         const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
 
-        switch (backendType)
-        {
+        switch (backendType) {
             case SettingsStore::PluginBackendType::Python:
             {
                 response = Python::LockGILAndInvokeMethod(pluginName, message["data"]);
@@ -131,8 +122,7 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
 
     responseMessage["returnType"] = response.type;
 
-    switch (response.type)
-    {
+    switch (response.type) {
         case FFI_Type::Boolean:
         {
             responseMessage["returnValue"] = (response.plain == "True" ? true : false);
@@ -184,23 +174,19 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
     const auto allPlugins = settingsStore->ParseAllPlugins();
 
     /** Check if the plugin uses a backend, and if so delegate the notification. */
-    for (auto& plugin : allPlugins)
-    {
-        if (plugin.pluginName != pluginName)
-        {
+    for (auto& plugin : allPlugins) {
+        if (plugin.pluginName != pluginName) {
             continue;
         }
 
-        if (!plugin.pluginJson.value("useBackend", true))
-        {
+        if (!plugin.pluginJson.value("useBackend", true)) {
             continue;
         }
 
         Logger.Log("Delegating frontend load for plugin: {}", pluginName);
         const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
 
-        switch (backendType)
-        {
+        switch (backendType) {
             case SettingsStore::PluginBackendType::Python:
             {
                 Python::CallFrontEndLoaded(pluginName);
@@ -222,8 +208,8 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 
     /** Return a success message. */
     return nlohmann::json({
-        {"id",      message["iteration"]},
-        {"success", true                }
+        { "id",      message["iteration"] },
+        { "success", true                 }
     });
 }
 
@@ -240,12 +226,10 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
  */
 nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload)
 {
-    try
-    {
+    try {
         nlohmann::json responseMessage;
 
-        switch (jsonPayload["id"].get<int>())
-        {
+        switch (jsonPayload["id"].get<int>()) {
             case IPCMain::Builtins::CALL_SERVER_METHOD:
             {
                 responseMessage = CallServerMethod(jsonPayload);
@@ -258,18 +242,14 @@ nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload)
             }
         }
         return responseMessage;
-    }
-    catch (nlohmann::detail::exception& ex)
-    {
+    } catch (nlohmann::detail::exception& ex) {
         return {
-            {"error", fmt::format("JSON parsing error: {}", ex.what()), "type", IPCMain::ErrorType::INTERNAL_ERROR}
+            { "error", fmt::format("JSON parsing error: {}", ex.what()), "type", IPCMain::ErrorType::INTERNAL_ERROR }
         };
-    }
-    catch (std::exception& ex)
-    {
+    } catch (std::exception& ex) {
         return {
-            {"error", fmt::format("An error occurred while processing the message: {}", ex.what())},
-            {"type", IPCMain::ErrorType::INTERNAL_ERROR}
+            { "error", fmt::format("An error occurred while processing the message: {}", ex.what()) },
+            { "type", IPCMain::ErrorType::INTERNAL_ERROR }
         };
     }
 }

@@ -44,11 +44,9 @@ nlohmann::json HandleIpcMessage(const std::string& function_name, const nlohmann
         throw std::runtime_error("Not applicable to this plugin");
 
     auto it = __CORE_EXPORTS__.find(function_name);
-    if (it != __CORE_EXPORTS__.end())
-    {
+    if (it != __CORE_EXPORTS__.end()) {
         using FuncType = std::function<nlohmann::json(const nlohmann::json&)>;
-        if (it->second.type() == typeid(FuncType))
-        {
+        if (it->second.type() == typeid(FuncType)) {
             auto func = std::any_cast<FuncType>(it->second);
             return func(args);
         }

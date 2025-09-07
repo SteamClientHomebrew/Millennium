@@ -53,29 +53,23 @@ std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
     PyErr_Fetch(&typeObj, &valueObj, &traceBackObj);
     PyErr_NormalizeException(&typeObj, &valueObj, &traceBackObj);
 
-    if (!valueObj)
-    {
-        return {"Unknown Error.", "Unknown Error."};
+    if (!valueObj) {
+        return { "Unknown Error.", "Unknown Error." };
     }
 
     PyObject* pStrErrorMessage = PyObject_Str(valueObj);
     const char* errorMessage = pStrErrorMessage ? PyUnicode_AsUTF8(pStrErrorMessage) : "Unknown Error.";
 
     std::string tracebackText;
-    if (traceBackObj)
-    {
+    if (traceBackObj) {
         PyObject* tracebackModule = PyImport_ImportModule("traceback");
-        if (tracebackModule)
-        {
+        if (tracebackModule) {
             PyObject* formatExceptionFunc = PyObject_GetAttrString(tracebackModule, "format_exception");
-            if (formatExceptionFunc && PyCallable_Check(formatExceptionFunc))
-            {
+            if (formatExceptionFunc && PyCallable_Check(formatExceptionFunc)) {
                 PyObject* tracebackList = PyObject_CallFunctionObjArgs(formatExceptionFunc, typeObj, valueObj, traceBackObj, NULL);
-                if (tracebackList)
-                {
+                if (tracebackList) {
                     PyObject* tracebackStr = PyUnicode_Join(PyUnicode_FromString(""), tracebackList);
-                    if (tracebackStr)
-                    {
+                    if (tracebackStr) {
                         tracebackText = PyUnicode_AsUTF8(tracebackStr);
                         Py_DECREF(tracebackStr);
                     }
@@ -92,7 +86,7 @@ std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
     Py_XDECREF(traceBackObj);
     Py_XDECREF(pStrErrorMessage);
 
-    return {errorMessage, tracebackText};
+    return { errorMessage, tracebackText };
 }
 
 namespace Python
@@ -102,12 +96,12 @@ namespace ObjectHandler
 EvalResult HandleActiveException()
 {
     const auto [errorMessage, tracebackText] = ActiveExceptionInformation();
-    return {FFI_Type::Error, errorMessage + tracebackText};
+    return { FFI_Type::Error, errorMessage + tracebackText };
 }
 
 EvalResult HandleBooleanObject(PyObject* obj)
 {
-    return {FFI_Type::Boolean, (obj == Py_True) ? "True" : "False"};
+    return { FFI_Type::Boolean, (obj == Py_True) ? "True" : "False" };
 }
 
 EvalResult HandleIntegerObject(PyObject* obj)
@@ -115,7 +109,7 @@ EvalResult HandleIntegerObject(PyObject* obj)
     long longValue = PyLong_AsLong(obj);
     if (PyErr_Occurred())
         return HandleActiveException();
-    return {FFI_Type::Integer, std::to_string(longValue)};
+    return { FFI_Type::Integer, std::to_string(longValue) };
 }
 
 EvalResult HandleFloatObject(PyObject* obj)
@@ -123,7 +117,7 @@ EvalResult HandleFloatObject(PyObject* obj)
     double doubleValue = PyFloat_AsDouble(obj);
     if (PyErr_Occurred())
         return HandleActiveException();
-    return {FFI_Type::String, std::to_string(doubleValue)};
+    return { FFI_Type::String, std::to_string(doubleValue) };
 }
 
 EvalResult HandleUnicodeObject(PyObject* obj)
@@ -131,39 +125,36 @@ EvalResult HandleUnicodeObject(PyObject* obj)
     const char* valueStr = PyUnicode_AsUTF8(obj);
     if (PyErr_Occurred())
         return HandleActiveException();
-    return {FFI_Type::String, valueStr ? std::string(valueStr) : std::string("")};
+    return { FFI_Type::String, valueStr ? std::string(valueStr) : std::string("") };
 }
 
 EvalResult HandleBytesObject(PyObject* obj)
 {
     char* bytesValue = PyBytes_AsString(obj);
     if (!bytesValue)
-        return {FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string."};
+        return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string." };
 
     Py_ssize_t size = PyBytes_Size(obj);
     if (size < 0)
-        return {FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object."};
+        return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object." };
 
-    return {FFI_Type::String, std::string(bytesValue, size)};
+    return { FFI_Type::String, std::string(bytesValue, size) };
 }
 
 EvalResult HandleContainerObject(PyObject* obj)
 {
     PyObject* jsonModule = PyImport_ImportModule("json");
-    if (jsonModule)
-    {
+    if (jsonModule) {
         PyObject* dumpsFunction = PyObject_GetAttrString(jsonModule, "dumps");
-        if (dumpsFunction)
-        {
+        if (dumpsFunction) {
             PyObject* jsonStr = PyObject_CallFunction(dumpsFunction, "O", obj);
-            if (jsonStr && PyUnicode_Check(jsonStr))
-            {
+            if (jsonStr && PyUnicode_Check(jsonStr)) {
                 const char* utf8JsonStr = PyUnicode_AsUTF8(jsonStr);
                 std::string result = utf8JsonStr ? utf8JsonStr : "{}";
                 Py_XDECREF(jsonStr);
                 Py_DECREF(dumpsFunction);
                 Py_DECREF(jsonModule);
-                return {FFI_Type::JSON, result};
+                return { FFI_Type::JSON, result };
             }
             Py_XDECREF(jsonStr);
             Py_DECREF(dumpsFunction);
@@ -173,33 +164,31 @@ EvalResult HandleContainerObject(PyObject* obj)
 
     PyErr_Clear();
     PyObject* objRepresentation = PyObject_Repr(obj);
-    if (objRepresentation)
-    {
+    if (objRepresentation) {
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
         std::string result = unicodeRepresentation ? unicodeRepresentation : "{}";
         Py_DECREF(objRepresentation);
-        return {FFI_Type::JSON, result};
+        return { FFI_Type::JSON, result };
     }
 
-    return {FFI_Type::JSON, "{}"};
+    return { FFI_Type::JSON, "{}" };
 }
 
 EvalResult HandleNoneObject()
 {
-    return {FFI_Type::JSON, "null"};
+    return { FFI_Type::JSON, "null" };
 }
 
 EvalResult HandleUnknownObject(PyObject* obj)
 {
     PyObject* objRepresentation = PyObject_Repr(obj);
-    if (objRepresentation)
-    {
+    if (objRepresentation) {
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
         std::string result = unicodeRepresentation ? unicodeRepresentation : "<unknown object>";
         Py_DECREF(objRepresentation);
-        return {FFI_Type::UnknownType, result};
+        return { FFI_Type::UnknownType, result };
     }
-    return {FFI_Type::UnknownType, "<unknown object>"};
+    return { FFI_Type::UnknownType, "<unknown object>" };
 }
 } // namespace ObjectHandler
 } // namespace Python
@@ -248,28 +237,23 @@ PyObject* resolveDottedAttribute(const std::string& dottedPath)
     std::stringstream ss(dottedPath);
     std::string part;
 
-    while (std::getline(ss, part, '.'))
-    {
+    while (std::getline(ss, part, '.')) {
         parts.push_back(part);
     }
 
-    if (parts.empty())
-    {
+    if (parts.empty()) {
         return nullptr;
     }
 
     PyObject* current = PyObject_GetAttrString(PyImport_AddModule("__main__"), parts[0].c_str());
-    if (!current)
-    {
+    if (!current) {
         return nullptr;
     }
 
-    for (size_t i = 1; i < parts.size(); ++i)
-    {
+    for (size_t i = 1; i < parts.size(); ++i) {
         PyObject* next = PyObject_GetAttrString(current, parts[i].c_str());
         Py_DECREF(current);
-        if (!next)
-        {
+        if (!next) {
             return nullptr;
         }
         current = next;
@@ -296,41 +280,32 @@ PyObject* PyObjectFromJson(const nlohmann::json& json)
         pObject = PyFloat_FromDouble(json.get<double>());
     else if (json.is_boolean())
         pObject = PyBool_FromLong(json.get<bool>() ? 1 : 0);
-    else if (json.is_array())
-    {
+    else if (json.is_array()) {
         pObject = PyList_New(json.size());
 
-        if (!pObject)
-        {
+        if (!pObject) {
             LOG_ERROR("Failed to allocate a new Python list of size: {}", json.size());
             return nullptr;
         }
 
         int i = 0;
-        for (const auto& arrayItem : json)
-        {
+        for (const auto& arrayItem : json) {
             PyObject* pListItem = PyObjectFromJson(arrayItem);
-            if (pListItem)
-            {
-                if (PyList_SetItem(pObject, i, pListItem) < 0)
-                {
+            if (pListItem) {
+                if (PyList_SetItem(pObject, i, pListItem) < 0) {
                     Py_DECREF(pObject);
                     LOG_ERROR("Failed to set item in Python list at index: {}, json data: {}", i, json.dump(4));
                     return nullptr;
                 }
                 i++;
-            }
-            else
-            {
+            } else {
                 // Clean up and return error if recursive call failed
                 Py_DECREF(pObject);
                 LOG_ERROR("Failed to convert array item to Python object");
                 return nullptr;
             }
         }
-    }
-    else if (json.is_null())
-    {
+    } else if (json.is_null()) {
         pObject = Py_None;
         Py_INCREF(Py_None);
     }
@@ -349,32 +324,26 @@ PyObject* InvokePythonFunction(const nlohmann::json& jsonData)
     std::string methodName = jsonData["methodName"];
 
     PyObject* pFunc = resolveDottedAttribute(methodName);
-    if (!pFunc || !PyCallable_Check(pFunc))
-    {
+    if (!pFunc || !PyCallable_Check(pFunc)) {
         LOG_ERROR(fmt::format("Failed to resolve or call function: {}. Call data {}", methodName, jsonData.dump(4)));
         Py_XDECREF(pFunc);
         return nullptr;
     }
 
     PyObject* pKwargs = PyDict_New();
-    if (!pKwargs)
-    {
+    if (!pKwargs) {
         Py_DECREF(pFunc);
         return nullptr;
     }
 
-    if (jsonData.contains("argumentList") && !jsonData["argumentList"].is_null())
-    {
+    if (jsonData.contains("argumentList") && !jsonData["argumentList"].is_null()) {
         auto argumentList = jsonData["argumentList"];
 
-        for (auto& [key, value] : argumentList.items())
-        {
+        for (auto& [key, value] : argumentList.items()) {
             PyObject* pValue = PyObjectFromJson(value);
 
-            if (pValue)
-            {
-                if (PyDict_SetItemString(pKwargs, key.c_str(), pValue) < 0)
-                {
+            if (pValue) {
+                if (PyDict_SetItemString(pKwargs, key.c_str(), pValue) < 0) {
                     Py_DECREF(pValue);
                     Py_DECREF(pKwargs);
                     Py_DECREF(pFunc);
@@ -419,58 +388,52 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
     const bool hasBackend = BackendManager::GetInstance().HasPythonBackend(pluginName);
 
     /** Plugin has no backend and therefor the call should not be completed */
-    if (!hasBackend)
-    {
-        return {Boolean, "false"};
+    if (!hasBackend) {
+        return { Boolean, "false" };
     }
 
     auto result = BackendManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
-    if (!result.has_value())
-    {
+    if (!result.has_value()) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return {Error, "overstepped partying thread state"};
+        return { Error, "overstepped partying thread state" };
     }
 
     auto& [strPluginName, threadState, interpMutex] = *result.value();
 
-    if (threadState == nullptr)
-    {
+    if (threadState == nullptr) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return {Error, "overstepped partying thread state"};
+        return { Error, "overstepped partying thread state" };
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     pythonGilLock->HoldAndLockGILOnThread(threadState);
 
-    if (threadState == NULL)
-    {
+    if (threadState == NULL) {
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return {Error, "thread state was nullptr"};
+        return { Error, "thread state was nullptr" };
     }
 
     PyObject* mainModule = PyImport_AddModule("__main__");
 
-    if (!mainModule)
-    {
+    if (!mainModule) {
         const auto message =
             fmt::format("Failed to fetch python module on [{}]. This usually means the GIL could not be acquired either because the backend froze or crashed", pluginName);
 
         ErrorToLogger(pluginName, message);
-        return {Error, message};
+        return { Error, message };
     }
 
     PyObject* globalDictionaryObj = PyModule_GetDict(mainModule);
     EvalResult response = PyObjectCastEvalResult(InvokePythonFunction(functionCall));
 
-    if (response.type == FFI_Type::Error)
-    {
+    if (response.type == FFI_Type::Error) {
         LOG_ERROR(fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
     }
@@ -504,15 +467,13 @@ void Python::CallFrontEndLoaded(std::string pluginName)
     const bool hasBackend = BackendManager::GetInstance().HasPythonBackend(pluginName);
 
     /** Plugin has no backend and therefor the call should not be completed */
-    if (!hasBackend)
-    {
+    if (!hasBackend) {
         return;
     }
 
     auto result = BackendManager::GetInstance().GetPythonThreadStateFromName(pluginName);
 
-    if (!result.has_value())
-    {
+    if (!result.has_value()) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to delegate frontend loaded message.", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to delegate frontend loaded message for {}.", pluginName));
 
@@ -521,8 +482,7 @@ void Python::CallFrontEndLoaded(std::string pluginName)
 
     auto& [strPluginName, threadState, interpMutex] = *result.value();
 
-    if (threadState == nullptr)
-    {
+    if (threadState == nullptr) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to delegate frontend loaded message.", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to delegate frontend loaded message for {}.", pluginName));
         return;
@@ -534,10 +494,8 @@ void Python::CallFrontEndLoaded(std::string pluginName)
         PyObject* globalDictionaryObj = PyModule_GetDict(PyImport_AddModule("__main__"));
         PyObject* plugin = PyDict_GetItemString(globalDictionaryObj, "plugin");
 
-        if (plugin == nullptr)
-        {
-            if (PyErr_Occurred())
-            {
+        if (plugin == nullptr) {
+            if (PyErr_Occurred()) {
                 auto [errorMsg, traceback] = Python::ActiveExceptionInformation();
                 LOG_ERROR(fmt::format("Failed to get plugin attribute: {}:\n{}", errorMsg, traceback));
                 ErrorToLogger(pluginName, fmt::format("Failed to get plugin attribute: {}:\n{}", errorMsg, traceback));
@@ -546,8 +504,7 @@ void Python::CallFrontEndLoaded(std::string pluginName)
         }
 
         PyObject* result = PyObject_CallMethod(plugin, "_front_end_loaded", nullptr);
-        if (result == nullptr)
-        {
+        if (result == nullptr) {
             auto [errorMsg, traceback] = Python::ActiveExceptionInformation();
             LOG_ERROR(fmt::format("Failed to call _front_end_loaded: {}:\n{}", errorMsg, traceback));
             ErrorToLogger(pluginName, fmt::format("Failed to call _front_end_loaded: {}:\n{}", errorMsg, traceback));

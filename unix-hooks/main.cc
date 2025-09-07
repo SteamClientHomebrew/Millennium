@@ -39,15 +39,13 @@ class ProxySentinel
     bool LoadAndStartMillennium()
     {
         m_millenniumInstanceHandle = dlopen(kMillenniumLibraryPath.c_str(), RTLD_LAZY | RTLD_GLOBAL);
-        if (!m_millenniumInstanceHandle)
-        {
+        if (!m_millenniumInstanceHandle) {
             LOG_ERROR("Failed to load Millennium library: %s", dlerror());
             return false;
         }
 
         auto startMillennium = (StartMillennium_t)dlsym(m_millenniumInstanceHandle, "StartMillennium");
-        if (!startMillennium)
-        {
+        if (!startMillennium) {
             LOG_ERROR("Failed to locate ordinal HookInterop::StartMillennium: %s", dlerror());
             dlclose(m_millenniumInstanceHandle);
             m_millenniumInstanceHandle = nullptr;
@@ -55,8 +53,7 @@ class ProxySentinel
         }
 
         int result = startMillennium();
-        if (result < 0)
-        {
+        if (result < 0) {
             LOG_ERROR("Failed to start Millennium: %d", result);
             dlclose(m_millenniumInstanceHandle);
             m_millenniumInstanceHandle = nullptr;
@@ -68,23 +65,18 @@ class ProxySentinel
 
     void StopAndUnloadMillennium()
     {
-        if (!m_millenniumInstanceHandle)
-        {
+        if (!m_millenniumInstanceHandle) {
             LOG_ERROR("Millennium library is not loaded.");
             return;
         }
 
         auto stopMillennium = (StopMillennium_t)dlsym(m_millenniumInstanceHandle, "StopMillennium");
-        if (stopMillennium)
-        {
+        if (stopMillennium) {
             int result = stopMillennium();
-            if (result < 0)
-            {
+            if (result < 0) {
                 LOG_ERROR("Failed to stop Millennium: %d", result);
             }
-        }
-        else
-        {
+        } else {
             LOG_ERROR("Failed to locate ordinal HookInterop::StopMillennium: %s", dlerror());
         }
 
@@ -96,8 +88,7 @@ class ProxySentinel
     {
         static char path[PATH_MAX];
         ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
-        if (len != -1)
-        {
+        if (len != -1) {
             path[len] = '\0';
             return path;
         }
@@ -124,23 +115,20 @@ class ProxySentinel
     {
         const char* currentModulePath = GetProcessPathParent();
 
-        if (!currentModulePath)
-        {
+        if (!currentModulePath) {
             LOG_ERROR("Failed to retrieve current directory.");
             return;
         }
 
         auto libXTstPath = std::filesystem::path(currentModulePath) / "steam-runtime" / "usr" / "lib" / "i386-linux-gnu" / "libXtst.so.6";
 
-        if (access(libXTstPath.string().c_str(), F_OK) == -1)
-        {
+        if (access(libXTstPath.string().c_str(), F_OK) == -1) {
             LOG_ERROR("Pinned libXtst does not exist at: %s", libXTstPath.string().c_str());
             return;
         }
 
         g_originalXTstInstance = dlopen(libXTstPath.string().c_str(), RTLD_LAZY | RTLD_GLOBAL);
-        if (!g_originalXTstInstance)
-        {
+        if (!g_originalXTstInstance) {
             fprintf(stderr, "Failed to load libXtst: %s\n", dlerror());
         }
     }
@@ -173,8 +161,7 @@ class ProxySentinel
     {
         const bool isSteamProcess = IsSteamProcess();
 
-        if (!isSteamProcess)
-        {
+        if (!isSteamProcess) {
             LOG_INFO("Skipping Millennium setup for non-Steam process. Process path: %s", GetProcessPath());
             return;
         }
@@ -185,21 +172,18 @@ class ProxySentinel
         m_hasLoadedMillennium = true;
 
         LOG_INFO("Bootstrap library loaded successfully. Using Millennium library at: %s", kMillenniumLibraryPath.c_str());
-        if (this->LoadAndStartMillennium())
-        {
+        if (this->LoadAndStartMillennium()) {
             LOG_INFO("Starting Millennium...");
         }
     }
 
     ~ProxySentinel()
     {
-        if (g_originalXTstInstance)
-        {
+        if (g_originalXTstInstance) {
             dlclose(g_originalXTstInstance);
         }
 
-        if (!m_hasLoadedMillennium)
-        {
+        if (!m_hasLoadedMillennium) {
             return;
         }
 

@@ -58,37 +58,30 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
     const char* methodName = NULL;
     PyObject* parameterList = NULL;
 
-    static const char* keywordArgsList[] = {"method_name", "params", NULL};
+    static const char* keywordArgsList[] = { "method_name", "params", NULL };
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)keywordArgsList, &methodName, &parameterList))
-    {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)keywordArgsList, &methodName, &parameterList)) {
         return NULL;
     }
 
     std::vector<JavaScript::JsFunctionConstructTypes> params;
 
-    if (parameterList != NULL)
-    {
-        if (!PyList_Check(parameterList))
-        {
+    if (parameterList != NULL) {
+        if (!PyList_Check(parameterList)) {
             PyErr_SetString(PyExc_TypeError, "params must be a list");
             return NULL;
         }
 
         Py_ssize_t listSize = PyList_Size(parameterList);
 
-        for (Py_ssize_t i = 0; i < listSize; ++i)
-        {
+        for (Py_ssize_t i = 0; i < listSize; ++i) {
             PyObject* listItem = PyList_GetItem(parameterList, i);
             const std::string strValue = PyUnicode_AsUTF8(PyObject_Str(listItem));
             const std::string valueType = Py_TYPE(listItem)->tp_name;
 
-            try
-            {
-                params.push_back({strValue, typeMap[valueType]});
-            }
-            catch (const std::exception&)
-            {
+            try {
+                params.push_back({ strValue, typeMap[valueType] });
+            } catch (const std::exception&) {
                 PyErr_SetString(PyExc_TypeError, "Millennium's IPC can only handle [bool, str, int]");
                 return NULL;
             }
@@ -98,8 +91,7 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
     PyObject* globals = PyModule_GetDict(PyImport_AddModule("__main__"));
     PyObject* pluginNameObj = PyRun_String("MILLENNIUM_PLUGIN_SECRET_NAME", Py_eval_input, globals, globals);
 
-    if (pluginNameObj == nullptr || PyErr_Occurred())
-    {
+    if (pluginNameObj == nullptr || PyErr_Occurred()) {
         LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
         return NULL;
     }
@@ -134,8 +126,7 @@ PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
 {
     int moduleId;
 
-    if (!PyArg_ParseTuple(args, "i", &moduleId))
-    {
+    if (!PyArg_ParseTuple(args, "i", &moduleId)) {
         return NULL;
     }
 
@@ -149,20 +140,16 @@ unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes ty
     const char* regexSelector = ".*"; // Default value if no second parameter is provided
 
     // Parse arguments: moduleItem is required, regexSelector is optional
-    if (!PyArg_ParseTuple(args, "s|s", &moduleItem, &regexSelector))
-    {
+    if (!PyArg_ParseTuple(args, "s|s", &moduleItem, &regexSelector)) {
         return 0;
     }
 
     g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
-    try
-    {
-        HttpHookManager::get().AddHook({path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId});
-    }
-    catch (const std::regex_error& e)
-    {
+    try {
+        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+    } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", regexSelector, e.what());
         ErrorToLogger("executor", fmt::format("Failed to add browser module with invalid regex: {} ({})", regexSelector, e.what()));
         return 0;
@@ -190,15 +177,13 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     BackendManager& manager = BackendManager::GetInstance();
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
-    if (!PyArg_ParseTuple(args, "O", &input))
-    {
+    if (!PyArg_ParseTuple(args, "O", &input)) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to parse parameters");
         return NULL;
     }
 
     // Only accept list format
-    if (!PyList_Check(input))
-    {
+    if (!PyList_Check(input)) {
         PyErr_SetString(PyExc_TypeError, "Argument must be a list of dictionaries with 'plugin_name' and 'enabled' fields");
         return NULL;
     }
@@ -207,12 +192,10 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     std::unordered_map<std::string, bool> pluginStatusMap;
     Py_ssize_t listSize = PyList_Size(input);
 
-    for (Py_ssize_t i = 0; i < listSize; i++)
-    {
+    for (Py_ssize_t i = 0; i < listSize; i++) {
         PyObject* item = PyList_GetItem(input, i);
 
-        if (!PyDict_Check(item))
-        {
+        if (!PyDict_Check(item)) {
             PyErr_SetString(PyExc_TypeError, "List items must be dictionaries");
             return NULL;
         }
@@ -220,14 +203,12 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
         PyObject* nameObj = PyDict_GetItemString(item, "plugin_name");
         PyObject* enabledObj = PyDict_GetItemString(item, "enabled");
 
-        if (!nameObj || !PyUnicode_Check(nameObj))
-        {
+        if (!nameObj || !PyUnicode_Check(nameObj)) {
             PyErr_SetString(PyExc_TypeError, "Each dictionary must have a 'plugin_name' string key");
             return NULL;
         }
 
-        if (!enabledObj || !PyBool_Check(enabledObj))
-        {
+        if (!enabledObj || !PyBool_Check(enabledObj)) {
             PyErr_SetString(PyExc_TypeError, "Each dictionary must have an 'enabled' boolean key");
             return NULL;
         }
@@ -243,33 +224,27 @@ PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
     std::vector<std::string> pluginsToDisable;
 
     // Update settings and prepare lists
-    for (const auto& entry : pluginStatusMap)
-    {
+    for (const auto& entry : pluginStatusMap) {
         const std::string& pluginName = entry.first;
         const bool newStatus = entry.second;
 
         settingsStore->TogglePluginStatus(pluginName.c_str(), newStatus);
 
-        if (newStatus)
-        {
+        if (newStatus) {
             hasEnableRequests = true;
             Logger.Log("requested to enable plugin [{}]", pluginName);
-        }
-        else
-        {
+        } else {
             pluginsToDisable.push_back(pluginName);
             Logger.Log("requested to disable plugin [{}]", pluginName);
         }
     }
 
     // Handle the actual operations
-    if (hasEnableRequests)
-    {
+    if (hasEnableRequests) {
         std::thread([&manager] { g_pluginLoader->StartBackEnds(manager); }).detach();
     }
 
-    for (const auto& pluginName : pluginsToDisable)
-    {
+    for (const auto& pluginName : pluginsToDisable) {
         std::thread([pluginName, &manager] { manager.DestroyPythonInstance(pluginName.c_str()); }).detach();
     }
 
@@ -284,8 +259,7 @@ PyObject* IsPluginEnable(PyObject* self, PyObject* args)
 {
     const char* pluginName = NULL;
 
-    if (!PyArg_ParseTuple(args, "s", &pluginName))
-    {
+    if (!PyArg_ParseTuple(args, "s", &pluginName)) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to parse parameters");
         return NULL;
     }
@@ -300,8 +274,7 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
     PyObject* globals = PyModule_GetDict(PyImport_AddModule("__main__"));
     PyObject* pluginNameObj = PyRun_String("MILLENNIUM_PLUGIN_SECRET_NAME", Py_eval_input, globals, globals);
 
-    if (pluginNameObj == nullptr || PyErr_Occurred())
-    {
+    if (pluginNameObj == nullptr || PyErr_Occurred()) {
         LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
         return NULL;
     }
@@ -309,7 +282,7 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
 
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
-    backendHandler.BackendLoaded({pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS});
+    backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
 
     return PyBool_FromLong(true);
 }
@@ -321,38 +294,33 @@ PyObject* GetPluginLogs(PyObject* self, PyObject* args)
 
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
 
-    for (auto& logger : g_loggerList)
-    {
+    for (auto& logger : g_loggerList) {
         nlohmann::json logDataItem;
 
-        for (auto [message, logLevel] : logger->CollectLogs())
-        {
+        for (auto [message, logLevel] : logger->CollectLogs()) {
             logDataItem.push_back({
-                {"message", Base64Encode(message)},
-                {"level",   logLevel             }
+                { "message", Base64Encode(message) },
+                { "level",   logLevel              }
             });
         }
 
         std::string pluginName = logger->GetPluginName(false);
 
-        for (auto& plugin : plugins)
-        {
-            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false))
-            {
+        for (auto& plugin : plugins) {
+            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false)) {
                 pluginName = plugin.pluginJson.value("common_name", pluginName);
                 break;
             }
         }
 
         // Handle package manager plugin
-        if (pluginName == "pipx")
-        {
+        if (pluginName == "pipx") {
             pluginName = "Package Manager";
         }
 
         logData.push_back({
-            {"name", pluginName },
-            {"logs", logDataItem}
+            { "name", pluginName  },
+            { "logs", logDataItem }
         });
     }
 
@@ -372,42 +340,42 @@ PyMethodDef* PyGetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = {
         /** Called *one time* after your plugin has finished bootstrapping. Its used to let Millennium know what plugins crashes/loaded etc.  */
-        {"ready",                     EmitReadyMessage,                METH_NOARGS,                  NULL},
+        { "ready",                     EmitReadyMessage,                METH_NOARGS,                  NULL },
 
         /** Add a CSS file to the browser webkit hook list */
-        {"add_browser_css",           AddBrowserCss,                   METH_VARARGS,                 NULL},
+        { "add_browser_css",           AddBrowserCss,                   METH_VARARGS,                 NULL },
         /** Add a JavaScript file to the browser webkit hook list */
-        {"add_browser_js",            AddBrowserJs,                    METH_VARARGS,                 NULL},
+        { "add_browser_js",            AddBrowserJs,                    METH_VARARGS,                 NULL },
         /** Remove a CSS or JavaScript file, passing the ModuleID provided from add_browser_js/css */
-        {"remove_browser_module",     RemoveBrowserModule,             METH_VARARGS,                 NULL},
+        { "remove_browser_module",     RemoveBrowserModule,             METH_VARARGS,                 NULL },
 
-        {"get_user_settings",         GetUserSettings,                 METH_NOARGS,                  NULL},
-        {"set_user_settings_key",     SetUserSettings,                 METH_VARARGS,                 NULL},
+        { "get_user_settings",         GetUserSettings,                 METH_NOARGS,                  NULL },
+        { "set_user_settings_key",     SetUserSettings,                 METH_VARARGS,                 NULL },
         /** Get the version of Millennium. In semantic versioning format. */
-        {"version",                   GetVersionInfo,                  METH_NOARGS,                  NULL},
+        { "version",                   GetVersionInfo,                  METH_NOARGS,                  NULL },
         /** Get the path to the Steam directory */
-        {"steam_path",                GetSteamPath,                    METH_NOARGS,                  NULL},
+        { "steam_path",                GetSteamPath,                    METH_NOARGS,                  NULL },
         /** Get the path to the Millennium install directory */
-        {"get_install_path",          GetInstallPath,                  METH_NOARGS,                  NULL},
+        { "get_install_path",          GetInstallPath,                  METH_NOARGS,                  NULL },
         /** Get all the current stored logs from all loaded and previously loaded plugins during this instance */
-        {"get_plugin_logs",           GetPluginLogs,                   METH_NOARGS,                  NULL},
+        { "get_plugin_logs",           GetPluginLogs,                   METH_NOARGS,                  NULL },
 
         /** Call a JavaScript method on the frontend. */
-        {"call_frontend_method",      (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL},
+        { "call_frontend_method",      (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
         /**
          * @note Internal Use Only
          * Used to toggle the status of a plugin, used in the Millennium settings page.
          */
-        {"change_plugin_status",      TogglePluginStatus,              METH_VARARGS,                 NULL},
+        { "change_plugin_status",      TogglePluginStatus,              METH_VARARGS,                 NULL },
         /**
          * @note Internal Use Only
          * Used to check if a plugin is enabled, used in the Millennium settings page.
          */
-        {"is_plugin_enabled",         IsPluginEnable,                  METH_VARARGS,                 NULL},
+        { "is_plugin_enabled",         IsPluginEnable,                  METH_VARARGS,                 NULL },
 
         /** For internal use, but can be used if its useful */
-        {"__internal_get_build_date", GetBuildDate,                    METH_VARARGS,                 NULL},
-        {NULL,                        NULL,                            0,                            NULL}  // Sentinel
+        { "__internal_get_build_date", GetBuildDate,                    METH_VARARGS,                 NULL },
+        { NULL,                        NULL,                            0,                            NULL }  // Sentinel
     };
 
     return moduleMethods;

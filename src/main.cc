@@ -60,19 +60,14 @@ const static void VerifyEnvironment()
     const auto filePath = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
 
     // Steam's CEF Remote Debugger isn't exposed to port 8080
-    if (!std::filesystem::exists(filePath))
-    {
-        try
-        {
+    if (!std::filesystem::exists(filePath)) {
+        try {
             std::ofstream file(filePath);
-            if (!file)
-            {
+            if (!file) {
                 throw std::runtime_error(fmt::format("Failed to create '{}': {}", filePath.string(), std::strerror(errno)));
             }
             file.close();
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             LOG_ERROR("Error enabling CEF remote debugging: {}", e.what());
 #ifdef _WIN32
             MessageBoxA(NULL, e.what(), "File Error", MB_ICONERROR | MB_OK);
@@ -91,10 +86,8 @@ const static void VerifyEnvironment()
         "Millennium is incompatible with your {} config. This is a file you likely created to block Steam updates. In order for Millennium to properly function, remove it.",
         steamUpdateBlock.string());
 
-    if (std::filesystem::exists(steamUpdateBlock))
-    {
-        try
-        {
+    if (std::filesystem::exists(steamUpdateBlock)) {
+        try {
             std::string steamConfig = SystemIO::ReadFileSync(steamUpdateBlock.string());
 
             std::vector<std::string> blackListedKeys = {
@@ -105,16 +98,12 @@ const static void VerifyEnvironment()
                 "BootStrapperInhibitUpdateOnLaunch",
             };
 
-            for (const auto& key : blackListedKeys)
-            {
-                if (steamConfig.find(key) != std::string::npos)
-                {
+            for (const auto& key : blackListedKeys) {
+                if (steamConfig.find(key) != std::string::npos) {
                     throw SystemIO::FileException("Steam.cfg contains blacklisted keys");
                 }
             }
-        }
-        catch (const SystemIO::FileException& e)
-        {
+        } catch (const SystemIO::FileException& e) {
 #ifdef _WIN32
             MessageBoxA(NULL, errorMessage.c_str(), "Startup Error", MB_ICONERROR | MB_OK);
 #endif
@@ -134,12 +123,9 @@ std::string DemangleName(const char* mangledName)
     int status = 0;
     std::unique_ptr<char, void (*)(void*)> demangled(abi::__cxa_demangle(mangledName, nullptr, nullptr, &status), std::free);
 
-    if (status == 0 && demangled)
-    {
+    if (status == 0 && demangled) {
         return std::string(demangled.get());
-    }
-    else
-    {
+    } else {
         // If demangling fails, return the original name
         return std::string(mangledName);
     }
@@ -153,8 +139,7 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
     options &= ~SYMOPT_UNDNAME;
     SymSetOptions(options);
 
-    if (!SymInitialize(process, NULL, TRUE))
-    {
+    if (!SymInitialize(process, NULL, TRUE)) {
         DWORD error = GetLastError();
         errorMessage.append(fmt::format("\nFailed to initialize symbol handler: Error {}\n", error));
         return;
@@ -166,8 +151,7 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
     constexpr int MAX_NAME_LENGTH = 1024;
     SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(1, sizeof(SYMBOL_INFO) + MAX_NAME_LENGTH * sizeof(CHAR));
 
-    if (!symbol)
-    {
+    if (!symbol) {
         errorMessage.append("\nFailed to allocate memory for symbols\n");
         SymCleanup(process);
         return;
@@ -181,25 +165,20 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
 
     errorMessage.append(fmt::format("\nStack trace ({} frames):\n", frames));
 
-    for (USHORT i = 0; i < frames; i++)
-    {
+    for (USHORT i = 0; i < frames; i++) {
         DWORD64 address = (DWORD64)(stack[i]);
         DWORD64 displacement = 0;
 
         BOOL symbolResult = SymFromAddr(process, address, &displacement, symbol);
 
-        if (symbolResult)
-        {
+        if (symbolResult) {
             // Try to demangle it for MinGW-compiled code
             std::string demangledName;
 
             // Check if this looks like a C++ mangled name (typically starts with _Z for GCC/MinGW)
-            if (symbol->Name[0] == '_' && (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N'))
-            {
+            if (symbol->Name[0] == '_' && (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N')) {
                 demangledName = DemangleName(symbol->Name);
-            }
-            else
-            {
+            } else {
                 // Not a GCC-style mangled name, use as is
                 demangledName = symbol->Name;
             }
@@ -208,17 +187,12 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
             DWORD lineDisplacement = 0;
             BOOL lineResult = SymGetLineFromAddr64(process, address, &lineDisplacement, &line);
 
-            if (lineResult)
-            {
+            if (lineResult) {
                 errorMessage.append(fmt::format("#{}: {} in {} at {}:{} +{}\n", i, demangledName, line.FileName, line.LineNumber, lineDisplacement));
-            }
-            else
-            {
+            } else {
                 errorMessage.append(fmt::format("#{}: {} at 0x{:X} (no line info, error: {})\n", i, demangledName, address, GetLastError()));
             }
-        }
-        else
-        {
+        } else {
             errorMessage.append(fmt::format("#{}: 0x{:X} (unknown symbol, error: {})\n", i, address, GetLastError()));
         }
     }
@@ -237,20 +211,14 @@ void OnTerminate()
     auto const exceptionPtr = std::current_exception();
     std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
 
-    if (exceptionPtr)
-    {
-        try
-        {
+    if (exceptionPtr) {
+        try {
             int status;
             errorMessage.append(fmt::format("Terminating with uncaught exception of type `{}`", abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status)));
             std::rethrow_exception(exceptionPtr);
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             errorMessage.append(fmt::format(" with `what()` = \"{}\"", e.what()));
-        }
-        catch (...)
-        {
+        } catch (...) {
         }
     }
 
@@ -269,8 +237,7 @@ void OnTerminate()
         "Please send this file to Millennium developers on our discord (steambrew.app/discord), it will help prevent this error from happening to you or others in the future.",
         "Error Recovery", MB_ICONEXCLAMATION | MB_YESNO);
 
-    if (result == IDYES)
-    {
+    if (result == IDYES) {
         std::string logPath = (SystemIO::GetInstallPath() / "ext" / "logs").string();
         ShellExecuteA(NULL, "open", logPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
     }
@@ -322,30 +289,23 @@ __attribute__((constructor)) void __init_millennium()
 #if defined(__linux__)
     char path[PATH_MAX];
     ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
-    if (len != -1)
-    {
+    if (len != -1) {
         path[len] = '\0';
         const char* pathPtr = path;
 
         // Check if the path is the same as the Steam executable
-        if (!IsSamePath(pathPtr, fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME")).c_str()))
-        {
+        if (!IsSamePath(pathPtr, fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME")).c_str())) {
             return;
         }
-    }
-    else
-    {
+    } else {
         perror("readlink");
         return;
     }
 #endif
 
-    try
-    {
+    try {
         SetupEnvironmentVariables();
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to set up environment variables: {}", e.what());
         std::exit(EXIT_FAILURE);
     }
@@ -360,8 +320,7 @@ std::unique_ptr<std::thread> g_millenniumThread;
  */
 extern "C" __attribute__((dllexport)) int __stdcall DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-    switch (fdwReason)
-    {
+    switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
         {
             g_millenniumThread = std::make_unique<std::thread>(EntryMain);
@@ -411,8 +370,7 @@ extern "C"
         Logger.Log("Hooked main() with PID: {}", getpid());
         Logger.Log("Loading python libraries from {}", __LIBPYTHON_RUNTIME_PATH);
 
-        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL))
-        {
+        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
 
@@ -427,8 +385,7 @@ extern "C"
         g_threadTerminateFlag->flag.store(true);
 
         Sockets::Shutdown();
-        if (g_millenniumThread && g_millenniumThread->joinable())
-        {
+        if (g_millenniumThread && g_millenniumThread->joinable()) {
             g_millenniumThread->join();
         }
 
@@ -443,8 +400,7 @@ extern "C"
         Logger.Log("Hooked main() with PID: {}", getpid());
         Logger.Log("Loading python libraries from {}", __LIBPYTHON_RUNTIME_PATH);
 
-        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL))
-        {
+        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
 
@@ -486,8 +442,7 @@ extern "C"
     void RemoveFromLdPreload()
     {
         const char* ldPreload = std::getenv("LD_PRELOAD");
-        if (!ldPreload)
-        {
+        if (!ldPreload) {
             LOG_ERROR("LD_PRELOAD environment variable is not set, this shouldn't be possible?");
             return;
         }
@@ -502,17 +457,14 @@ extern "C"
         std::stringstream ss(ldPreloadStr);
         std::string token;
 
-        while (ss >> token)
-        {
-            if (token != millenniumPath)
-            {
+        while (ss >> token) {
+            if (token != millenniumPath) {
                 tokens.push_back(token);
             }
         }
 
         std::string updatedLdPreload;
-        for (size_t i = 0; i < tokens.size(); ++i)
-        {
+        for (size_t i = 0; i < tokens.size(); ++i) {
             if (i > 0)
                 updatedLdPreload += " ";
             updatedLdPreload += tokens[i];
@@ -520,8 +472,7 @@ extern "C"
 
         std::cout << "Updating LD_PRELOAD from [" << ldPreloadStr << "] to [" << updatedLdPreload << "]\n";
 
-        if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0)
-        {
+        if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0) {
             std::perror("setenv");
         }
     }
@@ -533,35 +484,29 @@ extern "C"
         struct stat stat1, stat2;
 
         // Get the real paths for both paths (resolves symlinks)
-        if (realpath(path1, realpath1) == NULL)
-        {
+        if (realpath(path1, realpath1) == NULL) {
             perror("realpath failed for path1");
             return 0; // Error in resolving path
         }
-        if (realpath(path2, realpath2) == NULL)
-        {
+        if (realpath(path2, realpath2) == NULL) {
             perror("realpath failed for path2");
             return 0; // Error in resolving path
         }
 
         // Compare resolved paths
-        if (strcmp(realpath1, realpath2) != 0)
-        {
+        if (strcmp(realpath1, realpath2) != 0) {
             return 0; // Paths are different
         }
 
         // Check if both paths are symlinks and compare symlink targets
-        if (lstat(path1, &stat1) == 0 && lstat(path2, &stat2) == 0)
-        {
-            if (S_ISLNK(stat1.st_mode) && S_ISLNK(stat2.st_mode))
-            {
+        if (lstat(path1, &stat1) == 0 && lstat(path2, &stat2) == 0) {
+            if (S_ISLNK(stat1.st_mode) && S_ISLNK(stat2.st_mode)) {
                 // Both are symlinks, compare the target paths
                 char target1[PATH_MAX], target2[PATH_MAX];
                 ssize_t len1 = readlink(path1, target1, sizeof(target1) - 1);
                 ssize_t len2 = readlink(path2, target2, sizeof(target2) - 1);
 
-                if (len1 == -1 || len2 == -1)
-                {
+                if (len1 == -1 || len2 == -1) {
                     perror("readlink failed");
                     return 0;
                 }
@@ -570,8 +515,7 @@ extern "C"
                 target2[len2] = '\0';
 
                 // Compare the symlink targets
-                if (strcmp(target1, target2) != 0)
-                {
+                if (strcmp(target1, target2) != 0) {
                     return 0; // Symlinks point to different targets
                 }
             }
@@ -585,10 +529,8 @@ extern "C"
      */
     bool IsChildUpdaterProc(int argc, char** argv)
     {
-        for (int i = 0; i < argc; ++i)
-        {
-            if (strcmp(argv[i], "-child-update-ui") == 0 || strcmp(argv[i], "-child-update-ui-socket") == 0)
-            {
+        for (int i = 0; i < argc; ++i) {
+            if (strcmp(argv[i], "-child-update-ui") == 0 || strcmp(argv[i], "-child-update-ui-socket") == 0) {
                 return true;
             }
         }
@@ -608,8 +550,7 @@ extern "C"
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
         /** not loaded in a invalid child process */
-        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv))
-        {
+        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv)) {
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }
 
@@ -629,12 +570,11 @@ extern "C"
 
 int main(int argc, char** argv, char** envp)
 {
-    signal(SIGTERM,
-           [](int signalCode)
-           {
-               Logger.Warn("Received terminate signal...");
-               g_threadTerminateFlag->flag.store(true);
-           });
+    signal(SIGTERM, [](int signalCode)
+    {
+        Logger.Warn("Received terminate signal...");
+        g_threadTerminateFlag->flag.store(true);
+    });
 
     int result = MainHooked(argc, argv, envp);
     Logger.Log("Millennium main returned: {}", result);

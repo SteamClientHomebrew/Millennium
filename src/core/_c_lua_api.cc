@@ -57,53 +57,40 @@ int Lua_CallFrontendMethod(lua_State* L)
     const char* methodName = luaL_checkstring(L, 1);
     std::vector<JavaScript::JsFunctionConstructTypes> params;
 
-    if (lua_gettop(L) >= 2 && !lua_isnil(L, 2))
-    {
-        if (!lua_istable(L, 2))
-        {
+    if (lua_gettop(L) >= 2 && !lua_isnil(L, 2)) {
+        if (!lua_istable(L, 2)) {
             return luaL_error(L, "params must be a table");
         }
 
         // LuaJIT: use lua_objlen instead of lua_len
         int len = (int)lua_objlen(L, 2);
 
-        for (int i = 1; i <= len; ++i)
-        {
+        for (int i = 1; i <= len; ++i) {
             // LuaJIT: use lua_rawgeti instead of lua_geti
             lua_rawgeti(L, 2, i);
 
             std::string valueType;
             const char* strValue = nullptr;
 
-            if (lua_isstring(L, -1))
-            {
+            if (lua_isstring(L, -1)) {
                 valueType = "string";
                 strValue = lua_tostring(L, -1);
-            }
-            else if (lua_isboolean(L, -1))
-            {
+            } else if (lua_isboolean(L, -1)) {
                 valueType = "boolean";
                 strValue = lua_toboolean(L, -1) ? "true" : "false";
-            }
-            else if (lua_isnumber(L, -1))
-            {
+            } else if (lua_isnumber(L, -1)) {
                 valueType = "number";
                 static thread_local char numBuf[64];
                 snprintf(numBuf, sizeof(numBuf), "%.17g", lua_tonumber(L, -1));
                 strValue = numBuf;
-            }
-            else
-            {
+            } else {
                 lua_pop(L, 1);
                 return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
             }
 
-            try
-            {
-                params.push_back({strValue, typeMap[valueType]});
-            }
-            catch (const std::exception&)
-            {
+            try {
+                params.push_back({ strValue, typeMap[valueType] });
+            } catch (const std::exception&) {
                 lua_pop(L, 1);
                 return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
             }
@@ -113,8 +100,7 @@ int Lua_CallFrontendMethod(lua_State* L)
     }
 
     lua_getglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
-    if (lua_isnil(L, -1))
-    {
+    if (lua_isnil(L, -1)) {
         LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
         lua_pushnil(L);
         return 1;
@@ -170,12 +156,9 @@ unsigned long long Lua_AddBrowserModule(lua_State* L, HttpHookManager::TagTypes 
     g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
-    try
-    {
-        HttpHookManager::get().AddHook({path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId});
-    }
-    catch (const std::regex_error& e)
-    {
+    try {
+        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+    } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", regexSelector, e.what());
         ErrorToLogger("executor", fmt::format("Failed to add browser module with invalid regex: {} ({})", regexSelector, e.what()));
         return 0;
@@ -216,8 +199,7 @@ int Lua_IsPluginEnable(lua_State* L)
 int Lua_EmitReadyMessage(lua_State* L)
 {
     lua_getglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
-    if (lua_isnil(L, -1))
-    {
+    if (lua_isnil(L, -1)) {
         LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
         lua_pushboolean(L, 0);
         return 1;
@@ -227,7 +209,7 @@ int Lua_EmitReadyMessage(lua_State* L)
     lua_pop(L, 1);
 
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
-    backendHandler.BackendLoaded({pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS});
+    backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
 
     lua_pushboolean(L, 1);
     return 1;
@@ -240,38 +222,33 @@ int Lua_GetPluginLogs(lua_State* L)
 
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
 
-    for (auto& logger : g_loggerList)
-    {
+    for (auto& logger : g_loggerList) {
         nlohmann::json logDataItem;
 
-        for (auto [message, logLevel] : logger->CollectLogs())
-        {
+        for (auto [message, logLevel] : logger->CollectLogs()) {
             logDataItem.push_back({
-                {"message", Base64Encode(message)},
-                {"level",   logLevel             }
+                { "message", Base64Encode(message) },
+                { "level",   logLevel              }
             });
         }
 
         std::string pluginName = logger->GetPluginName(false);
 
-        for (auto& plugin : plugins)
-        {
-            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false))
-            {
+        for (auto& plugin : plugins) {
+            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false)) {
                 pluginName = plugin.pluginJson.value("common_name", pluginName);
                 break;
             }
         }
 
         // Handle package manager plugin
-        if (pluginName == "pipx")
-        {
+        if (pluginName == "pipx") {
             pluginName = "Package Manager";
         }
 
         logData.push_back({
-            {"name", pluginName },
-            {"logs", logDataItem}
+            { "name", pluginName  },
+            { "logs", logDataItem }
         });
     }
 
@@ -290,42 +267,42 @@ int Lua_GetBuildDate(lua_State* L)
  */
 static const luaL_Reg millennium_lib[] = {
     /** Called *one time* after your plugin has finished bootstrapping. Its used to let Millennium know what plugins crashes/loaded etc.  */
-    {"ready",                     Lua_EmitReadyMessage   },
+    { "ready",                     Lua_EmitReadyMessage    },
 
     /** Add a CSS file to the browser webkit hook list */
-    {"add_browser_css",           Lua_AddBrowserCss      },
+    { "add_browser_css",           Lua_AddBrowserCss       },
     /** Add a JavaScript file to the browser webkit hook list */
-    {"add_browser_js",            Lua_AddBrowserJs       },
+    { "add_browser_js",            Lua_AddBrowserJs        },
     /** Remove a CSS or JavaScript file, passing the ModuleID provided from add_browser_js/css */
-    {"remove_browser_module",     Lua_RemoveBrowserModule},
+    { "remove_browser_module",     Lua_RemoveBrowserModule },
 
-    {"get_user_settings",         Lua_GetUserSettings    },
-    {"set_user_settings_key",     Lua_SetUserSettings    },
+    { "get_user_settings",         Lua_GetUserSettings     },
+    { "set_user_settings_key",     Lua_SetUserSettings     },
     /** Get the version of Millennium. In semantic versioning format. */
-    {"version",                   Lua_GetVersionInfo     },
+    { "version",                   Lua_GetVersionInfo      },
     /** Get the path to the Steam directory */
-    {"steam_path",                Lua_GetSteamPath       },
+    { "steam_path",                Lua_GetSteamPath        },
     /** Get the path to the Millennium install directory */
-    {"get_install_path",          Lua_GetInstallPath     },
+    { "get_install_path",          Lua_GetInstallPath      },
     /** Get all the current stored logs from all loaded and previously loaded plugins during this instance */
-    {"get_plugin_logs",           Lua_GetPluginLogs      },
+    { "get_plugin_logs",           Lua_GetPluginLogs       },
 
     /** Call a JavaScript method on the frontend. */
-    {"call_frontend_method",      Lua_CallFrontendMethod },
+    { "call_frontend_method",      Lua_CallFrontendMethod  },
     /**
      * @note Internal Use Only
      * Used to toggle the status of a plugin, used in the Millennium settings page.
      */
-    {"change_plugin_status",      Lua_TogglePluginStatus },
+    { "change_plugin_status",      Lua_TogglePluginStatus  },
     /**
      * @note Internal Use Only
      * Used to check if a plugin is enabled, used in the Millennium settings page.
      */
-    {"is_plugin_enabled",         Lua_IsPluginEnable     },
+    { "is_plugin_enabled",         Lua_IsPluginEnable      },
 
     /** For internal use, but can be used if its useful */
-    {"__internal_get_build_date", Lua_GetBuildDate       },
-    {NULL,                        NULL                   }  // Sentinel
+    { "__internal_get_build_date", Lua_GetBuildDate        },
+    { NULL,                        NULL                    }  // Sentinel
 };
 
 /**

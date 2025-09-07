@@ -49,7 +49,7 @@
  */
 PyObject* PyInit_Millennium(void)
 {
-    static struct PyModuleDef module_def = {PyModuleDef_HEAD_INIT, "Millennium", NULL, -1, (PyMethodDef*)PyGetMillenniumModule()};
+    static struct PyModuleDef module_def = { PyModuleDef_HEAD_INIT, "Millennium", NULL, -1, (PyMethodDef*)PyGetMillenniumModule() };
 
     return PyModule_Create(&module_def);
 }
@@ -70,14 +70,11 @@ const std::string GetPythonVersion()
 
     // Run the code and get the result
     PyObject* platformModule = PyImport_ImportModule("platform");
-    if (platformModule)
-    {
+    if (platformModule) {
         PyObject* versionFn = PyObject_GetAttrString(platformModule, "python_version");
-        if (versionFn && PyCallable_Check(versionFn))
-        {
+        if (versionFn && PyCallable_Check(versionFn)) {
             PyObject* version_result = PyObject_CallObject(versionFn, nullptr);
-            if (version_result)
-            {
+            if (version_result) {
                 pythonVersion = PyUnicode_AsUTF8(version_result);
                 Py_DECREF(version_result);
             }
@@ -124,8 +121,7 @@ BackendManager::BackendManager() : m_InterpreterThreadSave(nullptr)
     /* Read all configuration at once */
     status = PyConfig_Read(&config);
 
-    if (PyStatus_Exception(status))
-    {
+    if (PyStatus_Exception(status)) {
         LOG_ERROR("couldn't read config {}", status.err_msg);
         goto done;
     }
@@ -140,8 +136,7 @@ BackendManager::BackendManager() : m_InterpreterThreadSave(nullptr)
 
     status = Py_InitializeFromConfig(&config);
 
-    if (PyStatus_Exception(status))
-    {
+    if (PyStatus_Exception(status)) {
         LOG_ERROR("couldn't initialize from config {}", status.err_msg);
         goto done;
     }
@@ -152,8 +147,7 @@ done:
 
     const std::string version = GetPythonVersion();
 
-    if (version != "3.11.8")
-    {
+    if (version != "3.11.8") {
         Logger.Warn("Millennium is intended to run python 3.11.8. You may be prone to stability issues...");
     }
 }
@@ -174,8 +168,7 @@ BackendManager::~BackendManager()
     PyEval_RestoreThread(m_InterpreterThreadSave);
     Py_FinalizeEx();
 
-    for (auto& [pluginName, thread] : m_pyThreadPool)
-    {
+    for (auto& [pluginName, thread] : m_pyThreadPool) {
         Logger.Log("Joining thread for plugin '{}'", pluginName);
         thread.join();
     }
@@ -197,28 +190,24 @@ bool BackendManager::DestroyAllPythonInstances()
     std::atomic<bool> timeOutLockThreadRunning = true;
     std::unique_lock<std::mutex> lock(this->m_pythonMutex); // Lock for thread safety
 
-    std::thread timeOutThread(
-        [&timeOutLockThreadRunning, startTime]
-        {
-            while (timeOutLockThreadRunning.load())
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::thread timeOutThread([&timeOutLockThreadRunning, startTime]
+    {
+        while (timeOutLockThreadRunning.load()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-                if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(10))
-                {
-                    LOG_ERROR("Exceeded 10 second timeout for shutting down plugins, force terminating Steam. This is likely a plugin issue, unrelated to Millennium.");
+            if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(10)) {
+                LOG_ERROR("Exceeded 10 second timeout for shutting down plugins, force terminating Steam. This is likely a plugin issue, unrelated to Millennium.");
 
 #ifdef _WIN32
-                    std::exit(1);
+                std::exit(1);
 #elif __linux__
-                    raise(SIGINT);
+                raise(SIGINT);
 #endif
-                }
             }
-        });
+        }
+    });
 
-    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */)
-    {
+    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */) {
         auto& [pluginName, threadState, interpMutex] = *(*it);
 
         Logger.Log("Instance state: {}", static_cast<void*>(&(*it)));
@@ -232,8 +221,7 @@ bool BackendManager::DestroyAllPythonInstances()
         // Join and remove the corresponding thread safely
         auto threadIt = std::find_if(this->m_pyThreadPool.begin(), this->m_pyThreadPool.end(), [pluginName = pluginName](const auto& t) { return std::get<0>(t) == pluginName; });
 
-        if (threadIt != this->m_pyThreadPool.end())
-        {
+        if (threadIt != this->m_pyThreadPool.end()) {
             auto& [threadPluginName, thread] = *threadIt;
 
             Logger.Log("Joining thread for plugin '{}'", threadPluginName);
@@ -241,10 +229,8 @@ bool BackendManager::DestroyAllPythonInstances()
             Logger.Log("Successfully joined thread");
 
             this->m_pyThreadPool.erase(threadIt);
-            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({pluginName}, true);
-        }
-        else
-        {
+            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, true);
+        } else {
             LOG_ERROR("Couldn't find thread for plugin '{}'", pluginName);
         }
 
@@ -273,12 +259,10 @@ bool BackendManager::DestroyPythonInstance(std::string targetPluginName, bool is
 
     std::unique_lock<std::mutex> lock(this->m_pythonMutex); // Lock for thread safety
 
-    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */)
-    {
+    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */) {
         auto& [pluginName, threadState, interpMutex] = *(*it);
 
-        if (pluginName != targetPluginName)
-        {
+        if (pluginName != targetPluginName) {
             ++it;
             continue;
         }
@@ -294,22 +278,18 @@ bool BackendManager::DestroyPythonInstance(std::string targetPluginName, bool is
         Logger.Log("Notified plugin [{}] to shut down...", targetPluginName);
 
         // Remove from thread pool safely
-        for (auto threadIt = this->m_pyThreadPool.begin(); threadIt != this->m_pyThreadPool.end(); /* No increment */)
-        {
+        for (auto threadIt = this->m_pyThreadPool.begin(); threadIt != this->m_pyThreadPool.end(); /* No increment */) {
             auto& [threadPluginName, thread] = *threadIt;
 
-            if (threadPluginName == targetPluginName)
-            {
+            if (threadPluginName == targetPluginName) {
                 Logger.Log("Joining thread for plugin '{}'", targetPluginName);
                 thread.join();
 
                 Logger.Log("Successfully joined thread");
                 threadIt = this->m_pyThreadPool.erase(threadIt); // Safe erase
-                CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({targetPluginName}, isShuttingDown);
+                CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ targetPluginName }, isShuttingDown);
                 break;
-            }
-            else
-            {
+            } else {
                 ++threadIt;
             }
         }
@@ -338,51 +318,49 @@ bool BackendManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugi
     const std::string pluginName = plugin.pluginName;
     std::shared_ptr<InterpreterMutex> interpMutexState = std::make_shared<InterpreterMutex>();
 
-    auto thread = std::thread(
-        [this, pluginName, callback, plugin, interpMutexStatePtr = interpMutexState]
-        {
-            PyThreadState* threadStateMain = PyThreadState_New(PyInterpreterState_Main());
-            PyEval_RestoreThread(threadStateMain);
+    auto thread = std::thread([this, pluginName, callback, plugin, interpMutexStatePtr = interpMutexState]
+    {
+        PyThreadState* threadStateMain = PyThreadState_New(PyInterpreterState_Main());
+        PyEval_RestoreThread(threadStateMain);
 
-            PyThreadState* interpreterState = Py_NewInterpreter();
-            PyThreadState_Swap(interpreterState);
+        PyThreadState* interpreterState = Py_NewInterpreter();
+        PyThreadState_Swap(interpreterState);
 
-            std::shared_ptr<PythonThreadState> threadState = std::make_shared<PythonThreadState>(std::string(pluginName), interpreterState, interpMutexStatePtr);
+        std::shared_ptr<PythonThreadState> threadState = std::make_shared<PythonThreadState>(std::string(pluginName), interpreterState, interpMutexStatePtr);
 
-            this->m_pythonInstances.push_back(threadState);
-            RedirectOutput();
-            callback(plugin);
+        this->m_pythonInstances.push_back(threadState);
+        RedirectOutput();
+        callback(plugin);
 
-            Logger.Log("Plugin '{}' finished delegating callback function...", pluginName);
+        Logger.Log("Plugin '{}' finished delegating callback function...", pluginName);
 
-            PyThreadState_Clear(threadStateMain);
-            PyThreadState_Swap(threadStateMain);
-            PyThreadState_DeleteCurrent();
+        PyThreadState_Clear(threadStateMain);
+        PyThreadState_Swap(threadStateMain);
+        PyThreadState_DeleteCurrent();
 
-            std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
+        std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
 
-            interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { return interpMutexStatePtr->flag.load(); });
+        interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { return interpMutexStatePtr->flag.load(); });
 
-            Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
+        Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
 
-            std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-            pythonGilLock->HoldAndLockGILOnThread(interpreterState);
+        std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
+        pythonGilLock->HoldAndLockGILOnThread(interpreterState);
 
-            if (pluginName != "pipx" && PyRun_SimpleString("plugin._unload()") != 0)
-            {
-                PyErr_Print();
-                Logger.Warn("'{}' refused to shutdown properly, force shutting down plugin...", pluginName);
-                ErrorToLogger(pluginName, "Failed to shut down plugin properly, force shutting down plugin...");
-            }
+        if (pluginName != "pipx" && PyRun_SimpleString("plugin._unload()") != 0) {
+            PyErr_Print();
+            Logger.Warn("'{}' refused to shutdown properly, force shutting down plugin...", pluginName);
+            ErrorToLogger(pluginName, "Failed to shut down plugin properly, force shutting down plugin...");
+        }
 
-            Logger.Log("Shutting down plugin '{}'", pluginName);
-            Py_EndInterpreter(interpreterState);
-            Logger.Log("Ended sub-interpreter...", pluginName);
-            pythonGilLock->ReleaseAndUnLockGIL();
-            Logger.Log("Shut down plugin '{}'", pluginName);
-        });
+        Logger.Log("Shutting down plugin '{}'", pluginName);
+        Py_EndInterpreter(interpreterState);
+        Logger.Log("Ended sub-interpreter...", pluginName);
+        pythonGilLock->ReleaseAndUnLockGIL();
+        Logger.Log("Shut down plugin '{}'", pluginName);
+    });
 
-    this->m_pyThreadPool.push_back({pluginName, std::move(thread)});
+    this->m_pyThreadPool.push_back({ pluginName, std::move(thread) });
     return true;
 }
 
@@ -397,12 +375,10 @@ bool BackendManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugi
  */
 bool BackendManager::IsPythonBackendRunning(std::string targetPluginName)
 {
-    for (auto instance : this->m_pythonInstances)
-    {
+    for (auto instance : this->m_pythonInstances) {
         const auto& [pluginName, thread_ptr, interpMutex] = *instance;
 
-        if (targetPluginName == pluginName)
-        {
+        if (targetPluginName == pluginName) {
             return true;
         }
     }
@@ -413,10 +389,8 @@ bool BackendManager::HasPythonBackend(std::string targetPluginName)
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
-    for (const auto& plugin : settingsStore->GetEnabledBackends())
-    {
-        if (plugin.pluginName == targetPluginName)
-        {
+    for (const auto& plugin : settingsStore->GetEnabledBackends()) {
+        if (plugin.pluginName == targetPluginName) {
             return true;
         }
     }
@@ -435,12 +409,10 @@ bool BackendManager::HasPythonBackend(std::string targetPluginName)
  */
 std::optional<std::shared_ptr<PythonThreadState>> BackendManager::GetPythonThreadStateFromName(std::string targetPluginName)
 {
-    for (auto instance : this->m_pythonInstances)
-    {
+    for (auto instance : this->m_pythonInstances) {
         const auto& [pluginName, thread_ptr, interpMutex] = *instance;
 
-        if (targetPluginName == pluginName)
-        {
+        if (targetPluginName == pluginName) {
             return instance;
         }
     }
@@ -449,10 +421,8 @@ std::optional<std::shared_ptr<PythonThreadState>> BackendManager::GetPythonThrea
 
 std::optional<lua_State*> BackendManager::GetLuaThreadStateFromName(std::string pluginName)
 {
-    for (auto& [name, thread, L] : m_luaThreadPool)
-    {
-        if (name == pluginName)
-        {
+    for (auto& [name, thread, L] : m_luaThreadPool) {
+        if (name == pluginName) {
             return L;
         }
     }
@@ -471,12 +441,10 @@ std::optional<lua_State*> BackendManager::GetLuaThreadStateFromName(std::string 
  */
 std::string BackendManager::GetPluginNameFromThreadState(PyThreadState* thread)
 {
-    for (auto instance : this->m_pythonInstances)
-    {
+    for (auto instance : this->m_pythonInstances) {
         const auto& [pluginName, thread_ptr, interpMutex] = *instance;
 
-        if (thread_ptr != nullptr && thread_ptr == thread)
-        {
+        if (thread_ptr != nullptr && thread_ptr == thread) {
             return pluginName;
         }
     }
@@ -487,10 +455,8 @@ SettingsStore::PluginBackendType BackendManager::GetPluginBackendType(std::strin
 {
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
-    for (const auto& plugin : settingsStore->GetEnabledBackends())
-    {
-        if (plugin.pluginName == pluginName)
-        {
+    for (const auto& plugin : settingsStore->GetEnabledBackends()) {
+        if (plugin.pluginName == pluginName) {
             return plugin.backendType;
         }
     }
@@ -499,10 +465,8 @@ SettingsStore::PluginBackendType BackendManager::GetPluginBackendType(std::strin
 
 std::tuple<lua_State*, std::unique_ptr<std::mutex>>* BackendManager::FindEntry(lua_State* L)
 {
-    for (auto& entry : m_luaMutexPool)
-    {
-        if (std::get<0>(entry) == L)
-        {
+    for (auto& entry : m_luaMutexPool) {
+        if (std::get<0>(entry) == L) {
             return &entry;
         }
     }
@@ -543,8 +507,7 @@ bool BackendManager::Lua_IsMutexLocked(lua_State* L)
         throw std::runtime_error("lua_State not found in pool");
 
     auto& m = std::get<1>(*entry);
-    if (m->try_lock())
-    {
+    if (m->try_lock()) {
         m->unlock();
         return false;
     }
@@ -556,8 +519,7 @@ bool BackendManager::CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, 
     lua_State* L = luaL_newstate();
     m_luaMutexPool.emplace_back(L, std::make_unique<std::mutex>());
 
-    if (!L)
-    {
+    if (!L) {
         LOG_ERROR("Failed to create new Lua state");
         return false;
     }
@@ -565,12 +527,11 @@ bool BackendManager::CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, 
 
     std::string pluginName = plugin.pluginName;
 
-    std::thread luaThread(
-        [L, plugin, callback]() mutable
-        {
-            if (callback)
-                callback(plugin, L);
-        });
+    std::thread luaThread([L, plugin, callback]() mutable
+    {
+        if (callback)
+            callback(plugin, L);
+    });
 
     m_luaThreadPool.emplace_back(std::move(pluginName), std::move(luaThread), L);
     return true;

@@ -78,15 +78,13 @@ bool DownloadResource(const std::string& url, const std::string& outputFilePath)
     std::ofstream outputFile;
 
     curl = curl_easy_init();
-    if (!curl)
-    {
+    if (!curl) {
         Print("Failed to initialize CURL.");
         return false;
     }
 
     outputFile.open(outputFilePath, std::ios::binary);
-    if (!outputFile.is_open())
-    {
+    if (!outputFile.is_open()) {
         Print("Failed to open file: {}", outputFilePath);
         curl_easy_cleanup(curl);
         return false;
@@ -99,8 +97,7 @@ bool DownloadResource(const std::string& url, const std::string& outputFilePath)
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
     resultCode = curl_easy_perform(curl);
-    if (resultCode != CURLE_OK)
-    {
+    if (resultCode != CURLE_OK) {
         Print("Failed to download resource: {} {}", url, curl_easy_strerror(resultCode));
 
         outputFile.close();
@@ -128,20 +125,17 @@ const std::string Fetch(const char* url, bool shouldRetryUntilSuccess)
     std::string strResponse;
     curl = curl_easy_init();
 
-    if (curl)
-    {
+    if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &strResponse);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "Millennium/1.0");
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
 
-        while (true)
-        {
+        while (true) {
             curlResult = curl_easy_perform(curl);
 
-            if (!shouldRetryUntilSuccess || curlResult == CURLE_OK)
-            {
+            if (!shouldRetryUntilSuccess || curlResult == CURLE_OK) {
                 break;
             }
 

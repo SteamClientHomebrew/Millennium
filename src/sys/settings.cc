@@ -47,21 +47,17 @@ SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::I
 {
     const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
 
-    if (!FileSystem::exists(path))
-    {
+    if (!FileSystem::exists(path)) {
         FileSystem::create_directories(path.parent_path());
         std::ofstream outputFile(path.string());
     }
 
-    try
-    {
+    try {
         this->file = mINI::INIFile(path.string());
 
         this->file.read(ini);
         this->file.write(ini);
-    }
-    catch (const std::exception& ex)
-    {
+    } catch (const std::exception& ex) {
         Logger.Warn("An error occurred reading settings file -> {}", ex.what());
     }
 }
@@ -82,8 +78,7 @@ void SettingsStore::SetSetting(std::string key, std::string settingsData)
  */
 std::string SettingsStore::GetSetting(std::string key, std::string defaultValue)
 {
-    if (!this->ini["Settings"].has(key))
-    {
+    if (!this->ini["Settings"].has(key)) {
         this->ini["Settings"][key] = defaultValue;
     }
 
@@ -101,8 +96,7 @@ std::vector<std::string> SettingsStore::ParsePluginList()
     std::string token;
     std::istringstream tokenStream(this->GetSetting("enabled_plugins", "core"));
 
-    while (std::getline(tokenStream, token, '|'))
-    {
+    while (std::getline(tokenStream, token, '|')) {
         enabledPlugins.push_back(token);
     }
 
@@ -117,8 +111,7 @@ std::vector<std::string> SettingsStore::ParsePluginList()
 std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
 {
     std::string strEnabledPlugins;
-    for (const auto& plugin : enabledPlugins)
-    {
+    for (const auto& plugin : enabledPlugins) {
         strEnabledPlugins += plugin + "|";
     }
 
@@ -133,8 +126,7 @@ int SettingsStore::InitializeSettingsStore()
     auto enabledPlugins = this->ParsePluginList();
 
     /** Ensure that the core (Millennium) plugin is enabled */
-    if (std::find(enabledPlugins.begin(), enabledPlugins.end(), "core") == enabledPlugins.end())
-    {
+    if (std::find(enabledPlugins.begin(), enabledPlugins.end(), "core") == enabledPlugins.end()) {
         enabledPlugins.push_back("core");
     }
 
@@ -157,18 +149,14 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
     auto SettingsStore = this->ParsePluginList();
 
     /** Enable the target plugin */
-    if (enabled)
-    {
-        if (std::find(SettingsStore.begin(), SettingsStore.end(), pluginName) == SettingsStore.end())
-        {
+    if (enabled) {
+        if (std::find(SettingsStore.begin(), SettingsStore.end(), pluginName) == SettingsStore.end()) {
             SettingsStore.push_back(pluginName);
         }
     }
     /** Disable the target plugin */
-    else if (!enabled)
-    {
-        if (std::find(SettingsStore.begin(), SettingsStore.end(), pluginName) != SettingsStore.end())
-        {
+    else if (!enabled) {
+        if (std::find(SettingsStore.begin(), SettingsStore.end(), pluginName) != SettingsStore.end()) {
             SettingsStore.erase(std::remove(SettingsStore.begin(), SettingsStore.end(), pluginName), SettingsStore.end());
         }
     }
@@ -183,10 +171,8 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
  */
 bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
 {
-    for (const auto& plugin : this->ParsePluginList())
-    {
-        if (plugin == plugin_name)
-        {
+    for (const auto& plugin : this->ParsePluginList()) {
+        if (plugin == plugin_name) {
             return true;
         }
     }
@@ -203,23 +189,18 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
 {
     /** Find a total list of all plugin.json keys in `./plugin-schema.json` */
     const std::map<std::string, bool> pluginFields = {
-        {"name",        true },
-        {"description", false},
-        {"common_name", false},
+        { "name",        true  },
+        { "description", false },
+        { "common_name", false },
     };
 
-    for (const auto& field : pluginFields)
-    {
+    for (const auto& field : pluginFields) {
         auto [property, required] = field;
 
-        if (!json.contains(property))
-        {
-            if (required)
-            {
+        if (!json.contains(property)) {
+            if (required) {
                 throw std::runtime_error(fmt::format("plugin configuration must contain '{}'", property));
-            }
-            else
-            {
+            } else {
                 Logger.Warn("plugin '{}' doesn't contain a property field '{}' in '{}'", pluginName, property, SettingsStore::pluginConfigFile);
             }
         }
@@ -253,106 +234,43 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     return plugin;
 }
 
-/**
- * @brief Insert the Millennium modules into the plugin list.
- * As the Millennium modules are internal, they are not stored in the plugins directory and needs to be added manually.
- *
- * @param plugins The list of plugins to insert the Millennium modules into.
- */
-void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins)
-{
-    const std::filesystem::directory_entry entry(std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")));
-    const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
-
-    if (!FileSystem::exists(pluginConfiguration))
-    {
-        LOG_ERROR("No plugin configuration found in '{}'", entry.path().string());
-        return;
-    }
-
-    try
-    {
-        SettingsStore::PluginTypeSchema plugin;
-        const auto pluginJson = SystemIO::ReadJsonSync(pluginConfiguration.string());
-        const std::string pluginDirName = entry.path().filename().string();
-
-        LintPluginData(pluginJson, pluginDirName);
-
-        plugin.pluginJson = pluginJson;
-        plugin.pluginName = pluginJson["name"];
-        plugin.pluginBaseDirectory = entry.path();
-        plugin.backendAbsoluteDirectory = entry.path() / pluginJson.value("backend", "backend") / "main.py";
-        plugin.frontendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "index.js";
-        plugin.webkitAbsolutePath = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "webkit.js";
-        plugin.backendType = Python;
-        plugin.isInternal = true; /** Internal plugin */
-
-        plugins.push_back(plugin);
-    }
-    catch (SystemIO::FileException& exception)
-    {
-        LOG_ERROR("An error occurred reading plugin '{}', exception: {}", entry.path().string(), exception.what());
-    }
-    catch (std::exception& exception)
-    {
-        LOG_ERROR("An error occurred parsing plugin '{}', exception: {}", entry.path().string(), exception.what());
-    }
-}
-
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
     std::vector<SettingsStore::PluginTypeSchema> plugins;
     const auto plugin_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
 
-    try
-    {
+    try {
         /** Create the plugins folder if it doesn't exist. */
         std::filesystem::create_directories(plugin_path);
-    }
-    catch (const std::exception& exception)
-    {
+    } catch (const std::exception& exception) {
         LOG_ERROR("An error occurred creating plugin directories -> {}", exception.what());
     }
 
-    /** Insert the internal Millennium core plugin */
-    // this->InsertMillenniumModules(plugins);
-
     /** Find the remaining plugins from the user plugins folder. */
-    try
-    {
-        for (const auto& entry : std::filesystem::directory_iterator(plugin_path))
-        {
-            if (!entry.is_directory())
-            {
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(plugin_path)) {
+            if (!entry.is_directory()) {
                 continue;
             }
 
             const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
 
-            if (!FileSystem::exists(pluginConfiguration))
-            {
+            if (!FileSystem::exists(pluginConfiguration)) {
                 continue;
             }
 
-            try
-            {
+            try {
                 const auto pluginJson = SystemIO::ReadJsonSync(pluginConfiguration.string());
                 const auto pluginData = GetPluginInternalData(pluginJson, entry);
 
                 plugins.push_back(pluginData);
-            }
-            catch (SystemIO::FileException& exception)
-            {
+            } catch (SystemIO::FileException& exception) {
                 LOG_ERROR("An error occurred reading plugin '{}', exception: {}", entry.path().string(), exception.what());
-            }
-            catch (std::exception& exception)
-            {
+            } catch (std::exception& exception) {
                 LOG_ERROR("An error occurred parsing plugin '{}', exception: {}", entry.path().string(), exception.what());
             }
         }
-    }
-    catch (const std::exception& ex)
-    {
+    } catch (const std::exception& ex) {
         LOG_ERROR("Fall back exception caught trying to parse plugins. {}", ex.what());
     }
 
@@ -367,10 +285,8 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
     const auto allPlugins = this->ParseAllPlugins();
     std::vector<SettingsStore::PluginTypeSchema> enabledPlugins;
 
-    for (auto& plugin : allPlugins)
-    {
-        if (this->IsEnabledPlugin(plugin.pluginName))
-        {
+    for (auto& plugin : allPlugins) {
+        if (this->IsEnabledPlugin(plugin.pluginName)) {
             enabledPlugins.push_back(plugin);
         }
     }
@@ -389,10 +305,8 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
     const auto allPlugins = this->ParseAllPlugins();
     std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
 
-    for (auto& plugin : allPlugins)
-    {
-        if (this->IsEnabledPlugin(plugin.pluginName) && plugin.pluginJson.value("useBackend", true))
-        {
+    for (auto& plugin : allPlugins) {
+        if (this->IsEnabledPlugin(plugin.pluginName) && plugin.pluginJson.value("useBackend", true)) {
             enabledBackends.push_back(plugin);
         }
     }

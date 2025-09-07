@@ -60,8 +60,7 @@ std::shared_ptr<InterpreterMutex> g_threadTerminateFlag = std::make_shared<Inter
  */
 bool Sockets::PostShared(nlohmann::json data)
 {
-    if (sharedJsContextSessionId.empty())
-    {
+    if (sharedJsContextSessionId.empty()) {
         return false;
     }
 
@@ -77,8 +76,7 @@ bool Sockets::PostShared(nlohmann::json data)
  */
 bool Sockets::PostGlobal(nlohmann::json data)
 {
-    if (browserClient == nullptr)
-    {
+    if (browserClient == nullptr) {
         return false;
     }
 
@@ -92,16 +90,12 @@ bool Sockets::PostGlobal(nlohmann::json data)
  */
 void Sockets::Shutdown()
 {
-    try
-    {
-        if (browserClient != nullptr)
-        {
+    try {
+        if (browserClient != nullptr) {
             browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
             Logger.Log("Shut down browser connection...");
         }
-    }
-    catch (const websocketpp::exception& e)
-    {
+    } catch (const websocketpp::exception& e) {
         LOG_ERROR("Failed to close browser connection: {}", e.what());
     }
 }
@@ -119,43 +113,36 @@ class CEFBrowser
         const auto json = nlohmann::json::parse(msg->get_payload());
 
         if (json.contains("id") && json["id"] == 0 && json.contains("result") && json["result"].is_object() && json["result"].contains("targetInfos") &&
-            json["result"]["targetInfos"].is_array())
-        {
+            json["result"]["targetInfos"].is_array()) {
             const auto targets = json["result"]["targetInfos"];
             auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
 
-            if (targetIterator != targets.end() && !m_sharedJsConnected)
-            {
+            if (targetIterator != targets.end() && !m_sharedJsConnected) {
                 Sockets::PostGlobal({
-                    {"id",     0                                                               },
-                    {"method", "Target.attachToTarget"                                         },
-                    {"params", {{"targetId", (*targetIterator)["targetId"]}, {"flatten", true}}}
+                    { "id",     0                                                                      },
+                    { "method", "Target.attachToTarget"                                                },
+                    { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } }
                 });
                 Sockets::PostGlobal({
-                    {"id",     0                                                                                                                                      },
-                    {"method", "Target.exposeDevToolsProtocol"                                                                                                        },
-                    {"params", {{"targetId", (*targetIterator)["targetId"]}, {"bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE"}}}
+                    { "id",     0                                                                                                                                             },
+                    { "method", "Target.exposeDevToolsProtocol"                                                                                                               },
+                    { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" } } }
                 });
                 m_sharedJsConnected = true;
-            }
-            else if (!m_sharedJsConnected)
-            {
+            } else if (!m_sharedJsConnected) {
                 this->SetupSharedJSContext();
             }
         }
 
-        if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
-        {
+        if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext") {
             sharedJsContextSessionId = json["params"]["sessionId"];
             Sockets::PostShared({
-                {"id",        9494                    },
-                {"method",    "Log.enable "           },
-                {"sessionId", sharedJsContextSessionId}
+                { "id",        9494                     },
+                { "method",    "Log.enable "            },
+                { "sessionId", sharedJsContextSessionId }
             });
             this->onSharedJsConnect();
-        }
-        else
-        {
+        } else {
             JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
         }
         webKitHandler.DispatchSocketMessage(json);
@@ -164,20 +151,18 @@ class CEFBrowser
     const void SetupSharedJSContext()
     {
         Sockets::PostGlobal({
-            {"id",     0                  },
-            {"method", "Target.getTargets"}
+            { "id",     0                   },
+            { "method", "Target.getTargets" }
         });
     }
 
     const void onSharedJsConnect()
     {
-        std::thread(
-            [this]()
-            {
-                Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
-                CoInitializer::InjectFrontendShims();
-            })
-            .detach();
+        std::thread([this]()
+        {
+            Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
+            CoInitializer::InjectFrontendShims();
+        }).detach();
     }
 
     const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
@@ -236,18 +221,14 @@ const void PluginLoader::InjectWebkitShims()
     static std::vector<int> hookIds;
 
     /** Clear all previous hooks if there are any */
-    if (!hookIds.empty())
-    {
+    if (!hookIds.empty()) {
         std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::get().GetHookListCopy();
 
-        for (auto it = moduleList.begin(); it != moduleList.end();)
-        {
-            if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end())
-            {
+        for (auto it = moduleList.begin(); it != moduleList.end();) {
+            if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end()) {
                 Logger.Log("Removing hook for module id: {}", it->id);
                 it = moduleList.erase(it);
-            }
-            else
+            } else
                 ++it;
         }
 
@@ -258,17 +239,15 @@ const void PluginLoader::InjectWebkitShims()
     std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
 
     // Inject all webkit shims for enabled plugins if they have shims
-    for (auto& plugin : allPlugins)
-    {
+    for (auto& plugin : allPlugins) {
         const auto absolutePath = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
 
-        if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
-        {
+        if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath)) {
             g_hookedModuleId++;
             hookIds.push_back(g_hookedModuleId);
 
             Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId.load());
-            HttpHookManager::get().AddHook({absolutePath.generic_string(), std::regex(".*"), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId});
+            HttpHookManager::get().AddHook({ absolutePath.generic_string(), std::regex(".*"), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
         }
     }
 }
@@ -287,15 +266,13 @@ const void PluginLoader::StartFrontEnds()
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
     Logger.Log("Startup took {} ms", duration.count());
 
-    if (browserSocketThread->joinable())
-    {
+    if (browserSocketThread->joinable()) {
         Logger.Warn("Joining browser socket thread {}", (void*)browserSocketThread.get());
         browserSocketThread->join();
         Logger.Warn("Browser socket thread joined...");
     }
 
-    if (g_threadTerminateFlag->flag.load())
-    {
+    if (g_threadTerminateFlag->flag.load()) {
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
@@ -310,8 +287,7 @@ const void PluginLoader::StartFrontEnds()
 const void PluginLoader::PrintActivePlugins()
 {
     std::string pluginList = "Plugins: { ";
-    for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it)
-    {
+    for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it) {
         const auto pluginName = (*it).pluginName;
         pluginList.append(fmt::format("{}: {}{}", pluginName, m_settingsStorePtr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled",
                                       std::next(it) == (*this->m_pluginsPtr).end() ? " }" : ", "));
@@ -331,48 +307,44 @@ const void StartPreloader(BackendManager& manager)
 {
     std::promise<void> promise;
 
-    SettingsStore::PluginTypeSchema plugin{.pluginName = "pipx", .backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx", .isInternal = true};
+    SettingsStore::PluginTypeSchema plugin{ .pluginName = "pipx",
+                                            .backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx",
+                                            .isInternal = true };
 
     /** Create instance on a separate thread to prevent IO blocking of concurrent threads */
-    manager.CreatePythonInstance(plugin,
-                                 [&promise](SettingsStore::PluginTypeSchema plugin)
-                                 {
-                                     Logger.Log("Started preloader module");
-                                     const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
+    manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin)
+    {
+        Logger.Log("Started preloader module");
+        const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
-                                     PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
-                                     /** Set plugin name in the global dictionary so its stdout can be retrieved by the logger. */
-                                     SetPluginSecretName(globalDictionary, plugin.pluginName);
+        PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
+        /** Set plugin name in the global dictionary so its stdout can be retrieved by the logger. */
+        SetPluginSecretName(globalDictionary, plugin.pluginName);
 
-                                     PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
-                                     FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
+        PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
+        FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
-                                     if (mainModuleFilePtr == NULL)
-                                     {
-                                         LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
-                                         ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
-                                         return;
-                                     }
+        if (mainModuleFilePtr == NULL) {
+            LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
+            ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
+            return;
+        }
 
-                                     try
-                                     {
-                                         Logger.Log("Starting package manager thread @ {}", backendMainModule);
+        try {
+            Logger.Log("Starting package manager thread @ {}", backendMainModule);
 
-                                         if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0)
-                                         {
-                                             LOG_ERROR("Failed to run PIPX preload", plugin.pluginName);
-                                             ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
-                                             return;
-                                         }
-                                     }
-                                     catch (const std::system_error& error)
-                                     {
-                                         LOG_ERROR("Failed to run PIPX preload due to a system error: {}", error.what());
-                                     }
+            if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) {
+                LOG_ERROR("Failed to run PIPX preload", plugin.pluginName);
+                ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
+                return;
+            }
+        } catch (const std::system_error& error) {
+            LOG_ERROR("Failed to run PIPX preload due to a system error: {}", error.what());
+        }
 
-                                     Logger.Log("Preloader finished...");
-                                     promise.set_value();
-                                 });
+        Logger.Log("Preloader finished...");
+        promise.set_value();
+    });
 
     /* Wait for the package manager plugin to exit, signalling we can now start other plugins */
     promise.get_future().get();
@@ -390,13 +362,10 @@ const void PluginLoader::StartBackEnds(BackendManager& manager)
 
     Core_Load();
 
-    for (auto& plugin : *this->m_enabledPluginsPtr)
-    {
-        if (plugin.backendType == SettingsStore::PluginBackendType::Python)
-        {
+    for (auto& plugin : *this->m_enabledPluginsPtr) {
+        if (plugin.backendType == SettingsStore::PluginBackendType::Python) {
             // check if plugin is already running
-            if (manager.IsPythonBackendRunning(plugin.pluginName))
-            {
+            if (manager.IsPythonBackendRunning(plugin.pluginName)) {
                 Logger.Log("Skipping load for '{}' as it's already running", plugin.pluginName);
                 continue;
             }
@@ -405,9 +374,7 @@ const void PluginLoader::StartBackEnds(BackendManager& manager)
 
             Logger.Log("Starting backend for '{}'", plugin.pluginName);
             manager.CreatePythonInstance(plugin, cb);
-        }
-        else if (plugin.backendType == SettingsStore::PluginBackendType::Lua)
-        {
+        } else if (plugin.backendType == SettingsStore::PluginBackendType::Lua) {
             std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> cb = std::bind(CoInitializer::LuaBackendStartCallback, std::placeholders::_1, std::placeholders::_2);
 
             Logger.Log("Starting backend for '{}'", plugin.pluginName);

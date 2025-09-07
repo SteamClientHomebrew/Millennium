@@ -25,16 +25,14 @@ bool PluginInstaller::CheckInstall(const std::string& pluginName)
 
 bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
 {
-    try
-    {
+    try {
         auto pluginOpt = Millennium::Plugins::GetPluginFromName(pluginName);
         if (!pluginOpt)
             return false;
 
         std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
-        if (settingsStore->IsEnabledPlugin(pluginName))
-        {
+        if (settingsStore->IsEnabledPlugin(pluginName)) {
             Millennium_TogglePluginStatus({
                 PluginStatus{ pluginName, false }
             });
@@ -42,9 +40,7 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
 
         std::filesystem::remove_all(pluginOpt->at("path").get<std::string>());
         return true;
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to uninstall {}: {}", pluginName, e.what());
         return false;
     }
@@ -89,8 +85,7 @@ void PluginInstaller::ExtractZipWithProgress(const std::filesystem::path& zipPat
     unz_global_info globalInfo;
     unzGetGlobalInfo(zip, &globalInfo);
 
-    for (uLong i = 0; i < globalInfo.number_entry; ++i)
-    {
+    for (uLong i = 0; i < globalInfo.number_entry; ++i) {
         char filename[512];
         unz_file_info fileInfo;
         unzGetCurrentFileInfo(zip, &fileInfo, filename, sizeof(filename), nullptr, 0, nullptr, 0);
@@ -98,8 +93,7 @@ void PluginInstaller::ExtractZipWithProgress(const std::filesystem::path& zipPat
         std::string outPath = (extractTo / filename).string();
         std::filesystem::create_directories(std::filesystem::path(outPath).parent_path());
 
-        if (unzOpenCurrentFile(zip) == UNZ_OK)
-        {
+        if (unzOpenCurrentFile(zip) == UNZ_OK) {
             std::ofstream outFile(outPath, std::ios::binary);
             char buffer[8192];
             int bytesRead = 0;
@@ -130,8 +124,7 @@ void PluginInstaller::EmitMessage(const std::string& status, double progress, bo
 
 bool PluginInstaller::InstallPlugin(const std::string& downloadUrl, size_t totalSize)
 {
-    try
-    {
+    try {
         Logger.Log("Requesting to install plugin -> " + downloadUrl);
         EmitMessage("Starting Plugin Installer...", 0, false);
 
@@ -175,9 +168,7 @@ bool PluginInstaller::InstallPlugin(const std::string& downloadUrl, size_t total
 
         EmitMessage("Done!", 100, true);
         return true;
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to install plugin: {}", e.what());
         return false;
     }
@@ -189,23 +180,19 @@ std::optional<nlohmann::json> PluginInstaller::ReadMetadata(const std::filesyste
     if (!std::filesystem::exists(metadataPath))
         return std::nullopt;
 
-    try
-    {
+    try {
         std::ifstream in(metadataPath);
         nlohmann::json metadata;
         in >> metadata;
 
-        if (metadata.contains("id") && metadata.contains("commit"))
-        {
+        if (metadata.contains("id") && metadata.contains("commit")) {
             return nlohmann::json{
                 { "id",     metadata["id"]                 },
                 { "commit", metadata["commit"]             },
                 { "name",   pluginPath.filename().string() }
             };
         }
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to read metadata.json for plugin {}: {}", pluginPath.filename().string(), e.what());
     }
     return std::nullopt;
@@ -214,8 +201,7 @@ std::optional<nlohmann::json> PluginInstaller::ReadMetadata(const std::filesyste
 std::vector<nlohmann::json> PluginInstaller::GetPluginData()
 {
     std::vector<nlohmann::json> pluginData;
-    for (const auto& entry : std::filesystem::directory_iterator(PluginsPath()))
-    {
+    for (const auto& entry : std::filesystem::directory_iterator(PluginsPath())) {
         if (!entry.is_directory())
             continue;
 
@@ -228,8 +214,7 @@ std::vector<nlohmann::json> PluginInstaller::GetPluginData()
 
 bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::string& name)
 {
-    try
-    {
+    try {
         std::string url = "https://steambrew.app/api/v1/plugins/download?id=" + id + "&n=" + name + ".zip";
         Logger.Log("Starting plugin update for '{}'. Download URL: {}", name, url);
 
@@ -249,19 +234,16 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
 
         std::filesystem::path extractedFolder;
         Logger.Log("Searching for extracted plugin directory...");
-        for (auto& entry : std::filesystem::directory_iterator(tempDir))
-        {
+        for (auto& entry : std::filesystem::directory_iterator(tempDir)) {
             Logger.Log("Found entry in temp dir: {}", entry.path().string());
-            if (entry.is_directory())
-            {
+            if (entry.is_directory()) {
                 extractedFolder = entry.path();
                 Logger.Log("Extracted plugin directory found: {}", extractedFolder.string());
                 break;
             }
         }
 
-        if (extractedFolder.empty())
-        {
+        if (extractedFolder.empty()) {
             Logger.Log("No directory found in extracted plugin '{}'. Cleaning up.", name);
             std::filesystem::remove_all(tempDir);
             return false;
@@ -272,17 +254,13 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         std::filesystem::create_directories(targetFolder);
 
         Logger.Log("Copying plugin files to target directory...");
-        for (auto& p : std::filesystem::recursive_directory_iterator(extractedFolder))
-        {
+        for (auto& p : std::filesystem::recursive_directory_iterator(extractedFolder)) {
             auto rel = std::filesystem::relative(p.path(), extractedFolder);
             std::filesystem::path dest = targetFolder / rel;
-            if (std::filesystem::is_directory(p))
-            {
+            if (std::filesystem::is_directory(p)) {
                 Logger.Log("Creating directory: {}", dest.string());
                 std::filesystem::create_directories(dest);
-            }
-            else
-            {
+            } else {
                 Logger.Log("Copying file: {} -> {}", p.path().string(), dest.string());
                 std::filesystem::copy_file(p, dest, std::filesystem::copy_options::overwrite_existing);
             }
@@ -293,9 +271,7 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         std::filesystem::remove_all(tempDir);
         Logger.Log("Update process for plugin '{}' completed successfully.", name);
         return true;
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to update plugin '{}': {}", name, e.what());
         return false;
     }

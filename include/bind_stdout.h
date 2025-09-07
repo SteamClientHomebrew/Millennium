@@ -52,8 +52,7 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
     const std::string logMessage = message;
 
     /** Dont process new lines or empty spaces (which seem to represent empty lines) */
-    if (logMessage != "\n" && logMessage != " ")
-    {
+    if (logMessage != "\n" && logMessage != " ") {
         Logger.LogPluginMessage(pname, message);
         InfoToLogger(pname, message);
     }
@@ -78,8 +77,7 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
  */
 #define HOOK_OUT_WRITE(write_function)                                                                                                                                             \
     const char* message;                                                                                                                                                           \
-    if (!PyArg_ParseTuple(args, "s", &message))                                                                                                                                    \
-    {                                                                                                                                                                              \
+    if (!PyArg_ParseTuple(args, "s", &message)) {                                                                                                                                  \
         return NULL;                                                                                                                                                               \
     }                                                                                                                                                                              \
     write_function(BackendManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                      \
@@ -98,16 +96,16 @@ extern "C"
     }
 
     static PyMethodDef stdoutMethods[] = {
-        {"write", CustomStdoutWrite, METH_VARARGS, "Custom stdout write function"},
-        {NULL,    NULL,              0,            NULL                          }
+        { "write", CustomStdoutWrite, METH_VARARGS, "Custom stdout write function" },
+        { NULL,    NULL,              0,            NULL                           }
     };
     static PyMethodDef stderrMethods[] = {
-        {"write", CustomStderrWrite, METH_VARARGS, "Custom stderr write function"},
-        {NULL,    NULL,              0,            NULL                          }
+        { "write", CustomStderrWrite, METH_VARARGS, "Custom stderr write function" },
+        { NULL,    NULL,              0,            NULL                           }
     };
 
-    static struct PyModuleDef customStdoutModule = {PyModuleDef_HEAD_INIT, "hook_stdout", NULL, -1, stdoutMethods};
-    static struct PyModuleDef customStderrModule = {PyModuleDef_HEAD_INIT, "hook_stderr", NULL, -1, stderrMethods};
+    static struct PyModuleDef customStdoutModule = { PyModuleDef_HEAD_INIT, "hook_stdout", NULL, -1, stdoutMethods };
+    static struct PyModuleDef customStderrModule = { PyModuleDef_HEAD_INIT, "hook_stderr", NULL, -1, stderrMethods };
 
     PyObject* PyInit_CustomStderr(void)
     {

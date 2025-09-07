@@ -1,18 +1,18 @@
 ---
 BasedOnStyle: LLVM
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Custom
 BraceWrapping:
     AfterCaseLabel: true
     AfterClass: true
-    AfterControlStatement: Always
+    AfterControlStatement: Never
     AfterEnum: true
     AfterFunction: true
     AfterNamespace: true
     AfterStruct: true
     AfterUnion: true
     AfterExternBlock: true
-    BeforeCatch: true
-    BeforeElse: true
+    BeforeCatch: false
+    BeforeElse: false
     BeforeLambdaBody: true
     BeforeWhile: false
     IndentBraces: false

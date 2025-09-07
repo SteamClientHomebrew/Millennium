@@ -45,13 +45,10 @@ extern std::unordered_map<std::string, std::any> __CORE_EXPORTS__;
         {                                                                                                                                                                          \
             __CORE_EXPORTS__[#name] = std::function<nlohmann::json(const nlohmann::json&)>([](const nlohmann::json& j) -> nlohmann::json                                           \
             {                                                                                                                                                                      \
-                if constexpr (std::is_same_v<decltype(_impl_##name(j)), void>)                                                                                                     \
-                {                                                                                                                                                                  \
+                if constexpr (std::is_same_v<decltype(_impl_##name(j)), void>) {                                                                                                   \
                     _impl_##name(j);                                                                                                                                               \
                     return {};                                                                                                                                                     \
-                }                                                                                                                                                                  \
-                else                                                                                                                                                               \
-                {                                                                                                                                                                  \
+                } else {                                                                                                                                                           \
                     return _impl_##name(j);                                                                                                                                        \
                 }                                                                                                                                                                  \
             });                                                                                                                                                                    \
@@ -62,7 +59,10 @@ extern std::unordered_map<std::string, std::any> __CORE_EXPORTS__;
 
 /** ffi function that returns a value */
 #define IPC_RET(name, expr)                                                                                                                                                        \
-    MILLENNIUM_IPC_DECL(name) { return expr; }
+    MILLENNIUM_IPC_DECL(name)                                                                                                                                                      \
+    {                                                                                                                                                                              \
+        return expr;                                                                                                                                                               \
+    }
 
 /** ffi function that returns nothing */
 #define IPC_NIL(name, expr)                                                                                                                                                        \

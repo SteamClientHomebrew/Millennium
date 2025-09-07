@@ -5,8 +5,7 @@
 
 Updater::Updater() : api_url("https://steambrew.app/api/checkupdates"), has_checked_for_updates(false)
 {
-    if (!CONFIG.GetNested("general.checkForPluginAndThemeUpdates").get<bool>())
-    {
+    if (!CONFIG.GetNested("general.checkForPluginAndThemeUpdates").get<bool>()) {
         Logger.Warn("User has disabled update checking for plugins and themes.");
         return;
     }
@@ -37,10 +36,8 @@ bool Updater::HasCheckedForUpdates() const
 
 std::optional<json> Updater::CheckForUpdates(bool force)
 {
-    try
-    {
-        if (!force && cached_updates.has_value())
-        {
+    try {
+        if (!force && cached_updates.has_value()) {
             Logger.Log("Using cached updates.");
             return cached_updates;
         }
@@ -56,32 +53,28 @@ std::optional<json> Updater::CheckForUpdates(bool force)
         if (themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty())
             request_body["themes"] = themes["post_body"];
 
-        if (request_body.empty())
-        {
+        if (request_body.empty()) {
             Logger.Log("No themes or plugins to update!");
             return json{
-                {"themes",  {}},
-                {"plugins", {}}
+                { "themes",  {} },
+                { "plugins", {} }
             };
         }
 
         auto response_str = Http::Post(api_url.c_str(), request_body.dump());
         json resp = json::parse(response_str);
 
-        if (resp.contains("themes") && !resp["themes"].empty() && !resp["themes"].contains("error"))
-        {
+        if (resp.contains("themes") && !resp["themes"].empty() && !resp["themes"].contains("error")) {
             resp["themes"] = theme_updater.ProcessUpdates(themes["update_query"], resp["themes"]);
         }
 
         cached_updates = resp;
         has_checked_for_updates = true;
         return resp;
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         Logger.Log(std::string("An error occurred while checking for updates: ") + e.what());
         return json{
-            {"themes", {{"error", e.what()}}}
+            { "themes", { { "error", e.what() } } }
         };
     }
 }

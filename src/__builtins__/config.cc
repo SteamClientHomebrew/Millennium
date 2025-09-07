@@ -44,8 +44,7 @@ nlohmann::json ConfigManager::GetNested(const std::string& path, const nlohmann:
     const nlohmann::json* current = &_data;
     size_t start = 0, end = 0;
 
-    while ((end = path.find('.', start)) != std::string::npos)
-    {
+    while ((end = path.find('.', start)) != std::string::npos) {
         std::string key = path.substr(start, end - start);
         if (!current->contains(key))
             return def;
@@ -65,8 +64,7 @@ void ConfigManager::SetNested(const std::string& path, const nlohmann::json& val
     nlohmann::json* current = &_data;
     size_t start = 0, end = 0;
 
-    while ((end = path.find('.', start)) != std::string::npos)
-    {
+    while ((end = path.find('.', start)) != std::string::npos) {
         std::string key = path.substr(start, end - start);
         if (!current->contains(key) || !(*current)[key].is_object())
             (*current)[key] = nlohmann::json::object();
@@ -76,19 +74,16 @@ void ConfigManager::SetNested(const std::string& path, const nlohmann::json& val
     }
 
     std::string last_key = path.substr(start);
-    if (!current->is_object())
-    {
+    if (!current->is_object()) {
         *current = nlohmann::json::object();
     }
 
     nlohmann::json old_value = nullptr;
-    if (current->contains(last_key))
-    {
+    if (current->contains(last_key)) {
         old_value = (*current)[last_key];
     }
 
-    if (old_value != value)
-    {
+    if (old_value != value) {
         (*current)[last_key] = value;
         NotifyListeners(path, old_value, value);
         if (!skipPropagation)
@@ -110,8 +105,7 @@ void ConfigManager::Set(const std::string& key, const nlohmann::json& value, boo
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     nlohmann::json old_value = _data.value(key, nullptr);
-    if (old_value != value)
-    {
+    if (old_value != value) {
         _data[key] = value;
         NotifyListeners(key, old_value, value);
         if (!skipPropagation)
@@ -122,8 +116,7 @@ void ConfigManager::Set(const std::string& key, const nlohmann::json& value, boo
 void ConfigManager::Delete(const std::string& key)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
-    if (_data.contains(key))
-    {
+    if (_data.contains(key)) {
         nlohmann::json old_value = _data[key];
         _data.erase(key);
         NotifyListeners(key, old_value, nullptr);
@@ -151,21 +144,15 @@ void ConfigManager::UnregisterListener(Listener listener)
 
 void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json& incoming, const std::string& path)
 {
-    for (auto& [key, value] : incoming.items())
-    {
+    for (auto& [key, value] : incoming.items()) {
         std::string fullKey = path.empty() ? key : path + "." + key;
-        if (value.is_object())
-        {
-            if (!current.contains(key) || !current[key].is_object())
-            {
+        if (value.is_object()) {
+            if (!current.contains(key) || !current[key].is_object()) {
                 current[key] = nlohmann::json::object();
             }
             MergeDefaults(current[key], value, fullKey);
-        }
-        else
-        {
-            if (!current.contains(key))
-            {
+        } else {
+            if (!current.contains(key)) {
                 current[key] = value;
                 NotifyListeners(fullKey, nullptr, value);
             }
@@ -177,20 +164,14 @@ void ConfigManager::LoadFromFile()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     std::ifstream file(_filename);
-    if (file.is_open())
-    {
-        try
-        {
+    if (file.is_open()) {
+        try {
             file >> _data;
-        }
-        catch (...)
-        {
+        } catch (...) {
             std::cerr << "Invalid JSON in config file. Creating empty config.\n";
             _data = nlohmann::json::object();
         }
-    }
-    else
-    {
+    } else {
         _data = nlohmann::json::object();
     }
 
@@ -203,8 +184,7 @@ void ConfigManager::SaveToFile()
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     std::ofstream file(_filename);
 
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         LOG_ERROR("Failed to open config file for writing: {}", _filename);
         return;
     }
@@ -222,26 +202,21 @@ nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, bool skipP
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
-    try
-    {
+    try {
         nlohmann::json old_data = _data;
         _data = newConfig;
 
         Logger.Log("Config updated via SetAll: {}", _data.dump(4));
 
-        if (!skipPropagation)
-        {
-            for (auto& [k, v] : newConfig.items())
-            {
+        if (!skipPropagation) {
+            for (auto& [k, v] : newConfig.items()) {
                 NotifyListeners(k, old_data.value(k, nlohmann::json(nullptr)), v);
             }
         }
 
         SaveToFile();
         return _data;
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to set entire config: {}", e.what());
         return nlohmann::json::object();
     }
@@ -272,14 +247,10 @@ ConfigManager::~ConfigManager()
 
 void ConfigManager::NotifyListeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value)
 {
-    for (auto& listener : _listeners)
-    {
-        try
-        {
+    for (auto& listener : _listeners) {
+        try {
             listener(key, old_value, new_value);
-        }
-        catch (...)
-        {
+        } catch (...) {
             LOG_ERROR("Listener exception for key: {}", key);
         }
     }
