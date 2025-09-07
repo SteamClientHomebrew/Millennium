@@ -60,7 +60,7 @@ export enum UIReloadProps {
 }
 
 export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReloadProps) => {
-	await callable<[{ theme_name: string }]>('theme_config.change_theme')({ theme_name: themeName });
+	await callable<[{ theme_name: string }]>('Core_ChangeActiveTheme')({ theme_name: themeName });
 
 	return new Promise((resolve) => {
 		switch (reloadProps) {

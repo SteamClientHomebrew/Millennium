@@ -116,18 +116,18 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 	};
 
 	render() {
-		if (pluginSelf.connectionFailed) {
-			return (
-				<Placeholder icon={<IconsModule.ExclamationPoint />} header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
-					<DialogButton
-						className={settingsClasses.SettingsDialogButton}
-						onClick={() => SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'))}
-					>
-						{locale.errorFailedConnectionButton}
-					</DialogButton>
-				</Placeholder>
-			);
-		}
+		// if (pluginSelf.connectionFailed) {
+		// 	return (
+		// 		<Placeholder icon={<IconsModule.ExclamationPoint />} header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
+		// 			<DialogButton
+		// 				className={settingsClasses.SettingsDialogButton}
+		// 				onClick={() => SteamClient.System.OpenLocalDirectoryInSystemExplorer([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'))}
+		// 			>
+		// 				{locale.errorFailedConnectionButton}
+		// 			</DialogButton>
+		// 		</Placeholder>
+		// 	);
+		// }
 
 		/** Haven't received the themes yet from the backend */
 		if (this.state.themes === undefined) {

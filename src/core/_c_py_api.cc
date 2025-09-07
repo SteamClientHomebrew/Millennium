@@ -41,15 +41,6 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-
-std::shared_ptr<PluginLoader> g_pluginLoader;
-
-std::map<std::string, JavaScript::Types> typeMap = {
-    {"str",  JavaScript::Types::String },
-    {"bool", JavaScript::Types::Boolean},
-    {"int",  JavaScript::Types::Integer}
-};
-
 PyObject* GetUserSettings(PyObject* self, PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "get_user_settings is not implemented yet. It will likely be removed in the future.");
@@ -116,7 +107,7 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
     const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
 
-    return JavaScript::EvaluateFromSocket(
+    return JavaScript::Py_EvaluateFromSocket(
         // Check the the frontend code is actually loaded aside from SteamUI
         fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
                     "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
@@ -148,9 +139,7 @@ PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    bool success = false;
-    HttpHookManager::get().RemoveHook(moduleId);
-
+    const bool success = HttpHookManager::get().RemoveHook(moduleId);
     return PyBool_FromLong(success);
 }
 
@@ -198,7 +187,7 @@ This portion of the API is undocumented but you can use it.
 PyObject* TogglePluginStatus(PyObject* self, PyObject* args)
 {
     PyObject* input; // Will only accept a list format
-    PythonManager& manager = PythonManager::GetInstance();
+    BackendManager& manager = BackendManager::GetInstance();
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
     if (!PyArg_ParseTuple(args, "O", &input))
@@ -370,49 +359,6 @@ PyObject* GetPluginLogs(PyObject* self, PyObject* args)
     return PyUnicode_FromString(logData.dump().c_str());
 }
 
-// Helper to convert month abbreviation to number
-std::string getMonthNumber(const std::string& monthAbbr)
-{
-    static std::map<std::string, std::string> monthMap{
-        {"Jan", "01"},
-        {"Feb", "02"},
-        {"Mar", "03"},
-        {"Apr", "04"},
-        {"May", "05"},
-        {"Jun", "06"},
-        {"Jul", "07"},
-        {"Aug", "08"},
-        {"Sep", "09"},
-        {"Oct", "10"},
-        {"Nov", "11"},
-        {"Dec", "12"}
-    };
-    return monthMap[monthAbbr];
-}
-
-std::string getBuildTimestamp()
-{
-#ifdef __DATE__
-    std::string date = __DATE__;
-#else
-    std::string date = "Jan 01 1970";
-#endif
-
-#ifdef __TIME__
-    std::string time = __TIME__;
-#else
-    std::string time = "00:00:00";
-#endif
-
-    std::string month = getMonthNumber(date.substr(0, 3));
-    std::string day = date.substr(4, 2);
-    std::string year = date.substr(7, 4);
-
-    if (day[0] == ' ')
-        day[0] = '0';
-    return year + "-" + month + "-" + day + "T" + time;
-}
-
 PyObject* GetBuildDate(PyObject* self, PyObject* args)
 {
     return PyUnicode_FromString(getBuildTimestamp().c_str());
@@ -422,7 +368,7 @@ PyObject* GetBuildDate(PyObject* self, PyObject* args)
  * Method API for the Millennium module
  * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
  */
-PyMethodDef* GetMillenniumModule()
+PyMethodDef* PyGetMillenniumModule()
 {
     static PyMethodDef moduleMethods[] = {
         /** Called *one time* after your plugin has finished bootstrapping. Its used to let Millennium know what plugins crashes/loaded etc.  */
@@ -465,9 +411,4 @@ PyMethodDef* GetMillenniumModule()
     };
 
     return moduleMethods;
-}
-
-void SetPluginLoader(std::shared_ptr<PluginLoader> pluginLoader)
-{
-    g_pluginLoader = pluginLoader;
 }

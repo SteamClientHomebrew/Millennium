@@ -202,6 +202,7 @@ void AllocateDevConsole()
         freopen("CONOUT$", "w", stderr);
 
         EnableVirtualTerminalProcessing();
+        std::ios::sync_with_stdio(true);
     }
 }
 

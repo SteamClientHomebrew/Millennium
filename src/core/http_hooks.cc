@@ -28,14 +28,14 @@
  * SOFTWARE.
  */
 
+#include "http_hooks.h"
 #include "csp_bypass.h"
 #include "encoding.h"
 #include "env.h"
 #include "ffi.h"
-#include "http.h"
-#include "http_hooks.h"
 #include "ipc.h"
 #include "loader.h"
+#include "mhttp.h"
 #include "url_parser.h"
 #include <chrono>
 #include <nlohmann/json.hpp>

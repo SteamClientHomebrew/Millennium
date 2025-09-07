@@ -34,7 +34,6 @@
 #include <internal_logger.h>
 #include <iostream>
 
-
 #ifdef _WIN32
 #include <windows.h>
 #include <winsock2.h>
@@ -242,12 +241,14 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     /** Check if the plugin json contains all the required fields */
     LintPluginData(json, pluginDirName);
 
+    plugin.backendType = json.value("backendType", "python") == "lua" ? Lua : Python;
     plugin.pluginJson = json;
     plugin.pluginName = json["name"];
     plugin.pluginBaseDirectory = entry.path();
-    plugin.backendAbsoluteDirectory = entry.path() / json.value("backend", "backend") / "main.py";
+    plugin.backendAbsoluteDirectory = entry.path() / json.value("backend", "backend") / (plugin.backendType == Lua ? "main.lua" : "main.py");
     plugin.frontendAbsoluteDirectory = entry.path() / ".millennium" / "Dist" / "index.js";
     plugin.webkitAbsolutePath = entry.path() / ".millennium" / "Dist" / "webkit.js";
+    plugin.backendType = json.value("backendType", "python") == "lua" ? Lua : Python;
 
     return plugin;
 }
@@ -283,6 +284,7 @@ void SettingsStore::InsertMillenniumModules(std::vector<SettingsStore::PluginTyp
         plugin.backendAbsoluteDirectory = entry.path() / pluginJson.value("backend", "backend") / "main.py";
         plugin.frontendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "index.js";
         plugin.webkitAbsolutePath = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "webkit.js";
+        plugin.backendType = Python;
         plugin.isInternal = true; /** Internal plugin */
 
         plugins.push_back(plugin);
@@ -313,7 +315,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
     }
 
     /** Insert the internal Millennium core plugin */
-    this->InsertMillenniumModules(plugins);
+    // this->InsertMillenniumModules(plugins);
 
     /** Find the remaining plugins from the user plugins folder. */
     try

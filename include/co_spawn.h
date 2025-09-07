@@ -37,6 +37,7 @@
 #include <condition_variable>
 #include <filesystem>
 #include <functional>
+#include <lua.hpp>
 #include <optional>
 #include <string>
 #include <thread>
@@ -77,32 +78,65 @@ static const std::string pythonLibs = GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH
 static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
 #endif
 
-class PythonManager
+class BackendManager
 {
   private:
+    struct LuaThreadWrapper
+    {
+        lua_State* L;
+        SettingsStore::PluginTypeSchema plugin;
+        std::function<void(SettingsStore::PluginTypeSchema)> callback;
+        std::thread thread;
+
+        LuaThreadWrapper(lua_State* state, SettingsStore::PluginTypeSchema p, std::function<void(SettingsStore::PluginTypeSchema)> cb)
+            : L(state), plugin(std::move(p)), callback(std::move(cb))
+        {
+        }
+
+        ~LuaThreadWrapper()
+        {
+            if (thread.joinable())
+                thread.join();
+        }
+    };
+
     std::mutex m_pythonMutex;
+    std::vector<std::tuple<lua_State*, std::unique_ptr<std::mutex>>> m_luaMutexPool;
     PyThreadState* m_InterpreterThreadSave;
 
-    std::vector<std::tuple<std::string, std::thread>> m_threadPool;
+    std::vector<std::tuple<std::string, std::thread>> m_pyThreadPool;
+    std::vector<std::tuple<std::string, std::thread, lua_State*>> m_luaThreadPool;
     std::vector<std::shared_ptr<PythonThreadState>> m_pythonInstances;
 
+    std::tuple<lua_State*, std::unique_ptr<std::mutex>>* FindEntry(lua_State* L);
+
   public:
-    PythonManager();
-    ~PythonManager();
+    BackendManager();
+    ~BackendManager();
+
+    void Lua_LockLua(lua_State* L);
+    void Lua_UnlockLua(lua_State* L);
+    bool Lua_TryLockLua(lua_State* L);
+    bool Lua_IsMutexLocked(lua_State* L);
 
     bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
     bool DestroyAllPythonInstances();
     bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
+    bool CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> callback);
 
-    bool IsRunning(std::string pluginName);
-    bool HasBackend(std::string pluginName);
+    bool IsPythonBackendRunning(std::string pluginName);
+    bool HasPythonBackend(std::string pluginName);
+
+    SettingsStore::PluginBackendType GetPluginBackendType(std::string pluginName);
 
     std::optional<std::shared_ptr<PythonThreadState>> GetPythonThreadStateFromName(std::string pluginName);
+    std::optional<lua_State*> GetLuaThreadStateFromName(std::string pluginName);
+
     std::string GetPluginNameFromThreadState(PyThreadState* thread);
 
-    static PythonManager& GetInstance()
+    static BackendManager& GetInstance()
     {
-        static PythonManager InstanceRef;
+        static BackendManager InstanceRef;
         return InstanceRef;
     }
 };

@@ -128,6 +128,8 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
 {
     if (this->EvaluateBackendStatus())
     {
+        std::unique_lock<std::mutex> lock(listenersMutex); // Lock here
+
         if (listeners.find(ON_BACKEND_READY_EVENT) != listeners.end())
         {
             auto& callbacks = listeners[ON_BACKEND_READY_EVENT];
@@ -135,8 +137,8 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
             for (auto callbackIterator = callbacks.begin(); callbackIterator != callbacks.end();)
             {
                 Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&(*callbackIterator));
-                (*callbackIterator)();                                // Call the callback
-                callbackIterator = callbacks.erase(callbackIterator); // Remove callback after calling
+                (*callbackIterator)();
+                callbackIterator = callbacks.erase(callbackIterator);
             }
             isReadyForCallback = true;
         }

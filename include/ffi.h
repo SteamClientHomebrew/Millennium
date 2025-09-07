@@ -32,6 +32,7 @@
 #include "internal_logger.h"
 #include <Python.h>
 #include <fmt/core.h>
+#include <lua.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <thread>
@@ -52,30 +53,43 @@ class PythonGIL : public std::enable_shared_from_this<PythonGIL>
     ~PythonGIL();
 };
 
-namespace Python
-{
-
-enum Types
+enum FFI_Type
 {
     Boolean,
     String,
     JSON,
     Integer,
     Error,
-    Unknown // non-atomic ADT's
+    UnknownType // non-atomic ADT's
 };
 
 struct EvalResult
 {
-    Types type;
+    FFI_Type type;
     std::string plain;
 };
+
+namespace Lua
+{
+EvalResult LockAndInvokeMethod(std::string pluginName, nlohmann::json script);
+void CallFrontEndLoaded(std::string pluginName);
+} // namespace Lua
+
+namespace Python
+{
+EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
 
 std::tuple<std::string, std::string> ActiveExceptionInformation();
 
 EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
 void CallFrontEndLoaded(std::string pluginName);
 } // namespace Python
+
+struct JsEvalResult
+{
+    nlohmann::basic_json<> json;
+    bool successfulCall;
+};
 
 namespace JavaScript
 {
@@ -104,6 +118,7 @@ class SharedJSMessageEmitter
 
     std::unordered_map<std::string, std::vector<std::pair<std::string, EventHandler>>> events;
     std::unordered_map<std::string, std::vector<nlohmann::json>> missedMessages; // New data structure for missed messages
+    std::mutex mtx;
 
   public:
     SharedJSMessageEmitter(const SharedJSMessageEmitter&) = delete;
@@ -117,22 +132,30 @@ class SharedJSMessageEmitter
 
     std::string OnMessage(const std::string& event, const std::string name, EventHandler handler)
     {
-        events[event].push_back(std::make_pair(name, handler));
-        // Deliver any missed messages
-        auto it = missedMessages.find(event);
-        if (it != missedMessages.end())
+        std::vector<nlohmann::json> messages;
         {
-            for (const auto message : it->second)
+            std::lock_guard<std::mutex> lock(mtx);
+            events[event].push_back(std::make_pair(name, handler));
+            auto it = missedMessages.find(event);
+            if (it != missedMessages.end())
             {
-                handler(message, name);
+                messages = std::move(it->second);
+                missedMessages.erase(it);
             }
-            missedMessages.erase(it); // Clear missed messages once delivered
+        }
+
+        /** call cb outside lock -- avoid deadlocks */
+        for (const auto& message : messages)
+        {
+            handler(message, name);
         }
         return name;
     }
 
     void RemoveListener(const std::string& event, std::string listenerId)
     {
+        std::lock_guard<std::mutex> lock(mtx);
+
         auto it = events.find(event);
         if (it != events.end())
         {
@@ -152,30 +175,40 @@ class SharedJSMessageEmitter
 
     void EmitMessage(const std::string& event, const nlohmann::json& data)
     {
-        auto it = events.find(event);
-        if (it != events.end())
+        std::vector<std::pair<std::string, EventHandler>> handlersCopy;
         {
-            const auto& handlers = it->second;
-            for (const auto& handler : handlers)
+            std::lock_guard<std::mutex> lock(mtx);
+
+            auto it = events.find(event);
+            if (it != events.end())
             {
-                try
-                {
-                    handler.second(data, handler.first);
-                }
-                catch (const std::bad_function_call& e)
-                {
-                    Logger.Warn("Failed to emit message on {}. exception: {}", handler.first, e.what());
-                }
+                handlersCopy = it->second; /** cp handlers */
+            }
+            else
+            {
+                missedMessages[event].push_back(data);
+                return;
             }
         }
-        else
+
+        /** call cb outside lock -- avoid deadlocks */
+        for (const auto& handler : handlersCopy)
         {
-            missedMessages[event].push_back(data);
+            try
+            {
+                handler.second(data, handler.first);
+            }
+            catch (const std::bad_function_call& e)
+            {
+                Logger.Warn("Failed to emit message on {}. exception: {}", handler.first, e.what());
+            }
         }
     }
 };
 
+JsEvalResult ExecuteOnSharedJsContext(std::string javaScriptEval);
 const std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
 
-PyObject* EvaluateFromSocket(std::string script);
+int Lua_EvaluateFromSocket(std::string script, lua_State* L);
+PyObject* Py_EvaluateFromSocket(std::string script);
 } // namespace JavaScript

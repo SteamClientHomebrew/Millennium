@@ -43,6 +43,12 @@ class SettingsStore
     mINI::INIFile file;
     mINI::INIStructure ini;
 
+    enum PluginBackendType
+    {
+        Python,
+        Lua
+    };
+
     static constexpr const char* pluginConfigFile = "plugin.json";
 
     struct PluginTypeSchema
@@ -53,6 +59,7 @@ class SettingsStore
         std::filesystem::path backendAbsoluteDirectory;
         std::filesystem::path frontendAbsoluteDirectory;
         std::filesystem::path webkitAbsolutePath;
+        PluginBackendType backendType;
         bool isInternal = false;
     };
 

@@ -234,11 +234,6 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
  */
 void OnTerminate()
 {
-#ifdef _WIN32
-    if (IsDebuggerPresent())
-        __debugbreak();
-#endif
-
     auto const exceptionPtr = std::current_exception();
     std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
 
@@ -260,6 +255,9 @@ void OnTerminate()
     }
 
 #ifdef _WIN32
+    if (IsDebuggerPresent())
+        __debugbreak();
+
     // Capture and print stack trace
     CaptureStackTrace(errorMessage);
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
@@ -308,16 +306,15 @@ const static void EntryMain()
     const auto startTime = std::chrono::system_clock::now();
     VerifyEnvironment();
 
-    std::shared_ptr<PluginLoader> loader = std::make_shared<PluginLoader>(startTime);
-    SetPluginLoader(loader);
+    g_pluginLoader = std::make_shared<PluginLoader>(startTime);
 
-    PythonManager& manager = PythonManager::GetInstance();
+    BackendManager& manager = BackendManager::GetInstance();
 
     /** Start the python backends */
-    std::thread(&PluginLoader::StartBackEnds, loader, std::ref(manager)).detach();
+    std::thread(&PluginLoader::StartBackEnds, g_pluginLoader, std::ref(manager)).detach();
 
     /** Start the injection process into the Steam web helper */
-    loader->StartFrontEnds();
+    g_pluginLoader->StartFrontEnds();
 }
 
 __attribute__((constructor)) void __init_millennium()

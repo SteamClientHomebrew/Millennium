@@ -100,4 +100,47 @@ static std::string Get(const char* url, bool retry = true)
     }
     return response;
 }
+static std::string Post(const char* url, const std::string& postData, bool retry = true)
+{
+    CURL* curl;
+    CURLcode res;
+    std::string response;
+
+    curl = curl_easy_init();
+    if (curl)
+    {
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, postData.size());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+        while (true)
+        {
+            res = curl_easy_perform(curl);
+
+            if (!retry || res == CURLE_OK)
+            {
+                break;
+            }
+
+#if defined(_WIN32)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+#elif defined(__linux__) || defined(__APPLE__)
+
+            if (g_threadTerminateFlag->flag.load())
+            {
+                throw HttpError("Thread termination flag is set, aborting HTTP request.");
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+#endif
+        }
+        curl_easy_cleanup(curl);
+    }
+    return response;
+}
 } // namespace Http

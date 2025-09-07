@@ -49,7 +49,7 @@ class PluginLoader
     PluginLoader(std::chrono::system_clock::time_point startTime);
     // ~PluginLoader();
 
-    const void StartBackEnds(PythonManager& manager);
+    const void StartBackEnds(BackendManager& manager);
     const void StartFrontEnds();
     const void InjectWebkitShims();
 
@@ -65,6 +65,8 @@ class PluginLoader
 
     std::vector<std::thread> m_threadPool;
 };
+
+extern std::shared_ptr<PluginLoader> g_pluginLoader;
 
 namespace Sockets
 {

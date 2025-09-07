@@ -1,3 +1,6 @@
+cmake_minimum_required(VERSION 3.10...3.21)
+project(Millennium LANGUAGES C CXX)
+
 # get the millennium version from version file
 file(STRINGS "${CMAKE_SOURCE_DIR}/version" VERSION_LINES LIMIT_COUNT 2)
 list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
@@ -36,8 +39,6 @@ if(DEFINED ENV{NIX_OS})
 endif()
 
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
-
-cmake_minimum_required(VERSION 3.10...3.21)
 set(BUILD_SHARED_LIBS OFF)
 
 # set c++ directives
@@ -77,8 +78,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 endif()
 
-project(Millennium LANGUAGES CXX)
-
 if(UNIX AND NOT APPLE AND NOT NIX_BUILD)
   add_subdirectory(cli)
   add_subdirectory(unix-hooks)
@@ -97,7 +96,7 @@ message(STATUS "LSB Release ID: ${LSB_RELEASE_ID_SHORT}")
 # Check Python version in 32 bit section
 # Just include Python headers for Windows and Apple platforms
 if(WIN32)
-  include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32)
+  include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32 ${CMAKE_SOURCE_DIR}/vendor/lua/src)
 elseif(UNIX)
   if(APPLE)
     include_directories("$ENV{HOME}/.pyenv/versions/3.11.8/include/python3.11")
@@ -270,6 +269,9 @@ include_directories(
 )
 
 add_compile_definitions(
+  "WINRT_NO_COROUTINES"
+  "LJ_TARGET_X86"
+  "LJ_HASJIT"
   "CURL_STATICLIB"
   "_WEBSOCKETPP_CPP11_THREAD_"
   "_WEBSOCKETPP_CPP11_TYPE_TRAITS_"
@@ -284,14 +286,52 @@ if(WIN32)
   add_subdirectory(preload)
 endif()
 
+if(NOT USE_INTERNAL_FPCONV)
+    # Use libc number conversion routines (strtod(), sprintf())
+    set(FPCONV_SOURCES fpconv.c)
+else()
+    # Use internal number conversion routines
+    add_definitions(-DUSE_INTERNAL_FPCONV)
+    set(FPCONV_SOURCES g_fmt.c dtoa.c)
+
+    include(TestBigEndian)
+    TEST_BIG_ENDIAN(IEEE_BIG_ENDIAN)
+    if(IEEE_BIG_ENDIAN)
+        add_definitions(-DIEEE_BIG_ENDIAN)
+    endif()
+
+    if(MULTIPLE_THREADS)
+        set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+        find_package(Threads REQUIRED)
+        if(NOT CMAKE_USE_PTHREADS_INIT)
+            message(FATAL_ERROR
+                    "Pthreads not found - required by MULTIPLE_THREADS option")
+        endif()
+        add_definitions(-DMULTIPLE_THREADS)
+    endif()
+endif()
+
+# Handle platforms missing isinf() macro (Eg, some Solaris systems).
+include(CheckSymbolExists)
+CHECK_SYMBOL_EXISTS(isinf math.h HAVE_ISINF)
+if(NOT HAVE_ISINF)
+    add_definitions(-DUSE_INTERNAL_ISINF)
+endif()
+
 set(SOURCE_FILES
   "src/main.cc"
+  "src/core/_millennium_api.cc"
   "src/core/loader.cc"
   "src/core/co_spawn.cc"
+  "src/core/_c_lua_http.cc"
+  "src/core/_c_lua_utils.cc"
   "src/core/_c_py_logger.cc"
+  "src/core/_c_lua_logger.cc"
   "src/core/_c_py_interop.cc"
+  "src/core/_c_lua_interop.cc"
   "src/core/_c_py_gil.cc"
   "src/core/_c_py_api.cc"
+  "src/core/_c_lua_api.cc"
   "src/core/_js_interop.cc"
   "src/core/co_stub.cc"
   "src/core/events.cc"
@@ -302,7 +342,30 @@ set(SOURCE_FILES
   "src/sys/sysfs.cc"
   "src/sys/settings.cc"
   "src/sys/env.cc"
+
+  "src/__builtins__/accent_color.cc"
+  "src/__builtins__/config.cc"
+  "src/__builtins__/core.cc"
+  "src/__builtins__/css_analyzer.cc"
+  "src/__builtins__/ipc_handler.cc"
+  "src/__builtins__/scan.cc"
+  "src/__builtins__/theme_config.cc"
+  "src/__builtins__/webkit_handler.cc"
+  "src/__builtins__/default_settings.cc"
+  "src/__builtins__/theme_installer.cc"
+  "src/__builtins__/plugin_installer.cc"
+  "src/__builtins__/updater.cc"
 )
+
+set(LUAJIT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/src)
+set(LUAJIT_STATIC ${LUAJIT_DIR}/libluajit.a)
+
+list(APPEND SOURCE_FILES 
+  "vendor/lua-cjson/lua_cjson.c" 
+  "vendor/lua-cjson/strbuf.c"
+  "vendor/lua-cjson/${FPCONV_SOURCES}"
+)
+
 
 if(WIN32)
   add_library(Millennium SHARED "${SOURCE_FILES}")
@@ -355,15 +418,38 @@ if(WINDRES)
   target_link_libraries(Millennium ${CMAKE_BINARY_DIR}/version.o)
 endif()
 
+set_target_properties(Millennium PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+target_compile_features(Millennium PUBLIC cxx_std_17)
+
+find_package(unofficial-minizip CONFIG REQUIRED) # used for extracting zip files
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBGIT2 REQUIRED libgit2)
+
+include_directories(${LIBGIT2_INCLUDE_DIRS})
+link_directories(${LIBGIT2_LIBRARY_DIRS})
+add_definitions(${LIBGIT2_CFLAGS_OTHER})
+
+set(LIBGIT2_LIBRARIES
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libgit2.a
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libhttp_parser.a
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libpcre.a
+  ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libzlib.a
+)
+
 find_package(CURL REQUIRED) # used for web requests.
-target_link_libraries(Millennium CURL::libcurl)
+target_link_libraries(Millennium 
+  CURL::libcurl 
+  -Wl,--whole-archive ${LUAJIT_STATIC} -Wl,--no-whole-archive
+  unofficial::minizip::minizip
+   ${LIBGIT2_LIBRARIES}
+)
 if(NIX_BUILD)
   find_package(OpenSSL REQUIRED)
   target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
 if(WIN32)
-  target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp)
+  target_link_libraries(Millennium wsock32 Iphlpapi DbgHelp winhttp rpcrt4)
 
   if(GITHUB_ACTION_BUILD)
     target_link_libraries(Millennium "${CMAKE_SOURCE_DIR}/build/python/python311.lib")

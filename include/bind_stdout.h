@@ -82,7 +82,7 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
     {                                                                                                                                                                              \
         return NULL;                                                                                                                                                               \
     }                                                                                                                                                                              \
-    write_function(PythonManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                       \
+    write_function(BackendManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                      \
     return Py_BuildValue("");
 
 extern "C"

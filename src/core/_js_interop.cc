@@ -31,16 +31,9 @@
 #include "co_spawn.h"
 #include "ffi.h"
 #include "loader.h"
-#include <future>
-
 #include <condition_variable>
+#include <future>
 #include <mutex>
-
-struct EvalResult
-{
-    nlohmann::basic_json<> json;
-    bool successfulCall;
-};
 
 #define SHARED_JS_EVALUATE_ID 54999
 
@@ -63,11 +56,11 @@ struct EvalResult
  * - Uses a `std::mutex` and `std::condition_variable` to ensure safe access to shared data.
  * - The listener is removed once a response is received.
  */
-const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
+JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
 {
     std::mutex mtx;
     std::condition_variable cv;
-    EvalResult evalResult;
+    JsEvalResult JsEvalResult;
     bool resultReady = false; // Flag to indicate when the result is ready
 
     bool messageSendSuccess = Sockets::PostShared(nlohmann::json({
@@ -108,13 +101,13 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
 
                     // Custom exception type thrown from CallFrontendMethod in executor.cc
                     if (classType == "MillenniumFrontEndError")
-                        evalResult = {"__CONNECTION_ERROR__", false};
+                        JsEvalResult = {"__CONNECTION_ERROR__", false};
                     else
-                        evalResult = {response["result"]["exceptionDetails"]["exception"]["description"], false};
+                        JsEvalResult = {response["result"]["exceptionDetails"]["exception"]["description"], false};
                 }
                 else
                 {
-                    evalResult = {response["result"]["result"], true};
+                    JsEvalResult = {response["result"]["result"], true};
                 }
 
                 resultReady = true;
@@ -131,12 +124,12 @@ const EvalResult ExecuteOnSharedJsContext(std::string javaScriptEval)
     std::unique_lock<std::mutex> lock(mtx);
     cv.wait(lock, [&] { return resultReady; });
 
-    if (!evalResult.successfulCall && evalResult.json == "__CONNECTION_ERROR__")
+    if (!JsEvalResult.successfulCall && JsEvalResult.json == "__CONNECTION_ERROR__")
     {
         throw std::runtime_error("frontend is not loaded!");
     }
 
-    return evalResult;
+    return JsEvalResult;
 }
 
 /**
@@ -293,11 +286,11 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
  * - If the frontend is not loaded, a Python `ConnectionError` is set.
  * - If the response cannot be parsed, an error message is returned as a Python string.
  */
-PyObject* JavaScript::EvaluateFromSocket(std::string script)
+PyObject* JavaScript::Py_EvaluateFromSocket(std::string script)
 {
     try
     {
-        EvalResult response = ExecuteOnSharedJsContext(script);
+        JsEvalResult response = ExecuteOnSharedJsContext(script);
 
         if (!response.successfulCall)
         {
@@ -328,4 +321,57 @@ PyObject* JavaScript::EvaluateFromSocket(std::string script)
     }
 
     Py_RETURN_NONE;
+}
+
+int JavaScript::Lua_EvaluateFromSocket(std::string script, lua_State* L)
+{
+    try
+    {
+        JsEvalResult response = ExecuteOnSharedJsContext(std::string(script));
+
+        if (!response.successfulCall)
+        {
+            lua_pushnil(L);
+            lua_pushstring(L, response.json.get<std::string>().c_str());
+            return 2; // (nil, error)
+        }
+
+        std::string type = response.json["type"];
+
+        if (type == "string")
+        {
+            lua_pushstring(L, response.json["value"].get<std::string>().c_str());
+            return 1;
+        }
+        else if (type == "boolean")
+        {
+            lua_pushboolean(L, response.json["value"]);
+            return 1;
+        }
+        else if (type == "number")
+        {
+            lua_pushinteger(L, response.json["value"]);
+            return 1;
+        }
+        else
+        {
+            lua_pushnil(L);
+            std::string msg = fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type);
+            lua_pushstring(L, msg.c_str());
+            return 2;
+        }
+    }
+    catch (const nlohmann::detail::exception& ex)
+    {
+        std::string message = fmt::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what());
+        lua_pushnil(L);
+        lua_pushstring(L, message.c_str());
+        return 2;
+    }
+    catch (const std::exception&)
+    {
+        lua_pushnil(L);
+        lua_pushstring(L, "frontend is not loaded!");
+        return 2;
+    }
 }

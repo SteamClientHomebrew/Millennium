@@ -28,10 +28,11 @@
  * SOFTWARE.
  */
 
-import { callable, ConfirmModal, ConfirmModalProps, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, ConfirmModalProps, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { Logger } from './Logger';
 import { SteamLocale } from '../../locales';
+import { PyFindAllPlugins } from './ffi';
 
 export namespace Utils {
 	export function BrowseLocalFolder(path: string) {
@@ -44,9 +45,7 @@ export namespace Utils {
 	}
 
 	export async function GetPluginAssetUrl(): Promise<string> {
-		const FindAllPlugins = callable<[], string>('find_all_plugins');
-
-		const plugins: Array<PluginComponent> = JSON.parse(await FindAllPlugins());
+		const plugins: Array<PluginComponent> = JSON.parse(await PyFindAllPlugins());
 		const injectedScript = Array.from(document.scripts).find((script) => script.id === 'millennium-injected');
 
 		if (!injectedScript || !injectedScript.src) {

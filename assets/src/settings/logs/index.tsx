@@ -101,8 +101,8 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	aggregateLogStats() {
 		if (!this.state.selectedLog) return;
 
-		const errorCount = this.state.selectedLog.logs.filter((log) => log.level === LogLevel.ERROR).length;
-		const warningCount = this.state.selectedLog.logs.filter((log) => log.level === LogLevel.WARNING).length;
+		const errorCount = (this.state.selectedLog?.logs?.filter((log) => log.level === LogLevel.ERROR) ?? []).length;
+		const warningCount = (this.state.selectedLog?.logs?.filter((log) => log.level === LogLevel.WARNING) ?? []).length;
 
 		this.setState({ errorCount, warningCount });
 	}
@@ -136,20 +136,20 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	};
 
 	renderLogItemButton = (log: LogData) => {
-		const errors = log.logs.filter((log) => log.level === LogLevel.ERROR);
-		const warnings = log.logs.filter((log) => log.level === LogLevel.WARNING);
+		const errors = log?.logs?.filter((log) => log.level === LogLevel.ERROR) ?? [];
+		const warnings = log?.logs?.filter((log) => log.level === LogLevel.WARNING) ?? [];
 
-		const messageType = errors.length !== 0 ? 'encountered errors' : 'issued warnings';
+		const messageType = errors?.length !== 0 ? 'encountered errors' : 'issued warnings';
 
 		return (
 			<DialogButton
 				key={log.name}
 				onClick={() => this.setState({ selectedLog: log, searchedLogs: log.logs })}
 				className={joinClassNames('MillenniumButton', 'MillenniumLogs_LogItemButton', settingsClasses.SettingsDialogButton)}
-				data-error-count={errors.length}
-				data-warning-count={warnings.length}
+				data-error-count={errors?.length}
+				data-warning-count={warnings?.length}
 			>
-				<DesktopTooltip bDisabled={errors.length === 0 && warnings.length === 0} toolTipContent={`${log.name} ${messageType}.`} direction="top">
+				<DesktopTooltip bDisabled={errors?.length === 0 && warnings?.length === 0} toolTipContent={`${log.name} ${messageType}.`} direction="top">
 					<IconsModule.ExclamationPoint />
 				</DesktopTooltip>
 				{log?.name}
@@ -233,8 +233,8 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 				</div>
 
 				<pre className="MillenniumLogs_Text DialogInput DialogTextInputBase" style={{ fontSize: logFontSize + 'px' }}>
-					{(searchQuery.length ? searchedLogs : selectedLog.logs).map((log, index) => (
-						<Ansi key={index}>{atob(log.message)}</Ansi>
+					{(searchQuery?.length ? searchedLogs : selectedLog?.logs)?.map((log, index) => (
+						<Ansi key={index}>{atob(log?.message)}</Ansi>
 					))}
 				</pre>
 			</div>

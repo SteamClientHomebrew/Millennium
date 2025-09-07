@@ -1,6 +1,5 @@
 ---
 BasedOnStyle: LLVM
-
 BreakBeforeBraces: Allman
 BraceWrapping:
     AfterCaseLabel: true
@@ -32,7 +31,6 @@ IndentPPDirectives: None
 IndentExternBlock: AfterExternBlock
 IndentRequiresClause: true
 IndentWrappedFunctionNames: false
-
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Left
 AlignConsecutiveAssignments: None
@@ -42,7 +40,6 @@ AlignConsecutiveMacros: None
 AlignEscapedNewlines: Right
 AlignOperands: Align
 AlignTrailingComments: true
-
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortBlocksOnASingleLine: Never
@@ -52,6 +49,7 @@ AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: false
+LambdaBodyIndentation: OuterScope
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: MultiLine
@@ -63,9 +61,7 @@ BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: BeforeColon
 BreakStringLiterals: true
-
 ColumnLimit: 180
-
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: true
@@ -95,8 +91,7 @@ SpacesInConditionalStatement: false
 SpacesInContainerLiterals: true
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-
-Cpp11BracedListStyle: true
+Cpp11BracedListStyle: false
 DerivePointerAlignment: false
 PointerAlignment: Left
 ReferenceAlignment: Pointer
@@ -108,6 +103,5 @@ MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None
 SortIncludes: CaseSensitive
 SortUsingDeclarations: true
-
 Language: Cpp
 Standard: Latest

@@ -28,17 +28,17 @@
  * SOFTWARE.
  */
 
+#include "loader.h"
 #include "co_spawn.h"
 #include "co_stub.h"
 #include "executor.h"
 #include "ffi.h"
-#include "http.h"
 #include "http_hooks.h"
 #include "internal_logger.h"
 #include "ipc.h"
-#include "loader.h"
 #include "plugin_logger.h"
 #include <Python.h>
+#include <__builtins__/core.h>
 #include <env.h>
 #include <iostream>
 #include <string>
@@ -48,6 +48,7 @@ using namespace std::chrono;
 websocketpp::client<websocketpp::config::asio_client>* browserClient;
 websocketpp::connection_hdl browserHandle;
 
+std::shared_ptr<PluginLoader> g_pluginLoader;
 std::string sharedJsContextSessionId;
 std::shared_ptr<InterpreterMutex> g_threadTerminateFlag = std::make_shared<InterpreterMutex>();
 
@@ -326,7 +327,7 @@ const void PluginLoader::PrintActivePlugins()
  * All packages are grouped and shared when needed, to prevent wasting space.
  * @see assets\pipx\main.py
  */
-const void StartPreloader(PythonManager& manager)
+const void StartPreloader(BackendManager& manager)
 {
     std::promise<void> promise;
 
@@ -378,7 +379,7 @@ const void StartPreloader(PythonManager& manager)
     manager.DestroyPythonInstance("pipx");
 }
 
-const void PluginLoader::StartBackEnds(PythonManager& manager)
+const void PluginLoader::StartBackEnds(BackendManager& manager)
 {
     Logger.Log("Starting plugin backends...");
     StartPreloader(manager);
@@ -387,18 +388,30 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
     this->Initialize();
     this->PrintActivePlugins();
 
+    Core_Load();
+
     for (auto& plugin : *this->m_enabledPluginsPtr)
     {
-        // check if plugin is already running
-        if (manager.IsRunning(plugin.pluginName))
+        if (plugin.backendType == SettingsStore::PluginBackendType::Python)
         {
-            Logger.Log("Skipping load for '{}' as it's already running", plugin.pluginName);
-            continue;
+            // check if plugin is already running
+            if (manager.IsPythonBackendRunning(plugin.pluginName))
+            {
+                Logger.Log("Skipping load for '{}' as it's already running", plugin.pluginName);
+                continue;
+            }
+
+            std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::PyBackendStartCallback, std::placeholders::_1);
+
+            Logger.Log("Starting backend for '{}'", plugin.pluginName);
+            manager.CreatePythonInstance(plugin, cb);
         }
+        else if (plugin.backendType == SettingsStore::PluginBackendType::Lua)
+        {
+            std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> cb = std::bind(CoInitializer::LuaBackendStartCallback, std::placeholders::_1, std::placeholders::_2);
 
-        std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
-
-        Logger.Log("Starting backend for '{}'", plugin.pluginName);
-        manager.CreatePythonInstance(plugin, cb);
+            Logger.Log("Starting backend for '{}'", plugin.pluginName);
+            manager.CreateLuaInstance(plugin, cb);
+        }
     }
 }

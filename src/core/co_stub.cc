@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "co_spawn.h"
 #include "co_stub.h"
+#include "co_spawn.h"
 #include "encoding.h"
 #include "ffi.h"
 #include "http_hooks.h"
@@ -45,7 +45,7 @@
 #include <tuple>
 #include <vector>
 
-
+#include <executor.h>
 #include <secure_socket.h>
 
 static std::string addedScriptOnNewDocumentId = "";
@@ -351,6 +351,78 @@ const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const Setti
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
 }
 
+extern "C" int Lua_OpenUtilsLibrary(lua_State* L);
+extern "C" int Lua_OpenLoggerLibrary(lua_State* L);
+extern "C" int Lua_OpenCJsonLibrary(lua_State* l);
+extern "C" int Lua_OpenHttpLibrary(lua_State* L);
+
+static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
+{
+    lua_pushcclosure(L, func, 0);
+    lua_setfield(L, -2, name);
+}
+
+const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L)
+{
+    BackendManager& backendManager = BackendManager::GetInstance();
+    backendManager.Lua_LockLua(L);
+
+    lua_pushstring(L, plugin.pluginName.c_str());
+    lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
+
+    lua_getglobal(L, "package");
+    lua_getfield(L, -1, "preload");
+
+    RegisterModule(L, "json", Lua_OpenCJsonLibrary);
+    RegisterModule(L, "millennium", Lua_OpenMillenniumLibrary);
+    RegisterModule(L, "http", Lua_OpenHttpLibrary);
+    RegisterModule(L, "utils", Lua_OpenUtilsLibrary);
+    RegisterModule(L, "logger", Lua_OpenLoggerLibrary);
+
+    lua_pop(L, 2);
+
+    if (luaL_dofile(L, (plugin.backendAbsoluteDirectory).string().c_str()) != LUA_OK)
+    {
+        LOG_ERROR("Lua error: {}", lua_tostring(L, -1));
+        lua_pop(L, 1);
+        lua_close(L);
+        backendManager.Lua_UnlockLua(L);
+        return;
+    }
+
+    // Store the returned object in MILLENNIUM_PLUGIN_DEFINITION
+    lua_pushvalue(L, -1); // duplicate the returned table
+    lua_setglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
+
+    if (!lua_istable(L, -1))
+    {
+        LOG_ERROR("Lua file should return a table with functions");
+        lua_pop(L, 1);
+        lua_close(L);
+        backendManager.Lua_UnlockLua(L);
+        return;
+    }
+
+    lua_getfield(L, -1, "on_load");
+    if (!lua_isfunction(L, -1))
+    {
+        LOG_ERROR("Failed to locate 'on_load' function in plugin backend for '{}'", plugin.pluginName);
+        lua_pop(L, 2);
+        lua_close(L);
+        backendManager.Lua_UnlockLua(L);
+        return;
+    }
+
+    if (lua_pcall(L, 0, 0, 0) != LUA_OK)
+    {
+        LOG_ERROR("Error calling on_load in plugin backend for '{}': {}", plugin.pluginName, lua_tostring(L, -1));
+        lua_pop(L, 1);
+    }
+
+    lua_pop(L, 1);
+    backendManager.Lua_UnlockLua(L);
+}
+
 /**
  * Callback function to start the backend for a given plugin, setting up the necessary environment
  * and executing the plugin's main module.
@@ -369,7 +441,7 @@ const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const Setti
  * Error Handling:
  * - If any step of the process fails (e.g., file opening, module import), the error is logged and the backend load is marked as failed.
  */
-const void CoInitializer::BackendStartCallback(SettingsStore::PluginTypeSchema plugin)
+const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin)
 {
     PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
     const auto backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
@@ -522,6 +594,10 @@ const std::string ConstructOnLoadModule()
         scriptImportTable.push_back(UrlFromPath("https://millennium.ftp/", frontEndAbs));
     }
 
+    /** Add the builtin Millennium plugin */
+    std::string millennium = (std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "index.js").generic_string();
+    scriptImportTable.push_back(UrlFromPath("https://millennium.ftp/", millennium));
+
     return GetBootstrapModule(scriptImportTable);
 }
 
@@ -639,7 +715,7 @@ void OnBackendLoad(bool reloadFrontend)
                         {"params", {{"source", ConstructOnLoadModule()}}  }
                     });
                 }
-                if (messageId == PAGE_SCRIPT)
+                if (messageId == PAGE_SCRIPT && eventMessage.contains("result") && eventMessage["result"].contains("identifier"))
                 {
                     Logger.Log("Script injected, waiting for identifier...");
 

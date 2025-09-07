@@ -38,6 +38,7 @@
 #include <functional>
 
 #include "co_spawn.h"
+#include <__builtins__/ipc_handler.h>
 #include <fmt/core.h>
 #include <secure_socket.h>
 
@@ -67,36 +68,94 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
         return {};
     }
 
-    Python::EvalResult response = Python::LockGILAndInvokeMethod(message["data"]["pluginName"], message["data"]);
+    EvalResult response;
+    const auto pluginName = message["data"]["pluginName"].get<std::string>();
+
+    /** An internal IPC call, handle it in C++ instead of Python or Lua */
+    if (pluginName == "core")
+    {
+        try
+        {
+            const auto& functionName = message["data"]["methodName"].get<std::string>();
+            const auto& args = message["data"].contains("argumentList") ? message["data"]["argumentList"] : nlohmann::json::object();
+
+            nlohmann::json result = HandleIpcMessage(functionName, args);
+
+            response.plain = result.dump();
+
+            if (result.is_boolean())
+                response.type = FFI_Type::Boolean;
+            else if (result.is_string())
+                response.type = FFI_Type::String;
+            else if (result.is_number_integer())
+                response.type = FFI_Type::Integer;
+            else if (result.is_object() || result.is_array())
+                response.type = FFI_Type::JSON;
+            else
+            {
+                response.type = FFI_Type::UnknownType;
+                response.plain = "core IPC call returned unknown type";
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            response.type = FFI_Type::Error;
+            response.plain = ex.what();
+        }
+    }
+    else
+    {
+        const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
+
+        switch (backendType)
+        {
+            case SettingsStore::PluginBackendType::Python:
+            {
+                response = Python::LockGILAndInvokeMethod(pluginName, message["data"]);
+                break;
+            }
+            case SettingsStore::PluginBackendType::Lua:
+            {
+                response = Lua::LockAndInvokeMethod(pluginName, message["data"]);
+                break;
+            }
+            default:
+            {
+                LOG_ERROR("Unknown backend type for plugin '{}'", pluginName);
+                return {};
+            }
+        }
+    }
+
     nlohmann::json responseMessage;
 
     responseMessage["returnType"] = response.type;
 
     switch (response.type)
     {
-        case Python::Types::Boolean:
+        case FFI_Type::Boolean:
         {
             responseMessage["returnValue"] = (response.plain == "True" ? true : false);
             break;
         }
-        case Python::Types::String:
+        case FFI_Type::String:
         {
             responseMessage["returnValue"] = Base64Encode(response.plain);
             break;
         }
-        case Python::Types::JSON:
+        case FFI_Type::JSON:
         {
             responseMessage["returnValue"] = Base64Encode(response.plain);
             break;
         }
-        case Python::Types::Integer:
+        case FFI_Type::Integer:
         {
             responseMessage["returnValue"] = stoi(response.plain);
             break;
         }
 
-        case Python::Types::Unknown:
-        case Python::Types::Error:
+        case FFI_Type::UnknownType:
+        case FFI_Type::Error:
         {
             responseMessage["failedRequest"] = true;
             responseMessage["failMessage"] = response.plain;
@@ -127,15 +186,38 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
     /** Check if the plugin uses a backend, and if so delegate the notification. */
     for (auto& plugin : allPlugins)
     {
-        if (plugin.pluginName == pluginName)
+        if (plugin.pluginName != pluginName)
         {
-            if (plugin.pluginJson.value("useBackend", true))
-            {
-                Logger.Log("Delegating frontend load for plugin: {}", pluginName);
-                Python::CallFrontEndLoaded(pluginName);
-            }
-            break;
+            continue;
         }
+
+        if (!plugin.pluginJson.value("useBackend", true))
+        {
+            continue;
+        }
+
+        Logger.Log("Delegating frontend load for plugin: {}", pluginName);
+        const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
+
+        switch (backendType)
+        {
+            case SettingsStore::PluginBackendType::Python:
+            {
+                Python::CallFrontEndLoaded(pluginName);
+                break;
+            }
+            case SettingsStore::PluginBackendType::Lua:
+            {
+                Lua::CallFrontEndLoaded(pluginName);
+                break;
+            }
+            default:
+            {
+                Logger.Warn("Unknown backend type for plugin '{}'", pluginName);
+                break;
+            }
+        }
+        break;
     }
 
     /** Return a success message. */
