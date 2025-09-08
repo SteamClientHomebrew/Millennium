@@ -28,25 +28,25 @@
  * SOFTWARE.
  */
 
-#include "co_stub.h"
-#include "co_spawn.h"
-#include "encoding.h"
-#include "executor.h"
-#include "ffi.h"
-#include "http_hooks.h"
-#include "internal_logger.h"
-#include "loader.h"
-#include "plugin_logger.h"
-#include "url_parser.h"
+#include "millennium/backend_init.h"
+#include "millennium/auth.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/encode.h"
+#include "millennium/env.h"
+#include "millennium/ffi.h"
+#include "millennium/http_hooks.h"
+#include "millennium/init.h"
+#include "millennium/logger.h"
+#include "millennium/plugin_api_init.h"
+#include "millennium/plugin_logger.h"
+#include "millennium/urlp.h"
+
 #include <condition_variable>
-#include <env.h>
 #include <fmt/core.h>
 #include <mutex>
 #include <thread>
 #include <tuple>
 #include <vector>
-
-#include <secure_socket.h>
 
 static std::string addedScriptOnNewDocumentId = "";
 

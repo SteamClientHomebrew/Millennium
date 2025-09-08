@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "internal_logger.h"
+#include "millennium/logger.h"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -38,10 +38,10 @@
 #include <thread>
 
 #ifdef _WIN32
-#include "cmd.h"
+#include "millennium/argp_win32.h"
 #endif
-#include "locals.h"
-#include <env.h>
+#include "millennium/env.h"
+#include "millennium/sysfs.h"
 
 OutputLogger Logger;
 

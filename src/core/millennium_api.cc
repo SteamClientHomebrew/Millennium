@@ -1,10 +1,10 @@
-#include <_millennium_api.h>
-#include <co_spawn.h>
-#include <co_stub.h>
-#include <encoding.h>
-#include <http_hooks.h>
-#include <loader.h>
-#include <plugin_logger.h>
+#include "millennium/millennium_api.h"
+#include "millennium/backend_init.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/encode.h"
+#include "millennium/http_hooks.h"
+#include "millennium/init.h"
+#include "millennium/plugin_logger.h"
 
 void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
 {

@@ -32,10 +32,10 @@
 #include <winsock2.h>
 #define _WINSOCKAPI_
 #include "MinHook.h"
+#include "millennium/argp_win32.h"
+#include "millennium/logger.h"
 #include <asio.hpp>
 #include <asio/ip/tcp.hpp>
-#include <cmd.h>
-#include <internal_logger.h>
 #include <iostream>
 #include <windows.h>
 #include <winternl.h>
@@ -87,8 +87,7 @@ const char* GetAppropriateDevToolsPort()
 
 void AppendParameter(std::string& input, const std::string& parameter)
 {
-    if (!input.empty() && input.back() != ' ')
-    {
+    if (!input.empty() && input.back() != ' ') {
         input += ' ';
     }
     input += '"' + parameter + '"';
@@ -97,16 +96,12 @@ void AppendParameter(std::string& input, const std::string& parameter)
 std::string ExtractExecutablePath(const std::string& input)
 {
     std::string exePath;
-    if (!input.empty() && input[0] == '"')
-    {
+    if (!input.empty() && input[0] == '"') {
         size_t end = input.find('"', 1);
-        if (end != std::string::npos)
-        {
+        if (end != std::string::npos) {
             exePath = input.substr(1, end - 1);
         }
-    }
-    else
-    {
+    } else {
         size_t space = input.find(' ');
         exePath = (space != std::string::npos) ? input.substr(0, space) : input;
     }
@@ -124,8 +119,7 @@ void BlockDeveloperToolsAccess(std::string& input)
     const std::string replacement = ARG_REMOTE_ALLOW_ORIGINS;
 
     size_t pos = input.find(target);
-    if (pos != std::string::npos)
-    {
+    if (pos != std::string::npos) {
         input.replace(pos, target.size(), replacement);
     }
 }
@@ -137,8 +131,7 @@ void EnsureRemoteDebuggingAddress(std::string& input)
 {
     const std::string remoteDebugAddr = ARG_REMOTE_DEBUGGING_ADDRESS "=127.0.0.1";
 
-    if (input.find(remoteDebugAddr) == std::string::npos)
-    {
+    if (input.find(remoteDebugAddr) == std::string::npos) {
         AppendParameter(input, remoteDebugAddr);
     }
 }
@@ -151,8 +144,7 @@ void EnsureRemoteDebuggingPort(std::string& input)
 {
     const std::string remoteDebugPortPrefix = ARG_REMOTE_DEBUGGING_PORT "=";
 
-    if (input.find(remoteDebugPortPrefix) == std::string::npos)
-    {
+    if (input.find(remoteDebugPortPrefix) == std::string::npos) {
         std::string portParam = remoteDebugPortPrefix + GetAppropriateDevToolsPort();
         AppendParameter(input, portParam);
     }
@@ -160,8 +152,7 @@ void EnsureRemoteDebuggingPort(std::string& input)
 
 const char* SanitizeCommandLine(const char* cmd)
 {
-    if (!cmd)
-    {
+    if (!cmd) {
         return nullptr;
     }
 
@@ -169,14 +160,12 @@ const char* SanitizeCommandLine(const char* cmd)
     std::string exePath = ExtractExecutablePath(input);
 
     /** If the call isn't spawning Steam's webhelper, just ignore it */
-    if (exePath.find("steamwebhelper.exe") == std::string::npos)
-    {
+    if (exePath.find("steamwebhelper.exe") == std::string::npos) {
         return _strdup(cmd);
     }
 
     /** If developer mode is enabled, disable restrictions */
-    if (!IsDeveloperMode())
-    {
+    if (!IsDeveloperMode()) {
         BlockDeveloperToolsAccess(input);
     }
 
@@ -219,13 +208,10 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
         { "CreateSimpleProcess", reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess) }
     };
 
-    for (const auto& hook : hooks)
-    {
+    for (const auto& hook : hooks) {
         FARPROC proc = GetProcAddress(steamTier0Module, hook.name);
-        if (proc != nullptr)
-        {
-            if (MH_CreateHook(reinterpret_cast<LPVOID>(proc), hook.detour, hook.original) != MH_OK)
-            {
+        if (proc != nullptr) {
+            if (MH_CreateHook(reinterpret_cast<LPVOID>(proc), hook.detour, hook.original) != MH_OK) {
                 MessageBoxA(NULL, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
                 return;
             }
@@ -239,16 +225,14 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
 {
     std::wstring baseDllName(NotificationData->BaseDllName->Buffer, NotificationData->BaseDllName->Length / sizeof(WCHAR));
 
-    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED && baseDllName == L"tier0_s.dll")
-    {
+    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED && baseDllName == L"tier0_s.dll") {
         HandleTier0Dll(NotificationData->DllBase);
     }
 }
 
 BOOL HookCefArgs()
 {
-    if (MH_Initialize() != MH_OK)
-    {
+    if (MH_Initialize() != MH_OK) {
         MessageBoxA(NULL, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
@@ -256,15 +240,13 @@ BOOL HookCefArgs()
     STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
 
     HMODULE hTier0 = GetModuleHandleW(L"tier0_s.dll");
-    if (hTier0)
-    {
+    if (hTier0) {
         HandleTier0Dll(hTier0);
         return true;
     }
 
     HMODULE ntdllModule = GetModuleHandleA("ntdll.dll");
-    if (!ntdllModule)
-    {
+    if (!ntdllModule) {
         MessageBoxA(NULL, "Failed to get handle for ntdll.dll", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
@@ -272,8 +254,7 @@ BOOL HookCefArgs()
     LdrRegisterDllNotification = (LdrRegisterDllNotification_t)GetProcAddress(ntdllModule, "LdrRegisterDllNotification");
     LdrUnregisterDllNotification = (LdrUnregisterDllNotification_t)GetProcAddress(ntdllModule, "LdrUnregisterDllNotification");
 
-    if (!LdrRegisterDllNotification || !LdrUnregisterDllNotification)
-    {
+    if (!LdrRegisterDllNotification || !LdrUnregisterDllNotification) {
         MessageBoxA(NULL, "Failed to get address for LdrRegisterDllNotification or LdrUnregisterDllNotification", "Error", MB_ICONERROR | MB_OK);
         return false;
     }

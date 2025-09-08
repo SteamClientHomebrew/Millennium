@@ -28,10 +28,9 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/default_settings.h"
-
+#include "head/default_cfg.h"
+#include "millennium/env.h"
 #include <cstdlib>
-#include <env.h>
 #include <filesystem>
 
 nlohmann::json GetDefaultConfig()

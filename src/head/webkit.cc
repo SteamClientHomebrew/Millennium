@@ -28,13 +28,13 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/webkit_handler.h"
-#include "__builtins__/config.h"
-#include "internal_logger.h"
+#include "head/webkit.h"
+#include "head/cfg.h"
+#include "millennium/http_hooks.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <filesystem>
-#include <http_hooks.h>
 #include <iostream>
-#include <locals.h>
 #include <unordered_set>
 
 int Millennium::AddBrowserCss(const std::string& targetPath, const std::string& regex)

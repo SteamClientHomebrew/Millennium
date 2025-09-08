@@ -28,15 +28,15 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/ipc_handler.h"
+#include "head/ipc_handler.h"
+#include "millennium/logger.h"
 #include <functional>
-#include <internal_logger.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 
-/** 
- * stored in a static instance only instantiated after its called once. 
+/**
+ * stored in a static instance only instantiated after its called once.
  * This avoids static initialization order issues.
  */
 std::unordered_map<std::string, std::any>& GetCoreExports()
@@ -59,7 +59,7 @@ nlohmann::json HandleIpcMessage(const std::string& functionName, const nlohmann:
 
     const auto& exports = GetCoreExports();
     const auto it = exports.find(functionName);
-    
+
     if (it == exports.end()) {
         const std::string errorMsg = "Function not found: " + functionName;
         LOG_ERROR("{}", errorMsg);

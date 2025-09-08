@@ -42,8 +42,8 @@
  * i.e making requests to external servers, loading scripts from external sources, etc.
  *
  */
-#include "ffi.h"
-#include "loader.h"
+#include "millennium/ffi.h"
+#include "millennium/init.h"
 
 const void BypassCSP(void)
 {

@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "internal_logger.h"
+#include "millennium/logger.h"
 #include <Python.h>
 #include <fmt/core.h>
 #include <lua.hpp>

@@ -30,8 +30,8 @@
 
 #pragma once
 #ifdef _WIN32
-#include "internal_logger.h"
-#include "plugin_logger.h"
+#include "millennium/logger.h"
+#include "millennium/plugin_logger.h"
 #include <fcntl.h>
 #include <io.h>
 #include <winbase.h>

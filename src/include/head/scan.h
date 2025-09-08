@@ -28,12 +28,12 @@
  * SOFTWARE.
  */
 
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <internal_logger.h>
 #include <iostream>
-#include <locals.h>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <sstream>

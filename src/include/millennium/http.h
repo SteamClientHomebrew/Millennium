@@ -29,8 +29,8 @@
  */
 
 #pragma once
-#include "co_spawn.h"
-#include "internal_logger.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/logger.h"
 #include <atomic>
 #include <chrono>
 #include <curl/curl.h>

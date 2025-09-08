@@ -28,10 +28,10 @@
  * SOFTWARE.
  */
 
-#include "locals.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <fmt/core.h>
 #include <fstream>
-#include <internal_logger.h>
 #include <iostream>
 
 #ifdef _WIN32
@@ -39,7 +39,7 @@
 #include <winsock2.h>
 
 #endif
-#include <env.h>
+#include "millennium/env.h"
 
 namespace FileSystem = std::filesystem;
 

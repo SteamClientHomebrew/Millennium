@@ -28,19 +28,17 @@
  * SOFTWARE.
  */
 
+#include "millennium/core_ipc.h"
+#include "head/ipc_handler.h"
+#include "millennium/auth.h"
+#include "millennium/backend_init.h"
+#include "millennium/encode.h"
+#include "millennium/ffi.h"
+#include "millennium/sysfs.h"
+#include <fmt/core.h>
+#include <functional>
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
-
-#include "encoding.h"
-#include "ffi.h"
-#include "ipc.h"
-#include "locals.h"
-#include <functional>
-
-#include "co_spawn.h"
-#include <__builtins__/ipc_handler.h>
-#include <fmt/core.h>
-#include <secure_socket.h>
 
 typedef websocketpp::server<websocketpp::config::asio> socketServer;
 

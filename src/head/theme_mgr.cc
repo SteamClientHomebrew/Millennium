@@ -1,11 +1,11 @@
-#include "__builtins__/theme_installer.h"
-#include "__builtins__/scan.h"
+#include "head/theme_mgr.h"
+#include "head/scan.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <chrono>
 #include <ffi.h>
 #include <fstream>
 #include <git2.h>
-#include <internal_logger.h>
-#include <locals.h>
 #include <nlohmann/json.hpp>
 #include <system_error>
 #include <thread>
@@ -60,7 +60,8 @@ bool ThemeInstaller::DeleteFolder(const std::filesystem::path& p)
         return true;
 
     Logger.Log("DeleteFolder failed initially: {} — retrying with writable perms.", ec.message());
-    for (auto it = std::filesystem::recursive_directory_iterator(p, std::filesystem::directory_options::skip_permission_denied, ec); it != std::filesystem::recursive_directory_iterator(); ++it)
+    for (auto it = std::filesystem::recursive_directory_iterator(p, std::filesystem::directory_options::skip_permission_denied, ec);
+         it != std::filesystem::recursive_directory_iterator(); ++it)
         MakeWritable(it->path());
 
     ec.clear();
@@ -334,23 +335,23 @@ nlohmann::json ThemeInstaller::GetRequestBody(void)
 nlohmann::json ThemeInstaller::ProcessUpdates(const nlohmann::json& updateQuery, const nlohmann::json& remote)
 {
     nlohmann::json updatedThemes = nlohmann::json::array();
-    
+
     for (const auto& updateItem : updateQuery) {
         const std::filesystem::path path = updateItem[1];
         const nlohmann::json theme = updateItem[0];
-        
+
         if (!HasGithubData(theme)) {
             continue;
         }
-        
+
         const std::string repoName = GetRepoName(theme);
         const auto remoteTheme = FindRemoteTheme(remote, repoName);
-        
+
         if (remoteTheme != nullptr && HasUpdates(path, *remoteTheme)) {
             updatedThemes.push_back(CreateUpdateInfo(theme, *remoteTheme));
         }
     }
-    
+
     return updatedThemes;
 }
 
@@ -370,12 +371,9 @@ const nlohmann::json* ThemeInstaller::FindRemoteTheme(const nlohmann::json& remo
     if (!remote.is_array()) {
         return nullptr;
     }
-    
-    auto it = std::find_if(remote.begin(), remote.end(), 
-        [&repoName](const nlohmann::json& item) {
-            return item.value("name", "") == repoName;
-        });
-    
+
+    auto it = std::find_if(remote.begin(), remote.end(), [&repoName](const nlohmann::json& item) { return item.value("name", "") == repoName; });
+
     return (it != remote.end()) ? &(*it) : nullptr;
 }
 
@@ -389,11 +387,11 @@ bool ThemeInstaller::HasUpdates(const std::filesystem::path& path, const nlohman
 nlohmann::json ThemeInstaller::CreateUpdateInfo(const nlohmann::json& theme, const nlohmann::json& remoteTheme)
 {
     return nlohmann::json{
-        {"message", remoteTheme.value("message", "No commit message.")},
-        {"date", remoteTheme.value("date", "unknown")},
-        {"commit", remoteTheme.value("url", "")},
-        {"native", theme["native"]},
-        {"name", theme["data"].value("name", theme["native"])}
+        { "message", remoteTheme.value("message", "No commit message.") },
+        { "date", remoteTheme.value("date", "unknown") },
+        { "commit", remoteTheme.value("url", "") },
+        { "native", theme["native"] },
+        { "name", theme["data"].value("name", theme["native"]) }
     };
 }
 

@@ -28,13 +28,13 @@
  * SOFTWARE.
  */
 
-#include "co_spawn.h"
-#include "bind_stdout.h"
-#include "co_stub.h"
-#include "executor.h"
-#include "ffi.h"
-#include "loader.h"
-#include "plugin_logger.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/backend_init.h"
+#include "millennium/ffi.h"
+#include "millennium/init.h"
+#include "millennium/libpy_stdout_fwd.h"
+#include "millennium/plugin_api_init.h"
+#include "millennium/plugin_logger.h"
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>

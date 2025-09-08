@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "co_spawn.h"
-#include <ffi.h>
+#include "millennium/backend_mgr.h"
+#include "millennium/ffi.h"
 
 #define LUA_IS_LOCKED_ERROR_MESSAGE                                                                                                                                                \
     "Lua state is currently locked and FFI call couldn't be made safely. "                                                                                                         \

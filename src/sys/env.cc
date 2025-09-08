@@ -34,10 +34,10 @@
  * @brief This file is responsible for setting up environment variables that are used throughout the application.
  */
 
-#include "env.h"
+#include "millennium/env.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <fmt/core.h>
-#include <internal_logger.h>
-#include <locals.h>
 #include <stdlib.h>
 #include <string>
 #include <unistd.h>

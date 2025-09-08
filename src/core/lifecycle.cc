@@ -28,9 +28,9 @@
  * SOFTWARE.
  */
 
-#include "co_spawn.h"
-#include "co_stub.h"
-#include "internal_logger.h"
+#include "millennium/backend_init.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/logger.h"
 
 /**
  * Retrieves a comma-separated string of backend plugins that failed to load.

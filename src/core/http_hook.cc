@@ -28,19 +28,19 @@
  * SOFTWARE.
  */
 
-#include "http_hooks.h"
-#include "csp_bypass.h"
-#include "encoding.h"
-#include "env.h"
-#include "ffi.h"
-#include "ipc.h"
-#include "loader.h"
-#include "mhttp.h"
-#include "url_parser.h"
+#include "millennium/auth.h"
+#include "millennium/core_ipc.h"
+#include "millennium/csp_bypass.h"
+#include "millennium/encode.h"
+#include "millennium/env.h"
+#include "millennium/ffi.h"
+#include "millennium/http.h"
+#include "millennium/http_hooks.h"
+#include "millennium/init.h"
+#include "millennium/urlp.h"
 #include <chrono>
 #include <nlohmann/json.hpp>
 #include <ranges>
-#include <secure_socket.h>
 #include <thread>
 #include <unordered_set>
 

@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/scan.h"
-#include <env.h>
+#include "head/scan.h"
+#include "millennium/env.h"
 
 nlohmann::json Millennium::Plugins::FindAllPlugins()
 {

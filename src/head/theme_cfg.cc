@@ -28,15 +28,15 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/theme_config.h"
-#include "__builtins__/accent_color.h"
-#include "__builtins__/css_analyzer.h"
-#include "__builtins__/scan.h"
-#include "__builtins__/webkit_handler.h"
-#include "locals.h"
+#include "head/theme_cfg.h"
+#include "head/css_parser.h"
+#include "head/scan.h"
+#include "head/sys_accent_col.h"
+#include "head/webkit.h"
+#include "millennium/http_hooks.h"
+#include "millennium/sysfs.h"
 #include <filesystem>
 #include <fstream>
-#include <http_hooks.h>
 #include <iostream>
 #include <regex>
 #include <sstream>

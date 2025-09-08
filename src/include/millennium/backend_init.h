@@ -29,8 +29,8 @@
  */
 
 #pragma once
-#include "loader.h"
-#include "locals.h"
+#include "millennium/init.h"
+#include "millennium/sysfs.h"
 #include <Python.h>
 #include <vector>
 

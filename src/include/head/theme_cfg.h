@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "__builtins__/config.h"
+#include "head/cfg.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>

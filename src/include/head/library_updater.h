@@ -1,7 +1,7 @@
 #pragma once
 
-#include "__builtins__/plugin_installer.h"
-#include "__builtins__/theme_installer.h"
+#include "head/plugin_mgr.h"
+#include "head/theme_mgr.h"
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>

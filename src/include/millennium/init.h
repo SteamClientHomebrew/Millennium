@@ -33,16 +33,16 @@
 #undef _WINSOCKAPI_
 #include <winsock2.h>
 #endif
-#include "co_spawn.h"
-#include "locals.h"
-#include <http_hooks.h>
+#include "millennium/backend_mgr.h"
+#include "millennium/http_hooks.h"
+#include "millennium/sysfs.h"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
-#include "await_pipe.h"
+#include "millennium/cef_bridge.h"
 
 class CEFBrowser
 {

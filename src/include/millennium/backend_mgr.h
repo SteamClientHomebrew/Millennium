@@ -29,9 +29,9 @@
  */
 
 #pragma once
-#include "env.h"
-#include "internal_logger.h"
-#include "locals.h"
+#include "millennium/env.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <Python.h>
 #include <atomic>
 #include <condition_variable>

@@ -29,20 +29,20 @@
  */
 
 #if defined(__linux__) || defined(__APPLE__)
-#include "co_spawn.h"
-#include "crash_handler.h"
-#include "executor.h"
 #include "helpers.h"
-#include "loader.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/crash_handler.h"
+#include "millennium/env.h"
+#include "millennium/init.h"
+#include "millennium/logger.h"
+#include "millennium/plugin_api_init.h"
 #include "terminal_pipe.h"
 #include <chrono>
 #include <ctime>
 #include <dlfcn.h>
-#include <env.h>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
-#include <internal_logger.h>
 #include <signal.h>
 #include <stdexcept>
 #include <stdio.h>
@@ -54,19 +54,15 @@ __attribute__((constructor)) void Posix_InitializeEnvironment()
 {
     char path[PATH_MAX];
     ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
-    if (len != -1)
-    {
+    if (len != -1) {
         path[len] = '\0';
         const char* pathPtr = path;
 
         // Check if the path is the same as the Steam executable
-        if (!IsSamePath(pathPtr, fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME")).c_str()))
-        {
+        if (!IsSamePath(pathPtr, fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME")).c_str())) {
             return;
         }
-    }
-    else
-    {
+    } else {
         perror("readlink");
         return;
     }
@@ -91,8 +87,7 @@ extern "C"
         Logger.Log("Hooked main() with PID: {}", getpid());
         Logger.Log("Loading python libraries from {}", __LIBPYTHON_RUNTIME_PATH);
 
-        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL))
-        {
+        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
 
@@ -107,8 +102,7 @@ extern "C"
         g_threadTerminateFlag->flag.store(true);
 
         Sockets::Shutdown();
-        if (g_millenniumThread && g_millenniumThread->joinable())
-        {
+        if (g_millenniumThread && g_millenniumThread->joinable()) {
             g_millenniumThread->join();
         }
 
@@ -123,8 +117,7 @@ extern "C"
         Logger.Log("Hooked main() with PID: {}", getpid());
         Logger.Log("Loading python libraries from {}", __LIBPYTHON_RUNTIME_PATH);
 
-        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL))
-        {
+        if (!dlopen(__LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
 
@@ -151,8 +144,7 @@ extern "C"
     void RemoveFromLdPreload()
     {
         const char* ldPreload = std::getenv("LD_PRELOAD");
-        if (!ldPreload)
-        {
+        if (!ldPreload) {
             LOG_ERROR("LD_PRELOAD environment variable is not set, this shouldn't be possible?");
             return;
         }
@@ -167,17 +159,14 @@ extern "C"
         std::stringstream ss(ldPreloadStr);
         std::string token;
 
-        while (ss >> token)
-        {
-            if (token != millenniumPath)
-            {
+        while (ss >> token) {
+            if (token != millenniumPath) {
                 tokens.push_back(token);
             }
         }
 
         std::string updatedLdPreload;
-        for (size_t i = 0; i < tokens.size(); ++i)
-        {
+        for (size_t i = 0; i < tokens.size(); ++i) {
             if (i > 0)
                 updatedLdPreload += " ";
             updatedLdPreload += tokens[i];
@@ -185,8 +174,7 @@ extern "C"
 
         std::cout << "Updating LD_PRELOAD from [" << ldPreloadStr << "] to [" << updatedLdPreload << "]\n";
 
-        if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0)
-        {
+        if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0) {
             std::perror("setenv");
         }
     }
@@ -197,35 +185,29 @@ extern "C"
         struct stat stat1, stat2;
 
         // Get the real paths for both paths (resolves symlinks)
-        if (realpath(path1, realpath1) == NULL)
-        {
+        if (realpath(path1, realpath1) == NULL) {
             perror("realpath failed for path1");
             return 0; // Error in resolving path
         }
-        if (realpath(path2, realpath2) == NULL)
-        {
+        if (realpath(path2, realpath2) == NULL) {
             perror("realpath failed for path2");
             return 0; // Error in resolving path
         }
 
         // Compare resolved paths
-        if (strcmp(realpath1, realpath2) != 0)
-        {
+        if (strcmp(realpath1, realpath2) != 0) {
             return 0; // Paths are different
         }
 
         // Check if both paths are symlinks and compare symlink targets
-        if (lstat(path1, &stat1) == 0 && lstat(path2, &stat2) == 0)
-        {
-            if (S_ISLNK(stat1.st_mode) && S_ISLNK(stat2.st_mode))
-            {
+        if (lstat(path1, &stat1) == 0 && lstat(path2, &stat2) == 0) {
+            if (S_ISLNK(stat1.st_mode) && S_ISLNK(stat2.st_mode)) {
                 // Both are symlinks, compare the target paths
                 char target1[PATH_MAX], target2[PATH_MAX];
                 ssize_t len1 = readlink(path1, target1, sizeof(target1) - 1);
                 ssize_t len2 = readlink(path2, target2, sizeof(target2) - 1);
 
-                if (len1 == -1 || len2 == -1)
-                {
+                if (len1 == -1 || len2 == -1) {
                     perror("readlink failed");
                     return 0;
                 }
@@ -234,8 +216,7 @@ extern "C"
                 target2[len2] = '\0';
 
                 // Compare the symlink targets
-                if (strcmp(target1, target2) != 0)
-                {
+                if (strcmp(target1, target2) != 0) {
                     return 0; // Symlinks point to different targets
                 }
             }
@@ -249,10 +230,8 @@ extern "C"
      */
     bool IsChildUpdaterProc(int argc, char** argv)
     {
-        for (int i = 0; i < argc; ++i)
-        {
-            if (strcmp(argv[i], "-child-update-ui") == 0 || strcmp(argv[i], "-child-update-ui-socket") == 0)
-            {
+        for (int i = 0; i < argc; ++i) {
+            if (strcmp(argv[i], "-child-update-ui") == 0 || strcmp(argv[i], "-child-update-ui-socket") == 0) {
                 return true;
             }
         }
@@ -268,8 +247,7 @@ extern "C"
         fnMainOriginal = main;
         decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
-        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv))
-        {
+        if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv)) {
             return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
         }
 

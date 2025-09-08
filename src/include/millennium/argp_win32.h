@@ -29,14 +29,14 @@
  */
 
 #pragma once
-#include "internal_logger.h"
+#include "millennium/logger.h"
 #include <string>
 #include <vector>
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
 #endif
-#include <steam_hooks.h>
+#include "millennium/steam_hooks_win32.h"
 
 namespace CommandLineArguments
 {

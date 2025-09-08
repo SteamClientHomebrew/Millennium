@@ -28,18 +28,18 @@
  * SOFTWARE.
  */
 
-#include "loader.h"
-#include "co_spawn.h"
-#include "co_stub.h"
-#include "executor.h"
-#include "ffi.h"
-#include "http_hooks.h"
-#include "internal_logger.h"
-#include "ipc.h"
-#include "plugin_logger.h"
+#include "millennium/init.h"
+#include "head/entry_point.h"
+#include "millennium/backend_init.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/core_ipc.h"
+#include "millennium/env.h"
+#include "millennium/ffi.h"
+#include "millennium/http_hooks.h"
+#include "millennium/logger.h"
+#include "millennium/plugin_api_init.h"
+#include "millennium/plugin_logger.h"
 #include <Python.h>
-#include <__builtins__/core.h>
-#include <env.h>
 #include <iostream>
 #include <string>
 

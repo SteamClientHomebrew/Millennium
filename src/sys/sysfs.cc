@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "internal_logger.h"
-#include "locals.h"
+#include "millennium/sysfs.h"
+#include "millennium/logger.h"
 #include <fmt/core.h>
 #include <fstream>
 #include <iostream>
@@ -38,7 +38,7 @@
 #include <windows.h>
 #include <winsock2.h>
 #endif
-#include <env.h>
+#include "millennium/env.h"
 #include <optional>
 #include <regex>
 

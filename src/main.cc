@@ -34,16 +34,16 @@
 #include <winsock2.h>
 #define _WINSOCKAPI_
 #endif
-#include "co_spawn.h"
-#include "crash_handler.h"
-#include "loader.h"
-#include <env.h>
+#include "millennium/backend_mgr.h"
+#include "millennium/crash_handler.h"
+#include "millennium/env.h"
+#include "millennium/init.h"
+#include "millennium/logger.h"
+#include "millennium/shim_updater.h"
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
-#include <internal_logger.h>
 #include <signal.h>
-#include <terminal_pipe.h>
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.

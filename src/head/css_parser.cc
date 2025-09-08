@@ -28,14 +28,14 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/css_analyzer.h"
+#include "head/css_parser.h"
+#include "millennium/sysfs.h"
+#include <fmt/core.h>
 #include <fstream>
 #include <iomanip>
-#include <locals.h>
 #include <regex>
 #include <sstream>
 #include <vector>
-#include <fmt/core.h>
 
 std::string Millennium::CSSParser::Trim(const std::string& str)
 {
@@ -54,7 +54,7 @@ std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::stri
     }
 
     std::string hex = (color[0] == '#') ? color.substr(1) : color;
-    
+
     const int r = std::stoi(hex.substr(0, 2), nullptr, 16);
     const int g = std::stoi(hex.substr(2, 2), nullptr, 16);
     const int b = std::stoi(hex.substr(4, 2), nullptr, 16);
@@ -62,22 +62,21 @@ std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::stri
     switch (type) {
         case ColorTypes::RawRGB:
             return fmt::format("{}, {}, {}", r, g, b);
-            
+
         case ColorTypes::RGB:
             return fmt::format("rgb({}, {}, {})", r, g, b);
-            
+
         case ColorTypes::RawRGBA:
-        case ColorTypes::RGBA: {
-            const double a = (hex.size() == 8) 
-                ? std::stoi(hex.substr(6, 2), nullptr, 16) / 255.0 
-                : 1.0;
-            
+        case ColorTypes::RGBA:
+        {
+            const double a = (hex.size() == 8) ? std::stoi(hex.substr(6, 2), nullptr, 16) / 255.0 : 1.0;
+
             if (type == ColorTypes::RawRGBA) {
                 return fmt::format("{}, {}, {}, {:.2f}", r, g, b, a);
             }
             return fmt::format("rgba({}, {}, {}, {:.2f})", r, g, b, a);
         }
-        
+
         default:
             return "#" + hex;
     }
@@ -104,14 +103,12 @@ std::optional<std::string> Millennium::CSSParser::ConvertToHex(const std::string
     }
 
     if (type == ColorTypes::RawRGB || type == ColorTypes::RGB) {
-        return fmt::format("#{:02x}{:02x}{:02x}", 
-            static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]));
+        return fmt::format("#{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]));
     }
-    
+
     if (type == ColorTypes::RawRGBA || type == ColorTypes::RGBA) {
         const int alpha = static_cast<int>(values[3] * 255.0);
-        return fmt::format("#{:02x}{:02x}{:02x}{:02x}", 
-            static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]), alpha);
+        return fmt::format("#{:02x}{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]), alpha);
     }
 
     return std::nullopt;

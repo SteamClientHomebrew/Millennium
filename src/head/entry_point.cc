@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/ipc_handler.h"
+#include "head/ipc_handler.h"
 #include <any>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -42,15 +42,15 @@
 #include <winuser.h>
 // clang-format on
 #endif
-#include "__builtins__/scan.h"
-#include "__builtins__/theme_config.h"
-#include "__builtins__/theme_installer.h"
-#include "__builtins__/updater.h"
-#include <_millennium_api.h>
-#include <encoding.h>
-#include <executor.h>
-#include <locals.h>
-#include <plugin_logger.h>
+#include "head/library_updater.h"
+#include "head/scan.h"
+#include "head/theme_cfg.h"
+#include "head/theme_mgr.h"
+#include "millennium/encode.h"
+#include "millennium/millennium_api.h"
+#include "millennium/plugin_api_init.h"
+#include "millennium/plugin_logger.h"
+#include "millennium/sysfs.h"
 
 std::shared_ptr<ThemeConfig> themeConfig;
 std::shared_ptr<Updater> updater;

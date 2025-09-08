@@ -28,13 +28,13 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/config.h"
-#include "mhttp.h"
+#include "head/cfg.h"
+#include "millennium/http.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <filesystem>
 #include <fstream>
-#include <internal_logger.h>
 #include <iostream>
-#include <locals.h>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <optional>

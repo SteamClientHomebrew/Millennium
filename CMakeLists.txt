@@ -259,7 +259,7 @@ add_compile_definitions(MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/src
-  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/src/include
   ${CMAKE_SOURCE_DIR}/vendor/fmt/include
   ${CMAKE_SOURCE_DIR}/vendor/asio/asio/include
   ${CMAKE_SOURCE_DIR}/vendor/nlohmann/include
@@ -319,7 +319,7 @@ if(NOT HAVE_ISINF)
 endif()
 
 file(GLOB_RECURSE BUILTINS_SRC "src/*.cc")
-file(GLOB_RECURSE EXCLUDE_SYS_SRC "src/sys/*.cc")
+file(GLOB_RECURSE EXCLUDE_SYS_SRC "src/plat/*.cc")
 list(REMOVE_ITEM BUILTINS_SRC ${EXCLUDE_SYS_SRC})
 set(SOURCE_FILES ${BUILTINS_SRC})
 

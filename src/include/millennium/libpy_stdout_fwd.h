@@ -34,9 +34,9 @@
  * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
  */
 
-#include "co_spawn.h"
-#include "internal_logger.h"
-#include "plugin_logger.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/logger.h"
+#include "millennium/plugin_logger.h"
 #include <Python.h>
 #include <fmt/core.h>
 #include <iostream>

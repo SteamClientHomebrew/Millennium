@@ -28,10 +28,10 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/config.h"
-#include <__builtins__/default_settings.h>
-#include <env.h>
-#include <internal_logger.h>
+#include "head/cfg.h"
+#include "head/default_cfg.h"
+#include "millennium/env.h"
+#include "millennium/logger.h"
 
 ConfigManager& ConfigManager::Instance()
 {

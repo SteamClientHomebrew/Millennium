@@ -29,9 +29,9 @@
  */
 
 #pragma once
-#include "co_spawn.h"
-#include "ffi.h"
-#include "loader.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/ffi.h"
+#include "millennium/init.h"
 
 static std::map<std::string, JavaScript::Types> typeMap = {
     { "string",  JavaScript::Types::String  },

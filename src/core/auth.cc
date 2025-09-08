@@ -28,9 +28,9 @@
  * SOFTWARE.
  */
 
-#include "secure_socket.h"
+#include "millennium/auth.h"
+#include "millennium/logger.h"
 #include <fmt/format.h>
-#include <internal_logger.h>
 #include <iostream>
 #include <random>
 #include <string>

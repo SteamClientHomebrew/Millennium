@@ -1,12 +1,12 @@
 // clang-format off
 #include <winsock2.h>
 // clang-format on
+#include "millennium/argp_win32.h"
+#include "millennium/env.h"
+#include "millennium/http_hooks.h"
+#include "millennium/init.h"
+#include "millennium/shim_updater.h"
 #include <MinHook.h>
-#include <cmd.h>
-#include <env.h>
-#include <http_hooks.h>
-#include <loader.h>
-#include <terminal_pipe.h>
 #include <thread>
 
 /** Maintain compatibility with different compilers */
@@ -29,12 +29,9 @@ void EntryMain(); /** forward declare main function */
  */
 CONSTRUCTOR VOID Win32_InitializeEnvironment(VOID)
 {
-    try
-    {
+    try {
         SetupEnvironmentVariables();
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         LOG_ERROR("Failed to set up environment variables: {}", e.what());
         std::exit(EXIT_FAILURE);
     }
@@ -43,8 +40,7 @@ CONSTRUCTOR VOID Win32_InitializeEnvironment(VOID)
 VOID Win32_AttachMillennium(VOID)
 {
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
-    if (!HookCefArgs())
-    {
+    if (!HookCefArgs()) {
         return;
     }
 
@@ -62,8 +58,7 @@ VOID Win32_AttachMillennium(VOID)
     MH_Uninitialize();
 
     /** Deallocate the developer console */
-    if (CommandLineArguments::HasArgument("-dev"))
-    {
+    if (CommandLineArguments::HasArgument("-dev")) {
         FreeConsole();
     }
 }
@@ -86,8 +81,7 @@ VOID Win32_DetachMillennium(VOID)
 
     Logger.Log("Waiting for Millennium thread to exit...");
 
-    if (!g_millenniumThread.joinable())
-    {
+    if (!g_millenniumThread.joinable()) {
         MessageBoxA(NULL, "Millennium thread is not joinable, skipping join. This is likely because Millennium failed to start properly.", "Warning", MB_ICONWARNING);
         return;
     }
@@ -103,8 +97,7 @@ VOID Win32_DetachMillennium(VOID)
  */
 DLL_EXPORT INT WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-    switch (fdwReason)
-    {
+    switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
         {
             g_millenniumThread = std::thread(Win32_AttachMillennium);

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "mhttp.h"
+#include "millennium/http.h"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <thread>
@@ -48,7 +48,7 @@
 #include <cstdlib>
 
 #endif
-#include "cmd.h"
+#include "millennium/argp_win32.h"
 
 static bool bHasCheckedConnection = false;
 

@@ -1,7 +1,7 @@
-#include "__builtins__/updater.h"
-#include "__builtins__/config.h"
-#include <internal_logger.h>
-#include <mhttp.h>
+#include "head/library_updater.h"
+#include "head/cfg.h"
+#include "millennium/http.h"
+#include "millennium/logger.h"
 
 Updater::Updater() : api_url("https://steambrew.app/api/checkupdates"), has_checked_for_updates(false)
 {

@@ -28,9 +28,9 @@
  * SOFTWARE.
  */
 
-#include "co_spawn.h"
-#include "ffi.h"
-#include "loader.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/ffi.h"
+#include "millennium/init.h"
 #include <condition_variable>
 #include <future>
 #include <mutex>

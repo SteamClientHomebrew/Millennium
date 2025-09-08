@@ -28,13 +28,13 @@
  * SOFTWARE.
  */
 
-#include "__builtins__/accent_color.h"
-#include "internal_logger.h"
+#include "head/sys_accent_col.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <locals.h>
 #include <nlohmann/json.hpp>
 #include <sstream>
 #include <vector>
@@ -55,7 +55,6 @@ struct AccentColors
 
 #define UX_THEME_DLL "uxtheme.dll"
 
-
 /**
  * Retrieves the current Windows accent colors using undocumented WinRT APIs.
  * This should be working on all windows versions that support accent colors (10, 11).
@@ -65,10 +64,10 @@ struct AccentColors
 AccentColors GetAccentColors()
 {
     AccentColors colors = {};
-    #ifdef _WIN32
-    typedef int(WINAPI* GetImmersiveUserColorSetPreference_t)(int forceCheckRegistry, int skipCheckOnFail);
-    typedef unsigned long(WINAPI* GetImmersiveColorFromColorSetEx_t)(unsigned int colorSet, unsigned int colorType, int ignoreHighContrast, int dwHighContrastCacheMode);
-    typedef int(WINAPI* GetImmersiveColorTypeFromName_t)(const wchar_t* name);
+#ifdef _WIN32
+    typedef int(WINAPI * GetImmersiveUserColorSetPreference_t)(int forceCheckRegistry, int skipCheckOnFail);
+    typedef unsigned long(WINAPI * GetImmersiveColorFromColorSetEx_t)(unsigned int colorSet, unsigned int colorType, int ignoreHighContrast, int dwHighContrastCacheMode);
+    typedef int(WINAPI * GetImmersiveColorTypeFromName_t)(const wchar_t* name);
 
     HMODULE hUxTheme = LoadLibraryW(L"" UX_THEME_DLL);
     if (!hUxTheme) {
@@ -102,7 +101,7 @@ AccentColors GetAccentColors()
     }
 
     FreeLibrary(hUxTheme);
-    #endif
+#endif
     return colors;
 }
 
@@ -121,7 +120,7 @@ std::string CastToHex(unsigned long color)
 /**
  * Converts a DWORD color to an RGB string "r, g, b"
  */
-std::string CastToRgb(unsigned long  color)
+std::string CastToRgb(unsigned long color)
 {
     return fmt::format("{}, {}, {}", R(color), G(color), B(color));
 }
