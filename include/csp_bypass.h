@@ -49,17 +49,13 @@ const void BypassCSP(void)
 {
     JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
     {
-        try
-        {
-            if (message.contains("id") && message.value("id", -1) == 96876)
-            {
-                for (auto& target : message["result"]["targetInfos"])
-                {
+        try {
+            if (message.contains("id") && message.value("id", -1) == 96876) {
+                for (auto& target : message["result"]["targetInfos"]) {
                     const std::string targetUrl = target["url"].get<std::string>();
 
                     // make sure the only target none client pages.
-                    if (target["type"] == "page" && targetUrl.find("steamloopback.host") == std::string::npos && targetUrl.find("about:blank?") == std::string::npos)
-                    {
+                    if (target["type"] == "page" && targetUrl.find("steamloopback.host") == std::string::npos && targetUrl.find("about:blank?") == std::string::npos) {
                         Sockets::PostGlobal({
                             { "id",     567844                                                      },
                             { "method", "Target.attachToTarget"                                     },
@@ -69,8 +65,7 @@ const void BypassCSP(void)
                 }
             }
 
-            if (message.value("method", std::string()) == "Target.attachedToTarget")
-            {
+            if (message.value("method", std::string()) == "Target.attachedToTarget") {
                 Sockets::PostGlobal({
                     { "id",        1235377                        },
                     { "method",    "Page.setBypassCSP"            },
@@ -82,17 +77,12 @@ const void BypassCSP(void)
                 });
             }
 
-            if (message.contains("id") && message.value("id", -1) == 1235377)
-            {
+            if (message.contains("id") && message.value("id", -1) == 1235377) {
                 JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
             }
-        }
-        catch (const nlohmann::detail::exception& e)
-        {
+        } catch (const nlohmann::detail::exception& e) {
             LOG_ERROR("error bypassing CSP -> {}", e.what());
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             LOG_ERROR("error bypassing CSP -> {}", e.what());
         }
     });

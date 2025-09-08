@@ -14,11 +14,9 @@ void* g_originalXTstInstance = NULL;
     ret_type name params                                                                                                                                                           \
     {                                                                                                                                                                              \
         static ret_type(*orig) params = NULL;                                                                                                                                      \
-        if (!orig)                                                                                                                                                                 \
-        {                                                                                                                                                                          \
+        if (!orig) {                                                                                                                                                               \
             orig = (ret_type(*) params)dlsym(g_originalXTstInstance, #name);                                                                                                       \
-            if (!orig)                                                                                                                                                             \
-            {                                                                                                                                                                      \
+            if (!orig) {                                                                                                                                                           \
                 LOG_ERROR("Cannot find original %s", #name);                                                                                                                       \
                 return False;                                                                                                                                                      \
             }                                                                                                                                                                      \

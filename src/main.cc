@@ -58,10 +58,8 @@ const static void VerifyEnvironment()
         "Millennium is incompatible with your {} config. This is a file you likely created to block Steam updates. In order for Millennium to properly function, remove it.",
         steamUpdateBlock.string());
 
-    if (std::filesystem::exists(steamUpdateBlock))
-    {
-        try
-        {
+    if (std::filesystem::exists(steamUpdateBlock)) {
+        try {
             std::string steamConfig = SystemIO::ReadFileSync(steamUpdateBlock.string());
 
             std::vector<std::string> blackListedKeys = {
@@ -72,16 +70,12 @@ const static void VerifyEnvironment()
                 "BootStrapperInhibitUpdateOnLaunch",
             };
 
-            for (const auto& key : blackListedKeys)
-            {
-                if (steamConfig.find(key) != std::string::npos)
-                {
+            for (const auto& key : blackListedKeys) {
+                if (steamConfig.find(key) != std::string::npos) {
                     throw SystemIO::FileException("Steam.cfg contains blacklisted keys");
                 }
             }
-        }
-        catch (const SystemIO::FileException& e)
-        {
+        } catch (const SystemIO::FileException& e) {
 #ifdef _WIN32
             MessageBoxA(NULL, errorMessage.c_str(), "Startup Error", MB_ICONERROR | MB_OK);
 #endif
@@ -102,7 +96,7 @@ void EntryMain()
     const auto startTime = std::chrono::system_clock::now();
     VerifyEnvironment();
 
-    PythonManager& manager = PythonManager::GetInstance();
+    BackendManager& manager = BackendManager::GetInstance();
     g_pluginLoader = std::make_shared<PluginLoader>(startTime);
 
     /** Start the injection process into the Steam web helper */

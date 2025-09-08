@@ -52,8 +52,7 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
     const std::string logMessage = message;
 
     /** Dont process new lines or empty spaces (which seem to represent empty lines) */
-    if (logMessage != "\n" && logMessage != " ")
-    {
+    if (logMessage != "\n" && logMessage != " ") {
         Logger.LogPluginMessage(pname, message);
         InfoToLogger(pname, message);
     }
@@ -78,11 +77,10 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
  */
 #define HOOK_OUT_WRITE(write_function)                                                                                                                                             \
     const char* message;                                                                                                                                                           \
-    if (!PyArg_ParseTuple(args, "s", &message))                                                                                                                                    \
-    {                                                                                                                                                                              \
+    if (!PyArg_ParseTuple(args, "s", &message)) {                                                                                                                                  \
         return NULL;                                                                                                                                                               \
     }                                                                                                                                                                              \
-    write_function(PythonManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                       \
+    write_function(BackendManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                      \
     return Py_BuildValue("");
 
 extern "C"

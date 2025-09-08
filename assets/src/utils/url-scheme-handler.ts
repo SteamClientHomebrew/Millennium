@@ -31,13 +31,10 @@
 import { callable, Millennium, Navigation } from '@steambrew/client';
 import { PluginComponent, ThemeItem } from '../types';
 import { Logger } from './Logger';
+import { PyFindAllPlugins, PyFindAllThemes, PyUpdatePluginStatus } from './ffi';
+import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';
 
 const DEFAULT_THEME_NAME = '__default__';
-
-const ChangeTheme = callable<[{ theme_name: string }]>('theme_config.change_theme');
-const FindAllThemes = callable<[], string>('find_all_themes');
-const FindAllPlugins = callable<[], string>('find_all_plugins');
-const UpdatePluginStatus = callable<[{ pluginJson: string }], any>('ChangePluginStatus');
 
 /**
  * steam://millennium URL support.
@@ -77,7 +74,7 @@ export const OnRunSteamURL = async (_: number, url: string) => {
 
 	if (action === 'plugins') {
 		// God, why
-		const plugins: PluginComponent[] = JSON.parse(await FindAllPlugins()).map((e: PluginComponent) => ({ ...e, plugin_name: e.data.name }));
+		const plugins: PluginComponent[] = JSON.parse(await PyFindAllPlugins()).map((e: PluginComponent) => ({ ...e, plugin_name: e.data.name }));
 		if (parameter) {
 			if (!plugins.some((e) => e.data.name === parameter)) {
 				return;
@@ -93,16 +90,16 @@ export const OnRunSteamURL = async (_: number, url: string) => {
 			}
 		}
 
-		UpdatePluginStatus({ pluginJson: JSON.stringify(plugins) });
+		PyUpdatePluginStatus({ pluginJson: JSON.stringify(plugins) });
 		SteamClient.Browser.RestartJSContext();
 	}
 
 	if (action === 'themes') {
-		const themes: ThemeItem[] = JSON.parse(await FindAllThemes());
+		const themes: ThemeItem[] = JSON.parse(await PyFindAllThemes());
 		const theme = themes.find((e) => e.native === parameter);
 		const theme_name = !!theme && option === 'enable' ? theme.native : DEFAULT_THEME_NAME;
 
-		ChangeTheme({ theme_name });
+		ChangeActiveTheme(theme_name, UIReloadProps.Force);
 		SteamClient.Browser.RestartJSContext();
 	}
 };

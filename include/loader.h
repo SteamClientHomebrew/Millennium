@@ -64,7 +64,7 @@ class PluginLoader
     PluginLoader(std::chrono::system_clock::time_point startTime);
     // ~PluginLoader();
 
-    const void StartBackEnds(PythonManager& manager);
+    const void StartBackEnds(BackendManager& manager);
     const void StartFrontEnds();
     const void InjectWebkitShims();
 

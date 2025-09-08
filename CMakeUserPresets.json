@@ -11,7 +11,8 @@
 				"strategy": "external"
 			},
 			"cacheVariables": {
-				"CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake"
+				"CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake",
+				"VCPKG_INSTALL_OPTIONS": "--x-abi-tools-use-exact-versions"
 			}
 		},
 		{

@@ -43,6 +43,12 @@ class SettingsStore
     mINI::INIFile file;
     mINI::INIStructure ini;
 
+    enum PluginBackendType
+    {
+        Python,
+        Lua
+    };
+
     static constexpr const char* pluginConfigFile = "plugin.json";
 
     struct PluginTypeSchema
@@ -53,12 +59,14 @@ class SettingsStore
         std::filesystem::path backendAbsoluteDirectory;
         std::filesystem::path frontendAbsoluteDirectory;
         std::filesystem::path webkitAbsolutePath;
+        PluginBackendType backendType;
         bool isInternal = false;
     };
 
     std::vector<PluginTypeSchema> ParseAllPlugins();
     std::vector<PluginTypeSchema> GetEnabledBackends();
     std::vector<PluginTypeSchema> GetEnabledPlugins();
+    std::vector<std::string> GetEnabledPluginNames();
 
     bool IsEnabledPlugin(std::string pluginName);
     bool TogglePluginStatus(std::string pluginName, bool enabled);
@@ -74,7 +82,6 @@ class SettingsStore
   private:
     void LintPluginData(nlohmann::json json, std::string pluginName);
     PluginTypeSchema GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
-    void InsertMillenniumModules(std::vector<SettingsStore::PluginTypeSchema>& plugins);
 };
 
 namespace SystemIO

@@ -47,10 +47,8 @@ std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
 {
     std::string failedBackends;
 
-    for (const auto& plugin : this->emittedPlugins)
-    {
-        if (plugin.event == BACKEND_LOAD_FAILED)
-        {
+    for (const auto& plugin : this->emittedPlugins) {
+        if (plugin.event == BACKEND_LOAD_FAILED) {
             failedBackends += plugin.pluginName + ", ";
         }
     }
@@ -73,10 +71,8 @@ std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
 {
     std::string successfulBackends;
 
-    for (const auto& plugin : this->emittedPlugins)
-    {
-        if (plugin.event == BACKEND_LOAD_SUCCESS)
-        {
+    for (const auto& plugin : this->emittedPlugins) {
+        if (plugin.event == BACKEND_LOAD_SUCCESS) {
             successfulBackends += plugin.pluginName + ", ";
         }
     }
@@ -98,8 +94,7 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 
     Logger.Log("\033[1;35mEnabled Plugins: {}, Loaded Plugins : {}\033[0m", pluginCount, emittedPlugins.size());
 
-    if (this->emittedPlugins.size() == pluginCount)
-    {
+    if (this->emittedPlugins.size() == pluginCount) {
         const std::string failedBackends = GetFailedBackendsStr();
         const std::string successfulBackends = GetSuccessfulBackendsStr();
 
@@ -126,24 +121,21 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
  */
 void CoInitializer::BackendCallbacks::StatusDispatch()
 {
-    if (this->EvaluateBackendStatus())
-    {
-        if (listeners.find(ON_BACKEND_READY_EVENT) != listeners.end())
-        {
+    if (this->EvaluateBackendStatus()) {
+        std::unique_lock<std::mutex> lock(listenersMutex); // Lock here
+
+        if (listeners.find(ON_BACKEND_READY_EVENT) != listeners.end()) {
             auto& callbacks = listeners[ON_BACKEND_READY_EVENT];
 
             // Copy callbacks to avoid iterator invalidation if a callback modifies the vector
             std::vector<EventCallback> callbacksCopy = callbacks;
             callbacks.clear();
-            for (auto& cb : callbacksCopy)
-            {
+            for (auto& cb : callbacksCopy) {
                 Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&cb);
                 cb();
             }
             isReadyForCallback = true;
-        }
-        else
-        {
+        } else {
             missedEvents.push_back(ON_BACKEND_READY_EVENT);
         }
     }
@@ -156,18 +148,14 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
  */
 void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
 {
-    if (plugin.event == BACKEND_LOAD_FAILED)
-    {
+    if (plugin.event == BACKEND_LOAD_FAILED) {
         Logger.Warn("Failed to load '{}'", plugin.pluginName);
-    }
-    else if (plugin.event == BACKEND_LOAD_SUCCESS)
-    {
+    } else if (plugin.event == BACKEND_LOAD_SUCCESS) {
         Logger.Log("Successfully loaded '{}'", plugin.pluginName);
     }
 
     /** Check if its already emitted */
-    if (std::find(this->emittedPlugins.begin(), this->emittedPlugins.end(), plugin) == this->emittedPlugins.end())
-    {
+    if (std::find(this->emittedPlugins.begin(), this->emittedPlugins.end(), plugin) == this->emittedPlugins.end()) {
         this->emittedPlugins.push_back(plugin);
         this->StatusDispatch();
     }
@@ -185,14 +173,12 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, b
     // remove the plugin from the emitted list
     auto it = std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; });
 
-    if (it != this->emittedPlugins.end())
-    {
+    if (it != this->emittedPlugins.end()) {
         this->emittedPlugins.erase(it, this->emittedPlugins.end());
         Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
     }
 
-    if (!isShuttingDown)
-    {
+    if (!isShuttingDown) {
         Logger.Log("Running status dispatcher...");
         this->StatusDispatch();
     }

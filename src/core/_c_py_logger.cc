@@ -50,21 +50,18 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 {
     LoggerObject* self;
     self = (LoggerObject*)type->tp_alloc(type, 0);
-    if (!self)
-    {
+    if (!self) {
         return NULL;
     }
 
     const char* prefix = NULL;
-    if (PyArg_ParseTuple(args, "|s", &prefix) && prefix != NULL)
-    {
+    if (PyArg_ParseTuple(args, "|s", &prefix) && prefix != NULL) {
         PyErr_WarnEx(PyExc_DeprecationWarning,
                      "DEVELOPER INFO: Logger() no longer accepts custom name parameters, this is not fatal however all parameters will be ignored, please remove them.", 1);
     }
 
     PyObject* builtins = PyEval_GetBuiltins();
-    if (!builtins)
-    {
+    if (!builtins) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
         Py_DECREF(self);
         return NULL;
@@ -75,18 +72,15 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     std::string pluginName = value ? PyUnicode_AsUTF8(value) : "ERRNO_PLUGIN_NAME";
 
     /** Check if the logger already exists, and use it if it does */
-    for (auto logger : g_loggerList)
-    {
-        if (logger->GetPluginName(false) == pluginName)
-        {
+    for (auto logger : g_loggerList) {
+        if (logger->GetPluginName(false) == pluginName) {
             self->m_loggerPtr = logger;
             return (PyObject*)self;
         }
     }
 
     self->m_loggerPtr = new BackendLogger(pluginName);
-    if (!self->m_loggerPtr)
-    {
+    if (!self->m_loggerPtr) {
         Py_DECREF(self);
         return NULL;
     }
@@ -121,8 +115,7 @@ void LoggerObject_dealloc(LoggerObject* self)
 PyObject* LoggerObject_log(LoggerObject* self, PyObject* args)
 {
     const char* message;
-    if (!PyArg_ParseTuple(args, "s", &message))
-    {
+    if (!PyArg_ParseTuple(args, "s", &message)) {
         return NULL;
     }
 
@@ -144,8 +137,7 @@ PyObject* LoggerObject_log(LoggerObject* self, PyObject* args)
 PyObject* LoggerObject_error(LoggerObject* self, PyObject* args)
 {
     const char* message;
-    if (!PyArg_ParseTuple(args, "s", &message))
-    {
+    if (!PyArg_ParseTuple(args, "s", &message)) {
         return NULL;
     }
 
@@ -167,8 +159,7 @@ PyObject* LoggerObject_error(LoggerObject* self, PyObject* args)
 PyObject* LoggerObject_warning(LoggerObject* self, PyObject* args)
 {
     const char* message;
-    if (!PyArg_ParseTuple(args, "s", &message))
-    {
+    if (!PyArg_ParseTuple(args, "s", &message)) {
         return NULL;
     }
 
@@ -217,12 +208,9 @@ PyTypeObject LoggerType{
  *
  * @returns {PyModuleDef*} - A pointer to the module definition for the logger module.
  */
-static struct PyModuleDef g_loggerModuleDef{
-    .m_base = PyModuleDef_HEAD_INIT,
-    .m_name = "logger",
-    .m_doc = "Millennium logger module",
-    .m_size = -1,
-    .m_methods = LoggerObject_methods,
+static struct PyModuleDef g_loggerModuleDef
+{
+    .m_base = PyModuleDef_HEAD_INIT, .m_name = "logger", .m_doc = "Millennium logger module", .m_size = -1, .m_methods = LoggerObject_methods,
 };
 
 /**
@@ -234,22 +222,19 @@ static struct PyModuleDef g_loggerModuleDef{
  */
 PyObject* PyInit_Logger(void)
 {
-    if (PyType_Ready(&LoggerType) < 0)
-    {
+    if (PyType_Ready(&LoggerType) < 0) {
         /** Failing indicates a serious initialization error */
         return NULL;
     }
 
     /** Create the logger module */
     PyObject* loggerModule = PyModule_Create(&g_loggerModuleDef);
-    if (loggerModule == NULL)
-    {
+    if (loggerModule == NULL) {
         return NULL;
     }
 
     Py_INCREF(&LoggerType);
-    if (PyModule_AddObject(loggerModule, "Logger", (PyObject*)&LoggerType) < 0)
-    {
+    if (PyModule_AddObject(loggerModule, "Logger", (PyObject*)&LoggerType) < 0) {
         Py_DECREF(&LoggerType);
         Py_DECREF(loggerModule);
         return NULL;
@@ -266,8 +251,7 @@ PyObject* PyInit_Logger(void)
  */
 void CleanupLoggers()
 {
-    for (auto logger : g_loggerList)
-    {
+    for (auto logger : g_loggerList) {
         delete logger;
     }
     g_loggerList.clear();

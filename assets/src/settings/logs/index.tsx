@@ -28,14 +28,13 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, IconsModule, TextField, callable, joinClassNames, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, TextField, joinClassNames, pluginSelf } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';
 import { locale } from '../../../locales';
-import { PyGetLogData, PySetClipboardText } from '../../utils/ffi';
+import { PyGetLogData } from '../../utils/ffi';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
-import { FaCircleCheck } from 'react-icons/fa6';
 import { IconButton } from '../../components/IconButton';
 
 export type LogItem = {
@@ -101,8 +100,8 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	aggregateLogStats() {
 		if (!this.state.selectedLog) return;
 
-		const errorCount = this.state.selectedLog.logs.filter((log) => log.level === LogLevel.ERROR).length;
-		const warningCount = this.state.selectedLog.logs.filter((log) => log.level === LogLevel.WARNING).length;
+		const errorCount = (this.state.selectedLog?.logs?.filter((log) => log.level === LogLevel.ERROR) ?? []).length;
+		const warningCount = (this.state.selectedLog?.logs?.filter((log) => log.level === LogLevel.WARNING) ?? []).length;
 
 		this.setState({ errorCount, warningCount });
 	}
@@ -117,13 +116,18 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 			/** Strip all ANSI colors that were provided by Millennium */
 			.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
 
-		if (PySetClipboardText({ data: logsToCopy })) {
-			this.setState({ copyIcon: <IconsModule.Checkmark /> });
+		const textarea = document.createElement('textarea');
+		textarea.value = logsToCopy;
+		document.body.appendChild(textarea);
+		textarea.select();
+		document.execCommand('copy');
+		document.body.removeChild(textarea);
 
-			setTimeout(() => {
-				this.setState({ copyIcon: <IconsModule.Copy /> });
-			}, 2000);
-		}
+		this.setState({ copyIcon: <IconsModule.Checkmark /> });
+
+		setTimeout(() => {
+			this.setState({ copyIcon: <IconsModule.Copy /> });
+		}, 2000);
 	};
 
 	filterLogsBySearchQuery = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,20 +140,20 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	};
 
 	renderLogItemButton = (log: LogData) => {
-		const errors = log.logs.filter((log) => log.level === LogLevel.ERROR);
-		const warnings = log.logs.filter((log) => log.level === LogLevel.WARNING);
+		const errors = log?.logs?.filter((log) => log.level === LogLevel.ERROR) ?? [];
+		const warnings = log?.logs?.filter((log) => log.level === LogLevel.WARNING) ?? [];
 
-		const messageType = errors.length !== 0 ? 'encountered errors' : 'issued warnings';
+		const messageType = errors?.length !== 0 ? 'encountered errors' : 'issued warnings';
 
 		return (
 			<DialogButton
 				key={log.name}
 				onClick={() => this.setState({ selectedLog: log, searchedLogs: log.logs })}
 				className={joinClassNames('MillenniumButton', 'MillenniumLogs_LogItemButton', settingsClasses.SettingsDialogButton)}
-				data-error-count={errors.length}
-				data-warning-count={warnings.length}
+				data-error-count={errors?.length}
+				data-warning-count={warnings?.length}
 			>
-				<DesktopTooltip bDisabled={errors.length === 0 && warnings.length === 0} toolTipContent={`${log.name} ${messageType}.`} direction="top">
+				<DesktopTooltip bDisabled={errors?.length === 0 && warnings?.length === 0} toolTipContent={`${log.name} ${messageType}.`} direction="top">
 					<IconsModule.ExclamationPoint />
 				</DesktopTooltip>
 				{log?.name}
@@ -233,8 +237,8 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 				</div>
 
 				<pre className="MillenniumLogs_Text DialogInput DialogTextInputBase" style={{ fontSize: logFontSize + 'px' }}>
-					{(searchQuery.length ? searchedLogs : selectedLog.logs).map((log, index) => (
-						<Ansi key={index}>{atob(log.message)}</Ansi>
+					{(searchQuery?.length ? searchedLogs : selectedLog?.logs)?.map((log, index) => (
+						<Ansi key={index}>{atob(log?.message)}</Ansi>
 					))}
 				</pre>
 			</div>

@@ -45,13 +45,10 @@ static bool HasArgument(const std::string& targetArgument)
 #ifdef _WIN32
     int argc = 0;
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (argv)
-    {
+    if (argv) {
         std::wstring targetW(targetArgument.begin(), targetArgument.end());
-        for (int i = 0; i < argc; ++i)
-        {
-            if (targetW == argv[i])
-            {
+        for (int i = 0; i < argc; ++i) {
+            if (targetW == argv[i]) {
                 LocalFree(argv);
                 return true;
             }
@@ -70,17 +67,13 @@ static u_short GetRemoteDebuggerPort()
 {
     const char* portValue = GetAppropriateDevToolsPort();
 
-    if (!portValue)
-    {
+    if (!portValue) {
         return 0;
     }
 
-    try
-    {
+    try {
         return static_cast<u_short>(std::stoi(portValue));
-    }
-    catch (const std::exception&)
-    {
+    } catch (const std::exception&) {
         return 0;
     }
 }

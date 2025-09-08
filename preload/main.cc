@@ -76,15 +76,12 @@ void DownloadLatestAsset(std::string queuedDownloadUrl, std::string steam_path)
     Print("Downloading asset: {}", queuedDownloadUrl);
     const std::string localDownloadPath = (std::filesystem::temp_directory_path() / "millennium.zip").string();
 
-    if (DownloadResource(queuedDownloadUrl, localDownloadPath))
-    {
+    if (DownloadResource(queuedDownloadUrl, localDownloadPath)) {
         Print("Successfully downloaded asset...");
 
         ExtractZippedArchive(localDownloadPath.c_str(), steam_path.c_str());
         remove(localDownloadPath.c_str());
-    }
-    else
-    {
+    } else {
         Error("Failed to download asset: {}", queuedDownloadUrl);
     }
 }
@@ -103,8 +100,7 @@ const void CheckForUpdates(std::string strSteamPath)
 
     const auto updateFlagPath = std::filesystem::path(strSteamPath) / "ext" / "update.flag";
 
-    if (!std::filesystem::exists(updateFlagPath))
-    {
+    if (!std::filesystem::exists(updateFlagPath)) {
         Print("No updates were queried...");
         return;
     }
@@ -113,8 +109,7 @@ const void CheckForUpdates(std::string strSteamPath)
     std::string updateFlagContent((std::istreambuf_iterator<char>(updateFlagFile)), std::istreambuf_iterator<char>());
     updateFlagFile.close();
 
-    if (std::remove(updateFlagPath.string().c_str()) != 0)
-    {
+    if (std::remove(updateFlagPath.string().c_str()) != 0) {
         Error("Failed to remove update.flag file...");
     }
 
@@ -131,20 +126,17 @@ const void CheckForUpdates(std::string strSteamPath)
 void EnableVirtualTerminalProcessing()
 {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE)
-    {
+    if (hOut == INVALID_HANDLE_VALUE) {
         return;
     }
 
     DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode))
-    {
+    if (!GetConsoleMode(hOut, &dwMode)) {
         return;
     }
 
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode))
-    {
+    if (!SetConsoleMode(hOut, dwMode)) {
         return;
     }
 }
@@ -165,12 +157,12 @@ void ShowErrorMessage(DWORD errorCode)
 void AllocateDevConsole()
 {
 
-    if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev"))
-    {
+    if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev")) {
         (void)static_cast<bool>(AllocConsole());
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
         EnableVirtualTerminalProcessing();
+        std::ios::sync_with_stdio(true);
     }
 }
 
@@ -182,8 +174,7 @@ void AllocateDevConsole()
 void LoadMillennium()
 {
     // Check if the load was successful.
-    if (LoadLibraryA("millennium.dll") == nullptr)
-    {
+    if (LoadLibraryA("millennium.dll") == nullptr) {
         DWORD errorCode = GetLastError();
         ShowErrorMessage(errorCode);
         return;
@@ -216,13 +207,11 @@ BOOL IsSteamClient()
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
-    if (!IsSteamClient())
-    {
+    if (!IsSteamClient()) {
         return TRUE;
     }
 
-    if (fdwReason == DLL_PROCESS_ATTACH)
-    {
+    if (fdwReason == DLL_PROCESS_ATTACH) {
         BootstrapMillennium(hinstDLL);
     }
 

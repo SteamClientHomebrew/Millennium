@@ -59,6 +59,7 @@ namespace CoInitializer
 {
 class BackendCallbacks : public Singleton<BackendCallbacks>
 {
+    std::mutex listenersMutex;
     friend class Singleton<BackendCallbacks>;
 
   public:
@@ -112,7 +113,8 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
 
 const void InjectFrontendShims(bool reloadFrontend = true);
 const void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend = true);
-const void BackendStartCallback(SettingsStore::PluginTypeSchema plugin);
+const void PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin);
+const void LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L);
 } // namespace CoInitializer
 
 const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName);

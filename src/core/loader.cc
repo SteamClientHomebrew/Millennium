@@ -33,12 +33,12 @@
 #include "co_stub.h"
 #include "executor.h"
 #include "ffi.h"
-#include "http.h"
 #include "http_hooks.h"
 #include "internal_logger.h"
 #include "ipc.h"
 #include "plugin_logger.h"
 #include <Python.h>
+#include <__builtins__/core.h>
 #include <env.h>
 #include <iostream>
 #include <string>
@@ -48,6 +48,7 @@ using namespace std::chrono;
 websocketpp::client<websocketpp::config::asio_client>* browserClient;
 websocketpp::connection_hdl browserHandle;
 
+std::shared_ptr<PluginLoader> g_pluginLoader;
 std::string sharedJsContextSessionId;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 std::shared_ptr<PluginLoader> g_pluginLoader;
@@ -60,8 +61,7 @@ std::shared_ptr<PluginLoader> g_pluginLoader;
  */
 bool Sockets::PostShared(nlohmann::json data)
 {
-    if (sharedJsContextSessionId.empty())
-    {
+    if (sharedJsContextSessionId.empty()) {
         return false;
     }
 
@@ -77,8 +77,7 @@ bool Sockets::PostShared(nlohmann::json data)
  */
 bool Sockets::PostGlobal(nlohmann::json data)
 {
-    if (browserClient == nullptr)
-    {
+    if (browserClient == nullptr) {
         return false;
     }
 
@@ -92,16 +91,12 @@ bool Sockets::PostGlobal(nlohmann::json data)
  */
 void Sockets::Shutdown()
 {
-    try
-    {
-        if (browserClient != nullptr)
-        {
+    try {
+        if (browserClient != nullptr) {
             browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
             Logger.Log("Shut down browser connection...");
         }
-    }
-    catch (const websocketpp::exception& e)
-    {
+    } catch (const websocketpp::exception& e) {
     }
 }
 
@@ -114,13 +109,11 @@ const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_c
     const auto json = nlohmann::json::parse(msg->get_payload());
 
     if (json.contains("id") && json["id"] == 0 && json.contains("result") && json["result"].is_object() && json["result"].contains("targetInfos") &&
-        json["result"]["targetInfos"].is_array())
-    {
+        json["result"]["targetInfos"].is_array()) {
         const auto targets = json["result"]["targetInfos"];
         auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
 
-        if (targetIterator != targets.end() && !m_sharedJsConnected)
-        {
+        if (targetIterator != targets.end() && !m_sharedJsConnected) {
             Sockets::PostGlobal({
                 { "id",     0                                                                      },
                 { "method", "Target.attachToTarget"                                                },
@@ -132,15 +125,12 @@ const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_c
                 { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" } } }
             });
             m_sharedJsConnected = true;
-        }
-        else if (!m_sharedJsConnected)
-        {
+        } else if (!m_sharedJsConnected) {
             this->SetupSharedJSContext();
         }
     }
 
-    if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext")
-    {
+    if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext") {
         sharedJsContextSessionId = json["params"]["sessionId"];
         Sockets::PostShared({
             { "id",        9494                     },
@@ -148,9 +138,7 @@ const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_c
             { "sessionId", sharedJsContextSessionId }
         });
         this->onSharedJsConnect();
-    }
-    else
-    {
+    } else {
         JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
     }
     webKitHandler.DispatchSocketMessage(json);
@@ -224,18 +212,14 @@ const void PluginLoader::InjectWebkitShims()
     static std::vector<int> hookIds;
 
     /** Clear all previous hooks if there are any */
-    if (!hookIds.empty())
-    {
+    if (!hookIds.empty()) {
         std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::get().GetHookListCopy();
 
-        for (auto it = moduleList.begin(); it != moduleList.end();)
-        {
-            if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end())
-            {
+        for (auto it = moduleList.begin(); it != moduleList.end();) {
+            if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end()) {
                 Logger.Log("Removing hook for module id: {}", it->id);
                 it = moduleList.erase(it);
-            }
-            else
+            } else
                 ++it;
         }
 
@@ -246,12 +230,10 @@ const void PluginLoader::InjectWebkitShims()
     std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
 
     // Inject all webkit shims for enabled plugins if they have shims
-    for (auto& plugin : allPlugins)
-    {
+    for (auto& plugin : allPlugins) {
         const auto absolutePath = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
 
-        if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath))
-        {
+        if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath)) {
             g_hookedModuleId++;
             hookIds.push_back(g_hookedModuleId);
 
@@ -263,8 +245,7 @@ const void PluginLoader::InjectWebkitShims()
 
 const void PluginLoader::StartFrontEnds()
 {
-    if (g_shouldTerminateMillennium->flag.load())
-    {
+    if (g_shouldTerminateMillennium->flag.load()) {
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
@@ -281,15 +262,13 @@ const void PluginLoader::StartFrontEnds()
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
     Logger.Log("Startup took {} ms", duration.count());
 
-    if (browserSocketThread->joinable())
-    {
+    if (browserSocketThread->joinable()) {
         Logger.Warn("Joining browser socket thread {}", (void*)browserSocketThread.get());
         browserSocketThread->join();
         Logger.Warn("Browser socket thread joined {}", (void*)browserSocketThread.get());
     }
 
-    if (g_shouldTerminateMillennium->flag.load())
-    {
+    if (g_shouldTerminateMillennium->flag.load()) {
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
@@ -297,10 +276,8 @@ const void PluginLoader::StartFrontEnds()
     Logger.Warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
 
     auto start = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5))
-    {
-        if (GetModuleHandleA("steamclient.dll") == nullptr)
-        {
+    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5)) {
+        if (GetModuleHandleA("steamclient.dll") == nullptr) {
             Logger.Log("Steam is shutting down, terminating frontend thread pool...");
             return;
         }
@@ -318,8 +295,7 @@ const void PluginLoader::StartFrontEnds()
 const void PluginLoader::PrintActivePlugins()
 {
     std::string pluginList = "Plugins: { ";
-    for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it)
-    {
+    for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it) {
         const auto pluginName = (*it).pluginName;
         pluginList.append(fmt::format("{}: {}{}", pluginName, m_settingsStorePtr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled",
                                       std::next(it) == (*this->m_pluginsPtr).end() ? " }" : ", "));
@@ -335,7 +311,7 @@ const void PluginLoader::PrintActivePlugins()
  * All packages are grouped and shared when needed, to prevent wasting space.
  * @see assets\pipx\main.py
  */
-const void StartPreloader(PythonManager& manager)
+const void StartPreloader(BackendManager& manager)
 {
     std::promise<void> promise;
 
@@ -356,26 +332,21 @@ const void StartPreloader(PythonManager& manager)
         PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
         FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
-        if (mainModuleFilePtr == NULL)
-        {
+        if (mainModuleFilePtr == NULL) {
             LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
             ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
             return;
         }
 
-        try
-        {
+        try {
             Logger.Log("Starting package manager thread @ {}", backendMainModule);
 
-            if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0)
-            {
+            if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) {
                 LOG_ERROR("Failed to run PIPX preload", plugin.pluginName);
                 ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
                 return;
             }
-        }
-        catch (const std::system_error& error)
-        {
+        } catch (const std::system_error& error) {
             LOG_ERROR("Failed to run PIPX preload due to a system error: {}", error.what());
         }
 
@@ -388,7 +359,7 @@ const void StartPreloader(PythonManager& manager)
     manager.DestroyPythonInstance("pipx");
 }
 
-const void PluginLoader::StartBackEnds(PythonManager& manager)
+const void PluginLoader::StartBackEnds(BackendManager& manager)
 {
     Logger.Log("Starting plugin backends...");
     StartPreloader(manager);
@@ -397,18 +368,25 @@ const void PluginLoader::StartBackEnds(PythonManager& manager)
     this->Initialize();
     this->PrintActivePlugins();
 
-    for (auto& plugin : *this->m_enabledPluginsPtr)
-    {
-        // check if plugin is already running
-        if (manager.IsRunning(plugin.pluginName))
-        {
-            Logger.Log("Skipping load for '{}' as it's already running", plugin.pluginName);
-            continue;
+    Core_Load();
+
+    for (auto& plugin : *this->m_enabledPluginsPtr) {
+        if (plugin.backendType == SettingsStore::PluginBackendType::Python) {
+            // check if plugin is already running
+            if (manager.IsPythonBackendRunning(plugin.pluginName)) {
+                Logger.Log("Skipping load for '{}' as it's already running", plugin.pluginName);
+                continue;
+            }
+
+            std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::PyBackendStartCallback, std::placeholders::_1);
+
+            Logger.Log("Starting backend for '{}'", plugin.pluginName);
+            manager.CreatePythonInstance(plugin, cb);
+        } else if (plugin.backendType == SettingsStore::PluginBackendType::Lua) {
+            std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> cb = std::bind(CoInitializer::LuaBackendStartCallback, std::placeholders::_1, std::placeholders::_2);
+
+            Logger.Log("Starting backend for '{}'", plugin.pluginName);
+            manager.CreateLuaInstance(plugin, cb);
         }
-
-        std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::BackendStartCallback, std::placeholders::_1);
-
-        Logger.Log("Starting backend for '{}'", plugin.pluginName);
-        manager.CreatePythonInstance(plugin, cb);
     }
 }
