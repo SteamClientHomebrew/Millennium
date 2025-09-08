@@ -31,6 +31,7 @@
 #include "co_stub.h"
 #include "co_spawn.h"
 #include "encoding.h"
+#include "executor.h"
 #include "ffi.h"
 #include "http_hooks.h"
 #include "internal_logger.h"

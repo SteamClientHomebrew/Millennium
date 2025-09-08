@@ -51,7 +51,6 @@ websocketpp::connection_hdl browserHandle;
 std::shared_ptr<PluginLoader> g_pluginLoader;
 std::string sharedJsContextSessionId;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
-std::shared_ptr<PluginLoader> g_pluginLoader;
 
 /**
  * @brief Post a message to the SharedJSContext window.

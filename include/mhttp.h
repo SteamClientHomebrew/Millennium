@@ -29,15 +29,15 @@
  */
 
 #pragma once
-#include "internal_logger.h"
 #include "co_spawn.h"
+#include "internal_logger.h"
+#include <atomic>
 #include <chrono>
 #include <curl/curl.h>
+#include <memory>
 #include <string>
 #include <thread>
-#include <memory>
-#include <atomic>
-extern std::shared_ptr<InterpreterMutex> g_threadTerminateFlag;
+extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
 static size_t WriteByteCallback(char* ptr, size_t size, size_t nmemb, std::string* data)
 {
@@ -70,25 +70,21 @@ static std::string Get(const char* url, bool retry = true)
     std::string response;
 
     curl = curl_easy_init();
-    if (curl)
-    {
+    if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
 
-        while (true)
-        {
+        while (true) {
             res = curl_easy_perform(curl);
 
-            if (!retry || res == CURLE_OK)
-            {
+            if (!retry || res == CURLE_OK) {
                 break;
             }
 
-            if (g_shouldTerminateMillennium->flag.load())
-            {
+            if (g_shouldTerminateMillennium->flag.load()) {
                 throw HttpError("Thread termination flag is set, aborting HTTP request.");
             }
 
@@ -106,8 +102,7 @@ static std::string Post(const char* url, const std::string& postData, bool retry
     std::string response;
 
     curl = curl_easy_init();
-    if (curl)
-    {
+    if (curl) {
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
@@ -117,12 +112,10 @@ static std::string Post(const char* url, const std::string& postData, bool retry
         curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-        while (true)
-        {
+        while (true) {
             res = curl_easy_perform(curl);
 
-            if (!retry || res == CURLE_OK)
-            {
+            if (!retry || res == CURLE_OK) {
                 break;
             }
 
@@ -130,8 +123,7 @@ static std::string Post(const char* url, const std::string& postData, bool retry
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 #elif defined(__linux__) || defined(__APPLE__)
 
-            if (g_threadTerminateFlag->flag.load())
-            {
+            if (g_threadTerminateFlag->flag.load()) {
                 throw HttpError("Thread termination flag is set, aborting HTTP request.");
             }
 
