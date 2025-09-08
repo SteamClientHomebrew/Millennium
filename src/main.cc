@@ -82,6 +82,22 @@ const static void VerifyEnvironment()
             LOG_ERROR(errorMessage);
         }
     }
+
+    /** Check if legacy Millennium shim is present in the Steam directory, if so, remove it to prevent loading Millennium twice */
+    const auto legacyShimPath = SystemIO::GetSteamPath() / "user32.dll";
+    if (std::filesystem::exists(legacyShimPath)) {
+        try {
+            std::filesystem::remove(legacyShimPath);
+            Logger.Log("Removed legacy Millennium shim from Steam directory.");
+        } catch (const std::filesystem::filesystem_error& e) {
+            LOG_ERROR("Failed to remove legacy Millennium shim from Steam directory: {}", e.what());
+
+            MessageBoxA(NULL,
+                        "Failed to remove legacy Millennium shim from Steam directory. "
+                        "Please remove 'user32.dll' from your Steam directory and restart Steam.",
+                        "Startup Error", MB_ICONERROR | MB_OK);
+        }
+    }
 }
 
 /**
