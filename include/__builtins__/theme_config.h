@@ -57,9 +57,9 @@ class ThemeConfig
     void StartWebkitHook(const nlohmann::json& theme, const std::string& name);
 
     void SetupColors();
-    std::string GetColors();
+    nlohmann::json GetColors();
     nlohmann::json GetColorOpts(const std::string& theme_name);
-    void ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type);
+    nlohmann::json ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type);
     void ChangeAccentColor(const std::string& new_color);
     void ResetAccentColor();
 

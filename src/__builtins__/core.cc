@@ -126,7 +126,7 @@ IPC_RET(Core_GetActiveTheme, themeConfig->GetActiveTheme())
 IPC_NIL(Core_ChangeActiveTheme, themeConfig->ChangeTheme(ARGS["theme_name"]))
 IPC_RET(Core_GetSystemColors, themeConfig->GetAccentColor())
 IPC_NIL(Core_ChangeAccentColor, themeConfig->ChangeAccentColor(ARGS["new_color"]))
-IPC_NIL(Core_ChangeColor, themeConfig->ChangeColor(ARGS["theme"], ARGS["color_name"], ARGS["new_color"], ARGS["color_type"]))
+IPC_RET(Core_ChangeColor, themeConfig->ChangeColor(ARGS["theme"], ARGS["color_name"], ARGS["new_color"], ARGS["color_type"]))
 IPC_RET(Core_ChangeCondition, themeConfig->ChangeCondition(ARGS["theme"], ARGS["newData"], ARGS["condition"]))
 IPC_RET(Core_GetRootColors, themeConfig->GetColors())
 IPC_RET(Core_DoesThemeUseAccentColor, true) /** placeholder, too lazy to implement */
