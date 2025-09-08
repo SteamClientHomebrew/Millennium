@@ -168,10 +168,26 @@ void BackendManager::Shutdown()
     PyEval_RestoreThread(m_InterpreterThreadSave);
     Py_FinalizeEx();
 
+    /** Shutdown Python interpreters */
     for (auto& [pluginName, thread] : m_pyThreadPool) {
         Logger.Log("Joining thread for plugin '{}'", pluginName);
-        thread.join();
+        if (thread.joinable()) {
+            thread.join();
+        }
     }
+    m_pyThreadPool.clear();
+
+    /** Shutdown Lua interpreters */
+    for (auto& [pluginName, thread, L] : m_luaThreadPool) {
+        Logger.Log("Joining Lua thread for plugin '{}'", pluginName);
+        if (thread.joinable()) {
+            thread.join();
+        }
+        if (L) {
+            lua_close(L);
+        }
+    }
+    m_luaThreadPool.clear();
 
     Logger.Log("Finished shutdown! Bye bye!");
 }
