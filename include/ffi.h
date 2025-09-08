@@ -116,9 +116,9 @@ class SharedJSMessageEmitter
     {
     }
 
-    std::mutex mtx;
     std::unordered_map<std::string, std::vector<std::pair<std::string, EventHandler>>> events;
     std::unordered_map<std::string, std::vector<nlohmann::json>> missedMessages; // New data structure for missed messages
+    std::mutex mtx;
 
   public:
     SharedJSMessageEmitter(const SharedJSMessageEmitter&) = delete;
@@ -132,13 +132,8 @@ class SharedJSMessageEmitter
 
     std::string OnMessage(const std::string& event, const std::string name, EventHandler handler)
     {
-        std::lock_guard<std::mutex> lock(mtx);
-
         std::vector<nlohmann::json> messages;
-        events[event].push_back(std::make_pair(name, handler));
-        // Deliver any missed messages
-        auto it = missedMessages.find(event);
-        if (it != missedMessages.end()) {
+        {
             std::lock_guard<std::mutex> lock(mtx);
             events[event].push_back(std::make_pair(name, handler));
             auto it = missedMessages.find(event);
@@ -174,13 +169,10 @@ class SharedJSMessageEmitter
         }
     }
 
-    void EmitMessage(const std::string& event, const nlohmann::json data)
+    void EmitMessage(const std::string& event, const nlohmann::json& data)
     {
-        std::lock_guard<std::mutex> lock(mtx);
         std::vector<std::pair<std::string, EventHandler>> handlersCopy;
-
-        auto it = events.find(event);
-        if (it != events.end()) {
+        {
             std::lock_guard<std::mutex> lock(mtx);
 
             auto it = events.find(event);
