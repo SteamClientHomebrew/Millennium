@@ -1,7 +1,7 @@
 {
-    "name": "core",
-    "common_name": "Millennium",
-    "description": "An integrated plugin that provides core platform functionality.",
-    "backend": "core",
-    "frontend": "src"
+	"name": "core",
+	"common_name": "Millennium",
+	"description": "An integrated plugin that provides core platform functionality.",
+	"useBackend": false,
+	"frontend": "src"
 }

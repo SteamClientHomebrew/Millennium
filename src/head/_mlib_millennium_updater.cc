@@ -40,7 +40,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include <version.h>
 
 class MillenniumUpdater
 {
@@ -282,7 +281,7 @@ class MillenniumUpdater
         std::vector<std::string> parts1 = split(pre1);
         std::vector<std::string> parts2 = split(pre2);
 
-        size_t minSize = min(parts1.size(), parts2.size());
+        size_t minSize = std::min(parts1.size(), parts2.size());
 
         for (size_t i = 0; i < minSize; ++i) {
             const std::string& p1 = parts1[i];

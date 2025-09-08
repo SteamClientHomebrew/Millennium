@@ -283,7 +283,7 @@ add_compile_definitions(
 )
 
 if(WIN32)
-  add_subdirectory(preload)
+  add_subdirectory(boot/win32)
 endif()
 
 if(NOT USE_INTERNAL_FPCONV)
@@ -342,21 +342,12 @@ set(SOURCE_FILES
   "src/sys/sysfs.cc"
   "src/sys/settings.cc"
   "src/sys/env.cc"
-  "src/steam-hooks/devtools.cc"
-
-  "src/__builtins__/accent_color.cc"
-  "src/__builtins__/config.cc"
-  "src/__builtins__/core.cc"
-  "src/__builtins__/css_analyzer.cc"
-  "src/__builtins__/ipc_handler.cc"
-  "src/__builtins__/scan.cc"
-  "src/__builtins__/theme_config.cc"
-  "src/__builtins__/webkit_handler.cc"
-  "src/__builtins__/default_settings.cc"
-  "src/__builtins__/theme_installer.cc"
-  "src/__builtins__/plugin_installer.cc"
-  "src/__builtins__/updater.cc"
+  "src/hooks/devtools.cc"
 )
+
+# Add all builtins source files
+file(GLOB BUILTINS_SRC "src/head/*.cc")
+list(APPEND SOURCE_FILES ${BUILTINS_SRC})
 
 if(MINGW)
   execute_process(

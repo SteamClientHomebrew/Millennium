@@ -11,7 +11,7 @@ endif()
 project(preload)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/preload/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/include
 )
 
