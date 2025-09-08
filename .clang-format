@@ -19,7 +19,6 @@ BraceWrapping:
     SplitEmptyFunction: true
     SplitEmptyRecord: true
     SplitEmptyNamespace: true
-
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never

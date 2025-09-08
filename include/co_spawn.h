@@ -112,7 +112,7 @@ class BackendManager
 
   public:
     BackendManager();
-    ~BackendManager();
+    void Shutdown();
 
     void Lua_LockLua(lua_State* L);
     void Lua_UnlockLua(lua_State* L);

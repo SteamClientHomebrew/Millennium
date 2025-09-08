@@ -30,8 +30,37 @@
 
 #pragma once
 #include <string>
+// clang-format off
+#include <winsock2.h>
+#include <windows.h>
+// clang-format on
 
 /** If no steam path can be retrieved from the registry, this is the fallback */
 static const char* FALLBACK_STEAM_PATH = "C:/Program Files (x86)/Steam";
 
 std::string GetSteamPath();
+
+namespace CommandLineArguments
+{
+static bool HasArgument(const std::string& targetArgument)
+{
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (!argv)
+        return false;
+
+    bool found = false;
+    for (int i = 0; i < argc; ++i)
+    {
+        std::wstring argW(argv[i]);
+        std::string arg(argW.begin(), argW.end());
+        if (arg == targetArgument)
+        {
+            found = true;
+            break;
+        }
+    }
+    LocalFree(argv);
+    return found;
+}
+} // namespace CommandLineArguments

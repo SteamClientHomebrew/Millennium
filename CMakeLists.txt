@@ -342,6 +342,7 @@ set(SOURCE_FILES
   "src/sys/sysfs.cc"
   "src/sys/settings.cc"
   "src/sys/env.cc"
+  "src/steam-hooks/devtools.cc"
 
   "src/__builtins__/accent_color.cc"
   "src/__builtins__/config.cc"
@@ -391,6 +392,12 @@ list(APPEND SOURCE_FILES
   "vendor/lua-cjson/strbuf.c"
   "vendor/lua-cjson/${FPCONV_SOURCES}"
 )
+
+if(WIN32)
+  list(APPEND SOURCE_FILES "src/plat/win32.cc")
+elseif(UNIX)
+  list(APPEND SOURCE_FILES "src/plat/posix.cc")
+endif()
 
 if(WIN32)
   add_library(Millennium SHARED "${SOURCE_FILES}")
@@ -443,6 +450,11 @@ if(WINDRES)
   target_link_libraries(Millennium ${CMAKE_BINARY_DIR}/version.o)
 endif()
 
+if(NIX_BUILD)
+  find_package(OpenSSL REQUIRED)
+  target_link_libraries(Millennium OpenSSL::SSL)
+endif()
+
 set_target_properties(Millennium PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 target_compile_features(Millennium PUBLIC cxx_std_17)
 
@@ -479,6 +491,8 @@ if(WIN32)
     set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
   endif()
 
+  find_package(minhook CONFIG REQUIRED) # used for hooking functions in steam 
+
   target_link_libraries(Millennium
     ${LIBGIT2_LIBRARIES}
     wsock32
@@ -487,6 +501,7 @@ if(WIN32)
     rpcrt4
     winhttp
     ${PYTHON_LIB}
+    minhook::minhook
   )
 
 elseif(UNIX)

@@ -137,7 +137,7 @@ class BackendLogger
             file.flush();
         }
 
-        logBuffer.push_back({WHITE + GetLocalTime(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", _INFO});
+        logBuffer.push_back({ WHITE + GetLocalTime(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", _INFO });
     }
 
     void Warn(const std::string& message, bool onlyBuffer = false)
@@ -151,7 +151,7 @@ class BackendLogger
             file.flush();
         }
 
-        logBuffer.push_back({WHITE + GetLocalTime(true) + YELLOW + " " + GetPluginName() + " " + message + RESET + "\n", _WARN});
+        logBuffer.push_back({ WHITE + GetLocalTime(true) + YELLOW + " " + GetPluginName() + " " + message + RESET + "\n", _WARN });
     }
 
     void Error(const std::string& message, bool onlyBuffer = false)
@@ -165,7 +165,7 @@ class BackendLogger
             file.flush();
         }
 
-        logBuffer.push_back({RED + message + RESET, _ERROR});
+        logBuffer.push_back({ RED + message + RESET, _ERROR });
     }
 
     void Print(const std::string& message)
@@ -173,7 +173,7 @@ class BackendLogger
         file << message;
         file.flush();
 
-        logBuffer.push_back({message, _INFO});
+        logBuffer.push_back({ message, _INFO });
     }
 
     std::vector<LogEntry> CollectLogs()

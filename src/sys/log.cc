@@ -67,8 +67,7 @@ OutputLogger::OutputLogger()
 {
 #ifdef _WIN32
     {
-        std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
-        m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || startupParams->HasArgument("-dev");
+        m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev");
     }
 #elif __linux__
     {

@@ -61,8 +61,7 @@ class SocketHelpers
     {
 #ifdef _WIN32
         {
-            std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
-            return startupParams->GetRemoteDebuggerPort();
+            return CommandLineArguments::GetRemoteDebuggerPort();
         }
 #endif
         return 8080;
@@ -192,12 +191,10 @@ class SocketHelpers
         }
     }
 
-    void ConnectSocket(ConnectSocketProps socketProps)
+    void ConnectSocket(std::shared_ptr<ConnectSocketProps> socketProps)
     {
         std::string socketUrl;
-        websocketpp::client<websocketpp::config::asio_client> socketClient;
-
-        const auto [commonName, fetchSocketUrl, onConnect, onMessage] = socketProps;
+        const auto [commonName, fetchSocketUrl, onConnect, onMessage] = *socketProps;
 
         try {
             socketUrl = fetchSocketUrl();
@@ -212,6 +209,8 @@ class SocketHelpers
             LOG_ERROR("[{}] Socket URL is empty. Aborting connection.", commonName);
             return;
         }
+
+        websocketpp::client<websocketpp::config::asio_client> socketClient;
 
         try {
             socketClient.set_access_channels(websocketpp::log::alevel::none);

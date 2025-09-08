@@ -35,7 +35,6 @@
 // clang-format on
 #endif
 
-#include "cmd.h"
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -142,28 +141,6 @@ void EnableVirtualTerminalProcessing()
     }
 }
 
-/**
- * @brief Patch the SharedJSContext file to prevent the Steam UI from loading.
- * This is done by writing an empty document to the file.
- * We do this to prevent the Steam UI from loading before Millennium has started.
- */
-void PatchSharedJSContext(std::string strSteamPath)
-{
-    try {
-        const auto SteamUIModulePath = std::filesystem::path(strSteamPath) / "steamui" / "index.html";
-        Print("Patching SharedJSContext...");
-
-        // Write an empty document to the file, this halts the Steam UI from loading as we've removed the <script>'s
-        std::ofstream SteamUI(SteamUIModulePath, std::ios::trunc);
-        SteamUI << "<!doctype html><html><head><title>SharedJSContext</title></head></html>";
-        SteamUI.close();
-    } catch (const std::system_error& error) {
-        Error("Caught system_error while patching SharedJSContext: {}", error.what());
-    } catch (const std::exception& exception) {
-        Error("Error patching SharedJSContext: {}", exception.what());
-    }
-}
-
 void ShowErrorMessage(DWORD errorCode)
 {
     char errorMsg[512];
@@ -179,30 +156,13 @@ void ShowErrorMessage(DWORD errorCode)
  */
 void AllocateDevConsole()
 {
-    std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
 
-    if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || startupParams->HasArgument("-dev")) {
+    if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev")) {
         (void)static_cast<bool>(AllocConsole());
-
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
-
         EnableVirtualTerminalProcessing();
         std::ios::sync_with_stdio(true);
-    }
-}
-
-/**
- * @brief Unload Millennium from process memory.
- */
-void UnloadMillennium()
-{
-    // Check if millennium.dll is already loaded in process memory, and if so, unload it.
-    HMODULE hLoadedMillennium = GetModuleHandleA("millennium.dll");
-
-    if (hLoadedMillennium != nullptr) {
-        Print("Unloading millennium.dll and reloading...");
-        FreeLibrary(hLoadedMillennium);
     }
 }
 
@@ -229,8 +189,6 @@ const void BootstrapMillennium(HINSTANCE hinstDLL)
     AllocateDevConsole();
 
     Print("Starting Bootstrapper@{}", MILLENNIUM_VERSION);
-
-    PatchSharedJSContext(strSteamPath);
     CheckForUpdates(strSteamPath);
 
     Print("Finished checking for updates");
@@ -239,11 +197,22 @@ const void BootstrapMillennium(HINSTANCE hinstDLL)
     CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UnloadAndReleaseLibrary, hinstDLL, 0, nullptr);
 }
 
+BOOL IsSteamClient()
+{
+    CHAR p[MAX_PATH], *n;
+    GetModuleFileNameA(0, p, MAX_PATH);
+    n = strrchr(p, '\\');
+    return !_stricmp(n ? n + 1 : p, "steam.exe");
+}
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
+    if (!IsSteamClient()) {
+        return TRUE;
+    }
+
     if (fdwReason == DLL_PROCESS_ATTACH) {
-        // Detach from the main thread as to not wakeup the watchdog from Steam's debugger.
-        std::thread(BootstrapMillennium, hinstDLL).detach();
+        BootstrapMillennium(hinstDLL);
     }
 
     return true;

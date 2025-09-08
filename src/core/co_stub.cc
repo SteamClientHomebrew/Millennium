@@ -31,6 +31,7 @@
 #include "co_stub.h"
 #include "co_spawn.h"
 #include "encoding.h"
+#include "executor.h"
 #include "ffi.h"
 #include "http_hooks.h"
 #include "internal_logger.h"
@@ -45,7 +46,6 @@
 #include <tuple>
 #include <vector>
 
-#include <executor.h>
 #include <secure_socket.h>
 
 static std::string addedScriptOnNewDocumentId = "";
@@ -638,7 +638,6 @@ const void UnPatchSharedJSContext()
  */
 void OnBackendLoad(bool reloadFrontend)
 {
-    UnPatchSharedJSContext(); // Restore the original SharedJSContext
     Logger.Log("Notifying frontend of backend load...");
 
     enum PageMessage
@@ -665,7 +664,7 @@ void OnBackendLoad(bool reloadFrontend)
                     { "params", { { "source", ConstructOnLoadModule() } } }
                 });
             }
-            if (messageId == PAGE_SCRIPT && eventMessage.contains("result") && eventMessage["result"].contains("identifier")) {
+            if (messageId == PAGE_SCRIPT) {
                 Logger.Log("Script injected, waiting for identifier...");
 
                 addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];

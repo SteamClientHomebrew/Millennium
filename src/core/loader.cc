@@ -50,7 +50,7 @@ websocketpp::connection_hdl browserHandle;
 
 std::shared_ptr<PluginLoader> g_pluginLoader;
 std::string sharedJsContextSessionId;
-std::shared_ptr<InterpreterMutex> g_threadTerminateFlag = std::make_shared<InterpreterMutex>();
+std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
 /**
  * @brief Post a message to the SharedJSContext window.
@@ -96,95 +96,84 @@ void Sockets::Shutdown()
             Logger.Log("Shut down browser connection...");
         }
     } catch (const websocketpp::exception& e) {
-        LOG_ERROR("Failed to close browser connection: {}", e.what());
     }
 }
 
-class CEFBrowser
+CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::get())
 {
-    HttpHookManager& webKitHandler;
-    bool m_sharedJsConnected = false;
+}
 
-    std::chrono::system_clock::time_point m_startTime;
+const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
+{
+    const auto json = nlohmann::json::parse(msg->get_payload());
 
-  public:
-    const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
-    {
-        const auto json = nlohmann::json::parse(msg->get_payload());
+    if (json.contains("id") && json["id"] == 0 && json.contains("result") && json["result"].is_object() && json["result"].contains("targetInfos") &&
+        json["result"]["targetInfos"].is_array()) {
+        const auto targets = json["result"]["targetInfos"];
+        auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
 
-        if (json.contains("id") && json["id"] == 0 && json.contains("result") && json["result"].is_object() && json["result"].contains("targetInfos") &&
-            json["result"]["targetInfos"].is_array()) {
-            const auto targets = json["result"]["targetInfos"];
-            auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
-
-            if (targetIterator != targets.end() && !m_sharedJsConnected) {
-                Sockets::PostGlobal({
-                    { "id",     0                                                                      },
-                    { "method", "Target.attachToTarget"                                                },
-                    { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } }
-                });
-                Sockets::PostGlobal({
-                    { "id",     0                                                                                                                                             },
-                    { "method", "Target.exposeDevToolsProtocol"                                                                                                               },
-                    { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" } } }
-                });
-                m_sharedJsConnected = true;
-            } else if (!m_sharedJsConnected) {
-                this->SetupSharedJSContext();
-            }
-        }
-
-        if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext") {
-            sharedJsContextSessionId = json["params"]["sessionId"];
-            Sockets::PostShared({
-                { "id",        9494                     },
-                { "method",    "Log.enable "            },
-                { "sessionId", sharedJsContextSessionId }
+        if (targetIterator != targets.end() && !m_sharedJsConnected) {
+            Sockets::PostGlobal({
+                { "id",     0                                                                      },
+                { "method", "Target.attachToTarget"                                                },
+                { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } }
             });
-            this->onSharedJsConnect();
-        } else {
-            JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+            Sockets::PostGlobal({
+                { "id",     0                                                                                                                                             },
+                { "method", "Target.exposeDevToolsProtocol"                                                                                                               },
+                { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" } } }
+            });
+            m_sharedJsConnected = true;
+        } else if (!m_sharedJsConnected) {
+            this->SetupSharedJSContext();
         }
-        webKitHandler.DispatchSocketMessage(json);
     }
 
-    const void SetupSharedJSContext()
-    {
-        Sockets::PostGlobal({
-            { "id",     0                   },
-            { "method", "Target.getTargets" }
+    if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext") {
+        sharedJsContextSessionId = json["params"]["sessionId"];
+        Sockets::PostShared({
+            { "id",        9494                     },
+            { "method",    "Log.enable "            },
+            { "sessionId", sharedJsContextSessionId }
         });
+        this->onSharedJsConnect();
+    } else {
+        JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
     }
+    webKitHandler.DispatchSocketMessage(json);
+}
 
-    const void onSharedJsConnect()
+const void CEFBrowser::SetupSharedJSContext()
+{
+    Sockets::PostGlobal({
+        { "id",     0                   },
+        { "method", "Target.getTargets" }
+    });
+}
+
+const void CEFBrowser::onSharedJsConnect()
+{
+    std::thread([this]()
     {
-        std::thread([this]()
-        {
-            Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
-            CoInitializer::InjectFrontendShims();
-        }).detach();
-    }
+        Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
+        CoInitializer::InjectFrontendShims();
+    }).detach();
+}
 
-    const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
-    {
-        m_startTime = std::chrono::system_clock::now();
-        browserClient = client;
-        browserHandle = handle;
+const void CEFBrowser::onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
+{
+    m_startTime = std::chrono::system_clock::now();
+    browserClient = client;
+    browserHandle = handle;
 
-        Logger.Log("Connected to Steam @ {}", (void*)client);
+    Logger.Log("Connected to Steam @ {}", (void*)client);
 
-        this->SetupSharedJSContext();
-        webKitHandler.SetupGlobalHooks();
-    }
-
-    CEFBrowser() : webKitHandler(HttpHookManager::get())
-    {
-    }
-};
+    this->SetupSharedJSContext();
+    webKitHandler.SetupGlobalHooks();
+}
 
 const void PluginLoader::Initialize()
 {
-
     m_settingsStorePtr = std::make_unique<SettingsStore>();
     m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
     m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
@@ -197,16 +186,17 @@ PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_
     this->Initialize();
 }
 
-std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(void* cefBrowserHandler, SocketHelpers* socketHelpers)
+std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers)
 {
-    SocketHelpers::ConnectSocketProps browserProps;
+    std::shared_ptr<SocketHelpers::ConnectSocketProps> browserProps = std::make_shared<SocketHelpers::ConnectSocketProps>();
 
-    browserProps.commonName = "CEFBrowser";
-    browserProps.fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
-    browserProps.onConnect = std::bind(&CEFBrowser::onConnect, (CEFBrowser*)cefBrowserHandler, _1, _2);
-    browserProps.onMessage = std::bind(&CEFBrowser::onMessage, (CEFBrowser*)cefBrowserHandler, _1, _2, _3);
+    browserProps->commonName = "CEFBrowser";
+    browserProps->fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
 
-    return std::make_shared<std::thread>(std::thread(std::bind(&SocketHelpers::ConnectSocket, socketHelpers, browserProps)));
+    browserProps->onConnect = [cefBrowserHandler](auto* client, auto hdl) { cefBrowserHandler->onConnect(client, hdl); };
+    browserProps->onMessage = [cefBrowserHandler](auto* client, auto hdl, auto msg) { cefBrowserHandler->onMessage(client, hdl, msg); };
+
+    return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
 }
 
 /**
@@ -254,14 +244,19 @@ const void PluginLoader::InjectWebkitShims()
 
 const void PluginLoader::StartFrontEnds()
 {
-    CEFBrowser cefBrowserHandler;
-    SocketHelpers socketHelpers;
+    if (g_shouldTerminateMillennium->flag.load()) {
+        Logger.Log("Terminating frontend thread pool...");
+        return;
+    }
+
+    std::shared_ptr<CEFBrowser> cefBrowserHandler = std::make_shared<CEFBrowser>();
+    std::shared_ptr<SocketHelpers> socketHelpers = std::make_shared<SocketHelpers>();
 
     this->InjectWebkitShims();
 
     auto socketStart = std::chrono::high_resolution_clock::now();
     Logger.Log("Starting frontend socket...");
-    std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(&cefBrowserHandler, &socketHelpers);
+    std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(cefBrowserHandler, socketHelpers);
 
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
     Logger.Log("Startup took {} ms", duration.count());
@@ -269,15 +264,27 @@ const void PluginLoader::StartFrontEnds()
     if (browserSocketThread->joinable()) {
         Logger.Warn("Joining browser socket thread {}", (void*)browserSocketThread.get());
         browserSocketThread->join();
-        Logger.Warn("Browser socket thread joined...");
+        Logger.Warn("Browser socket thread joined {}", (void*)browserSocketThread.get());
     }
 
-    if (g_threadTerminateFlag->flag.load()) {
+    if (g_shouldTerminateMillennium->flag.load()) {
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
 
     Logger.Warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
+
+    auto start = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5)) {
+        if (GetModuleHandleA("steamclient.dll") == nullptr) {
+            Logger.Log("Steam is shutting down, terminating frontend thread pool...");
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    Logger.Warn("Reconnecting to Steam...");
 
     this->m_startTime = std::chrono::system_clock::now();
     this->StartFrontEnds();

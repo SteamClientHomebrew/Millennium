@@ -29,53 +29,37 @@
  */
 
 #pragma once
-#include "internal_logger.h"
-#include <string>
-#include <vector>
-#ifdef _WIN32
-#include <Windows.h>
-#include <shellapi.h>
-#endif
-#include <steam_hooks.h>
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#define _WINSOCKAPI_
+#include "MinHook.h"
+#include <asio.hpp>
+#include <asio/ip/tcp.hpp>
+#include <iostream>
+#include <thread>
+#include <windows.h>
+#include <winternl.h>
 
-namespace CommandLineArguments
+#define LDR_DLL_NOTIFICATION_REASON_LOADED 1
+#define DEFAULT_DEVTOOLS_PORT "8080"
+
+extern std::string STEAM_DEVELOPER_TOOLS_PORT;
+
+typedef struct _LDR_DLL_NOTIFICATION_DATA
 {
-static bool HasArgument(const std::string& targetArgument)
-{
-#ifdef _WIN32
-    int argc = 0;
-    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (argv) {
-        std::wstring targetW(targetArgument.begin(), targetArgument.end());
-        for (int i = 0; i < argc; ++i) {
-            if (targetW == argv[i]) {
-                LocalFree(argv);
-                return true;
-            }
-        }
-        LocalFree(argv);
-    }
-    return false;
-#else
-    assert(!"Command line argument parsing not implemented for this platform");
-    return false;
-#endif
-}
+    ULONG Flags;
+    PCUNICODE_STRING FullDllName;
+    PCUNICODE_STRING BaseDllName;
+    PVOID DllBase;
+    ULONG SizeOfImage;
+} DR_DLL_NOTIFICATION_DATA, *PLDR_DLL_NOTIFICATION_DATA;
 
-#ifdef _WIN32
-static u_short GetRemoteDebuggerPort()
-{
-    const char* portValue = GetAppropriateDevToolsPort();
+typedef VOID(CALLBACK* PLDR_DLL_NOTIFICATION_FUNCTION)(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context);
+typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction, PVOID Context, PVOID* Cookie);
+typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
 
-    if (!portValue) {
-        return 0;
-    }
+BOOL HookCefArgs();
+const char* GetAppropriateDevToolsPort();
 
-    try {
-        return static_cast<u_short>(std::stoi(portValue));
-    } catch (const std::exception&) {
-        return 0;
-    }
-}
-#endif
-}; // namespace CommandLineArguments
+bool Millennium_Plat_CommandLineIsSetup();
+bool SetupEntryPointHook();

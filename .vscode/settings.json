@@ -111,6 +111,7 @@
 		"*.in": "cpp",
 		"stack": "cpp",
 		"shared_mutex": "cpp",
-		"netfwd": "cpp"
+		"*.rh": "cpp",
+		"*.def": "cpp"
 	}
 }

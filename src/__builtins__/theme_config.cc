@@ -247,7 +247,7 @@ void ThemeConfig::SetupColors()
     }
 }
 
-std::string ThemeConfig::GetColors()
+nlohmann::json ThemeConfig::GetColors()
 {
     std::string root = ":root {";
     std::string name = active_theme_name;
@@ -258,7 +258,7 @@ std::string ThemeConfig::GetColors()
     const auto themeColors = CONFIG.GetNested(fmt::format("themes.themeColors.{}", name));
 
     for (auto& [color, value] : themeColors.items())
-        root += color + ": " + value.dump() + ";";
+        root += fmt::format("{}: {};", color, value.get<std::string>());
 
     root += "}";
     return root;
@@ -286,16 +286,17 @@ nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
     return root_colors;
 }
 
-void ThemeConfig::ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type)
+nlohmann::json ThemeConfig::ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type)
 {
     std::optional<std::string> parsed_color = Millennium::CSSParser::ConvertFromHex(new_color, static_cast<Millennium::ColorTypes>(color_type));
 
     if (!parsed_color.has_value()) {
         LOG_ERROR("Failed to parse color: {}", new_color);
-        return;
+        return {};
     }
 
     CONFIG.SetNested(fmt::format("themes.themeColors.{}.{}", theme, color_name), parsed_color.value(), true);
+    return parsed_color.value();
 }
 
 void ThemeConfig::ChangeAccentColor(const std::string& new_color)

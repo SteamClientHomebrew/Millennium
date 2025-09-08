@@ -157,7 +157,7 @@ done:
  *
  * This function destroys all Python instances and removes them from the list of Python instances.
  */
-BackendManager::~BackendManager()
+void BackendManager::Shutdown()
 {
     Logger.Warn("Deconstructing {} plugin(s) and preparing for exit...", this->m_pythonInstances.size());
 

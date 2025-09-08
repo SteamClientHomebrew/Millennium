@@ -101,14 +101,11 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const activeTheme: ThemeItem = this.props.theme as ThemeItem;
 
 		return new Promise<boolean>((resolve) => {
-			console.log('Updating condition:', activeTheme.native, conditionName, newData);
 			PyChangeCondition({
 				theme: activeTheme.native,
 				newData: newData,
 				condition: conditionName,
 			}).then((response: any) => {
-				console.log('Condition update response:', response);
-
 				const success = (JSON.parse(response)?.success as boolean) ?? false;
 
 				success && (pluginSelf.ConditionConfigHasChanged = true);
@@ -191,8 +188,8 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const [colorState, setColorState] = useState(color?.hex ?? '#000000');
 
 		const saveColor = async (hexColor: string) => {
-			const newColor = await PyChangeColor({ theme: this.props.theme.native, color_name: color.color, new_color: hexColor, color_type: color.type });
-			pluginSelf.RootColors = await PyGetRootColors();
+			const newColor = JSON.parse(await PyChangeColor({ theme: this.props.theme.native, color_name: color.color, new_color: hexColor, color_type: color.type }));
+			pluginSelf.RootColors = JSON.parse(await PyGetRootColors());
 			return newColor;
 		};
 
