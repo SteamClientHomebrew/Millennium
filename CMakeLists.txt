@@ -318,36 +318,10 @@ if(NOT HAVE_ISINF)
     add_definitions(-DUSE_INTERNAL_ISINF)
 endif()
 
-set(SOURCE_FILES
-  "src/main.cc"
-  "src/core/_millennium_api.cc"
-  "src/core/loader.cc"
-  "src/core/co_spawn.cc"
-  "src/core/_c_lua_http.cc"
-  "src/core/_c_lua_utils.cc"
-  "src/core/_c_py_logger.cc"
-  "src/core/_c_lua_logger.cc"
-  "src/core/_c_py_interop.cc"
-  "src/core/_c_lua_interop.cc"
-  "src/core/_c_py_gil.cc"
-  "src/core/_c_py_api.cc"
-  "src/core/_c_lua_api.cc"
-  "src/core/_js_interop.cc"
-  "src/core/co_stub.cc"
-  "src/core/events.cc"
-  "src/core/http_hooks.cc"
-  "src/core/ipc.cc"
-  "src/core/secure_socket.cc"
-  "src/sys/log.cc"
-  "src/sys/sysfs.cc"
-  "src/sys/settings.cc"
-  "src/sys/env.cc"
-  "src/hooks/devtools.cc"
-)
-
-# Add all builtins source files
-file(GLOB BUILTINS_SRC "src/head/*.cc")
-list(APPEND SOURCE_FILES ${BUILTINS_SRC})
+file(GLOB_RECURSE BUILTINS_SRC "src/*.cc")
+file(GLOB_RECURSE EXCLUDE_SYS_SRC "src/sys/*.cc")
+list(REMOVE_ITEM BUILTINS_SRC ${EXCLUDE_SYS_SRC})
+set(SOURCE_FILES ${BUILTINS_SRC})
 
 if(MINGW)
   execute_process(
@@ -385,9 +359,9 @@ list(APPEND SOURCE_FILES
 )
 
 if(WIN32)
-  list(APPEND SOURCE_FILES "src/plat/win32.cc")
+  list(APPEND SOURCE_FILES "src/plat/init_win32.cc")
 elseif(UNIX)
-  list(APPEND SOURCE_FILES "src/plat/posix.cc")
+  list(APPEND SOURCE_FILES "src/plat/init_posix.cc")
 endif()
 
 if(WIN32)
