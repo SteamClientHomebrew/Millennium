@@ -7,6 +7,8 @@
 	"settingsPanelSettings": "Ustawienia",
 	"settingsPanelAbout": "O programie",
 	"settingsPanelBugReport": "Zgłoś błąd",
+	"installEnterAnID": "Wprowadź ID",
+    "installEnterAnIDPlaceholder": "Wprowadź ID tutaj...",
 	"itemNoDescription": "Brak opisu.",
 	"themePanelClientTheme": "Motyw klienta",
 	"themePanelThemeTooltip": "Wybierz motyw, którego ma używać Steam (wymaga ponownego uruchomienia)",

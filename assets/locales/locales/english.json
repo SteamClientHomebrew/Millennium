@@ -7,6 +7,8 @@
 	"settingsPanelSettings": "Settings",
 	"settingsPanelAbout": "About",
 	"settingsPanelBugReport": "Report a Bug",
+	"installEnterAnID": "Enter an ID",
+	"installEnterAnIDPlaceholder": "Enter an ID here...",
 	"itemNoDescription": "No description yet.",
 	"themePanelClientTheme": "Client Theme",
 	"themePanelThemeTooltip": "Select the theme you want Steam to use (requires reload)",
