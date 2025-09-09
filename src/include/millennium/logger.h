@@ -31,10 +31,8 @@
 #pragma once
 #include <fstream>
 #ifdef _WIN32
-// clang-format off
 #include <winsock2.h>
 #include <windows.h>
-// clang-format on
 #endif
 #include <fmt/color.h>
 #include <fmt/core.h>

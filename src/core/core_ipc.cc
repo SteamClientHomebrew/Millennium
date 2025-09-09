@@ -93,8 +93,6 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
                 response.plain = "core IPC call returned unknown type";
             }
         } catch (const std::exception& ex) {
-            LOG_ERROR("Error handling core IPC call: {}", ex.what());
-
             response.type = FFI_Type::Error;
             response.plain = ex.what();
         }

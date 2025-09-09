@@ -170,7 +170,7 @@ void ConfigManager::LoadFromFile()
         try {
             file >> _data;
         } catch (...) {
-            std::cerr << "Invalid JSON in config file. Creating empty config.\n";
+            Logger.Warn("Invalid JSON in config file: {}", _filename);
             _data = nlohmann::json::object();
         }
     } else {
@@ -191,7 +191,6 @@ void ConfigManager::SaveToFile()
         return;
     }
 
-    Logger.Log("Saving config");
     file << _data.dump(2);
 }
 
@@ -208,8 +207,6 @@ nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, bool skipP
     try {
         nlohmann::json old_data = _data;
         _data = newConfig;
-
-        Logger.Log("Config updated via SetAll: {}", _data.dump(4));
 
         if (!skipPropagation) {
             for (auto& [k, v] : newConfig.items()) {

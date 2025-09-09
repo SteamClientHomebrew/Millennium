@@ -31,18 +31,44 @@
 #pragma once
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
+
 #include <atomic>
 #include <chrono>
 #include <curl/curl.h>
 #include <memory>
 #include <string>
 #include <thread>
+
+#define MILLENNIUM_USERAGENT "Millennium/" MILLENNIUM_VERSION
+
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
 static size_t WriteByteCallback(char* ptr, size_t size, size_t nmemb, std::string* data)
 {
     data->append(ptr, size * nmemb);
     return size * nmemb;
+}
+
+struct DownloadData
+{
+    FILE* fp;
+    size_t downloaded;
+    std::function<void(size_t, size_t)> progressCallback;
+    size_t totalSize;
+};
+
+static size_t WriteFileCallback(void* ptr, size_t size, size_t nmemb, void* userdata)
+{
+    auto* data = static_cast<DownloadData*>(userdata);
+    size_t written = fwrite(ptr, size, nmemb, data->fp);
+
+    data->downloaded += written;
+
+    if (data->progressCallback) {
+        data->progressCallback(data->downloaded, data->totalSize);
+    }
+
+    return written;
 }
 
 class HttpError : public std::exception
@@ -74,7 +100,7 @@ static std::string Get(const char* url, bool retry = true)
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, MILLENNIUM_USERAGENT);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
 
         while (true) {
@@ -109,7 +135,7 @@ static std::string Post(const char* url, const std::string& postData, bool retry
         curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, postData.size());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, fmt::format("Millennium/{}", MILLENNIUM_VERSION).c_str());
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, MILLENNIUM_USERAGENT);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
         while (true) {
@@ -128,5 +154,54 @@ static std::string Post(const char* url, const std::string& postData, bool retry
         curl_easy_cleanup(curl);
     }
     return response;
+}
+
+static void DownloadWithProgress(const std::string& url, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
+{
+    CURL* curl = curl_easy_init();
+    if (!curl)
+        throw std::runtime_error("Failed to initialize curl");
+
+    FILE* fp = fopen(destPath.string().c_str(), "wb");
+    if (!fp) {
+        curl_easy_cleanup(curl);
+        throw std::runtime_error("Failed to open file: " + destPath.string());
+    }
+
+    DownloadData downloadData = { fp, 0, progressCallback, 0 };
+
+    /* HEAD the request to get content length */
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    CURLcode res = curl_easy_perform(curl);
+    if (res == CURLE_OK) {
+        curl_off_t contentLength;
+        curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &contentLength);
+        downloadData.totalSize = static_cast<size_t>(contentLength);
+    }
+
+    /** Second request: GET to download the file */
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteFileCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &downloadData);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, MILLENNIUM_USERAGENT);
+
+    res = curl_easy_perform(curl);
+
+    fclose(fp);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) {
+        std::filesystem::remove(destPath);
+        throw std::runtime_error("Download failed: " + std::string(curl_easy_strerror(res)));
+    }
+
+    if (progressCallback) {
+        progressCallback(downloadData.downloaded, downloadData.downloaded);
+    }
 }
 } // namespace Http

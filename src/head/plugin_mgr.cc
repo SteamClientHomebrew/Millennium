@@ -32,6 +32,7 @@
 #include "head/scan.h"
 #include "head/ipc_handler.h"
 
+#include "millennium/http.h"
 #include "millennium/env.h"
 #include "millennium/millennium_api.h"
 #include "millennium/encode.h"
@@ -79,75 +80,6 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to uninstall {}: {}", pluginName, e.what());
         return false;
-    }
-}
-
-struct DownloadData
-{
-    FILE* fp;
-    size_t downloaded;
-    std::function<void(size_t, size_t)> progressCallback;
-    size_t totalSize;
-};
-
-size_t WriteCallback(void* ptr, size_t size, size_t nmemb, void* userdata)
-{
-    auto* data = static_cast<DownloadData*>(userdata);
-    size_t written = fwrite(ptr, size, nmemb, data->fp);
-
-    data->downloaded += written;
-
-    if (data->progressCallback) {
-        data->progressCallback(data->downloaded, data->totalSize);
-    }
-
-    return written;
-}
-
-void PluginInstaller::DownloadWithProgress(const std::string& url, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
-{
-    CURL* curl = curl_easy_init();
-    if (!curl)
-        throw std::runtime_error("Failed to initialize curl");
-
-    FILE* fp = fopen(destPath.string().c_str(), "wb");
-    if (!fp) {
-        curl_easy_cleanup(curl);
-        throw std::runtime_error("Failed to open file: " + destPath.string());
-    }
-
-    DownloadData downloadData = { fp, 0, progressCallback, 0 };
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-    CURLcode res = curl_easy_perform(curl);
-    if (res == CURLE_OK) {
-        double contentLength;
-        curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &contentLength);
-        downloadData.totalSize = static_cast<size_t>(contentLength);
-    }
-
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &downloadData);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Millennium-Plugin-Installer/1.0");
-
-    res = curl_easy_perform(curl);
-
-    fclose(fp);
-    curl_easy_cleanup(curl);
-
-    if (res != CURLE_OK) {
-        std::filesystem::remove(destPath);
-        throw std::runtime_error("Download failed: " + std::string(curl_easy_strerror(res)));
-    }
-
-    if (progressCallback) {
-        progressCallback(downloadData.downloaded, downloadData.downloaded);
     }
 }
 
@@ -209,7 +141,7 @@ nlohmann::json PluginInstaller::InstallPlugin(const std::string& downloadUrl, si
             RPCLogMessage("Download plugin archive...", 50.0 * (percent / 100.0), false);
         };
 
-        DownloadWithProgress(downloadUrl, zipPath, progressCallback);
+        Http::DownloadWithProgress(downloadUrl, zipPath, progressCallback);
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         RPCLogMessage("Setting up installed plugin...", 50, false);
@@ -287,7 +219,7 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         Logger.Log("Temporary zip path: {}", tempZipPath.string());
 
         Logger.Log("Downloading plugin archive...");
-        DownloadWithProgress(url, tempZipPath, nullptr);
+        Http::DownloadWithProgress(url, tempZipPath, nullptr);
         Logger.Log("Download complete. Extracting plugin '{}' into '{}'", name, tempDir.string());
 
         ExtractZipWithProgress(tempZipPath, tempDir);

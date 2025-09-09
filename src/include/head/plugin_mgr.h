@@ -16,7 +16,6 @@ class PluginInstaller
 
   private:
     void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    void DownloadWithProgress(const std::string& url, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback);
     void ExtractZipWithProgress(const std::filesystem::path& zipPath, const std::filesystem::path& extractTo);
     std::filesystem::path PluginsPath();
 

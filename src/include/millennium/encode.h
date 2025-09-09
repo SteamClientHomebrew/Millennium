@@ -31,6 +31,9 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <sstream>
+#include <iomanip>
+#include <random>
 
 // https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
 
@@ -130,7 +133,7 @@ static std::string Base64Encode(const std::string& in)
     return out;
 }
 
-std::string GenerateUUID()
+static std::string GenerateUUID()
 {
     std::random_device rd;
     std::mt19937 gen(rd());
