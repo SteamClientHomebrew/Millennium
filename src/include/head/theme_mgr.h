@@ -39,12 +39,9 @@ class ThemeInstaller
   public:
     std::filesystem::path SkinsRoot();
 
-    void EmitMessage(const std::string& status, int progress, bool isComplete);
+    void RPCLogMessage(const std::string& status, double progress, bool isComplete);
     nlohmann::json ErrorMessage(const std::string& message);
     nlohmann::json SuccessMessage();
-
-    void MakeWritable(const std::filesystem::path& p);
-    bool DeleteFolder(const std::filesystem::path& p);
 
     std::optional<nlohmann::json> GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString = false);
     bool CheckInstall(const std::string& repo, const std::string& owner);

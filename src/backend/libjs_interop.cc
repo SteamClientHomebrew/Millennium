@@ -73,8 +73,7 @@ JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
         throw std::runtime_error("couldn't send message to socket");
     }
 
-    std::string listenerId =
-        JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "ExecuteOnSharedJsContext", [&](const nlohmann::json& eventMessage, std::string listenerId)
+    std::string listenerId = CefSocketDispatcher::get().OnMessage("msg", "ExecuteOnSharedJsContext", [&](const nlohmann::json& eventMessage, std::string listenerId)
     {
         std::lock_guard<std::mutex> lock(mtx); // Lock mutex for safe access
 
@@ -104,9 +103,9 @@ JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
 
             resultReady = true;
             cv.notify_one(); // Signal that result is ready
-            JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+            CefSocketDispatcher::get().RemoveListener("msg", listenerId);
         } catch (nlohmann::detail::exception& ex) {
-            LOG_ERROR(fmt::format("JavaScript::SharedJSMessageEmitter error -> {}", ex.what()));
+            LOG_ERROR(fmt::format("CefSocketDispatcher error -> {}", ex.what()));
         }
     });
 

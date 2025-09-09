@@ -30,10 +30,7 @@
 
 #include "millennium/auth.h"
 #include "millennium/logger.h"
-#include <fmt/format.h>
-#include <iostream>
 #include <random>
-#include <string>
 
 std::string GenerateAuthToken(size_t length)
 {

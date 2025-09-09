@@ -30,10 +30,7 @@
 
 #include "head/ipc_handler.h"
 #include "millennium/logger.h"
-#include <functional>
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <stdexcept>
+#include "millennium/ffi.h"
 
 /**
  * stored in a static instance only instantiated after its called once.
@@ -75,4 +72,15 @@ nlohmann::json HandleIpcMessage(const std::string& functionName, const nlohmann:
 
     /** call the functions with provided args */
     return (std::any_cast<FuncType>(it->second))(args);
+}
+
+void IpcForwardInstallLog(const InstallMessage& message)
+{
+    std::vector<JavaScript::JsFunctionConstructTypes> params = {
+        { message.status, JavaScript::Types::String },
+        { fmt::format("{}", message.progress), JavaScript::Types::Integer },
+        { fmt::format("{}", message.isComplete), JavaScript::Types::Boolean }
+    };
+
+    JavaScript::ExecuteOnSharedJsContext(JavaScript::ConstructFunctionCall("core", "InstallerMessageEmitter", params));
 }

@@ -30,13 +30,12 @@
 
 #pragma once
 #include "millennium/logger.h"
-#include <string>
-#include <vector>
+#include "millennium/steam_hooks_win32.h"
+
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
 #endif
-#include "millennium/steam_hooks_win32.h"
 
 namespace CommandLineArguments
 {

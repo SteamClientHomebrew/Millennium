@@ -1,13 +1,41 @@
+/*
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2025 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "head/ipc_handler.h"
 #include "head/theme_mgr.h"
 #include "head/scan.h"
+
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
-#include <chrono>
-#include <ffi.h>
-#include <fstream>
+
 #include <git2.h>
-#include <nlohmann/json.hpp>
-#include <system_error>
 #include <thread>
 
 std::filesystem::path ThemeInstaller::SkinsRoot()
@@ -15,15 +43,9 @@ std::filesystem::path ThemeInstaller::SkinsRoot()
     return std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
 }
 
-void ThemeInstaller::EmitMessage(const std::string& status, int progress, bool isComplete)
+void ThemeInstaller::RPCLogMessage(const std::string& status, double progress, bool isComplete)
 {
-    Logger.Log("emitting message " + status + " " + std::to_string(progress) + " " + (isComplete ? "true" : "false"));
-    nlohmann::json j = {
-        { "status",     status     },
-        { "progress",   progress   },
-        { "isComplete", isComplete }
-    };
-    Logger.Log("emitting message " + j.dump());
+    IpcForwardInstallLog({ status, progress, isComplete });
 }
 
 nlohmann::json ThemeInstaller::ErrorMessage(const std::string& message)
@@ -39,38 +61,6 @@ nlohmann::json ThemeInstaller::SuccessMessage()
     return nlohmann::json({
         { "success", true }
     });
-}
-
-void ThemeInstaller::MakeWritable(const std::filesystem::path& p)
-{
-    std::error_code ec;
-    auto perms = std::filesystem::status(p, ec).permissions();
-    if (!ec)
-        std::filesystem::permissions(p, perms | std::filesystem::perms::owner_write, ec);
-}
-
-bool ThemeInstaller::DeleteFolder(const std::filesystem::path& p)
-{
-    if (!std::filesystem::exists(p))
-        return true;
-
-    std::error_code ec;
-    std::filesystem::remove_all(p, ec);
-    if (!ec)
-        return true;
-
-    Logger.Log("DeleteFolder failed initially: {} — retrying with writable perms.", ec.message());
-    for (auto it = std::filesystem::recursive_directory_iterator(p, std::filesystem::directory_options::skip_permission_denied, ec);
-         it != std::filesystem::recursive_directory_iterator(); ++it)
-        MakeWritable(it->path());
-
-    ec.clear();
-    std::filesystem::remove_all(p, ec);
-    if (ec) {
-        LOG_ERROR("Failed to delete folder {}: {}", p.string(), ec.message());
-        return false;
-    }
-    return true;
 }
 
 std::optional<nlohmann::json> ThemeInstaller::GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString)
@@ -106,7 +96,7 @@ nlohmann::json ThemeInstaller::UninstallTheme(const std::string& repo, const std
     if (!std::filesystem::exists(path))
         return ErrorMessage("Theme path does not exist!");
 
-    if (!DeleteFolder(path))
+    if (!SystemIO::DeleteFolder(path))
         return ErrorMessage("Failed to delete theme folder");
 
     return SuccessMessage();
@@ -151,16 +141,16 @@ std::string ThemeInstaller::InstallTheme(const std::string& repo, const std::str
 
     // Remove existing folder
     if (std::filesystem::exists(finalPath)) {
-        if (!DeleteFolder(finalPath))
+        if (!SystemIO::DeleteFolder(finalPath))
             return ErrorMessage("Failed to remove existing target path");
     }
 
     std::string tmpName = repo + ".tmp-" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
     std::filesystem::path tmpPath = finalPath.parent_path() / tmpName;
 
-    EmitMessage("Starting Installer...", 10, false);
+    RPCLogMessage("Starting Installer...", 10, false);
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    EmitMessage("Receiving remote objects...", 40, false);
+    RPCLogMessage("Receiving remote objects...", 40, false);
 
     std::string cloneErr;
     std::string url = fmt::format("https://github.com/{}/{}.git", owner, repo);
@@ -175,10 +165,10 @@ std::string ThemeInstaller::InstallTheme(const std::string& repo, const std::str
     if (ec) {
         Logger.Log("Rename failed, fallback to copy: " + ec.message());
         std::filesystem::copy(tmpPath, finalPath, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
-        DeleteFolder(tmpPath);
+        SystemIO::DeleteFolder(tmpPath);
     }
 
-    EmitMessage("Done!", 100, true);
+    RPCLogMessage("Done!", 100, true);
     return SuccessMessage();
 }
 

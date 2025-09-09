@@ -30,15 +30,6 @@
 
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <sstream>
-#include <string>
-#include <vector>
 
 namespace Millennium
 {

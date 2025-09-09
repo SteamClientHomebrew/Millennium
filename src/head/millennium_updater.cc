@@ -29,17 +29,10 @@
  */
 
 #include "head/cfg.h"
+
 #include "millennium/http.h"
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <mutex>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
-#include <vector>
 
 class MillenniumUpdater
 {

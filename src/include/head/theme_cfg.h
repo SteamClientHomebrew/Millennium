@@ -30,12 +30,7 @@
 
 #pragma once
 #include "head/cfg.h"
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <regex>
 #include <set>
-#include <sstream>
 
 class ThemeConfig
 {

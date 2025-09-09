@@ -114,4 +114,7 @@ std::vector<char> ReadFileBytesSync(const std::string& filePath);
 void WriteFileSync(const std::filesystem::path& filePath, std::string content);
 void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent);
 std::optional<std::string> GetMillenniumPreloadPath();
+void SafePurgeDirectory(const std::filesystem::path& root);
+void MakeWritable(const std::filesystem::path& p);
+bool DeleteFolder(const std::filesystem::path& p);
 } // namespace SystemIO

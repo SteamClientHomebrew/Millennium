@@ -28,13 +28,15 @@
  * SOFTWARE.
  */
 
-#include "millennium/core_ipc.h"
 #include "head/ipc_handler.h"
+
 #include "millennium/auth.h"
 #include "millennium/backend_init.h"
+#include "millennium/core_ipc.h"
 #include "millennium/encode.h"
 #include "millennium/ffi.h"
 #include "millennium/sysfs.h"
+
 #include <fmt/core.h>
 #include <functional>
 #include <websocketpp/config/asio_no_tls.hpp>
@@ -91,6 +93,8 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
                 response.plain = "core IPC call returned unknown type";
             }
         } catch (const std::exception& ex) {
+            LOG_ERROR("Error handling core IPC call: {}", ex.what());
+
             response.type = FFI_Type::Error;
             response.plain = ex.what();
         }
@@ -123,7 +127,8 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
     switch (response.type) {
         case FFI_Type::Boolean:
         {
-            responseMessage["returnValue"] = (response.plain == "True" ? true : false);
+            /** handle truthy for both python and lua */
+            responseMessage["returnValue"] = ((response.plain == "True" || response.plain == "true") ? true : false);
             break;
         }
         case FFI_Type::String:

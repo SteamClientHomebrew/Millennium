@@ -29,23 +29,11 @@
  */
 
 #include "head/ipc_handler.h"
-#include <any>
-#include <nlohmann/json.hpp>
-#include <string>
-#include <unordered_map>
-
-#ifdef _WIN32
-// clang-format off
-#include <winsock2.h>
-#include <windows.h>
-#include <winbase.h>
-#include <winuser.h>
-// clang-format on
-#endif
 #include "head/library_updater.h"
 #include "head/scan.h"
 #include "head/theme_cfg.h"
 #include "head/theme_mgr.h"
+
 #include "millennium/encode.h"
 #include "millennium/millennium_api.h"
 #include "millennium/plugin_api_init.h"
@@ -143,6 +131,7 @@ IPC_RET(Core_DownloadThemeUpdate, updater->DownloadThemeUpdate(ARGS["native"]))
 IPC_RET(Core_DownloadPluginUpdate, updater->DownloadPluginUpdate(ARGS["id"], ARGS["name"]))
 IPC_RET(Core_InstallPlugin, updater->GetPluginUpdater().InstallPlugin(ARGS["download_url"], ARGS["total_size"]))
 IPC_RET(Core_IsPluginInstalled, updater->GetPluginUpdater().CheckInstall(ARGS["plugin_name"]))
+IPC_RET(Core_UninstallPlugin, updater->GetPluginUpdater().UninstallPlugin(ARGS["pluginName"]))
 
 /** Get plugin backend logs */
 IPC_RET(Core_GetPluginBackendLogs, Millennium_GetPluginLogs())

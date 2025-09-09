@@ -48,10 +48,8 @@ export interface RendererProps {
 	onProgressUpdate: ({ progress, status }: { progress: number; status: string }) => React.ReactElement;
 }
 
-function InstallerMessageEmitter(message: string) {
+function InstallerMessageEmitter(status: string, progress: number, isComplete: boolean) {
 	try {
-		const { status, progress, isComplete }: IProgressProps = JSON.parse(message);
-
 		if (!pluginSelf.InstallerEventEmitter) {
 			return;
 		}

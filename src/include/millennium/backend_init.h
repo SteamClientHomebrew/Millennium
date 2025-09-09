@@ -31,8 +31,6 @@
 #pragma once
 #include "millennium/init.h"
 #include "millennium/sysfs.h"
-#include <Python.h>
-#include <vector>
 
 template <typename T> class Singleton
 {

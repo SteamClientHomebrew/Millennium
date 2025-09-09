@@ -30,12 +30,20 @@
 
 #pragma once
 #include "millennium/logger.h"
-#include <Python.h>
-#include <fmt/core.h>
-#include <lua.hpp>
+
 #include <nlohmann/json.hpp>
-#include <string>
+#include <vector>
+#include <shared_mutex>
+#include <mutex>
+#include <deque>
+#include <chrono>
+#include <atomic>
+#include <condition_variable>
+#include <unordered_map>
 #include <thread>
+
+#include <Python.h>
+#include <lua.hpp>
 
 class PythonGIL : public std::enable_shared_from_this<PythonGIL>
 {
@@ -107,97 +115,356 @@ struct JsFunctionConstructTypes
     Types type;
 };
 
-using EventHandler = std::function<void(const nlohmann::json& eventMessage, std::string listenerId)>;
-
-class SharedJSMessageEmitter
-{
-  private:
-    SharedJSMessageEmitter()
-    {
-    }
-
-    std::unordered_map<std::string, std::vector<std::pair<std::string, EventHandler>>> events;
-    std::unordered_map<std::string, std::vector<nlohmann::json>> missedMessages; // New data structure for missed messages
-    std::mutex mtx;
-
-  public:
-    SharedJSMessageEmitter(const SharedJSMessageEmitter&) = delete;
-    SharedJSMessageEmitter& operator=(const SharedJSMessageEmitter&) = delete;
-
-    static SharedJSMessageEmitter& InstanceRef()
-    {
-        static SharedJSMessageEmitter InstanceRef;
-        return InstanceRef;
-    }
-
-    std::string OnMessage(const std::string& event, const std::string name, EventHandler handler)
-    {
-        std::vector<nlohmann::json> messages;
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            events[event].push_back(std::make_pair(name, handler));
-            auto it = missedMessages.find(event);
-            if (it != missedMessages.end()) {
-                messages = std::move(it->second);
-                missedMessages.erase(it);
-            }
-        }
-
-        /** call cb outside lock -- avoid deadlocks */
-        for (const auto& message : messages) {
-            handler(message, name);
-        }
-        return name;
-    }
-
-    void RemoveListener(const std::string& event, std::string listenerId)
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-
-        auto it = events.find(event);
-        if (it != events.end()) {
-            auto& handlers = it->second;
-            handlers.erase(std::remove_if(handlers.begin(), handlers.end(),
-                                          [listenerId](const auto& handler)
-            {
-                if (handler.first == listenerId) {
-                    return true;
-                }
-                return false;
-            }),
-                           handlers.end());
-        }
-    }
-
-    void EmitMessage(const std::string& event, const nlohmann::json& data)
-    {
-        std::vector<std::pair<std::string, EventHandler>> handlersCopy;
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-
-            auto it = events.find(event);
-            if (it != events.end()) {
-                handlersCopy = it->second; /** cp handlers */
-            } else {
-                missedMessages[event].push_back(data);
-                return;
-            }
-        }
-
-        /** call cb outside lock -- avoid deadlocks */
-        for (const auto& handler : handlersCopy) {
-            try {
-                handler.second(data, handler.first);
-            } catch (const std::bad_function_call& e) {
-                Logger.Warn("Failed to emit message on {}. exception: {}", handler.first, e.what());
-            }
-        }
-    }
-};
-
 JsEvalResult ExecuteOnSharedJsContext(std::string javaScriptEval);
 const std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
 
 int Lua_EvaluateFromSocket(std::string script, lua_State* L);
 PyObject* Py_EvaluateFromSocket(std::string script);
 } // namespace JavaScript
+
+using EventHandler = std::function<void(const nlohmann::json&, const std::string&)>;
+
+#pragma once
+#include <unordered_map>
+#include <vector>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <functional>
+#include <memory>
+#include <atomic>
+#include <deque>
+#include <chrono>
+#include <thread>
+#include <condition_variable>
+#include <nlohmann/json.hpp>
+
+using EventHandler = std::function<void(const nlohmann::json&, const std::string&)>;
+
+class CefSocketDispatcher
+{
+  private:
+    struct ListenerInfo
+    {
+        std::string name;
+        EventHandler handler;
+        std::atomic<bool> active{ true };
+        uint64_t lastProcessedMessageId{ 0 };
+
+        ListenerInfo(std::string n, EventHandler h) : name(std::move(n)), handler(std::move(h))
+        {
+        }
+    };
+
+    using ListenerPtr = std::shared_ptr<ListenerInfo>;
+
+    struct Message
+    {
+        nlohmann::json data;
+        std::chrono::steady_clock::time_point timestamp;
+        uint64_t id;
+        std::string event;
+        ListenerPtr deliveryListener;
+
+        Message(std::string e, nlohmann::json d, uint64_t msgId) : event(std::move(e)), data(std::move(d)), timestamp(std::chrono::steady_clock::now()), id(msgId)
+        {
+        }
+    };
+
+    using MessagePtr = std::shared_ptr<Message>;
+
+    CefSocketDispatcher() : workerRunning(true)
+    {
+        workerThread = std::thread([this]() { this->workerLoop(); });
+    }
+
+    ~CefSocketDispatcher() = default;
+
+    std::unordered_map<std::string, std::vector<ListenerPtr>> eventListeners;
+    mutable std::shared_mutex listenersMtx;
+
+    std::unordered_map<std::string, std::deque<MessagePtr>> messageHistory;
+    mutable std::mutex historyMtx;
+
+    std::deque<MessagePtr> pendingMessages;
+    mutable std::mutex pendingMtx;
+    std::condition_variable pendingCV;
+
+    std::thread workerThread;
+    std::atomic<bool> workerRunning{ true };
+
+    std::atomic<uint64_t> messageCounter{ 0 };
+
+    size_t maxHistoryPerEvent{ 1000 };
+    std::chrono::minutes maxMessageAge{ 60 };
+
+    void workerLoop()
+    {
+        while (workerRunning.load()) {
+            std::vector<MessagePtr> messagesToProcess;
+
+            {
+                std::unique_lock<std::mutex> lock(pendingMtx);
+                pendingCV.wait(lock, [this] { return !pendingMessages.empty() || !workerRunning.load(); });
+
+                if (!workerRunning.load() && pendingMessages.empty()) {
+                    break;
+                }
+
+                while (!pendingMessages.empty()) {
+                    messagesToProcess.push_back(std::move(pendingMessages.front()));
+                    pendingMessages.pop_front();
+                }
+            }
+
+            for (const auto& message : messagesToProcess) {
+                processMessage(message);
+            }
+        }
+    }
+
+    void processMessage(const MessagePtr& message)
+    {
+        if (message->event.compare(0, 18, "__DELIVER_HISTORY__") == 0) {
+            std::string realEvent = message->event.substr(18);
+            if (message->deliveryListener && message->deliveryListener->active.load()) {
+                deliverHistoricalMessages(realEvent, message->deliveryListener);
+            }
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(historyMtx);
+            messageHistory[message->event].push_back(message);
+
+            if (message->id % 100 == 0) {
+                cleanupOldMessages();
+            }
+        }
+
+        std::vector<ListenerPtr> currentListeners;
+        {
+            std::shared_lock<std::shared_mutex> lock(listenersMtx);
+            auto eventIt = eventListeners.find(message->event);
+            if (eventIt != eventListeners.end()) {
+                currentListeners = eventIt->second;
+            }
+        }
+
+        for (const auto& listener : currentListeners) {
+            safeInvokeHandler(listener, message);
+        }
+    }
+
+    void deliverHistoricalMessages(const std::string& event, ListenerPtr listener)
+    {
+        std::vector<MessagePtr> messagesToDeliver;
+
+        {
+            std::lock_guard<std::mutex> lock(historyMtx);
+            auto historyIt = messageHistory.find(event);
+            if (historyIt != messageHistory.end()) {
+                for (const auto& msg : historyIt->second) {
+                    if (msg->id > listener->lastProcessedMessageId) {
+                        messagesToDeliver.push_back(msg);
+                    }
+                }
+            }
+        }
+
+        for (const auto& msg : messagesToDeliver) {
+            if (!listener->active.load()) {
+                break;
+            }
+            safeInvokeHandler(listener, msg);
+        }
+    }
+
+    void safeInvokeHandler(const ListenerPtr& listener, const MessagePtr& message)
+    {
+        if (!listener->active.load() || message->id <= listener->lastProcessedMessageId) {
+            return;
+        }
+
+        try {
+            listener->handler(message->data, listener->name);
+            listener->lastProcessedMessageId = message->id;
+        } catch (...) {
+        }
+    }
+
+    void cleanupOldMessages()
+    {
+        auto now = std::chrono::steady_clock::now();
+
+        for (auto& [event, messages] : messageHistory) {
+            while (!messages.empty() && (now - messages.front()->timestamp) > maxMessageAge) {
+                messages.pop_front();
+            }
+
+            while (messages.size() > maxHistoryPerEvent) {
+                messages.pop_front();
+            }
+        }
+    }
+
+  public:
+    CefSocketDispatcher(const CefSocketDispatcher&) = delete;
+    CefSocketDispatcher& operator=(const CefSocketDispatcher&) = delete;
+
+    static CefSocketDispatcher& get()
+    {
+        static CefSocketDispatcher instance;
+        return instance;
+    }
+
+    void SetMaxHistoryPerEvent(size_t maxHistory)
+    {
+        maxHistoryPerEvent = maxHistory;
+    }
+
+    void SetMaxMessageAge(std::chrono::minutes maxAge)
+    {
+        maxMessageAge = maxAge;
+    }
+
+    std::string OnMessage(const std::string& event, const std::string& name, EventHandler handler)
+    {
+        auto listener = std::make_shared<ListenerInfo>(name, std::move(handler));
+
+        {
+            std::unique_lock<std::shared_mutex> lock(listenersMtx);
+            eventListeners[event].push_back(listener);
+        }
+
+        auto deliveryTask = std::make_shared<Message>("__DELIVER_HISTORY__" + event,
+                                                      nlohmann::json{
+                                                          { "listener_name", name }
+        },
+                                                      ++messageCounter);
+        deliveryTask->deliveryListener = listener;
+
+        {
+            std::lock_guard<std::mutex> lock(pendingMtx);
+            pendingMessages.push_front(deliveryTask);
+        }
+        pendingCV.notify_one();
+
+        return name;
+    }
+
+    void RemoveListener(const std::string& event, const std::string& listenerId)
+    {
+        std::unique_lock<std::shared_mutex> lock(listenersMtx);
+
+        auto eventIt = eventListeners.find(event);
+        if (eventIt != eventListeners.end()) {
+            auto& listeners = eventIt->second;
+
+            listeners.erase(std::remove_if(listeners.begin(), listeners.end(),
+                                           [&listenerId](const ListenerPtr& listener)
+            {
+                if (listener->name == listenerId) {
+                    listener->active.store(false);
+                    return true;
+                }
+                return false;
+            }),
+                            listeners.end());
+
+            if (listeners.empty()) {
+                eventListeners.erase(eventIt);
+            }
+        }
+    }
+
+    void EmitMessage(const std::string& event, const nlohmann::json& data)
+    {
+        uint64_t msgId = ++messageCounter;
+        auto message = std::make_shared<Message>(event, data, msgId);
+
+        {
+            std::lock_guard<std::mutex> lock(pendingMtx);
+            pendingMessages.push_back(message);
+        }
+        pendingCV.notify_one();
+    }
+
+    void Shutdown()
+    {
+        if (workerRunning.load()) {
+            workerRunning.store(false);
+            pendingCV.notify_all();
+
+            if (workerThread.joinable()) {
+                workerThread.join();
+            }
+        }
+    }
+
+    void CleanupHistory()
+    {
+        std::lock_guard<std::mutex> lock(historyMtx);
+        cleanupOldMessages();
+    }
+
+    size_t GetStoredMessageCount(const std::string& event) const
+    {
+        std::lock_guard<std::mutex> lock(historyMtx);
+        auto it = messageHistory.find(event);
+        return (it != messageHistory.end()) ? it->second.size() : 0;
+    }
+
+    size_t GetPendingMessageCount() const
+    {
+        std::lock_guard<std::mutex> lock(pendingMtx);
+        return pendingMessages.size();
+    }
+
+    size_t GetTotalStoredMessages() const
+    {
+        std::lock_guard<std::mutex> lock(historyMtx);
+        size_t total = 0;
+        for (const auto& [event, messages] : messageHistory) {
+            total += messages.size();
+        }
+        return total;
+    }
+
+    size_t GetListenerCount(const std::string& event) const
+    {
+        std::shared_lock<std::shared_mutex> lock(listenersMtx);
+        auto it = eventListeners.find(event);
+        return (it != eventListeners.end()) ? it->second.size() : 0;
+    }
+
+    std::vector<std::string> GetActiveEvents() const
+    {
+        std::shared_lock<std::shared_mutex> lock(listenersMtx);
+        std::vector<std::string> events;
+        events.reserve(eventListeners.size());
+
+        for (const auto& pair : eventListeners) {
+            if (!pair.second.empty()) {
+                events.push_back(pair.first);
+            }
+        }
+
+        return events;
+    }
+
+    std::vector<std::string> GetEventsWithHistory() const
+    {
+        std::lock_guard<std::mutex> lock(historyMtx);
+        std::vector<std::string> events;
+        events.reserve(messageHistory.size());
+
+        for (const auto& pair : messageHistory) {
+            if (!pair.second.empty()) {
+                events.push_back(pair.first);
+            }
+        }
+
+        return events;
+    }
+};

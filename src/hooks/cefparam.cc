@@ -28,17 +28,11 @@
  * SOFTWARE.
  */
 
-#define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
-#define _WINSOCKAPI_
 #include "MinHook.h"
+
 #include "millennium/argp_win32.h"
 #include "millennium/logger.h"
-#include <asio.hpp>
-#include <asio/ip/tcp.hpp>
-#include <iostream>
-#include <windows.h>
-#include <winternl.h>
 
 #define ARG_REMOTE_ALLOW_ORIGINS "--remote-allow-origins"
 #define ARG_REMOTE_DEBUGGING_ADDRESS "--remote-debugging-address"

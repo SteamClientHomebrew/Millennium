@@ -2,6 +2,7 @@
 
 #include "head/plugin_mgr.h"
 #include "head/theme_mgr.h"
+
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>

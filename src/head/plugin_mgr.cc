@@ -1,17 +1,44 @@
+/*
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2025 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "head/plugin_mgr.h"
 #include "head/scan.h"
+#include "head/ipc_handler.h"
+
 #include "millennium/env.h"
 #include "millennium/millennium_api.h"
-#include <chrono>
-#include <cstdio>
+#include "millennium/encode.h"
+
 #include <curl/curl.h>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
 #include <minizip/unzip.h>
 #include <random>
-#include <sstream>
-#include <thread>
 
 std::filesystem::path PluginInstaller::PluginsPath()
 {
@@ -38,7 +65,16 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
             });
         }
 
-        std::filesystem::remove_all(pluginOpt->at("path").get<std::string>());
+        std::filesystem::path pluginPath = pluginOpt->at("path").get<std::string>();
+        Logger.Log("Attempting to remove plugin directory: {}", pluginPath.string());
+
+        if (!std::filesystem::exists(pluginPath)) {
+            LOG_ERROR("Plugin path does not exist: {}", pluginPath.string());
+            return false;
+        }
+
+        SystemIO::SafePurgeDirectory(pluginPath);
+
         return true;
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to uninstall {}: {}", pluginName, e.what());
@@ -46,11 +82,25 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
     }
 }
 
+struct DownloadData
+{
+    FILE* fp;
+    size_t downloaded;
+    std::function<void(size_t, size_t)> progressCallback;
+    size_t totalSize;
+};
+
 size_t WriteCallback(void* ptr, size_t size, size_t nmemb, void* userdata)
 {
-    auto* downloaded = static_cast<size_t*>(userdata);
-    size_t written = size * nmemb;
-    *downloaded += written;
+    auto* data = static_cast<DownloadData*>(userdata);
+    size_t written = fwrite(ptr, size, nmemb, data->fp);
+
+    data->downloaded += written;
+
+    if (data->progressCallback) {
+        data->progressCallback(data->downloaded, data->totalSize);
+    }
+
     return written;
 }
 
@@ -61,19 +111,44 @@ void PluginInstaller::DownloadWithProgress(const std::string& url, const std::fi
         throw std::runtime_error("Failed to initialize curl");
 
     FILE* fp = fopen(destPath.string().c_str(), "wb");
-    if (!fp)
+    if (!fp) {
+        curl_easy_cleanup(curl);
         throw std::runtime_error("Failed to open file: " + destPath.string());
+    }
+
+    DownloadData downloadData = { fp, 0, progressCallback, 0 };
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-    curl_easy_perform(curl);
+    CURLcode res = curl_easy_perform(curl);
+    if (res == CURLE_OK) {
+        double contentLength;
+        curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &contentLength);
+        downloadData.totalSize = static_cast<size_t>(contentLength);
+    }
+
+    curl_easy_setopt(curl, CURLOPT_NOBODY, 0L);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &downloadData);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Millennium-Plugin-Installer/1.0");
+
+    res = curl_easy_perform(curl);
+
     fclose(fp);
     curl_easy_cleanup(curl);
 
-    if (progressCallback)
-        progressCallback(std::filesystem::file_size(destPath), std::filesystem::file_size(destPath));
+    if (res != CURLE_OK) {
+        std::filesystem::remove(destPath);
+        throw std::runtime_error("Download failed: " + std::string(curl_easy_strerror(res)));
+    }
+
+    if (progressCallback) {
+        progressCallback(downloadData.downloaded, downloadData.downloaded);
+    }
 }
 
 void PluginInstaller::ExtractZipWithProgress(const std::filesystem::path& zipPath, const std::filesystem::path& extractTo)
@@ -103,7 +178,7 @@ void PluginInstaller::ExtractZipWithProgress(const std::filesystem::path& zipPat
             unzCloseCurrentFile(zip);
         }
 
-        EmitMessage("Extracting plugin archive...", 50.0 + (45.0 * (i / (double)globalInfo.number_entry)), false);
+        RPCLogMessage("Extracting plugin archive...", 50.0 + (45.0 * (i / (double)globalInfo.number_entry)), false);
         if ((i + 1) < globalInfo.number_entry)
             unzGoToNextFile(zip);
     }
@@ -111,66 +186,52 @@ void PluginInstaller::ExtractZipWithProgress(const std::filesystem::path& zipPat
     unzClose(zip);
 }
 
-void PluginInstaller::EmitMessage(const std::string& status, double progress, bool isComplete)
+void PluginInstaller::RPCLogMessage(const std::string& status, double progress, bool isComplete)
 {
-    nlohmann::json message = {
-        { "status",     status     },
-        { "progress",   progress   },
-        { "isComplete", isComplete }
-    };
-
-    // Millennium::CallFrontendMethod("InstallerMessageEmitter", {j.dump()});
+    IpcForwardInstallLog({ status, progress, isComplete });
 }
 
-bool PluginInstaller::InstallPlugin(const std::string& downloadUrl, size_t totalSize)
+nlohmann::json PluginInstaller::InstallPlugin(const std::string& downloadUrl, size_t totalSize)
 {
     try {
         Logger.Log("Requesting to install plugin -> " + downloadUrl);
-        EmitMessage("Starting Plugin Installer...", 0, false);
+        RPCLogMessage("Starting Plugin Installer...", 0, false);
 
         const auto downloadPath = PluginsPath();
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        // Generate UUID
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<uint32_t> dis(0, 0xFFFFFFFF);
-
-        uint32_t data[4];
-        for (int i = 0; i < 4; ++i)
-            data[i] = dis(gen);
-
-        std::stringstream ss;
-        ss << std::hex << std::setfill('0') << std::setw(8) << data[0] << "-" << std::setw(4) << ((data[1] >> 16) & 0xFFFF) << "-" << std::setw(4)
-           << (((data[1] >> 0) & 0x0FFF) | 0x4000) << "-" << std::setw(4) << (((data[2] >> 16) & 0x3FFF) | 0x8000) << "-" << std::setw(4) << (data[2] & 0xFFFF) << std::setw(8)
-           << data[3];
-
-        std::string uuidStr = ss.str();
-
+        std::string uuidStr = GenerateUUID();
         std::filesystem::path zipPath = downloadPath / uuidStr;
 
         auto progressCallback = [&](size_t downloaded, size_t total)
         {
             double percent = totalSize ? (double(downloaded) / totalSize) * 100.0 : 0.0;
-            EmitMessage("Download plugin archive...", 50.0 * (percent / 100.0), false);
+            RPCLogMessage("Download plugin archive...", 50.0 * (percent / 100.0), false);
         };
 
         DownloadWithProgress(downloadUrl, zipPath, progressCallback);
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        EmitMessage("Setting up installed plugin...", 50, false);
+        RPCLogMessage("Setting up installed plugin...", 50, false);
         std::filesystem::create_directories(downloadPath);
         ExtractZipWithProgress(zipPath, downloadPath);
 
-        EmitMessage("Cleaning up...", 95, false);
+        RPCLogMessage("Cleaning up...", 95, false);
         std::filesystem::remove(zipPath);
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        EmitMessage("Done!", 100, true);
-        return true;
+        RPCLogMessage("Done!", 100, true);
+
+        return {
+            { "success", true }
+        };
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to install plugin: {}", e.what());
-        return false;
+
+        return {
+            { "success", false    },
+            { "error",   e.what() }
+        };
     }
 }
 

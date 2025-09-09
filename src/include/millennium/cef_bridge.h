@@ -29,26 +29,15 @@
  */
 
 #include "millennium/http.h"
-#include <filesystem>
-#include <nlohmann/json.hpp>
-#include <thread>
+#include "millennium/argp_win32.h"
+
+#include <websocketpp/client.hpp>
+#include <websocketpp/config/asio_no_tls_client.hpp>
 
 #ifdef _WIN32
-#include <iphlpapi.h>
 #include <psapi.h>
-#include <tchar.h>
-#include <tlhelp32.h>
-#include <winsock2.h>
-
-#elif __linux__
-#include <fstream>
-#include <sstream>
-#elif __APPLE__
-#include <cstdio>
-#include <cstdlib>
-
+#include <iphlpapi.h>
 #endif
-#include "millennium/argp_win32.h"
 
 static bool bHasCheckedConnection = false;
 

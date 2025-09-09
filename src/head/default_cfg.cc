@@ -30,8 +30,6 @@
 
 #include "head/default_cfg.h"
 #include "millennium/env.h"
-#include <cstdlib>
-#include <filesystem>
 
 nlohmann::json GetDefaultConfig()
 {

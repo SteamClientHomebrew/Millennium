@@ -4,14 +4,11 @@
 #ifdef _WIN32
 #include "millennium/http_hooks.h"
 #include "millennium/steam_hooks_win32.h"
-#include <DbgHelp.h>
+
 #include <cxxabi.h>
 #include <dbghelp.h>
-#include <fmt/core.h>
-#include <memory>
 #include <shellapi.h>
 #include <string>
-#include <windows.h>
 
 std::string DemangleSymbolName(const char* mangledName)
 {

@@ -78,3 +78,12 @@ std::unordered_map<std::string, std::any>& GetCoreExports();
     }
 
 nlohmann::json HandleIpcMessage(const std::string& function_name, const nlohmann::json& args);
+
+struct InstallMessage
+{
+    std::string status;
+    double progress;
+    bool isComplete;
+};
+
+void IpcForwardInstallLog(const InstallMessage& message);

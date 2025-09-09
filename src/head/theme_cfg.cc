@@ -33,13 +33,9 @@
 #include "head/scan.h"
 #include "head/sys_accent_col.h"
 #include "head/webkit.h"
+
 #include "millennium/http_hooks.h"
 #include "millennium/sysfs.h"
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <regex>
-#include <sstream>
 
 ThemeConfig::ThemeConfig()
 {
@@ -72,6 +68,8 @@ void ThemeConfig::UpgradeOldConfig()
         LOG_ERROR("Failed to read old config: " + std::string(ex.what()));
         return;
     }
+
+    /** TODO: Test this */
 
     /** Migrate themes.conditions */
     if (old_config.contains("conditions") && old_config["conditions"].is_object()) {

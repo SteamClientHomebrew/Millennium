@@ -29,15 +29,9 @@
  */
 
 #include "head/sys_accent_col.h"
+
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <iomanip>
-#include <nlohmann/json.hpp>
-#include <sstream>
-#include <vector>
 
 /** piss off C */
 #ifdef min
@@ -182,6 +176,7 @@ nlohmann::json Colors::GetAccentColorPosix()
         { "dark3Rgb",       "0, 0, 0" },
         { "originalAccent", "#000"    }
     };
+
     return color_dictionary;
 }
 

@@ -32,16 +32,13 @@
 #include "millennium/env.h"
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
-#include <Python.h>
+
 #include <atomic>
 #include <condition_variable>
-#include <filesystem>
-#include <functional>
-#include <lua.hpp>
-#include <optional>
-#include <string>
 #include <thread>
-#include <vector>
+
+#include <Python.h>
+#include <lua.hpp>
 
 struct InterpreterMutex
 {

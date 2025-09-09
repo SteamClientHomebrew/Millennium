@@ -39,9 +39,6 @@
 #include "millennium/logger.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
-#include <Python.h>
-#include <iostream>
-#include <string>
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -110,9 +107,12 @@ const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_c
     if (json.contains("id") && json["id"] == 0 && json.contains("result") && json["result"].is_object() && json["result"].contains("targetInfos") &&
         json["result"]["targetInfos"].is_array()) {
         const auto targets = json["result"]["targetInfos"];
+
         auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
 
         if (targetIterator != targets.end() && !m_sharedJsConnected) {
+            Logger.Log("Found SharedJSContext target, attaching...");
+
             Sockets::PostGlobal({
                 { "id",     0                                                                      },
                 { "method", "Target.attachToTarget"                                                },
@@ -138,7 +138,7 @@ const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_c
         });
         this->onSharedJsConnect();
     } else {
-        JavaScript::SharedJSMessageEmitter::InstanceRef().EmitMessage("msg", json);
+        CefSocketDispatcher::get().EmitMessage("msg", json);
     }
     webKitHandler.DispatchSocketMessage(json);
 }

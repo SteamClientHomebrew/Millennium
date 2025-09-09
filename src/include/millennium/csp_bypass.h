@@ -47,7 +47,7 @@
 
 const void BypassCSP(void)
 {
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
+    CefSocketDispatcher::get().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
     {
         try {
             if (message.contains("id") && message.value("id", -1) == 96876) {
@@ -78,7 +78,7 @@ const void BypassCSP(void)
             }
 
             if (message.contains("id") && message.value("id", -1) == 1235377) {
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                CefSocketDispatcher::get().RemoveListener("msg", listenerId);
             }
         } catch (const nlohmann::detail::exception& e) {
             LOG_ERROR("error bypassing CSP -> {}", e.what());

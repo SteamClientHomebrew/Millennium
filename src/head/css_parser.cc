@@ -30,12 +30,9 @@
 
 #include "head/css_parser.h"
 #include "millennium/sysfs.h"
+
 #include <fmt/core.h>
-#include <fstream>
-#include <iomanip>
 #include <regex>
-#include <sstream>
-#include <vector>
 
 std::string Millennium::CSSParser::Trim(const std::string& str)
 {

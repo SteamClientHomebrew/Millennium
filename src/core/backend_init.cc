@@ -41,13 +41,6 @@
 #include "millennium/plugin_logger.h"
 #include "millennium/urlp.h"
 
-#include <condition_variable>
-#include <fmt/core.h>
-#include <mutex>
-#include <thread>
-#include <tuple>
-#include <vector>
-
 static std::string addedScriptOnNewDocumentId = "";
 
 /**
@@ -594,7 +587,7 @@ void OnBackendLoad(bool reloadFrontend)
         PAGE_RELOAD = 4
     };
 
-    JavaScript::SharedJSMessageEmitter::InstanceRef().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
+    CefSocketDispatcher::get().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
     {
         auto& state = BackendLoadState::get();
         std::unique_lock<std::mutex> lock(state.mtx);
@@ -638,10 +631,10 @@ void OnBackendLoad(bool reloadFrontend)
                 }
 
                 Logger.Log("Successfully notified frontend...");
-                JavaScript::SharedJSMessageEmitter::InstanceRef().RemoveListener("msg", listenerId);
+                CefSocketDispatcher::get().RemoveListener("msg", listenerId);
             }
         } catch (nlohmann::detail::exception& ex) {
-            LOG_ERROR("JavaScript::SharedJSMessageEmitter error -> {}", ex.what());
+            LOG_ERROR("CefSocketDispatcher error -> {}", ex.what());
         }
     });
 

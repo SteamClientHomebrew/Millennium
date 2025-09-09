@@ -1,11 +1,12 @@
-// clang-format off
 #include <winsock2.h>
-// clang-format on
+
 #include "millennium/argp_win32.h"
 #include "millennium/env.h"
 #include "millennium/http_hooks.h"
 #include "millennium/init.h"
 #include "millennium/shim_updater.h"
+#include "millennium/ffi.h"
+
 #include <MinHook.h>
 #include <thread>
 
@@ -49,6 +50,10 @@ VOID Win32_AttachMillennium(VOID)
     WinUtils::Win32_UpdatePreloader();
 
     EntryMain();
+
+    /** Shutdown the shared JS message emitter */
+    CefSocketDispatcher& emitter = CefSocketDispatcher::get();
+    (&emitter)->Shutdown();
 
     /** Shutdown cron threads that manage Steam HTTP hooks */
     HttpHookManager& hookManager = HttpHookManager::get();
