@@ -32,7 +32,14 @@
 #include "millennium/logger.h"
 #include <random>
 
-std::string GenerateAuthToken(size_t length)
+/**
+ * @brief Build a random string of given length.
+ * This function generates a random string of the specified length using
+ * alphanumeric characters.
+ *
+ * It uses mersenne twister engine for random number generation.
+ */
+std::string BuildRandomString(size_t length)
 {
     const std::string charset = "0123456789"
                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -52,8 +59,24 @@ std::string GenerateAuthToken(size_t length)
     return token;
 }
 
+/**
+ * Just a basic security measure, and doesn't overly matter since this is all local.
+ * But it stops casual snooping. It also prevent actual fs paths clashing with internal api paths.
+ */
+const std::string GetScrambledApiPathToken()
+{
+    static const std::string scrambledApiPathToken = BuildRandomString(32);
+    return scrambledApiPathToken;
+}
+
+/**
+ * Get the auth token for the current session.
+ * Currently only used in the IPC to validate requests, but it can be used elsewhere if needed.
+ *
+ * @returns {std::string} - The auth token for the current session.
+ */
 const std::string GetAuthToken()
 {
-    static const std::string authToken = GenerateAuthToken(128);
+    static const std::string authToken = BuildRandomString(128);
     return authToken;
 }

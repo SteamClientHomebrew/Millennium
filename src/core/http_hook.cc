@@ -38,6 +38,7 @@
 #include "millennium/http_hooks.h"
 #include "millennium/init.h"
 #include "millennium/urlp.h"
+#include "millennium/virtfs.h"
 
 #include <chrono>
 #include <nlohmann/json.hpp>
@@ -293,20 +294,15 @@ bool HttpHookManager::IsIpcCall(const nlohmann::basic_json<>& message)
 std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requestUrl)
 {
     std::string url = requestUrl;
+    const std::initializer_list<const char*> addresses = { this->m_ftpHookAddress, this->m_javaScriptVirtualUrl, this->m_styleSheetVirtualUrl, this->m_oldHookAddress };
 
-    size_t newPos = url.find(this->m_ftpHookAddress);
-    size_t jsPos = url.find(this->m_javaScriptVirtualUrl);
-    size_t cssPos = url.find(this->m_styleSheetVirtualUrl);
-    size_t oldPos = url.find(this->m_oldHookAddress);
-
-    if (newPos != std::string::npos)
-        url.erase(newPos, std::string(this->m_ftpHookAddress).length());
-    else if (jsPos != std::string::npos)
-        url.erase(jsPos, std::string(this->m_javaScriptVirtualUrl).length());
-    else if (cssPos != std::string::npos)
-        url.erase(cssPos, std::string(this->m_styleSheetVirtualUrl).length());
-    else if (oldPos != std::string::npos)
-        url.erase(oldPos, std::string(this->m_oldHookAddress).length());
+    for (const std::string& addr : addresses) {
+        size_t pos = url.find(addr);
+        if (pos != std::string::npos) {
+            url.erase(pos, addr.length());
+            break;
+        }
+    }
 
     return std::filesystem::path(PathFromUrl(url));
 }
@@ -314,27 +310,44 @@ std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requ
 void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& message)
 {
     std::string fileContent;
-    std::filesystem::path localFilePath = this->ConvertToLoopBack(message["params"]["request"]["url"]);
-    std::ifstream localFileStream(localFilePath);
+    eFileType fileType = eFileType::unknown;
 
-    bool bFailedRead = !localFileStream.is_open();
-    if (bFailedRead) {
-        LOG_ERROR("failed to retrieve file '{}' info from disk.", localFilePath.string());
+    uint16_t responseCode = 200;
+    std::string responseMessage = "OK millennium";
+
+    const std::string strRequestFile = message["params"]["request"]["url"];
+
+    /** Handle internal virtual FS request (pull virtfs from memory) */
+    auto it = INTERNAL_FTP_CALL_DATA.find(strRequestFile);
+    if (it != INTERNAL_FTP_CALL_DATA.end()) {
+        fileType = eFileType::js;
+        fileContent = Base64Encode(it->second);
+
     }
+    /** Handle normal disk request */
+    else {
+        std::filesystem::path localFilePath = this->ConvertToLoopBack(strRequestFile);
+        std::ifstream localFileStream(localFilePath);
 
-    uint16_t responseCode = bFailedRead ? 404 : 200;
-    std::string responseMessage = bFailedRead ? "millennium couldn't read " + localFilePath.string() : "OK millennium";
-    eFileType fileType = EvaluateFileType(localFilePath.string());
-
-    if (IsBinaryFile(fileType)) {
-        try {
-            fileContent = Base64Encode(SystemIO::ReadFileBytesSync(localFilePath.string()));
-        } catch (const std::exception& error) {
-            LOG_ERROR("Failed to read file bytes from disk: {}", error.what());
-            bFailedRead = true; /** Force fail even if the file exists. */
+        bool bFailedRead = !localFileStream.is_open();
+        if (bFailedRead) {
+            responseCode = 404;
+            responseMessage = "millennium couldn't read " + localFilePath.string();
+            LOG_ERROR("failed to retrieve file '{}' info from disk.", localFilePath.string());
         }
-    } else {
-        fileContent = Base64Encode(std::string(std::istreambuf_iterator<char>(localFileStream), std::istreambuf_iterator<char>()));
+
+        fileType = EvaluateFileType(localFilePath.string());
+
+        if (IsBinaryFile(fileType)) {
+            try {
+                fileContent = Base64Encode(SystemIO::ReadFileBytesSync(localFilePath.string()));
+            } catch (const std::exception& error) {
+                LOG_ERROR("Failed to read file bytes from disk: {}", error.what());
+                bFailedRead = true; /** Force fail even if the file exists. */
+            }
+        } else {
+            fileContent = Base64Encode(std::string(std::istreambuf_iterator<char>(localFileStream), std::istreambuf_iterator<char>()));
+        }
     }
 
     const auto responseHeaders = nlohmann::json::array({
@@ -394,74 +407,102 @@ void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
     }
 }
 
-const std::string HttpHookManager::PatchDocumentContents(const std::string& requestUrl, const std::string& original)
+HttpHookManager::ProcessedHooks HttpHookManager::ProcessWebkitHooks(const std::string& requestUrl) const
 {
-    std::string patched = original;
-    std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
-
-    if (!millenniumPreloadPath.has_value()) {
-        LOG_ERROR("Missing webkit preload module. Please re-install Millennium.");
-#ifdef _WIN32
-        MessageBoxA(NULL, "Missing webkit preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
-#endif
-        return patched;
-    }
-
-    // Get thread-safe copy of hook list
+    ProcessedHooks result;
     auto hookList = GetHookListCopy();
 
-    std::vector<std::string> scriptModules;
-    std::string cssShimContent, scriptModuleArray;
-    std::string linkPreloadsArray;
-
     for (const auto& hookItem : hookList) {
+        if (!std::regex_match(requestUrl, hookItem.urlPattern)) {
+            continue;
+        }
+
         if (hookItem.type == TagTypes::STYLESHEET) {
-            if (!std::regex_match(requestUrl, hookItem.urlPattern))
-                continue;
-
-            cssShimContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", UrlFromPath(m_ftpHookAddress, hookItem.path)));
+            result.cssContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", UrlFromPath(m_ftpHookAddress, hookItem.path)));
         } else if (hookItem.type == TagTypes::JAVASCRIPT) {
-            if (!std::regex_match(requestUrl, hookItem.urlPattern))
-                continue;
-
-            auto jsPath = UrlFromPath(this->m_ftpHookAddress, hookItem.path);
-            scriptModules.push_back(jsPath);
-            linkPreloadsArray.append(fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", jsPath));
+            auto jsPath = UrlFromPath(m_ftpHookAddress, hookItem.path);
+            result.scriptModules.push_back(jsPath);
+            result.linkPreloads.append(fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", jsPath));
         }
     }
 
-    for (size_t i = 0; i < scriptModules.size(); i++) {
-        scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
+    return result;
+}
+
+std::string HttpHookManager::BuildScriptModuleArray(const std::vector<std::string>& scriptModules) const
+{
+    std::string result;
+    for (size_t i = 0; i < scriptModules.size(); ++i) {
+        if (i > 0) {
+            result.append(",");
+        }
+        result.append(fmt::format("\"{}\"", scriptModules[i]));
+    }
+    return result;
+}
+
+std::string HttpHookManager::BuildEnabledPluginsString() const
+{
+    std::string result;
+    auto settingsStore = std::make_unique<SettingsStore>();
+
+    for (const auto& plugin : settingsStore->GetEnabledPlugins()) {
+        result.append(fmt::format("'{}',", plugin.pluginName));
     }
 
-    std::string strEnabledPlugins;
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const auto& plugins = settingsStore->GetEnabledPlugins();
+    return result;
+}
 
-    for (size_t i = 0; i < plugins.size(); ++i) {
-        strEnabledPlugins.append(fmt::format("'{}',", plugins[i].pluginName));
-    }
-
+std::string HttpHookManager::CreateShimContent(const ProcessedHooks& hooks, const std::string& millenniumPreloadPath) const
+{
     const std::string millenniumAuthToken = GetAuthToken();
-    const std::string ftpPath = UrlFromPath(m_ftpHookAddress, millenniumPreloadPath.value_or(std::string()));
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}], [{}]);", millenniumAuthToken, scriptModuleArray, strEnabledPlugins);
+    const std::string ftpPath = UrlFromPath(m_ftpHookAddress, millenniumPreloadPath);
 
-    linkPreloadsArray.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
+    std::string scriptModuleArray = BuildScriptModuleArray(hooks.scriptModules);
+    std::string enabledPlugins = BuildEnabledPluginsString();
 
-    std::string importScript = fmt::format("import('{}').then(module => {{ {} }}).catch(error => window.location.reload())", ftpPath, scriptContent);
-    std::string shimContent = fmt::format("{}<script type=\"module\" async id=\"millennium-injected\">{}</script>\n{}", linkPreloadsArray, importScript, cssShimContent);
+    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}], [{}]);", millenniumAuthToken, scriptModuleArray, enabledPlugins);
 
-    for (const auto& blackListedUrl : g_blackListedUrls) {
-        if (std::regex_match(requestUrl, std::regex(blackListedUrl))) {
-            shimContent = cssShimContent; // Remove all queried JavaScript from the page.
+    std::string linkPreloads = hooks.linkPreloads;
+    linkPreloads.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
+
+    const std::string importScript = fmt::format("import('{}').then(module => {{ {} }}).catch(error => window.location.reload())", ftpPath, scriptContent);
+
+    return fmt::format("{}<script type=\"module\" async id=\"millennium-injected\">{}</script>\n{}", linkPreloads, importScript, hooks.cssContent);
+}
+
+bool HttpHookManager::IsUrlBlacklisted(const std::string& requestUrl) const
+{
+    for (const auto& blacklistedUrl : g_blackListedUrls) {
+        if (std::regex_match(requestUrl, std::regex(blacklistedUrl))) {
+            return true;
         }
     }
+    return false;
+}
 
-    if (patched.find("<head>") == std::string::npos) {
-        return patched;
+std::string HttpHookManager::InjectContentIntoHead(const std::string& original, const std::string& content) const
+{
+    const size_t headPos = original.find("<head>");
+    if (headPos == std::string::npos) {
+        return original;
+    }
+    return original.substr(0, headPos + 6) + content + original.substr(headPos + 6);
+}
+
+std::string HttpHookManager::PatchDocumentContents(const std::string& requestUrl, const std::string& original) const
+{
+    std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
+
+    ProcessedHooks hooks = ProcessWebkitHooks(requestUrl);
+    std::string shimContent = CreateShimContent(hooks, millenniumPreloadPath);
+
+    // Apply blacklist filtering - remove JavaScript for blacklisted URLs
+    if (IsUrlBlacklisted(requestUrl)) {
+        shimContent = hooks.cssContent; // Keep only CSS content
     }
 
-    return patched.replace(patched.find("<head>"), 6, "<head>" + shimContent);
+    return InjectContentIntoHead(original, shimContent);
 }
 
 void HttpHookManager::HandleHooks(const nlohmann::basic_json<>& message)
@@ -517,19 +558,18 @@ void HttpHookManager::HandleHooks(const nlohmann::basic_json<>& message)
 
 void HttpHookManager::HandleIpcMessage(nlohmann::json message)
 {
+    nlohmann::json headers = nlohmann::json::array({
+        { { "name", "Access-Control-Allow-Origin" },  { "value", "*" }                                                                                },
+        { { "name", "Access-Control-Allow-Headers" }, { "value", "Origin, X-Requested-With, X-Millennium-Auth, Content-Type, Accept, Authorization" } },
+        { { "name", "Access-Control-Allow-Methods" }, { "value", "GET, POST, PUT, DELETE, OPTIONS" }                                                  },
+        { { "name", "Access-Control-Max-Age" },       { "value", "86400" }                                                                            },
+        { { "name", "Content-Type" },                 { "value", "application/json" }                                                                 }
+    });
+
     nlohmann::json responseJson = {
-        { "id",     63453                        },
-        { "method", "Fetch.fulfillRequest"       },
-        { "params",
-         { { "responseCode", 200 },
-            { "requestId", message["params"]["requestId"] },
-            { "responseHeaders", nlohmann::json::array({ { { "name", "Access-Control-Allow-Origin" }, { "value", "*" } },
-                                                         { { "name", "Access-Control-Allow-Headers" },
-                                                           { "value", "Origin, X-Requested-With, X-Millennium-Auth, Content-Type, Accept, Authorization" } },
-                                                         { { "name", "Access-Control-Allow-Methods" }, { "value", "GET, POST, PUT, DELETE, OPTIONS" } },
-                                                         { { "name", "Access-Control-Max-Age" }, { "value", "86400" } },
-                                                         { { "name", "Content-Type" }, { "value", "application/json" } } }) },
-            { "responsePhrase", "Millennium" } } }
+        { "id",     63453                                                                                                                                            },
+        { "method", "Fetch.fulfillRequest"                                                                                                                           },
+        { "params", { { "responseCode", 200 }, { "requestId", message["params"]["requestId"] }, { "responseHeaders", headers }, { "responsePhrase", "Millennium" } } }
     };
 
     /** If the HTTP method is OPTIONS, we don't need to require auth token */

@@ -335,7 +335,14 @@ static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
 
 const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L)
 {
+    Logger.Log("Starting Lua backend for '{}'", plugin.pluginName);
     BackendManager& backendManager = BackendManager::GetInstance();
+
+    if (backendManager.Lua_IsMutexLocked(L)) {
+        LOG_ERROR("Lua mutex is already locked for plugin '{}'", plugin.pluginName);
+        return;
+    }
+
     backendManager.Lua_LockLua(L);
 
     lua_pushstring(L, plugin.pluginName.c_str());
@@ -553,8 +560,7 @@ const std::string ConstructOnLoadModule()
     }
 
     /** Add the builtin Millennium plugin */
-    std::string millennium = (std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / ".millennium" / "Dist" / "index.js").generic_string();
-    scriptImportTable.push_back(UrlFromPath("https://millennium.ftp/", millennium));
+    scriptImportTable.push_back(fmt::format("https://millennium.ftp/{}/millennium-frontend.js", GetScrambledApiPathToken()));
 
     return GetBootstrapModule(scriptImportTable);
 }

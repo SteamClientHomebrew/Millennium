@@ -42,16 +42,4 @@ class mpc:
         subprocess.run([self.__python_bin, "-m", "pip", "install", "--upgrade", "millennium"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def start(self, config):
-        if (config.get('PackageManager', 'dev_packages') != 'yes'):
-            return
-
-        try:
-            if config.get('PackageManager', 'auto_update_dev_packages') == 'no':
-                logger.log("Millennium Dev Tools auto-update is disabled.")
-                return
-
-            self.update_millennium()
-                
-        except importlib.metadata.PackageNotFoundError as e:
-            logger.warn("Installing Millennium Dev Tools...")
-            self.update_millennium()
+        pass

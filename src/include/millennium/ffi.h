@@ -71,6 +71,15 @@ enum FFI_Type
     UnknownType // non-atomic ADT's
 };
 
+static const std::unordered_map<nlohmann::json::value_t, FFI_Type> FFIMap_t = {
+    { nlohmann::json::value_t::boolean,         FFI_Type::Boolean },
+    { nlohmann::json::value_t::string,          FFI_Type::String  },
+    { nlohmann::json::value_t::number_integer,  FFI_Type::Integer },
+    { nlohmann::json::value_t::number_unsigned, FFI_Type::Integer },
+    { nlohmann::json::value_t::object,          FFI_Type::JSON    },
+    { nlohmann::json::value_t::array,           FFI_Type::JSON    }
+};
+
 struct EvalResult
 {
     FFI_Type type;

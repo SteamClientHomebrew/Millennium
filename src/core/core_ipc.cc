@@ -42,7 +42,61 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
-typedef websocketpp::server<websocketpp::config::asio> socketServer;
+/**
+ * @brief Handles an internal "call server method" request by dispatching it to the appropriate core IPC handler.
+ * This function constructs an EvalResult based on the response from the core IPC handler.
+ *
+ * @param {nlohmann::basic_json<>} message - The JSON message containing the request data.
+ * @returns {EvalResult} - The result of the core IPC method invocation.
+ */
+EvalResult HandleCoreServerMethod(const nlohmann::basic_json<>& call)
+{
+    try {
+        const auto& functionName = call["data"]["methodName"].get<std::string>();
+        const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : nlohmann::json::object();
+
+        nlohmann::json result = HandleIpcMessage(functionName, args);
+
+        auto it = FFIMap_t.find(result.type());
+        return it != FFIMap_t.end() ? EvalResult{ it->second, result.dump() } : EvalResult{ FFI_Type::UnknownType, "core IPC call returned unknown type" };
+    }
+    /** the internal c ipc method threw an exception */
+    catch (const std::exception& ex) {
+        return { FFI_Type::Error, ex.what() };
+    }
+}
+
+/**
+ * @brief Handles a plugin "call server method" request by dispatching it to the appropriate backend (Python or Lua).
+ * This function uses a static map to associate backend types with their respective handler functions.
+ *
+ * @param {std::string} pluginName - The name of the plugin making the request.
+ * @param {nlohmann::basic_json<>} message - The JSON message containing the request data.
+ *
+ * @returns {EvalResult} - The result of the backend method invocation.
+ * @note assert is used to ensure that the backend type is known and has a corresponding handler.
+ */
+EvalResult HandlePluginServerMethod(const std::string& pluginName, const nlohmann::basic_json<>& message)
+{
+    static const std::unordered_map<SettingsStore::PluginBackendType, std::function<EvalResult(const std::string&, const nlohmann::json&)>> handlers = {
+        { SettingsStore::PluginBackendType::Python, Python::LockGILAndInvokeMethod },
+        { SettingsStore::PluginBackendType::Lua,    Lua::LockAndInvokeMethod       }
+    };
+
+    const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
+    auto it = handlers.find(backendType);
+    assert(it != handlers.end() && "HandlePluginServerMethod: Unknown backend type encountered?");
+
+    return it->second(pluginName, message["data"]);
+}
+
+/**
+ * @brief Determines if a request is internal (i.e., from the core plugin).
+ */
+bool IsInternalRequest(const std::string& pluginName)
+{
+    return pluginName == "core";
+}
 
 /**
  * Calls a server method based on the provided JSON message and returns a response.
@@ -60,101 +114,42 @@ typedef websocketpp::server<websocketpp::config::asio> socketServer;
  * - Integer: Returned as an integer.
  * - Error: Returns a failure message and a flag indicating the failure.
  */
-nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
+nlohmann::json CallServerMethod(nlohmann::basic_json<> call)
 {
-    if (!message["data"].contains("pluginName")) {
+    if (!call["data"].contains("pluginName")) {
         LOG_ERROR("no plugin backend specified, doing nothing...");
         return {};
     }
+    const auto pluginName = call["data"]["pluginName"].get<std::string>();
 
-    EvalResult response;
-    const auto pluginName = message["data"]["pluginName"].get<std::string>();
+    /** Conditionally dispatch call between internal IPC call, and Python / Lua */
+    EvalResult response = IsInternalRequest(pluginName) ? HandleCoreServerMethod(call) : HandlePluginServerMethod(pluginName, call);
 
-    /** An internal IPC call, handle it in C++ instead of Python or Lua */
-    if (pluginName == "core") {
-        try {
-            const auto& functionName = message["data"]["methodName"].get<std::string>();
-            const auto& args = message["data"].contains("argumentList") ? message["data"]["argumentList"] : nlohmann::json::object();
-
-            nlohmann::json result = HandleIpcMessage(functionName, args);
-
-            response.plain = result.dump();
-
-            if (result.is_boolean())
-                response.type = FFI_Type::Boolean;
-            else if (result.is_string())
-                response.type = FFI_Type::String;
-            else if (result.is_number_integer())
-                response.type = FFI_Type::Integer;
-            else if (result.is_object() || result.is_array())
-                response.type = FFI_Type::JSON;
-            else {
-                response.type = FFI_Type::UnknownType;
-                response.plain = "core IPC call returned unknown type";
-            }
-        } catch (const std::exception& ex) {
-            response.type = FFI_Type::Error;
-            response.plain = ex.what();
-        }
-    } else {
-        const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
-
-        switch (backendType) {
-            case SettingsStore::PluginBackendType::Python:
-            {
-                response = Python::LockGILAndInvokeMethod(pluginName, message["data"]);
-                break;
-            }
-            case SettingsStore::PluginBackendType::Lua:
-            {
-                response = Lua::LockAndInvokeMethod(pluginName, message["data"]);
-                break;
-            }
+    /** Convert the EvalResult into a JSON response */
+    auto convertResponseValue = [](const auto& response)
+    {
+        switch (response.type) {
+            case FFI_Type::Boolean:
+                return nlohmann::json(response.plain == "True" || response.plain == "true");
+            case FFI_Type::Integer:
+                return nlohmann::json(std::stoi(response.plain));
             default:
-            {
-                LOG_ERROR("Unknown backend type for plugin '{}'", pluginName);
-                return {};
-            }
+                return nlohmann::json(Base64Encode(response.plain));
         }
+    };
+
+    nlohmann::json responseMessage = {
+        { "returnType", response.type     },
+        { "id",         call["iteration"] }
+    };
+
+    if (response.type == FFI_Type::UnknownType || response.type == FFI_Type::Error) {
+        responseMessage["failedRequest"] = true;
+        responseMessage["failMessage"] = response.plain;
+    } else {
+        responseMessage["returnValue"] = convertResponseValue(response);
     }
 
-    nlohmann::json responseMessage;
-
-    responseMessage["returnType"] = response.type;
-
-    switch (response.type) {
-        case FFI_Type::Boolean:
-        {
-            /** handle truthy for both python and lua */
-            responseMessage["returnValue"] = ((response.plain == "True" || response.plain == "true") ? true : false);
-            break;
-        }
-        case FFI_Type::String:
-        {
-            responseMessage["returnValue"] = Base64Encode(response.plain);
-            break;
-        }
-        case FFI_Type::JSON:
-        {
-            responseMessage["returnValue"] = Base64Encode(response.plain);
-            break;
-        }
-        case FFI_Type::Integer:
-        {
-            responseMessage["returnValue"] = stoi(response.plain);
-            break;
-        }
-
-        case FFI_Type::UnknownType:
-        case FFI_Type::Error:
-        {
-            responseMessage["failedRequest"] = true;
-            responseMessage["failMessage"] = response.plain;
-            break;
-        }
-    }
-
-    responseMessage["id"] = message["iteration"];
     return responseMessage;
 }
 
@@ -167,51 +162,38 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> message)
  * This function evaluates the `plugin._front_end_loaded()` method using the provided plugin name and
  * returns a response indicating the success of the operation.
  */
-nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
+nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> call)
 {
-    const std::string pluginName = message["data"]["pluginName"];
+    const std::string pluginName = call["data"]["pluginName"];
 
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    auto settingsStore = std::make_unique<SettingsStore>();
     const auto allPlugins = settingsStore->ParseAllPlugins();
 
-    /** Check if the plugin uses a backend, and if so delegate the notification. */
-    for (auto& plugin : allPlugins) {
-        if (plugin.pluginName != pluginName) {
-            continue;
-        }
+    auto plugin = std::find_if(allPlugins.begin(), allPlugins.end(), [&pluginName](const auto& p) { return p.pluginName == pluginName; });
 
-        if (!plugin.pluginJson.value("useBackend", true)) {
-            continue;
-        }
-
+    /** make sure the plugin has a backend that should be called. */
+    if (plugin != allPlugins.end() && plugin->pluginJson.value("useBackend", true)) {
         Logger.Log("Delegating frontend load for plugin: {}", pluginName);
-        const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
 
-        switch (backendType) {
-            case SettingsStore::PluginBackendType::Python:
-            {
-                Python::CallFrontEndLoaded(pluginName);
-                break;
-            }
-            case SettingsStore::PluginBackendType::Lua:
-            {
-                Lua::CallFrontEndLoaded(pluginName);
-                break;
-            }
-            default:
-            {
-                Logger.Warn("Unknown backend type for plugin '{}'", pluginName);
-                break;
-            }
+        static const std::unordered_map<SettingsStore::PluginBackendType, std::function<void(const std::string&)>> handlers = {
+            { SettingsStore::PluginBackendType::Python, Python::CallFrontEndLoaded },
+            { SettingsStore::PluginBackendType::Lua,    Lua::CallFrontEndLoaded    }
+        };
+
+        const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
+        auto it = handlers.find(backendType);
+        if (it != handlers.end()) {
+            it->second(pluginName);
+        } else {
+            Logger.Warn("Unknown backend type for plugin '{}'", pluginName);
         }
-        break;
     }
 
-    /** Return a success message. */
-    return nlohmann::json({
-        { "id",      message["iteration"] },
-        { "success", true                 }
-    });
+    /** call["iteration"] is always null/0 as its not provided by the frontend since moving it from socket to http hook */
+    return {
+        { "id",      call["iteration"] },
+        { "success", true              }
+    };
 }
 
 /**
@@ -228,26 +210,21 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> message)
 nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload)
 {
     try {
-        nlohmann::json responseMessage;
-
-        switch (jsonPayload["id"].get<int>()) {
-            case IPCMain::Builtins::CALL_SERVER_METHOD:
-            {
-                responseMessage = CallServerMethod(jsonPayload);
-                break;
-            }
-            case IPCMain::Builtins::FRONT_END_LOADED:
-            {
-                responseMessage = OnFrontEndLoaded(jsonPayload);
-                break;
-            }
-        }
-        return responseMessage;
-    } catch (nlohmann::detail::exception& ex) {
-        return {
-            { "error", fmt::format("JSON parsing error: {}", ex.what()), "type", IPCMain::ErrorType::INTERNAL_ERROR }
+        static const std::unordered_map<int, std::function<nlohmann::json(nlohmann::json)>> handlers = {
+            { IPCMain::Builtins::CALL_SERVER_METHOD, CallServerMethod },
+            { IPCMain::Builtins::FRONT_END_LOADED,   OnFrontEndLoaded }
         };
-    } catch (std::exception& ex) {
+
+        int messageId = jsonPayload["id"].get<int>();
+        auto it = handlers.find(messageId);
+
+        return it != handlers.end() ? it->second(jsonPayload) : nlohmann::json{};
+    } catch (const nlohmann::detail::exception& ex) {
+        return {
+            { "error", fmt::format("JSON parsing error: {}", ex.what()) },
+            { "type", IPCMain::ErrorType::INTERNAL_ERROR }
+        };
+    } catch (const std::exception& ex) {
         return {
             { "error", fmt::format("An error occurred while processing the message: {}", ex.what()) },
             { "type", IPCMain::ErrorType::INTERNAL_ERROR }

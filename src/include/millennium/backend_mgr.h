@@ -97,6 +97,12 @@ class BackendManager
         }
     };
 
+    static std::unordered_map<std::string, std::atomic<size_t>> sPluginMemoryUsage;
+    static std::mutex sPluginMapMutex;
+    static std::atomic<size_t> sTotalAllocated;
+
+    static std::atomic<size_t>& GetPluginCounter(const std::string& plugin_name);
+
     std::mutex m_pythonMutex;
     std::vector<std::tuple<lua_State*, std::unique_ptr<std::mutex>>> m_luaMutexPool;
     PyThreadState* m_InterpreterThreadSave;
@@ -115,6 +121,12 @@ class BackendManager
     void Lua_UnlockLua(lua_State* L);
     bool Lua_TryLockLua(lua_State* L);
     bool Lua_IsMutexLocked(lua_State* L);
+
+    /** trace allocations and frees in each lvm to track total memory usage */
+    static void* Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size_t nsize);
+    static size_t GetTotalMemory();
+    static size_t GetPluginMemorySnapshotByName(const std::string& plugin_name);
+    static std::unordered_map<std::string, size_t> GetAllPluginMemorySnapshot();
 
     bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
     bool DestroyAllPythonInstances();

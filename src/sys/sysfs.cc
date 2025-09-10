@@ -28,17 +28,19 @@
  * SOFTWARE.
  */
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <windows.h>
+#endif
+
 #include "millennium/sysfs.h"
 #include "millennium/logger.h"
+#include "millennium/auth.h"
+#include "millennium/env.h"
+
 #include <fmt/core.h>
 #include <fstream>
 #include <iostream>
-
-#ifdef _WIN32
-#include <windows.h>
-#include <winsock2.h>
-#endif
-#include "millennium/env.h"
 #include <optional>
 #include <regex>
 
@@ -169,22 +171,9 @@ void WriteFileBytesSync(const std::filesystem::path& filePath, const std::vector
     fileStream.close();
 }
 
-std::optional<std::string> GetMillenniumPreloadPath()
+std::string GetMillenniumPreloadPath()
 {
-    auto dirPath = std::filesystem::path(GetEnv("MILLENNIUM__SHIMS_PATH"));
-    auto preloadPath = dirPath / "millennium.js";
-
-    if (!std::filesystem::is_directory(dirPath)) {
-        LOG_ERROR("Directory does not exist: {}", dirPath.generic_string());
-        return std::nullopt;
-    }
-
-    if (!std::filesystem::exists(preloadPath)) {
-        LOG_ERROR("Preload file does not exist: {}", preloadPath.generic_string());
-        return std::nullopt;
-    }
-
-    return preloadPath.generic_string();
+    return fmt::format("{}/millennium.js", GetScrambledApiPathToken());
 }
 
 void SafePurgeDirectory(const std::filesystem::path& root)

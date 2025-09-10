@@ -43,6 +43,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <optional>
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 
@@ -150,7 +151,7 @@ class HttpHookManager
     bool IsGetBodyCall(const nlohmann::basic_json<>& message);
     std::string HandleCssHook(const std::string& body);
     std::string HandleJsHook(const std::string& body);
-    const std::string PatchDocumentContents(const std::string& requestUrl, const std::string& original);
+
     void HandleHooks(const nlohmann::basic_json<>& message);
     void RetrieveRequestFromDisk(const nlohmann::basic_json<>& message);
     void GetResponseBody(const nlohmann::basic_json<>& message);
@@ -162,4 +163,21 @@ class HttpHookManager
     bool ShouldLogException();
     void AddRequest(const WebHookItem& request);
     template <typename Func> void ProcessRequests(Func processor);
+
+    struct ProcessedHooks
+    {
+        std::string cssContent;
+        std::string linkPreloads;
+        std::vector<std::string> scriptModules;
+    };
+
+    ProcessedHooks ProcessWebkitHooks(const std::string& requestUrl) const;
+
+    std::string PatchDocumentContents(const std::string& requestUrl, const std::string& original) const;
+    std::string BuildScriptModuleArray(const std::vector<std::string>& scriptModules) const;
+    std::string BuildEnabledPluginsString() const;
+    std::string CreateShimContent(const ProcessedHooks& hooks, const std::string& millenniumPreloadPath) const;
+    std::string InjectContentIntoHead(const std::string& original, const std::string& content) const;
+
+    bool IsUrlBlacklisted(const std::string& requestUrl) const;
 };

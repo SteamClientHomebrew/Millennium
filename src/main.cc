@@ -51,7 +51,8 @@
  */
 const static void VerifyEnvironment()
 {
-    // Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam.
+#ifdef _WIN32
+    /** Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam. */
     const auto steamUpdateBlock = SystemIO::GetSteamPath() / "Steam.cfg";
 
     const std::string errorMessage = fmt::format(
@@ -76,9 +77,7 @@ const static void VerifyEnvironment()
                 }
             }
         } catch (const SystemIO::FileException& e) {
-#ifdef _WIN32
             MessageBoxA(NULL, errorMessage.c_str(), "Startup Error", MB_ICONERROR | MB_OK);
-#endif
             LOG_ERROR(errorMessage);
         }
     }
@@ -91,13 +90,28 @@ const static void VerifyEnvironment()
             Logger.Log("Removed legacy Millennium shim from Steam directory.");
         } catch (const std::filesystem::filesystem_error& e) {
             LOG_ERROR("Failed to remove legacy Millennium shim from Steam directory: {}", e.what());
-
             MessageBoxA(NULL,
                         "Failed to remove legacy Millennium shim from Steam directory. "
                         "Please remove 'user32.dll' from your Steam directory and restart Steam.",
                         "Startup Error", MB_ICONERROR | MB_OK);
         }
     }
+
+    /** Remove old .cef-enable-remote-debugging option in favor of new hook method */
+    const auto cefDebugFile = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
+    if (std::filesystem::exists(cefDebugFile)) {
+        try {
+            std::filesystem::remove(cefDebugFile);
+            Logger.Log("Removed legacy .cef-enable-remote-debugging file from Steam directory.");
+        } catch (const std::filesystem::filesystem_error& e) {
+            LOG_ERROR("Failed to remove legacy .cef-enable-remote-debugging file from Steam directory: {}", e.what());
+            MessageBoxA(NULL,
+                        "Failed to remove legacy .cef-enable-remote-debugging file from Steam directory. "
+                        "Please remove '.cef-enable-remote-debugging' from your Steam directory and restart Steam.",
+                        "Startup Error", MB_ICONERROR | MB_OK);
+        }
+    }
+#endif
 }
 
 /**

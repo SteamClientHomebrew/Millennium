@@ -76,7 +76,9 @@ const bool IsDeveloperMode(void)
 
 const char* GetAppropriateDevToolsPort()
 {
-    return IsDeveloperMode() ? DEFAULT_DEVTOOLS_PORT : STEAM_DEVELOPER_TOOLS_PORT.c_str();
+    const bool isDevMode = IsDeveloperMode();
+    const char* port = isDevMode ? DEFAULT_DEVTOOLS_PORT : STEAM_DEVELOPER_TOOLS_PORT.c_str();
+    return port;
 }
 
 void AppendParameter(std::string& input, const std::string& parameter)
@@ -141,6 +143,15 @@ void EnsureRemoteDebuggingPort(std::string& input)
     if (input.find(remoteDebugPortPrefix) == std::string::npos) {
         std::string portParam = remoteDebugPortPrefix + GetAppropriateDevToolsPort();
         AppendParameter(input, portParam);
+    } else {
+        /** replace with the appropriate port */
+        std::string newPort = remoteDebugPortPrefix + GetAppropriateDevToolsPort();
+        size_t pos = input.find(remoteDebugPortPrefix);
+
+        if (pos != std::string::npos) {
+            size_t end = input.find('"', pos);
+            input.replace(pos, (end == std::string::npos ? input.length() : end) - pos, newPort);
+        }
     }
 }
 

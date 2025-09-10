@@ -43,6 +43,8 @@
 
 namespace FileSystem = std::filesystem;
 
+/** TODO: port to config.json instead of millennium.ini */
+
 SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::INIStructure())
 {
     const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";

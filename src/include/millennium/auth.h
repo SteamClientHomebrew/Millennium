@@ -29,9 +29,6 @@
  */
 
 #include <string>
-#include <websocketpp/config/asio_no_tls.hpp>
-#include <websocketpp/server.hpp>
-
-typedef websocketpp::server<websocketpp::config::asio> socketServer;
 
 const std::string GetAuthToken();
+const std::string GetScrambledApiPathToken();

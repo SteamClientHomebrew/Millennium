@@ -53,9 +53,8 @@ def main():
     watchdog = dev_tools.mpc(config.get_python_path())
     watchdog.start(config)
 
-    if config.get('PackageManager', 'use_pip') == 'yes':
-        # install missing packages
-        package_manager.audit(config)
+    # install missing packages
+    package_manager.audit(config)
 
     elapsed_time_ms = (time.perf_counter()  - start_time) * 1000 
     logger.log(f"Finished in {elapsed_time_ms:.2f} ms")

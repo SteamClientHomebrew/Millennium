@@ -45,8 +45,8 @@ static BackendLogger* GetBackendLogger(lua_State* L)
 
 static int LuaLogInfo(lua_State* L)
 {
-    const char* message = luaL_checkstring(L, 1);
     BackendLogger* backend = GetBackendLogger(L);
+    const char* message = luaL_checkstring(L, 2);
     if (backend)
         backend->Log(message);
     return 0;
@@ -54,8 +54,8 @@ static int LuaLogInfo(lua_State* L)
 
 static int LuaLogWarn(lua_State* L)
 {
-    const char* message = luaL_checkstring(L, 1);
     BackendLogger* backend = GetBackendLogger(L);
+    const char* message = luaL_checkstring(L, 2);
     if (backend)
         backend->Warn(message);
     return 0;
@@ -63,8 +63,8 @@ static int LuaLogWarn(lua_State* L)
 
 static int LuaLogError(lua_State* L)
 {
-    const char* message = luaL_checkstring(L, 1);
     BackendLogger* backend = GetBackendLogger(L);
+    const char* message = luaL_checkstring(L, 2);
     if (backend)
         backend->Error(message);
     return 0;

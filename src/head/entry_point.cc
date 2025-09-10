@@ -65,8 +65,8 @@ MILLENNIUM_IPC_DECL(Core_ChangePluginStatus)
     auto pluginJson = nlohmann::json::parse(ARGS["pluginJson"].get<std::string>());
 
     for (const auto& item : pluginJson) {
-        if (item.contains("name") && item.contains("enabled")) {
-            plugins.push_back({ item["name"], item["enabled"] });
+        if (item.contains("plugin_name") && item.contains("enabled")) {
+            plugins.push_back({ item["plugin_name"], item["enabled"] });
         }
     }
 
