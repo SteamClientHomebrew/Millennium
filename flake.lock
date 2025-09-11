@@ -1,20 +1,70 @@
 {
   "nodes": {
-    "flake-parts": {
-      "inputs": {
-        "nixpkgs-lib": "nixpkgs-lib"
-      },
+    "asio": {
+      "flake": false,
       "locked": {
-        "lastModified": 1749398372,
-        "narHash": "sha256-tYBdgS56eXYaWVW3fsnPQ/nFlgWi/Z2Ymhyu21zVM98=",
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "rev": "9305fe4e5c2a6fcf5ba6a3ff155720fbe4076569",
+        "lastModified": 1720526748,
+        "narHash": "sha256-/Tt0HoicVohFGRMr8ryhBYH1GvLsIBkziPDp4gh8D5U=",
+        "owner": "chriskohlhoff",
+        "repo": "asio",
+        "rev": "54e3a844eb5f31d25416de9e509d9c24fa203c32",
         "type": "github"
       },
       "original": {
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
+        "owner": "chriskohlhoff",
+        "ref": "54e3a844eb5f31d25416de9e509d9c24fa203c32",
+        "repo": "asio",
+        "type": "github"
+      }
+    },
+    "crow": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1721374933,
+        "narHash": "sha256-ltHEz3wM2SFqwwHUDc072Qt8pEOSDBx3LS8fD4dtRY8=",
+        "owner": "CrowCpp",
+        "repo": "Crow",
+        "rev": "fed82a3aaca93f909b885770036df661305315b6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "CrowCpp",
+        "ref": "fed82a3aaca93f909b885770036df661305315b6",
+        "repo": "Crow",
+        "type": "github"
+      }
+    },
+    "fmt": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1721421507,
+        "narHash": "sha256-gF1dam+r/yQT9rcsMGXPschF4fLHa0bFW2ZXm0n0EQI=",
+        "owner": "fmtlib",
+        "repo": "fmt",
+        "rev": "447c6cbf444a99acca078fe30f6f07b2a93868dc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "fmtlib",
+        "ref": "447c6cbf444a99acca078fe30f6f07b2a93868dc",
+        "repo": "fmt",
+        "type": "github"
+      }
+    },
+    "ini": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1705006401,
+        "narHash": "sha256-ynPoMwxlJ5AxaBQxyvVpzgWUvDzmp7k0ypCmYVr6GSE=",
+        "owner": "metayeti",
+        "repo": "mINI",
+        "rev": "555ee483e0895fa351b7dec59dcb88d8aba2a09f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "metayeti",
+        "ref": "555ee483e0895fa351b7dec59dcb88d8aba2a09f",
+        "repo": "mINI",
         "type": "github"
       }
     },
@@ -34,25 +84,85 @@
         "type": "github"
       }
     },
-    "nixpkgs-lib": {
+    "nlohmann": {
+      "flake": false,
       "locked": {
-        "lastModified": 1748740939,
-        "narHash": "sha256-rQaysilft1aVMwF14xIdGS3sj1yHlI6oKQNBRTF40cc=",
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
-        "rev": "656a64127e9d791a334452c6b6606d17539476e2",
+        "lastModified": 1720340537,
+        "narHash": "sha256-/IzU3p5+2tpY2C9wWg0VyGtCzvyQXEChSEWhWypSyPE=",
+        "owner": "nlohmann",
+        "repo": "json",
+        "rev": "960b763ecd144f156d05ec61f577b04107290137",
         "type": "github"
       },
       "original": {
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
+        "owner": "nlohmann",
+        "ref": "960b763ecd144f156d05ec61f577b04107290137",
+        "repo": "json",
         "type": "github"
       }
     },
     "root": {
       "inputs": {
-        "flake-parts": "flake-parts",
-        "nixpkgs": "nixpkgs"
+        "asio": "asio",
+        "crow": "crow",
+        "fmt": "fmt",
+        "ini": "ini",
+        "nixpkgs": "nixpkgs",
+        "nlohmann": "nlohmann",
+        "sdk": "sdk",
+        "vcpkg": "vcpkg",
+        "websocketpp": "websocketpp"
+      }
+    },
+    "sdk": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1756302837,
+        "narHash": "sha256-kVbBRJmsx8gSzPQr5bCYUOEPLo/L/gwBrpzyFnvxz6g=",
+        "owner": "SteamClientHomebrew",
+        "repo": "SDK",
+        "rev": "b0f17cac578205058f8bc3e69ad6d953fea9cd28",
+        "type": "github"
+      },
+      "original": {
+        "owner": "SteamClientHomebrew",
+        "ref": "b0f17cac578205058f8bc3e69ad6d953fea9cd28",
+        "repo": "SDK",
+        "type": "github"
+      }
+    },
+    "vcpkg": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1739418254,
+        "narHash": "sha256-vJAbY6CH0BYfkHdZ8Tcsh02iHpFBMXttxIDqDxBT6WY=",
+        "owner": "microsoft",
+        "repo": "vcpkg",
+        "rev": "344525f74edb4c1d47c559d8bbe06240271441d8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "microsoft",
+        "ref": "344525f74edb4c1d47c559d8bbe06240271441d8",
+        "repo": "vcpkg",
+        "type": "github"
+      }
+    },
+    "websocketpp": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1588001111,
+        "narHash": "sha256-Uh2KEcB4oDxtkS679jY4VOYMas/vrjJOvw54evPLzQ0=",
+        "owner": "zaphoyd",
+        "repo": "websocketpp",
+        "rev": "1b11fd301531e6df35a6107c1e8665b1e77a2d8e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zaphoyd",
+        "ref": "1b11fd301531e6df35a6107c1e8665b1e77a2d8e",
+        "repo": "websocketpp",
+        "type": "github"
       }
     }
   },
