@@ -130,6 +130,7 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> call)
     {
         switch (response.type) {
             case FFI_Type::Boolean:
+                /** handle truthy types for python and lua backends */
                 return nlohmann::json(response.plain == "True" || response.plain == "true");
             case FFI_Type::Integer:
                 return nlohmann::json(std::stoi(response.plain));

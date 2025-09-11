@@ -216,7 +216,6 @@ bool HttpHookManager::RemoveHook(unsigned long long moduleId)
     size_t originalSize = m_hookListPtr->size();
 
     auto newEnd = std::remove_if(m_hookListPtr->begin(), m_hookListPtr->end(), [moduleId](const HookType& hook) { return hook.id == moduleId; });
-
     m_hookListPtr->erase(newEnd, m_hookListPtr->end());
 
     return m_hookListPtr->size() < originalSize; // Return true if something was removed
