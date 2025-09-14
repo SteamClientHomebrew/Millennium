@@ -27,6 +27,7 @@
   "updatePanelReleasePatchNotes": "补丁说明：",
   "updatePanelIsUpdating": "更新中...",
   "updatePanelUpdate": "更新",
+  "updatePanelNoUpdatesFoundHeader": "无可用更新",
   "updatePanelNoUpdatesFound": "没有可用的更新。一切都已是最新！",
   "ViewMore": "查看更多",
   "aboutThemeAnonymous": "匿名",
@@ -133,5 +134,7 @@
   "strWelcomeModalOKButton": "好的",
   "strAbout": "关于",
   "strAboutVersion": "Millennium 版本",
-  "strAboutBuildDate": "Millennium 构建日期"
+  "strAboutBuildDate": "Millennium 构建日期",
+  "millenniumUpdateSuccessTitle": "已成功更新！",
+  "millenniumUpdateSuccessMessage": "已成功将 Millennium 更新至 {0}。更新将在重启后生效。"
 }
