@@ -30,6 +30,8 @@
 
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
+#include "millennium/env.h"
+
 #include <fmt/core.h>
 #include <fstream>
 #include <iostream>
@@ -37,72 +39,44 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <winsock2.h>
-
 #endif
-#include "millennium/env.h"
+
+#include "head/default_cfg.h"
 
 namespace FileSystem = std::filesystem;
 
 /** TODO: port to config.json instead of millennium.ini */
 
-SettingsStore::SettingsStore() : file(mINI::INIFile(std::string())), ini(mINI::INIStructure())
+SettingsStore::SettingsStore()
 {
     const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
 
-    if (!FileSystem::exists(path)) {
+    if (FileSystem::exists(path)) {
         FileSystem::create_directories(path.parent_path());
         std::ofstream outputFile(path.string());
+
+        mINI::INIFile iniFile(path.string());
+        mINI::INIStructure ini;
+        iniFile.read(ini);
+
+        if (ini["Settings"].has("enabled_plugins")) {
+            ini["Settings"]["enabled_plugins"] = "core";
+
+            std::string token;
+            std::vector<std::string> enabledPlugins;
+            std::istringstream tokenStream(ini["Settings"]["enabled_plugins"]);
+
+            while (std::getline(tokenStream, token, '|')) {
+                enabledPlugins.push_back(token);
+            }
+
+            CONFIG.SetNested("plugins.enabledPlugins", enabledPlugins);
+        }
+
+        /** Delete the old config file */
+        outputFile.close();
+        std::filesystem::remove(path);
     }
-
-    try {
-        this->file = mINI::INIFile(path.string());
-
-        this->file.read(ini);
-        this->file.write(ini);
-    } catch (const std::exception& ex) {
-        Logger.Warn("An error occurred reading settings file -> {}", ex.what());
-    }
-}
-
-/**
- * @brief Set a setting in the settings store.
- * The setting key will be placed in the `Settings` section of the INI file.
- */
-void SettingsStore::SetSetting(std::string key, std::string settingsData)
-{
-    this->ini["Settings"][key] = settingsData;
-    this->file.write(ini);
-}
-
-/**
- * @brief Get a setting from the settings store.
- * The setting key will be retrieved from the `Settings` section of the INI file.
- */
-std::string SettingsStore::GetSetting(std::string key, std::string defaultValue)
-{
-    if (!this->ini["Settings"].has(key)) {
-        this->ini["Settings"][key] = defaultValue;
-    }
-
-    return this->ini["Settings"][key];
-}
-
-/**
- * @brief Parse the list of enabled plugins.
- * INI files don't support arrays, so we need to convert the string to a vector.
- * We use a pipe delimiter to separate the plugins.
- */
-std::vector<std::string> SettingsStore::ParsePluginList()
-{
-    std::vector<std::string> enabledPlugins;
-    std::string token;
-    std::istringstream tokenStream(this->GetSetting("enabled_plugins", "core"));
-
-    while (std::getline(tokenStream, token, '|')) {
-        enabledPlugins.push_back(token);
-    }
-
-    return enabledPlugins;
 }
 
 /**
@@ -120,22 +94,29 @@ std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
     return strEnabledPlugins.substr(0, strEnabledPlugins.size() - 1);
 }
 
+nlohmann::json ResetEnabledPlugins()
+{
+    CONFIG.SetNested("plugins.enabledPlugins", std::vector<std::string>{});
+    return {};
+}
+
 /**
  * @brief Initialize and optionally fix the settings store.
  */
 int SettingsStore::InitializeSettingsStore()
 {
-    auto enabledPlugins = this->ParsePluginList();
+    nlohmann::json enabledPlugins = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
 
-    /** Ensure that the core (Millennium) plugin is enabled */
-    if (std::find(enabledPlugins.begin(), enabledPlugins.end(), "core") == enabledPlugins.end()) {
-        enabledPlugins.push_back("core");
+    if (!enabledPlugins.is_array()) {
+        enabledPlugins = ResetEnabledPlugins();
     }
 
-    SetSetting("enabled_plugins", ConvertVectorToString(enabledPlugins));
-    SetSetting("enabled_plugins", ConvertVectorToString(enabledPlugins));
-
-    GetSetting("check_updates", "true"); // default to true
+    for (const auto& plugin : enabledPlugins) {
+        if (!plugin.is_string()) {
+            enabledPlugins = ResetEnabledPlugins();
+            break;
+        }
+    }
     return 0;
 }
 
@@ -148,7 +129,7 @@ int SettingsStore::InitializeSettingsStore()
 bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
 {
     Logger.Log("Opting to {} {}", enabled ? "enable" : "disable", pluginName);
-    auto SettingsStore = this->ParsePluginList();
+    auto SettingsStore = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
 
     /** Enable the target plugin */
     if (enabled) {
@@ -163,7 +144,7 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
         }
     }
 
-    SetSetting("enabled_plugins", ConvertVectorToString(SettingsStore));
+    CONFIG.SetNested("plugins.enabledPlugins", SettingsStore);
     return true;
 }
 
@@ -173,7 +154,7 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
  */
 bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
 {
-    for (const auto& plugin : this->ParsePluginList()) {
+    for (const auto& plugin : CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{})) {
         if (plugin == plugin_name) {
             return true;
         }
@@ -327,4 +308,225 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
     }
 
     return enabledBackends;
+}
+
+ConfigManager& ConfigManager::Instance()
+{
+    static ConfigManager instance;
+    return instance;
+}
+
+nlohmann::json ConfigManager::GetNested(const std::string& path, const nlohmann::json& def)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    const nlohmann::json* current = &_data;
+    size_t start = 0, end = 0;
+
+    while ((end = path.find('.', start)) != std::string::npos) {
+        std::string key = path.substr(start, end - start);
+        if (!current->contains(key))
+            return def;
+        current = &(*current)[key];
+        start = end + 1;
+    }
+
+    std::string last_key = path.substr(start);
+    if (!current->contains(last_key))
+        return def;
+    return (*current)[last_key];
+}
+
+void ConfigManager::SetNested(const std::string& path, const nlohmann::json& value, bool skipPropagation)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    nlohmann::json* current = &_data;
+    size_t start = 0, end = 0;
+
+    while ((end = path.find('.', start)) != std::string::npos) {
+        std::string key = path.substr(start, end - start);
+        if (!current->contains(key) || !(*current)[key].is_object())
+            (*current)[key] = nlohmann::json::object();
+
+        current = &(*current)[key];
+        start = end + 1;
+    }
+
+    std::string last_key = path.substr(start);
+    if (!current->is_object()) {
+        *current = nlohmann::json::object();
+    }
+
+    nlohmann::json old_value = nullptr;
+    if (current->contains(last_key)) {
+        old_value = (*current)[last_key];
+    }
+
+    if (old_value != value) {
+        (*current)[last_key] = value;
+        NotifyListeners(path, old_value, value);
+        if (!skipPropagation)
+            SaveToFile();
+    }
+}
+
+nlohmann::json ConfigManager::Get(const std::string& key, const nlohmann::json& def)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    if (_data.contains(key))
+        return _data[key];
+    if (_defaults.contains(key))
+        return _defaults[key];
+    return def;
+}
+
+void ConfigManager::Set(const std::string& key, const nlohmann::json& value, bool skipPropagation)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    nlohmann::json old_value = _data.value(key, nullptr);
+    if (old_value != value) {
+        _data[key] = value;
+        NotifyListeners(key, old_value, value);
+        if (!skipPropagation)
+            SaveToFile();
+    }
+}
+
+void ConfigManager::Delete(const std::string& key)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    if (_data.contains(key)) {
+        nlohmann::json old_value = _data[key];
+        _data.erase(key);
+        NotifyListeners(key, old_value, nullptr);
+        SaveToFile();
+    }
+}
+
+void ConfigManager::RegisterListener(Listener listener)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    _listeners.push_back(listener);
+}
+
+void ConfigManager::UnregisterListener(Listener listener)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    _listeners.erase(std::remove_if(_listeners.begin(), _listeners.end(),
+                                    [&](const Listener& l)
+    {
+        return l.target_type() == listener.target_type() && l.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>() ==
+                                                                listener.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>();
+    }),
+                     _listeners.end());
+}
+
+void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json& incoming, const std::string& path)
+{
+    for (auto& [key, value] : incoming.items()) {
+        std::string fullKey = path.empty() ? key : path + "." + key;
+        if (value.is_object()) {
+            if (!current.contains(key) || !current[key].is_object()) {
+                current[key] = nlohmann::json::object();
+            }
+            MergeDefaults(current[key], value, fullKey);
+        } else {
+            if (!current.contains(key)) {
+                current[key] = value;
+                NotifyListeners(fullKey, nullptr, value);
+            }
+        }
+    }
+}
+
+void ConfigManager::LoadFromFile()
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    std::ifstream file(_filename);
+    if (file.is_open()) {
+        try {
+            file >> _data;
+        } catch (...) {
+            Logger.Warn("Invalid JSON in config file: {}", _filename);
+            _data = nlohmann::json::object();
+        }
+    } else {
+        _data = nlohmann::json::object();
+    }
+
+    MergeDefaults(_data, _defaults, "");
+    SaveToFile();
+}
+
+void ConfigManager::SaveToFile()
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    std::ofstream file(_filename);
+
+    if (!file.is_open()) {
+        LOG_ERROR("Failed to open config file for writing: {}", _filename);
+        return;
+    }
+
+    file << _data.dump(2);
+}
+
+void ConfigManager::SetDefault(const std::string& key, const nlohmann::json& value)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    _defaults[key] = value;
+}
+
+nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, bool skipPropagation)
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    try {
+        nlohmann::json old_data = _data;
+        _data = newConfig;
+
+        if (!skipPropagation) {
+            for (auto& [k, v] : newConfig.items()) {
+                NotifyListeners(k, old_data.value(k, nlohmann::json(nullptr)), v);
+            }
+        }
+
+        SaveToFile();
+        return _data;
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to set entire config: {}", e.what());
+        return nlohmann::json::object();
+    }
+}
+
+nlohmann::json ConfigManager::GetAll()
+{
+    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    nlohmann::json result = _defaults;
+    for (auto& [k, v] : _data.items())
+        result[k] = v;
+    return result;
+}
+
+ConfigManager::ConfigManager()
+{
+    _filename = GetEnv("MILLENNIUM__CONFIG_PATH") + "/config.json";
+    _defaults = GetDefaultConfig();
+
+    LoadFromFile();
+}
+
+ConfigManager::~ConfigManager()
+{
+    SaveToFile();
+}
+
+void ConfigManager::NotifyListeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value)
+{
+    for (auto& listener : _listeners) {
+        try {
+            listener(key, old_value, new_value);
+        } catch (...) {
+            LOG_ERROR("Listener exception for key: {}", key);
+        }
+    }
 }
