@@ -71,9 +71,6 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   cd sdk && pnpm install && pnpm run build && cd ..
-                  New-Item -ItemType Directory -Force -Path "D:/a/env/ext/data/shims"
-                  Copy-Item -Recurse -Force ./sdk/typescript-packages/loader/build/* D:/a/env/ext/data/shims/
-
                   cd assets && pnpm install && pnpm run build && cd ..
                   . scripts\ci\win32\mk-assets.ps1
 
@@ -87,7 +84,7 @@ jobs:
                   mkdir ./build/artifacts
                   cmake --build build --config Release -- -j$(nproc)
                   cp ./build/python/python311.dll D:/a/env/python311.dll
-                  cp ./build/preload/user32.dll  D:/a/env/user32.dll
+                  cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
                   cp ./build/millennium.dll D:/a/env/millennium.dll
                   mkdir D:/a/env/ext/bin
 
@@ -100,6 +97,7 @@ jobs:
                   path: D:/a/env/
 
             - id: sign_artifact
+              if: ${{ inputs.release_artifacts == 'yes' }}
               uses: signpath/github-action-submit-signing-request@v1.1
               with:
                   api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
@@ -114,6 +112,7 @@ jobs:
                       version: ${{ toJson(steps.get_version.outputs.version) }}
 
             - name: 📤 Upload Signed Build Release
+              if: ${{ inputs.release_artifacts == 'yes' }}
               id: upload-signed-artifact
               uses: actions/upload-artifact@v4
               with:
