@@ -29,7 +29,7 @@
 import Millennium # type: ignore
 import platform
 import configparser, os
-from core.util.logger import logger
+from logger import logger
 
 class Config:
 

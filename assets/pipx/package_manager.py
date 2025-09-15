@@ -32,8 +32,8 @@ import os
 import platform
 import subprocess
 import threading
-from plugins.plugins import find_all_plugins
-from core.util.logger import logger
+from plugins import find_all_plugins
+from logger import logger
 import platform
 from config import Config
 

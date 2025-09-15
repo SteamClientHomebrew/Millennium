@@ -26,10 +26,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import importlib
-import json
 import subprocess
-import urllib.request, urllib.error
 from logger import logger
 
 class mpc:

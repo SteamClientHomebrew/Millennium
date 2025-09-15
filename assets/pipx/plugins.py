@@ -27,11 +27,8 @@
 # SOFTWARE.
 
 import Millennium # type: ignore
-import configparser, os, json
-try:
-    from util.logger import logger
-except ImportError:
-    pass
+import os, json
+from logger import logger
 
 def is_enabled(plugin_name: str) -> bool:
     return Millennium.is_plugin_enabled(plugin_name)
