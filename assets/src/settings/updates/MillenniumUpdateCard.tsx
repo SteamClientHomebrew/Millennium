@@ -28,33 +28,66 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, pluginSelf, ProgressBar, showModal, ShowModalResult } from '@steambrew/client';
 import { Utils } from '../../utils';
 import { UpdateCard } from './UpdateCard';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { updateMillennium } from '../../updateMillennium';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatString, locale } from '../../../locales';
 import { OSType } from '../../types';
 import Markdown from 'markdown-to-jsx';
+import { useUpdateContext } from './useUpdateContext';
 
 export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
-	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) return null;
+	const ctx = useUpdateContext();
 
-	const [isUpdateInProgress, setIsUpdateInProgress] = useState(pluginSelf?.millenniumUpdates?.updateInProgress || false);
+	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) {
+		return null; /** No update for Millennium available */
+	}
 
-	const startUpdateWindows = () => {
-		setIsUpdateInProgress(true);
+	const startUpdateWindows = async () => {
+		let updateModal: ShowModalResult = null;
 
-		showModal(
-			<ConfirmModal
-				strTitle={locale.millenniumUpdateSuccessTitle}
-				strDescription={formatString(locale.millenniumUpdateSuccessMessage, millenniumUpdates?.newVersion?.tag_name)}
-				bAlertDialog={true}
-			/>,
-			pluginSelf.mainWindow,
-			{ bNeverPopOut: false },
-		);
+		const RenderUpdateProgress = () => {
+			const [state, setState] = useState({ statusText: '', progress: 0, isComplete: false });
+
+			useEffect(() => {
+				updateMillennium(false).then(() => {
+					ctx.setMillenniumUpdating(false);
+				});
+
+				ctx.setMillenniumUpdating(true);
+
+				pluginSelf.InstallerEventEmitter = ({ progress, status, isComplete }: any) => {
+					setState({ statusText: status, progress, isComplete });
+				};
+			}, []);
+
+			return (
+				<ConfirmModal
+					strTitle={'Updating Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
+					strDescription={
+						<>
+							<p style={{ width: '500px', textAlign: 'right' }}>{state.statusText}</p>
+							<ProgressBar nProgress={state.progress} />
+						</>
+					}
+					bHideCloseIcon={true}
+					bOKDisabled={!state.isComplete}
+					bDisableBackgroundDismiss={true}
+					bAlertDialog={true}
+					onOK={() => {
+						updateModal?.Close?.();
+					}}
+					onCancel={() => {
+						updateModal?.Close?.();
+					}}
+				/>
+			);
+		};
+
+		updateModal = showModal(<RenderUpdateProgress />, pluginSelf.mainWindow, { bNeverPopOut: false });
 	};
 
 	const startUpdateLinux = () => {
@@ -71,10 +104,6 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		);
 	};
 
-	if (isUpdateInProgress) {
-		return null;
-	}
-
 	function VersionInformation() {
 		return [
 			'Millennium',
@@ -84,29 +113,32 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		];
 	}
 
-	return [
-		<SettingsDialogSubHeader>Millennium</SettingsDialogSubHeader>,
-		<UpdateCard
-			update={{
-				name: VersionInformation(),
-				message: millenniumUpdates?.newVersion?.body,
-				date: Utils.toTimeAgo(millenniumUpdates?.newVersion?.published_at),
-				commit: millenniumUpdates?.newVersion?.html_url,
-			}}
-			index={0}
-			totalCount={1}
-			isUpdating={false}
-			progress={0}
-			statusText={String()}
-			onUpdateClick={() => {
-				if (pluginSelf.platformType === OSType.Windows) {
-					updateMillennium();
-					startUpdateWindows();
-				} else if (pluginSelf.platformType === OSType.Linux) {
-					startUpdateLinux();
-				}
-			}}
-			toolTipText={'Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
-		/>,
-	];
+	function Plat_StartUpdate() {
+		if (pluginSelf.platformType === OSType.Windows) {
+			startUpdateWindows();
+		} else if (pluginSelf.platformType === OSType.Linux) {
+			startUpdateLinux();
+		}
+	}
+
+	return (
+		<>
+			<SettingsDialogSubHeader>Millennium</SettingsDialogSubHeader>
+			<UpdateCard
+				update={{
+					name: VersionInformation(),
+					message: millenniumUpdates?.newVersion?.body,
+					date: Utils.toTimeAgo(millenniumUpdates?.newVersion?.published_at),
+					commit: millenniumUpdates?.newVersion?.html_url,
+				}}
+				index={0}
+				totalCount={1}
+				isUpdating={false}
+				progress={0}
+				statusText={String()}
+				onUpdateClick={Plat_StartUpdate}
+				toolTipText={'Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
+			/>
+		</>
+	);
 };

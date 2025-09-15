@@ -112,7 +112,7 @@
 		"stack": "cpp",
 		"shared_mutex": "cpp",
 		"*.rh": "cpp",
-		"*.def": "cpp",
-		"netfwd": "cpp"
+		"netfwd": "cpp",
+		"version": "plaintext"
 	}
 }

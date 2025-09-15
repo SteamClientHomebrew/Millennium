@@ -59,4 +59,4 @@ export const PyGetRootColors = callable<[], string>('Core_GetRootColors');
 export const PyChangeCondition = callable<[{ theme: string; newData: string; condition: string }], boolean>('Core_ChangeCondition');
 export const PyChangeColor = callable<[{ theme: string; new_color: string; color_name: string; color_type: number }], string>('Core_ChangeColor');
 export const PyChangeAccentColor = callable<[{ new_color: string }], string>('Core_ChangeAccentColor');
-export const PyUpdateMillennium = callable<[{ downloadUrl: string }], void>('MillenniumUpdater.queue_update');
+export const PyUpdateMillennium = callable<[{ downloadUrl: string; downloadSize: number; background: boolean }], void>('Core_UpdateMillennium');

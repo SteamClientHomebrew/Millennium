@@ -29,7 +29,6 @@ elseif(UNIX AND NOT GITHUB_ACTION_BUILD)
 endif()
 
 find_package(CURL REQUIRED) # used for web requests.
-find_package(unofficial-minizip CONFIG REQUIRED) # used for extracting zip files
 
 add_compile_definitions(
   CURL_STATICLIB
@@ -38,10 +37,9 @@ add_compile_definitions(
 find_package(MinHook REQUIRED)
 
 # Add the executable
-add_library(preload SHARED main.cc src/steam.cc src/http.cc src/unzip.cc src/exports.def)
+add_library(preload SHARED main.cc exports.def)
 target_link_libraries(preload ${CMAKE_BINARY_DIR}/version.o)
-
-target_link_libraries(preload CURL::libcurl unofficial::minizip::minizip minhook::minhook)
+target_link_libraries(preload CURL::libcurl minhook::minhook shlwapi)
 
 set_target_properties(preload PROPERTIES OUTPUT_NAME "version")
 set_target_properties(preload PROPERTIES PREFIX "")

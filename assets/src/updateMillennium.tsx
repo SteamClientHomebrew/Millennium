@@ -2,8 +2,9 @@ import { IconsModule, pluginSelf, toaster } from '@steambrew/client';
 import { PyUpdateMillennium } from './utils/ffi';
 import { deferredSettingLabelClasses } from './utils/classes';
 
-export async function updateMillennium() {
+export async function updateMillennium(background: boolean) {
 	const downloadUrl = pluginSelf.millenniumUpdates?.platformRelease?.browser_download_url;
+	const downloadSize = pluginSelf.millenniumUpdates?.platformRelease?.size || 0;
 
 	if (!downloadUrl) {
 		toaster.toast({
@@ -16,6 +17,6 @@ export async function updateMillennium() {
 		});
 	}
 
-	await PyUpdateMillennium({ downloadUrl });
+	await PyUpdateMillennium({ downloadUrl, downloadSize, background });
 	pluginSelf.millenniumUpdates.updateInProgress = true;
 }

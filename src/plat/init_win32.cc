@@ -4,8 +4,9 @@
 #include "millennium/env.h"
 #include "millennium/http_hooks.h"
 #include "millennium/init.h"
-#include "millennium/shim_updater.h"
 #include "millennium/ffi.h"
+#include "millennium/crash_handler.h"
+#include "millennium/millennium_updater.h"
 
 #include <MinHook.h>
 #include <thread>
@@ -47,7 +48,13 @@ VOID Win32_AttachMillennium(VOID)
 
     SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
-    WinUtils::Win32_UpdatePreloader();
+
+    // Set custom terminate handler for easier debugging
+    std::set_terminate(UnhandledExceptionHandler);
+    SetUnhandledExceptionFilter(Win32_CrashHandler);
+
+    /** cleanup temp files created by the updater from the previous update */
+    MillenniumUpdater::CleanupMillenniumUpdaterTempFiles();
 
     EntryMain();
 
@@ -105,6 +112,7 @@ DLL_EXPORT INT WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvRes
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
         {
+            Logger.Log("Millennium {} attached...", MILLENNIUM_VERSION);
             g_millenniumThread = std::thread(Win32_AttachMillennium);
             break;
         }

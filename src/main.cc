@@ -39,11 +39,31 @@
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/shim_updater.h"
+#include "millennium/millennium_updater.h"
+
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
 #include <signal.h>
+
+void RemoveDeprecatedFile(const std::filesystem::path& filePath)
+{
+    if (std::filesystem::exists(filePath)) {
+        try {
+            if (std::filesystem::is_directory(filePath)) {
+                std::filesystem::remove_all(filePath);
+                Logger.Log("Removed deprecated directory: {}", filePath.string());
+            } else {
+                std::filesystem::remove(filePath);
+                Logger.Log("Removed deprecated file: {}", filePath.string());
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            LOG_ERROR("Failed to remove deprecated file or directory {}: {}", filePath.string(), e.what());
+            MessageBoxA(NULL, fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(),
+                        "Startup Error", MB_ICONERROR | MB_OK);
+        }
+    }
+}
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
@@ -82,35 +102,12 @@ const static void VerifyEnvironment()
         }
     }
 
-    /** Check if legacy Millennium shim is present in the Steam directory, if so, remove it to prevent loading Millennium twice */
-    const auto legacyShimPath = SystemIO::GetSteamPath() / "user32.dll";
-    if (std::filesystem::exists(legacyShimPath)) {
-        try {
-            std::filesystem::remove(legacyShimPath);
-            Logger.Log("Removed legacy Millennium shim from Steam directory.");
-        } catch (const std::filesystem::filesystem_error& e) {
-            LOG_ERROR("Failed to remove legacy Millennium shim from Steam directory: {}", e.what());
-            MessageBoxA(NULL,
-                        "Failed to remove legacy Millennium shim from Steam directory. "
-                        "Please remove 'user32.dll' from your Steam directory and restart Steam.",
-                        "Startup Error", MB_ICONERROR | MB_OK);
-        }
-    }
-
-    /** Remove old .cef-enable-remote-debugging option in favor of new hook method */
-    const auto cefDebugFile = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
-    if (std::filesystem::exists(cefDebugFile)) {
-        try {
-            std::filesystem::remove(cefDebugFile);
-            Logger.Log("Removed legacy .cef-enable-remote-debugging file from Steam directory.");
-        } catch (const std::filesystem::filesystem_error& e) {
-            LOG_ERROR("Failed to remove legacy .cef-enable-remote-debugging file from Steam directory: {}", e.what());
-            MessageBoxA(NULL,
-                        "Failed to remove legacy .cef-enable-remote-debugging file from Steam directory. "
-                        "Please remove '.cef-enable-remote-debugging' from your Steam directory and restart Steam.",
-                        "Startup Error", MB_ICONERROR | MB_OK);
-        }
-    }
+    /** Remove deprecated Millennium shim file */
+    RemoveDeprecatedFile(SystemIO::GetSteamPath() / "user32.dll");
+    /** Remove deprecated CEF remote debugging file in place of virtually enabling it in memory */
+    RemoveDeprecatedFile(SystemIO::GetSteamPath() / ".cef-enable-remote-debugging");
+    /** Remove old shims folder (they've been added into process memory) */
+    RemoveDeprecatedFile(SystemIO::GetInstallPath() / "ext" / "data" / "shims");
 #endif
 }
 
@@ -119,9 +116,7 @@ const static void VerifyEnvironment()
  */
 void EntryMain()
 {
-    /** Handle signal interrupts (^C) */
-    signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
-    std::set_terminate(UnhandledExceptionHandler); // Set custom terminate handler for easier debugging
+    std::thread updateThread(MillenniumUpdater::CheckForUpdates);
 
     const auto startTime = std::chrono::system_clock::now();
     VerifyEnvironment();
@@ -135,4 +130,7 @@ void EntryMain()
 
     /** Shutdown backend service once frontend disconnects*/
     (&manager)->Shutdown();
+
+    /** Wait for the update thread to finish */
+    updateThread.join();
 }

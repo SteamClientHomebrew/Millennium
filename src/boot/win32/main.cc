@@ -27,23 +27,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-#ifdef _WIN32
-#include <winsock2.h>
 #include <windows.h>
-#endif
-
-#include <fstream>
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <phttp.h>
-#include <shimlogger.h>
-#include <steam.h>
-#include <thread>
-#include <unzip.h>
-#include <windows.h>
-
-static const char* GITHUB_API_URL = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
+#include <string>
+#include <shlwapi.h>
 
 /**
  * @brief Unload and release the library from memory.
@@ -64,81 +50,6 @@ extern "C" __attribute__((dllexport)) const char* __get_shim_version(void)
     return MILLENNIUM_VERSION;
 }
 
-/**
- * @brief Download the latest asset from the Millennium GitHub repository.
- * @param queuedDownloadUrl The URL to download the asset from.
- * @param steam_path The path to the Steam directory.
- */
-void DownloadLatestAsset(std::string queuedDownloadUrl, std::string steam_path)
-{
-    Print("Downloading asset: {}", queuedDownloadUrl);
-    const std::string localDownloadPath = (std::filesystem::temp_directory_path() / "millennium.zip").string();
-
-    if (DownloadResource(queuedDownloadUrl, localDownloadPath)) {
-        Print("Successfully downloaded asset...");
-
-        ExtractZippedArchive(localDownloadPath.c_str(), steam_path.c_str());
-        remove(localDownloadPath.c_str());
-    } else {
-        Error("Failed to download asset: {}", queuedDownloadUrl);
-    }
-}
-
-/**
- * @brief Check for updates based off the update.flag file in the Steam directory.
- * Updates are not automatically derived from the server, they are specifically read from what the user has requested in the update.flag file.
- * the update.flag file is written to by assets\src\custom_components\UpdaterModal.tsx
- */
-const void CheckForUpdates(std::string strSteamPath)
-{
-    const auto start = std::chrono::high_resolution_clock::now();
-
-    Print("Checking for updates...");
-    Print("Steam path: {}", strSteamPath);
-
-    const auto updateFlagPath = std::filesystem::path(strSteamPath) / "ext" / "update.flag";
-
-    if (!std::filesystem::exists(updateFlagPath)) {
-        Print("No updates were queried...");
-        return;
-    }
-
-    std::ifstream updateFlagFile(updateFlagPath);
-    std::string updateFlagContent((std::istreambuf_iterator<char>(updateFlagFile)), std::istreambuf_iterator<char>());
-    updateFlagFile.close();
-
-    if (std::remove(updateFlagPath.string().c_str()) != 0) {
-        Error("Failed to remove update.flag file...");
-    }
-
-    Print("Updating Millennium from queue: {}", updateFlagContent);
-    DownloadLatestAsset(updateFlagContent, strSteamPath);
-
-    Print("Elapsed time: {}s", (std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start)).count());
-}
-
-/**
- * @brief Enable virtual terminal processing for the console.
- * Windows by default not support ANSI escape codes, this function enables it.
- */
-void EnableVirtualTerminalProcessing()
-{
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE) {
-        return;
-    }
-
-    DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode)) {
-        return;
-    }
-
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode)) {
-        return;
-    }
-}
-
 void ShowErrorMessage(DWORD errorCode)
 {
     char errorMsg[512];
@@ -149,58 +60,33 @@ void ShowErrorMessage(DWORD errorCode)
 }
 
 /**
- * @brief Allocate a console window for debugging purposes.
- * This is only called if the -dev argument is passed to the application.
- */
-void AllocateDevConsole()
-{
-
-    if (((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev")) {
-        (void)static_cast<bool>(AllocConsole());
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
-        EnableVirtualTerminalProcessing();
-        std::ios::sync_with_stdio(true);
-    }
-}
-
-/**
  * @brief Load Millennium into process memory.
  *
  * This calls DllMain in %root%/src/main.cc which initializes Millennium.
  */
 void LoadMillennium()
 {
-    // Check if the load was successful.
-    if (LoadLibraryA("millennium.dll") == nullptr) {
-        DWORD errorCode = GetLastError();
-        ShowErrorMessage(errorCode);
-        return;
-    }
+    const HMODULE hModule = LoadLibraryA("millennium.dll");
 
-    Print("Loaded millennium...");
+    if (!hModule) {
+        ShowErrorMessage(GetLastError());
+    }
 }
 
 const void BootstrapMillennium(HINSTANCE hinstDLL)
 {
-    const std::string strSteamPath = GetSteamPath();
-    AllocateDevConsole();
-
-    Print("Starting Bootstrapper@{}", MILLENNIUM_VERSION);
-    CheckForUpdates(strSteamPath);
-
-    Print("Finished checking for updates");
-
     LoadMillennium();
     CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)UnloadAndReleaseLibrary, hinstDLL, 0, nullptr);
 }
 
-BOOL IsSteamClient()
+BOOL IsSteamClient(VOID)
 {
-    CHAR p[MAX_PATH], *n;
-    GetModuleFileNameA(0, p, MAX_PATH);
-    n = strrchr(p, '\\');
-    return !_stricmp(n ? n + 1 : p, "steam.exe");
+    CHAR path[MAX_PATH];
+
+    if (!GetModuleFileNameA(NULL, path, MAX_PATH))
+        return FALSE;
+
+    return !_stricmp(PathFindFileNameA(path), "steam.exe");
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)

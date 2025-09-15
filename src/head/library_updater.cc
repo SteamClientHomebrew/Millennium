@@ -29,7 +29,7 @@
  */
 
 #include "head/library_updater.h"
-#include "head/cfg.h"
+#include "millennium/sysfs.h"
 
 #include "millennium/http.h"
 #include "millennium/logger.h"

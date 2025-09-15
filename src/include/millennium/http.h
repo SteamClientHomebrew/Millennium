@@ -62,7 +62,7 @@ static size_t WriteFileCallback(void* ptr, size_t size, size_t nmemb, void* user
     auto* data = static_cast<DownloadData*>(userdata);
     size_t written = fwrite(ptr, size, nmemb, data->fp);
 
-    data->downloaded += written;
+    data->downloaded += written * size; // track bytes, not elements
 
     if (data->progressCallback) {
         data->progressCallback(data->downloaded, data->totalSize);
@@ -156,8 +156,10 @@ static std::string Post(const char* url, const std::string& postData, bool retry
     return response;
 }
 
-static void DownloadWithProgress(const std::string& url, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
+static void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
 {
+    const auto& [url, expectedSize] = download_info;
+
     CURL* curl = curl_easy_init();
     if (!curl)
         throw std::runtime_error("Failed to initialize curl");
@@ -168,18 +170,23 @@ static void DownloadWithProgress(const std::string& url, const std::filesystem::
         throw std::runtime_error("Failed to open file: " + destPath.string());
     }
 
-    DownloadData downloadData = { fp, 0, progressCallback, 0 };
+    CURLcode res;
+    DownloadData downloadData = { fp, 0, progressCallback, expectedSize };
 
-    /* HEAD the request to get content length */
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    /** If no expected size is provided, perform a HEAD request to get the content length (might fail) */
+    if (!expectedSize) {
+        /* HEAD the request to get content length */
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-    CURLcode res = curl_easy_perform(curl);
-    if (res == CURLE_OK) {
-        curl_off_t contentLength;
-        curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &contentLength);
-        downloadData.totalSize = static_cast<size_t>(contentLength);
+        res = curl_easy_perform(curl);
+        if (res == CURLE_OK) {
+            curl_off_t contentLength;
+            if (curl_easy_getinfo(curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &contentLength) == CURLE_OK && contentLength > 0) {
+                downloadData.totalSize = static_cast<size_t>(contentLength);
+            }
+        }
     }
 
     /** Second request: GET to download the file */
@@ -201,7 +208,7 @@ static void DownloadWithProgress(const std::string& url, const std::filesystem::
     }
 
     if (progressCallback) {
-        progressCallback(downloadData.downloaded, downloadData.downloaded);
+        progressCallback(downloadData.downloaded, downloadData.totalSize); // Fix: use totalSize
     }
 }
 } // namespace Http

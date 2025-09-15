@@ -103,18 +103,20 @@ export function ThemeUpdateCard({ themeUpdates }: { themeUpdates: UpdateItemType
 		return await sleep(newState.uxSleepLength);
 	};
 
-	return [
-		<SettingsDialogSubHeader>Themes</SettingsDialogSubHeader>,
-		themeUpdates?.map((update: UpdateItemType, index: number) => (
-			<UpdateCard
-				update={update}
-				index={index}
-				totalCount={themeUpdates.length}
-				isUpdating={ctx.updatingThemes[index]}
-				progress={updateState?.progress}
-				statusText={updateState?.statusText}
-				onUpdateClick={StartThemeUpdate.spread(ctx, setNewState, update, index)}
-			/>
-		)),
-	];
+	return (
+		<>
+			<SettingsDialogSubHeader>Themes</SettingsDialogSubHeader>,
+			{themeUpdates?.map((update: UpdateItemType, index: number) => (
+				<UpdateCard
+					update={update}
+					index={index}
+					totalCount={themeUpdates.length}
+					isUpdating={ctx.updatingThemes[index]}
+					progress={updateState?.progress}
+					statusText={updateState?.statusText}
+					onUpdateClick={StartThemeUpdate.spread(ctx, setNewState, update, index)}
+				/>
+			))}
+		</>
+	);
 }

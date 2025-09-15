@@ -9,6 +9,9 @@ project(Millennium LANGUAGES C CXX)
 file(STRINGS "${CMAKE_SOURCE_DIR}/version" VERSION_LINES LIMIT_COUNT 2)
 list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
 
+# Add configure dependency on version file
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/version")
+
 # Configure version header
 configure_file(
     ${CMAKE_SOURCE_DIR}/src/include/millennium/version.h.in
@@ -301,13 +304,14 @@ set(SOURCE_FILES
     src/core/init.cc
     src/core/lifecycle.cc
     src/core/millennium_api.cc
-    src/head/cfg.cc
+    src/core/millennium_updater.cc
+    src/util/semver.cc
+    src/util/zip.cc
     src/head/css_parser.cc
     src/head/default_cfg.cc
     src/head/entry_point.cc
     src/head/ipc_handler.cc
     src/head/library_updater.cc
-    src/head/millennium_updater.cc
     src/head/plugin_mgr.cc
     src/head/README.md
     src/head/scan.cc
@@ -403,6 +407,8 @@ add_custom_command(
 # =====================================
 
 if(MINGW)
+    # Make sure bash in PATH. It doesn't matter which bash, MinGW and Git for Windows both provide one.
+    # MinGW bash is at C:/msys64/usr/bin/bash.exe if you have MSYS2 installed.
     execute_process(
         COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static"
         RESULT_VARIABLE LUAJIT_BUILD_RESULT
@@ -410,7 +416,14 @@ if(MINGW)
         ERROR_VARIABLE LUAJIT_BUILD_ERROR
     )
     if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to build LuaJIT static library:\n${LUAJIT_BUILD_ERROR}")
+        set(_luajit_fail_msg "Failed to build LuaJIT static library:\n")
+        string(APPEND _luajit_fail_msg "Result code: ${LUAJIT_BUILD_RESULT}\n")
+        string(APPEND _luajit_fail_msg "Error: ${LUAJIT_BUILD_ERROR}\n")
+        string(APPEND _luajit_fail_msg "Output: ${LUAJIT_BUILD_OUTPUT}\n")
+        if(LUAJIT_BUILD_ERROR STREQUAL "" AND LUAJIT_BUILD_OUTPUT STREQUAL "")
+            string(APPEND _luajit_fail_msg "(No error or output was captured. Check your build environment and paths.)\n")
+        endif()
+        message(FATAL_ERROR "${_luajit_fail_msg}")
     else()
         message(STATUS "LuaJIT static library built successfully.")
     endif()
@@ -488,7 +501,7 @@ if(NIX_BUILD)
     target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
-find_package(unofficial-minizip CONFIG REQUIRED) # used for extracting zip files
+find_package(minizip-ng CONFIG REQUIRED) # used for extracting zip files
 find_package(CURL REQUIRED) # used for web requests
 find_package(PkgConfig REQUIRED)
 
@@ -523,6 +536,21 @@ if(WIN32)
         set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
     else()
         set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
+
+        add_custom_command(
+            OUTPUT "${extracted_path}/python311.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_SOURCE_DIR}/vendor/python/python311.dll"
+                "${extracted_path}/python311.dll"
+            COMMENT "Adding Millennium python runtime to Steam directory"
+        )
+
+        add_custom_target(copy_python311_dll ALL
+            DEPENDS "${extracted_path}/python311.dll"
+            COMMENT "Ensuring python311.dll is present in Steam directory"
+        )
+
+        add_dependencies(Millennium copy_python311_dll)
     endif()
 
     find_package(minhook CONFIG REQUIRED) # used for hooking functions in steam
@@ -541,4 +569,4 @@ elseif(UNIX)
 endif()
 
 # Link required libraries for all platforms
-target_link_libraries(Millennium unofficial::minizip::minizip CURL::libcurl ${LUAJIT_STATIC} ${LIBGIT2_LIBRARIES})
+target_link_libraries(Millennium MINIZIP::minizip-ng CURL::libcurl ${LUAJIT_STATIC} ${LIBGIT2_LIBRARIES})

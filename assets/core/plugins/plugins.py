@@ -34,13 +34,7 @@ except ImportError:
     pass
 
 def is_enabled(plugin_name: str) -> bool:
-    config = configparser.ConfigParser()
-
-    with open(os.path.join(os.getenv("MILLENNIUM__CONFIG_PATH"), "millennium.ini"), 'r') as enabled:
-        config.read_file(enabled)
-    
-    enabled_plugins = config.get('Settings', 'enabled_plugins', fallback='').split('|')
-    return plugin_name in enabled_plugins
+    return Millennium.is_plugin_enabled(plugin_name)
 
 
 def search_dirs(m_path: str, plugins: list, _logger = None) -> None:

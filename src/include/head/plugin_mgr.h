@@ -16,7 +16,6 @@ class PluginInstaller
 
   private:
     void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    void ExtractZipWithProgress(const std::filesystem::path& zipPath, const std::filesystem::path& extractTo);
     std::filesystem::path PluginsPath();
 
     std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);

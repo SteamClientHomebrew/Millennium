@@ -122,23 +122,25 @@ export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
 		return await sleep(newState.uxSleepLength);
 	};
 
-	return [
-		<SettingsDialogSubHeader>Plugins</SettingsDialogSubHeader>,
-		pluginUpdates?.map((update: any, index: number) => (
-			<UpdateCard
-				update={{
-					name: update?.pluginInfo?.pluginJson?.common_name,
-					message: update?.commitMessage,
-					date: Utils.toTimeAgo(update?.pluginInfo?.commitDate),
-					commit: update?.pluginInfo?.commit,
-				}}
-				index={index}
-				totalCount={pluginUpdates.length}
-				isUpdating={ctx.updatingPlugins[index]}
-				progress={updateState?.progress}
-				statusText={updateState?.statusText}
-				onUpdateClick={() => StartPluginUpdate(ctx, setNewState, update, index)}
-			/>
-		)),
-	];
+	return (
+		<>
+			<SettingsDialogSubHeader>Plugins</SettingsDialogSubHeader>
+			{pluginUpdates?.map((update: any, index: number) => (
+				<UpdateCard
+					update={{
+						name: update?.pluginInfo?.pluginJson?.common_name,
+						message: update?.commitMessage,
+						date: Utils.toTimeAgo(update?.pluginInfo?.commitDate),
+						commit: update?.pluginInfo?.commit,
+					}}
+					index={index}
+					totalCount={pluginUpdates.length}
+					isUpdating={ctx.updatingPlugins[index]}
+					progress={updateState?.progress}
+					statusText={updateState?.statusText}
+					onUpdateClick={() => StartPluginUpdate(ctx, setNewState, update, index)}
+				/>
+			))}
+		</>
+	);
 }

@@ -55,6 +55,7 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
     if (!script.contains("methodName") || !script["methodName"].is_string()) {
         return { FFI_Type::Error, "Missing or invalid methodName in script" };
     }
+
     std::string methodName = script["methodName"];
 
     std::vector<nlohmann::json> argValues;
@@ -66,28 +67,69 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
 
     backendManager.Lua_LockLua(L);
 
-    lua_getglobal(L, methodName.c_str());
-    if (!lua_isfunction(L, -1)) {
-        lua_pop(L, 1);
-        backendManager.Lua_UnlockLua(L);
-        return { FFI_Type::Error, "Function not found in Lua: " + methodName };
-    }
+    /** Support for class methods using "something:function" */
+    size_t colonPos = methodName.find(':');
+    bool isMethod = (colonPos != std::string::npos);
+    int numArgs = static_cast<int>(argValues.size());
 
-    for (const auto& arg : argValues) {
-        if (arg.is_string()) {
-            lua_pushstring(L, arg.get<std::string>().c_str());
-        } else if (arg.is_boolean()) {
-            lua_pushboolean(L, arg.get<bool>());
-        } else if (arg.is_number_integer()) {
-            lua_pushinteger(L, arg.get<lua_Integer>());
-        } else if (arg.is_number_float()) {
-            lua_pushnumber(L, arg.get<lua_Number>());
-        } else {
-            lua_pushnil(L);
+    if (isMethod) {
+        std::string tableName = methodName.substr(0, colonPos);
+        std::string funcName = methodName.substr(colonPos + 1);
+
+        lua_getglobal(L, tableName.c_str()); // push table
+        if (!lua_istable(L, -1)) {
+            lua_pop(L, 1);
+            backendManager.Lua_UnlockLua(L);
+            return { FFI_Type::Error, "Table not found in Lua: " + tableName };
+        }
+        lua_getfield(L, -1, funcName.c_str()); // push function
+        if (!lua_isfunction(L, -1)) {
+            lua_pop(L, 2);
+            backendManager.Lua_UnlockLua(L);
+            return { FFI_Type::Error, "Method not found in Lua: " + methodName };
+        }
+        lua_pushvalue(L, -2); /** push table as self */
+        /** Now stack: table, function, self */
+        /** Remove table below function and self */
+        lua_remove(L, -3); /** remove table, now stack: function, self */
+
+        /** push args to fn */
+        for (const auto& arg : argValues) {
+            if (arg.is_string()) {
+                lua_pushstring(L, arg.get<std::string>().c_str());
+            } else if (arg.is_boolean()) {
+                lua_pushboolean(L, arg.get<bool>());
+            } else if (arg.is_number_integer()) {
+                lua_pushinteger(L, arg.get<lua_Integer>());
+            } else if (arg.is_number_float()) {
+                lua_pushnumber(L, arg.get<lua_Number>());
+            } else {
+                lua_pushnil(L);
+            }
+        }
+        numArgs += 1; /** self */
+    } else {
+        lua_getglobal(L, methodName.c_str());
+        if (!lua_isfunction(L, -1)) {
+            lua_pop(L, 1);
+            backendManager.Lua_UnlockLua(L);
+            return { FFI_Type::Error, "Function not found in Lua: " + methodName };
+        }
+        for (const auto& arg : argValues) {
+            if (arg.is_string()) {
+                lua_pushstring(L, arg.get<std::string>().c_str());
+            } else if (arg.is_boolean()) {
+                lua_pushboolean(L, arg.get<bool>());
+            } else if (arg.is_number_integer()) {
+                lua_pushinteger(L, arg.get<lua_Integer>());
+            } else if (arg.is_number_float()) {
+                lua_pushnumber(L, arg.get<lua_Number>());
+            } else {
+                lua_pushnil(L);
+            }
         }
     }
 
-    int numArgs = static_cast<int>(argValues.size());
     if (lua_pcall(L, numArgs, 1, 0) != LUA_OK) {
         const char* err = lua_tostring(L, -1);
         std::string errMsg = err ? err : "Unknown Lua error";

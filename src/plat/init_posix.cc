@@ -68,6 +68,22 @@ __attribute__((constructor)) void Posix_InitializeEnvironment()
     }
 }
 
+void Posix_AttachMillennium()
+{
+    /** Handle signal interrupts (^C) */
+    signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
+
+    EntryMain();
+
+    /** Shutdown the shared JS message emitter */
+    CefSocketDispatcher& emitter = CefSocketDispatcher::get();
+    (&emitter)->Shutdown();
+
+    /** Shutdown cron threads that manage Steam HTTP hooks */
+    BackendManager& hookManager = BackendManager::GetInstance();
+    (&hookManager)->Shutdown();
+}
+
 extern "C"
 {
     /* Trampoline for the real main() */
@@ -91,7 +107,7 @@ extern "C"
             LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
         }
 
-        g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+        g_millenniumThread = std::make_unique<std::thread>(Posix_AttachMillennium);
         Logger.Log("Millennium started successfully.");
         return 0;
     }
@@ -122,13 +138,13 @@ extern "C"
         }
 
 #ifdef __APPLE__
-        EntryMain();
+        Posix_AttachMillennium();
         Logger.Log("Shutting down Millennium...");
 
         return 0;
 #else
         /** Start Millennium on a new thread to prevent I/O blocking */
-        g_millenniumThread = std::make_unique<std::thread>(EntryMain);
+        g_millenniumThread = std::make_unique<std::thread>(Posix_AttachMillennium);
         int steam_main = fnMainOriginal(argc, argv, envp);
         Logger.Log("Hooked Steam entry returned {}", steam_main);
 

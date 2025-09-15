@@ -41,6 +41,8 @@ type UpdateContextProviderProps = {
 };
 
 export type UpdateContextProviderState = {
+	isUpdatingMillennium: boolean;
+	setMillenniumUpdating: React.Dispatch<React.SetStateAction<boolean>>;
 	updatingThemes: boolean[];
 	setUpdatingThemes: React.Dispatch<React.SetStateAction<boolean[]>>;
 	updatingPlugins: boolean[];
@@ -72,6 +74,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		this.state = {
 			updatingThemes: [],
 			updatingPlugins: [],
+			isUpdatingMillennium: false,
 			themeUpdates: null,
 			pluginUpdates: null,
 			hasReceivedUpdates: false,
@@ -91,6 +94,10 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		}));
 	};
 
+	setMillenniumUpdating = (newState: boolean) => {
+		return this.setState({ isUpdatingMillennium: newState });
+	};
+
 	componentDidMount() {
 		this.fetchAvailableUpdates();
 	}
@@ -102,7 +109,15 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 	hasAnyUpdates = () => {
 		const { themeUpdates, pluginUpdates } = this.state;
-		return (themeUpdates?.length ?? 0) > 0 || pluginUpdates?.some((update: any) => update?.hasUpdate);
+
+		const hasThemeUpdates = (themeUpdates?.length ?? 0) > 0;
+		const hasPluginUpdates = pluginUpdates?.some((update: any) => update?.hasUpdate) ?? false;
+		const hasMillenniumUpdate = pluginSelf?.millenniumUpdates?.hasUpdate && !pluginSelf?.millenniumUpdates?.updateInProgress;
+
+		const hasAnyUpdate = hasThemeUpdates || hasPluginUpdates || hasMillenniumUpdate;
+		console.log('Has any update:', hasAnyUpdate, { hasThemeUpdates, hasPluginUpdates, hasMillenniumUpdate });
+
+		return hasAnyUpdate;
 	};
 
 	forceFetchUpdates = async () => {
@@ -170,10 +185,12 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 					updatingPlugins,
 					themeUpdates: this.state.themeUpdates,
 					pluginUpdates: this.state.pluginUpdates,
+					isUpdatingMillennium: this.state.isUpdatingMillennium,
 					hasReceivedUpdates: this.state.hasReceivedUpdates,
 					hasUpdateError: this.state.hasUpdateError,
 					setUpdatingThemes: this.setUpdatingThemes,
 					setUpdatingPlugins: this.setUpdatingPlugins,
+					setMillenniumUpdating: this.setMillenniumUpdating,
 					isAnyUpdating: this.isAnyUpdating,
 					fetchAvailableUpdates: this.fetchAvailableUpdates,
 				}}

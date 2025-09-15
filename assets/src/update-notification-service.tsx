@@ -31,10 +31,8 @@
 import { IconsModule, pluginSelf, sleep, toaster, Navigation } from '@steambrew/client';
 import { Logger } from './utils/Logger';
 import { settingsManager } from './settings-manager';
-import { OnMillenniumUpdate, OSType } from './types';
-import { PyUpdateMillennium } from './utils/ffi';
+import { OnMillenniumUpdate } from './types';
 import { MillenniumIcons } from './components/Icons';
-import { deferredSettingLabelClasses } from './utils/classes';
 import { updateMillennium } from './updateMillennium';
 
 /**
@@ -102,7 +100,7 @@ export class NotificationService {
 
 		switch (this.onMillenniumUpdates) {
 			case OnMillenniumUpdate.AUTO_INSTALL: {
-				updateMillennium();
+				updateMillennium(true);
 				break;
 			}
 			case OnMillenniumUpdate.NOTIFY: {

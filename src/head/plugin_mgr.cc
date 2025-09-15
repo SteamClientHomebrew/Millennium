@@ -36,9 +36,8 @@
 #include "millennium/env.h"
 #include "millennium/millennium_api.h"
 #include "millennium/encode.h"
+#include "millennium/zip.h"
 
-#include <curl/curl.h>
-#include <minizip/unzip.h>
 #include <random>
 
 std::filesystem::path PluginInstaller::PluginsPath()
@@ -83,41 +82,6 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
     }
 }
 
-void PluginInstaller::ExtractZipWithProgress(const std::filesystem::path& zipPath, const std::filesystem::path& extractTo)
-{
-    unzFile zip = unzOpen(zipPath.string().c_str());
-    if (!zip)
-        throw std::runtime_error("Failed to open zip: " + zipPath.string());
-
-    unz_global_info globalInfo;
-    unzGetGlobalInfo(zip, &globalInfo);
-
-    for (uLong i = 0; i < globalInfo.number_entry; ++i) {
-        char filename[512];
-        unz_file_info fileInfo;
-        unzGetCurrentFileInfo(zip, &fileInfo, filename, sizeof(filename), nullptr, 0, nullptr, 0);
-
-        std::string outPath = (extractTo / filename).string();
-        std::filesystem::create_directories(std::filesystem::path(outPath).parent_path());
-
-        if (unzOpenCurrentFile(zip) == UNZ_OK) {
-            std::ofstream outFile(outPath, std::ios::binary);
-            char buffer[8192];
-            int bytesRead = 0;
-            while ((bytesRead = unzReadCurrentFile(zip, buffer, sizeof(buffer))) > 0)
-                outFile.write(buffer, bytesRead);
-            outFile.close();
-            unzCloseCurrentFile(zip);
-        }
-
-        RPCLogMessage("Extracting plugin archive...", 50.0 + (45.0 * (i / (double)globalInfo.number_entry)), false);
-        if ((i + 1) < globalInfo.number_entry)
-            unzGoToNextFile(zip);
-    }
-
-    unzClose(zip);
-}
-
 void PluginInstaller::RPCLogMessage(const std::string& status, double progress, bool isComplete)
 {
     IpcForwardInstallLog({ status, progress, isComplete });
@@ -141,12 +105,16 @@ nlohmann::json PluginInstaller::InstallPlugin(const std::string& downloadUrl, si
             RPCLogMessage("Download plugin archive...", 50.0 * (percent / 100.0), false);
         };
 
-        Http::DownloadWithProgress(downloadUrl, zipPath, progressCallback);
+        Http::DownloadWithProgress({ downloadUrl, totalSize }, zipPath, progressCallback);
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         RPCLogMessage("Setting up installed plugin...", 50, false);
         std::filesystem::create_directories(downloadPath);
-        ExtractZipWithProgress(zipPath, downloadPath);
+        Util::ExtractZipArchive(zipPath.string(), downloadPath.string(), [&](int current, int total, const char* file)
+        {
+            double percent = (double(current) / total) * 100.0;
+            RPCLogMessage("Extracting plugin archive...", 50.0 + (45.0 * (percent / 100.0)), false);
+        });
 
         RPCLogMessage("Cleaning up...", 95, false);
         std::filesystem::remove(zipPath);
@@ -219,10 +187,15 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         Logger.Log("Temporary zip path: {}", tempZipPath.string());
 
         Logger.Log("Downloading plugin archive...");
-        Http::DownloadWithProgress(url, tempZipPath, nullptr);
+        Http::DownloadWithProgress({ url, 0 }, tempZipPath, nullptr);
         Logger.Log("Download complete. Extracting plugin '{}' into '{}'", name, tempDir.string());
 
-        ExtractZipWithProgress(tempZipPath, tempDir);
+        Util::ExtractZipArchive(tempZipPath.string(), tempDir.string(), [&](int current, int total, const char* file)
+        {
+            double percent = (double(current) / total) * 100.0;
+            RPCLogMessage("Extracting plugin archive...", 50.0 + (45.0 * (percent / 100.0)), false);
+        });
+
         Logger.Log("Extraction complete.");
 
         std::filesystem::path extractedFolder;

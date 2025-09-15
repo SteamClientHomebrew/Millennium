@@ -36,6 +36,7 @@
 
 #include "millennium/encode.h"
 #include "millennium/millennium_api.h"
+#include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
@@ -91,6 +92,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
         { "updates", nlohmann::json::object() },
         { "hasCheckedForUpdates", false },
+        { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },
         { "buildDate", GetBuildTimestamp() },
         { "millenniumUpdates", nlohmann::json::object() },
         { "platformType", GetOperatingSystemType() },
@@ -135,6 +137,9 @@ IPC_RET(Core_UninstallPlugin, updater->GetPluginUpdater().UninstallPlugin(ARGS["
 
 /** Get plugin backend logs */
 IPC_RET(Core_GetPluginBackendLogs, Millennium_GetPluginLogs())
+
+/** Update Millennium API */
+IPC_NIL(Core_UpdateMillennium, MillenniumUpdater::StartUpdate(ARGS["downloadUrl"], ARGS["downloadSize"], ARGS["background"]))
 
 /**
  * Initialize core components

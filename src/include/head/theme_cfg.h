@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "head/cfg.h"
+#include "millennium/sysfs.h"
 #include <set>
 
 class ThemeConfig

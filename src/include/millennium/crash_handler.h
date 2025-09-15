@@ -10,82 +10,43 @@
 #include <shellapi.h>
 #include <string>
 
-std::string DemangleSymbolName(const char* mangledName)
+/**
+ * @brief Custom crash handler for Millennium on Windows.
+ * This function is called when an unhandled exception occurs.
+ * It creates a minidump file named "millennium-crash.dmp" in the current working directory.
+ *
+ * @param pExceptionInfo Pointer to the exception information.
+ * @return EXCEPTION_EXECUTE_HANDLER to indicate that the exception has been handled.
+ */
+static long __attribute__((__stdcall__)) Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
 {
-    int status = 0;
-    std::unique_ptr<char, void (*)(void*)> symbolDemangler(abi::__cxa_demangle(mangledName, nullptr, nullptr, &status), std::free);
-    return (status == 0 && symbolDemangler) ? std::string(symbolDemangler.get()) : std::string(mangledName);
-}
+    HANDLE hFile = CreateFileA("millennium-crash.dmp", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
-bool InitializeSymbolHandler(HANDLE process, std::string& errorMessage)
-{
-    DWORD options = SymGetOptions();
-    options |= SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS;
-    options &= ~SYMOPT_UNDNAME;
-    SymSetOptions(options);
+    if (hFile != INVALID_HANDLE_VALUE) {
+        MINIDUMP_EXCEPTION_INFORMATION dumpInfo;
+        dumpInfo.ThreadId = GetCurrentThreadId();
+        dumpInfo.ExceptionPointers = pExceptionInfo;
+        dumpInfo.ClientPointers = FALSE;
 
-    if (!SymInitialize(process, nullptr, TRUE)) {
-        DWORD errorCode = GetLastError();
-        errorMessage.append(fmt::format("\nFailed to initialize symbol handler. Error: {}\n", errorCode));
-        return false;
+        /** Write the dump */
+        BOOL success = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpWithFullMemory, &dumpInfo, nullptr, nullptr);
+
+        if (success) {
+            MessageBoxA(
+                NULL,
+                "Millennium has crashed! A crash dump has been written to millennium-crash.dmp in the Steam directory."
+                "Please send this file to the developers on our Discord (steambrew.app/discord) or GitHub (github.com/SteamClientHomebrew/Millennium) to help fix this issue.",
+                "Millennium Crash", MB_ICONERROR | MB_OK);
+
+            Logger.Log("Crash dump written to millennium-crash.dmp");
+        } else {
+            Logger.Log("MiniDumpWriteDump failed. Error: {}", GetLastError());
+        }
+
+        CloseHandle(hFile);
     }
 
-    return true;
-}
-
-std::string FormatStackFrame(HANDLE process, void* address, USHORT index, SYMBOL_INFO* symbol, IMAGEHLP_LINE64& lineInfo)
-{
-    DWORD64 addr = reinterpret_cast<DWORD64>(address);
-    DWORD64 displacement = 0;
-
-    if (!SymFromAddr(process, addr, &displacement, symbol)) {
-        return fmt::format("#{}: 0x{:X} (unknown symbol, error: {})\n", index, addr, GetLastError());
-    }
-
-    /** MinGW symbols often have mangled names starting with _Z or _N */
-    std::string functionName = symbol->Name[0] == '_' && (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N') ? DemangleSymbolName(symbol->Name) : symbol->Name;
-
-    DWORD lineDisplacement = 0;
-    if (SymGetLineFromAddr64(process, addr, &lineDisplacement, &lineInfo)) {
-        return fmt::format("#{}: {} in {} at line {} +{}\n", index, functionName, lineInfo.FileName, lineInfo.LineNumber, lineDisplacement);
-    } else {
-        return fmt::format("#{}: {} at 0x{:X} (no line info, error: {})\n", index, functionName, addr, GetLastError());
-    }
-}
-
-void CaptureStackTrace(std::string& errorMessage, const int maxFrames = 256)
-{
-    HANDLE process = GetCurrentProcess();
-
-    if (!InitializeSymbolHandler(process, errorMessage))
-        return;
-
-    std::unique_ptr<void*[]> stack(new void*[maxFrames]);
-    const USHORT frameCount = CaptureStackBackTrace(0, maxFrames, stack.get(), nullptr);
-
-    constexpr int MAX_SYMBOL_NAME_LENGTH = 1024;
-    SYMBOL_INFO* symbol = static_cast<SYMBOL_INFO*>(calloc(1, sizeof(SYMBOL_INFO) + MAX_SYMBOL_NAME_LENGTH * sizeof(char)));
-
-    if (!symbol) {
-        errorMessage.append("\nFailed to allocate memory for symbol information.\n");
-        SymCleanup(process);
-        return;
-    }
-
-    symbol->MaxNameLen = MAX_SYMBOL_NAME_LENGTH - 1;
-    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-
-    IMAGEHLP_LINE64 lineInfo = {};
-    lineInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-
-    errorMessage.append(fmt::format("\nStack trace ({} frames):\n", frameCount));
-
-    for (USHORT i = 0; i < frameCount; ++i) {
-        errorMessage.append(FormatStackFrame(process, stack[i], i, symbol, lineInfo));
-    }
-
-    free(symbol);
-    SymCleanup(process);
+    return EXCEPTION_EXECUTE_HANDLER;
 }
 
 #endif
@@ -94,7 +55,7 @@ void CaptureStackTrace(std::string& errorMessage, const int maxFrames = 256)
  * @brief Custom terminate handler for Millennium.
  * This function is called when Millennium encounters a fatal error that it can't recover from.
  */
-void UnhandledExceptionHandler()
+static void UnhandledExceptionHandler()
 {
 #ifdef _WIN32
     if (IsDebuggerPresent())
@@ -116,8 +77,6 @@ void UnhandledExceptionHandler()
     }
 
 #ifdef _WIN32
-    // Capture and print stack trace
-    CaptureStackTrace(errorMessage);
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
 
     auto result = MessageBoxA(

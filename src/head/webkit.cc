@@ -29,8 +29,6 @@
  */
 
 #include "head/webkit.h"
-#include "head/cfg.h"
-
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
