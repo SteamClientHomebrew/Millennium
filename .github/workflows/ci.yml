@@ -157,6 +157,7 @@ jobs:
                   sudo apt-get update
                   sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386
                   gcc -m32 --version
+                  make -C "./vendor/lua" HOST_CC="gcc -m32" BUILDMODE=static
 
             - name: ⚙️ Download Python Dependencies
               run: |
