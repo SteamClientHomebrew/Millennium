@@ -429,7 +429,7 @@ if(MINGW)
     endif()
 elseif(UNIX)
     execute_process(
-        COMMAND make -C "${CMAKE_SOURCE_DIR}/vendor/lua" CC="gcc -m32" CFLAGS="-m32 -O2 -fPIC" BUILDMODE=static
+        COMMAND make -C "${CMAKE_SOURCE_DIR}/vendor/lua" HOST_CC="gcc -m32" CFLAGS="-m32 -O2 -fPIC" BUILDMODE=static
         RESULT_VARIABLE LUAJIT_BUILD_RESULT
         OUTPUT_VARIABLE LUAJIT_BUILD_OUTPUT
         ERROR_VARIABLE LUAJIT_BUILD_ERROR
