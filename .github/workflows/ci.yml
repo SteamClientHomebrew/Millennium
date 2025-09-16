@@ -157,14 +157,6 @@ jobs:
                   sudo apt-get update
                   sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386
 
-                  make -C "./vendor/lua" CC="gcc -m32"
-              continue-on-error: true
-
-            - name: Debug on failure
-              if: failure()
-              uses: mxschmitt/action-tmate@v3
-              timeout-minutes: 45
-
             - name: ⚙️ Download Python Dependencies
               run: |
                   wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
