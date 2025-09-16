@@ -30,9 +30,9 @@
 
 #pragma once
 #include "millennium/logger.h"
-#include "millennium/steam_hooks_win32.h"
 
 #ifdef _WIN32
+#include "millennium/steam_hooks_win32.h"
 #include <Windows.h>
 #include <shellapi.h>
 #endif

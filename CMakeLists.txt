@@ -80,6 +80,10 @@ endif()
 
 # MinGW visibility settings
 if(MINGW)
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
+    
     set(CMAKE_CXX_VISIBILITY_PRESET hidden)
     set(CMAKE_C_VISIBILITY_PRESET hidden)
     set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
@@ -367,25 +371,26 @@ set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_FRONTEND_BIN_, \"../../..
 
 set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium API library */\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_API_BIN_, \"../../../sdk/typescript-packages/loader/build/millennium.js\");\n")
-set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_API_BIN_MAP_, \"../../../sdk/typescript-packages/loader/build/millennium.js.map\");\n")
 
 set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium API chunk files */\n")
 
 set(MAP_ENTRIES "")
 foreach(chunk_file ${CHUNK_FILES})
-    file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}" "${chunk_file}")
     get_filename_component(filename "${chunk_file}" NAME)
+    if(filename MATCHES "\\.map$")
+        continue()
+    endif()
+    file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}" "${chunk_file}")
     filename_to_identifier("${filename}" var_name)
     
     set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(${var_name}, \"../../../${rel_path}\");\n")
-    set(MAP_ENTRIES "${MAP_ENTRIES}\t{ fmt::format(\"https://millennium.ftp/{}/chunks/${filename}\", GetScrambledApiPathToken()), std::string(${var_name}Data) },\n")
+    set(MAP_ENTRIES "${MAP_ENTRIES}\t{ fmt::format(\"https://millennium.ftp/{}/chunks/${filename}\", GetScrambledApiPathToken()), ${var_name}Data },\n")
 endforeach()
 
 set(HEADER_CONTENT "${HEADER_CONTENT}\n// clang-format off\n")
-set(HEADER_CONTENT "${HEADER_CONTENT}std::unordered_map<std::string, std::string> INTERNAL_FTP_CALL_DATA = {\n")
-set(HEADER_CONTENT "${HEADER_CONTENT}\t{ fmt::format(\"https://millennium.ftp/{}/millennium-frontend.js\", GetScrambledApiPathToken()), std::string(MILLENNIUM_FRONTEND_BIN_Data) },\n")
-set(HEADER_CONTENT "${HEADER_CONTENT}\t{ fmt::format(\"https://millennium.ftp/{}/millennium.js\", GetScrambledApiPathToken()), std::string(MILLENNIUM_API_BIN_Data) },\n")
-set(HEADER_CONTENT "${HEADER_CONTENT}\t{ fmt::format(\"https://millennium.ftp/{}/millennium.js.map\", GetScrambledApiPathToken()), std::string(MILLENNIUM_API_BIN_MAP_Data) },\n")
+set(HEADER_CONTENT "${HEADER_CONTENT}std::unordered_map<std::string, const char*> INTERNAL_FTP_CALL_DATA = {\n")
+set(HEADER_CONTENT "${HEADER_CONTENT}\t{ fmt::format(\"https://millennium.ftp/{}/millennium-frontend.js\", GetScrambledApiPathToken()), MILLENNIUM_FRONTEND_BIN_Data },\n")
+set(HEADER_CONTENT "${HEADER_CONTENT}\t{ fmt::format(\"https://millennium.ftp/{}/millennium.js\", GetScrambledApiPathToken()), MILLENNIUM_API_BIN_Data },\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}${MAP_ENTRIES}")
 
 string(REGEX REPLACE ",\n$" "\n" HEADER_CONTENT "${HEADER_CONTENT}")
