@@ -156,6 +156,7 @@ jobs:
                   sudo dpkg --add-architecture i386
                   sudo apt-get update
                   sudo apt-get install -y build-essential gcc-multilib g++-multilib
+                  gcc -m32 --version
 
             - name: ⚙️ Download Python Dependencies
               run: |
