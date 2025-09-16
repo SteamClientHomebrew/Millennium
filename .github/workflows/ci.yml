@@ -71,7 +71,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   cd sdk && pnpm install && pnpm run build && cd ..
-                  cd assets && pnpm install && pnpm run build && cd ..
+                  cd assets && pnpm install && pnpm run prod && cd ..
                   . scripts\ci\win32\mk-assets.ps1
 
             - name: 🛠️ Build Millennium Plugin Backend
@@ -183,7 +183,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   cd sdk && pnpm install && pnpm run build && cd ..
-                  cd assets && pnpm install && npm run build && cd ..
+                  cd assets && pnpm install && pnpm run prod && cd ..
                   bash scripts/ci/posix/mk-assets.sh
 
                   mkdir -p ~/build/usr/share/millennium/shims
