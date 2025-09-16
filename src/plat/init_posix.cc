@@ -29,14 +29,13 @@
  */
 
 #if defined(__linux__) || defined(__APPLE__)
-#include "helpers.h"
+#include "millennium/posix_util.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/crash_handler.h"
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_api_init.h"
-#include "terminal_pipe.h"
 #include <chrono>
 #include <ctime>
 #include <dlfcn.h>
@@ -49,6 +48,53 @@
 #include <stdlib.h>
 
 const static void VerifyEnvironment();
+void EntryMain(); /** forward declare main function */
+
+int IsSamePath(const char* path1, const char* path2)
+{
+    char realpath1[PATH_MAX], realpath2[PATH_MAX];
+    struct stat stat1, stat2;
+
+    // Get the real paths for both paths (resolves symlinks)
+    if (realpath(path1, realpath1) == NULL) {
+        perror("realpath failed for path1");
+        return 0; // Error in resolving path
+    }
+    if (realpath(path2, realpath2) == NULL) {
+        perror("realpath failed for path2");
+        return 0; // Error in resolving path
+    }
+
+    // Compare resolved paths
+    if (strcmp(realpath1, realpath2) != 0) {
+        return 0; // Paths are different
+    }
+
+    // Check if both paths are symlinks and compare symlink targets
+    if (lstat(path1, &stat1) == 0 && lstat(path2, &stat2) == 0) {
+        if (S_ISLNK(stat1.st_mode) && S_ISLNK(stat2.st_mode)) {
+            // Both are symlinks, compare the target paths
+            char target1[PATH_MAX], target2[PATH_MAX];
+            ssize_t len1 = readlink(path1, target1, sizeof(target1) - 1);
+            ssize_t len2 = readlink(path2, target2, sizeof(target2) - 1);
+
+            if (len1 == -1 || len2 == -1) {
+                perror("readlink failed");
+                return 0;
+            }
+
+            target1[len1] = '\0';
+            target2[len2] = '\0';
+
+            // Compare the symlink targets
+            if (strcmp(target1, target2) != 0) {
+                return 0; // Symlinks point to different targets
+            }
+        }
+    }
+
+    return 1; // Paths are the same, including symlinks to each other
+}
 
 __attribute__((constructor)) void Posix_InitializeEnvironment()
 {
@@ -115,7 +161,7 @@ extern "C"
     int StopMillennium()
     {
         Logger.Log("Unloading Millennium...");
-        g_threadTerminateFlag->flag.store(true);
+        g_shouldTerminateMillennium->flag.store(true);
 
         Sockets::Shutdown();
         if (g_millenniumThread && g_millenniumThread->joinable()) {
@@ -148,7 +194,7 @@ extern "C"
         int steam_main = fnMainOriginal(argc, argv, envp);
         Logger.Log("Hooked Steam entry returned {}", steam_main);
 
-        g_threadTerminateFlag->flag.store(true);
+        g_shouldTerminateMillennium->flag.store(true);
         Sockets::Shutdown();
         g_millenniumThread->join();
 
@@ -195,52 +241,6 @@ extern "C"
         }
     }
 
-    int IsSamePath(const char* path1, const char* path2)
-    {
-        char realpath1[PATH_MAX], realpath2[PATH_MAX];
-        struct stat stat1, stat2;
-
-        // Get the real paths for both paths (resolves symlinks)
-        if (realpath(path1, realpath1) == NULL) {
-            perror("realpath failed for path1");
-            return 0; // Error in resolving path
-        }
-        if (realpath(path2, realpath2) == NULL) {
-            perror("realpath failed for path2");
-            return 0; // Error in resolving path
-        }
-
-        // Compare resolved paths
-        if (strcmp(realpath1, realpath2) != 0) {
-            return 0; // Paths are different
-        }
-
-        // Check if both paths are symlinks and compare symlink targets
-        if (lstat(path1, &stat1) == 0 && lstat(path2, &stat2) == 0) {
-            if (S_ISLNK(stat1.st_mode) && S_ISLNK(stat2.st_mode)) {
-                // Both are symlinks, compare the target paths
-                char target1[PATH_MAX], target2[PATH_MAX];
-                ssize_t len1 = readlink(path1, target1, sizeof(target1) - 1);
-                ssize_t len2 = readlink(path2, target2, sizeof(target2) - 1);
-
-                if (len1 == -1 || len2 == -1) {
-                    perror("readlink failed");
-                    return 0;
-                }
-
-                target1[len1] = '\0';
-                target2[len2] = '\0';
-
-                // Compare the symlink targets
-                if (strcmp(target1, target2) != 0) {
-                    return 0; // Symlinks point to different targets
-                }
-            }
-        }
-
-        return 1; // Paths are the same, including symlinks to each other
-    }
-
     /**
      * As of 1/7/2025 Steam offloads update checker to a child process. We don't want to hook that process.
      */
@@ -282,7 +282,7 @@ int main(int argc, char** argv, char** envp)
     signal(SIGTERM, [](int signalCode)
     {
         Logger.Warn("Received terminate signal...");
-        g_threadTerminateFlag->flag.store(true);
+        g_shouldTerminateMillennium->flag.store(true);
     });
 
     int result = MainHooked(argc, argv, envp);

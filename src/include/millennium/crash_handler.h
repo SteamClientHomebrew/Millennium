@@ -1,11 +1,11 @@
 
 #include <exception>
+#include <cxxabi.h>
 
 #ifdef _WIN32
 #include "millennium/http_hooks.h"
 #include "millennium/steam_hooks_win32.h"
 
-#include <cxxabi.h>
 #include <dbghelp.h>
 #include <shellapi.h>
 #include <string>

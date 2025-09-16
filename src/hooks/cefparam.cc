@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#ifdef _WIN32
 #include <winsock2.h>
 #include "MinHook.h"
 
@@ -267,3 +268,4 @@ BOOL HookCefArgs()
     // Register for DLL notifications
     return NT_SUCCESS(LdrRegisterDllNotification(0, DllNotificationCallback, nullptr, &g_NotificationCookie));
 }
+#endif

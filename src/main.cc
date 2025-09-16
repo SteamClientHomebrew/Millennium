@@ -46,25 +46,6 @@
 #include <fstream>
 #include <signal.h>
 
-void RemoveDeprecatedFile(const std::filesystem::path& filePath)
-{
-    if (std::filesystem::exists(filePath)) {
-        try {
-            if (std::filesystem::is_directory(filePath)) {
-                std::filesystem::remove_all(filePath);
-                Logger.Log("Removed deprecated directory: {}", filePath.string());
-            } else {
-                std::filesystem::remove(filePath);
-                Logger.Log("Removed deprecated file: {}", filePath.string());
-            }
-        } catch (const std::filesystem::filesystem_error& e) {
-            LOG_ERROR("Failed to remove deprecated file or directory {}: {}", filePath.string(), e.what());
-            MessageBoxA(NULL, fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(),
-                        "Startup Error", MB_ICONERROR | MB_OK);
-        }
-    }
-}
-
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
  * .cef-enable-remote-debugging is a special file name that Steam uses to signal CEF to enable remote debugging.
@@ -101,6 +82,25 @@ const static void VerifyEnvironment()
             LOG_ERROR(errorMessage);
         }
     }
+
+    const auto RemoveDeprecatedFile = [](const std::filesystem::path& filePath)
+    {
+        if (std::filesystem::exists(filePath)) {
+            try {
+                if (std::filesystem::is_directory(filePath)) {
+                    std::filesystem::remove_all(filePath);
+                    Logger.Log("Removed deprecated directory: {}", filePath.string());
+                } else {
+                    std::filesystem::remove(filePath);
+                    Logger.Log("Removed deprecated file: {}", filePath.string());
+                }
+            } catch (const std::filesystem::filesystem_error& e) {
+                LOG_ERROR("Failed to remove deprecated file or directory {}: {}", filePath.string(), e.what());
+                MessageBoxA(NULL, fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(),
+                            "Startup Error", MB_ICONERROR | MB_OK);
+            }
+        }
+    };
 
     /** Remove deprecated Millennium shim file */
     RemoveDeprecatedFile(SystemIO::GetSteamPath() / "user32.dll");
