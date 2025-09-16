@@ -411,7 +411,7 @@ if(MINGW)
     # MinGW bash is at C:/msys64/usr/bin/bash.exe if you have MSYS2 installed.
     set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static")
 elseif(UNIX)
-    set(LUAJIT_BUILD_COMMAND make -C "./vendor/lua" CC="gcc -m32")
+    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && make CC='gcc -m32'")
 endif()
 
 execute_process(
