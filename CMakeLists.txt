@@ -409,36 +409,31 @@ add_custom_command(
 if(MINGW)
     # Make sure bash in PATH. It doesn't matter which bash, MinGW and Git for Windows both provide one.
     # MinGW bash is at C:/msys64/usr/bin/bash.exe if you have MSYS2 installed.
-    execute_process(
-        COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static"
-        RESULT_VARIABLE LUAJIT_BUILD_RESULT
-        OUTPUT_VARIABLE LUAJIT_BUILD_OUTPUT
-        ERROR_VARIABLE LUAJIT_BUILD_ERROR
-    )
-    if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
-        set(_luajit_fail_msg "Failed to build LuaJIT static library:\n")
-        string(APPEND _luajit_fail_msg "Result code: ${LUAJIT_BUILD_RESULT}\n")
-        string(APPEND _luajit_fail_msg "Error: ${LUAJIT_BUILD_ERROR}\n")
-        string(APPEND _luajit_fail_msg "Output: ${LUAJIT_BUILD_OUTPUT}\n")
-        if(LUAJIT_BUILD_ERROR STREQUAL "" AND LUAJIT_BUILD_OUTPUT STREQUAL "")
-            string(APPEND _luajit_fail_msg "(No error or output was captured. Check your build environment and paths.)\n")
-        endif()
-        message(FATAL_ERROR "${_luajit_fail_msg}")
-    else()
-        message(STATUS "LuaJIT static library built successfully.")
-    endif()
+    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static")
 elseif(UNIX)
-    execute_process(
-        COMMAND make -C "${CMAKE_SOURCE_DIR}/vendor/lua" HOST_CC="gcc -m32" CFLAGS="-m32 -O2 -fPIC" BUILDMODE=static
-        RESULT_VARIABLE LUAJIT_BUILD_RESULT
-        OUTPUT_VARIABLE LUAJIT_BUILD_OUTPUT
-        ERROR_VARIABLE LUAJIT_BUILD_ERROR
-    )
-    if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to build LuaJIT static library:\n${LUAJIT_BUILD_ERROR}")
-    else()
-        message(STATUS "LuaJIT static library built successfully.")
+    set(LUAJIT_BUILD_COMMAND make -C "${CMAKE_SOURCE_DIR}/vendor/lua" CFLAGS="-m32 -O2 -fPIC" BUILDMODE=static)
+endif()
+
+execute_process(
+    COMMAND ${LUAJIT_BUILD_COMMAND}
+    RESULT_VARIABLE LUAJIT_BUILD_RESULT
+    OUTPUT_VARIABLE LUAJIT_BUILD_OUTPUT
+    ERROR_VARIABLE LUAJIT_BUILD_ERROR
+)
+
+message(STATUS "LuaJIT build command:\n${LUAJIT_BUILD_COMMAND}")
+
+if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
+    set(_luajit_fail_msg "Failed to build LuaJIT static library:\n")
+    string(APPEND _luajit_fail_msg "Result code: ${LUAJIT_BUILD_RESULT}\n")
+    string(APPEND _luajit_fail_msg "Error: ${LUAJIT_BUILD_ERROR}\n")
+    string(APPEND _luajit_fail_msg "Output: ${LUAJIT_BUILD_OUTPUT}\n")
+    if(LUAJIT_BUILD_ERROR STREQUAL "" AND LUAJIT_BUILD_OUTPUT STREQUAL "")
+        string(APPEND _luajit_fail_msg "(No error or output was captured. Check your build environment and paths.)\n")
     endif()
+    message(FATAL_ERROR "${_luajit_fail_msg}")
+else()
+    message(STATUS "LuaJIT static library built successfully.")
 endif()
 
 set(LUAJIT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/src)
