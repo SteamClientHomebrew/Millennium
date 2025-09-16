@@ -161,7 +161,7 @@ function(detect_aur_helper result_var)
 endfunction()
 
 if(WIN32)
-    include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32 ${CMAKE_SOURCE_DIR}/vendor/lua/src)
+    include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32)
     
 elseif(APPLE)
     set(python_path "$ENV{HOME}/.pyenv/versions/3.11.8")
@@ -439,6 +439,8 @@ endif()
 set(LUAJIT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/src)
 set(LUAJIT_STATIC ${LUAJIT_DIR}/libluajit.a)
 
+# Include the LuaJIT headers
+include_directories(${LUAJIT_DIR})
 
 # =====================================
 # Target Configuration
