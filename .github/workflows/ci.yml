@@ -36,9 +36,6 @@ jobs:
               uses: actions/cache@v4
               with:
                   path: |
-                      vendor/vcpkg/installed
-                      vendor/vcpkg/buildtrees
-                      vendor/vcpkg/packages
                       vendor/vcpkg/bincache
                   key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
                   restore-keys: |
@@ -92,7 +89,7 @@ jobs:
             - name: 🛠️ Build Millennium Backend
               shell: msys2 {0}
               run: |
-                  cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+                  cmake --preset=windows-mingw-release -DVCPKG_BUILD_TYPE=release -DGITHUB_ACTION_BUILD=ON
                   mkdir ./build/artifacts
                   cmake --build build --config Release -- -j$(nproc)
                   cp ./build/python/python311.dll D:/a/env/python311.dll
@@ -155,9 +152,6 @@ jobs:
               uses: actions/cache@v4
               with:
                   path: |
-                      vendor/vcpkg/installed
-                      vendor/vcpkg/buildtrees
-                      vendor/vcpkg/packages
                       vendor/vcpkg/bincache
                   key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
                   restore-keys: |
@@ -215,7 +209,7 @@ jobs:
 
             - name: 🛠️ Build Millennium Backend
               run: |
-                  cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+                  cmake --preset=linux-release -G "Ninja" -DVCPKG_BUILD_TYPE=release -DGITHUB_ACTION_BUILD=ON
                   # Build the project
                   cmake --build build --config Release -- -j$(nproc)
 
