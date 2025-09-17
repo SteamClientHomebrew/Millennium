@@ -39,9 +39,9 @@ jobs:
                       vendor/vcpkg/installed
                       vendor/vcpkg/buildtrees
                       vendor/vcpkg/packages
-                  key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+                  key: vcpkg-windows-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
                   restore-keys: |
-                      vcpkg-${{ runner.os }}-
+                      vcpkg-windows-${{ runner.os }}-
 
             - name: ⚙️ Download Semantic Release
               run: |
@@ -149,6 +149,17 @@ jobs:
               uses: actions/setup-node@v3
               with:
                   node-version: 20
+
+            - name: Cache vcpkg
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      vendor/vcpkg/installed
+                      vendor/vcpkg/buildtrees
+                      vendor/vcpkg/packages
+                  key: vcpkg-linux-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+                  restore-keys: |
+                      vcpkg-linux-${{ runner.os }}-
 
             - name: ⚙️ Download Semantic Release
               run: |
