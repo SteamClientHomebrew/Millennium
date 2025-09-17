@@ -426,8 +426,6 @@ execute_process(
     ERROR_VARIABLE LUAJIT_BUILD_ERROR
 )
 
-message(STATUS "LuaJIT build command:\n${LUAJIT_BUILD_COMMAND}")
-
 if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
     set(_luajit_fail_msg "Failed to build LuaJIT static library:\n")
     string(APPEND _luajit_fail_msg "Result code: ${LUAJIT_BUILD_RESULT}\n")
