@@ -112,11 +112,8 @@ int Lua_CallFrontendMethod(lua_State* L)
             return luaL_error(L, "params must be a table");
         }
 
-#ifdef _WIN32
         int len = (int)lua_objlen(L, 2);
-#else
-        int len = (int)lua_rawlen(L, 2);
-#endif
+        
         for (int i = 1; i <= len; ++i) {
             lua_rawgeti(L, 2, i);
 

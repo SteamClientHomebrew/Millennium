@@ -164,6 +164,7 @@ void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
 
 void MillenniumUpdater::DeleteOldMillenniumVersion()
 {
+#ifdef _WIN32
     const std::vector<std::string> target_files = {
         "millennium.dll", /** Millennium main library */
         "user32.dll",     /** legacy shim */
@@ -223,6 +224,7 @@ void MillenniumUpdater::DeleteOldMillenniumVersion()
     }
 
     Logger.Log("Old Millennium version cleanup completed. Files moved: {}", any_files_moved);
+#endif
 }
 
 void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize)

@@ -274,16 +274,17 @@ const void PluginLoader::StartFrontEnds()
 
     Logger.Warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
 
+    #ifdef _WIN32
     auto start = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5)) {
+    while (std::chrono::steady_clock::now() - start < std::chrono::seconds(10)) {
         if (GetModuleHandleA("steamclient.dll") == nullptr) {
             Logger.Log("Steam is shutting down, terminating frontend thread pool...");
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    #endif
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
     Logger.Warn("Reconnecting to Steam...");
 
     this->m_startTime = std::chrono::system_clock::now();
