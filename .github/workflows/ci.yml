@@ -32,6 +32,17 @@ jobs:
               with:
                   node-version: 20
 
+            - name: Cache vcpkg
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      vendor/vcpkg/installed
+                      vendor/vcpkg/buildtrees
+                      vendor/vcpkg/packages
+                  key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+                  restore-keys: |
+                      vcpkg-${{ runner.os }}-
+
             - name: ⚙️ Download Semantic Release
               run: |
                   npm install -g pnpm
