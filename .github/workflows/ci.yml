@@ -39,9 +39,10 @@ jobs:
                       vendor/vcpkg/installed
                       vendor/vcpkg/buildtrees
                       vendor/vcpkg/packages
-                  key: vcpkg-windows-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+                      vendor/vcpkg/bincache
+                  key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
                   restore-keys: |
-                      vcpkg-windows-${{ runner.os }}-
+                      vcpkg-${{ runner.os }}-
 
             - name: ⚙️ Download Semantic Release
               run: |
@@ -157,9 +158,10 @@ jobs:
                       vendor/vcpkg/installed
                       vendor/vcpkg/buildtrees
                       vendor/vcpkg/packages
-                  key: vcpkg-linux-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+                      vendor/vcpkg/bincache
+                  key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
                   restore-keys: |
-                      vcpkg-linux-${{ runner.os }}-
+                      vcpkg-${{ runner.os }}-
 
             - name: ⚙️ Download Semantic Release
               run: |

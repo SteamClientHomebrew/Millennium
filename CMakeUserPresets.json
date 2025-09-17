@@ -13,6 +13,9 @@
 			"cacheVariables": {
 				"CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake",
 				"VCPKG_INSTALL_OPTIONS": "--x-abi-tools-use-exact-versions"
+			},
+			"environment": {
+				"VCPKG_BINARY_SOURCES": "clear;files,${sourceDir}/vendor/vcpkg/bincache,readwrite"
 			}
 		},
 		{
