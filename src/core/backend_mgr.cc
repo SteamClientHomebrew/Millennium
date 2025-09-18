@@ -117,7 +117,13 @@ PythonEnvPath GetPythonEnvPaths()
 
 BackendManager::~BackendManager()
 {
+/**
+ * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
+ * we free from the main function instead
+ * */
+#ifdef __linux__
     this->Shutdown();
+#endif
 }
 
 /**
