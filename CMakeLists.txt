@@ -338,6 +338,7 @@ if(WIN32)
     list(APPEND SOURCE_FILES "src/plat/init_win32.cc")
 elseif(UNIX)
     list(APPEND SOURCE_FILES "src/plat/init_posix.cc")
+    list(APPEND SOURCE_FILES "src/plat/init_posix_deprecated.cc")
 endif()
 
 # =====================================
@@ -414,10 +415,12 @@ add_custom_command(
 if(MINGW)
     # Make sure bash in PATH. It doesn't matter which bash, MinGW and Git for Windows both provide one.
     # MinGW bash is at C:/msys64/usr/bin/bash.exe if you have MSYS2 installed.
-    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static")
+    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static XCFLAGS=-fPIC")
 elseif(UNIX)
-    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && make CC='gcc -m32' BUILDMODE=static")
+    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && make CC='gcc -m32' BUILDMODE=static XCFLAGS=-fPIC")
 endif()
+
+message(STATUS "Building LuaJIT static library...")
 
 execute_process(
     COMMAND ${LUAJIT_BUILD_COMMAND}

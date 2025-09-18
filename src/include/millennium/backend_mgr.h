@@ -59,21 +59,12 @@ struct PythonThreadState
     }
 };
 
-static const std::filesystem::path pythonModulesBaseDir = std::filesystem::path(GetEnv("MILLENNIUM__PYTHON_ENV"));
+struct PythonEnvPath
+{
+    std::string pythonPath, pythonLibs, pythonUserLibs;
+};
 
-#ifdef _WIN32
-static const std::string pythonPath = pythonModulesBaseDir.generic_string();
-static const std::string pythonLibs = (pythonModulesBaseDir / "python311.zip").generic_string();
-static const std::string pythonUserLibs = (pythonModulesBaseDir / "Lib" / "site-packages").generic_string();
-#elif __linux__
-static const std::string pythonPath = GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH");
-static const std::string pythonLibs = GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
-static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
-#elif __APPLE__
-static const std::string pythonPath = GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH");
-static const std::string pythonLibs = GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
-static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
-#endif
+PythonEnvPath GetPythonEnvPaths();
 
 class BackendManager
 {
@@ -115,6 +106,7 @@ class BackendManager
 
   public:
     BackendManager();
+    ~BackendManager();
     void Shutdown();
 
     void Lua_LockLua(lua_State* L);

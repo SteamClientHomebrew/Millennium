@@ -455,7 +455,7 @@ std::string HttpHookManager::BuildEnabledPluginsString() const
 std::string HttpHookManager::CreateShimContent(const ProcessedHooks& hooks, const std::string& millenniumPreloadPath) const
 {
     const std::string millenniumAuthToken = GetAuthToken();
-    const std::string ftpPath = UrlFromPath(m_ftpHookAddress, millenniumPreloadPath);
+    const std::string ftpPath = m_ftpHookAddress + millenniumPreloadPath;
 
     std::string scriptModuleArray = BuildScriptModuleArray(hooks.scriptModules);
     std::string enabledPlugins = BuildEnabledPluginsString();
@@ -751,4 +751,11 @@ HttpHookManager::HttpHookManager()
 
 HttpHookManager::~HttpHookManager()
 {
+    /**
+     * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
+     * we free from the main function instead
+     * */
+#ifdef __linux__
+    this->Shutdown();
+#endif
 }

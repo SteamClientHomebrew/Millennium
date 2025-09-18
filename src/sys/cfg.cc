@@ -43,16 +43,16 @@
 
 #include "head/default_cfg.h"
 
-namespace FileSystem = std::filesystem;
-
 /** TODO: port to config.json instead of millennium.ini */
 
 SettingsStore::SettingsStore()
 {
     const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
 
-    if (FileSystem::exists(path)) {
-        FileSystem::create_directories(path.parent_path());
+    if (std::filesystem::exists(path)) {
+        Logger.Log("Found legacy config file at {}, migrating to new config system...", path.string());
+
+        std::filesystem::create_directories(path.parent_path());
         std::ofstream outputFile(path.string());
 
         mINI::INIFile iniFile(path.string());
@@ -72,6 +72,8 @@ SettingsStore::SettingsStore()
 
             CONFIG.SetNested("plugins.enabledPlugins", enabledPlugins);
         }
+
+        Logger.Warn("Removing legacy config file at {}, it is no longer needed.", path.string());
 
         /** Delete the old config file */
         outputFile.close();
@@ -238,7 +240,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 
             const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
 
-            if (!FileSystem::exists(pluginConfiguration)) {
+            if (!std::filesystem::exists(pluginConfiguration)) {
                 continue;
             }
 

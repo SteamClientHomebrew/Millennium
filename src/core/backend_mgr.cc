@@ -94,6 +94,32 @@ const std::string GetPythonVersion()
     return pythonVersion;
 }
 
+PythonEnvPath GetPythonEnvPaths()
+{
+    static const std::filesystem::path pythonModulesBaseDir = std::filesystem::path(GetEnv("MILLENNIUM__PYTHON_ENV"));
+
+#ifdef _WIN32
+    static const std::string pythonPath = pythonModulesBaseDir.generic_string();
+    static const std::string pythonLibs = (pythonModulesBaseDir / "python311.zip").generic_string();
+    static const std::string pythonUserLibs = (pythonModulesBaseDir / "Lib" / "site-packages").generic_string();
+#elif __linux__
+    static const std::string pythonPath = GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH");
+    static const std::string pythonLibs = GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
+    static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
+#elif __APPLE__
+    static const std::string pythonPath = GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH");
+    static const std::string pythonLibs = GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
+    static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
+#endif
+
+    return { pythonPath, pythonLibs, pythonUserLibs };
+}
+
+BackendManager::~BackendManager()
+{
+    this->Shutdown();
+}
+
 /**
  * @brief Constructor for the BackendManager class.
  *
@@ -108,6 +134,8 @@ const std::string GetPythonVersion()
  */
 BackendManager::BackendManager() : m_InterpreterThreadSave(nullptr)
 {
+    const auto [pythonPath, pythonLibs, pythonUserLibs] = GetPythonEnvPaths();
+
     // initialize global modules
     PyImport_AppendInittab("hook_stdout", &PyInit_CustomStdout);
     PyImport_AppendInittab("hook_stderr", &PyInit_CustomStderr);
@@ -132,6 +160,10 @@ BackendManager::BackendManager() : m_InterpreterThreadSave(nullptr)
     PyConfig_SetString(&config, &config.home, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     config.write_bytecode = 0;
     config.module_search_paths_set = 1;
+
+    Logger.Log("Using python home: {}", pythonPath);
+    Logger.Log("Using python libs: {}", pythonLibs);
+    Logger.Log("Using python user libs: {}", pythonUserLibs);
 
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     PyWideStringList_Append(&config.module_search_paths, std::wstring(pythonLibs.begin(), pythonLibs.end()).c_str());

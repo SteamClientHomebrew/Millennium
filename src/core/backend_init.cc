@@ -88,14 +88,7 @@ class BackendLoadState
 const std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
 {
     std::string scriptModuleArray;
-    std::optional<std::string> millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
-
-    if (!millenniumPreloadPath.has_value()) {
-        LOG_ERROR("Missing client preload module. Please re-install Millennium.");
-#ifdef _WIN32
-        MessageBoxA(NULL, "Missing client preload module. Please re-install Millennium.", "Millennium", MB_ICONERROR);
-#endif
-    }
+    std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
 
     for (int i = 0; i < scriptModules.size(); i++) {
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
@@ -103,7 +96,7 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
 
     const std::string millenniumAuthToken = GetAuthToken();
 
-    const std::string ftpPath = UrlFromPath("https://millennium.ftp/", millenniumPreloadPath.value_or(std::string()));
+    const std::string ftpPath = fmt::format("https://millennium.ftp/{}", millenniumPreloadPath);
     const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}]);", millenniumAuthToken, scriptModuleArray);
 
     return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
@@ -417,6 +410,8 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
  */
 const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin)
 {
+    const auto [pythonPath, pythonLibs, pythonUserLibs] = GetPythonEnvPaths();
+
     PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
     const auto backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
 

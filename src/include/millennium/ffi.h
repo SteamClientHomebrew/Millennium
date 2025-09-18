@@ -187,7 +187,16 @@ class CefSocketDispatcher
         workerThread = std::thread([this]() { this->workerLoop(); });
     }
 
-    ~CefSocketDispatcher() = default;
+    ~CefSocketDispatcher()
+    {
+        /**
+         * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
+         * we free from the main function instead
+         * */
+#ifdef __linux__
+        this->Shutdown();
+#endif
+    }
 
     std::unordered_map<std::string, std::vector<ListenerPtr>> eventListeners;
     mutable std::shared_mutex listenersMtx;

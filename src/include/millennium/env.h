@@ -35,6 +35,17 @@
  */
 #include <string>
 
+/** Maintain compatibility with different compilers */
+#ifdef __GNUC__
+#define CONSTRUCTOR __attribute__((constructor))
+#define DESTRUCTOR __attribute__((destructor))
+#define DLL_EXPORT extern "C" __attribute__((dllexport))
+#else
+#define CONSTRUCTOR
+#define DESTRUCTOR
+#define DLL_EXPORT extern "C" __declspec(dllexport)
+#endif
+
 const void SetupEnvironmentVariables();
 std::string GetEnv(std::string key);
 std::string GetEnvWithFallback(std::string key, std::string fallback);
