@@ -28,18 +28,10 @@ elseif(UNIX AND NOT GITHUB_ACTION_BUILD)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
 endif()
 
-find_package(CURL REQUIRED) # used for web requests.
-
-add_compile_definitions(
-  CURL_STATICLIB
-)
-
-find_package(MinHook REQUIRED)
-
 # Add the executable
 add_library(preload SHARED main.cc exports.def)
 target_link_libraries(preload ${CMAKE_BINARY_DIR}/version.o)
-target_link_libraries(preload CURL::libcurl minhook::minhook shlwapi)
+target_link_libraries(preload libcurl minhook shlwapi)
 
 set_target_properties(preload PROPERTIES OUTPUT_NAME "version")
 set_target_properties(preload PROPERTIES PREFIX "")

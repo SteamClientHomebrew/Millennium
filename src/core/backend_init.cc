@@ -317,7 +317,7 @@ const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const Setti
 
 extern "C" int Lua_OpenUtilsLibrary(lua_State* L);
 extern "C" int Lua_OpenLoggerLibrary(lua_State* L);
-extern "C" int Lua_OpenCJsonLibrary(lua_State* l);
+extern "C" int luaopen_cjson(lua_State* l);
 extern "C" int Lua_OpenHttpLibrary(lua_State* L);
 
 static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
@@ -344,7 +344,7 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "preload");
 
-    RegisterModule(L, "json", Lua_OpenCJsonLibrary);
+    RegisterModule(L, "json", luaopen_cjson);
     RegisterModule(L, "millennium", Lua_OpenMillenniumLibrary);
     RegisterModule(L, "http", Lua_OpenHttpLibrary);
     RegisterModule(L, "utils", Lua_OpenUtilsLibrary);
@@ -424,8 +424,9 @@ const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema
 
 #ifdef _WIN32
     {
+        std::wstring pythonPathW = std::wstring(pythonPath.begin(), pythonPath.end());
         /* Add local python binaries to virtual PATH to prevent changing actual PATH */
-        AddDllDirectory(pythonModulesBaseDir.wstring().c_str());
+        AddDllDirectory(pythonPathW.c_str());
 
         sysPath.push_back(pythonPath);
         sysPath.push_back(pythonLibs);

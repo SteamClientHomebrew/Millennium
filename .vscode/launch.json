@@ -7,11 +7,36 @@
 			"program": "C:\\Program Files (x86)\\Steam\\steam.exe",
 			"args": ["-dev", "-skipinitialbootstrap", "-nobootstrapperupdate", "-noverifyfiles"],
 			"cwd": "C:\\Program Files (x86)\\Steam\\",
-			"stopAtEntry": false,
+			"stopAtEntry": true,
 			"setupCommands": [
 				{
 					"description": "Enable pretty-printing for gdb",
 					"text": "-enable-pretty-printing",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Break on exit",
+					"text": "-break-insert exit",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Break on _exit",
+					"text": "-break-insert _exit",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Catch exit syscall",
+					"text": "-catch-syscalls exit",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Catch exit_group syscall",
+					"text": "-catch-syscalls exit_group",
+					"ignoreFailures": true
+				},
+				{
+					"description": "Set confirm off",
+					"text": "-gdb-set confirm off",
 					"ignoreFailures": true
 				}
 			],

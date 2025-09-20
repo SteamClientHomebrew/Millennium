@@ -9,13 +9,6 @@
 			"architecture": {
 				"value": "x86",
 				"strategy": "external"
-			},
-			"cacheVariables": {
-				"CMAKE_TOOLCHAIN_FILE": "./vendor/vcpkg/scripts/buildsystems/vcpkg.cmake",
-				"VCPKG_INSTALL_OPTIONS": "--x-abi-tools-use-exact-versions"
-			},
-			"environment": {
-				"VCPKG_BINARY_SOURCES": "clear;files,${sourceDir}/vendor/vcpkg/bincache,readwrite"
 			}
 		},
 		{
@@ -23,10 +16,7 @@
 			"inherits": "default",
 			"generator": "Ninja",
 			"displayName": "windows-msvc",
-			"description": "Build using MSVC compiler",
-			"cacheVariables": {
-				"VCPKG_TARGET_TRIPLET": "x86-windows-static"
-			}
+			"description": "Build using MSVC compiler"
 		},
 		{
 			"name": "windows-mingw",
@@ -36,8 +26,6 @@
 			"displayName": "windows-mingw",
 			"description": "Build using g++ compiler",
 			"cacheVariables": {
-				"VCPKG_TARGET_TRIPLET": "x86-mingw-static",
-				"VCPKG_HOST_TRIPLET": "x64-mingw-static",
 				"CMAKE_CXX_STANDARD": "17",
 				"CMAKE_C_STANDARD": "23",
 				"CMAKE_CXX_FLAGS": "-static-libstdc++ -static-libgcc -static -lpthread"
@@ -67,8 +55,7 @@
 			"displayName": "osx-release",
 			"description": "MacOS release build.",
 			"cacheVariables": {
-				"CMAKE_BUILD_TYPE": "Release",
-				"VCPKG_TARGET_TRIPLET": "arm64-osx-dynamic"
+				"CMAKE_BUILD_TYPE": "Release"
 			}
 		},
 		{
@@ -77,8 +64,7 @@
 			"displayName": "osx-debug",
 			"description": "MacOS debug build.",
 			"cacheVariables": {
-				"CMAKE_BUILD_TYPE": "Debug",
-				"VCPKG_TARGET_TRIPLET": "arm64-osx-dynamic"
+				"CMAKE_BUILD_TYPE": "Debug"
 			}
 		},
 		{
@@ -88,7 +74,6 @@
 			"displayName": "linux-debug-x86",
 			"description": "Debug build for Linux",
 			"cacheVariables": {
-				"VCPKG_TARGET_TRIPLET": "x86-linux",
 				"CMAKE_CXX_FLAGS": "-m32",
 				"CMAKE_C_FLAGS": "-m32",
 				"CMAKE_BUILD_TYPE": "Debug"
@@ -101,7 +86,6 @@
 			"displayName": "linux-release-x86",
 			"description": "Release build for Linux",
 			"cacheVariables": {
-				"VCPKG_TARGET_TRIPLET": "x86-linux",
 				"CMAKE_CXX_FLAGS": "-m32",
 				"CMAKE_C_FLAGS": "-m32",
 				"CMAKE_BUILD_TYPE": "Release"

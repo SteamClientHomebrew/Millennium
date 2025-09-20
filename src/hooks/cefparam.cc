@@ -58,7 +58,7 @@ CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
 HMODULE steamTier0Module;
 std::string STEAM_DEVELOPER_TOOLS_PORT;
 
-asio::ip::port_type GetRandomOpenPort()
+unsigned short GetRandomOpenPort()
 {
     asio::io_context io_context;
     asio::ip::tcp::acceptor acceptor(io_context);

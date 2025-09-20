@@ -1,4 +1,226 @@
 cmake_minimum_required(VERSION 3.10...3.21)
+include(ExternalProject)
+include(FetchContent)
+
+# =====================================
+# Build Configuration
+# =====================================
+
+set(BUILD_TESTS                 OFF CACHE BOOL     "Disable building tests")
+set(BUILD_EXAMPLES              OFF CACHE BOOL     "Disable building examples")
+set(BUILD_SHARED_LIBS           OFF CACHE BOOL     "Build static libraries by default")
+set(CMAKE_CXX_STANDARD          17  CACHE STRING   "C++ standard to use" FORCE)
+set(CMAKE_C_STANDARD            11  CACHE STRING   "C standard to use" FORCE)
+set(CMAKE_CXX_STANDARD_REQUIRED ON  CACHE BOOL     "Enforce C++ standard" FORCE)
+set(CMAKE_C_STANDARD_REQUIRED   ON  CACHE BOOL     "Enforce C standard" FORCE)
+set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
+set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
+set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
+set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
+set(CURL_USE_OPENSSL            OFF CACHE BOOL     "Use OpenSSL for TLS/SSL")
+set(CURL_USE_SECTRANSP          OFF CACHE BOOL     "Disable SecureTransport")
+set(CURL_USE_MBEDTLS            OFF CACHE BOOL     "Disable mbedTLS")
+set(CURL_USE_WOLFSSL            OFF CACHE BOOL     "Disable wolfSSL")
+set(CURL_USE_BEARSSL            OFF CACHE BOOL     "Disable BearSSL")
+set(CURL_STATICLIB              ON  CACHE BOOL     "Build curl as static library")
+set(CURL_DISABLE_INSTALL        ON  CACHE BOOL     "Disable curl install")
+set(CURL_DISABLE_LDAP           ON  CACHE BOOL     "Disable LDAP")
+set(CURL_DISABLE_LDAPS          ON  CACHE BOOL     "Disable LDAPS")
+set(CURL_DISABLE_RTSP           ON  CACHE BOOL     "Disable RTSP")
+set(CURL_DISABLE_PROXY          ON  CACHE BOOL     "Disable proxy support")
+set(CURL_DISABLE_DICT           ON  CACHE BOOL     "Disable DICT")
+set(CURL_DISABLE_TELNET         ON  CACHE BOOL     "Disable TELNET")
+set(CURL_DISABLE_TFTP           ON  CACHE BOOL     "Disable TFTP")
+set(CURL_DISABLE_POP3           ON  CACHE BOOL     "Disable POP3")
+set(CURL_DISABLE_IMAP           ON  CACHE BOOL     "Disable IMAP")
+set(CURL_DISABLE_SMTP           ON  CACHE BOOL     "Disable SMTP")
+set(CURL_DISABLE_GOPHER         ON  CACHE BOOL     "Disable Gopher")
+set(FMT_HEADER_ONLY             ON  CACHE BOOL     "" FORCE)
+set(FMT_DOC                     OFF CACHE BOOL     "" FORCE)
+set(FMT_TEST                    OFF CACHE BOOL     "" FORCE)
+set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
+set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
+
+add_compile_definitions(
+    USE_INTERNAL_FPCONV
+
+    # Ensure nghttp2 is statically linked at compile time for libcurl
+    NGHTTP2_STATICLIB
+    LJ_TARGET_X86
+    LJ_HASJIT
+
+    # make websocketpp use c++11 and standalone asio instead of boost
+    _WEBSOCKETPP_CPP11_THREAD_
+    _WEBSOCKETPP_CPP11_TYPE_TRAITS_
+    _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
+
+    ASIO_STANDALONE
+    ASIO_HAS_STD_INVOKE_RESULT
+
+    FMT_HEADER_ONLY
+    _CRT_SECURE_NO_WARNINGS
+)
+
+# Patch the minimum cmake version in a "submodule". 
+# Mingw decided they would force the new version of cmake which completely breaks older deps
+# Only fix is a shim or fixing it up stream :shrug:
+
+function(patch_cmakelists_minimum_required input_path)
+    if(EXISTS "${input_path}")
+        file(READ "${input_path}" CMAKELISTS_CONTENTS)
+        string(REGEX REPLACE "cmake_minimum_required[ \t]*\\([ \t]*VERSION[^)]*\\)" "cmake_minimum_required(VERSION 3.10...3.21)" CMAKELISTS_CONTENTS "${CMAKELISTS_CONTENTS}")
+        file(WRITE "${input_path}" "${CMAKELISTS_CONTENTS}")
+    else()
+        message(WARNING "Could not find ${input_path} to patch.")
+    endif()
+endfunction()
+
+# ====================================
+# DEPENDENCY: incbin
+# DEPENDENCY: lua-cjson
+# DEPENDENCY: mINI
+# DEPENDENCY: websocketpp
+# DEPENDENCY: fmt
+# DEPENDENCY: nlohmann-json
+# DEPENDENCY: libgit2
+# DEPENDENCY: minizip-ng
+# DEPENDENCY: curl
+# ====================================
+
+FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook.git       GIT_TAG v1.3.4      SOURCE_SUBDIR fakedir)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/lua-cjson GIT_TAG v1.0.2      SOURCE_SUBDIR fakedir)
+FetchContent_Declare(mINI          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18      SOURCE_SUBDIR fakedir)
+FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0      SOURCE_SUBDIR fakedir)
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0     SOURCE_SUBDIR fakedir)
+FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1      SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10      SOURCE_SUBDIR fakedir)
+FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0 SOURCE_SUBDIR fakedir)
+FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main        SOURCE_SUBDIR fakedir)
+
+# ====================================
+# DEPENDENCY: lua-jit
+# ===================================
+
+if(WIN32)
+    set(LUAJIT_BUILD_CMD bash -c "mingw32-make BUILDMODE=static XCFLAGS=-fPIC")
+elseif(UNIX)
+    set(LUAJIT_BUILD_CMD bash -c "make CC='gcc -m32' BUILDMODE=static XCFLAGS=-fPIC")
+else()
+    message(FATAL_ERROR "Unsupported platform")
+endif()
+
+set(LUAJIT_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/_install/luajit")
+
+ExternalProject_Add(
+    lua-jit
+    GIT_REPOSITORY    https://github.com/LuaJIT/LuaJIT
+    GIT_TAG           v2.1.ROLLING
+    SOURCE_DIR        ${CMAKE_BINARY_DIR}/external/lua-jit-src
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ${LUAJIT_BUILD_CMD}
+    BUILD_IN_SOURCE   1
+    INSTALL_COMMAND
+        ${CMAKE_COMMAND} -E make_directory ${LUAJIT_INSTALL_PREFIX}/lib
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${LUAJIT_INSTALL_PREFIX}/include
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/src/libluajit.a ${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a
+        COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/src ${LUAJIT_INSTALL_PREFIX}/include
+        
+    BUILD_BYPRODUCTS  ${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a
+                      ${LUAJIT_INSTALL_PREFIX}/include/lua.h
+    LOG_BUILD         ON
+    LOG_INSTALL       ON
+)
+
+ExternalProject_Get_Property(lua-jit SOURCE_DIR)
+file(MAKE_DIRECTORY ${LUAJIT_INSTALL_PREFIX}/include)
+
+add_library(LuaJIT::LuaJIT STATIC IMPORTED)
+set_target_properties(LuaJIT::LuaJIT PROPERTIES
+    IMPORTED_LOCATION ${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a
+    INTERFACE_INCLUDE_DIRECTORIES ${LUAJIT_INSTALL_PREFIX}/include
+)
+
+add_dependencies(LuaJIT::LuaJIT lua-jit)
+
+set(LUA_INCLUDE_DIR "${LUAJIT_INSTALL_PREFIX}/include")
+set(LUA_LIBRARIES "${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a")
+set(LUA_LIBRARY "${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a")
+set(LUA_INCLUDE_DIRS "${LUAJIT_INSTALL_PREFIX}/include")
+
+set(CMAKE_PREFIX_PATH "${LUAJIT_INSTALL_PREFIX};${CMAKE_PREFIX_PATH}")
+
+# ====================================
+# DEPENDENCY: asio
+# ====================================
+
+ExternalProject_Add(
+    asio
+    GIT_REPOSITORY    https://github.com/chriskohlhoff/asio.git
+    GIT_TAG           asio-1-17-0
+    SOURCE_DIR        ${CMAKE_BINARY_DIR}/external/asio-src
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""  
+    INSTALL_COMMAND   ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/_install/asio/include &&
+                      ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/asio/include ${CMAKE_BINARY_DIR}/_install/asio/include
+    BUILD_BYPRODUCTS  ${CMAKE_BINARY_DIR}/_install/asio/include/asio.hpp
+)
+
+ExternalProject_Get_Property(asio SOURCE_DIR)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/_install/asio/include)
+
+add_library(asio::asio INTERFACE IMPORTED)
+set_target_properties(asio::asio PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/_install/asio/include)
+set_target_properties(asio::asio PROPERTIES INTERFACE_COMPILE_DEFINITIONS "ASIO_STANDALONE")
+set_target_properties(asio::asio PROPERTIES INTERFACE_LINK_LIBRARIES "$<$<PLATFORM_ID:Windows>:ws2_32;mswsock>$<$<PLATFORM_ID:Linux,Darwin>:pthread>")
+add_dependencies(asio::asio asio)
+
+# ====================================
+# Finalize Dependencies
+# ====================================
+
+FetchContent_MakeAvailable(incbin)
+FetchContent_MakeAvailable(minhook)
+FetchContent_MakeAvailable(websocketpp)
+FetchContent_MakeAvailable(fmt)
+FetchContent_MakeAvailable(nlohmann_json)
+FetchContent_MakeAvailable(libgit2)
+FetchContent_MakeAvailable(minizip_ng)
+FetchContent_MakeAvailable(mINI)
+FetchContent_MakeAvailable(lua_cjson)
+FetchContent_MakeAvailable(curl)
+
+include_directories("${websocketpp_SOURCE_DIR}")
+include_directories("${libgit2_SOURCE_DIR}/include")
+include_directories("${minizip_ng_SOURCE_DIR}")
+include_directories("${incbin_SOURCE_DIR}")
+
+patch_cmakelists_minimum_required("${minhook_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${curl_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${websocketpp_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${fmt_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${nlohmann_json_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${libgit2_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${minizip_ng_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${mini_SOURCE_DIR}/CMakeLists.txt")
+patch_cmakelists_minimum_required("${lua_cjson_SOURCE_DIR}/CMakeLists.txt")
+
+add_subdirectory("${curl_SOURCE_DIR}"   "${curl_BINARY_DIR}"   SYSTEM)
+add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"   SYSTEM)
+add_subdirectory("${fmt_SOURCE_DIR}"           "${fmt_BINARY_DIR}"           SYSTEM)
+add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}" SYSTEM)
+add_subdirectory("${libgit2_SOURCE_DIR}"       "${libgit2_BINARY_DIR}"       SYSTEM)
+add_subdirectory("${minizip_ng_SOURCE_DIR}"    "${minizip_ng_BINARY_DIR}"    SYSTEM)
+add_subdirectory("${mini_SOURCE_DIR}"          "${mini_BINARY_DIR}"          SYSTEM)
+add_subdirectory("${lua_cjson_SOURCE_DIR}"     "${lua_cjson_BINARY_DIR}"     SYSTEM)
+
+if(WIN32)
+add_subdirectory("${minhook_SOURCE_DIR}"       "${minhook_BINARY_DIR}"       SYSTEM)
+endif()
+
+# Make sure LuaJIT is built before cjson
+add_dependencies(cjson LuaJIT::LuaJIT)
+
 project(Millennium LANGUAGES C CXX)
 
 # =====================================
@@ -28,16 +250,6 @@ execute_process(
 
 message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
 message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
-
-# =====================================
-# Build Configuration
-# =====================================
-
-set(BUILD_SHARED_LIBS OFF)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Global compile definitions
 add_compile_definitions(
@@ -83,7 +295,7 @@ if(MINGW)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
-    
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
     set(CMAKE_CXX_VISIBILITY_PRESET hidden)
     set(CMAKE_C_VISIBILITY_PRESET hidden)
     set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
@@ -188,10 +400,21 @@ else() # Linux
     
     set(PYTHON_TEST_RESULT FALSE)
     if(Python_FOUND)
+        file(WRITE "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc" "
+        #include <Python.h>
+
+        int main() {
+            Py_Initialize();
+            Py_Finalize();
+            return 0;
+        }
+        ")
+
         try_compile(PYTHON_TEST_RESULT
             "${CMAKE_BINARY_DIR}"
-            SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/FindPython_test.cc"
-            LINK_LIBRARIES Python::Module)
+            SOURCES "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc"
+            LINK_LIBRARIES Python::Module
+        )
         
         if(PYTHON_TEST_RESULT)
             message(STATUS "Found suitable Python version ${Python_VERSION}")
@@ -266,21 +489,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/vendor/incbin
 )
 
-# Additional compile definitions
-add_compile_definitions(
-    "WINRT_NO_COROUTINES"
-    "LJ_TARGET_X86"
-    "LJ_HASJIT"
-    "CURL_STATICLIB"
-    "_WEBSOCKETPP_CPP11_THREAD_"
-    "_WEBSOCKETPP_CPP11_TYPE_TRAITS_"
-    "_WEBSOCKETPP_CPP11_RANDOM_DEVICE_"
-    "ASIO_STANDALONE"
-    "ASIO_HAS_STD_INVOKE_RESULT"
-    "FMT_HEADER_ONLY"
-    "_CRT_SECURE_NO_WARNINGS"
-)
-
 if(WIN32)
     add_subdirectory(src/boot/win32)
 endif()
@@ -329,9 +537,6 @@ set(SOURCE_FILES
     src/sys/log.cc
     src/sys/sysfs.cc
     src/main.cc
-	vendor/lua-cjson/lua_cjson.c
-    vendor/lua-cjson/strbuf.c
-    vendor/lua-cjson/fpconv.c
 )
 
 if(WIN32)
@@ -409,46 +614,6 @@ add_custom_command(
 )
 
 # =====================================
-# LuaJIT Build Configuration
-# =====================================
-
-if(MINGW)
-    # Make sure bash in PATH. It doesn't matter which bash, MinGW and Git for Windows both provide one.
-    # MinGW bash is at C:/msys64/usr/bin/bash.exe if you have MSYS2 installed.
-    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && mingw32-make BUILDMODE=static XCFLAGS=-fPIC")
-elseif(UNIX)
-    set(LUAJIT_BUILD_COMMAND bash -c "cd '${CMAKE_SOURCE_DIR}/vendor/lua' && make CC='gcc -m32' BUILDMODE=static XCFLAGS=-fPIC")
-endif()
-
-message(STATUS "Building LuaJIT static library...")
-
-execute_process(
-    COMMAND ${LUAJIT_BUILD_COMMAND}
-    RESULT_VARIABLE LUAJIT_BUILD_RESULT
-    OUTPUT_VARIABLE LUAJIT_BUILD_OUTPUT
-    ERROR_VARIABLE LUAJIT_BUILD_ERROR
-)
-
-if(NOT LUAJIT_BUILD_RESULT EQUAL 0)
-    set(_luajit_fail_msg "Failed to build LuaJIT static library:\n")
-    string(APPEND _luajit_fail_msg "Result code: ${LUAJIT_BUILD_RESULT}\n")
-    string(APPEND _luajit_fail_msg "Error: ${LUAJIT_BUILD_ERROR}\n")
-    string(APPEND _luajit_fail_msg "Output: ${LUAJIT_BUILD_OUTPUT}\n")
-    if(LUAJIT_BUILD_ERROR STREQUAL "" AND LUAJIT_BUILD_OUTPUT STREQUAL "")
-        string(APPEND _luajit_fail_msg "(No error or output was captured. Check your build environment and paths.)\n")
-    endif()
-    message(FATAL_ERROR "${_luajit_fail_msg}")
-else()
-    message(STATUS "LuaJIT static library built successfully.")
-endif()
-
-set(LUAJIT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lua/src)
-set(LUAJIT_STATIC ${LUAJIT_DIR}/libluajit.a)
-
-# Include the LuaJIT headers
-include_directories(${LUAJIT_DIR})
-
-# =====================================
 # Target Configuration
 # =====================================
 
@@ -482,6 +647,13 @@ elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
 endif()
 
+target_precompile_headers(Millennium PRIVATE 
+    <iostream>
+    <vector>
+    <string>
+    <memory>
+)
+
 # =====================================
 # Add version resource for Windows builds
 # =====================================
@@ -504,35 +676,25 @@ if(NIX_BUILD)
     target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
-find_package(minizip-ng CONFIG REQUIRED) # used for extracting zip files
-find_package(CURL REQUIRED) # used for web requests
-find_package(PkgConfig REQUIRED)
+# include_directories(${LIBGIT2_INCLUDE_DIRS})
+# link_directories(${LIBGIT2_LIBRARY_DIRS})
+# add_definitions(${LIBGIT2_CFLAGS_OTHER})
 
-# =====================================
-# Link against libgit2
-# =====================================
-
-pkg_check_modules(LIBGIT2 REQUIRED libgit2)
-
-include_directories(${LIBGIT2_INCLUDE_DIRS})
-link_directories(${LIBGIT2_LIBRARY_DIRS})
-add_definitions(${LIBGIT2_CFLAGS_OTHER})
-
-if(WIN32)
-    set(LIBGIT2_LIBRARIES
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libgit2.a
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libhttp_parser.a
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libpcre.a
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libzlib.a
-    )
-elseif(UNIX)
-    set(LIBGIT2_LIBRARIES
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libgit2.a
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libhttp_parser.a
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libpcre.a
-        ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libz.a
-    )
-endif()
+# if(WIN32)
+#     set(LIBGIT2_LIBRARIES
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libgit2.a
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libhttp_parser.a
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libpcre.a
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libzlib.a
+#     )
+# elseif(UNIX)
+#     set(LIBGIT2_LIBRARIES
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libgit2.a
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libhttp_parser.a
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libpcre.a
+#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libz.a
+#     )
+# endif()
 
 if(WIN32)
     if(GITHUB_ACTION_BUILD)
@@ -556,8 +718,7 @@ if(WIN32)
         add_dependencies(Millennium copy_python311_dll)
     endif()
 
-    find_package(minhook CONFIG REQUIRED) # used for hooking functions in steam
-    target_link_libraries(Millennium ${LIBGIT2_LIBRARIES} wsock32 Iphlpapi DbgHelp rpcrt4 winhttp ${PYTHON_LIB} minhook::minhook)
+    target_link_libraries(Millennium ${LIBGIT2_LIBRARIES} wsock32 Iphlpapi DbgHelp rpcrt4 winhttp ${PYTHON_LIB} minhook)
 
 elseif(UNIX)
     if(APPLE)
@@ -572,4 +733,34 @@ elseif(UNIX)
 endif()
 
 # Link required libraries for all platforms
-target_link_libraries(Millennium MINIZIP::minizip-ng CURL::libcurl ${LUAJIT_STATIC} ${LIBGIT2_LIBRARIES})
+target_link_libraries(Millennium 
+    libcurl
+    minizip
+    cjson
+    "${libgit2_BINARY_DIR}/libgit2.a"
+    nlohmann_json
+    fmt::fmt 
+    LuaJIT::LuaJIT
+    mINI
+    asio::asio
+    libgit2
+    ws2_32
+    gdi32
+    crypt32
+    winhttp
+    rpcrt4
+    secur32 
+    bcrypt 
+    ntdll
+    -Wl,--start-group
+    -l:libnghttp2.a
+    iconv
+    unistring
+    psl
+    idn2
+    ssl
+    crypto
+    z
+    ssh2
+    -Wl,--end-group
+)

@@ -113,6 +113,7 @@
 		"shared_mutex": "cpp",
 		"*.rh": "cpp",
 		"netfwd": "cpp",
-		"version": "plaintext"
+		"version": "plaintext",
+		"rope": "cpp"
 	}
 }

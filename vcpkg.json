@@ -1,9 +1,14 @@
 {
 	"dependencies": [
 		"curl",
-		"cli11",
 		"minizip-ng",
 		"libgit2",
+		"nlohmann-json",
+		"fmt",
+		"crow",
+		"asio",
+		"websocketpp",
+		"luajit",
 		{
 			"name": "minhook",
 			"platform": "windows"
