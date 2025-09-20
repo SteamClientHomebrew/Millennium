@@ -1,19 +1,24 @@
+message(STATUS "[Millennium] Configuring & verifying dependencies...")
+
 cmake_minimum_required(VERSION 3.10...3.21)
 include(ExternalProject)
 include(FetchContent)
 
 # =====================================
-# Build Configuration
+# Dep Build Configuration
 # =====================================
 
+# General settings
 set(BUILD_TESTS                 OFF CACHE BOOL     "Disable building tests")
 set(BUILD_EXAMPLES              OFF CACHE BOOL     "Disable building examples")
+# Build static libraries by default
 set(BUILD_SHARED_LIBS           OFF CACHE BOOL     "Build static libraries by default")
 set(CMAKE_CXX_STANDARD          17  CACHE STRING   "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD            11  CACHE STRING   "C standard to use" FORCE)
 set(CMAKE_CXX_STANDARD_REQUIRED ON  CACHE BOOL     "Enforce C++ standard" FORCE)
 set(CMAKE_C_STANDARD_REQUIRED   ON  CACHE BOOL     "Enforce C standard" FORCE)
 set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
+# nghttp2 & other settings for libcurl
 set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
 set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
 set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
@@ -35,10 +40,15 @@ set(CURL_DISABLE_POP3           ON  CACHE BOOL     "Disable POP3")
 set(CURL_DISABLE_IMAP           ON  CACHE BOOL     "Disable IMAP")
 set(CURL_DISABLE_SMTP           ON  CACHE BOOL     "Disable SMTP")
 set(CURL_DISABLE_GOPHER         ON  CACHE BOOL     "Disable Gopher")
-set(FMT_HEADER_ONLY             ON  CACHE BOOL     "" FORCE)
+# fmt settings
+set(FMT_HEADER_ONLY             OFF CACHE BOOL     "" FORCE)
 set(FMT_DOC                     OFF CACHE BOOL     "" FORCE)
 set(FMT_TEST                    OFF CACHE BOOL     "" FORCE)
 set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
+# libgit2 settings
+set(LIBGIT2_BUILD_CLAR          OFF CACHE BOOL     "Disable libgit2 tests")
+set(LIBGIT2_BUILD_EXAMPLES      OFF CACHE BOOL     "Disable libgit2 examples")
+# minizip-ng settings
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
 
 add_compile_definitions(
@@ -65,7 +75,7 @@ add_compile_definitions(
 # Mingw decided they would force the new version of cmake which completely breaks older deps
 # Only fix is a shim or fixing it up stream :shrug:
 
-function(patch_cmakelists_minimum_required input_path)
+function(millennium_process_package input_path)
     if(EXISTS "${input_path}")
         file(READ "${input_path}" CMAKELISTS_CONTENTS)
         string(REGEX REPLACE "cmake_minimum_required[ \t]*\\([ \t]*VERSION[^)]*\\)" "cmake_minimum_required(VERSION 3.10...3.21)" CMAKELISTS_CONTENTS "${CMAKELISTS_CONTENTS}")
@@ -76,136 +86,67 @@ function(patch_cmakelists_minimum_required input_path)
 endfunction()
 
 # ====================================
-# DEPENDENCY: incbin
-# DEPENDENCY: lua-cjson
-# DEPENDENCY: mINI
-# DEPENDENCY: websocketpp
-# DEPENDENCY: fmt
-# DEPENDENCY: nlohmann-json
-# DEPENDENCY: libgit2
-# DEPENDENCY: minizip-ng
-# DEPENDENCY: curl
+# Fetch and configure dependencies
 # ====================================
+message(STATUS "[Millennium] Fetching dependencies...")
 
-FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook.git       GIT_TAG v1.3.4      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/lua-cjson GIT_TAG v1.0.2      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(mINI          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0     SOURCE_SUBDIR fakedir)
-FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0 SOURCE_SUBDIR fakedir)
-FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main        SOURCE_SUBDIR fakedir)
+FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/LuaJIT/LuaJIT                 GIT_TAG v2.1         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(luajit_cmake  GIT_REPOSITORY https://github.com/zhaozg/luajit-cmake           GIT_TAG master       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/lua-cjson GIT_TAG v1.0.2       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(mINI          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2        SOURCE_SUBDIR fakedir)
+FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0      SOURCE_SUBDIR fakedir)
+FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0  SOURCE_SUBDIR fakedir)
+FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0  SOURCE_SUBDIR fakedir)
 
-# ====================================
-# DEPENDENCY: lua-jit
-# ===================================
+# Download all deps without configuring them
+set(DEPENDENCIES luajit luajit_cmake incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
 
+# Append min-hook only on Windows
 if(WIN32)
-    set(LUAJIT_BUILD_CMD bash -c "mingw32-make BUILDMODE=static XCFLAGS=-fPIC")
-elseif(UNIX)
-    set(LUAJIT_BUILD_CMD bash -c "make CC='gcc -m32' BUILDMODE=static XCFLAGS=-fPIC")
-else()
-    message(FATAL_ERROR "Unsupported platform")
+    list(APPEND DEPENDENCIES minhook)
 endif()
 
-set(LUAJIT_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/_install/luajit")
+foreach(dep ${DEPENDENCIES})
+    message(STATUS "[Millennium] Setting up ${dep}...")
+    FetchContent_MakeAvailable(${dep})
+endforeach()
 
-ExternalProject_Add(
-    lua-jit
-    GIT_REPOSITORY    https://github.com/LuaJIT/LuaJIT
-    GIT_TAG           v2.1.ROLLING
-    SOURCE_DIR        ${CMAKE_BINARY_DIR}/external/lua-jit-src
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ${LUAJIT_BUILD_CMD}
-    BUILD_IN_SOURCE   1
-    INSTALL_COMMAND
-        ${CMAKE_COMMAND} -E make_directory ${LUAJIT_INSTALL_PREFIX}/lib
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${LUAJIT_INSTALL_PREFIX}/include
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different <SOURCE_DIR>/src/libluajit.a ${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a
-        COMMAND ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/src ${LUAJIT_INSTALL_PREFIX}/include
-        
-    BUILD_BYPRODUCTS  ${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a
-                      ${LUAJIT_INSTALL_PREFIX}/include/lua.h
-    LOG_BUILD         ON
-    LOG_INSTALL       ON
-)
-
-ExternalProject_Get_Property(lua-jit SOURCE_DIR)
-file(MAKE_DIRECTORY ${LUAJIT_INSTALL_PREFIX}/include)
-
-add_library(LuaJIT::LuaJIT STATIC IMPORTED)
-set_target_properties(LuaJIT::LuaJIT PROPERTIES
-    IMPORTED_LOCATION ${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a
-    INTERFACE_INCLUDE_DIRECTORIES ${LUAJIT_INSTALL_PREFIX}/include
-)
-
-add_dependencies(LuaJIT::LuaJIT lua-jit)
-
-set(LUA_INCLUDE_DIR "${LUAJIT_INSTALL_PREFIX}/include")
-set(LUA_LIBRARIES "${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a")
-set(LUA_LIBRARY "${LUAJIT_INSTALL_PREFIX}/lib/liblua5.1.a")
-set(LUA_INCLUDE_DIRS "${LUAJIT_INSTALL_PREFIX}/include")
-
-set(CMAKE_PREFIX_PATH "${LUAJIT_INSTALL_PREFIX};${CMAKE_PREFIX_PATH}")
-
-# ====================================
-# DEPENDENCY: asio
-# ====================================
-
-ExternalProject_Add(
-    asio
-    GIT_REPOSITORY    https://github.com/chriskohlhoff/asio.git
-    GIT_TAG           asio-1-17-0
-    SOURCE_DIR        ${CMAKE_BINARY_DIR}/external/asio-src
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ""  
-    INSTALL_COMMAND   ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/_install/asio/include &&
-                      ${CMAKE_COMMAND} -E copy_directory <SOURCE_DIR>/asio/include ${CMAKE_BINARY_DIR}/_install/asio/include
-    BUILD_BYPRODUCTS  ${CMAKE_BINARY_DIR}/_install/asio/include/asio.hpp
-)
-
-ExternalProject_Get_Property(asio SOURCE_DIR)
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/_install/asio/include)
-
-add_library(asio::asio INTERFACE IMPORTED)
-set_target_properties(asio::asio PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_BINARY_DIR}/_install/asio/include)
-set_target_properties(asio::asio PROPERTIES INTERFACE_COMPILE_DEFINITIONS "ASIO_STANDALONE")
-set_target_properties(asio::asio PROPERTIES INTERFACE_LINK_LIBRARIES "$<$<PLATFORM_ID:Windows>:ws2_32;mswsock>$<$<PLATFORM_ID:Linux,Darwin>:pthread>")
-add_dependencies(asio::asio asio)
-
-# ====================================
-# Finalize Dependencies
-# ====================================
-
-FetchContent_MakeAvailable(incbin)
-FetchContent_MakeAvailable(minhook)
-FetchContent_MakeAvailable(websocketpp)
-FetchContent_MakeAvailable(fmt)
-FetchContent_MakeAvailable(nlohmann_json)
-FetchContent_MakeAvailable(libgit2)
-FetchContent_MakeAvailable(minizip_ng)
-FetchContent_MakeAvailable(mINI)
-FetchContent_MakeAvailable(lua_cjson)
-FetchContent_MakeAvailable(curl)
-
+# Include directories for deps
 include_directories("${websocketpp_SOURCE_DIR}")
-include_directories("${libgit2_SOURCE_DIR}/include")
-include_directories("${minizip_ng_SOURCE_DIR}")
+include_directories("${libgit2_SOURCE_DIR}/include") 
+include_directories("${minizip_ng_SOURCE_DIR}") 
 include_directories("${incbin_SOURCE_DIR}")
+include_directories("${asio_SOURCE_DIR}/asio/include")
+include_directories("${luajit_cmake_BINARY_DIR}")
+include_directories("${luajit_BINARY_DIR}")
 
-patch_cmakelists_minimum_required("${minhook_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${curl_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${websocketpp_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${fmt_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${nlohmann_json_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${libgit2_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${minizip_ng_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${mini_SOURCE_DIR}/CMakeLists.txt")
-patch_cmakelists_minimum_required("${lua_cjson_SOURCE_DIR}/CMakeLists.txt")
+# Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
+millennium_process_package("${luajit_cmake_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${minhook_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${curl_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${websocketpp_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${fmt_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${nlohmann_json_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${libgit2_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${minizip_ng_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${mini_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${lua_cjson_SOURCE_DIR}/CMakeLists.txt")
 
-add_subdirectory("${curl_SOURCE_DIR}"   "${curl_BINARY_DIR}"   SYSTEM)
+set(LUAJIT_DIR "${luajit_SOURCE_DIR}")
+set(LUA_INCLUDE_DIR luajit::header)
+set(LUA_INCLUDE_DIRS luajit::header)
+set(LUA_LIBRARY luajit::lib)
+set(LUA_LIBRARIES luajit::lib)
+
+# Let cmake finally configure after we've processed them
+add_subdirectory("${luajit_cmake_SOURCE_DIR}"  "${luajit_BINARY_DIR}"  SYSTEM)
+add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"          SYSTEM)
 add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"   SYSTEM)
 add_subdirectory("${fmt_SOURCE_DIR}"           "${fmt_BINARY_DIR}"           SYSTEM)
 add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}" SYSTEM)
@@ -219,7 +160,11 @@ add_subdirectory("${minhook_SOURCE_DIR}"       "${minhook_BINARY_DIR}"       SYS
 endif()
 
 # Make sure LuaJIT is built before cjson
-add_dependencies(cjson LuaJIT::LuaJIT)
+add_dependencies(cjson luajit::lib luajit::header)
+
+# =====================================
+# Begin Millennium config here
+# =====================================
 
 project(Millennium LANGUAGES C CXX)
 
@@ -227,7 +172,7 @@ project(Millennium LANGUAGES C CXX)
 # Version and Git Configuration
 # =====================================
 
-# Get version from file
+# Get Millennium version from version file
 file(STRINGS "${CMAKE_SOURCE_DIR}/version" VERSION_LINES LIMIT_COUNT 2)
 list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
 
@@ -235,36 +180,24 @@ list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/version")
 
 # Configure version header
-configure_file(
-    ${CMAKE_SOURCE_DIR}/src/include/millennium/version.h.in
-    ${CMAKE_BINARY_DIR}/version.h
-)
+configure_file(${CMAKE_SOURCE_DIR}/src/include/millennium/version.h.in ${CMAKE_BINARY_DIR}/version.h)
 
-# Get git commit hash
-execute_process(
-    COMMAND git rev-parse HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# Get current git commit hash
+execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} OUTPUT_VARIABLE GIT_COMMIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-message(STATUS "Millennium Version: ${MILLENNIUM_VERSION}")
-message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
+message(STATUS "[Millennium] Version: ${MILLENNIUM_VERSION}")
+message(STATUS "[Millennium] Git commit hash: ${GIT_COMMIT_HASH}")
 
 # Global compile definitions
-add_compile_definitions(
-    GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
-    MILLENNIUM_ROOT="${CMAKE_SOURCE_DIR}"
-    MILLENNIUM_VERSION="${MILLENNIUM_VERSION}"
-)
+add_compile_definitions(GIT_COMMIT_HASH="${GIT_COMMIT_HASH}" MILLENNIUM_ROOT="${CMAKE_SOURCE_DIR}" MILLENNIUM_VERSION="${MILLENNIUM_VERSION}")
 
 # Debug mode specific settings
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build")
+    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build")
     set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/assets")
     
     add_compile_definitions(
-        MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}"
+             MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}"
         MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}"
     )
 endif()
@@ -285,12 +218,7 @@ if(NOT APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 endif()
 
-# Apple Debug with AddressSanitizer
-if(APPLE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address -fno-omit-frame-pointer")
-endif()
-
-# MinGW visibility settings
+# MinGW optimizations
 if(MINGW)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
@@ -303,7 +231,6 @@ if(MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--exclude-libs,ALL")
 endif()
 
-# Unix visibility settings (NOTE: Original logic is NOT UNIX)
 if(NOT UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 endif()
@@ -315,14 +242,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 # =====================================
-# Platform-Specific Subdirectories
+# Compile platform boot loader shims
 # =====================================
 
-if(UNIX AND NOT APPLE AND NOT NIX_BUILD)
-    add_subdirectory(cli)
+if(WIN32)
+    add_subdirectory(src/boot/win32)
+elseif(UNIX AND NOT APPLE AND NOT NIX_BUILD)
     add_subdirectory(src/boot/linux)
 elseif(UNIX AND APPLE)
-    add_subdirectory(darwin)
+    add_subdirectory(src/boot/macos)
 endif()
 
 # =====================================
@@ -384,15 +312,10 @@ elseif(APPLE)
     include_directories("${python_path}/include/python3.11")
     set(MILLENNIUM__PYTHON_ENV "${python_path}")
     set(LIBPYTHON_RUNTIME_PATH "${python_path}/lib/libpython3.11.dylib")
-    
+    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
 else() # Linux
     if(NIX_BUILD)
-        add_compile_definitions(
-            _NIX_OS=ON
-            __NIX_SELF_PATH="$ENV{out}"
-            __NIX_SHIMS_PATH="$ENV{shims}"
-            __NIX_ASSETS_PATH="$ENV{assets}"
-        )
+        add_compile_definitions(_NIX_OS=ON __NIX_SELF_PATH="$ENV{out}" __NIX_SHIMS_PATH="$ENV{shims}" __NIX_ASSETS_PATH="$ENV{assets}")
     endif()
 
     # Try to find Python 3.11 exactly
@@ -400,15 +323,7 @@ else() # Linux
     
     set(PYTHON_TEST_RESULT FALSE)
     if(Python_FOUND)
-        file(WRITE "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc" "
-        #include <Python.h>
-
-        int main() {
-            Py_Initialize();
-            Py_Finalize();
-            return 0;
-        }
-        ")
+        file(WRITE "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc" "#include <Python.h>\nint main() { Py_Initialize(); Py_Finalize(); return 0; }")
 
         try_compile(PYTHON_TEST_RESULT
             "${CMAKE_BINARY_DIR}"
@@ -444,32 +359,27 @@ else() # Linux
             set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
         endif()
     endif()
+    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
 endif()
-
-message(STATUS "Set Python runtime library to ${LIBPYTHON_RUNTIME_PATH}")
 
 # =====================================
 # Windows Steam Path Detection
 # =====================================
 
+# Only build to Steam path when not building releases on GitHub Actions
 if(WIN32 AND NOT GITHUB_ACTION_BUILD)
-    execute_process(
-        COMMAND reg query "HKCU\\Software\\Valve\\Steam" /v "SteamPath"
-        RESULT_VARIABLE result
-        OUTPUT_VARIABLE steam_path
-        ERROR_VARIABLE reg_error
-    )
+    execute_process(COMMAND reg query "HKCU\\Software\\Valve\\Steam" /v "SteamPath" RESULT_VARIABLE result OUTPUT_VARIABLE steam_path ERROR_VARIABLE reg_error)
 
     if(result EQUAL 0)
         string(REGEX MATCH "[a-zA-Z]:/[^ ]+([ ]+[^ ]+)*" extracted_path "${steam_path}")
         string(REPLACE "\n" "" extracted_path "${extracted_path}")
 
-        message(STATUS "Build Steam Path: ${extracted_path}")
+        message(STATUS "[Millennium] Target build path: ${extracted_path}")
 
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${extracted_path})
         set(LIBRARY_OUTPUT_DIRECTORY ${extracted_path})
     else()
-        message(WARNING "Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
+        message(WARNING "[Millennium] Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
     endif()
 endif()
 
@@ -488,10 +398,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/vendor/ini/src
     ${CMAKE_SOURCE_DIR}/vendor/incbin
 )
-
-if(WIN32)
-    add_subdirectory(src/boot/win32)
-endif()
 
 # =====================================
 # Source Files
@@ -571,13 +477,10 @@ file(GLOB CHUNK_FILES "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build/
 set(HEADER_CONTENT "/**\n * Auto-generated by Millennium during CMake configuration - do not edit manually :)\n */\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}#define INCBIN_PREFIX\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}#include \"incbin.h\"\n")
-
 set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium frontend library -- responsible for displaying Millennium UI, and loading themes */\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_FRONTEND_BIN_, \"../../../assets/.millennium/Dist/index.js\");\n\n")
-
 set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium API library */\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_API_BIN_, \"../../../sdk/typescript-packages/loader/build/millennium.js\");\n")
-
 set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium API chunk files */\n")
 
 set(MAP_ENTRIES "")
@@ -676,26 +579,6 @@ if(NIX_BUILD)
     target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
-# include_directories(${LIBGIT2_INCLUDE_DIRS})
-# link_directories(${LIBGIT2_LIBRARY_DIRS})
-# add_definitions(${LIBGIT2_CFLAGS_OTHER})
-
-# if(WIN32)
-#     set(LIBGIT2_LIBRARIES
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libgit2.a
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libhttp_parser.a
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libpcre.a
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-mingw-static/lib/libzlib.a
-#     )
-# elseif(UNIX)
-#     set(LIBGIT2_LIBRARIES
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libgit2.a
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libhttp_parser.a
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libpcre.a
-#         ${CMAKE_SOURCE_DIR}/build/vcpkg_installed/x86-linux/lib/libz.a
-#     )
-# endif()
-
 if(WIN32)
     if(GITHUB_ACTION_BUILD)
         set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
@@ -734,15 +617,14 @@ endif()
 
 # Link required libraries for all platforms
 target_link_libraries(Millennium 
+    luajit::lib 
     libcurl
     minizip
     cjson
     "${libgit2_BINARY_DIR}/libgit2.a"
     nlohmann_json
-    fmt::fmt 
-    LuaJIT::LuaJIT
+    fmt::fmt
     mINI
-    asio::asio
     libgit2
     ws2_32
     gdi32
