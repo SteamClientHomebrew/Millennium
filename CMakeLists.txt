@@ -4,6 +4,14 @@ cmake_minimum_required(VERSION 3.10...3.21)
 include(ExternalProject)
 include(FetchContent)
 
+set(CMAKE_BUILD_TYPE_INIT "Release")
+set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -Oz -ffunction-sections -fdata-sections")
+set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Oz -ffunction-sections -fdata-sections")
+
+# Disable debug info completely
+set(CMAKE_C_FLAGS_DEBUG "")
+set(CMAKE_CXX_FLAGS_DEBUG "")
+
 # =====================================
 # Dep Build Configuration
 # =====================================
@@ -18,7 +26,8 @@ set(CMAKE_C_STANDARD            11  CACHE STRING   "C standard to use" FORCE)
 set(CMAKE_CXX_STANDARD_REQUIRED ON  CACHE BOOL     "Enforce C++ standard" FORCE)
 set(CMAKE_C_STANDARD_REQUIRED   ON  CACHE BOOL     "Enforce C standard" FORCE)
 set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
-# nghttp2 & other settings for libcurl
+
+# Curl optimizations - disable more features
 set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
 set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
 set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
@@ -40,16 +49,44 @@ set(CURL_DISABLE_POP3           ON  CACHE BOOL     "Disable POP3")
 set(CURL_DISABLE_IMAP           ON  CACHE BOOL     "Disable IMAP")
 set(CURL_DISABLE_SMTP           ON  CACHE BOOL     "Disable SMTP")
 set(CURL_DISABLE_GOPHER         ON  CACHE BOOL     "Disable Gopher")
-# fmt settings
+# Additional curl size optimizations
+set(CURL_DISABLE_COOKIES        ON  CACHE BOOL     "Disable cookies support")
+set(CURL_DISABLE_CRYPTO_AUTH    ON  CACHE BOOL     "Disable crypto auth")
+set(CURL_DISABLE_VERBOSE_STRINGS ON CACHE BOOL     "Disable verbose strings")
+set(CURL_DISABLE_DOH            ON  CACHE BOOL     "Disable DNS over HTTPS")
+set(HTTP_ONLY                   ON  CACHE BOOL     "Build HTTP only")
+
+# fmt settings - minimize size
 set(FMT_HEADER_ONLY             OFF CACHE BOOL     "" FORCE)
 set(FMT_DOC                     OFF CACHE BOOL     "" FORCE)
 set(FMT_TEST                    OFF CACHE BOOL     "" FORCE)
 set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
-# libgit2 settings
+set(FMT_SYSTEM_HEADERS          ON  CACHE BOOL     "Use system headers" FORCE)
+
+# libgit2 settings - disable unnecessary features
 set(LIBGIT2_BUILD_CLAR          OFF CACHE BOOL     "Disable libgit2 tests")
 set(LIBGIT2_BUILD_EXAMPLES      OFF CACHE BOOL     "Disable libgit2 examples")
+set(USE_SSH                     OFF CACHE BOOL     "Disable SSH support")
+set(USE_HTTPS                   ON  CACHE BOOL     "Enable HTTPS support")
+set(USE_BUNDLED_ZLIB            ON  CACHE BOOL     "Use bundled zlib")
+set(USE_GSSAPI                  OFF CACHE BOOL     "Disable GSSAPI")
+set(USE_NTLMCLIENT              OFF CACHE BOOL     "Disable NTLM client")
+set(USE_ICONV                   OFF CACHE BOOL     "Disable iconv")
+set(BUILD_CLI                   OFF CACHE BOOL     "Don't build git2 CLI")
+set(USE_THREADS                 ON  CACHE BOOL     "Disable threading if not needed")
+set(USE_NSEC                    OFF CACHE BOOL     "Disable nanoseconds")
+set(THREADSAFE                  ON  CACHE BOOL     "Enable thread safety" FORCE)
+
 # minizip-ng settings
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
+set(MZ_LZMA                     OFF CACHE BOOL     "Disable LZMA support")
+set(MZ_ZSTD                     OFF CACHE BOOL     "Disable ZSTD support")
+set(MZ_LIBCOMP                  OFF CACHE BOOL     "Disable libcomp support")
+set(MZ_OPENSSL                  OFF CACHE BOOL     "Disable OpenSSL in minizip")
+
+# LuaJIT optimizations
+set(LUAJIT_DISABLE_FFI          OFF CACHE BOOL     "Keep FFI for now")
+set(LUAJIT_DISABLE_JIT          OFF CACHE BOOL     "Keep JIT for performance")
 
 add_compile_definitions(
     USE_INTERNAL_FPCONV
@@ -113,8 +150,13 @@ if(WIN32)
 endif()
 
 foreach(dep ${DEPENDENCIES})
-    message(STATUS "[Millennium] Setting up ${dep}...")
+
+    string(TIMESTAMP start_time "%s")
     FetchContent_MakeAvailable(${dep})
+    string(TIMESTAMP end_time "%s")
+    math(EXPR duration "${end_time} - ${start_time}")
+    
+    message(STATUS "[Millennium] ${dep} completed in ${duration} seconds")
 endforeach()
 
 # Include directories for deps
@@ -550,12 +592,14 @@ elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
 endif()
 
-target_precompile_headers(Millennium PRIVATE 
-    <iostream>
-    <vector>
-    <string>
-    <memory>
-)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_precompile_headers(Millennium PRIVATE 
+        <iostream>
+        <vector>
+        <string>
+        <memory>
+    )
+endif()
 
 # =====================================
 # Add version resource for Windows builds
