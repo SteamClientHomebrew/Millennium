@@ -103,9 +103,7 @@ void Posix_AttachMillennium()
 }
 
 /** New interop funcs that receive calls from hooked libXtst */
-namespace HookInterop
-{
-extern "C" int StartMillennium()
+extern "C" __attribute__((visibility("default"))) int StartMillennium()
 {
     Logger.Log("Hooked main() with PID: {}", getpid());
     Logger.Log("Loading python libraries from {}", LIBPYTHON_RUNTIME_PATH);
@@ -119,7 +117,7 @@ extern "C" int StartMillennium()
     return 0;
 }
 
-extern "C" int StopMillennium()
+extern "C" __attribute__((visibility("default"))) int StopMillennium()
 {
     Logger.Log("Unloading Millennium...");
     g_shouldTerminateMillennium->flag.store(true);
@@ -132,5 +130,4 @@ extern "C" int StopMillennium()
     Logger.Log("Millennium unloaded successfully.");
     return 0;
 }
-} // namespace HookInterop
 #endif

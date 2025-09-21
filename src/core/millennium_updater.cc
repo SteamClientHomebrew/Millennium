@@ -31,10 +31,10 @@ void MillenniumUpdater::CheckForUpdates()
     }
 
     Logger.Log("Checking for updates...");
+    std::string response;
 
     try {
-        std::string response = Http::Get(GITHUB_API_URL, false);
-
+        response = Http::Get(GITHUB_API_URL, false);
         auto response_data = nlohmann::json::parse(response);
         if (!response_data.is_array() || response_data.empty()) {
             LOG_ERROR("Invalid response from GitHub API: expected non-empty array.");
@@ -99,7 +99,7 @@ void MillenniumUpdater::CheckForUpdates()
             }
         }
     } catch (const std::exception& e) {
-        LOG_ERROR("Unexpected error while checking for updates: {}", e.what());
+        LOG_ERROR("Unexpected error while checking for updates: {}. Received stream: {}", e.what(), response);
 
         // Reset state on error to avoid inconsistent state
         std::lock_guard<std::mutex> lock(_mutex);

@@ -4,13 +4,27 @@ cmake_minimum_required(VERSION 3.10...3.21)
 include(ExternalProject)
 include(FetchContent)
 
-set(CMAKE_BUILD_TYPE_INIT "Release")
-set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -Oz -ffunction-sections -fdata-sections")
-set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Oz -ffunction-sections -fdata-sections")
+# Add _GNU_SOURCE globally for POSIX compliance (needed for strncasecmp, mkstemp, etc.)
+if(UNIX AND NOT APPLE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GNU_SOURCE")
 
-# Disable debug info completely
-set(CMAKE_C_FLAGS_DEBUG "")
-set(CMAKE_CXX_FLAGS_DEBUG "")
+    # Force 32-bit library paths to prevent mixing 64-bit libraries
+    set(CMAKE_LIBRARY_PATH "/usr/lib32;/lib32" CACHE STRING "32-bit library search paths" FORCE)
+    set(CMAKE_FIND_ROOT_PATH "/usr/lib32;/lib32" CACHE STRING "32-bit find root path" FORCE)
+    # Explicitly disable zlib-ng to prevent conflicts
+    set(ZLIBNG_FOUND FALSE CACHE BOOL "Disable zlib-ng detection" FORCE)
+    set(ZLIBNG_LIBRARY "" CACHE FILEPATH "Empty zlib-ng library path" FORCE)
+
+    # Ensure LuaJIT is built with 32-bit flags
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -m32")
+    
+    # Also set LUAJIT specific variables for the wrapper
+    set(LUAJIT_BUILD_FLAGS "-m32" CACHE STRING "LuaJIT build flags" FORCE)
+    set(LUAJIT_TARGET_FLAGS "-m32" CACHE STRING "LuaJIT target flags" FORCE)
+endif()
 
 # =====================================
 # Dep Build Configuration
@@ -26,12 +40,19 @@ set(CMAKE_C_STANDARD            11  CACHE STRING   "C standard to use" FORCE)
 set(CMAKE_CXX_STANDARD_REQUIRED ON  CACHE BOOL     "Enforce C++ standard" FORCE)
 set(CMAKE_C_STANDARD_REQUIRED   ON  CACHE BOOL     "Enforce C standard" FORCE)
 set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
+# Enable Position Independent Code for all static libraries to avoid relocations in shared library
+set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL   "Enable PIC for all static libraries" FORCE)
 
 # Curl optimizations - disable more features
+if(WIN32)
+set(CMAKE_USE_OPENSSL         OFF CACHE BOOL     "Disable OpenSSL on Windows")
+set(CMAKE_USE_SCHANNEL        ON  CACHE BOOL     "Enable SChannel on Windows")
+else()
+set(CMAKE_USE_OPENSSL         ON  CACHE BOOL     "Enable OpenSSL on POSIX")
+set(CMAKE_USE_SCHANNEL        OFF CACHE BOOL     "Disable SChannel on POSIX")
+endif()
+
 set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
-set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
-set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
-set(CURL_USE_OPENSSL            OFF CACHE BOOL     "Use OpenSSL for TLS/SSL")
 set(CURL_USE_SECTRANSP          OFF CACHE BOOL     "Disable SecureTransport")
 set(CURL_USE_MBEDTLS            OFF CACHE BOOL     "Disable mbedTLS")
 set(CURL_USE_WOLFSSL            OFF CACHE BOOL     "Disable wolfSSL")
@@ -76,6 +97,8 @@ set(BUILD_CLI                   OFF CACHE BOOL     "Don't build git2 CLI")
 set(USE_THREADS                 ON  CACHE BOOL     "Disable threading if not needed")
 set(USE_NSEC                    OFF CACHE BOOL     "Disable nanoseconds")
 set(THREADSAFE                  ON  CACHE BOOL     "Enable thread safety" FORCE)
+set(LIBGIT2_BUILD_SHARED        OFF CACHE BOOL     "Build libgit2 as static library with PIC" FORCE)
+set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
 
 # minizip-ng settings
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
@@ -170,7 +193,6 @@ include_directories("${luajit_BINARY_DIR}")
 
 # Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
 millennium_process_package("${luajit_cmake_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${minhook_SOURCE_DIR}/CMakeLists.txt")
 millennium_process_package("${curl_SOURCE_DIR}/CMakeLists.txt")
 millennium_process_package("${websocketpp_SOURCE_DIR}/CMakeLists.txt")
 millennium_process_package("${fmt_SOURCE_DIR}/CMakeLists.txt")
@@ -179,6 +201,10 @@ millennium_process_package("${libgit2_SOURCE_DIR}/CMakeLists.txt")
 millennium_process_package("${minizip_ng_SOURCE_DIR}/CMakeLists.txt")
 millennium_process_package("${mini_SOURCE_DIR}/CMakeLists.txt")
 millennium_process_package("${lua_cjson_SOURCE_DIR}/CMakeLists.txt")
+
+if(WIN32)
+millennium_process_package("${minhook_SOURCE_DIR}/CMakeLists.txt")
+endif()
 
 set(LUAJIT_DIR "${luajit_SOURCE_DIR}")
 set(LUA_INCLUDE_DIR luajit::header)
@@ -281,6 +307,14 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
+
+    set(CMAKE_BUILD_TYPE_INIT "Release")
+    set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -Oz -ffunction-sections -fdata-sections")
+    set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Oz -ffunction-sections -fdata-sections")
+
+    # Disable debug info completely
+    set(CMAKE_C_FLAGS_DEBUG "")
+    set(CMAKE_CXX_FLAGS_DEBUG "")
 endif()
 
 # =====================================
@@ -645,7 +679,33 @@ if(WIN32)
         add_dependencies(Millennium copy_python311_dll)
     endif()
 
-    target_link_libraries(Millennium ${LIBGIT2_LIBRARIES} wsock32 Iphlpapi DbgHelp rpcrt4 winhttp ${PYTHON_LIB} minhook)
+    target_link_libraries(Millennium 
+        ${LIBGIT2_LIBRARIES} 
+        wsock32 
+        Iphlpapi 
+        DbgHelp 
+        rpcrt4 
+        winhttp 
+        ${PYTHON_LIB} 
+        minhook
+        -Wl,--start-group
+        -l:libnghttp2.a
+        iconv
+        unistring
+        psl
+        idn2
+        ssl
+        crypto
+        z
+        ssh2
+        -Wl,--end-group
+        ws2_32
+        gdi32
+        crypt32
+        secur32 
+        bcrypt 
+        ntdll
+    )
 
 elseif(UNIX)
     if(APPLE)
@@ -670,23 +730,4 @@ target_link_libraries(Millennium
     fmt::fmt
     mINI
     libgit2
-    ws2_32
-    gdi32
-    crypt32
-    winhttp
-    rpcrt4
-    secur32 
-    bcrypt 
-    ntdll
-    -Wl,--start-group
-    -l:libnghttp2.a
-    iconv
-    unistring
-    psl
-    idn2
-    ssl
-    crypto
-    z
-    ssh2
-    -Wl,--end-group
 )

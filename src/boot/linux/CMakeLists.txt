@@ -12,6 +12,10 @@ endif()
 
 add_library(unix-hooks SHARED main.cc)
 
+# Ensure symbols are exported properly for library interposition
+target_compile_options(unix-hooks PRIVATE -fvisibility=hidden)
+target_link_options(unix-hooks PRIVATE -Wl,--no-undefined -ldl)
+
 set_target_properties(unix-hooks PROPERTIES OUTPUT_NAME "millennium_bootstrap")
 set_target_properties(unix-hooks PROPERTIES PREFIX "lib")
 set_target_properties(unix-hooks PROPERTIES SUFFIX "_86x.so")
