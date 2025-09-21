@@ -29,6 +29,19 @@ if ! is_root;  then
     exit 1
 fi
 
+if [ -w /usr/bin/steam ] ; then
+    log "/usr/bin/steam is writable."
+else
+    log "/usr/bin/steam is NOT writable."
+    if [ -w /usr/local/bin/ ] ; then
+        log "/usr/local/bin is writable. Install location will be /usr/local/bin."
+        USE_USRLOCAL=1
+    else
+        log "${BOLD_RED}!!${RESET} /usr/local/bin is not writable. Exiting."
+        exit 2
+    fi
+fi
+
 case $(uname -sm) in
     "Linux x86_64") target="linux-x86_64" ;;
     *) log "${BOLD_RED}!!${RESET} Unsupported platform $(uname -sm). x86_64 is the only available platform."; exit ;;
@@ -89,9 +102,18 @@ tar xzf "$tar" -C "$extract_path"
 folder_size=$(du -sb "$extract_path" | awk '{print $1}' | numfmt --to=iec-i --suffix=B --padding=7 | sed 's/\([0-9]\)\([A-Za-z]\)/\1 \2/')
 log "\nTotal Install Size: $folder_size"
 
-cp -r "$extract_path"/* / || true
+if ! [[ $USE_USRLOCAL ]] ; then
+    # Default installation method with writable /usr/bin.
+    cp -r "$extract_path"/* / || true
+    chmod +x /usr/bin/millennium
+else
+    # Alternate installation method with writable /usr/local/bin.
+    cp -r "$extract_path"/usr/* /usr/local/
+    cp -r "$extract_path"/opt/* /opt/
+    chmod +x /usr/local/bin/millennium
+fi
 
-chmod +x /usr/bin/millennium
+# This step is the same on both methods
 chmod +x /opt/python-i686-3.11.8/bin/python3.11
 
 log "cleaning up packages..."
