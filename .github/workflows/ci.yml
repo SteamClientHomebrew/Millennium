@@ -60,7 +60,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: mingw32
-          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
+          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git libpsl-dev
 
       - name: 🛠️ Build Millennium Frontend
         env:
