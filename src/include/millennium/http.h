@@ -105,7 +105,6 @@ static std::string Get(const char* url, bool retry = true)
 
         while (true) {
             res = curl_easy_perform(curl);
-
             if (!retry || res == CURLE_OK) {
                 break;
             }
@@ -113,7 +112,6 @@ static std::string Get(const char* url, bool retry = true)
             if (g_shouldTerminateMillennium->flag.load()) {
                 throw HttpError("Thread termination flag is set, aborting HTTP request.");
             }
-
             /** Calling the server to quickly seems to accident DoS. */
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }

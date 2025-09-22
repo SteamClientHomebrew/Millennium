@@ -33,26 +33,27 @@ endif()
 # General settings
 set(BUILD_TESTS                 OFF CACHE BOOL     "Disable building tests")
 set(BUILD_EXAMPLES              OFF CACHE BOOL     "Disable building examples")
-# Build static libraries by default
+
 set(BUILD_SHARED_LIBS           OFF CACHE BOOL     "Build static libraries by default")
 set(CMAKE_CXX_STANDARD          17  CACHE STRING   "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD            11  CACHE STRING   "C standard to use" FORCE)
 set(CMAKE_CXX_STANDARD_REQUIRED ON  CACHE BOOL     "Enforce C++ standard" FORCE)
 set(CMAKE_C_STANDARD_REQUIRED   ON  CACHE BOOL     "Enforce C standard" FORCE)
-set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
-# Enable Position Independent Code for all static libraries to avoid relocations in shared library
-set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL   "Enable PIC for all static libraries" FORCE)
 
-# Curl optimizations - disable more features
+set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
+set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
+
 if(WIN32)
-set(CMAKE_USE_OPENSSL         OFF CACHE BOOL     "Disable OpenSSL on Windows")
-set(CMAKE_USE_SCHANNEL        ON  CACHE BOOL     "Enable SChannel on Windows")
+set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
+set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
+set(CURL_USE_OPENSSL            OFF CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
 else()
-set(CMAKE_USE_OPENSSL         ON  CACHE BOOL     "Enable OpenSSL on POSIX")
-set(CMAKE_USE_SCHANNEL        OFF CACHE BOOL     "Disable SChannel on POSIX")
+set(CURL_USE_OPENSSL            ON  CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
+set(CURL_USE_SCHANNEL           OFF CACHE INTERNAL "" FORCE)
+set(CURL_WINDOWS_SSPI           OFF CACHE INTERNAL "" FORCE)
+set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
 endif()
 
-set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
 set(CURL_USE_SECTRANSP          OFF CACHE BOOL     "Disable SecureTransport")
 set(CURL_USE_MBEDTLS            OFF CACHE BOOL     "Disable mbedTLS")
 set(CURL_USE_WOLFSSL            OFF CACHE BOOL     "Disable wolfSSL")
@@ -62,7 +63,7 @@ set(CURL_DISABLE_INSTALL        ON  CACHE BOOL     "Disable curl install")
 set(CURL_DISABLE_LDAP           ON  CACHE BOOL     "Disable LDAP")
 set(CURL_DISABLE_LDAPS          ON  CACHE BOOL     "Disable LDAPS")
 set(CURL_DISABLE_RTSP           ON  CACHE BOOL     "Disable RTSP")
-set(CURL_DISABLE_PROXY          ON  CACHE BOOL     "Disable proxy support")
+set(CURL_DISABLE_PROXY          OFF CACHE BOOL     "Disable proxy support")
 set(CURL_DISABLE_DICT           ON  CACHE BOOL     "Disable DICT")
 set(CURL_DISABLE_TELNET         ON  CACHE BOOL     "Disable TELNET")
 set(CURL_DISABLE_TFTP           ON  CACHE BOOL     "Disable TFTP")
@@ -70,46 +71,13 @@ set(CURL_DISABLE_POP3           ON  CACHE BOOL     "Disable POP3")
 set(CURL_DISABLE_IMAP           ON  CACHE BOOL     "Disable IMAP")
 set(CURL_DISABLE_SMTP           ON  CACHE BOOL     "Disable SMTP")
 set(CURL_DISABLE_GOPHER         ON  CACHE BOOL     "Disable Gopher")
-# Additional curl size optimizations
-set(CURL_DISABLE_COOKIES        ON  CACHE BOOL     "Disable cookies support")
-set(CURL_DISABLE_CRYPTO_AUTH    ON  CACHE BOOL     "Disable crypto auth")
-set(CURL_DISABLE_VERBOSE_STRINGS ON CACHE BOOL     "Disable verbose strings")
-set(CURL_DISABLE_DOH            ON  CACHE BOOL     "Disable DNS over HTTPS")
-set(HTTP_ONLY                   ON  CACHE BOOL     "Build HTTP only")
 
-# fmt settings - minimize size
-set(FMT_HEADER_ONLY             OFF CACHE BOOL     "" FORCE)
+set(FMT_HEADER_ONLY             ON  CACHE BOOL     "" FORCE)
 set(FMT_DOC                     OFF CACHE BOOL     "" FORCE)
 set(FMT_TEST                    OFF CACHE BOOL     "" FORCE)
 set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
-set(FMT_SYSTEM_HEADERS          ON  CACHE BOOL     "Use system headers" FORCE)
 
-# libgit2 settings - disable unnecessary features
-set(LIBGIT2_BUILD_CLAR          OFF CACHE BOOL     "Disable libgit2 tests")
-set(LIBGIT2_BUILD_EXAMPLES      OFF CACHE BOOL     "Disable libgit2 examples")
-set(USE_SSH                     OFF CACHE BOOL     "Disable SSH support")
-set(USE_HTTPS                   ON  CACHE BOOL     "Enable HTTPS support")
-set(USE_BUNDLED_ZLIB            ON  CACHE BOOL     "Use bundled zlib")
-set(USE_GSSAPI                  OFF CACHE BOOL     "Disable GSSAPI")
-set(USE_NTLMCLIENT              OFF CACHE BOOL     "Disable NTLM client")
-set(USE_ICONV                   OFF CACHE BOOL     "Disable iconv")
-set(BUILD_CLI                   OFF CACHE BOOL     "Don't build git2 CLI")
-set(USE_THREADS                 ON  CACHE BOOL     "Disable threading if not needed")
-set(USE_NSEC                    OFF CACHE BOOL     "Disable nanoseconds")
-set(THREADSAFE                  ON  CACHE BOOL     "Enable thread safety" FORCE)
-set(LIBGIT2_BUILD_SHARED        OFF CACHE BOOL     "Build libgit2 as static library with PIC" FORCE)
-set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
-
-# minizip-ng settings
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
-set(MZ_LZMA                     OFF CACHE BOOL     "Disable LZMA support")
-set(MZ_ZSTD                     OFF CACHE BOOL     "Disable ZSTD support")
-set(MZ_LIBCOMP                  OFF CACHE BOOL     "Disable libcomp support")
-set(MZ_OPENSSL                  OFF CACHE BOOL     "Disable OpenSSL in minizip")
-
-# LuaJIT optimizations
-set(LUAJIT_DISABLE_FFI          OFF CACHE BOOL     "Keep FFI for now")
-set(LUAJIT_DISABLE_JIT          OFF CACHE BOOL     "Keep JIT for performance")
 
 add_compile_definitions(
     USE_INTERNAL_FPCONV
@@ -136,10 +104,10 @@ add_compile_definitions(
 # Only fix is a shim or fixing it up stream :shrug:
 
 function(millennium_process_package input_path)
-    if(EXISTS "${input_path}")
-        file(READ "${input_path}" CMAKELISTS_CONTENTS)
+    if(EXISTS "${input_path}/CMakeLists.txt")
+        file(READ "${input_path}/CMakeLists.txt" CMAKELISTS_CONTENTS)
         string(REGEX REPLACE "cmake_minimum_required[ \t]*\\([ \t]*VERSION[^)]*\\)" "cmake_minimum_required(VERSION 3.10...3.21)" CMAKELISTS_CONTENTS "${CMAKELISTS_CONTENTS}")
-        file(WRITE "${input_path}" "${CMAKELISTS_CONTENTS}")
+        file(WRITE "${input_path}/CMakeLists.txt" "${CMAKELISTS_CONTENTS}")
     else()
         message(WARNING "Could not find ${input_path} to patch.")
     endif()
@@ -150,11 +118,10 @@ endfunction()
 # ====================================
 message(STATUS "[Millennium] Fetching dependencies...")
 
-FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/LuaJIT/LuaJIT                 GIT_TAG v2.1         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(luajit_cmake  GIT_REPOSITORY https://github.com/zhaozg/luajit-cmake           GIT_TAG master       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(luajit       GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT     GIT_TAG v2.1         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2       SOURCE_SUBDIR fakedir)
 FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/lua-cjson GIT_TAG v1.0.2       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(mINI          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18       SOURCE_SUBDIR fakedir)
 FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2        SOURCE_SUBDIR fakedir)
 FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0       SOURCE_SUBDIR fakedir)
 FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0      SOURCE_SUBDIR fakedir)
@@ -165,7 +132,7 @@ FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemas
 FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0  SOURCE_SUBDIR fakedir)
 
 # Download all deps without configuring them
-set(DEPENDENCIES luajit luajit_cmake incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
+set(DEPENDENCIES luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
 
 # Append min-hook only on Windows
 if(WIN32)
@@ -173,7 +140,6 @@ if(WIN32)
 endif()
 
 foreach(dep ${DEPENDENCIES})
-
     string(TIMESTAMP start_time "%s")
     FetchContent_MakeAvailable(${dep})
     string(TIMESTAMP end_time "%s")
@@ -182,38 +148,37 @@ foreach(dep ${DEPENDENCIES})
     message(STATUS "[Millennium] ${dep} completed in ${duration} seconds")
 endforeach()
 
+# Setup LuaJIT variables for use by lua_cjson
+set(LUA_INCLUDE_DIR  luajit::header)
+set(LUA_INCLUDE_DIRS luajit::header)
+set(LUA_LIBRARY      luajit::lib   )
+set(LUA_LIBRARIES    luajit::lib   )
+
 # Include directories for deps
 include_directories("${websocketpp_SOURCE_DIR}")
 include_directories("${libgit2_SOURCE_DIR}/include") 
 include_directories("${minizip_ng_SOURCE_DIR}") 
 include_directories("${incbin_SOURCE_DIR}")
 include_directories("${asio_SOURCE_DIR}/asio/include")
-include_directories("${luajit_cmake_BINARY_DIR}")
 include_directories("${luajit_BINARY_DIR}")
 
 # Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
-millennium_process_package("${luajit_cmake_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${curl_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${websocketpp_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${fmt_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${nlohmann_json_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${libgit2_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${minizip_ng_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${mini_SOURCE_DIR}/CMakeLists.txt")
-millennium_process_package("${lua_cjson_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${luajit_SOURCE_DIR}")
+millennium_process_package("${curl_SOURCE_DIR}")
+millennium_process_package("${websocketpp_SOURCE_DIR}")
+millennium_process_package("${fmt_SOURCE_DIR}")
+millennium_process_package("${nlohmann_json_SOURCE_DIR}")
+millennium_process_package("${libgit2_SOURCE_DIR}")
+millennium_process_package("${minizip_ng_SOURCE_DIR}")
+millennium_process_package("${mini_SOURCE_DIR}")
+millennium_process_package("${lua_cjson_SOURCE_DIR}")
 
 if(WIN32)
-millennium_process_package("${minhook_SOURCE_DIR}/CMakeLists.txt")
+millennium_process_package("${minhook_SOURCE_DIR}/")
 endif()
 
-set(LUAJIT_DIR "${luajit_SOURCE_DIR}")
-set(LUA_INCLUDE_DIR luajit::header)
-set(LUA_INCLUDE_DIRS luajit::header)
-set(LUA_LIBRARY luajit::lib)
-set(LUA_LIBRARIES luajit::lib)
-
 # Let cmake finally configure after we've processed them
-add_subdirectory("${luajit_cmake_SOURCE_DIR}"  "${luajit_BINARY_DIR}"  SYSTEM)
+add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"        SYSTEM)
 add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"          SYSTEM)
 add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"   SYSTEM)
 add_subdirectory("${fmt_SOURCE_DIR}"           "${fmt_BINARY_DIR}"           SYSTEM)
@@ -657,6 +622,20 @@ if(NIX_BUILD)
     target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
+
+# Link required libraries for all platforms
+target_link_libraries(Millennium 
+    luajit::lib 
+    libcurl
+    minizip
+    cjson
+    # libgit2 doesn't export a CMake target for some reason, so we link the static lib directly
+    "${libgit2_BINARY_DIR}/libgit2.a"
+    nlohmann_json
+    fmt::fmt
+    mINI
+)
+
 if(WIN32)
     if(GITHUB_ACTION_BUILD)
         set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
@@ -680,31 +659,20 @@ if(WIN32)
     endif()
 
     target_link_libraries(Millennium 
-        ${LIBGIT2_LIBRARIES} 
-        wsock32 
-        Iphlpapi 
-        DbgHelp 
-        rpcrt4 
-        winhttp 
-        ${PYTHON_LIB} 
         minhook
-        -Wl,--start-group
-        -l:libnghttp2.a
-        iconv
-        unistring
-        psl
-        idn2
-        ssl
-        crypto
-        z
-        ssh2
-        -Wl,--end-group
+        ${PYTHON_LIB} 
         ws2_32
-        gdi32
         crypt32
+        winhttp
+        rpcrt4
         secur32 
         bcrypt 
-        ntdll
+        iphlpapi
+        dbghelp
+        schannel
+        normaliz
+        # curl dependencies
+        -Wl,--start-group nghttp2 iconv unistring psl idn2 ssl crypto z ssh2 -Wl,--end-group
     )
 
 elseif(UNIX)
@@ -718,16 +686,3 @@ elseif(UNIX)
         endif()
     endif()
 endif()
-
-# Link required libraries for all platforms
-target_link_libraries(Millennium 
-    luajit::lib 
-    libcurl
-    minizip
-    cjson
-    "${libgit2_BINARY_DIR}/libgit2.a"
-    nlohmann_json
-    fmt::fmt
-    mINI
-    libgit2
-)
