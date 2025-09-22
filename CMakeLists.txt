@@ -161,6 +161,7 @@ include_directories("${minizip_ng_SOURCE_DIR}")
 include_directories("${incbin_SOURCE_DIR}")
 include_directories("${asio_SOURCE_DIR}/asio/include")
 include_directories("${luajit_BINARY_DIR}")
+include_directories("${luajit_SOURCE_DIR}/src")
 
 # Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
 millennium_process_package("${luajit_SOURCE_DIR}")
