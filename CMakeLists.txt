@@ -178,18 +178,18 @@ millennium_process_package("${minhook_SOURCE_DIR}/")
 endif()
 
 # Let cmake finally configure after we've processed them
-add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"        SYSTEM)
-add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"          SYSTEM)
-add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"   SYSTEM)
-add_subdirectory("${fmt_SOURCE_DIR}"           "${fmt_BINARY_DIR}"           SYSTEM)
-add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}" SYSTEM)
-add_subdirectory("${libgit2_SOURCE_DIR}"       "${libgit2_BINARY_DIR}"       SYSTEM)
-add_subdirectory("${minizip_ng_SOURCE_DIR}"    "${minizip_ng_BINARY_DIR}"    SYSTEM)
-add_subdirectory("${mini_SOURCE_DIR}"          "${mini_BINARY_DIR}"          SYSTEM)
-add_subdirectory("${lua_cjson_SOURCE_DIR}"     "${lua_cjson_BINARY_DIR}"     SYSTEM)
+add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"       )
+add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
+add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"  )
+add_subdirectory("${fmt_SOURCE_DIR}"           "${fmt_BINARY_DIR}"          )
+add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}")
+add_subdirectory("${libgit2_SOURCE_DIR}"       "${libgit2_BINARY_DIR}"      )
+add_subdirectory("${minizip_ng_SOURCE_DIR}"    "${minizip_ng_BINARY_DIR}"   )
+add_subdirectory("${mini_SOURCE_DIR}"          "${mini_BINARY_DIR}"         )
+add_subdirectory("${lua_cjson_SOURCE_DIR}"     "${lua_cjson_BINARY_DIR}"    )
 
 if(WIN32)
-add_subdirectory("${minhook_SOURCE_DIR}"       "${minhook_BINARY_DIR}"       SYSTEM)
+add_subdirectory("${minhook_SOURCE_DIR}"       "${minhook_BINARY_DIR}"      )
 endif()
 
 # Make sure LuaJIT is built before cjson
