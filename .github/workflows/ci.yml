@@ -1,283 +1,258 @@
 name: Build Millennium
 
 on:
-    workflow_dispatch:
-        inputs:
-            release_artifacts:
-                description: 'Release build?'
-                required: true
-                default: 'no'
+  workflow_dispatch:
+    inputs:
+      release_artifacts:
+        description: "Release build?"
+        required: true
+        default: "no"
 
 concurrency:
-    group: ci-build
-    cancel-in-progress: true
+  group: ci-build
+  cancel-in-progress: true
 
 jobs:
-    build-windows:
-        permissions:
-            contents: write
-            issues: write
-            pull-requests: write
+  build-windows:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
 
-        runs-on: windows-latest
+    runs-on: windows-latest
 
-        steps:
-            - name: ⚙️ Checkout repository
-              uses: actions/checkout@v4
-              with:
-                  submodules: true
+    steps:
+      - name: ⚙️ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
 
-            - name: ⚙️ Download Node.js
-              uses: actions/setup-node@v3
-              with:
-                  node-version: 20
+      - name: ⚙️ Download Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-            - name: Cache vcpkg
-              uses: actions/cache@v4
-              with:
-                  path: |
-                      vendor/vcpkg/bincache
-                  key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
-                  restore-keys: |
-                      vcpkg-${{ runner.os }}-
+      - name: ⚙️ Download Semantic Release
+        run: |
+          npm install -g pnpm
+          npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: ⚙️ Download Semantic Release
-              run: |
-                  npm install -g pnpm
-                  npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: ⚙️ Get Next Version
+        id: get_version
+        run: . scripts\ci\win32\version.ps1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: ⚙️ Get Next Version
-              id: get_version
-              run: . scripts\ci\win32\version.ps1
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: ⚙️ Download Python Dependencies
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.0.9/python-windows.zip" -OutFile "python-windows.zip"
+          Expand-Archive -Path "python-windows.zip" -DestinationPath "./Python-3.11.8" -Force
+          New-Item -ItemType Directory -Force -Path "./build/python"
 
-            - name: ⚙️ Download Python Dependencies
-              run: |
-                  Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.0.9/python-windows.zip" -OutFile "python-windows.zip"
-                  Expand-Archive -Path "python-windows.zip" -DestinationPath "./Python-3.11.8" -Force
-                  New-Item -ItemType Directory -Force -Path "./build/python"
+          Copy-Item ./Python-3.11.8/artifacts/windows/python311.dll ./build/python/python311.dll
+          Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.dll ./build/python/python311_d.dll
+          Copy-Item ./Python-3.11.8/artifacts/windows/python311.lib ./build/python/python311.lib
+          Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.lib ./build/python/python311_d.lib
 
-                  Copy-Item ./Python-3.11.8/artifacts/windows/python311.dll ./build/python/python311.dll
-                  Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.dll ./build/python/python311_d.dll
-                  Copy-Item ./Python-3.11.8/artifacts/windows/python311.lib ./build/python/python311.lib
-                  Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.lib ./build/python/python311_d.lib
+      - name: ⚙️ Download Msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw32
+          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip
 
-            - name: ⚙️ Download Msys2
-              uses: msys2/setup-msys2@v2
-              with:
-                  msystem: mingw32
-                  install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip
+      - name: 🛠️ Build Millennium Frontend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd sdk && pnpm install && pnpm run build && cd ..
+          cd assets && pnpm install && pnpm run prod && cd ..
+          . scripts\ci\win32\mk-assets.ps1
 
-            - name: ⚙️ Install VCPKG
-              shell: pwsh
-              run: ./vendor/vcpkg/bootstrap-vcpkg.bat && ./vendor/vcpkg/vcpkg integrate install
+      - name: 🛠️ Build Millennium Plugin Backend
+        run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
 
-            - name: 🛠️ Build Millennium Frontend
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  cd sdk && pnpm install && pnpm run build && cd ..
-                  cd assets && pnpm install && pnpm run prod && cd ..
-                  . scripts\ci\win32\mk-assets.ps1
+      - name: 🛠️ Build Millennium Backend
+        shell: msys2 {0}
+        run: |
+          cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+          mkdir ./build/artifacts
+          cmake --build build --config Release -- -j$(nproc)
+          cp ./build/python/python311.dll D:/a/env/python311.dll
+          cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
+          cp ./build/millennium.dll D:/a/env/millennium.dll
+          mkdir D:/a/env/ext/bin
 
-            - name: 🛠️ Build Millennium Plugin Backend
-              run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
+      - name: 📤 Upload Build Artifact
+        id: upload-unsigned-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          include-hidden-files: true
+          name: millennium-windows
+          path: D:/a/env/
 
-            - name: 🛠️ Build Millennium Backend
-              shell: msys2 {0}
-              run: |
-                  cmake --preset=windows-mingw-release -DVCPKG_BUILD_TYPE=release -DGITHUB_ACTION_BUILD=ON
-                  mkdir ./build/artifacts
-                  cmake --build build --config Release -- -j$(nproc)
-                  cp ./build/python/python311.dll D:/a/env/python311.dll
-                  cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
-                  cp ./build/millennium.dll D:/a/env/millennium.dll
-                  mkdir D:/a/env/ext/bin
-
-            - name: 📤 Upload Build Artifact
-              id: upload-unsigned-artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  include-hidden-files: true
-                  name: millennium-windows
-                  path: D:/a/env/
-
-            - id: sign_artifact
-              if: ${{ inputs.release_artifacts == 'yes' }}
-              uses: signpath/github-action-submit-signing-request@v1.1
-              with:
-                  api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
-                  organization-id: 'f90532fc-e58c-4863-bc0d-72623720335f'
-                  project-slug: 'Millennium'
-                  signing-policy-slug: 'release-signing'
-                  artifact-configuration-slug: 'millennium-release-config'
-                  github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
-                  output-artifact-directory: 'signed-millennium'
-                  wait-for-completion: true
-                  parameters: |
-                      version: ${{ toJson(steps.get_version.outputs.version) }}
-
-            - name: 📤 Upload Signed Build Release
-              if: ${{ inputs.release_artifacts == 'yes' }}
-              id: upload-signed-artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  include-hidden-files: true
-                  name: millennium-windows-signed
-                  path: D:\a\Millennium\Millennium\signed-millennium
-
-    build-linux:
-        permissions:
-            contents: write
-            issues: write
-            pull-requests: write
-
-        runs-on: ubuntu-latest
-
-        steps:
-            - name: ⚙️ Checkout repository
-              uses: actions/checkout@v4
-              with:
-                  submodules: true
-
-            - name: ⚙️ Download Node.js
-              uses: actions/setup-node@v3
-              with:
-                  node-version: 20
-
-            - name: Cache vcpkg
-              uses: actions/cache@v4
-              with:
-                  path: |
-                      vendor/vcpkg/bincache
-                  key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
-                  restore-keys: |
-                      vcpkg-${{ runner.os }}-
-
-            - name: ⚙️ Download Semantic Release
-              run: |
-                  npm install -g pnpm
-                  pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: ⚙️ Get Next Version
-              run: bash scripts/ci/posix/version.sh
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: ⚙️ Install GCC Dependencies
-              run: |
-                  sudo dpkg --add-architecture i386
-                  sudo apt-get update
-                  sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386
-
-            - name: ⚙️ Download Python Dependencies
-              run: |
-                  wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
-                  mkdir -p ~/build/opt/python-i686-3.11.8
-                  mkdir -p ~/build/usr/lib/millennium
-                  mkdir -p /opt/python-i686-3.11.8/lib
-
-                  tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
-                  mv ~/build/opt/python-i686-3.11.8/python-build/* ~/build/opt/python-i686-3.11.8/
-
-                  cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so /opt/python-i686-3.11.8/lib/libpython-3.11.8.so
-                  ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
-
-            - name: ⚙️ Install CMake
-              uses: jwlawson/actions-setup-cmake@v2
-              with:
-                  cmake-version: '3.21.1'
-
-            - name: ⚙️ Install VCPKG
-              run: sudo apt install libgtk-3-dev ninja-build && ./vendor/vcpkg/bootstrap-vcpkg.sh && ./vendor/vcpkg/vcpkg integrate install
-
-            - name: 🛠️ Build Millennium Frontend
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  cd sdk && pnpm install && pnpm run build && cd ..
-                  cd assets && pnpm install && pnpm run prod && cd ..
-                  bash scripts/ci/posix/mk-assets.sh
-
-                  mkdir -p ~/build/usr/share/millennium/shims
-                  cp -r ./sdk/typescript-packages/loader/build/* ~/build/usr/share/millennium/shims/
-
-            - name: 🛠️ Build Millennium Backend
-              run: |
-                  cmake --preset=linux-release -G "Ninja" -DVCPKG_BUILD_TYPE=release -DGITHUB_ACTION_BUILD=ON
-                  # Build the project
-                  cmake --build build --config Release -- -j$(nproc)
-
-                  # Create final directory structure
-                  mkdir -p ~/build/usr/lib/millennium
-                  mkdir -p ~/build/usr/bin
-                  mkdir -p ~/build/usr/share/millennium
-                  mkdir -p ~/build/opt
-
-                  # Copy binaries and libraries directly to final locations
-                  cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
-                  cp ./build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
-                  cp ./build/cli/millennium ~/build/usr/bin/millennium
-                  chmod +x ~/build/usr/bin/millennium
-
-                  # Copy additional assets
-                  cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
-
-            - name: 📤 Upload Build Artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  include-hidden-files: true
-                  name: millennium-linux
-                  path: ~/build/
-
-    release:
-        needs: [build-windows, build-linux]
-        runs-on: ubuntu-latest
+      - id: sign_artifact
         if: ${{ inputs.release_artifacts == 'yes' }}
-        steps:
-            - name: ⚙️ Checkout repository
-              uses: actions/checkout@v4
-              with:
-                  submodules: true
+        uses: signpath/github-action-submit-signing-request@v1.1
+        with:
+          api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
+          organization-id: "f90532fc-e58c-4863-bc0d-72623720335f"
+          project-slug: "Millennium"
+          signing-policy-slug: "release-signing"
+          artifact-configuration-slug: "millennium-release-config"
+          github-artifact-id: "${{ steps.upload-unsigned-artifact.outputs.artifact-id }}"
+          output-artifact-directory: "signed-millennium"
+          wait-for-completion: true
+          parameters: |
+            version: ${{ toJson(steps.get_version.outputs.version) }}
 
-            - name: ⚙️ Download Node.js
-              uses: actions/setup-node@v3
-              with:
-                  node-version: 20
+      - name: 📤 Upload Signed Build Release
+        if: ${{ inputs.release_artifacts == 'yes' }}
+        id: upload-signed-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          include-hidden-files: true
+          name: millennium-windows-signed
+          path: D:\a\Millennium\Millennium\signed-millennium
 
-            - name: ⚙️ Install Semantic Release
-              run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-linux:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
 
-            - name: ⚙️ Download Windows Build
-              uses: actions/download-artifact@v4
-              with:
-                  name: millennium-windows-signed
-                  path: ./artifacts/windows
+    runs-on: ubuntu-latest
 
-            - name: ⚙️ Download Linux Build
-              uses: actions/download-artifact@v4
-              with:
-                  name: millennium-linux
-                  path: ./artifacts/linux
+    steps:
+      - name: ⚙️ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
 
-            - name: ⚙️ Bump Millennium Version
-              id: read_version
-              run: bash scripts/ci/posix/bump.sh
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: ⚙️ Download Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-            - name: 🛠️ Release Millennium
-              run: |
-                  mkdir -p ./artifacts/release
-                  cd ./artifacts/windows && zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip . && cd ../..
-                  tar -czvf ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
-                  npx semantic-release
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: ⚙️ Download Semantic Release
+        run: |
+          npm install -g pnpm
+          pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ⚙️ Get Next Version
+        run: bash scripts/ci/posix/version.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ⚙️ Install GCC Dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build
+
+      - name: ⚙️ Download Python Dependencies
+        run: |
+          wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
+          mkdir -p ~/build/opt/python-i686-3.11.8
+          mkdir -p ~/build/usr/lib/millennium
+          mkdir -p /opt/python-i686-3.11.8/lib
+
+          tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
+          mv ~/build/opt/python-i686-3.11.8/python-build/* ~/build/opt/python-i686-3.11.8/
+
+          cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so /opt/python-i686-3.11.8/lib/libpython-3.11.8.so
+          ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
+
+      - name: ⚙️ Install CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: "3.21.1"
+
+      - name: 🛠️ Build Millennium Frontend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd sdk && pnpm install && pnpm run build && cd ..
+          cd assets && pnpm install && pnpm run prod && cd ..
+          bash scripts/ci/posix/mk-assets.sh
+
+          mkdir -p ~/build/usr/share/millennium/shims
+          cp -r ./sdk/typescript-packages/loader/build/* ~/build/usr/share/millennium/shims/
+
+      - name: 🛠️ Build Millennium Backend
+        run: |
+          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+          # Build the project
+          cmake --build build --config Release -- -j$(nproc)
+
+          # Create final directory structure
+          mkdir -p ~/build/usr/lib/millennium
+          mkdir -p ~/build/usr/bin
+          mkdir -p ~/build/usr/share/millennium
+          mkdir -p ~/build/opt
+
+          # Copy binaries and libraries directly to final locations
+          cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
+          cp ./build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
+          cp ./build/cli/millennium ~/build/usr/bin/millennium
+          chmod +x ~/build/usr/bin/millennium
+
+          # Copy additional assets
+          cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
+
+      - name: 📤 Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          include-hidden-files: true
+          name: millennium-linux
+          path: ~/build/
+
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.release_artifacts == 'yes' }}
+    steps:
+      - name: ⚙️ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: ⚙️ Download Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: ⚙️ Install Semantic Release
+        run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ⚙️ Download Windows Build
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-windows-signed
+          path: ./artifacts/windows
+
+      - name: ⚙️ Download Linux Build
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-linux
+          path: ./artifacts/linux
+
+      - name: ⚙️ Bump Millennium Version
+        id: read_version
+        run: bash scripts/ci/posix/bump.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🛠️ Release Millennium
+        run: |
+          mkdir -p ./artifacts/release
+          cd ./artifacts/windows && zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip . && cd ../..
+          tar -czvf ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
+          npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
