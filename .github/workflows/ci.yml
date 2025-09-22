@@ -209,7 +209,6 @@ jobs:
           # Copy binaries and libraries directly to final locations
           cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
           cp ./build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
-          cp ./build/cli/millennium ~/build/usr/bin/millennium
           chmod +x ~/build/usr/bin/millennium
 
           # Copy additional assets

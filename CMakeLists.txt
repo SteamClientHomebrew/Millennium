@@ -43,6 +43,9 @@ set(CMAKE_C_STANDARD_REQUIRED   ON  CACHE BOOL     "Enforce C standard" FORCE)
 set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
 set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
 
+# Ensure all libraries are position independent for static linking
+set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL "" FORCE)
+
 if(WIN32)
 set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
 set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
