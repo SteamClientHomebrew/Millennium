@@ -184,7 +184,14 @@ jobs:
 
       - name: 🛠️ Build Millennium Backend
         run: |
-          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+          export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
+          export CMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu"
+          export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
+          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
+            -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
+            -DCMAKE_INCLUDE_PATH="/usr/include" \
+            -DCMAKE_FIND_ROOT_PATH="/usr/lib/i386-linux-gnu" \
+            -DPKG_CONFIG_EXECUTABLE="/usr/bin/pkg-config"
           # Build the project
           cmake --build build --config Release -- -j$(nproc)
 
