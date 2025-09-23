@@ -235,7 +235,7 @@ jobs:
           cp ./build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
 
           # Copy frontend assets from downloaded artifacts
-          cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
+          cp -r assets/ ~/build/usr/share/millennium/assets
 
       - name: 📤 Upload Build Artifact
         uses: actions/upload-artifact@v4
