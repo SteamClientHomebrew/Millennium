@@ -219,6 +219,11 @@ jobs:
         run: |
           cp -r assets-build/ assets/
 
+          echo "assets dir"
+          ls -R assets/
+          echo "build dir"
+          ls -R assets-build/
+
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build --config Release -- -j$(nproc)
