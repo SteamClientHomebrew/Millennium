@@ -56,6 +56,12 @@ jobs:
           name: frontend-build
           path: ~/env/ext/data/assets
 
+      - name: 📤 Upload SDK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-build
+          path: sdk/typescript-packages/loader/build
+
   build-windows:
     needs: prepare
     permissions:
@@ -76,6 +82,12 @@ jobs:
         with:
           name: frontend-build
           path: D:/a/env/ext/data/assets
+
+      - name: ⚙️ Download SDK Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-build
+          path: sdk/typescript-packages/loader/build
 
       - name: ⚙️ Download Python Dependencies
         run: |
@@ -160,6 +172,12 @@ jobs:
         with:
           name: frontend-build
           path: ~/env/ext/data/assets
+
+      - name: ⚙️ Download SDK Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-build
+          path: sdk/typescript-packages/loader/build
 
       - name: ⚙️ Install GCC Dependencies
         run: |
