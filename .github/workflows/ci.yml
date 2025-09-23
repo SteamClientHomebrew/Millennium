@@ -83,7 +83,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: assets/
+          path: assets-build/
 
       - name: ⚙️ Download SDK Artifacts
         uses: actions/download-artifact@v4
@@ -114,6 +114,8 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
+          cp -r assets-build/ assets/
+
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build --config Release -- -j$(nproc)
@@ -121,7 +123,7 @@ jobs:
           cp ./build/python/python311.dll D:/a/env/python311.dll
           cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
           cp ./build/millennium.dll D:/a/env/millennium.dll
-          cp -r assets/ D:/a/env/ext/data/assets
+          cp -r assets-build/ D:/a/env/ext/data/assets
 
       - name: 📤 Upload Build Artifact
         id: upload-unsigned-artifact
