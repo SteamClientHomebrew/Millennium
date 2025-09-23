@@ -217,12 +217,7 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
-          cp -r assets-build/ assets/
-
-          echo "assets dir"
-          ls -R assets/
-          echo "build dir"
-          ls -R assets-build/
+          cp -r assets-build/* assets/ 2>/dev/null || true
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
@@ -323,7 +318,7 @@ jobs:
 
       - name: 🛠️ Build Millennium Backend
         run: |
-          cp -r assets-build/ assets/
+          cp -r assets-build/* assets/ 2>/dev/null || true
 
           export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
           export CMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu"
