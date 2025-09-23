@@ -39,15 +39,16 @@ jobs:
       - name: ⚙️ Get Next Version
         id: get_version
         run: |
-          npx semantic-release --dry-run
-          VERSION=$(npx semantic-release --dry-run | grep -oP 'The next release version is \K[0-9.]+')
-          echo "Version: $VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "# current version of millennium" > ./version
-          echo "v$VERSION" >> ./version
-
+          npx semantic-release --dry-run --no-ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Export New Version
+        run: |
+          echo "New Millennium version is: ${{ steps.get_version.outputs.version }}"
+
+          echo "# current version of millennium" > ./version
+          echo "v${{ steps.get_version.outputs.version }}" >> ./version
 
       - name: 🛠️ Build Millennium Frontend
         env:
