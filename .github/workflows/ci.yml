@@ -173,7 +173,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: assets/.millennium
+          path: assets/
 
       - name: ⚙️ Download SDK Artifacts
         uses: actions/download-artifact@v4
