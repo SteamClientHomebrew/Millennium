@@ -88,23 +88,25 @@ jobs:
           Copy-Item ./Python-3.11.8/artifacts/windows/python311.lib ./build/python/python311.lib
           Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.lib ./build/python/python311_d.lib
 
-      - name: ⚙️ Setup MSYS2 Environment
-        run: |
-          C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git"
+      - name: ⚙️ Download Msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw32
+          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
 
       - name: 🛠️ Build Millennium Plugin Backend
         run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
 
       - name: 🛠️ Build Millennium Backend
+        shell: msys2 {0}
         run: |
-          $env:PATH = "C:\msys64\mingw32\bin;C:\msys64\usr\bin;" + $env:PATH
-          C:\msys64\usr\bin\bash.exe -lc "cd /d/a/Millennium/Millennium && cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON"
-          C:\msys64\usr\bin\bash.exe -lc "cd /d/a/Millennium/Millennium && mkdir ./build/artifacts"
-          C:\msys64\usr\bin\bash.exe -lc "cd /d/a/Millennium/Millennium && cmake --build build --config Release -- -j`$(nproc)"
-          C:\msys64\usr\bin\bash.exe -lc "cd /d/a/Millennium/Millennium && cp ./build/python/python311.dll /d/a/env/python311.dll"
-          C:\msys64\usr\bin\bash.exe -lc "cd /d/a/Millennium/Millennium && cp ./build/src/boot/win32/version.dll /d/a/env/version.dll"
-          C:\msys64\usr\bin\bash.exe -lc "cd /d/a/Millennium/Millennium && cp ./build/millennium.dll /d/a/env/millennium.dll"
-          C:\msys64\usr\bin\bash.exe -lc "cd /d/a/Millennium/Millennium && mkdir -p /d/a/env/ext/bin"
+          cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+          mkdir ./build/artifacts
+          cmake --build build --config Release -- -j$(nproc)
+          cp ./build/python/python311.dll D:/a/env/python311.dll
+          cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
+          cp ./build/millennium.dll D:/a/env/millennium.dll
+          mkdir D:/a/env/ext/bin
 
       - name: 📤 Upload Build Artifact
         id: upload-unsigned-artifact
