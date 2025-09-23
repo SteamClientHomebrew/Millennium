@@ -98,6 +98,11 @@ const void SetupEnvironmentVariables();
 
 void SetEnv(const std::string& key, const std::string& value)
 {
+    if (!GetEnv(key).empty()) {
+        /** allow the user to set the environment variables themselves */
+        return;
+    }
+
 #ifdef _WIN32
     _putenv_s(key.c_str(), value.c_str()); // Windows
 #else
