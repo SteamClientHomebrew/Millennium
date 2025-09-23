@@ -208,6 +208,8 @@ jobs:
 
       - name: 🛠️ Build Millennium Backend
         run: |
+          cp -r assets-build/ assets/
+
           export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
           export CMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu"
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
@@ -224,8 +226,6 @@ jobs:
             
           # Build the project
           cmake --build build --config Release -- -j$(nproc)
-
-          cp -r assets-build/ assets/
 
           # Create final directory structure
           mkdir -p ~/build/usr/lib/millennium
