@@ -13,13 +13,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-windows:
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-
-    runs-on: windows-latest
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
       - name: ⚙️ Checkout repository
@@ -35,15 +32,50 @@ jobs:
       - name: ⚙️ Download Semantic Release
         run: |
           npm install -g pnpm
-          npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+          pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ⚙️ Get Next Version
         id: get_version
-        run: . scripts\ci\win32\version.ps1
+        run: bash scripts/ci/posix/version.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🛠️ Build Millennium Frontend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd sdk && pnpm install && pnpm run build && cd ..
+          cd assets && pnpm install && pnpm run prod && cd ..
+          bash scripts/ci/posix/mk-assets.sh
+
+      - name: 📤 Upload Frontend Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: ~/env/ext/data/assets
+
+  build-windows:
+    needs: prepare
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    runs-on: windows-latest
+
+    steps:
+      - name: ⚙️ Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: ⚙️ Download Frontend Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: D:/a/env/ext/data/assets
 
       - name: ⚙️ Download Python Dependencies
         run: |
@@ -61,14 +93,6 @@ jobs:
         with:
           msystem: mingw32
           install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
-
-      - name: 🛠️ Build Millennium Frontend
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd sdk && pnpm install && pnpm run build && cd ..
-          cd assets && pnpm install && pnpm run prod && cd ..
-          . scripts\ci\win32\mk-assets.ps1
 
       - name: 🛠️ Build Millennium Plugin Backend
         run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
@@ -105,7 +129,7 @@ jobs:
           output-artifact-directory: "signed-millennium"
           wait-for-completion: true
           parameters: |
-            version: ${{ toJson(steps.get_version.outputs.version) }}
+            version: ${{ toJson(needs.prepare.outputs.version) }}
 
       - name: 📤 Upload Signed Build Release
         if: ${{ inputs.release_artifacts == 'yes' }}
@@ -117,6 +141,7 @@ jobs:
           path: D:\a\Millennium\Millennium\signed-millennium
 
   build-linux:
+    needs: prepare
     permissions:
       contents: write
       issues: write
@@ -130,22 +155,11 @@ jobs:
         with:
           submodules: true
 
-      - name: ⚙️ Download Node.js
-        uses: actions/setup-node@v3
+      - name: ⚙️ Download Frontend Artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-
-      - name: ⚙️ Download Semantic Release
-        run: |
-          npm install -g pnpm
-          pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: ⚙️ Get Next Version
-        run: bash scripts/ci/posix/version.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: frontend-build
+          path: ~/env/ext/data/assets
 
       - name: ⚙️ Install GCC Dependencies
         run: |
@@ -170,14 +184,6 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: "3.21.1"
-
-      - name: 🛠️ Build Millennium Frontend
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd sdk && pnpm install && pnpm run build && cd ..
-          cd assets && pnpm install && pnpm run prod && cd ..
-          bash scripts/ci/posix/mk-assets.sh
 
       - name: 🛠️ Build Millennium Backend
         run: |
@@ -208,7 +214,7 @@ jobs:
           cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
           cp ./build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
 
-          # Copy additional assets
+          # Copy frontend assets from downloaded artifacts
           cp -r ~/env/ext/data/assets ~/build/usr/share/millennium/assets
 
       - name: 📤 Upload Build Artifact
@@ -219,7 +225,7 @@ jobs:
           path: ~/build/
 
   release:
-    needs: [build-windows, build-linux]
+    needs: [prepare, build-windows, build-linux]
     runs-on: ubuntu-latest
     if: ${{ inputs.release_artifacts == 'yes' }}
     steps:
@@ -259,8 +265,8 @@ jobs:
       - name: 🛠️ Release Millennium
         run: |
           mkdir -p ./artifacts/release
-          cd ./artifacts/windows && zip -r ../release/millennium-v${{ steps.read_version.outputs.version }}-windows-x86_64.zip . && cd ../..
-          tar -czvf ./artifacts/release/millennium-v${{ steps.read_version.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
+          cd ./artifacts/windows && zip -r ../release/millennium-v${{ needs.prepare.outputs.version }}-windows-x86_64.zip . && cd ../..
+          tar -czvf ./artifacts/release/millennium-v${{ needs.prepare.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
           npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
