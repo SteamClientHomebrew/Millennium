@@ -48,13 +48,12 @@ jobs:
         run: |
           cd sdk && pnpm install && pnpm run build && cd ..
           cd assets && pnpm install && pnpm run prod && cd ..
-          bash scripts/ci/posix/mk-assets.sh
 
       - name: 📤 Upload Frontend Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: ~/env/ext/data/assets
+          path: assets/.millennium
 
       - name: 📤 Upload SDK Artifacts
         uses: actions/upload-artifact@v4
@@ -81,7 +80,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: D:/a/env/ext/data/assets
+          path: assets/.millennium
 
       - name: ⚙️ Download SDK Artifacts
         uses: actions/download-artifact@v4
@@ -171,7 +170,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: ~/env/ext/data/assets
+          path: assets/.millennium
 
       - name: ⚙️ Download SDK Artifacts
         uses: actions/download-artifact@v4
