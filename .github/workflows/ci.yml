@@ -39,6 +39,7 @@ jobs:
       - name: ⚙️ Get Next Version
         id: get_version
         run: |
+          npx semantic-release --dry-run
           VERSION=$(npx semantic-release --dry-run | grep -oP 'The next release version is \K[0-9.]+')
           echo "Version: $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -228,15 +229,16 @@ jobs:
           cp ./build/millennium.dll D:/a/env/millennium.dll
           cp -r assets-build/ D:/a/env/ext/data/assets
 
-      - name: 📤 Upload Build Artifact
+      - name: 📤 Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
-          name: millennium-windows
+          name: unsigned-millennium-windows
           path: D:/a/env/
 
-      - id: sign_artifact
+      - name: 🛠️ Sign Millennium Build
+        id: sign_artifact
         if: ${{ inputs.release_artifacts == 'yes' }}
         uses: signpath/github-action-submit-signing-request@v1.1
         with:
@@ -257,7 +259,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
-          name: millennium-windows-signed
+          name: signed-millennium-windows
           path: D:\a\Millennium\Millennium\signed-millennium
 
   build-linux:
