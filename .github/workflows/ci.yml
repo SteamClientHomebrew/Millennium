@@ -123,7 +123,7 @@ jobs:
         run: |
           $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-win32.zip"
           $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
-          $destinationFolder = $args[0]
+          $destinationFolder = "D:/a/env/ext/data/cache"
 
           if (-Not (Test-Path $destinationFolder)) {
               New-Item -ItemType Directory -Path $destinationFolder
