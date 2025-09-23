@@ -179,9 +179,6 @@ jobs:
           cd assets && pnpm install && pnpm run prod && cd ..
           bash scripts/ci/posix/mk-assets.sh
 
-          mkdir -p ~/build/usr/share/millennium/shims
-          cp -r ./sdk/typescript-packages/loader/build/* ~/build/usr/share/millennium/shims/
-
       - name: 🛠️ Build Millennium Backend
         run: |
           export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
@@ -197,6 +194,7 @@ jobs:
             -DCMAKE_SYSTEM_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
             -DPKG_CONFIG_EXECUTABLE="/usr/bin/pkg-config" \
             -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON
+            
           # Build the project
           cmake --build build --config Release -- -j$(nproc)
 
