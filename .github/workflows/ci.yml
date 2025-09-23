@@ -54,6 +54,7 @@ jobs:
         with:
           name: frontend-build
           path: assets/.millennium
+          include-hidden-files: true
 
       - name: 📤 Upload SDK Artifacts
         uses: actions/upload-artifact@v4
