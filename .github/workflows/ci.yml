@@ -43,7 +43,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Export New Version
+      - name: ⚙️ Export New Version
         run: |
           echo "New Millennium version is: ${{ steps.get_version.outputs.version }}"
 
