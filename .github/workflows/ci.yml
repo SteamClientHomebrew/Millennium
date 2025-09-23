@@ -38,7 +38,13 @@ jobs:
 
       - name: ⚙️ Get Next Version
         id: get_version
-        run: bash scripts/ci/posix/version.sh
+        run: |
+          VERSION=$(npx semantic-release --dry-run | grep -oP 'The next release version is \K[0-9.]+')
+          echo "Version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "# current version of millennium" > ./version
+          echo "v$VERSION" >> ./version
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -79,6 +85,11 @@ jobs:
         with:
           submodules: true
 
+      - name: ⚙️ Update Millennium Version
+        run: |
+          echo "# current version of millennium" > ./version
+          echo "v${{ needs.prepare.outputs.version }}" >> ./version
+
       - name: ⚙️ Download Frontend Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -109,7 +120,99 @@ jobs:
           install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
 
       - name: 🛠️ Build Millennium Plugin Backend
-        run: . scripts\ci\win32\setup-python.ps1 D:/a/env/ext/data/cache
+        run: |
+          $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-win32.zip"
+          $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
+          $destinationFolder = $args[0]
+
+          if (-Not (Test-Path $destinationFolder)) {
+              New-Item -ItemType Directory -Path $destinationFolder
+          }
+
+          $zipFilePath = Join-Path $destinationFolder "python-3.11.8-embed-win32.zip"
+          $getPipFilePath = Join-Path $destinationFolder "get-pip.py"
+
+          function Download-File($Url, $DestinationPath) {
+              $webRequest = [System.Net.HttpWebRequest]::Create($Url)
+              $webRequest.Method = "GET"
+              $webRequest.UserAgent = "Millennium.Installer/1.0"
+
+              $response = $webRequest.GetResponse()
+              $responseStream = $response.GetResponseStream()
+
+              $fileStream = New-Object System.IO.FileStream($DestinationPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+              $buffer = New-Object byte[] 8192
+              $bytesRead = 0
+
+              while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                  $fileStream.Write($buffer, 0, $bytesRead)
+              }
+
+              $fileStream.Close()
+              $responseStream.Close()
+          }
+
+          function Extract-ZipFile {
+              param (
+                  [string]$zipPath,
+                  [string]$extractPath
+              )
+
+              Add-Type -AssemblyName System.IO.Compression.FileSystem
+              $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+              foreach ($entry in $zipArchive.Entries) {
+                  $destinationPath = Join-Path $extractPath $entry.FullName
+                  $destinationDir = [System.IO.Path]::GetDirectoryName($destinationPath)
+                  
+                  if (-Not (Test-Path $destinationDir)) {
+                      New-Item -ItemType Directory -Path $destinationDir | Out-Null
+                  }
+
+                  if ($entry.Name -ne "") {
+                      if (Test-Path $destinationPath) {
+                          Remove-Item $destinationPath -Force
+                      }
+                      $fileStream = [System.IO.File]::Create($destinationPath)
+                      $entryStream = $entry.Open()
+                      $buffer = New-Object byte[] 8192
+                      $bytesRead = 0
+
+                      while (($bytesRead = $entryStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                          $fileStream.Write($buffer, 0, $bytesRead)
+                      }
+
+                      $fileStream.Close()
+                      $entryStream.Close()
+                  }
+              }
+              $zipArchive.Dispose()
+          }
+
+          Download-File -Url $pythonUrl -DestinationPath $zipFilePath
+          Extract-ZipFile -zipPath $zipFilePath -extractPath $destinationFolder
+          Remove-Item $zipFilePath
+
+          Write-Host "Downloaded python packages to $destinationFolder"
+
+          Set-Content -Path (Join-Path $destinationFolder "python311._pth") -Value @'
+          python311.zip
+          .
+          # The following line has been added by Millennium
+          # This will implicitly run site.main() which lets us pip from 'python -m pip'
+          import site
+          '@
+
+          Write-Host "Enabled external site package support."
+
+          # Download get-pip.py
+          Download-File -Url $getPipUrl -DestinationPath $getPipFilePath
+
+          # Run get-pip.py to install pip
+          $pythonExe = Join-Path $destinationFolder "python.exe"
+          & $pythonExe $getPipFilePath --no-warn-script-location
+
+          Remove-Item $getPipFilePath
+          Write-Host "Installed pip on embedded packages"
 
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
@@ -171,6 +274,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: ⚙️ Update Millennium Version
+        run: |
+          echo "# current version of millennium" > ./version
+          echo "v${{ needs.prepare.outputs.version }}" >> ./version
 
       - name: ⚙️ Download Frontend Artifacts
         uses: actions/download-artifact@v4
@@ -281,11 +389,10 @@ jobs:
           name: millennium-linux
           path: ./artifacts/linux
 
-      - name: ⚙️ Bump Millennium Version
-        id: read_version
-        run: bash scripts/ci/posix/bump.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: ⚙️ Update Millennium Version
+        run: |
+          echo "# current version of millennium" > ./version
+          echo "v${{ needs.prepare.outputs.version }}" >> ./version
 
       - name: 🛠️ Release Millennium
         run: |
