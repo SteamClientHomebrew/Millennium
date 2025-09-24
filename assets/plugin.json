@@ -3,5 +3,5 @@
 	"common_name": "Millennium",
 	"description": "An integrated plugin that provides core platform functionality.",
 	"useBackend": false,
-	"frontend": "src"
+	"frontend": "frontend"
 }

@@ -449,16 +449,16 @@ include_directories(
 # =====================================
 
 set(SOURCE_FILES
-    src/backend/libjs_interop.cc
-    src/backend/liblj_api.cc
-    src/backend/liblj_http.cc
-    src/backend/liblj_interop.cc
-    src/backend/liblj_logger.cc
-    src/backend/liblj_utils.cc
-    src/backend/libpy_api.cc
-    src/backend/libpy_gil.cc
-    src/backend/libpy_interop.cc
-    src/backend/libpy_logger.cc
+    src/runtime/libjs_interop.cc
+    src/runtime/liblj_api.cc
+    src/runtime/liblj_http.cc
+    src/runtime/liblj_interop.cc
+    src/runtime/liblj_logger.cc
+    src/runtime/liblj_utils.cc
+    src/runtime/libpy_api.cc
+    src/runtime/libpy_gil.cc
+    src/runtime/libpy_interop.cc
+    src/runtime/libpy_logger.cc
     src/core/auth.cc
     src/core/backend_init.cc
     src/core/backend_mgr.cc
