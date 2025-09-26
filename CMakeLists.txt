@@ -246,6 +246,99 @@ if(DEFINED ENV{NIX_OS})
 endif()
 
 # =====================================
+# Build Frontend Assets
+# =====================================
+
+file(GLOB_RECURSE SDK_SOURCE_FILES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/sdk/**/*"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sdk/*"
+)
+# Remove node_modules from SDK source files
+list(FILTER SDK_SOURCE_FILES EXCLUDE REGEX ".*/node_modules/.*")
+
+file(GLOB_RECURSE FRONTEND_SOURCE_FILES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/**/*"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/frontend/*"
+)
+# Remove node_modules from frontend source files
+list(FILTER FRONTEND_SOURCE_FILES EXCLUDE REGEX ".*/node_modules/.*")
+
+# Add all source files as configure dependencies
+foreach(file ${SDK_SOURCE_FILES})
+    message(STATUS "[Millennium] Adding SDK configure dependency: ${file}")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${file}")
+endforeach()
+
+foreach(file ${FRONTEND_SOURCE_FILES})
+    message(STATUS "[Millennium] Adding frontend configure dependency: ${file}")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${file}")
+endforeach()
+
+# Find pnpm executable
+find_program(PNPM_EXECUTABLE pnpm)
+if(NOT PNPM_EXECUTABLE)
+    message(FATAL_ERROR "pnpm is required but not found. Please install pnpm.")
+endif()
+
+message(STATUS "[Millennium] Found pnpm at: ${PNPM_EXECUTABLE}")
+
+# Build SDK first
+message(STATUS "[Millennium] Building SDK...")
+execute_process(
+    COMMAND ${PNPM_EXECUTABLE} install
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
+    RESULT_VARIABLE SDK_INSTALL_RESULT
+    OUTPUT_VARIABLE SDK_INSTALL_OUTPUT
+    ERROR_VARIABLE SDK_INSTALL_ERROR
+)
+
+if(NOT SDK_INSTALL_RESULT EQUAL 0)
+    message(FATAL_ERROR "[Millennium] SDK pnpm install failed: ${SDK_INSTALL_ERROR}")
+endif()
+
+execute_process(
+    COMMAND ${PNPM_EXECUTABLE} run build
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
+    RESULT_VARIABLE SDK_BUILD_RESULT
+    OUTPUT_VARIABLE SDK_BUILD_OUTPUT
+    ERROR_VARIABLE SDK_BUILD_ERROR
+)
+
+if(NOT SDK_BUILD_RESULT EQUAL 0)
+    message(FATAL_ERROR "[Millennium] SDK build failed: ${SDK_BUILD_ERROR}")
+endif()
+
+message(STATUS "[Millennium] SDK build completed successfully")
+
+# Build frontend after SDK
+message(STATUS "[Millennium] Building frontend...")
+execute_process(
+    COMMAND ${PNPM_EXECUTABLE} install
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
+    RESULT_VARIABLE FRONTEND_INSTALL_RESULT
+    OUTPUT_VARIABLE FRONTEND_INSTALL_OUTPUT
+    ERROR_VARIABLE FRONTEND_INSTALL_ERROR
+)
+
+if(NOT FRONTEND_INSTALL_RESULT EQUAL 0)
+    message(FATAL_ERROR "[Millennium] Frontend pnpm install failed: ${FRONTEND_INSTALL_ERROR}")
+endif()
+
+execute_process(
+    COMMAND ${PNPM_EXECUTABLE} run build
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
+    RESULT_VARIABLE FRONTEND_BUILD_RESULT
+    OUTPUT_VARIABLE FRONTEND_BUILD_OUTPUT
+    ERROR_VARIABLE FRONTEND_BUILD_ERROR
+)
+
+if(NOT FRONTEND_BUILD_RESULT EQUAL 0)
+    message(FATAL_ERROR "[Millennium] Frontend build failed: ${FRONTEND_BUILD_ERROR}")
+endif()
+
+message(STATUS "[Millennium] Frontend build completed successfully")
+
+# =====================================
 # Platform-Specific Compiler Flags
 # =====================================
 
@@ -470,18 +563,17 @@ set(SOURCE_FILES
     src/core/millennium_updater.cc
     src/util/semver.cc
     src/util/zip.cc
-    src/head/css_parser.cc
-    src/head/default_cfg.cc
-    src/head/entry_point.cc
-    src/head/ipc_handler.cc
-    src/head/library_updater.cc
-    src/head/plugin_mgr.cc
-    src/head/README.md
-    src/head/scan.cc
-    src/head/sys_accent_col.cc
-    src/head/theme_cfg.cc
-    src/head/theme_mgr.cc
-    src/head/webkit.cc
+    src/backend/css_parser.cc
+    src/backend/default_cfg.cc
+    src/backend/entry_point.cc
+    src/backend/ipc_handler.cc
+    src/backend/library_updater.cc
+    src/backend/plugin_mgr.cc
+    src/backend/scan.cc
+    src/backend/sys_accent_col.cc
+    src/backend/theme_cfg.cc
+    src/backend/theme_mgr.cc
+    src/backend/webkit.cc
     src/hooks/cefparam.cc
     src/sys/cfg.cc
     src/sys/env.cc
