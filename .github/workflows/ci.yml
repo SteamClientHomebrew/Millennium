@@ -402,6 +402,6 @@ jobs:
           mkdir -p ./artifacts/release
           cd ./artifacts/windows && zip -r ../release/millennium-v${{ needs.prepare.outputs.version }}-windows-x86_64.zip . && cd ../..
           tar -czvf ./artifacts/release/millennium-v${{ needs.prepare.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
-          npx semantic-release
+          npx semantic-release --config ./scripts/.releaserc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
