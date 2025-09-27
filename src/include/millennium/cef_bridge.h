@@ -170,7 +170,7 @@ class SocketHelpers
     {
         try {
             std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
-            nlohmann::basic_json<> instance = nlohmann::json::parse(Http::Get(browserUrl.c_str()));
+            nlohmann::basic_json<> instance = nlohmann::json::parse(Http::Get(browserUrl.c_str(), true, 5L));
 
             return instance["webSocketDebuggerUrl"];
         } catch (nlohmann::detail::exception& exception) {

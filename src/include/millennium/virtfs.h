@@ -4,7 +4,7 @@
 #define INCBIN_PREFIX
 #include "incbin.h"
 /** Millennium frontend library -- responsible for displaying Millennium UI, and loading themes */
-INCTXT(MILLENNIUM_FRONTEND_BIN_, "../../../assets/.millennium/Dist/index.js");
+INCTXT(MILLENNIUM_FRONTEND_BIN_, "../../../build/frontend.bin");
 
 /** Millennium API library */
 INCTXT(MILLENNIUM_API_BIN_, "../../../sdk/typescript-packages/loader/build/millennium.js");
