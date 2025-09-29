@@ -188,6 +188,7 @@ jobs:
         shell: msys2 {0}
         run: |
           file C:/npm/prefix/pnpm
+          cat C:/npm/prefix/pnpm
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
