@@ -265,12 +265,10 @@ list(FILTER FRONTEND_SOURCE_FILES EXCLUDE REGEX ".*/node_modules/.*")
 
 # Add all source files as configure dependencies
 foreach(file ${SDK_SOURCE_FILES})
-    message(STATUS "[Millennium] Adding SDK configure dependency: ${file}")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${file}")
 endforeach()
 
 foreach(file ${FRONTEND_SOURCE_FILES})
-    message(STATUS "[Millennium] Adding frontend configure dependency: ${file}")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${file}")
 endforeach()
 
