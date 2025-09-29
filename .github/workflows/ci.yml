@@ -187,9 +187,7 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
-          node --version
-          which pnpm
-          pnpm --version
+          file C:/npm/prefix/pnpm
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
