@@ -82,8 +82,6 @@ jobs:
 
       - name: 🛠️ Build Millennium Plugin Backend
         run: |
-          Invoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression
-
           $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-win32.zip"
           $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
           $destinationFolder = "D:/a/env/ext/data/cache"
@@ -180,6 +178,7 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
+          curl -fsSL https://get.pnpm.io/install.sh | sh -
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
