@@ -185,9 +185,8 @@ jobs:
         run: |
           curl -fsSL https://get.pnpm.io/install.sh | bash -
           source ~/.bashrc
+          export PATH="/c/Program Files/nodejs:$PATH"
           export PATH="$PATH:/c/Users/runneradmin/AppData/Local/pnpm"
-          cmd.exe /c "echo %PATH%" | tr -d '\r'
-          export PATH="$(cmd.exe /c "echo %PATH%" | tr -d '\r'):$PATH"
 
           node --version
           which pnpm
