@@ -185,6 +185,7 @@ jobs:
         run: npm install -g pnpm
 
       - name: 🛠️ Build Millennium Backend
+        shell: msys2 {0}
         run: |
           node --version
           which pnpm
