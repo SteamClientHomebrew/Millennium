@@ -177,11 +177,12 @@ jobs:
 
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
-        run: |
-          wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
-
+        run: |1
+          curl -fsSL https://get.pnpm.io/install.sh | bash -
+          source ~/.bashrc
+          
           which pnpm
-          pnpm --version  
+          pnpm --version
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
