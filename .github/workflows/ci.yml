@@ -178,8 +178,6 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
-          cp -r assets-build/. assets/
-
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build --config Release -- -j$(nproc)
@@ -187,7 +185,8 @@ jobs:
           cp ./build/python/python311.dll D:/a/env/python311.dll
           cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
           cp ./build/millennium.dll D:/a/env/millennium.dll
-          cp -r assets-build/ D:/a/env/ext/data/assets
+
+          find assets -mindepth 1 -maxdepth 1 \( -name '.millennium' -o -name 'pipx' \) -exec mv -t D:/a/env/ext/data/assets {} +
 
       - name: 📤 Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
@@ -268,8 +267,6 @@ jobs:
 
       - name: 🛠️ Build Millennium Backend
         run: |
-          cp -r assets-build/. assets/
-
           export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
           export CMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu"
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
@@ -298,7 +295,7 @@ jobs:
           cp ./build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
 
           # Copy frontend assets from downloaded artifacts
-          cp -r assets-build/ ~/build/usr/share/millennium/assets
+          find assets -mindepth 1 -maxdepth 1 \( -name '.millennium' -o -name 'pipx' \) -exec mv -t ~/build/usr/share/millennium/assets {} +
 
       - name: 📤 Upload Build Artifact
         uses: actions/upload-artifact@v4
