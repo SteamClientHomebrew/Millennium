@@ -181,15 +181,8 @@ jobs:
           Write-Host "Installed pip on embedded packages"
 
       - name: 🛠️ Build Millennium Backend
-        shell: msys2 {0}
         run: |
-          curl -fsSL https://get.pnpm.io/install.sh | bash -
-          source ~/.bashrc
-          export PATH="/c/Program Files/nodejs:/c/Users/runneradmin/AppData/Local/pnpm:$PATH"
-
-          node --version
-          which pnpm
-          pnpm --version
+          npm install -g pnpm
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
@@ -199,7 +192,7 @@ jobs:
           cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
           cp ./build/millennium.dll D:/a/env/millennium.dll
 
-          find assets -mindepth 1 -maxdepth 1 \( -name '.millennium' -o -name 'pipx' \) -exec mv -t D:/a/env/ext/data/assets {} +
+          Get-ChildItem -Path "assets" -Depth 0 | Where-Object { $_.Name -eq '.millennium' -or $_.Name -eq 'pipx' } | Move-Item -Destination "D:/a/env/ext/data/assets"
 
       - name: 📤 Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
