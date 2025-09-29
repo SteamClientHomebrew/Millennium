@@ -182,13 +182,13 @@ jobs:
 
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
-        run: |1
-          node --version
-
+        run: |
           curl -fsSL https://get.pnpm.io/install.sh | bash -
           source ~/.bashrc
           export PATH="$PATH:/c/Users/runneradmin/AppData/Local/pnpm"
-          
+          export PATH="$(cmd.exe /c "echo %PATH%" | tr -d '\r'):$PATH"
+
+          node --version
           which pnpm
           pnpm --version
 
