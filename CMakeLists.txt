@@ -290,7 +290,7 @@ endif()
 # =========================
 # Build SDK
 # =========================
-message(STATUS "[Millennium] Building SDK...")
+message(STATUS "[Millennium] Building SDK with ${PNPM_EXECUTABLE}...")
 execute_process(
     COMMAND ${PNPM_EXECUTABLE} install
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
