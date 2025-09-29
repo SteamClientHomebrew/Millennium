@@ -176,9 +176,7 @@ jobs:
           Write-Host "Installed pip on embedded packages"
 
       - name: 🛠️ Install PNPM
-        shell: msys2 {0}
-        run: |
-          curl -fsSL https://get.pnpm.io/install.sh | sh -
+        run: npm install -g pnpm
 
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
