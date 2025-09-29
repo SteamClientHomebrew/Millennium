@@ -78,7 +78,12 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: mingw32
-          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git mingw-w64-x86_64-nodejs
+          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
+
+      - name: ⚙️ Download Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
       - name: 🛠️ Build Millennium Plugin Backend
         run: |
