@@ -180,6 +180,7 @@ jobs:
         run: |1
           curl -fsSL https://get.pnpm.io/install.sh | bash -
           source ~/.bashrc
+          export PATH="$PATH:/c/Users/runneradmin/AppData/Local/pnpm"
           
           which pnpm
           pnpm --version
