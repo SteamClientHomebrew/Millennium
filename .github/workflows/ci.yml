@@ -180,6 +180,9 @@ jobs:
         run: |
           wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
 
+          which pnpm
+          pnpm --version  
+
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build --config Release -- -j$(nproc)
