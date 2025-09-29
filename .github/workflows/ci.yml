@@ -39,7 +39,7 @@ jobs:
       - name: ⚙️ Get Next Version
         id: get_version
         run: |
-          npx semantic-release --dry-run --no-ci
+          npx semantic-release --dry-run --no-ci --config ./scripts/.releaserc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
