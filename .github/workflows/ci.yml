@@ -43,35 +43,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ⚙️ Export New Version
-        run: |
-          echo "New Millennium version is: ${{ steps.get_version.outputs.version }}"
-
-          echo "# current version of millennium" > ./version
-          echo "v${{ steps.get_version.outputs.version }}" >> ./version
-
-      - name: 🛠️ Build Millennium Frontend
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd sdk && pnpm install && pnpm run build && cd ..
-          cd assets && pnpm install && pnpm run prod && cd ..
-
-          find assets -mindepth 1 -maxdepth 1 ! -name '.millennium' ! -name 'pipx' -exec rm -rf {} +
-
-      - name: 📤 Upload Frontend Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: assets/
-          include-hidden-files: true
-
-      - name: 📤 Upload SDK Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sdk-build
-          path: sdk/typescript-packages/loader/build
-
   build-windows:
     needs: prepare
     permissions:
@@ -91,18 +62,6 @@ jobs:
         run: |
           echo "# current version of millennium" > ./version
           echo "v${{ needs.prepare.outputs.version }}" >> ./version
-
-      - name: ⚙️ Download Frontend Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: assets-build/
-
-      - name: ⚙️ Download SDK Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: sdk-build
-          path: sdk/typescript-packages/loader/build
 
       - name: ⚙️ Download Python Dependencies
         run: |
@@ -282,18 +241,6 @@ jobs:
         run: |
           echo "# current version of millennium" > ./version
           echo "v${{ needs.prepare.outputs.version }}" >> ./version
-
-      - name: ⚙️ Download Frontend Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: assets-build/
-
-      - name: ⚙️ Download SDK Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: sdk-build
-          path: sdk/typescript-packages/loader/build
 
       - name: ⚙️ Install GCC Dependencies
         run: |
