@@ -279,6 +279,14 @@ if(NOT PNPM_EXECUTABLE)
 endif()
 message(STATUS "[Millennium] Found pnpm at: ${PNPM_EXECUTABLE}")
 
+find_program(BASH_EXECUTABLE bash)
+if(BASH_EXECUTABLE)
+    set(PNPM_COMMAND ${BASH_EXECUTABLE} ${PNPM_EXECUTABLE})
+else()
+    # Fallback to direct execution
+    set(PNPM_COMMAND ${PNPM_EXECUTABLE})
+endif()
+
 # =========================
 # Build SDK
 # =========================
