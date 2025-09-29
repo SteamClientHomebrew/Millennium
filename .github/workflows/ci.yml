@@ -77,13 +77,9 @@ jobs:
       - name: ⚙️ Download Msys2
         uses: msys2/setup-msys2@v2
         with:
+          path-type: inherit
           msystem: mingw32
           install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
-
-      - name: ⚙️ Download Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
 
       - name: 🛠️ Build Millennium Plugin Backend
         run: |
@@ -180,9 +176,19 @@ jobs:
           Remove-Item $getPipFilePath
           Write-Host "Installed pip on embedded packages"
 
+      - name: ⚙️ Download Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: ⚙️ Install Pnpm
+        run: npm install -g pnpm
+
       - name: 🛠️ Build Millennium Backend
         run: |
-          npm install -g pnpm
+          node --version
+          which pnpm
+          pnpm --version
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
@@ -192,7 +198,7 @@ jobs:
           cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
           cp ./build/millennium.dll D:/a/env/millennium.dll
 
-          Get-ChildItem -Path "assets" -Depth 0 | Where-Object { $_.Name -eq '.millennium' -or $_.Name -eq 'pipx' } | Move-Item -Destination "D:/a/env/ext/data/assets"
+          find assets -mindepth 1 -maxdepth 1 \( -name '.millennium' -o -name 'pipx' \) -exec mv -t D:/a/env/ext/data/assets {} +
 
       - name: 📤 Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
