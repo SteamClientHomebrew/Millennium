@@ -279,10 +279,11 @@ find_program(PNPM_EXECUTABLE pnpm)
 if(NOT PNPM_EXECUTABLE)
     message(FATAL_ERROR "pnpm is required but not found. Please install pnpm.")
 endif()
-
 message(STATUS "[Millennium] Found pnpm at: ${PNPM_EXECUTABLE}")
 
-# Build SDK first
+# =========================
+# Build SDK
+# =========================
 message(STATUS "[Millennium] Building SDK...")
 execute_process(
     COMMAND ${PNPM_EXECUTABLE} install
@@ -293,7 +294,9 @@ execute_process(
 )
 
 if(NOT SDK_INSTALL_RESULT EQUAL 0)
-    message(FATAL_ERROR "[Millennium] SDK pnpm install failed: ${SDK_INSTALL_ERROR}")
+    message(STATUS "[Millennium] SDK pnpm install stdout:\n${SDK_INSTALL_OUTPUT}")
+    message(STATUS "[Millennium] SDK pnpm install stderr:\n${SDK_INSTALL_ERROR}")
+    message(FATAL_ERROR "[Millennium] SDK pnpm install failed with exit code ${SDK_INSTALL_RESULT}")
 endif()
 
 execute_process(
@@ -305,12 +308,16 @@ execute_process(
 )
 
 if(NOT SDK_BUILD_RESULT EQUAL 0)
-    message(FATAL_ERROR "[Millennium] SDK build failed: ${SDK_BUILD_ERROR}")
+    message(STATUS "[Millennium] SDK build stdout:\n${SDK_BUILD_OUTPUT}")
+    message(STATUS "[Millennium] SDK build stderr:\n${SDK_BUILD_ERROR}")
+    message(FATAL_ERROR "[Millennium] SDK build failed with exit code ${SDK_BUILD_RESULT}")
 endif()
 
 message(STATUS "[Millennium] SDK build completed successfully")
 
-# Build frontend after SDK
+# =========================
+# Build Frontend
+# =========================
 message(STATUS "[Millennium] Building frontend...")
 execute_process(
     COMMAND ${PNPM_EXECUTABLE} install
@@ -321,7 +328,9 @@ execute_process(
 )
 
 if(NOT FRONTEND_INSTALL_RESULT EQUAL 0)
-    message(FATAL_ERROR "[Millennium] Frontend pnpm install failed: ${FRONTEND_INSTALL_ERROR}")
+    message(STATUS "[Millennium] Frontend pnpm install stdout:\n${FRONTEND_INSTALL_OUTPUT}")
+    message(STATUS "[Millennium] Frontend pnpm install stderr:\n${FRONTEND_INSTALL_ERROR}")
+    message(FATAL_ERROR "[Millennium] Frontend pnpm install failed with exit code ${FRONTEND_INSTALL_RESULT}")
 endif()
 
 execute_process(
@@ -333,7 +342,9 @@ execute_process(
 )
 
 if(NOT FRONTEND_BUILD_RESULT EQUAL 0)
-    message(FATAL_ERROR "[Millennium] Frontend build failed: ${FRONTEND_BUILD_ERROR}")
+    message(STATUS "[Millennium] Frontend build stdout:\n${FRONTEND_BUILD_OUTPUT}")
+    message(STATUS "[Millennium] Frontend build stderr:\n${FRONTEND_BUILD_ERROR}")
+    message(FATAL_ERROR "[Millennium] Frontend build failed with exit code ${FRONTEND_BUILD_RESULT}")
 endif()
 
 message(STATUS "[Millennium] Frontend build completed successfully")
