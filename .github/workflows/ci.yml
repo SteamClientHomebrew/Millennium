@@ -178,7 +178,6 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
-          pacman -S --noconfirm mingw-w64-i686-nodejs mingw-w64-i686-npm
           npm install -g pnpm
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
