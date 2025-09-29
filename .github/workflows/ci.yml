@@ -78,7 +78,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           msystem: mingw32
-          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git mingw-w64-nodejs
+          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
 
       - name: 🛠️ Build Millennium Plugin Backend
         run: |
@@ -178,7 +178,7 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
-          npm install -g pnpm
+          wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
 
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
