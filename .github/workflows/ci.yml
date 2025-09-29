@@ -175,11 +175,14 @@ jobs:
           Remove-Item $getPipFilePath
           Write-Host "Installed pip on embedded packages"
 
-      - name: 🛠️ Build Millennium Backend
+      - name: 🛠️ Install PNPM
         shell: msys2 {0}
         run: |
           curl -fsSL https://get.pnpm.io/install.sh | sh -
 
+      - name: 🛠️ Build Millennium Backend
+        shell: msys2 {0}
+        run: |
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build --config Release -- -j$(nproc)
