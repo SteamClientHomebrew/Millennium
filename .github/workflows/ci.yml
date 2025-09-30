@@ -195,7 +195,7 @@ jobs:
           cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
           cp ./build/millennium.dll D:/a/env/millennium.dll
 
-          find assets -mindepth 1 -maxdepth 1 \( -name '.millennium' -o -name 'pipx' \) -exec mv -t D:/a/env/ext/data/assets {} +
+          mv src/pipx D:/a/env/ext/data/assets
 
       - name: 📤 Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
@@ -305,8 +305,7 @@ jobs:
           cp ./build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
           cp ./build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
 
-          # Copy frontend assets from downloaded artifacts
-          find assets -mindepth 1 -maxdepth 1 \( -name '.millennium' -o -name 'pipx' \) -exec mv -t ~/build/usr/share/millennium/assets {} +
+          mv src/pipx ~/build/usr/share/millennium/assets
 
       - name: 📤 Upload Build Artifact
         uses: actions/upload-artifact@v4
