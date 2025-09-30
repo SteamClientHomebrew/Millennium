@@ -187,9 +187,6 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: msys2 {0}
         run: |
-          file C:/npm/prefix/pnpm
-          cat C:/npm/prefix/pnpm
-
           cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build --config Release -- -j$(nproc)
@@ -257,12 +254,10 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386
+          sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386 nodejs npm
 
       - name: ⚙️ Download Python Dependencies
         run: |
-          curl -fsSL https://get.pnpm.io/install.sh | sh -
-
           wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
           mkdir -p ~/build/opt/python-i686-3.11.8
           mkdir -p ~/build/usr/lib/millennium
