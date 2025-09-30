@@ -339,7 +339,7 @@ jobs:
       - name: ⚙️ Download Windows Build
         uses: actions/download-artifact@v4
         with:
-          name: millennium-windows-signed
+          name: signed-millennium-windows
           path: ./artifacts/windows
 
       - name: ⚙️ Download Linux Build
