@@ -31,10 +31,7 @@
 		},
 		"onlyBuiltDependencies": [
 			"@parcel/watcher"
-		],
-		"overrides": {
-			"@steambrew/ttc": "link:../../../Transpiler"
-		}
+		]
 	},
 	"dependencies": {
 		"ansi-to-react": "^6.1.6",
