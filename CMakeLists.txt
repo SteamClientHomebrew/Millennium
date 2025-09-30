@@ -290,9 +290,9 @@ endif()
 # =========================
 # Build SDK
 # =========================
-message(STATUS "[Millennium] Building SDK with ${PNPM_EXECUTABLE}...")
+message(STATUS "[Millennium] Building SDK with ${PNPM_COMMAND}...")
 execute_process(
-    COMMAND ${PNPM_EXECUTABLE} install
+    COMMAND ${PNPM_COMMAND} install
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
     RESULT_VARIABLE SDK_INSTALL_RESULT
     OUTPUT_VARIABLE SDK_INSTALL_OUTPUT
@@ -306,7 +306,7 @@ if(NOT SDK_INSTALL_RESULT EQUAL 0)
 endif()
 
 execute_process(
-    COMMAND ${PNPM_EXECUTABLE} run build
+    COMMAND ${PNPM_COMMAND} run build
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
     RESULT_VARIABLE SDK_BUILD_RESULT
     OUTPUT_VARIABLE SDK_BUILD_OUTPUT
@@ -326,7 +326,7 @@ message(STATUS "[Millennium] SDK build completed successfully")
 # =========================
 message(STATUS "[Millennium] Building frontend...")
 execute_process(
-    COMMAND ${PNPM_EXECUTABLE} install
+    COMMAND ${PNPM_COMMAND} install
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
     RESULT_VARIABLE FRONTEND_INSTALL_RESULT
     OUTPUT_VARIABLE FRONTEND_INSTALL_OUTPUT
@@ -340,7 +340,7 @@ if(NOT FRONTEND_INSTALL_RESULT EQUAL 0)
 endif()
 
 execute_process(
-    COMMAND ${PNPM_EXECUTABLE} run build
+    COMMAND ${PNPM_COMMAND} run build
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
     RESULT_VARIABLE FRONTEND_BUILD_RESULT
     OUTPUT_VARIABLE FRONTEND_BUILD_OUTPUT
