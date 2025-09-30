@@ -280,13 +280,21 @@ endif()
 message(STATUS "[Millennium] Found pnpm at: ${PNPM_EXECUTABLE}")
 
 if(GITHUB_ACTION_BUILD)
-    find_program(BASH_EXECUTABLE bash)
-    if(BASH_EXECUTABLE)
-        set(PNPM_COMMAND ${BASH_EXECUTABLE} ${PNPM_EXECUTABLE})
-    else()
-        # Fallback to direct execution
+    if (WIN32)
+        find_program(BASH_EXECUTABLE bash)
+        if(BASH_EXECUTABLE)
+            set(PNPM_COMMAND ${BASH_EXECUTABLE} ${PNPM_EXECUTABLE})
+        else()
+            # Fallback to direct execution
+            set(PNPM_COMMAND ${PNPM_EXECUTABLE})
+        endif()
+    elseif(UNIX)
         set(PNPM_COMMAND ${PNPM_EXECUTABLE})
+    else()
+        message(FATAL_ERROR "Unsupported platform for GitHub Action build.")
     endif()
+else()
+    set(PNPM_COMMAND ${PNPM_EXECUTABLE})
 endif()
 
 
