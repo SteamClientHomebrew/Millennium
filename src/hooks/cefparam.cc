@@ -170,6 +170,8 @@ const char* SanitizeCommandLine(const char* cmd)
         return _strdup(cmd);
     }
 
+    Logger.Log("Is developer mode: {}", IsDeveloperMode());
+
     /** If developer mode is enabled, disable restrictions */
     if (!IsDeveloperMode()) {
         BlockDeveloperToolsAccess(input);
