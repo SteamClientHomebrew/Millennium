@@ -251,7 +251,8 @@ BOOL WINAPI Hooked_ReadDirectoryChangesW(HANDLE hDir, LPVOID lpBuffer, DWORD nBu
 
     if (lpBytesReturned)
         *lpBytesReturned = 0; // no changes
-    return TRUE;              // indicate success
+
+    return TRUE; // indicate success
 }
 
 BOOL HookCefArgs()
@@ -261,8 +262,11 @@ BOOL HookCefArgs()
         return false;
     }
 
-    MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
-    MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
+    /** only hook if developer mode is enabled */
+    if (IsDeveloperMode()) {
+        MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
+        MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
+    }
 
     STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
 
