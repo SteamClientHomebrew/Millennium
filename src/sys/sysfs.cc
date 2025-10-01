@@ -52,26 +52,45 @@ namespace SystemIO
 std::filesystem::path GetSteamPath()
 {
 #ifdef _WIN32
-    {
-        char buffer[MAX_PATH];
-        DWORD bufferSize = GetEnvironmentVariableA("SteamPath", buffer, MAX_PATH);
+    HKEY hKey;
+    LONG result;
 
-        const std::string steamPath = std::string(buffer, bufferSize);
-
-        if (steamPath.empty()) {
-            return "C:/Program Files (x86)/Steam";
-        } else {
-            return steamPath;
-        }
+    /** try to open the Steam registry key */
+    result = RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &hKey);
+    if (result != ERROR_SUCCESS) {
+        LOG_ERROR("GetSteamPath: Failed to open Steam registry key (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
+        return "C:/Program Files (x86)/Steam";
     }
+
+    DWORD dataType;
+    DWORD dataSize = 0;
+
+    /** first call to get the required buffer size */
+    result = RegQueryValueExA(hKey, "SteamPath", nullptr, &dataType, nullptr, &dataSize);
+    if (result != ERROR_SUCCESS || dataType != REG_SZ) {
+        RegCloseKey(hKey);
+        LOG_ERROR("GetSteamPath: Failed to query SteamPath registry value (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
+        return "C:/Program Files (x86)/Steam";
+    }
+
+    /** now allocate space using that buffer length */
+    std::vector<char> buffer(dataSize);
+    result = RegQueryValueExA(hKey, "SteamPath", nullptr, &dataType, reinterpret_cast<LPBYTE>(buffer.data()), &dataSize);
+
+    RegCloseKey(hKey);
+
+    if (result != ERROR_SUCCESS) {
+        LOG_ERROR("GetSteamPath: Failed to read SteamPath registry value (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
+        return "C:/Program Files (x86)/Steam";
+    }
+
+    /** convert to string, removing null terminator if present */
+    std::string steamPath(buffer.data(), dataSize > 0 && buffer[dataSize - 1] == '\0' ? dataSize - 1 : dataSize);
+    return steamPath;
 #elif __linux__
-    {
-        return fmt::format("{}/.steam/steam/", std::getenv("HOME"));
-    }
+    return fmt::format("{}/.steam/steam/", std::getenv("HOME"));
 #elif __APPLE__
-    {
-        return fmt::format("{}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS", std::getenv("HOME"));
-    }
+    return fmt::format("{}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS", std::getenv("HOME"));
 #endif
 }
 
