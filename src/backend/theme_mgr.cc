@@ -45,6 +45,13 @@ std::filesystem::path ThemeInstaller::SkinsRoot()
 
 void ThemeInstaller::RPCLogMessage(const std::string& status, double progress, bool isComplete)
 {
+    static auto lastSent = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSent).count() < 100)
+        return;
+    lastSent = now;
+
+    Logger.Log("Installer: {} ({}%)", status, progress);
     IpcForwardInstallLog({ status, progress, isComplete });
 }
 
@@ -107,20 +114,44 @@ static void SetupRemoteCallbacks(git_remote_callbacks& callbacks)
     git_remote_init_callbacks(&callbacks, GIT_REMOTE_CALLBACKS_VERSION);
 }
 
-int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr)
+struct CloneProgressData
+{
+    std::function<void(size_t received, size_t total, size_t indexed)> callback;
+};
+
+int TransferProgressCallback(const git_indexer_progress* stats, void* payload)
+{
+    auto* data = static_cast<CloneProgressData*>(payload);
+    if (data && data->callback) {
+        data->callback(stats->received_objects, stats->total_objects, stats->indexed_objects);
+    }
+    return 0;
+}
+
+int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr,
+                                     std::function<void(size_t, size_t, size_t)> progressCallback)
 {
     git_libgit2_init();
+
     git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
     git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
     checkout_opts.checkout_strategy = GIT_CHECKOUT_SAFE;
     clone_opts.checkout_opts = checkout_opts;
 
-    git_remote_callbacks callbacks{};
+    git_remote_callbacks callbacks = GIT_REMOTE_CALLBACKS_INIT;
     SetupRemoteCallbacks(callbacks);
+
+    CloneProgressData progressData{ progressCallback };
+    if (progressCallback) {
+        callbacks.transfer_progress = TransferProgressCallback;
+        callbacks.payload = &progressData;
+    }
+
     clone_opts.fetch_opts.callbacks = callbacks;
 
     git_repository* repo = nullptr;
     int ret = git_clone(&repo, url.c_str(), dstPath.string().c_str(), &clone_opts);
+
     if (ret != 0) {
         outErr = git_error_last() ? git_error_last()->message : "Unknown libgit2 error";
         if (repo)
@@ -134,19 +165,36 @@ int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesyst
     return 0;
 }
 
-std::string ThemeInstaller::InstallTheme(const std::string& repo, const std::string& owner)
+nlohmann::json ThemeInstaller::InstallTheme(const std::string& repo, const std::string& owner)
 {
-    std::filesystem::path finalPath = SkinsRoot() / repo;
     std::error_code ec;
+    std::filesystem::path finalPath = SkinsRoot() / repo;
 
-    // Remove existing folder
-    if (std::filesystem::exists(finalPath)) {
-        if (!SystemIO::DeleteFolder(finalPath))
-            return ErrorMessage("Failed to remove existing target path");
+    if (repo.empty() || owner.empty()) {
+        return ErrorMessage("Repository name and owner cannot be empty");
+    }
+
+    if (!std::filesystem::exists(finalPath.parent_path(), ec)) {
+        return ErrorMessage("Skins root directory does not exist: " + finalPath.parent_path().string());
+    }
+
+    if (std::filesystem::exists(finalPath, ec)) {
+        if (!SystemIO::DeleteFolder(finalPath)) {
+            return ErrorMessage("Failed to remove existing target path: " + finalPath.string());
+        }
+    } else if (ec) {
+        return ErrorMessage("Failed to check if path exists: " + ec.message());
     }
 
     std::string tmpName = repo + ".tmp-" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
     std::filesystem::path tmpPath = finalPath.parent_path() / tmpName;
+
+    if (std::filesystem::exists(tmpPath, ec)) {
+        Logger.Log("Warning: Temporary path already exists, removing: " + tmpPath.string());
+        if (!SystemIO::DeleteFolder(tmpPath)) {
+            return ErrorMessage("Failed to clean up existing temporary path: " + tmpPath.string());
+        }
+    }
 
     RPCLogMessage("Starting Installer...", 10, false);
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -154,19 +202,54 @@ std::string ThemeInstaller::InstallTheme(const std::string& repo, const std::str
 
     std::string cloneErr;
     std::string url = fmt::format("https://github.com/{}/{}.git", owner, repo);
-    int rc = CloneWithLibgit2(url, tmpPath, cloneErr);
+    int rc = CloneWithLibgit2(url, tmpPath, cloneErr, [&](size_t received, size_t total, size_t indexed)
+    {
+        if (total > 0) {
+            int percentage = 40 + static_cast<int>((received * 50.0) / total);
+            RPCLogMessage("Receiving objects: " + std::to_string(received) + "/" + std::to_string(total), percentage, false);
+        }
+    });
 
     if (rc != 0) {
-        std::filesystem::remove_all(tmpPath, ec);
+        if (std::filesystem::exists(tmpPath, ec)) {
+            if (!SystemIO::DeleteFolder(tmpPath)) {
+                Logger.Log("Warning: Failed to clean up temporary path after clone failure: " + tmpPath.string());
+            }
+        }
         return ErrorMessage("Failed to clone theme repository: " + cloneErr);
     }
 
-    std::filesystem::rename(tmpPath, finalPath, ec);
-    if (ec) {
-        Logger.Log("Rename failed, fallback to copy: " + ec.message());
-        std::filesystem::copy(tmpPath, finalPath, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
-        SystemIO::DeleteFolder(tmpPath);
+    if (!std::filesystem::exists(tmpPath, ec) || ec) {
+        return ErrorMessage("Clone completed but temporary directory is missing");
     }
+
+    std::filesystem::rename(tmpPath, finalPath, ec);
+
+    if (ec) {
+        Logger.Log("Rename failed (" + ec.message() + "), attempting copy fallback");
+        std::filesystem::copy(tmpPath, finalPath, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
+
+        if (ec) {
+            std::error_code cleanupEc;
+            if (std::filesystem::exists(tmpPath)) {
+                std::filesystem::remove_all(tmpPath, cleanupEc);
+            }
+            if (std::filesystem::exists(finalPath)) {
+                std::filesystem::remove_all(finalPath, cleanupEc);
+            }
+            return ErrorMessage("Failed to install theme (copy failed): " + ec.message());
+        }
+
+        if (!SystemIO::DeleteFolder(tmpPath)) {
+            Logger.Log("Warning: Failed to remove temporary directory: " + tmpPath.string());
+        }
+    }
+
+    if (!std::filesystem::exists(finalPath, ec) || ec) {
+        return ErrorMessage("Installation completed but theme directory is not accessible");
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     RPCLogMessage("Done!", 100, true);
     return SuccessMessage();

@@ -52,6 +52,9 @@ std::unordered_map<std::string, std::any>& GetCoreExports();
                     } else {                                                                                                                                                       \
                         return impl##name(j);                                                                                                                                      \
                     }                                                                                                                                                              \
+                } catch (const nlohmann::json::exception& e) {                                                                                                                     \
+                    LOG_ERROR("Failed to call {} - nlohmann::json::exception: {}", #name, e.what());                                                                               \
+                    return {};                                                                                                                                                     \
                 } catch (...) {                                                                                                                                                    \
                     LOG_ERROR("Failed to call {}", #name);                                                                                                                         \
                     return {};                                                                                                                                                     \

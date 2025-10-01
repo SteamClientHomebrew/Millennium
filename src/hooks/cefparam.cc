@@ -50,10 +50,12 @@ PVOID g_NotificationCookie = nullptr;
 typedef const char*(__cdecl* Plat_CommandLineParamValue_t)(const char* param);
 typedef CHAR(__cdecl* Plat_CommandLineParamExists_t)(const char* param);
 typedef INT(__cdecl* CreateSimpleProcess_t)(const char* a1, char a2, const char* lpMultiByteStr);
+typedef BOOL(WINAPI* ReadDirectoryChangesW_t)(HANDLE, LPVOID, DWORD, BOOL, DWORD, LPDWORD, LPOVERLAPPED, LPOVERLAPPED_COMPLETION_ROUTINE);
 
 Plat_CommandLineParamValue_t fpOriginalPlat_CommandLineParamValue = nullptr;
 Plat_CommandLineParamExists_t fpPlat_CommandLineParamExists = nullptr;
 CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
+ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = NULL;
 
 HMODULE steamTier0Module;
 std::string STEAM_DEVELOPER_TOOLS_PORT;
@@ -238,12 +240,29 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
     }
 }
 
+/**
+ * Hook and disable ReadDirectoryChangesW to prevent the Steam client from monitoring changes
+ * to the steamui dir, which is incredibly fucking annoying during development.
+ */
+BOOL WINAPI Hooked_ReadDirectoryChangesW(HANDLE hDir, LPVOID lpBuffer, DWORD nBufferLength, BOOL bWatchSubtree, DWORD dwNotifyFilter, LPDWORD lpBytesReturned,
+                                         LPOVERLAPPED lpOverlapped, LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine)
+{
+    Logger.Warn("Blocked attempt to call ReadDirectoryChangesW");
+
+    if (lpBytesReturned)
+        *lpBytesReturned = 0; // no changes
+    return TRUE;              // indicate success
+}
+
 BOOL HookCefArgs()
 {
     if (MH_Initialize() != MH_OK) {
         MessageBoxA(NULL, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
+
+    MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
+    MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
 
     STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
 
