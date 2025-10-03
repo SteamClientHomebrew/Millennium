@@ -143,7 +143,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 		});
 	}
 
-	showCtxMenu(event: MouseEvent | GamepadEvent) {
+	showCtxMenu(e: React.MouseEvent<HTMLButtonElement>) {
 		const { theme, onChangeTheme, onUseDefault } = this.props;
 		const { shouldShowMore } = this.state;
 		const isActive = this.isActive;
@@ -164,7 +164,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				<MenuItem onSelected={this.openThemeFolder.bind(this)}>Browse local files</MenuItem>
 				<MenuItem onSelected={this.uninstallTheme.bind(this)}>Uninstall</MenuItem>
 			</Menu>,
-			event.currentTarget ?? window,
+			e.currentTarget ?? window,
 		);
 	}
 
