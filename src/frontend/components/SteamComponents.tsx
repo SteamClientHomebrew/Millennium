@@ -41,7 +41,9 @@ interface BBCodeParserProps {
 	text?: string;
 }
 
-export const BBCodeParser: FC<BBCodeParserProps> = findModuleExport((m) => typeof m === 'function' && m.toString().includes('this.ElementAccumulator'));
+export const BBCodeParser: FC<BBCodeParserProps> = findModuleExport(
+	(m) => typeof m === 'function' && m.toString().includes('ElementAccumulator') && m.toString().includes('parser.ParseBBCode'),
+) as FC<BBCodeParserProps>;
 
 interface SettingsDialogSubHeaderProps extends React.HTMLProps<HTMLDivElement> {
 	children: ReactNode;
