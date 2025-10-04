@@ -105,7 +105,7 @@ export function ThemeUpdateCard({ themeUpdates }: { themeUpdates: UpdateItemType
 
 	return (
 		<>
-			<SettingsDialogSubHeader>Themes</SettingsDialogSubHeader>,
+			<SettingsDialogSubHeader>Themes</SettingsDialogSubHeader>
 			{themeUpdates?.map((update: UpdateItemType, index: number) => (
 				<UpdateCard
 					update={update}
