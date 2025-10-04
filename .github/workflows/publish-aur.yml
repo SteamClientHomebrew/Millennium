@@ -20,17 +20,17 @@ jobs:
         id: set-branch
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-              CURRENT_BRANCH="${{ github.ref_name }}"
-              echo "branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
-              echo "Using current branch for workflow dispatch: $CURRENT_BRANCH"
+            CURRENT_BRANCH="${{ github.ref_name }}"
+            echo "branch=$CURRENT_BRANCH" >> $GITHUB_OUTPUT
+            echo "Using current branch for workflow dispatch: $CURRENT_BRANCH"
           elif [ "${{ github.event_name }}" == "release" ]; then
-              if [ "${{ github.event.release.prerelease }}" == "true" ]; then
-                  echo "branch=next" >> $GITHUB_OUTPUT
-                  echo "Using next branch for prerelease"
-              else
-                  echo "branch=main" >> $GITHUB_OUTPUT
-                  echo "Using main branch for regular release"
-              fi
+            if [ "${{ github.event.release.prerelease }}" == "true" ]; then
+              echo "branch=next" >> $GITHUB_OUTPUT
+              echo "Using next branch for prerelease"
+            else
+              echo "branch=main" >> $GITHUB_OUTPUT
+              echo "Using main branch for regular release"
+            fi
           fi
 
       - name: Checkout correct branch
@@ -43,13 +43,13 @@ jobs:
 
           # Get tag name from the latest release
           if [ "${{ steps.set-branch.outputs.branch }}" = "main" ]; then
-              # For main branch, ignore pre-release releases and get the latest non-prerelease tag
-              echo "On main branch, fetching latest non-prerelease tag"
-              TAG=$(gh release list --limit 100 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease == false)][0].tagName')
+            # For main branch, ignore pre-release releases and get the latest non-prerelease tag
+            echo "On main branch, fetching latest non-prerelease tag"
+            TAG=$(gh release list --limit 100 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease == false)][0].tagName')
           else
-              # For other branches (e.g., next), use the latest release (including pre-releases)
-              echo "On branch ${{ steps.set-branch.outputs.branch }}, fetching latest tag"
-              TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+            # For other branches (e.g., next), use the latest release (including pre-releases)
+            echo "On branch ${{ steps.set-branch.outputs.branch }}, fetching latest tag"
+            TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
           fi
           CLEAN_TAG=${TAG#v}
           CLEAN_TAG=${CLEAN_TAG//-/_}
