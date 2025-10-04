@@ -57,6 +57,7 @@ jobs:
 
           # Get the commit hash for this tag (handle both lightweight and annotated tags)
           COMMIT=$(gh api repos/${{ github.repository }}/git/refs/tags/$TAG --jq '.object.sha')
+          echo "Using commit: $COMMIT"
 
           # Update version and source to use specific commit
           sed -i "s/pkgver=.*/pkgver=$CLEAN_TAG/" ./pkgbuild/PKGBUILD
