@@ -40,16 +40,20 @@ jobs:
 
       - name: Update Package Version and Branch
         run: |
+
           # Get tag name from the latest release
-            if [ "${{ steps.set-branch.outputs.branch }}" = "main" ]; then
-                # For main branch, ignore pre-release releases and get the latest non-prerelease tag
-                TAG=$(gh release list --limit 100 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease == false)][0].tagName')
-            else
-                # For other branches (e.g., next), use the latest release (including pre-releases)
-                TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-            fi
+          if [ "${{ steps.set-branch.outputs.branch }}" = "main" ]; then
+              # For main branch, ignore pre-release releases and get the latest non-prerelease tag
+              echo "On main branch, fetching latest non-prerelease tag"
+              TAG=$(gh release list --limit 100 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease == false)][0].tagName')
+          else
+              # For other branches (e.g., next), use the latest release (including pre-releases)
+              echo "On branch ${{ steps.set-branch.outputs.branch }}, fetching latest tag"
+              TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          fi
           CLEAN_TAG=${TAG#v}
           CLEAN_TAG=${CLEAN_TAG//-/_}
+          echo "Using tag: $TAG"
 
           # Get the commit hash for this tag (handle both lightweight and annotated tags)
           COMMIT=$(gh api repos/${{ github.repository }}/git/refs/tags/$TAG --jq '.object.sha')
