@@ -12,7 +12,7 @@ stdenv.mkDerivation rec {
   pnpmDeps = pnpm.fetchDeps {
     inherit src version pname;
     #TODO: automatic hash update
-    hash = "sha256-LofHepVz6CjbAXkUwwNFVzlbmPq+g/gJvkBka9I/gHo=";
+    hash = "sha256-ayWGpybXux0BY3CojkPK3fCGUq9mmawoKuddN2Fb5OA=";
     fetcherVersion = 2;
   };
 
