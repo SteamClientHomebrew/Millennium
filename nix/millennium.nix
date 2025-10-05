@@ -86,7 +86,7 @@ pkgsi686Linux.stdenv.mkDerivation {
 
     mkdir -p $out/lib/millennium
     cp libmillennium_x86.so $out/lib/millennium
-    
+
     runHook postInstall
   '';
   NIX_CFLAGS_COMPILE = [
