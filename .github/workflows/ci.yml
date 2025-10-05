@@ -106,7 +106,7 @@ jobs:
                   organization-id: 'f90532fc-e58c-4863-bc0d-72623720335f'
                   project-slug: 'Millennium'
                   signing-policy-slug: 'release-signing'
-                  artifact-configuration-slug: 'millennium-release-config'
+                  artifact-configuration-slug: 'millennium-legacy-release-config'
                   github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
                   output-artifact-directory: 'signed-millennium'
                   wait-for-completion: true

@@ -1,3 +1,10 @@
+## [2.29.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.1...v2.29.2) (2025-10-04)
+
+
+### Bug Fixes
+
+* Fix theme editor crashing with react error 130 ([d8d1837](https://github.com/SteamClientHomebrew/Millennium/commit/d8d18374cc46b1838a609f181b78c9f9b2ae18f8))
+
 ## [2.29.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.0...v2.29.1) (2025-09-01)
 
 
