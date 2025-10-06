@@ -247,7 +247,7 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
 BOOL WINAPI Hooked_ReadDirectoryChangesW(HANDLE hDir, LPVOID lpBuffer, DWORD nBufferLength, BOOL bWatchSubtree, DWORD dwNotifyFilter, LPDWORD lpBytesReturned,
                                          LPOVERLAPPED lpOverlapped, LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine)
 {
-    Logger.Warn("Blocked attempt to call ReadDirectoryChangesW");
+    Logger.Log("[Steam] Blocked attempt to ReadDirectoryChangesW...");
 
     if (lpBytesReturned)
         *lpBytesReturned = 0; // no changes

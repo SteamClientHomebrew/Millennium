@@ -227,6 +227,17 @@ void MillenniumUpdater::DeleteOldMillenniumVersion()
 #endif
 }
 
+void RateLimitedLogger(const std::string& message, const double& progress)
+{
+    static auto last_call = std::chrono::steady_clock::now() - std::chrono::seconds(2);
+    auto now = std::chrono::steady_clock::now();
+
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - last_call).count() > 1) {
+        IpcForwardInstallLog({ message, progress, false });
+        last_call = now;
+    }
+}
+
 void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize)
 {
     try {
@@ -238,25 +249,13 @@ void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const siz
         Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [](size_t downloaded, size_t total)
         {
             const double progress = (static_cast<double>(downloaded) / total) * 50.0;
-            static auto last_call = std::chrono::steady_clock::now() - std::chrono::seconds(2);
-            auto now = std::chrono::steady_clock::now();
-
-            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_call).count() > 1) {
-                IpcForwardInstallLog({ "Downloading update assets...", progress, false });
-                last_call = now;
-            }
+            RateLimitedLogger("Downloading update assets...", progress);
         });
 
         Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [](int current, int total, const char* file)
         {
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;
-            static auto last_call = std::chrono::steady_clock::now() - std::chrono::seconds(2);
-            auto now = std::chrono::steady_clock::now();
-
-            if (std::chrono::duration_cast<std::chrono::seconds>(now - last_call).count() > 1) {
-                IpcForwardInstallLog({ fmt::format("Processing update file {}/{}", current, total), progress, false });
-                last_call = now;
-            }
+            RateLimitedLogger(fmt::format("Processing update file {}/{}", current, total), progress);
         });
 
         /** Remove the temporary file after installation */

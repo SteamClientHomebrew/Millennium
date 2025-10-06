@@ -43,6 +43,8 @@ import { MillenniumDesktopSidebar } from './quick-access';
 import { DesktopMenuProvider } from './quick-access/DesktopMenuContext';
 import { EUIMode } from '@steambrew/client';
 import { WelcomeModalComponent } from './components/WelcomeModal';
+import { MillenniumQuickCssEditor } from './settings/quickcss';
+import { useQuickCssState } from './utils/quick-css-state';
 
 async function initializeMillennium(settings: SettingsProps) {
 	Logger.Log(`Received props`, settings);
@@ -78,6 +80,7 @@ async function initializeMillennium(settings: SettingsProps) {
 		millenniumUpdates: settings?.millenniumUpdates ?? {},
 		platformType: settings?.platformType,
 		millenniumLinuxUpdateScript: settings?.millenniumLinuxUpdateScript,
+		quickCss: settings?.quickCss ?? '',
 	});
 
 	patchMissedDocuments();
@@ -93,18 +96,32 @@ export default async function PluginMain() {
 
 	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });
 
-	routerHook.addGlobalComponent(
-		'MillenniumDesktopUI',
-		() => (
-			<DesktopMenuProvider>
-				<MillenniumDesktopSidebar />
-			</DesktopMenuProvider>
-		),
-		EUIMode.Desktop,
-	);
+	// routerHook.addGlobalComponent(
+	// 	'MillenniumDesktopUI',
+	// 	() => (
+	// 		<DesktopMenuProvider>
+	// 			<MillenniumDesktopSidebar />
+	// 		</DesktopMenuProvider>
+	// 	),
+	// 	EUIMode.Desktop,
+	// );
 
 	/** Render welcome modal for new users */
 	routerHook.addGlobalComponent('MillenniumWelcomeModal', () => <WelcomeModalComponent />, EUIMode.Desktop);
+
+	/** Render Quick CSS Editor */
+	routerHook.addGlobalComponent(
+		'MillenniumQuickCssEditor',
+		() => {
+			const { isMillenniumOpen } = useQuickCssState();
+			if (!isMillenniumOpen) {
+				return null;
+			}
+
+			return <MillenniumQuickCssEditor />;
+		},
+		EUIMode.Desktop,
+	);
 
 	// @ts-ignore
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);

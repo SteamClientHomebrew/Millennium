@@ -143,12 +143,10 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 		});
 	}
 
-	showCtxMenu(event: MouseEvent | GamepadEvent) {
+	showCtxMenu(event: React.MouseEvent<HTMLButtonElement>) {
 		const { theme, onChangeTheme, onUseDefault } = this.props;
 		const { shouldShowMore } = this.state;
 		const isActive = this.isActive;
-
-		console.log('Menu', Menu);
 
 		showContextMenu(
 			<Menu label={theme?.data?.name}>

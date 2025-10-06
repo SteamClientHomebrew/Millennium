@@ -57,6 +57,17 @@ int GetOperatingSystemType()
 #endif
 }
 
+std::string Millennium_GetQuickCss()
+{
+    const std::string quickCssPath = fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH"));
+
+    if (!std::filesystem::exists(quickCssPath)) {
+        SystemIO::WriteFileSync(quickCssPath, "/* Quick CSS file created by Millennium */\n");
+    }
+
+    return SystemIO::ReadFileSync(quickCssPath);
+}
+
 /**
  * Enable/disable plugins
  */
@@ -96,9 +107,14 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "buildDate", GetBuildTimestamp() },
         { "millenniumUpdates", nlohmann::json::object() },
         { "platformType", GetOperatingSystemType() },
-        { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") }
+        { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") },
+        { "quickCss", Millennium_GetQuickCss() }
     };
 }
+
+/** Quick CSS utilities */
+IPC_RET(Core_LoadQuickCss, Millennium_GetQuickCss());
+IPC_NIL(Core_SaveQuickCss, SystemIO::WriteFileSync(fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH")), ARGS["css"].get<std::string>()));
 
 /** General utilities */
 IPC_RET(Core_GetSteamPath, SystemIO::GetSteamPath())

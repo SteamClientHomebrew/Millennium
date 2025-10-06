@@ -201,6 +201,7 @@ export interface SettingsProps {
 	buildDate: string;
 	platformType: OSType;
 	millenniumLinuxUpdateScript?: string;
+	quickCss: string;
 }
 
 export interface ColorProp {

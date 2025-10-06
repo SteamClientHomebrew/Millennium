@@ -42,6 +42,7 @@ import { ConfigProvider } from '../utils/config-provider';
 import Styles from '../utils/styles';
 import { FaPaintRoller } from 'react-icons/fa';
 import { PiPlugsFill } from 'react-icons/pi';
+import { QuickCssViewModal } from './quickcss';
 
 declare global {
 	const g_PopupManager: any;
@@ -69,6 +70,18 @@ const tabSpotThemes: SidebarNavigationPage = {
 		</DialogBody>
 	),
 	route: '/millennium/settings/themes',
+};
+
+const tabSpotQuickCSS: SidebarNavigationPage = {
+	visible: true,
+	title: locale.settingsPanelQuickCSS,
+	icon: <MillenniumIcons.RabbitRunning />,
+	content: (
+		<DialogBody className={Classes.SettingsDialogBodyFade}>
+			<QuickCssViewModal />
+		</DialogBody>
+	),
+	route: '/millennium/settings/quickcss',
 };
 
 const tabSpotPlugins: SidebarNavigationPage = {
@@ -111,7 +124,7 @@ const tabSpotLogs: SidebarNavigationPage = {
 
 export function MillenniumSettings() {
 	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings ModalDialogPopup`;
-	const settingsPages = [tabSpotGeneral, 'separator', tabSpotThemes, tabSpotPlugins, 'separator', tabSpotUpdates, tabSpotLogs];
+	const settingsPages = [tabSpotGeneral, 'separator', tabSpotThemes, tabSpotQuickCSS, tabSpotPlugins, 'separator', tabSpotUpdates, tabSpotLogs];
 
 	return (
 		<ConfigProvider>

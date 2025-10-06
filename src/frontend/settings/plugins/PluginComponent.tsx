@@ -72,7 +72,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		await refetchPlugins();
 	}
 
-	showCtxMenu = (e: MouseEvent | GamepadEvent) => {
+	showCtxMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
 		const { plugin } = this.props;
 		showContextMenu(
 			<Menu label="MillenniumPluginContextMenu">

@@ -1,0 +1,205 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { EditorView, basicSetup } from 'codemirror';
+import { css } from '@codemirror/lang-css';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
+import { callable, Classes, DialogBody, DialogButton, DialogControlsSection, Field, findModuleDetailsByExport, IconsModule, pluginSelf } from '@steambrew/client';
+import { ViewUpdate } from '@codemirror/view';
+import ReactDOM from 'react-dom';
+import {
+	contextMenuManager,
+	createWindowContext,
+	g_ModalManager,
+	ModalManagerInstance,
+	OwnerWindowRef,
+	PopupModalHandler,
+	popupModalManager,
+	RenderWindowTitle,
+	SettingsDialogSubHeader,
+	windowHandler,
+} from '../../components/SteamComponents';
+import { settingsClasses } from '../../utils/classes';
+import { setEditorCode, setIsMillenniumOpen, useQuickCssState } from '../../utils/quick-css-state';
+import { locale } from '../../utils/localization-manager';
+
+function UpdateStylesLive(cssContent: string) {
+	for (const popup of g_PopupManager.GetPopups()) {
+		const quickCssStyles = popup?.window?.document?.getElementById('MillenniumQuickCss');
+		if (quickCssStyles) {
+			quickCssStyles.innerHTML = cssContent;
+		}
+	}
+}
+
+export async function LoadStylesFromDisk(): Promise<string> {
+	return JSON.parse(await callable<[], string>('Core_LoadQuickCss')());
+}
+
+export function SaveStylesToDisk(cssContent: string) {
+	callable<[{ css: string }]>('Core_SaveQuickCss')({ css: cssContent });
+	pluginSelf.quickCSS = cssContent;
+	UpdateStylesLive(cssContent);
+}
+
+export const MillenniumQuickCssEditor = () => {
+	const g_ModalManagerInstance = g_ModalManager();
+	const { editorCode } = useQuickCssState();
+
+	const targetBrowserProps = {
+		m_unPID: 0,
+		m_nBrowserID: -1,
+		m_unAppID: 0,
+		m_eUIMode: 7,
+	};
+
+	const windowDimensions = {
+		dimensions: { width: 650, height: 400, left: 0, top: 0 },
+		minWidth: 200,
+		minHeight: 100,
+	};
+
+	const windowConfig = {
+		title: 'Quick CSS Editor',
+		body_class: 'fullheight ModalDialogBody DesktopUI',
+		html_class: 'client_chat_frame fullheight ModalDialogPopup',
+		popup_class: 'fullheight MillenniumQuickCss_Popup',
+		strUserAgent: 'Valve Steam Client',
+		eCreationFlags: 272,
+		browserType: 4,
+		...windowDimensions,
+		owner_window: window,
+		target_browser: targetBrowserProps,
+		replace_existing_popup: true,
+		bHideOnClose: false,
+		bNoFocusOnShow: false,
+		bNeverPopOut: true,
+	};
+
+	const m_contextMenuManager = useMemo(() => new contextMenuManager(), []);
+	const [activeMenu, setActiveMenu] = useState(m_contextMenuManager.m_ActiveMenu);
+	const { popup, element } = createWindowContext('MillenniumDesktopPopup', windowConfig, windowHandler('Window_MillenniumDesktop'));
+
+	useEffect(() => {
+		m_contextMenuManager.OnMenusChanged.m_vecCallbacks.push(
+			(() => {
+				const v_callbackFn = () => setActiveMenu(m_contextMenuManager.m_ActiveMenu);
+				v_callbackFn.Dispatch = v_callbackFn;
+				return v_callbackFn;
+			})(),
+		);
+	}, [m_contextMenuManager]);
+
+	useEffect(() => {
+		if (!popup) {
+			return;
+		}
+
+		ModalManagerInstance.RegisterModalManager(g_ModalManagerInstance, popup);
+		popupModalManager.SetMenuManager(popup, m_contextMenuManager);
+	}, [popup]);
+
+	const dialogProps = {
+		bOverlapHorizontal: true,
+		bMatchWidth: false,
+		bFitToWindow: true,
+		strClassName: 'DialogMenuPosition',
+	};
+
+	const editorRef = useRef(null);
+	const containerRef = useRef(null);
+
+	useEffect(() => {
+		if (containerRef.current && !editorRef.current) {
+			editorRef.current = new EditorView({
+				doc: editorCode,
+				extensions: [
+					basicSetup,
+					css(),
+					vscodeDark,
+					EditorView.updateListener.of((update: ViewUpdate) => {
+						if (update.docChanged) {
+							const content = update.state.doc.toString();
+							SaveStylesToDisk(content);
+							setEditorCode(content);
+						}
+					}),
+				],
+				parent: containerRef.current,
+			});
+		}
+
+		return () => editorRef.current?.destroy();
+	}, [element]);
+
+	return (
+		element &&
+		ReactDOM.createPortal(
+			<OwnerWindowRef ownerWindow={popup}>
+				<div className="PopupFullWindow">
+					<RenderWindowTitle popup={popup} onClose={setIsMillenniumOpen.bind(null, false)} />
+					{activeMenu && (
+						<PopupModalHandler options={dialogProps} instance={activeMenu} element={activeMenu.m_position.element}>
+							{activeMenu.m_rctElement}
+						</PopupModalHandler>
+					)}
+				</div>
+				<style>{`.cm-editor { height: 100%; } .TitleBar.title-area { height: 32px !important; } .MillenniumQuickCss_Title { position: absolute; top: 5px; left: 10px; color: lightgrey; font-weight: 500; }`}</style>
+				<div className="MillenniumQuickCss_Title">Quick CSS Editor</div>
+				<div
+					ref={containerRef}
+					style={{ height: '-webkit-fill-available', marginTop: '32px', width: '100%', position: 'absolute', top: 0, left: 0 }}
+					className="MillenniumQuickCss_CodeEditor"
+				/>
+			</OwnerWindowRef>,
+			element,
+		)
+	);
+};
+
+function getCssStats(cssContent: string) {
+	const rules = (cssContent.match(/[^{}]*{[^}]*}/g) || []).length;
+	const bytes = new TextEncoder().encode(cssContent).length;
+	const kilobytes = (bytes / 1024).toFixed(2);
+
+	return { rules, bytes, kilobytes };
+}
+
+export function QuickCssViewModal() {
+	const { editorCode } = useQuickCssState();
+	const [cssStats, setCssStats] = useState<{ rules: number; bytes: number; kilobytes: string } | null>(null);
+
+	useEffect(() => {
+		LoadStylesFromDisk().then((cssContent) => {
+			setEditorCode(cssContent);
+		});
+	}, []);
+
+	useEffect(() => {
+		if (editorCode) {
+			setCssStats(getCssStats(editorCode));
+		}
+	}, [editorCode]);
+
+	return (
+		<>
+			<Field label={locale.quickCssDescription} icon={<IconsModule.ExclamationPoint />} bottomSeparator="none"></Field>
+
+			{cssStats && (
+				<DialogControlsSection>
+					<SettingsDialogSubHeader>{locale.quickCssStatsTitle}</SettingsDialogSubHeader>
+					<Field label={locale.quickCssCompiledRules} icon={<IconsModule.TextCode />}>
+						{cssStats.rules || '0'}
+					</Field>
+					<Field label={locale.quickCssSizeOnDisk} icon={<IconsModule.HardDrive />}>
+						{cssStats.kilobytes} KB ({cssStats.bytes} bytes)
+					</Field>
+				</DialogControlsSection>
+			)}
+
+			<Field label={locale.quickCssStatusLoaded} bottomSeparator="none" icon={<IconsModule.Checkmark color="green" />}>
+				<DialogButton onClick={() => setIsMillenniumOpen(true)} className={settingsClasses.SettingsDialogButton}>
+					{locale.quickCssOpenEditor}
+				</DialogButton>
+			</Field>
+		</>
+	);
+}

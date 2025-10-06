@@ -320,7 +320,7 @@ void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& mess
     auto it = INTERNAL_FTP_CALL_DATA.find(strRequestFile);
     if (it != INTERNAL_FTP_CALL_DATA.end()) {
         fileType = eFileType::js;
-        fileContent = Base64Encode(it->second);
+        fileContent = Base64Encode(it->second());
 
     }
     /** Handle normal disk request */
