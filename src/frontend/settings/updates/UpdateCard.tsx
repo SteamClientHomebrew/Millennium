@@ -35,6 +35,7 @@ import Markdown from 'markdown-to-jsx';
 import { locale } from '../../utils/localization-manager';
 import { IconButton } from '../../components/IconButton';
 import { DesktopTooltip } from '../../components/SteamComponents';
+import { MillenniumIcons } from '../../components/Icons';
 
 interface UpdateProps {
 	message: string;
@@ -109,13 +110,10 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 
 		if (isUpdating) {
 			return (
-				<ProgressBarWithInfo
-					// @ts-ignore
-					className="MillenniumUpdates_ProgressBar"
-					sOperationText={statusText}
-					nProgress={progress}
-					nTransitionSec={1000}
-				/>
+				<DialogButton style={{ width: '-webkit-fill-available', padding: '0px 10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+					<MillenniumIcons.LoadingSpinner style={{ height: '16px', width: '16px' }} />
+					{statusText}
+				</DialogButton>
 			);
 		}
 

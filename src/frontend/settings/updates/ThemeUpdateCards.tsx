@@ -57,7 +57,7 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 
 	await setUpdateState({
 		statusText: locale.strUpdatingTheme,
-		progress: 30,
+		progress: 100,
 		uxSleepLength: 1000,
 	});
 
@@ -73,13 +73,9 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 		await fetchAvailableUpdates(true);
 		const activeTheme: ThemeItem = pluginSelf.activeTheme;
 
-		const reload = await Utils.ShowMessageBox(
-			formatString(activeTheme?.native === updateObject?.native ? locale.updateSuccessfulRestart : locale.updateSuccessful, updateObject?.name),
-			SteamLocale('#ImageUpload_SuccessCard'),
-		);
-
-		if (activeTheme?.native === updateObject?.native && reload) {
-			SteamClient.Browser.RestartJSContext();
+		if (activeTheme?.native === updateObject?.native) {
+			const reload = await Utils.ShowMessageBox(formatString(locale.updateSuccessfulRestart, updateObject?.name), SteamLocale('#Settings_RestartRequired_Title'));
+			reload && SteamClient.Browser.RestartJSContext();
 		}
 	} else {
 		Utils.ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), SteamLocale('#Generic_Error'));

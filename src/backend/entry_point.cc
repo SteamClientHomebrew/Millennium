@@ -102,7 +102,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "millenniumVersion", MILLENNIUM_VERSION },
         { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
         { "updates", nlohmann::json::object() },
-        { "hasCheckedForUpdates", false },
+        { "hasCheckedForUpdates", updater->HasCheckedForUpdates() },
         { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },
         { "buildDate", GetBuildTimestamp() },
         { "millenniumUpdates", nlohmann::json::object() },

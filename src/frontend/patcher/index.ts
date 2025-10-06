@@ -72,8 +72,6 @@ const getDocumentClassList = (context: any): string[] => {
  * This function adds helpful classes to the documentElement to help with CSS targeting.
  */
 export function addWindowBreadcrumbs(windowContext: any) {
-	console.log('Adding window breadcrumbs for Millennium...', windowContext);
-
 	function addBreadCrumb(breadcrumb: string) {
 		windowContext.window.document.documentElement.classList.add(breadcrumb);
 	}

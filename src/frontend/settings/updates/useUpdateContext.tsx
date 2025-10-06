@@ -121,7 +121,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 	};
 
 	forceFetchUpdates = async () => {
-		const updates = JSON.parse(await PyResyncUpdates());
+		const updates = JSON.parse(await PyResyncUpdates({ force: true }));
 		pluginSelf.updates.themes = updates.themes;
 		pluginSelf.updates.plugins = updates.plugins;
 		NotifyUpdateListeners();
