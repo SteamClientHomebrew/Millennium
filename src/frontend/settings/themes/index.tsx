@@ -28,19 +28,17 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, IconsModule, joinClassNames, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, joinClassNames, pluginSelf } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { locale } from '../../utils/localization-manager';
 import { Placeholder } from '../../components/Placeholder';
 import { PyFindAllThemes } from '../../utils/ffi';
 import { Component } from 'react';
 import { ChangeActiveTheme, ThemeItemComponent, UIReloadProps } from './ThemeComponent';
-import { DialogControlSectionClass, settingsClasses } from '../../utils/classes';
+import { settingsClasses } from '../../utils/classes';
 import { showInstallThemeModal } from './ThemeInstallerModal';
 import { FaFolderOpen, FaPaintRoller, FaStore } from 'react-icons/fa';
 import { Utils } from '../../utils';
-import { SettingsDialogSubHeader } from '../../components/SteamComponents';
-import { MillenniumIcons } from '../../components/Icons';
 
 const findAllThemes = async (): Promise<ThemeItem[]> => {
 	return JSON.parse(await PyFindAllThemes());

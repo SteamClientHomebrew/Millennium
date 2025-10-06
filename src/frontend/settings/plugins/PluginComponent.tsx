@@ -126,6 +126,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 						{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
 					</div>
 				}
+				description={plugin?.data?.description}
 				icon={content}
 				padding="standard"
 				bottomSeparator={isLastPlugin ? 'none' : 'standard'}

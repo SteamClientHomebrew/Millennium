@@ -30,7 +30,7 @@
 
 import { callable, DialogButton, Field, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
 import { ThemeItem } from '../../types';
-import { Separator } from '../../components/SteamComponents';
+import { DesktopTooltip, Separator } from '../../components/SteamComponents';
 import { RenderThemeEditor } from '../../components/ThemeEditor';
 import { Utils } from '../../utils';
 import { formatString, locale } from '../../utils/localization-manager';
@@ -39,6 +39,7 @@ import { SiKofi } from 'react-icons/si';
 import { Component } from 'react';
 import { PyUninstallTheme } from '../../utils/ffi';
 import { IconButton } from '../../components/IconButton';
+import { settingsClasses } from '../../utils/classes';
 
 interface ThemeItemComponentProps {
 	theme: ThemeItem;
@@ -145,7 +146,6 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 
 	showCtxMenu(event: React.MouseEvent<HTMLButtonElement>) {
 		const { theme, onChangeTheme, onUseDefault } = this.props;
-		const { shouldShowMore } = this.state;
 		const isActive = this.isActive;
 
 		showContextMenu(
@@ -154,11 +154,10 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 					{theme?.data?.name} {theme?.data?.version && <>v{theme.data.version}</>}
 				</MenuItem>
 				<Separator />
-				{isActive ? <MenuItem onSelected={onUseDefault}>Disable</MenuItem> : <MenuItem onSelected={() => onChangeTheme(theme)}>Set as active</MenuItem>}
+				{/* {isActive ? <MenuItem onSelected={onUseDefault}>Disable</MenuItem> : <MenuItem onSelected={() => onChangeTheme(theme)}>Set as active</MenuItem>} */}
 				<MenuItem onSelected={this.openThemeSettings.bind(this)} disabled={!this.bIsThemeConfigurable}>
 					Configure
 				</MenuItem>
-				<MenuItem onSelected={() => this.setState({ shouldShowMore: !shouldShowMore })}>{shouldShowMore ? 'Show less...' : 'Show more...'}</MenuItem>
 				<MenuItem onSelected={this.openThemeFolder.bind(this)}>Browse local files</MenuItem>
 				<MenuItem onSelected={this.uninstallTheme.bind(this)}>Uninstall</MenuItem>
 			</Menu>,
@@ -175,7 +174,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				{theme.data.description && <div className="MillenniumThemes_Description">{theme.data.description}</div>}
 				{theme.data.github?.owner && (
 					<a className="MillenniumThemes_Author" onClick={() => Utils.OpenUrl('https://github.com/' + theme.data.github.owner)}>
-						{formatString(locale.strByAuthor, theme.data.github.owner)}
+						{formatString(locale.strByAuthor, theme.data.github.owner + (theme?.data?.author ? ` (${theme.data.author})` : ''))}
 					</a>
 				)}
 			</>
@@ -183,8 +182,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 	}
 
 	render() {
-		const { theme, isLastItem } = this.props;
-		const { shouldShowMore } = this.state;
+		const { theme, onChangeTheme, onUseDefault, isLastItem } = this.props;
 		const isActive = this.isActive;
 
 		return (
@@ -199,15 +197,22 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				bottomSeparator={isLastItem ? 'none' : 'standard'}
 				className="MillenniumThemes_ThemeItem"
 				{...(isActive && { icon: <FaCheck /> })}
-				{...(shouldShowMore && { description: this.renderExpandableShowMore() })}
+				description={this.renderExpandableShowMore()}
 				data-theme-name={theme?.data?.name}
 				data-theme-folder-name-on-disk={theme?.native}
 			>
-				{shouldShowMore && theme?.data?.funding?.kofi && (
-					<IconButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}>
-						<SiKofi />
-					</IconButton>
+				<DialogButton className={settingsClasses.SettingsDialogButton} style={{ width: '65px' }} onClick={() => (isActive ? onUseDefault() : onChangeTheme(theme))}>
+					{isActive ? 'Disable' : 'Use'}
+				</DialogButton>
+
+				{theme?.data?.funding?.kofi && (
+					<DesktopTooltip toolTipContent={`Donate to ${theme?.data?.author ?? 'anonymous'}`} direction="bottom">
+						<IconButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}>
+							<SiKofi />
+						</IconButton>
+					</DesktopTooltip>
 				)}
+
 				<IconButton onClick={this.showCtxMenu}>
 					<FaEllipsisH />
 				</IconButton>
