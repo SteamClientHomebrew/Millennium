@@ -12,4 +12,4 @@
 
 node_modules/
 .vscode/
-src\include\millennium\virtfs.h
+src/include/millennium/virtfs.h
