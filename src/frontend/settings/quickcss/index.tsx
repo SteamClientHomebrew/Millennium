@@ -155,6 +155,11 @@ export const MillenniumQuickCssEditor = () => {
 	);
 };
 
+/**
+ * Get statistics about the CSS content.
+ * @param cssContent CSS content to analyze
+ * @returns An object containing the number of rules, bytes, and kilobytes
+ */
 function getCssStats(cssContent: string) {
 	const rules = (cssContent.match(/[^{}]*{[^}]*}/g) || []).length;
 	const bytes = new TextEncoder().encode(cssContent).length;
@@ -163,6 +168,10 @@ function getCssStats(cssContent: string) {
 	return { rules, bytes, kilobytes };
 }
 
+/**
+ * Quick CSS View Modal
+ * @returns A React component that displays information about Quick CSS and provides a button to open the editor.
+ */
 export function QuickCssViewModal() {
 	const { editorCode } = useQuickCssState();
 	const [cssStats, setCssStats] = useState<{ rules: number; bytes: number; kilobytes: string } | null>(null);
