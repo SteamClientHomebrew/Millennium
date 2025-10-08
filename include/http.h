@@ -37,8 +37,14 @@
 
 static size_t WriteByteCallback(char* ptr, size_t size, size_t nmemb, std::string* data)
 {
-    data->append(ptr, size * nmemb);
-    return size * nmemb;
+    size_t total;
+    
+    if (__builtin_mul_overflow(size, nmemb, &total)) {
+        return 0;
+    }
+    
+    data->append(ptr, total);
+    return total;
 }
 
 class HttpError : public std::exception
