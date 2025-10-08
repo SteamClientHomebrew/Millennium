@@ -75,8 +75,6 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
             manager.DestroyLuaInstance(pluginName);
         } else if (backendType == SettingsStore::PluginBackendType::Python) {
             manager.DestroyPythonInstance(pluginName);
-            // manager.DestroyAllPythonInstances();
-            // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
         }
     }
 

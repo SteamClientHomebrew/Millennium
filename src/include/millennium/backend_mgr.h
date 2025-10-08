@@ -126,7 +126,7 @@ class BackendManager
     static std::mutex sPluginMapMutex;
     static std::atomic<size_t> sTotalAllocated;
 
-    static std::atomic<size_t>& GetPluginCounter(const std::string& plugin_name);
+    static std::atomic<size_t>& Lua_GetPluginCounter(const std::string& plugin_name);
 
     std::mutex m_pythonMutex;
     std::vector<std::tuple<lua_State*, std::unique_ptr<std::mutex>>> m_luaMutexPool;
@@ -137,7 +137,7 @@ class BackendManager
     std::vector<LuaThreadPoolItem> m_luaThreadPool;
     std::vector<std::shared_ptr<PythonThreadState>> m_pythonInstances;
 
-    std::tuple<lua_State*, std::unique_ptr<std::mutex>>* FindEntry(lua_State* L);
+    std::tuple<lua_State*, std::unique_ptr<std::mutex>>* Lua_FindEntry(lua_State* L);
 
   public:
     BackendManager();
@@ -151,9 +151,9 @@ class BackendManager
 
     /** trace allocations and frees in each lvm to track total memory usage */
     static void* Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size_t nsize);
-    static size_t GetTotalMemory();
-    static size_t GetPluginMemorySnapshotByName(const std::string& plugin_name);
-    static std::unordered_map<std::string, size_t> GetAllPluginMemorySnapshot();
+    static size_t Lua_GetTotalMemory();
+    static size_t Lua_GetPluginMemorySnapshotByName(const std::string& plugin_name);
+    static std::unordered_map<std::string, size_t> Lua_GetAllPluginMemorySnapshot();
 
     bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
 
@@ -163,8 +163,8 @@ class BackendManager
     void RemoveMemoryTracking(const std::string& pluginName);
     bool DestroyLuaInstance(std::string pluginName, bool shouldCleanupThreadPool = true);
 
-    bool DestroyAllPythonInstances();
-    bool DestroyAllLuaInstances();
+    bool ShutdownPythonBackends();
+    bool ShutdownLuaBackends();
 
     bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
     bool CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> callback);

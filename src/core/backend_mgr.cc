@@ -232,9 +232,9 @@ void BackendManager::Shutdown()
     //     });
 
     Logger.Log("[BackendManager::Shutdown] Destroying all Lua instances...");
-    this->DestroyAllLuaInstances();
+    this->ShutdownLuaBackends();
     Logger.Log("[BackendManager::Shutdown] Destroying all plugin instances...");
-    this->DestroyAllPythonInstances();
+    this->ShutdownPythonBackends();
 
     Logger.Log("[BackendManager::Shutdown] All plugins have been shut down...");
 
@@ -267,17 +267,27 @@ void BackendManager::Shutdown()
     Logger.Log("Shutdown took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
 }
 
+/**
+ * @brief Check if any Python backends are running.
+ */
 bool BackendManager::HasAnyPythonBackends()
 {
     return this->m_pyThreadPool.size() > 0;
 }
 
+/**
+ * @brief Check if any Lua backends are running.
+ */
 bool BackendManager::HasAnyLuaBackends()
 {
     return this->m_luaThreadPool.size() > 0;
 }
 
-bool BackendManager::DestroyAllLuaInstances()
+/**
+ * @brief Destroys all Lua instances.
+ * This function destroys all Lua instances and removes them from the list of Lua instances.
+ */
+bool BackendManager::ShutdownLuaBackends()
 {
     /** No lua instances to shutdown */
     if (m_luaThreadPool.empty()) {
@@ -307,7 +317,7 @@ bool BackendManager::DestroyAllLuaInstances()
  *
  * @returns {bool} - True if the Python instances were destroyed successfully, false otherwise.
  */
-bool BackendManager::DestroyAllPythonInstances()
+bool BackendManager::ShutdownPythonBackends()
 {
     std::unique_lock<std::mutex> lock(this->m_pythonMutex); // Lock for thread safety
 
@@ -421,6 +431,11 @@ bool BackendManager::DestroyPythonInstance(std::string targetPluginName, bool is
     return successfulShutdown;
 }
 
+/**
+ * @brief Calls the on_unload function in the Lua plugin definition.
+ * This function checks if the MILLENNIUM_PLUGIN_DEFINITION table exists and if it has an on_unload function.
+ * If both exist, it calls the on_unload function and handles any errors that may occur.
+ */
 void BackendManager::CallLuaOnUnload(lua_State* L, const std::string& pluginName)
 {
     lua_getglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
@@ -446,6 +461,9 @@ void BackendManager::CallLuaOnUnload(lua_State* L, const std::string& pluginName
     lua_pop(L, 1); // remove MILLENNIUM_PLUGIN_DEFINITION table
 }
 
+/**
+ * @brief Cleans up the plugin name pointer associated with a Lua state.
+ */
 void BackendManager::CleanupPluginNamePointer(lua_State* L)
 {
     void* ud = lua_touserdata(L, lua_upvalueindex(1));
@@ -454,17 +472,29 @@ void BackendManager::CleanupPluginNamePointer(lua_State* L)
     }
 }
 
+/**
+ * @brief Finds a mutex entry for a given Lua state.
+ */
 void BackendManager::RemoveMutexFromPool(lua_State* L)
 {
     m_luaMutexPool.erase(std::remove_if(m_luaMutexPool.begin(), m_luaMutexPool.end(), [L](const auto& entry) { return std::get<0>(entry) == L; }), m_luaMutexPool.end());
 }
 
+/**
+ * @brief Removes memory tracking for a plugin.
+ * This function removes memory tracking for a plugin by erasing its entry from the sPluginMemoryUsage map.
+ */
 void BackendManager::RemoveMemoryTracking(const std::string& pluginName)
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
     sPluginMemoryUsage.erase(pluginName);
 }
 
+/**
+ * @brief Destroys a Lua instance for a plugin.
+ *
+ * This function iterates through the list of Lua threads and destroys the instance for the specified plugin.
+ */
 bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldCleanupThreadPool)
 {
     for (auto it = this->m_luaThreadPool.begin(); it != this->m_luaThreadPool.end(); /* No increment */) {
@@ -524,6 +554,11 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
     return false;
 }
 
+/**
+ * @brief Checks if all Python backends have stopped.
+ *
+ * This function iterates through the list of Python instances and returns true if all backends have stopped.
+ */
 bool BackendManager::HasAllPythonBackendsStopped()
 {
     for (auto instance : this->m_pythonInstances) {
@@ -536,6 +571,11 @@ bool BackendManager::HasAllPythonBackendsStopped()
     return true;
 }
 
+/**
+ * @brief Checks if all Lua backends have stopped.
+ *
+ * This function iterates through the list of Lua threads and returns true if all backends have stopped.
+ */
 bool BackendManager::HasAllLuaBackendsStopped()
 {
     for (auto& [pluginName, thread, L, hasFinished] : m_luaThreadPool) {
@@ -755,7 +795,7 @@ SettingsStore::PluginBackendType BackendManager::GetPluginBackendType(std::strin
 /**
  * @brief helper fn to find a lua_State in the pool
  */
-std::tuple<lua_State*, std::unique_ptr<std::mutex>>* BackendManager::FindEntry(lua_State* L)
+std::tuple<lua_State*, std::unique_ptr<std::mutex>>* BackendManager::Lua_FindEntry(lua_State* L)
 {
     for (auto& entry : m_luaMutexPool) {
         /** get the first entry in the tuple. structured bindings causes ref issues afaik */
@@ -772,7 +812,7 @@ std::tuple<lua_State*, std::unique_ptr<std::mutex>>* BackendManager::FindEntry(l
  */
 void BackendManager::Lua_LockLua(lua_State* L)
 {
-    auto entry = FindEntry(L);
+    auto entry = Lua_FindEntry(L);
     if (!entry)
         throw std::runtime_error("lua_State not found in pool");
 
@@ -787,7 +827,7 @@ void BackendManager::Lua_LockLua(lua_State* L)
  */
 void BackendManager::Lua_UnlockLua(lua_State* L)
 {
-    auto entry = FindEntry(L);
+    auto entry = Lua_FindEntry(L);
     if (!entry)
         throw std::runtime_error("lua_State not found in pool");
 
@@ -801,7 +841,7 @@ void BackendManager::Lua_UnlockLua(lua_State* L)
  */
 bool BackendManager::Lua_TryLockLua(lua_State* L)
 {
-    auto entry = FindEntry(L);
+    auto entry = Lua_FindEntry(L);
     if (!entry)
         throw std::runtime_error("lua_State not found in pool");
 
@@ -817,7 +857,7 @@ bool BackendManager::Lua_TryLockLua(lua_State* L)
  */
 bool BackendManager::Lua_IsMutexLocked(lua_State* L)
 {
-    auto entry = FindEntry(L);
+    auto entry = Lua_FindEntry(L);
     if (!entry)
         throw std::runtime_error("lua_State not found in pool");
 
@@ -833,7 +873,7 @@ bool BackendManager::Lua_IsMutexLocked(lua_State* L)
  * @brief Gets the plugin counter for a given plugin name.
  * This function returns a reference to the atomic size_t counter for the specified plugin name.
  */
-std::atomic<size_t>& BackendManager::GetPluginCounter(const std::string& plugin_name)
+std::atomic<size_t>& BackendManager::Lua_GetPluginCounter(const std::string& plugin_name)
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
     return sPluginMemoryUsage[plugin_name];
@@ -846,7 +886,7 @@ std::atomic<size_t>& BackendManager::GetPluginCounter(const std::string& plugin_
  * @note this is an atomic operation and is thread-safe.
  * it prob will cause a performance hit when called too often.
  */
-size_t BackendManager::GetTotalMemory()
+size_t BackendManager::Lua_GetTotalMemory()
 {
     return sTotalAllocated.load();
 }
@@ -858,7 +898,7 @@ size_t BackendManager::GetTotalMemory()
  * @param {std::string} plugin_name - The name of the plugin to get the memory usage for.
  * @returns {size_t} - The memory usage of the specified plugin.
  */
-size_t BackendManager::GetPluginMemorySnapshotByName(const std::string& plugin_name)
+size_t BackendManager::Lua_GetPluginMemorySnapshotByName(const std::string& plugin_name)
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
     auto it = sPluginMemoryUsage.find(plugin_name);
@@ -871,7 +911,7 @@ size_t BackendManager::GetPluginMemorySnapshotByName(const std::string& plugin_n
  *
  * @returns {std::unordered_map<std::string, size_t>} - A map of plugin names to their memory usage.
  */
-std::unordered_map<std::string, size_t> BackendManager::GetAllPluginMemorySnapshot()
+std::unordered_map<std::string, size_t> BackendManager::Lua_GetAllPluginMemorySnapshot()
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
     std::unordered_map<std::string, size_t> snapshot;
@@ -900,7 +940,7 @@ void* BackendManager::Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size
     if (nsize == 0) {
         if (ptr) {
             sTotalAllocated.fetch_sub(osize);
-            GetPluginCounter(pluginName).fetch_sub(osize);
+            Lua_GetPluginCounter(pluginName).fetch_sub(osize);
             free(ptr);
         }
         return nullptr;
@@ -913,7 +953,7 @@ void* BackendManager::Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size
             return nullptr;
         }
 
-        auto& pluginCounter = GetPluginCounter(pluginName);
+        auto& pluginCounter = Lua_GetPluginCounter(pluginName);
 
         if (ptr) {
             sTotalAllocated.fetch_sub(osize);
