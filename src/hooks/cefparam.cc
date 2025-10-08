@@ -34,6 +34,7 @@
 
 #include "millennium/argp_win32.h"
 #include "millennium/logger.h"
+#include "millennium/backend_mgr.h"
 
 #define ARG_REMOTE_ALLOW_ORIGINS "--remote-allow-origins"
 #define ARG_REMOTE_DEBUGGING_ADDRESS "--remote-debugging-address"
@@ -231,9 +232,60 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
     MH_EnableHook(MH_ALL_HOOKS);
 }
 
+std::atomic<bool> ab_shouldDisconnectFrontend{ false };
+
+std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded;
+std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown;
+
 VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context)
 {
     std::wstring baseDllName(NotificationData->BaseDllName->Buffer, NotificationData->BaseDllName->Length / sizeof(WCHAR));
+
+    /**
+     * Millennium uses DllNotificationCallback to hook when steamclient.dll unloaded
+     * This signifies the Steam Client is unloading.
+     * The reason it is done this way is to prevent windows loader lock from deadlocking or destroying parts of Millennium.
+     * When we are running inside the callback, we are inside the loader lock (so windows can't continue loading/unloading dlls)
+     */
+    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && baseDllName == L"steamclient.dll") {
+        /**
+         * notify the millennium frontend to disconnect
+         * once the frontend disconnects, it will shutdown the rest of Millennium
+         */
+        ab_shouldDisconnectFrontend.store(true);
+
+        auto& backendManager = BackendManager::GetInstance();
+
+        /** No need to wait if all backends aren't python */
+        if (!backendManager.HasAnyPythonBackends() && !backendManager.HasAnyLuaBackends()) {
+            Logger.Warn("No backends detected, skipping shutdown wait...");
+            return;
+        }
+
+        std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+
+        Logger.Warn("Waiting for Millennium to be unloaded...");
+
+        /** wait for Millennium to be unloaded */
+        cv_hasSteamUnloaded.wait(lk, [&backendManager]()
+        {
+            /** wait for all backends to stop so we can safely free the loader lock */
+            if (backendManager.HasAllPythonBackendsStopped() && backendManager.HasAllLuaBackendsStopped()) {
+                Logger.Warn("All backends have stopped, proceeding with termination...");
+
+                std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
+                cv_hasAllPythonPluginsShutdown.notify_all();
+
+                return true;
+            } else {
+                Logger.Warn("Waiting for backends to stop...");
+            }
+
+            return false;
+        });
+
+        Logger.Warn("Terminate condition variable signaled, exiting...");
+    }
 
     if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED && baseDllName == L"tier0_s.dll") {
         HandleTier0Dll(NotificationData->DllBase);

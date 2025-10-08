@@ -30,12 +30,17 @@
 
 #pragma once
 #include "millennium/sysfs.h"
+#include "millennium/logger.h"
 #include <set>
 
 class ThemeConfig
 {
   public:
     ThemeConfig();
+    ~ThemeConfig()
+    {
+        LOG_ERROR("Destructor called for ThemeConfig, unregistering listener");
+    }
 
     void OnConfigChange();
     void UpgradeOldConfig();

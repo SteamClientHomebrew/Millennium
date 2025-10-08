@@ -49,6 +49,8 @@ std::shared_ptr<PluginLoader> g_pluginLoader;
 std::string sharedJsContextSessionId;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
+extern std::atomic<bool> ab_shouldDisconnectFrontend;
+
 /**
  * @brief Post a message to the SharedJSContext window.
  * @param data The data to post.
@@ -274,16 +276,17 @@ const void PluginLoader::StartFrontEnds()
 
     Logger.Warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
 
-    #ifdef _WIN32
+#ifdef _WIN32
     auto start = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start < std::chrono::seconds(10)) {
-        if (GetModuleHandleA("steamclient.dll") == nullptr) {
+        if (ab_shouldDisconnectFrontend.load()) {
             Logger.Log("Steam is shutting down, terminating frontend thread pool...");
             return;
         }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    #endif
+#endif
 
     Logger.Warn("Reconnecting to Steam...");
 
@@ -368,24 +371,34 @@ const void PluginLoader::StartBackEnds(BackendManager& manager)
     this->Initialize();
     this->PrintActivePlugins();
 
-    Core_Load();
+    static bool hasCoreLoaded = false;
+    if (!hasCoreLoaded) {
+        Core_Load();
+        hasCoreLoaded = true;
+    }
 
     for (auto& plugin : *this->m_enabledPluginsPtr) {
         if (plugin.backendType == SettingsStore::PluginBackendType::Python) {
             // check if plugin is already running
             if (manager.IsPythonBackendRunning(plugin.pluginName)) {
-                Logger.Log("Skipping load for '{}' as it's already running", plugin.pluginName);
+                Logger.Log("[Python] Skipping load for '{}' as it's already running", plugin.pluginName);
                 continue;
             }
 
             std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::PyBackendStartCallback, std::placeholders::_1);
 
-            Logger.Log("Starting backend for '{}'", plugin.pluginName);
+            Logger.Log("[Python] Starting backend for '{}'", plugin.pluginName);
             manager.CreatePythonInstance(plugin, cb);
         } else if (plugin.backendType == SettingsStore::PluginBackendType::Lua) {
+            /** check if the Lua backend is already running */
+            if (manager.IsLuaBackendRunning(plugin.pluginName)) {
+                Logger.Log("[Lua] Skipping load for '{}' as it's already running", plugin.pluginName);
+                continue;
+            }
+
             std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> cb = std::bind(CoInitializer::LuaBackendStartCallback, std::placeholders::_1, std::placeholders::_2);
 
-            Logger.Log("Starting backend for '{}'", plugin.pluginName);
+            Logger.Log("[Lua] Starting backend for '{}'", plugin.pluginName);
             manager.CreateLuaInstance(plugin, cb);
         }
     }

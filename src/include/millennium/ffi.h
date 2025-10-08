@@ -189,10 +189,10 @@ class CefSocketDispatcher
 
     ~CefSocketDispatcher()
     {
-        /**
-         * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
-         * we free from the main function instead
-         * */
+/**
+ * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
+ * we free from the main function instead
+ * */
 #ifdef __linux__
         this->Shutdown();
 #endif
@@ -410,6 +410,8 @@ class CefSocketDispatcher
 
     void Shutdown()
     {
+        Logger.Log("Shutting down CefSocketDispatcher...");
+
         if (workerRunning.load()) {
             workerRunning.store(false);
             pendingCV.notify_all();
@@ -418,6 +420,8 @@ class CefSocketDispatcher
                 workerThread.join();
             }
         }
+
+        Logger.Log("CefSocketDispatcher shut down complete.");
     }
 
     void CleanupHistory()

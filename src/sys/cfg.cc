@@ -131,22 +131,35 @@ int SettingsStore::InitializeSettingsStore()
 bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
 {
     Logger.Log("Opting to {} {}", enabled ? "enable" : "disable", pluginName);
-    auto SettingsStore = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
+
+    // Get the current enabled plugins as JSON array
+    nlohmann::json enabledPluginsJson = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
+
+    // Convert to vector for easier manipulation
+    std::vector<std::string> enabledPlugins;
+    if (enabledPluginsJson.is_array()) {
+        for (const auto& plugin : enabledPluginsJson) {
+            if (plugin.is_string()) {
+                enabledPlugins.push_back(plugin.get<std::string>());
+            }
+        }
+    }
 
     /** Enable the target plugin */
     if (enabled) {
-        if (std::find(SettingsStore.begin(), SettingsStore.end(), pluginName) == SettingsStore.end()) {
-            SettingsStore.push_back(pluginName);
+        if (std::find(enabledPlugins.begin(), enabledPlugins.end(), pluginName) == enabledPlugins.end()) {
+            enabledPlugins.push_back(pluginName);
         }
     }
     /** Disable the target plugin */
-    else if (!enabled) {
-        if (std::find(SettingsStore.begin(), SettingsStore.end(), pluginName) != SettingsStore.end()) {
-            SettingsStore.erase(std::remove(SettingsStore.begin(), SettingsStore.end(), pluginName), SettingsStore.end());
+    else {
+        auto it = std::find(enabledPlugins.begin(), enabledPlugins.end(), pluginName);
+        if (it != enabledPlugins.end()) {
+            enabledPlugins.erase(it);
         }
     }
 
-    CONFIG.SetNested("plugins.enabledPlugins", SettingsStore);
+    CONFIG.SetNested("plugins.enabledPlugins", enabledPlugins);
     return true;
 }
 
@@ -156,8 +169,14 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
  */
 bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
 {
-    for (const auto& plugin : CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{})) {
-        if (plugin == plugin_name) {
+    nlohmann::json enabledPluginsJson = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
+
+    if (!enabledPluginsJson.is_array()) {
+        return false;
+    }
+
+    for (const auto& plugin : enabledPluginsJson) {
+        if (plugin.is_string() && plugin.get<std::string>() == plugin_name) {
             return true;
         }
     }
@@ -524,11 +543,29 @@ ConfigManager::~ConfigManager()
 
 void ConfigManager::NotifyListeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value)
 {
-    for (auto& listener : _listeners) {
+    // Make copies of the data and get a copy of listeners while holding the lock
+    std::string key_copy = key;
+    nlohmann::json old_value_copy = old_value;
+    nlohmann::json new_value_copy = new_value;
+    std::vector<Listener> listeners_copy;
+
+    {
+        // Only hold the lock long enough to copy the listeners
+        std::lock_guard<std::recursive_mutex> lock(_mutex);
+        listeners_copy = _listeners;
+    }
+    // Lock is released here before calling listeners
+
+    // Call listeners without holding the lock
+    for (auto& listener : listeners_copy) {
         try {
-            listener(key, old_value, new_value);
+            listener(key_copy, old_value_copy, new_value_copy);
+        } catch (const nlohmann::json::exception& e) {
+            LOG_ERROR("Listener JSON exception for key: {}: {}", key_copy, e.what());
+        } catch (const std::exception& e) {
+            LOG_ERROR("Listener exception for key: {}: {}", key_copy, e.what());
         } catch (...) {
-            LOG_ERROR("Listener exception for key: {}", key);
+            LOG_ERROR("Listener exception for key: {}", key_copy);
         }
     }
 }

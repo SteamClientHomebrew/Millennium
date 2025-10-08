@@ -111,6 +111,9 @@ const static void VerifyEnvironment()
 #endif
 }
 
+extern std::condition_variable cv_hasSteamUnloaded;
+extern std::mutex mtx_hasSteamUnloaded;
+
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
  */
@@ -129,7 +132,14 @@ void EntryMain()
     g_pluginLoader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
 
     /** Shutdown backend service once frontend disconnects*/
+    Logger.Log("Shutting down backend services...");
     (&manager)->Shutdown();
+    Logger.Log("Backend services shut down successfully.");
+
+    { /** new scope to prevent deadlocks */
+        std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+        cv_hasSteamUnloaded.notify_all();
+    }
 
     /** Wait for the update thread to finish */
     updateThread.join();

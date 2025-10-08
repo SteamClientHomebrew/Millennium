@@ -77,17 +77,21 @@ VOID Win32_AttachMillennium(VOID)
     MillenniumUpdater::CleanupMillenniumUpdaterTempFiles();
 
     EntryMain();
+    Logger.Log("Millennium main function has returned, proceeding with shutdown...");
 
     /** Shutdown the shared JS message emitter */
     CefSocketDispatcher& emitter = CefSocketDispatcher::get();
     (&emitter)->Shutdown();
+    Logger.Log("CefSocketDispatcher has been shut down.");
 
     /** Shutdown cron threads that manage Steam HTTP hooks */
     HttpHookManager& hookManager = HttpHookManager::get();
     (&hookManager)->Shutdown();
+    Logger.Log("HttpHookManager has been shut down.");
 
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();
+    Logger.Log("MinHook has been uninitialized.");
 
     /** Deallocate the developer console */
     if (CommandLineArguments::HasArgument("-dev")) {

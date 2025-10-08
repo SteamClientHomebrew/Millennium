@@ -65,11 +65,19 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
     }
 
     if (hasEnableRequests) {
-        std::thread([&manager] { g_pluginLoader->StartBackEnds(manager); }).detach();
+        g_pluginLoader->StartBackEnds(manager);
     }
 
     for (const auto& pluginName : pluginsToDisable) {
-        std::thread([pluginName, &manager] { manager.DestroyPythonInstance(pluginName.c_str()); }).detach();
+        const auto backendType = manager.GetPluginBackendType(pluginName);
+
+        if (backendType == SettingsStore::PluginBackendType::Lua) {
+            manager.DestroyLuaInstance(pluginName);
+        } else if (backendType == SettingsStore::PluginBackendType::Python) {
+            manager.DestroyPythonInstance(pluginName);
+            // manager.DestroyAllPythonInstances();
+            // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        }
     }
 
     CoInitializer::ReInjectFrontendShims(g_pluginLoader, true);

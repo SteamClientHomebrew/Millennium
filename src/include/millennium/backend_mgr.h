@@ -45,6 +45,40 @@ struct InterpreterMutex
     std::mutex mtx;
     std::condition_variable cv;
     std::atomic<bool> flag{ false };
+    std::atomic<bool> hasFinished{ false };
+};
+
+struct LuaThreadPoolItem
+{
+    std::string pluginName;
+    std::thread thread;
+    lua_State* L;
+    std::atomic<bool> hasFinished{ false };
+
+    LuaThreadPoolItem(std::string name, std::thread t, lua_State* state) : pluginName(std::move(name)), thread(std::move(t)), L(state)
+    {
+    }
+
+    LuaThreadPoolItem(const LuaThreadPoolItem&) = delete;
+    LuaThreadPoolItem& operator=(const LuaThreadPoolItem&) = delete;
+
+    LuaThreadPoolItem(LuaThreadPoolItem&& other) noexcept
+        : pluginName(std::move(other.pluginName)), thread(std::move(other.thread)), L(other.L), hasFinished(other.hasFinished.load())
+    {
+        other.L = nullptr;
+    }
+
+    LuaThreadPoolItem& operator=(LuaThreadPoolItem&& other) noexcept
+    {
+        if (this != &other) {
+            pluginName = std::move(other.pluginName);
+            thread = std::move(other.thread);
+            L = other.L;
+            hasFinished.store(other.hasFinished.load());
+            other.L = nullptr;
+        }
+        return *this;
+    }
 };
 
 struct PythonThreadState
@@ -99,7 +133,8 @@ class BackendManager
     PyThreadState* m_InterpreterThreadSave;
 
     std::vector<std::tuple<std::string, std::thread>> m_pyThreadPool;
-    std::vector<std::tuple<std::string, std::thread, lua_State*>> m_luaThreadPool;
+
+    std::vector<LuaThreadPoolItem> m_luaThreadPool;
     std::vector<std::shared_ptr<PythonThreadState>> m_pythonInstances;
 
     std::tuple<lua_State*, std::unique_ptr<std::mutex>>* FindEntry(lua_State* L);
@@ -121,11 +156,28 @@ class BackendManager
     static std::unordered_map<std::string, size_t> GetAllPluginMemorySnapshot();
 
     bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
+
+    void CallLuaOnUnload(lua_State* L, const std::string& pluginName);
+    void CleanupPluginNamePointer(lua_State* L);
+    void RemoveMutexFromPool(lua_State* L);
+    void RemoveMemoryTracking(const std::string& pluginName);
+    bool DestroyLuaInstance(std::string pluginName, bool shouldCleanupThreadPool = true);
+
     bool DestroyAllPythonInstances();
+    bool DestroyAllLuaInstances();
+
     bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
     bool CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> callback);
 
+    bool HasAnyPythonBackends();
+    bool HasAnyLuaBackends();
+
+    bool HasAllPythonBackendsStopped();
+    bool HasAllLuaBackendsStopped();
+
     bool IsPythonBackendRunning(std::string pluginName);
+    bool IsLuaBackendRunning(std::string pluginName);
+
     bool HasPythonBackend(std::string pluginName);
 
     SettingsStore::PluginBackendType GetPluginBackendType(std::string pluginName);

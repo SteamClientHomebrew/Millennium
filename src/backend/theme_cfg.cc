@@ -43,7 +43,8 @@ ThemeConfig::ThemeConfig()
 
     UpgradeOldConfig();
     OnConfigChange();
-    CONFIG.RegisterListener([this](const std::string&, const nlohmann::json&, const nlohmann::json&) { this->OnConfigChange(); });
+    ConfigManager::Listener config_listener = [this](const std::string&, const nlohmann::json&, const nlohmann::json&) { this->OnConfigChange(); };
+    CONFIG.RegisterListener(config_listener);
 }
 
 void ThemeConfig::OnConfigChange()
