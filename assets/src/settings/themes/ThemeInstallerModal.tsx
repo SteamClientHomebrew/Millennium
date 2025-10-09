@@ -31,7 +31,7 @@
 import { ConfirmModal, pluginSelf, showModal, ShowModalResult, SuspensefulImage, TextField } from '@steambrew/client';
 import React, { Component, useEffect } from 'react';
 import { Utils } from '../../utils';
-
+import { locale } from '../../../locales';
 import FindThemeIdGif from '../../../static/theme_id.gif';
 import { THEMES_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
@@ -48,14 +48,14 @@ function ThemeIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: The
 
 	return (
 		<ConfirmModal
-			strTitle="Enter an ID"
+			strTitle={locale.installEnterAnID}
 			strDescription={
 				<>
 					Install a user theme from an ID. These ID's can be found after selecting a theme at <Utils.URLComponent url={THEMES_URL} />
 					<SuspensefulImage className="MillenniumInstallDialog_TutorialImage" src={tutorialImageUrl} />
 					<TextField
 						// @ts-ignore
-						placeholder={'Enter an ID here...'}
+						placeholder={locale.installEnterAnIDPlaceholder}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
 					/>
