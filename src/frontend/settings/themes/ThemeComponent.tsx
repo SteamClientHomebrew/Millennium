@@ -203,7 +203,11 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				data-theme-name={theme?.data?.name}
 				data-theme-folder-name-on-disk={theme?.native}
 			>
-				<DialogButton className={settingsClasses.SettingsDialogButton} style={{ width: '65px' }} onClick={() => (isActive ? onUseDefault() : onChangeTheme(theme))}>
+				<DialogButton
+					className={settingsClasses.SettingsDialogButton}
+					style={{ width: 'fit-content' }}
+					onClick={() => (isActive ? onUseDefault() : onChangeTheme(theme))}
+				>
 					{isActive ? 'Disable' : 'Use'}
 				</DialogButton>
 
