@@ -129,7 +129,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 	}
 
 	async OpenPluginsFolder() {
-		const path = await PyGetEnvironmentVar({ variable: 'MILLENNIUM__PLUGINS_PATH' });
+		const path = JSON.parse(await PyGetEnvironmentVar({ variable: 'MILLENNIUM__PLUGINS_PATH' }));
 		Utils.BrowseLocalFolder(path);
 	}
 
