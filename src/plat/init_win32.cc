@@ -59,10 +59,13 @@ CONSTRUCTOR VOID Win32_InitializeEnvironment(VOID)
     }
 }
 
+extern std::mutex mtx_hasSteamUIStartedLoading;
+extern std::condition_variable cv_hasSteamUIStartedLoading;
+
 VOID Win32_AttachMillennium(VOID)
 {
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
-    if (!HookCefArgs()) {
+    if (!InitializeSteamHooks()) {
         return;
     }
 
@@ -77,7 +80,7 @@ VOID Win32_AttachMillennium(VOID)
     MillenniumUpdater::CleanupMillenniumUpdaterTempFiles();
 
     EntryMain();
-    Logger.Log("Millennium main function has returned, proceeding with shutdown...");
+    Logger.Log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
 
     /** Shutdown the shared JS message emitter */
     CefSocketDispatcher& emitter = CefSocketDispatcher::get();

@@ -58,7 +58,7 @@ typedef VOID(CALLBACK* PLDR_DLL_NOTIFICATION_FUNCTION)(ULONG NotificationReason,
 typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction, PVOID Context, PVOID* Cookie);
 typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
 
-BOOL HookCefArgs();
+BOOL InitializeSteamHooks();
 const char* GetAppropriateDevToolsPort();
 
 bool Millennium_Plat_CommandLineIsSetup();

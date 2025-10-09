@@ -556,6 +556,8 @@ set(SOURCE_FILES
     src/runtime/liblj_interop.cc
     src/runtime/liblj_logger.cc
     src/runtime/liblj_utils.cc
+    src/runtime/liblj_fs.cc
+    src/runtime/liblj_regex.cc
     src/runtime/libpy_api.cc
     src/runtime/libpy_gil.cc
     src/runtime/libpy_interop.cc
@@ -582,7 +584,7 @@ set(SOURCE_FILES
     src/backend/theme_cfg.cc
     src/backend/theme_mgr.cc
     src/backend/webkit.cc
-    src/hooks/cefparam.cc
+    src/hooks/steam_hooks.cc
     src/sys/cfg.cc
     src/sys/env.cc
     src/sys/log.cc

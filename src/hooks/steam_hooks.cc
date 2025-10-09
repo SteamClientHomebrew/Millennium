@@ -61,6 +61,18 @@ ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = NULL;
 HMODULE steamTier0Module;
 std::string STEAM_DEVELOPER_TOOLS_PORT;
 
+std::atomic<bool> ab_shouldDisconnectFrontend{ false };
+
+std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
+std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
+
+struct HookInfo
+{
+    const char* name;
+    LPVOID detour;
+    LPVOID* original;
+};
+
 unsigned short GetRandomOpenPort()
 {
     asio::io_context io_context;
@@ -191,13 +203,6 @@ INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteS
     return fpCreateSimpleProcess(SanitizeCommandLine(a1), a2, lpMultiByteStr);
 }
 
-struct HookInfo
-{
-    const char* name;
-    LPVOID detour;
-    LPVOID* original;
-};
-
 /**
  * tier0_s.dll is a *cross platform* library bundled with Steam that helps it
  * manage low-level system interactions and provides various utility functions.
@@ -232,63 +237,73 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
     MH_EnableHook(MH_ALL_HOOKS);
 }
 
-std::atomic<bool> ab_shouldDisconnectFrontend{ false };
+/**
+ * Millennium uses DllNotificationCallback to hook when steamclient.dll unloaded
+ * This signifies the Steam Client is unloading.
+ * The reason it is done this way is to prevent windows loader lock from deadlocking or destroying parts of Millennium.
+ * When we are running inside the callback, we are inside the loader lock (so windows can't continue loading/unloading dlls)
+ */
+VOID HandleSteamUnload()
+{
+    /**
+     * notify the millennium frontend to disconnect
+     * once the frontend disconnects, it will shutdown the rest of Millennium
+     */
+    ab_shouldDisconnectFrontend.store(true);
+    auto& backendManager = BackendManager::GetInstance();
 
-std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded;
-std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown;
+    /** No need to wait if all backends aren't python */
+    if (!backendManager.HasAnyPythonBackends() && !backendManager.HasAnyLuaBackends()) {
+        Logger.Warn("No backends detected, skipping shutdown wait...");
+        return;
+    }
+
+    std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+    Logger.Warn("Waiting for Millennium to be unloaded...");
+
+    /** wait for Millennium to be unloaded */
+    cv_hasSteamUnloaded.wait(lk, [&backendManager]()
+    {
+        /** wait for all backends to stop so we can safely free the loader lock */
+        if (backendManager.HasAllPythonBackendsStopped() && backendManager.HasAllLuaBackendsStopped()) {
+            Logger.Warn("All backends have stopped, proceeding with termination...");
+
+            std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
+            cv_hasAllPythonPluginsShutdown.notify_all();
+            return true;
+        }
+        return false;
+    });
+
+    Logger.Warn("Terminate condition variable signaled, exiting...");
+}
+
+VOID HandleSteamLoad()
+{
+    Logger.Log("[DllNotificationCallback] Notified that Steam UI has loaded, notifying main thread...");
+    cv_hasSteamUIStartedLoading.notify_all();
+}
 
 VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context)
 {
-    std::wstring baseDllName(NotificationData->BaseDllName->Buffer, NotificationData->BaseDllName->Length / sizeof(WCHAR));
+    std::wstring_view baseDllName(NotificationData->BaseDllName->Buffer, NotificationData->BaseDllName->Length / sizeof(WCHAR));
 
-    /**
-     * Millennium uses DllNotificationCallback to hook when steamclient.dll unloaded
-     * This signifies the Steam Client is unloading.
-     * The reason it is done this way is to prevent windows loader lock from deadlocking or destroying parts of Millennium.
-     * When we are running inside the callback, we are inside the loader lock (so windows can't continue loading/unloading dlls)
-     */
-    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && baseDllName == L"steamclient.dll") {
-        /**
-         * notify the millennium frontend to disconnect
-         * once the frontend disconnects, it will shutdown the rest of Millennium
-         */
-        ab_shouldDisconnectFrontend.store(true);
-
-        auto& backendManager = BackendManager::GetInstance();
-
-        /** No need to wait if all backends aren't python */
-        if (!backendManager.HasAnyPythonBackends() && !backendManager.HasAnyLuaBackends()) {
-            Logger.Warn("No backends detected, skipping shutdown wait...");
-            return;
-        }
-
-        std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-
-        Logger.Warn("Waiting for Millennium to be unloaded...");
-
-        /** wait for Millennium to be unloaded */
-        cv_hasSteamUnloaded.wait(lk, [&backendManager]()
-        {
-            /** wait for all backends to stop so we can safely free the loader lock */
-            if (backendManager.HasAllPythonBackendsStopped() && backendManager.HasAllLuaBackendsStopped()) {
-                Logger.Warn("All backends have stopped, proceeding with termination...");
-
-                std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
-                cv_hasAllPythonPluginsShutdown.notify_all();
-
-                return true;
-            } else {
-                Logger.Warn("Waiting for backends to stop...");
-            }
-
-            return false;
-        });
-
-        Logger.Warn("Terminate condition variable signaled, exiting...");
+    /** hook Steam load */
+    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED && baseDllName == L"steamui.dll") {
+        HandleSteamLoad();
+        return;
     }
 
+    /** hook Steam unload */
+    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && baseDllName == L"steamclient.dll") {
+        HandleSteamUnload();
+        return;
+    }
+
+    /** hook steam cross platform api (used to hook create proc) */
     if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED && baseDllName == L"tier0_s.dll") {
         HandleTier0Dll(NotificationData->DllBase);
+        return;
     }
 }
 
@@ -296,28 +311,22 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
  * Hook and disable ReadDirectoryChangesW to prevent the Steam client from monitoring changes
  * to the steamui dir, which is incredibly fucking annoying during development.
  */
-BOOL WINAPI Hooked_ReadDirectoryChangesW(HANDLE hDir, LPVOID lpBuffer, DWORD nBufferLength, BOOL bWatchSubtree, DWORD dwNotifyFilter, LPDWORD lpBytesReturned,
-                                         LPOVERLAPPED lpOverlapped, LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine)
+BOOL WINAPI Hooked_ReadDirectoryChangesW(void*, void*, void*, void*, void*, LPDWORD bytesRet, void*, void*)
 {
     Logger.Log("[Steam] Blocked attempt to ReadDirectoryChangesW...");
 
-    if (lpBytesReturned)
-        *lpBytesReturned = 0; // no changes
-
-    return TRUE; // indicate success
+    if (bytesRet)
+        *bytesRet = 0; // no changes
+    return TRUE;       // indicate success
 }
 
-BOOL HookCefArgs()
+BOOL InitializeSteamHooks()
 {
+    const auto startTime = std::chrono::system_clock::now();
+
     if (MH_Initialize() != MH_OK) {
         MessageBoxA(NULL, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
         return false;
-    }
-
-    /** only hook if developer mode is enabled */
-    if (IsDeveloperMode()) {
-        MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
-        MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
     }
 
     STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
@@ -342,7 +351,23 @@ BOOL HookCefArgs()
         return false;
     }
 
-    // Register for DLL notifications
-    return NT_SUCCESS(LdrRegisterDllNotification(0, DllNotificationCallback, nullptr, &g_NotificationCookie));
+    auto dllRegStatus = NT_SUCCESS(LdrRegisterDllNotification(0, DllNotificationCallback, nullptr, &g_NotificationCookie));
+
+    Logger.Log("[SH_Hook] Waiting for Steam UI to load...");
+
+    /** wait for steamui.dll to load (which signifies Steam is actually starting and not updating/verifying files) */
+    std::unique_lock<std::mutex> lk(mtx_hasSteamUIStartedLoading);
+    cv_hasSteamUIStartedLoading.wait(lk);
+
+    const auto endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTime).count();
+    Logger.Log("[SH_Hook] Steam UI loaded in {} ms, continuing Millennium startup...", endTime);
+
+    /** only hook if developer mode is enabled */
+    if (IsDeveloperMode()) {
+        MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
+        MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
+    }
+
+    return dllRegStatus;
 }
 #endif

@@ -319,6 +319,8 @@ extern "C" int Lua_OpenUtilsLibrary(lua_State* L);
 extern "C" int Lua_OpenLoggerLibrary(lua_State* L);
 extern "C" int luaopen_cjson(lua_State* l);
 extern "C" int Lua_OpenHttpLibrary(lua_State* L);
+extern "C" int Lua_OpenFS(lua_State* L);
+extern "C" int Lua_OpenRegex(lua_State* L);
 
 static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
 {
@@ -341,6 +343,9 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
     lua_pushstring(L, plugin.pluginName.c_str());
     lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
 
+    lua_pushstring(L, plugin.backendAbsoluteDirectory.string().c_str());
+    lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_BACKEND_ABSOLUTE");
+
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "preload");
 
@@ -349,6 +354,8 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
     RegisterModule(L, "http", Lua_OpenHttpLibrary);
     RegisterModule(L, "utils", Lua_OpenUtilsLibrary);
     RegisterModule(L, "logger", Lua_OpenLoggerLibrary);
+    RegisterModule(L, "fs", Lua_OpenFS);
+    RegisterModule(L, "regex", Lua_OpenRegex);
 
     lua_pop(L, 2);
 

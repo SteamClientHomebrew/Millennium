@@ -454,7 +454,7 @@ void BackendManager::CallLuaOnUnload(lua_State* L, const std::string& pluginName
 
     if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
         const char* err = lua_tostring(L, -1);
-        Logger.Warn("Error executing MILLENNIUM_PLUGIN_DEFINITION.on_unload for plugin '{}': {}", pluginName, err ? err : "unknown error");
+        LOG_ERROR("Failed to unload lua plugin '{}': {}", pluginName, err ? err : "unknown error");
         lua_pop(L, 1); // remove error
     }
 

@@ -171,12 +171,14 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 
 		return (
 			<>
-				{theme.data.description && <div className="MillenniumThemes_Description">{theme.data.description}</div>}
-				{theme.data.github?.owner && (
+				{theme?.data?.description && <div className="MillenniumThemes_Description">{theme.data.description}</div>}
+				{theme?.data?.github?.owner ? (
 					<a className="MillenniumThemes_Author" onClick={() => Utils.OpenUrl('https://github.com/' + theme.data.github.owner)}>
 						{formatString(locale.strByAuthor, theme.data.github.owner + (theme?.data?.author ? ` (${theme.data.author})` : ''))}
 					</a>
-				)}
+				) : theme?.data?.author ? (
+					<a className="MillenniumThemes_Author">{formatString(locale.strByAuthor, theme.data.author)}</a>
+				) : null}
 			</>
 		);
 	}
