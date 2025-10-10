@@ -321,6 +321,7 @@ extern "C" int luaopen_cjson(lua_State* l);
 extern "C" int Lua_OpenHttpLibrary(lua_State* L);
 extern "C" int Lua_OpenFS(lua_State* L);
 extern "C" int Lua_OpenRegex(lua_State* L);
+extern "C" int Lua_OpenDateTime(lua_State* L);
 
 static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
 {
@@ -356,6 +357,7 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
     RegisterModule(L, "logger", Lua_OpenLoggerLibrary);
     RegisterModule(L, "fs", Lua_OpenFS);
     RegisterModule(L, "regex", Lua_OpenRegex);
+    RegisterModule(L, "datetime", Lua_OpenDateTime);
 
     lua_pop(L, 2);
 
