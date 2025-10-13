@@ -42,6 +42,8 @@
 #include <string>
 #include <unistd.h>
 
+std::map<std::string, std::string> envVariables;
+
 #if defined(__linux__) || defined(__APPLE__)
 extern char** environ;
 class environment
@@ -269,6 +271,7 @@ const void SetupEnvironmentVariables()
 #endif
 
     const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
+    envVariables = environment;
 
     for (const auto& [key, value] : environment) {
 #if defined(__linux__) || defined(__APPLE__)
@@ -276,7 +279,7 @@ const void SetupEnvironmentVariables()
 #define RESET "\033[0m"
 
         if (shouldLog)
-            std::cout << fmt::format("{}={}", key, value) << std::endl;
+            millennium::cout << fmt::format("{}={}", key, value) << std::endl;
 #endif
         SetEnv(key, value);
     }

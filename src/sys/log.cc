@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-#include "millennium/logger.h"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -36,13 +35,16 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <fcntl.h>
 
 #ifdef _WIN32
 #include "millennium/argp_win32.h"
 #endif
 #include "millennium/env.h"
 #include "millennium/sysfs.h"
-#include <fcntl.h>
+#include "millennium/logger.h"
+#include "millennium/stdout_tee.h"
+#include "millennium/devtools.h"
 
 OutputLogger Logger;
 
@@ -61,28 +63,71 @@ std::string OutputLogger::GetLocalTime()
 void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
     std::lock_guard<std::mutex> lock(logMutex);
-    std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
+    millennium::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
 }
 
 #ifdef _WIN32
-void EnableVirtualTerminalProcessing()
+void EnableVirtualTerminalProcessing(HANDLE hRealConsole)
 {
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE) {
-        return;
+    /** enable VT output (for ansi) */
+    if (hRealConsole != INVALID_HANDLE_VALUE) {
+        DWORD dwMode = 0;
+        if (GetConsoleMode(hRealConsole, &dwMode)) {
+            /** enable VT processing and keep processed output flag */
+            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT;
+            (void)SetConsoleMode(hRealConsole, dwMode);
+        }
     }
 
-    DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode)) {
-        return;
+    /** enable VT input so cursor/arrow keys and other VT input sequences are delivered */
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+    if (hIn != INVALID_HANDLE_VALUE) {
+        DWORD inMode = 0;
+        if (GetConsoleMode(hIn, &inMode)) {
+            inMode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
+            (void)SetConsoleMode(hIn, inMode);
+        }
     }
 
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode)) {
-        return;
-    }
+    SetConsoleOutputCP(CP_UTF8);
 }
 #endif
+
+extern std::mutex hasShownDevToolsMutex;
+extern std::condition_variable hasShownDevToolsCV;
+
+HANDLE g_millenniumConsoleHandle;
+
+/**
+ * redirect std::cout to the console window from the handle directly
+ * this avoids issues with freopen and flushing
+ */
+class ConsoleStreamBuf : public std::streambuf
+{
+    HANDLE hConsole;
+
+  protected:
+    virtual int overflow(int c) override
+    {
+        if (c != EOF) {
+            char ch = static_cast<char>(c);
+            DWORD written;
+            WriteConsoleA(hConsole, &ch, 1, &written, NULL);
+        }
+        return c;
+    }
+    virtual std::streamsize xsputn(const char* s, std::streamsize n) override
+    {
+        DWORD written;
+        WriteConsoleA(hConsole, s, static_cast<DWORD>(n), &written, NULL);
+        return written;
+    }
+
+  public:
+    ConsoleStreamBuf(HANDLE h) : hConsole(h)
+    {
+    }
+};
 
 OutputLogger::OutputLogger()
 {
@@ -90,16 +135,35 @@ OutputLogger::OutputLogger()
     this->m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev");
     if (m_bIsConsoleEnabled) {
         (void)static_cast<bool>(AllocConsole());
-        freopen("CONOUT$", "w", stdout);
-        freopen("CONOUT$", "w", stderr);
-        EnableVirtualTerminalProcessing();
+        // freopen("CONOUT$", "w", stdout);
+        // freopen("CONOUT$", "w", stderr);
+        freopen("CONIN$", "r", stdin);
 
-        SetConsoleOutputCP(CP_UTF8);
+        g_millenniumConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        freopen("NUL", "w", stdout);
+        freopen("NUL", "w", stderr);
+
+        SetStdHandle(STD_OUTPUT_HANDLE, INVALID_HANDLE_VALUE);
+        SetStdHandle(STD_ERROR_HANDLE, INVALID_HANDLE_VALUE);
+
+        static ConsoleStreamBuf consoleBuffer(g_millenniumConsoleHandle);
+        std::cout.rdbuf(&consoleBuffer);
+
+        EnableVirtualTerminalProcessing(g_millenniumConsoleHandle);
         std::ios::sync_with_stdio(true);
     }
 #elif __linux__
     this->m_bIsConsoleEnabled = true;
 #endif
+
+    if (m_bIsConsoleEnabled) {
+        std::thread developerTools(ShowDeveloperTools);
+        developerTools.detach();
+
+        // std::unique_lock<std::mutex> lk(hasShownDevToolsMutex);
+        // hasShownDevToolsCV.wait(lk);
+    }
 }
 
 void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)
@@ -114,5 +178,5 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
     };
 
     std::string message = fmt::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", GetLocalTime(), toUpper(pluginName), strMessage);
-    std::cout << message;
+    millennium::cout << message;
 }

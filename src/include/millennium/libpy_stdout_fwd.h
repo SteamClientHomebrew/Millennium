@@ -37,6 +37,7 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
+#include "millennium/stdout_tee.h"
 #include <Python.h>
 #include <fmt/core.h>
 #include <iostream>
@@ -66,8 +67,8 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
  */
 extern "C" void PrintPythonError(std::string pname, const char* message)
 {
-    std::cout << "\033[31m" << message << "\033[0m";
-    std::cout.flush(); // Flush the buffer to ensure the message is printed immediately, and the color doesn't leak into the next message.
+    millennium::cout << "\033[31m" << message << "\033[0m";
+    // std::cout.flush(); // Flush the buffer to ensure the message is printed immediately, and the color doesn't leak into the next message.
 
     ErrorToLogger(pname, message);
 }

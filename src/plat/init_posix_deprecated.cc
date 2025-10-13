@@ -32,6 +32,7 @@
 #include "millennium/init.h"
 #include "millennium/logger.h"
 #include "millennium/posix_util.h"
+#include "millennium/stdout_tee.h"
 
 #include <unistd.h>
 #include <dlfcn.h>
@@ -106,7 +107,7 @@ void RemoveFromLdPreload()
     updatedLdPreload.erase(0, updatedLdPreload.find_first_not_of(' '));
     updatedLdPreload.erase(updatedLdPreload.find_last_not_of(' ') + 1);
 
-    std::cout << "Updating LD_PRELOAD from [" << ldPreload << "] to [" << updatedLdPreload << "]\n";
+    millennium::cout << "Updating LD_PRELOAD from [" << ldPreload << "] to [" << updatedLdPreload << "]\n";
 
     if (setenv("LD_PRELOAD", updatedLdPreload.c_str(), 1) != 0) {
         std::perror("setenv");

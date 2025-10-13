@@ -82,6 +82,11 @@ set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
 
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
 
+set(IMTUI_SUPPORT_NCURSES       ON)
+set(IMTUI_NCURSES_INCLUDE_PATH  "${CMAKE_SOURCE_DIR}/vendor/pdcurses")
+set(IMTUI_NCURSES_LIBRARY       "${CMAKE_SOURCE_DIR}/vendor/pdcurses/libpdcurses.a")
+set(IMTUI_BUILD_EXAMPLES        OFF)
+
 add_compile_definitions(
     USE_INTERNAL_FPCONV
 
@@ -100,6 +105,10 @@ add_compile_definitions(
 
     FMT_HEADER_ONLY
     _CRT_SECURE_NO_WARNINGS
+
+    PDC_WIDE
+
+    endwin=_endwin_w64_4400
 )
 
 # Patch the minimum cmake version in a "submodule". 
@@ -121,21 +130,22 @@ endfunction()
 # ====================================
 message(STATUS "[Millennium] Fetching dependencies...")
 
-FetchContent_Declare(luajit       GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT     GIT_TAG v2.1         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2        SOURCE_SUBDIR fakedir)
-FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0  SOURCE_SUBDIR fakedir)
-FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0  SOURCE_SUBDIR fakedir)
+FetchContent_Declare(imtui         GIT_REPOSITORY https://github.com/ggerganov/imtui               GIT_TAG master         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1           SOURCE_SUBDIR fakedir)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2          SOURCE_SUBDIR fakedir)
+FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0        SOURCE_SUBDIR fakedir)
+FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0    SOURCE_SUBDIR fakedir)
+FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main           SOURCE_SUBDIR fakedir)
+FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0    SOURCE_SUBDIR fakedir)
 
 # Download all deps without configuring them
-set(DEPENDENCIES luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
+set(DEPENDENCIES imtui luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
 
 # Append min-hook only on Windows
 if(WIN32)
@@ -158,6 +168,9 @@ set(LUA_LIBRARY      luajit::lib   )
 set(LUA_LIBRARIES    luajit::lib   )
 
 # Include directories for deps
+include_directories("${CMAKE_SOURCE_DIR}/vendor/pdcurses")
+include_directories("${imtui_SOURCE_DIR}/include")
+include_directories("${imtui_SOURCE_DIR}/third-party/imgui")
 include_directories("${websocketpp_SOURCE_DIR}")
 include_directories("${libgit2_SOURCE_DIR}/include") 
 include_directories("${minizip_ng_SOURCE_DIR}") 
@@ -182,6 +195,7 @@ millennium_process_package("${minhook_SOURCE_DIR}/")
 endif()
 
 # Let cmake finally configure after we've processed them
+add_subdirectory("${imtui_SOURCE_DIR}"         "${imtui_BINARY_DIR}"        )
 add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"       )
 add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
 add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"  )
@@ -532,7 +546,7 @@ endif()
 # =====================================
 # Include Directories
 # =====================================
-
+ 
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/include
@@ -558,6 +572,7 @@ set(SOURCE_FILES
     src/runtime/liblj_utils.cc
     src/runtime/liblj_fs.cc
     src/runtime/liblj_regex.cc
+    src/runtime/liblj_datetime.cc
     src/runtime/libpy_api.cc
     src/runtime/libpy_gil.cc
     src/runtime/libpy_interop.cc
@@ -590,6 +605,12 @@ set(SOURCE_FILES
     src/sys/log.cc
     src/sys/sysfs.cc
     src/main.cc
+    src/dev/devtools.cc
+
+    ${imtui_SOURCE_DIR}/third-party/imgui/imgui/imgui.cpp
+    ${imtui_SOURCE_DIR}/third-party/imgui/imgui/imgui_draw.cpp
+    ${imtui_SOURCE_DIR}/third-party/imgui/imgui/imgui_tables.cpp
+    ${imtui_SOURCE_DIR}/third-party/imgui/imgui/imgui_widgets.cpp
 )
 
 if(WIN32)
@@ -750,6 +771,9 @@ target_link_libraries(Millennium
     nlohmann_json
     fmt::fmt
     mINI
+    "${imtui_BINARY_DIR}/src/libimtui.a"
+    "${imtui_BINARY_DIR}/src/libimtui-ncurses.a"
+    "${CMAKE_SOURCE_DIR}/vendor/pdcurses/libpdcurses.a"
 )
 
 if(WIN32)
@@ -787,6 +811,7 @@ if(WIN32)
         dbghelp
         schannel
         normaliz
+        winmm
         # curl dependencies
         -Wl,--start-group nghttp2 iconv unistring psl idn2 ssl crypto z ssh2 -Wl,--end-group
     )

@@ -113,7 +113,6 @@ const static void VerifyEnvironment()
 
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
-
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
  */
