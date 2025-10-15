@@ -16,3 +16,5 @@
 /result
 /sdk/result
 **/.DS_Store
+**/node_modules
+**/virtfs.h
