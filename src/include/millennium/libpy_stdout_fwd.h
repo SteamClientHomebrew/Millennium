@@ -40,7 +40,6 @@
 #include "millennium/stdout_tee.h"
 #include <Python.h>
 #include <fmt/core.h>
-#include <iostream>
 
 /**
  * @brief Write a message buffer to the logger. The buffer is un-flushed.

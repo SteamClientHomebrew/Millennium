@@ -33,8 +33,6 @@
 #include "millennium/csp_bypass.h"
 #include "millennium/encode.h"
 #include "millennium/env.h"
-#include "millennium/ffi.h"
-#include "millennium/http.h"
 #include "millennium/http_hooks.h"
 #include "millennium/init.h"
 #include "millennium/urlp.h"
@@ -42,7 +40,6 @@
 
 #include <chrono>
 #include <nlohmann/json.hpp>
-#include <ranges>
 #include <thread>
 #include <unordered_set>
 

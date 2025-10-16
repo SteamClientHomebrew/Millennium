@@ -29,9 +29,7 @@
  */
 
 #include "head/sys_accent_col.h"
-
-#include "millennium/logger.h"
-#include "millennium/sysfs.h"
+#include "fmt/format.h"
 
 /** piss off C */
 #ifdef min

@@ -29,17 +29,14 @@
  */
 
 #include "millennium/backend_init.h"
-#include "millennium/backend_mgr.h"
-#include "millennium/encode.h"
 #include "millennium/ffi.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/millennium_api.h"
 #include "millennium/plugin_api_init.h"
-#include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
+
 #include <fmt/core.h>
-#include <fstream>
 #include <nlohmann/json.hpp>
 
 PyObject* GetUserSettings(PyObject* self, PyObject* args)

@@ -30,7 +30,6 @@
 
 #ifdef __linux__
 #include <fstream>
-#include <iostream>
 #include <sys/auxv.h>
 #include <sys/utsname.h>
 #include <unistd.h>

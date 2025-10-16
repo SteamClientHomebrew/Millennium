@@ -34,15 +34,12 @@
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_api_init.h"
-#include <chrono>
+#include "millennium/ffi.h"
+
 #include <ctime>
 #include <dlfcn.h>
-#include <filesystem>
 #include <fmt/core.h>
-#include <fstream>
 #include <signal.h>
-#include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -50,6 +47,9 @@ std::unique_ptr<std::thread> g_millenniumThread;
 
 const static void VerifyEnvironment();
 void EntryMain(); /** forward declare main function */
+
+extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
+extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 
 static int IsSamePath(const char* path1, const char* path2)
 {
@@ -82,6 +82,7 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
     }
 
     Logger.Log("[Millennium] Setting up environment for Steam process: {}", path);
+
     /** Setup environment variables if loaded into Steam process */
     SetupEnvironmentVariables();
 }
@@ -100,6 +101,20 @@ void Posix_AttachMillennium()
     /** Shutdown cron threads that manage Steam HTTP hooks */
     BackendManager& hookManager = BackendManager::GetInstance();
     (&hookManager)->Shutdown();
+
+    std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+    cv_hasSteamUnloaded.wait(lk, [&hookManager]()
+    {
+        /** wait for all backends to stop so we can safely free the loader lock */
+        if (hookManager.HasAllPythonBackendsStopped() && hookManager.HasAllLuaBackendsStopped()) {
+            Logger.Warn("All backends have stopped, proceeding with termination...");
+
+            std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
+            cv_hasAllPythonPluginsShutdown.notify_all();
+            return true;
+        }
+        return false;
+    });
 }
 
 /** New interop funcs that receive calls from hooked libXtst */

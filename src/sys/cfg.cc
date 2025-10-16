@@ -468,12 +468,16 @@ void ConfigManager::LoadFromFile()
             file >> _data;
         } catch (...) {
             Logger.Warn("Invalid JSON in config file: {}", _filename);
+#ifdef _WIN32
             MessageBoxA(NULL, fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(), "Millennium", MB_OK | MB_ICONWARNING);
+#endif
             _data = nlohmann::json::object();
         }
     } else {
         Logger.Warn("Failed to open config file: {}", _filename);
+#ifdef _WIN32
         MessageBoxA(NULL, fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), "Millennium", MB_OK | MB_ICONWARNING);
+#endif
         _data = nlohmann::json::object();
     }
 

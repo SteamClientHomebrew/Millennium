@@ -37,7 +37,6 @@
 #include "millennium/http_hooks.h"
 #include "millennium/sysfs.h"
 #include <nlohmann/json.hpp>
-#include <string>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 

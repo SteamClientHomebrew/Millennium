@@ -29,22 +29,19 @@
  */
 
 #include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <fcntl.h>
+#include <condition_variable>
 
 #ifdef _WIN32
 #include "millennium/argp_win32.h"
 #endif
 #include "millennium/env.h"
-#include "millennium/sysfs.h"
 #include "millennium/logger.h"
 #include "millennium/stdout_tee.h"
-#include "millennium/devtools.h"
+#include <unistd.h>
 
 OutputLogger Logger;
 
@@ -96,6 +93,7 @@ void EnableVirtualTerminalProcessing(HANDLE hRealConsole)
 extern std::mutex hasShownDevToolsMutex;
 extern std::condition_variable hasShownDevToolsCV;
 
+#ifdef _WIN32
 HANDLE g_millenniumConsoleHandle;
 
 /**
@@ -128,6 +126,7 @@ class ConsoleStreamBuf : public std::streambuf
     {
     }
 };
+#endif
 
 OutputLogger::OutputLogger()
 {
@@ -156,14 +155,6 @@ OutputLogger::OutputLogger()
 #elif __linux__
     this->m_bIsConsoleEnabled = true;
 #endif
-
-    if (m_bIsConsoleEnabled) {
-        std::thread developerTools(ShowDeveloperTools);
-        developerTools.detach();
-
-        // std::unique_lock<std::mutex> lk(hasShownDevToolsMutex);
-        // hasShownDevToolsCV.wait(lk);
-    }
 }
 
 void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessage)

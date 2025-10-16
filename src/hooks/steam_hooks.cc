@@ -28,6 +28,11 @@
  * SOFTWARE.
  */
 
+#include <condition_variable>
+
+std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
+std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include "MinHook.h"
@@ -62,9 +67,6 @@ HMODULE steamTier0Module;
 std::string STEAM_DEVELOPER_TOOLS_PORT;
 
 std::atomic<bool> ab_shouldDisconnectFrontend{ false };
-
-std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
-std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 
 struct HookInfo
 {

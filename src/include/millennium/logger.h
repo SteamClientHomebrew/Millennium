@@ -29,15 +29,12 @@
  */
 
 #pragma once
-#include <fstream>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #endif
 #include <fmt/color.h>
 #include <fmt/core.h>
-#include <iostream>
-#include <memory>
 #include <mutex>
 
 #define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)

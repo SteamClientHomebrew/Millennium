@@ -7,7 +7,6 @@
 #include "head/ipc_handler.h"
 
 #include <filesystem>
-#include <fstream>
 #include <exception>
 
 #define MILLENNIUM_UPDATER_TEMP_DIR "millennium-updater-temp-files"

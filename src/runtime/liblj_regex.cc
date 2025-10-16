@@ -1,7 +1,6 @@
 #include <lua.hpp>
 #include <regex>
 #include <string>
-#include <vector>
 
 // ============= Regex Match =============
 

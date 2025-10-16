@@ -29,7 +29,6 @@
  */
 
 #include "millennium/auth.h"
-#include "millennium/logger.h"
 #include <random>
 
 /**

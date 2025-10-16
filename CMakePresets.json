@@ -9,6 +9,9 @@
       "architecture": {
         "value": "x86",
         "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {

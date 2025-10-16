@@ -41,10 +41,7 @@
 #include "millennium/logger.h"
 #include "millennium/millennium_updater.h"
 
-#include <filesystem>
 #include <fmt/core.h>
-#include <fstream>
-#include <signal.h>
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
