@@ -12,6 +12,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+void* g_originalXTstInstance = NULL;
+
 /**
  * When built in debug mode, MILLENNIUM_RUNTIME_PATH is set.
  * In release you can choose wether to use MILLENNIUM_RUNTIME_PATH as a environment variable or not.
@@ -189,5 +191,12 @@ class ProxySentinel
         this->StopAndUnloadMillennium();
     }
 };
+
+HOOK_FUNC(XTestFakeButtonEvent, int, (Display * dpy, unsigned int button, Bool is_press, unsigned long delay), (dpy, button, is_press, delay))
+HOOK_FUNC(XTestFakeKeyEvent, int, (Display * dpy, unsigned int keycode, Bool is_press, unsigned long delay), (dpy, keycode, is_press, delay))
+HOOK_FUNC(XTestQueryExtension, int, (Display * dpy, int* event_basep, int* error_basep, int* major_versionp, int* minor_versionp),
+          (dpy, event_basep, error_basep, major_versionp, minor_versionp))
+HOOK_FUNC(XTestFakeRelativeMotionEvent, int, (Display * dpy, int x, int y, unsigned long delay), (dpy, x, y, delay))
+HOOK_FUNC(XTestFakeMotionEvent, int, (Display * dpy, int screen_number, int x, int y, unsigned long delay), (dpy, screen_number, x, y, delay))
 
 std::shared_ptr<ProxySentinel> sentinel = std::make_shared<ProxySentinel>();
