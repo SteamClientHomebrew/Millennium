@@ -93,7 +93,7 @@ OutputLogger::OutputLogger()
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
 
-        EnableVirtualTerminalProcessing(g_millenniumConsoleHandle);
+        EnableVirtualTerminalProcessing();
         std::ios::sync_with_stdio(true);
     }
 #elif __linux__
