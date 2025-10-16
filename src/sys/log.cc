@@ -40,7 +40,6 @@
 #endif
 #include "millennium/env.h"
 #include "millennium/logger.h"
-#include "millennium/stdout_tee.h"
 #include <unistd.h>
 
 OutputLogger Logger;
@@ -60,7 +59,7 @@ std::string OutputLogger::GetLocalTime()
 void OutputLogger::PrintMessage(std::string type, const std::string& message, std::string color)
 {
     std::lock_guard<std::mutex> lock(logMutex);
-    millennium::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
+    std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
 }
 
 #ifdef _WIN32
@@ -169,5 +168,5 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
     };
 
     std::string message = fmt::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", GetLocalTime(), toUpper(pluginName), strMessage);
-    millennium::cout << message;
+    std::cout << message;
 }

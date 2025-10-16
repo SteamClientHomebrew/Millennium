@@ -463,6 +463,7 @@ void ConfigManager::LoadFromFile()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     std::ifstream file(_filename);
+
     if (file.is_open()) {
         try {
             file >> _data;
@@ -539,6 +540,16 @@ ConfigManager::ConfigManager()
 {
     _filename = GetEnv("MILLENNIUM__CONFIG_PATH") + "/config.json";
     _defaults = GetDefaultConfig();
+
+    if (!std::filesystem::exists(_filename)) {
+        Logger.Warn("Could not find config file at: {}, attempting to create it...", _filename);
+        std::filesystem::create_directories(std::filesystem::path(_filename).parent_path());
+
+        /** create the config file itself */
+        std::ofstream file(_filename);
+        file << _defaults.dump(4);
+        file.close();
+    }
 
     LoadFromFile();
 }

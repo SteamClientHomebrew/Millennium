@@ -36,7 +36,6 @@
 
 #include "millennium/env.h"
 #include "millennium/sysfs.h"
-#include "millennium/stdout_tee.h"
 
 #include <fmt/core.h>
 #include <stdlib.h>
@@ -280,7 +279,7 @@ const void SetupEnvironmentVariables()
 #define RESET "\033[0m"
 
         if (shouldLog)
-            millennium::cout << fmt::format("{}={}", key, value) << std::endl;
+            std::cout << fmt::format("{}={}", key, value) << std::endl;
 #endif
         SetEnv(key, value);
     }

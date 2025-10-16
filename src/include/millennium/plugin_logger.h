@@ -31,7 +31,6 @@
 #pragma once
 #include "millennium/env.h"
 #include "millennium/logger.h"
-#include "millennium/stdout_tee.h"
 #include <Python.h>
 #include <chrono>
 #include <fmt/color.h>
@@ -127,7 +126,7 @@ class BackendLogger
         std::string formatted = fmt::format("{} ", GetPluginName());
 
         if (!onlyBuffer) {
-            millennium::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", GetLocalTime(), formatted) << message << "\n";
+            std::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", GetLocalTime(), formatted) << message << "\n";
 
             file << formatted << message << "\n";
             file.flush();
@@ -140,7 +139,7 @@ class BackendLogger
     {
         if (!onlyBuffer) {
             std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
-            millennium::cout << COL_YELLOW << formatted << COL_RESET << '\n';
+            std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
 
             file << formatted;
             file.flush();
@@ -153,7 +152,7 @@ class BackendLogger
     {
         if (!onlyBuffer) {
             std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
-            millennium::cout << COL_RED << formatted << COL_RESET << '\n';
+            std::cout << COL_RED << formatted << COL_RESET << '\n';
 
             file << formatted;
             file.flush();
