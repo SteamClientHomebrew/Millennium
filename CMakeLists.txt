@@ -82,11 +82,6 @@ set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
 
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
 
-set(IMTUI_SUPPORT_NCURSES       ON)
-set(IMTUI_NCURSES_INCLUDE_PATH  "${CMAKE_SOURCE_DIR}/vendor/pdcurses")
-set(IMTUI_NCURSES_LIBRARY       "${CMAKE_SOURCE_DIR}/vendor/pdcurses/libpdcurses.a")
-set(IMTUI_BUILD_EXAMPLES        OFF)
-
 add_compile_definitions(
     USE_INTERNAL_FPCONV
 
@@ -105,10 +100,6 @@ add_compile_definitions(
 
     FMT_HEADER_ONLY
     _CRT_SECURE_NO_WARNINGS
-
-    PDC_WIDE
-
-    endwin=_endwin_w64_4400
 )
 
 # Patch the minimum cmake version in a "submodule".
