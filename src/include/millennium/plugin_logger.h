@@ -31,7 +31,6 @@
 #pragma once
 #include "millennium/env.h"
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
 #include <Python.h>
 #include <chrono>
 #include <fmt/color.h>
@@ -39,9 +38,9 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <memory>
 #include <sstream>
 #include <vector>
+#include <filesystem>
 
 #define RED "\033[31m"
 #define GREEN "\033[32m"

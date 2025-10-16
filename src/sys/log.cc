@@ -28,21 +28,19 @@
  * SOFTWARE.
  */
 
-#include "millennium/logger.h"
 #include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
-#include <thread>
+#include <fcntl.h>
+#include <condition_variable>
 
 #ifdef _WIN32
 #include "millennium/argp_win32.h"
 #endif
 #include "millennium/env.h"
-#include "millennium/sysfs.h"
-#include <fcntl.h>
+#include "millennium/logger.h"
+#include <unistd.h>
 
 OutputLogger Logger;
 
@@ -81,6 +79,8 @@ void EnableVirtualTerminalProcessing()
     if (!SetConsoleMode(hOut, dwMode)) {
         return;
     }
+
+    SetConsoleOutputCP(CP_UTF8);
 }
 #endif
 
@@ -92,9 +92,8 @@ OutputLogger::OutputLogger()
         (void)static_cast<bool>(AllocConsole());
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
-        EnableVirtualTerminalProcessing();
 
-        SetConsoleOutputCP(CP_UTF8);
+        EnableVirtualTerminalProcessing();
         std::ios::sync_with_stdio(true);
     }
 #elif __linux__

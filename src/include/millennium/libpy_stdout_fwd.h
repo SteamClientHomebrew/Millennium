@@ -39,7 +39,6 @@
 #include "millennium/plugin_logger.h"
 #include <Python.h>
 #include <fmt/core.h>
-#include <iostream>
 
 /**
  * @brief Write a message buffer to the logger. The buffer is un-flushed.

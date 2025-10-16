@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "millennium/sysfs.h"
+#include "nlohmann/json.hpp"
 #include "millennium/logger.h"
 #include <set>
 

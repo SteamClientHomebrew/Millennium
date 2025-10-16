@@ -34,7 +34,6 @@
 #include "head/theme_cfg.h"
 #include "head/theme_mgr.h"
 
-#include "millennium/encode.h"
 #include "millennium/millennium_api.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"

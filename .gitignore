@@ -13,3 +13,5 @@
 node_modules/
 .vscode/
 src/include/millennium/virtfs.h
+.cache/
+compile_commands.json

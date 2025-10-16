@@ -34,8 +34,8 @@
 #include "head/sys_accent_col.h"
 #include "head/webkit.h"
 
-#include "millennium/http_hooks.h"
 #include "millennium/sysfs.h"
+#include <regex>
 
 ThemeConfig::ThemeConfig()
 {

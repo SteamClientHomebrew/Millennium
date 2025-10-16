@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-#include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
 #include <lua.hpp>
 #include <vector>

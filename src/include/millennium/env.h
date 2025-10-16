@@ -34,6 +34,9 @@
  * @brief This file is responsible for setting up environment variables that are used throughout the application.
  */
 #include <string>
+#include <map>
+
+extern std::map<std::string, std::string> envVariables;
 
 /** Maintain compatibility with different compilers */
 #ifdef __GNUC__

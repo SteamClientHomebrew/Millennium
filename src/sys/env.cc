@@ -35,12 +35,14 @@
  */
 
 #include "millennium/env.h"
-#include "millennium/logger.h"
 #include "millennium/sysfs.h"
+
 #include <fmt/core.h>
 #include <stdlib.h>
 #include <string>
 #include <unistd.h>
+
+std::map<std::string, std::string> envVariables;
 
 #if defined(__linux__) || defined(__APPLE__)
 extern char** environ;
@@ -269,6 +271,7 @@ const void SetupEnvironmentVariables()
 #endif
 
     const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
+    envVariables = environment;
 
     for (const auto& [key, value] : environment) {
 #if defined(__linux__) || defined(__APPLE__)

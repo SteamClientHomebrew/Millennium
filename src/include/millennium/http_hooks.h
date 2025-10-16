@@ -43,7 +43,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <optional>
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 

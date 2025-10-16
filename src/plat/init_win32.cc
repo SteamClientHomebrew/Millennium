@@ -69,7 +69,7 @@ VOID Win32_AttachMillennium(VOID)
         return;
     }
 
-    SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
+    // SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
 
     // Set custom terminate handler for easier debugging

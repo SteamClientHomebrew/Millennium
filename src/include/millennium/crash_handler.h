@@ -1,6 +1,7 @@
 
 #include <exception>
 #include <cxxabi.h>
+#include <fmt/format.h>
 
 #ifdef _WIN32
 #include "millennium/http_hooks.h"

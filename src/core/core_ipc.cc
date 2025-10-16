@@ -31,11 +31,11 @@
 #include "head/ipc_handler.h"
 
 #include "millennium/auth.h"
-#include "millennium/backend_init.h"
 #include "millennium/core_ipc.h"
 #include "millennium/encode.h"
 #include "millennium/ffi.h"
 #include "millennium/sysfs.h"
+#include "millennium/backend_mgr.h"
 
 #include <fmt/core.h>
 #include <functional>

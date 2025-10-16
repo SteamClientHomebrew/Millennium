@@ -29,6 +29,7 @@
  */
 
 #pragma once
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #define _WINSOCKAPI_
@@ -63,3 +64,4 @@ const char* GetAppropriateDevToolsPort();
 
 bool Millennium_Plat_CommandLineIsSetup();
 bool SetupEntryPointHook();
+#endif

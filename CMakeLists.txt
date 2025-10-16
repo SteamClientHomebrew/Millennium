@@ -20,7 +20,7 @@ if(UNIX AND NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -m32")
-    
+
     # Also set LUAJIT specific variables for the wrapper
     set(LUAJIT_BUILD_FLAGS "-m32" CACHE STRING "LuaJIT build flags" FORCE)
     set(LUAJIT_TARGET_FLAGS "-m32" CACHE STRING "LuaJIT target flags" FORCE)
@@ -102,7 +102,7 @@ add_compile_definitions(
     _CRT_SECURE_NO_WARNINGS
 )
 
-# Patch the minimum cmake version in a "submodule". 
+# Patch the minimum cmake version in a "submodule".
 # Mingw decided they would force the new version of cmake which completely breaks older deps
 # Only fix is a shim or fixing it up stream :shrug:
 
@@ -121,18 +121,18 @@ endfunction()
 # ====================================
 message(STATUS "[Millennium] Fetching dependencies...")
 
-FetchContent_Declare(luajit       GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT     GIT_TAG v2.1         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2        SOURCE_SUBDIR fakedir)
-FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0      SOURCE_SUBDIR fakedir)
-FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0  SOURCE_SUBDIR fakedir)
-FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0  SOURCE_SUBDIR fakedir)
+FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1           SOURCE_SUBDIR fakedir)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2          SOURCE_SUBDIR fakedir)
+FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0        SOURCE_SUBDIR fakedir)
+FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10         SOURCE_SUBDIR fakedir)
+FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0    SOURCE_SUBDIR fakedir)
+FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main           SOURCE_SUBDIR fakedir)
+FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0    SOURCE_SUBDIR fakedir)
 
 # Download all deps without configuring them
 set(DEPENDENCIES luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
@@ -147,7 +147,7 @@ foreach(dep ${DEPENDENCIES})
     FetchContent_MakeAvailable(${dep})
     string(TIMESTAMP end_time "%s")
     math(EXPR duration "${end_time} - ${start_time}")
-    
+
     message(STATUS "[Millennium] ${dep} completed in ${duration} seconds")
 endforeach()
 
@@ -159,8 +159,8 @@ set(LUA_LIBRARIES    luajit::lib   )
 
 # Include directories for deps
 include_directories("${websocketpp_SOURCE_DIR}")
-include_directories("${libgit2_SOURCE_DIR}/include") 
-include_directories("${minizip_ng_SOURCE_DIR}") 
+include_directories("${libgit2_SOURCE_DIR}/include")
+include_directories("${minizip_ng_SOURCE_DIR}")
 include_directories("${incbin_SOURCE_DIR}")
 include_directories("${asio_SOURCE_DIR}/asio/include")
 include_directories("${luajit_BINARY_DIR}")
@@ -178,6 +178,7 @@ millennium_process_package("${mini_SOURCE_DIR}")
 millennium_process_package("${lua_cjson_SOURCE_DIR}")
 
 if(WIN32)
+include_directories("${CMAKE_SOURCE_DIR}/vendor/pdcurses")
 millennium_process_package("${minhook_SOURCE_DIR}/")
 endif()
 
@@ -232,7 +233,7 @@ add_compile_definitions(GIT_COMMIT_HASH="${GIT_COMMIT_HASH}" MILLENNIUM_ROOT="${
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build")
     set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}/src")
-    
+
     add_compile_definitions(
              MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}"
         MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}"
@@ -420,16 +421,16 @@ endif()
 # Helper function to detect AUR helper on Arch systems
 function(detect_aur_helper result_var)
     set(AUR_HELPERS yay paru aurman pikaur pamac trizen pacaur aura)
-    
+
     find_program(PACMAN_EXECUTABLE pacman)
     if(NOT PACMAN_EXECUTABLE)
         message(STATUS "Not running on an Arch-based system (pacman not found)")
         set(${result_var} "Couldn't find AUR helper. Please update Millennium manually." PARENT_SCOPE)
         return()
     endif()
-    
+
     message(STATUS "Arch-based system detected")
-    
+
     # Check for available AUR helpers
     foreach(helper ${AUR_HELPERS})
         find_program(${helper}_EXECUTABLE ${helper})
@@ -445,14 +446,14 @@ function(detect_aur_helper result_var)
             return()
         endif()
     endforeach()
-    
+
     message(STATUS "No AUR helper found. Please update Millennium manually.")
     set(${result_var} "Couldn't find AUR helper. Please update Millennium manually." PARENT_SCOPE)
 endfunction()
 
 if(WIN32)
     include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32)
-    
+
 elseif(APPLE)
     set(python_path "$ENV{HOME}/.pyenv/versions/3.11.8")
     include_directories("${python_path}/include/python3.11")
@@ -466,7 +467,7 @@ else() # Linux
 
     # Try to find Python 3.11 exactly
     find_package(Python 3.11 EXACT COMPONENTS Development)
-    
+
     set(PYTHON_TEST_RESULT FALSE)
     if(Python_FOUND)
         file(WRITE "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc" "#include <Python.h>\nint main() { Py_Initialize(); Py_Finalize(); return 0; }")
@@ -476,7 +477,7 @@ else() # Linux
             SOURCES "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc"
             LINK_LIBRARIES Python::Module
         )
-        
+
         if(PYTHON_TEST_RESULT)
             message(STATUS "Found suitable Python version ${Python_VERSION}")
             set(LIBPYTHON_RUNTIME_PATH ${Python_LIBRARIES})
@@ -558,6 +559,7 @@ set(SOURCE_FILES
     src/runtime/liblj_utils.cc
     src/runtime/liblj_fs.cc
     src/runtime/liblj_regex.cc
+    src/runtime/liblj_datetime.cc
     src/runtime/libpy_api.cc
     src/runtime/libpy_gil.cc
     src/runtime/libpy_interop.cc
@@ -638,7 +640,7 @@ foreach(chunk_file ${CHUNK_FILES})
     endif()
     file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}" "${chunk_file}")
     filename_to_identifier("${filename}" var_name)
-    
+
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(${var_name}, \"../../../${rel_path}\");\n")
         set(MAP_ENTRIES "${MAP_ENTRIES}\t{ fmt::format(\"https://millennium.ftp/{}/chunks/${filename}\", GetScrambledApiPathToken()), []() { return ${var_name}Data; } },\n")
@@ -708,7 +710,7 @@ elseif(UNIX AND NOT APPLE)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_precompile_headers(Millennium PRIVATE 
+    target_precompile_headers(Millennium PRIVATE
         <iostream>
         <vector>
         <string>
@@ -740,8 +742,8 @@ endif()
 
 
 # Link required libraries for all platforms
-target_link_libraries(Millennium 
-    luajit::lib 
+target_link_libraries(Millennium
+    luajit::lib
     libcurl
     minizip
     cjson
@@ -774,19 +776,20 @@ if(WIN32)
         add_dependencies(Millennium copy_python311_dll)
     endif()
 
-    target_link_libraries(Millennium 
+    target_link_libraries(Millennium
         minhook
-        ${PYTHON_LIB} 
+        ${PYTHON_LIB}
         ws2_32
         crypt32
         winhttp
         rpcrt4
-        secur32 
-        bcrypt 
+        secur32
+        bcrypt
         iphlpapi
         dbghelp
         schannel
         normaliz
+        winmm
         # curl dependencies
         -Wl,--start-group nghttp2 iconv unistring psl idn2 ssl crypto z ssh2 -Wl,--end-group
     )

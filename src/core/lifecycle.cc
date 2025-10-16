@@ -29,7 +29,6 @@
  */
 
 #include "millennium/backend_init.h"
-#include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 
 /**

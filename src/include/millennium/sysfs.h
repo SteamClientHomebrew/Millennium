@@ -33,7 +33,6 @@
 #include <filesystem>
 #include <mini/ini.h>
 #include <nlohmann/json.hpp>
-#include <optional>
 #include <string>
 #include <vector>
 #include <mutex>

@@ -32,12 +32,10 @@
 #include "head/entry_point.h"
 #include "millennium/backend_init.h"
 #include "millennium/backend_mgr.h"
-#include "millennium/core_ipc.h"
 #include "millennium/env.h"
 #include "millennium/ffi.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
 
 using namespace std::placeholders;

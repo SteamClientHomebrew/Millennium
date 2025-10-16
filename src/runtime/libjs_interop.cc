@@ -28,11 +28,9 @@
  * SOFTWARE.
  */
 
-#include "millennium/backend_mgr.h"
 #include "millennium/ffi.h"
 #include "millennium/init.h"
 #include <condition_variable>
-#include <future>
 #include <mutex>
 
 #define SHARED_JS_EVALUATE_ID 54999
@@ -123,10 +121,6 @@ JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
 /**
  * Escapes special characters in a JavaScript string.
  */
-#include <iomanip>
-#include <sstream>
-#include <string>
-
 std::string EscapeJavaScriptString(const std::string& input)
 {
     std::ostringstream escaped;

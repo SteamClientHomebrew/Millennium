@@ -28,9 +28,7 @@
  * SOFTWARE.
  */
 
-#include "millennium/logger.h"
-#include "millennium/sysfs.h"
-
+#include "nlohmann/json.hpp"
 namespace Millennium
 {
 namespace Plugins

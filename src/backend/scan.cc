@@ -30,6 +30,10 @@
 
 #include "head/scan.h"
 #include "millennium/env.h"
+#include "millennium/logger.h"
+#include "millennium/sysfs.h"
+
+#include <fstream>
 
 nlohmann::json Millennium::Plugins::FindAllPlugins()
 {

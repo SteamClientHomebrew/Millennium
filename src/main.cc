@@ -41,10 +41,7 @@
 #include "millennium/logger.h"
 #include "millennium/millennium_updater.h"
 
-#include <filesystem>
 #include <fmt/core.h>
-#include <fstream>
-#include <signal.h>
 
 /**
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
@@ -113,7 +110,6 @@ const static void VerifyEnvironment()
 
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
-
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
  */

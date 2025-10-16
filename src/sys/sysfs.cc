@@ -41,10 +41,6 @@
 #include <fmt/core.h>
 #include <fstream>
 #include <iostream>
-#include <optional>
-#include <regex>
-
-namespace FileSystem = std::filesystem;
 
 namespace SystemIO
 {

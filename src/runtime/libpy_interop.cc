@@ -31,7 +31,6 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/ffi.h"
 #include "millennium/plugin_logger.h"
-#include <iostream>
 #include <tuple>
 
 using json = nlohmann::json;
