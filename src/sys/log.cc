@@ -79,6 +79,8 @@ void EnableVirtualTerminalProcessing()
     if (!SetConsoleMode(hOut, dwMode)) {
         return;
     }
+
+    SetConsoleOutputCP(CP_UTF8);
 }
 #endif
 
@@ -90,7 +92,6 @@ OutputLogger::OutputLogger()
         (void)static_cast<bool>(AllocConsole());
         freopen("CONOUT$", "w", stdout);
         freopen("CONOUT$", "w", stderr);
-        // freopen("CONIN$", "r", stdin);
 
         EnableVirtualTerminalProcessing(g_millenniumConsoleHandle);
         std::ios::sync_with_stdio(true);
