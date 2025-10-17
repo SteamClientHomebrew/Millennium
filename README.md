@@ -1,11 +1,7 @@
 <img width="3844" height="793" alt="image" src="https://github.com/user-attachments/assets/2c662772-bca1-4de4-988f-5304d7dfd87d" />
 
-
 <br/>
 <br/>
-
-
-
   <a href="https://steambrew.app/discord">
       <img alt="Static Badge" src="https://img.shields.io/badge/discord-green?labelColor=404040&color=353535&style=for-the-badge&logo=discord&logoColor=white" href="#">
   </a>
@@ -15,7 +11,6 @@
   <a href="https://docs.steambrew.app">
       <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=404040&color=353535&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
   </a>
-
 <br>
 <br>
 
@@ -57,8 +52,8 @@ For normal users, installing via the installers makes the most sense. However wh
 
 ## Official Plugin Repository
 
-Millennium is designed to be fully extensible through plugins.  
-To ensure version compatibility and safety, we maintain a separate, curated [PluginDatabase](https://github.com/SteamClientHomebrew/PluginDatabase) repository.  
+Millennium is designed to be fully extensible through plugins.
+To ensure version compatibility and safety, we maintain a separate, curated [PluginDatabase](https://github.com/SteamClientHomebrew/PluginDatabase) repository.
 
 All plugins in the PluginDatabase are versioned and reviewed to work seamlessly with the current Millennium release, reducing the risk of conflicts or instability when adding new features.
 
