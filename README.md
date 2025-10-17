@@ -30,8 +30,7 @@ Installing Millennium is only a few steps. See [this page](https://docs.steambre
 For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Check our [documentation](https://docs.steambrew.app/users/installing#manual) for a guide on how to do this.
 
 
-## Core Features
-
+## Features
 -   ### Plugins
     -   **TypeScript ([React](https://react.dev/)) frontend** container in Steam
     -   **Lua backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
