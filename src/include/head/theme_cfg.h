@@ -39,10 +39,7 @@ class ThemeConfig
 {
   public:
     ThemeConfig();
-    ~ThemeConfig()
-    {
-        LOG_ERROR("Destructor called for ThemeConfig, unregistering listener");
-    }
+    ~ThemeConfig();
 
     void OnConfigChange();
     void UpgradeOldConfig();

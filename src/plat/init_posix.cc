@@ -93,28 +93,6 @@ void Posix_AttachMillennium()
     signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
 
     EntryMain();
-
-    /** Shutdown the shared JS message emitter */
-    CefSocketDispatcher& emitter = CefSocketDispatcher::get();
-    (&emitter)->Shutdown();
-
-    /** Shutdown cron threads that manage Steam HTTP hooks */
-    BackendManager& hookManager = BackendManager::GetInstance();
-    (&hookManager)->Shutdown();
-
-    std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-    cv_hasSteamUnloaded.wait(lk, [&hookManager]()
-    {
-        /** wait for all backends to stop so we can safely free the loader lock */
-        if (hookManager.HasAllPythonBackendsStopped() && hookManager.HasAllLuaBackendsStopped()) {
-            Logger.Warn("All backends have stopped, proceeding with termination...");
-
-            std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
-            cv_hasAllPythonPluginsShutdown.notify_all();
-            return true;
-        }
-        return false;
-    });
 }
 
 /** New interop funcs that receive calls from hooked libXtst */

@@ -49,7 +49,19 @@
  */
 const static void VerifyEnvironment()
 {
-#ifdef _WIN32
+#ifdef __linux__
+    const auto cefRemoteDebugging = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
+    if (!std::filesystem::exists(cefRemoteDebugging)) {
+        Logger.Warn("CEF remote debugging is not enabled, enabling it now.");
+        /** create the file */
+        std::ofstream file(cefRemoteDebugging.string());
+        if (!file.is_open()) {
+            LOG_ERROR("Failed to create .cef-enable-remote-debugging file.");
+        }
+        file.close();
+        
+    }
+#elif _WIN32
     /** Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam. */
     const auto steamUpdateBlock = SystemIO::GetSteamPath() / "Steam.cfg";
 
