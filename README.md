@@ -32,23 +32,19 @@ For normal users, installing via the installers makes the most sense. However wh
 
 ## Core Features
 
--   ### [Plugin Loader](/src/)
+-   ### Plugins
     -   **TypeScript ([React](https://react.dev/)) frontend** container in Steam
-    -   **Python backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
-    -   **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Python** to **JavaScript** and vice versa
+    -   **Lua backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
+    -   **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Lua** to **TypeScript** and vice versa
     -   **Hook modules in the Steam web browser**
         -   Overwrite/Modify HTTP requests
         -   Load custom JavaScript (Native) into web browser
         -   Load custom StyleSheets into web browser
--   ### [Core Modules](/assets/)
-    -   Manage and load custom user themes into Steam
-    -   Manage custom plugins for steam
-    -   Maintain theme & plugin versions.
-    -   Manage [embedded Python](https://www.python.org/downloads/release/python-3118/) installation
-        -   Manage [Millennium Python Developer Tools](https://pypi.org/project/millennium/)
-        -   Custom package manager for all plugins
-
-&nbsp;
+-   ### Themes
+    -   Manage and load custom themes written in JavaScript and CSS.
+    -   Inject JavaScript modules and CSS modules into specific Steam windows,
+    -   Provide customizable color, style, and javascript options for your theme,
+        letting users personalize their experience without touching any code
 
 ## Official Plugin Repository
 
