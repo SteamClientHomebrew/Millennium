@@ -32,6 +32,7 @@
 #include "head/scan.h"
 #include "head/ipc_handler.h"
 
+#include "millennium/logger.h"
 #include "millennium/http.h"
 #include "millennium/env.h"
 #include "millennium/millennium_api.h"

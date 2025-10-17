@@ -2,6 +2,7 @@
 #include "millennium/semver.h"
 #include "millennium/http.h"
 #include "millennium/sysfs.h"
+#include "millennium/logger.h"
 #include "millennium/encode.h"
 #include "millennium/zip.h"
 #include "head/ipc_handler.h"

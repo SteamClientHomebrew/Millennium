@@ -29,8 +29,10 @@
  */
 
 #pragma once
-#include "nlohmann/json.hpp"
 #include "millennium/logger.h"
+#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
+#include "filesystem"
 #include <set>
 
 class ThemeConfig
@@ -73,6 +75,6 @@ class ThemeConfig
 
     std::filesystem::path themes_path;
     std::string active_theme_name;
-    nlohmann::json theme_data;
+    nlohmann::basic_json<> theme_data;
     std::map<std::string, nlohmann::json> colors;
 };

@@ -34,7 +34,7 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 
-std::string GetLinuxDistro()
+inline std::string GetLinuxDistro()
 {
     std::string line, distro;
     std::ifstream file("/etc/os-release");
@@ -49,7 +49,7 @@ std::string GetLinuxDistro()
     return distro;
 }
 
-std::string GetSystemArchitecture()
+inline std::string GetSystemArchitecture()
 {
     struct utsname info;
     uname(&info);

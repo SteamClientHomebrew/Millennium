@@ -29,9 +29,12 @@
  */
 
 #include "millennium/http.h"
+#include "millennium/logger.h"
 
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
+
+#include <fmt/format.h>
 
 #ifdef _WIN32
 #include <psapi.h>

@@ -30,7 +30,6 @@
 
 #include "millennium/plugin_logger.h"
 #include <Python.h>
-#include <fstream>
 #include <stdio.h>
 
 std::vector<BackendLogger*> g_loggerList;

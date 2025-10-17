@@ -30,7 +30,6 @@
 
 #pragma once
 #include "millennium/backend_mgr.h"
-#include "millennium/logger.h"
 
 #include <atomic>
 #include <chrono>

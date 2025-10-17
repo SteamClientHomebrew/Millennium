@@ -564,6 +564,7 @@ set(SOURCE_FILES
     src/runtime/libpy_gil.cc
     src/runtime/libpy_interop.cc
     src/runtime/libpy_logger.cc
+    src/runtime/libpy_stdout_fwd.cc
     src/core/auth.cc
     src/core/backend_init.cc
     src/core/backend_mgr.cc

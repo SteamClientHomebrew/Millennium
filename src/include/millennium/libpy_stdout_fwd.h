@@ -34,9 +34,6 @@
  * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
  */
 
-#include "millennium/backend_mgr.h"
-#include "millennium/logger.h"
-#include "millennium/plugin_logger.h"
 #include <Python.h>
 #include <fmt/core.h>
 
@@ -46,16 +43,7 @@
  * @param pname The name of the plugin.
  * @param message The message to be printed.
  */
-extern "C" void PrintPythonMessage(std::string pname, const char* message)
-{
-    const std::string logMessage = message;
-
-    /** Dont process new lines or empty spaces (which seem to represent empty lines) */
-    if (logMessage != "\n" && logMessage != " ") {
-        Logger.LogPluginMessage(pname, message);
-        InfoToLogger(pname, message);
-    }
-}
+extern "C" void PrintPythonMessage(std::string pname, const char* message);
 
 /**
  * @brief Write an error message buffer to the logger.
@@ -63,64 +51,14 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
  *
  * ex. 123 would print plugin name 1\n plugin name 2\n plugin name 3\n
  */
-extern "C" void PrintPythonError(std::string pname, const char* message)
-{
-    std::cout << "\033[31m" << message << "\033[0m";
-    std::cout.flush(); // Flush the buffer to ensure the message is printed immediately, and the color doesn't leak into the next message.
+extern "C" void PrintPythonError(std::string pname, const char* message);
 
-    ErrorToLogger(pname, message);
-}
+/** Forward messages to respective logger type. */
+extern "C" PyObject* CustomStdoutWrite(PyObject* self, PyObject* args);
+extern "C" PyObject* CustomStderrWrite(PyObject* self, PyObject* args);
 
-/**
- * @brief Redirects the Python stdout and stderr to the logger.
- */
-#define HOOK_OUT_WRITE(write_function)                                                                                                                                             \
-    const char* message;                                                                                                                                                           \
-    if (!PyArg_ParseTuple(args, "s", &message)) {                                                                                                                                  \
-        return NULL;                                                                                                                                                               \
-    }                                                                                                                                                                              \
-    write_function(BackendManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                      \
-    return Py_BuildValue("");
+extern "C" PyObject* PyInit_CustomStderr(void);
+extern "C" PyObject* PyInit_CustomStdout(void);
 
-extern "C"
-{
-    /** Forward messages to respective logger type. */
-    static PyObject* CustomStdoutWrite(PyObject* self, PyObject* args)
-    {
-        HOOK_OUT_WRITE(PrintPythonMessage);
-    }
-    static PyObject* CustomStderrWrite(PyObject* self, PyObject* args)
-    {
-        HOOK_OUT_WRITE(PrintPythonError);
-    }
-
-    static PyMethodDef stdoutMethods[] = {
-        { "write", CustomStdoutWrite, METH_VARARGS, "Custom stdout write function" },
-        { NULL,    NULL,              0,            NULL                           }
-    };
-    static PyMethodDef stderrMethods[] = {
-        { "write", CustomStderrWrite, METH_VARARGS, "Custom stderr write function" },
-        { NULL,    NULL,              0,            NULL                           }
-    };
-
-    static struct PyModuleDef customStdoutModule = { PyModuleDef_HEAD_INIT, "hook_stdout", NULL, -1, stdoutMethods };
-    static struct PyModuleDef customStderrModule = { PyModuleDef_HEAD_INIT, "hook_stderr", NULL, -1, stderrMethods };
-
-    PyObject* PyInit_CustomStderr(void)
-    {
-        return PyModule_Create(&customStderrModule);
-    }
-    PyObject* PyInit_CustomStdout(void)
-    {
-        return PyModule_Create(&customStdoutModule);
-    }
-
-    /** @brief Redirects the Python stdout and stderr to the logger. */
-    const void RedirectOutput()
-    {
-        PyObject* sys = PyImport_ImportModule("sys");
-
-        PyObject_SetAttrString(sys, "stdout", PyImport_ImportModule("hook_stdout"));
-        PyObject_SetAttrString(sys, "stderr", PyImport_ImportModule("hook_stderr"));
-    }
-}
+/** @brief Redirects the Python stdout and stderr to the logger. */
+extern "C" const void RedirectOutput();

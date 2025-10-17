@@ -1,8 +1,36 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2025 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include <lua.hpp>
 #include <regex>
 #include <string>
-
-// ============= Regex Match =============
 
 int Lua_RegexMatch(lua_State* L)
 {
@@ -21,8 +49,6 @@ int Lua_RegexMatch(lua_State* L)
     }
 }
 
-// ============= Regex Search =============
-
 int Lua_RegexSearch(lua_State* L)
 {
     const char* str = luaL_checkstring(L, 1);
@@ -36,18 +62,15 @@ int Lua_RegexSearch(lua_State* L)
         if (std::regex_search(s, match, re)) {
             lua_newtable(L);
 
-            // Full match
             lua_pushstring(L, match[0].str().c_str());
             lua_rawseti(L, -2, 0);
 
-            // Capture groups
             for (size_t i = 1; i < match.size(); i++) {
                 lua_pushstring(L, match[i].str().c_str());
                 lua_rawseti(L, -2, i);
             }
 
-            // Add position info
-            lua_pushinteger(L, match.position(0) + 1); // 1-based indexing
+            lua_pushinteger(L, match.position(0) + 1);
             lua_setfield(L, -2, "pos");
 
             lua_pushinteger(L, match.length(0));
@@ -64,8 +87,6 @@ int Lua_RegexSearch(lua_State* L)
         return 2;
     }
 }
-
-// ============= Regex Find All =============
 
 int Lua_RegexFindAll(lua_State* L)
 {
@@ -84,18 +105,15 @@ int Lua_RegexFindAll(lua_State* L)
         while (iter != end) {
             lua_newtable(L);
 
-            // Full match
             lua_pushstring(L, iter->str(0).c_str());
             lua_rawseti(L, -2, 0);
 
-            // Capture groups
             for (size_t i = 1; i < iter->size(); i++) {
                 lua_pushstring(L, (*iter)[i].str().c_str());
                 lua_rawseti(L, -2, i);
             }
 
-            // Position info
-            lua_pushinteger(L, iter->position(0) + 1); // 1-based indexing
+            lua_pushinteger(L, iter->position(0) + 1);
             lua_setfield(L, -2, "pos");
 
             lua_pushinteger(L, iter->length(0));
@@ -112,8 +130,6 @@ int Lua_RegexFindAll(lua_State* L)
         return 2;
     }
 }
-
-// ============= Regex Replace =============
 
 int Lua_RegexReplace(lua_State* L)
 {
@@ -134,8 +150,6 @@ int Lua_RegexReplace(lua_State* L)
         return 2;
     }
 }
-
-// ============= Regex Replace First =============
 
 int Lua_RegexReplaceFirst(lua_State* L)
 {
@@ -162,8 +176,6 @@ int Lua_RegexReplaceFirst(lua_State* L)
         return 2;
     }
 }
-
-// ============= Regex Split =============
 
 int Lua_RegexSplit(lua_State* L)
 {
@@ -192,8 +204,6 @@ int Lua_RegexSplit(lua_State* L)
         return 2;
     }
 }
-
-// ============= Regex Escape =============
 
 int Lua_RegexEscape(lua_State* L)
 {
@@ -226,8 +236,6 @@ int Lua_RegexEscape(lua_State* L)
     lua_pushstring(L, result.c_str());
     return 1;
 }
-
-// ============= Regex Test (with flags) =============
 
 int Lua_RegexTest(lua_State* L)
 {

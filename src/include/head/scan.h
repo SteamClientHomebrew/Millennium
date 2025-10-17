@@ -29,6 +29,9 @@
  */
 
 #include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
+#include <optional>
+
 namespace Millennium
 {
 namespace Plugins
@@ -37,7 +40,7 @@ struct Plugin
 {
     std::string path;
     bool enabled;
-    nlohmann::json data;
+    nlohmann::basic_json<> data;
 };
 
 nlohmann::json FindAllPlugins();
