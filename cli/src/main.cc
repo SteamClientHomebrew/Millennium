@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <iostream>
+#include <filesystem>
 
 #include "incbin.h"
 #include "chown.h"
@@ -50,8 +51,11 @@
 
 INCTXT(PATCHED_START_SCRIPT, "../../scripts/posix/start.sh");
 
-#define START_SCRIPT_PATH "/usr/bin/steam"
+// #define START_SCRIPT_PATH "/usr/bin/steam"
 #define BACKUP_PATH "/usr/bin/steam.millennium.bak"
+const char * start_script_path = "/usr/bin/steam";
+const char * start_script_usrlocal_path = "/usr/local/bin/steam";
+const char * start_script_available_path;
 
 void check_sudo() {
     if (getuid() != 0) {
@@ -62,10 +66,11 @@ void check_sudo() {
 
 const void patch_steam() 
 {
+    start_script_available_path = start_script_path;
     std::cout << "Resolving permissions...\n";
     check_sudo();
 
-    if (access(START_SCRIPT_PATH, F_OK) == -1) 
+    if (access(start_script_path, F_OK) == -1)
     {
         std::cerr << "Error: Steam start script not found. Ensure you're Steam installation is not flatpak, or snap.\n";
         return;
@@ -74,8 +79,23 @@ const void patch_steam()
     if (access(BACKUP_PATH, F_OK) == -1) 
     {
         std::cout << "Backing up the original start script...\n";
-        rename(START_SCRIPT_PATH, BACKUP_PATH);
-        std::cout << "Backup made at: " << BACKUP_PATH << "\n";
+        rename(start_script_path, BACKUP_PATH);
+        if (access(BACKUP_PATH, F_OK) == -1) {
+            std::cout << "Backing up the original start script failed.\n";
+            std::cout << "Attemting to create copy in /usr/local/bin...\n";
+            std::filesystem::copy(start_script_path, start_script_usrlocal_path);
+            if (access(start_script_usrlocal_path, F_OK) == -1) {
+                std::cout << "Copying to /usr/local/bin failed, exiting.\n";
+                return;
+            }
+            else {
+                std::cout << "Copy created at: " << start_script_usrlocal_path << "\n";
+                start_script_available_path = start_script_usrlocal_path;
+            }
+        }
+        else {
+            std::cout << "Copy created at: " << start_script_path << "\n";
+        }
     } 
     else 
     {
@@ -86,7 +106,7 @@ const void patch_steam()
         if (response[0] == 'y' || response[0] == 'Y') 
         {
             remove(BACKUP_PATH);
-            rename(START_SCRIPT_PATH, BACKUP_PATH);
+            rename(start_script_path, BACKUP_PATH);
         } 
         else {
             std::cout << "Skipping backup...\n";
@@ -94,7 +114,7 @@ const void patch_steam()
     }
 
     std::cout << "Patching the Steam start script...\n";
-    FILE *file = fopen(START_SCRIPT_PATH, "w");
+    FILE *file = fopen(start_script_available_path, "w");
     if (!file) 
     {
         perror("Failed to open script for writing");
@@ -103,8 +123,8 @@ const void patch_steam()
     fputs(PATCHED_START_SCRIPT_data, file);
     fclose(file);
 
-    chmod(START_SCRIPT_PATH, 0555);
-    std::cout << "Successfully wrote: " << START_SCRIPT_PATH << "\n";
+    chmod(start_script_available_path, 0555);
+    std::cout << "Successfully wrote: " << start_script_available_path << "\n";
     return;
 };
 
@@ -112,13 +132,13 @@ const void check_patch_status()
 {
     check_sudo();
 
-    if (access(START_SCRIPT_PATH, F_OK) == -1) 
+    if (access(start_script_path, F_OK) == -1)
     {
         std::cerr << "Steam start script not found.\n";
         return;
     }
 
-    FILE *file = fopen(START_SCRIPT_PATH, "r");
+    FILE *file = fopen(start_script_path, "r");
     if (!file) 
     {
         perror("Failed to open script");
@@ -150,7 +170,7 @@ const void check_patch_status()
 
     int is_patched = (strcmp(buffer, PATCHED_START_SCRIPT_data) == 0);
     std::cout << "\n\033[32m>\e[0m  \033[1mPatched:\033[0m \033[" << (is_patched ? 92 : 91) << "m" << (is_patched ? "yes" : "no") << "\033[0m\n";
-    std::cout << "\033[32m>\e[0m  \033[1mPath:\033[0m    \033[92m" << START_SCRIPT_PATH << "\033[0m\n";
+    std::cout << "\033[32m>\e[0m  \033[1mPath:\033[0m    \033[92m" << start_script_path << "\033[0m\n";
 
     free(buffer);
 };
