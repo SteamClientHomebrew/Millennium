@@ -76,6 +76,16 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
         {
             return pluginName == other.pluginName && event == other.event;
         }
+
+        PluginTypeSchema(const std::string& name) : pluginName(name), event(BACKEND_LOAD_SUCCESS)
+        {
+        }
+        PluginTypeSchema(const std::string& name, eBackendLoadEvents ev) : pluginName(name), event(ev)
+        {
+        }
+        PluginTypeSchema(const PluginTypeSchema& other) : pluginName(other.pluginName), event(other.event)
+        {
+        }
     };
 
     using EventCallback = std::function<void()>;
@@ -109,10 +119,10 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
 };
 
-const void InjectFrontendShims(bool reloadFrontend = true);
-const void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend = true);
-const void PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin);
-const void LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L);
+void InjectFrontendShims(bool reloadFrontend = true);
+void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend = true);
+void PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin);
+void LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L);
 } // namespace CoInitializer
 
-const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName);
+void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName);

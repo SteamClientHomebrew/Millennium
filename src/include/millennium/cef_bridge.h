@@ -32,7 +32,7 @@
 #include "millennium/logger.h"
 
 #include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/config/asio_no_tls.hpp>
 
 #include <fmt/format.h>
 
@@ -48,7 +48,7 @@ class SocketHelpers
   private:
     u_short debuggerPort;
 
-    const u_short GetDebuggerPort()
+    u_short GetDebuggerPort()
     {
 #ifdef _WIN32
         {
@@ -132,7 +132,7 @@ class SocketHelpers
      * @brief Verify the socket connection was opened by the Steam Client
      * (i.e owned by Steam), and if not report a faulty connection.
      */
-    const void VerifySteamConnection()
+    void VerifySteamConnection()
     {
         if (bHasCheckedConnection) {
             return;

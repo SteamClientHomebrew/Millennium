@@ -39,19 +39,19 @@
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
-PyObject* GetUserSettings(PyObject* self, PyObject* args)
+PyObject* GetUserSettings([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "get_user_settings is not implemented yet. It will likely be removed in the future.");
     return NULL;
 }
 
-PyObject* SetUserSettings(PyObject* self, PyObject* args)
+PyObject* SetUserSettings([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "set_user_settings_key is not implemented yet. It will likely be removed in the future.");
     return NULL;
 }
 
-PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
+PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, PyObject* kwargs)
 {
     const char* methodName = NULL;
     PyObject* parameterList = NULL;
@@ -105,22 +105,22 @@ PyObject* CallFrontendMethod(PyObject* self, PyObject* args, PyObject* kwargs)
                     pluginName, script));
 }
 
-PyObject* GetVersionInfo(PyObject* self, PyObject* args)
+PyObject* GetVersionInfo([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     return PyUnicode_FromString(MILLENNIUM_VERSION);
 }
 
-PyObject* GetSteamPath(PyObject* self, PyObject* args)
+PyObject* GetSteamPath([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     return PyUnicode_FromString(SystemIO::GetSteamPath().string().c_str());
 }
 
-PyObject* GetInstallPath(PyObject* self, PyObject* args)
+PyObject* GetInstallPath([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     return PyUnicode_FromString(SystemIO::GetInstallPath().string().c_str());
 }
 
-PyObject* RemoveBrowserModule(PyObject* self, PyObject* args)
+PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
 {
     int moduleId;
 
@@ -144,12 +144,12 @@ unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes ty
     return Millennium_AddBrowserModule(moduleItem, regexSelector, type);
 }
 
-PyObject* AddBrowserCss(PyObject* self, PyObject* args)
+PyObject* AddBrowserCss([[maybe_unused]] PyObject* self, PyObject* args)
 {
     return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET));
 }
 
-PyObject* AddBrowserJs(PyObject* self, PyObject* args)
+PyObject* AddBrowserJs([[maybe_unused]] PyObject* self, PyObject* args)
 {
     return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT));
 }
@@ -157,7 +157,7 @@ PyObject* AddBrowserJs(PyObject* self, PyObject* args)
 /**
  * A utility function to check if a plugin is enabled.
  */
-PyObject* IsPluginEnable(PyObject* self, PyObject* args)
+PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
 {
     const char* pluginName = NULL;
 
@@ -171,7 +171,7 @@ PyObject* IsPluginEnable(PyObject* self, PyObject* args)
     return PyBool_FromLong(isEnabled);
 }
 
-PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
+PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     PyObject* globals = PyModule_GetDict(PyImport_AddModule("__main__"));
     PyObject* pluginNameObj = PyRun_String("MILLENNIUM_PLUGIN_SECRET_NAME", Py_eval_input, globals, globals);
@@ -195,6 +195,8 @@ PyObject* EmitReadyMessage(PyObject* self, PyObject* args)
  */
 PyMethodDef* PyGetMillenniumModule()
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
     static PyMethodDef moduleMethods[] = {
         { "ready",                 EmitReadyMessage,                METH_NOARGS,                  NULL },
         { "add_browser_css",       AddBrowserCss,                   METH_VARARGS,                 NULL },
@@ -205,10 +207,12 @@ PyMethodDef* PyGetMillenniumModule()
         { "version",               GetVersionInfo,                  METH_NOARGS,                  NULL },
         { "steam_path",            GetSteamPath,                    METH_NOARGS,                  NULL },
         { "get_install_path",      GetInstallPath,                  METH_NOARGS,                  NULL },
+        /** this is 100% a valid cast, shut up gcc */
         { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
         { "is_plugin_enabled",     IsPluginEnable,                  METH_VARARGS,                 NULL },
         { NULL,                    NULL,                            0,                            NULL }  // Sentinel
     };
+#pragma GCC diagnostic pop
 
     return moduleMethods;
 }

@@ -419,17 +419,6 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
         return { Error, "thread state was nullptr" };
     }
 
-    PyObject* mainModule = PyImport_AddModule("__main__");
-
-    if (!mainModule) {
-        const auto message =
-            fmt::format("Failed to fetch python module on [{}]. This usually means the GIL could not be acquired either because the backend froze or crashed", pluginName);
-
-        ErrorToLogger(pluginName, message);
-        return { Error, message };
-    }
-
-    PyObject* globalDictionaryObj = PyModule_GetDict(mainModule);
     EvalResult response = PyObjectCastEvalResult(InvokePythonFunction(functionCall));
 
     if (response.type == FFI_Type::Error) {

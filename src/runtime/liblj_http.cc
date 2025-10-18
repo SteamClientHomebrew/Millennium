@@ -99,7 +99,7 @@ static int Lua_HttpRequest(lua_State* L)
 {
     CURL* curl;
     CURLcode res;
-    HTTPResponse response = { 0 };
+    HTTPResponse response = { NULL, 0 };
     struct curl_slist* headers = NULL;
 
     const char* url = luaL_checkstring(L, 1);

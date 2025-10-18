@@ -98,7 +98,7 @@ nlohmann::json PluginInstaller::InstallPlugin(const std::string& downloadUrl, si
         std::string uuidStr = GenerateUUID();
         std::filesystem::path zipPath = downloadPath / uuidStr;
 
-        auto progressCallback = [&](size_t downloaded, size_t total)
+        auto progressCallback = [&](size_t downloaded, size_t)
         {
             double percent = totalSize ? (double(downloaded) / totalSize) * 100.0 : 0.0;
             RPCLogMessage("Download plugin archive...", 50.0 * (percent / 100.0), false);
@@ -109,7 +109,7 @@ nlohmann::json PluginInstaller::InstallPlugin(const std::string& downloadUrl, si
 
         RPCLogMessage("Setting up installed plugin...", 50, false);
         std::filesystem::create_directories(downloadPath);
-        Util::ExtractZipArchive(zipPath.string(), downloadPath.string(), [&](int current, int total, const char* file)
+        Util::ExtractZipArchive(zipPath.string(), downloadPath.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
             RPCLogMessage("Extracting plugin archive...", 50.0 + (45.0 * (percent / 100.0)), false);
@@ -189,7 +189,7 @@ bool PluginInstaller::DownloadPluginUpdate(const std::string& id, const std::str
         Http::DownloadWithProgress({ url, 0 }, tempZipPath, nullptr);
         Logger.Log("Download complete. Extracting plugin '{}' into '{}'", name, tempDir.string());
 
-        Util::ExtractZipArchive(tempZipPath.string(), tempDir.string(), [&](int current, int total, const char* file)
+        Util::ExtractZipArchive(tempZipPath.string(), tempDir.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
             RPCLogMessage("Extracting plugin archive...", 50.0 + (45.0 * (percent / 100.0)), false);

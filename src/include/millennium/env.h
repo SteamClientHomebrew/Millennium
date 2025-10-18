@@ -49,6 +49,6 @@ extern std::map<std::string, std::string> envVariables;
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 #endif
 
-const void SetupEnvironmentVariables();
+void SetupEnvironmentVariables();
 std::string GetEnv(std::string key);
 std::string GetEnvWithFallback(std::string key, std::string fallback);

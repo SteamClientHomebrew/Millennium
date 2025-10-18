@@ -83,12 +83,12 @@ class BackendLoadState
  * Error Handling:
  * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
  */
-const std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
+std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
 {
     std::string scriptModuleArray;
     std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
 
-    for (int i = 0; i < scriptModules.size(); i++) {
+    for (size_t i = 0; i < scriptModules.size(); i++) {
         scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
     }
 
@@ -113,7 +113,7 @@ const std::string GetBootstrapModule(const std::vector<std::string> scriptModule
  * - If the `sys` module cannot be imported, an error is logged.
  * - If the `sys.path` attribute cannot be accessed, no action is taken.
  */
-const void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
+void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
 {
     PyObject* sysModule = PyImport_ImportModule("sys");
     if (!sysModule) {
@@ -277,7 +277,7 @@ void SetupPluginSettings()
  * - If the `__builtins__` dictionary cannot be retrieved, a `RuntimeError` is raised.
  * - If setting the `MILLENNIUM_PLUGIN_SECRET_NAME` in `__builtins__` fails, a `RuntimeError` is raised.
  */
-const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName)
+void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName)
 {
     /** Set the secret name in the global dictionary, i.e the global scope */
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
@@ -307,7 +307,7 @@ const void SetPluginSecretName(PyObject* globalDictionary, const std::string& pl
  *
  * Both paths are converted to strings and set as Python variables in the global dictionary.
  */
-const void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin)
+void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin)
 {
     PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.pluginBaseDirectory.generic_string().c_str()));
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
@@ -327,7 +327,7 @@ static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
     lua_setfield(L, -2, name);
 }
 
-const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L)
+void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L)
 {
     Logger.Log("Starting Lua backend for '{}'", plugin.pluginName);
     BackendManager& backendManager = BackendManager::GetInstance();
@@ -415,7 +415,7 @@ const void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchem
  * Error Handling:
  * - If any step of the process fails (e.g., file opening, module import), the error is logged and the backend load is marked as failed.
  */
-const void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin)
+void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin)
 {
     const auto [pythonPath, pythonLibs, pythonUserLibs] = GetPythonEnvPaths();
 
@@ -666,7 +666,7 @@ void OnBackendLoad(bool reloadFrontend)
  * This function injects the frontend shims by registering a callback function to be called when the backend is loaded.
  *
  */
-const void CoInitializer::InjectFrontendShims(bool reloadFrontend)
+void CoInitializer::InjectFrontendShims(bool reloadFrontend)
 {
     BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, reloadFrontend));
@@ -679,7 +679,7 @@ const void CoInitializer::InjectFrontendShims(bool reloadFrontend)
  *
  * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
  */
-const void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
+void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
 {
     pluginLoader->InjectWebkitShims();
 

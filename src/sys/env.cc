@@ -96,7 +96,7 @@ class environment
 std::vector<std::unique_ptr<char[]>> environment::allocated_strings;
 #endif
 
-const void SetupEnvironmentVariables();
+void SetupEnvironmentVariables();
 
 void SetEnv(const std::string& key, const std::string& value)
 {
@@ -142,7 +142,7 @@ std::string GetEnvWithFallback(std::string key, std::string fallback)
 /**
  * @brief Set up environment variables used throughout the application.
  */
-const void SetupEnvironmentVariables()
+void SetupEnvironmentVariables()
 {
     std::map<std::string, std::string> environment = {
         { "MILLENNIUM__VERSION",    MILLENNIUM_VERSION                },

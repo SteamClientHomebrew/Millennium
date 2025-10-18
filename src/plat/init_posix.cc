@@ -34,7 +34,6 @@
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/ffi.h"
 
 #include <ctime>
 #include <dlfcn.h>
@@ -45,7 +44,7 @@
 
 std::unique_ptr<std::thread> g_millenniumThread;
 
-const static void VerifyEnvironment();
+void VerifyEnvironment();
 void EntryMain(); /** forward declare main function */
 
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
@@ -90,7 +89,7 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
 void Posix_AttachMillennium()
 {
     /** Handle signal interrupts (^C) */
-    signal(SIGINT, [](int signalCode) { std::exit(128 + SIGINT); });
+    signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
 
     EntryMain();
 }

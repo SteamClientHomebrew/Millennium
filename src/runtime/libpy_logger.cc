@@ -45,7 +45,7 @@ std::vector<BackendLogger*> g_loggerList;
  *
  * @returns {PyObject*} - A pointer to the new LoggerObject instance.
  */
-PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
+PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwds */)
 {
     LoggerObject* self;
     self = (LoggerObject*)type->tp_alloc(type, 0);
@@ -189,15 +189,55 @@ static PyMethodDef LoggerObject_methods[] = {
  *
  * @returns {PyTypeObject*} - A pointer to the type object for the LoggerObject instance.
  */
-PyTypeObject LoggerType{
-    PyVarObject_HEAD_INIT(NULL, 0).tp_name = "logger.Logger",
-    .tp_basicsize = sizeof(LoggerObject),
-    .tp_itemsize = 0,
-    .tp_dealloc = (destructor)LoggerObject_dealloc,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
-    .tp_doc = "Logger object",
-    .tp_methods = LoggerObject_methods,
-    .tp_new = LoggerObject_new,
+PyTypeObject LoggerType = {
+    PyVarObject_HEAD_INIT(NULL, 0) "logger.Logger", // tp_name
+    sizeof(LoggerObject),                           // tp_basicsize
+    0,                                              // tp_itemsize
+    (destructor)LoggerObject_dealloc,               // tp_dealloc
+    0,                                              // tp_vectorcall_offset
+    0,                                              // tp_getattr
+    0,                                              // tp_setattr
+    0,                                              // tp_as_async
+    0,                                              // tp_repr
+    0,                                              // tp_as_number
+    0,                                              // tp_as_sequence
+    0,                                              // tp_as_mapping
+    0,                                              // tp_hash
+    0,                                              // tp_call
+    0,                                              // tp_str
+    0,                                              // tp_getattro
+    0,                                              // tp_setattro
+    0,                                              // tp_as_buffer
+    Py_TPFLAGS_DEFAULT,                             // tp_flags
+    "Logger object",                                // tp_doc
+    0,                                              // tp_traverse
+    0,                                              // tp_clear
+    0,                                              // tp_richcompare
+    0,                                              // tp_weaklistoffset
+    0,                                              // tp_iter
+    0,                                              // tp_iternext
+    LoggerObject_methods,                           // tp_methods
+    0,                                              // tp_members
+    0,                                              // tp_getset
+    0,                                              // tp_base
+    0,                                              // tp_dict
+    0,                                              // tp_descr_get
+    0,                                              // tp_descr_set
+    0,                                              // tp_dictoffset
+    0,                                              // tp_init
+    0,                                              // tp_alloc
+    LoggerObject_new,                               // tp_new
+    0,                                              // tp_free
+    0,                                              // tp_is_gc
+    0,                                              // tp_bases
+    0,                                              // tp_mro
+    0,                                              // tp_cache
+    0,                                              // tp_subclasses
+    0,                                              // tp_weaklist
+    0,                                              // tp_del
+    0,                                              // tp_version_tag
+    0,                                              // tp_finalize
+    0,                                              // tp_vectorcall
 };
 
 /**
@@ -207,9 +247,16 @@ PyTypeObject LoggerType{
  *
  * @returns {PyModuleDef*} - A pointer to the module definition for the logger module.
  */
-static struct PyModuleDef g_loggerModuleDef
-{
-    .m_base = PyModuleDef_HEAD_INIT, .m_name = "logger", .m_doc = "Millennium logger module", .m_size = -1, .m_methods = LoggerObject_methods,
+static struct PyModuleDef g_loggerModuleDef = {
+    PyModuleDef_HEAD_INIT,      // m_base
+    "logger",                   // m_name
+    "Millennium logger module", // m_doc
+    -1,                         // m_size
+    LoggerObject_methods,       // m_methods
+    0,                          // m_slots
+    0,                          // m_traverse
+    0,                          // m_clear
+    0,                          // m_free
 };
 
 /**

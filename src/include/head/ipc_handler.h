@@ -63,7 +63,7 @@ std::unordered_map<std::string, std::any>& GetCoreExports();
         }                                                                                                                                                                          \
     };                                                                                                                                                                             \
     static name##registrar name##registrar_instance;                                                                                                                               \
-    nlohmann::json impl##name(const nlohmann::json& ARGS)
+    nlohmann::json impl##name([[maybe_unused]] const nlohmann::json& ARGS)
 
 /** ffi function that returns a value */
 #define IPC_RET(name, expr)                                                                                                                                                        \

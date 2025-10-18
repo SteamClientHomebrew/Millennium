@@ -83,11 +83,11 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
     return Py_BuildValue("");
 
 /** Forward messages to respective logger type. */
-extern "C" PyObject* CustomStdoutWrite(PyObject* self, PyObject* args)
+extern "C" PyObject* CustomStdoutWrite(PyObject* /** self */, PyObject* args)
 {
     HOOK_OUT_WRITE(PrintPythonMessage);
 }
-extern "C" PyObject* CustomStderrWrite(PyObject* self, PyObject* args)
+extern "C" PyObject* CustomStderrWrite(PyObject* /** self */, PyObject* args)
 {
     HOOK_OUT_WRITE(PrintPythonError);
 }
@@ -101,8 +101,28 @@ static PyMethodDef stderrMethods[] = {
     { NULL,    NULL,              0,            NULL                           }
 };
 
-static struct PyModuleDef customStdoutModule = { PyModuleDef_HEAD_INIT, "hook_stdout", NULL, -1, stdoutMethods };
-static struct PyModuleDef customStderrModule = { PyModuleDef_HEAD_INIT, "hook_stderr", NULL, -1, stderrMethods };
+static struct PyModuleDef customStdoutModule = {
+    PyModuleDef_HEAD_INIT,
+    "hook_stdout",
+    NULL, // m_doc
+    -1,   // m_size
+    stdoutMethods,
+    NULL, // m_slots
+    NULL, // m_traverse
+    NULL, // m_clear
+    NULL  // m_free
+};
+static struct PyModuleDef customStderrModule = {
+    PyModuleDef_HEAD_INIT,
+    "hook_stderr",
+    NULL, // m_doc
+    -1,   // m_size
+    stderrMethods,
+    NULL, // m_slots
+    NULL, // m_traverse
+    NULL, // m_clear
+    NULL  // m_free
+};
 
 extern "C" PyObject* PyInit_CustomStderr(void)
 {
@@ -114,7 +134,7 @@ extern "C" PyObject* PyInit_CustomStdout(void)
 }
 
 /** @brief Redirects the Python stdout and stderr to the logger. */
-extern "C" const void RedirectOutput()
+extern "C" void RedirectOutput()
 {
     PyObject* sys = PyImport_ImportModule("sys");
 

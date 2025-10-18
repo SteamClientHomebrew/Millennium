@@ -225,20 +225,22 @@ static void AddLoggerMessage(const std::string pluginName, const std::string mes
     g_loggerList.push_back(newLogger);
 }
 
-static const void InfoToLogger(const std::string pluginNme, const std::string message)
+inline void InfoToLogger(const std::string pluginNme, const std::string message)
 {
     AddLoggerMessage(pluginNme, message, BackendLogger::_INFO);
 }
-static const void WarnToLogger(const std::string pluginNme, const std::string message)
+
+inline void WarnToLogger(const std::string pluginNme, const std::string message)
 {
     AddLoggerMessage(pluginNme, message, BackendLogger::_WARN);
 }
-static const void ErrorToLogger(const std::string pluginNme, const std::string message)
+
+inline void ErrorToLogger(const std::string pluginNme, const std::string message)
 {
     AddLoggerMessage(pluginNme, message, BackendLogger::_ERROR);
 }
 
-static const void RawToLogger(const std::string pluginName, const std::string message)
+inline void RawToLogger(const std::string pluginName, const std::string message)
 {
     for (auto logger : g_loggerList) {
         if (logger->GetPluginName(false) == pluginName) {

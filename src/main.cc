@@ -47,7 +47,7 @@
  * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
  * .cef-enable-remote-debugging is a special file name that Steam uses to signal CEF to enable remote debugging.
  */
-const static void VerifyEnvironment()
+static void VerifyEnvironment()
 {
 #ifdef __linux__
     const auto cefRemoteDebugging = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
@@ -59,7 +59,6 @@ const static void VerifyEnvironment()
             LOG_ERROR("Failed to create .cef-enable-remote-debugging file.");
         }
         file.close();
-        
     }
 #elif _WIN32
     /** Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam. */

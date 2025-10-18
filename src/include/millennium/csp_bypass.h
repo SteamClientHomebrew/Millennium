@@ -45,7 +45,7 @@
 #include "millennium/ffi.h"
 #include "millennium/init.h"
 
-static const void BypassCSP(void)
+static void BypassCSP(void)
 {
     CefSocketDispatcher::get().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
     {

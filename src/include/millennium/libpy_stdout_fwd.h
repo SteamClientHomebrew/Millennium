@@ -61,4 +61,4 @@ extern "C" PyObject* PyInit_CustomStderr(void);
 extern "C" PyObject* PyInit_CustomStdout(void);
 
 /** @brief Redirects the Python stdout and stderr to the logger. */
-extern "C" const void RedirectOutput();
+extern "C" void RedirectOutput();

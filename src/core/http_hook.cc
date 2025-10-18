@@ -120,7 +120,7 @@ static constexpr bool IsBinaryFile(eFileType fileType)
 /**
  * Evaluates the file type based on the file extension.
  */
-static const eFileType EvaluateFileType(std::filesystem::path filePath)
+static eFileType EvaluateFileType(std::filesystem::path filePath)
 {
     const std::string extension = filePath.extension().string();
 
@@ -292,7 +292,7 @@ std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requ
     std::string url = requestUrl;
     const std::initializer_list<const char*> addresses = { this->m_ftpHookAddress, this->m_javaScriptVirtualUrl, this->m_styleSheetVirtualUrl, this->m_oldHookAddress };
 
-    for (const std::string& addr : addresses) {
+    for (std::string addr : addresses) {
         size_t pos = url.find(addr);
         if (pos != std::string::npos) {
             url.erase(pos, addr.length());
@@ -741,8 +741,8 @@ template <typename F> void HttpHookManager::ThreadPool::enqueue(F&& f)
 }
 
 HttpHookManager::HttpHookManager()
-    : m_hookListPtr(std::make_shared<std::vector<HookType>>()), m_requestMap(std::make_shared<std::vector<WebHookItem>>()), m_lastExceptionTime{},
-      m_threadPool(std::make_unique<ThreadPool>(1))
+    : m_threadPool(std::make_unique<ThreadPool>(1)), m_lastExceptionTime{}, m_hookListPtr(std::make_shared<std::vector<HookType>>()),
+      m_requestMap(std::make_shared<std::vector<WebHookItem>>())
 {
 }
 

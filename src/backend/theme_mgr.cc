@@ -133,12 +133,15 @@ int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesyst
 {
     git_libgit2_init();
 
+/** ignore underlying type definition issues with libgit2 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
     git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
     git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
     checkout_opts.checkout_strategy = GIT_CHECKOUT_SAFE;
     clone_opts.checkout_opts = checkout_opts;
-
     git_remote_callbacks callbacks = GIT_REMOTE_CALLBACKS_INIT;
+#pragma GCC diagnostic pop
     SetupRemoteCallbacks(callbacks);
 
     CloneProgressData progressData{ progressCallback };
@@ -202,7 +205,7 @@ nlohmann::json ThemeInstaller::InstallTheme(const std::string& repo, const std::
 
     std::string cloneErr;
     std::string url = fmt::format("https://github.com/{}/{}.git", owner, repo);
-    int rc = CloneWithLibgit2(url, tmpPath, cloneErr, [&](size_t received, size_t total, size_t indexed)
+    int rc = CloneWithLibgit2(url, tmpPath, cloneErr, [&](size_t received, size_t total, size_t)
     {
         if (total > 0) {
             int percentage = 40 + static_cast<int>((received * 50.0) / total);
@@ -310,8 +313,11 @@ bool ThemeInstaller::UpdateTheme(const std::string& native)
             git_libgit2_shutdown();
             return false;
         }
-
+/** ignore underlying type definition issues with libgit2 */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
+#pragma GCC diagnostic pop
         git_remote_fetch(remote, nullptr, &fetch_opts, nullptr);
 
         git_object* obj = nullptr;

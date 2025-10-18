@@ -72,7 +72,7 @@ static const std::string UrlDecode(const std::string& url)
     return decoded;
 }
 
-static const std::string UrlFromPath(const std::string baseAddress, const std::string path)
+inline std::string UrlFromPath(const std::string baseAddress, const std::string path)
 {
 #if defined(__linux__) || defined(__APPLE__)
     {
@@ -85,7 +85,7 @@ static const std::string UrlFromPath(const std::string baseAddress, const std::s
 #endif
 }
 
-static const std::string PathFromUrl(const std::string& path)
+inline std::string PathFromUrl(const std::string& path)
 {
     // Remove query parameters for file path
     std::string cleanPath = path;

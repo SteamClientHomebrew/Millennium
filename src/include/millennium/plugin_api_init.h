@@ -29,9 +29,7 @@
  */
 
 #pragma once
-#include "millennium/backend_mgr.h"
 #include "millennium/ffi.h"
-#include "millennium/init.h"
 
 static std::map<std::string, JavaScript::Types> typeMap = {
     { "string",  JavaScript::Types::String  },
@@ -39,7 +37,7 @@ static std::map<std::string, JavaScript::Types> typeMap = {
     { "number",  JavaScript::Types::Integer }
 };
 
-static std::string getMonthNumber(const std::string& monthAbbr)
+inline std::string getMonthNumber(const std::string& monthAbbr)
 {
     static std::map<std::string, std::string> monthMap{
         { "Jan", "01" },
@@ -58,7 +56,7 @@ static std::string getMonthNumber(const std::string& monthAbbr)
     return monthMap[monthAbbr];
 }
 
-static std::string GetBuildTimestamp()
+inline std::string GetBuildTimestamp()
 {
 #ifdef __DATE__
     std::string date = __DATE__;

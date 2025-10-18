@@ -29,13 +29,11 @@
  */
 
 #pragma once
-#include "millennium/logger.h"
-
 #ifdef _WIN32
+#include "millennium/logger.h"
 #include "millennium/steam_hooks_win32.h"
 #include <Windows.h>
 #include <shellapi.h>
-#endif
 
 namespace CommandLineArguments
 {
@@ -61,7 +59,6 @@ static bool HasArgument(const std::string& targetArgument)
 #endif
 }
 
-#ifdef _WIN32
 static u_short GetRemoteDebuggerPort()
 {
     const char* portValue = GetAppropriateDevToolsPort();
@@ -76,5 +73,5 @@ static u_short GetRemoteDebuggerPort()
         return 0;
     }
 }
-#endif
 }; // namespace CommandLineArguments
+#endif

@@ -29,7 +29,6 @@
  */
 
 #pragma once
-#include "millennium/logger.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include "filesystem"
@@ -67,7 +66,7 @@ class ThemeConfig
     nlohmann::json ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition);
 
   private:
-    void SetupConditionals(const nlohmann::json& theme_data);
+    void SetupConditionals();
     std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
 
     std::filesystem::path themes_path;

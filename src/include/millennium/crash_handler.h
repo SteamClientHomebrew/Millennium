@@ -85,7 +85,7 @@ static long __attribute__((__stdcall__)) Win32_CrashHandler(EXCEPTION_POINTERS* 
  * @brief Custom terminate handler for Millennium.
  * This function is called when Millennium encounters a fatal error that it can't recover from.
  */
-static void UnhandledExceptionHandler()
+inline void UnhandledExceptionHandler()
 {
 #ifdef _WIN32
     if (IsDebuggerPresent())

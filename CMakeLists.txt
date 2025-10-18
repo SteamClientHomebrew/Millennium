@@ -47,14 +47,14 @@ set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL "" FORCE)
 
 if(WIN32)
-set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
-set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
-set(CURL_USE_OPENSSL            OFF CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
+    set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
+    set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
+    set(CURL_USE_OPENSSL            OFF CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
 else()
-set(CURL_USE_OPENSSL            ON  CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
-set(CURL_USE_SCHANNEL           OFF CACHE INTERNAL "" FORCE)
-set(CURL_WINDOWS_SSPI           OFF CACHE INTERNAL "" FORCE)
-set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
+    set(CURL_USE_OPENSSL            ON  CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
+    set(CURL_USE_SCHANNEL           OFF CACHE INTERNAL "" FORCE)
+    set(CURL_WINDOWS_SSPI           OFF CACHE INTERNAL "" FORCE)
+    set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
 endif()
 
 set(CURL_USE_SECTRANSP          OFF CACHE BOOL     "Disable SecureTransport")
@@ -158,7 +158,6 @@ set(LUA_LIBRARY      luajit::lib   )
 set(LUA_LIBRARIES    luajit::lib   )
 
 # Include directories for deps
-include_directories("${websocketpp_SOURCE_DIR}")
 include_directories("${libgit2_SOURCE_DIR}/include")
 include_directories("${minizip_ng_SOURCE_DIR}")
 include_directories("${incbin_SOURCE_DIR}")
@@ -178,8 +177,8 @@ millennium_process_package("${mini_SOURCE_DIR}")
 millennium_process_package("${lua_cjson_SOURCE_DIR}")
 
 if(WIN32)
-include_directories("${CMAKE_SOURCE_DIR}/vendor/pdcurses")
-millennium_process_package("${minhook_SOURCE_DIR}/")
+    include_directories("${CMAKE_SOURCE_DIR}/vendor/pdcurses")
+    millennium_process_package("${minhook_SOURCE_DIR}/")
 endif()
 
 # Let cmake finally configure after we've processed them
@@ -194,7 +193,7 @@ add_subdirectory("${mini_SOURCE_DIR}"          "${mini_BINARY_DIR}"         )
 add_subdirectory("${lua_cjson_SOURCE_DIR}"     "${lua_cjson_BINARY_DIR}"    )
 
 if(WIN32)
-add_subdirectory("${minhook_SOURCE_DIR}"       "${minhook_BINARY_DIR}"      )
+    add_subdirectory("${minhook_SOURCE_DIR}"       "${minhook_BINARY_DIR}"      )
 endif()
 
 # Make sure LuaJIT is built before cjson
@@ -281,8 +280,8 @@ endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
 
-message(STATUS "[Millennium] Building SDK with ${PNPM_COMMAND}...")
-execute_process(
+    message(STATUS "[Millennium] Building SDK with ${PNPM_COMMAND}...")
+    execute_process(
     COMMAND ${PNPM_COMMAND} install
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
     RESULT_VARIABLE SDK_INSTALL_RESULT
@@ -290,13 +289,13 @@ execute_process(
     ERROR_VARIABLE SDK_INSTALL_ERROR
 )
 
-if(NOT SDK_INSTALL_RESULT EQUAL 0)
-    message(STATUS "[Millennium] SDK pnpm install stdout:\n${SDK_INSTALL_OUTPUT}")
-    message(STATUS "[Millennium] SDK pnpm install stderr:\n${SDK_INSTALL_ERROR}")
-    message(FATAL_ERROR "[Millennium] SDK pnpm install failed with exit code ${SDK_INSTALL_RESULT}")
-endif()
+    if(NOT SDK_INSTALL_RESULT EQUAL 0)
+        message(STATUS "[Millennium] SDK pnpm install stdout:\n${SDK_INSTALL_OUTPUT}")
+        message(STATUS "[Millennium] SDK pnpm install stderr:\n${SDK_INSTALL_ERROR}")
+        message(FATAL_ERROR "[Millennium] SDK pnpm install failed with exit code ${SDK_INSTALL_RESULT}")
+    endif()
 
-execute_process(
+    execute_process(
     COMMAND ${PNPM_COMMAND} run build
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
     RESULT_VARIABLE SDK_BUILD_RESULT
@@ -304,19 +303,19 @@ execute_process(
     ERROR_VARIABLE SDK_BUILD_ERROR
 )
 
-if(NOT SDK_BUILD_RESULT EQUAL 0)
-    message(STATUS "[Millennium] SDK build stdout:\n${SDK_BUILD_OUTPUT}")
-    message(STATUS "[Millennium] SDK build stderr:\n${SDK_BUILD_ERROR}")
-    message(FATAL_ERROR "[Millennium] SDK build failed with exit code ${SDK_BUILD_RESULT}")
-endif()
+    if(NOT SDK_BUILD_RESULT EQUAL 0)
+        message(STATUS "[Millennium] SDK build stdout:\n${SDK_BUILD_OUTPUT}")
+        message(STATUS "[Millennium] SDK build stderr:\n${SDK_BUILD_ERROR}")
+        message(FATAL_ERROR "[Millennium] SDK build failed with exit code ${SDK_BUILD_RESULT}")
+    endif()
 
-message(STATUS "[Millennium] SDK build completed successfully")
+    message(STATUS "[Millennium] SDK build completed successfully")
 
-# =========================
-# Build Frontend
-# =========================
-message(STATUS "[Millennium] Building frontend...")
-execute_process(
+    # =========================
+    # Build Frontend
+    # =========================
+    message(STATUS "[Millennium] Building frontend...")
+    execute_process(
     COMMAND ${PNPM_COMMAND} install
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
     RESULT_VARIABLE FRONTEND_INSTALL_RESULT
@@ -324,13 +323,13 @@ execute_process(
     ERROR_VARIABLE FRONTEND_INSTALL_ERROR
 )
 
-if(NOT FRONTEND_INSTALL_RESULT EQUAL 0)
-    message(STATUS "[Millennium] Frontend pnpm install stdout:\n${FRONTEND_INSTALL_OUTPUT}")
-    message(STATUS "[Millennium] Frontend pnpm install stderr:\n${FRONTEND_INSTALL_ERROR}")
-    message(FATAL_ERROR "[Millennium] Frontend pnpm install failed with exit code ${FRONTEND_INSTALL_RESULT}")
-endif()
+    if(NOT FRONTEND_INSTALL_RESULT EQUAL 0)
+        message(STATUS "[Millennium] Frontend pnpm install stdout:\n${FRONTEND_INSTALL_OUTPUT}")
+        message(STATUS "[Millennium] Frontend pnpm install stderr:\n${FRONTEND_INSTALL_ERROR}")
+        message(FATAL_ERROR "[Millennium] Frontend pnpm install failed with exit code ${FRONTEND_INSTALL_RESULT}")
+    endif()
 
-execute_process(
+    execute_process(
     COMMAND ${PNPM_COMMAND} run build
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
     RESULT_VARIABLE FRONTEND_BUILD_RESULT
@@ -338,13 +337,13 @@ execute_process(
     ERROR_VARIABLE FRONTEND_BUILD_ERROR
 )
 
-if(NOT FRONTEND_BUILD_RESULT EQUAL 0)
-    message(STATUS "[Millennium] Frontend build stdout:\n${FRONTEND_BUILD_OUTPUT}")
-    message(STATUS "[Millennium] Frontend build stderr:\n${FRONTEND_BUILD_ERROR}")
-    message(FATAL_ERROR "[Millennium] Frontend build failed with exit code ${FRONTEND_BUILD_RESULT}")
-endif()
+    if(NOT FRONTEND_BUILD_RESULT EQUAL 0)
+        message(STATUS "[Millennium] Frontend build stdout:\n${FRONTEND_BUILD_OUTPUT}")
+        message(STATUS "[Millennium] Frontend build stderr:\n${FRONTEND_BUILD_ERROR}")
+        message(FATAL_ERROR "[Millennium] Frontend build failed with exit code ${FRONTEND_BUILD_RESULT}")
+    endif()
 
-message(STATUS "[Millennium] Frontend build completed successfully")
+    message(STATUS "[Millennium] Frontend build completed successfully")
 endif()
 
 # =====================================
@@ -694,6 +693,17 @@ elseif(UNIX)
     target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_PATH="${LIBPYTHON_RUNTIME_PATH}")
     target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
 endif()
+
+target_include_directories(Millennium SYSTEM PRIVATE
+    ${websocketpp_SOURCE_DIR}
+)
+
+target_compile_options(Millennium PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
+)
 
 if(NOT APPLE)
     set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")

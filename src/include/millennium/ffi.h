@@ -53,9 +53,9 @@ class PythonGIL : public std::enable_shared_from_this<PythonGIL>
     PyInterpreterState* m_mainInterpreter = nullptr;
 
   public:
-    const void HoldAndLockGIL();
-    const void HoldAndLockGILOnThread(PyThreadState* threadState);
-    const void ReleaseAndUnLockGIL();
+    void HoldAndLockGIL();
+    void HoldAndLockGILOnThread(PyThreadState* threadState);
+    void ReleaseAndUnLockGIL();
 
     PythonGIL();
     ~PythonGIL();
@@ -175,7 +175,7 @@ class CefSocketDispatcher
         std::string event;
         ListenerPtr deliveryListener;
 
-        Message(std::string e, nlohmann::json d, uint64_t msgId) : event(std::move(e)), data(std::move(d)), timestamp(std::chrono::steady_clock::now()), id(msgId)
+        Message(std::string e, nlohmann::json d, uint64_t msgId) : data(std::move(d)), timestamp(std::chrono::steady_clock::now()), id(msgId), event(std::move(e))
         {
         }
     };

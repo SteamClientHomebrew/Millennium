@@ -46,7 +46,7 @@ static inline bool is_base64(unsigned char c)
     return (isalnum(c) || (c == '+') || (c == '/'));
 }
 
-static std::string Base64Decode(const std::string& in)
+inline std::string Base64Decode(const std::string& in)
 {
     std::string out;
     std::vector<int> T(256, -1);
@@ -67,7 +67,7 @@ static std::string Base64Decode(const std::string& in)
     return out;
 }
 
-static std::string Base64Encode(const std::vector<char>& data)
+inline std::string Base64Encode(const std::vector<char>& data)
 {
     std::string encoded;
     size_t i = 0;
@@ -113,7 +113,7 @@ static std::string Base64Encode(const std::vector<char>& data)
     return encoded;
 }
 
-static std::string Base64Encode(const std::string& in)
+inline std::string Base64Encode(const std::string& in)
 {
     std::string out;
 
@@ -133,7 +133,7 @@ static std::string Base64Encode(const std::string& in)
     return out;
 }
 
-static std::string GenerateUUID()
+inline std::string GenerateUUID()
 {
     std::random_device rd;
     std::mt19937 gen(rd());

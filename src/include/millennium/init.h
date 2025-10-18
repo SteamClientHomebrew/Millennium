@@ -37,6 +37,8 @@
 #include "millennium/http_hooks.h"
 #include "millennium/sysfs.h"
 #include <nlohmann/json.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtemplate-id-cdtor"
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
@@ -51,10 +53,10 @@ class CEFBrowser
 
   public:
     CEFBrowser();
-    const void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
-    const void SetupSharedJSContext();
-    const void onSharedJsConnect();
-    const void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle);
+    void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
+    void SetupSharedJSContext();
+    void onSharedJsConnect();
+    void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle);
 };
 
 class PluginLoader
@@ -63,14 +65,14 @@ class PluginLoader
     PluginLoader(std::chrono::system_clock::time_point startTime);
     // ~PluginLoader();
 
-    const void StartBackEnds(BackendManager& manager);
-    const void StartFrontEnds();
-    const void InjectWebkitShims();
+    void StartBackEnds(BackendManager& manager);
+    void StartFrontEnds();
+    void InjectWebkitShims();
 
   private:
-    const void Initialize();
+    void Initialize();
 
-    const void PrintActivePlugins();
+    void PrintActivePlugins();
     std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
 
     std::unique_ptr<SettingsStore> m_settingsStorePtr;

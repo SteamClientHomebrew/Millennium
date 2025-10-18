@@ -252,7 +252,7 @@ void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const siz
             RateLimitedLogger("Downloading update assets...", progress);
         });
 
-        Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [](int current, int total, const char* file)
+        Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [](int current, int total, const char*)
         {
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;
             RateLimitedLogger(fmt::format("Processing update file {}/{}", current, total), progress);

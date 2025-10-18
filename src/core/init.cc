@@ -100,7 +100,8 @@ CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::get())
 {
 }
 
-const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg)
+void CEFBrowser::onMessage([[maybe_unused]] websocketpp::client<websocketpp::config::asio_client>* c, [[maybe_unused]] websocketpp::connection_hdl hdl,
+                           websocketpp::config::asio_client::message_type::ptr msg)
 {
     const auto json = nlohmann::json::parse(msg->get_payload());
 
@@ -143,7 +144,7 @@ const void CEFBrowser::onMessage(websocketpp::client<websocketpp::config::asio_c
     webKitHandler.DispatchSocketMessage(json);
 }
 
-const void CEFBrowser::SetupSharedJSContext()
+void CEFBrowser::SetupSharedJSContext()
 {
     Sockets::PostGlobal({
         { "id",     0                   },
@@ -151,7 +152,7 @@ const void CEFBrowser::SetupSharedJSContext()
     });
 }
 
-const void CEFBrowser::onSharedJsConnect()
+void CEFBrowser::onSharedJsConnect()
 {
     std::thread([this]()
     {
@@ -160,7 +161,7 @@ const void CEFBrowser::onSharedJsConnect()
     }).detach();
 }
 
-const void CEFBrowser::onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
+void CEFBrowser::onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
 {
     m_startTime = std::chrono::system_clock::now();
     browserClient = client;
@@ -172,7 +173,7 @@ const void CEFBrowser::onConnect(websocketpp::client<websocketpp::config::asio_c
     webKitHandler.SetupGlobalHooks();
 }
 
-const void PluginLoader::Initialize()
+void PluginLoader::Initialize()
 {
     m_settingsStorePtr = std::make_unique<SettingsStore>();
     m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
@@ -181,7 +182,7 @@ const void PluginLoader::Initialize()
     m_settingsStorePtr->InitializeSettingsStore();
 }
 
-PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_startTime(startTime), m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr)
+PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_startTime(startTime)
 {
     this->Initialize();
 }
@@ -203,7 +204,7 @@ std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(std::shared_ptr<CEF
  * @brief Injects webkit shims into the SteamUI.
  * All hooks are internally stored in the function and are removed upon re-injection.
  */
-const void PluginLoader::InjectWebkitShims()
+void PluginLoader::InjectWebkitShims()
 {
     Logger.Log("Injecting webkit shims...");
 
@@ -242,7 +243,7 @@ const void PluginLoader::InjectWebkitShims()
     }
 }
 
-const void PluginLoader::StartFrontEnds()
+void PluginLoader::StartFrontEnds()
 {
     if (g_shouldTerminateMillennium->flag.load()) {
         Logger.Log("Terminating frontend thread pool...");
@@ -254,7 +255,6 @@ const void PluginLoader::StartFrontEnds()
 
     this->InjectWebkitShims();
 
-    auto socketStart = std::chrono::high_resolution_clock::now();
     Logger.Log("Starting frontend socket...");
     std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(cefBrowserHandler, socketHelpers);
 
@@ -293,7 +293,7 @@ const void PluginLoader::StartFrontEnds()
 }
 
 /* debug function, just for developers */
-const void PluginLoader::PrintActivePlugins()
+void PluginLoader::PrintActivePlugins()
 {
     std::string pluginList = "Plugins: { ";
     for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it) {
@@ -312,13 +312,14 @@ const void PluginLoader::PrintActivePlugins()
  * All packages are grouped and shared when needed, to prevent wasting space.
  * @see assets\pipx\main.py
  */
-const void StartPreloader(BackendManager& manager)
+void StartPreloader(BackendManager& manager)
 {
     std::promise<void> promise;
 
-    SettingsStore::PluginTypeSchema plugin{ .pluginName = "pipx",
-                                            .backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx",
-                                            .isInternal = true };
+    SettingsStore::PluginTypeSchema plugin;
+    plugin.pluginName = "pipx";
+    plugin.backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx";
+    plugin.isInternal = true;
 
     /** Create instance on a separate thread to prevent IO blocking of concurrent threads */
     manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin)
@@ -360,7 +361,7 @@ const void StartPreloader(BackendManager& manager)
     manager.DestroyPythonInstance("pipx");
 }
 
-const void PluginLoader::StartBackEnds(BackendManager& manager)
+void PluginLoader::StartBackEnds(BackendManager& manager)
 {
     Logger.Log("Starting plugin backends...");
     StartPreloader(manager);

@@ -88,7 +88,7 @@ class HttpError : public std::exception
 
 namespace Http
 {
-static std::string Get(const char* url, bool retry = true, const long timeout = 10L)
+inline std::string Get(const char* url, bool retry = true, const long timeout = 10L)
 {
     CURL* curl;
     CURLcode res;
@@ -119,7 +119,7 @@ static std::string Get(const char* url, bool retry = true, const long timeout = 
     }
     return response;
 }
-static std::string Post(const char* url, const std::string& postData, bool retry = true)
+inline std::string Post(const char* url, const std::string& postData, bool retry = true)
 {
     CURL* curl;
     CURLcode res;
@@ -154,7 +154,7 @@ static std::string Post(const char* url, const std::string& postData, bool retry
     return response;
 }
 
-static void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
+inline void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
 {
     const auto& [url, expectedSize] = download_info;
 

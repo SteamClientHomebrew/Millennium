@@ -46,7 +46,7 @@ PythonGIL::PythonGIL()
  *
  * This method ensures that the Python GIL is properly locked before executing Python code.
  */
-const void PythonGIL::HoldAndLockGIL()
+void PythonGIL::HoldAndLockGIL()
 {
     PyEval_RestoreThread(m_interpreterThreadState);
     m_interpreterGIL = PyGILState_Ensure();
@@ -60,7 +60,7 @@ const void PythonGIL::HoldAndLockGIL()
  * This function locks the GIL and swaps the thread state to the provided one, allowing safe execution
  * of Python code in a multi-threaded environment.
  */
-const void PythonGIL::HoldAndLockGILOnThread(PyThreadState* threadState)
+void PythonGIL::HoldAndLockGILOnThread(PyThreadState* threadState)
 {
     PyEval_RestoreThread(m_interpreterThreadState);
     m_interpreterGIL = PyGILState_Ensure();
@@ -86,7 +86,7 @@ PythonGIL::~PythonGIL()
  *
  * This function resets the shared instance of `PythonGIL`, effectively releasing the GIL and cleaning up resources.
  */
-const void PythonGIL::ReleaseAndUnLockGIL()
+void PythonGIL::ReleaseAndUnLockGIL()
 {
     std::shared_ptr<PythonGIL> self = shared_from_this();
     self.reset();

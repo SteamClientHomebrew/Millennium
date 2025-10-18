@@ -55,7 +55,17 @@ extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded;
  */
 PyObject* PyInit_Millennium(void)
 {
-    static struct PyModuleDef module_def = { PyModuleDef_HEAD_INIT, "Millennium", NULL, -1, (PyMethodDef*)PyGetMillenniumModule() };
+    static struct PyModuleDef module_def = {
+        PyModuleDef_HEAD_INIT,
+        "Millennium",                          /* m_name */
+        NULL,                                  /* m_doc */
+        -1,                                    /* m_size */
+        (PyMethodDef*)PyGetMillenniumModule(), /* m_methods */
+        NULL,                                  /* m_slots */
+        NULL,                                  /* m_traverse */
+        NULL,                                  /* m_clear */
+        NULL                                   /* m_free */
+    };
 
     return PyModule_Create(&module_def);
 }
@@ -350,7 +360,6 @@ bool BackendManager::ShutdownPythonBackends()
                 thread.join();
             }
             this->m_pyThreadPool.erase(threadIt);
-
             CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, true);
         } else {
             LOG_ERROR("Couldn't find thread for plugin '{}'", pluginName);

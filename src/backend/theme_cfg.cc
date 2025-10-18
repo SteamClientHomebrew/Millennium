@@ -34,7 +34,10 @@
 #include "head/sys_accent_col.h"
 #include "head/webkit.h"
 
+#include "millennium/logger.h"
 #include "millennium/sysfs.h"
+
+#include <fmt/format.h>
 #include <regex>
 
 ThemeConfig::ThemeConfig()
@@ -187,7 +190,7 @@ void ThemeConfig::SetupThemeHooks()
     theme_data = GetActiveTheme();
     active_theme_name = CONFIG.GetNested("themes.activeTheme").get<std::string>();
 
-    SetupConditionals(theme_data);
+    SetupConditionals();
     StartWebkitHook(theme_data, active_theme_name);
     SetupColors();
 }
@@ -308,7 +311,7 @@ void ThemeConfig::ResetAccentColor()
     CONFIG.SetNested("general.accentColor", "DEFAULT_ACCENT_COLOR");
 }
 
-void ThemeConfig::SetupConditionals(const nlohmann::json& theme_data)
+void ThemeConfig::SetupConditionals()
 {
     if (!CONFIG.GetNested("themes.conditions", nlohmann::json::object()).is_object())
         CONFIG.SetNested("themes.conditions", nlohmann::json::object());
