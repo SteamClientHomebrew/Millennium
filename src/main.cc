@@ -146,9 +146,12 @@ std::string DemangleName(const char* mangledName)
 }
 
 class StackTraceCapture {
+private:
     HANDLE process;
     PSYMBOL_INFO symbol;
     bool initialized;
+    static constexpr int MAX_NAME_LENGTH = 1024;
+    static constexpr int MAX_FRAMES = 256;
 
 public:
     StackTraceCapture() : process(GetCurrentProcess()), symbol(nullptr), initialized(false) {
@@ -164,7 +167,6 @@ public:
         }
 
         // Allocate symbol buffer
-        constexpr int MAX_NAME_LENGTH = 1024;
         symbol = (PSYMBOL_INFO)calloc(1, sizeof(SYMBOL_INFO) + MAX_NAME_LENGTH * sizeof(CHAR));
         if (symbol) {
             symbol->MaxNameLen = MAX_NAME_LENGTH - 1;
@@ -172,79 +174,18 @@ public:
         }
     }
 
-    void* stack[maxFrames];
-    USHORT frames = CaptureStackBackTrace(0, maxFrames, stack, NULL);
-
-    constexpr int MAX_NAME_LENGTH = 1024;
-    SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(1, sizeof(SYMBOL_INFO) + MAX_NAME_LENGTH * sizeof(CHAR));
-
-    if (!symbol)
-    {
-        errorMessage.append("\nFailed to allocate memory for symbols\n");
-        SymCleanup(process);
-        return;
-    }
-
-    symbol->MaxNameLen = MAX_NAME_LENGTH - 1;
-    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
-
-    IMAGEHLP_LINE64 line;
-    line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-
-    errorMessage.append(fmt::format("\nStack trace ({} frames):\n", frames));
-
-    for (USHORT i = 0; i < frames; i++)
-    {
-        DWORD64 address = (DWORD64)(stack[i]);
-        DWORD64 displacement = 0;
-
-        BOOL symbolResult = SymFromAddr(process, address, &displacement, symbol);
-
-        if (symbolResult)
-        {
-            // Try to demangle it for MinGW-compiled code
-            std::string demangledName;
-
-            // Check if this looks like a C++ mangled name (typically starts with _Z for GCC/MinGW)
-            if (symbol->Name[0] == '_' && (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N'))
-            {
-                demangledName = DemangleName(symbol->Name);
-            }
-            else
-            {
-                // Not a GCC-style mangled name, use as is
-                demangledName = symbol->Name;
-            }
-
-            // Get file and line info
-            DWORD lineDisplacement = 0;
-            BOOL lineResult = SymGetLineFromAddr64(process, address, &lineDisplacement, &line);
-
-            if (lineResult)
-            {
-                errorMessage.append(fmt::format("#{}: {} in {} at {}:{} +{}\n", i, demangledName, line.FileName, line.LineNumber, lineDisplacement));
-            }
-            else
-            {
-                errorMessage.append(fmt::format("#{}: {} at 0x{:X} (no line info, error: {})\n", i, demangledName, address, GetLastError()));
-            }
-        }
-        else
-        {
-            errorMessage.append(fmt::format("#{}: 0x{:X} (unknown symbol, error: {})\n", i, address, GetLastError()));
-        }
-    }
-
     ~StackTraceCapture() {
         if (symbol) {
             free(symbol);
+            symbol = nullptr;
         }
         if (initialized) {
             SymCleanup(process);
+            initialized = false;
         }
     }
 
-    void Capture(std::string& errorMessage, int maxFrames = 256) {
+    void Capture(std::string& errorMessage, int maxFrames = MAX_FRAMES) {
         if (!initialized || !symbol) {
             errorMessage.append("\nStack trace capture not initialized properly\n");
             return;
@@ -323,7 +264,8 @@ void OnTerminate()
 
 #ifdef _WIN32
     // Capture and print stack trace
-    CaptureStackTrace(errorMessage);
+    StackTraceCapture stackTrace;
+    stackTrace.Capture(errorMessage);
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
 
     auto result = MessageBoxA(
