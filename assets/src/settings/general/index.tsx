@@ -29,7 +29,7 @@
  */
 
 import { DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, Toggle } from '@steambrew/client';
-import React from 'react';
+import { DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, memo, useCallback, useMemo, React } from '@steambrew/client';
 import { locale } from '../../../locales';
 import { OnMillenniumUpdate, OSType } from '../../types';
 import { RenderAccentColorPicker } from '../../components/AccentColorPicker';
@@ -38,24 +38,184 @@ import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamC
 import { AppConfig } from '../../AppConfig';
 import { deferredSettingLabelClasses } from '../../utils/classes';
 
+// Type definitions
+type GeneralConfigKey = keyof AppConfig['general'];
+type ConfigUpdateHandler = (key: GeneralConfigKey, value: AppConfig['general'][GeneralConfigKey]) => void;
+type ToggleHandler = (value: boolean) => void;
+
+interface UpdateOption {
+    label: string;
+    data: OnMillenniumUpdate;
+}
+
+// Section Components
+const StartupSection = memo(({ config, onToggle }: { 
+    config: AppConfig; 
+    onToggle: ConfigUpdateHandler;
+}) => (
+    <DialogControlsSection>
+        <SettingsDialogSubHeader>{locale.headerOnStartup}</SettingsDialogSubHeader>
+        <Field label={locale.optionCheckForMillenniumUpdates}>
+            <Toggle 
+                value={config.general.checkForMillenniumUpdates} 
+                onChange={(value: boolean) => onToggle('checkForMillenniumUpdates', value)} 
+            />
+        </Field>
+        <Field label={locale.optionCheckForThemeAndPluginUpdates} bottomSeparator="none">
+            <Toggle 
+                value={config.general.checkForPluginAndThemeUpdates} 
+                onChange={(value: boolean) => onToggle('checkForPluginAndThemeUpdates', value)} 
+            />
+        </Field>
+    </DialogControlsSection>
+));
+
+// Add display names for debugging
+StartupSection.displayName = 'StartupSection';
+
+const UpdatesSection = memo(({ config, onUpdateChange }: { 
+    config: AppConfig; 
+    onUpdateChange: ConfigUpdateHandler;
+}) => {
+    const updateOptions = useMemo<UpdateOption[]>(() => {
+        const opts = [
+            { label: locale.eOnMillenniumUpdateDoNothing, data: OnMillenniumUpdate.DO_NOTHING },
+            { label: locale.eOnMillenniumUpdateNotify, data: OnMillenniumUpdate.NOTIFY },
+        ];
+
+        if (pluginSelf?.platformType === OSType.Windows) {
+            opts.push({ 
+                label: locale.eOnMillenniumUpdateAutoInstall, 
+                data: OnMillenniumUpdate.AUTO_INSTALL 
+            });
+        }
+
+        return opts;
+    }, []);
+
+    const selectedOption = useMemo(() => 
+        updateOptions.findIndex((opt: UpdateOption) => opt.data === config.general.onMillenniumUpdate),
+        [updateOptions, config.general.onMillenniumUpdate]
+    );
+
+    const defaultLabel = useMemo(() => 
+        updateOptions.find((opt: UpdateOption) => opt.data === config.general.onMillenniumUpdate)?.label,
+        [updateOptions, config.general.onMillenniumUpdate]
+    );
+
+    return (
+        <DialogControlsSection>
+            <SettingsDialogSubHeader>{locale.headerUpdates}</SettingsDialogSubHeader>
+            <Field
+                label={locale.optionWhenAnUpdateForMillenniumIsAvailable}
+                bottomSeparator="none"
+                disabled={!config.general.checkForMillenniumUpdates}
+                icon={!config.general.checkForMillenniumUpdates ? (
+                    <DesktopTooltip toolTipContent={locale.tooltipCheckForMillenniumUpdates} direction="top">
+                        <IconsModule.ExclamationPoint className={deferredSettingLabelClasses.Icon} />
+                    </DesktopTooltip>
+                ) : undefined}
+            >
+                <Dropdown
+                    disabled={!config.general.checkForMillenniumUpdates}
+                    rgOptions={updateOptions}
+                    selectedOption={selectedOption}
+                    onChange={(e: { data: OnMillenniumUpdate }) => 
+                        onUpdateChange('onMillenniumUpdate', e.data)
+                    }
+                    contextMenuPositionOptions={{ bMatchWidth: false }}
+                    strDefaultLabel={defaultLabel}
+                />
+            </Field>
+        </DialogControlsSection>
+    );
+});
+
+UpdatesSection.displayName = 'UpdatesSection';
+
+const NotificationsSection = memo(({ config, onToggle }: {
+    config: AppConfig;
+    onToggle: ConfigUpdateHandler;
+}) => (
+    <DialogControlsSection>
+        <SettingsDialogSubHeader>{locale.headerNotifications}</SettingsDialogSubHeader>
+        <Field label={locale.optionWhenAPluginOrThemeUpdateIsAvailable} bottomSeparator="none">
+            <Toggle 
+                value={config.general.shouldShowThemePluginUpdateNotifications} 
+                onChange={(value: boolean) => 
+                    onToggle('shouldShowThemePluginUpdateNotifications', value)
+                } 
+            />
+        </Field>
+    </DialogControlsSection>
+));
+
+NotificationsSection.displayName = 'NotificationsSection';
+
+const ThemesSection = memo(({ config, onToggle }: {
+    config: AppConfig;
+    onToggle: ConfigUpdateHandler;
+}) => (
+    <DialogControlsSection>
+        <SettingsDialogSubHeader>{locale.headerThemes}</SettingsDialogSubHeader>
+        <Field label={locale.themePanelInjectJavascript}>
+            <Toggle 
+                value={config.general.injectJavascript} 
+                onChange={(value: boolean) => onToggle('injectJavascript', value)} 
+            />
+        </Field>
+        <Field label={locale.themePanelInjectCSS}>
+            <Toggle 
+                value={config.general.injectCSS} 
+                onChange={(value: boolean) => onToggle('injectCSS', value)} 
+            />
+        </Field>
+        <RenderAccentColorPicker />
+    </DialogControlsSection>
+));
+
+ThemesSection.displayName = 'ThemesSection';
+
+const AboutSection = memo(() => (
+    <DialogControlsSection>
+        <SettingsDialogSubHeader>{locale.strAbout}</SettingsDialogSubHeader>
+        <Field label={locale.strAboutVersion}>{pluginSelf.version}</Field>
+        <Field label={'Client API version'}>{window.MILLENNIUM_FRONTEND_LIB_VERSION}</Field>
+        <Field label={'Browser API version'}>{window.MILLENNIUM_BROWSER_LIB_VERSION}</Field>
+        <Field label={locale.strAboutBuildDate}>
+            {new Date(pluginSelf.buildDate).toLocaleString(navigator.language)}
+        </Field>
+        <Field label={'Loader build date'} bottomSeparator="none">
+            {new Date(window.MILLENNIUM_LOADER_BUILD_DATE).toLocaleString(navigator.language)}
+        </Field>
+    </DialogControlsSection>
+));
+
+AboutSection.displayName = 'AboutSection';
+
 export const GeneralViewModal: React.FC = () => {
-	const config = useMillenniumState();
-	const updateConfig = useUpdateConfig();
+    const config = useMillenniumState();
+    const updateConfig = useUpdateConfig();
 
-	const handleChange = <K extends keyof AppConfig['general']>(key: K, value: AppConfig['general'][K]) => {
-		updateConfig((draft) => {
-			draft.general[key] = value;
-		});
-	};
+    const handleConfigUpdate = useCallback<ConfigUpdateHandler>(
+        (key: GeneralConfigKey, value: AppConfig['general'][GeneralConfigKey]) => {
+            updateConfig((draft: AppConfig) => {
+                (draft.general[key] as typeof value) = value; // Type assertion needed due to TypeScript limitation
+            });
+        },
+        [updateConfig]
+    );
 
-	const OnMillenniumUpdateOpts = [
-		{ label: locale.eOnMillenniumUpdateDoNothing, data: OnMillenniumUpdate.DO_NOTHING },
-		{ label: locale.eOnMillenniumUpdateNotify, data: OnMillenniumUpdate.NOTIFY },
-	];
-
-	if (pluginSelf?.platformType === OSType.Windows) {
-		OnMillenniumUpdateOpts.push({ label: locale.eOnMillenniumUpdateAutoInstall, data: OnMillenniumUpdate.AUTO_INSTALL });
-	}
+    return (
+        <>
+            <StartupSection config={config} onToggle={handleConfigUpdate} />
+            <UpdatesSection config={config} onUpdateChange={handleConfigUpdate} />
+            <NotificationsSection config={config} onToggle={handleConfigUpdate} />
+            <ThemesSection config={config} onToggle={handleConfigUpdate} />
+            <AboutSection />
+        </>
+    );
+};
 
 	return (
 		<>
