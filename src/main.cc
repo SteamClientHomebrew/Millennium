@@ -301,7 +301,7 @@ void OnTerminate()
     }
 #endif
 
-    std::string errorMessage = "Millennium has encountered a fatal error!\n";
+    std::string errorMessage = "Millennium has encountered a fatal error, please check log and report it to the discord!\n";
     const auto exceptionPtr = std::current_exception();
 
     if (exceptionPtr)
