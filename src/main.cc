@@ -145,19 +145,31 @@ std::string DemangleName(const char* mangledName)
     }
 }
 
-void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
-{
-    HANDLE process = GetCurrentProcess();
-    DWORD options = SymGetOptions();
-    options |= SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS;
-    options &= ~SYMOPT_UNDNAME;
-    SymSetOptions(options);
+class StackTraceCapture {
+    HANDLE process;
+    PSYMBOL_INFO symbol;
+    bool initialized;
 
-    if (!SymInitialize(process, NULL, TRUE))
-    {
-        DWORD error = GetLastError();
-        errorMessage.append(fmt::format("\nFailed to initialize symbol handler: Error {}\n", error));
-        return;
+public:
+    StackTraceCapture() : process(GetCurrentProcess()), symbol(nullptr), initialized(false) {
+        DWORD options = SymGetOptions();
+        options |= SYMOPT_LOAD_LINES | SYMOPT_DEFERRED_LOADS;
+        options &= ~SYMOPT_UNDNAME;
+        SymSetOptions(options);
+
+        initialized = SymInitialize(process, NULL, TRUE);
+        if (!initialized) {
+            LOG_ERROR("Failed to initialize symbol handler: Error {}", GetLastError());
+            return;
+        }
+
+        // Allocate symbol buffer
+        constexpr int MAX_NAME_LENGTH = 1024;
+        symbol = (PSYMBOL_INFO)calloc(1, sizeof(SYMBOL_INFO) + MAX_NAME_LENGTH * sizeof(CHAR));
+        if (symbol) {
+            symbol->MaxNameLen = MAX_NAME_LENGTH - 1;
+            symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+        }
     }
 
     void* stack[maxFrames];
@@ -223,9 +235,51 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
         }
     }
 
-    free(symbol);
-    SymCleanup(process);
-}
+    ~StackTraceCapture() {
+        if (symbol) {
+            free(symbol);
+        }
+        if (initialized) {
+            SymCleanup(process);
+        }
+    }
+
+    void Capture(std::string& errorMessage, int maxFrames = 256) {
+        if (!initialized || !symbol) {
+            errorMessage.append("\nStack trace capture not initialized properly\n");
+            return;
+        }
+
+        void* stack[256];
+        USHORT frames = CaptureStackBackTrace(0, std::min(maxFrames, 256), stack, NULL);
+        IMAGEHLP_LINE64 line;
+        line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+        errorMessage.append(fmt::format("\nStack trace ({} frames):\n", frames));
+
+        for (USHORT i = 0; i < frames; i++) {
+            DWORD64 address = (DWORD64)(stack[i]);
+            DWORD64 displacement = 0;
+
+            if (SymFromAddr(process, address, &displacement, symbol)) {
+                std::string demangledName = (symbol->Name[0] == '_' && 
+                    (symbol->Name[1] == 'Z' || symbol->Name[1] == 'N')) ?
+                    DemangleName(symbol->Name) : symbol->Name;
+
+                DWORD lineDisplacement = 0;
+                if (SymGetLineFromAddr64(process, address, &lineDisplacement, &line)) {
+                    errorMessage.append(fmt::format("#{}: {} in {} at {}:{} +{}\n", 
+                        i, demangledName, line.FileName, line.LineNumber, lineDisplacement));
+                } else {
+                    errorMessage.append(fmt::format("#{}: {} at 0x{:X}\n", 
+                        i, demangledName, address));
+                }
+            } else {
+                errorMessage.append(fmt::format("#{}: 0x{:X} (unknown)\n", i, address));
+            }
+        }
+    }
+};
 #endif
 
 /**
@@ -234,13 +288,21 @@ void CaptureStackTrace(std::string& errorMessage, int maxFrames = 256)
  */
 void OnTerminate()
 {
+    static bool terminating = false;
+    if (terminating) {
+        // Prevent recursive termination
+        std::abort();
+    }
+    terminating = true;
+
 #ifdef _WIN32
-    if (IsDebuggerPresent())
+    if (IsDebuggerPresent()) {
         __debugbreak();
+    }
 #endif
 
-    auto const exceptionPtr = std::current_exception();
-    std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
+    std::string errorMessage = "Millennium has encountered a fatal error!\n";
+    const auto exceptionPtr = std::current_exception();
 
     if (exceptionPtr)
     {
@@ -313,11 +375,23 @@ const static void EntryMain()
 
     PythonManager& manager = PythonManager::GetInstance();
 
-    /** Start the python backends */
-    std::thread(&PluginLoader::StartBackEnds, loader, std::ref(manager)).detach();
+    /** Start the python backends with proper thread management */
+    auto backendThread = std::make_shared<std::thread>(&PluginLoader::StartBackEnds, loader, std::ref(manager));
+    if (backendThread) {
+        pthread_setname_np(backendThread->native_handle(), "millennium-backend");
+        backendThread->detach();
+    } else {
+        LOG_ERROR("Failed to create backend thread");
+        throw std::runtime_error("Backend thread creation failed");
+    }
 
     /** Start the injection process into the Steam web helper */
-    loader->StartFrontEnds();
+    try {
+        loader->StartFrontEnds();
+    } catch (const std::exception& e) {
+        LOG_ERROR("Frontend initialization failed: {}", e.what());
+        throw;
+    }
 }
 
 __attribute__((constructor)) void __init_millennium()
