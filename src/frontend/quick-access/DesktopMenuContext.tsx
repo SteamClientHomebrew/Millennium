@@ -29,17 +29,24 @@
  */
 
 import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
-import { PluginComponent } from '../types';
-import { PyFindAllPlugins } from '../utils/ffi';
+import { PluginComponent, ThemeItem } from '../types';
+import { PyFindAllPlugins, PyFindAllThemes } from '../utils/ffi';
+
+export enum DesktopSideBarFocusedItemType {
+	PLUGIN,
+	THEME,
+}
 
 interface DesktopMenuContextType {
 	isOpen: boolean;
-	activePlugin?: PluginComponent;
+	focusedItem?: PluginComponent | ThemeItem;
+	focusedItemType?: DesktopSideBarFocusedItemType;
 	plugins?: PluginComponent[];
+	themes?: ThemeItem[];
 	toggleMenu: () => void;
-	setActivePlugin: (plugin?: PluginComponent) => void;
+	setFocusedItem: (item?: PluginComponent | ThemeItem, type?: DesktopSideBarFocusedItemType) => void;
 	closeMenu: () => void;
-	openMenu: () => void;
+	openMenu: (userdata?: any) => void;
 }
 
 const DesktopMenuContext = createContext<DesktopMenuContextType | undefined>(undefined);
@@ -50,17 +57,29 @@ interface DesktopMenuProviderProps {
 
 export const DesktopMenuProvider: React.FC<DesktopMenuProviderProps> = ({ children }) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [activePlugin, setActivePluginState] = useState<PluginComponent | undefined>(undefined);
+	const [focusedItem, setFocusedLibraryItem] = useState<PluginComponent | ThemeItem | undefined>(undefined);
 	const [plugins, setPlugins] = useState<PluginComponent[] | undefined>(undefined);
+	const [themes, setThemes] = useState<ThemeItem[] | undefined>(undefined);
+	const [focusedItemType, setFocusedItemType] = useState<DesktopSideBarFocusedItemType | undefined>(undefined);
 
 	useEffect(() => {
 		PyFindAllPlugins().then((pluginsJson: string) => {
 			setPlugins(JSON.parse(pluginsJson));
 		});
+		PyFindAllThemes().then((themesJson: string) => {
+			setThemes(JSON.parse(themesJson));
+		});
 	}, []);
 
-	const openMenu = useCallback(() => {
-		setActivePluginState(undefined);
+	const openMenu = useCallback((userdata?: any) => {
+		if (userdata?.data?.hasOwnProperty('libraryItem') && userdata?.data?.hasOwnProperty('libraryItemType')) {
+			/** open the sidebar to a specfic library item */
+			setFocusedItem(userdata?.data?.libraryItem, userdata?.data?.libraryItemType);
+		} else {
+			/** if we aren't explicitly asked to open the sidebar on a specific item, clear the last focused item to force go home */
+			setFocusedLibraryItem(undefined);
+		}
+
 		setIsOpen(true);
 	}, []);
 
@@ -72,21 +91,24 @@ export const DesktopMenuProvider: React.FC<DesktopMenuProviderProps> = ({ childr
 		setIsOpen((prev) => !prev);
 	}, [isOpen]);
 
-	const setActivePlugin = useCallback((plugin?: PluginComponent) => {
-		setActivePluginState(plugin);
+	const setFocusedItem = useCallback((item?: PluginComponent | ThemeItem, type?: DesktopSideBarFocusedItemType) => {
+		setFocusedLibraryItem(item);
+		setFocusedItemType(type);
 	}, []);
 
 	const value = useMemo<DesktopMenuContextType>(
 		() => ({
 			isOpen,
-			activePlugin,
+			focusedItem,
 			plugins,
+			themes,
 			toggleMenu,
-			setActivePlugin,
+			setFocusedItem,
 			closeMenu,
 			openMenu,
+			focusedItemType,
 		}),
-		[isOpen, activePlugin, plugins, toggleMenu, setActivePlugin, closeMenu, openMenu],
+		[isOpen, focusedItem, plugins, themes, toggleMenu, setFocusedItem, closeMenu, openMenu, focusedItemType],
 	);
 
 	return <DesktopMenuContext.Provider value={value}>{children}</DesktopMenuContext.Provider>;

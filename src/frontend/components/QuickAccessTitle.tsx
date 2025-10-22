@@ -29,24 +29,25 @@
  */
 
 import { Focusable, joinClassNames, Navigation, quickAccessMenuClasses } from '@steambrew/client';
-import { useDesktopMenu } from '../quick-access/DesktopMenuContext';
+import { DesktopSideBarFocusedItemType, useDesktopMenu } from '../quick-access/DesktopMenuContext';
 import { BsGearFill } from 'react-icons/bs';
 import { FaArrowLeft } from 'react-icons/fa';
 import { getPluginView } from '../utils/globals';
 import { IconButton } from './IconButton';
+import { PluginComponent, ThemeItem } from '../types';
 
 export const TitleView = () => {
-	const { closeMenu, activePlugin, setActivePlugin } = useDesktopMenu();
+	const { closeMenu, focusedItem, focusedItemType, setFocusedItem } = useDesktopMenu();
 
 	const onSettingsClick = () => {
 		Navigation.Navigate('/millennium/settings');
 		closeMenu();
 	};
 
-	if (!activePlugin) {
+	if (!focusedItem) {
 		return (
 			<Focusable className={joinClassNames('MillenniumDesktopSidebar_Title', quickAccessMenuClasses.Title)}>
-				<div>Millennium</div>
+				<div>Library Settings</div>
 				<IconButton onClick={onSettingsClick} style={{ marginLeft: 'auto' }}>
 					<BsGearFill />
 				</IconButton>
@@ -54,12 +55,18 @@ export const TitleView = () => {
 		);
 	}
 
+	/** If the selected item is a plugin, try to get its titleview prop */
+	const libraryItemTitle =
+		focusedItemType === DesktopSideBarFocusedItemType.PLUGIN
+			? getPluginView((focusedItem as PluginComponent)?.data?.name)?.titleView || <div>{(focusedItem as PluginComponent)?.data?.common_name}</div>
+			: (focusedItem as ThemeItem)?.data?.name;
+
 	return (
 		<Focusable className={joinClassNames('MillenniumDesktopSidebar_Title', quickAccessMenuClasses.Title)}>
-			<IconButton onClick={setActivePlugin.bind(null, null)}>
+			<IconButton onClick={setFocusedItem.bind(undefined, undefined)}>
 				<FaArrowLeft />
 			</IconButton>
-			{getPluginView(activePlugin?.data?.name)?.titleView || <div>{activePlugin?.data?.common_name}</div>}
+			{libraryItemTitle}
 		</Focusable>
 	);
 };

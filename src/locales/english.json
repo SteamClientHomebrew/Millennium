@@ -143,5 +143,10 @@
   "quickCssCompiledRules": "Compiled CSS Rules",
   "quickCssDescription": "Quick CSS is way to make simple tweaks to the UI, without needing a full fledged theme. All changes are applied in real-time with the exception of any web views, those require a reload.",
   "quickCssStatusLoaded": "Status: Loaded",
-  "quickCssStatsTitle": "Quick CSS Stats"
+  "quickCssStatsTitle": "Quick CSS Stats",
+  "quickAccessEmptyLibrary": "Nothing to see here!",
+  "quickAccessEmptyLibraryBody": "Your library is empty, we've got nothing for you to manage.",
+  "themeIsNotConfigurable": "This theme is not configurable!",
+  "pluginIsNotConfigurable": "This plugin is not configurable!",
+  "pluginIsNotEnabled": "This plugin is disabled!"
 }

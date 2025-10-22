@@ -364,8 +364,8 @@ const styles = `
 		content: unset !important;
 	}
 
-	* { 
-		width: 100%; 
+	* {
+		width: 100%;
 		text-align: right;
 	}
 }
@@ -398,21 +398,17 @@ const styles = `
 
 .MillenniumPlaceholder_Button {
 	min-width: fit-content;
+    display: flex !important;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
 }
 `;
 
-export const MillenniumDesktopSidebarStyles = ({
-	openAnimStart,
-	isDesktopMenuOpen,
-	isViewingPlugin,
-}: {
-	openAnimStart: boolean;
-	isDesktopMenuOpen: boolean;
-	isViewingPlugin: boolean;
-}) => {
+export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpen }: { openAnimStart: boolean; isDesktopMenuOpen: boolean; isViewingPlugin: boolean }) => {
 	const styles = `
-    .title-area { 
-      	z-index: 999999 !important; 
+    .title-area {
+      	z-index: 999999 !important;
     }
 
     .MillenniumDesktopSidebar {
@@ -432,10 +428,10 @@ export const MillenniumDesktopSidebarStyles = ({
     }
 
 	.MillenniumDesktopSidebar_Content {
-		padding: ${isViewingPlugin ? '16px 20px 0px 20px' : '16px 0 0 0'};
 		display: flex;
 		flex-direction: column;
 		height: 100%;
+		overflow: auto;
 	}
 
     .MillenniumDesktopSidebar_Overlay {
@@ -459,6 +455,34 @@ export const MillenniumDesktopSidebarStyles = ({
 		top: 0;
 		-webkit-app-region: no-drag;
 	}
+
+	.MillenniumDesktopSidebar .MillenniumDesktopSidebar_Content .MillenniumSideBar_LibraryItemButton {
+        padding: 0px 10px 0px 10px;
+        margin-bottom: 10px;
+        width: -webkit-fill-available;
+	}
+
+	.MillenniumSidebarThemeEditor_Content {
+    	overflow-y: auto;
+        padding: 0px 15px 15px 15px;
+    }
+
+    .MillenniumSidebarThemeEditor_TabSelector {
+        padding: 15px;
+        margin-top: 10px;
+    }
+
+    .MillenniumSidebarPluginEditor_Content {
+        padding: 15px;
+    }
+
+    .iconContainer {
+        height: 18px;
+        width: 18px;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+    }
     `;
 
 	return <style>{styles}</style>;

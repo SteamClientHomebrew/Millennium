@@ -68,6 +68,7 @@ async function initializeMillennium(settings: SettingsProps) {
 	}
 
 	Object.assign(pluginSelf, {
+		activeTheme: settings?.active_theme,
 		accentColor: settings?.accent_color,
 		conditionals: settings?.conditions,
 		steamPath: settings?.steamPath,
@@ -96,15 +97,15 @@ export default async function PluginMain() {
 
 	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });
 
-	// routerHook.addGlobalComponent(
-	// 	'MillenniumDesktopUI',
-	// 	() => (
-	// 		<DesktopMenuProvider>
-	// 			<MillenniumDesktopSidebar />
-	// 		</DesktopMenuProvider>
-	// 	),
-	// 	EUIMode.Desktop,
-	// );
+	routerHook.addGlobalComponent(
+		'MillenniumDesktopUI',
+		() => (
+			<DesktopMenuProvider>
+				<MillenniumDesktopSidebar />
+			</DesktopMenuProvider>
+		),
+		EUIMode.Desktop,
+	);
 
 	/** Render welcome modal for new users */
 	routerHook.addGlobalComponent('MillenniumWelcomeModal', () => <WelcomeModalComponent />, EUIMode.Desktop);

@@ -28,21 +28,56 @@
  * SOFTWARE.
  */
 
-import { DialogButton, ErrorBoundary, IconsModule, PanelSection, PanelSectionRow } from '@steambrew/client';
+import { DialogButton, ErrorBoundary, PanelSection, PanelSectionRow } from '@steambrew/client';
 import { PluginComponent } from '../types';
-import { useDesktopMenu } from './DesktopMenuContext';
-import { getPluginRenderers, getPluginView } from '../utils/globals';
-import { Placeholder } from '../components/Placeholder';
+import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuContext';
+import { getPluginConfigurableStatus, getPluginRenderers, getPluginView } from '../utils/globals';
+import { DesktopTooltip } from '../components/SteamComponents';
+import { useEffect, useState } from 'react';
+import { locale } from '../utils/localization-manager';
 
-export const RenderPluginViews = ({ plugins, pluginName, pluginView }: { plugins: PluginComponent[]; pluginName: string; pluginView: any }) => {
-	const { setActivePlugin } = useDesktopMenu();
+interface RenderPluginViewsProps {
+	plugins: PluginComponent[];
+	pluginName: string;
+	pluginView: any;
+	editableStore: Array<{ name: string; isEditable: boolean }>;
+}
+
+export const NonConfigurablePluginItem = ({ plugin }: { plugin: PluginComponent }) => {
+	const reason = !plugin.enabled ? locale.pluginIsNotEnabled : locale.pluginIsNotConfigurable;
+
+	return (
+		<DesktopTooltip toolTipContent={reason} direction="left">
+			<PanelSectionRow key={plugin.data.name}>
+				<DialogButton className="MillenniumSideBar_LibraryItemButton NotConfigurable" disabled={true}>
+					<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+						<div>{plugin?.data?.common_name}</div>
+					</div>
+				</DialogButton>
+			</PanelSectionRow>
+		</DesktopTooltip>
+	);
+};
+
+export const RenderPluginViews = ({ plugins, pluginName, pluginView, editableStore }: RenderPluginViewsProps) => {
+	const { setFocusedItem } = useDesktopMenu();
 	const plugin = plugins?.find((p) => p.data.name === pluginName);
+	const isEditable = editableStore?.find?.((p) => p.name === pluginName)?.isEditable || false;
+
+	if (!plugin) {
+		console.error('Failed to find plugin by name when rendering plugin view in sidebar.');
+		return null;
+	}
+
+	if (!isEditable) {
+		return <NonConfigurablePluginItem plugin={plugin} />;
+	}
 
 	return (
 		<PanelSectionRow key={pluginName}>
-			<DialogButton style={{ padding: '0px 10px 0px 10px', width: '-webkit-fill-available' }} onClick={setActivePlugin.spread(plugin)}>
+			<DialogButton className="MillenniumSideBar_LibraryItemButton" onClick={setFocusedItem.spread(plugin, DesktopSideBarFocusedItemType.PLUGIN)}>
 				<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-					<div className="iconContainer">{pluginView?.icon}</div>
+					{pluginView?.icon && <div className="iconContainer">{pluginView?.icon}</div>}
 					<div>{plugin?.data?.common_name}</div>
 				</div>
 			</DialogButton>
@@ -51,40 +86,49 @@ export const RenderPluginViews = ({ plugins, pluginName, pluginView }: { plugins
 };
 
 export const RenderPluginView = () => {
-	const { activePlugin } = useDesktopMenu();
-	const renderer = getPluginView(activePlugin?.data?.name)?.content;
+	const { focusedItem } = useDesktopMenu();
+	const renderer = getPluginView(focusedItem?.data?.name)?.content;
 
 	if (!renderer) {
 		return (
 			<PanelSection>
 				<PanelSectionRow>
-					Failed to find a renderer for <b>{activePlugin?.data?.name}</b>. Please check if the plugin is loaded correctly.
+					Failed to find a renderer for <b>{focusedItem?.data?.name}</b>. Please check if the plugin is loaded correctly.
 				</PanelSectionRow>
 			</PanelSection>
 		);
 	}
 
-	return <ErrorBoundary>{renderer}</ErrorBoundary>;
+	return (
+		<ErrorBoundary>
+			<div className="MillenniumSidebarPluginEditor_Content">{renderer}</div>
+		</ErrorBoundary>
+	);
 };
 
 export const PluginSelectorView = () => {
 	const { plugins } = useDesktopMenu();
-	const pluginRenderers = getPluginRenderers();
+	const configurablePluginRenderers = getPluginRenderers();
+	const [configurablePluginStore, setConfigurablePluginStore] = useState<Array<{ name: string; isEditable: boolean }>>();
 
-	if (!pluginRenderers || Object.keys(pluginRenderers).length === 0) {
-		return (
-			<Placeholder
-				icon={<IconsModule.TextCode />}
-				header="No configurable plugins"
-				body="Configurable plugins will appear here. No loaded plugins are currently configurable."
-			/>
-		);
+	useEffect(() => {
+		getPluginConfigurableStatus().then(setConfigurablePluginStore);
+	}, []);
+
+	if (!plugins || !plugins?.length) {
+		return null; /** let the parent component handle no plugin/themes */
 	}
 
 	return (
 		<PanelSection>
-			{Object.entries(pluginRenderers)?.map(([key, panel]: [string, any]) => (
-				<RenderPluginViews plugins={plugins} key={key} pluginName={key} pluginView={panel} />
+			<h4>Plugin Settings</h4>
+			{plugins?.map((plugin) => (
+				<RenderPluginViews
+					plugins={plugins}
+					pluginName={plugin.data.name}
+					pluginView={configurablePluginRenderers[plugin.data.name]}
+					editableStore={configurablePluginStore}
+				/>
 			))}
 		</PanelSection>
 	);

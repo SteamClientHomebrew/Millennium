@@ -28,13 +28,18 @@
  * SOFTWARE.
  */
 
+#include "millennium/backend_mgr.h"
+#include "millennium/logger.h"
 #include <exception>
 #include <cxxabi.h>
 #include <fmt/format.h>
+#include <iostream>
+
+extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
 #ifdef _WIN32
 #include "millennium/http_hooks.h"
-#include "millennium/steam_hooks_win32.h"
+#include "millennium/steam_hooks.h"
 
 #include <dbghelp.h>
 #include <shellapi.h>
@@ -91,7 +96,6 @@ inline void UnhandledExceptionHandler()
     if (IsDebuggerPresent())
         __debugbreak();
 #endif
-
     auto const exceptionPtr = std::current_exception();
     std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
 
@@ -103,24 +107,19 @@ inline void UnhandledExceptionHandler()
         } catch (const std::exception& e) {
             errorMessage.append(fmt::format(" with `what()` = \"{}\"", e.what()));
         } catch (...) {
+            errorMessage.append(" with unknown exception type");
         }
+    } else {
+        errorMessage.append(" with unknown exception pointer");
+    }
+
+    if (g_shouldTerminateMillennium->flag.load()) {
+        LOG_ERROR("Failed to shutdown Millennium, since this is likely due failing plugin shutdowns, this is silently logged:\n{}", errorMessage);
+        return;
     }
 
 #ifdef _WIN32
     MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
-
-    auto result = MessageBoxA(
-        NULL,
-        "Would you like to open your logs folder?\nLook for a file called \"Standard Output_log.log\" "
-        "in the logs folder, that will have important debug information.\n\n"
-        "Please send this file to Millennium developers on our discord (steambrew.app/discord), it will help prevent this error from happening to you or others in the future.",
-        "Error Recovery", MB_ICONEXCLAMATION | MB_YESNO);
-
-    if (result == IDYES) {
-        std::string logPath = (SystemIO::GetInstallPath() / "ext" / "logs").string();
-        ShellExecuteA(NULL, "open", logPath.c_str(), NULL, NULL, SW_SHOWNORMAL);
-    }
-
 #elif __linux__
     std::cerr << errorMessage << std::endl;
 #endif

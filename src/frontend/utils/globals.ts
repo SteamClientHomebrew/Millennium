@@ -28,6 +28,10 @@
  * SOFTWARE.
  */
 
+import { render } from 'react-dom';
+import { PluginComponent } from '../types';
+import { PyFindAllPlugins } from './ffi';
+
 export const API_URL = 'https://steambrew.app';
 export const PLUGINS_URL = [API_URL, 'plugins'].join('/');
 export const THEMES_URL = [API_URL, 'themes'].join('/');
@@ -40,4 +44,23 @@ export function getPluginRenderers() {
 	}
 
 	return window?.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS;
+}
+
+/**
+ * Returns a list of all found plugins, with metadata
+ * describing whether the the plugin is configurable or not.
+ *
+ * If plugins aren't provided, they are fetched automatically from the backend.
+ * This can introduce overhead if called often.
+ */
+export async function getPluginConfigurableStatus(plugins?: Array<PluginComponent>): Promise<Array<{ name: string; isEditable: boolean }>> {
+	const renderers = getPluginRenderers();
+
+	/** fetch from the backend if not provided. */
+	return (plugins ?? (JSON.parse(await PyFindAllPlugins()) as Array<PluginComponent>))?.map((plugin) => {
+		return {
+			name: plugin.data.name,
+			isEditable: renderers[plugin?.data?.name],
+		};
+	});
 }

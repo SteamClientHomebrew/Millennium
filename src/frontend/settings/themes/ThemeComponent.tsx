@@ -40,6 +40,8 @@ import { Component } from 'react';
 import { PyUninstallTheme } from '../../utils/ffi';
 import { IconButton } from '../../components/IconButton';
 import { settingsClasses } from '../../utils/classes';
+import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
+import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
 
 interface ThemeItemComponentProps {
 	theme: ThemeItem;
@@ -104,21 +106,12 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 
 	openThemeSettings() {
 		const { theme } = this.props;
-		const isActive = this.isActive;
 
-		function onClose() {
-			if (!isActive || !pluginSelf.ConditionConfigHasChanged) return;
-
-			/** After the new config is set, we need to reload the UI for changes to be reflected */
-			Utils.PromptReload(() => SteamClient.Browser.RestartJSContext());
-			pluginSelf.ConditionConfigHasChanged = false;
-		}
-
-		showModal(<RenderThemeEditor theme={theme} />, pluginSelf.mainWindow, {
-			strTitle: theme?.data?.name,
-			popupHeight: 675,
-			popupWidth: 850,
-			fnOnClose: onClose,
+		useQuickAccessStore.getState().openQuickAccess({
+			data: {
+				libraryItem: theme,
+				libraryItemType: DesktopSideBarFocusedItemType.THEME,
+			},
 		});
 	}
 

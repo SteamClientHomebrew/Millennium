@@ -41,6 +41,7 @@ import { showInstallPluginModal } from './PluginInstallerModal';
 import { LogData, LogLevel } from '../logs';
 import { RenderPluginComponent } from './PluginComponent';
 import { Placeholder } from '../../components/Placeholder';
+import { getPluginConfigurableStatus } from '../../utils/globals';
 
 declare global {
 	interface Window {
@@ -63,6 +64,7 @@ interface PluginViewModalState {
 	checkedItems: { [key: number]: boolean };
 	pluginsWithLogs?: Map<string, PluginStatusProps>;
 	updatedPlugins: UpdatedPluginProps[];
+	configurablePluginStore: Array<{ name: string; isEditable: boolean }>;
 }
 
 class PluginViewModal extends Component<{}, PluginViewModalState> {
@@ -71,6 +73,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 		checkedItems: {},
 		pluginsWithLogs: undefined,
 		updatedPlugins: [],
+		configurablePluginStore: [],
 	};
 
 	componentDidMount() {
@@ -101,7 +104,8 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 			}
 		}
 
-		this.setState({ plugins, checkedItems, pluginsWithLogs });
+		const configurablePluginStore = await getPluginConfigurableStatus();
+		this.setState({ plugins, checkedItems, pluginsWithLogs, configurablePluginStore });
 	}
 
 	handleCheckboxChange(index: number) {
@@ -150,6 +154,8 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 				hasWarnings={logState?.warnings > 0}
 				onSelectionChange={(index: number) => this.handleCheckboxChange(index)}
 				refetchPlugins={this.FetchAllPlugins.bind(this)}
+				allPlugins={this.state.plugins}
+				isPluginConfigurable={this.state.configurablePluginStore?.find((p) => p.name === plugin.data.name).isEditable}
 			/>
 		);
 	}

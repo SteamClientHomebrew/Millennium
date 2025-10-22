@@ -31,18 +31,18 @@
 import { create } from 'zustand';
 
 type QuickAccessState = {
-	openQuickAccess: () => void;
+	openQuickAccess: (userdata?: any) => void;
 	closeQuickAccess: () => void;
 	subscribeToOpen: (callback: () => void) => () => void;
 	subscribeToClose: (callback: () => void) => () => void;
 };
 
-const openListeners = new Set<() => void>();
+const openListeners = new Set<(userdata?: any) => void>();
 const closeListeners = new Set<() => void>();
 
 export const useQuickAccessStore = create<QuickAccessState>(() => ({
-	openQuickAccess: () => {
-		openListeners.forEach((cb) => cb());
+	openQuickAccess: (userdata?: any) => {
+		openListeners.forEach((cb) => cb(userdata));
 	},
 	closeQuickAccess: () => {
 		closeListeners.forEach((cb) => cb());

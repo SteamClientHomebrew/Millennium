@@ -43,6 +43,7 @@ import Styles from '../utils/styles';
 import { FaPaintRoller } from 'react-icons/fa';
 import { PiPlugsFill } from 'react-icons/pi';
 import { QuickCssViewModal } from './quickcss';
+import { useQuickAccessStore } from '../quick-access/quickAccessStore';
 
 declare global {
 	const g_PopupManager: any;
@@ -136,18 +137,26 @@ export function MillenniumSettings() {
 }
 
 function RenderSettingsModal(_: any, retObj: any) {
-	const index = retObj.props.menuItems.findIndex((prop: any) => prop.name === '#Menu_Settings');
-
-	if (index !== -1) {
-		retObj.props.menuItems.splice(index + 1, 0, {
+	const items = [
+		'separator',
+		{
 			name: 'Millennium',
 			onClick: () => {
 				Navigation.Navigate('/millennium/settings');
 			},
 			visible: true,
-		});
-	}
+		},
+		{
+			name: 'Millennium Library Manager',
+			onClick: () => {
+				useQuickAccessStore.getState().openQuickAccess();
+			},
+			visible: true,
+		},
+		'separator',
+	];
 
+	retObj.props.menuItems.splice(retObj.props.menuItems.length - 1, 0, ...items);
 	return retObj.type(retObj.props);
 }
 

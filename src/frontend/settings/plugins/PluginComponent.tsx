@@ -36,6 +36,10 @@ import { Utils } from '../../utils';
 import { Component } from 'react';
 import { PyUninstallPlugin } from '../../utils/ffi';
 import { IconButton } from '../../components/IconButton';
+import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
+import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
+import { getPluginConfigurableStatus } from '../../utils/globals';
+import { locale } from '../../utils/localization-manager';
 
 interface PluginComponentProps {
 	plugin: PluginComponent;
@@ -46,6 +50,8 @@ interface PluginComponentProps {
 	hasWarnings: boolean;
 	onSelectionChange: (index: number) => void;
 	refetchPlugins: () => Promise<void>;
+	allPlugins: Array<PluginComponent>;
+	isPluginConfigurable: boolean;
 }
 
 enum TooltipType {
@@ -55,6 +61,11 @@ enum TooltipType {
 }
 
 export class RenderPluginComponent extends Component<PluginComponentProps> {
+	constructor(props: PluginComponentProps) {
+		super(props);
+		this.showCtxMenu = this.showCtxMenu.bind(this);
+	}
+
 	async uninstallPlugin() {
 		const { plugin, refetchPlugins } = this.props;
 
@@ -72,8 +83,20 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		await refetchPlugins();
 	}
 
-	showCtxMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
+	openPluginSettings() {
 		const { plugin } = this.props;
+		useQuickAccessStore.getState().openQuickAccess({
+			data: {
+				libraryItem: plugin,
+				libraryItemType: DesktopSideBarFocusedItemType.PLUGIN,
+			},
+		});
+	}
+
+	showCtxMenu(e: React.MouseEvent<HTMLButtonElement>) {
+		const { plugin, isPluginConfigurable } = this.props;
+		const reason = !plugin.enabled ? locale.pluginIsNotEnabled : locale.pluginIsNotConfigurable;
+
 		showContextMenu(
 			<Menu label="MillenniumPluginContextMenu">
 				<MenuItem onSelected={() => {}} bInteractableItem={false} tone="emphasis" disabled={true}>
@@ -81,12 +104,17 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				</MenuItem>
 				<Separator />
 				<MenuItem onSelected={() => {}}>Reload</MenuItem>
+				<DesktopTooltip toolTipContent={reason} direction="left">
+					<MenuItem onSelected={this.openPluginSettings.bind(this)} disabled={!isPluginConfigurable}>
+						Configure
+					</MenuItem>
+				</DesktopTooltip>
 				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>Uninstall</MenuItem>
 				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>Browse local files</MenuItem>
 			</Menu>,
 			e.currentTarget ?? window,
 		);
-	};
+	}
 
 	getTooltipContent() {
 		const { plugin, hasErrors, hasWarnings } = this.props;

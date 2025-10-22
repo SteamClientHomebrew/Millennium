@@ -33,6 +33,7 @@
 #include <sstream>
 #include <string>
 #include <fcntl.h>
+#include <iostream>
 
 #ifdef _WIN32
 #include "millennium/argp_win32.h"

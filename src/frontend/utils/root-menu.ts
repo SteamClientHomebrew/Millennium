@@ -36,5 +36,7 @@ export function PatchRootMenu() {
 		return m?.pendingProps?.title === 'Steam' && m?.pendingProps?.menuContent;
 	});
 
-	afterPatch(steamRootMenu.pendingProps.menuContent, 'type', RenderSettingsModal);
+	if (steamRootMenu?.pendingProps?.menuContent) {
+		afterPatch(steamRootMenu.pendingProps.menuContent, 'type', RenderSettingsModal);
+	}
 }

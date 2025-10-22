@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string>
 #include <unistd.h>
+#include <iostream>
 
 std::map<std::string, std::string> envVariables;
 
@@ -277,7 +278,6 @@ void SetupEnvironmentVariables()
 #if defined(__linux__) || defined(__APPLE__)
 #define RED "\033[31m"
 #define RESET "\033[0m"
-
         if (shouldLog)
             std::cout << fmt::format("{}={}", key, value) << std::endl;
 #endif
