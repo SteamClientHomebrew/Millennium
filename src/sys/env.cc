@@ -41,6 +41,7 @@
 #include <stdlib.h>
 #include <string>
 #include <unistd.h>
+#include <filesystem>
 
 #if defined(__linux__) || defined(__APPLE__)
 extern char** environ;
@@ -157,7 +158,11 @@ const void SetupEnvironmentVariables()
 #ifdef _NIX_OS
     const auto shimsPath = fmt::format("{}/share/millennium/shims", __NIX_SHIMS_PATH);
 #else
-    const auto shimsPath = "/usr/share/millennium/shims";
+    const char * shimsPath;
+    if (std::filesystem::exists("/usr/local/bin/millennium"))
+        shimsPath = "/usr/local/share/millennium/shims";
+    else
+        shimsPath = "/usr/share/millennium/shims";
 #endif
 #elif __APPLE__
     const auto shimsPath = "/usr/local/share/millennium/shims";
@@ -174,7 +179,11 @@ const void SetupEnvironmentVariables()
 #ifdef _NIX_OS
     const auto assetsPath = fmt::format("{}/share/millennium/assets", __NIX_ASSETS_PATH);
 #else
-    const auto assetsPath = "/usr/share/millennium/assets";
+    const char * assetsPath;
+    if (std::filesystem::exists("/usr/local/bin/millennium"))
+        assetsPath = "/usr/local/share/millennium/assets";
+    else
+        assetsPath = "/usr/share/millennium/assets";
 #endif
 #elif __APPLE__
     const auto assetsPath = "/usr/local/share/millennium/assets";
@@ -208,6 +217,11 @@ const void SetupEnvironmentVariables()
     }
 
     const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
+    const char * millenium_runtime_path;
+    if (std::filesystem::exists("/usr/local/bin/millennium"))
+        millenium_runtime_path = "/usr/local/lib/millennium/libmillennium_x86.so";
+    else
+        millenium_runtime_path = "/usr/lib/millennium/libmillennium_x86.so";
 
     std::map<std::string, std::string> environment_unix = {
         {"OPENSSL_CONF", "/dev/null"},
@@ -215,7 +229,7 @@ const void SetupEnvironmentVariables()
 #ifdef _NIX_OS
                                                           fmt::format("{}/lib/millennium/libMillennium_x86.so", __NIX_SELF_PATH)
 #else
-                                                          "/usr/lib/millennium/libmillennium_x86.so"
+                                                          millenium_runtime_path
 #endif
         },
 
