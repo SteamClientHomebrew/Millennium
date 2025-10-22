@@ -32,7 +32,6 @@
 #include "head/library_updater.h"
 #include "head/scan.h"
 #include "head/theme_cfg.h"
-#include "head/theme_mgr.h"
 
 #include "millennium/millennium_api.h"
 #include "millennium/millennium_updater.h"
@@ -138,11 +137,11 @@ IPC_RET(Core_DoesThemeUseAccentColor, true) /** placeholder, too lazy to impleme
 IPC_RET(Core_GetThemeColorOptions, themeConfig->GetColorOpts(ARGS["theme_name"]))
 
 /** Theme installer related API's */
-IPC_RET(Core_InstallTheme, updater->GetThemeUpdater().InstallTheme(ARGS["repo"], ARGS["owner"]))
-IPC_RET(Core_UninstallTheme, updater->GetThemeUpdater().UninstallTheme(ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_InstallTheme, updater->GetThemeUpdater().InstallTheme(themeConfig, ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_UninstallTheme, updater->GetThemeUpdater().UninstallTheme(themeConfig, ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_DownloadThemeUpdate, updater->DownloadThemeUpdate(themeConfig, ARGS["native"]))
 IPC_RET(Core_IsThemeInstalled, updater->GetThemeUpdater().CheckInstall(ARGS["repo"], ARGS["owner"]))
 IPC_RET(Core_GetThemeFromGitPair, updater->GetThemeUpdater().GetThemeFromGitPair(ARGS["repo"], ARGS["owner"], ARGS.value("asString", false)).value_or(nullptr))
-IPC_RET(Core_DownloadThemeUpdate, updater->DownloadThemeUpdate(ARGS["native"]))
 
 /** Plugin related API's */
 IPC_RET(Core_DownloadPluginUpdate, updater->DownloadPluginUpdate(ARGS["id"], ARGS["name"]))

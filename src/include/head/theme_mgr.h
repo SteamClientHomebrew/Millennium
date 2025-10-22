@@ -29,6 +29,7 @@
  */
 
 #pragma once
+#include "head/theme_cfg.h"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -45,11 +46,11 @@ class ThemeInstaller
 
     std::optional<nlohmann::json> GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString = false);
     bool CheckInstall(const std::string& repo, const std::string& owner);
-    nlohmann::json UninstallTheme(const std::string& repo, const std::string& owner);
-    nlohmann::json InstallTheme(const std::string& repo, const std::string& owner);
+    nlohmann::json UninstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
+    nlohmann::json InstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
 
     int CloneWithLibgit2(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback);
-    bool UpdateTheme(const std::string& native);
+    bool UpdateTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
 
     std::vector<std::pair<nlohmann::json, std::filesystem::path>> QueryThemesForUpdate();
     nlohmann::json ProcessUpdates(const nlohmann::json& updateQuery, const nlohmann::json& remote);

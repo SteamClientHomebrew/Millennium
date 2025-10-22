@@ -38,7 +38,7 @@ class ThemeConfig
 {
   public:
     ThemeConfig();
-    ~ThemeConfig();
+    ~ThemeConfig() = default;
 
     void OnConfigChange();
     void UpgradeOldConfig();

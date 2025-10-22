@@ -50,9 +50,9 @@ bool Updater::DownloadPluginUpdate(const std::string& id, const std::string& nam
     return plugin_updater.DownloadPluginUpdate(id, name);
 }
 
-bool Updater::DownloadThemeUpdate(const std::string& native)
+bool Updater::DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
 {
-    return theme_updater.UpdateTheme(native);
+    return theme_updater.UpdateTheme(themeConfig, native);
 }
 
 std::optional<json> Updater::GetCachedUpdates() const

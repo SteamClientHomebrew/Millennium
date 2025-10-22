@@ -45,7 +45,7 @@ class Updater
     Updater();
 
     bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    bool DownloadThemeUpdate(const std::string& native);
+    bool DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
 
     std::optional<json> GetCachedUpdates() const;
     bool HasCheckedForUpdates() const;

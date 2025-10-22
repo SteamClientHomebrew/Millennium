@@ -88,7 +88,7 @@ bool ThemeInstaller::CheckInstall(const std::string& repo, const std::string& ow
     return installed;
 }
 
-nlohmann::json ThemeInstaller::UninstallTheme(const std::string& repo, const std::string& owner)
+nlohmann::json ThemeInstaller::UninstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
 {
     Logger.Log("UninstallTheme: {}/{}", owner, repo);
 
@@ -106,6 +106,8 @@ nlohmann::json ThemeInstaller::UninstallTheme(const std::string& repo, const std
     if (!SystemIO::DeleteFolder(path))
         return ErrorMessage("Failed to delete theme folder");
 
+    /** trigger config update to regenerate config */
+    themeConfig->OnConfigChange();
     return SuccessMessage();
 }
 
@@ -168,7 +170,7 @@ int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesyst
     return 0;
 }
 
-nlohmann::json ThemeInstaller::InstallTheme(const std::string& repo, const std::string& owner)
+nlohmann::json ThemeInstaller::InstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
 {
     std::error_code ec;
     std::filesystem::path finalPath = SkinsRoot() / repo;
@@ -254,6 +256,9 @@ nlohmann::json ThemeInstaller::InstallTheme(const std::string& repo, const std::
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
+    /** trigger config update to regenerate config */
+    themeConfig->OnConfigChange();
+
     RPCLogMessage("Done!", 100, true);
     return SuccessMessage();
 }
@@ -288,7 +293,7 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> ThemeInstaller::Qu
     return updateQuery;
 }
 
-bool ThemeInstaller::UpdateTheme(const std::string& native)
+bool ThemeInstaller::UpdateTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
 {
     Logger.Log("Updating theme " + native);
     std::filesystem::path path = SkinsRoot() / native;
@@ -350,6 +355,8 @@ bool ThemeInstaller::UpdateTheme(const std::string& native)
         return false;
     }
 
+    /** trigger config update to regenerate config */
+    themeConfig->OnConfigChange();
     Logger.Log("Theme {} updated successfully.", native);
     return true;
 }
