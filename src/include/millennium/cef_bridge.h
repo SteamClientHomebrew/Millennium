@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "millennium/argp_win32.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"
 
@@ -50,12 +51,7 @@ class SocketHelpers
 
     u_short GetDebuggerPort()
     {
-#ifdef _WIN32
-        {
-            return CommandLineArguments::GetRemoteDebuggerPort();
-        }
-#endif
-        return 8080;
+        return CommandLineArguments::GetRemoteDebuggerPort();
     }
 
     const std::string GetDebuggerUrl()

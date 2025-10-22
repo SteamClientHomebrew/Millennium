@@ -29,9 +29,30 @@
  */
 
 #include <condition_variable>
+#include "millennium/steam_hooks.h"
+#include "millennium/argp_win32.h"
 
 std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
 std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
+std::string STEAM_DEVELOPER_TOOLS_PORT;
+
+unsigned short GetRandomOpenPort()
+{
+    asio::io_context io_context;
+    asio::ip::tcp::acceptor acceptor(io_context);
+    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), 0);
+
+    acceptor.open(endpoint.protocol());
+    acceptor.bind(endpoint);
+    acceptor.listen();
+    return acceptor.local_endpoint().port();
+}
+
+const char* GetAppropriateDevToolsPort(const bool isDevMode)
+{
+    const char* port = isDevMode ? DEFAULT_DEVTOOLS_PORT : STEAM_DEVELOPER_TOOLS_PORT.c_str();
+    return port;
+}
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -64,8 +85,6 @@ CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
 ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = NULL;
 
 HMODULE steamTier0Module;
-std::string STEAM_DEVELOPER_TOOLS_PORT;
-
 std::atomic<bool> ab_shouldDisconnectFrontend{ false };
 
 struct HookInfo
@@ -75,28 +94,9 @@ struct HookInfo
     LPVOID* original;
 };
 
-unsigned short GetRandomOpenPort()
-{
-    asio::io_context io_context;
-    asio::ip::tcp::acceptor acceptor(io_context);
-    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), 0);
-
-    acceptor.open(endpoint.protocol());
-    acceptor.bind(endpoint);
-    acceptor.listen();
-    return acceptor.local_endpoint().port();
-}
-
 const bool IsDeveloperMode(void)
 {
     return CommandLineArguments::HasArgument("-dev");
-}
-
-const char* GetAppropriateDevToolsPort()
-{
-    const bool isDevMode = IsDeveloperMode();
-    const char* port = isDevMode ? DEFAULT_DEVTOOLS_PORT : STEAM_DEVELOPER_TOOLS_PORT.c_str();
-    return port;
 }
 
 void AppendParameter(std::string& input, const std::string& parameter)
@@ -159,11 +159,11 @@ void EnsureRemoteDebuggingPort(std::string& input)
     const std::string remoteDebugPortPrefix = ARG_REMOTE_DEBUGGING_PORT "=";
 
     if (input.find(remoteDebugPortPrefix) == std::string::npos) {
-        std::string portParam = remoteDebugPortPrefix + GetAppropriateDevToolsPort();
+        std::string portParam = remoteDebugPortPrefix + GetAppropriateDevToolsPort(IsDeveloperMode());
         AppendParameter(input, portParam);
     } else {
         /** replace with the appropriate port */
-        std::string newPort = remoteDebugPortPrefix + GetAppropriateDevToolsPort();
+        std::string newPort = remoteDebugPortPrefix + GetAppropriateDevToolsPort(IsDeveloperMode());
         size_t pos = input.find(remoteDebugPortPrefix);
 
         if (pos != std::string::npos) {
@@ -371,5 +371,213 @@ BOOL InitializeSteamHooks()
     }
 
     return dllRegStatus;
+}
+#elif __linux__
+#include "millennium/logger.h"
+
+#include <dlfcn.h>
+#include <string>
+#include <fmt/format.h>
+#include "./third_party/subhook.h"
+
+static SubHook create_hook;
+
+#define MAX_PARAMS 128
+#define MAX_PARAM_LEN 512
+#define MAX_COMMAND_LEN 4096 /** I don't think any process call from steam would be longer than this */
+
+typedef struct
+{
+    char* exec;
+    char* params[MAX_PARAMS];
+    int param_count;
+
+    char full_command[MAX_COMMAND_LEN];
+    int dirty;
+} Command;
+
+void Command_mark_dirty(Command* cmd)
+{
+    cmd->dirty = 1;
+}
+
+void Command_init(Command* cmd, const char* full_cmd)
+{
+    cmd->param_count = 0;
+    cmd->exec = NULL;
+    cmd->dirty = 1;
+
+    char* copy = strdup(full_cmd);
+    char* token = strtok(copy, " ");
+    if (token) {
+        cmd->exec = strdup(token);
+        token = strtok(NULL, " ");
+    }
+    while (token && cmd->param_count < MAX_PARAMS) {
+        cmd->params[cmd->param_count++] = strdup(token);
+        token = strtok(NULL, " ");
+    }
+    free(copy);
+}
+
+void Command_free(Command* cmd)
+{
+    if (cmd->exec)
+        free(cmd->exec);
+    for (int i = 0; i < cmd->param_count; i++)
+        free(cmd->params[i]);
+}
+
+int Command_has_param(Command* cmd, const char* key)
+{
+    size_t key_len = strlen(key);
+    for (int i = 0; i < cmd->param_count; i++) {
+        if (strcmp(cmd->params[i], key) == 0)
+            return 1;
+        if (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')
+            return 1;
+    }
+    return 0;
+}
+
+void Command_add_param(Command* cmd, const char* param)
+{
+    if (cmd->param_count >= MAX_PARAMS)
+        return;
+    if (!Command_has_param(cmd, param))
+        cmd->params[cmd->param_count++] = strdup(param);
+    Command_mark_dirty(cmd);
+}
+
+void Command_remove_param(Command* cmd, const char* key)
+{
+    size_t key_len = strlen(key);
+    for (int i = 0; i < cmd->param_count; i++) {
+        if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
+            free(cmd->params[i]);
+            for (int j = i; j < cmd->param_count - 1; j++)
+                cmd->params[j] = cmd->params[j + 1];
+            cmd->param_count--;
+            i--;
+            Command_mark_dirty(cmd);
+        }
+    }
+}
+
+void Command_update_param(Command* cmd, const char* key, const char* value)
+{
+    size_t key_len = strlen(key);
+    char new_param[MAX_PARAM_LEN];
+    if (value)
+        snprintf(new_param, sizeof(new_param), "%s=%s", key, value);
+    else
+        snprintf(new_param, sizeof(new_param), "%s", key);
+
+    for (int i = 0; i < cmd->param_count; i++) {
+        if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
+            free(cmd->params[i]);
+            cmd->params[i] = strdup(new_param);
+            Command_mark_dirty(cmd);
+            return;
+        }
+    }
+    if (cmd->param_count < MAX_PARAMS)
+        cmd->params[cmd->param_count++] = strdup(new_param);
+    Command_mark_dirty(cmd);
+}
+
+static void Command_ensure_parameter(Command* c, const char* cmd, const char* value)
+{
+    if (Command_has_param(c, cmd)) {
+        Command_update_param(c, cmd, value);
+    } else {
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "%s=%s", cmd, value);
+        Command_add_param(c, buffer);
+    }
+}
+
+const char* Command_get(Command* cmd)
+{
+    if (!cmd->dirty)
+        return cmd->full_command;
+
+    size_t pos = 0;
+    pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "%s", cmd->exec);
+
+    for (int i = 0; i < cmd->param_count; i++) {
+        pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " %s", cmd->params[i]);
+    }
+
+    cmd->dirty = 0;
+    return cmd->full_command;
+}
+
+/**
+ * It seems a2, a3 might be a stack allocated struct pointer, but we don't really need them
+ * Even if we mistyped them, it doesn't change the actual underlying data being sent in memory.
+ * I assume it has something to with working directory &| flags
+ */
+extern "C" int Hooked_CreateSimpleProcess(const char* cmd, unsigned int a2, const char* a3)
+{
+    /** temporarily remove the hook to prevent recursive hook calls */
+    SubHook::ScopedRemove remove(&create_hook);
+
+    Command c;
+    Command_init(&c, cmd);
+    int is_developer_mode = CommandLineArguments::HasArgument("-dev");
+
+    /** enable the CEF remote debugger */
+    Command_ensure_parameter(&c, "--remote-debugging-port", GetAppropriateDevToolsPort(is_developer_mode));
+    /** always ensure the debugger is only local, and can't be accessed over lan */
+    Command_ensure_parameter(&c, "--remote-debugging-address", "127.0.0.1");
+    /** block any browser web requests when running in normal mode */
+    Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");
+
+    cmd = Command_get(&c);
+    /** call the original */
+    return reinterpret_cast<int (*)(const char* cmd, unsigned int flags, const char* cwd)>(create_hook.GetSrc())(cmd, a2, a3);
+}
+
+static void* find_symbol_in_loaded(const char* libneedle, const char* symbol)
+{
+    void* handle = dlopen(libneedle, RTLD_NOW | RTLD_NOLOAD);
+    if (handle) {
+        void* s = dlsym(handle, symbol);
+        dlclose(handle);
+        if (s)
+            return s;
+    }
+
+    void* s2 = dlsym(RTLD_DEFAULT, symbol);
+    if (s2)
+        return s2;
+
+    return nullptr;
+}
+
+int InitializeSteamHooks()
+{
+    const char* libneedle = "libtier0_s.so";
+    const char* symbol = "CreateSimpleProcess";
+
+    STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
+
+    void* target = find_symbol_in_loaded(libneedle, symbol);
+    if (!target) {
+        LOG_ERROR("Failed to locate symbol '{}'", symbol);
+        return 1;
+    }
+
+    Logger.Log("Located {} at address {}", symbol, target);
+
+    try {
+        create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
+        Logger.Log("Installed create_hook (replacement).");
+    } catch (...) {
+        Logger.Warn("create_hook.Install(target, My_CreateSimpleProcess) threw/failed; will try InstallHook API if available.");
+    }
+
+    return 0;
 }
 #endif

@@ -208,30 +208,6 @@ void BackendManager::Shutdown()
     Logger.Warn("Unloading {} plugin(s) and preparing for exit...", this->m_pythonInstances.size() + this->m_luaThreadPool.size());
 
     const auto startTime = std::chrono::steady_clock::now();
-    // TODO: Since we have the loader locked here, we can't spawn a thread to monitor the shutdown process.
-    //     std::atomic<bool> timeOutLockThreadRunning = true;
-
-    //     std::thread timeOutThread([&timeOutLockThreadRunning, startTime]
-    //     {
-    //         Logger.Log("Starting 10 second timeout thread for plugin shutdown...");
-
-    //         while (timeOutLockThreadRunning.load()) {
-    //             std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-    //             Logger.Log("Time elapsed: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
-
-    //             if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(10)) {
-    //                 LOG_ERROR("Exceeded 10 second timeout for shutting down plugins, force terminating Steam. This is likely a plugin issue, unrelated to Millennium.");
-
-    //                 __debugbreak();
-    // #ifdef _WIN32
-    //                 std::exit(1);
-    // #elif __linux__
-    //                 raise(SIGINT);
-    // #endif
-    //             }
-    //         }
-    //     });
 
     Logger.Log("[BackendManager::Shutdown] Destroying all Lua instances...");
     this->ShutdownLuaBackends();

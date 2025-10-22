@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include <filesystem>
 #define UNICODE
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -51,14 +52,11 @@ static void VerifyEnvironment()
 {
 #ifdef __linux__
     const auto cefRemoteDebugging = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
-    if (!std::filesystem::exists(cefRemoteDebugging)) {
-        Logger.Warn("CEF remote debugging is not enabled, enabling it now.");
-        /** create the file */
-        std::ofstream file(cefRemoteDebugging.string());
-        if (!file.is_open()) {
-            LOG_ERROR("Failed to create .cef-enable-remote-debugging file.");
+    if (std::filesystem::exists(cefRemoteDebugging)) {
+        /** Remove remote debugger flag if its enabled. We don't need it anymore (2025-10-22) */
+        if (!std::filesystem::remove(cefRemoteDebugging)) {
+            LOG_ERROR("Failed to remove '{}', this is likely non-fatal but manual intervention is recommended.", cefRemoteDebugging.string());
         }
-        file.close();
     }
 #elif _WIN32
     /** Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam. */

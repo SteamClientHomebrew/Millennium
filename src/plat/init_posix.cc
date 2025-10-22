@@ -34,6 +34,7 @@
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
+#include "millennium/steam_hooks.h"
 
 #include <ctime>
 #include <dlfcn.h>
@@ -50,7 +51,7 @@ void EntryMain(); /** forward declare main function */
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 
-static int IsSamePath(const char* path1, const char* path2)
+int IsSamePath(const char* path1, const char* path2)
 {
     char realpath1[PATH_MAX], realpath2[PATH_MAX];
 
@@ -90,6 +91,8 @@ void Posix_AttachMillennium()
 {
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
+
+    InitializeSteamHooks();
 
     EntryMain();
 }

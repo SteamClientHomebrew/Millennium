@@ -29,22 +29,23 @@
  */
 
 #pragma once
+#include <asio.hpp>
+#include <asio/ip/tcp.hpp>
+#define DEFAULT_DEVTOOLS_PORT "8080"
+extern std::string STEAM_DEVELOPER_TOOLS_PORT;
+const char* GetAppropriateDevToolsPort(const bool isDevMode);
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #define _WINSOCKAPI_
 #include "MinHook.h"
-#include <asio.hpp>
-#include <asio/ip/tcp.hpp>
 #include <iostream>
 #include <thread>
 #include <windows.h>
 #include <winternl.h>
 
 #define LDR_DLL_NOTIFICATION_REASON_LOADED 1
-#define DEFAULT_DEVTOOLS_PORT "8080"
-
-extern std::string STEAM_DEVELOPER_TOOLS_PORT;
 
 typedef struct _LDR_DLL_NOTIFICATION_DATA
 {
@@ -60,8 +61,9 @@ typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTI
 typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
 
 BOOL InitializeSteamHooks();
-const char* GetAppropriateDevToolsPort();
 
 bool Millennium_Plat_CommandLineIsSetup();
 bool SetupEntryPointHook();
+#elif __linux__
+int InitializeSteamHooks();
 #endif

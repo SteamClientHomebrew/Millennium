@@ -29,11 +29,13 @@
  */
 
 #pragma once
-#ifdef _WIN32
 #include "millennium/logger.h"
-#include "millennium/steam_hooks_win32.h"
+#ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
+#endif
+#include <dlfcn.h>
+#include "millennium/steam_hooks.h"
 
 namespace CommandLineArguments
 {
@@ -53,15 +55,30 @@ static bool HasArgument(const std::string& targetArgument)
         LocalFree(argv);
     }
     return false;
-#else
-    assert(!"Command line argument parsing not implemented for this platform");
-    return false;
+#elif __linux__
+    using Plat_CommandLineParamExists_t = bool (*)(const char*);
+    void* handle = dlopen("libtier0_s.so", RTLD_NOW);
+    if (!handle) {
+        LOG_ERROR("Failed to get handle of libtier0_s.so!");
+        return false;
+    }
+
+    auto func = (Plat_CommandLineParamExists_t)dlsym(handle, "Plat_CommandLineParamExists");
+    if (!func) {
+        LOG_ERROR("Failed to get the function handle of Plat_CommandLineParamExists!");
+        dlclose(handle);
+        return false;
+    }
+
+    bool result = func(targetArgument.c_str());
+    dlclose(handle);
+    return result;
 #endif
 }
 
-static u_short GetRemoteDebuggerPort()
+inline u_short GetRemoteDebuggerPort()
 {
-    const char* portValue = GetAppropriateDevToolsPort();
+    const char* portValue = GetAppropriateDevToolsPort(CommandLineArguments::HasArgument("-dev"));
 
     if (!portValue) {
         return 0;
@@ -74,4 +91,3 @@ static u_short GetRemoteDebuggerPort()
     }
 }
 }; // namespace CommandLineArguments
-#endif

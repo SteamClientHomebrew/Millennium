@@ -599,6 +599,9 @@ if(WIN32)
 elseif(UNIX)
     list(APPEND SOURCE_FILES "src/plat/init_posix.cc")
     list(APPEND SOURCE_FILES "src/plat/init_posix_deprecated.cc")
+    # list(APPEND SOURCE_FILES "src/hooks/third_party/subhook.c")
+    list(APPEND SOURCE_FILES "src/hooks/third_party/subhook_x86.c")
+    list(APPEND SOURCE_FILES "src/hooks/third_party/subhook_linux.c")
 endif()
 
 # =====================================
@@ -720,15 +723,6 @@ elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_precompile_headers(Millennium PRIVATE
-        <iostream>
-        <vector>
-        <string>
-        <memory>
-    )
-endif()
-
 # =====================================
 # Add version resource for Windows builds
 # =====================================
@@ -752,7 +746,6 @@ if(NIX_BUILD)
 endif()
 
 
-# Link required libraries for all platforms
 target_link_libraries(Millennium
     luajit::lib
     libcurl
@@ -764,6 +757,8 @@ target_link_libraries(Millennium
     fmt::fmt
     mINI
 )
+
+target_link_options(Millennium PRIVATE -Wl,--no-undefined)
 
 if(WIN32)
     if(GITHUB_ACTION_BUILD)
