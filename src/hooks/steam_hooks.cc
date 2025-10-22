@@ -570,14 +570,8 @@ int InitializeSteamHooks()
     }
 
     Logger.Log("Located {} at address {}", symbol, target);
-
-    try {
-        create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
-        Logger.Log("Installed create_hook (replacement).");
-    } catch (...) {
-        Logger.Warn("create_hook.Install(target, My_CreateSimpleProcess) threw/failed; will try InstallHook API if available.");
-    }
-
+    const bool success = create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
+    Logger.Log("Hook install success?: {}", success);
     return 0;
 }
 #endif
