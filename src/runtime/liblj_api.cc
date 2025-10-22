@@ -34,7 +34,9 @@
 #include "millennium/logger.h"
 #include "millennium/millennium_api.h"
 #include "millennium/plugin_api_init.h"
+#include "millennium/semver.h"
 #include "millennium/sysfs.h"
+#include <exception>
 #include <fmt/core.h>
 #include <lua.hpp>
 #include <nlohmann/json.hpp>
@@ -263,6 +265,29 @@ int Lua_EmitReadyMessage(lua_State* L)
     return 1;
 }
 
+int Lua_CompareVersion(lua_State* L)
+{
+    int compare;
+    const char* v1 = luaL_checkstring(L, 1);
+    const char* v2 = luaL_checkstring(L, 2);
+
+    /** strip the leading v prefix if provided */
+    if (v1[0] == 'v' || v1[0] == 'V')
+        v1++;
+
+    if (v2[0] == 'v' || v2[0] == 'V')
+        v2++;
+
+    try {
+        compare = Semver::Compare(v1, v2);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to compare versions [{}, {}]: {}", v1, v2, e.what());
+        compare = -2; /** signify there was an error when comparing */
+    }
+    lua_pushinteger(L, compare);
+    return 1;
+}
+
 /**
  * Lua library registration function for the Millennium module
  */
@@ -278,6 +303,7 @@ static const luaL_Reg millennium_lib[] = {
     { "get_install_path",      Lua_GetInstallPath      },
     { "call_frontend_method",  Lua_CallFrontendMethod  },
     { "is_plugin_enabled",     Lua_IsPluginEnable      },
+    { "cmp_version",           Lua_CompareVersion      },
     { NULL,                    NULL                    }  // Sentinel
 };
 

@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cctype>
+#include <vector>
 
 Semver::SemverVersion::SemverVersion(int maj, int min, int pat, const std::string& pre, const std::string& bld) : major(maj), minor(min), patch(pat), prerelease(pre), build(bld)
 {
