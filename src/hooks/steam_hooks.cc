@@ -284,13 +284,17 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
     Command c;
     Command_init(&c, cmd);
 
+    const char* target_executable =
 #ifdef _WIN32
-    const char* target_executable = "steamwebhelper.exe";
+        "steamwebhelper.exe";
 #elif __linux__
-    const char* target_executable = "steamwebhelper";
+        "steamwebhelper.sh";
 #endif
 
-    if (strcmp(Command_get_executable(&c), target_executable) != 0) {
+    char* hooked_target = Command_get_executable(&c);
+    Logger.Log("[CreateProcHook] Hooked proc spawn for executable: {}", hooked_target);
+
+    if (strcmp(hooked_target, target_executable) != 0) {
         Command_free(&c);
         return cmd;
     }
