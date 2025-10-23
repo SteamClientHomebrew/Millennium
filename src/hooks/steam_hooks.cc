@@ -78,17 +78,29 @@ void Command_init(Command* cmd, const char* full_cmd)
     cmd->param_count = 0;
     cmd->exec = NULL;
     cmd->dirty = 1;
-
     char* copy = strdup(full_cmd);
     char* token = strtok(copy, " ");
+
     if (token) {
+        size_t len = strlen(token);
+        if (len >= 2 && token[0] == '\'' && token[len - 1] == '\'') {
+            token[len - 1] = '\0';
+            token++;
+        }
         cmd->exec = strdup(token);
         token = strtok(NULL, " ");
     }
+
     while (token && cmd->param_count < MAX_PARAMS) {
+        size_t len = strlen(token);
+        if (len >= 2 && token[0] == '\'' && token[len - 1] == '\'') {
+            token[len - 1] = '\0';
+            token++;
+        }
         cmd->params[cmd->param_count++] = strdup(token);
         token = strtok(NULL, " ");
     }
+
     free(copy);
 }
 
@@ -201,8 +213,6 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
     Command_ensure_parameter(&c, "--remote-debugging-address", "127.0.0.1");
     /** block any browser web requests when running in normal mode */
     Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");
-    /** disable CORS and CSP on the browser */
-    Command_ensure_parameter(&c, "--disable-web-security", 0);
 
     return Command_get(&c);
 }
