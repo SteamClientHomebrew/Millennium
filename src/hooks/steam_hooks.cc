@@ -212,6 +212,9 @@ void Command_update_param(Command* cmd, const char* key, const char* value)
     for (int i = 0; i < cmd->param_count; i++) {
         if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
             free(cmd->params[i]);
+            for (int j = i; j < cmd->param_count - 1; j++)
+                cmd->params[j] = cmd->params[j + 1];
+            cmd->param_count--;
             for (int j = cmd->param_count; j > 0; j--)
                 cmd->params[j] = cmd->params[j - 1];
             cmd->params[0] = strdup(new_param);
