@@ -29,6 +29,7 @@
  */
 
 #pragma once
+#include "millennium/init.h"
 #include "millennium/logger.h"
 
 #include <nlohmann/json.hpp>
@@ -411,6 +412,7 @@ class CefSocketDispatcher
     void Shutdown()
     {
         Logger.Log("Shutting down CefSocketDispatcher...");
+        g_shouldTerminateMillennium->flag.store(true);
 
         if (workerRunning.load()) {
             workerRunning.store(false);

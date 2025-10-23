@@ -91,10 +91,24 @@ void Posix_AttachMillennium()
 {
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
-
     InitializeSteamHooks();
-
     EntryMain();
+
+    BackendManager& manager = BackendManager::GetInstance();
+    std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+
+    cv_hasSteamUnloaded.wait(lk, [&manager]()
+    {
+        /** wait for all backends to stop so we can safely free the loader lock */
+        if (manager.HasAllPythonBackendsStopped() && manager.HasAllLuaBackendsStopped()) {
+            Logger.Warn("All backends have stopped, proceeding with termination...");
+
+            std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
+            cv_hasAllPythonPluginsShutdown.notify_all();
+            return true;
+        }
+        return false;
+    });
 }
 
 /** New interop funcs that receive calls from hooked libXtst */

@@ -121,17 +121,27 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
 void CoInitializer::BackendCallbacks::StatusDispatch()
 {
     if (this->EvaluateBackendStatus()) {
-        std::unique_lock<std::mutex> lock(listenersMutex); // Lock here
+        std::unique_lock<std::mutex> lock(listenersMutex);
 
-        if (listeners.find(ON_BACKEND_READY_EVENT) != listeners.end()) {
-            auto& callbacks = listeners[ON_BACKEND_READY_EVENT];
-
+        // Check if listeners map contains our event
+        auto it = listeners.find(ON_BACKEND_READY_EVENT);
+        if (it != listeners.end()) {
             // Copy callbacks to avoid iterator invalidation if a callback modifies the vector
-            std::vector<EventCallback> callbacksCopy = callbacks;
-            callbacks.clear();
+            std::vector<EventCallback> callbacksCopy = it->second;
+            it->second.clear();
+
+            // Release the lock before executing callbacks to avoid deadlocks
+            lock.unlock();
+
             for (auto& cb : callbacksCopy) {
                 Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&cb);
-                cb();
+                try {
+                    cb();
+                } catch (const std::exception& e) {
+                    Logger.Warn("Exception during callback: {}", e.what());
+                } catch (...) {
+                    Logger.Warn("Unknown exception during callback");
+                }
             }
             isReadyForCallback = true;
         } else {
@@ -169,12 +179,17 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, b
 {
     assert(plugin.pluginName.empty() == false);
 
-    // remove the plugin from the emitted list
-    auto it = std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; });
+    // Use mutex to protect emittedPlugins access
+    {
+        std::unique_lock<std::mutex> lock(listenersMutex);
 
-    if (it != this->emittedPlugins.end()) {
-        this->emittedPlugins.erase(it, this->emittedPlugins.end());
-        Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
+        // remove the plugin from the emitted list
+        auto it = std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; });
+
+        if (it != this->emittedPlugins.end()) {
+            this->emittedPlugins.erase(it, this->emittedPlugins.end());
+            Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
+        }
     }
 
     if (!isShuttingDown) {
@@ -188,6 +203,7 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, b
  */
 void CoInitializer::BackendCallbacks::Reset()
 {
+    std::unique_lock<std::mutex> lock(listenersMutex);
     emittedPlugins.clear();
     listeners.clear();
     missedEvents.clear();
@@ -199,7 +215,10 @@ void CoInitializer::BackendCallbacks::Reset()
 void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback)
 {
     Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
-    listeners[ON_BACKEND_READY_EVENT].push_back(callback);
+    {
+        std::unique_lock<std::mutex> lock(listenersMutex);
+        listeners[ON_BACKEND_READY_EVENT].push_back(callback);
+    }
 
     this->StatusDispatch();
 }

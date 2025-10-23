@@ -136,12 +136,16 @@ void EntryMain()
     g_pluginLoader->StartBackEnds(manager);
     g_pluginLoader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
 
+#ifdef _WIN32
     /** Shutdown backend service once frontend disconnects*/
     Logger.Log("Shutting down backend services...");
     (&manager)->Shutdown();
     Logger.Log("Backend services shut down successfully.");
+#endif
+    Logger.Log("Finished shutting down frontend and backend...");
 
-    { /** new scope to prevent deadlocks */
+    {
+        /** new scope to prevent deadlocks */
         std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
         cv_hasSteamUnloaded.notify_all();
     }

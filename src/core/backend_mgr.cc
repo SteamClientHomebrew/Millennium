@@ -129,6 +129,9 @@ PythonEnvPath GetPythonEnvPaths()
 
 BackendManager::~BackendManager()
 {
+#ifdef __linux__
+    this->Shutdown();
+#endif
 }
 
 /**
@@ -210,7 +213,7 @@ void BackendManager::Shutdown()
     const auto startTime = std::chrono::steady_clock::now();
 
     Logger.Log("[BackendManager::Shutdown] Destroying all Lua instances...");
-    this->ShutdownLuaBackends();
+    this->ShutdownLuaBackends(true);
     Logger.Log("[BackendManager::Shutdown] Destroying all plugin instances...");
     this->ShutdownPythonBackends();
 
@@ -229,7 +232,8 @@ void BackendManager::Shutdown()
     m_pyThreadPool.clear();
 
     /** Shutdown Lua interpreters */
-    for (auto& [pluginName, thread, L, hasFinished] : m_luaThreadPool) {
+    for (auto it : m_luaThreadPool) {
+        auto& [pluginName, thread, L, hasFinished] = *it;
         Logger.Log("Joining Lua thread for plugin '{}'", pluginName);
         if (thread.joinable()) {
             thread.join();
@@ -265,7 +269,7 @@ bool BackendManager::HasAnyLuaBackends()
  * @brief Destroys all Lua instances.
  * This function destroys all Lua instances and removes them from the list of Lua instances.
  */
-bool BackendManager::ShutdownLuaBackends()
+bool BackendManager::ShutdownLuaBackends(bool isShuttingDown)
 {
     /** No lua instances to shutdown */
     if (m_luaThreadPool.empty()) {
@@ -275,14 +279,15 @@ bool BackendManager::ShutdownLuaBackends()
 
     /** create list of all plugin names to shutdown (to prevent access violations when destroying instances) */
     std::vector<std::string> pluginNames;
-    for (auto& [pluginName, thread, L, hasFinished] : m_luaThreadPool) {
+    for (auto it : m_luaThreadPool) {
+        auto& [pluginName, thread, L, hasFinished] = *it;
         pluginNames.push_back(pluginName);
     }
 
     /** Notify all plugins to shutdown */
     for (auto& pluginName : pluginNames) {
         Logger.Log("[Lua] Shutting down plugin [{}]", pluginName);
-        DestroyLuaInstance(pluginName);
+        DestroyLuaInstance(pluginName, true, isShuttingDown);
     }
 
     return true;
@@ -472,10 +477,10 @@ void BackendManager::RemoveMemoryTracking(const std::string& pluginName)
  *
  * This function iterates through the list of Lua threads and destroys the instance for the specified plugin.
  */
-bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldCleanupThreadPool)
+bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldCleanupThreadPool, bool isShuttingDown)
 {
     for (auto it = this->m_luaThreadPool.begin(); it != this->m_luaThreadPool.end(); /* No increment */) {
-        auto& [threadPluginName, thread, L, hasFinished] = *it;
+        auto& [threadPluginName, thread, L, hasFinished] = **it;
 
         if (threadPluginName != pluginName) {
             ++it;
@@ -492,14 +497,14 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
             if (shouldCleanupThreadPool) {
                 it = this->m_luaThreadPool.erase(it);
             } else {
-                it->hasFinished.store(true);
+                (*it)->hasFinished.store(true);
                 {
                     std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
                     cv_hasSteamUnloaded.notify_all();
                 }
                 ++it;
             }
-            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, false);
+            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
             return true;
         }
 
@@ -518,14 +523,14 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
         if (shouldCleanupThreadPool) {
             it = this->m_luaThreadPool.erase(it);
         } else {
-            it->hasFinished.store(true);
+            (*it)->hasFinished.store(true);
             {
                 std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
                 cv_hasSteamUnloaded.notify_all();
             }
             ++it;
         }
-        CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, false);
+        CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
         return true;
     }
     return false;
@@ -555,7 +560,8 @@ bool BackendManager::HasAllPythonBackendsStopped()
  */
 bool BackendManager::HasAllLuaBackendsStopped()
 {
-    for (auto& [pluginName, thread, L, hasFinished] : m_luaThreadPool) {
+    for (auto it : m_luaThreadPool) {
+        auto& [pluginName, thread, L, hasFinished] = *it;
         if (!hasFinished.load()) {
             return false;
         }
@@ -659,7 +665,8 @@ bool BackendManager::IsPythonBackendRunning(std::string targetPluginName)
  */
 bool BackendManager::IsLuaBackendRunning(std::string targetPluginName)
 {
-    for (auto& [pluginName, thread, L, hasFinished] : m_luaThreadPool) {
+    for (auto it : m_luaThreadPool) {
+        auto& [pluginName, thread, L, hasFinished] = *it;
         if (targetPluginName == pluginName) {
             return true;
         }
@@ -716,7 +723,8 @@ std::optional<std::shared_ptr<PythonThreadState>> BackendManager::GetPythonThrea
  */
 std::optional<lua_State*> BackendManager::GetLuaThreadStateFromName(std::string pluginName)
 {
-    for (auto& [name, thread, L, hasFinished] : m_luaThreadPool) {
+    for (auto it : m_luaThreadPool) {
+        auto& [name, thread, L, hasFinished] = *it;
         if (name == pluginName) {
             return L;
         }
@@ -752,7 +760,7 @@ std::string BackendManager::GetPluginNameFromThreadState(PyThreadState* thread)
 SettingsStore::PluginBackendType BackendManager::GetPluginBackendType(std::string pluginName)
 {
     for (const auto& luaPlugin : this->m_luaThreadPool) {
-        const auto& [luaPluginName, thread, L, hasFinished] = luaPlugin;
+        const auto& [luaPluginName, thread, L, hasFinished] = *luaPlugin;
 
         if (luaPluginName == pluginName) {
             return SettingsStore::PluginBackendType::Lua;
@@ -976,6 +984,6 @@ bool BackendManager::CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, 
             callback(plugin, L);
     });
 
-    m_luaThreadPool.emplace_back(std::move(pluginName), std::move(luaThread), L);
+    m_luaThreadPool.emplace_back(std::make_shared<LuaThreadPoolItem>(pluginName, luaThread, L));
     return true;
 }
