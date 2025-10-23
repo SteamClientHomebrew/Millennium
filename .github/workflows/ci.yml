@@ -27,7 +27,7 @@ jobs:
       - name: ⚙️ Download Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 24
 
       - name: ⚙️ Download Semantic Release
         run: |
@@ -125,7 +125,7 @@ jobs:
               foreach ($entry in $zipArchive.Entries) {
                   $destinationPath = Join-Path $extractPath $entry.FullName
                   $destinationDir = [System.IO.Path]::GetDirectoryName($destinationPath)
-                  
+
                   if (-Not (Test-Path $destinationDir)) {
                       New-Item -ItemType Directory -Path $destinationDir | Out-Null
                   }
@@ -179,7 +179,7 @@ jobs:
       - name: ⚙️ Download Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 24
 
       - name: ⚙️ Install Pnpm
         run: npm install -g pnpm
@@ -292,7 +292,7 @@ jobs:
             -DCMAKE_SYSTEM_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
             -DPKG_CONFIG_EXECUTABLE="/usr/bin/pkg-config" \
             -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON
-            
+
           # Build the project
           cmake --build build --config Release -- -j$(nproc)
 
@@ -329,7 +329,7 @@ jobs:
       - name: ⚙️ Download Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 24
 
       - name: ⚙️ Install Semantic Release
         run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
