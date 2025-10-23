@@ -54,6 +54,153 @@ const char* GetAppropriateDevToolsPort(const bool isDevMode)
     return port;
 }
 
+#define MAX_PARAMS 128
+#define MAX_PARAM_LEN 512
+#define MAX_COMMAND_LEN 4096 /** I don't think any process call from steam would be longer than this */
+
+typedef struct
+{
+    char* exec;
+    char* params[MAX_PARAMS];
+    int param_count;
+
+    char full_command[MAX_COMMAND_LEN];
+    int dirty;
+} Command;
+
+void Command_mark_dirty(Command* cmd)
+{
+    cmd->dirty = 1;
+}
+
+void Command_init(Command* cmd, const char* full_cmd)
+{
+    cmd->param_count = 0;
+    cmd->exec = NULL;
+    cmd->dirty = 1;
+
+    char* copy = strdup(full_cmd);
+    char* token = strtok(copy, " ");
+    if (token) {
+        cmd->exec = strdup(token);
+        token = strtok(NULL, " ");
+    }
+    while (token && cmd->param_count < MAX_PARAMS) {
+        cmd->params[cmd->param_count++] = strdup(token);
+        token = strtok(NULL, " ");
+    }
+    free(copy);
+}
+
+void Command_free(Command* cmd)
+{
+    if (cmd->exec)
+        free(cmd->exec);
+    for (int i = 0; i < cmd->param_count; i++)
+        free(cmd->params[i]);
+}
+
+int Command_has_param(Command* cmd, const char* key)
+{
+    size_t key_len = strlen(key);
+    for (int i = 0; i < cmd->param_count; i++) {
+        if (strcmp(cmd->params[i], key) == 0)
+            return 1;
+        if (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')
+            return 1;
+    }
+    return 0;
+}
+
+void Command_add_param(Command* cmd, const char* param)
+{
+    if (cmd->param_count >= MAX_PARAMS)
+        return;
+    if (!Command_has_param(cmd, param))
+        cmd->params[cmd->param_count++] = strdup(param);
+    Command_mark_dirty(cmd);
+}
+
+void Command_remove_param(Command* cmd, const char* key)
+{
+    size_t key_len = strlen(key);
+    for (int i = 0; i < cmd->param_count; i++) {
+        if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
+            free(cmd->params[i]);
+            for (int j = i; j < cmd->param_count - 1; j++)
+                cmd->params[j] = cmd->params[j + 1];
+            cmd->param_count--;
+            i--;
+            Command_mark_dirty(cmd);
+        }
+    }
+}
+
+void Command_update_param(Command* cmd, const char* key, const char* value)
+{
+    size_t key_len = strlen(key);
+    char new_param[MAX_PARAM_LEN];
+    if (value)
+        snprintf(new_param, sizeof(new_param), "%s=%s", key, value);
+    else
+        snprintf(new_param, sizeof(new_param), "%s", key);
+
+    for (int i = 0; i < cmd->param_count; i++) {
+        if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
+            free(cmd->params[i]);
+            cmd->params[i] = strdup(new_param);
+            Command_mark_dirty(cmd);
+            return;
+        }
+    }
+    if (cmd->param_count < MAX_PARAMS)
+        cmd->params[cmd->param_count++] = strdup(new_param);
+    Command_mark_dirty(cmd);
+}
+
+static void Command_ensure_parameter(Command* c, const char* cmd, const char* value)
+{
+    if (Command_has_param(c, cmd)) {
+        Command_update_param(c, cmd, value);
+    } else {
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "%s=%s", cmd, value);
+        Command_add_param(c, buffer);
+    }
+}
+
+const char* Command_get(Command* cmd)
+{
+    if (!cmd->dirty)
+        return cmd->full_command;
+
+    size_t pos = 0;
+    pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "%s", cmd->exec);
+
+    for (int i = 0; i < cmd->param_count; i++) {
+        pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " %s", cmd->params[i]);
+    }
+
+    cmd->dirty = 0;
+    return cmd->full_command;
+}
+
+const char* Plat_HookedCreateSimpleProcess(const char* cmd)
+{
+    Command c;
+    Command_init(&c, cmd);
+    int is_developer_mode = CommandLineArguments::HasArgument("-dev");
+
+    /** enable the CEF remote debugger */
+    Command_ensure_parameter(&c, "--remote-debugging-port", GetAppropriateDevToolsPort(is_developer_mode));
+    /** always ensure the debugger is only local, and can't be accessed over lan */
+    Command_ensure_parameter(&c, "--remote-debugging-address", "127.0.0.1");
+    /** block any browser web requests when running in normal mode */
+    Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");
+
+    return Command_get(&c);
+}
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include "MinHook.h"
@@ -62,13 +209,8 @@ const char* GetAppropriateDevToolsPort(const bool isDevMode)
 #include "millennium/logger.h"
 #include "millennium/backend_mgr.h"
 
-#define ARG_REMOTE_ALLOW_ORIGINS "--remote-allow-origins"
-#define ARG_REMOTE_DEBUGGING_ADDRESS "--remote-debugging-address"
-#define ARG_REMOTE_DEBUGGING_PORT "--remote-debugging-port"
-
 #define LDR_DLL_NOTIFICATION_REASON_LOADED 1
 #define LDR_DLL_NOTIFICATION_REASON_UNLOADED 2
-#define DEFAULT_DEVTOOLS_PORT "8080"
 
 LdrRegisterDllNotification_t LdrRegisterDllNotification = nullptr;
 LdrUnregisterDllNotification_t LdrUnregisterDllNotification = nullptr;
@@ -94,115 +236,9 @@ struct HookInfo
     LPVOID* original;
 };
 
-const bool IsDeveloperMode(void)
-{
-    return CommandLineArguments::HasArgument("-dev");
-}
-
-void AppendParameter(std::string& input, const std::string& parameter)
-{
-    if (!input.empty() && input.back() != ' ') {
-        input += ' ';
-    }
-    input += '"' + parameter + '"';
-}
-
-std::string ExtractExecutablePath(const std::string& input)
-{
-    std::string exePath;
-    if (!input.empty() && input[0] == '"') {
-        size_t end = input.find('"', 1);
-        if (end != std::string::npos) {
-            exePath = input.substr(1, end - 1);
-        }
-    } else {
-        size_t space = input.find(' ');
-        exePath = (space != std::string::npos) ? input.substr(0, space) : input;
-    }
-
-    std::transform(exePath.cbegin(), exePath.cend(), exePath.begin(), ::tolower);
-    return exePath;
-}
-
-/**
- * Prevent the developer tools from being accessed on the browser programmatically.
- */
-void BlockDeveloperToolsAccess(std::string& input)
-{
-    const std::string target = ARG_REMOTE_ALLOW_ORIGINS "=*";
-    const std::string replacement = ARG_REMOTE_ALLOW_ORIGINS;
-
-    size_t pos = input.find(target);
-    if (pos != std::string::npos) {
-        input.replace(pos, target.size(), replacement);
-    }
-}
-
-/**
- * Force the remote debugging address to localhost, so its not accessible externally.
- */
-void EnsureRemoteDebuggingAddress(std::string& input)
-{
-    const std::string remoteDebugAddr = ARG_REMOTE_DEBUGGING_ADDRESS "=127.0.0.1";
-
-    if (input.find(remoteDebugAddr) == std::string::npos) {
-        AppendParameter(input, remoteDebugAddr);
-    }
-}
-
-/**
- * Virtually enable the remote debugger without having to touch the disk like previously done.
- * Previous to 8/27/2025 the remote debugger was enabled via .cef-enable-remote-debugging file.
- */
-void EnsureRemoteDebuggingPort(std::string& input)
-{
-    const std::string remoteDebugPortPrefix = ARG_REMOTE_DEBUGGING_PORT "=";
-
-    if (input.find(remoteDebugPortPrefix) == std::string::npos) {
-        std::string portParam = remoteDebugPortPrefix + GetAppropriateDevToolsPort(IsDeveloperMode());
-        AppendParameter(input, portParam);
-    } else {
-        /** replace with the appropriate port */
-        std::string newPort = remoteDebugPortPrefix + GetAppropriateDevToolsPort(IsDeveloperMode());
-        size_t pos = input.find(remoteDebugPortPrefix);
-
-        if (pos != std::string::npos) {
-            size_t end = input.find('"', pos);
-            input.replace(pos, (end == std::string::npos ? input.length() : end) - pos, newPort);
-        }
-    }
-}
-
-const char* SanitizeCommandLine(const char* cmd)
-{
-    if (!cmd) {
-        return nullptr;
-    }
-
-    std::string input(cmd);
-    std::string exePath = ExtractExecutablePath(input);
-
-    /** If the call isn't spawning Steam's webhelper, just ignore it */
-    if (exePath.find("steamwebhelper.exe") == std::string::npos) {
-        return _strdup(cmd);
-    }
-
-    Logger.Log("Is developer mode: {}", IsDeveloperMode());
-
-    /** If developer mode is enabled, disable restrictions */
-    if (!IsDeveloperMode()) {
-        BlockDeveloperToolsAccess(input);
-    }
-
-    EnsureRemoteDebuggingAddress(input);
-    EnsureRemoteDebuggingPort(input);
-
-    return _strdup(input.c_str());
-}
-
 INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteStr)
 {
-    return fpCreateSimpleProcess(SanitizeCommandLine(a1), a2, lpMultiByteStr);
+    return fpCreateSimpleProcess(Plat_HookedCreateSimpleProcess(a1), a2, lpMultiByteStr);
 }
 
 /**
@@ -215,7 +251,6 @@ INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteS
 VOID HandleTier0Dll(PVOID moduleBaseAddress)
 {
     steamTier0Module = static_cast<HMODULE>(moduleBaseAddress);
-
     Logger.Log("Setting up hooks for tier0_s.dll");
 
     HookInfo hooks[] = {
@@ -382,137 +417,6 @@ BOOL InitializeSteamHooks()
 
 static SubHook create_hook;
 
-#define MAX_PARAMS 128
-#define MAX_PARAM_LEN 512
-#define MAX_COMMAND_LEN 4096 /** I don't think any process call from steam would be longer than this */
-
-typedef struct
-{
-    char* exec;
-    char* params[MAX_PARAMS];
-    int param_count;
-
-    char full_command[MAX_COMMAND_LEN];
-    int dirty;
-} Command;
-
-void Command_mark_dirty(Command* cmd)
-{
-    cmd->dirty = 1;
-}
-
-void Command_init(Command* cmd, const char* full_cmd)
-{
-    cmd->param_count = 0;
-    cmd->exec = NULL;
-    cmd->dirty = 1;
-
-    char* copy = strdup(full_cmd);
-    char* token = strtok(copy, " ");
-    if (token) {
-        cmd->exec = strdup(token);
-        token = strtok(NULL, " ");
-    }
-    while (token && cmd->param_count < MAX_PARAMS) {
-        cmd->params[cmd->param_count++] = strdup(token);
-        token = strtok(NULL, " ");
-    }
-    free(copy);
-}
-
-void Command_free(Command* cmd)
-{
-    if (cmd->exec)
-        free(cmd->exec);
-    for (int i = 0; i < cmd->param_count; i++)
-        free(cmd->params[i]);
-}
-
-int Command_has_param(Command* cmd, const char* key)
-{
-    size_t key_len = strlen(key);
-    for (int i = 0; i < cmd->param_count; i++) {
-        if (strcmp(cmd->params[i], key) == 0)
-            return 1;
-        if (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')
-            return 1;
-    }
-    return 0;
-}
-
-void Command_add_param(Command* cmd, const char* param)
-{
-    if (cmd->param_count >= MAX_PARAMS)
-        return;
-    if (!Command_has_param(cmd, param))
-        cmd->params[cmd->param_count++] = strdup(param);
-    Command_mark_dirty(cmd);
-}
-
-void Command_remove_param(Command* cmd, const char* key)
-{
-    size_t key_len = strlen(key);
-    for (int i = 0; i < cmd->param_count; i++) {
-        if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
-            free(cmd->params[i]);
-            for (int j = i; j < cmd->param_count - 1; j++)
-                cmd->params[j] = cmd->params[j + 1];
-            cmd->param_count--;
-            i--;
-            Command_mark_dirty(cmd);
-        }
-    }
-}
-
-void Command_update_param(Command* cmd, const char* key, const char* value)
-{
-    size_t key_len = strlen(key);
-    char new_param[MAX_PARAM_LEN];
-    if (value)
-        snprintf(new_param, sizeof(new_param), "%s=%s", key, value);
-    else
-        snprintf(new_param, sizeof(new_param), "%s", key);
-
-    for (int i = 0; i < cmd->param_count; i++) {
-        if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
-            free(cmd->params[i]);
-            cmd->params[i] = strdup(new_param);
-            Command_mark_dirty(cmd);
-            return;
-        }
-    }
-    if (cmd->param_count < MAX_PARAMS)
-        cmd->params[cmd->param_count++] = strdup(new_param);
-    Command_mark_dirty(cmd);
-}
-
-static void Command_ensure_parameter(Command* c, const char* cmd, const char* value)
-{
-    if (Command_has_param(c, cmd)) {
-        Command_update_param(c, cmd, value);
-    } else {
-        char buffer[256];
-        snprintf(buffer, sizeof(buffer), "%s=%s", cmd, value);
-        Command_add_param(c, buffer);
-    }
-}
-
-const char* Command_get(Command* cmd)
-{
-    if (!cmd->dirty)
-        return cmd->full_command;
-
-    size_t pos = 0;
-    pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "%s", cmd->exec);
-
-    for (int i = 0; i < cmd->param_count; i++) {
-        pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " %s", cmd->params[i]);
-    }
-
-    cmd->dirty = 0;
-    return cmd->full_command;
-}
-
 /**
  * It seems a2, a3 might be a stack allocated struct pointer, but we don't really need them
  * Even if we mistyped them, it doesn't change the actual underlying data being sent in memory.
@@ -522,24 +426,12 @@ extern "C" int Hooked_CreateSimpleProcess(const char* cmd, unsigned int a2, cons
 {
     /** temporarily remove the hook to prevent recursive hook calls */
     SubHook::ScopedRemove remove(&create_hook);
-
-    Command c;
-    Command_init(&c, cmd);
-    int is_developer_mode = CommandLineArguments::HasArgument("-dev");
-
-    /** enable the CEF remote debugger */
-    Command_ensure_parameter(&c, "--remote-debugging-port", GetAppropriateDevToolsPort(is_developer_mode));
-    /** always ensure the debugger is only local, and can't be accessed over lan */
-    Command_ensure_parameter(&c, "--remote-debugging-address", "127.0.0.1");
-    /** block any browser web requests when running in normal mode */
-    Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");
-
-    cmd = Command_get(&c);
+    cmd = Plat_HookedCreateSimpleProcess(cmd);
     /** call the original */
     return reinterpret_cast<int (*)(const char* cmd, unsigned int flags, const char* cwd)>(create_hook.GetSrc())(cmd, a2, a3);
 }
 
-static void* find_symbol_in_loaded(const char* libneedle, const char* symbol)
+static void* GetModuleHandle(const char* libneedle, const char* symbol)
 {
     void* handle = dlopen(libneedle, RTLD_NOW | RTLD_NOLOAD);
     if (handle) {
@@ -563,7 +455,7 @@ int InitializeSteamHooks()
 
     STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
 
-    void* target = find_symbol_in_loaded(libneedle, symbol);
+    void* target = GetModuleHandle(libneedle, symbol);
     if (!target) {
         LOG_ERROR("Failed to locate symbol '{}'", symbol);
         return 1;
