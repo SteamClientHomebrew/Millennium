@@ -163,9 +163,13 @@ static void Command_ensure_parameter(Command* c, const char* cmd, const char* va
     if (Command_has_param(c, cmd)) {
         Command_update_param(c, cmd, value);
     } else {
-        char buffer[256];
-        snprintf(buffer, sizeof(buffer), "%s=%s", cmd, value);
-        Command_add_param(c, buffer);
+        if (!value) {
+            Command_add_param(c, cmd);
+        } else {
+            char buffer[256];
+            snprintf(buffer, sizeof(buffer), "%s=%s", cmd, value);
+            Command_add_param(c, buffer);
+        }
     }
 }
 
@@ -197,6 +201,8 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
     Command_ensure_parameter(&c, "--remote-debugging-address", "127.0.0.1");
     /** block any browser web requests when running in normal mode */
     Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");
+    /** disable CORS and CSP on the browser */
+    Command_ensure_parameter(&c, "--disable-web-security", 0);
 
     return Command_get(&c);
 }
