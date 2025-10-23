@@ -292,7 +292,6 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 #endif
 
     char* hooked_target = Command_get_executable(&c);
-    Logger.Log("[CreateProcHook] Hooked proc spawn for executable: {}", hooked_target);
 
     if (strcmp(hooked_target, target_executable) != 0) {
         Command_free(&c);
