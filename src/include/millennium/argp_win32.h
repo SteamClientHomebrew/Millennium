@@ -33,8 +33,9 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
-#endif
+#elif __linux__
 #include <dlfcn.h>
+#endif
 #include "millennium/steam_hooks.h"
 
 namespace CommandLineArguments

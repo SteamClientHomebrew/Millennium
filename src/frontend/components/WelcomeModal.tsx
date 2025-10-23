@@ -32,7 +32,7 @@ import { ConfirmModal, pluginSelf, showModal, ShowModalResult } from '@steambrew
 import { settingsManager } from '../utils/settings-manager';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../utils/localization-manager';
-import { useEffect } from 'react';
+import { JSX, useEffect } from 'react';
 
 export const WelcomeModalComponent = (): JSX.Element => {
 	useEffect(() => {

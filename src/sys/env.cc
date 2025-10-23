@@ -271,7 +271,9 @@ void SetupEnvironmentVariables()
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif
 
+#ifdef __linux__
     const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
+#endif
     envVariables = environment;
 
     for (const auto& [key, value] : environment) {

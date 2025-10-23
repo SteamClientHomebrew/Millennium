@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	Classes,
 	DialogBody,

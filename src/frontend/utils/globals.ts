@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-import { render } from 'react-dom';
 import { PluginComponent } from '../types';
 import { PyFindAllPlugins } from './ffi';
 

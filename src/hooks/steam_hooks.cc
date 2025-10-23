@@ -36,15 +36,10 @@ std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUI
 std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 std::string STEAM_DEVELOPER_TOOLS_PORT;
 
-unsigned short GetRandomOpenPort()
+uint_least16_t GetRandomOpenPort()
 {
     asio::io_context io_context;
-    asio::ip::tcp::acceptor acceptor(io_context);
-    asio::ip::tcp::endpoint endpoint(asio::ip::tcp::v4(), 0);
-
-    acceptor.open(endpoint.protocol());
-    acceptor.bind(endpoint);
-    acceptor.listen();
+    asio::ip::tcp::acceptor acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 0));
     return acceptor.local_endpoint().port();
 }
 
@@ -73,11 +68,63 @@ void Command_mark_dirty(Command* cmd)
     cmd->dirty = 1;
 }
 
+char* Command_get_executable(Command* cmd)
+{
+    char* last_slash = strrchr(cmd->exec, '/');
+    char* last_backslash = strrchr(cmd->exec, '\\');
+    char* last_separator = last_slash > last_backslash ? last_slash : last_backslash;
+    return last_separator ? last_separator + 1 : cmd->exec;
+}
+
 void Command_init(Command* cmd, const char* full_cmd)
 {
     cmd->param_count = 0;
     cmd->exec = NULL;
     cmd->dirty = 1;
+
+#ifdef _WIN32
+    char* copy = strdup(full_cmd);
+    char* p = copy;
+    char token[MAX_PARAM_LEN];
+    int token_idx = 0;
+    int in_quotes = 0;
+    int token_count = 0;
+
+    while (*p) {
+        if (*p == '"') {
+            in_quotes = !in_quotes;
+            p++;
+            continue;
+        }
+        if (*p == ' ' && !in_quotes) {
+            if (token_idx > 0) {
+                token[token_idx] = '\0';
+                if (token_count == 0) {
+                    cmd->exec = strdup(token);
+                } else if (cmd->param_count < MAX_PARAMS) {
+                    cmd->params[cmd->param_count++] = strdup(token);
+                }
+                token_count++;
+                token_idx = 0;
+            }
+            p++;
+            continue;
+        }
+        if (token_idx < MAX_PARAM_LEN - 1) {
+            token[token_idx++] = *p;
+        }
+        p++;
+    }
+    if (token_idx > 0) {
+        token[token_idx] = '\0';
+        if (token_count == 0) {
+            cmd->exec = strdup(token);
+        } else if (cmd->param_count < MAX_PARAMS) {
+            cmd->params[cmd->param_count++] = strdup(token);
+        }
+    }
+    free(copy);
+#else
     char* copy = strdup(full_cmd);
     char* token = strtok(copy, " ");
 
@@ -102,6 +149,7 @@ void Command_init(Command* cmd, const char* full_cmd)
     }
 
     free(copy);
+#endif
 }
 
 void Command_free(Command* cmd)
@@ -128,9 +176,13 @@ void Command_add_param(Command* cmd, const char* param)
 {
     if (cmd->param_count >= MAX_PARAMS)
         return;
-    if (!Command_has_param(cmd, param))
-        cmd->params[cmd->param_count++] = strdup(param);
-    Command_mark_dirty(cmd);
+    if (!Command_has_param(cmd, param)) {
+        for (int i = cmd->param_count; i > 0; i--)
+            cmd->params[i] = cmd->params[i - 1];
+        cmd->params[0] = strdup(param); // Prepend
+        cmd->param_count++;
+        Command_mark_dirty(cmd);
+    }
 }
 
 void Command_remove_param(Command* cmd, const char* key)
@@ -160,14 +212,21 @@ void Command_update_param(Command* cmd, const char* key, const char* value)
     for (int i = 0; i < cmd->param_count; i++) {
         if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
             free(cmd->params[i]);
-            cmd->params[i] = strdup(new_param);
+            for (int j = cmd->param_count; j > 0; j--)
+                cmd->params[j] = cmd->params[j - 1];
+            cmd->params[0] = strdup(new_param);
+            cmd->param_count++;
             Command_mark_dirty(cmd);
             return;
         }
     }
-    if (cmd->param_count < MAX_PARAMS)
-        cmd->params[cmd->param_count++] = strdup(new_param);
-    Command_mark_dirty(cmd);
+    if (cmd->param_count < MAX_PARAMS) {
+        for (int i = cmd->param_count; i > 0; i--)
+            cmd->params[i] = cmd->params[i - 1];
+        cmd->params[0] = strdup(new_param);
+        cmd->param_count++;
+        Command_mark_dirty(cmd);
+    }
 }
 
 static void Command_ensure_parameter(Command* c, const char* cmd, const char* value)
@@ -191,10 +250,26 @@ const char* Command_get(Command* cmd)
         return cmd->full_command;
 
     size_t pos = 0;
+#ifdef _WIN32
+    if (strchr(cmd->exec, ' ')) {
+        pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "\"%s\"", cmd->exec);
+    } else {
+        pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "%s", cmd->exec);
+    }
+#else
     pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "%s", cmd->exec);
+#endif
 
     for (int i = 0; i < cmd->param_count; i++) {
+#ifdef _WIN32
+        if (strchr(cmd->params[i], '=') || strchr(cmd->params[i], ' ')) {
+            pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " \"%s\"", cmd->params[i]);
+        } else {
+            pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " %s", cmd->params[i]);
+        }
+#else
         pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " %s", cmd->params[i]);
+#endif
     }
 
     cmd->dirty = 0;
@@ -205,16 +280,30 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 {
     Command c;
     Command_init(&c, cmd);
+
+#ifdef _WIN32
+    const char* target_executable = "steamwebhelper.exe";
+#elif __linux__
+    const char* target_executable = "steamwebhelper";
+#endif
+
+    if (strcmp(Command_get_executable(&c), target_executable) != 0) {
+        Command_free(&c);
+        return cmd;
+    }
+
     int is_developer_mode = CommandLineArguments::HasArgument("-dev");
 
-    /** enable the CEF remote debugger */
-    Command_ensure_parameter(&c, "--remote-debugging-port", GetAppropriateDevToolsPort(is_developer_mode));
-    /** always ensure the debugger is only local, and can't be accessed over lan */
-    Command_ensure_parameter(&c, "--remote-debugging-address", "127.0.0.1");
     /** block any browser web requests when running in normal mode */
     Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");
+    /** always ensure the debugger is only local, and can't be accessed over lan */
+    Command_ensure_parameter(&c, "--remote-debugging-address", "127.0.0.1");
+    /** enable the CEF remote debugger */
+    Command_ensure_parameter(&c, "--remote-debugging-port", GetAppropriateDevToolsPort(is_developer_mode));
 
-    return Command_get(&c);
+    cmd = Command_get(&c);
+    Command_free(&c);
+    return cmd;
 }
 
 #ifdef _WIN32
@@ -232,25 +321,14 @@ LdrRegisterDllNotification_t LdrRegisterDllNotification = nullptr;
 LdrUnregisterDllNotification_t LdrUnregisterDllNotification = nullptr;
 PVOID g_NotificationCookie = nullptr;
 
-typedef const char*(__cdecl* Plat_CommandLineParamValue_t)(const char* param);
-typedef CHAR(__cdecl* Plat_CommandLineParamExists_t)(const char* param);
 typedef INT(__cdecl* CreateSimpleProcess_t)(const char* a1, char a2, const char* lpMultiByteStr);
 typedef BOOL(WINAPI* ReadDirectoryChangesW_t)(HANDLE, LPVOID, DWORD, BOOL, DWORD, LPDWORD, LPOVERLAPPED, LPOVERLAPPED_COMPLETION_ROUTINE);
 
-Plat_CommandLineParamValue_t fpOriginalPlat_CommandLineParamValue = nullptr;
-Plat_CommandLineParamExists_t fpPlat_CommandLineParamExists = nullptr;
 CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
 ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = NULL;
 
 HMODULE steamTier0Module;
 std::atomic<bool> ab_shouldDisconnectFrontend{ false };
-
-struct HookInfo
-{
-    const char* name;
-    LPVOID detour;
-    LPVOID* original;
-};
 
 INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteStr)
 {
@@ -269,21 +347,11 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
     steamTier0Module = static_cast<HMODULE>(moduleBaseAddress);
     Logger.Log("Setting up hooks for tier0_s.dll");
 
-    HookInfo hooks[] = {
-        /**
-         * Used in the creation of the Steam web helper -- this is the actual function that spawns the child process. We can hook it directly and
-         * edit the commandline before its passed to the system.
-         */
-        { "CreateSimpleProcess", reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess) }
-    };
-
-    for (const auto& hook : hooks) {
-        FARPROC proc = GetProcAddress(steamTier0Module, hook.name);
-        if (proc != nullptr) {
-            if (MH_CreateHook(reinterpret_cast<LPVOID>(proc), hook.detour, hook.original) != MH_OK) {
-                MessageBoxA(NULL, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
-                return;
-            }
+    FARPROC proc = GetProcAddress(steamTier0Module, "CreateSimpleProcess");
+    if (proc != nullptr) {
+        if (MH_CreateHook(reinterpret_cast<LPVOID>(proc), reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess)) != MH_OK) {
+            MessageBoxA(NULL, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
+            return;
         }
     }
 
@@ -337,7 +405,7 @@ VOID HandleSteamLoad()
     cv_hasSteamUIStartedLoading.notify_all();
 }
 
-VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context)
+VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, [[maybe_unused]] PVOID Context)
 {
     std::wstring_view baseDllName(NotificationData->BaseDllName->Buffer, NotificationData->BaseDllName->Length / sizeof(WCHAR));
 
@@ -396,8 +464,8 @@ BOOL InitializeSteamHooks()
         return false;
     }
 
-    LdrRegisterDllNotification = (LdrRegisterDllNotification_t)GetProcAddress(ntdllModule, "LdrRegisterDllNotification");
-    LdrUnregisterDllNotification = (LdrUnregisterDllNotification_t)GetProcAddress(ntdllModule, "LdrUnregisterDllNotification");
+    LdrRegisterDllNotification = reinterpret_cast<LdrRegisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrRegisterDllNotification"));
+    LdrUnregisterDllNotification = reinterpret_cast<LdrUnregisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrUnregisterDllNotification"));
 
     if (!LdrRegisterDllNotification || !LdrUnregisterDllNotification) {
         MessageBoxA(NULL, "Failed to get address for LdrRegisterDllNotification or LdrUnregisterDllNotification", "Error", MB_ICONERROR | MB_OK);
@@ -416,7 +484,7 @@ BOOL InitializeSteamHooks()
     Logger.Log("[SH_Hook] Steam UI loaded in {} ms, continuing Millennium startup...", endTime);
 
     /** only hook if developer mode is enabled */
-    if (IsDeveloperMode()) {
+    if (CommandLineArguments::HasArgument("-dev")) {
         MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
         MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
     }

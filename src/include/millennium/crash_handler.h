@@ -53,7 +53,7 @@ extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
  * @param pExceptionInfo Pointer to the exception information.
  * @return EXCEPTION_EXECUTE_HANDLER to indicate that the exception has been handled.
  */
-static long __attribute__((__stdcall__)) Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
+inline long __attribute__((__stdcall__)) Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
 {
     HANDLE hFile = CreateFileA("millennium-crash.dmp", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 

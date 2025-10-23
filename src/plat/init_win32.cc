@@ -134,7 +134,7 @@ VOID Win32_DetachMillennium(VOID)
  * @param fdwReason The reason for calling the DLL.
  * @return True if the DLL was successfully loaded, false otherwise.
  */
-DLL_EXPORT INT WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReason, [[maybe_unused]] LPVOID lpvReserved)
 {
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
