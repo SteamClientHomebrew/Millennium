@@ -35,6 +35,7 @@
  */
 
 #include "millennium/env.h"
+#include "millennium/logger.h"
 #include "millennium/sysfs.h"
 
 #include <fmt/core.h>
@@ -204,7 +205,11 @@ void SetupEnvironmentVariables()
     const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        void(std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str()));
+        int result = std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+
+        if (result != 0) {
+            LOG_ERROR("Failed to create python virtual environment");
+        }
     }
 
     const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
