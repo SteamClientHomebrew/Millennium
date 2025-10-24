@@ -356,8 +356,21 @@ jobs:
       - name: 🛠️ Release Millennium
         run: |
           mkdir -p ./artifacts/release
-          cd ./artifacts/windows && zip -r ../release/millennium-v${{ needs.prepare.outputs.version }}-windows-x86_64.zip . && cd ../..
-          tar -czvf ./artifacts/release/millennium-v${{ needs.prepare.outputs.version }}-linux-x86_64.tar.gz -C ./artifacts/linux .
+
+          linux_release_name = ./artifacts/release/millennium-v${{ needs.prepare.outputs.version }}-linux-x86_64
+          win32_name = millennium-v${{ needs.prepare.outputs.version }}-windows-x86_64
+          win32_release_name = ./artifacts/release/${win32_name}
+
+          # setup windows release
+          cd ./artifacts/windows && zip -r ../release/${win32_name}.zip . && cd ../..
+          openssl dgst -sha256 ${win32_release_name}.zip | awk '{print $2}' > ${win32_release_name}.sha256
+          stat -c%s ./artifacts/windows > ${win32_release_name}.installsize
+
+          # setup linux release
+          tar -czvf ${linux_release_name}.tar.gz -C ./artifacts/linux .
+          openssl dgst -sha256 ${linux_release_name}.tar.gz | awk '{print $2}' > ${linux_release_name}.sha256
+          stat -c%s ./artifacts/linux > ${linux_release_name}.installsize
+
           cd scripts && npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
