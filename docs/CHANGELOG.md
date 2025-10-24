@@ -1,3 +1,31 @@
+# [2.30.0](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.2...v2.30.0) (2025-10-18)
+
+
+### Bug Fixes
+
+* add check for integer overflow within WriteByteCallback ([eabd51e](https://github.com/SteamClientHomebrew/Millennium/commit/eabd51e82e2259a4af9537c90a900d9ff9cfa35b))
+* React 19 support ([0732dff](https://github.com/SteamClientHomebrew/Millennium/commit/0732dfffa457b188d7ac824eb182419c43a9a76b))
+
+
+### Features
+
+* fix Quick CSS on webkit until next Millennium release ([fadfdac](https://github.com/SteamClientHomebrew/Millennium/commit/fadfdac2a600c31dd1a30e25f365ceb1dfc50c70))
+
+## [2.29.3](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.2...v2.29.3) (2025-10-18)
+
+
+### Bug Fixes
+
+* add check for integer overflow within WriteByteCallback ([eabd51e](https://github.com/SteamClientHomebrew/Millennium/commit/eabd51e82e2259a4af9537c90a900d9ff9cfa35b))
+* React 19 support ([0732dff](https://github.com/SteamClientHomebrew/Millennium/commit/0732dfffa457b188d7ac824eb182419c43a9a76b))
+
+## [2.29.2](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.1...v2.29.2) (2025-10-04)
+
+
+### Bug Fixes
+
+* Fix theme editor crashing with react error 130 ([d8d1837](https://github.com/SteamClientHomebrew/Millennium/commit/d8d18374cc46b1838a609f181b78c9f9b2ae18f8))
+
 ## [2.29.1](https://github.com/SteamClientHomebrew/Millennium/compare/v2.29.0...v2.29.1) (2025-09-01)
 
 

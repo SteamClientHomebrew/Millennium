@@ -67,7 +67,7 @@ const void patch_steam()
 
     if (access(START_SCRIPT_PATH, F_OK) == -1) 
     {
-        std::cerr << "Error: Steam start script not found. Ensure you're Steam installation is not flatpak, or snap.\n";
+        std::cerr << "Error: Steam start script not found. Ensure your Steam installation is not flatpak, or snap.\n";
         return;
     }
 

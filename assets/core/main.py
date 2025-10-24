@@ -29,7 +29,7 @@
 import Millennium, json, platform
 from config.manager import get_config
 
-from util.ipc_functions import GetSystemColors, GetOperatingSystem, SetClipboardContent, GetEnvironmentVar, ChangePluginStatus, GetPluginBackendLogs, ShouldShowUpdateModal
+from util.ipc_functions import Core_GetSystemColors, Core_LoadQuickCss, GetOperatingSystem, SetClipboardContent, GetEnvironmentVar, ChangePluginStatus, GetPluginBackendLogs, ShouldShowUpdateModal
 
 from updater.millennium_updater import *
 from plugins.plugin_installer import *

@@ -46,9 +46,10 @@ command -v git >/dev/null || { log "git isn't installed! Install it from your pa
 # download uri
 releases_uri="https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
 if [ -z "$tag" ]; then
-    tag=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '.[0].tag_name')
+    # Get the latest non-prerelease version
+    tag=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)][0].tag_name')
     # get the bytes size of the release assets
-    size=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '.[0].assets | .[0].size')
+    size=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)][0].assets | .[0].size')
 fi
 
 tag=${tag#v}

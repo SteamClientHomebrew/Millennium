@@ -41,7 +41,9 @@ interface BBCodeParserProps {
 	text?: string;
 }
 
-export const BBCodeParser: FC<BBCodeParserProps> = findModuleExport((m) => typeof m === 'function' && m.toString().includes('this.ElementAccumulator'));
+export const BBCodeParser: FC<BBCodeParserProps> = findModuleExport(
+	(m) => typeof m === 'function' && m?.toString?.().includes('ElementAccumulator') && m?.toString?.().includes('parser.ParseBBCode'),
+) as FC<BBCodeParserProps>;
 
 interface SettingsDialogSubHeaderProps extends React.HTMLProps<HTMLDivElement> {
 	children: ReactNode;
@@ -52,7 +54,11 @@ export const SettingsDialogSubHeader: React.FC<SettingsDialogSubHeaderProps> = (
 export const Separator: React.FC = () => <div className={fieldClasses.StandaloneFieldSeparator} />;
 
 export const DesktopTooltip = findModuleDetailsByExport(
-	(m) => m.toString().includes(`divProps`) && m.toString().includes(`tooltipProps`) && m.toString().includes(`toolTipContent`) && m.toString().includes(`tool-tip-source`),
+	(m) =>
+		m?.toString?.().includes(`divProps`) &&
+		m?.toString?.().includes(`tooltipProps`) &&
+		m?.toString?.().includes(`toolTipContent`) &&
+		m?.toString?.().includes(`tool-tip-source`),
 )[1];
 
 interface GenericConfirmDialogProps {

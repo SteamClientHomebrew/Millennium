@@ -32,9 +32,11 @@ import Millennium
 from themes.accent_color import Colors
 from config.manager import get_config
 
-def GetSystemColors():
+def Core_GetSystemColors():
     return Colors.get_accent_color(get_config()["general.accentColor"])
 
+def Core_LoadQuickCss():
+    return "/** this feature will be in later Millennium releases */"
 
 def ChangePluginStatus(pluginJson):
     Millennium.change_plugin_status(json.loads(pluginJson))
