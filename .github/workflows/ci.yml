@@ -363,12 +363,12 @@ jobs:
 
           # setup windows release
           cd ./artifacts/windows && zip -r ../release/${win32_name}.zip . && cd ../..
-          openssl dgst -sha256 ${win32_release_name}.zip | awk '{print $2}' > ${win32_release_name}.sha256
+          sha256sum ${win32_release_name}.zip > ${win32_release_name}.sha256
           du -sb ./artifacts/windows | awk '{print $1}' > ${win32_release_name}.installsize
 
           # setup linux release
           tar -czvf ${linux_release_name}.tar.gz -C ./artifacts/linux .
-          openssl dgst -sha256 ${linux_release_name}.tar.gz | awk '{print $2}' > ${linux_release_name}.sha256
+          sha256sum ${linux_release_name}.tar.gz > ${linux_release_name}.sha256
           du -sb ./artifacts/linux | awk '{print $1}' > ${linux_release_name}.installsize
 
           cd scripts && npx semantic-release
