@@ -364,7 +364,7 @@ jobs:
           # setup windows release
           cd ./artifacts/windows && zip -r ../release/${win32_name}.zip . && cd ../..
           sha256sum ${win32_release_name}.zip > ${win32_release_name}.sha256
-          sed -i 's#\./artifacts/release/##g' ${linux_release_name}.sha256
+          sed -i 's#\./artifacts/release/##g' ${win32_release_name}.sha256
           du -sb ./artifacts/windows | awk '{print $1}' > ${win32_release_name}.installsize
 
           # setup linux release
