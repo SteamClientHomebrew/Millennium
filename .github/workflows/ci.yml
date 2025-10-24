@@ -357,9 +357,9 @@ jobs:
         run: |
           mkdir -p ./artifacts/release
 
-          linux_release_name = ./artifacts/release/millennium-v${{ needs.prepare.outputs.version }}-linux-x86_64
-          win32_name = millennium-v${{ needs.prepare.outputs.version }}-windows-x86_64
-          win32_release_name = ./artifacts/release/${win32_name}
+          linux_release_name="./artifacts/release/millennium-v${{ needs.prepare.outputs.version }}-linux-x86_64"
+          win32_name="millennium-v${{ needs.prepare.outputs.version }}-windows-x86_64"
+          win32_release_name="./artifacts/release/${win32_name}"
 
           # setup windows release
           cd ./artifacts/windows && zip -r ../release/${win32_name}.zip . && cd ../..
