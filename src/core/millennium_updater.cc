@@ -245,6 +245,7 @@ void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const siz
         DeleteOldMillenniumVersion();
 
         const auto tempFilePath = std::filesystem::temp_directory_path() / fmt::format("millennium-{}.zip", GenerateUUID());
+        Logger.Log("Downloading update to temporary file: " + tempFilePath.string());
 
         Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [](size_t downloaded, size_t total)
         {
@@ -252,6 +253,7 @@ void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const siz
             RateLimitedLogger("Downloading update assets...", progress);
         });
 
+        Logger.Log("Extracting and installing update to {}", SystemIO::GetInstallPath().generic_string());
         Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [](int current, int total, const char*)
         {
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;

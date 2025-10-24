@@ -37,6 +37,7 @@
 #include <mz_zip_rw.h>
 
 #include "millennium/zip.h"
+#include "millennium/logger.h"
 
 #include <filesystem>
 #include <functional>
@@ -51,6 +52,7 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
 
     int32_t err = mz_zip_reader_open_file(zip_reader, zip_path.c_str());
     if (err != MZ_OK) {
+        Logger.Log("Failed to open zip file: {} (error: {})", zip_path, err);
         mz_zip_reader_delete(&zip_reader);
         return false;
     }
@@ -68,11 +70,11 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
     /** Pre-allocate containers for better performance */
     std::unordered_set<std::string> created_dirs;
     created_dirs.reserve(file_count / 4);
-
     std::string out_path;
     out_path.reserve(dest_dir.length() + 256);
 
     int32_t file_index = 0;
+    int32_t failed_count = 0;
     mz_zip_file* file_info = nullptr;
 
     err = mz_zip_reader_goto_first_entry(zip_reader);
@@ -94,13 +96,14 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
                 std::filesystem::create_directories(parent_path);
             }
 
-            err = mz_zip_reader_entry_save_file(zip_reader, out_path.c_str());
-            if (err != MZ_OK)
-                break;
+            int32_t extract_err = mz_zip_reader_entry_save_file(zip_reader, out_path.c_str());
+            if (extract_err != MZ_OK) {
+                Logger.Warn("Failed to extract file: {} (error code: {})", out_path, extract_err);
+                failed_count++;
+            }
         }
 
         file_index++;
-
         if (progress_cb)
             progress_cb(file_index, file_count, file_info->filename);
 
@@ -109,6 +112,10 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
 
     mz_zip_reader_close(zip_reader);
     mz_zip_reader_delete(&zip_reader);
+
+    if (failed_count > 0) {
+        Logger.Warn("Extraction completed with {} failed files", failed_count);
+    }
 
     return (err == MZ_END_OF_LIST || err == MZ_OK);
 }
