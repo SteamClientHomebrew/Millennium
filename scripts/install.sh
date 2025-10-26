@@ -42,16 +42,6 @@ format_size() {
     echo "$1" | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }'
 }
 
-check_permissions() {
-    if [ "$DRY_RUN" -eq 0 ] && ! is_root; then
-        log "Insufficient permissions. Please run the script as root."
-        exit 1
-    fi
-    if [ "$DRY_RUN" -eq 1 ]; then
-        log "[DRY RUN] No changes will be made to the system."
-    fi
-}
-
 verify_platform() {
     case $(uname -sm) in
         "Linux x86_64") echo "linux-x86_64" ;;
@@ -61,7 +51,7 @@ verify_platform() {
 
 check_dependencies() {
     log "resolving dependencies..."
-    for cmd in curl tar jq; do
+    for cmd in curl tar jq sudo; do
         command -v "$cmd" >/dev/null || {
             log "$cmd isn't installed. Install it from your package manager." >&2
             exit 1
@@ -106,33 +96,31 @@ install_millennium() {
     local extract_path="$1"
 
     if [ "$DRY_RUN" -eq 0 ]; then
-        cp -r "$extract_path"/* / || true
+        sudo cp -r "$extract_path"/* / || true
     else
         log "[DRY RUN] Would copy files from $extract_path to /"
-        log "[DRY RUN] Would chmod +x /opt/python-i686-3.11.8/bin/python3.11"
     fi
 }
 
 post_install() {
-    chmod +x /opt/python-i686-3.11.8/bin/python3.11
+    sudo chmod +x /opt/python-i686-3.11.8/bin/python3.11
 
-    # install for all users on the system
-    getent passwd | awk -F: '$3 >= 1000 {print $1, $6}' | while read user home; do
-        beta_file="$home/.steam/steam/package/beta"
-        target="$home/.steam/steam/ubuntu12_32/libXtst.so.6"
+    log "installing for '$USER'"
 
-        # make sure to force steam stable for the first install.
-        # if the user wants beta they can set it after install.
-        # normally its fine, but many users forget they have it enabled on first install,
-        # and then face issues.
-        if [ -f "$beta_file" ]; then
-            log "removing beta '$(cat "$beta_file")' in favor for stable."
-            rm "$beta_file"
-        fi
+    beta_file="$HOME/.steam/steam/package/beta"
+    target="$HOME/.steam/steam/ubuntu12_32/libXtst.so.6"
 
-        # create a symlink for millenniums preload bootstrap.
-        [ -d "$home/.steam/steam/ubuntu12_32" ] && ln -sf /usr/lib/millennium/libmillennium_bootstrap_86x.so "$target"
-    done
+    # make sure to force steam stable for the first install.
+    # if the user wants beta they can set it after install.
+    # normally its fine, but many users forget they have it enabled on first install,
+    # and then face issues.
+    if [ -f "$beta_file" ]; then
+        log "removing beta '$(cat "$beta_file")' in favor for stable."
+        rm "$beta_file"
+    fi
+
+    # create a symlink for millenniums preload bootstrap.
+    [ -d "$HOME/.steam/steam/ubuntu12_32" ] && ln -sf /usr/lib/millennium/libmillennium_bootstrap_86x.so "$target"
 }
 
 cleanup() {
@@ -151,7 +139,6 @@ main() {
         esac
     done
 
-    check_permissions
     target=$(verify_platform)
     check_dependencies
 
