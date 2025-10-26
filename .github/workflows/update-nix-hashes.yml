@@ -1,0 +1,49 @@
+name: Update Nix Hashes
+
+on:
+  push:
+    paths:
+      - 'assets/pnpm-lock.yaml'
+      - 'sdk/pnpm-lock.yaml'
+
+jobs:
+  update-nix-hashes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update assets hash
+        if: contains(github.event.head_commit.modified, 'assets/pnpm-lock.yaml')
+        run: |
+          # Try to build and capture the correct hash from error
+          nix build .#assets 2>&1 | tee build.log || true
+          NEW_HASH=$(grep "got:" build.log | grep -oP 'sha256-[A-Za-z0-9+/=]+' | head -1)
+          if [ ! -z "$NEW_HASH" ]; then
+            sed -i "s|hash = \"sha256-[^\"]*\"|hash = \"$NEW_HASH\"|" nix/assets.nix
+            echo "Updated assets hash to: $NEW_HASH"
+          fi
+
+      - name: Update SDK hash
+        if: contains(github.event.head_commit.modified, 'sdk/pnpm-lock.yaml')
+        run: |
+          # Try to build and capture the correct hash from error
+          nix build .#shims 2>&1 | tee build.log || true
+          NEW_HASH=$(grep "got:" build.log | grep -oP 'sha256-[A-Za-z0-9+/=]+' | head -1)
+          if [ ! -z "$NEW_HASH" ]; then
+            sed -i "s|hash = \"sha256-[^\"]*\"|hash = \"$NEW_HASH\"|" nix/typescript/shims.nix
+            echo "Updated SDK hash to: $NEW_HASH"
+          fi
+
+      - name: Commit updated hashes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add nix/assets.nix nix/typescript/shims.nix
+          git diff --staged --quiet || git commit -m "chore(nix): auto-update pnpm dependency hashes"
+          git push
