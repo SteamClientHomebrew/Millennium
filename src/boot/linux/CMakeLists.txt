@@ -2,15 +2,15 @@ cmake_minimum_required(VERSION 3.10)
 
 project(unix-hooks LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(MILLENNIUM_RUNTIME_PATH "${CMAKE_SOURCE_DIR}/build/libmillennium_x86.so")
-  add_compile_definitions(MILLENNIUM_RUNTIME_PATH="${MILLENNIUM_RUNTIME_PATH}")
+    set(MILLENNIUM_RUNTIME_PATH "${CMAKE_SOURCE_DIR}/build/libmillennium_x86.so")
+    add_compile_definitions(MILLENNIUM_RUNTIME_PATH="${MILLENNIUM_RUNTIME_PATH}")
 endif()
 
-add_library(unix-hooks SHARED main.cc)
+add_library(unix-hooks SHARED main.c)
 
 # Ensure symbols are exported properly for library interposition
 target_compile_options(unix-hooks PRIVATE -fvisibility=hidden)

@@ -93,12 +93,9 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
 int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
 {
     // No prerelease has higher precedence than any prerelease
-    if (pre1.empty() && pre2.empty())
-        return 0;
-    if (pre1.empty())
-        return 1; // 1.0.0 > 1.0.0-alpha
-    if (pre2.empty())
-        return -1; // 1.0.0-alpha < 1.0.0
+    if (pre1.empty() && pre2.empty()) return 0;
+    if (pre1.empty()) return 1;  // 1.0.0 > 1.0.0-alpha
+    if (pre2.empty()) return -1; // 1.0.0-alpha < 1.0.0
 
     // Split prerelease identifiers by '.'
     auto split = [](const std::string& s) -> std::vector<std::string>
@@ -131,8 +128,7 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
             // Both numeric: compare numerically
             int n1 = std::stoi(p1);
             int n2 = std::stoi(p2);
-            if (n1 != n2)
-                return (n1 < n2) ? -1 : 1;
+            if (n1 != n2) return (n1 < n2) ? -1 : 1;
         } else if (p1IsNumeric) {
             // Numeric identifiers have lower precedence than non-numeric
             return -1;
@@ -141,8 +137,7 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
             return 1;
         } else {
             // Both non-numeric: compare lexically
-            if (p1 != p2)
-                return (p1 < p2) ? -1 : 1;
+            if (p1 != p2) return (p1 < p2) ? -1 : 1;
         }
     }
 

@@ -74,8 +74,7 @@ inline std::string GetBuildTimestamp()
     std::string day = date.substr(4, 2);
     std::string year = date.substr(7, 4);
 
-    if (day[0] == ' ')
-        day[0] = '0';
+    if (day[0] == ' ') day[0] = '0';
     return year + "-" + month + "-" + day + "T" + time;
 }
 

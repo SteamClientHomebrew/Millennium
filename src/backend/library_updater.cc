@@ -78,11 +78,9 @@ std::optional<json> Updater::CheckForUpdates(bool force)
 
         json request_body;
 
-        if (!plugins.empty())
-            request_body["plugins"] = plugins;
+        if (!plugins.empty()) request_body["plugins"] = plugins;
 
-        if (themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty())
-            request_body["themes"] = themes["post_body"];
+        if (themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty()) request_body["themes"] = themes["post_body"];
 
         if (request_body.empty()) {
             Logger.Log("No themes or plugins to update!");

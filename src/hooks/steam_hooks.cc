@@ -154,8 +154,7 @@ void Command_init(Command* cmd, const char* full_cmd)
 
 void Command_free(Command* cmd)
 {
-    if (cmd->exec)
-        free(cmd->exec);
+    if (cmd->exec) free(cmd->exec);
     for (int i = 0; i < cmd->param_count; i++)
         free(cmd->params[i]);
 }
@@ -164,18 +163,15 @@ int Command_has_param(Command* cmd, const char* key)
 {
     size_t key_len = strlen(key);
     for (int i = 0; i < cmd->param_count; i++) {
-        if (strcmp(cmd->params[i], key) == 0)
-            return 1;
-        if (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')
-            return 1;
+        if (strcmp(cmd->params[i], key) == 0) return 1;
+        if (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=') return 1;
     }
     return 0;
 }
 
 void Command_add_param(Command* cmd, const char* param)
 {
-    if (cmd->param_count >= MAX_PARAMS)
-        return;
+    if (cmd->param_count >= MAX_PARAMS) return;
     if (!Command_has_param(cmd, param)) {
         for (int i = cmd->param_count; i > 0; i--)
             cmd->params[i] = cmd->params[i - 1];
@@ -249,8 +245,7 @@ static void Command_ensure_parameter(Command* c, const char* cmd, const char* va
 
 const char* Command_get(Command* cmd)
 {
-    if (!cmd->dirty)
-        return cmd->full_command;
+    if (!cmd->dirty) return cmd->full_command;
 
     size_t pos = 0;
 #ifdef _WIN32
@@ -442,9 +437,8 @@ BOOL WINAPI Hooked_ReadDirectoryChangesW(void*, void*, void*, void*, void*, LPDW
 {
     Logger.Log("[Steam] Blocked attempt to ReadDirectoryChangesW...");
 
-    if (bytesRet)
-        *bytesRet = 0; // no changes
-    return TRUE;       // indicate success
+    if (bytesRet) *bytesRet = 0; // no changes
+    return TRUE;                 // indicate success
 }
 
 BOOL InitializeSteamHooks()
@@ -527,13 +521,11 @@ static void* GetModuleHandle(const char* libneedle, const char* symbol)
     if (handle) {
         void* s = dlsym(handle, symbol);
         dlclose(handle);
-        if (s)
-            return s;
+        if (s) return s;
     }
 
     void* s2 = dlsym(RTLD_DEFAULT, symbol);
-    if (s2)
-        return s2;
+    if (s2) return s2;
 
     return nullptr;
 }

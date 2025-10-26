@@ -284,19 +284,16 @@ void MakeWritable(const std::filesystem::path& p)
 {
     std::error_code ec;
     auto perms = std::filesystem::status(p, ec).permissions();
-    if (!ec)
-        std::filesystem::permissions(p, perms | std::filesystem::perms::owner_write, ec);
+    if (!ec) std::filesystem::permissions(p, perms | std::filesystem::perms::owner_write, ec);
 }
 
 bool DeleteFolder(const std::filesystem::path& p)
 {
-    if (!std::filesystem::exists(p))
-        return true;
+    if (!std::filesystem::exists(p)) return true;
 
     std::error_code ec;
     std::filesystem::remove_all(p, ec);
-    if (!ec)
-        return true;
+    if (!ec) return true;
 
     Logger.Log("DeleteFolder failed initially: {} — retrying with writable perms.", ec.message());
     for (auto it = std::filesystem::recursive_directory_iterator(p, std::filesystem::directory_options::skip_permission_denied, ec);

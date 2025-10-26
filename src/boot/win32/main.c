@@ -56,18 +56,18 @@ static void show_error(unsigned long errorCode)
     MessageBoxA(0, msg, "Error", 0x00000010l /** magic number -> MB_ICONERROR */);
 }
 
-/** 
+/**
  * Check if the current process is steam.exe
  * although I haven't seen any causes where this module
- * loads into a non-steam process, its a good safeguard. 
+ * loads into a non-steam process, its a good safeguard.
  */
 static int is_steam_client(void)
 {
     char path[MAX_PATH];
-    if (!GetModuleFileNameA(0 /** current module */, path, MAX_PATH)) {        
+    if (!GetModuleFileNameA(0 /** current module */, path, MAX_PATH)) {
         return 0;
     }
-    
+
     /** parse the filename from the fullpath */
     const char* filename = path;
     for (const char* p = path; *p; ++p) {

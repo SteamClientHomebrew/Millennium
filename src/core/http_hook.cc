@@ -541,12 +541,10 @@ void HttpHookManager::HandleHooks(const nlohmann::basic_json<>& message)
             });
             return true;
         } catch (const nlohmann::detail::exception& ex) {
-            if (ShouldLogException())
-                LOG_ERROR("JSON error in HandleHooks -> {}", ex.what());
+            if (ShouldLogException()) LOG_ERROR("JSON error in HandleHooks -> {}", ex.what());
             return true;
         } catch (const std::exception& ex) {
-            if (ShouldLogException())
-                LOG_ERROR("Error in HandleHooks -> {}", ex.what());
+            if (ShouldLogException()) LOG_ERROR("Error in HandleHooks -> {}", ex.what());
             return true;
         }
     });
@@ -733,8 +731,7 @@ template <typename F> void HttpHookManager::ThreadPool::enqueue(F&& f)
     }
     {
         std::unique_lock<std::mutex> lock(queueMutex);
-        if (stop)
-            return; // Don't accept new tasks if shutting down
+        if (stop) return; // Don't accept new tasks if shutting down
         tasks.emplace(std::forward<F>(f));
     }
     condition.notify_one();

@@ -27,73 +27,73 @@
 #define SUBHOOK_H
 
 #if defined _M_IX86 || defined __i386__
-	#define SUBHOOK_X86
-	#define SUBHOOK_BITS 32
+#define SUBHOOK_X86
+#define SUBHOOK_BITS 32
 #elif defined _M_AMD64 || __amd64__
-	#define SUBHOOK_X86_64
-	#define SUBHOOK_BITS 64
+#define SUBHOOK_X86_64
+#define SUBHOOK_BITS 64
 #else
-	#error Unsupported architecture
+#error Unsupported architecture
 #endif
 
 #if defined __linux__
-	#define SUBHOOK_LINUX
+#define SUBHOOK_LINUX
 #elif defined _WIN32
-	#define SUBHOOK_WINDOWS
+#define SUBHOOK_WINDOWS
 #else
-	#error Unsupported operating system
+#error Unsupported operating system
 #endif
 
 #if !defined SUHOOK_EXTERN
-	#if defined __cplusplus
-		#define SUBHOOK_EXTERN extern "C"
-	#else
-		#define SUBHOOK_EXTERN extern
-	#endif
+#if defined __cplusplus
+#define SUBHOOK_EXTERN extern "C"
+#else
+#define SUBHOOK_EXTERN extern
+#endif
 #endif
 
 #if defined SUBHOOK_STATIC
-	#define SUBHOOK_API
-	#define SUBHOOK_EXPORT SUBHOOK_EXTERN
+#define SUBHOOK_API
+#define SUBHOOK_EXPORT SUBHOOK_EXTERN
 #endif
 
 #if !defined SUBHOOK_API
-	#if defined SUBHOOK_X86
-		#if defined SUBHOOK_WINDOWS
-			#define SUBHOOK_API __cdecl
-		#elif defined SUBHOOK_LINUX
-			#define SUBHOOK_API __attribute__((cdecl))
-		#endif
-	#else
-		#define SUBHOOK_API
-	#endif
+#if defined SUBHOOK_X86
+#if defined SUBHOOK_WINDOWS
+#define SUBHOOK_API __cdecl
+#elif defined SUBHOOK_LINUX
+#define SUBHOOK_API __attribute__((cdecl))
+#endif
+#else
+#define SUBHOOK_API
+#endif
 #endif
 
 #if !defined SUBHOOK_EXPORT
-	#if defined SUBHOOK_WINDOWS
-		#if defined SUBHOOK_IMPLEMENTATION
-			#define SUBHOOK_EXPORT SUBHOOK_EXTERN __declspec(dllexport)
-		#else
-			#define SUBHOOK_EXPORT SUBHOOK_EXTERN __declspec(dllimport)
-		#endif
-	#elif defined SUBHOOK_LINUX
-		#if defined SUBHOOK_IMPLEMENTATION
-			#define SUBHOOK_EXPORT SUBHOOK_EXTERN __attribute__((visibility("default")))
-		#else
-			#define SUBHOOK_EXPORT SUBHOOK_EXTERN
-		#endif
-	#endif
+#if defined SUBHOOK_WINDOWS
+#if defined SUBHOOK_IMPLEMENTATION
+#define SUBHOOK_EXPORT SUBHOOK_EXTERN __declspec(dllexport)
+#else
+#define SUBHOOK_EXPORT SUBHOOK_EXTERN __declspec(dllimport)
+#endif
+#elif defined SUBHOOK_LINUX
+#if defined SUBHOOK_IMPLEMENTATION
+#define SUBHOOK_EXPORT SUBHOOK_EXTERN __attribute__((visibility("default")))
+#else
+#define SUBHOOK_EXPORT SUBHOOK_EXTERN
+#endif
+#endif
 #endif
 
 struct subhook;
-typedef struct subhook *subhook_t;
+typedef struct subhook* subhook_t;
 
-SUBHOOK_EXPORT subhook_t SUBHOOK_API subhook_new(void *src, void *dst);
+SUBHOOK_EXPORT subhook_t SUBHOOK_API subhook_new(void* src, void* dst);
 SUBHOOK_EXPORT void SUBHOOK_API subhook_free(subhook_t hook);
 
-SUBHOOK_EXPORT void *SUBHOOK_API subhook_get_src(subhook_t hook);
-SUBHOOK_EXPORT void *SUBHOOK_API subhook_get_dst(subhook_t hook);
-SUBHOOK_EXPORT void *SUBHOOK_API subhook_get_trampoline(subhook_t hook);
+SUBHOOK_EXPORT void* SUBHOOK_API subhook_get_src(subhook_t hook);
+SUBHOOK_EXPORT void* SUBHOOK_API subhook_get_dst(subhook_t hook);
+SUBHOOK_EXPORT void* SUBHOOK_API subhook_get_trampoline(subhook_t hook);
 
 SUBHOOK_EXPORT int SUBHOOK_API subhook_install(subhook_t hook);
 SUBHOOK_EXPORT int SUBHOOK_API subhook_is_installed(subhook_t hook);
@@ -104,102 +104,119 @@ SUBHOOK_EXPORT int SUBHOOK_API subhook_remove(subhook_t hook);
  * This is useful when you don't know the address or want to check
  * whether src is already hooked.
  */
-SUBHOOK_EXPORT void *SUBHOOK_API subhook_read_dst(void *src);
+SUBHOOK_EXPORT void* SUBHOOK_API subhook_read_dst(void* src);
 
 #ifdef __cplusplus
 
 class SubHook
 {
-public:
-	SubHook() : hook_(0) {}
-	SubHook(void *src, void *dst) : hook_(subhook_new(src, dst)) {}
+  public:
+    SubHook() : hook_(0)
+    {
+    }
+    SubHook(void* src, void* dst) : hook_(subhook_new(src, dst))
+    {
+    }
 
-	~SubHook() {
-		subhook_remove(hook_);
-		subhook_free(hook_);
-	}
+    ~SubHook()
+    {
+        subhook_remove(hook_);
+        subhook_free(hook_);
+    }
 
-	void *GetSrc() { return subhook_get_src(hook_); }
-	void *GetDst() { return subhook_get_dst(hook_); }
-	void *GetTrampoline() { return subhook_get_trampoline(hook_); }
+    void* GetSrc()
+    {
+        return subhook_get_src(hook_);
+    }
+    void* GetDst()
+    {
+        return subhook_get_dst(hook_);
+    }
+    void* GetTrampoline()
+    {
+        return subhook_get_trampoline(hook_);
+    }
 
-	bool Install() {
-		return subhook_install(hook_) >= 0;
-	}
+    bool Install()
+    {
+        return subhook_install(hook_) >= 0;
+    }
 
-	bool Install(void *src, void *dst) {
-		if (hook_ == 0) {
-			hook_ = subhook_new(src, dst);
-		}
-		return Install();
-	}
+    bool Install(void* src, void* dst)
+    {
+        if (hook_ == 0) {
+            hook_ = subhook_new(src, dst);
+        }
+        return Install();
+    }
 
-	bool Remove() {
-		return subhook_remove(hook_) >= 0;
-	}
+    bool Remove()
+    {
+        return subhook_remove(hook_) >= 0;
+    }
 
-	bool IsInstalled() const {
-		return !!subhook_is_installed(hook_);
-	}
+    bool IsInstalled() const
+    {
+        return !!subhook_is_installed(hook_);
+    }
 
-	class ScopedRemove
-	{
-	public:
-		ScopedRemove(SubHook *hook)
-			: hook_(hook)
-			, removed_(hook_->Remove())
-		{
-		}
+    class ScopedRemove
+    {
+      public:
+        ScopedRemove(SubHook* hook) : hook_(hook), removed_(hook_->Remove())
+        {
+        }
 
-		~ScopedRemove() {
-			if (removed_) {
-				hook_->Install();
-			}
-		}
+        ~ScopedRemove()
+        {
+            if (removed_) {
+                hook_->Install();
+            }
+        }
 
-	private:
-		ScopedRemove(const ScopedRemove &);
-		void operator=(const ScopedRemove &);
+      private:
+        ScopedRemove(const ScopedRemove&);
+        void operator=(const ScopedRemove&);
 
-	private:
-		SubHook *hook_;
-		bool removed_;
-	};
+      private:
+        SubHook* hook_;
+        bool removed_;
+    };
 
-	class ScopedInstall
-	{
-	public:
-		ScopedInstall(SubHook *hook)
-			: hook_(hook)
-			, installed_(hook_->Install())
-		{
-		}
+    class ScopedInstall
+    {
+      public:
+        ScopedInstall(SubHook* hook) : hook_(hook), installed_(hook_->Install())
+        {
+        }
 
-		~ScopedInstall() {
-			if (installed_) {
-				hook_->Remove();
-			}
-		}
+        ~ScopedInstall()
+        {
+            if (installed_) {
+                hook_->Remove();
+            }
+        }
 
-	private:
-		ScopedInstall(const ScopedInstall &);
-		void operator=(const ScopedInstall &);
+      private:
+        ScopedInstall(const ScopedInstall&);
+        void operator=(const ScopedInstall&);
 
-	private:
-		SubHook *hook_;
-		bool installed_;
-	};
+      private:
+        SubHook* hook_;
+        bool installed_;
+    };
 
-	static void *ReadDst(void *src) {
-		return subhook_read_dst(src);
-	}
+    static void* ReadDst(void* src)
+    {
+        return subhook_read_dst(src);
+    }
 
-private:
-	SubHook(const SubHook &);
-	void operator=(const SubHook &);
+  private:
+    SubHook(const SubHook&);
+    void operator=(const SubHook&);
 
-private:
-	subhook_t hook_;
+  private:
+    subhook_t hook_;
 };
 
 #endif /* __cplusplus */

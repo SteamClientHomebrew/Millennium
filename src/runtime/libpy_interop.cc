@@ -106,36 +106,31 @@ EvalResult HandleBooleanObject(PyObject* obj)
 EvalResult HandleIntegerObject(PyObject* obj)
 {
     long longValue = PyLong_AsLong(obj);
-    if (PyErr_Occurred())
-        return HandleActiveException();
+    if (PyErr_Occurred()) return HandleActiveException();
     return { FFI_Type::Integer, std::to_string(longValue) };
 }
 
 EvalResult HandleFloatObject(PyObject* obj)
 {
     double doubleValue = PyFloat_AsDouble(obj);
-    if (PyErr_Occurred())
-        return HandleActiveException();
+    if (PyErr_Occurred()) return HandleActiveException();
     return { FFI_Type::String, std::to_string(doubleValue) };
 }
 
 EvalResult HandleUnicodeObject(PyObject* obj)
 {
     const char* valueStr = PyUnicode_AsUTF8(obj);
-    if (PyErr_Occurred())
-        return HandleActiveException();
+    if (PyErr_Occurred()) return HandleActiveException();
     return { FFI_Type::String, valueStr ? std::string(valueStr) : std::string("") };
 }
 
 EvalResult HandleBytesObject(PyObject* obj)
 {
     char* bytesValue = PyBytes_AsString(obj);
-    if (!bytesValue)
-        return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string." };
+    if (!bytesValue) return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string." };
 
     Py_ssize_t size = PyBytes_Size(obj);
-    if (size < 0)
-        return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object." };
+    if (size < 0) return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object." };
 
     return { FFI_Type::String, std::string(bytesValue, size) };
 }
@@ -203,8 +198,7 @@ EvalResult HandleUnknownObject(PyObject* obj)
  */
 EvalResult PyObjectCastEvalResult(PyObject* obj)
 {
-    if (!obj)
-        return Python::ObjectHandler::HandleActiveException();
+    if (!obj) return Python::ObjectHandler::HandleActiveException();
 
     if (PyBool_Check(obj))
         return Python::ObjectHandler::HandleBooleanObject(obj);

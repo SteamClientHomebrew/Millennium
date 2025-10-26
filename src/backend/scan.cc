@@ -71,8 +71,7 @@ bool Millennium::Themes::IsValid(const std::string& theme_native_name)
 {
     std::filesystem::path file_path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins" / theme_native_name / "skin.json";
 
-    if (!std::filesystem::is_regular_file(file_path))
-        return false;
+    if (!std::filesystem::is_regular_file(file_path)) return false;
 
     std::ifstream file(file_path);
     return nlohmann::json::accept(file);
@@ -98,16 +97,13 @@ nlohmann::json Millennium::Themes::FindAllThemes()
 
         for (const auto& dir : dirs) {
             auto skinJsonPath = dir.path() / "skin.json";
-            if (!std::filesystem::exists(skinJsonPath))
-                continue;
+            if (!std::filesystem::exists(skinJsonPath)) continue;
 
             std::ifstream file(skinJsonPath);
-            if (!file.is_open())
-                continue;
+            if (!file.is_open()) continue;
 
             nlohmann::json skinData;
-            if (!(file >> skinData))
-                continue; /** invalid json from stream */
+            if (!(file >> skinData)) continue; /** invalid json from stream */
 
             themes.push_back({
                 { "native", dir.path().filename().string() },

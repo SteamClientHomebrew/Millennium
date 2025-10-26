@@ -272,11 +272,9 @@ int Lua_CompareVersion(lua_State* L)
     const char* v2 = luaL_checkstring(L, 2);
 
     /** strip the leading v prefix if provided */
-    if (v1[0] == 'v' || v1[0] == 'V')
-        v1++;
+    if (v1[0] == 'v' || v1[0] == 'V') v1++;
 
-    if (v2[0] == 'v' || v2[0] == 'V')
-        v2++;
+    if (v2[0] == 'v' || v2[0] == 'V') v2++;
 
     try {
         compare = Semver::Compare(v1, v2);

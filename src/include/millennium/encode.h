@@ -55,8 +55,7 @@ inline std::string Base64Decode(const std::string& in)
 
     int val = 0, valb = -8;
     for (unsigned char c : in) {
-        if (T[c] == -1)
-            break;
+        if (T[c] == -1) break;
         val = (val << 6) + T[c];
         valb += 6;
         if (valb >= 0) {
@@ -126,8 +125,7 @@ inline std::string Base64Encode(const std::string& in)
             valb -= 6;
         }
     }
-    if (valb > -6)
-        out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val << 8) >> (valb + 8)) & 0x3F]);
+    if (valb > -6) out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val << 8) >> (valb + 8)) & 0x3F]);
     while (out.size() % 4)
         out.push_back('=');
     return out;

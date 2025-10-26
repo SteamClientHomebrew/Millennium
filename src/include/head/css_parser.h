@@ -65,4 +65,4 @@ class CSSParser
     static nlohmann::json GenerateColorMetadata(const std::map<std::string, std::string>& properties,
                                                 const std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
 };
-}
+} // namespace Millennium

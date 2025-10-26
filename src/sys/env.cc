@@ -285,8 +285,7 @@ void SetupEnvironmentVariables()
 #if defined(__linux__) || defined(__APPLE__)
 #define RED "\033[31m"
 #define RESET "\033[0m"
-        if (shouldLog)
-            std::cout << fmt::format("{}={}", key, value) << std::endl;
+        if (shouldLog) std::cout << fmt::format("{}={}", key, value) << std::endl;
 #endif
         SetEnv(key, value);
     }

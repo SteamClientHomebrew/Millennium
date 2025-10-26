@@ -798,8 +798,7 @@ std::tuple<lua_State*, std::unique_ptr<std::mutex>>* BackendManager::Lua_FindEnt
 void BackendManager::Lua_LockLua(lua_State* L)
 {
     auto entry = Lua_FindEntry(L);
-    if (!entry)
-        throw std::runtime_error("lua_State not found in pool");
+    if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     std::get<1>(*entry)->lock();
 }
@@ -813,8 +812,7 @@ void BackendManager::Lua_LockLua(lua_State* L)
 void BackendManager::Lua_UnlockLua(lua_State* L)
 {
     auto entry = Lua_FindEntry(L);
-    if (!entry)
-        throw std::runtime_error("lua_State not found in pool");
+    if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     std::get<1>(*entry)->unlock();
 }
@@ -827,8 +825,7 @@ void BackendManager::Lua_UnlockLua(lua_State* L)
 bool BackendManager::Lua_TryLockLua(lua_State* L)
 {
     auto entry = Lua_FindEntry(L);
-    if (!entry)
-        throw std::runtime_error("lua_State not found in pool");
+    if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     return std::get<1>(*entry)->try_lock();
 }
@@ -843,8 +840,7 @@ bool BackendManager::Lua_TryLockLua(lua_State* L)
 bool BackendManager::Lua_IsMutexLocked(lua_State* L)
 {
     auto entry = Lua_FindEntry(L);
-    if (!entry)
-        throw std::runtime_error("lua_State not found in pool");
+    if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     auto& m = std::get<1>(*entry);
     if (m->try_lock()) {
@@ -980,8 +976,7 @@ bool BackendManager::CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, 
     std::thread luaThread([L, plugin, callback]() mutable
     {
         /** call the backend manager init fn */
-        if (callback)
-            callback(plugin, L);
+        if (callback) callback(plugin, L);
     });
 
     m_luaThreadPool.emplace_back(std::make_shared<LuaThreadPoolItem>(pluginName, luaThread, L));

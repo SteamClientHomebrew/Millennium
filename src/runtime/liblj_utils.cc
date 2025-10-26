@@ -230,8 +230,7 @@ int Lua_Join(lua_State* L)
         lua_rawgeti(L, 1, i);
         const char* val = lua_tostring(L, -1);
         if (val) {
-            if (i > 1)
-                result += delim;
+            if (i > 1) result += delim;
             result += val;
         }
         lua_pop(L, 1);

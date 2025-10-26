@@ -47,8 +47,7 @@
 bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& dest_dir, ProgressCallback progress_cb)
 {
     void* zip_reader = mz_zip_reader_create();
-    if (zip_reader == nullptr)
-        return false;
+    if (zip_reader == nullptr) return false;
 
     int32_t err = mz_zip_reader_open_file(zip_reader, zip_path.c_str());
     if (err != MZ_OK) {
@@ -104,8 +103,7 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
         }
 
         file_index++;
-        if (progress_cb)
-            progress_cb(file_index, file_count, file_info->filename);
+        if (progress_cb) progress_cb(file_index, file_count, file_info->filename);
 
         err = mz_zip_reader_goto_next_entry(zip_reader);
     }

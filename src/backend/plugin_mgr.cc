@@ -53,8 +53,7 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
 {
     try {
         auto pluginOpt = Millennium::Plugins::GetPluginFromName(pluginName);
-        if (!pluginOpt)
-            return false;
+        if (!pluginOpt) return false;
 
         std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
@@ -137,8 +136,7 @@ nlohmann::json PluginInstaller::InstallPlugin(const std::string& downloadUrl, si
 std::optional<nlohmann::json> PluginInstaller::ReadMetadata(const std::filesystem::path& pluginPath)
 {
     std::filesystem::path metadataPath = pluginPath / "metadata.json";
-    if (!std::filesystem::exists(metadataPath))
-        return std::nullopt;
+    if (!std::filesystem::exists(metadataPath)) return std::nullopt;
 
     try {
         std::ifstream in(metadataPath);
@@ -162,12 +160,10 @@ std::vector<nlohmann::json> PluginInstaller::GetPluginData()
 {
     std::vector<nlohmann::json> pluginData;
     for (const auto& entry : std::filesystem::directory_iterator(PluginsPath())) {
-        if (!entry.is_directory())
-            continue;
+        if (!entry.is_directory()) continue;
 
         auto metadata = ReadMetadata(entry.path());
-        if (metadata)
-            pluginData.push_back(*metadata);
+        if (metadata) pluginData.push_back(*metadata);
     }
     return pluginData;
 }

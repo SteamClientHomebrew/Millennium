@@ -28,14 +28,15 @@
 
 #include <stddef.h>
 
-struct subhook {
-	int installed;
-	void *src;
-	void *dst;
-	void *code;
-	void *trampoline;
+struct subhook
+{
+    int installed;
+    void* src;
+    void* dst;
+    void* code;
+    void* trampoline;
 };
 
-void *subhook_unprotect(void *address, size_t size);
+void* subhook_unprotect(void* address, size_t size);
 
 #endif /* SUBHOOK_PRIVATE_H */

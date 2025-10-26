@@ -95,8 +95,7 @@ class BackendManager
 
         ~LuaThreadWrapper()
         {
-            if (thread.joinable())
-                thread.join();
+            if (thread.joinable()) thread.join();
         }
     };
 

@@ -18,8 +18,7 @@ static std::mutex update_mutex; // Protects the update process
 
 std::string MillenniumUpdater::ParseVersion(const std::string& version)
 {
-    if (!version.empty() && version[0] == 'v')
-        return version.substr(1);
+    if (!version.empty() && version[0] == 'v') return version.substr(1);
     return version;
 }
 
@@ -110,8 +109,7 @@ void MillenniumUpdater::CheckForUpdates()
 
 std::optional<nlohmann::json> MillenniumUpdater::FindAsset(const nlohmann::json& release_info)
 {
-    if (!release_info.contains("assets"))
-        return std::nullopt;
+    if (!release_info.contains("assets")) return std::nullopt;
 
     std::string platform_suffix;
 #ifdef _WIN32
@@ -125,8 +123,7 @@ std::optional<nlohmann::json> MillenniumUpdater::FindAsset(const nlohmann::json&
 
     std::string target_name = "millennium-" + release_info.value("tag_name", "") + "-" + platform_suffix;
     for (auto& asset : release_info["assets"]) {
-        if (asset.value("name", "") == target_name)
-            return asset;
+        if (asset.value("name", "") == target_name) return asset;
     }
     return std::nullopt;
 }

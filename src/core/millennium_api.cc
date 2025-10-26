@@ -124,8 +124,7 @@ nlohmann::json Millennium_GetPluginLogs()
         }
 
         // Handle package manager plugin
-        if (pluginName == "pipx")
-            pluginName = "Package Manager";
+        if (pluginName == "pipx") pluginName = "Package Manager";
 
         logData.push_back({
             { "name", pluginName  },

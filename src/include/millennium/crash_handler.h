@@ -93,8 +93,7 @@ inline long __attribute__((__stdcall__)) Win32_CrashHandler(EXCEPTION_POINTERS* 
 inline void UnhandledExceptionHandler()
 {
 #ifdef _WIN32
-    if (IsDebuggerPresent())
-        __debugbreak();
+    if (IsDebuggerPresent()) __debugbreak();
 #endif
     auto const exceptionPtr = std::current_exception();
     std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";

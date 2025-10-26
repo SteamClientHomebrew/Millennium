@@ -343,15 +343,13 @@ nlohmann::json ConfigManager::GetNested(const std::string& path, const nlohmann:
 
     while ((end = path.find('.', start)) != std::string::npos) {
         std::string key = path.substr(start, end - start);
-        if (!current->contains(key))
-            return def;
+        if (!current->contains(key)) return def;
         current = &(*current)[key];
         start = end + 1;
     }
 
     std::string last_key = path.substr(start);
-    if (!current->contains(last_key))
-        return def;
+    if (!current->contains(last_key)) return def;
     return (*current)[last_key];
 }
 
@@ -363,8 +361,7 @@ void ConfigManager::SetNested(const std::string& path, const nlohmann::json& val
 
     while ((end = path.find('.', start)) != std::string::npos) {
         std::string key = path.substr(start, end - start);
-        if (!current->contains(key) || !(*current)[key].is_object())
-            (*current)[key] = nlohmann::json::object();
+        if (!current->contains(key) || !(*current)[key].is_object()) (*current)[key] = nlohmann::json::object();
 
         current = &(*current)[key];
         start = end + 1;
@@ -383,18 +380,15 @@ void ConfigManager::SetNested(const std::string& path, const nlohmann::json& val
     if (old_value != value) {
         (*current)[last_key] = value;
         NotifyListeners(path, old_value, value);
-        if (!skipPropagation)
-            SaveToFile();
+        if (!skipPropagation) SaveToFile();
     }
 }
 
 nlohmann::json ConfigManager::Get(const std::string& key, const nlohmann::json& def)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
-    if (_data.contains(key))
-        return _data[key];
-    if (_defaults.contains(key))
-        return _defaults[key];
+    if (_data.contains(key)) return _data[key];
+    if (_defaults.contains(key)) return _defaults[key];
     return def;
 }
 
@@ -405,8 +399,7 @@ void ConfigManager::Set(const std::string& key, const nlohmann::json& value, boo
     if (old_value != value) {
         _data[key] = value;
         NotifyListeners(key, old_value, value);
-        if (!skipPropagation)
-            SaveToFile();
+        if (!skipPropagation) SaveToFile();
     }
 }
 

@@ -97,8 +97,7 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
 
     if (conditional_patches.contains("Conditions")) {
         for (auto& [item, condition] : conditional_patches["Conditions"].items()) {
-            if (!theme_conditions.contains(item))
-                continue;
+            if (!theme_conditions.contains(item)) continue;
             std::string current_value = theme_conditions[item].get<std::string>();
 
             if (condition.contains("values") && condition["values"].is_object()) {
@@ -108,8 +107,7 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
 
                     if (control_flow.contains("affects") && control_flow["affects"].is_array()) {
                         for (auto& match_string : control_flow["affects"]) {
-                            if (!match_string.is_string())
-                                continue;
+                            if (!match_string.is_string()) continue;
 
                             std::string target_path = control_flow.value("src", "");
                             webkit_items.push_back({ match_string.get<std::string>(), target_path, item });
@@ -122,8 +120,7 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
 
     if (conditional_patches.contains("Patches") && conditional_patches["Patches"].is_array()) {
         for (auto& patch : conditional_patches["Patches"]) {
-            if (!patch.contains("MatchRegexString"))
-                continue;
+            if (!patch.contains("MatchRegexString")) continue;
             std::string regex = patch["MatchRegexString"].get<std::string>();
 
             for (auto& inject_type : { "TargetCss", "TargetJs" }) {
@@ -133,8 +130,7 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
                         targets = nlohmann::json::array({ targets });
                     }
                     for (auto& target : targets) {
-                        if (!target.is_string())
-                            continue;
+                        if (!target.is_string()) continue;
                         webkit_items.push_back({ regex, target.get<std::string>(), inject_type });
                     }
                 }

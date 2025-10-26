@@ -188,8 +188,7 @@ std::string Colors::AdjustColorIntensity(const std::string& hex_color, int perce
 {
     auto clamp = [](int v) { return std::max(0, std::min(255, v)); };
     std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
-    if (color.length() != 6)
-        return hex_color;
+    if (color.length() != 6) return hex_color;
 
     int r = std::stoi(color.substr(0, 2), nullptr, 16);
     int g = std::stoi(color.substr(2, 2), nullptr, 16);

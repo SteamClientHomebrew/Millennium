@@ -159,8 +159,7 @@ inline void DownloadWithProgress(const std::tuple<std::string, size_t>& download
     const auto& [url, expectedSize] = download_info;
 
     CURL* curl = curl_easy_init();
-    if (!curl)
-        throw std::runtime_error("Failed to initialize curl");
+    if (!curl) throw std::runtime_error("Failed to initialize curl");
 
     FILE* fp = fopen(destPath.string().c_str(), "wb");
     if (!fp) {

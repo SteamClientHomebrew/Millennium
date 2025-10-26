@@ -27,14 +27,14 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-void *subhook_unprotect(void *address, size_t size) {
-	long pagesize;
+void* subhook_unprotect(void* address, size_t size)
+{
+    long pagesize;
 
-	pagesize = sysconf(_SC_PAGESIZE);
-	address = (void *)((long)address & ~(pagesize - 1));
+    pagesize = sysconf(_SC_PAGESIZE);
+    address = (void*)((long)address & ~(pagesize - 1));
 
-	if (mprotect(address, size, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
-		return NULL;
+    if (mprotect(address, size, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) return NULL;
 
-	return address;
+    return address;
 }

@@ -156,21 +156,17 @@ static size_t subhook_disasm(uint8_t* code, int* reloc)
     for (i = 0; i < (int)(sizeof(prefixes) / sizeof(*prefixes)); i++) {
         if (code[len] == prefixes[i]) {
             len++;
-            if (prefixes[i] == 0x66)
-                operand_size = 2;
-            if (prefixes[i] == 0x67)
-                address_size = SUBHOOK_BITS / 8 / 2;
+            if (prefixes[i] == 0x66) operand_size = 2;
+            if (prefixes[i] == 0x67) address_size = SUBHOOK_BITS / 8 / 2;
         }
     }
 
     for (i = 0; i < (int)(sizeof(opcodes) / sizeof(*opcodes)); i++) {
         int found = 0;
 
-        if (code[len] == opcodes[i].opcode)
-            found = !(opcodes[i].flags & REG_OPCODE) || ((code[len + 1] >> 3) & 7) == opcodes[i].reg_opcode;
+        if (code[len] == opcodes[i].opcode) found = !(opcodes[i].flags & REG_OPCODE) || ((code[len + 1] >> 3) & 7) == opcodes[i].reg_opcode;
 
-        if ((opcodes[i].flags & PLUS_R) && (code[len] & 0xF8) == opcodes[i].opcode)
-            found = 1;
+        if ((opcodes[i].flags & PLUS_R) && (code[len] & 0xF8) == opcodes[i].opcode) found = 1;
 
         if (found) {
             opcode = code[len++];
@@ -178,37 +174,28 @@ static size_t subhook_disasm(uint8_t* code, int* reloc)
         }
     }
 
-    if (opcode == 0)
-        return 0;
+    if (opcode == 0) return 0;
 
-    if (reloc != NULL && opcodes[i].flags & RELOC)
-        *reloc = len; /* relative call or jump */
+    if (reloc != NULL && opcodes[i].flags & RELOC) *reloc = len; /* relative call or jump */
 
     if (opcodes[i].flags & MODRM) {
         int modrm = code[len++];
         int mod = modrm >> 6;
         int rm = modrm & 7;
 
-        if (mod != 3 && rm == 4)
-            len++; /* for SIB */
+        if (mod != 3 && rm == 4) len++; /* for SIB */
 
 #ifdef SUBHOOK_X86_64
-        if (reloc != NULL && rm == 5)
-            *reloc = len; /* RIP-relative addressing */
+        if (reloc != NULL && rm == 5) *reloc = len; /* RIP-relative addressing */
 #endif
 
-        if (mod == 1)
-            len += 1; /* for disp8 */
-        if (mod == 2 || (mod == 0 && rm == 5))
-            len += 4; /* for disp32 */
+        if (mod == 1) len += 1;                          /* for disp8 */
+        if (mod == 2 || (mod == 0 && rm == 5)) len += 4; /* for disp32 */
     }
 
-    if (opcodes[i].flags & IMM8)
-        len += 1;
-    if (opcodes[i].flags & IMM16)
-        len += 2;
-    if (opcodes[i].flags & IMM32)
-        len += operand_size;
+    if (opcodes[i].flags & IMM8) len += 1;
+    if (opcodes[i].flags & IMM16) len += 2;
+    if (opcodes[i].flags & IMM32) len += operand_size;
     ;
 
     return len;
@@ -234,13 +221,11 @@ static size_t subhook_make_trampoline(uint8_t* trampoline, uint8_t* src)
 
         insn_len = subhook_disasm(src + orig_size, &reloc);
 
-        if (insn_len == 0)
-            return 0;
+        if (insn_len == 0) return 0;
 
         memcpy(trampoline + orig_size, src + orig_size, insn_len);
 
-        if (reloc > 0)
-            *(int32_t*)(trampoline + orig_size + reloc) -= (intptr_t)trampoline - (intptr_t)src;
+        if (reloc > 0) *(int32_t*)(trampoline + orig_size + reloc) -= (intptr_t)trampoline - (intptr_t)src;
 
         orig_size += insn_len;
     }
@@ -252,8 +237,7 @@ SUBHOOK_EXPORT subhook_t SUBHOOK_API subhook_new(void* src, void* dst)
 {
     subhook_t hook;
 
-    if ((hook = malloc(sizeof(*hook))) == NULL)
-        return NULL;
+    if ((hook = malloc(sizeof(*hook))) == NULL) return NULL;
 
     hook->installed = 0;
     hook->src = src;
@@ -306,8 +290,7 @@ SUBHOOK_EXPORT void* SUBHOOK_API subhook_get_src(subhook_t hook)
 
 SUBHOOK_EXPORT int SUBHOOK_API subhook_install(subhook_t hook)
 {
-    if (hook->installed)
-        return -EINVAL;
+    if (hook->installed) return -EINVAL;
 
     subhook_make_jmp(hook->src, hook->dst, 0);
     hook->installed = 1;
@@ -317,8 +300,7 @@ SUBHOOK_EXPORT int SUBHOOK_API subhook_install(subhook_t hook)
 
 SUBHOOK_EXPORT int SUBHOOK_API subhook_remove(subhook_t hook)
 {
-    if (!hook->installed)
-        return -EINVAL;
+    if (!hook->installed) return -EINVAL;
 
     memcpy(hook->src, hook->code, JMP_INSN_LEN);
     hook->installed = 0;
@@ -330,8 +312,7 @@ SUBHOOK_EXPORT void* SUBHOOK_API subhook_read_dst(void* src)
 {
     struct subhook_jmp* maybe_jmp = (struct subhook_jmp*)src;
 
-    if (maybe_jmp->opcode != JMP_INSN_OPCODE)
-        return NULL;
+    if (maybe_jmp->opcode != JMP_INSN_OPCODE) return NULL;
 
     return (void*)(maybe_jmp->offset + (uint8_t*)src + JMP_INSN_LEN);
 }

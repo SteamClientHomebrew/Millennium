@@ -47,8 +47,7 @@ void ThemeInstaller::RPCLogMessage(const std::string& status, double progress, b
 {
     static auto lastSent = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
-    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSent).count() < 100)
-        return;
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSent).count() < 100) return;
     lastSent = now;
 
     Logger.Log("Installer: {} ({}%)", status, progress);
@@ -75,8 +74,7 @@ std::optional<nlohmann::json> ThemeInstaller::GetThemeFromGitPair(const std::str
     nlohmann::json themes = Millennium::Themes::FindAllThemes();
     for (auto& theme : themes) {
         auto github = theme.value("data", nlohmann::json::object()).value("github", nlohmann::json::object());
-        if (github.value("owner", "") == owner && github.value("repo_name", "") == repo)
-            return asString ? nlohmann::json(theme.dump()) : theme;
+        if (github.value("owner", "") == owner && github.value("repo_name", "") == repo) return asString ? nlohmann::json(theme.dump()) : theme;
     }
     return std::nullopt;
 }
@@ -93,18 +91,14 @@ nlohmann::json ThemeInstaller::UninstallTheme(std::shared_ptr<ThemeConfig> theme
     Logger.Log("UninstallTheme: {}/{}", owner, repo);
 
     auto themeOpt = GetThemeFromGitPair(repo, owner);
-    if (!themeOpt)
-        return ErrorMessage("Couldn't locate theme on disk!");
+    if (!themeOpt) return ErrorMessage("Couldn't locate theme on disk!");
 
-    if (!themeOpt->contains("native"))
-        return ErrorMessage("Theme does not have a native path!");
+    if (!themeOpt->contains("native")) return ErrorMessage("Theme does not have a native path!");
 
     std::filesystem::path path = SkinsRoot() / themeOpt->value("native", std::string());
-    if (!std::filesystem::exists(path))
-        return ErrorMessage("Theme path does not exist!");
+    if (!std::filesystem::exists(path)) return ErrorMessage("Theme path does not exist!");
 
-    if (!SystemIO::DeleteFolder(path))
-        return ErrorMessage("Failed to delete theme folder");
+    if (!SystemIO::DeleteFolder(path)) return ErrorMessage("Failed to delete theme folder");
 
     /** trigger config update to regenerate config */
     themeConfig->OnConfigChange();
@@ -159,8 +153,7 @@ int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesyst
 
     if (ret != 0) {
         outErr = git_error_last() ? git_error_last()->message : "Unknown libgit2 error";
-        if (repo)
-            git_repository_free(repo);
+        if (repo) git_repository_free(repo);
         git_libgit2_shutdown();
         return ret;
     }
@@ -272,8 +265,7 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> ThemeInstaller::Qu
     for (auto& theme : themes) {
         std::filesystem::path path = SkinsRoot() / theme.value("native", "");
         try {
-            if (!std::filesystem::exists(path) || !IsGitRepo(path))
-                throw std::runtime_error("Not a git repo");
+            if (!std::filesystem::exists(path) || !IsGitRepo(path)) throw std::runtime_error("Not a git repo");
 
             updateQuery.push_back({ theme, path });
         } catch (...) {
@@ -366,8 +358,7 @@ nlohmann::json ThemeInstaller::ConstructPostBody(const std::vector<nlohmann::jso
     nlohmann::json post_body = nlohmann::json::array();
 
     for (const auto& theme : update_query) {
-        if (!theme.contains("data") || !theme["data"].contains("github"))
-            continue;
+        if (!theme.contains("data") || !theme["data"].contains("github")) continue;
 
         const auto& github_data = theme["data"]["github"];
         std::string owner = github_data.value("owner", "");

@@ -38,8 +38,7 @@ std::string Millennium::CSSParser::Trim(const std::string& str)
 {
     const std::string whitespace = " \t\n\r";
     size_t start = str.find_first_not_of(whitespace);
-    if (start == std::string::npos)
-        return "";
+    if (start == std::string::npos) return "";
     size_t end = str.find_last_not_of(whitespace);
     return str.substr(start, end - start + 1);
 }
@@ -125,8 +124,7 @@ std::string Millennium::CSSParser::ExpandShorthandHexColor(const std::string& sh
 
 Millennium::ColorTypes Millennium::CSSParser::TryRawParse(const std::string& color)
 {
-    if (color.find(", ") == std::string::npos)
-        return ColorTypes::Unknown;
+    if (color.find(", ") == std::string::npos) return ColorTypes::Unknown;
     std::istringstream ss(color);
     std::string token;
     int count = 0;
@@ -137,12 +135,9 @@ Millennium::ColorTypes Millennium::CSSParser::TryRawParse(const std::string& col
 
 Millennium::ColorTypes Millennium::CSSParser::ParseColor(const std::string& color)
 {
-    if (color.rfind("rgb(", 0) == 0)
-        return ColorTypes::RGB;
-    if (color.rfind("rgba(", 0) == 0)
-        return ColorTypes::RGBA;
-    if (color.rfind("#", 0) == 0)
-        return ColorTypes::Hex;
+    if (color.rfind("rgb(", 0) == 0) return ColorTypes::RGB;
+    if (color.rfind("rgba(", 0) == 0) return ColorTypes::RGBA;
+    if (color.rfind("#", 0) == 0) return ColorTypes::Hex;
     return TryRawParse(color);
 }
 
@@ -154,8 +149,7 @@ nlohmann::json Millennium::CSSParser::GenerateColorMetadata(const std::map<std::
     for (const auto& [prop, value] : properties) {
         std::string expanded = ExpandShorthandHexColor(value);
         ColorTypes type = ParseColor(expanded);
-        if (type == ColorTypes::Unknown)
-            continue;
+        if (type == ColorTypes::Unknown) continue;
 
         auto it = propertyMap.find(prop);
         nlohmann::json name = (it != propertyMap.end() && !it->second.first.empty()) ? nlohmann::json(it->second.first) : nlohmann::json(nullptr);
@@ -178,8 +172,7 @@ std::string Millennium::CSSParser::ExtractRootBlock(const std::string& fileConte
 {
     std::regex rootRegex(R"(:root\s*\{([\s\S]*)\})", std::regex::ECMAScript);
     std::smatch match;
-    if (std::regex_search(fileContent, match, rootRegex))
-        return match[1].str();
+    if (std::regex_search(fileContent, match, rootRegex)) return match[1].str();
     return "";
 }
 
@@ -193,8 +186,7 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
 
     while (std::getline(ss, line)) {
         line = Trim(line);
-        if (line.empty())
-            continue;
+        if (line.empty()) continue;
 
         if (line.rfind("/*", 0) == 0) {
             lastComment.clear();
@@ -203,8 +195,7 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
 
         if (inComment) {
             lastComment += line + "\n";
-            if (line.find("*/") != std::string::npos)
-                inComment = false;
+            if (line.find("*/") != std::string::npos) inComment = false;
             continue;
         }
 
@@ -220,10 +211,8 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
                 std::regex nameRegex(R"(@name\s+([^\*]+))");
                 std::regex descRegex(R"(@description\s+([^\*]+))");
                 std::smatch nameMatch, descMatch;
-                if (std::regex_search(lastComment, nameMatch, nameRegex))
-                    name = Trim(nameMatch[1].str());
-                if (std::regex_search(lastComment, descMatch, descRegex))
-                    description = Trim(descMatch[1].str());
+                if (std::regex_search(lastComment, nameMatch, nameRegex)) name = Trim(nameMatch[1].str());
+                if (std::regex_search(lastComment, descMatch, descRegex)) description = Trim(descMatch[1].str());
                 lastComment.clear();
             }
 
@@ -235,16 +224,14 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
 nlohmann::json Millennium::CSSParser::ParseRootColors(const std::string& filePath)
 {
     std::ifstream file(filePath);
-    if (!file.is_open())
-        return nlohmann::json::array();
+    if (!file.is_open()) return nlohmann::json::array();
 
     std::stringstream buffer;
     buffer << file.rdbuf();
     std::string content = buffer.str();
 
     std::string rootBlock = ExtractRootBlock(content);
-    if (rootBlock.empty())
-        return nlohmann::json::array();
+    if (rootBlock.empty()) return nlohmann::json::array();
 
     std::map<std::string, std::string> properties;
     std::map<std::string, std::pair<std::string, std::string>> propertyMap;
