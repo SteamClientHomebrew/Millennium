@@ -19,7 +19,6 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update assets hash
-        if: contains(github.event.head_commit.modified, 'assets/pnpm-lock.yaml')
         run: |
           # Try to build and capture the correct hash from error
           nix build .#assets 2>&1 | tee build.log || true
@@ -30,7 +29,6 @@ jobs:
           fi
 
       - name: Update SDK hash
-        if: contains(github.event.head_commit.modified, 'sdk/pnpm-lock.yaml')
         run: |
           # Try to build and capture the correct hash from error
           nix build .#shims 2>&1 | tee build.log || true
