@@ -139,6 +139,12 @@ main() {
         esac
     done
 
+    if is_root; then
+        log "Do not run this script as root!"
+        log "aborting installation..."
+        exit
+    fi
+
     target=$(verify_platform)
     check_dependencies
 
