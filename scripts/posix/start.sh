@@ -10,12 +10,12 @@ export OPENSSL_CONF=/dev/null
 
 # Only set LD_PRELOAD if MILLENNIUM_RUNTIME_PATH is not set
 if [ -z "${MILLENNIUM_RUNTIME_PATH}" ]; then
-    export LD_PRELOAD="/usr/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
+    export LD_PRELOAD="/usr/lib/millennium/libmillennium_x86.so:/usr/local/lib/millennium/libmillennium_x86.so${LD_PRELOAD:+:$LD_PRELOAD}" # preload Millennium into Steam
 else
     export LD_PRELOAD="${MILLENNIUM_RUNTIME_PATH}${LD_PRELOAD:+:$LD_PRELOAD}" # use custom LD_PRELOAD if set
 fi
 
-export LD_LIBRARY_PATH="/usr/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="/usr/lib/millennium/:/usr/local/lib/millennium/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 # Millennium hooks __libc_start_main to initialize itself, which is a function that is called before main. 
 # Besides that, Millennium does not alter Steam memory and runs completely disjoint.
