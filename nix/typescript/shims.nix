@@ -11,7 +11,6 @@ stdenv.mkDerivation rec {
   src = ../../sdk;
   pnpmDeps = pnpm.fetchDeps {
     inherit src version pname;
-    #TODO: automatic hash update
     hash = "sha256-USWkGPqkjOTEAdkyz9k82M7o2S4/uMi/dGls25b4JJE=";
     fetcherVersion = 2;
   };
