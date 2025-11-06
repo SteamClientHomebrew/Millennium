@@ -65,7 +65,7 @@ extern std::condition_variable cv_hasSteamUIStartedLoading;
 VOID Win32_AttachMillennium(VOID)
 {
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
-    if (!InitializeSteamHooks()) {
+    if (!Plat_InitializeSteamHooks()) {
         return;
     }
 

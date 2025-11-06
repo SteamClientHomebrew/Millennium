@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include <filesystem>
+#include <unistd.h>
 #define UNICODE
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -42,6 +42,7 @@
 #include "millennium/logger.h"
 #include "millennium/millennium_updater.h"
 
+#include <filesystem>
 #include <fmt/core.h>
 
 /**
@@ -119,6 +120,8 @@ static void VerifyEnvironment()
 
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
+void setup_shared_memory_ipc();
+
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
  */

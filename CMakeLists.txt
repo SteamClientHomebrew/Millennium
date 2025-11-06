@@ -121,6 +121,7 @@ endfunction()
 # ====================================
 message(STATUS "[Millennium] Fetching dependencies...")
 
+FetchContent_Declare(vecscan       GIT_REPOSITORY https://github.com/VectorCamp/vectorscan         GIT_TAG vectorscan/5.4.12 SOURCE_SUBDIR fakedir)
 FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1           SOURCE_SUBDIR fakedir)
 FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2         SOURCE_SUBDIR fakedir)
 FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4         SOURCE_SUBDIR fakedir)
@@ -135,7 +136,7 @@ FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemas
 FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0    SOURCE_SUBDIR fakedir)
 
 # Download all deps without configuring them
-set(DEPENDENCIES luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
+set(DEPENDENCIES vecscan luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
 
 # Append min-hook only on Windows
 if(WIN32)
@@ -166,6 +167,7 @@ include_directories("${luajit_BINARY_DIR}")
 include_directories("${luajit_SOURCE_DIR}/src")
 
 # Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
+millennium_process_package("${vecscan_SOURCE_DIR}")
 millennium_process_package("${luajit_SOURCE_DIR}")
 millennium_process_package("${curl_SOURCE_DIR}")
 millennium_process_package("${websocketpp_SOURCE_DIR}")
@@ -177,7 +179,6 @@ millennium_process_package("${mini_SOURCE_DIR}")
 millennium_process_package("${lua_cjson_SOURCE_DIR}")
 
 if(WIN32)
-    include_directories("${CMAKE_SOURCE_DIR}/vendor/pdcurses")
     millennium_process_package("${minhook_SOURCE_DIR}/")
 endif()
 
@@ -543,6 +544,9 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/vendor/crow/include
     ${CMAKE_SOURCE_DIR}/vendor/ini/src
     ${CMAKE_SOURCE_DIR}/vendor/incbin
+    ${CMAKE_SOURCE_DIR}/vendor/subhook
+    ${CMAKE_SOURCE_DIR}/vendor/plthook
+    ${CMAKE_SOURCE_DIR}/vendor/xxhash
 )
 
 # =====================================
@@ -564,6 +568,7 @@ set(SOURCE_FILES
     src/runtime/libpy_interop.cc
     src/runtime/libpy_logger.cc
     src/runtime/libpy_stdout_fwd.cc
+    src/runtime/liblj_vfs_hook_api.cc
     src/core/auth.cc
     src/core/backend_init.cc
     src/core/backend_mgr.cc
@@ -586,7 +591,8 @@ set(SOURCE_FILES
     src/backend/theme_cfg.cc
     src/backend/theme_mgr.cc
     src/backend/webkit.cc
-    src/hooks/steam_hooks.cc
+    src/hooks/internal/steam_hooks.cc
+    src/emu/src/smem.c
     src/sys/cfg.cc
     src/sys/env.cc
     src/sys/log.cc
@@ -594,14 +600,17 @@ set(SOURCE_FILES
     src/main.cc
 )
 
+add_subdirectory(src/emu)
+
 if(WIN32)
     list(APPEND SOURCE_FILES "src/plat/init_win32.cc")
 elseif(UNIX)
     list(APPEND SOURCE_FILES "src/plat/init_posix.cc")
     list(APPEND SOURCE_FILES "src/plat/init_posix_deprecated.cc")
-    # list(APPEND SOURCE_FILES "src/hooks/third_party/subhook.c")
-    list(APPEND SOURCE_FILES "src/hooks/third_party/subhook_x86.c")
-    list(APPEND SOURCE_FILES "src/hooks/third_party/subhook_linux.c")
+
+    list(APPEND SOURCE_FILES "vendor/subhook/subhook_x86.c")
+    list(APPEND SOURCE_FILES "vendor/subhook/subhook_linux.c")
+    list(APPEND SOURCE_FILES "vendor/plthook/plthook_elf.c")
 endif()
 
 # =====================================

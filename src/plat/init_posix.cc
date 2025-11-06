@@ -91,7 +91,7 @@ void Posix_AttachMillennium()
 {
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
-    InitializeSteamHooks();
+    Plat_InitializeSteamHooks();
     EntryMain();
 
     BackendManager& manager = BackendManager::GetInstance();

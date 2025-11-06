@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.10)
 project(unix-hooks LANGUAGES CXX)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(MILLENNIUM_RUNTIME_PATH "${CMAKE_SOURCE_DIR}/build/libmillennium_x86.so")

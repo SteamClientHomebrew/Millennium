@@ -28,13 +28,18 @@
  * SOFTWARE.
  */
 
+#include <atomic>
 #include <condition_variable>
+#include <mutex>
 #include "millennium/steam_hooks.h"
 #include "millennium/argp_win32.h"
+#include "millennium/backend_init.h"
 
-std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
-std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
+std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
+std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
 std::string STEAM_DEVELOPER_TOOLS_PORT;
+
+static std::atomic<bool> g_hasWaitedForBackends{ false };
 
 uint_least16_t GetRandomOpenPort()
 {
@@ -276,6 +281,16 @@ const char* Command_get(Command* cmd)
 
 const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 {
+    /** only wait on the first call. */
+    if (!g_hasWaitedForBackends.load()) {
+        Logger.Log("[Plat_HookedCreateSimpleProcess] Waiting for backends to finish first load...");
+        std::unique_lock<std::mutex> lock(mtx_hasBackendsLoaded);
+        cv_hasBackendsLoaded.wait(lock);
+        Logger.Log("[Plat_HookedCreateSimpleProcess] All backends have loaded, proceeding with CEF start...");
+
+        g_hasWaitedForBackends.store(true);
+    }
+
     Command c;
     Command_init(&c, cmd);
 
@@ -497,7 +512,7 @@ BOOL InitializeSteamHooks()
 #include <dlfcn.h>
 #include <string>
 #include <fmt/format.h>
-#include "./third_party/subhook.h"
+#include <subhook.h>
 
 static SubHook create_hook;
 
@@ -530,7 +545,7 @@ static void* GetModuleHandle(const char* libneedle, const char* symbol)
     return nullptr;
 }
 
-int InitializeSteamHooks()
+bool InitializeSteamHooks()
 {
     const char* libneedle = "libtier0_s.so";
     const char* symbol = "CreateSimpleProcess";
@@ -540,12 +555,24 @@ int InitializeSteamHooks()
     void* target = GetModuleHandle(libneedle, symbol);
     if (!target) {
         LOG_ERROR("Failed to locate symbol '{}'", symbol);
-        return 1;
+        return false;
     }
 
     Logger.Log("Located {} at address {}", symbol, target);
     const bool success = create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
     Logger.Log("Hook install success?: {}", success);
-    return 0;
+    return true;
 }
 #endif
+
+static void __backend_load()
+{
+    cv_hasBackendsLoaded.notify_all();
+}
+
+bool Plat_InitializeSteamHooks()
+{
+    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+    backendHandler.RegisterForLoad(__backend_load);
+    return InitializeSteamHooks();
+}

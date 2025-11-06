@@ -29,6 +29,7 @@
  */
 
 #include "millennium/backend_init.h"
+#include "emu/include/smem.h"
 #include "millennium/auth.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"
@@ -39,6 +40,7 @@
 #include "millennium/plugin_logger.h"
 #include "millennium/urlp.h"
 
+lb_shm_arena_t* g_lb_patch_arena;
 static std::string addedScriptOnNewDocumentId = "";
 
 /**
@@ -316,6 +318,7 @@ void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsSto
 extern "C" int Lua_OpenUtilsLibrary(lua_State* L);
 extern "C" int Lua_OpenLoggerLibrary(lua_State* L);
 extern "C" int luaopen_cjson(lua_State* l);
+void load_patches(lua_State* L, lb_shm_arena_t* map);
 extern "C" int Lua_OpenHttpLibrary(lua_State* L);
 extern "C" int Lua_OpenFS(lua_State* L);
 extern "C" int Lua_OpenRegex(lua_State* L);
@@ -367,9 +370,17 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
         return;
     }
 
-    // Store the returned object in MILLENNIUM_PLUGIN_DEFINITION
-    lua_pushvalue(L, -1); // duplicate the returned table
+    lua_pushvalue(L, -1);
     lua_setglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
+
+    /** parse the "patches" block */
+    if (!g_lb_patch_arena) {
+        g_lb_patch_arena = shm_arena_create(SHM_IPC_NAME, 1024 * 1024);
+        hashmap_init(g_lb_patch_arena);
+    }
+
+    load_patches(L, g_lb_patch_arena);
+    hashmap_print(g_lb_patch_arena);
 
     if (!lua_istable(L, -1)) {
         LOG_ERROR("Lua file should return a table with functions");
