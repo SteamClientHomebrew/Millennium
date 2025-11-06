@@ -7,7 +7,7 @@ url="https://github.com/SteamClientHomebrew/Millennium"
 license=('MIT')
 depends=('git' 'steam')
 makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs' 'pnpm')
-depends_x86_64=('python-i686-bin')
+depends_x86_64=('lib32-python311-bin')
 source=("git+$url.git#commit=0cf351871e1c4715e6b4ded3d5df614455fe4af7")
 sha256sums=('SKIP')
 options=(!debug)
