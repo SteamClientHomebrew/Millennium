@@ -1,11 +1,42 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2025 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include <linux/limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "log.h"
 #include "urlp.h"
 #include "fread.h"
 
-int find_file_matches(char* file_content, uint32_t size, char* local_path);
+int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
 
 int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size)
 {
@@ -30,10 +61,16 @@ int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size
     }
 
     log_info("read file %s, size: %d\n", local_path, file_data.size);
-    find_file_matches(file_data.content, file_data.size, local_short_path);
 
-    *out_data = file_data.content;
-    *out_size = file_data.size;
+    char* out_file_data = NULL;
+    uint32_t out_file_size = 0;
+
+    find_file_matches(file_data.content, file_data.size, local_short_path, &out_file_data, &out_file_size);
+
+    log_info("out_file_size: %ud\n", out_file_size);
+
+    *out_data = out_file_data;
+    *out_size = out_file_size;
     file_data.content = NULL; /** transfer ownership */
 
 cleanup:

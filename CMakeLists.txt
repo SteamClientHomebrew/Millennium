@@ -34,7 +34,8 @@ endif()
 set(BUILD_TESTS                 OFF CACHE BOOL     "Disable building tests")
 set(BUILD_EXAMPLES              OFF CACHE BOOL     "Disable building examples")
 
-set(BUILD_SHARED_LIBS           OFF CACHE BOOL     "Build static libraries by default")
+set(BUILD_SHARED_LIBS           OFF CACHE BOOL     "Build static libraries by default" FORCE)
+set(BUILD_STATIC_LIBS           ON  CACHE BOOL     "Build static libraries by default" FORCE)
 set(CMAKE_CXX_STANDARD          17  CACHE STRING   "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD            11  CACHE STRING   "C standard to use" FORCE)
 set(CMAKE_CXX_STANDARD_REQUIRED ON  CACHE BOOL     "Enforce C++ standard" FORCE)
@@ -82,6 +83,14 @@ set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
 
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
 
+set(PCRE2_BUILD_PCRE2_8 ON CACHE BOOL "" FORCE)
+set(PCRE2_BUILD_PCRE2_16 OFF CACHE BOOL "" FORCE)
+set(PCRE2_BUILD_PCRE2_32 OFF CACHE BOOL "" FORCE)
+set(PCRE2_SUPPORT_JIT ON CACHE BOOL "" FORCE)
+set(PCRE2_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(PCRE2_BUILD_PCRE2GREP OFF CACHE BOOL "" FORCE)
+set(FAT_RUNTIME OFF CACHE BOOL "" FORCE)
+
 add_compile_definitions(
     USE_INTERNAL_FPCONV
 
@@ -121,22 +130,23 @@ endfunction()
 # ====================================
 message(STATUS "[Millennium] Fetching dependencies...")
 
+FetchContent_Declare(pcre2         GIT_REPOSITORY https://github.com/PCRE2Project/pcre2            GIT_TAG pcre2-10.47       SOURCE_SUBDIR fakedir)
 FetchContent_Declare(vecscan       GIT_REPOSITORY https://github.com/VectorCamp/vectorscan         GIT_TAG vectorscan/5.4.12 SOURCE_SUBDIR fakedir)
-FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1           SOURCE_SUBDIR fakedir)
-FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2          SOURCE_SUBDIR fakedir)
-FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0        SOURCE_SUBDIR fakedir)
-FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10         SOURCE_SUBDIR fakedir)
-FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0    SOURCE_SUBDIR fakedir)
-FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main           SOURCE_SUBDIR fakedir)
-FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0    SOURCE_SUBDIR fakedir)
+FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1              SOURCE_SUBDIR fakedir)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2            SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4            SOURCE_SUBDIR fakedir)
+FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18            SOURCE_SUBDIR fakedir)
+FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2             SOURCE_SUBDIR fakedir)
+FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0            SOURCE_SUBDIR fakedir)
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0           SOURCE_SUBDIR fakedir)
+FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1            SOURCE_SUBDIR fakedir)
+FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10            SOURCE_SUBDIR fakedir)
+FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main              SOURCE_SUBDIR fakedir)
+FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0       SOURCE_SUBDIR fakedir)
 
 # Download all deps without configuring them
-set(DEPENDENCIES vecscan luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
+set(DEPENDENCIES pcre2 vecscan luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
 
 # Append min-hook only on Windows
 if(WIN32)
@@ -168,6 +178,7 @@ include_directories("${luajit_SOURCE_DIR}/src")
 
 # Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
 millennium_process_package("${vecscan_SOURCE_DIR}")
+millennium_process_package("${pcre2_SOURCE_DIR}")
 millennium_process_package("${luajit_SOURCE_DIR}")
 millennium_process_package("${curl_SOURCE_DIR}")
 millennium_process_package("${websocketpp_SOURCE_DIR}")
@@ -345,16 +356,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
     endif()
 
     message(STATUS "[Millennium] Frontend build completed successfully")
-endif()
-
-# =====================================
-# Platform-Specific Compiler Flags
-# =====================================
-
-# 32-bit compilation (except Apple)
-if(NOT APPLE)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 endif()
 
 # MinGW optimizations
@@ -591,7 +592,7 @@ set(SOURCE_FILES
     src/backend/theme_cfg.cc
     src/backend/theme_mgr.cc
     src/backend/webkit.cc
-    src/hooks/internal/steam_hooks.cc
+    src/hooks/steam_hooks.cc
     src/emu/src/smem.c
     src/sys/cfg.cc
     src/sys/env.cc

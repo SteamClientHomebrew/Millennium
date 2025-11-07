@@ -28,55 +28,33 @@
  * SOFTWARE.
  */
 
-#include "fread.h"
-#include <stdio.h>
-#include <stdlib.h>
+#pragma once
+#include "smem.h"
 
-/**
- * read a file from the provided path.
- * returns empty fread_data if the file has no content/does not exist.
- *
- * caller is responsible for freeing fread_data.content
- */
-fread_data fread_file(const char* path)
+typedef struct
 {
-    fread_data result = { 0, 0 };
+    unsigned int* ids;
+    unsigned long long* froms;
+    unsigned long long* tos;
+    int count;
+    int capacity;
+} match_list_t;
 
-    /** open as read bytes */
-    FILE* f = fopen(path, "rb");
-    if (!f) return result;
+typedef struct
+{
+    const char** matches;
+    const char** replaces;
+    int count;
+} transform_data_t;
 
-    /** get the length of the file by reading to the end */
-    fseek(f, 0, SEEK_END);
-    long file_size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+typedef struct
+{
+    const char** finds;
+    unsigned int* flags;
+    unsigned int* ids;
+} finds_from_file_match_t;
 
-    if (file_size <= 0) {
-        fclose(f);
-        return result;
-    }
-
-    /** allocate file size in memory */
-    result.content = malloc(file_size);
-    if (!result.content) {
-        fclose(f);
-        return result;
-    }
-
-    long total = 0;
-    while (total < file_size) {
-        long to_read = file_size - total;
-        /** read the file in chunks, this increases the read speed for large files */
-        if (to_read > 65536) to_read = 65536;
-
-        long n = fread(result.content + total, 1, to_read, f);
-        if (n == 0) break;
-
-        total += n;
-    }
-
-    /** total read bytes */
-    result.size = total;
-    fclose(f);
-    return result;
-}
+int get_transform_from_matches(lb_shm_arena_t* arena, match_list_t* matches, const char*** out_finds, transform_data_t** out_transforms);
+int match_list_alloc(match_list_t* m, unsigned int count);
+void match_list_destroy(match_list_t* m);
+int match_list_vecscan_handler(unsigned int id, unsigned long long from, unsigned long long to, unsigned int flags, void* ctx);
