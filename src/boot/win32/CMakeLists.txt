@@ -25,7 +25,7 @@ elseif(UNIX AND NOT GITHUB_ACTION_BUILD)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "$ENV{HOME}/.millennium/")
 endif()
 
-add_library(preload SHARED main.c exports.def)
+add_library(preload SHARED main.c ../../../scripts/exports.def)
 target_link_libraries(preload ${CMAKE_BINARY_DIR}/version.o)
 
 set_target_properties(preload PROPERTIES 

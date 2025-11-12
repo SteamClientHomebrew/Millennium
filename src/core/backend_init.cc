@@ -376,6 +376,10 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
     /** parse the "patches" block */
     if (!g_lb_patch_arena) {
         g_lb_patch_arena = shm_arena_create(SHM_IPC_NAME, 1024 * 1024);
+        if (!g_lb_patch_arena) {
+            LOG_ERROR("Failed to create shared memory");
+            return;
+        }
         hashmap_init(g_lb_patch_arena);
     }
 

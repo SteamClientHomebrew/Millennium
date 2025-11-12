@@ -41,6 +41,10 @@
 #include "lb_request.h"
 #include "urlp.h"
 
+#ifdef _WIN32
+static int(__cdecl* orig_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;
+#endif
+
 /**
  * hook resource request handler to block steamloopback.host requests.
  *
@@ -84,11 +88,11 @@ struct _cef_request_handler_t* hooked_get_request_handler(void* self)
 
     /** save the first original request handler we find (not sure if this will cause issues, I guess we will have to wait and see) */
     if (!orig_get_resource) {
-        orig_get_resource = (void*)handler->get_resource_request_handler;
+        orig_get_resource = reinterpret_cast<decltype(orig_get_resource)>(handler->get_resource_request_handler);
     }
 
     /** redirect the resource request handler to our hooked one */
-    handler->get_resource_request_handler = (void*)hooked_get_resource;
+    handler->get_resource_request_handler = reinterpret_cast<decltype(handler->get_resource_request_handler)>(hooked_get_resource);
     return handler;
 }
 
@@ -106,7 +110,68 @@ int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, voi
     if (c && c->get_request_handler && !orig_c) {
         orig_c = c;
         original_get_request_handler = c->get_request_handler;
-        c->get_request_handler = (void*)hooked_get_request_handler;
+        c->get_request_handler = reinterpret_cast<decltype(c->get_request_handler)>(hooked_get_request_handler);
     }
+
+#ifdef _WIN32
+    return orig_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
+#else
     return lazy_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
+#endif
 }
+
+#ifdef _WIN32
+#include <minhook.h>
+
+void Win32_StartHook()
+{
+    if (MH_Initialize() != MH_OK) {
+        log_error("MinHook: MH_Initialize failed\n");
+        return;
+    }
+
+    HMODULE mod = nullptr;
+    while (true) {
+        mod = GetModuleHandleA("libcef.dll");
+        if (mod) {
+            break;
+        }
+
+        Sleep(100);
+        log_debug("MinHook: Waiting for libcef.dll to load...\n");
+    }
+
+    if (!mod) {
+        log_error("MinHook: libcef.dll not found in process\n");
+        return;
+    }
+
+    void* proc = reinterpret_cast<void*>(GetProcAddress(mod, "cef_browser_host_create_browser"));
+    if (!proc) {
+        log_error("MinHook: cef_browser_host_create_browser not found in libcef.dll\n");
+        return;
+    }
+
+    if (MH_CreateHook(proc, reinterpret_cast<void*>(&cef_browser_host_create_browser), reinterpret_cast<void**>(&orig_cef_browser_host_create_browser)) != MH_OK) {
+        log_error("MinHook: MH_CreateHook failed\n");
+        return;
+    }
+
+    if (MH_EnableHook(reinterpret_cast<void*>(proc)) != MH_OK) {
+        log_error("MinHook: MH_EnableHook failed\n");
+        return;
+    }
+}
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+{
+    switch (fdwReason) {
+        case DLL_PROCESS_ATTACH:
+            Win32_StartHook();
+            break;
+        case DLL_PROCESS_DETACH:
+            break;
+    }
+    return TRUE;
+}
+#endif

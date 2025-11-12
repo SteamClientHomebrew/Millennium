@@ -31,30 +31,39 @@
 #pragma once
 #include "smem.h"
 
-typedef struct
+#ifdef __cplusplus
+extern "C"
 {
-    unsigned int* ids;
-    unsigned long long* froms;
-    unsigned long long* tos;
-    int count;
-    int capacity;
-} match_list_t;
+#endif
 
-typedef struct
-{
-    const char** matches;
-    const char** replaces;
-    int count;
-} transform_data_t;
+    typedef struct
+    {
+        unsigned int* ids;
+        unsigned long long* froms;
+        unsigned long long* tos;
+        int count;
+        int capacity;
+    } match_list_t;
 
-typedef struct
-{
-    const char** finds;
-    unsigned int* flags;
-    unsigned int* ids;
-} finds_from_file_match_t;
+    typedef struct
+    {
+        const char** matches;
+        const char** replaces;
+        int count;
+    } transform_data_t;
 
-int get_transform_from_matches(lb_shm_arena_t* arena, match_list_t* matches, const char*** out_finds, transform_data_t** out_transforms);
-int match_list_alloc(match_list_t* m, unsigned int count);
-void match_list_destroy(match_list_t* m);
-int match_list_vecscan_handler(unsigned int id, unsigned long long from, unsigned long long to, unsigned int flags, void* ctx);
+    typedef struct
+    {
+        const char** finds;
+        unsigned int* flags;
+        unsigned int* ids;
+    } finds_from_file_match_t;
+
+    int get_transform_from_matches(lb_shm_arena_t* arena, match_list_t* matches, const char*** out_finds, transform_data_t** out_transforms);
+    int match_list_alloc(match_list_t* m, unsigned int count);
+    void match_list_destroy(match_list_t* m);
+    int match_list_vecscan_handler(unsigned int id, unsigned long long from, unsigned long long to, unsigned int flags, void* ctx);
+
+#ifdef __cplusplus
+}
+#endif

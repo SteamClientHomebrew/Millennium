@@ -15,3 +15,4 @@ node_modules/
 src/include/millennium/virtfs.h
 .cache/
 compile_commands.json
+src/emu/build/

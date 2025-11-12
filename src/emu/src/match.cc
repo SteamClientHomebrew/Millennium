@@ -35,9 +35,9 @@
 
 int match_list_alloc(match_list_t* m, unsigned int count)
 {
-    m->ids = malloc(count * sizeof(unsigned int));
-    m->froms = malloc(count * sizeof(unsigned int));
-    m->tos = malloc(count * sizeof(unsigned int));
+    m->ids = (unsigned int*)malloc(count * sizeof(unsigned int));
+    m->froms = (unsigned long long*)malloc(count * sizeof(unsigned int));
+    m->tos = (unsigned long long*)malloc(count * sizeof(unsigned int));
     m->count = 0;
     m->capacity = count;
 
@@ -65,6 +65,7 @@ int match_list_vecscan_handler(unsigned int id, unsigned long long from, unsigne
     }
     return 0;
 }
+
 static lb_patch_shm_t* find_patch_by_id(lb_shm_arena_t* arena, lb_hash_map_shm* map, unsigned int match_id)
 {
     lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
@@ -88,8 +89,8 @@ static lb_patch_shm_t* find_patch_by_id(lb_shm_arena_t* arena, lb_hash_map_shm* 
 static int populate_transform(lb_shm_arena_t* arena, lb_patch_shm_t* patch, transform_data_t* transform)
 {
     transform->count = patch->transform_count;
-    transform->matches = malloc(patch->transform_count * sizeof(char*));
-    transform->replaces = malloc(patch->transform_count * sizeof(char*));
+    transform->matches = (const char**)malloc(patch->transform_count * sizeof(char*));
+    transform->replaces = (const char**)malloc(patch->transform_count * sizeof(char*));
 
     if (!transform->matches || !transform->replaces) {
         free(transform->matches);
@@ -119,8 +120,8 @@ static void cleanup_transforms(const char** finds, transform_data_t* transforms,
 
 int get_transform_from_matches(lb_shm_arena_t* arena, match_list_t* matches, const char*** out_finds, transform_data_t** out_transforms)
 {
-    const char** finds = calloc(matches->count, sizeof(char*));
-    transform_data_t* transforms = calloc(matches->count, sizeof(transform_data_t));
+    const char** finds = (const char**)calloc(matches->count, sizeof(char*));
+    transform_data_t* transforms = (transform_data_t*)calloc(matches->count, sizeof(transform_data_t));
 
     if (!finds || !transforms) {
         free(finds);

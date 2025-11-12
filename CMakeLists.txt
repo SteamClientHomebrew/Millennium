@@ -26,38 +26,28 @@ if(UNIX AND NOT APPLE)
     set(LUAJIT_TARGET_FLAGS "-m32" CACHE STRING "LuaJIT target flags" FORCE)
 endif()
 
+if(MINGW)
+    add_compile_options(-fno-keep-inline-functions)
+endif()
+
 # =====================================
 # Dep Build Configuration
 # =====================================
 
+# Ensure all libraries are position independent for static linking
+set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL "" FORCE)
+
 # General settings
 set(BUILD_TESTS                 OFF CACHE BOOL     "Disable building tests")
 set(BUILD_EXAMPLES              OFF CACHE BOOL     "Disable building examples")
-
 set(BUILD_SHARED_LIBS           OFF CACHE BOOL     "Build static libraries by default" FORCE)
 set(BUILD_STATIC_LIBS           ON  CACHE BOOL     "Build static libraries by default" FORCE)
 set(CMAKE_CXX_STANDARD          17  CACHE STRING   "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD            11  CACHE STRING   "C standard to use" FORCE)
 set(CMAKE_CXX_STANDARD_REQUIRED ON  CACHE BOOL     "Enforce C++ standard" FORCE)
 set(CMAKE_C_STANDARD_REQUIRED   ON  CACHE BOOL     "Enforce C standard" FORCE)
-
 set(USE_INTERNAL_FPCONV         ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance")
 set(NGHTTP2_STATICLIB           ON  CACHE BOOL     "Use static nghttp2 library")
-
-# Ensure all libraries are position independent for static linking
-set(CMAKE_POSITION_INDEPENDENT_CODE ON CACHE BOOL "" FORCE)
-
-if(WIN32)
-    set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
-    set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
-    set(CURL_USE_OPENSSL            OFF CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
-else()
-    set(CURL_USE_OPENSSL            ON  CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
-    set(CURL_USE_SCHANNEL           OFF CACHE INTERNAL "" FORCE)
-    set(CURL_WINDOWS_SSPI           OFF CACHE INTERNAL "" FORCE)
-    set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
-endif()
-
 set(CURL_USE_SECTRANSP          OFF CACHE BOOL     "Disable SecureTransport")
 set(CURL_USE_MBEDTLS            OFF CACHE BOOL     "Disable mbedTLS")
 set(CURL_USE_WOLFSSL            OFF CACHE BOOL     "Disable wolfSSL")
@@ -75,21 +65,22 @@ set(CURL_DISABLE_POP3           ON  CACHE BOOL     "Disable POP3")
 set(CURL_DISABLE_IMAP           ON  CACHE BOOL     "Disable IMAP")
 set(CURL_DISABLE_SMTP           ON  CACHE BOOL     "Disable SMTP")
 set(CURL_DISABLE_GOPHER         ON  CACHE BOOL     "Disable Gopher")
-
 set(FMT_HEADER_ONLY             ON  CACHE BOOL     "" FORCE)
 set(FMT_DOC                     OFF CACHE BOOL     "" FORCE)
 set(FMT_TEST                    OFF CACHE BOOL     "" FORCE)
 set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
-
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
 
-set(PCRE2_BUILD_PCRE2_8 ON CACHE BOOL "" FORCE)
-set(PCRE2_BUILD_PCRE2_16 OFF CACHE BOOL "" FORCE)
-set(PCRE2_BUILD_PCRE2_32 OFF CACHE BOOL "" FORCE)
-set(PCRE2_SUPPORT_JIT ON CACHE BOOL "" FORCE)
-set(PCRE2_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(PCRE2_BUILD_PCRE2GREP OFF CACHE BOOL "" FORCE)
-set(FAT_RUNTIME OFF CACHE BOOL "" FORCE)
+if(WIN32)
+    set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
+    set(CURL_WINDOWS_SSPI           ON  CACHE INTERNAL "" FORCE)
+    set(CURL_USE_OPENSSL            OFF CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
+else()
+    set(CURL_USE_OPENSSL            ON  CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
+    set(CURL_USE_SCHANNEL           OFF CACHE INTERNAL "" FORCE)
+    set(CURL_WINDOWS_SSPI           OFF CACHE INTERNAL "" FORCE)
+    set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
+endif()
 
 add_compile_definitions(
     USE_INTERNAL_FPCONV
@@ -130,23 +121,21 @@ endfunction()
 # ====================================
 message(STATUS "[Millennium] Fetching dependencies...")
 
-FetchContent_Declare(pcre2         GIT_REPOSITORY https://github.com/PCRE2Project/pcre2            GIT_TAG pcre2-10.47       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(vecscan       GIT_REPOSITORY https://github.com/VectorCamp/vectorscan         GIT_TAG vectorscan/5.4.12 SOURCE_SUBDIR fakedir)
-FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1              SOURCE_SUBDIR fakedir)
-FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2            SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4            SOURCE_SUBDIR fakedir)
-FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18            SOURCE_SUBDIR fakedir)
-FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2             SOURCE_SUBDIR fakedir)
-FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0            SOURCE_SUBDIR fakedir)
-FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0           SOURCE_SUBDIR fakedir)
-FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1            SOURCE_SUBDIR fakedir)
-FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10            SOURCE_SUBDIR fakedir)
-FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0       SOURCE_SUBDIR fakedir)
-FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main              SOURCE_SUBDIR fakedir)
-FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0       SOURCE_SUBDIR fakedir)
+FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1              SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2             SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(fmt           GIT_REPOSITORY https://github.com/fmtlib/fmt                    GIT_TAG 12.0.0            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json                 GIT_TAG v3.12.0           SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(libgit2       GIT_REPOSITORY https://github.com/libgit2/libgit2               GIT_TAG v1.9.1            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(minizip_ng    GIT_REPOSITORY https://github.com/zlib-ng/minizip-ng            GIT_TAG 4.0.10            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(curl          GIT_REPOSITORY https://github.com/curl/curl                     GIT_TAG curl-8_13_0       SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemaster/incbin         GIT_TAG main              SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0       SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 
 # Download all deps without configuring them
-set(DEPENDENCIES pcre2 vecscan luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
+set(DEPENDENCIES luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
 
 # Append min-hook only on Windows
 if(WIN32)
@@ -177,8 +166,6 @@ include_directories("${luajit_BINARY_DIR}")
 include_directories("${luajit_SOURCE_DIR}/src")
 
 # Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
-millennium_process_package("${vecscan_SOURCE_DIR}")
-millennium_process_package("${pcre2_SOURCE_DIR}")
 millennium_process_package("${luajit_SOURCE_DIR}")
 millennium_process_package("${curl_SOURCE_DIR}")
 millennium_process_package("${websocketpp_SOURCE_DIR}")
@@ -224,14 +211,8 @@ project(Millennium LANGUAGES C CXX)
 # Get Millennium version from version file
 file(STRINGS "${CMAKE_SOURCE_DIR}/version" VERSION_LINES LIMIT_COUNT 2)
 list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
-
-# Add configure dependency on version file
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/version")
-
-# Configure version header
 configure_file(${CMAKE_SOURCE_DIR}/src/include/millennium/version.h.in ${CMAKE_BINARY_DIR}/version.h)
-
-# Get current git commit hash
 execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} OUTPUT_VARIABLE GIT_COMMIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 message(STATUS "[Millennium] Version: ${MILLENNIUM_VERSION}")
@@ -257,109 +238,10 @@ if(DEFINED ENV{NIX_OS})
     set(NIX_BUILD ON)
 endif()
 
-# =====================================
-# Build Frontend Assets
-# =====================================
-# Find pnpm executable
-find_program(PNPM_EXECUTABLE pnpm)
-if(NOT PNPM_EXECUTABLE)
-    message(FATAL_ERROR "pnpm is required but not found. Please install pnpm.")
-endif()
-message(STATUS "[Millennium] Found pnpm at: ${PNPM_EXECUTABLE}")
-
-if(GITHUB_ACTION_BUILD)
-    if (WIN32)
-        find_program(BASH_EXECUTABLE bash)
-        if(BASH_EXECUTABLE)
-            set(PNPM_COMMAND ${BASH_EXECUTABLE} ${PNPM_EXECUTABLE})
-        else()
-            # Fallback to direct execution
-            set(PNPM_COMMAND ${PNPM_EXECUTABLE})
-        endif()
-    elseif(UNIX)
-        set(PNPM_COMMAND ${PNPM_EXECUTABLE})
-    else()
-        message(FATAL_ERROR "Unsupported platform for GitHub Action build.")
-    endif()
-else()
-    set(PNPM_COMMAND ${PNPM_EXECUTABLE})
-endif()
-
-
-# =========================
-# Build SDK
-# =========================
-
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-
-    message(STATUS "[Millennium] Building SDK with ${PNPM_COMMAND}...")
-    execute_process(
-    COMMAND ${PNPM_COMMAND} install
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
-    RESULT_VARIABLE SDK_INSTALL_RESULT
-    OUTPUT_VARIABLE SDK_INSTALL_OUTPUT
-    ERROR_VARIABLE SDK_INSTALL_ERROR
-)
-
-    if(NOT SDK_INSTALL_RESULT EQUAL 0)
-        message(STATUS "[Millennium] SDK pnpm install stdout:\n${SDK_INSTALL_OUTPUT}")
-        message(STATUS "[Millennium] SDK pnpm install stderr:\n${SDK_INSTALL_ERROR}")
-        message(FATAL_ERROR "[Millennium] SDK pnpm install failed with exit code ${SDK_INSTALL_RESULT}")
-    endif()
-
-    execute_process(
-    COMMAND ${PNPM_COMMAND} run build
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/sdk"
-    RESULT_VARIABLE SDK_BUILD_RESULT
-    OUTPUT_VARIABLE SDK_BUILD_OUTPUT
-    ERROR_VARIABLE SDK_BUILD_ERROR
-)
-
-    if(NOT SDK_BUILD_RESULT EQUAL 0)
-        message(STATUS "[Millennium] SDK build stdout:\n${SDK_BUILD_OUTPUT}")
-        message(STATUS "[Millennium] SDK build stderr:\n${SDK_BUILD_ERROR}")
-        message(FATAL_ERROR "[Millennium] SDK build failed with exit code ${SDK_BUILD_RESULT}")
-    endif()
-
-    message(STATUS "[Millennium] SDK build completed successfully")
-
-    # =========================
-    # Build Frontend
-    # =========================
-    message(STATUS "[Millennium] Building frontend...")
-    execute_process(
-    COMMAND ${PNPM_COMMAND} install
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
-    RESULT_VARIABLE FRONTEND_INSTALL_RESULT
-    OUTPUT_VARIABLE FRONTEND_INSTALL_OUTPUT
-    ERROR_VARIABLE FRONTEND_INSTALL_ERROR
-)
-
-    if(NOT FRONTEND_INSTALL_RESULT EQUAL 0)
-        message(STATUS "[Millennium] Frontend pnpm install stdout:\n${FRONTEND_INSTALL_OUTPUT}")
-        message(STATUS "[Millennium] Frontend pnpm install stderr:\n${FRONTEND_INSTALL_ERROR}")
-        message(FATAL_ERROR "[Millennium] Frontend pnpm install failed with exit code ${FRONTEND_INSTALL_RESULT}")
-    endif()
-
-    execute_process(
-    COMMAND ${PNPM_COMMAND} run build
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/src/frontend"
-    RESULT_VARIABLE FRONTEND_BUILD_RESULT
-    OUTPUT_VARIABLE FRONTEND_BUILD_OUTPUT
-    ERROR_VARIABLE FRONTEND_BUILD_ERROR
-)
-
-    if(NOT FRONTEND_BUILD_RESULT EQUAL 0)
-        message(STATUS "[Millennium] Frontend build stdout:\n${FRONTEND_BUILD_OUTPUT}")
-        message(STATUS "[Millennium] Frontend build stderr:\n${FRONTEND_BUILD_ERROR}")
-        message(FATAL_ERROR "[Millennium] Frontend build failed with exit code ${FRONTEND_BUILD_RESULT}")
-    endif()
-
-    message(STATUS "[Millennium] Frontend build completed successfully")
-endif()
-
 # MinGW optimizations
 if(MINGW)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fvisibility-inlines-hidden>)
+
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Os -ffunction-sections -fdata-sections")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
@@ -429,10 +311,7 @@ function(detect_aur_helper result_var)
         set(${result_var} "Couldn't find AUR helper. Please update Millennium manually." PARENT_SCOPE)
         return()
     endif()
-
     message(STATUS "Arch-based system detected")
-
-    # Check for available AUR helpers
     foreach(helper ${AUR_HELPERS})
         find_program(${helper}_EXECUTABLE ${helper})
         if(${helper}_EXECUTABLE)
@@ -466,46 +345,16 @@ else() # Linux
         add_compile_definitions(_NIX_OS=ON __NIX_SELF_PATH="$ENV{out}" __NIX_SHIMS_PATH="$ENV{shims}" __NIX_ASSETS_PATH="$ENV{assets}")
     endif()
 
-    # Try to find Python 3.11 exactly
-    find_package(Python 3.11 EXACT COMPONENTS Development)
+    set(default_python_path "/opt/python-i686-3.11.8")
+    set(MILLENNIUM__PYTHON_ENV "${default_python_path}")
+    set(LIBPYTHON_RUNTIME_PATH "${default_python_path}/lib/libpython-3.11.8.so")
 
-    set(PYTHON_TEST_RESULT FALSE)
-    if(Python_FOUND)
-        file(WRITE "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc" "#include <Python.h>\nint main() { Py_Initialize(); Py_Finalize(); return 0; }")
-
-        try_compile(PYTHON_TEST_RESULT
-            "${CMAKE_BINARY_DIR}"
-            SOURCES "${CMAKE_BINARY_DIR}/millennium-FindPython_test.cc"
-            LINK_LIBRARIES Python::Module
-        )
-
-        if(PYTHON_TEST_RESULT)
-            message(STATUS "Found suitable Python version ${Python_VERSION}")
-            set(LIBPYTHON_RUNTIME_PATH ${Python_LIBRARIES})
-            if(NOT Python_ROOT_DIR)
-                cmake_path(GET Python_LIBRARY_DIRS PARENT_PATH Python_ROOT_DIR)
-            endif()
-            set(MILLENNIUM__PYTHON_ENV ${Python_ROOT_DIR})
-        else()
-            message(STATUS "Python ABI mismatch, rolling back to default")
-        endif()
+    if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
+        include_directories("${default_python_path}/include/python3.11/")
+        detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     else()
-        message(STATUS "No Python package found, rolling back to default")
-    endif()
-
-    # Use default Python if system Python failed
-    if(NOT PYTHON_TEST_RESULT)
-        set(default_python_path "/opt/python-i686-3.11.8")
-        set(MILLENNIUM__PYTHON_ENV "${default_python_path}")
-        set(LIBPYTHON_RUNTIME_PATH "${default_python_path}/lib/libpython-3.11.8.so")
-
-        if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
-            include_directories("${default_python_path}/include/python3.11/")
-            detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
-        else()
-            include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
-            set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
-        endif()
+        include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
+        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
     endif()
     message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
 endif()
@@ -517,23 +366,16 @@ endif()
 # Only build to Steam path when not building releases on GitHub Actions
 if(WIN32 AND NOT GITHUB_ACTION_BUILD)
     execute_process(COMMAND reg query "HKCU\\Software\\Valve\\Steam" /v "SteamPath" RESULT_VARIABLE result OUTPUT_VARIABLE steam_path ERROR_VARIABLE reg_error)
-
     if(result EQUAL 0)
         string(REGEX MATCH "[a-zA-Z]:/[^ ]+([ ]+[^ ]+)*" extracted_path "${steam_path}")
         string(REPLACE "\n" "" extracted_path "${extracted_path}")
-
         message(STATUS "[Millennium] Target build path: ${extracted_path}")
-
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${extracted_path})
         set(LIBRARY_OUTPUT_DIRECTORY ${extracted_path})
     else()
         message(WARNING "[Millennium] Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
     endif()
 endif()
-
-# =====================================
-# Include Directories
-# =====================================
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
@@ -547,12 +389,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/vendor/incbin
     ${CMAKE_SOURCE_DIR}/vendor/subhook
     ${CMAKE_SOURCE_DIR}/vendor/plthook
-    ${CMAKE_SOURCE_DIR}/vendor/xxhash
+    ${CMAKE_SOURCE_DIR}/src/emu/include
 )
-
-# =====================================
-# Source Files
-# =====================================
 
 set(SOURCE_FILES
     src/runtime/libjs_interop.cc
@@ -593,15 +431,13 @@ set(SOURCE_FILES
     src/backend/theme_mgr.cc
     src/backend/webkit.cc
     src/hooks/steam_hooks.cc
-    src/emu/src/smem.c
+    src/emu/src/smem.cc
     src/sys/cfg.cc
     src/sys/env.cc
     src/sys/log.cc
     src/sys/sysfs.cc
     src/main.cc
 )
-
-add_subdirectory(src/emu)
 
 if(WIN32)
     list(APPEND SOURCE_FILES "src/plat/init_win32.cc")
@@ -707,16 +543,8 @@ elseif(UNIX)
     target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
 endif()
 
-target_include_directories(Millennium SYSTEM PRIVATE
-    ${websocketpp_SOURCE_DIR}
-)
-
-target_compile_options(Millennium PRIVATE
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Werror
-)
+target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
+target_compile_options(Millennium PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 if(NOT APPLE)
     set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
@@ -744,7 +572,6 @@ if(WINDRES)
         COMMAND ${WINDRES} -i ${CMAKE_SOURCE_DIR}/scripts/version.rc -o ${CMAKE_BINARY_DIR}/version.o
         DEPENDS ${CMAKE_SOURCE_DIR}/scripts/version.rc
     )
-
     add_custom_target(resource DEPENDS ${CMAKE_BINARY_DIR}/version.o)
     add_dependencies(Millennium resource)
     target_link_libraries(Millennium ${CMAKE_BINARY_DIR}/version.o)

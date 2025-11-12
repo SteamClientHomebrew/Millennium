@@ -2,7 +2,9 @@
 #include "millennium/sysfs.h"
 #include <cstdio>
 #include <cstdlib>
+#ifdef __linux__
 #include <linux/limits.h>
+#endif
 #include <unistd.h>
 
 typedef enum

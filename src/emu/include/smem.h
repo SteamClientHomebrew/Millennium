@@ -30,7 +30,9 @@
 
 #pragma once
 #include <stdint.h>
+#ifdef __linux__
 #include <sys/mman.h>
+#endif
 #include <fcntl.h>
 #include <unistd.h>
 

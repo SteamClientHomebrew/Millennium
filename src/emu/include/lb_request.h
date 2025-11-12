@@ -31,10 +31,12 @@
 #define _POSIX_C_SOURCE 200809L
 #include "log.h"
 #include <assert.h>
-#include <stdatomic.h>
+#include <atomic>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __linux__
 #include <dlfcn.h>
+#endif
 #include <time.h>
 #include "cef_def.h"
 
@@ -43,17 +45,30 @@
  * since we don't actually want the dependency of linking against steams cef,
  * we just load it during runtime.
  */
+#ifdef _WIN32
+#include <windows.h>
+#define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
+    static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
+    if (!lazy_##func_name) {                                                                                                                                                       \
+        HMODULE hModule = GetModuleHandleA("libcef.dll");                                                                                                                          \
+        if (hModule) {                                                                                                                                                             \
+            lazy_##func_name = (return_type(*) param_types)GetProcAddress(hModule, #func_name);                                                                                    \
+        }                                                                                                                                                                          \
+    }
+#else
+#include <dlfcn.h>
 #define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
     static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
     if (!lazy_##func_name) {                                                                                                                                                       \
         lazy_##func_name = dlsym(RTLD_NEXT, #func_name);                                                                                                                           \
     }
+#endif
 
 typedef struct
 {
     cef_resource_request_handler_t handler;
     char* url;
-    atomic_int ref_count;
+    std::atomic<int> ref_count;
 } steamloopback_request_handler_t;
 
 typedef struct
@@ -63,7 +78,7 @@ typedef struct
     char* data;
     size_t size;
     size_t pos;
-    atomic_int ref_count;
+    std::atomic<int> ref_count;
 } steamloopback_resource_handler_t;
 
 /** fwd decl */
@@ -77,13 +92,13 @@ static struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*
 void CEF_CALLBACK lb_res_add_ref(void* base)
 {
     steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
-    atomic_fetch_add(&handler->ref_count, 1);
+    handler->ref_count.fetch_add(1);
 }
 
 int CEF_CALLBACK lb_res_release(void* base)
 {
     steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
-    if (atomic_fetch_sub(&handler->ref_count, 1) == 1) {
+    if (handler->ref_count.fetch_sub(1) == 1) {
         free(handler->url);
         free(handler->data);
         free(handler);
@@ -95,13 +110,13 @@ int CEF_CALLBACK lb_res_release(void* base)
 int CEF_CALLBACK lb_res_has_one_ref(void* base)
 {
     steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
-    return atomic_load(&handler->ref_count) == 1;
+    return handler->ref_count.load() == 1;
 }
 
 int CEF_CALLBACK lb_res_has_at_least_one_ref(void* base)
 {
     steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
-    return atomic_load(&handler->ref_count) >= 1;
+    return handler->ref_count.load() >= 1;
 }
 
 int CEF_CALLBACK lb_open(void* self, void* request, int* handle_request, void* callback)
@@ -113,13 +128,13 @@ int CEF_CALLBACK lb_open(void* self, void* request, int* handle_request, void* c
 void CEF_CALLBACK lb_req_add_ref(void* base)
 {
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    atomic_fetch_add(&handler->ref_count, 1);
+    handler->ref_count.fetch_add(1);
 }
 
 int CEF_CALLBACK lb_req_release(void* base)
 {
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    if (atomic_fetch_sub(&handler->ref_count, 1) == 1) {
+    if (handler->ref_count.fetch_sub(1) == 1) {
         free(handler->url);
         free(handler);
         return 1;
@@ -130,13 +145,13 @@ int CEF_CALLBACK lb_req_release(void* base)
 int CEF_CALLBACK lb_req_has_one_ref(void* base)
 {
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    return atomic_load(&handler->ref_count) == 1;
+    return handler->ref_count.load() == 1;
 }
 
 int CEF_CALLBACK lb_req_has_at_least_one_ref(void* base)
 {
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    return atomic_load(&handler->ref_count) >= 1;
+    return handler->ref_count.load() >= 1;
 }
 
 void* CEF_CALLBACK lb_on_before_load_hdl(void* self, void* browser, void* frame, void* request, void* callback)
@@ -199,17 +214,17 @@ int CEF_CALLBACK lb_read(void* self, void* data_out, int bytes_to_read, int* byt
 
 cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url)
 {
-    steamloopback_request_handler_t* handler = calloc(1, sizeof(steamloopback_request_handler_t));
+    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)calloc(1, sizeof(steamloopback_request_handler_t));
 
     handler->url = strdup(url);
-    atomic_init(&handler->ref_count, 1);
+    handler->ref_count.store(1);
 
     char* p = handler->handler._base;
     *(size_t*)(p + 0x0) = sizeof(cef_resource_request_handler_t);
-    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void*)lb_req_add_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (void*)lb_req_release;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (void*)lb_req_has_one_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (void*)lb_req_has_at_least_one_ref;
+    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void (*)(void*))lb_req_add_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (int (*)(void*))lb_req_release;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (int (*)(void*))lb_req_has_one_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (int (*)(void*))lb_req_has_at_least_one_ref;
 
     handler->handler.on_before_resource_load = lb_on_before_load_hdl;
     handler->handler.get_resource_handler = lb_get_resource_hdl;
@@ -226,7 +241,7 @@ void* create_steamloopback_resource_handler(const char* url)
 {
     struct timespec start = { 0 }, end = { 0 };
     clock_gettime(CLOCK_MONOTONIC, &start);
-    steamloopback_resource_handler_t* handler = calloc(1, sizeof(steamloopback_resource_handler_t));
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)calloc(1, sizeof(steamloopback_resource_handler_t));
 
     char* data = NULL;
     uint32_t size = 0;
@@ -240,7 +255,7 @@ void* create_steamloopback_resource_handler(const char* url)
     double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     log_info("[hook] took %.3f ms to process %s\n", elapsed * 1000, url);
 
-    atomic_init(&handler->ref_count, 1);
+    handler->ref_count.store(1);
 
     handler->data = data;
     handler->size = size;
@@ -250,10 +265,10 @@ void* create_steamloopback_resource_handler(const char* url)
     /** setup handler base */
     char* p = handler->handler._base;
     *(size_t*)(p + 0x0) = sizeof(cef_resource_handler_t);
-    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void*)lb_res_add_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (void*)lb_res_release;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (void*)lb_res_has_one_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (void*)lb_res_has_at_least_one_ref;
+    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void (*)(void*))lb_res_add_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (int (*)(void*))lb_res_release;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (int (*)(void*))lb_res_has_one_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (int (*)(void*))lb_res_has_at_least_one_ref;
 
     handler->handler.get_response_headers = lb_get_response_headers;
     handler->handler.open = lb_open;

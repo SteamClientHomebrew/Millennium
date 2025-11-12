@@ -38,6 +38,7 @@
 #include "millennium/ffi.h"
 #include "millennium/crash_handler.h"
 #include "millennium/millennium_updater.h"
+#include "millennium/plat_msg.h"
 
 #include <MinHook.h>
 #include <thread>
@@ -62,12 +63,69 @@ CONSTRUCTOR VOID Win32_InitializeEnvironment(VOID)
 extern std::mutex mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUIStartedLoading;
 
+BOOL AreFilesIdentical(LPCWSTR path1, LPCWSTR path2)
+{
+    HANDLE h1 = CreateFileW(path1, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (h1 == INVALID_HANDLE_VALUE) return FALSE;
+
+    HANDLE h2 = CreateFileW(path2, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (h2 == INVALID_HANDLE_VALUE) {
+        CloseHandle(h1);
+        return FALSE;
+    }
+
+    BY_HANDLE_FILE_INFORMATION info1, info2;
+    BOOL same = FALSE;
+
+    if (GetFileInformationByHandle(h1, &info1) && GetFileInformationByHandle(h2, &info2)) {
+        same = (info1.dwVolumeSerialNumber == info2.dwVolumeSerialNumber) && (info1.nFileIndexHigh == info2.nFileIndexHigh) && (info1.nFileIndexLow == info2.nFileIndexLow);
+    }
+
+    CloseHandle(h1);
+    CloseHandle(h2);
+    return same;
+}
+
+/**
+ * Initialize Millennium webhelper hook by hardlinking it into the cef bin directory.
+ */
+VOID Win32_AttachWebHelperHook(VOID)
+{
+    const auto hookPath = SystemIO::GetSteamPath() / "millennium.hhx64.dll";
+    const auto targetPath = SystemIO::GetSteamPath() / "bin" / "cef" / "cef.win7x64" / "version.dll";
+
+    if (!std::filesystem::exists(hookPath)) {
+        Plat_ShowMessageBox("Millennium Error", "Millennium webhelper hook is missing. Please reinstall Millennium.", MESSAGEBOX_ERROR);
+        return;
+    }
+
+    if (!AreFilesIdentical(hookPath.wstring().c_str(), targetPath.wstring().c_str())) {
+        // Remove existing target if it exists
+        DeleteFileW(targetPath.wstring().c_str());
+    }
+
+    if (std::filesystem::exists(targetPath)) {
+        /** target file exist, and is identical to the hook, so we don't need to hardlink */
+        return;
+    }
+
+    WINBOOL result = CreateHardLinkA(targetPath.string().c_str(), hookPath.string().c_str(), NULL);
+    if (!result) {
+        Plat_ShowMessageBox(
+            "Millennium Error",
+            fmt::format("Failed to create hardlink for Millennium webhelper hook.\nError Code: {}\nMake sure Steam is not running and try again.", GetLastError()).c_str(),
+            MESSAGEBOX_ERROR);
+    }
+}
+
 VOID Win32_AttachMillennium(VOID)
 {
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
         return;
     }
+
+    // Win32_AttachWebHelperHook();
 
     // SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();

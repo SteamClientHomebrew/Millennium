@@ -29,12 +29,103 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include "emu/include/smem.h"
-#include "emu/include/log.h"
+#include "smem.h"
+#include "log.h"
 #include <string.h>
-#include <unistd.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <stdio.h>
+
+typedef struct
+{
+    HANDLE handle;
+    lb_shm_arena_t* ptr;
+} win_shm_ctx_t;
+
+static win_shm_ctx_t g_shm_ctx = { NULL, NULL };
+
+lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
+{
+    char win_name[256];
+    snprintf(win_name, sizeof(win_name), "Local\\%s", name + 1); // Skip leading '/'
+
+    HANDLE hMapFile = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size, win_name);
+    if (!hMapFile) {
+        DWORD err = GetLastError();
+        log_error("CreateFileMappingA failed: %s (error: %lu)\n", win_name, err);
+        return NULL;
+    }
+
+    DWORD creation_result = GetLastError();
+    if (creation_result == ERROR_ALREADY_EXISTS) {
+        log_warning("Shared memory already exists: %s\n", win_name);
+    }
+
+    lb_shm_arena_t* arena = (lb_shm_arena_t*)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, size);
+    if (!arena) {
+        DWORD err = GetLastError();
+        log_error("MapViewOfFile failed (error: %lu)\n", err);
+        CloseHandle(hMapFile);
+        return NULL;
+    }
+
+    g_shm_ctx.handle = hMapFile;
+    g_shm_ctx.ptr = arena;
+
+    arena->size = size;
+    arena->used = sizeof(lb_shm_arena_t);
+    return arena;
+}
+
+lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size)
+{
+    char win_name[256];
+    snprintf(win_name, sizeof(win_name), "Local\\%s", name + 1);
+
+    HANDLE hMapFile = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, win_name);
+    if (!hMapFile) {
+        DWORD err = GetLastError();
+        log_error("OpenFileMappingA failed: %s (error: %lu)\n", win_name, err);
+        return NULL;
+    }
+
+    lb_shm_arena_t* arena = (lb_shm_arena_t*)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, size);
+    if (!arena) {
+        DWORD err = GetLastError();
+        log_error("MapViewOfFile failed (error: %lu)\n", err);
+        CloseHandle(hMapFile);
+        return NULL;
+    }
+
+    g_shm_ctx.handle = hMapFile;
+    g_shm_ctx.ptr = arena;
+
+    return arena;
+}
+
+void shm_arena_close(lb_shm_arena_t* arena, uint32_t size)
+{
+    (void)size;
+    UnmapViewOfFile(arena);
+    if (g_shm_ctx.handle) {
+        CloseHandle(g_shm_ctx.handle);
+        g_shm_ctx.handle = NULL;
+        g_shm_ctx.ptr = NULL;
+    }
+}
+
+void shm_arena_unlink(const char* name)
+{
+    // Windows doesn't require explicit unlinking - handled by last CloseHandle
+    (void)name;
+}
+
+#else
+// Linux implementation
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
 {
@@ -76,6 +167,7 @@ void shm_arena_unlink(const char* name)
 {
     shm_unlink(name);
 }
+#endif
 
 uint32_t shm_arena_alloc(lb_shm_arena_t* arena, uint32_t size)
 {

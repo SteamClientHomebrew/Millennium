@@ -456,7 +456,7 @@ BOOL WINAPI Hooked_ReadDirectoryChangesW(void*, void*, void*, void*, void*, LPDW
     return TRUE;                 // indicate success
 }
 
-BOOL InitializeSteamHooks()
+bool InitializeSteamHooks()
 {
     const auto startTime = std::chrono::system_clock::now();
 

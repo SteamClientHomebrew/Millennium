@@ -57,7 +57,7 @@ fread_data fread_file(const char* path)
     }
 
     /** allocate file size in memory */
-    result.content = malloc(file_size);
+    result.content = (char*)malloc(file_size);
     if (!result.content) {
         fclose(f);
         return result;

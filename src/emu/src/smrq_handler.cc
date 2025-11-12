@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-#include <linux/limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -36,7 +35,7 @@
 #include "urlp.h"
 #include "fread.h"
 
-int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
+extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
 
 int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size)
 {
@@ -44,6 +43,8 @@ int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size
 
     *out_data = NULL;
     *out_size = 0;
+    char* out_file_data = NULL;
+    uint32_t out_file_size = 0;
 
     char *local_path = NULL, *local_short_path = NULL;
     fread_data file_data = { 0 };
@@ -61,12 +62,7 @@ int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size
     }
 
     log_info("read file %s, size: %d\n", local_path, file_data.size);
-
-    char* out_file_data = NULL;
-    uint32_t out_file_size = 0;
-
     find_file_matches(file_data.content, file_data.size, local_short_path, &out_file_data, &out_file_size);
-
     log_info("out_file_size: %ud\n", out_file_size);
 
     *out_data = out_file_data;

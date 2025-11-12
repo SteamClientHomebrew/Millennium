@@ -29,11 +29,14 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+#ifdef __linux__
 #include <linux/limits.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "urlp.h"
+#include <windows.h>
 
 /**
  * convert a steamloopback url to abs path and rel path
@@ -58,14 +61,30 @@ int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
     char* query = strchr(path, '?');
     if (query) *query = '\0';
 
-    char* file_path = malloc(PATH_MAX);
+    char* file_path = (char*)malloc(PATH_MAX);
     if (!file_path) {
         free(path);
         return -1;
     }
 
+#ifdef _WIN32
+    static char steam_path[PATH_MAX] = { 0 };
+    if (!steam_path[0]) {
+        HKEY key;
+        if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &key) == ERROR_SUCCESS) {
+            DWORD size = sizeof(steam_path);
+            RegQueryValueExA(key, "SteamPath", NULL, NULL, (LPBYTE)steam_path, &size);
+            RegCloseKey(key);
+        }
+        if (!steam_path[0]) {
+            strcpy(steam_path, "C:\\Program Files (x86)\\Steam");
+        }
+    }
+    snprintf(file_path, PATH_MAX, "%s/steamui%s", steam_path, path);
+#else
     const char* home = getenv("HOME");
     snprintf(file_path, PATH_MAX, "%s/.steam/steam/steamui%s", home ? home : "/home", path);
+#endif
 
     *out_abs = file_path;
     *out_rel = path;

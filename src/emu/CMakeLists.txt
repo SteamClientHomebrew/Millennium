@@ -1,64 +1,57 @@
 cmake_minimum_required(VERSION 3.10)
-project(mwh C)
-project(mwh-test C)
+include(FetchContent)
+
+project(mwh CXX)
 
 set(CMAKE_C_STANDARD 99)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-
-# Find zstd library
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(ZSTD REQUIRED libzstd)
-
-string(REGEX REPLACE "-m32" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-string(REGEX REPLACE "-m32" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-string(REGEX REPLACE "-m32" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64 -Wno-psabi")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -Wno-psabi")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(BUILD_STATIC_LIBS ON)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m64")
-set(BUILD_STATIC_LIBS, ON)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -m64")
+set(ABSL_ENABLE_INSTALL ON)
+set(ABSL_PROPAGATE_CXX_STD ON)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 
-add_subdirectory("${pcre2_SOURCE_DIR}"         "${pcre2_BINARY_DIR}"        )
+FetchContent_Declare(abseil GIT_REPOSITORY https://github.com/abseil/abseil-cpp GIT_TAG 20240722.0)
+FetchContent_MakeAvailable(abseil)
 
-message(STATUS "${CMAKE_C_FLAGS}")
-message(STATUS "${CMAKE_CXX_FLAGS}")
-message(STATUS "${CMAKE_SHARED_LINKER_FLAGS}")
+FetchContent_Declare(re2 GIT_REPOSITORY https://github.com/google/re2 GIT_TAG 2025-11-05)
+FetchContent_MakeAvailable(re2)
+
+FetchContent_Declare(minhook GIT_REPOSITORY https://github.com/TsudaKageyu/minhook GIT_TAG v1.3.4)
+FetchContent_MakeAvailable(minhook)
 
 include_directories(include)
 include_directories(./)
 
-include_directories("${vecscan_SOURCE_DIR}/src")
-include_directories("${vecscan_BINARY_DIR}")
-
-add_subdirectory("${vecscan_SOURCE_DIR}" "${vecscan_BINARY_DIR}")
-
-add_compile_definitions(
-    CEF_STRING_TYPE_UTF8
-)
-
 add_library(mwh SHARED
-    src/main.c
-    src/patch.c
-    src/vecscan.c
-    src/match.c
-    src/smrq_handler.c
-    src/smem.c
-    src/urlp.c
-    src/fread.c
+    src/main.cc
+    src/patch.cc
+    src/match.cc
+    src/smrq_handler.cc
+    src/smem.cc
+    src/urlp.cc
+    src/fread.cc
+    ../../scripts/exports.def
 )
 
-add_executable(mwh-test src/test_regex.c)
-
-
-target_link_libraries(mwh dl ${ZSTD_LIBRARIES} hs pcre2-8-static)
-target_link_libraries(mwh-test hs)
-target_include_directories(mwh PRIVATE ${ZSTD_INCLUDE_DIRS})
-
+target_link_libraries(mwh re2 minhook)
 set_target_properties(mwh PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
-set_target_properties(mwh PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(mwh PROPERTIES LIBRARY_OUTPUT_DIRECTORY "$ENV{HOME}/.steam/steam/ubuntu12_64")
 
-set_target_properties(mwh PROPERTIES OUTPUT_NAME "millennium_mwh")
-set_target_properties(mwh PROPERTIES PREFIX "lib")
-set_target_properties(mwh PROPERTIES SUFFIX "_x64.so")
+if(UNIX)
+set_target_properties(mwh PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(mwh PROPERTIES LIBRARY_OUTPUT_DIRECTORY "$ENV{HOME}/.steam/steam/ubuntu12_64")
+    set_target_properties(mwh PROPERTIES OUTPUT_NAME "millennium_mwh")
+    set_target_properties(mwh PROPERTIES PREFIX "lib")
+    set_target_properties(mwh PROPERTIES SUFFIX "_x64.so")
+elseif(WIN32)
+    set_target_properties(mwh PROPERTIES RUNTIME_OUTPUT_DIRECTORY "C:/Program Files (x86)/Steam/bin/cef/cef.win7x64")
+    set_target_properties(mwh PROPERTIES OUTPUT_NAME "version") # hhx64
+    set_target_properties(mwh PROPERTIES PREFIX "")
+endif()
+

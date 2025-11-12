@@ -28,18 +28,15 @@
  * SOFTWARE.
  */
 
-#define PCRE2_CODE_UNIT_WIDTH 8
-
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
-#include <hs.h>
-#include <pcre2.h>
-
+#include <stdlib.h>
+#include <re2/re2.h>
+#include <re2/set.h>
 #include "match.h"
 #include "smem.h"
 #include "log.h"
-#include "vecscan.h"
 
 typedef struct
 {
@@ -51,8 +48,8 @@ static int resize_pools(const char*** file_pool, match_plugin_map_t** plugin_map
 {
     uint32_t new_capacity = *capacity ? *capacity * 2 : 16;
 
-    const char** new_pool = realloc(*file_pool, new_capacity * sizeof(char*));
-    match_plugin_map_t* new_map = realloc(*plugin_map, new_capacity * sizeof(match_plugin_map_t));
+    const char** new_pool = (const char**)realloc(*file_pool, new_capacity * sizeof(char*));
+    match_plugin_map_t* new_map = (match_plugin_map_t*)realloc(*plugin_map, new_capacity * sizeof(match_plugin_map_t));
 
     if (!new_pool || !new_map) {
         free(new_pool);
@@ -96,7 +93,7 @@ static int process_patch_list(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, 
     return 0;
 }
 
-int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_regex_pool, match_plugin_map_t** out_plugin_map, uint32_t* out_size)
+extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_regex_pool, match_plugin_map_t** out_plugin_map, uint32_t* out_size)
 {
     uint32_t capacity = 0;
     uint32_t file_count = 0;
@@ -121,19 +118,6 @@ int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_regex_pool, mat
     return 0;
 }
 
-static pcre2_code* compile_pattern(const char* pattern, int* out_errcode, PCRE2_SIZE* out_erroffset)
-{
-    pcre2_code* re = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED, 0, out_errcode, out_erroffset, NULL);
-
-    if (!re) {
-        PCRE2_UCHAR errbuf[256];
-        pcre2_get_error_message(*out_errcode, errbuf, sizeof(errbuf));
-        log_error("PCRE2 compile failed at offset %zu: %s\n", *out_erroffset, errbuf);
-    }
-
-    return re;
-}
-
 static char* preprocess_replacement(const char* replacement, const char* plugin_name)
 {
     const char* placeholder = "#{{self}}";
@@ -152,7 +136,7 @@ static char* preprocess_replacement(const char* replacement, const char* plugin_
     size_t substitute_len = strlen(substitute);
 
     size_t total_len = prefix_len + substitute_len + suffix_len + 1;
-    char* result = malloc(total_len);
+    char* result = (char*)malloc(total_len);
     if (!result) {
         return NULL;
     }
@@ -164,56 +148,54 @@ static char* preprocess_replacement(const char* replacement, const char* plugin_
     return result;
 }
 
-static char* apply_substitution(pcre2_code* re, const char* input, uint32_t input_size, const char* replacement, uint32_t* out_size)
+static char* apply_substitution(const char* pattern, const char* input, uint32_t input_size, const char* replacement, uint32_t* out_size)
 {
-    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(re, NULL);
-    if (!match_data) {
-        log_error("Failed to create match data\n");
+    RE2 re(pattern);
+    if (!re.ok()) {
+        log_error("RE2 compile failed: %s\n", re.error().c_str());
         return NULL;
     }
 
-    PCRE2_SIZE required_size = 0;
-    int rc = pcre2_substitute(re, (PCRE2_SPTR)input, input_size, 0, PCRE2_SUBSTITUTE_GLOBAL | PCRE2_SUBSTITUTE_OVERFLOW_LENGTH, match_data, NULL, (PCRE2_SPTR)replacement,
-                              PCRE2_ZERO_TERMINATED, NULL, &required_size);
+    re2::StringPiece input_piece(input, input_size);
+    std::string output;
 
-    char* output = NULL;
+    int count = 0;
+    size_t pos = 0;
+    re2::StringPiece remaining = input_piece;
 
-    if (rc == PCRE2_ERROR_NOMATCH) {
+    while (pos < input_size) {
+        re2::StringPiece match;
+        if (!re.Match(remaining, 0, remaining.size(), RE2::UNANCHORED, &match, 1)) {
+            output.append(remaining.data(), remaining.size());
+            break;
+        }
+
+        size_t match_start = match.data() - remaining.data();
+        output.append(remaining.data(), match_start);
+        output.append(replacement);
+
+        count++;
+        size_t match_end = match_start + match.size();
+        remaining.remove_prefix(match_end);
+        pos += match_end;
+    }
+
+    if (count == 0) {
         log_info("No match found\n");
-        pcre2_match_data_free(match_data);
         return NULL;
     }
 
-    if (rc == PCRE2_ERROR_NOMEMORY) {
-        output = malloc(required_size);
-        if (!output) {
-            log_error("Failed to allocate %zu bytes\n", required_size);
-            pcre2_match_data_free(match_data);
-            return NULL;
-        }
+    log_info("Applied %d substitution(s), new size: %zu\n", count, output.size());
 
-        PCRE2_SIZE actual_size = required_size;
-        rc = pcre2_substitute(re, (PCRE2_SPTR)input, input_size, 0, PCRE2_SUBSTITUTE_GLOBAL, match_data, NULL, (PCRE2_SPTR)replacement, PCRE2_ZERO_TERMINATED, (PCRE2_UCHAR*)output,
-                              &actual_size);
-
-        if (rc >= 0) {
-            *out_size = actual_size;
-            log_info("Applied %d substitution(s), new size: %u\n", rc, actual_size);
-        } else {
-            PCRE2_UCHAR errbuf[256];
-            pcre2_get_error_message(rc, errbuf, sizeof(errbuf));
-            log_error("Substitution failed: %s\n", errbuf);
-            free(output);
-            output = NULL;
-        }
-    } else if (rc < 0) {
-        PCRE2_UCHAR errbuf[256];
-        pcre2_get_error_message(rc, errbuf, sizeof(errbuf));
-        log_error("Substitution error: %s\n", errbuf);
+    char* result = (char*)malloc(output.size());
+    if (!result) {
+        log_error("Failed to allocate %zu bytes\n", output.size());
+        return NULL;
     }
 
-    pcre2_match_data_free(match_data);
-    return output;
+    memcpy(result, output.data(), output.size());
+    *out_size = output.size();
+    return result;
 }
 
 static int apply_transform_set(const transform_data_t* transform, const char* plugin_name, char** buffer, uint32_t* buffer_size)
@@ -227,18 +209,9 @@ static int apply_transform_set(const transform_data_t* transform, const char* pl
 
         log_info("Applying transform %d: match='%s' replace='%s'\n", i, transform->matches[i], processed_replacement);
 
-        int errcode;
-        PCRE2_SIZE erroffset;
-        pcre2_code* re = compile_pattern(transform->matches[i], &errcode, &erroffset);
-        if (!re) {
-            free(processed_replacement);
-            continue;
-        }
-
         uint32_t new_size = 0;
-        char* new_buffer = apply_substitution(re, *buffer, *buffer_size, processed_replacement, &new_size);
+        char* new_buffer = apply_substitution(transform->matches[i], *buffer, *buffer_size, processed_replacement, &new_size);
 
-        pcre2_code_free(re);
         free(processed_replacement);
 
         if (new_buffer) {
@@ -267,7 +240,62 @@ static void log_file_matches(const match_list_t* matches)
     }
 }
 
-int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches, match_plugin_map_t* plugin_map, char* file_content, uint32_t f_size, char** out_content, uint32_t* out_size)
+static int re2_multi_match(const char** patterns, uint32_t pattern_count, const char* text, uint32_t text_size, match_list_t* matches)
+{
+    RE2::Set re_set(RE2::DefaultOptions, RE2::UNANCHORED);
+
+    for (uint32_t i = 0; i < pattern_count; i++) {
+        std::string error;
+        if (re_set.Add(patterns[i], &error) < 0) {
+            log_error("Failed to add pattern %u: %s\n", i, error.c_str());
+            return -1;
+        }
+    }
+
+    if (!re_set.Compile()) {
+        log_error("Failed to compile RE2::Set\n");
+        return -1;
+    }
+
+    std::vector<int> match_ids;
+    re2::StringPiece text_piece(text, text_size);
+
+    if (!re_set.Match(text_piece, &match_ids)) {
+        matches->count = 0;
+        return 0;
+    }
+
+    matches->count = match_ids.size();
+    matches->ids = (uint32_t*)malloc(matches->count * sizeof(uint32_t));
+    matches->froms = (uint64_t*)malloc(matches->count * sizeof(uint64_t));
+    matches->tos = (uint64_t*)malloc(matches->count * sizeof(uint64_t));
+
+    if (!matches->ids || !matches->froms || !matches->tos) {
+        free(matches->ids);
+        free(matches->froms);
+        free(matches->tos);
+        return -1;
+    }
+
+    for (size_t i = 0; i < match_ids.size(); i++) {
+        matches->ids[i] = match_ids[i];
+
+        RE2 re(patterns[match_ids[i]]);
+        re2::StringPiece match;
+        if (re.Match(text_piece, 0, text_size, RE2::UNANCHORED, &match, 1)) {
+            matches->froms[i] = match.data() - text;
+            matches->tos[i] = matches->froms[i] + match.size();
+        } else {
+            matches->froms[i] = 0;
+            matches->tos[i] = 0;
+        }
+    }
+
+    return 0;
+}
+
+extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches, match_plugin_map_t* plugin_map, char* file_content, uint32_t f_size, char** out_content,
+                                   uint32_t* out_size)
 {
     transform_data_t* transforms = NULL;
     const char** finds = NULL;
@@ -285,14 +313,14 @@ int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches, match_plug
 
     log_matches(matches, finds, transforms);
 
-    if (vecscan_multi(finds, matches->count, file_content, f_size, &file_matches) != 0) {
-        log_error("vecscan_multi failed\n");
+    if (re2_multi_match(finds, matches->count, file_content, f_size, &file_matches) != 0) {
+        log_error("re2_multi_match failed\n");
         goto cleanup;
     }
 
     log_file_matches(&file_matches);
 
-    working_buffer = malloc(f_size);
+    working_buffer = (char*)malloc(f_size);
     if (!working_buffer) {
         log_error("Failed to allocate working buffer\n");
         goto cleanup;
@@ -329,10 +357,8 @@ cleanup:
     return ret;
 }
 
-int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size)
+extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size)
 {
-    assert(hs_valid_platform() == HS_SUCCESS);
-
     lb_shm_arena_t* arena = shm_arena_open(SHM_IPC_NAME, 1024 * 1024);
     if (!arena) {
         log_error("Failed to open shared memory arena\n");
@@ -350,8 +376,8 @@ int find_file_matches(char* file_content, uint32_t size, char* local_path, char*
     }
 
     match_list_t matches = { 0 };
-    if (vecscan_multi(file_regex_pool, file_count, file_content, size, &matches) != 0) {
-        log_error("vecscan_multi failed\n");
+    if (re2_multi_match(file_regex_pool, file_count, file_content, size, &matches) != 0) {
+        log_error("re2_multi_match failed\n");
         free(file_regex_pool);
         free(plugin_map);
         shm_arena_close(arena, arena->size);
