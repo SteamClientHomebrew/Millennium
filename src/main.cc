@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-#include <unistd.h>
 #define UNICODE
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -120,7 +119,6 @@ static void VerifyEnvironment()
 
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
-void setup_shared_memory_ipc();
 
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.

@@ -4,8 +4,8 @@
 #include <cstdlib>
 #ifdef __linux__
 #include <linux/limits.h>
-#endif
 #include <unistd.h>
+#endif
 
 typedef enum
 {

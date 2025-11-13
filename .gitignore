@@ -12,7 +12,10 @@
 
 node_modules/
 .vscode/
+.vs/
 src/include/millennium/virtfs.h
 .cache/
 compile_commands.json
 src/emu/build/
+scripts/resources.rc
+scripts/RC*

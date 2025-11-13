@@ -31,7 +31,6 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 #include <exception>
-#include <cxxabi.h>
 #include <fmt/format.h>
 #include <iostream>
 
@@ -53,7 +52,7 @@ extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
  * @param pExceptionInfo Pointer to the exception information.
  * @return EXCEPTION_EXECUTE_HANDLER to indicate that the exception has been handled.
  */
-inline long __attribute__((__stdcall__)) Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
+inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
 {
     HANDLE hFile = CreateFileA("millennium-crash.dmp", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
@@ -100,11 +99,9 @@ inline void UnhandledExceptionHandler()
 
     if (exceptionPtr) {
         try {
-            int status;
-            errorMessage.append(fmt::format("Terminating with uncaught exception of type `{}`", abi::__cxa_demangle(abi::__cxa_current_exception_type()->name(), 0, 0, &status)));
             std::rethrow_exception(exceptionPtr);
         } catch (const std::exception& e) {
-            errorMessage.append(fmt::format(" with `what()` = \"{}\"", e.what()));
+            errorMessage.append(fmt::format("Terminating with uncaught exception of type `{}` with `what()` = \"{}\"", typeid(e).name(), e.what()));
         } catch (...) {
             errorMessage.append(" with unknown exception type");
         }

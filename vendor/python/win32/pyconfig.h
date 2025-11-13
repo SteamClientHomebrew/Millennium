@@ -31,7 +31,7 @@ WIN32 is still required for the locale module.
 
 /* Deprecated USE_DL_EXPORT macro - please use Py_BUILD_CORE */
 #ifdef USE_DL_EXPORT
-#       define Py_BUILD_CORE
+#define Py_BUILD_CORE
 #endif /* USE_DL_EXPORT */
 
 /* Visual Studio 2005 introduces deprecation warnings for
@@ -63,7 +63,7 @@ WIN32 is still required for the locale module.
 #define HAVE_STRFTIME
 #define DONT_HAVE_SIG_ALARM
 #define DONT_HAVE_SIG_PAUSE
-#define LONG_BIT        32
+#define LONG_BIT 32
 #define WORD_BIT 32
 
 #define MS_WIN32 /* only support win32 and greater. */
@@ -73,7 +73,6 @@ WIN32 is still required for the locale module.
 #ifndef NETSCAPE_PI
 #define USE_SOCKET
 #endif
-
 
 /* Compiler specific defines */
 
@@ -88,7 +87,7 @@ WIN32 is still required for the locale module.
  * literally in the string.
  */
 #define _Py_PASTE_VERSION(SUFFIX) \
-        ("[MSC v." _Py_STRINGIZE(_MSC_VER) " " SUFFIX "]")
+   ("[MSC v." _Py_STRINGIZE(_MSC_VER) " " SUFFIX "]")
 /* e.g., this produces, after compile-time string catenation,
  *      ("[MSC v.1200 32 bit (Intel)]")
  *
@@ -100,7 +99,7 @@ WIN32 is still required for the locale module.
  * "1200"
  */
 #define _Py_STRINGIZE(X) _Py_STRINGIZE1((X))
-#define _Py_STRINGIZE1(X) _Py_STRINGIZE2 ## X
+#define _Py_STRINGIZE1(X) _Py_STRINGIZE2##X
 #define _Py_STRINGIZE2(X) #X
 
 /* MSVC defines _WINxx to differentiate the windows platform types
@@ -174,10 +173,10 @@ WIN32 is still required for the locale module.
 /* Define like size_t, omitting the "unsigned" */
 #ifdef MS_WIN64
 typedef __int64 Py_ssize_t;
-#   define PY_SSIZE_T_MAX LLONG_MAX
+#define PY_SSIZE_T_MAX LLONG_MAX
 #else
 typedef _W64 int Py_ssize_t;
-#   define PY_SSIZE_T_MAX INT_MAX
+#define PY_SSIZE_T_MAX INT_MAX
 #endif
 #define HAVE_PY_SSIZE_T 1
 
@@ -220,7 +219,7 @@ typedef int pid_t;
    bug that requires structure imports.  More recent versions of the
    compiler don't exhibit this bug.
 */
-#if (__GNUC__==2) && (__GNUC_MINOR__<=91)
+#if (__GNUC__ == 2) && (__GNUC_MINOR__ <= 91)
 #warning "Please use an up-to-date version of gcc! (>2.91 recommended)"
 #endif
 
@@ -247,85 +246,80 @@ typedef int pid_t;
 /* End of compilers - finish up */
 
 #ifndef NO_STDIO_H
-#       include <stdio.h>
+#include <stdio.h>
 #endif
 
 /* 64 bit ints are usually spelt __int64 unless compiler has overridden */
 #ifndef PY_LONG_LONG
-#       define PY_LONG_LONG __int64
-#       define PY_LLONG_MAX _I64_MAX
-#       define PY_LLONG_MIN _I64_MIN
-#       define PY_ULLONG_MAX _UI64_MAX
+#define PY_LONG_LONG __int64
+#define PY_LLONG_MAX _I64_MAX
+#define PY_LLONG_MIN _I64_MIN
+#define PY_ULLONG_MAX _UI64_MAX
 #endif
 
 /* For Windows the Python core is in a DLL by default.  Test
 Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
 #if !defined(MS_NO_COREDLL) && !defined(Py_NO_ENABLE_SHARED)
-#       define Py_ENABLE_SHARED 1 /* standard symbol for shared library */
-#       define MS_COREDLL       /* deprecated old symbol */
-#endif /* !MS_NO_COREDLL && ... */
+#define Py_ENABLE_SHARED 1 /* standard symbol for shared library */
+#define MS_COREDLL         /* deprecated old symbol */
+#endif                     /* !MS_NO_COREDLL && ... */
 
 /*  All windows compilers that use this header support __declspec */
 #define HAVE_DECLSPEC_DLL
 
 /* For an MSVC DLL, we can nominate the .lib files used by extensions */
 #ifdef MS_COREDLL
-#       if !defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_BUILTIN)
-                /* not building the core - must be an ext */
-#               if defined(_MSC_VER)
-                        /* So MSVC users need not specify the .lib
-                        file in their Makefile (other compilers are
-                        generally taken care of by distutils.) */
-#                       if defined(_DEBUG)
-#                               pragma comment(lib,"python311_d.lib")
-#                       elif defined(Py_LIMITED_API)
-#                               pragma comment(lib,"python3.lib")
-#                       else
-#                               pragma comment(lib,"python311.lib")
-#                       endif /* _DEBUG */
-#               endif /* _MSC_VER */
-#       endif /* Py_BUILD_CORE */
+#if !defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_BUILTIN)
+/* not building the core - must be an ext */
+#if defined(_MSC_VER)
+/* So MSVC users need not specify the .lib
+file in their Makefile (other compilers are
+generally taken care of by distutils.) */
+// #                       if defined(_DEBUG)
+// #                               pragma comment(lib,"python311_d.lib")
+#if defined(Py_LIMITED_API)
+#pragma comment(lib, "python3.lib")
+#else
+#pragma comment(lib, "python311.lib")
+#endif /* _DEBUG */
+#endif /* _MSC_VER */
+#endif /* Py_BUILD_CORE */
 #endif /* MS_COREDLL */
 
 #if defined(MS_WIN64)
 /* maintain "win32" sys.platform for backward compatibility of Python code,
    the Win64 API should be close enough to the Win32 API to make this
    preferable */
-#       define PLATFORM "win32"
-#       define SIZEOF_VOID_P 8
-#       define SIZEOF_TIME_T 8
-#       define SIZEOF_OFF_T 4
-#       define SIZEOF_FPOS_T 8
-#       define SIZEOF_HKEY 8
-#       define SIZEOF_SIZE_T 8
-#       define ALIGNOF_SIZE_T 8
+#define PLATFORM "win32"
+#define SIZEOF_VOID_P 8
+#define SIZEOF_TIME_T 8
+#define SIZEOF_OFF_T 4
+#define SIZEOF_FPOS_T 8
+#define SIZEOF_HKEY 8
+#define SIZEOF_SIZE_T 8
+#define ALIGNOF_SIZE_T 8
 /* configure.ac defines HAVE_LARGEFILE_SUPPORT iff
    sizeof(off_t) > sizeof(long), and sizeof(long long) >= sizeof(off_t).
    On Win64 the second condition is not true, but if fpos_t replaces off_t
    then this is true. The uses of HAVE_LARGEFILE_SUPPORT imply that Win64
    should define this. */
-#       define HAVE_LARGEFILE_SUPPORT
+#define HAVE_LARGEFILE_SUPPORT
 #elif defined(MS_WIN32)
-#       define PLATFORM "win32"
-#       define HAVE_LARGEFILE_SUPPORT
-#       define SIZEOF_VOID_P 4
-#       define SIZEOF_OFF_T 4
-#       define SIZEOF_FPOS_T 8
-#       define SIZEOF_HKEY 4
-#       define SIZEOF_SIZE_T 4
-#       define ALIGNOF_SIZE_T 4
-        /* MS VS2005 changes time_t to a 64-bit type on all platforms */
-#       if defined(_MSC_VER) && _MSC_VER >= 1400
-#       define SIZEOF_TIME_T 8
-#       else
-#       define SIZEOF_TIME_T 4
-#       endif
+#define PLATFORM "win32"
+#define HAVE_LARGEFILE_SUPPORT
+#define SIZEOF_VOID_P 4
+#define SIZEOF_OFF_T 4
+#define SIZEOF_FPOS_T 8
+#define SIZEOF_HKEY 4
+#define SIZEOF_SIZE_T 4
+#define ALIGNOF_SIZE_T 4
+/* MS VS2005 changes time_t to a 64-bit type on all platforms */
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#define SIZEOF_TIME_T 8
+#else
+#define SIZEOF_TIME_T 4
 #endif
-
-#ifdef _DEBUG
-#       define Py_DEBUG
 #endif
-
 
 #ifdef MS_WIN32
 
@@ -348,8 +342,8 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
 #else
 /* VC6, VS 2002 and eVC4 don't support the C99 LL suffix for 64-bit integer literals */
 #define Py_LL(x) x##I64
-#endif  /* _MSC_VER > 1300  */
-#endif  /* _MSC_VER */
+#endif /* _MSC_VER > 1300  */
+#endif /* _MSC_VER */
 
 #endif
 
@@ -379,7 +373,7 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
 #define HAVE_DIRECT_H 1
 
 /* Define to 1 if you have the declaration of `tzname', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_TZNAME 1
 
 /* Define if you have dirent.h.  */

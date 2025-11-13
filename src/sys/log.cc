@@ -40,7 +40,6 @@
 #endif
 #include "millennium/env.h"
 #include "millennium/logger.h"
-#include <unistd.h>
 
 OutputLogger Logger;
 

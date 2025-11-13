@@ -41,7 +41,6 @@
 #include <fmt/core.h>
 #include <stdlib.h>
 #include <string>
-#include <unistd.h>
 #include <iostream>
 
 std::map<std::string, std::string> envVariables;

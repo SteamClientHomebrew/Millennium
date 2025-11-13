@@ -40,7 +40,7 @@ int wsprintfA(char* buf, const char* fmt, ...);
 
 #define MAX_PATH 260
 
-__attribute__((dllexport)) const char* __get_shim_version(void)
+__declspec(dllexport) const char* __get_shim_version(void)
 {
     return MILLENNIUM_VERSION;
 }
@@ -80,7 +80,7 @@ static int is_steam_client(void)
 }
 
 /** entry point of the dll */
-int __stdcall DllMain(void*, unsigned long fdwReason, void*)
+int __stdcall DllMain(void* hinstDLL, unsigned long fdwReason, void* lpReserved)
 {
     if (fdwReason == 1 /** DLL_PROCESS_ATTACH */ && is_steam_client()) {
         const void* hModule = LoadLibraryA("millennium.dll");

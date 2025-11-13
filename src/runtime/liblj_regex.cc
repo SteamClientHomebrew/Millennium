@@ -251,9 +251,6 @@ int Lua_RegexTest(lua_State* L)
                 case 'i':
                     flags_type |= std::regex::icase;
                     break;
-                case 'm':
-                    flags_type |= std::regex::multiline;
-                    break;
                 case 'g':
                     break; // Global flag handled elsewhere
             }

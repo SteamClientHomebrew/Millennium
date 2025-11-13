@@ -95,6 +95,12 @@ class OutputLogger
 
 extern OutputLogger Logger;
 
+#if defined(_MSC_VER)
+#define PRETTY_FUNCTION __FUNCSIG__
+#else
+#define PRETTY_FUNCTION __PRETTY_FUNCTION__
+#endif
+
 #ifndef LOG_ERROR
-#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, __PRETTY_FUNCTION__, ##__VA_ARGS__)
+#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
 #endif

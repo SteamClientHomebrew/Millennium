@@ -1,6 +1,8 @@
 message(STATUS "[Millennium] Configuring & verifying dependencies...")
 
-cmake_minimum_required(VERSION 3.10...3.21)
+cmake_minimum_required(VERSION 3.21)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
+
 include(ExternalProject)
 include(FetchContent)
 
@@ -15,19 +17,13 @@ if(UNIX AND NOT APPLE)
     # Explicitly disable zlib-ng to prevent conflicts
     set(ZLIBNG_FOUND FALSE CACHE BOOL "Disable zlib-ng detection" FORCE)
     set(ZLIBNG_LIBRARY "" CACHE FILEPATH "Empty zlib-ng library path" FORCE)
-
-    # Ensure LuaJIT is built with 32-bit flags
+    
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -m32")
 
-    # Also set LUAJIT specific variables for the wrapper
     set(LUAJIT_BUILD_FLAGS "-m32" CACHE STRING "LuaJIT build flags" FORCE)
     set(LUAJIT_TARGET_FLAGS "-m32" CACHE STRING "LuaJIT target flags" FORCE)
-endif()
-
-if(MINGW)
-    add_compile_options(-fno-keep-inline-functions)
 endif()
 
 # =====================================
@@ -65,11 +61,28 @@ set(CURL_DISABLE_POP3           ON  CACHE BOOL     "Disable POP3")
 set(CURL_DISABLE_IMAP           ON  CACHE BOOL     "Disable IMAP")
 set(CURL_DISABLE_SMTP           ON  CACHE BOOL     "Disable SMTP")
 set(CURL_DISABLE_GOPHER         ON  CACHE BOOL     "Disable Gopher")
+set(CURL_USE_LIBPSL 		    OFF CACHE BOOL     "Disable libpsl")
 set(FMT_HEADER_ONLY             ON  CACHE BOOL     "" FORCE)
 set(FMT_DOC                     OFF CACHE BOOL     "" FORCE)
 set(FMT_TEST                    OFF CACHE BOOL     "" FORCE)
 set(FMT_INSTALL                 ON  CACHE BOOL     "" FORCE)
+set(MULTIPLE_THREADS 		    OFF CACHE BOOL     "Disable multithreading support in lua cjson")
+
+set(BUILD_CLI  			        OFF CACHE BOOL     "Disable building CLI in libgit2")
+
 set(MZ_BZIP2                    OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
+set(MZ_FETCH_LIBS               OFF CACHE BOOL     "Disable fetching third-party libs in minizip-ng" FORCE)
+set(MZ_ZLIB                     ON  CACHE BOOL     "Enable zlib support in minizip-ng" FORCE)
+
+set(USE_BUNDLED_ZLIB 		    OFF CACHE BOOL     "Use bundled zlib in libgit2" FORCE)
+set(USE_COMPRESSION 		    OFF CACHE STRING   "zlib" FORCE)
+
+set(ZLIB_COMPAT                 ON CACHE BOOL      "Enable zlib compatibility mode in zlib-ng" FORCE)
+set(ZLIB_ALIASES                ON CACHE BOOL      "Enable zlib alias symbols in zlib-ng" FORCE)
+set(ZLIB_ENABLE_TESTS           OFF CACHE BOOL     "Disable building tests in zlib-ng" FORCE)
+set(ZLIBNG_ENABLE_TESTS 	    OFF CACHE BOOL     "Disable building tests in zlib-ng" FORCE)
+
+set(RTLIBCFG 			"static" CACHE STRING      "Disable rtlibcfg in curl" FORCE)
 
 if(WIN32)
     set(CURL_USE_SCHANNEL           ON  CACHE INTERNAL "" FORCE)
@@ -100,6 +113,7 @@ add_compile_definitions(
 
     FMT_HEADER_ONLY
     _CRT_SECURE_NO_WARNINGS
+    CURL_STATICLIB
 )
 
 # Patch the minimum cmake version in a "submodule".
@@ -109,7 +123,7 @@ add_compile_definitions(
 function(millennium_process_package input_path)
     if(EXISTS "${input_path}/CMakeLists.txt")
         file(READ "${input_path}/CMakeLists.txt" CMAKELISTS_CONTENTS)
-        string(REGEX REPLACE "cmake_minimum_required[ \t]*\\([ \t]*VERSION[^)]*\\)" "cmake_minimum_required(VERSION 3.10...3.21)" CMAKELISTS_CONTENTS "${CMAKELISTS_CONTENTS}")
+        string(REGEX REPLACE "cmake_minimum_required[ \t]*\\([ \t]*VERSION[^)]*\\)" "cmake_minimum_required(VERSION 3.21)" CMAKELISTS_CONTENTS "${CMAKELISTS_CONTENTS}")
         file(WRITE "${input_path}/CMakeLists.txt" "${CMAKELISTS_CONTENTS}")
     else()
         message(WARNING "Could not find ${input_path} to patch.")
@@ -121,8 +135,9 @@ endfunction()
 # ====================================
 message(STATUS "[Millennium] Fetching dependencies...")
 
+FetchContent_Declare(zlib          GIT_REPOSITORY https://github.com/zlib-ng/zlib-ng               GIT_TAG 2.2.5             SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1              SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
-FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG v1.0.2            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(lua_cjson     GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJSON   GIT_TAG master            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_Declare(minhook       GIT_REPOSITORY https://github.com/TsudaKageyu/minhook           GIT_TAG v1.3.4            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_Declare(mini          GIT_REPOSITORY https://github.com/metayeti/mINI                 GIT_TAG 0.9.18            SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_Declare(websocketpp   GIT_REPOSITORY https://github.com/zaphoyd/websocketpp           GIT_TAG 0.8.2             SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
@@ -135,7 +150,7 @@ FetchContent_Declare(incbin        GIT_REPOSITORY https://github.com/graphitemas
 FetchContent_Declare(asio          GIT_REPOSITORY https://github.com/chriskohlhoff/asio            GIT_TAG asio-1-30-0       SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 
 # Download all deps without configuring them
-set(DEPENDENCIES luajit incbin websocketpp fmt nlohmann_json libgit2 minizip_ng mINI lua_cjson curl asio)
+set(DEPENDENCIES zlib luajit incbin websocketpp fmt nlohmann_json minizip_ng libgit2 mINI lua_cjson curl asio)
 
 # Append min-hook only on Windows
 if(WIN32)
@@ -147,7 +162,6 @@ foreach(dep ${DEPENDENCIES})
     FetchContent_MakeAvailable(${dep})
     string(TIMESTAMP end_time "%s")
     math(EXPR duration "${end_time} - ${start_time}")
-
     message(STATUS "[Millennium] ${dep} completed in ${duration} seconds")
 endforeach()
 
@@ -164,6 +178,7 @@ include_directories("${incbin_SOURCE_DIR}")
 include_directories("${asio_SOURCE_DIR}/asio/include")
 include_directories("${luajit_BINARY_DIR}")
 include_directories("${luajit_SOURCE_DIR}/src")
+include_directories("${CMAKE_SOURCE_DIR}/src/emu/include")
 
 # Force all dependencies to use Millennium's cmake version (3.10 - 3.21)
 millennium_process_package("${luajit_SOURCE_DIR}")
@@ -181,6 +196,15 @@ if(WIN32)
 endif()
 
 # Let cmake finally configure after we've processed them
+add_subdirectory("${zlib_SOURCE_DIR}"          "${zlib_BINARY_DIR}"         )
+
+set(ZLIB_ROOT "${zlib_BINARY_DIR}" CACHE PATH "" FORCE)
+set(ZLIB_FOUND TRUE CACHE INTERNAL "")
+set(ZLIB_LIBRARY "${zlib_BINARY_DIR}/Release/zlibstatic.lib" CACHE INTERNAL "")
+set(ZLIB_LIBRARIES "${zlib_BINARY_DIR}/Release/zlibstatic.lib" CACHE INTERNAL "")
+set(ZLIB_INCLUDE_DIRS "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}" CACHE INTERNAL "")
+set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}" CACHE INTERNAL "")
+
 add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"       )
 add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
 add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"  )
@@ -253,12 +277,8 @@ if(MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--exclude-libs,ALL")
 endif()
 
-if(NOT UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
-endif()
-
 # Release build optimizations
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
+if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 
@@ -439,8 +459,46 @@ set(SOURCE_FILES
     src/main.cc
 )
 
+# include(ExternalProject)
+
+# ExternalProject_Add(mwh_64bit
+#     SOURCE_DIR        ${CMAKE_CURRENT_SOURCE_DIR}/src/emu
+#     BINARY_DIR        ${CMAKE_CURRENT_BINARY_DIR}/emu-build
+
+#     # Optional: still set generator string for readability (not strictly needed with explicit configure)
+#     CMAKE_GENERATOR   "Visual Studio 17 2022"
+
+#     # Explicit configure command — guarantees -A x64 is passed
+#     CONFIGURE_COMMAND
+#       ${CMAKE_COMMAND}
+#         -S ${CMAKE_CURRENT_SOURCE_DIR}/src/emu
+#         -B ${CMAKE_CURRENT_BINARY_DIR}/emu-build
+#         -G "Visual Studio 17 2022"
+#         -A x64
+#         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+#         -Dpcre2_SOURCE_DIR=${pcre2_SOURCE_DIR}
+#         -Dpcre2_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/emu-build/pcre2
+#         -Dhyperscan_SOURCE_DIR=${hyperscan_SOURCE_DIR}
+#         -Dhyperscan_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/emu-build/hyperscan
+#         -DBUILD_UNIT_TESTS=OFF
+#         -DBUILD_EXAMPLES=OFF
+#         -DBUILD_BENCHMARKS=OFF
+
+#     # Build using the subproject build dir and chosen config
+#     BUILD_COMMAND
+#       ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR}/emu-build --config ${CMAKE_BUILD_TYPE} -- /m
+
+#     # No install step
+#     INSTALL_COMMAND ""
+
+#     BUILD_ALWAYS 1
+# )
+
 if(WIN32)
     list(APPEND SOURCE_FILES "src/plat/init_win32.cc")
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        list(APPEND SOURCE_FILES "scripts/resources.rc")
+    endif()
 elseif(UNIX)
     list(APPEND SOURCE_FILES "src/plat/init_posix.cc")
     list(APPEND SOURCE_FILES "src/plat/init_posix_deprecated.cc")
@@ -456,7 +514,6 @@ endif()
 
 # set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/.millennium/Dist/index.js")
 # set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/sdk/typescript-packages/loader/build/")
-
 function(filename_to_identifier filename output_var)
     get_filename_component(name_without_ext "${filename}" NAME_WE)
     string(TOUPPER "${name_without_ext}" upper_name)
@@ -470,18 +527,54 @@ endfunction()
 
 file(GLOB CHUNK_FILES "${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build/chunks/*")
 set(HEADER_CONTENT "/**\n * Auto-generated by Millennium during CMake configuration - do not edit manually :)\n */\n")
+set(HEADER_CONTENT "${HEADER_CONTENT}#pragma once\n\n")
+set(RC_CONTENT "// Auto-generated resource file\n#include <windows.h>\n\n")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    # Platform-specific includes
+    set(HEADER_CONTENT "${HEADER_CONTENT}#ifdef _WIN32\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#include <windows.h>\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#include <string>\n\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}inline std::string LoadResourceData(const char* name) {\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}    HRSRC hRes = FindResourceA(NULL, name, RT_RCDATA);\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}    if (!hRes) return \"\";\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}    HGLOBAL hData = LoadResource(NULL, hRes);\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}    if (!hData) return \"\";\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}    DWORD size = SizeofResource(NULL, hRes);\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}    const char* data = static_cast<const char*>(LockResource(hData));\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}    return std::string(data, size);\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}}\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#else\n")
     set(HEADER_CONTENT "${HEADER_CONTENT}#define INCBIN_PREFIX\n")
     set(HEADER_CONTENT "${HEADER_CONTENT}#include \"incbin.h\"\n")
-    set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium frontend library -- responsible for displaying Millennium UI, and loading themes */\n")
-    set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_FRONTEND_BIN_, \"../../../build/frontend.bin\");\n\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#endif\n\n")
+    
+    # Frontend binary
+    set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium frontend library */\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#ifdef _WIN32\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#define MILLENNIUM_FRONTEND_BIN_Data LoadResourceData(\"MILLENNIUM_FRONTEND_BIN\")\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#else\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_FRONTEND_BIN_, \"../../../build/frontend.bin\");\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#endif\n\n")
+    
+    # API binary
     set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium API library */\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#ifdef _WIN32\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#define MILLENNIUM_API_BIN_Data LoadResourceData(\"MILLENNIUM_API_BIN\")\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#else\n")
     set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(MILLENNIUM_API_BIN_, \"../../../sdk/typescript-packages/loader/build/millennium.js\");\n")
+    set(HEADER_CONTENT "${HEADER_CONTENT}#endif\n\n")
+    
     set(HEADER_CONTENT "${HEADER_CONTENT}/** Millennium API chunk files */\n")
+    
+    # Add resources to RC file
+    set(RC_CONTENT "${RC_CONTENT}MILLENNIUM_FRONTEND_BIN RCDATA \"${CMAKE_SOURCE_DIR}/build/frontend.bin\"\n")
+    set(RC_CONTENT "${RC_CONTENT}MILLENNIUM_API_BIN RCDATA \"${CMAKE_SOURCE_DIR}/sdk/typescript-packages/loader/build/millennium.js\"\n\n")
 endif()
 
 set(MAP_ENTRIES "")
+set(CHUNK_DEFS "")
+
 foreach(chunk_file ${CHUNK_FILES})
     get_filename_component(filename "${chunk_file}" NAME)
     if(filename MATCHES "\\.map$")
@@ -489,16 +582,26 @@ foreach(chunk_file ${CHUNK_FILES})
     endif()
     file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}" "${chunk_file}")
     filename_to_identifier("${filename}" var_name)
-
+    
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set(HEADER_CONTENT "${HEADER_CONTENT}INCTXT(${var_name}, \"../../../${rel_path}\");\n")
+        # Chunk definitions
+        set(CHUNK_DEFS "${CHUNK_DEFS}#ifdef _WIN32\n")
+        set(CHUNK_DEFS "${CHUNK_DEFS}#define ${var_name}Data LoadResourceData(\"${var_name}\")\n")
+        set(CHUNK_DEFS "${CHUNK_DEFS}#else\n")
+        set(CHUNK_DEFS "${CHUNK_DEFS}INCTXT(${var_name}, \"../../../${rel_path}\");\n")
+        set(CHUNK_DEFS "${CHUNK_DEFS}#endif\n\n")
+        
         set(MAP_ENTRIES "${MAP_ENTRIES}\t{ fmt::format(\"https://millennium.ftp/{}/chunks/${filename}\", GetScrambledApiPathToken()), []() { return ${var_name}Data; } },\n")
+        
+        # Add to RC file
+        set(RC_CONTENT "${RC_CONTENT}${var_name} RCDATA \"${chunk_file}\"\n")
     else()
         set(MAP_ENTRIES "${MAP_ENTRIES}\t{ fmt::format(\"https://millennium.ftp/{}/chunks/${filename}\", GetScrambledApiPathToken()), []() { return SystemIO::ReadFileSync(MILLENNIUM_ROOT \"/${rel_path}\"); } },\n")
     endif()
 endforeach()
 
-set(HEADER_CONTENT "${HEADER_CONTENT}\n// clang-format off\n")
+set(HEADER_CONTENT "${HEADER_CONTENT}${CHUNK_DEFS}\n")
+set(HEADER_CONTENT "${HEADER_CONTENT}// clang-format off\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}std::unordered_map<std::string, std::function<const std::string()>> INTERNAL_FTP_CALL_DATA = {\n")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -517,6 +620,10 @@ set(HEADER_CONTENT "${HEADER_CONTENT}// clang-format on\n")
 file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/src/include/millennium")
 file(WRITE "${CMAKE_SOURCE_DIR}/src/include/millennium/virtfs.h" "${HEADER_CONTENT}")
 
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
+    file(WRITE "${CMAKE_SOURCE_DIR}/scripts/resources.rc" "${RC_CONTENT}")
+endif()
+
 add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/src/include/millennium/virtfs.h"
     COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_LIST_FILE}"
@@ -531,6 +638,13 @@ add_custom_command(
 if(WIN32)
     add_library(Millennium SHARED "${SOURCE_FILES}")
 elseif(UNIX)
+    target_compile_options(Millennium PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Werror
+    )
+
     if(APPLE)
         add_executable(Millennium "${SOURCE_FILES}")
     else()
@@ -544,9 +658,8 @@ elseif(UNIX)
 endif()
 
 target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
-target_compile_options(Millennium PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-if(NOT APPLE)
+if(UNIX)
     set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
     target_compile_options(Millennium PRIVATE -m32)
 endif()
@@ -555,7 +668,27 @@ if(WIN32)
     set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
     set_target_properties(Millennium PROPERTIES PREFIX "")
     set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
+
+    if(extracted_path)
+        set_target_properties(Millennium PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${extracted_path}"
+            LIBRARY_OUTPUT_DIRECTORY "${extracted_path}"
+            ARCHIVE_OUTPUT_DIRECTORY "${extracted_path}"
+        )
+        # Override per-configuration output directories
+        foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
+            string(TOUPPER ${CONFIG} CONFIG_UPPER)
+            set_target_properties(Millennium PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${extracted_path}"
+                LIBRARY_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${extracted_path}"
+                ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${extracted_path}"
+            )
+        endforeach()
+    endif()
 elseif(UNIX AND NOT APPLE)
+    set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+    target_compile_options(Millennium PRIVATE -m32)
+    
     set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
     set_target_properties(Millennium PROPERTIES PREFIX "lib")
     set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
@@ -582,26 +715,13 @@ if(NIX_BUILD)
     target_link_libraries(Millennium OpenSSL::SSL)
 endif()
 
-
-target_link_libraries(Millennium
-    luajit::lib
-    libcurl
-    minizip
-    cjson
-    # libgit2 doesn't export a CMake target for some reason, so we link the static lib directly
-    "${libgit2_BINARY_DIR}/libgit2.a"
-    nlohmann_json
-    fmt::fmt
-    mINI
-)
-
-target_link_options(Millennium PRIVATE -Wl,--no-undefined)
+set_property(TARGET Millennium PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 if(WIN32)
     if(GITHUB_ACTION_BUILD)
         set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
     else()
-        set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib ${CMAKE_SOURCE_DIR}/vendor/python/python311_d.lib)
+        set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib)
 
         add_custom_command(
             OUTPUT "${extracted_path}/python311.dll"
@@ -620,6 +740,14 @@ if(WIN32)
     endif()
 
     target_link_libraries(Millennium
+        luajit::lib
+        libcurl
+        minizip
+        cjson
+        libgit2package
+        nlohmann_json
+        fmt::fmt
+        mINI
         minhook
         ${PYTHON_LIB}
         ws2_32
@@ -634,10 +762,27 @@ if(WIN32)
         normaliz
         winmm
         # curl dependencies
-        -Wl,--start-group nghttp2 iconv unistring psl idn2 ssl crypto z ssh2 -Wl,--end-group
+        # -Wl,--start-group iconv unistring psl idn2 ssl crypto z ssh2 -Wl,--end-group
+    )
+
+    target_link_options(Millennium PRIVATE
+        /NODEFAULTLIB:LIBCMT
     )
 
 elseif(UNIX)
+    target_link_libraries(Millennium
+        luajit::lib
+        libcurl
+        minizip
+        cjson
+        libgit2package
+        nlohmann_json
+        fmt::fmt
+        mINI
+    )
+
+    target_link_options(Millennium PRIVATE -Wl,--no-undefined)
+
     if(APPLE)
         target_link_libraries(Millennium "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
     else()
@@ -648,3 +793,4 @@ elseif(UNIX)
         endif()
     endif()
 endif()
+

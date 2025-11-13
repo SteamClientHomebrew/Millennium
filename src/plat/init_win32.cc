@@ -109,7 +109,7 @@ VOID Win32_AttachWebHelperHook(VOID)
         return;
     }
 
-    WINBOOL result = CreateHardLinkA(targetPath.string().c_str(), hookPath.string().c_str(), NULL);
+    BOOL result = CreateHardLinkA(targetPath.string().c_str(), hookPath.string().c_str(), NULL);
     if (!result) {
         Plat_ShowMessageBox(
             "Millennium Error",

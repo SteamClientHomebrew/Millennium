@@ -15,32 +15,34 @@
       }
     },
     {
-      "name": "windows-mingw",
+      "name": "windows",
       "hidden": true,
       "inherits": "default",
-      "generator": "Ninja",
-      "displayName": "windows-mingw",
-      "description": "Build using g++ compiler",
+      "generator": "Visual Studio 17 2022",
+      "displayName": "windows",
+      "architecture": {
+        "value": "Win32",
+        "strategy": "set"
+      },
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "17",
-        "CMAKE_C_STANDARD": "23",
-        "CMAKE_CXX_FLAGS": "-static-libstdc++ -static-libgcc -static -lpthread"
+        "CMAKE_C_STANDARD": "23"
       }
     },
     {
-      "inherits": "windows-mingw",
-      "name": "windows-mingw-release",
-      "displayName": "windows-mingw-release",
-      "description": "mingw windows release build.",
+      "inherits": "windows",
+      "name": "windows-release",
+      "displayName": "windows-release",
+      "description": "windows release build.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
-      "inherits": "windows-mingw",
-      "name": "windows-mingw-debug",
-      "displayName": "windows-mingw-debug",
-      "description": "mingw windows debug build.",
+      "inherits": "windows",
+      "name": "windows-debug",
+      "displayName": "windows-debug",
+      "description": "windows debug build.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }

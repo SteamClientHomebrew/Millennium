@@ -33,6 +33,7 @@
 #include <fstream>
 #include <fmt/core.h>
 #include <regex>
+#include <sstream>
 
 std::string Millennium::CSSParser::Trim(const std::string& str)
 {

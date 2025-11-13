@@ -34,7 +34,6 @@
 #include <sys/mman.h>
 #endif
 #include <fcntl.h>
-#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C"

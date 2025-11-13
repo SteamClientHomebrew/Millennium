@@ -195,8 +195,10 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
  */
 PyMethodDef* PyGetMillenniumModule()
 {
+#ifdef __linux__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
     static PyMethodDef moduleMethods[] = {
         { "ready",                 EmitReadyMessage,                METH_NOARGS,                  NULL },
         { "add_browser_css",       AddBrowserCss,                   METH_VARARGS,                 NULL },
@@ -212,7 +214,9 @@ PyMethodDef* PyGetMillenniumModule()
         { "is_plugin_enabled",     IsPluginEnable,                  METH_VARARGS,                 NULL },
         { NULL,                    NULL,                            0,                            NULL }  // Sentinel
     };
+#ifdef __linux__
 #pragma GCC diagnostic pop
+#endif
 
     return moduleMethods;
 }

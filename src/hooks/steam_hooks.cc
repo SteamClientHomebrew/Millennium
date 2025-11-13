@@ -317,9 +317,11 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
     /** enable the CEF remote debugger */
     Command_ensure_parameter(&c, "--remote-debugging-port", GetAppropriateDevToolsPort(is_developer_mode));
 
-    cmd = Command_get(&c);
+    const char* result = Command_get(&c);
+    char* owned_cmd = strdup(result);
     Command_free(&c);
-    return cmd;
+
+    return owned_cmd;
 }
 
 #ifdef _WIN32
