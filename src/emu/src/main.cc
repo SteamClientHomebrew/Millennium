@@ -42,7 +42,7 @@
 #include "urlp.h"
 
 #ifdef _WIN32
-static int(__cdecl* orig_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;
+static int(__cdecl* win32_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;
 #endif
 
 /**
@@ -114,7 +114,7 @@ int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, voi
     }
 
 #ifdef _WIN32
-    return orig_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
+    return win32_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
 #else
     return lazy_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
 #endif
@@ -122,54 +122,80 @@ int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, voi
 
 #ifdef _WIN32
 #include <minhook.h>
+#define fn(x) #x
 
-void Win32_StartHook()
+/** the function name we want to tramp */
+#define hook_fn_name fn(cef_browser_host_create_browser)
+#define hook_target_dll "libcef.dll"
+
+void* get_module_base()
+{
+    HMODULE libcef_base_address = nullptr;
+    while (true) {
+        if (libcef_base_address = GetModuleHandleA(hook_target_dll)) break;
+        Sleep(100);
+    }
+    return libcef_base_address;
+}
+
+void* get_fn_address()
+{
+    void* libcef_base_address = get_module_base();
+    return reinterpret_cast<void*>(GetProcAddress((HMODULE)libcef_base_address, hook_fn_name));
+}
+
+static bool g_has_initialized_minhook = false;
+
+/**
+ * called when the hook is loaded into the web-helper on windows
+ * as we aren't using LD_PRELOAD on windows, we have to use min-hook to trampoline
+ * we don't have precedence over the load order in IAT/GOT like on linux/macOS
+ */
+void win32_initialize_trampoline()
 {
     if (MH_Initialize() != MH_OK) {
-        log_error("MinHook: MH_Initialize failed\n");
+        log_error("failed to initialize min-hook...\n");
         return;
     }
 
-    HMODULE mod = nullptr;
-    while (true) {
-        mod = GetModuleHandleA("libcef.dll");
-        if (mod) {
-            break;
-        }
+    g_has_initialized_minhook = true;
 
-        Sleep(100);
-        log_debug("MinHook: Waiting for libcef.dll to load...\n");
-    }
-
-    if (!mod) {
-        log_error("MinHook: libcef.dll not found in process\n");
-        return;
-    }
-
-    void* proc = reinterpret_cast<void*>(GetProcAddress(mod, "cef_browser_host_create_browser"));
+    void* proc = get_fn_address();
     if (!proc) {
-        log_error("MinHook: cef_browser_host_create_browser not found in libcef.dll\n");
+        log_error("ordinate %s not found in %s\n", hook_fn_name, hook_target_dll);
         return;
     }
 
-    if (MH_CreateHook(proc, reinterpret_cast<void*>(&cef_browser_host_create_browser), reinterpret_cast<void**>(&orig_cef_browser_host_create_browser)) != MH_OK) {
-        log_error("MinHook: MH_CreateHook failed\n");
+    if (MH_CreateHook(proc, reinterpret_cast<void*>(&cef_browser_host_create_browser), reinterpret_cast<void**>(&win32_cef_browser_host_create_browser)) != MH_OK) {
+        log_error("failed to create hook on %s\n", hook_fn_name);
         return;
     }
 
-    if (MH_EnableHook(reinterpret_cast<void*>(proc)) != MH_OK) {
-        log_error("MinHook: MH_EnableHook failed\n");
-        return;
+    if (MH_EnableHook(proc) != MH_OK) {
+        log_error("failed to enable hook on %s\n", hook_fn_name);
     }
 }
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+/**
+ * called when the hook is unloaded from the web-helper.
+ * we likely don't actually need to do this, but its good practice.
+ */
+void win32_uninitialize_trampoline()
 {
-    switch (fdwReason) {
+    if (g_has_initialized_minhook) {
+        MH_Uninitialize();
+        g_has_initialized_minhook = false;
+    }
+}
+
+int __attribute__((__stdcall__)) DllMain(HINSTANCE, DWORD reason, LPVOID)
+{
+    switch (reason) {
         case DLL_PROCESS_ATTACH:
-            Win32_StartHook();
+            // win32_initialize_trampoline();
             break;
         case DLL_PROCESS_DETACH:
+            // win32_uninitialize_trampoline();
             break;
     }
     return TRUE;
