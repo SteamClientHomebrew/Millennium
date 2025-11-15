@@ -38,8 +38,8 @@
  * precedence as its no-opped.
  */
 
-#include "lb_request.h"
-#include "urlp.h"
+#include "hhx64/lb_request.h"
+#include "hhx64/urlp.h"
 
 #ifdef _WIN32
 static int(__cdecl* win32_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;

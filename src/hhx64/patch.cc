@@ -34,9 +34,9 @@
 #include <stdlib.h>
 #include <re2/re2.h>
 #include <re2/set.h>
-#include "match.h"
-#include "smem.h"
-#include "log.h"
+#include "hhx64/match.h"
+#include "hhx64/smem.h"
+#include "hhx64/log.h"
 
 typedef struct
 {

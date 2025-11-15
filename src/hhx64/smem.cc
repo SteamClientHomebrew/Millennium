@@ -29,8 +29,8 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include "smem.h"
-#include "log.h"
+#include "hhx64/smem.h"
+#include "hhx64/log.h"
 #include <string.h>
 
 #ifdef _WIN32

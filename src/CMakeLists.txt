@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
 
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use" FORCE)
+set(CMAKE_C_STANDARD   11 CACHE STRING "C standard to use"   FORCE)
+
 include(ExternalProject)
 include(FetchContent)
 project(Millennium LANGUAGES C CXX)
@@ -24,16 +27,15 @@ add_compile_definitions(
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/../vendor/fmt/include
-    ${CMAKE_SOURCE_DIR}/../vendor/asio/asio/include
-    ${CMAKE_SOURCE_DIR}/../vendor/nlohmann/include
-    ${CMAKE_SOURCE_DIR}/../vendor/websocketpp
-    ${CMAKE_SOURCE_DIR}/../vendor/crow/include
-    ${CMAKE_SOURCE_DIR}/../vendor/ini/src
-    ${CMAKE_SOURCE_DIR}/../vendor/incbin
-    ${CMAKE_SOURCE_DIR}/../vendor/subhook
-    ${CMAKE_SOURCE_DIR}/../vendor/plthook
-    ${CMAKE_SOURCE_DIR}/emu/include
+    ${MILLENNIUM_BASE}/vendor/fmt/include
+    ${MILLENNIUM_BASE}/vendor/asio/asio/include
+    ${MILLENNIUM_BASE}/vendor/nlohmann/include
+    ${MILLENNIUM_BASE}/vendor/websocketpp
+    ${MILLENNIUM_BASE}/vendor/crow/include
+    ${MILLENNIUM_BASE}/vendor/ini/src
+    ${MILLENNIUM_BASE}/vendor/incbin
+    ${MILLENNIUM_BASE}/vendor/subhook
+    ${MILLENNIUM_BASE}/vendor/plthook
 )
 
 set(SOURCE_FILES
@@ -75,7 +77,7 @@ set(SOURCE_FILES
     backend/theme_mgr.cc
     backend/webkit.cc
     hooks/steam_hooks.cc
-    ../hhx64/src/smem.cc
+    hhx64/smem.cc
     sys/cfg.cc
     sys/env.cc
     sys/log.cc
@@ -91,9 +93,9 @@ if(WIN32)
 elseif(UNIX)
     list(APPEND SOURCE_FILES "plat/init_posix.cc")
     list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
-    list(APPEND SOURCE_FILES "../vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "../vendor/subhook/subhook_linux.c")
-    list(APPEND SOURCE_FILES "../vendor/plthook/plthook_elf.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/vendor/subhook/subhook_x86.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/vendor/subhook/subhook_linux.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/vendor/plthook/plthook_elf.c")
 endif()
 
 if(WIN32)
@@ -121,7 +123,7 @@ endif()
 include(../scripts/cmake/bootstrap_deps.cmake)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${CMAKE_SOURCE_DIR}/../sdk/typescript-packages/loader/build")
+    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/sdk/typescript-packages/loader/build")
     set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}")
 
     add_compile_definitions(
@@ -143,7 +145,7 @@ endif()
 include(../scripts/cmake/detect_aur_helper.cmake)
 
 if(WIN32)
-    include_directories(${CMAKE_SOURCE_DIR}/../vendor/python/win32)
+    include_directories(${MILLENNIUM_BASE}/vendor/python/win32)
 elseif(APPLE)
     set(python_path "$ENV{HOME}/.pyenv/versions/3.11.8")
     include_directories("${python_path}/include/python3.11")
@@ -159,7 +161,7 @@ else()
         include_directories("${default_python_path}/include/python3.11/")
         detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     else()
-        include_directories("${CMAKE_SOURCE_DIR}/../vendor/python/posix")
+        include_directories("${MILLENNIUM_BASE}/vendor/python/posix")
         set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
     endif()
     message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
@@ -205,10 +207,10 @@ if(WIN32)
     if(GITHUB_ACTION_BUILD)
         set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
     else()
-        set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/../vendor/python/python311.lib)
+        set(PYTHON_LIB ${MILLENNIUM_BASE}/vendor/python/python311.lib)
         add_custom_command(
             OUTPUT "${out_steam_path}/python311.dll"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/../vendor/python/python311.dll" "${out_steam_path}/python311.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MILLENNIUM_BASE}/vendor/python/python311.dll" "${out_steam_path}/python311.dll"
             COMMENT "Adding Millennium python runtime to Steam directory"
         )
 

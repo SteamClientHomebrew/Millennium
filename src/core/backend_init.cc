@@ -29,7 +29,7 @@
  */
 
 #include "millennium/backend_init.h"
-#include "smem.h"
+#include "hhx64/smem.h"
 #include "millennium/auth.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"

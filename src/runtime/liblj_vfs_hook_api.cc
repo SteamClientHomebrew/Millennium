@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "smem.h"
+#include "hhx64/smem.h"
 #include <lua.hpp>
 
 extern lb_shm_arena_t* g_lb_patch_arena;

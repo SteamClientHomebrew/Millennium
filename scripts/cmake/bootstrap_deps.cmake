@@ -1,6 +1,3 @@
-
-set(CMAKE_CXX_STANDARD              17  CACHE STRING   "C++ standard to use")
-set(CMAKE_C_STANDARD                11  CACHE STRING   "C standard to use")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON  CACHE BOOL     "Enable position independent code")
 set(BUILD_SHARED_LIBS               OFF CACHE BOOL     "Build static libraries by default")
 set(BUILD_STATIC_LIBS               ON  CACHE BOOL     "Build static libraries by default")

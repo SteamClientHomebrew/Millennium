@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "urlp.h"
+#include "hhx64/urlp.h"
 
 #ifdef _WIN32
 #define plat_strdup _strdup

@@ -28,21 +28,20 @@ message(STATUS "[hhx64] fetching minhook...")
 FetchContent_Declare(minhook GIT_REPOSITORY https://github.com/TsudaKageyu/minhook GIT_TAG v1.3.4)
 FetchContent_MakeAvailable(minhook)
 
-include_directories(include)
-include_directories(./)
+include_directories("${MILLENNIUM_BASE}/src/include")
 
 add_library(hhx64 SHARED
-    src/main.cc
-    src/patch.cc
-    src/match.cc
-    src/smrq_handler.cc
-    src/smem.cc
-    src/urlp.cc
-    src/fread.cc
-    ../scripts/exports.def
+    main.cc
+    patch.cc
+    match.cc
+    smrq_handler.cc
+    smem.cc
+    urlp.cc
+    fread.cc
+    ${MILLENNIUM_BASE}/scripts/exports.def
 )
 
-add_executable(hhx64-log-viewer src/log_viewer.cc)
+add_executable(hhx64-log-viewer log_viewer.cc)
 target_link_libraries(hhx64 re2 minhook)
 
 if(UNIX)

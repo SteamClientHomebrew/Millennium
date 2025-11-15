@@ -28,55 +28,52 @@
  * SOFTWARE.
  */
 
-#include "fread.h"
-#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 
-/**
- * read a file from the provided path.
- * returns empty fread_data if the file has no content/does not exist.
- *
- * caller is responsible for freeing fread_data.content
- */
-fread_data fread_file(const char* path)
+#include "hhx64/log.h"
+#include "hhx64/urlp.h"
+#include "hhx64/fread.h"
+
+extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
+
+int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size)
 {
-    fread_data result = { 0, 0 };
+    log_info("processing lb request...\n");
 
-    /** open as read bytes */
-    FILE* f = fopen(path, "rb");
-    if (!f) return result;
+    *out_data = NULL;
+    *out_size = 0;
+    char* out_file_data = NULL;
+    uint32_t out_file_size = 0;
 
-    /** get the length of the file by reading to the end */
-    fseek(f, 0, SEEK_END);
-    long file_size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    char *local_path = NULL, *local_short_path = NULL;
+    fread_data file_data = { 0 };
+    uint8_t* buf = NULL;
 
-    if (file_size <= 0) {
-        fclose(f);
-        return result;
+    if (urlp_path_from_lb(url, &local_path, &local_short_path) != 0) {
+        log_error("Failed to get path from URL: %s\n", url);
+        goto cleanup;
     }
 
-    /** allocate file size in memory */
-    result.content = (char*)malloc(file_size);
-    if (!result.content) {
-        fclose(f);
-        return result;
+    file_data = fread_file(local_path);
+    if (!file_data.content) {
+        log_error("Failed to read file: %s\n", local_path);
+        goto cleanup;
     }
 
-    long total = 0;
-    while (total < file_size) {
-        long to_read = file_size - total;
-        /** read the file in chunks, this increases the read speed for large files */
-        if (to_read > 65536) to_read = 65536;
+    log_info("read file %s, size: %d\n", local_path, file_data.size);
+    find_file_matches(file_data.content, file_data.size, local_short_path, &out_file_data, &out_file_size);
+    log_info("out_file_size: %ud\n", out_file_size);
 
-        long n = fread(result.content + total, 1, to_read, f);
-        if (n == 0) break;
+    *out_data = out_file_data;
+    *out_size = out_file_size;
+    file_data.content = NULL; /** transfer ownership */
 
-        total += n;
-    }
+cleanup:
+    free(file_data.content);
+    free(buf);
+    free(local_path);
+    free(local_short_path);
 
-    /** total read bytes */
-    result.size = total;
-    fclose(f);
-    return result;
+    return (*out_data != NULL) ? 0 : -1;
 }

@@ -15,11 +15,7 @@
       "hidden": true,
       "inherits": "default",
       "generator": "Visual Studio 17 2022",
-      "displayName": "windows",
-      "cacheVariables": {
-        "CMAKE_CXX_STANDARD": "17",
-        "CMAKE_C_STANDARD": "23"
-      }
+      "displayName": "windows"
     },
     {
       "inherits": "windows",
