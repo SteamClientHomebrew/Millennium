@@ -6,10 +6,6 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
       "hidden": true,
-      "architecture": {
-        "value": "x86",
-        "strategy": "external"
-      },
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
@@ -20,10 +16,6 @@
       "inherits": "default",
       "generator": "Visual Studio 17 2022",
       "displayName": "windows",
-      "architecture": {
-        "value": "Win32",
-        "strategy": "set"
-      },
       "cacheVariables": {
         "CMAKE_CXX_STANDARD": "17",
         "CMAKE_C_STANDARD": "23"

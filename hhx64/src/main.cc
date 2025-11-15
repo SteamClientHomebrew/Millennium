@@ -167,13 +167,15 @@ void win32_initialize_trampoline()
     }
 
     if (MH_CreateHook(proc, reinterpret_cast<void*>(&cef_browser_host_create_browser), reinterpret_cast<void**>(&win32_cef_browser_host_create_browser)) != MH_OK) {
-        log_error("failed to create hook on %s\n", hook_fn_name);
+        log_error("failed to create hook on %s...\n", hook_fn_name);
         return;
     }
 
     if (MH_EnableHook(proc) != MH_OK) {
-        log_error("failed to enable hook on %s\n", hook_fn_name);
+        log_error("failed to enable hook on %s...\n", hook_fn_name);
     }
+
+    log_info("successfully hooked %s in %s\n", hook_fn_name, hook_target_dll);
 }
 
 /**
@@ -188,14 +190,17 @@ void win32_uninitialize_trampoline()
     }
 }
 
-int __attribute__((__stdcall__)) DllMain(HINSTANCE, DWORD reason, LPVOID)
+/**
+ * called once the dll is loaded into the web-helper process.
+ */
+int __stdcall DllMain(HINSTANCE, DWORD reason, LPVOID)
 {
     switch (reason) {
         case DLL_PROCESS_ATTACH:
-            // win32_initialize_trampoline();
+            win32_initialize_trampoline();
             break;
         case DLL_PROCESS_DETACH:
-            // win32_uninitialize_trampoline();
+            win32_uninitialize_trampoline();
             break;
     }
     return TRUE;

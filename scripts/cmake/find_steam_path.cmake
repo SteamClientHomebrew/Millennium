@@ -1,0 +1,13 @@
+if(WIN32 AND NOT GITHUB_ACTION_BUILD)
+    execute_process(COMMAND reg query "HKCU\\Software\\Valve\\Steam" /v "SteamPath" RESULT_VARIABLE result OUTPUT_VARIABLE steam_path ERROR_VARIABLE reg_error)
+    if(result EQUAL 0)
+        string(REGEX MATCH "[a-zA-Z]:/[^ ]+([ ]+[^ ]+)*" out_steam_path "${steam_path}")
+        string(REPLACE "\n" "" out_steam_path "${out_steam_path}")
+        message(STATUS "[Millennium] Target build path: ${out_steam_path}")
+        
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${out_steam_path})
+        set(LIBRARY_OUTPUT_DIRECTORY ${out_steam_path})
+    else()
+        message(WARNING "[Millennium] Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
+    endif()
+endif()

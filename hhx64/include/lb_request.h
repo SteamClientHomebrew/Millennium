@@ -40,6 +40,12 @@
 #include <time.h>
 #include "cef_def.h"
 
+#ifdef _WIN32
+#define plat_strdup _strdup
+#else
+#define plat_strdup strdup
+#endif
+
 /**
  * lazily load a cef function from the PLT/GOT/IAT.
  * since we don't actually want the dependency of linking against steams cef,
@@ -202,7 +208,7 @@ int CEF_CALLBACK lb_read(void* self, void* data_out, int bytes_to_read, int* byt
 {
     steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)self;
     size_t available = handler->size - handler->pos;
-    *bytes_read = (bytes_to_read < available) ? bytes_to_read : available;
+    *bytes_read = (int)((bytes_to_read < available) ? bytes_to_read : available);
 
     if (*bytes_read > 0) {
         memcpy(data_out, handler->data + handler->pos, *bytes_read);
@@ -216,7 +222,7 @@ cef_resource_request_handler_t* create_steamloopback_request_handler(const char*
 {
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)calloc(1, sizeof(steamloopback_request_handler_t));
 
-    handler->url = strdup(url);
+    handler->url = plat_strdup(url);
     handler->ref_count.store(1);
 
     char* p = handler->handler._base;
@@ -239,8 +245,14 @@ cef_resource_request_handler_t* create_steamloopback_request_handler(const char*
 
 void* create_steamloopback_resource_handler(const char* url)
 {
+#ifdef _WIN32
+    LARGE_INTEGER freq, start, end;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&start);
+#else
     struct timespec start = { 0 }, end = { 0 };
     clock_gettime(CLOCK_MONOTONIC, &start);
+#endif
     steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)calloc(1, sizeof(steamloopback_resource_handler_t));
 
     char* data = NULL;
@@ -251,15 +263,20 @@ void* create_steamloopback_resource_handler(const char* url)
         return NULL;
     }
 
+#ifdef _WIN32
+    QueryPerformanceCounter(&end);
+    double elapsed = (double)(end.QuadPart - start.QuadPart) * 1000.0 / freq.QuadPart;
+#else
     clock_gettime(CLOCK_MONOTONIC, &end);
-    double elapsed = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    log_info("[hook] took %.3f ms to process %s\n", elapsed * 1000, url);
+    double elapsed = ((end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9) * 1000.0;
+#endif
+    log_info("[hook] took %.3f ms to process %s\n", elapsed, url);
 
     handler->ref_count.store(1);
 
     handler->data = data;
     handler->size = size;
-    handler->url = strdup(url);
+    handler->url = plat_strdup(url);
     handler->pos = 0;
 
     /** setup handler base */

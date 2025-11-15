@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "emu/include/smem.h"
+#include "smem.h"
 #include <lua.hpp>
 
 extern lb_shm_arena_t* g_lb_patch_arena;

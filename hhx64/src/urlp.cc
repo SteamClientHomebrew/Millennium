@@ -31,12 +31,20 @@
 #define _POSIX_C_SOURCE 200809L
 #ifdef __linux__
 #include <linux/limits.h>
+#elif _WIN32
+#include <windows.h>
+#define PATH_MAX MAX_PATH
 #endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "urlp.h"
-#include <windows.h>
+
+#ifdef _WIN32
+#define plat_strdup _strdup
+#else
+#define plat_strdup strdup
+#endif
 
 /**
  * convert a steamloopback url to abs path and rel path
@@ -55,7 +63,7 @@ int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
         return -1;
     }
 
-    char* path = strdup(path_start);
+    char* path = plat_strdup(path_start);
     if (!path) return -1;
 
     char* query = strchr(path, '?');
@@ -77,7 +85,7 @@ int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
             RegCloseKey(key);
         }
         if (!steam_path[0]) {
-            strcpy(steam_path, "C:\\Program Files (x86)\\Steam");
+            strcpy_s(steam_path, sizeof(steam_path), "C:\\Program Files (x86)\\Steam");
         }
     }
     snprintf(file_path, PATH_MAX, "%s/steamui%s", steam_path, path);

@@ -277,11 +277,13 @@ void SetupEnvironmentVariables()
 
 #ifdef __linux__
     const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
+#elif defined(_WIN32)
+    const bool shouldLog = true;
 #endif
     envVariables = environment;
 
     for (const auto& [key, value] : environment) {
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
 #define RED "\033[31m"
 #define RESET "\033[0m"
         if (shouldLog) std::cout << fmt::format("{}={}", key, value) << std::endl;
