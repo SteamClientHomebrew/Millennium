@@ -42,6 +42,9 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
+#ifdef __linux__
+#include <unistd.h>
+#endif
 
 std::map<std::string, std::string> envVariables;
 

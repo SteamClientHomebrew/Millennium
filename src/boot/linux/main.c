@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#define _DEFAULT_SOURCE
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
 #include <string.h>
@@ -40,9 +41,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <stdio.h>
-#include <stdlib.h>
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_INFO "\033[1;34m"

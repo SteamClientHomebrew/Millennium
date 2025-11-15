@@ -66,7 +66,7 @@
 #define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
     static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
     if (!lazy_##func_name) {                                                                                                                                                       \
-        lazy_##func_name = dlsym(RTLD_NEXT, #func_name);                                                                                                                           \
+        lazy_##func_name = (return_type(*) param_types)dlsym(RTLD_NEXT, #func_name);                                                                                               \
     }
 #endif
 

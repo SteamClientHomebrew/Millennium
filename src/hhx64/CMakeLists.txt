@@ -4,10 +4,13 @@ message(STATUS "[hhx64] Using compiler: ${CMAKE_CXX_COMPILER}")
 include(FetchContent)
 
 project(hhx64 CXX)
-project(hhx64-log-viewer CXX)
+if(WIN32)
+    project(hhx64-log-viewer CXX)
+endif()
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -24,9 +27,11 @@ message(STATUS "[hhx64] fetching re2...")
 FetchContent_Declare(re2 GIT_REPOSITORY https://github.com/google/re2 GIT_TAG 2025-11-05)
 FetchContent_MakeAvailable(re2)
 
-message(STATUS "[hhx64] fetching minhook...")
-FetchContent_Declare(minhook GIT_REPOSITORY https://github.com/TsudaKageyu/minhook GIT_TAG v1.3.4)
-FetchContent_MakeAvailable(minhook)
+if(WIN32)
+    message(STATUS "[hhx64] fetching minhook...")
+    FetchContent_Declare(minhook GIT_REPOSITORY https://github.com/TsudaKageyu/minhook GIT_TAG v1.3.4)
+    FetchContent_MakeAvailable(minhook)
+endif()
 
 include_directories("${MILLENNIUM_BASE}/src/include")
 
@@ -40,9 +45,11 @@ add_library(hhx64 SHARED
     fread.cc
     ${MILLENNIUM_BASE}/scripts/exports.def
 )
-
-add_executable(hhx64-log-viewer log_viewer.cc)
-target_link_libraries(hhx64 re2 minhook)
+target_link_libraries(hhx64 re2)
+if(WIN32)
+    add_executable(hhx64-log-viewer log_viewer.cc)
+    target_link_libraries(hhx64 minhook)
+endif()
 
 if(UNIX)
     set_target_properties(hhx64 PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
@@ -73,4 +80,3 @@ elseif(WIN32)
     set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "version") # hhx64
     set_target_properties(hhx64 PROPERTIES PREFIX "")
 endif()
-

@@ -266,9 +266,9 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
     }
 
     matches->count = match_ids.size();
-    matches->ids = (uint32_t*)malloc(matches->count * sizeof(uint32_t));
-    matches->froms = (uint64_t*)malloc(matches->count * sizeof(uint64_t));
-    matches->tos = (uint64_t*)malloc(matches->count * sizeof(uint64_t));
+    matches->ids = (unsigned int*)malloc(matches->count * sizeof(uint32_t));
+    matches->froms = (unsigned long long*)malloc(matches->count * sizeof(uint64_t));
+    matches->tos = (unsigned long long*)malloc(matches->count * sizeof(uint64_t));
 
     if (!matches->ids || !matches->froms || !matches->tos) {
         free(matches->ids);
