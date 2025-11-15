@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 #include <psapi.h>
@@ -149,3 +150,4 @@ int main(int argc, char** argv)
     CloseHandle(hMutex);
     return 0;
 }
+#endif
