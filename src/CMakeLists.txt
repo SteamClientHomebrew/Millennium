@@ -10,7 +10,7 @@ project(Millennium LANGUAGES C CXX)
 include(../scripts/cmake/millennium_version.cmake)
 
 add_compile_definitions(
-    "_CRT_SECURE_NO_WARNINGS"    
+    "_CRT_SECURE_NO_WARNINGS"
     "USE_INTERNAL_FPCONV"
     "NGHTTP2_STATICLIB"
     "LJ_TARGET_X86"
@@ -27,15 +27,8 @@ add_compile_definitions(
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/include
-    ${MILLENNIUM_BASE}/vendor/fmt/include
-    ${MILLENNIUM_BASE}/vendor/asio/asio/include
-    ${MILLENNIUM_BASE}/vendor/nlohmann/include
-    ${MILLENNIUM_BASE}/vendor/websocketpp
-    ${MILLENNIUM_BASE}/vendor/crow/include
-    ${MILLENNIUM_BASE}/vendor/ini/src
-    ${MILLENNIUM_BASE}/vendor/incbin
-    ${MILLENNIUM_BASE}/vendor/subhook
-    ${MILLENNIUM_BASE}/vendor/plthook
+    ${CMAKE_SOURCE_DIR}/vendor/subhook
+    ${CMAKE_SOURCE_DIR}/vendor/plthook
 )
 
 set(SOURCE_FILES
@@ -93,9 +86,9 @@ if(WIN32)
 elseif(UNIX)
     list(APPEND SOURCE_FILES "plat/init_posix.cc")
     list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/vendor/subhook/subhook_linux.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/vendor/plthook/plthook_elf.c")
+    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/subhook/subhook_x86.c")
+    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/subhook/subhook_linux.c")
+    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/plthook/plthook_elf.c")
 endif()
 
 if(WIN32)
@@ -145,7 +138,7 @@ endif()
 include(../scripts/cmake/detect_aur_helper.cmake)
 
 if(WIN32)
-    include_directories(${MILLENNIUM_BASE}/vendor/python/win32)
+    include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32)
 elseif(APPLE)
     set(python_path "$ENV{HOME}/.pyenv/versions/3.11.8")
     include_directories("${python_path}/include/python3.11")
@@ -161,7 +154,7 @@ else()
         include_directories("${default_python_path}/include/python3.11/")
         detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     else()
-        include_directories("${MILLENNIUM_BASE}/vendor/python/posix")
+        include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
         set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
     endif()
     message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
@@ -194,7 +187,7 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
-    
+
     set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
     set_target_properties(Millennium PROPERTIES PREFIX "lib")
     set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
@@ -207,10 +200,10 @@ if(WIN32)
     if(GITHUB_ACTION_BUILD)
         set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
     else()
-        set(PYTHON_LIB ${MILLENNIUM_BASE}/vendor/python/python311.lib)
+        set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib)
         add_custom_command(
             OUTPUT "${out_steam_path}/python311.dll"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${MILLENNIUM_BASE}/vendor/python/python311.dll" "${out_steam_path}/python311.dll"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/vendor/python/python311.dll" "${out_steam_path}/python311.dll"
             COMMENT "Adding Millennium python runtime to Steam directory"
         )
 
