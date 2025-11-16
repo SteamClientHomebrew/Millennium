@@ -8,6 +8,7 @@ license=('MIT')
 depends=('git' 'steam')
 makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs' 'pnpm')
 depends_x86_64=('lib32-python311-bin')
+conflicts=('python-i686-bin')
 source=("git+$url.git#commit=8b8b66ced4e9b4dbb302aa192a6fd97d9bf8baf2")
 sha256sums=('SKIP')
 options=(!debug)
@@ -52,7 +53,7 @@ package() {
 
     install -Dm755 build/libmillennium_x86.so "$pkgdir/usr/lib/millennium/libmillennium_x86.so"
     install -Dm755 build/unix-hooks/libmillennium_bootstrap_86x.so "$pkgdir/usr/lib/millennium/libmillennium_bootstrap_86x.so"
-    
+
     mkdir -p "$pkgdir/usr/share/millennium/shims"
 
     cp -r ./shims/build/* "$pkgdir/usr/share/millennium/shims/"
