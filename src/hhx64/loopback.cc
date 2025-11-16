@@ -205,10 +205,10 @@ cef_resource_request_handler_t* create_steamloopback_request_handler(const char*
 
     char* p = handler->handler._base;
     *(size_t*)(p + 0x0) = sizeof(cef_resource_request_handler_t);
-    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void (*)(void*))lb_req_add_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (int (*)(void*))lb_req_release;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (int (*)(void*))lb_req_has_one_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (int (*)(void*))lb_req_has_at_least_one_ref;
+    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x0) = (void (*)(void*))lb_req_add_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x1) = (int (*)(void*))lb_req_release;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x2) = (int (*)(void*))lb_req_has_one_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x3) = (int (*)(void*))lb_req_has_at_least_one_ref;
 
     handler->handler.on_before_resource_load = lb_on_before_load_hdl;
     handler->handler.get_resource_handler = lb_get_resource_hdl;
