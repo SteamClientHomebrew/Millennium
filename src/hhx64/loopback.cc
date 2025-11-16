@@ -28,8 +28,10 @@
  * SOFTWARE.
  */
 
-#define _POSIX_C_SOURCE 200809L
-#include "log.h"
+#include "hhx64/cef_def.h"
+#include "hhx64/urlp.h"
+#include "hhx64/fread.h"
+#include "hhx64/log.h"
 #include <assert.h>
 #include <atomic>
 #include <stdlib.h>
@@ -38,36 +40,11 @@
 #include <dlfcn.h>
 #endif
 #include <time.h>
-#include "cef_def.h"
 
 #ifdef _WIN32
 #define plat_strdup _strdup
 #else
 #define plat_strdup strdup
-#endif
-
-/**
- * lazily load a cef function from the PLT/GOT/IAT.
- * since we don't actually want the dependency of linking against steams cef,
- * we just load it during runtime.
- */
-#ifdef _WIN32
-#include <windows.h>
-#define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
-    static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
-    if (!lazy_##func_name) {                                                                                                                                                       \
-        HMODULE hModule = GetModuleHandleA("libcef.dll");                                                                                                                          \
-        if (hModule) {                                                                                                                                                             \
-            lazy_##func_name = (return_type(*) param_types)GetProcAddress(hModule, #func_name);                                                                                    \
-        }                                                                                                                                                                          \
-    }
-#else
-#include <dlfcn.h>
-#define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
-    static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
-    if (!lazy_##func_name) {                                                                                                                                                       \
-        lazy_##func_name = (return_type(*) param_types)dlsym(RTLD_NEXT, #func_name);                                                                                               \
-    }
 #endif
 
 typedef struct
@@ -90,10 +67,11 @@ typedef struct
 /** fwd decl */
 int handle_loopback_request(const char* url, char** data, uint32_t* size);
 void* create_steamloopback_resource_handler(const char* url);
+extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
 
-static struct _cef_client_t* orig_c = NULL;
-static struct _cef_request_handler_t* (*original_get_request_handler)(void*) = NULL;
-static struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*) = NULL;
+struct _cef_client_t* orig_c = NULL;
+struct _cef_request_handler_t* (*original_get_request_handler)(void*) = NULL;
+struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*) = NULL;
 
 void CEF_CALLBACK lb_res_add_ref(void* base)
 {
@@ -241,6 +219,42 @@ cef_resource_request_handler_t* create_steamloopback_request_handler(const char*
     handler->handler._5 = NULL;
     handler->handler._6 = NULL;
     return &handler->handler;
+}
+
+int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size)
+{
+    *out_data = NULL;
+    *out_size = 0;
+    char* out_file_data = NULL;
+    uint32_t out_file_size = 0;
+
+    char *local_path = NULL, *local_short_path = NULL;
+    fread_data file_data = { 0 };
+    uint8_t* buf = NULL;
+
+    if (urlp_path_from_lb(url, &local_path, &local_short_path) != 0) {
+        log_error("Failed to get path from URL: %s\n", url);
+        goto cleanup;
+    }
+
+    file_data = fread_file(local_path);
+    if (!file_data.content) {
+        log_error("Failed to read file: %s\n", local_path);
+        goto cleanup;
+    }
+
+    find_file_matches(file_data.content, file_data.size, local_short_path, &out_file_data, &out_file_size);
+    *out_data = out_file_data;
+    *out_size = out_file_size;
+    file_data.content = NULL; /** transfer ownership */
+
+cleanup:
+    free(file_data.content);
+    free(buf);
+    free(local_path);
+    free(local_short_path);
+
+    return (*out_data != NULL) ? 0 : -1;
 }
 
 void* create_steamloopback_resource_handler(const char* url)

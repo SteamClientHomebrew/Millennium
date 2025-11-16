@@ -39,10 +39,10 @@ add_library(hhx64 SHARED
     main.cc
     patch.cc
     match.cc
-    smrq_handler.cc
     smem.cc
     urlp.cc
     fread.cc
+    loopback.cc
     ${MILLENNIUM_BASE}/scripts/exports.def
 )
 target_link_libraries(hhx64 re2)
@@ -54,9 +54,9 @@ endif()
 if(UNIX)
     set_target_properties(hhx64 PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
     set_target_properties(hhx64 PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "millennium_hhx64")
+    set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "millennium_hh")
     set_target_properties(hhx64 PROPERTIES PREFIX "lib")
-    set_target_properties(hhx64 PROPERTIES SUFFIX "_x64.so")
+    set_target_properties(hhx64 PROPERTIES SUFFIX "x64.so")
 elseif(WIN32)
     target_link_libraries(hhx64 version)
     set(BUILD_PATH "C:/Program Files (x86)/Steam/bin/cef/cef.win7x64")

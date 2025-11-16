@@ -38,6 +38,30 @@
 #endif
 
 /**
+ * lazily load a cef function from the PLT/GOT/IAT.
+ * since we don't actually want the dependency of linking against steams cef,
+ * we just load it during runtime.
+ */
+#ifdef _WIN32
+#include <windows.h>
+#define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
+    static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
+    if (!lazy_##func_name) {                                                                                                                                                       \
+        HMODULE hModule = GetModuleHandleA("libcef.dll");                                                                                                                          \
+        if (hModule) {                                                                                                                                                             \
+            lazy_##func_name = (return_type(*) param_types)GetProcAddress(hModule, #func_name);                                                                                    \
+        }                                                                                                                                                                          \
+    }
+#else
+#include <dlfcn.h>
+#define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
+    static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
+    if (!lazy_##func_name) {                                                                                                                                                       \
+        lazy_##func_name = (return_type(*) param_types)dlsym(RTLD_NEXT, #func_name);                                                                                               \
+    }
+#endif
+
+/**
  * highly confident steam uses UTF-8 strings
  * throughout the web-helper. I've yet to see any
  * 2 byte UNICODE character sequences anywhere.

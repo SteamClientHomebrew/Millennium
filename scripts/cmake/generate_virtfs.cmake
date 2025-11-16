@@ -56,16 +56,16 @@ foreach(chunk_file ${CHUNK_FILES})
     if(filename MATCHES "\\.map$")
         continue()
     endif()
-    file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}" "${chunk_file}")
+    file(RELATIVE_PATH rel_path "${MILLENNIUM_BASE}" "${chunk_file}")
     filename_to_identifier("${filename}" var_name)
-    
+
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         set(CHUNK_DEFS "${CHUNK_DEFS}#ifdef _WIN32\n")
         set(CHUNK_DEFS "${CHUNK_DEFS}#define ${var_name}Data LoadResourceData(\"${var_name}\")\n")
         set(CHUNK_DEFS "${CHUNK_DEFS}#else\n")
         set(CHUNK_DEFS "${CHUNK_DEFS}INCTXT(${var_name}, \"../../../${rel_path}\");\n")
         set(CHUNK_DEFS "${CHUNK_DEFS}#endif\n\n")
-        
+
         set(MAP_ENTRIES "${MAP_ENTRIES}\t{ fmt::format(\"https://millennium.ftp/{}/chunks/${filename}\", GetScrambledApiPathToken()), []() { return ${var_name}Data; } },\n")
         set(RC_CONTENT "${RC_CONTENT}${var_name} RCDATA \"${chunk_file}\"\n")
     else()

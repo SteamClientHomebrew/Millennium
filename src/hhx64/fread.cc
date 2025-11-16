@@ -29,8 +29,14 @@
  */
 
 #include "hhx64/fread.h"
+#include "hhx64/log.h"
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
 
 /**
  * read a file from the provided path.
@@ -40,6 +46,15 @@
  */
 fread_data fread_file(const char* path)
 {
+#ifdef _WIN32
+    LARGE_INTEGER frequency, start, end;
+    QueryPerformanceFrequency(&frequency);
+    QueryPerformanceCounter(&start);
+#else
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+#endif
+
     fread_data result = { 0, 0 };
 
     /** open as read bytes */
@@ -78,5 +93,16 @@ fread_data fread_file(const char* path)
     /** total read bytes */
     result.size = total;
     fclose(f);
+
+#ifdef _WIN32
+    QueryPerformanceCounter(&end);
+    double elapsed_ms = (double)(end.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart;
+#else
+    gettimeofday(&end, NULL);
+    double elapsed_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+#endif
+
+    log_info("Read file '%s' (%ld bytes) in %.2f ms\n", path, total, elapsed_ms);
+
     return result;
 }

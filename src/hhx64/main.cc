@@ -38,12 +38,18 @@
  * precedence as its no-opped.
  */
 
-#include "hhx64/lb_request.h"
+#include "hhx64/cef_def.h"
 #include "hhx64/urlp.h"
+#include <unistd.h>
 
 #ifdef _WIN32
 static int(__cdecl* win32_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;
 #endif
+
+extern cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url);
+extern struct _cef_client_t* orig_c;
+extern struct _cef_request_handler_t* (*original_get_request_handler)(void*);
+extern struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*);
 
 /**
  * hook resource request handler to block steamloopback.host requests.
@@ -102,7 +108,7 @@ struct _cef_request_handler_t* hooked_get_request_handler(void* self)
  * thankfully since steam doesn't statically link against cef (not even sure if its possible), it allows us to trampoline
  * calls it makes to cef.
  */
-int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
+extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
 {
     CEF_LAZY_LOAD(cef_browser_host_create_browser, int, (const void*, struct _cef_client_t*, void*, const void*, void*, void*));
 
@@ -120,7 +126,7 @@ int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, voi
 #endif
 }
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <minhook.h>
 #define fn(x) #x
 

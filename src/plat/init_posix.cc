@@ -87,11 +87,27 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
     SetupEnvironmentVariables();
 }
 
+void Posix_AttachWebHelperHook()
+{
+    const char* existing = getenv("LD_PRELOAD");
+    char* new_value;
+
+    if (asprintf(&new_value, "%s%s/home/shdw/Development/Millennium/build/src/hhx64-build/libmillennium_hhx64.so", existing ? existing : "", existing ? ":" : "") < 0) {
+        LOG_ERROR("[Posix_AttachWebHelperHook] asprintf failed to allocate new buffer");
+        return;
+    }
+
+    setenv("LD_PRELOAD", new_value, 1);
+    Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", new_value);
+    free(new_value);
+}
+
 void Posix_AttachMillennium()
 {
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
     Plat_InitializeSteamHooks();
+    Posix_AttachWebHelperHook();
     EntryMain();
 
     BackendManager& manager = BackendManager::GetInstance();
