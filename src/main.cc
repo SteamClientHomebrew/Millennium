@@ -44,10 +44,6 @@
 #include <filesystem>
 #include <fmt/core.h>
 
-/**
- * @brief Verify the environment to ensure that the CEF remote debugging is enabled.
- * .cef-enable-remote-debugging is a special file name that Steam uses to signal CEF to enable remote debugging.
- */
 static void VerifyEnvironment()
 {
 #ifdef __linux__
