@@ -27,7 +27,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
+#ifdef _WIN32
 /** micro optimization -- declare functions instead of importing them from the windows header */
 unsigned long __stdcall GetLastError(void);
 void* __stdcall LoadLibraryA(const char* lpLibFileName);
@@ -90,3 +90,4 @@ int __stdcall DllMain(void* hinstDLL, unsigned long fdwReason, void* lpReserved)
     }
     return 1;
 }
+#endif
