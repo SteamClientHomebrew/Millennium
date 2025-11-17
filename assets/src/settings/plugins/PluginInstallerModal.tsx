@@ -31,7 +31,7 @@
 import { ConfirmModal, pluginSelf, showModal, ShowModalResult, SuspensefulImage, TextField } from '@steambrew/client';
 import React, { Component, useEffect } from 'react';
 import { Utils } from '../../utils';
-
+import { locale } from '../../../locales';
 import FindPluginIdGif from '../../../static/plugin_id.gif';
 import { PLUGINS_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
@@ -48,14 +48,14 @@ function PluginIdModal({ tutorialImageUrl, installer, modal, refetchDataCb }: Pl
 
 	return (
 		<ConfirmModal
-			strTitle="Enter an ID"
+			strTitle={locale.installEnterAnID}
 			strDescription={
 				<>
 					Install a user plugin from an ID. These ID's can be found after selecting a plugin at <Utils.URLComponent url={PLUGINS_URL} />
 					<SuspensefulImage className="MillenniumInstallDialog_TutorialImage" src={tutorialImageUrl} />
 					<TextField
 						// @ts-ignore
-						placeholder={'Enter an ID here...'}
+						placeholder={locale.installEnterAnIDPlaceholder}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
 					/>
