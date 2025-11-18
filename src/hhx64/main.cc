@@ -131,7 +131,7 @@ extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_clien
 }
 
 #if defined(_WIN32)
-#include <minhook.h>
+#include <MinHook.h>
 #define fn(x) #x
 
 /** the function name we want to tramp */
@@ -142,7 +142,7 @@ void* get_module_base()
 {
     HMODULE libcef_base_address = nullptr;
     while (true) {
-        if (libcef_base_address = GetModuleHandleA(hook_target_dll)) break;
+        if ((libcef_base_address = GetModuleHandleA(hook_target_dll))) break;
         Sleep(100);
     }
     return libcef_base_address;
