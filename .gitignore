@@ -1,20 +1,21 @@
-# Ignore cmake build files
-/build
+# Build files
+**/build
 
-# ignore python binaries
-/vendor/python/python311.dll
-/vendor/python/python311.lib
-/vendor/python/python311_d.lib
-/vendor/python/python311_d.dll
-
-# ignore macOS system files
-**/.DS_Store
+# Win32 Python binaries
+python311*.lib
+python311*.dll
 
 node_modules/
-.vscode/
-.vs/
-src/include/millennium/virtfs.h
+
+# Visual Studio & Visual Studio Code
+.vs*/
+
+# Clangd C++ index files
 .cache/
-src/emu/build/
+src/include/millennium/virtfs.h
+
 scripts/resources.rc
 scripts/RC*
+
+# macOS system files
+**/.DS_Store

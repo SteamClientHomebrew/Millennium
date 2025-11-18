@@ -40,7 +40,11 @@
 
 #include "hhx64/cef_def.h"
 #include "hhx64/urlp.h"
+#include "hhx64/log.h"
+
+#ifdef __linux__
 #include <unistd.h>
+#endif
 
 #ifdef _WIN32
 static int(__cdecl* win32_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;
