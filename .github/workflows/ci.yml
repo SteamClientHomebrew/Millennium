@@ -74,13 +74,6 @@ jobs:
           Copy-Item ./Python-3.11.8/artifacts/windows/python311.lib ./build/python/python311.lib
           Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.lib ./build/python/python311_d.lib
 
-      - name: ⚙️ Download Msys2
-        uses: msys2/setup-msys2@v2
-        with:
-          path-type: inherit
-          msystem: mingw32
-          install: mingw-w64-i686-libgcrypt mingw-w64-i686-gcc mingw-w64-i686-cmake mingw-w64-i686-ninja mingw-w64-i686-make unzip git
-
       - name: 🛠️ Build Millennium Plugin Backend
         run: |
           $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-win32.zip"
@@ -185,11 +178,12 @@ jobs:
         run: npm install -g pnpm
 
       - name: 🛠️ Build Millennium Backend
-        shell: msys2 {0}
+        shell: cmd
         run: |
-          cmake --preset=windows-mingw-release -DGITHUB_ACTION_BUILD=ON
+          call "C:\Program Files\Microsoft Visual Studio\17\Enterprise\Common7\Tools\VsDevCmd.bat"
+          cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
-          cmake --build build --config Release -- -j$(nproc)
+          cmake --build build
 
           cp ./build/python/python311.dll D:/a/env/python311.dll
           cp ./build/src/boot/win32/version.dll  D:/a/env/version.dll
