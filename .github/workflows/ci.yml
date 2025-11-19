@@ -180,6 +180,9 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: cmd
         run: |
+          pnpm --dir src/frontend run build
+          pnpm --dir sdk run build
+
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build
@@ -277,6 +280,9 @@ jobs:
           export CMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu"
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
+
+          pnpm --dir src/frontend run build
+          pnpm --dir sdk run build
 
           cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
