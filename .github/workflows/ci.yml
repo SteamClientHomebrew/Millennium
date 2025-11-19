@@ -177,17 +177,19 @@ jobs:
       - name: ⚙️ Install Pnpm
         run: npm install -g pnpm
 
-      - name: 🛠️ Build Millennium Backend
-        shell: cmd
+      - name: 🛠️ Build Millennium Backend (bash)
+        shell: bash
         run: |
-          pnpm --dir src/frontend install
-          pnpm --dir src/frontend run build
+          set -ex
+          export CI=true
+          pnpm --dir src/frontend install --frozen-lockfile --no-progress
+          pnpm --dir src/frontend run prod
 
-          pnpm --dir sdk install
+          pnpm --dir sdk install --frozen-lockfile --no-progress
           pnpm --dir sdk run build
 
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
-          mkdir ./build/artifacts
+          mkdir -p ./build/artifacts
           cmake --build build
 
           cp ./src/vendor/python/python311.dll D:/a/env/python311.dll
@@ -285,7 +287,7 @@ jobs:
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
 
           pnpm --dir src/frontend install
-          pnpm --dir src/frontend run build
+          pnpm --dir src/frontend run prod
 
           pnpm --dir sdk install
           pnpm --dir sdk run build
