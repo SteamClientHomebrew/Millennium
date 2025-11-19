@@ -125,7 +125,7 @@ VOID Win32_AttachMillennium(VOID)
         return;
     }
 
-    // Win32_AttachWebHelperHook();
+    Win32_AttachWebHelperHook();
 
     // SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();

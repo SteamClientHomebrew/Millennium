@@ -60,15 +60,15 @@ if(UNIX)
 elseif(WIN32)
     target_link_libraries(hhx64 version)
 
-    if(GITHUB_ACTION_BUILD)
-        set(BUILD_PATH "C:/Program Files (x86)/Steam/bin/cef/cef.win7x64")
-        set_target_properties(hhx64 PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY "${BUILD_PATH}"
-            LIBRARY_OUTPUT_DIRECTORY "${BUILD_PATH}"
-            ARCHIVE_OUTPUT_DIRECTORY "${BUILD_PATH}"
-        )
+    if(NOT GITHUB_ACTION_BUILD)
+        include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
+
+        if (out_steam_path)
+            set_target_properties(hhx64 PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${out_steam_path}" LIBRARY_OUTPUT_DIRECTORY "${out_steam_path}" ARCHIVE_OUTPUT_DIRECTORY "${out_steam_path}")
+        endif()
     endif()
 
-    set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "version") # hhx64
     set_target_properties(hhx64 PROPERTIES PREFIX "")
+    set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "millennium")
+    set_target_properties(hhx64 PROPERTIES SUFFIX ".hhx64.dll")
 endif()
