@@ -59,22 +59,15 @@ if(UNIX)
     set_target_properties(hhx64 PROPERTIES SUFFIX "x64.so")
 elseif(WIN32)
     target_link_libraries(hhx64 version)
-    set(BUILD_PATH "C:/Program Files (x86)/Steam/bin/cef/cef.win7x64")
 
-    set_target_properties(hhx64 PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${BUILD_PATH}"
-        LIBRARY_OUTPUT_DIRECTORY "${BUILD_PATH}"
-        ARCHIVE_OUTPUT_DIRECTORY "${BUILD_PATH}"
-    )
-
-    foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
-        string(TOUPPER ${CONFIG} CONFIG_UPPER)
+    if(GITHUB_ACTION_BUILD)
+        set(BUILD_PATH "C:/Program Files (x86)/Steam/bin/cef/cef.win7x64")
         set_target_properties(hhx64 PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${BUILD_PATH}"
-            LIBRARY_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${BUILD_PATH}"
-            ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${BUILD_PATH}"
+            RUNTIME_OUTPUT_DIRECTORY "${BUILD_PATH}"
+            LIBRARY_OUTPUT_DIRECTORY "${BUILD_PATH}"
+            ARCHIVE_OUTPUT_DIRECTORY "${BUILD_PATH}"
         )
-    endforeach()
+    endif()
 
     set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "version") # hhx64
     set_target_properties(hhx64 PROPERTIES PREFIX "")
