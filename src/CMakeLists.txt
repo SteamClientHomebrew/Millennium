@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD   11 CACHE STRING "C standard to use"   FORCE)
 include(ExternalProject)
 include(FetchContent)
 project(Millennium LANGUAGES C CXX)
-include(../scripts/cmake/millennium_version.cmake)
+include(${MILLENNIUM_BASE}/scripts/cmake/millennium_version.cmake)
 
 add_compile_definitions(
     "_CRT_SECURE_NO_WARNINGS"
@@ -160,8 +160,8 @@ else()
     message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
 endif()
 
-include(../scripts/cmake/find_steam_path.cmake)
-include(../scripts/cmake/generate_virtfs.cmake)
+include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
+include(${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake)
 
 if(WIN32)
     add_library(Millennium SHARED "${SOURCE_FILES}")
@@ -193,7 +193,7 @@ elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
 endif()
 
-include(../scripts/cmake/windres.cmake)
+include(${MILLENNIUM_BASE}/scripts/cmake/windres.cmake)
 target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)

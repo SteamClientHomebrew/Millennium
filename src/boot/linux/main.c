@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#ifdef __linux__
 #define _DEFAULT_SOURCE
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
@@ -259,3 +260,4 @@ HOOK_FUNC(XTestFakeKeyEvent, int, (Display * a, unsigned int b, Bool c, unsigned
 HOOK_FUNC(XTestQueryExtension, int, (Display * a, int* b, int* c, int* d, int* e), (a, b, c, d, e))
 HOOK_FUNC(XTestFakeRelativeMotionEvent, int, (Display * a, int b, int c, unsigned long d), (a, b, c, d))
 HOOK_FUNC(XTestFakeMotionEvent, int, (Display * a, int b, int c, int d, unsigned long e), (a, b, c, d, e))
+#endif
