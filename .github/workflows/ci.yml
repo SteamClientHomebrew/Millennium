@@ -180,7 +180,6 @@ jobs:
       - name: 🛠️ Build Millennium Backend
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\17\Enterprise\Common7\Tools\VsDevCmd.bat"
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           mkdir ./build/artifacts
           cmake --build build
