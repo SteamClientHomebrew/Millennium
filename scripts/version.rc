@@ -1,5 +1,5 @@
 #include <windows.h>
-#include "../build/version.h"
+#include "../build/src/millennium-build/version.h"
 
 #define VER_PRIVATEBUILD            VS_FF_PRIVATEBUILD
 #define VER_PRERELEASE              VS_FF_PRERELEASE
