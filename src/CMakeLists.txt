@@ -197,10 +197,9 @@ include(${MILLENNIUM_BASE}/scripts/cmake/windres.cmake)
 target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)
-    if(GITHUB_ACTION_BUILD)
-        set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/build/python/python311.lib")
-    else()
-        set(PYTHON_LIB ${CMAKE_SOURCE_DIR}/vendor/python/python311.lib)
+    set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/vendor/python/python311.lib")
+
+    if (NOT GITHUB_ACTION_BUILD)
         add_custom_command(
             OUTPUT "${out_steam_path}/python311.dll"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/vendor/python/python311.dll" "${out_steam_path}/python311.dll"
