@@ -187,6 +187,7 @@ jobs:
           cp ./src/vendor/python/python311.dll D:/a/env/python311.dll
           cp ./build/src/millennium-build/boot/win32/version.dll  D:/a/env/version.dll
           cp ./build/src/millennium-build/millennium.dll D:/a/env/millennium.dll
+          cp ./build/src/hhx64-build/millennium.hhx64.dll D:/a/env/millennium.hhx64.dll
 
           mkdir -p D:/a/env/ext/data/assets
           mv src/pipx D:/a/env/ext/data/assets/pipx
