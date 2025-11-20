@@ -181,12 +181,11 @@ jobs:
         shell: bash
         run: |
           set -ex
-          export CI=true
-          pnpm --dir src/frontend install
-          pnpm --dir src/frontend run prod
-
           pnpm --dir sdk install
           pnpm --dir sdk run build
+
+          pnpm --dir src/frontend install
+          pnpm --dir src/frontend run prod
 
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           mkdir -p ./build/artifacts
