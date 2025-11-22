@@ -2,10 +2,31 @@ cmake_minimum_required(VERSION 3.10)
 message(STATUS "[hhx64] Using compiler: ${CMAKE_CXX_COMPILER}")
 
 include(FetchContent)
-
 project(hhx64 CXX)
+include(${MILLENNIUM_BASE}/scripts/cmake/millennium_version.cmake)
+
+if(WIN32)
+    set(BUILD_PREFIX "")
+    set(BUILD_NAME "millennium")
+    set(BUILD_SUFFIX ".hhx64.dll")
+else()
+    set(BUILD_PREFIX "lib")
+    set(BUILD_NAME "millennium_hh")
+    set(BUILD_SUFFIX "x64.so")
+endif()
+
+set(BUILD_FULLNAME "${BUILD_PREFIX}${BUILD_NAME}${BUILD_SUFFIX}")
+
+set(VERSION_COMPANY      "Steam Homebrew")
+set(VERSION_COPYRIGHT    "Steam Homebrew 2025")
+set(VERSION_TRADEMARK1   "All Rights Reserved")
+set(VERSION_DESCRIPTION  "A hook utility library for Millennium")
+set(VERSION_FILENAME     "${BUILD_FULLNAME}")
+set(VERSION_PRODUCT      "Millennium Webhelper Hook")
+
 if(WIN32)
     project(hhx64-log-viewer CXX)
+    configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/version.rc @ONLY)
 endif()
 
 set(CMAKE_C_STANDARD 99)
@@ -35,7 +56,7 @@ endif()
 
 include_directories("${MILLENNIUM_BASE}/src/include")
 
-add_library(hhx64 SHARED
+set(SOURCE_FILES
     main.cc
     patch.cc
     match.cc
@@ -43,20 +64,26 @@ add_library(hhx64 SHARED
     urlp.cc
     fread.cc
     loopback.cc
-    ${MILLENNIUM_BASE}/scripts/exports.def
 )
-target_link_libraries(hhx64 re2)
+
 if(WIN32)
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/exports.def")
+    list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/version.rc")
+    add_library(hhx64 SHARED ${SOURCE_FILES})
+
     add_executable(hhx64-log-viewer log_viewer.cc)
     target_link_libraries(hhx64 minhook)
 endif()
 
+target_link_libraries(hhx64 re2)
+
+set_target_properties(hhx64 PROPERTIES PREFIX "${BUILD_PREFIX}")
+set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "${BUILD_NAME}")
+set_target_properties(hhx64 PROPERTIES SUFFIX "${BUILD_SUFFIX}")
+
 if(UNIX)
     set_target_properties(hhx64 PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
     set_target_properties(hhx64 PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "millennium_hh")
-    set_target_properties(hhx64 PROPERTIES PREFIX "lib")
-    set_target_properties(hhx64 PROPERTIES SUFFIX "x64.so")
 elseif(WIN32)
     target_link_libraries(hhx64 version)
 
@@ -67,8 +94,4 @@ elseif(WIN32)
             set_target_properties(hhx64 PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${out_steam_path}" LIBRARY_OUTPUT_DIRECTORY "${out_steam_path}" ARCHIVE_OUTPUT_DIRECTORY "${out_steam_path}")
         endif()
     endif()
-
-    set_target_properties(hhx64 PROPERTIES PREFIX "")
-    set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "millennium")
-    set_target_properties(hhx64 PROPERTIES SUFFIX ".hhx64.dll")
 endif()

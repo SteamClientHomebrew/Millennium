@@ -1,6 +1,25 @@
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
 
+if(WIN32)
+    set(BUILD_PREFIX "")
+    set(BUILD_NAME "millennium")
+    set(BUILD_SUFFIX ".dll")
+else()
+    set(BUILD_PREFIX "lib")
+    set(BUILD_NAME "millennium")
+    set(BUILD_SUFFIX "_x86.so")
+endif()
+
+set(BUILD_FULLNAME "${BUILD_PREFIX}${BUILD_NAME}${BUILD_SUFFIX}")
+
+set(VERSION_COMPANY      "Steam Homebrew")
+set(VERSION_COPYRIGHT    "Steam Homebrew 2025")
+set(VERSION_TRADEMARK1   "All Rights Reserved")
+set(VERSION_DESCRIPTION  "A plugin loader for the modern Steam Client")
+set(VERSION_FILENAME     "${BUILD_FULLNAME}")
+set(VERSION_PRODUCT      "Millennium")
+
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD   11 CACHE STRING "C standard to use"   FORCE)
 
@@ -79,7 +98,10 @@ set(SOURCE_FILES
 )
 
 if(WIN32)
+    configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/millennium_version.rc @ONLY)
+
     list(APPEND SOURCE_FILES "plat/init_win32.cc")
+    list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/millennium_version.rc")
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/resources.rc")
     endif()
@@ -180,20 +202,17 @@ endif()
 
 target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
 
+set_target_properties(Millennium PROPERTIES PREFIX      "${BUILD_PREFIX}")
+set_target_properties(Millennium PROPERTIES OUTPUT_NAME "${BUILD_NAME}"  )
+set_target_properties(Millennium PROPERTIES SUFFIX      "${BUILD_SUFFIX}")
+
 if(WIN32)
-    set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
-    set_target_properties(Millennium PROPERTIES PREFIX "")
     set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
 elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
-
-    set_target_properties(Millennium PROPERTIES OUTPUT_NAME "millennium")
-    set_target_properties(Millennium PROPERTIES PREFIX "lib")
-    set_target_properties(Millennium PROPERTIES SUFFIX "_x86.so")
 endif()
 
-include(${MILLENNIUM_BASE}/scripts/cmake/windres.cmake)
 target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)

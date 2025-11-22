@@ -1,17 +1,17 @@
 #include <windows.h>
-#include "../build/src/millennium-build/version.h"
 
 #define VER_PRIVATEBUILD            VS_FF_PRIVATEBUILD
 #define VER_PRERELEASE              VS_FF_PRERELEASE
 
-#define VER_COMPANYNAME_STR         "Steam Homebrew\0"
-#define VER_FILEDESCRIPTION_STR     "A plugin loader for the modern Steam Client\0"
-#define VER_INTERNALNAME_STR        "millennium.dll\0"
-#define VER_ORIGINALFILENAME_STR    "millennium.dll\0"
-#define VER_LEGALCOPYRIGHT_STR      "Steam Homebrew 2025\0"
-#define VER_LEGALTRADEMARKS1_STR    "All Rights Reserved\0"
+#define VER_COMPANYNAME_STR         "@VERSION_COMPANY@\0"
+#define VER_FILEDESCRIPTION_STR     "@VERSION_DESCRIPTION@\0"
+#define VER_INTERNALNAME_STR        "@VERSION_FILENAME@\0"
+#define VER_ORIGINALFILENAME_STR    "@VERSION_FILENAME@\0"
+#define VER_LEGALCOPYRIGHT_STR      "@VERSION_COPYRIGHT@\0"
+#define VER_LEGALTRADEMARKS1_STR    "@VERSION_TRADEMARK1@\0"
 #define VER_LEGALTRADEMARKS2_STR    "\0"
-#define VER_PRODUCTNAME_STR         "Millennium\0"
+#define VER_PRODUCTNAME_STR         "@VERSION_PRODUCT@\0"
+#define VER_FILEVERSION             0,0,0,0
 
 #ifndef DEBUG
 #define VER_DEBUG                   0
@@ -20,6 +20,8 @@
 #endif
 
 VS_VERSION_INFO VERSIONINFO
+ FILEVERSION     VER_FILEVERSION
+ PRODUCTVERSION  VER_FILEVERSION
  FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
  FILEFLAGS       (VER_PRIVATEBUILD|VER_PRERELEASE|VER_DEBUG)
  FILEOS          VOS__WINDOWS32
@@ -37,8 +39,8 @@ BEGIN
             VALUE "LegalTrademarks1", VER_LEGALTRADEMARKS1_STR
             VALUE "LegalTrademarks2", VER_LEGALTRADEMARKS2_STR
             VALUE "ProductName",      VER_PRODUCTNAME_STR
-            VALUE "FileVersion",      MILLENNIUM_VERSION
-            VALUE "ProductVersion",   MILLENNIUM_VERSION
+            VALUE "FileVersion",      "@MILLENNIUM_VERSION@\0"
+            VALUE "ProductVersion",   "@MILLENNIUM_VERSION@\0"
         END
     END
 
