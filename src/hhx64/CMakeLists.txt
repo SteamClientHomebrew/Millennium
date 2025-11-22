@@ -82,8 +82,12 @@ set(SOURCE_FILES
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/exports.def")
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/version.rc")
-    add_library(hhx64 SHARED ${SOURCE_FILES})
 
+endif()
+
+add_library(hhx64 SHARED ${SOURCE_FILES})
+
+if(WIN32)
     add_executable(hhx64-log-viewer log_viewer.cc)
     target_link_libraries(hhx64 minhook)
 endif()
