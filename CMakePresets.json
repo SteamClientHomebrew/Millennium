@@ -23,7 +23,9 @@
       "displayName": "windows-release",
       "description": "windows release build.",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "/O1 /GL /GF /Gy /DNDEBUG",
+        "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "/LTCG /OPT:REF /OPT:ICF /DEBUG:NONE"
       }
     },
     {

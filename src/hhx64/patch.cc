@@ -43,7 +43,13 @@
 
 static const uint32_t MAX_FILE_SIZE = 256 * 1024 * 1024; /** 256MB */
 static const uint32_t MAX_POOL_CAPACITY = 1000000;       /** 1M entries */
-static const uint32_t MAX_PATTERN_COUNT = 100000;
+static const unsigned long long MAX_PATTERN_COUNT = 100000;
+
+#ifdef _WIN32
+#define plat_strdup _strdup
+#elif __linux__
+#define plat_strdup strdup
+#endif
 
 /** there should absolutely never be a scenario where this happens, but just to be safe */
 static const uint32_t MAX_PLUGIN_NAME_LEN = 1024;
@@ -244,7 +250,7 @@ static char* preprocess_replacement(const char* replacement, const char* plugin_
     const char* ptr = strstr(replacement, placeholder);
 
     if (!ptr) {
-        return strdup(replacement);
+        return plat_strdup(replacement);
     }
 
     size_t placeholder_len = strlen(placeholder);
