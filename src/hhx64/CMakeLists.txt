@@ -40,13 +40,26 @@ set(ABSL_ENABLE_INSTALL ON)
 set(ABSL_PROPAGATE_CXX_STD ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 
-message(STATUS "[hhx64] fetching abseil...")
-FetchContent_Declare(abseil GIT_REPOSITORY https://github.com/abseil/abseil-cpp GIT_TAG 20240722.0)
-FetchContent_MakeAvailable(abseil)
+function(millennium_process_package input_path)
+    if(EXISTS "${input_path}/CMakeLists.txt")
+        file(READ "${input_path}/CMakeLists.txt" CMAKELISTS_CONTENTS)
+        string(REGEX REPLACE "cmake_minimum_required[ \t]*\\([ \t]*VERSION[^)]*\\)" "cmake_minimum_required(VERSION 3.21)" CMAKELISTS_CONTENTS "${CMAKELISTS_CONTENTS}")
+        file(WRITE "${input_path}/CMakeLists.txt" "${CMAKELISTS_CONTENTS}")
+    else()
+        message(WARNING "Could not find ${input_path} to patch.")
+    endif()
+endfunction()
 
-message(STATUS "[hhx64] fetching re2...")
-FetchContent_Declare(re2 GIT_REPOSITORY https://github.com/google/re2 GIT_TAG 2025-11-05)
-FetchContent_MakeAvailable(re2)
+FetchContent_Declare(abseil GIT_REPOSITORY https://github.com/abseil/abseil-cpp GIT_TAG 20240722.0 SOURCE_SUBDIR fakedir)
+FetchContent_Declare(re2    GIT_REPOSITORY https://github.com/google/re2        GIT_TAG 2025-11-05 SOURCE_SUBDIR fakedir)
+
+FetchContent_MakeAvailable(abseil re2)
+
+millennium_process_package("${abseil_SOURCE_DIR}")
+millennium_process_package("${re2_SOURCE_DIR}")
+
+add_subdirectory("${abseil_SOURCE_DIR}" "${abseil_BINARY_DIR}")
+add_subdirectory("${re2_SOURCE_DIR}"    "${re2_BINARY_DIR}"   )
 
 if(WIN32)
     message(STATUS "[hhx64] fetching minhook...")
