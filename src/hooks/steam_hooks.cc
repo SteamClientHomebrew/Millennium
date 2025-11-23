@@ -37,6 +37,8 @@
 
 std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
 std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
+std::atomic<bool> atm_hasBackendsAlreadyLoaded{ false };
+
 std::string STEAM_DEVELOPER_TOOLS_PORT;
 
 static std::atomic<bool> g_hasWaitedForBackends{ false };
@@ -285,9 +287,13 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
     if (!g_hasWaitedForBackends.load()) {
         Logger.Log("[Plat_HookedCreateSimpleProcess] Waiting for backends to finish first load...");
         std::unique_lock<std::mutex> lock(mtx_hasBackendsLoaded);
-        cv_hasBackendsLoaded.wait(lock);
-        Logger.Log("[Plat_HookedCreateSimpleProcess] All backends have loaded, proceeding with CEF start...");
 
+        /** if backends have already loaded before this function was called, we don't need to wait. */
+        if (!atm_hasBackendsAlreadyLoaded.load()) {
+            cv_hasBackendsLoaded.wait(lock);
+        }
+
+        Logger.Log("[Plat_HookedCreateSimpleProcess] All backends have loaded, proceeding with CEF start...");
         g_hasWaitedForBackends.store(true);
     }
 
@@ -569,11 +575,15 @@ bool InitializeSteamHooks()
 
 static void __backend_load()
 {
+    Logger.Log("__backend_load was called!");
     cv_hasBackendsLoaded.notify_all();
+    atm_hasBackendsAlreadyLoaded.store(true);
 }
 
 bool Plat_InitializeSteamHooks()
 {
+    Logger.Log("[Plat_InitializeSteamHooks] Waiting for backend services to complete...");
+
     CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
     backendHandler.RegisterForLoad(__backend_load);
     return InitializeSteamHooks();

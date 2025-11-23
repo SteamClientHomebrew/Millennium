@@ -34,6 +34,7 @@
 #include "millennium/libpy_stdout_fwd.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
+#include "hhx64/smem.h"
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -46,6 +47,7 @@ std::atomic<size_t> BackendManager::sTotalAllocated{ 0 };
 
 extern std::condition_variable cv_hasAllPythonPluginsShutdown, cv_hasSteamUnloaded;
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded;
+extern lb_shm_arena_t* g_lb_patch_arena;
 
 /**
  * @brief Initializes the Millennium module.
@@ -519,6 +521,11 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
 
         RemoveMutexFromPool(L);
         RemoveMemoryTracking(pluginName);
+
+        /** remove all patches from this plugin from the shared memory arena */
+        if (g_lb_patch_arena) {
+            hashmap_remove(g_lb_patch_arena, pluginName.c_str());
+        }
 
         if (shouldCleanupThreadPool) {
             it = this->m_luaThreadPool.erase(it);

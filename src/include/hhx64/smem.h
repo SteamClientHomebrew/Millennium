@@ -40,6 +40,7 @@ extern "C"
 {
 #endif
 #define SHM_IPC_NAME "/lb_millennium_patches"
+#define SHM_IPC_SIZE 1024 * 1024
 /** macro to convert offset to pointer */
 #define SHM_PTR(arena, off, type) ((type*)((char*)(arena) + (off)))
 #define SHM_OFF(arena, ptr) ((uint32_t)((char*)(ptr) - (char*)(arena)))
@@ -90,6 +91,7 @@ extern "C"
     void hashmap_init(lb_shm_arena_t* arena);
     lb_patch_list_shm_t* hashmap_get(lb_shm_arena_t* arena, const char* key);
     lb_patch_list_shm_t* hashmap_add_key(lb_shm_arena_t* arena, const char* key);
+    void hashmap_remove(lb_shm_arena_t* arena, const char* key);
 
     void patch_add_transform(lb_shm_arena_t* arena, lb_patch_shm_t* patch, const char* match, const char* replace);
     lb_patch_shm_t* patchlist_add(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, const char* file, const char* find);

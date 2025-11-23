@@ -265,6 +265,27 @@ lb_patch_list_shm_t* hashmap_add_key(lb_shm_arena_t* arena, const char* key)
     return &values[map->count++];
 }
 
+void hashmap_remove(lb_shm_arena_t* arena, const char* key)
+{
+    lb_hash_map_shm* map = &arena->map;
+    uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
+    lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
+
+    for (uint32_t i = 0; i < map->count; i++) {
+        char* stored_key = SHM_PTR(arena, keys[i], char);
+        if (strcmp(stored_key, key) == 0) {
+            /** found the key, remove it by shifting remaining elements */
+            if (i < map->count - 1) {
+                /** shift keys and values down */
+                memmove(&keys[i], &keys[i + 1], (map->count - i - 1) * sizeof(uint32_t));
+                memmove(&values[i], &values[i + 1], (map->count - i - 1) * sizeof(lb_patch_list_shm_t));
+            }
+            map->count--;
+            return;
+        }
+    }
+}
+
 void patch_add_transform(lb_shm_arena_t* arena, lb_patch_shm_t* patch, const char* match, const char* replace)
 {
     if (patch->transform_count >= patch->transform_capacity) {

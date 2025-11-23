@@ -752,6 +752,17 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         return -1;
     }
 
+    if (file_count == 0 || !file_regex_pool) {
+        log_info("Skipping patch, no regex pool to process. file_count: %u, file_regex_pool: %d\n", file_count, !!file_regex_pool);
+
+        *out_file_content = file_content;
+        *out_file_size = size;
+        if (file_regex_pool) free(file_regex_pool);
+        free(plugin_map);
+        shm_arena_close(arena, arena->size);
+        return 0;
+    }
+
     match_list_t matches = { 0 };
     if (re2_multi_match(file_regex_pool, file_count, file_content, size, &matches) != 0) {
         log_error("re2_multi_match failed\n");

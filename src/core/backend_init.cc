@@ -374,15 +374,6 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
     lua_setglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
 
     /** parse the "patches" block */
-    if (!g_lb_patch_arena) {
-        g_lb_patch_arena = shm_arena_create(SHM_IPC_NAME, 1024 * 1024);
-        if (!g_lb_patch_arena) {
-            LOG_ERROR("Failed to create shared memory");
-            return;
-        }
-        hashmap_init(g_lb_patch_arena);
-    }
-
     load_patches(L, g_lb_patch_arena);
     hashmap_print(g_lb_patch_arena);
 

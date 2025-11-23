@@ -29,6 +29,7 @@
  */
 
 #if defined(__linux__) || defined(__APPLE__)
+#include "hhx64/smem.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/crash_handler.h"
 #include "millennium/env.h"
@@ -43,6 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern lb_shm_arena_t* g_lb_patch_arena;
 std::unique_ptr<std::thread> g_millenniumThread;
 
 void VerifyEnvironment();
@@ -85,6 +87,16 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
 
     /** Setup environment variables if loaded into Steam process */
     SetupEnvironmentVariables();
+}
+
+DESTRUCTOR void Posix_UnInitializeEnvironment()
+{
+    /** destroy the shared memory pool between millennium and the web helper hook */
+    if (g_lb_patch_arena) {
+        shm_arena_close(g_lb_patch_arena, SHM_IPC_SIZE);
+        shm_arena_unlink(SHM_IPC_NAME);
+        g_lb_patch_arena = NULL;
+    }
 }
 
 void Posix_AttachWebHelperHook()

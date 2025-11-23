@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "hhx64/smem.h"
 #define UNICODE
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -43,6 +44,10 @@
 
 #include <filesystem>
 #include <fmt/core.h>
+
+extern std::mutex mtx_hasSteamUnloaded;
+extern std::condition_variable cv_hasSteamUnloaded;
+extern lb_shm_arena_t* g_lb_patch_arena;
 
 static void VerifyEnvironment()
 {
@@ -113,14 +118,24 @@ static void VerifyEnvironment()
 #endif
 }
 
-extern std::condition_variable cv_hasSteamUnloaded;
-extern std::mutex mtx_hasSteamUnloaded;
-
 /**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
  */
 void EntryMain()
 {
+    /** delete any stale instance of the millennium ipc shared memory */
+    shm_arena_unlink(SHM_IPC_NAME);
+
+    /** allocate the ipc arena */
+    if (!g_lb_patch_arena) {
+        g_lb_patch_arena = shm_arena_create(SHM_IPC_NAME, SHM_IPC_SIZE);
+        if (!g_lb_patch_arena) {
+            LOG_ERROR("Failed to create shared memory");
+            return;
+        }
+        hashmap_init(g_lb_patch_arena);
+    }
+
     std::thread updateThread(MillenniumUpdater::CheckForUpdates);
 
     const auto startTime = std::chrono::system_clock::now();
