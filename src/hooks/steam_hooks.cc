@@ -440,13 +440,13 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
     }
 
     /** hook Steam unload */
-    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && baseDllName == L"steamclient.dll") {
+    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && baseDllName == L"steamclient64.dll") {
         HandleSteamUnload();
         return;
     }
 
     /** hook steam cross platform api (used to hook create proc) */
-    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED && baseDllName == L"tier0_s.dll") {
+    if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED && baseDllName == L"tier0_s64.dll") {
         HandleTier0Dll(NotificationData->DllBase);
         return;
     }

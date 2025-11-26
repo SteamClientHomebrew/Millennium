@@ -52,8 +52,8 @@ __declspec(dllexport) const char* __get_shim_version(void)
 static void show_error(unsigned long errorCode)
 {
     char msg[256];
-    wsprintfA(msg, "Failed to load millennium.dll. Error: %lu", errorCode);
-    MessageBoxA(0, msg, "Error", 0x00000010l /** magic number -> MB_ICONERROR */);
+    wsprintfA(msg, "Millennium failed to load. This will not affect the functionality of the Steam Client.\n\nCommon Causes:\n- Antivirus deleting Millennium\n- Outdated Millennium version, try updating\n\nError Code: %lu", errorCode);
+    MessageBoxA(0, msg, "Millennium", 0x00000010l /** magic number -> MB_ICONERROR */);
 }
 
 /**

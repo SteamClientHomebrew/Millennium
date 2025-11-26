@@ -193,7 +193,11 @@ void SetupEnvironmentVariables()
         { "MILLENNIUM__CONFIG_PATH",  SystemIO::GetInstallPath().string() + "/ext"            },
         { "MILLENNIUM__LOGS_PATH",    SystemIO::GetInstallPath().string() + "/ext/logs"       },
         { "MILLENNIUM__DATA_LIB",     dataLibPath                                             },
+        #ifdef _WIN64
+        { "MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/pyx64" },
+        #elif defined(_WIN32)
         { "MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/cache" },
+        #endif
         { "MILLENNIUM__SHIMS_PATH",   shimsPath                                               },
         { "MILLENNIUM__ASSETS_PATH",  assetsPath                                              },
         { "MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string()                     }

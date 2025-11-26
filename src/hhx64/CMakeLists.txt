@@ -82,7 +82,6 @@ set(SOURCE_FILES
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/exports.def")
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/version.rc")
-
 endif()
 
 add_library(hhx64 SHARED ${SOURCE_FILES})
