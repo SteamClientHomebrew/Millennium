@@ -32,7 +32,6 @@ add_compile_definitions(
     "_CRT_SECURE_NO_WARNINGS"
     "USE_INTERNAL_FPCONV"
     "NGHTTP2_STATICLIB"
-    "LJ_TARGET_X64"
     "LJ_HASJIT"
     "_WEBSOCKETPP_CPP11_THREAD_"
     "_WEBSOCKETPP_CPP11_TYPE_TRAITS_"
@@ -42,6 +41,12 @@ add_compile_definitions(
     "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
 )
+
+if (WIN32)
+    add_compile_definitions("LJ_TARGET_X64")
+elseif(UNIX)
+    add_compile_definitions("LJ_TARGET_X86")
+endif()
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
