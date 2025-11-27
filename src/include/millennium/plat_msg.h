@@ -1,3 +1,5 @@
+#pragma once
+
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
 #include <cstdio>

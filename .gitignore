@@ -1,10 +1,6 @@
 # Build files
 **/build
 
-# Win32 Python binaries
-python311*.lib
-python311*.dll
-
 node_modules/
 
 # Visual Studio & Visual Studio Code

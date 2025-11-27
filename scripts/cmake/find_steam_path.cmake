@@ -4,9 +4,17 @@ if(WIN32 AND NOT GITHUB_ACTION_BUILD)
         string(REGEX MATCH "[a-zA-Z]:/[^ ]+([ ]+[^ ]+)*" out_steam_path "${steam_path}")
         string(REPLACE "\n" "" out_steam_path "${out_steam_path}")
         message(STATUS "[Millennium] Target build path: ${out_steam_path}")
-        
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${out_steam_path})
-        set(LIBRARY_OUTPUT_DIRECTORY ${out_steam_path})
+
+        if(MILLENNIUM_32BIT)
+            file(MAKE_DIRECTORY "${out_steam_path}/ext/compat32")
+            # build 32 bit compatability libraries to steam/ext/compat32
+            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${out_steam_path}/ext/compat32)
+            set(LIBRARY_OUTPUT_DIRECTORY ${out_steam_path}/ext/compat32)
+        else()
+            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${out_steam_path})
+            set(LIBRARY_OUTPUT_DIRECTORY ${out_steam_path})
+        endif()
+
     else()
         message(WARNING "[Millennium] Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
     endif()

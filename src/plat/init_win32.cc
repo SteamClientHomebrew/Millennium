@@ -32,6 +32,7 @@
 #include <winsock2.h>
 
 #include "millennium/argp_win32.h"
+#include "millennium/plat_msg.h"
 #include "millennium/env.h"
 #include "millennium/http_hooks.h"
 #include "millennium/init.h"
@@ -120,10 +121,12 @@ VOID Win32_AttachWebHelperHook(VOID)
 
 VOID Win32_AttachMillennium(VOID)
 {
+    #ifdef MILLENNIUM_64BIT
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
         return;
     }
+    #endif
 
     Win32_AttachWebHelperHook();
 
@@ -179,7 +182,7 @@ VOID Win32_DetachMillennium(VOID)
     Logger.Log("Waiting for Millennium thread to exit...");
 
     if (!g_millenniumThread.joinable()) {
-        MessageBoxA(NULL, "Millennium thread is not joinable, skipping join. This is likely because Millennium failed to start properly.", "Warning", MB_ICONWARNING);
+        Plat_ShowMessageBox("Warning", "Millennium thread is not joinable, skipping join. This is likely because Millennium failed to start properly.", MESSAGEBOX_WARNING);
         return;
     }
 

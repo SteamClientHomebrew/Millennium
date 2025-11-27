@@ -285,7 +285,7 @@ void SetupEnvironmentVariables()
 #ifdef __linux__
     const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
 #elif defined(_WIN32)
-    const bool shouldLog = true;
+    const bool shouldLog = false;
 #endif
     envVariables = environment;
 

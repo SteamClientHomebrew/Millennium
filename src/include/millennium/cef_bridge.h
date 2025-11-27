@@ -29,6 +29,7 @@
  */
 
 #include "millennium/argp_win32.h"
+#include "millennium/plat_msg.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"
 
@@ -142,9 +143,7 @@ class SocketHelpers
                             "Millennium & Steam will now close until further action is taken.",
                             debuggerPort, processName);
 
-#ifdef _WIN32
-            MessageBoxA(nullptr, message.c_str(), "Fatal Error", MB_ICONERROR);
-#endif
+            Plat_ShowMessageBox("Fatal Error", message.c_str(), MESSAGEBOX_ERROR);
             Logger.Warn(message);
             std::exit(1);
         }

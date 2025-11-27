@@ -29,6 +29,7 @@
  */
 
 #include "millennium/backend_mgr.h"
+#include "millennium/plat_msg.h"
 #include "millennium/logger.h"
 #include <exception>
 #include <fmt/format.h>
@@ -66,11 +67,10 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
         BOOL success = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpWithFullMemory, &dumpInfo, nullptr, nullptr);
 
         if (success) {
-            MessageBoxA(
-                NULL,
+            Plat_ShowMessageBox(
                 "Millennium has crashed! A crash dump has been written to millennium-crash.dmp in the Steam directory."
                 "Please send this file to the developers on our Discord (steambrew.app/discord) or GitHub (github.com/SteamClientHomebrew/Millennium) to help fix this issue.",
-                "Millennium Crash", MB_ICONERROR | MB_OK);
+                "Millennium Crash", MESSAGEBOX_ERROR);
 
             Logger.Log("Crash dump written to millennium-crash.dmp");
         } else {
@@ -115,7 +115,7 @@ inline void UnhandledExceptionHandler()
     }
 
 #ifdef _WIN32
-    MessageBoxA(NULL, errorMessage.c_str(), "Oops!", MB_ICONERROR | MB_OK);
+    Plat_ShowMessageBox("Oops!", errorMessage.c_str(), MESSAGEBOX_ERROR);
 #elif __linux__
     std::cerr << errorMessage << std::endl;
 #endif

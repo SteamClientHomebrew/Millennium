@@ -1,11 +1,21 @@
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
 
-if(WIN32)
+if (MILLENNIUM_32BIT)
+    add_compile_definitions(MILLENNIUM_32BIT)
+else()
+    add_compile_definitions(MILLENNIUM_64BIT)
+endif()
+
+if(WIN32 AND NOT MILLENNIUM_32BIT) # Current hook, relies on version.dll (64bit)
     set(BUILD_PREFIX "")
     set(BUILD_NAME "millennium")
     set(BUILD_SUFFIX ".dll")
-else()
+elseif(WIN32 AND MILLENNIUM_32BIT) # Old user32.dll hook, used for 32 bit Steam Clients.
+    set(BUILD_PREFIX "")
+    set(BUILD_NAME "millennium")
+    set(BUILD_SUFFIX "_x86.dll")
+else() # Linux build name
     set(BUILD_PREFIX "lib")
     set(BUILD_NAME "millennium")
     set(BUILD_SUFFIX "_x86.so")
@@ -42,9 +52,9 @@ add_compile_definitions(
     "CURL_STATICLIB"
 )
 
-if (WIN32)
+if (LJ_COMPILE_TARGET_X64)
     add_compile_definitions("LJ_TARGET_X64")
-elseif(UNIX)
+else()
     add_compile_definitions("LJ_TARGET_X86")
 endif()
 
@@ -221,20 +231,28 @@ endif()
 target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)
-    set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/vendor/python/python311.lib")
+    if (MILLENNIUM_32BIT)
+        set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/vendor/python/lib32/python311.lib")
+        set(PYTHON_LIB_OUT_PATH "${out_steam_path}/ext/compat32/python311.dll")
+        set(PYTHON_LIB_IN_PATH "${CMAKE_SOURCE_DIR}/vendor/python/lib32/python311.dll")
+    else()
+        set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/vendor/python/lib64/python311.lib")
+        set(PYTHON_LIB_OUT_PATH "${out_steam_path}/python311.dll")
+        set(PYTHON_LIB_IN_PATH "${CMAKE_SOURCE_DIR}/vendor/python/lib64/python311.dll")
+    endif()
 
     if (NOT GITHUB_ACTION_BUILD)
         add_custom_command(
-            OUTPUT "${out_steam_path}/python311.dll"
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/vendor/python/python311.dll" "${out_steam_path}/python311.dll"
+            OUTPUT ${PYTHON_LIB_OUT_PATH}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PYTHON_LIB_IN_PATH} ${PYTHON_LIB_OUT_PATH}
             COMMENT "Adding Millennium python runtime to Steam directory"
         )
 
-        add_custom_target(copy_python311_dll ALL DEPENDS "${out_steam_path}/python311.dll" COMMENT "Ensuring python311.dll is present in Steam directory")
+        add_custom_target(copy_python311_dll ALL DEPENDS ${PYTHON_LIB_OUT_PATH} COMMENT "Ensuring python311.dll is present in Steam directory")
         add_dependencies(Millennium copy_python311_dll)
     endif()
 
-    target_link_libraries(Millennium minhook ${PYTHON_LIB} ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
+    target_link_libraries(Millennium minhook ${PYTHON_LIB} user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_link_options(Millennium PRIVATE /NODEFAULTLIB:LIBCMT)
     endif()

@@ -63,111 +63,93 @@ jobs:
           echo "# current version of millennium" > ./version
           echo "v${{ needs.prepare.outputs.version }}" >> ./version
 
-      - name: ⚙️ Download Python Dependencies
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/SteamClientHomebrew/PythonBuildAgent/releases/download/v1.1.1/python-windows.zip" -OutFile "python-windows.zip"
-          Expand-Archive -Path "python-windows.zip" -DestinationPath "./Python-3.11.8" -Force
-          New-Item -ItemType Directory -Force -Path "./src/vendor/python"
-
-          Copy-Item ./Python-3.11.8/artifacts/windows/python311.dll   ./src/vendor/python/python311.dll
-          Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.dll ./src/vendor/python/python311_d.dll
-          Copy-Item ./Python-3.11.8/artifacts/windows/python311.lib   ./src/vendor/python/python311.lib
-          Copy-Item ./Python-3.11.8/artifacts/windows/python311_d.lib ./src/vendor/python/python311_d.lib
-
       - name: 🛠️ Build Millennium Plugin Backend
         run: |
-          $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-amd64.zip"
-          $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
-          $destinationFolder = "D:/a/env/ext/data/pyx64"
+          function Install-EmbeddedPython {
+              param(
+                  [Parameter(Mandatory=$true)]
+                  [ValidateSet('x64', 'x86')]
+                  [string]$Architecture,
 
-          if (-Not (Test-Path $destinationFolder)) {
-              New-Item -ItemType Directory -Path $destinationFolder
-          }
-
-          $zipFilePath = Join-Path $destinationFolder "python-3.11.8-embed-amd64.zip"
-          $getPipFilePath = Join-Path $destinationFolder "get-pip.py"
-
-          function Download-File($Url, $DestinationPath) {
-              $webRequest = [System.Net.HttpWebRequest]::Create($Url)
-              $webRequest.Method = "GET"
-              $webRequest.UserAgent = "Millennium.Installer/1.0"
-
-              $response = $webRequest.GetResponse()
-              $responseStream = $response.GetResponseStream()
-
-              $fileStream = New-Object System.IO.FileStream($DestinationPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-              $buffer = New-Object byte[] 8192
-              $bytesRead = 0
-
-              while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                  $fileStream.Write($buffer, 0, $bytesRead)
-              }
-
-              $fileStream.Close()
-              $responseStream.Close()
-          }
-
-          function Extract-ZipFile {
-              param (
-                  [string]$zipPath,
-                  [string]$extractPath
+                  [Parameter(Mandatory=$true)]
+                  [string]$DestinationPath
               )
 
-              Add-Type -AssemblyName System.IO.Compression.FileSystem
-              $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
-              foreach ($entry in $zipArchive.Entries) {
-                  $destinationPath = Join-Path $extractPath $entry.FullName
-                  $destinationDir = [System.IO.Path]::GetDirectoryName($destinationPath)
+              $archSuffix = if ($Architecture -eq 'x64') { 'amd64' } else { 'win32' }
+              $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-$archSuffix.zip"
+              $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
 
-                  if (-Not (Test-Path $destinationDir)) {
-                      New-Item -ItemType Directory -Path $destinationDir | Out-Null
-                  }
-
-                  if ($entry.Name -ne "") {
-                      if (Test-Path $destinationPath) {
-                          Remove-Item $destinationPath -Force
-                      }
-                      $fileStream = [System.IO.File]::Create($destinationPath)
-                      $entryStream = $entry.Open()
-                      $buffer = New-Object byte[] 8192
-                      $bytesRead = 0
-
-                      while (($bytesRead = $entryStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                          $fileStream.Write($buffer, 0, $bytesRead)
-                      }
-
-                      $fileStream.Close()
-                      $entryStream.Close()
-                  }
+              if (-Not (Test-Path $DestinationPath)) {
+                  New-Item -ItemType Directory -Path $DestinationPath | Out-Null
               }
-              $zipArchive.Dispose()
-          }
 
-          Download-File -Url $pythonUrl -DestinationPath $zipFilePath
-          Extract-ZipFile -zipPath $zipFilePath -extractPath $destinationFolder
-          Remove-Item $zipFilePath
+              $zipFilePath = Join-Path $DestinationPath "python-3.11.8-embed-$archSuffix.zip"
+              $getPipFilePath = Join-Path $DestinationPath "get-pip.py"
 
-          Write-Host "Downloaded python packages to $destinationFolder"
+              function Download-File($Url, $DestinationPath) {
+                  $webRequest = [System.Net.HttpWebRequest]::Create($Url)
+                  $webRequest.Method = "GET"
+                  $webRequest.UserAgent = "Millennium.Installer/1.0"
+                  $response = $webRequest.GetResponse()
+                  $responseStream = $response.GetResponseStream()
+                  $fileStream = New-Object System.IO.FileStream($DestinationPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+                  $buffer = New-Object byte[] 8192
+                  while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                      $fileStream.Write($buffer, 0, $bytesRead)
+                  }
+                  $fileStream.Close()
+                  $responseStream.Close()
+              }
 
-          Set-Content -Path (Join-Path $destinationFolder "python311._pth") -Value @'
+              function Extract-ZipFile($zipPath, $extractPath) {
+                  Add-Type -AssemblyName System.IO.Compression.FileSystem
+                  $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+                  foreach ($entry in $zipArchive.Entries) {
+                      $destinationPath = Join-Path $extractPath $entry.FullName
+                      $destinationDir = [System.IO.Path]::GetDirectoryName($destinationPath)
+                      if (-Not (Test-Path $destinationDir)) {
+                          New-Item -ItemType Directory -Path $destinationDir | Out-Null
+                      }
+                      if ($entry.Name -ne "") {
+                          if (Test-Path $destinationPath) {
+                              Remove-Item $destinationPath -Force
+                          }
+                          $fileStream = [System.IO.File]::Create($destinationPath)
+                          $entryStream = $entry.Open()
+                          $buffer = New-Object byte[] 8192
+                          while (($bytesRead = $entryStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                              $fileStream.Write($buffer, 0, $bytesRead)
+                          }
+                          $fileStream.Close()
+                          $entryStream.Close()
+                      }
+                  }
+                  $zipArchive.Dispose()
+              }
+
+              Download-File -Url $pythonUrl -DestinationPath $zipFilePath
+              Extract-ZipFile -zipPath $zipFilePath -extractPath $DestinationPath
+              Remove-Item $zipFilePath
+              Write-Host "Downloaded python packages to $DestinationPath"
+
+              Set-Content -Path (Join-Path $DestinationPath "python311._pth") -Value @'
           python311.zip
           .
           # The following line has been added by Millennium
           # This will implicitly run site.main() which lets us pip from 'python -m pip'
           import site
           '@
+              Write-Host "Enabled external site package support."
 
-          Write-Host "Enabled external site package support."
+              Download-File -Url $getPipUrl -DestinationPath $getPipFilePath
+              $pythonExe = Join-Path $DestinationPath "python.exe"
+              & $pythonExe $getPipFilePath --no-warn-script-location
+              Remove-Item $getPipFilePath
+              Write-Host "Installed pip on embedded packages"
+          }
 
-          # Download get-pip.py
-          Download-File -Url $getPipUrl -DestinationPath $getPipFilePath
-
-          # Run get-pip.py to install pip
-          $pythonExe = Join-Path $destinationFolder "python.exe"
-          & $pythonExe $getPipFilePath --no-warn-script-location
-
-          Remove-Item $getPipFilePath
-          Write-Host "Installed pip on embedded packages"
+          Install-EmbeddedPython -Architecture 'x64' -DestinationPath 'D:/a/env/ext/data/pyx64'
+          Install-EmbeddedPython -Architecture 'x86' -DestinationPath 'D:/a/env/ext/data/cache'
 
       - name: ⚙️ Download Node.js
         uses: actions/setup-node@v3
@@ -191,10 +173,14 @@ jobs:
           mkdir -p ./build/artifacts
           cmake --build build
 
-          cp ./src/vendor/python/python311.dll D:/a/env/python311.dll
-          cp ./build/src/millennium-build/boot/win32/version.dll  D:/a/env/version.dll
-          cp ./build/src/millennium-build/millennium.dll D:/a/env/millennium.dll
+          cp ./src/vendor/python/lib64/python311.dll D:/a/env/python311.dll
+          cp ./build/src/millennium_x64-build/boot/win32/version.dll  D:/a/env/version.dll
+          cp ./build/src/millennium_x64-build/millennium.dll D:/a/env/millennium.dll
           cp ./build/src/hhx64-build/millennium.hhx64.dll D:/a/env/millennium.hhx64.dll
+
+          mkdir -p D:/a/env/ext/compat32
+          cp ./build/src/millennium_x86-build/millennium_x86.dll D:/a/env/ext/compat32/millennium_x86.dll
+          cp ./src/vendor/python/lib32/python311.dll D:/a/env/ext/compat32/python311.dll
 
           mkdir -p D:/a/env/ext/data/assets
           mv src/pipx D:/a/env/ext/data/assets/pipx

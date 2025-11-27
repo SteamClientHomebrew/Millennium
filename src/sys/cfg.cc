@@ -29,6 +29,7 @@
  */
 
 #include "millennium/logger.h"
+#include "millennium/plat_msg.h"
 #include "millennium/sysfs.h"
 #include "millennium/env.h"
 
@@ -461,14 +462,14 @@ void ConfigManager::LoadFromFile()
         } catch (...) {
             Logger.Warn("Invalid JSON in config file: {}", _filename);
 #ifdef _WIN32
-            MessageBoxA(NULL, fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(), "Millennium", MB_OK | MB_ICONWARNING);
+            Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
 #endif
             _data = nlohmann::json::object();
         }
     } else {
         Logger.Warn("Failed to open config file: {}", _filename);
 #ifdef _WIN32
-        MessageBoxA(NULL, fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), "Millennium", MB_OK | MB_ICONWARNING);
+        Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
 #endif
         _data = nlohmann::json::object();
     }

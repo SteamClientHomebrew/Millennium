@@ -51,8 +51,9 @@ extern lb_shm_arena_t* g_lb_patch_arena;
 
 static void VerifyEnvironment()
 {
-#ifdef __linux__
     const auto cefRemoteDebugging = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
+
+#ifdef __linux__
     if (std::filesystem::exists(cefRemoteDebugging)) {
         /** Remove remote debugger flag if its enabled. We don't need it anymore (2025-10-22) */
         if (!std::filesystem::remove(cefRemoteDebugging)) {
@@ -85,11 +86,12 @@ static void VerifyEnvironment()
                 }
             }
         } catch (const SystemIO::FileException& e) {
-            MessageBoxA(NULL, errorMessage.c_str(), "Startup Error", MB_ICONERROR | MB_OK);
+            Plat_ShowMessageBox("Startup Error", errorMessage.c_str(), MESSAGEBOX_ERROR);
             LOG_ERROR(errorMessage);
         }
     }
 
+#ifdef MILLENNIUM_64BIT
     const auto RemoveDeprecatedFile = [](const std::filesystem::path& filePath)
     {
         if (std::filesystem::exists(filePath)) {
@@ -103,18 +105,27 @@ static void VerifyEnvironment()
                 }
             } catch (const std::filesystem::filesystem_error& e) {
                 LOG_ERROR("Failed to remove deprecated file or directory {}: {}", filePath.string(), e.what());
-                MessageBoxA(NULL, fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(),
-                            "Startup Error", MB_ICONERROR | MB_OK);
+                Plat_ShowMessageBox("Startup Error", fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(), MESSAGEBOX_ERROR);
             }
         }
     };
 
-    /** Remove deprecated Millennium shim file */
-    RemoveDeprecatedFile(SystemIO::GetSteamPath() / "user32.dll");
     /** Remove deprecated CEF remote debugging file in place of virtually enabling it in memory */
-    RemoveDeprecatedFile(SystemIO::GetSteamPath() / ".cef-enable-remote-debugging");
+    RemoveDeprecatedFile(cefRemoteDebugging);
     /** Remove old shims folder (they've been added into process memory) */
-    RemoveDeprecatedFile(SystemIO::GetInstallPath() / "ext" / "data" / "shims");
+    // RemoveDeprecatedFile(SystemIO::GetInstallPath() / "ext" / "data" / "shims");
+#elif defined(MILLENNIUM_32BIT)
+    if (!std::filesystem::exists(cefRemoteDebugging)) {
+        std::ofstream file(cefRemoteDebugging);
+        if (!file) {
+            LOG_ERROR("Failed to create {}", cefRemoteDebugging.string());
+            Plat_ShowMessageBox("Fatal Error", fmt::format("Failed to create remote debugger file! Manually create: {}",cefRemoteDebugging.string()).c_str(), MESSAGEBOX_ERROR);
+            return;
+        }
+        file.close();
+        Plat_ShowMessageBox("Restart Required!", "Please restart Steam to complete Millennium setup!", MESSAGEBOX_INFO);
+    }
+#endif
 #endif
 }
 

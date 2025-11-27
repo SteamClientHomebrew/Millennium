@@ -27,16 +27,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include <wchar.h>
+#include <windows.h>
 #ifdef _WIN32
 /** micro optimization -- declare functions instead of importing them from the windows header */
-unsigned long __stdcall GetLastError(void);
-void* __stdcall LoadLibraryA(const char* lpLibFileName);
-unsigned long __stdcall GetModuleFileNameA(void* hModule, char* lpFilename, unsigned long nSize);
-int __stdcall MessageBoxA(void* hWnd, const char* lpText, const char* lpCaption, unsigned int uType);
+// unsigned long __stdcall GetLastError(void);
+// void* __stdcall AddDllDirectory(const wchar_t* NewDirectory);
+// void* __stdcall LoadLibraryA(const char* lpLibFileName);
+// unsigned long __stdcall GetModuleFileNameA(void* hModule, char* lpFilename, unsigned long nSize);
+// int __stdcall MessageBoxA(void* hWnd, const char* lpText, const char* lpCaption, unsigned int uType);
 
-/** fwd decl standard c funcs */
-int _stricmp(const char* str1, const char* str2);
-int wsprintfA(char* buf, const char* fmt, ...);
+// /** fwd decl standard c funcs */
+// int _stricmp(const char* str1, const char* str2);
+// int wsprintfA(char* buf, const char* fmt, ...);
 
 #define MAX_PATH 260
 
@@ -45,48 +48,87 @@ __declspec(dllexport) const char* __get_shim_version(void)
     return MILLENNIUM_VERSION;
 }
 
+#ifdef MILLENNIUM_64BIT
+#define MILLENNIUM_LIBRARY_PATH L"millennium.dll"
+#elif defined(MILLENNIUM_32BIT)
+#define MILLENNIUM_LIBRARY_ROOT L"ext\\compat32"
+#define MILLENNIUM_LIBRARY_PATH L"\\millennium_x86.dll"
+#else
+#error "Neither 32bit or 64bit Millennium was provided"
+#endif
+
+wchar_t* g_millennium_path = 0;
+
 /**
  * Show an error message box if we fail to load Millennium
  * it assumes the message is less than 256 characters (which it should be)
  */
-static void show_error(unsigned long errorCode)
-{
-    char msg[256];
-    wsprintfA(msg, "Millennium failed to load. This will not affect the functionality of the Steam Client.\n\nCommon Causes:\n- Antivirus deleting Millennium\n- Outdated Millennium version, try updating\n\nError Code: %lu", errorCode);
-    MessageBoxA(0, msg, "Millennium", 0x00000010l /** magic number -> MB_ICONERROR */);
-}
+ static void show_error(unsigned long errorCode, const wchar_t* dll_path)
+ {
+     wchar_t msg[512];
+     wsprintfW(msg, L"Millennium failed to load (%s). This will not affect the functionality of the Steam Client.\n\nCommon Causes:\n- Antivirus deleting Millennium\n- Outdated Millennium version, try updating\n\nError Code: %lu", dll_path, errorCode);
+     MessageBoxW(0, msg, L"Millennium", 0x00000010l /** magic number -> MB_ICONERROR */);
+ }
 
 /**
  * Check if the current process is steam.exe
  * although I haven't seen any causes where this module
  * loads into a non-steam process, its a good safeguard.
  */
-static int is_steam_client(void)
+static int is_steam_client(wchar_t* steam_path, size_t path_size)
 {
-    char path[MAX_PATH];
-    if (!GetModuleFileNameA(0 /** current module */, path, MAX_PATH)) {
+    wchar_t path[MAX_PATH];
+    if (!GetModuleFileNameW(0, path, MAX_PATH)) {
         return 0;
     }
 
-    /** parse the filename from the fullpath */
-    const char* filename = path;
-    for (const char* p = path; *p; ++p) {
-        if (*p == '\\' || *p == '/') {
+    const wchar_t* filename = path;
+    for (const wchar_t* p = path; *p; ++p) {
+        if (*p == L'\\' || *p == L'/') {
             filename = p + 1;
         }
     }
 
-    return !_stricmp(filename, "steam.exe");
+    int is_steam = !_wcsicmp(filename, L"steam.exe");
+    if (is_steam && steam_path) {
+        wcsncpy(steam_path, path, path_size - 1);
+        steam_path[path_size - 1] = L'\0';
+    }
+
+    return is_steam;
 }
 
 /** entry point of the dll */
 int __stdcall DllMain(void* hinstDLL, unsigned long fdwReason, void* lpReserved)
 {
-    if (fdwReason == 1 /** DLL_PROCESS_ATTACH */ && is_steam_client()) {
-        const void* hModule = LoadLibraryA("millennium.dll");
-        if (!hModule) {
-            show_error(GetLastError());
+    if (fdwReason == 1 /** DLL_PROCESS_ATTACH */ && is_steam_client(NULL, 0)) {
+
+        #ifdef MILLENNIUM_LIBRARY_ROOT
+        wchar_t abs_root[MAX_PATH];
+        wchar_t abs_path[MAX_PATH];
+
+        if (is_steam_client(abs_root, MAX_PATH)) {
+            wchar_t* last_slash = wcsrchr(abs_root, L'\\');
+            if (last_slash) {
+                *(last_slash + 1) = L'\0';
+            }
+            wcscat_s(abs_root, MAX_PATH, MILLENNIUM_LIBRARY_ROOT);
+
+            wcscpy_s(abs_path, MAX_PATH, abs_root);
+            wcscat_s(abs_path, MAX_PATH, MILLENNIUM_LIBRARY_PATH);
+
+            AddDllDirectory(abs_root);
+            const void* hModule = LoadLibraryExW(abs_path, NULL, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+            if (!hModule) {
+                show_error(GetLastError(), abs_path);
+            }
         }
+        #else
+        const void* hModule = LoadLibraryExW(MILLENNIUM_LIBRARY_PATH, NULL, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+        if (!hModule) {
+            show_error(GetLastError(), MILLENNIUM_LIBRARY_PATH);
+        }
+        #endif
     }
     return 1;
 }

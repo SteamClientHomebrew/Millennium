@@ -28,8 +28,9 @@
  * SOFTWARE.
  */
 
-#include "millennium/backend_init.h"
 #include "hhx64/smem.h"
+#include "millennium/backend_init.h"
+#include "millennium/plat_msg.h"
 #include "millennium/auth.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"
@@ -511,12 +512,11 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
                 ErrorToLogger(plugin.pluginName, errorMessage);
 
 #ifdef _WIN32
-                const int result = MessageBoxA(NULL,
-                                               fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
-                                                           "or break the Steam UI. Would you like to disable it on next Steam startup?",
-                                                           plugin.pluginName)
-                                                   .c_str(),
-                                               "Millennium - Startup Error", MB_ICONERROR | MB_YESNO);
+                const int result = Plat_ShowMessageBox("Millennium - Startup Error",
+                        fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
+                                    "or break the Steam UI. Would you like to disable it on next Steam startup?",
+                                    plugin.pluginName).c_str(),
+                        MESSAGEBOX_QUESTION);
 
                 if (result == IDYES) {
                     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
