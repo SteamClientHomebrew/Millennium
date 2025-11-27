@@ -121,12 +121,12 @@ VOID Win32_AttachWebHelperHook(VOID)
 
 VOID Win32_AttachMillennium(VOID)
 {
-    #ifdef MILLENNIUM_64BIT
+#ifdef MILLENNIUM_64BIT
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
         return;
     }
-    #endif
+#endif
 
     Win32_AttachWebHelperHook();
 
@@ -200,13 +200,29 @@ DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReas
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
         {
-            Logger.Log("Millennium {} attached...", MILLENNIUM_VERSION);
+#if defined(MILLENNIUM_32BIT)
+            const char* plat = "32-bit";
+#elif defined(MILLENNIUM_64BIT)
+            const char* plat = "64-bit";
+#else
+#error "Unsupported Platform"
+#endif
+            Logger.Log("Millennium-{}@{} attached...", plat, MILLENNIUM_VERSION);
             g_millenniumThread = std::thread(Win32_AttachMillennium);
             break;
         }
         case DLL_PROCESS_DETACH:
         {
+#if defined(MILLENNIUM_64BIT)
             Win32_DetachMillennium();
+#elif defined(MILLENNIUM_32BIT)
+            if (g_millenniumThread.joinable()) {
+                g_millenniumThread.detach();
+            }
+            exit(0);
+#else
+#error "Unsupported Platform"
+#endif
             break;
         }
     }

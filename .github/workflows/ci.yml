@@ -205,8 +205,6 @@ jobs:
           github-artifact-id: "${{ steps.upload-unsigned-artifact.outputs.artifact-id }}"
           output-artifact-directory: "signed-millennium"
           wait-for-completion: true
-          parameters: |
-            version: ${{ toJson(needs.prepare.outputs.version) }}
 
       - name: 📤 Upload Signed Build Release
         id: upload-signed-artifact

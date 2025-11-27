@@ -194,7 +194,7 @@ class CefSocketDispatcher
  * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
  * we free from the main function instead
  * */
-#ifdef __linux__
+#if defined(__linux__) || defined(MILLENNIUM_32BIT)
         this->Shutdown();
 #endif
     }

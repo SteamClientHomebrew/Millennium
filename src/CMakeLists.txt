@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
 
-if (MILLENNIUM_32BIT)
+if (MILLENNIUM_32BIT STREQUAL "ON")
     add_compile_definitions(MILLENNIUM_32BIT)
 else()
     add_compile_definitions(MILLENNIUM_64BIT)
