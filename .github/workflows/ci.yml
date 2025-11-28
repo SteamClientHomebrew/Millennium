@@ -180,6 +180,7 @@ jobs:
 
           mkdir -p D:/a/env/ext/compat32
           cp ./build/src/millennium_x86-build/millennium_x86.dll D:/a/env/ext/compat32/millennium_x86.dll
+          cp ./build/src/millennium_x86-build/boot/win32/user32.dll D:/a/env/user32.dll
           cp ./src/vendor/python/lib32/python311.dll D:/a/env/ext/compat32/python311.dll
 
           mkdir -p D:/a/env/ext/data/assets
