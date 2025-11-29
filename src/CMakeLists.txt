@@ -3,8 +3,10 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STR
 
 if (MILLENNIUM_32BIT STREQUAL "ON")
     add_compile_definitions(MILLENNIUM_32BIT)
+    message(STATUS "Compiling as 32-bit")
 else()
     add_compile_definitions(MILLENNIUM_64BIT)
+    message(STATUS "Compiling as 64-bit")
 endif()
 
 if(WIN32 AND NOT MILLENNIUM_32BIT) # Current hook, relies on version.dll (64bit)
