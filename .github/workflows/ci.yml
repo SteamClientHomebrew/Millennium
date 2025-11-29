@@ -293,8 +293,8 @@ jobs:
           mkdir -p ~/build/opt
 
           # Copy binaries and libraries directly to final locations
-          cp build/src/millennium-build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
-          cp build/src/millennium-build/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
+          cp build/src/millennium_x86-build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
+          cp build/src/millennium_x86-build/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
           cp build/src/hhx64-build/libmillennium_hhx64.so ~/build/usr/lib/millennium/libmillennium_hhx64.so
 
           mkdir -p ~/build/usr/share/millennium/assets
