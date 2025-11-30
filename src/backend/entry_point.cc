@@ -99,11 +99,10 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "installPath", SystemIO::GetInstallPath() },
         { "millenniumVersion", MILLENNIUM_VERSION },
         { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
-        { "updates", nlohmann::json::object() },
+        { "updates", updater->CheckForUpdates() },
         { "hasCheckedForUpdates", updater->HasCheckedForUpdates() },
         { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },
         { "buildDate", GetBuildTimestamp() },
-        { "millenniumUpdates", nlohmann::json::object() },
         { "platformType", GetOperatingSystemType() },
         { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") },
         { "quickCss", Millennium_GetQuickCss() }
