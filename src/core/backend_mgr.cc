@@ -131,7 +131,7 @@ PythonEnvPath GetPythonEnvPaths()
 
 BackendManager::~BackendManager()
 {
-#ifdef __linux__
+#if defined(__linux__) || defined(MILLENNIUM_32BIT)
     this->Shutdown();
 #endif
 }
