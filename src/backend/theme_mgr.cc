@@ -115,12 +115,13 @@ struct CloneProgressData
     std::function<void(size_t received, size_t total, size_t indexed)> callback;
 };
 
-int TransferProgressCallback(const git_indexer_progress* stats, void* payload)
+int TransferProgressCallback(const git_transfer_progress* stats, void* payload)
 {
     auto* data = static_cast<CloneProgressData*>(payload);
-    if (data && data->callback) {
-        data->callback(stats->received_objects, stats->total_objects, stats->indexed_objects);
-    }
+    if (!data || !data->callback || !stats) return 0;
+
+    data->callback(static_cast<size_t>(stats->received_objects), static_cast<size_t>(stats->total_objects), static_cast<size_t>(stats->indexed_objects));
+
     return 0;
 }
 
