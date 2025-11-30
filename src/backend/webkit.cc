@@ -103,14 +103,16 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
             if (condition.contains("values") && condition["values"].is_object()) {
                 auto values = condition["values"];
                 if (values.contains(current_value) && values[current_value].is_object()) {
-                    auto control_flow = values[current_value];
+                    for (auto& [value_key, control_flow] : values[current_value].items()) {
+                        if (!control_flow.is_object()) continue;
 
-                    if (control_flow.contains("affects") && control_flow["affects"].is_array()) {
-                        for (auto& match_string : control_flow["affects"]) {
-                            if (!match_string.is_string()) continue;
+                        if (control_flow.contains("affects") && control_flow["affects"].is_array()) {
+                            for (auto& match_string : control_flow["affects"]) {
+                                if (!match_string.is_string()) continue;
 
-                            std::string target_path = control_flow.value("src", "");
-                            webkit_items.push_back({ match_string.get<std::string>(), target_path, item });
+                                std::string target_path = control_flow.value("src", "");
+                                webkit_items.push_back({ match_string.get<std::string>(), target_path, value_key });
+                            }
                         }
                     }
                 }
