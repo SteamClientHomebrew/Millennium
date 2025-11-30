@@ -148,5 +148,8 @@
   "quickAccessEmptyLibraryBody": "Your library is empty, we've got nothing for you to manage.",
   "themeIsNotConfigurable": "This theme is not configurable!",
   "pluginIsNotConfigurable": "This plugin is not configurable!",
-  "pluginIsNotEnabled": "This plugin is disabled!"
+  "pluginIsNotEnabled": "This plugin is disabled!",
+  "themeConfigChangeReloadHeader": "Hold Up!",
+  "themeConfigChangeReloadBody": "Your theme settings have been updated. Would you like to reload the Steam UI to apply the changes?",
+  "strConfirm": "Let's do it!"
 }

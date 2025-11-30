@@ -171,7 +171,12 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 	}, []);
 
 	function RenderByType() {
-		if (!plugins || !plugins?.length || !themes || !themes?.length) {
+		const { plugins, themes } = useDesktopMenu();
+
+		const isAnyThemeConfigurable = themes?.filter?.((theme) => theme?.data?.Conditions || theme?.data?.RootColors)?.length > 0;
+		const isAnyPluginConfigurable = !plugins || !plugins?.length;
+
+		if (!isAnyThemeConfigurable && !isAnyPluginConfigurable) {
 			return <Placeholder icon={<MillenniumIcons.Empty />} header={locale.quickAccessEmptyLibrary} body={locale.quickAccessEmptyLibraryBody} />;
 		}
 

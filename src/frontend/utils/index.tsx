@@ -63,10 +63,10 @@ export namespace Utils {
 		return `https://${url.hostname}:${url.port}/${encoded}/.millennium/Dist`;
 	}
 
-	export const PromptReload = (callback: (hasClickedOk: boolean) => void) => {
-		const title = SteamLocale('#Settings_RestartRequired_Title');
-		const description = SteamLocale('#Settings_RestartRequired_Description');
-		const buttonText = SteamLocale('#Settings_RestartNow_ButtonText');
+	export const PromptReload = (callback: (hasClickedOk: boolean) => void, customTitle?: string, customDesc?: string, customOK?: string) => {
+		const title = customTitle ?? SteamLocale('#Settings_RestartRequired_Title');
+		const description = customDesc ?? SteamLocale('#Settings_RestartRequired_Description');
+		const buttonText = customOK ?? SteamLocale('#Settings_RestartNow_ButtonText');
 
 		showModal(
 			<ConfirmModal strTitle={title} strDescription={description} strOKButtonText={buttonText} onOK={callback.spread(true)} onCancel={callback.spread(false)} />,

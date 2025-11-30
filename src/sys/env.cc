@@ -35,7 +35,6 @@
  */
 
 #include "millennium/env.h"
-#include "millennium/logger.h"
 #include "millennium/sysfs.h"
 
 #include <fmt/core.h>

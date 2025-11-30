@@ -31,6 +31,9 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import { PluginComponent, ThemeItem } from '../types';
 import { PyFindAllPlugins, PyFindAllThemes } from '../utils/ffi';
+import { pluginSelf } from '@steambrew/client';
+import { Utils } from '../utils';
+import { locale } from '../utils/localization-manager';
 
 export enum DesktopSideBarFocusedItemType {
 	PLUGIN,
@@ -92,6 +95,19 @@ export const DesktopMenuProvider: React.FC<DesktopMenuProviderProps> = ({ childr
 	}, [isOpen]);
 
 	const setFocusedItem = useCallback((item?: PluginComponent | ThemeItem, type?: DesktopSideBarFocusedItemType) => {
+		if (!item && pluginSelf.ConditionConfigHasChanged) {
+			console.log('Theme config changed, prompting to reload the UI...');
+			Utils.PromptReload(
+				(shouldReload) => {
+					if (shouldReload) {
+						SteamClient.Browser.RestartJSContext();
+					}
+				},
+				locale.themeConfigChangeReloadHeader,
+				locale.themeConfigChangeReloadBody,
+				locale.strConfirm,
+			);
+		}
 		setFocusedLibraryItem(item);
 		setFocusedItemType(type);
 	}, []);
