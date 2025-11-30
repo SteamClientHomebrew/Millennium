@@ -42,6 +42,7 @@
 #include <string>
 #include <iostream>
 #ifdef __linux__
+#include "millennium/logger.h"
 #include <unistd.h>
 #endif
 
@@ -192,13 +193,13 @@ void SetupEnvironmentVariables()
         { "MILLENNIUM__CONFIG_PATH",  SystemIO::GetInstallPath().string() + "/ext"            },
         { "MILLENNIUM__LOGS_PATH",    SystemIO::GetInstallPath().string() + "/ext/logs"       },
         { "MILLENNIUM__DATA_LIB",     dataLibPath                                             },
-        #if defined(MILLENNIUM_64BIT)
+#if defined(MILLENNIUM_64BIT)
         { "MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/pyx64" },
-        #elif defined(MILLENNIUM_32BIT)
-        { "MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/cache" },
-        #else
-        #error "Invalid platform"
-        #endif
+#elif defined(MILLENNIUM_32BIT)
+        { "MILLENNIUM__PYTHON_ENV", SystemIO::GetInstallPath().string() + "/ext/data/cache" },
+#else
+#error "Invalid platform"
+#endif
         { "MILLENNIUM__SHIMS_PATH",   shimsPath                                               },
         { "MILLENNIUM__ASSETS_PATH",  assetsPath                                              },
         { "MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string()                     }
