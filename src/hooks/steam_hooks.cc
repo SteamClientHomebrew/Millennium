@@ -39,7 +39,7 @@ std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUI
 std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
 std::atomic<bool> atm_hasBackendsAlreadyLoaded{ false };
 
-std::string STEAM_DEVELOPER_TOOLS_PORT;
+std::string STEAM_DEVELOPER_TOOLS_PORT = "8080";
 
 static std::atomic<bool> g_hasWaitedForBackends{ false };
 
