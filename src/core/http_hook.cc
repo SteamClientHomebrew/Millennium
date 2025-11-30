@@ -167,12 +167,19 @@ std::atomic<unsigned long long> g_hookedModuleId{ 0 };
 // This is a list of URLs that may have sensitive information or are not safe to load JavaScript into.
 static const std::vector<std::string> g_blackListedUrls = { "https://checkout\\.steampowered\\.com/.*" };
 
+// clang-format off
 // Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.)
 static const std::unordered_set<std::string> g_doNotHook = {
-    R"(https?:\/\/(?:[\w-]+\.)*paypal\.com\/[^\s"']*)",
-    R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)",
+    /** Ignore paypal related content */
+    R"(https?:\/\/(?:[\w-]+\.)*paypal\.com\/[^\s"']*)", 
+    R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)", 
     R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
+
+    /** Ignore youtube related content */
+    R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)",
+    R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"
 };
+// clang-format on
 
 // Thread-safe singleton implementation
 HttpHookManager& HttpHookManager::get()
@@ -366,6 +373,7 @@ void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& mess
 void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
 {
     const RedirectType statusCode = message["params"]["responseStatusCode"].get<RedirectType>();
+    const std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
 
     const auto ContinueOriginalRequest = [this, &message]()
     {
@@ -378,7 +386,7 @@ void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
 
     // Check if the request URL is a do-not-hook URL.
     for (const auto& doNotHook : g_doNotHook) {
-        if (std::regex_match(message["params"]["request"]["url"].get<std::string>(), std::regex(doNotHook))) {
+        if (std::regex_match(requestUrl, std::regex(doNotHook))) {
             ContinueOriginalRequest();
             return;
         }
