@@ -8,20 +8,22 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     self.submodules = true; # Requires *Nix* >= 2.27
-    flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-parts.url = "github:hercules-ci/flake-parts"; #This can provide support for multiple systems, but is not used currently?
   };
 
   outputs =
     { nixpkgs, self, ... }:
     let
+      system = "x86_64-linux";
+      
       pkgs = import nixpkgs {
-        system = "x86_64-linux";
+        inherit system;
         config.allowUnfree = true;
       };
     in
     {
       overlays.default = final: prev: rec {
-        inherit (self.packages."x86_64-linux") millennium;
+        inherit (self.packages.${system}) millennium;
         steam-millennium = final.steam.override (prev: {
           extraProfile =
             ''
@@ -32,10 +34,10 @@
         });
       };
 
-      devShells."x86_64-linux".default = import ./shell.nix { inherit pkgs; };
+      devShells.${system}.default = import ./shell.nix { inherit pkgs; };
 
-      packages."x86_64-linux" = {
-        default = self.packages."x86_64-linux".millennium;
+      packages.${system} = {
+        default = self.packages.${system}.millennium;
         millennium = pkgs.callPackage ./nix/millennium.nix { };
         shims = pkgs.callPackage ./nix/typescript/shims.nix { };
         assets = pkgs.callPackage ./nix/assets.nix { };
