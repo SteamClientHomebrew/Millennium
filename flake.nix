@@ -25,6 +25,7 @@
       overlays.default = final: prev: rec {
         inherit (self.packages.${system}) millennium;
         steam-millennium = final.steam.override (prev: {
+          extraPkgs = pkgs: [ pkgs.git ];
           extraProfile =
             ''
               export LD_LIBRARY_PATH="${millennium}/lib/millenium/''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
