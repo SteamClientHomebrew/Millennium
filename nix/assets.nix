@@ -30,6 +30,6 @@ stdenv.mkDerivation rec {
     cp -r .millennium  $out/share/millennium/assets/.millennium
     cp plugin.json $out/share/millennium/assets
     cp requirements.txt $out/share/millennium/assets
-    cp pnpm-lock.yaml $out/share/millenium/assets
+    cp pnpm-lock.yaml $out/share/millennium/assets
   '';
 }
