@@ -524,7 +524,7 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
         return -1;
     }
 
-    matches->count = match_ids.size();
+    matches->count = (int)match_ids.size();
 
     size_t ids_size, ranges_size;
     if (!safe_mul_size(matches->count, sizeof(uint32_t), &ids_size) || !safe_mul_size(matches->count, sizeof(uint64_t), &ranges_size)) {
@@ -726,6 +726,9 @@ cleanup:
 
 extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size)
 {
+    *out_file_content = file_content;
+    *out_file_size = size;
+
     if (!file_content || !local_path || !out_file_content || !out_file_size) {
         log_error("Invalid parameters to find_file_matches\n");
         return -1;
@@ -754,9 +757,6 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
 
     if (file_count == 0 || !file_regex_pool) {
         log_info("Skipping patch, no regex pool to process. file_count: %u, file_regex_pool: %d\n", file_count, !!file_regex_pool);
-
-        *out_file_content = file_content;
-        *out_file_size = size;
         if (file_regex_pool) free(file_regex_pool);
         free(plugin_map);
         shm_arena_close(arena, arena->size);
@@ -774,8 +774,6 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
 
     if (!matches.count) {
         log_info("No matches found for file %s\n", local_path);
-        *out_file_content = file_content;
-        *out_file_size = size;
         match_list_destroy(&matches);
         free(file_regex_pool);
         free(plugin_map);
