@@ -61,7 +61,7 @@ if(MINGW)
   set(CMAKE_CXX_VISIBILITY_PRESET hidden)
   set(CMAKE_C_VISIBILITY_PRESET hidden)
   set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
-  
+
   # Exclude symbols from static libraries
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,ALL")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--exclude-libs,ALL")
@@ -73,7 +73,8 @@ endif()
 
 # Strip binary on release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 endif()
 
@@ -107,7 +108,7 @@ elseif(UNIX)
   else()
     if(NIX_BUILD)
       add_compile_definitions(_NIX_OS=ON)
-      add_compile_definitions(__NIX_SELF_PATH="$ENV{out}") 
+      add_compile_definitions(__NIX_SELF_PATH="$ENV{out}")
       add_compile_definitions(__NIX_SHIMS_PATH="$ENV{shims}")
       add_compile_definitions(__NIX_ASSETS_PATH="$ENV{assets}")
     endif()
@@ -141,8 +142,8 @@ elseif(UNIX)
     endif()
 
     if(NOT ${PYTHON_TEST_RESULT})
-    
-      set(MILLENNIUM__PYTHON_ENV "/opt/python-i686-3.11.8") 
+
+      set(MILLENNIUM__PYTHON_ENV "/opt/python-i686-3.11.8")
       set(LIBPYTHON_RUNTIME_PATH "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
 
       if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
