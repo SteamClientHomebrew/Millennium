@@ -83,9 +83,6 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
         PluginTypeSchema(const std::string& name, eBackendLoadEvents ev) : pluginName(name), event(ev)
         {
         }
-        PluginTypeSchema(const PluginTypeSchema& other) : pluginName(other.pluginName), event(other.event)
-        {
-        }
     };
 
     using EventCallback = std::function<void()>;

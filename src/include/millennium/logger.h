@@ -75,21 +75,21 @@ class OutputLogger
 
     template <typename... Args> void Log(std::string fmt, Args&&... args)
     {
-        PrintMessage(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_GREEN);
+        PrintMessage(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...), COL_GREEN);
     }
 
     template <typename... Args> void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args&&... args)
     {
         std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
 
-        PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
+        PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...), COL_RED);
         PrintMessage(" * FUNCTION: ", function, COL_RED);
         PrintMessage(" * LOCATION: ", remoteRepository, COL_RED);
     }
 
     template <typename... Args> void Warn(std::string fmt, Args&&... args)
     {
-        PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
+        PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...), COL_YELLOW);
     }
 };
 
@@ -102,5 +102,5 @@ extern OutputLogger Logger;
 #endif
 
 #ifndef LOG_ERROR
-#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
+#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION __VA_OPT__(,) __VA_ARGS__)
 #endif
