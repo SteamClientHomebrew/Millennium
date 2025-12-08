@@ -24,18 +24,13 @@ build() {
     export NODE_NO_WARNINGS=1
     cd "$srcdir/Millennium"
 
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium core assets...\e[0m"
+    echo -e "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium assets...\e[0m"
 
     cd sdk && pnpm install && pnpm run build && cd ..
-    cd assets && pnpm install && npm run build && cd ..
+    cd src/frontend && pnpm install && npm run build && cd ..
 
     mkdir -p ./shims/build/
     cp -r ./sdk/typescript-packages/loader/build/* ./shims/build/
-
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mBootstrapping VCPKG...\e[0m"
-
-    ./vendor/vcpkg/bootstrap-vcpkg.sh
-    ./vendor/vcpkg/vcpkg integrate install
 
     echo -e "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium...\e[0m"
 
