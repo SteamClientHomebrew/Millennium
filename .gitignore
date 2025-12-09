@@ -5,6 +5,7 @@ node_modules/
 
 # Visual Studio & Visual Studio Code
 .vs*/
+.idea/
 
 # Clangd C++ index files
 .cache/
