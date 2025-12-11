@@ -473,6 +473,8 @@ bool InitializeSteamHooks()
         return false;
     }
 
+#ifdef MILLENNIUM_64BIT
+
     STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
 
     HMODULE hTier0 = GetModuleHandleW(L"tier0_s.dll");
@@ -502,7 +504,9 @@ bool InitializeSteamHooks()
     /** wait for steamui.dll to load (which signifies Steam is actually starting and not updating/verifying files) */
     std::unique_lock<std::mutex> lk(mtx_hasSteamUIStartedLoading);
     cv_hasSteamUIStartedLoading.wait(lk);
-
+#elif MILLENNIUM_32BIT
+    bool dllRegStatus = true;
+#endif
     const auto endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTime).count();
     Logger.Log("[SH_Hook] Steam UI loaded in {} ms, continuing Millennium startup...", endTime);
 

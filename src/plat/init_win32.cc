@@ -121,12 +121,11 @@ VOID Win32_AttachWebHelperHook(VOID)
 
 VOID Win32_AttachMillennium(VOID)
 {
-#ifdef MILLENNIUM_64BIT
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
+        Plat_ShowMessageBox("Millennium Error", "Failed to initialize Steam hooks, Millennium cannot continue startup.", MESSAGEBOX_ERROR);
         return;
     }
-#endif
 
     Win32_AttachWebHelperHook();
 
