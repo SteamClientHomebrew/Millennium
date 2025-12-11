@@ -74,7 +74,7 @@ std::optional<nlohmann::json> ThemeInstaller::GetThemeFromGitPair(const std::str
     nlohmann::json themes = Millennium::Themes::FindAllThemes();
     for (auto& theme : themes) {
         auto github = theme.value("data", nlohmann::json::object()).value("github", nlohmann::json::object());
-        if (github.value("owner", "") == owner && github.value("repo_name", "") == repo) return asString ? nlohmann::json(theme.dump()) : theme;
+        if (github.value("owner", "") == owner && github.value("repo_name", "") == repo) return theme;
     }
     return std::nullopt;
 }
