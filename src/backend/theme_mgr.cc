@@ -69,7 +69,7 @@ nlohmann::json ThemeInstaller::SuccessMessage()
     });
 }
 
-std::optional<nlohmann::json> ThemeInstaller::GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString)
+std::optional<nlohmann::json> ThemeInstaller::GetThemeFromGitPair(const std::string& repo, const std::string& owner, [[maybe_unused]] bool asString)
 {
     nlohmann::json themes = Millennium::Themes::FindAllThemes();
     for (auto& theme : themes) {
