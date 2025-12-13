@@ -212,6 +212,10 @@ void BackendManager::Shutdown()
 {
     Logger.Warn("Unloading {} plugin(s) and preparing for exit...", this->m_pythonInstances.size() + this->m_luaThreadPool.size());
 
+#ifdef MILLENNIUM_32BIT
+    std::exit(0);
+#endif
+
     const auto startTime = std::chrono::steady_clock::now();
 
     Logger.Log("[BackendManager::Shutdown] Destroying all Lua instances...");
