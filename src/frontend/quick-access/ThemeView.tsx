@@ -79,6 +79,11 @@ export const RenderThemeView = () => {
 
 export const ThemeSelectorView = () => {
 	const { themes } = useDesktopMenu();
+
+	if (!themes || !themes?.length) {
+		return null; /** let parent component handle empty state */
+	}
+
 	return (
 		<PanelSection>
 			<h4>Theme Settings</h4>
