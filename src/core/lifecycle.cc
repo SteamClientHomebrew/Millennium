@@ -98,8 +98,8 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
         const std::string successfulBackends = GetSuccessfulBackendsStr();
 
         auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
-        Logger.Log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), failedBackends),
-                   fmt::format(fmt::fg(fmt::color::lime_green), successfulBackends));
+        Logger.Log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), fmt::runtime(failedBackends)),
+                   fmt::format(fmt::fg(fmt::color::lime_green), fmt::runtime(successfulBackends)));
 
         return true;
     }

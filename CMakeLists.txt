@@ -11,6 +11,14 @@ endif()
 message(STATUS "Ninja compiler path: ${USER_CMAKE_MAKE_PROGRAM}")
 message(STATUS "X86 toolchain args: ${X86_TOOLCHAIN_ARGS}")
 
+execute_process(
+        COMMAND pnpm install WORKING_DIRECTORY sdk
+        COMMAND pnpm install WORKING_DIRECTORY src/frontend)
+execute_process(
+        COMMAND pnpm run build WORKING_DIRECTORY sdk
+        COMMAND pnpm run build WORKING_DIRECTORY src/frontend
+)
+
 set(COMMON_CMAKE_ARGS
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
