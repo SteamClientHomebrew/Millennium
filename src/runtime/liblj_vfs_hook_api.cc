@@ -31,8 +31,6 @@
 #include "hhx64/smem.h"
 #include <lua.hpp>
 
-extern lb_shm_arena_t* g_lb_patch_arena;
-
 void load_patches(lua_State* L, lb_shm_arena_t* map)
 {
     lua_getglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");

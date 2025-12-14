@@ -41,7 +41,6 @@
 #include "millennium/plugin_logger.h"
 #include "millennium/urlp.h"
 
-lb_shm_arena_t* g_lb_patch_arena;
 static std::string addedScriptOnNewDocumentId = "";
 
 /**

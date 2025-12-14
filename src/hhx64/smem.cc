@@ -43,6 +43,7 @@ typedef struct
     lb_shm_arena_t* ptr;
 } win_shm_ctx_t;
 
+lb_shm_arena_t* g_lb_patch_arena;
 static win_shm_ctx_t g_shm_ctx = { NULL, NULL };
 
 lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
@@ -185,7 +186,7 @@ uint32_t shm_arena_alloc(lb_shm_arena_t* arena, uint32_t size)
 
 static uint32_t shm_strdup(lb_shm_arena_t* arena, const char* str)
 {
-    uint32_t len = strlen(str) + 1;
+    uint32_t len = (uint32_t)strlen(str) + 1;
     uint32_t off = shm_arena_alloc(arena, len);
     if (off == 0) return 0;
 
@@ -373,5 +374,21 @@ void hashmap_print(lb_shm_arena_t* arena)
     for (uint32_t i = 0; i < map->count; i++) {
         log_info("Key: %s\n", SHM_PTR(arena, keys[i], char));
         patchlist_print(arena, &values[i]);
+    }
+}
+
+void shm_init_simple()
+{
+    /** delete any stale instance of the millennium ipc shared memory */
+    shm_arena_unlink(SHM_IPC_NAME);
+
+    /** allocate the ipc arena */
+    if (!g_lb_patch_arena) {
+        g_lb_patch_arena = shm_arena_create(SHM_IPC_NAME, SHM_IPC_SIZE);
+        if (!g_lb_patch_arena) {
+            log_error("Failed to create shared memory");
+            return;
+        }
+        hashmap_init(g_lb_patch_arena);
     }
 }

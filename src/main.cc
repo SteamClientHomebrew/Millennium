@@ -40,6 +40,7 @@
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
+#include "head/default_cfg.h"
 #include "millennium/millennium_updater.h"
 
 #include <filesystem>
@@ -47,7 +48,6 @@
 
 extern std::mutex mtx_hasSteamUnloaded;
 extern std::condition_variable cv_hasSteamUnloaded;
-extern lb_shm_arena_t* g_lb_patch_arena;
 
 static void VerifyEnvironment()
 {
@@ -105,7 +105,9 @@ static void VerifyEnvironment()
                 }
             } catch (const std::filesystem::filesystem_error& e) {
                 LOG_ERROR("Failed to remove deprecated file or directory {}: {}", filePath.string(), e.what());
-                Plat_ShowMessageBox("Startup Error", fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(), MESSAGEBOX_ERROR);
+                Plat_ShowMessageBox("Startup Error",
+                                    fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(),
+                                    MESSAGEBOX_ERROR);
             }
         }
     };
@@ -119,7 +121,7 @@ static void VerifyEnvironment()
         std::ofstream file(cefRemoteDebugging);
         if (!file) {
             LOG_ERROR("Failed to create {}", cefRemoteDebugging.string());
-            Plat_ShowMessageBox("Fatal Error", fmt::format("Failed to create remote debugger file! Manually create: {}",cefRemoteDebugging.string()).c_str(), MESSAGEBOX_ERROR);
+            Plat_ShowMessageBox("Fatal Error", fmt::format("Failed to create remote debugger file! Manually create: {}", cefRemoteDebugging.string()).c_str(), MESSAGEBOX_ERROR);
             return;
         }
         file.close();
@@ -130,24 +132,45 @@ static void VerifyEnvironment()
 }
 
 /**
+ * Called on startup to check for Millennium updates
+ */
+void Plat_CheckForUpdates()
+{
+    try {
+        MillenniumUpdater::CheckForUpdates();
+
+        const auto update = MillenniumUpdater::HasAnyUpdates();
+        const bool shouldAutoInstall = CONFIG.GetNested("general.onMillenniumUpdate", OnMillenniumUpdate::AUTO_INSTALL) == OnMillenniumUpdate::AUTO_INSTALL;
+
+        if (!update["hasUpdate"]) {
+            Logger.Log("No Millennium updates available.");
+            return;
+        }
+
+        if (!shouldAutoInstall) {
+            Logger.Log("Millennium update available to version {}. Auto-install is disabled, please update manually.", update["latestVersion"].get<std::string>());
+            return;
+        }
+
+        const std::string downloadUrl = update["platformRelease"]["browser_download_url"];
+        const size_t downloadSize = update["platformRelease"]["size"].get<size_t>();
+
+        const std::string newVersion = update.value("newVersion", nlohmann::json::object()).value("tag_name", "unknown");
+
+        Logger.Log("Auto-updating Millennium to version {}...", newVersion);
+        MillenniumUpdater::StartUpdate(downloadUrl, downloadSize, false, false);
+
+    } catch (const nlohmann::json::exception& e) {
+        LOG_ERROR("Failed to check for Millennium updates: {}", e.what());
+    }
+}
+
+/**
  * @brief Millennium's main method, called on startup on both Windows and Linux.
  */
 void EntryMain()
 {
-    /** delete any stale instance of the millennium ipc shared memory */
-    shm_arena_unlink(SHM_IPC_NAME);
-
-    /** allocate the ipc arena */
-    if (!g_lb_patch_arena) {
-        g_lb_patch_arena = shm_arena_create(SHM_IPC_NAME, SHM_IPC_SIZE);
-        if (!g_lb_patch_arena) {
-            LOG_ERROR("Failed to create shared memory");
-            return;
-        }
-        hashmap_init(g_lb_patch_arena);
-    }
-
-    std::thread updateThread(MillenniumUpdater::CheckForUpdates);
+    shm_init_simple();
 
     const auto startTime = std::chrono::system_clock::now();
     VerifyEnvironment();
@@ -172,7 +195,4 @@ void EntryMain()
         std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
         cv_hasSteamUnloaded.notify_all();
     }
-
-    /** Wait for the update thread to finish */
-    updateThread.join();
 }

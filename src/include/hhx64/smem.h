@@ -82,11 +82,14 @@ extern "C"
         lb_hash_map_shm map;
     } lb_shm_arena_t;
 
+    extern lb_shm_arena_t* g_lb_patch_arena;
+
     lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size);
     lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size);
     void shm_arena_close(lb_shm_arena_t* arena, uint32_t size);
     void shm_arena_unlink(const char* name);
     uint32_t shm_arena_alloc(lb_shm_arena_t* arena, uint32_t size);
+    void shm_init_simple();
 
     void hashmap_init(lb_shm_arena_t* arena);
     lb_patch_list_shm_t* hashmap_get(lb_shm_arena_t* arena, const char* key);

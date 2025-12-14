@@ -40,9 +40,11 @@
 #include "millennium/logger.h"
 
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& dest_dir, ProgressCallback progress_cb)
 {
@@ -116,4 +118,52 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
     }
 
     return (err == MZ_END_OF_LIST || err == MZ_OK);
+}
+
+std::vector<std::string> Util::GetLockedFiles(const std::string& zip_path, const std::string& dest_dir)
+{
+    std::vector<std::string> locked_files;
+
+    void* zip_reader = mz_zip_reader_create();
+    if (zip_reader == nullptr) return locked_files;
+
+    int32_t err = mz_zip_reader_open_file(zip_reader, zip_path.c_str());
+    if (err != MZ_OK) {
+        Logger.Log("Failed to open zip file: {} (error: {})", zip_path, err);
+        mz_zip_reader_delete(&zip_reader);
+        return locked_files;
+    }
+
+    std::string out_path;
+    out_path.reserve(dest_dir.length() + 256);
+    mz_zip_file* file_info = nullptr;
+
+    err = mz_zip_reader_goto_first_entry(zip_reader);
+    while (err == MZ_OK) {
+        mz_zip_reader_entry_get_info(zip_reader, &file_info);
+
+        /** Skip directories */
+        if (file_info->filename[strlen(file_info->filename) - 1] != '/') {
+            out_path.clear();
+            out_path += dest_dir;
+            out_path += '/';
+            out_path += file_info->filename;
+
+            /** Check if file exists at destination */
+            if (std::filesystem::exists(out_path)) {
+                /** Try to open the file with exclusive write access */
+                std::ofstream file(out_path, std::ios::binary | std::ios::in | std::ios::out);
+                if (!file.is_open()) {
+                    locked_files.push_back(out_path);
+                }
+            }
+        }
+
+        err = mz_zip_reader_goto_next_entry(zip_reader);
+    }
+
+    mz_zip_reader_close(zip_reader);
+    mz_zip_reader_delete(&zip_reader);
+
+    return locked_files;
 }

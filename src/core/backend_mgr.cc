@@ -47,7 +47,6 @@ std::atomic<size_t> BackendManager::sTotalAllocated{ 0 };
 
 extern std::condition_variable cv_hasAllPythonPluginsShutdown, cv_hasSteamUnloaded;
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded;
-extern lb_shm_arena_t* g_lb_patch_arena;
 
 /**
  * @brief Initializes the Millennium module.

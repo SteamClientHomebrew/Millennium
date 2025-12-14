@@ -33,7 +33,6 @@ import { Logger } from './Logger';
 import { settingsManager } from './settings-manager';
 import { OnMillenniumUpdate } from '../types';
 import { MillenniumIcons } from '../components/Icons';
-import { updateMillennium } from './updateMillennium';
 
 /**
  * Notify the user about available updates in their library.
@@ -98,20 +97,8 @@ export class NotificationService {
 			return;
 		}
 
-		switch (this.onMillenniumUpdates) {
-			case OnMillenniumUpdate.AUTO_INSTALL: {
-				updateMillennium(true);
-				break;
-			}
-			case OnMillenniumUpdate.NOTIFY: {
-				this.notifyMillenniumUpdates();
-				break;
-			}
-			case OnMillenniumUpdate.DO_NOTHING:
-			default: {
-				Logger.Log('Millennium updates are set to do nothing.');
-				break;
-			}
+		if (this.onMillenniumUpdates == OnMillenniumUpdate.NOTIFY) {
+			this.notifyMillenniumUpdates();
 		}
 	}
 }

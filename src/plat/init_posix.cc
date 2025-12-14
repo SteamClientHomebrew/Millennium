@@ -44,11 +44,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern lb_shm_arena_t* g_lb_patch_arena;
 std::unique_ptr<std::thread> g_millenniumThread;
 
 void VerifyEnvironment();
-void EntryMain(); /** forward declare main function */
+
+/** forward declare main function */
+void EntryMain();
+void Plat_CheckForUpdates();
 
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
@@ -120,6 +122,7 @@ void Posix_AttachMillennium()
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
     Plat_InitializeSteamHooks();
     Posix_AttachWebHelperHook();
+    Plat_CheckForUpdates();
     EntryMain();
 
     BackendManager& manager = BackendManager::GetInstance();

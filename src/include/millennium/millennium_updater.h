@@ -71,7 +71,7 @@ class MillenniumUpdater
      * @param downloadSize Size of the update to download
      * @param background Whether to run the update in the background (separate thread) or foreground (main thread)
      */
-    static void StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background);
+    static void StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background, bool forwardToIpc = true);
 
     /**
      * Since NTFS (Windows file system) locks files that are in use, we need to move the old files
@@ -79,7 +79,7 @@ class MillenniumUpdater
      *
      * This frees up the files so that the new version can be copied in place.
      */
-    static void DeleteOldMillenniumVersion();
+    static void DeleteOldMillenniumVersion(std::vector<std::string> lockedFiles);
 
     /**
      * Cleanup temporary files created by the Millennium Updater
@@ -92,7 +92,7 @@ class MillenniumUpdater
      * @param downloadUrl URL of the update to download
      * @param downloadSize Size of the update to download
      */
-    static void Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize);
+    static void Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize, bool forwardToIpc);
 
   private:
     static inline bool __has_updates = false;
