@@ -31,7 +31,7 @@
 import { DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, Toggle } from '@steambrew/client';
 import React from 'react';
 import { locale } from '../../utils/localization-manager';
-import { OnMillenniumUpdate, OSType } from '../../types';
+import { MillenniumUpdateChannel, OnMillenniumUpdate, OSType } from '../../types';
 import { RenderAccentColorPicker } from '../../components/AccentColorPicker';
 import { useMillenniumState, useUpdateConfig } from '../../utils/config-provider';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
@@ -57,6 +57,11 @@ export const GeneralViewModal: React.FC = () => {
 		OnMillenniumUpdateOpts.push({ label: locale.eOnMillenniumUpdateAutoInstall, data: OnMillenniumUpdate.AUTO_INSTALL });
 	}
 
+	const millenniumUpdateChannel = [
+		{ label: locale.updatePanelStableChannel, data: MillenniumUpdateChannel.STABLE },
+		{ label: locale.updatePanelBetaChannel, data: MillenniumUpdateChannel.BETA },
+	];
+
 	return (
 		<>
 			<DialogControlsSection>
@@ -76,7 +81,6 @@ export const GeneralViewModal: React.FC = () => {
 
 				<Field
 					label={locale.optionWhenAnUpdateForMillenniumIsAvailable}
-					bottomSeparator="none"
 					disabled={!config.general.checkForMillenniumUpdates}
 					icon={
 						!config.general.checkForMillenniumUpdates && (
@@ -93,6 +97,27 @@ export const GeneralViewModal: React.FC = () => {
 						onChange={(e) => handleChange('onMillenniumUpdate', e.data)}
 						contextMenuPositionOptions={{ bMatchWidth: false }}
 						strDefaultLabel={OnMillenniumUpdateOpts.find((opt) => opt.data === config.general.onMillenniumUpdate)?.label}
+					/>
+				</Field>
+
+				<Field
+					label={locale.updatePanelUpdateChannel}
+					description={locale.updatePanelUpdateChannelTooltip}
+					bottomSeparator="none"
+					icon={
+						config.general.millenniumUpdateChannel === MillenniumUpdateChannel.BETA && (
+							<DesktopTooltip toolTipContent={locale.updatePanelBetaWarning} direction="top">
+								<IconsModule.ExclamationPoint className={deferredSettingLabelClasses.Icon} />
+							</DesktopTooltip>
+						)
+					}
+				>
+					<Dropdown
+						rgOptions={millenniumUpdateChannel}
+						selectedOption={millenniumUpdateChannel.findIndex((opt) => opt.data === config.general.millenniumUpdateChannel)}
+						onChange={(e) => handleChange('millenniumUpdateChannel', e.data)}
+						contextMenuPositionOptions={{ bMatchWidth: false }}
+						strDefaultLabel={millenniumUpdateChannel.find((opt) => opt.data === config.general.millenniumUpdateChannel)?.label}
 					/>
 				</Field>
 			</DialogControlsSection>

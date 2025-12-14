@@ -320,3 +320,8 @@ export enum OnMillenniumUpdate {
 	NOTIFY = 1,
 	AUTO_INSTALL = 2,
 }
+
+export enum MillenniumUpdateChannel {
+	STABLE = 'stable',
+	BETA = 'beta',
+}

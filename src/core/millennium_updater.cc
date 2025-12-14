@@ -24,12 +24,15 @@ std::string MillenniumUpdater::ParseVersion(const std::string& version)
 
 void MillenniumUpdater::CheckForUpdates()
 {
-    if (!CONFIG.Get("general.checkForMillenniumUpdates", true).get<bool>()) {
+    const bool checkForUpdates = CONFIG.GetNested("general.checkForMillenniumUpdates", true).get<bool>();
+    std::string channel = CONFIG.GetNested("general.millenniumUpdateChannel", "stable").get<std::string>();
+
+    if (!checkForUpdates) {
         Logger.Warn("User has disabled update checking for Millennium.");
         return;
     }
 
-    Logger.Log("Checking for updates...");
+    Logger.Log("Checking for updates on {} channel...", channel);
     std::string response;
 
     try {
@@ -46,11 +49,19 @@ void MillenniumUpdater::CheckForUpdates()
                 Logger.Warn("Skipping invalid release data in API response.");
                 continue;
             }
+
+            if (channel == "beta") {
+                latest_release = release;
+                break;
+            }
+
             if (!release.value("prerelease", true)) {
                 latest_release = release;
                 break;
             }
         }
+
+        Logger.Log("Latest Millennium release: {}", latest_release.value("tag_name", "unknown"));
 
         if (latest_release.empty()) {
             Logger.Warn("No stable releases found in GitHub API response.");
@@ -90,7 +101,7 @@ void MillenniumUpdater::CheckForUpdates()
                 __has_updates = true;
                 Logger.Log("New version available: " + latest_release["tag_name"].get<std::string>());
             } else if (compare == 1) {
-                Logger.Warn("Millennium is ahead of the latest release.");
+                Logger.Warn("Current version {} is newer than latest release {}.", current_version, latest_version);
                 __has_updates = false;
             } else {
                 Logger.Log("Millennium is up to date.");
@@ -159,16 +170,9 @@ void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
     }
 }
 
-void MillenniumUpdater::DeleteOldMillenniumVersion()
+void MillenniumUpdater::DeleteOldMillenniumVersion(std::vector<std::string> lockedFiles)
 {
 #ifdef _WIN32
-    const std::vector<std::string> target_files = {
-        "millennium.dll", /** Millennium main library */
-        "user32.dll",     /** legacy shim */
-        "version.dll",    /** new shim */
-        "python311.dll"   /** embedded Python runtime */
-    };
-
     const auto steam_path = SystemIO::GetSteamPath();
 
     if (steam_path.empty()) {
@@ -180,15 +184,18 @@ void MillenniumUpdater::DeleteOldMillenniumVersion()
     const auto temp_path = std::filesystem::temp_directory_path() / MILLENNIUM_UPDATER_TEMP_DIR;
 
     std::error_code ec;
-    if (!std::filesystem::create_directories(temp_path, ec)) {
+    std::filesystem::create_directories(temp_path, ec);
+    if (ec) {
         Logger.Warn("Failed to create temporary directory for moving old Millennium files: {}", ec.message());
         return;
     }
 
     bool any_files_moved = false;
 
-    for (const auto& filename : target_files) {
+    for (const auto& filename : lockedFiles) {
         const auto source_path = steam_path / filename;
+
+        Logger.Log("Processing old file: {}", source_path.string());
 
         if (!std::filesystem::exists(source_path, ec)) {
             if (ec) {
@@ -200,6 +207,8 @@ void MillenniumUpdater::DeleteOldMillenniumVersion()
         const auto dest_path = temp_path / fmt::format("{}.uuid{}.tmp", filename, GenerateUUID());
         const auto source_wide = source_path.wstring();
         const auto dest_wide = dest_path.wstring();
+
+        Logger.Log("Moving old Millennium file {} to temporary location {}", source_path.string(), dest_path.string());
 
         /** Move file to temporary location */
         if (!MoveFileExW(source_wide.c_str(), dest_wide.c_str(), MOVEFILE_REPLACE_EXISTING)) {
@@ -224,37 +233,43 @@ void MillenniumUpdater::DeleteOldMillenniumVersion()
 #endif
 }
 
-void RateLimitedLogger(const std::string& message, const double& progress)
+void RateLimitedLogger(const std::string& message, const double& progress, bool forwardToIpc)
 {
     static auto last_call = std::chrono::steady_clock::now() - std::chrono::seconds(2);
     auto now = std::chrono::steady_clock::now();
 
     if (std::chrono::duration_cast<std::chrono::seconds>(now - last_call).count() > 1) {
-        IpcForwardInstallLog({ message, progress, false });
+
+        if (forwardToIpc)
+            IpcForwardInstallLog({ message, progress, false });
+        else
+            Logger.Log("{}", message);
+
         last_call = now;
     }
 }
 
-void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize)
+void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize, bool forwardToIpc)
 {
     try {
-        /** Windows locks files when in use, so we need to use tricks to "unlock" them */
-        DeleteOldMillenniumVersion();
-
         const auto tempFilePath = std::filesystem::temp_directory_path() / fmt::format("millennium-{}.zip", GenerateUUID());
         Logger.Log("Downloading update to temporary file: " + tempFilePath.string());
 
-        Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [](size_t downloaded, size_t total)
+        Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [forwardToIpc](size_t downloaded, size_t total)
         {
             const double progress = (static_cast<double>(downloaded) / total) * 50.0;
-            RateLimitedLogger("Downloading update assets...", progress);
+            RateLimitedLogger("Downloading update assets...", progress, forwardToIpc);
         });
 
+        /** Windows locks files when in use, so we need to use tricks to "unlock" them */
+        std::vector<std::string> lockedFiles = Util::GetLockedFiles(tempFilePath.string(), SystemIO::GetInstallPath().generic_string());
+        DeleteOldMillenniumVersion(lockedFiles);
+
         Logger.Log("Extracting and installing update to {}", SystemIO::GetInstallPath().generic_string());
-        Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [](int current, int total, const char*)
+        Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [forwardToIpc](int current, int total, const char*)
         {
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;
-            RateLimitedLogger(fmt::format("Processing update file {}/{}", current, total), progress);
+            RateLimitedLogger(fmt::format("Processing update file {}/{}", current, total), progress, forwardToIpc);
         });
 
         /** Remove the temporary file after installation */
@@ -274,10 +289,10 @@ void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const siz
 
     // Always reset the update flag when done, regardless of success or failure
     hasUpdatedMillennium.store(false);
-    IpcForwardInstallLog({ "Successfully updated Millennium!", 100.0f, true });
+    if (forwardToIpc) IpcForwardInstallLog({ "Successfully updated Millennium!", 100.0f, true });
 }
 
-void MillenniumUpdater::StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background)
+void MillenniumUpdater::StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background, bool forwardToIpc)
 {
     // Use mutex to ensure only one update can start at a time
     std::lock_guard<std::mutex> lock(update_mutex);
@@ -292,13 +307,13 @@ void MillenniumUpdater::StartUpdate(const std::string& downloadUrl, const size_t
     if (background) {
         Logger.Log("Starting Millennium update in background thread...");
         /** Start the update process in a separate thread */
-        std::thread updateThread(Co_BeginUpdate, downloadUrl, downloadSize);
+        std::thread updateThread(Co_BeginUpdate, downloadUrl, downloadSize, forwardToIpc);
         updateThread.detach();
         return;
     }
 
     Logger.Log("Starting Millennium update in blocking mode...");
     /** Run the update process in the current thread (blocking) */
-    Co_BeginUpdate(downloadUrl, downloadSize);
+    Co_BeginUpdate(downloadUrl, downloadSize, forwardToIpc);
     Logger.Log("Millennium update process finished.");
 }

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { OnMillenniumUpdate, SystemAccentColor } from '../types';
+import { MillenniumUpdateChannel, OnMillenniumUpdate, SystemAccentColor } from '../types';
 
 export interface AppConfig {
 	general: {
@@ -37,6 +37,7 @@ export interface AppConfig {
 		checkForMillenniumUpdates: boolean;
 		checkForPluginAndThemeUpdates: boolean;
 		onMillenniumUpdate: OnMillenniumUpdate;
+		millenniumUpdateChannel: MillenniumUpdateChannel;
 		shouldShowThemePluginUpdateNotifications: boolean;
 		accentColor: SystemAccentColor;
 	};
