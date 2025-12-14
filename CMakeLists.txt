@@ -5,7 +5,7 @@ include(ExternalProject)
 if(WIN32)
     include(scripts/cmake/msvc.cmake)
 elseif(UNIX)
-    include(scripts/cmake/gcc.cmake)
+    include(scripts/cmake/unix.cmake)
 endif()
 
 message(STATUS "Ninja compiler path: ${USER_CMAKE_MAKE_PROGRAM}")
