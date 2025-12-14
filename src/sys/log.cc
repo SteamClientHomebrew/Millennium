@@ -28,20 +28,18 @@
  * SOFTWARE.
  */
 
-#include "internal_logger.h"
 #include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
-#include <thread>
+#include <fcntl.h>
+#include <iostream>
 
 #ifdef _WIN32
-#include "cmd.h"
+#include "millennium/argp_win32.h"
 #endif
-#include "locals.h"
-#include <env.h>
+#include "millennium/env.h"
+#include "millennium/logger.h"
 
 OutputLogger Logger;
 
@@ -63,17 +61,48 @@ void OutputLogger::PrintMessage(std::string type, const std::string& message, st
     std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", GetLocalTime(), color, type, COL_RESET, message);
 }
 
+#ifdef _WIN32
+void EnableVirtualTerminalProcessing()
+{
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode)) {
+        return;
+    }
+
+    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if (!SetConsoleMode(hOut, dwMode)) {
+        return;
+    }
+
+    SetConsoleOutputCP(CP_UTF8);
+}
+#endif
+
 OutputLogger::OutputLogger()
 {
 #ifdef _WIN32
-    {
-        std::unique_ptr<StartupParameters> startupParams = std::make_unique<StartupParameters>();
-        m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || startupParams->HasArgument("-dev");
+    this->m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev");
+    if (m_bIsConsoleEnabled) {
+        (void)static_cast<bool>(AllocConsole());
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+
+        #ifdef _WIN64
+        SetConsoleTitleA("Millennium_x86_64@" MILLENNIUM_VERSION);
+        #elif defined(_WIN32)
+        SetConsoleTitleA("Millennium_i386@" MILLENNIUM_VERSION);
+        #endif
+
+        EnableVirtualTerminalProcessing();
+        std::ios::sync_with_stdio(true);
     }
 #elif __linux__
-    {
-        this->m_bIsConsoleEnabled = true;
-    }
+    this->m_bIsConsoleEnabled = true;
 #endif
 }
 

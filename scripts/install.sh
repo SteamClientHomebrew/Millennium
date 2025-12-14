@@ -1,102 +1,203 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
-# This file is part of the Millennium project.
-# This script is used to install Millennium on a Linux machine.
+# ==================================================
+#   _____ _ _ _             _
+#  |     |_| | |___ ___ ___|_|_ _ _____
+#  | | | | | | | -_|   |   | | | |     |
+#  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+#
+# ==================================================
+
+# Copyright (c) 2025 Project Millennium
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.sh
-# Copyright (c) 2025 Millennium
-set -e
 
-BOLD_RED="\033[1;31m"
-BOLD_PINK="\033[1;35m"
-BOLD_GREEN="\033[1;32m"
-BOLD_YELLOW="\033[1;33m"
-BOLD_BLUE="\033[1;34m"
-BOLD_MAGENTA="\033[1;35m"
-BOLD_CYAN="\033[1;36m"
-BOLD_WHITE="\033[1;37m"
-RESET="\033[0m"
+readonly GITHUB_ACCOUNT="SteamClientHomebrew/Millennium"
+readonly RELEASES_URI="https://api.github.com/repos/${GITHUB_ACCOUNT}/releases"
+readonly DOWNLOAD_URI="https://github.com/${GITHUB_ACCOUNT}/releases/download"
+readonly INSTALL_DIR="/tmp/millennium"
+DRY_RUN=0
 
-log() {
-    printf "%b\n" "$1"
+log() { printf "%b\n" "$1"; }
+is_root() { [ "$(id -u)" -eq 0 ]; }
+format_size() {
+    echo "$1" | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }'
 }
 
-is_root() {
-    [ "$(id -u)" -eq 0 ]
+verify_platform() {
+    case $(uname -sm) in
+        "Linux x86_64") echo "linux-x86_64" ;;
+        *) log "Unsupported platform $(uname -sm). x86_64 is the only available platform."; exit 1 ;;
+    esac
 }
 
-if ! is_root;  then
-    log "${BOLD_RED}!!${RESET} Insufficient permissions. Please run the script as sudo or root"
-    exit 1
-fi
+check_dependencies() {
+    log "resolving dependencies..."
+    for cmd in curl tar jq sudo; do
+        command -v "$cmd" >/dev/null || {
+            log "$cmd isn't installed. Install it from your package manager." >&2
+            exit 1
+        }
+    done
+}
 
-case $(uname -sm) in
-    "Linux x86_64") target="linux-x86_64" ;;
-    *) log "${BOLD_RED}!!${RESET} Unsupported platform $(uname -sm). x86_64 is the only available platform."; exit ;;
-esac
+fetch_release_info() {
+    local response tag size
+    response=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$RELEASES_URI")
+    tag=$(echo "$response" | jq -r '.[0].tag_name')
+    size=$(echo "$response" | jq -r ".[0].assets[] | select(.name == \"millennium-${tag}-$target.tar.gz\") | .size")
+    echo "${tag#v}:${size:-0}"
+}
 
-log "resolving dependencies..."
+confirm_installation() {
+    echo -e "\n:: Proceed with installation? [Y/n] \c"
+    read -r proceed </dev/tty
+    case "$proceed" in
+        [Nn]*) exit 1 ;;
+        *) return 0 ;;
+    esac
+}
 
-# check for dependencies
-command -v curl >/dev/null || { log "curl isn't installed! Install it from your package manager." >&2; exit 1; }
-command -v tar >/dev/null || { log "tar isn't installed! Install it from your package manager." >&2; exit 1; }
-command -v grep >/dev/null || { log "grep isn't installed! Install it from your package manager." >&2; exit 1; }
-command -v jq >/dev/null || { log "jq isn't installed! Install it from your package manager." >&2; exit 1; }
-command -v git >/dev/null || { log "git isn't installed! Install it from your package manager." >&2; exit 1; }
+download_package() {
+    local url="$1"
+    local dest="$2"
+    if ! curl --fail --location --output "$dest" "$url"; then
+        log "Download failed for $url"
+        return 1
+    fi
+}
 
-# download uri
-releases_uri="https://api.github.com/repos/SteamClientHomebrew/Millennium/releases"
-if [ -z "$tag" ]; then
-    # Get the latest non-prerelease version
-    tag=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)][0].tag_name')
-    # get the bytes size of the release assets
-    size=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$releases_uri" | jq -r '[.[] | select(.prerelease == false)][0].assets | .[0].size')
-fi
+extract_package() {
+    local tar_file="$1"
+    local extract_dir="$2"
+    mkdir -p "$extract_dir"
+    tar xzf "$tar_file" -C "$extract_dir"
+}
 
-tag=${tag#v}
-size=${size:-0}
-download_uri=https://github.com/SteamClientHomebrew/Millennium/releases/download/v$tag/millennium-v${tag%-*}-$target.tar.gz
-# convert bytes to human readable format
-size=$(echo $size | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }')
+install_millennium() {
+    local extract_path="$1"
 
-log "Packages (1) Millennium@$tag-x86_64"
-log "\nTotal Download Size: $size"
-log "Retreiving packages..."
+    if [ "$DRY_RUN" -eq 0 ]; then
+        sudo cp -r "$extract_path"/* / || true
+    else
+        log "[DRY RUN] Would copy files from $extract_path to /"
+    fi
+}
 
-# ask to proceed
-echo -e "\n${BOLD_PINK}::${RESET} Proceed with installation? [Y/n] \c"
+post_install() {
+    sudo chmod +x /opt/python-i686-3.11.8/bin/python3.11
 
-read -r proceed </dev/tty
+    log "installing for '$USER'"
 
-if [ "$proceed" = "n" ]; then
-    exit 1
-fi
+    beta_file="$HOME/.steam/steam/package/beta"
+    target="$HOME/.steam/steam/ubuntu12_32/libXtst.so.6"
 
-# locations
-millennium_install="/tmp/millennium"
-extract_path="$millennium_install/files"
-tar="$millennium_install/millennium.tar.gz"
+    # make sure to force steam stable for the first install.
+    # if the user wants beta they can set it after install.
+    # normally its fine, but many users forget they have it enabled on first install,
+    # and then face issues.
+    if [ -f "$beta_file" ]; then
+        log "removing beta '$(cat "$beta_file")' in favor for stable."
+        rm "$beta_file"
+    fi
 
-rm -rf "$millennium_install"
-mkdir -p "$millennium_install"
+    # create a symlink for millenniums preload bootstrap.
+    [ -d "$HOME/.steam/steam/ubuntu12_32" ] && ln -sf /usr/lib/millennium/libmillennium_bootstrap_86x.so "$target"
+}
 
-log "receiving packages..."
-curl --fail --location --output "$tar" "$download_uri" --silent
+cleanup() {
+    local dir="$1"
+    log "cleaning up..."
+    rm -rf "$dir"
+}
 
-log "deflating assets..."
+main() {
+    local target release_info tag size download_uri install_dir extract_path tar_file
 
-mkdir -p "$extract_path"
-tar xzf "$tar" -C "$extract_path"
+    # Parse arguments
+    for arg in "$@"; do
+        case $arg in
+            --dry-run) DRY_RUN=1; shift ;;
+        esac
+    done
 
-folder_size=$(du -sb "$extract_path" | awk '{print $1}' | numfmt --to=iec-i --suffix=B --padding=7 | sed 's/\([0-9]\)\([A-Za-z]\)/\1 \2/')
-log "\nTotal Install Size: $folder_size"
+    if is_root; then
+        log "Do not run this script as root!"
+        log "aborting installation..."
+        exit
+    fi
 
-cp -r "$extract_path"/* / || true
+    target=$(verify_platform)
+    check_dependencies
 
-chmod +x /usr/bin/millennium
-chmod +x /opt/python-i686-3.11.8/bin/python3.11
+    release_info=$(fetch_release_info)
+    tag="${release_info%%:*}"
+    size=$(format_size "${release_info##*:}")
 
-log "cleaning up packages..."
-rm -rf "$millennium_install"
-log "done."
+    install_size_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.installsize"
+    download_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.tar.gz"
+    sha256_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.sha256"
 
-log "\n${BOLD_PINK}::${RESET} To get started, see https://docs.steambrew.app/users/installing#post-installation.\n    Your base installation of Steam has not been modified, this is simply an extension."
+    sha256digest=$(curl -sL $sha256_uri)
+    installed_size=$(format_size "$(curl -sL $install_size_uri)")
+
+    log "\nPackages (1) millennium@$tag-x86_64\n"
+    log "Total Download Size:  $(printf "%10s\n" "$size")"
+    log "Total Installed Size: $(printf "%10s\n" "$installed_size")"
+
+    confirm_installation
+    log "receiving packages..."
+
+    install_dir="${DRY_RUN:+./dry-run}"
+    install_dir="${install_dir:-$INSTALL_DIR}"
+    extract_path="$install_dir/files"
+    tar_file="$install_dir/millennium-v${tag}-$target.tar.gz"
+
+    rm -rf "$install_dir"
+    mkdir -p "$install_dir"
+
+    log "(1/4) Downloading millennium-v${tag}-$target.tar.gz..."
+    download_package "$download_uri" "$tar_file"
+    log "(2/4) Verifying checksums..."
+    # use sub-shell to prevent actually changing the working directory
+    if (cd "$install_dir" && echo "$sha256digest" | sha256sum -c --status); then
+        echo -ne "\033[1A"
+        log "(2/4) Verifying checksums... OK"
+    else
+        log "(2/4) Verifying checksums... FAILED"
+    fi
+    log "(3/4) Unpacking millennium-v${tag}-$target.tar.gz..."
+    extract_package "$tar_file" "$extract_path"
+    log "(4/4) Installing millennium..."
+    install_millennium "$extract_path"
+
+    log ":: Running post-install scripts..."
+    log "(1/1) Setting up shared object preloader hook..."
+    post_install
+
+    cleanup "$install_dir"
+
+    log "done.\n"
+    log "You can now start Steam."
+    log "https://docs.steambrew.app/users/installing#post-installation."
+}
+
+main "$@"

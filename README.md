@@ -1,11 +1,7 @@
 <img width="3844" height="793" alt="image" src="https://github.com/user-attachments/assets/2c662772-bca1-4de4-988f-5304d7dfd87d" />
 
-
 <br/>
 <br/>
-
-
-
   <a href="https://steambrew.app/discord">
       <img alt="Static Badge" src="https://img.shields.io/badge/discord-green?labelColor=404040&color=353535&style=for-the-badge&logo=discord&logoColor=white" href="#">
   </a>
@@ -15,7 +11,6 @@
   <a href="https://docs.steambrew.app">
       <img alt="Static Badge" src="https://img.shields.io/badge/documentation-green?labelColor=404040&color=353535&style=for-the-badge&logo=readthedocs&logoColor=white" href="#">
   </a>
-
 <br>
 <br>
 
@@ -35,30 +30,25 @@ Installing Millennium is only a few steps. See [this page](https://docs.steambre
 For normal users, installing via the installers makes the most sense. However when wanting to either develop Millennium, or when the installers do not work, this option can be used. Check our [documentation](https://docs.steambrew.app/users/installing#manual) for a guide on how to do this.
 
 
-## Core Features
-
--   ### [Plugin Loader](/src/)
+## Features
+-   ### Plugins
     -   **TypeScript ([React](https://react.dev/)) frontend** container in Steam
-    -   **Python backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
-    -   **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Python** to **JavaScript** and vice versa
+    -   **Lua backend** container in [usermode](https://en.wikipedia.org/wiki/User-Mode_Driver_Framework)
+    -   **[Foreign function interface](https://en.wikipedia.org/wiki/Foreign_function_interface)** binding from **Lua** to **TypeScript** and vice versa
     -   **Hook modules in the Steam web browser**
         -   Overwrite/Modify HTTP requests
         -   Load custom JavaScript (Native) into web browser
         -   Load custom StyleSheets into web browser
--   ### [Core Modules](/assets/)
-    -   Manage and load custom user themes into Steam
-    -   Manage custom plugins for steam
-    -   Maintain theme & plugin versions.
-    -   Manage [embedded Python](https://www.python.org/downloads/release/python-3118/) installation
-        -   Manage [Millennium Python Developer Tools](https://pypi.org/project/millennium/)
-        -   Custom package manager for all plugins
-
-&nbsp;
+-   ### Themes
+    -   Manage and load custom themes written in JavaScript and CSS.
+    -   Inject JavaScript modules and CSS modules into specific Steam windows,
+    -   Provide customizable color, style, and javascript options for your theme,
+        letting users personalize their experience without touching any code
 
 ## Official Plugin Repository
 
-Millennium is designed to be fully extensible through plugins.  
-To ensure version compatibility and safety, we maintain a separate, curated [PluginDatabase](https://github.com/SteamClientHomebrew/PluginDatabase) repository.  
+Millennium is designed to be fully extensible through plugins.
+To ensure version compatibility and safety, we maintain a separate, curated [PluginDatabase](https://github.com/SteamClientHomebrew/PluginDatabase) repository.
 
 All plugins in the PluginDatabase are versioned and reviewed to work seamlessly with the current Millennium release, reducing the risk of conflicts or instability when adding new features.
 

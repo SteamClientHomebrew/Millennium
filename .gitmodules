@@ -1,24 +1,3 @@
-[submodule "vendor/websocketpp"]
-	path = vendor/websocketpp
-	url = https://github.com/zaphoyd/websocketpp.git
-[submodule "vendor/asio"]
-	path = vendor/asio
-	url = https://github.com/chriskohlhoff/asio.git
-[submodule "vendor/nlohmann"]
-	path = vendor/nlohmann
-	url = https://github.com/nlohmann/json.git
-[submodule "vendor/fmt"]
-	path = vendor/fmt
-	url = https://github.com/fmtlib/fmt.git
-[submodule "vendor/vcpkg"]
-	path = vendor/vcpkg
-	url = https://github.com/microsoft/vcpkg.git
-[submodule "vendor/crow"]
-	path = vendor/crow
-	url = https://github.com/CrowCpp/Crow.git
-[submodule "vendor/ini"]
-	path = vendor/ini
-	url = https://github.com/metayeti/mINI.git
 [submodule "sdk"]
 	path = sdk
 	url = https://github.com/SteamClientHomebrew/SDK.git

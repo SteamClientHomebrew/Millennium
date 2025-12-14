@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "default",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "windows",
+      "hidden": true,
+      "inherits": "default",
+      "generator": "Visual Studio 17 2022",
+      "displayName": "windows"
+    },
+    {
+      "inherits": "windows",
+      "name": "windows-release",
+      "displayName": "windows-release",
+      "description": "windows release build.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "/O1 /GL /GF /Gy /DNDEBUG",
+        "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "/LTCG /OPT:REF /OPT:ICF /DEBUG:NONE"
+      }
+    },
+    {
+      "inherits": "windows",
+      "name": "windows-debug",
+      "displayName": "windows-debug",
+      "description": "windows debug build.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "inherits": "default",
+      "name": "osx-release",
+      "displayName": "osx-release",
+      "description": "MacOS release build.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "inherits": "default",
+      "name": "osx-debug",
+      "displayName": "osx-debug",
+      "description": "MacOS debug build.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "default",
+      "generator": "Ninja",
+      "displayName": "linux-debug-x86",
+      "description": "Debug build for Linux",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-release",
+      "inherits": "default",
+      "generator": "Ninja",
+      "displayName": "linux-release-x86",
+      "description": "Release build for Linux",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-m32",
+        "CMAKE_C_FLAGS": "-m32",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ]
+}

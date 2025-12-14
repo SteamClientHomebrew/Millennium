@@ -34,13 +34,19 @@
  * @brief This file is responsible for setting up environment variables that are used throughout the application.
  */
 
-#include "env.h"
+#include "millennium/env.h"
+#include "millennium/sysfs.h"
+
 #include <fmt/core.h>
-#include <internal_logger.h>
-#include <locals.h>
 #include <stdlib.h>
 #include <string>
+#include <iostream>
+#ifdef __linux__
+#include "millennium/logger.h"
 #include <unistd.h>
+#endif
+
+std::map<std::string, std::string> envVariables;
 
 #if defined(__linux__) || defined(__APPLE__)
 extern char** environ;
@@ -57,11 +63,9 @@ class environment
         auto stored_string = std::make_unique<char[]>(strEnv.length() + 1);
         std::strcpy(stored_string.get(), strEnv.c_str());
 
-        for (int i = 0; environ[i] != nullptr; ++i)
-        {
+        for (int i = 0; environ[i] != nullptr; ++i) {
             std::string current(environ[i]);
-            if (current.substr(0, name.length() + 1) == name + "=")
-            {
+            if (current.substr(0, name.length() + 1) == name + "=") {
                 environ[i] = stored_string.get();
                 allocated_strings.push_back(std::move(stored_string));
                 return true;
@@ -80,8 +84,7 @@ class environment
 
         char** new_environ = new char*[count + 2];
 
-        for (int i = 0; i < count; ++i)
-        {
+        for (int i = 0; i < count; ++i) {
             new_environ[i] = environ[i];
         }
 
@@ -97,13 +100,18 @@ class environment
 std::vector<std::unique_ptr<char[]>> environment::allocated_strings;
 #endif
 
-const void SetupEnvironmentVariables();
+void SetupEnvironmentVariables();
 
 void SetEnv(const std::string& key, const std::string& value)
 {
 #ifdef _WIN32
     _putenv_s(key.c_str(), value.c_str()); // Windows
 #else
+    if (!GetEnv(key).empty()) {
+        /** allow the user to set the environment variables themselves */
+        return;
+    }
+
     environment::set(key, value);
 #endif
 }
@@ -113,8 +121,7 @@ std::string GetEnv(std::string key)
 #ifdef _WIN32
     static bool hasSetup = false;
 
-    if (!hasSetup)
-    {
+    if (!hasSetup) {
         hasSetup = true;
         SetupEnvironmentVariables();
     }
@@ -122,8 +129,7 @@ std::string GetEnv(std::string key)
 
     char* szVariable = getenv(key.c_str());
 
-    if (szVariable == nullptr)
-    {
+    if (szVariable == nullptr) {
         return {};
     }
 
@@ -140,15 +146,14 @@ std::string GetEnvWithFallback(std::string key, std::string fallback)
 /**
  * @brief Set up environment variables used throughout the application.
  */
-const void SetupEnvironmentVariables()
+void SetupEnvironmentVariables()
 {
     std::map<std::string, std::string> environment = {
-        {"MILLENNIUM__VERSION",    MILLENNIUM_VERSION               },
-        {"MILLENNIUM__STEAM_PATH", SystemIO::GetSteamPath().string()}
+        { "MILLENNIUM__VERSION",    MILLENNIUM_VERSION                },
+        { "MILLENNIUM__STEAM_PATH", SystemIO::GetSteamPath().string() }
     };
 
 #if defined(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
-#pragma message("Using custom SDK path: " MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
     const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
 #else
 #ifdef _WIN32
@@ -165,7 +170,6 @@ const void SetupEnvironmentVariables()
 #endif
 
 #if defined(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
-#pragma message("Using development mode frontend: " MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
     const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
 #else
 #ifdef _WIN32
@@ -185,14 +189,20 @@ const void SetupEnvironmentVariables()
 
 #ifdef _WIN32
     std::map<std::string, std::string> environment_windows = {
-        {"MILLENNIUM__PLUGINS_PATH", SystemIO::GetInstallPath().string() + "/plugins"       },
-        {"MILLENNIUM__CONFIG_PATH",  SystemIO::GetInstallPath().string() + "/ext"           },
-        {"MILLENNIUM__LOGS_PATH",    SystemIO::GetInstallPath().string() + "/ext/logs"      },
-        {"MILLENNIUM__DATA_LIB",     dataLibPath                                            },
-        {"MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/cache"},
-        {"MILLENNIUM__SHIMS_PATH",   shimsPath                                              },
-        {"MILLENNIUM__ASSETS_PATH",  assetsPath                                             },
-        {"MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string()                    }
+        { "MILLENNIUM__PLUGINS_PATH", SystemIO::GetInstallPath().string() + "/plugins"        },
+        { "MILLENNIUM__CONFIG_PATH",  SystemIO::GetInstallPath().string() + "/ext"            },
+        { "MILLENNIUM__LOGS_PATH",    SystemIO::GetInstallPath().string() + "/ext/logs"       },
+        { "MILLENNIUM__DATA_LIB",     dataLibPath                                             },
+#if defined(MILLENNIUM_64BIT)
+        { "MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/pyx64" },
+#elif defined(MILLENNIUM_32BIT)
+        { "MILLENNIUM__PYTHON_ENV", SystemIO::GetInstallPath().string() + "/ext/data/cache" },
+#else
+#error "Invalid platform"
+#endif
+        { "MILLENNIUM__SHIMS_PATH",   shimsPath                                               },
+        { "MILLENNIUM__ASSETS_PATH",  assetsPath                                              },
+        { "MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string()                     }
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
 #elif __linux__
@@ -202,39 +212,42 @@ const void SetupEnvironmentVariables()
     const std::string stateDir = GetEnvWithFallback("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
     const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
-    if (access(pythonEnvBin.c_str(), F_OK) == -1)
-    {
-        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+    if (access(pythonEnvBin.c_str(), F_OK) == -1) {
+        int result = std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+
+        if (result != 0) {
+            LOG_ERROR("Failed to create python virtual environment");
+        }
     }
 
     const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
 
     std::map<std::string, std::string> environment_unix = {
-        {"OPENSSL_CONF", "/dev/null"},
-        {"MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload :
+        { "OPENSSL_CONF", "/dev/null" },
+        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload :
 #ifdef _NIX_OS
-                                                          fmt::format("{}/lib/millennium/libMillennium_x86.so", __NIX_SELF_PATH)
+                                                           fmt::format("{}/lib/millennium/libMillennium_x86.so", __NIX_SELF_PATH)
 #else
-                                                          "/usr/lib/millennium/libmillennium_x86.so"
+                                                           "/usr/lib/millennium/libmillennium_x86.so"
 #endif
         },
 
-        {"LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH},
+        { "LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH },
 
-        {"MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam", homeDir)},
-        {"MILLENNIUM__PLUGINS_PATH", fmt::format("{}/millennium/plugins", dataDir)},
-        {"MILLENNIUM__CONFIG_PATH", fmt::format("{}/millennium", configDir)},
-        {"MILLENNIUM__LOGS_PATH", fmt::format("{}/millennium/logs", stateDir)},
-        {"MILLENNIUM__DATA_LIB", dataLibPath},
-        {"MILLENNIUM__SHIMS_PATH", shimsPath},
-        {"MILLENNIUM__ASSETS_PATH", assetsPath},
+        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam", homeDir) },
+        { "MILLENNIUM__PLUGINS_PATH", fmt::format("{}/millennium/plugins", dataDir) },
+        { "MILLENNIUM__CONFIG_PATH", fmt::format("{}/millennium", configDir) },
+        { "MILLENNIUM__LOGS_PATH", fmt::format("{}/millennium/logs", stateDir) },
+        { "MILLENNIUM__DATA_LIB", dataLibPath },
+        { "MILLENNIUM__SHIMS_PATH", shimsPath },
+        { "MILLENNIUM__ASSETS_PATH", assetsPath },
 
-        {"MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT}, /** The script the user will run to update millennium. */
+        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
 
-        {"MILLENNIUM__PYTHON_ENV", pythonEnv},
-        {"LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin},
-        {"LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/python3.11", MILLENNIUM__PYTHON_ENV)},
-        {"LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV)}
+        { "MILLENNIUM__PYTHON_ENV", pythonEnv },
+        { "LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin },
+        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/python3.11", MILLENNIUM__PYTHON_ENV) },
+        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV) }
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
@@ -245,43 +258,44 @@ const void SetupEnvironmentVariables()
     const static std::string pythonEnv = fmt::format("{}/Millennium/runtime", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
 
-    if (access(pythonEnvBin.c_str(), F_OK) == -1)
-    {
+    if (access(pythonEnvBin.c_str(), F_OK) == -1) {
         std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
     }
 
     std::map<std::string, std::string> environment_macos = {
-        {"MILLENNIUM_RUNTIME_PATH", "/usr/local/lib/millennium/libmillennium_x86.dylib"},
-        {"LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH},
+        { "MILLENNIUM_RUNTIME_PATH", "/usr/local/lib/millennium/libmillennium_x86.dylib" },
+        { "LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH },
 
-        {"MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir)},
-        {"MILLENNIUM__PLUGINS_PATH", fmt::format("{}/Millennium/plugins", dataDir)},
-        {"MILLENNIUM__CONFIG_PATH", fmt::format("{}/Millennium", configDir)},
-        {"MILLENNIUM__LOGS_PATH", fmt::format("{}/Millennium/logs", stateDir)},
-        {"MILLENNIUM__DATA_LIB", dataLibPath},
-        {"MILLENNIUM__SHIMS_PATH", shimsPath},
-        {"MILLENNIUM__ASSETS_PATH", assetsPath},
+        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
+        { "MILLENNIUM__PLUGINS_PATH", fmt::format("{}/Millennium/plugins", dataDir) },
+        { "MILLENNIUM__CONFIG_PATH", fmt::format("{}/Millennium", configDir) },
+        { "MILLENNIUM__LOGS_PATH", fmt::format("{}/Millennium/logs", stateDir) },
+        { "MILLENNIUM__DATA_LIB", dataLibPath },
+        { "MILLENNIUM__SHIMS_PATH", shimsPath },
+        { "MILLENNIUM__ASSETS_PATH", assetsPath },
 
-        {"MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT}, /** The script the user will run to update millennium. */
+        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
 
-        {"MILLENNIUM__PYTHON_ENV", pythonEnv},
-        {"LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin},
-        {"LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/python3.11", MILLENNIUM__PYTHON_ENV)},
-        {"LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV)}
+        { "MILLENNIUM__PYTHON_ENV", pythonEnv },
+        { "LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin },
+        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/python3.11", MILLENNIUM__PYTHON_ENV) },
+        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV) }
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif
 
+#ifdef __linux__
     const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
+#elif defined(_WIN32)
+    const bool shouldLog = false;
+#endif
+    envVariables = environment;
 
-    for (const auto& [key, value] : environment)
-    {
-#if defined(__linux__) || defined(__APPLE__)
+    for (const auto& [key, value] : environment) {
+#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
 #define RED "\033[31m"
 #define RESET "\033[0m"
-
-        if (shouldLog)
-            std::cout << fmt::format("{}={}", key, value) << std::endl;
+        if (shouldLog) std::cout << fmt::format("{}={}", key, value) << std::endl;
 #endif
         SetEnv(key, value);
     }

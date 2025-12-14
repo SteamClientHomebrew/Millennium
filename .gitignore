@@ -1,21 +1,18 @@
-/build
-/.idea
-/.vs
-/out
-/vendor/python/python311.dll
-/vendor/python/python311.lib
-/vendor/python/python311_d.lib
-/vendor/python/python311_d.dll
+# Build files
+**/build
 
-# Ignore plugin example build assets
-/examples/plugin/.millennium
+node_modules/
 
-/assets/src/env.ts
+# Visual Studio & Visual Studio Code
+.vs*/
+.idea/
 
-/.direnv
-/result
-/sdk/result
+# Clangd C++ index files
+.cache/
+src/include/millennium/virtfs.h
+
+scripts/resources.rc
+scripts/RC*
+
+# macOS system files
 **/.DS_Store
-**/node_modules
-**/virtfs.h
-/.cache

@@ -1,0 +1,44 @@
+{
+  "branches": [
+    "main",
+    {
+      "name": "next",
+      "prerelease": "beta"
+    },
+    {
+      "name": "staging",
+      "prerelease": "alpha"
+    }
+  ],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/exec",
+      {
+        "verifyReleaseCmd": "echo \"version=${nextRelease.version}\" >> \"$GITHUB_OUTPUT\""
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "../CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "../CHANGELOG.md",
+          "../version"
+        ]
+      }
+    ],
+    {
+      "path": "@semantic-release/github",
+      "assets": [
+        "../artifacts/release/millennium*"
+      ]
+    }
+  ]
+}
