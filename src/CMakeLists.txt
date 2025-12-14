@@ -27,7 +27,7 @@ set(VERSION_DESCRIPTION  "A plugin loader for the modern Steam Client")
 set(VERSION_FILENAME     "${BUILD_FULLNAME}")
 set(VERSION_PRODUCT      "Millennium")
 
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use" FORCE)
+set(CMAKE_CXX_STANDARD 20 CACHE STRING "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD   11 CACHE STRING "C standard to use"   FORCE)
 
 include(ExternalProject)
@@ -161,7 +161,7 @@ endif()
 
 if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Idata -s")
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
     set(CMAKE_BUILD_TYPE_INIT "Release")
     set(CMAKE_C_FLAGS_RELEASE "-DNDEBUG -Oz -ffunction-sections -fdata-sections")
