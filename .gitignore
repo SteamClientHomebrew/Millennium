@@ -6,6 +6,9 @@ node_modules/
 # Visual Studio & Visual Studio Code
 .vs*/
 
+# Jetbrains IDEs
+.idea/
+
 # Clangd C++ index files
 .cache/
 src/include/millennium/virtfs.h
