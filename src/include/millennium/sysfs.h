@@ -125,25 +125,6 @@ class ConfigManager
     static ConfigManager& Instance();
 
     /**
-     * Set a nested configuration key.
-     * @param key The path to the nested key. Ex: "parent.child.key"
-     * @param def The default value to return if the key is not found.
-     *
-     * @note This does not set nested keys. Use SetNested for that. This only works for top-level keys.
-     */
-    nlohmann::json Get(const std::string& key, const nlohmann::json& def = nullptr);
-
-    /**
-     * Set a configuration key.
-     * @param key The key to set.
-     * @param value The value to set.
-     * @param skipPropagation If true, listeners will not be notified.
-     *
-     * @note This does not set nested keys. Use SetNested for that. This only works for top-level keys.
-     */
-    void Set(const std::string& key, const nlohmann::json& value, bool skipPropagation = false);
-
-    /**
      * Delete a configuration key.
      * @note This does not delete nested keys. Use SetNested with a null value instead.
      */

@@ -385,25 +385,6 @@ void ConfigManager::SetNested(const std::string& path, const nlohmann::json& val
     }
 }
 
-nlohmann::json ConfigManager::Get(const std::string& key, const nlohmann::json& def)
-{
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-    if (_data.contains(key)) return _data[key];
-    if (_defaults.contains(key)) return _defaults[key];
-    return def;
-}
-
-void ConfigManager::Set(const std::string& key, const nlohmann::json& value, bool skipPropagation)
-{
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-    nlohmann::json old_value = _data.value(key, nullptr);
-    if (old_value != value) {
-        _data[key] = value;
-        NotifyListeners(key, old_value, value);
-        if (!skipPropagation) SaveToFile();
-    }
-}
-
 void ConfigManager::Delete(const std::string& key)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
