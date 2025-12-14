@@ -170,7 +170,7 @@ void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
     }
 }
 
-void MillenniumUpdater::DeleteOldMillenniumVersion(std::vector<std::string> lockedFiles)
+void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<std::string> lockedFiles)
 {
 #ifdef _WIN32
     const auto steam_path = SystemIO::GetSteamPath();

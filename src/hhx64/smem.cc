@@ -33,6 +33,8 @@
 #include "hhx64/log.h"
 #include <string.h>
 
+lb_shm_arena_t* g_lb_patch_arena;
+
 #ifdef _WIN32
 #include <windows.h>
 #include <stdio.h>
@@ -43,7 +45,6 @@ typedef struct
     lb_shm_arena_t* ptr;
 } win_shm_ctx_t;
 
-lb_shm_arena_t* g_lb_patch_arena;
 static win_shm_ctx_t g_shm_ctx = { NULL, NULL };
 
 lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
