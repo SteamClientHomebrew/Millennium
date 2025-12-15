@@ -352,9 +352,10 @@ bool BackendManager::ShutdownPythonBackends()
         }
 
         it = this->m_pythonInstances.erase(it);
-        Logger.Log("New iterator position after erase: {}", static_cast<void*>(&(*it)));
+        Logger.Log("Remaining instances: {}", this->m_pythonInstances.size());
     }
 
+    Logger.Log("All Python instances have been destroyed.");
     return true;
 }
 

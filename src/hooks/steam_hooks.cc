@@ -441,6 +441,7 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
 
     /** hook Steam unload */
     if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && baseDllName == L"steamclient64.dll") {
+        Logger.Log("[DllNotificationCallback] Notified that steamclient64.dll has unloaded, handling Steam unload...");
         HandleSteamUnload();
         return;
     }
@@ -450,6 +451,23 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
         HandleTier0Dll(NotificationData->DllBase);
         return;
     }
+}
+
+void HandleAlreadyLoaded(LPCWSTR dllName)
+{
+    HMODULE module = GetModuleHandleW(dllName);
+
+    if (!module) {
+        return;
+    }
+
+    LDR_DLL_NOTIFICATION_DATA notifData = {};
+    UNICODE_STRING unicodeDllName = {};
+    unicodeDllName.Buffer = const_cast<PWSTR>(dllName);
+    unicodeDllName.Length = static_cast<USHORT>(wcslen(dllName) * sizeof(WCHAR));
+    notifData.BaseDllName = &unicodeDllName;
+    notifData.DllBase = module;
+    DllNotificationCallback(LDR_DLL_NOTIFICATION_REASON_LOADED, &notifData, nullptr);
 }
 
 /**
@@ -488,6 +506,11 @@ bool InitializeSteamHooks()
         MessageBoxA(NULL, "Failed to get handle for ntdll.dll", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
+
+    // Check if modules are already loaded and handle them
+    HandleAlreadyLoaded(L"steamui.dll");
+    HandleAlreadyLoaded(L"steamclient64.dll");
+    HandleAlreadyLoaded(L"tier0_s64.dll");
 
     LdrRegisterDllNotification = reinterpret_cast<LdrRegisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrRegisterDllNotification"));
     LdrUnregisterDllNotification = reinterpret_cast<LdrUnregisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrUnregisterDllNotification"));

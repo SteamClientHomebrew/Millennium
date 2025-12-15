@@ -123,14 +123,12 @@ VOID Win32_AttachWebHelperHook(VOID)
 
 VOID Win32_AttachMillennium(VOID)
 {
-    Plat_CheckForUpdates();
-
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
         Plat_ShowMessageBox("Millennium Error", "Failed to initialize Steam hooks, Millennium cannot continue startup.", MESSAGEBOX_ERROR);
-        return;
     }
 
+    Plat_CheckForUpdates();
     Win32_AttachWebHelperHook();
 
     // SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
@@ -211,6 +209,7 @@ DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReas
 #error "Unsupported Platform"
 #endif
             Logger.Log("Millennium-{}@{} attached...", plat, MILLENNIUM_VERSION);
+
             g_millenniumThread = std::thread(Win32_AttachMillennium);
             break;
         }
