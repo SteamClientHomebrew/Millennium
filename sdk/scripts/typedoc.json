@@ -1,0 +1,16 @@
+{
+  "entryPoints": [
+    "typescript-packages/client/src/index.ts",
+    "typescript-packages/browser/src/index.ts"
+  ],
+  "out": "docs",
+  "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-frontmatter"],
+  "readme": "README.md",
+  "includeVersion": true,
+  "tsconfig": "scripts/tsconfig.base.json",
+  "expandObjects": true,
+  "enumMembersFormat": "table",
+  "useCodeBlocks": true,
+  "expandParameters": false,
+  "frontmatterCommentTags": ["component"]
+}

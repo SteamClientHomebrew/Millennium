@@ -1,3 +1,0 @@
-[submodule "sdk"]
-	path = sdk
-	url = https://github.com/SteamClientHomebrew/SDK.git

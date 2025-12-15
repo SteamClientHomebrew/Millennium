@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"outDir": "build",
+		"module": "ESNext",
+		"target": "ES2021",
+		"jsx": "react-jsx",
+		"declaration": true,
+		"moduleResolution": "node",
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"esModuleInterop": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noImplicitAny": true,
+		"strict": true,
+		"ignoreDeprecations": "5.0",
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true
+	},
+	"include": ["**/*"],
+	"exclude": ["node_modules", "build"]
+}

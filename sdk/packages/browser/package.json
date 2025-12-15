@@ -1,0 +1,47 @@
+{
+	"name": "@steambrew/webkit",
+	"version": "5.8.3",
+	"description": "A support library for creating plugins with Millennium.",
+	"main": "./build/index.js",
+	"types": "./build/index.d.ts",
+	"module": "./build/index.js",
+	"type": "module",
+	"license": "LGPL-2.1-only",
+	"scripts": {
+		"build": "shx rm -rf ./build && tsc -b"
+	},
+	"files": [
+		"/lib",
+		"/src",
+		"/build"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/SteamClientHomebrew/PluginComponents.git"
+	},
+	"dependencies": {
+		"shx": "^0.3.4",
+		"tslib": "^2.8.1",
+		"typescript": "^4.9.5"
+	},
+	"importSort": {
+		".js, .jsx, .ts, .tsx": {
+			"style": "module",
+			"parser": "typescript"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"keywords": [
+		"steam",
+		"steam-client",
+		"millennium",
+		"ui-components"
+	],
+	"author": "SteamClientHomebrew",
+	"bugs": {
+		"url": "https://github.com/SteamClientHomebrew/PluginComponents/issues"
+	},
+	"homepage": "https://github.com/SteamClientHomebrew/PluginComponents#readme"
+}
