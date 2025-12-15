@@ -1,11 +1,11 @@
 # Build files
 **/build
 
+# Node 
 node_modules/
 
 # Visual Studio & Visual Studio Code
 .vs*/
-.idea/
 
 # Jetbrains IDEs
 .idea/
@@ -19,3 +19,4 @@ scripts/RC*
 
 # macOS system files
 **/.DS_Store
+
