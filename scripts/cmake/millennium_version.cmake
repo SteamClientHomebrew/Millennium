@@ -1,10 +1,10 @@
 # Read the Millennium version from the version file
-file(STRINGS "${MILLENNIUM_BASE}/version" VERSION_LINES LIMIT_COUNT 2)
+file(STRINGS "${MILLENNIUM_BASE}/scripts/version" VERSION_LINES LIMIT_COUNT 2)
 list(GET VERSION_LINES 1 MILLENNIUM_VERSION)
 string(STRIP "${MILLENNIUM_VERSION}" MILLENNIUM_VERSION)
 
 # Make cmake re-run if the version file changes
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MILLENNIUM_BASE}/version")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${MILLENNIUM_BASE}/scripts/version")
 
 # Generate version.h from version.h.in
 configure_file(${MILLENNIUM_BASE}/src/include/millennium/version.h.in ${CMAKE_BINARY_DIR}/version.h)

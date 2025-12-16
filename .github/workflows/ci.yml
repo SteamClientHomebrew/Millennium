@@ -60,8 +60,8 @@ jobs:
 
       - name: ⚙️ Update Millennium Version
         run: |
-          echo "# current version of millennium" > ./version
-          echo "v${{ needs.prepare.outputs.version }}" >> ./version
+          echo "# current version of millennium" > ./scripts/version
+          echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
       - name: 🛠️ Build Millennium Plugin Backend
         run: |
@@ -232,8 +232,8 @@ jobs:
 
       - name: ⚙️ Update Millennium Version
         run: |
-          echo "# current version of millennium" > ./version
-          echo "v${{ needs.prepare.outputs.version }}" >> ./version
+          echo "# current version of millennium" > ./scripts/version
+          echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
       - name: ⚙️ Install GCC Dependencies
         run: |
@@ -341,8 +341,8 @@ jobs:
 
       - name: ⚙️ Update Millennium Version
         run: |
-          echo "# current version of millennium" > ./version
-          echo "v${{ needs.prepare.outputs.version }}" >> ./version
+          echo "# current version of millennium" > ./scripts/version
+          echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
       - name: 🛠️ Release Millennium
         run: |

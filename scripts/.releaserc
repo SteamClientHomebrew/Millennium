@@ -22,15 +22,15 @@
     [
       "@semantic-release/changelog",
       {
-        "changelogFile": "../CHANGELOG.md"
+        "changelogFile": "../.github/CHANGELOG.md"
       }
     ],
     [
       "@semantic-release/git",
       {
         "assets": [
-          "../CHANGELOG.md",
-          "../version"
+          "../.github/CHANGELOG.md",
+          "./version"
         ]
       }
     ],
