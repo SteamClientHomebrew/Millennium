@@ -59,8 +59,6 @@ SettingsStore::SettingsStore()
         iniFile.read(ini);
 
         if (ini["Settings"].has("enabled_plugins")) {
-            ini["Settings"]["enabled_plugins"] = "core";
-
             std::string token;
             std::vector<std::string> enabledPlugins;
             std::istringstream tokenStream(ini["Settings"]["enabled_plugins"]);

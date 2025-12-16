@@ -1,23 +1,26 @@
 {
-	"compilerOptions": {
-		"module": "ESNext",
-		"target": "ES2021",
-		"jsx": "react",
-		"jsxFactory": "window.SP_REACT.createElement",
-		"jsxFragmentFactory": "window.SP_REACT.Fragment",
-		"declaration": true,
-		"moduleResolution": "node",
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"esModuleInterop": true,
-		"noImplicitReturns": true,
-		"noImplicitThis": true,
-		"noImplicitAny": true,
-		"strict": true,
-		"ignoreDeprecations": "5.0",
-		"allowSyntheticDefaultImports": true,
-		"skipLibCheck": true
-	},
-	"files": [],
-	"references": [{ "path": "./typescript-packages/client" }, { "path": "./typescript-packages/browser" }]
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2021",
+    "jsx": "react",
+    "jsxFactory": "window.SP_REACT.createElement",
+    "jsxFragmentFactory": "window.SP_REACT.Fragment",
+    "declaration": true,
+    "moduleResolution": "node",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "strict": true,
+    "ignoreDeprecations": "5.0",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
+  },
+  "files": [],
+  "references": [
+    { "path": "./packages/client" },
+    { "path": "./packages/browser" }
+  ]
 }

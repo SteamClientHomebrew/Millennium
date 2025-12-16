@@ -49,14 +49,14 @@ importers:
         version: 4.4.1(@types/react@19.1.1)(immer@10.1.1)(react@17.0.2)
     devDependencies:
       '@steambrew/client':
-        specifier: link:../../sdk/typescript-packages/client
-        version: link:../../sdk/typescript-packages/client
+        specifier: link:../../sdk/packages/client
+        version: link:../../sdk/packages/client
       '@steambrew/ttc':
         specifier: ^2.8.6
         version: 2.8.6(@babel/core@7.28.4)(typescript@4.9.5)
       '@steambrew/webkit':
-        specifier: link:../../sdk/typescript-packages/webkit
-        version: link:../../sdk/typescript-packages/webkit
+        specifier: link:../../sdk/packages/webkit
+        version: link:../../sdk/packages/webkit
       '@types/node':
         specifier: ^20.14.9
         version: 20.17.46

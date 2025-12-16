@@ -1,7 +1,7 @@
 {
   "entryPoints": [
-    "typescript-packages/client/src/index.ts",
-    "typescript-packages/browser/src/index.ts"
+    "packages/client/src/index.ts",
+    "packages/browser/src/index.ts"
   ],
   "out": "docs",
   "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-frontmatter"],
