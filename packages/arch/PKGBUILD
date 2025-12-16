@@ -28,10 +28,10 @@ build() {
 
     echo -e    "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium assets...\e[0m"
 
-    pnpm --dir $srcdir/$_pkgdir/src/frontend  install
-    pnpm --dir $srcdir/$_pkgdir/src/frontend  run build
     pnpm --dir $srcdir/$_pkgdir/sdk           install
     pnpm --dir $srcdir/$_pkgdir/sdk           run build
+    pnpm --dir $srcdir/$_pkgdir/src/frontend  install
+    pnpm --dir $srcdir/$_pkgdir/src/frontend  run build
 
     mkdir -p   $srcdir/$_pkgdir/shims/build/
     cp -r      $srcdir/$_pkgdir/sdk/packages/loader/build "./shims/"
@@ -55,5 +55,5 @@ package() {
     install -Dm755 $srcdir/$_pkgdir/build/src/hhx64-build/libmillennium_hhx64.so                             "$pkgdir/usr/lib/millennium/"
     cp -r          $srcdir/$_pkgdir/src/pipx                                                                 "$pkgdir/usr/share/millennium/assets/"
     cp -r          $srcdir/$_pkgdir/shims/build                                                              "$pkgdir/usr/share/millennium/shims/"
-    install -Dm644 $srcdir/$_pkgdir/LICENSE                                                                  "$pkgdir/usr/share/licenses/$pkgname/"
+    install -Dm644 $srcdir/$_pkgdir/LICENSE.md                                                               "$pkgdir/usr/share/licenses/$pkgname/"
 }
