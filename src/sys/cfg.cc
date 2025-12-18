@@ -61,6 +61,10 @@ SettingsStore::SettingsStore()
             std::istringstream tokenStream(ini["Settings"]["enabled_plugins"]);
 
             while (std::getline(tokenStream, token, '|')) {
+                if (token == "core") {
+                    continue; /** no need to migrate it, it doesn't exist anymore */
+                }
+
                 Logger.Log(" - Migrated plugin: {}", token);
                 enabledPlugins.push_back(token);
             }
