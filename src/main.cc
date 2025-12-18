@@ -147,7 +147,7 @@ void Plat_CheckForUpdates()
             return;
         }
 
-        const std::string newVersion = update.value("newVersion", json::object()).value("tag_name", std::string("unknown"));
+        const std::string newVersion = update.value("newVersion", nlohmann::json::object()).value("tag_name", std::string("unknown"));
 
         if (!shouldAutoInstall) {
             Logger.Log("Millennium update available to version {}. Auto-install is disabled, please update manually.", newVersion);
