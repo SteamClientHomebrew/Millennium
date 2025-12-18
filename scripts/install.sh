@@ -152,12 +152,12 @@ main() {
     tag="${release_info%%:*}"
     size=$(format_size "${release_info##*:}")
 
-    install_size_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.installsize"
-    download_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.tar.gz"
-    sha256_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.sha256"
+    install_size_uri="${DOWNLOAD_URI}/v$tag/millennium-v$tag-$target.installsize"
+    download_uri="${DOWNLOAD_URI}/v$tag/millennium-v$tag-$target.tar.gz"
+    sha256_uri="${DOWNLOAD_URI}/v$tag/millennium-v$tag-$target.sha256"
 
-    sha256digest=$(curl -sL $sha256_uri)
-    installed_size=$(format_size "$(curl -sL $install_size_uri)")
+    sha256digest=$(curl -sL "$sha256_uri")
+    installed_size=$(format_size "$(curl -sL "$install_size_uri")")
 
     log "\nPackages (1) millennium@$tag-x86_64\n"
     log "Total Download Size:  $(printf "%10s\n" "$size")"
