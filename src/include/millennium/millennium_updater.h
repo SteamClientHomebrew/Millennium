@@ -105,6 +105,8 @@ class MillenniumUpdater
      */
     static void Shutdown();
 
+    static void UpdateLegacyUser32Shim();
+
   private:
     static inline bool __has_updates = false;
     static inline nlohmann::json __latest_version;

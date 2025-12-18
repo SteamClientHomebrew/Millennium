@@ -43,7 +43,11 @@
 #include <thread>
 #include <chrono>
 
+#define SHIM_LOADER_PATH "user32.dll"
+#define SHIM_LOADER_QUEUED_PATH "user32.queue.dll" // The path of the recently updated shim loader waiting for an update.
+
 #define MILLENNIUM_UPDATER_TEMP_DIR "millennium-updater-temp-files"
+#define MILLENNIUM_UPDATER_LEGACY_SHIM_TEMP_DIR "millennium-updater-legacy-shim-temp"
 
 /**
  * Uncomment to enable dry-run mode (skips actual download/extraction).
@@ -505,7 +509,45 @@ void MillenniumUpdater::Shutdown()
         update_thread->join();
         update_thread.reset();
     }
+}
 
-    /** Clean up any temporary files */
-    CleanupMillenniumUpdaterTempFiles();
+void MillenniumUpdater::UpdateLegacyUser32Shim()
+{
+#ifdef _WIN32
+    try {
+        if (!std::filesystem::exists(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH)) {
+            Logger.Log("No queued shim loader found...");
+            return;
+        }
+
+        Logger.Log("Updating shim module from cache...");
+        const auto oldShimPath = SystemIO::GetInstallPath() / SHIM_LOADER_PATH;
+
+        if (std::filesystem::exists(oldShimPath)) {
+            const auto tempPath = std::filesystem::temp_directory_path() / MILLENNIUM_UPDATER_LEGACY_SHIM_TEMP_DIR;
+
+            std::error_code ec;
+            std::filesystem::create_directories(tempPath, ec);
+            if (ec) {
+                Logger.Warn("Failed to create temporary directory: {}", ec.message());
+            }
+
+            const auto destPath = tempPath / fmt::format("{}.uuid{}.tmp", SHIM_LOADER_PATH, GenerateUUID());
+
+            if (!MoveFileExW(oldShimPath.wstring().c_str(), destPath.wstring().c_str(), MOVEFILE_REPLACE_EXISTING)) {
+                const DWORD error = GetLastError();
+                throw std::runtime_error(fmt::format("Failed to move old shim to temp location. Error: {}", error));
+            }
+
+            Logger.Log("Moved old shim to temporary location: {}", destPath.string());
+        }
+
+        std::filesystem::rename(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH, SystemIO::GetInstallPath() / SHIM_LOADER_PATH);
+        Logger.Log("Successfully updated {}!", SHIM_LOADER_PATH);
+
+    } catch (std::exception& e) {
+        LOG_ERROR("Failed to update {}: {}", SHIM_LOADER_PATH, e.what());
+        MessageBoxA(NULL, fmt::format("Failed to update {}, it's recommended that you reinstall Millennium.", SHIM_LOADER_PATH).c_str(), "Oops!", MB_ICONERROR | MB_OK);
+    }
+#endif
 }
