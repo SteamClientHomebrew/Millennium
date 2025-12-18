@@ -31,8 +31,8 @@
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.sh
 
 readonly GITHUB_ACCOUNT="SteamClientHomebrew/Millennium"
-readonly RELEASES_URI="https://api.github.com/repos/${GITHUB_ACCOUNT}/releases"
-readonly DOWNLOAD_URI="https://github.com/${GITHUB_ACCOUNT}/releases/download"
+readonly RELEASES_URI="https://api.github.com/repos/$GITHUB_ACCOUNT/releases"
+readonly DOWNLOAD_URI="https://github.com/$GITHUB_ACCOUNT/releases/download"
 readonly INSTALL_DIR="/tmp/millennium"
 DRY_RUN=0
 
@@ -63,7 +63,7 @@ fetch_release_info() {
     local response tag size
     response=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$RELEASES_URI")
     tag=$(echo "$response" | jq -r '.[0].tag_name')
-    size=$(echo "$response" | jq -r ".[0].assets[] | select(.name == \"millennium-${tag}-$target.tar.gz\") | .size")
+    size=$(echo "$response" | jq -r ".[0].assets[] | select(.name == \"millennium-$tag-$target.tar.gz\") | .size")
     echo "${tag#v}:${size:-0}"
 }
 
@@ -152,9 +152,9 @@ main() {
     tag="${release_info%%:*}"
     size=$(format_size "${release_info##*:}")
 
-    install_size_uri="${DOWNLOAD_URI}/v$tag/millennium-v$tag-$target.installsize"
-    download_uri="${DOWNLOAD_URI}/v$tag/millennium-v$tag-$target.tar.gz"
-    sha256_uri="${DOWNLOAD_URI}/v$tag/millennium-v$tag-$target.sha256"
+    install_size_uri="$DOWNLOAD_URI/v$tag/millennium-v$tag-$target.installsize"
+    download_uri="$DOWNLOAD_URI/v$tag/millennium-v$tag-$target.tar.gz"
+    sha256_uri="$DOWNLOAD_URI/v$tag/millennium-v$tag-$target.sha256"
 
     sha256digest=$(curl -sL "$sha256_uri")
     installed_size=$(format_size "$(curl -sL "$install_size_uri")")
@@ -169,12 +169,12 @@ main() {
     install_dir="${DRY_RUN:+./dry-run}"
     install_dir="${install_dir:-$INSTALL_DIR}"
     extract_path="$install_dir/files"
-    tar_file="$install_dir/millennium-v${tag}-$target.tar.gz"
+    tar_file="$install_dir/millennium-v$tag-$target.tar.gz"
 
     rm -rf "$install_dir"
     mkdir -p "$install_dir"
 
-    log "(1/4) Downloading millennium-v${tag}-$target.tar.gz..."
+    log "(1/4) Downloading millennium-v$tag-$target.tar.gz..."
     download_package "$download_uri" "$tar_file"
     log "(2/4) Verifying checksums..."
     # use sub-shell to prevent actually changing the working directory
@@ -184,7 +184,7 @@ main() {
     else
         log "(2/4) Verifying checksums... FAILED"
     fi
-    log "(3/4) Unpacking millennium-v${tag}-$target.tar.gz..."
+    log "(3/4) Unpacking millennium-v$tag-$target.tar.gz..."
     extract_package "$tar_file" "$extract_path"
     log "(4/4) Installing millennium..."
     install_millennium "$extract_path"
