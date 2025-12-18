@@ -147,21 +147,25 @@ void Plat_CheckForUpdates()
             return;
         }
 
+        const std::string newVersion = update.value("newVersion", nlohmann::json::object()).value("tag_name", std::string("unknown"));
+
         if (!shouldAutoInstall) {
-            Logger.Log("Millennium update available to version {}. Auto-install is disabled, please update manually.", update["latestVersion"].get<std::string>());
+            Logger.Log("Millennium update available to version {}. Auto-install is disabled, please update manually.", newVersion);
             return;
         }
 
         const std::string downloadUrl = update["platformRelease"]["browser_download_url"];
         const size_t downloadSize = update["platformRelease"]["size"].get<size_t>();
 
-        const std::string newVersion = update.value("newVersion", nlohmann::json::object()).value("tag_name", "unknown");
-
         Logger.Log("Auto-updating Millennium to version {}...", newVersion);
         MillenniumUpdater::StartUpdate(downloadUrl, downloadSize, false, false);
 
     } catch (const nlohmann::json::exception& e) {
         LOG_ERROR("Failed to check for Millennium updates: {}", e.what());
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to check for Millennium updates: {}", e.what());
+    } catch (...) {
+        LOG_ERROR("Failed to check for Millennium updates: unknown error");
     }
 }
 

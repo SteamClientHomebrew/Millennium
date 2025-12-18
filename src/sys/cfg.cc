@@ -42,8 +42,6 @@
 
 #include "head/default_cfg.h"
 
-/** TODO: port to config.json instead of millennium.ini */
-
 SettingsStore::SettingsStore()
 {
     const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
@@ -51,29 +49,33 @@ SettingsStore::SettingsStore()
     if (std::filesystem::exists(path)) {
         Logger.Log("Found legacy config file at {}, migrating to new config system...", path.string());
 
-        std::filesystem::create_directories(path.parent_path());
-        std::ofstream outputFile(path.string());
-
         mINI::INIFile iniFile(path.string());
         mINI::INIStructure ini;
         iniFile.read(ini);
 
         if (ini["Settings"].has("enabled_plugins")) {
+            Logger.Log("Migrating enabled plugins from legacy config...");
+
             std::string token;
             std::vector<std::string> enabledPlugins;
             std::istringstream tokenStream(ini["Settings"]["enabled_plugins"]);
 
             while (std::getline(tokenStream, token, '|')) {
+                if (token == "core") {
+                    continue; /** no need to migrate it, it doesn't exist anymore */
+                }
+
+                Logger.Log(" - Migrated plugin: {}", token);
                 enabledPlugins.push_back(token);
             }
 
+            Logger.Log("Successfully migrated {} enabled plugins from legacy config.", enabledPlugins.size());
             CONFIG.SetNested("plugins.enabledPlugins", enabledPlugins);
+        } else {
+            Logger.Log("No enabled plugins found in legacy config.");
         }
 
         Logger.Warn("Removing legacy config file at {}, it is no longer needed.", path.string());
-
-        /** Delete the old config file */
-        outputFile.close();
         std::filesystem::remove(path);
     }
 }

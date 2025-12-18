@@ -5,14 +5,17 @@ if(WIN32 AND NOT GITHUB_ACTION_BUILD)
         string(REPLACE "\n" "" out_steam_path "${out_steam_path}")
         message(STATUS "[Millennium] Target build path: ${out_steam_path}")
 
+        set(ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+        set(LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+        set(PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb")
+        set(COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb")  
+        
         if(MILLENNIUM_32BIT)
-            file(MAKE_DIRECTORY "${out_steam_path}/ext/compat32")
-            # build 32 bit compatability libraries to steam/ext/compat32
-            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${out_steam_path}/ext/compat32)
-            set(LIBRARY_OUTPUT_DIRECTORY ${out_steam_path}/ext/compat32)
-        else()
             set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${out_steam_path})
-            set(LIBRARY_OUTPUT_DIRECTORY ${out_steam_path})
+        else()
+            file(MAKE_DIRECTORY "${out_steam_path}/ext/compat64")
+            # build 64 bit compatibility libraries to steam/ext/compat64
+            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${out_steam_path}/ext/compat64)
         endif()
 
     else()
