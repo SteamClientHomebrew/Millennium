@@ -48,11 +48,11 @@ __declspec(dllexport) const char* __get_shim_version(void)
     return MILLENNIUM_VERSION;
 }
 
-#ifdef MILLENNIUM_64BIT
+#ifdef MILLENNIUM_32BIT
 #define MILLENNIUM_LIBRARY_PATH L"millennium.dll"
-#elif defined(MILLENNIUM_32BIT)
-#define MILLENNIUM_LIBRARY_ROOT L"ext\\compat32"
-#define MILLENNIUM_LIBRARY_PATH L"\\millennium_x86.dll"
+#elif defined(MILLENNIUM_64BIT)
+#define MILLENNIUM_LIBRARY_ROOT L"ext\\compat64"
+#define MILLENNIUM_LIBRARY_PATH L"\\millennium_x64.dll"
 #else
 #error "Neither 32bit or 64bit Millennium was provided"
 #endif
