@@ -40,56 +40,31 @@ import { useUpdateContext } from './useUpdateContext';
 
 export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
 	const ctx = useUpdateContext();
+	const [state, setState] = useState({ statusText: 'Starting updater...', progress: 0, isComplete: false });
 
 	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) {
 		return null; /** No update for Millennium available */
 	}
 
-	const startUpdateWindows = async () => {
-		let updateModal: ShowModalResult = null;
+	useEffect(() => {
+		if (pluginSelf.platformType !== OSType.Windows) {
+			return; /** we don't want this to fire on linux */
+		}
 
-		const RenderUpdateProgress = () => {
-			const [state, setState] = useState({ statusText: '', progress: 0, isComplete: false });
-
-			useEffect(() => {
-				updateMillennium(false).then(() => {
-					ctx.setMillenniumUpdating(false);
-				});
-
-				ctx.setMillenniumUpdating(true);
-
-				pluginSelf.InstallerEventEmitter = ({ progress, status, isComplete }: any) => {
-					setState({ statusText: status, progress, isComplete });
-				};
-			}, []);
-
-			return (
-				<ConfirmModal
-					strTitle={'Updating Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
-					strDescription={
-						<>
-							<p style={{ width: '500px', textAlign: 'right' }}>{state.statusText}</p>
-							<ProgressBar nProgress={state.progress} />
-						</>
-					}
-					bHideCloseIcon={true}
-					bOKDisabled={!state.isComplete}
-					bDisableBackgroundDismiss={true}
-					bAlertDialog={true}
-					onOK={() => {
-						updateModal?.Close?.();
-					}}
-					onCancel={() => {
-						updateModal?.Close?.();
-					}}
-				/>
-			);
+		pluginSelf.InstallerEventEmitter = ({ progress, status, isComplete }: any) => {
+			setState({ statusText: status, progress, isComplete });
 		};
+	}, []);
 
-		updateModal = showModal(<RenderUpdateProgress />, pluginSelf.mainWindow, { bNeverPopOut: false });
-	};
+	function StartUpdateWindows() {
+		updateMillennium(false).then(() => {
+			ctx.setMillenniumUpdating(false);
+		});
 
-	const startUpdateLinux = () => {
+		ctx.setMillenniumUpdating(true);
+	}
+
+	const StartUpdateLinux = () => {
 		showModal(
 			<ConfirmModal
 				strTitle={'Update Millennium'}
@@ -112,11 +87,11 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		];
 	}
 
-	function Plat_StartUpdate() {
+	function StartUpdate() {
 		if (pluginSelf.platformType === OSType.Windows) {
-			startUpdateWindows();
+			StartUpdateWindows();
 		} else if (pluginSelf.platformType === OSType.Linux) {
-			startUpdateLinux();
+			StartUpdateLinux();
 		}
 	}
 
@@ -132,11 +107,12 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 				}}
 				index={0}
 				totalCount={1}
-				isUpdating={false}
-				progress={0}
-				statusText={String()}
-				onUpdateClick={Plat_StartUpdate}
+				isUpdating={ctx.isUpdatingMillennium}
+				progress={state.progress}
+				statusText={state.statusText}
+				onUpdateClick={StartUpdate}
 				toolTipText={'Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
+				disabled={pluginSelf?.millenniumUpdates?.updateInProgress}
 			/>
 		</>
 	);

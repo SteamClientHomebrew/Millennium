@@ -112,7 +112,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 		const hasThemeUpdates = (themeUpdates?.length ?? 0) > 0;
 		const hasPluginUpdates = pluginUpdates?.some((update: any) => update?.hasUpdate) ?? false;
-		const hasMillenniumUpdate = pluginSelf?.millenniumUpdates?.hasUpdate && !pluginSelf?.millenniumUpdates?.updateInProgress;
+		const hasMillenniumUpdate = pluginSelf?.millenniumUpdates?.hasUpdate;
 
 		const hasAnyUpdate = hasThemeUpdates || hasPluginUpdates || hasMillenniumUpdate;
 		console.log('Has any update:', hasAnyUpdate, { hasThemeUpdates, hasPluginUpdates, hasMillenniumUpdate });
