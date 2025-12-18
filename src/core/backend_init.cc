@@ -581,7 +581,7 @@ const std::string ConstructOnLoadModule()
  *
  * @note this function is only applicable to Windows
  */
-const void UnPatchSharedJSContext()
+void UnPatchSharedJSContext()
 {
 #ifdef _WIN32
     Logger.Log("Restoring SharedJSContext...");
