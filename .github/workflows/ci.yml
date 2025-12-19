@@ -163,8 +163,8 @@ jobs:
         shell: bash
         run: |
           set -ex
-          pnpm --dir sdk install
-          pnpm --dir sdk run build
+          pnpm --dir src/sdk install
+          pnpm --dir src/sdk run build
 
           pnpm --dir src/frontend install
           pnpm --dir src/frontend run prod
@@ -270,11 +270,11 @@ jobs:
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
 
+          pnpm --dir src/sdk install
+          pnpm --dir src/sdk run build
+
           pnpm --dir src/frontend install
           pnpm --dir src/frontend run prod
-
-          pnpm --dir sdk install
-          pnpm --dir sdk run build
 
           cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
