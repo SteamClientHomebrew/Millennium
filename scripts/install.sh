@@ -52,8 +52,8 @@ verify_platform() {
 check_dependencies() {
     log "resolving dependencies..."
     for cmd in curl tar jq sudo; do
-        command -v "$cmd" >/dev/null || {
-            log "$cmd isn't installed. Install it from your package manager." >&2
+        command -v "${cmd}" >/dev/null || {
+            log "${cmd} isn't installed. Install it from your package manager." >&2
             exit 1
         }
     done
@@ -65,20 +65,20 @@ fetch_release_info() {
     while :; do
         response=$(curl -fsSL \
             -H 'Accept: application/vnd.github.v3+json' \
-            "$RELEASES_URI?per_page=$per_page&page=$page") || return 1
+            "${RELEASES_URI}?per_page=${per_page}&page=${page}") || return 1
 
-        [ "$(echo "$response" | jq 'length')" -eq 0 ] && break
+        [ "$(echo "${response}" | jq 'length')" -eq 0 ] && break
 
-        tag=$(echo "$response" | jq -r '
+        tag=$(echo "${response}" | jq -r '
             .[] | select(.prerelease == false) | .tag_name
         ' | head -n1)
 
-        if [ -n "$tag" ] && [ "$tag" != "null" ]; then
-            size=$(echo "$response" | jq -r "
+        if [ -n "${tag}" ] && [ "${tag}" != "null" ]; then
+            size=$(echo "${response}" | jq -r "
                 .[] 
-                | select(.tag_name == \"$tag\") 
+                | select(.tag_name == \"${tag}\") 
                 | .assets[] 
-                | select(.name == \"millennium-v${tag#v}-$target.tar.gz\") 
+                | select(.name == \"millennium-v${tag#v}-${target}.tar.gz\") 
                 | .size
             ")
             echo "${tag#v}:${size:-0}"
@@ -95,7 +95,7 @@ fetch_release_info() {
 confirm_installation() {
     echo -e "\n:: Proceed with installation? [Y/n] \c"
     read -r proceed </dev/tty
-    case "$proceed" in
+    case "${proceed}" in
         [Nn]*) exit 1 ;;
         *) return 0 ;;
     esac
@@ -104,8 +104,8 @@ confirm_installation() {
 download_package() {
     local url="$1"
     local dest="$2"
-    if ! curl --fail --location --output "$dest" "$url"; then
-        log "Download failed for $url"
+    if ! curl --fail --location --output "${dest}" "${url}"; then
+        log "Download failed for ${url}"
         return 1
     fi
 }
@@ -113,45 +113,45 @@ download_package() {
 extract_package() {
     local tar_file="$1"
     local extract_dir="$2"
-    mkdir -p "$extract_dir"
-    tar xzf "$tar_file" -C "$extract_dir"
+    mkdir -p "${extract_dir}"
+    tar xzf "${tar_file}" -C "${extract_dir}"
 }
 
 install_millennium() {
     local extract_path="$1"
 
-    if [ "$DRY_RUN" -eq 0 ]; then
-        sudo cp -r "$extract_path"/* / || true
+    if [ "${DRY_RUN}" -eq 0 ]; then
+        sudo cp -r "${extract_path}"/* / || true
     else
-        log "[DRY RUN] Would copy files from $extract_path to /"
+        log "[DRY RUN] Would copy files from ${extract_path} to /"
     fi
 }
 
 post_install() {
     sudo chmod +x /opt/python-i686-3.11.8/bin/python3.11
 
-    log "installing for '$USER'"
+    log "installing for '${USER}'"
 
-    beta_file="$HOME/.steam/steam/package/beta"
-    target="$HOME/.steam/steam/ubuntu12_32/libXtst.so.6"
+    beta_file="${HOME}/.steam/steam/package/beta"
+    target="${HOME}/.steam/steam/ubuntu12_32/libXtst.so.6"
 
     # make sure to force steam stable for the first install.
     # if the user wants beta they can set it after install.
     # normally its fine, but many users forget they have it enabled on first install,
     # and then face issues.
-    if [ -f "$beta_file" ]; then
-        log "removing beta '$(cat "$beta_file")' in favor for stable."
-        rm "$beta_file"
+    if [ -f "${beta_file}" ]; then
+        log "removing beta '$(cat "${beta_file}")' in favor for stable."
+        rm "${beta_file}"
     fi
 
     # create a symlink for millenniums preload bootstrap.
-    [ -d "$HOME/.steam/steam/ubuntu12_32" ] && ln -sf /usr/lib/millennium/libmillennium_bootstrap_86x.so "$target"
+    [ -d "${HOME}/.steam/steam/ubuntu12_32" ] && ln -sf /usr/lib/millennium/libmillennium_bootstrap_86x.so "${target}"
 }
 
 cleanup() {
     local dir="$1"
     log "cleaning up..."
-    rm -rf "$dir"
+    rm -rf "${dir}"
 }
 
 main() {
@@ -159,7 +159,7 @@ main() {
 
     # Parse arguments
     for arg in "$@"; do
-        case $arg in
+        case ${arg} in
             --dry-run) DRY_RUN=1; shift ;;
         esac
     done
@@ -177,48 +177,48 @@ main() {
     tag="${release_info%%:*}"
     size=$(format_size "${release_info##*:}")
 
-    install_size_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.installsize"
-    download_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.tar.gz"
-    sha256_uri="${DOWNLOAD_URI}/v$tag/millennium-v${tag}-$target.sha256"
+    install_size_uri="${DOWNLOAD_URI}/v${tag}/millennium-v${tag}-${target}.installsize"
+    download_uri="${DOWNLOAD_URI}/v${tag}/millennium-v${tag}-${target}.tar.gz"
+    sha256_uri="${DOWNLOAD_URI}/v${tag}/millennium-v${tag}-${target}.sha256"
 
-    sha256digest=$(curl -sL $sha256_uri)
-    installed_size=$(format_size "$(curl -sL $install_size_uri)")
+    sha256digest=$(curl -sL "${sha256_uri}")
+    installed_size=$(format_size "$(curl -sL "${install_size_uri}")")
 
-    log "\nPackages (1) millennium@$tag-x86_64\n"
-    log "Total Download Size:  $(printf "%10s\n" "$size")"
-    log "Total Installed Size: $(printf "%10s\n" "$installed_size")"
+    log "\nPackages (1) millennium@${tag}-x86_64\n"
+    log "Total Download Size:  $(printf "%10s\n" "${size}")"
+    log "Total Installed Size: $(printf "%10s\n" "${installed_size}")"
 
     confirm_installation
     log "receiving packages..."
 
     install_dir="${DRY_RUN:+./dry-run}"
-    install_dir="${install_dir:-$INSTALL_DIR}"
-    extract_path="$install_dir/files"
-    tar_file="$install_dir/millennium-v${tag}-$target.tar.gz"
+    install_dir="${install_dir:-${INSTALL_DIR}}"
+    extract_path="${install_dir}/files"
+    tar_file="${install_dir}/millennium-v${tag}-${target}.tar.gz"
 
-    rm -rf "$install_dir"
-    mkdir -p "$install_dir"
+    rm -rf "${install_dir}"
+    mkdir -p "${install_dir}"
 
-    log "(1/4) Downloading millennium-v${tag}-$target.tar.gz..."
-    download_package "$download_uri" "$tar_file"
+    log "(1/4) Downloading millennium-v${tag}-${target}.tar.gz..."
+    download_package "${download_uri}" "${tar_file}"
     log "(2/4) Verifying checksums..."
     # use sub-shell to prevent actually changing the working directory
-    if (cd "$install_dir" && echo "$sha256digest" | sha256sum -c --status); then
+    if (cd "${install_dir}" && echo "${sha256digest}" | sha256sum -c --status); then
         echo -ne "\033[1A"
         log "(2/4) Verifying checksums... OK"
     else
         log "(2/4) Verifying checksums... FAILED"
     fi
-    log "(3/4) Unpacking millennium-v${tag}-$target.tar.gz..."
-    extract_package "$tar_file" "$extract_path"
+    log "(3/4) Unpacking millennium-v${tag}-${target}.tar.gz..."
+    extract_package "${tar_file}" "${extract_path}"
     log "(4/4) Installing millennium..."
-    install_millennium "$extract_path"
+    install_millennium "${extract_path}"
 
     log ":: Running post-install scripts..."
     log "(1/1) Setting up shared object preloader hook..."
     post_install
 
-    cleanup "$install_dir"
+    cleanup "${install_dir}"
 
     log "done.\n"
     log "You can now start Steam."
