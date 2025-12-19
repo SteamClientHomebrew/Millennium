@@ -74,6 +74,12 @@ class MillenniumUpdater
     static void StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background, bool forwardToIpc = true);
 
     /**
+     * Check if there is a pending Millennium update that requires a restart
+     * @return true if a restart is pending, false otherwise
+     */
+    static bool HasPendingRestart();
+
+    /**
      * Since NTFS (Windows file system) locks files that are in use, we need to move the old files
      * to a temporary location and schedule them for deletion on next reboot.
      *
@@ -93,6 +99,13 @@ class MillenniumUpdater
      * @param downloadSize Size of the update to download
      */
     static void Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize, bool forwardToIpc);
+
+    /**
+     * Shutdown the updater, waiting for any background threads to complete
+     */
+    static void Shutdown();
+
+    static void UpdateLegacyUser32Shim();
 
   private:
     static inline bool __has_updates = false;

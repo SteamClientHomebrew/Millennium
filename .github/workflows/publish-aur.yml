@@ -60,8 +60,8 @@ jobs:
           echo "Using commit: $COMMIT"
 
           # Update version and source to use specific commit
-          sed -i "s/pkgver=.*/pkgver=$CLEAN_TAG/" ./pkgbuild/PKGBUILD
-          sed -i "s|source=(\"git+\$url\.git.*\")|source=(\"git+\$url.git#commit=$COMMIT\")|" ./pkgbuild/PKGBUILD
+          sed -i "s/pkgver=.*/pkgver=$CLEAN_TAG/" ./packages/arch/PKGBUILD
+          sed -i "s|source=(\"git+\$url\.git.*\")|source=(\"git+\$url.git#commit=$COMMIT\")|" ./packages/arch/PKGBUILD
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -69,7 +69,7 @@ jobs:
         run: |
           git config --local user.email "github-actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add ./pkgbuild/PKGBUILD
+          git add ./packages/arch/PKGBUILD
           git commit -m "Update PKGBUILD for release ${{ github.event.release.tag_name }}" || exit 0
           git push origin ${{ steps.set-branch.outputs.branch }}
 
@@ -77,8 +77,8 @@ jobs:
         uses: KSXGitHub/github-actions-deploy-aur@master
         with:
           pkgname: millennium
-          pkgbuild: ./pkgbuild/PKGBUILD
-          assets: ./pkgbuild/millennium.install
+          pkgbuild: ./packages/arch/PKGBUILD
+          assets: ./packages/arch/millennium.install
           commit_username: GitHub Actions
           commit_email: github-actions@github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}

@@ -53,6 +53,7 @@ interface UpdateCardProps {
 	statusText: string;
 	toolTipText?: string;
 	onUpdateClick: () => void;
+	disabled?: boolean;
 }
 
 export interface UpdateItemType {
@@ -119,7 +120,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 
 		return (
 			<DesktopTooltip toolTipContent={`Update ${toolTipText || update.name}`} direction="left">
-				<IconButton onClick={onUpdateClick}>
+				<IconButton onClick={onUpdateClick} disabled={this.props.disabled}>
 					<IconsModule.Download key="download-icon" />
 				</IconButton>
 			</DesktopTooltip>
@@ -152,6 +153,31 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		);
 	}
 
+	private renderChildren() {
+		const { disabled } = this.props;
+
+		if (disabled) {
+			return (
+				<DialogButton
+					style={{ width: '-webkit-fill-available', padding: '0px 10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
+					disabled={true}
+				>
+					<IconsModule.Checkmark style={{ height: '16px', width: '16px' }} />
+					{'Complete! Pending restart.'}
+				</DialogButton>
+			);
+		}
+
+		return (
+			<>
+				{this.showInteractables()}
+				<IconButton onClick={this.handleToggle} className="MillenniumUpdates_ExpandButton" disabled={this.props.disabled}>
+					<IconsModule.Carat direction="up" />
+				</IconButton>
+			</>
+		);
+	}
+
 	render() {
 		const { showingMore } = this.state;
 		const { update, index, totalCount } = this.props;
@@ -164,11 +190,9 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 				bottomSeparator={index === totalCount - 1 ? 'none' : 'standard'}
 				description={this.renderDescription()}
 				data-expanded={showingMore}
+				disabled={this.props.disabled}
 			>
-				{this.showInteractables()}
-				<IconButton onClick={this.handleToggle} className="MillenniumUpdates_ExpandButton">
-					<IconsModule.Carat direction="up" />
-				</IconButton>
+				{this.renderChildren()}
 			</Field>
 		);
 	}

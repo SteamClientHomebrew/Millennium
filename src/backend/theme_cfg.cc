@@ -72,8 +72,6 @@ void ThemeConfig::UpgradeOldConfig()
         return;
     }
 
-    /** TODO: Test this */
-
     /** Migrate themes.conditions */
     if (old_config.contains("conditions") && old_config["conditions"].is_object()) {
         for (auto& [theme_name, conditions] : old_config["conditions"].items()) {

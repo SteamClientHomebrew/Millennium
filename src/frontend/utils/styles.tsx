@@ -403,6 +403,10 @@ const styles = `
     justify-content: center;
     align-items: center;
 }
+
+.aIeh3X5T2M074RLW1qn6_ .MillenniumItem_Version {
+    color: #464a4e;
+}
 `;
 
 export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpen }: { openAnimStart: boolean; isDesktopMenuOpen: boolean; isViewingPlugin: boolean }) => {

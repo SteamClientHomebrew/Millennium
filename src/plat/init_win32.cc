@@ -128,6 +128,9 @@ VOID Win32_AttachMillennium(VOID)
         Plat_ShowMessageBox("Millennium Error", "Failed to initialize Steam hooks, Millennium cannot continue startup.", MESSAGEBOX_ERROR);
     }
 
+    /** Update legacy user32 shim if needed */
+    MillenniumUpdater::UpdateLegacyUser32Shim();
+
     Plat_CheckForUpdates();
     Win32_AttachWebHelperHook();
 

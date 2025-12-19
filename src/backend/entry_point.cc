@@ -153,6 +153,7 @@ IPC_RET(Core_GetPluginBackendLogs, Millennium_GetPluginLogs())
 
 /** Update Millennium API */
 IPC_NIL(Core_UpdateMillennium, MillenniumUpdater::StartUpdate(ARGS["downloadUrl"], ARGS["downloadSize"], ARGS["background"]))
+IPC_NIL(Core_HasPendingMillenniumUpdateRestart, MillenniumUpdater::HasPendingRestart())
 
 /**
  * Initialize core components

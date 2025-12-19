@@ -176,8 +176,6 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 		const hasConfigurableThemes = themes?.filter?.((theme) => theme?.data?.Conditions || theme?.data?.RootColors)?.length > 0;
 		const hasConfigurablePlugins = plugins?.length > 0;
 
-		console.log(plugins, themes, hasConfigurablePlugins, hasConfigurableThemes);
-
 		if (!hasConfigurableThemes && !hasConfigurablePlugins) {
 			return <Placeholder icon={<MillenniumIcons.Empty />} header={locale.quickAccessEmptyLibrary} body={locale.quickAccessEmptyLibraryBody} />;
 		}
