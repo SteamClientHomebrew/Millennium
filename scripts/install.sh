@@ -60,11 +60,36 @@ check_dependencies() {
 }
 
 fetch_release_info() {
-    local response tag size
-    response=$(curl -LsH 'Accept: application/vnd.github.v3+json' "$RELEASES_URI")
-    tag=$(echo "$response" | jq -r '.[0].tag_name')
-    size=$(echo "$response" | jq -r ".[0].assets[] | select(.name == \"millennium-${tag}-$target.tar.gz\") | .size")
-    echo "${tag#v}:${size:-0}"
+    local page=1 per_page=100 response tag size
+
+    while :; do
+        response=$(curl -fsSL \
+            -H 'Accept: application/vnd.github.v3+json' \
+            "$RELEASES_URI?per_page=$per_page&page=$page") || return 1
+
+        [ "$(echo "$response" | jq 'length')" -eq 0 ] && break
+
+        tag=$(echo "$response" | jq -r '
+            .[] | select(.prerelease == false) | .tag_name
+        ' | head -n1)
+
+        if [ -n "$tag" ] && [ "$tag" != "null" ]; then
+            size=$(echo "$response" | jq -r "
+                .[] 
+                | select(.tag_name == \"$tag\") 
+                | .assets[] 
+                | select(.name == \"millennium-v${tag#v}-$target.tar.gz\") 
+                | .size
+            ")
+            echo "${tag#v}:${size:-0}"
+            return 0
+        fi
+
+        page=$((page + 1))
+    done
+
+    log "No non-prerelease releases found."
+    return 1
 }
 
 confirm_installation() {
