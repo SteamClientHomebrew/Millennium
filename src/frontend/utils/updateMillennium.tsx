@@ -17,6 +17,5 @@ export async function updateMillennium(background: boolean) {
 		});
 	}
 
-	await PyUpdateMillennium({ downloadUrl, downloadSize, background });
-	pluginSelf.millenniumUpdates.updateInProgress = true;
+	PyUpdateMillennium({ downloadUrl, downloadSize, background });
 }

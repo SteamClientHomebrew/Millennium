@@ -103,9 +103,7 @@ const tabSpotUpdates: SidebarNavigationPage = {
 	icon: <IconsModule.Update />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
-			<UpdateContextProvider>
-				<UpdatesViewModal />
-			</UpdateContextProvider>
+			<UpdatesViewModal />
 		</DialogBody>
 	),
 	route: '/millennium/settings/updates',
@@ -129,9 +127,11 @@ export function MillenniumSettings() {
 
 	return (
 		<ConfigProvider>
-			<Styles />
-			{/* @ts-ignore */}
-			<SidebarNavigation className={className} pages={settingsPages} title={'Millennium'} />
+			<UpdateContextProvider>
+				<Styles />
+				{/* @ts-ignore */}
+				<SidebarNavigation className={className} pages={settingsPages} title={'Millennium'} />
+			</UpdateContextProvider>
 		</ConfigProvider>
 	);
 }

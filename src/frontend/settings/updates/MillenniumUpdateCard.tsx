@@ -33,14 +33,14 @@ import { Utils } from '../../utils';
 import { UpdateCard } from './UpdateCard';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { updateMillennium } from '../../utils/updateMillennium';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { OSType } from '../../types';
 import Markdown from 'markdown-to-jsx';
 import { useUpdateContext } from './useUpdateContext';
+import { Core_HasPendingMillenniumUpdateRestart } from '../../utils/ffi';
 
 export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
 	const ctx = useUpdateContext();
-	const [state, setState] = useState({ statusText: 'Starting updater...', progress: 0, isComplete: false });
 
 	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) {
 		return null; /** No update for Millennium available */
@@ -52,15 +52,22 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		}
 
 		pluginSelf.InstallerEventEmitter = ({ progress, status, isComplete }: any) => {
-			setState({ statusText: status, progress, isComplete });
+			ctx.setMillenniumUpdateProgress({ statusText: status, progress, isComplete });
 		};
+
+		let interval = setInterval(() => {
+			Core_HasPendingMillenniumUpdateRestart().then((hasUpdated: boolean) => {
+				if (hasUpdated) {
+					pluginSelf.millenniumUpdates.updateInProgress = true;
+					ctx.setMillenniumUpdating(false);
+					clearInterval(interval);
+				}
+			});
+		}, 100);
 	}, []);
 
 	function StartUpdateWindows() {
-		updateMillennium(false).then(() => {
-			ctx.setMillenniumUpdating(false);
-		});
-
+		updateMillennium(true);
 		ctx.setMillenniumUpdating(true);
 	}
 
@@ -108,8 +115,8 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 				index={0}
 				totalCount={1}
 				isUpdating={ctx.isUpdatingMillennium}
-				progress={state.progress}
-				statusText={state.statusText}
+				progress={ctx.millenniumUpdateProgress.progress}
+				statusText={ctx.millenniumUpdateProgress.statusText}
 				onUpdateClick={StartUpdate}
 				toolTipText={'Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
 				disabled={pluginSelf?.millenniumUpdates?.updateInProgress}

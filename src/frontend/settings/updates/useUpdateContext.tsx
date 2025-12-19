@@ -40,9 +40,17 @@ type UpdateContextProviderProps = {
 	children: React.ReactNode;
 };
 
+export type MillenniumUpdateProgress = {
+	statusText: string;
+	progress: number;
+	isComplete: boolean;
+};
+
 export type UpdateContextProviderState = {
 	isUpdatingMillennium: boolean;
 	setMillenniumUpdating: React.Dispatch<React.SetStateAction<boolean>>;
+	millenniumUpdateProgress: MillenniumUpdateProgress;
+	setMillenniumUpdateProgress: (progress: MillenniumUpdateProgress) => void;
 	updatingThemes: boolean[];
 	setUpdatingThemes: React.Dispatch<React.SetStateAction<boolean[]>>;
 	updatingPlugins: boolean[];
@@ -75,6 +83,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 			updatingThemes: [],
 			updatingPlugins: [],
 			isUpdatingMillennium: false,
+			millenniumUpdateProgress: { statusText: 'Starting updater...', progress: 0, isComplete: false },
 			themeUpdates: null,
 			pluginUpdates: null,
 			hasReceivedUpdates: false,
@@ -96,6 +105,10 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 	setMillenniumUpdating = (newState: boolean) => {
 		return this.setState({ isUpdatingMillennium: newState });
+	};
+
+	setMillenniumUpdateProgress = (progress: MillenniumUpdateProgress) => {
+		return this.setState({ millenniumUpdateProgress: progress });
 	};
 
 	componentDidMount() {
@@ -186,11 +199,13 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 					themeUpdates: this.state.themeUpdates,
 					pluginUpdates: this.state.pluginUpdates,
 					isUpdatingMillennium: this.state.isUpdatingMillennium,
+					millenniumUpdateProgress: this.state.millenniumUpdateProgress,
 					hasReceivedUpdates: this.state.hasReceivedUpdates,
 					hasUpdateError: this.state.hasUpdateError,
 					setUpdatingThemes: this.setUpdatingThemes,
 					setUpdatingPlugins: this.setUpdatingPlugins,
 					setMillenniumUpdating: this.setMillenniumUpdating,
+					setMillenniumUpdateProgress: this.setMillenniumUpdateProgress,
 					isAnyUpdating: this.isAnyUpdating,
 					fetchAvailableUpdates: this.fetchAvailableUpdates,
 				}}
