@@ -228,7 +228,7 @@ nlohmann::json MillenniumUpdater::HasAnyUpdates()
 void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
 {
     std::error_code ec;
-    const auto temp_path = std::filesystem::temp_directory_path() / MILLENNIUM_UPDATER_TEMP_DIR;
+    const auto temp_path = SystemIO::GetInstallPath() / MILLENNIUM_UPDATER_TEMP_DIR;
 
     if (std::filesystem::exists(temp_path, ec)) {
         std::filesystem::remove_all(temp_path, ec);
@@ -251,7 +251,7 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
     }
 
     /** Make temporary directory for old Millennium files */
-    const auto temp_path = std::filesystem::temp_directory_path() / MILLENNIUM_UPDATER_TEMP_DIR;
+    const auto temp_path = SystemIO::GetInstallPath() / MILLENNIUM_UPDATER_TEMP_DIR;
 
     std::error_code ec;
     std::filesystem::create_directories(temp_path, ec);
@@ -524,7 +524,7 @@ void MillenniumUpdater::UpdateLegacyUser32Shim()
         const auto oldShimPath = SystemIO::GetInstallPath() / SHIM_LOADER_PATH;
 
         if (std::filesystem::exists(oldShimPath)) {
-            const auto tempPath = std::filesystem::temp_directory_path() / MILLENNIUM_UPDATER_LEGACY_SHIM_TEMP_DIR;
+            const auto tempPath = SystemIO::GetInstallPath() / MILLENNIUM_UPDATER_LEGACY_SHIM_TEMP_DIR;
 
             std::error_code ec;
             std::filesystem::create_directories(tempPath, ec);
