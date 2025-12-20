@@ -82,6 +82,28 @@ class PluginLoader
 
 extern std::shared_ptr<PluginLoader> g_pluginLoader;
 
+/// Generic Singleton class.
+template <typename T> class Singleton
+{
+public:
+  static T& GetInstance()
+  {
+    static T instance;
+    return instance;
+  }
+
+  Singleton(const Singleton&) = delete;
+  Singleton& operator=(const Singleton&) = delete;
+
+protected:
+  Singleton()
+  {
+  }
+  virtual ~Singleton()
+  {
+  }
+};
+
 namespace Sockets
 {
 bool PostShared(nlohmann::json data);

@@ -48,8 +48,10 @@
 #define COL_WHITE "\033[37m"
 #define COL_RESET "\033[0m"
 
-class OutputLogger
+class OutputLogger : public Singleton<OutputLogger>
 {
+    friend class Singleton<OutputLogger>;
+
   private:
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
@@ -64,12 +66,9 @@ class OutputLogger
     }
 
   public:
-    void PrintMessage(std::string type, const std::string& message, std::string color = COL_WHITE);
-
-    OutputLogger(const OutputLogger&) = delete;
-    OutputLogger& operator=(const OutputLogger&) = delete;
-
     OutputLogger();
+
+    void PrintMessage(std::string type, const std::string& message, std::string color = COL_WHITE);
 
     void LogPluginMessage(std::string pname, std::string val);
 

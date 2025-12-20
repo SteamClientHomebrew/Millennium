@@ -46,11 +46,11 @@
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 
-class HttpHookManager
+class HttpHookManager : public Singleton<HttpHookManager>
 {
-  public:
-    static HttpHookManager& get();
+    friend class Singleton<HttpHookManager>;
 
+  public:
     enum TagTypes
     {
         STYLESHEET,
@@ -82,10 +82,6 @@ class HttpHookManager
     // Thread-safe hook list operations
     void SetHookList(std::shared_ptr<std::vector<HookType>> hookList);
     std::vector<HookType> GetHookListCopy() const;
-
-    // Delete copy constructor and assignment operator for singleton
-    HttpHookManager(const HttpHookManager&) = delete;
-    HttpHookManager& operator=(const HttpHookManager&) = delete;
 
     void Shutdown();
 
