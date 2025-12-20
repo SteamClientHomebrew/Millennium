@@ -18,30 +18,30 @@ options=(!debug)
 install=millennium.install
 
 prepare() {
-    cd      $srcdir/$_pkgdir
-    echo -e "\e[1m\e[92m==>\e[0m \e[1mCloning submodules...\e[0m"
-    git        submodule update --init --recursive
+    cd             $srcdir/$_pkgdir
+    echo -e        "\e[1m\e[92m==>\e[0m \e[1mCloning submodules...\e[0m"
+    git            submodule update --init --recursive
 }
 
 build() {
-    cd         $srcdir/$_pkgdir
-    export NODE_NO_WARNINGS=1
+    cd             $srcdir/$_pkgdir
+    export         NODE_NO_WARNINGS=1
 
-    echo -e    "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium assets...\e[0m"
+    echo -e        "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium assets...\e[0m"
 
-    pnpm --dir src/sdk           install
-    pnpm --dir src/sdk           run build
+    pnpm --dir     src/sdk           install
+    pnpm --dir     src/sdk           run build
 
-    mkdir -p   shims/build/
-    cp -r      src/sdk/packages/loader/build "./shims/"
+    mkdir -p       shims/build/
+    cp -r          src/sdk/packages/loader/build "./shims/"
 
-    pnpm --dir src/frontend      install
-    pnpm --dir src/frontend      run build
+    pnpm --dir     src/frontend      install
+    pnpm --dir     src/frontend      run build
 
-    echo -e    "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium...\e[0m"
+    echo -e        "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium...\e[0m"
 
-    cmake --preset linux-release -G "Ninja" -DDISTRO_ARCH=ON
-    cmake --build build --config Release
+    cmake -GNinja  . -DCMAKE_BUILD_TYPE=Release --preset linux-release -DDISTRO_ARCH=ON
+    cmake --build  build
 }
 
 package() {
