@@ -724,7 +724,7 @@ void HttpHookManager::ThreadPool::shutdown()
     Logger.Log("Thread pool shut down successfully.");
 }
 
-template <std::invocable F> void HttpHookManager::ThreadPool::enqueue(F&& f)
+template <typename F> void HttpHookManager::ThreadPool::enqueue(F&& f)
 {
     if (stop || shutdownCalled) {
         Logger.Log("enqueue() called after shutdown, ignoring task.");
