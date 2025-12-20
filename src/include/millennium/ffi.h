@@ -29,19 +29,24 @@
  */
 
 #pragma once
+
+#include "util/singleton.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
 
-#include <nlohmann/json.hpp>
-#include <vector>
-#include <shared_mutex>
-#include <mutex>
-#include <deque>
-#include <chrono>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
-#include <unordered_map>
+#include <deque>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <nlohmann/json.hpp>
+#include <shared_mutex>
+#include <string>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 
 #include <Python.h>
 #include <lua.hpp>
@@ -133,21 +138,6 @@ PyObject* Py_EvaluateFromSocket(std::string script);
 } // namespace JavaScript
 
 using EventHandler = std::function<void(const nlohmann::json&, const std::string&)>;
-
-#pragma once
-#include <unordered_map>
-#include <vector>
-#include <mutex>
-#include <shared_mutex>
-#include <string>
-#include <functional>
-#include <memory>
-#include <atomic>
-#include <deque>
-#include <chrono>
-#include <thread>
-#include <condition_variable>
-#include <nlohmann/json.hpp>
 
 using EventHandler = std::function<void(const nlohmann::json&, const std::string&)>;
 

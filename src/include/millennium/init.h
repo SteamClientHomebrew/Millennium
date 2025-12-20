@@ -33,6 +33,7 @@
 #undef _WINSOCKAPI_
 #include <winsock2.h>
 #endif
+#include "util/singleton.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/http_hooks.h"
 #include "millennium/sysfs.h"
@@ -81,28 +82,6 @@ class PluginLoader
 };
 
 extern std::shared_ptr<PluginLoader> g_pluginLoader;
-
-/// Generic Singleton class.
-template <typename T> class Singleton
-{
-public:
-  static T& GetInstance()
-  {
-    static T instance;
-    return instance;
-  }
-
-  Singleton(const Singleton&) = delete;
-  Singleton& operator=(const Singleton&) = delete;
-
-protected:
-  Singleton()
-  {
-  }
-  virtual ~Singleton()
-  {
-  }
-};
 
 namespace Sockets
 {

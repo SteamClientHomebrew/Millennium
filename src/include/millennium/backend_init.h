@@ -29,6 +29,8 @@
  */
 
 #pragma once
+
+#include "util/singleton.h"
 #include "millennium/init.h"
 #include "millennium/sysfs.h"
 

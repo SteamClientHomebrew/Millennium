@@ -29,6 +29,9 @@
  */
 
 #pragma once
+
+#include "util/singleton.h"
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
