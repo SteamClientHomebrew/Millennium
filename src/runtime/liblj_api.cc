@@ -200,7 +200,7 @@ int Lua_GetInstallPath(lua_State* L)
 int Lua_RemoveBrowserModule(lua_State* L)
 {
     const lua_Integer hookId = luaL_checkinteger(L, 1);
-    const bool success = HttpHookManager::get().RemoveHook(hookId);
+    const bool success = HttpHookManager::GetInstance().RemoveHook(hookId);
     lua_pushboolean(L, success);
     return 1;
 }
@@ -254,7 +254,7 @@ int Lua_EmitReadyMessage(lua_State* L)
     }
 
     try {
-        CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+        CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
         backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
         lua_pushboolean(L, 1);
     } catch (const std::exception& e) {

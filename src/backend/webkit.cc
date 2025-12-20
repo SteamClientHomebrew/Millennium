@@ -41,7 +41,7 @@ int Millennium::AddBrowserCss(const std::string& targetPath, const std::string& 
     auto path = SystemIO::GetSteamPath() / "steamui" / targetPath;
 
     try {
-        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::STYLESHEET, g_hookedModuleId });
+        HttpHookManager::GetInstance().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::STYLESHEET, g_hookedModuleId });
     } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", ".*", e.what());
         return 0;
@@ -56,7 +56,7 @@ int Millennium::AddBrowserJs(const std::string& targetPath, const std::string& r
     auto path = SystemIO::GetSteamPath() / "steamui" / targetPath;
 
     try {
-        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
+        HttpHookManager::GetInstance().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
     } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", ".*", e.what());
         return 0;
@@ -67,7 +67,7 @@ int Millennium::AddBrowserJs(const std::string& targetPath, const std::string& r
 
 bool Millennium::RemoveBrowserModule(int id)
 {
-    return HttpHookManager::get().RemoveHook(id);
+    return HttpHookManager::GetInstance().RemoveHook(id);
 }
 
 WebkitHookStore& WebkitHookStore::Instance()

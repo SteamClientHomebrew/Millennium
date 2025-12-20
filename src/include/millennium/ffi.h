@@ -151,8 +151,10 @@ using EventHandler = std::function<void(const nlohmann::json&, const std::string
 
 using EventHandler = std::function<void(const nlohmann::json&, const std::string&)>;
 
-class CefSocketDispatcher
+class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
 {
+    friend class Singleton<CefSocketDispatcher>;
+
   private:
     struct ListenerInfo
     {
@@ -328,14 +330,6 @@ class CefSocketDispatcher
     }
 
   public:
-    CefSocketDispatcher(const CefSocketDispatcher&) = delete;
-    CefSocketDispatcher& operator=(const CefSocketDispatcher&) = delete;
-
-    static CefSocketDispatcher& get()
-    {
-        static CefSocketDispatcher instance;
-        return instance;
-    }
 
     void SetMaxHistoryPerEvent(size_t maxHistory)
     {

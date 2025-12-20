@@ -32,33 +32,12 @@
 #include "millennium/init.h"
 #include "millennium/sysfs.h"
 
-template <typename T> class Singleton
-{
-  public:
-    static T& getInstance()
-    {
-        static T instance;
-        return instance;
-    }
-
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
-
-  protected:
-    Singleton()
-    {
-    }
-    virtual ~Singleton()
-    {
-    }
-};
-
 namespace CoInitializer
 {
 class BackendCallbacks : public Singleton<BackendCallbacks>
 {
-    std::mutex listenersMutex;
     friend class Singleton<BackendCallbacks>;
+    std::mutex listenersMutex;
 
   public:
     enum eBackendLoadEvents
@@ -94,13 +73,6 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     void Reset();
 
   private:
-    BackendCallbacks()
-    {
-    }
-    ~BackendCallbacks()
-    {
-    }
-
     bool EvaluateBackendStatus();
     std::string GetFailedBackendsStr();
     std::string GetSuccessfulBackendsStr();
