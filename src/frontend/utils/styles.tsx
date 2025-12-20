@@ -404,6 +404,12 @@ const styles = `
     align-items: center;
 }
 
+.MillenniumQuickCss_CodeEditor {
+	& > .cm-editor {
+		height: 100%;
+	}
+}
+
 .aIeh3X5T2M074RLW1qn6_ .MillenniumItem_Version {
     color: #464a4e;
 }
