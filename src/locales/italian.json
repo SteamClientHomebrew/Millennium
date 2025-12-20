@@ -146,7 +146,7 @@
   "quickCssOpenEditor": "Apri l'Editor",
   "quickCssSizeOnDisk": "Dimensione su Disco",
   "quickCssCompiledRules": "Regole CSS compilate",
-  "quickCssDescription": "Quick CSS is way to make simple tweaks to the UI, without needing a full fledged theme. All changes are applied in real-time with the exception of any web views, those require a reload.",
+  "quickCssDescription": "CSS Rapido è un modo per apportare semplici modifiche all'interfaccia utente, senza bisogno di un tema completo. Tutte le modifiche vengono applicate in tempo reale, ad eccezione delle visualizzazioni web, che richiedono un ricaricamento.",
   "quickCssStatusLoaded": "Stato: Caricato",
   "quickCssStatsTitle": "Stat. CSS Rapido",
   "quickAccessEmptyLibrary": "Non c'è niente da vedere!",
