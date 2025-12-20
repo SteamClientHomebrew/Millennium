@@ -28,6 +28,8 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 /// Generic Singleton class.
 template <typename T> class Singleton
 {

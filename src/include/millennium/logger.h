@@ -96,7 +96,7 @@ class OutputLogger : public Singleton<OutputLogger>
     }
 };
 
-extern OutputLogger Logger;
+extern OutputLogger& Logger;
 
 #if defined(_MSC_VER)
 #define PRETTY_FUNCTION __FUNCSIG__
