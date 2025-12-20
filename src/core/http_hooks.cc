@@ -232,7 +232,7 @@ void HttpHookManager::AddRequest(const WebHookItem& request)
     m_requestMap->push_back(request);
 }
 
-template <typename Func> void HttpHookManager::ProcessRequests(Func processor)
+template <IteratorBoolable<std::vector<HttpHookManager::WebHookItem>::iterator> Func> void HttpHookManager::ProcessRequests(Func processor)
 {
     std::unique_lock<std::shared_mutex> lock(m_requestMapMutex);
     for (auto it = m_requestMap->begin(); it != m_requestMap->end();) {
