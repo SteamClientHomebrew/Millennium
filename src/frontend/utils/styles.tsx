@@ -92,6 +92,10 @@ const styles = `
 	padding: 0 !important;
 	width: var(--size) !important;
 	height: var(--size) !important;
+
+	&[data-icon-name^="Karat"] {
+		--MillenniumControls-IconSize: 24px;
+	}
 }
 
 .MillenniumColorPicker {
@@ -464,6 +468,10 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
 		position: sticky;
 		top: 0;
 		-webkit-app-region: no-drag;
+
+		.tool-tip-source:not(:first-child) {
+			margin-inline-start: auto;
+		}
 	}
 
 	.MillenniumDesktopSidebar .MillenniumDesktopSidebar_Content .MillenniumSideBar_LibraryItemButton {

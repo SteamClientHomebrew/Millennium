@@ -30,8 +30,6 @@
 
 import { Focusable, joinClassNames, Navigation, quickAccessMenuClasses } from '@steambrew/client';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from '../quick-access/DesktopMenuContext';
-import { BsGearFill } from 'react-icons/bs';
-import { FaArrowLeft } from 'react-icons/fa';
 import { getPluginView } from '../utils/globals';
 import { IconButton } from './IconButton';
 import { PluginComponent, ThemeItem } from '../types';
@@ -48,9 +46,7 @@ export const TitleView = () => {
 		return (
 			<Focusable className={joinClassNames('MillenniumDesktopSidebar_Title', quickAccessMenuClasses.Title)}>
 				<div>Library Settings</div>
-				<IconButton onClick={onSettingsClick} style={{ marginLeft: 'auto' }}>
-					<BsGearFill />
-				</IconButton>
+				<IconButton name="Settings" onClick={onSettingsClick} text="Settings" />
 			</Focusable>
 		);
 	}
@@ -63,9 +59,7 @@ export const TitleView = () => {
 
 	return (
 		<Focusable className={joinClassNames('MillenniumDesktopSidebar_Title', quickAccessMenuClasses.Title)}>
-			<IconButton onClick={setFocusedItem.bind(undefined, undefined)}>
-				<FaArrowLeft />
-			</IconButton>
+			<IconButton name="KaratLeft" onClick={setFocusedItem.bind(undefined, undefined)} text="Go back" />
 			{libraryItemTitle}
 		</Focusable>
 	);

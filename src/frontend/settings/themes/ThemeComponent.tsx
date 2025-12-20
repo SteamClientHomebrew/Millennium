@@ -28,14 +28,12 @@
  * SOFTWARE.
  */
 
-import { callable, DialogButton, Field, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
+import { callable, DialogButton, Field, IconsModule, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
 import { ThemeItem } from '../../types';
-import { DesktopTooltip, Separator } from '../../components/SteamComponents';
+import { Separator } from '../../components/SteamComponents';
 import { RenderThemeEditor } from '../../components/ThemeEditor';
 import { Utils } from '../../utils';
 import { formatString, locale } from '../../utils/localization-manager';
-import { FaCheck, FaEllipsisH } from 'react-icons/fa';
-import { SiKofi } from 'react-icons/si';
 import { Component } from 'react';
 import { PyUninstallTheme } from '../../utils/ffi';
 import { IconButton } from '../../components/IconButton';
@@ -191,7 +189,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				padding="standard"
 				bottomSeparator={isLastItem ? 'none' : 'standard'}
 				className="MillenniumThemes_ThemeItem"
-				{...(isActive && { icon: <FaCheck /> })}
+				{...(isActive && { icon: <IconsModule.Checkmark /> })}
 				description={this.renderExpandableShowMore()}
 				data-theme-name={theme?.data?.name}
 				data-theme-folder-name-on-disk={theme?.native}
@@ -205,16 +203,14 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				</DialogButton>
 
 				{theme?.data?.funding?.kofi && (
-					<DesktopTooltip toolTipContent={`Donate to ${theme?.data?.author ?? 'anonymous'}`} direction="bottom">
-						<IconButton onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}>
-							<SiKofi />
-						</IconButton>
-					</DesktopTooltip>
+					<IconButton
+						name="ShoppingCart"
+						onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}
+						text={`Donate to ${theme?.data?.author ?? 'anonymous'}`}
+					/>
 				)}
 
-				<IconButton onClick={this.showCtxMenu}>
-					<FaEllipsisH />
-				</IconButton>
+				<IconButton name="KaratDown" onClick={this.showCtxMenu} text="Show menu" />
 			</Field>
 		);
 	}
