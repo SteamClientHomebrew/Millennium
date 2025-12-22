@@ -19,7 +19,7 @@
   "themePanelInjectCSS": "Allow StyleSheet insertions",
   "themePanelInjectCSSToolTip": "Decide whether themes are allowed to insert stylesheets into Steam. (requires reload)",
   "themePanelCustomAccentColor": "Override Accent Color",
-  "themePanelCustomAccentColorToolTip": "Override your system accent color within Steam. This has no effect unless a theme using your system accent color.",
+  "themePanelCustomAccentColorToolTip": "Override your system accent color within Steam. This has no effect unless a theme is using your system accent color.",
   "themePanelCustomColorNotUsed": "Note: The active theme does NOT use this setting.",
   "themePanelCustomColorUsed": "Note: The active theme uses this setting!",
   "updatePanelHasUpdates": "Updates Available!",
