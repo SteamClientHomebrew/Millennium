@@ -1,6 +1,6 @@
 # Maintainers: SteamClientHomebrew <https://github.com/SteamClientHomebrew>
 
-pkgver=2.31.1
+pkgver=2.32.0
 pkgname="millennium"
 _pkgdir="Millennium"
 pkgrel=4
@@ -12,7 +12,7 @@ depends=('git' 'steam')
 makedepends=('npm' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs' 'pnpm')
 depends_x86_64=('lib32-python311-bin')
 conflicts=('python-i686-bin')
-source=("git+$url.git#commit=a49b12326f030f0c10430e36fc0cb2bd24bb5edf") # TODO: update to commit on main branch when we merge.
+source=("git+$url.git#commit=079e3f6d5416fd3ad29762372387a2054ec4640c") # TODO: update to commit on main branch when we merge.
 sha256sums=('SKIP')
 options=(!debug)
 install=millennium.install
@@ -28,13 +28,13 @@ build() {
 
     echo -e    "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium assets...\e[0m"
 
-    pnpm --dir $srcdir/$_pkgdir/sdk           install
-    pnpm --dir $srcdir/$_pkgdir/sdk           run build
+    pnpm --dir $srcdir/$_pkgdir/src/sdk           install
+    pnpm --dir $srcdir/$_pkgdir/src/sdk           run build
     pnpm --dir $srcdir/$_pkgdir/src/frontend  install
     pnpm --dir $srcdir/$_pkgdir/src/frontend  run build
 
     mkdir -p   $srcdir/$_pkgdir/shims/build/
-    cp -r      $srcdir/$_pkgdir/sdk/packages/loader/build "./shims/"
+    cp -r      $srcdir/$_pkgdir/src/sdk/packages/loader/build "./shims/"
 
     echo -e    "\e[1m\e[92m==>\e[0m \e[1mBuilding Millennium...\e[0m"
 

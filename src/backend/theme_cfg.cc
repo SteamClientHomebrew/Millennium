@@ -189,7 +189,10 @@ void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string
     if (theme.contains("failed")) return;
 
     std::filesystem::path theme_path = themes_path / name;
-    std::vector<std::string> cssItems = { "Steam-WebKit", "webkitCSS", "RootColors" };
+    std::vector<std::string> cssItems = {
+        "Steam-WebKit",
+        "webkitCSS",
+    };
 
     for (const auto& item : cssItems) {
         if (theme["data"].contains(item)) {

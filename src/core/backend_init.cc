@@ -345,8 +345,18 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
     lua_pushstring(L, plugin.pluginName.c_str());
     lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
 
-    lua_pushstring(L, plugin.backendAbsoluteDirectory.string().c_str());
+    lua_pushstring(L, plugin.backendAbsoluteDirectory.parent_path().string().c_str());
     lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_BACKEND_ABSOLUTE");
+
+    lua_getglobal(L, "package");
+    lua_getfield(L, -1, "path");
+    std::string currentPath = lua_tostring(L, -1);
+    std::string pluginPath = plugin.backendAbsoluteDirectory.parent_path().string();
+    std::string newPath = pluginPath + "/?.lua;" + currentPath;
+    lua_pop(L, 1);
+    lua_pushstring(L, newPath.c_str());
+    lua_setfield(L, -2, "path");
+    lua_pop(L, 1);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "preload");

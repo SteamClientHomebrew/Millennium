@@ -47,7 +47,7 @@ std::unordered_map<std::string, std::any>& GetCoreExports()
  * @param functionName Name of the function to call
  * @param args JSON arguments to pass to the function. Args must be an object, mapping kwargs to values.
  */
-nlohmann::json HandleIpcMessage(const std::string& functionName, const nlohmann::json& args)
+nlohmann::ordered_json HandleIpcMessage(const std::string& functionName, const nlohmann::json& args)
 {
     // Skip plugin settings parser as it's not applicable
     if (functionName == "__builtins__.__millennium_plugin_settings_parser__") {
@@ -63,7 +63,7 @@ nlohmann::json HandleIpcMessage(const std::string& functionName, const nlohmann:
         throw std::runtime_error(errorMsg);
     }
 
-    using FuncType = std::function<nlohmann::json(const nlohmann::json&)>;
+    using FuncType = std::function<nlohmann::ordered_json(const nlohmann::ordered_json&)>;
     if (it->second.type() != typeid(FuncType)) {
         const std::string errorMsg = "Invalid function type: " + functionName;
         LOG_ERROR("{}", errorMsg);

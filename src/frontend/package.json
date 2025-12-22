@@ -4,9 +4,9 @@
 		"prod": "millennium-ttc --build prod --millennium-internal"
 	},
 	"devDependencies": {
-		"@steambrew/client": "link:../../sdk/packages/client",
+		"@steambrew/client": "link:../sdk/packages/client",
 		"@steambrew/ttc": "^2.8.6",
-		"@steambrew/webkit": "link:../../sdk/packages/webkit",
+		"@steambrew/webkit": "link:../sdk/packages/webkit",
 		"@types/node": "^20.14.9",
 		"@types/react": "19.1.1",
 		"@types/react-dom": "19.1.1",
