@@ -38,12 +38,12 @@
 std::unordered_map<std::string, std::any>& GetCoreExports();
 
 #define MILLENNIUM_IPC_DECL(name)                                                                                                                                                  \
-    nlohmann::json impl##name(const nlohmann::json& ARGS);                                                                                                                         \
+    nlohmann::ordered_json impl##name(const nlohmann::ordered_json& ARGS);                                                                                                         \
     struct name##registrar                                                                                                                                                         \
     {                                                                                                                                                                              \
         name##registrar()                                                                                                                                                          \
         {                                                                                                                                                                          \
-            GetCoreExports()[#name] = std::function<nlohmann::json(const nlohmann::json&)>([](const nlohmann::json& j) -> nlohmann::json                                           \
+            GetCoreExports()[#name] = std::function<nlohmann::ordered_json(const nlohmann::ordered_json&)>([](const nlohmann::ordered_json& j) -> nlohmann::ordered_json           \
             {                                                                                                                                                                      \
                 try {                                                                                                                                                              \
                     if constexpr (std::is_same_v<decltype(impl##name(j)), void>) {                                                                                                 \
@@ -52,8 +52,8 @@ std::unordered_map<std::string, std::any>& GetCoreExports();
                     } else {                                                                                                                                                       \
                         return impl##name(j);                                                                                                                                      \
                     }                                                                                                                                                              \
-                } catch (const nlohmann::json::exception& e) {                                                                                                                     \
-                    LOG_ERROR("Failed to call {} - nlohmann::json::exception: {}", #name, e.what());                                                                               \
+                } catch (const nlohmann::ordered_json::exception& e) {                                                                                                             \
+                    LOG_ERROR("Failed to call {} - nlohmann::ordered_json::exception: {}", #name, e.what());                                                                       \
                     return {};                                                                                                                                                     \
                 } catch (...) {                                                                                                                                                    \
                     LOG_ERROR("Failed to call {}", #name);                                                                                                                         \
@@ -63,7 +63,7 @@ std::unordered_map<std::string, std::any>& GetCoreExports();
         }                                                                                                                                                                          \
     };                                                                                                                                                                             \
     static name##registrar name##registrar_instance;                                                                                                                               \
-    nlohmann::json impl##name([[maybe_unused]] const nlohmann::json& ARGS)
+    nlohmann::ordered_json impl##name([[maybe_unused]] const nlohmann::ordered_json& ARGS)
 
 /** ffi function that returns a value */
 #define IPC_RET(name, expr)                                                                                                                                                        \
@@ -80,7 +80,7 @@ std::unordered_map<std::string, std::any>& GetCoreExports();
         return {};                                                                                                                                                                 \
     }
 
-nlohmann::json HandleIpcMessage(const std::string& function_name, const nlohmann::json& args);
+nlohmann::ordered_json HandleIpcMessage(const std::string& function_name, const nlohmann::json& args);
 
 struct InstallMessage
 {

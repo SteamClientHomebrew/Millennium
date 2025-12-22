@@ -50,6 +50,6 @@ std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
 namespace Themes
 {
 bool IsValid(const std::string& theme_native_name);
-nlohmann::json FindAllThemes();
+nlohmann::ordered_json FindAllThemes();
 } // namespace Themes
 } // namespace Millennium

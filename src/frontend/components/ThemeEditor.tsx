@@ -246,6 +246,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 
 	RenderSidebarEditor = ({
 		pages,
+		activeTheme,
 	}: {
 		pages: (
 			| string
@@ -255,6 +256,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 					content: JSX.Element;
 			  }
 		)[];
+		activeTheme: ThemeItem;
 	}) => {
 		const tabItems = useMemo(
 			() =>
@@ -275,17 +277,19 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 
 		return (
 			<>
-				<div className="MillenniumSidebarThemeEditor_TabSelector">
-					<Dropdown
-						contextMenuPositionOptions={{ bMatchWidth: false }}
-						onChange={handleChange}
-						rgOptions={tabItems}
-						selectedOption={1}
-						strDefaultLabel={tabItems?.[0]?.label}
-					/>
-				</div>
-				<div className="MillenniumSidebarThemeEditor_Content">
-					<ErrorBoundary>{tabItems?.find?.((page) => page?.label === activeTab)?.data}</ErrorBoundary>
+				<div className="MillenniumSidebarThemeEditor" data-theme-name={activeTheme?.data?.name}>
+					<div className="MillenniumSidebarThemeEditor_TabSelector">
+						<Dropdown
+							contextMenuPositionOptions={{ bMatchWidth: false }}
+							onChange={handleChange}
+							rgOptions={tabItems}
+							selectedOption={1}
+							strDefaultLabel={tabItems?.[0]?.label}
+						/>
+					</div>
+					<div className="MillenniumSidebarThemeEditor_Content">
+						<ErrorBoundary>{tabItems?.find?.((page) => page?.label === activeTab)?.data}</ErrorBoundary>
+					</div>
 				</div>
 			</>
 		);
@@ -351,7 +355,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const hidePageListStyles = !hasTabs && !hasColors ? <style>{`.PageListColumn { display: none !important; }`}</style> : null;
 
 		if (isSidebar) {
-			return <this.RenderSidebarEditor pages={pages} />;
+			return <this.RenderSidebarEditor pages={pages} activeTheme={activeTheme} />;
 		}
 
 		return (

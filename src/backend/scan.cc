@@ -34,6 +34,7 @@
 #include "millennium/sysfs.h"
 
 #include <fstream>
+#include <iostream>
 
 nlohmann::json Millennium::Plugins::FindAllPlugins()
 {
@@ -81,12 +82,12 @@ bool Millennium::Themes::IsValid(const std::string& theme_native_name)
  * Find all themes in the skins directory.
  * @return A JSON array of themes, each containing "native" (the theme folder name) and "data" (and skin data) fields.
  */
-nlohmann::json Millennium::Themes::FindAllThemes()
+nlohmann::ordered_json Millennium::Themes::FindAllThemes()
 {
     auto path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
     std::filesystem::create_directories(path);
 
-    nlohmann::json themes = nlohmann::json::array();
+    nlohmann::ordered_json themes = nlohmann::ordered_json::array();
 
     try {
         std::vector<std::filesystem::directory_entry> dirs;
@@ -102,7 +103,7 @@ nlohmann::json Millennium::Themes::FindAllThemes()
             std::ifstream file(skinJsonPath);
             if (!file.is_open()) continue;
 
-            nlohmann::json skinData;
+            nlohmann::ordered_json skinData;
             if (!(file >> skinData)) continue; /** invalid json from stream */
 
             themes.push_back({
