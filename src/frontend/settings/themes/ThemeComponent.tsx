@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { callable, DialogButton, Field, IconsModule, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
+import { callable, DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { Separator } from '../../components/SteamComponents';
 import { RenderThemeEditor } from '../../components/ThemeEditor';
@@ -195,8 +195,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				data-theme-folder-name-on-disk={theme?.native}
 			>
 				<DialogButton
-					className={settingsClasses.SettingsDialogButton}
-					style={{ width: 'fit-content' }}
+					className={joinClassNames('MillenniumButton', settingsClasses.SettingsDialogButton)}
 					onClick={() => (isActive ? onUseDefault() : onChangeTheme(theme))}
 				>
 					{isActive ? 'Disable' : 'Use'}
