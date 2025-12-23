@@ -313,6 +313,11 @@ const styles = `
 	}
 }
 
+.MillenniumThemes_Author {
+	gap: var(--MillenniumSpacing-Small);
+	display: flex;
+}
+
 /**
  * Updates
  */
