@@ -31,7 +31,7 @@
 import { DialogButton, Dropdown, ErrorBoundary, PanelSection, PanelSectionRow } from '@steambrew/client';
 import { ThemeItem } from '../types';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuContext';
-import { DesktopTooltip } from '../components/SteamComponents';
+import { DesktopTooltip, SettingsDialogSubHeader } from '../components/SteamComponents';
 import { RenderThemeEditor } from '../components/ThemeEditor';
 import { locale } from '../utils/localization-manager';
 
@@ -39,10 +39,8 @@ export const NonConfigurableThemeItem = ({ theme }: { theme: ThemeItem }) => {
 	return (
 		<DesktopTooltip toolTipContent={locale.themeIsNotConfigurable} direction="left">
 			<PanelSectionRow key={theme?.native}>
-				<DialogButton className="MillenniumSideBar_LibraryItemButton NotConfigurable" disabled={true}>
-					<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-						<div>{theme?.data?.name}</div>
-					</div>
+				<DialogButton className="MillenniumButton MillenniumDesktopSidebar_LibraryItemButton" disabled={true}>
+					<div>{theme?.data?.name}</div>
 				</DialogButton>
 			</PanelSectionRow>
 		</DesktopTooltip>
@@ -59,10 +57,8 @@ export const RenderThemeViews = ({ theme }: { theme: ThemeItem }) => {
 
 	return (
 		<PanelSectionRow key={theme?.native}>
-			<DialogButton className="MillenniumSideBar_LibraryItemButton" onClick={setFocusedItem.spread(theme, DesktopSideBarFocusedItemType.THEME)}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-					<div>{theme?.data?.name}</div>
-				</div>
+			<DialogButton className="MillenniumButton MillenniumDesktopSidebar_LibraryItemButton" onClick={setFocusedItem.spread(theme, DesktopSideBarFocusedItemType.THEME)}>
+				<div>{theme?.data?.name}</div>
 			</DialogButton>
 		</PanelSectionRow>
 	);
@@ -86,7 +82,7 @@ export const ThemeSelectorView = () => {
 
 	return (
 		<PanelSection>
-			<h4>Theme Settings</h4>
+			<SettingsDialogSubHeader>Theme Settings</SettingsDialogSubHeader>
 			{(themes as ThemeItem[])?.map((theme) => (
 				<RenderThemeViews key={theme.native} theme={theme} />
 			))}

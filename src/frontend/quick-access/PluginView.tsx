@@ -32,7 +32,7 @@ import { DialogButton, ErrorBoundary, PanelSection, PanelSectionRow } from '@ste
 import { PluginComponent } from '../types';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuContext';
 import { getPluginConfigurableStatus, getPluginRenderers, getPluginView } from '../utils/globals';
-import { DesktopTooltip } from '../components/SteamComponents';
+import { DesktopTooltip, SettingsDialogSubHeader } from '../components/SteamComponents';
 import { useEffect, useState } from 'react';
 import { locale } from '../utils/localization-manager';
 
@@ -49,10 +49,8 @@ export const NonConfigurablePluginItem = ({ plugin }: { plugin: PluginComponent 
 	return (
 		<DesktopTooltip toolTipContent={reason} direction="left">
 			<PanelSectionRow key={plugin.data.name}>
-				<DialogButton className="MillenniumSideBar_LibraryItemButton NotConfigurable" disabled={true}>
-					<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-						<div>{plugin?.data?.common_name}</div>
-					</div>
+				<DialogButton className="MillenniumButton MillenniumDesktopSidebar_LibraryItemButton" disabled={true}>
+					<div>{plugin?.data?.common_name}</div>
 				</DialogButton>
 			</PanelSectionRow>
 		</DesktopTooltip>
@@ -75,11 +73,12 @@ export const RenderPluginViews = ({ plugins, pluginName, pluginView, editableSto
 
 	return (
 		<PanelSectionRow key={pluginName}>
-			<DialogButton className="MillenniumSideBar_LibraryItemButton" onClick={setFocusedItem.spread(plugin, DesktopSideBarFocusedItemType.PLUGIN)}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-					{pluginView?.icon && <div className="iconContainer">{pluginView?.icon}</div>}
-					<div>{plugin?.data?.common_name}</div>
-				</div>
+			<DialogButton
+				className="MillenniumButton MillenniumDesktopSidebar_LibraryItemButton"
+				onClick={setFocusedItem.spread(plugin, DesktopSideBarFocusedItemType.PLUGIN)}
+			>
+				{pluginView?.icon && pluginView?.icon}
+				<div>{plugin?.data?.common_name}</div>
 			</DialogButton>
 		</PanelSectionRow>
 	);
@@ -101,7 +100,7 @@ export const RenderPluginView = () => {
 
 	return (
 		<ErrorBoundary>
-			<div className="MillenniumSidebarPluginEditor_Content">{renderer}</div>
+			<div className="MillenniumDesktopSidebar_EditorContent">{renderer}</div>
 		</ErrorBoundary>
 	);
 };
@@ -121,7 +120,7 @@ export const PluginSelectorView = () => {
 
 	return (
 		<PanelSection>
-			<h4>Plugin Settings</h4>
+			<SettingsDialogSubHeader>Plugin Settings</SettingsDialogSubHeader>
 			{plugins?.map((plugin) => (
 				<RenderPluginViews
 					plugins={plugins}

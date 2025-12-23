@@ -426,7 +426,11 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
     }
 
     .MillenniumDesktopSidebar {
+		--sidebar-bg: #171d25;
+		--sidebar-content-spacing-inline: 16px;
 		--sidebar-width: 350px;
+
+		overflow: hidden;
 		position: absolute;
 		height: 100%;
 		width: var(--sidebar-width);
@@ -434,11 +438,10 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
 		right: 0px;
 		z-index: 999;
 		transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
-		transform: ${openAnimStart ? 'translateX(0px)' : 'translateX(calc(var(--sidebar-width) + 16px))'};
-		overflow-y: auto;
+		transform: ${openAnimStart ? 'translateX(0px)' : 'translateX(var(--sidebar-width))'};
 		display: ${isDesktopMenuOpen ? 'flex' : 'none'};
 		flex-direction: column;
-		background: #171d25;
+		background: var(--sidebar-bg);
     }
 
 	.MillenniumDesktopSidebar_Content {
@@ -446,6 +449,38 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
 		flex-direction: column;
 		height: 100%;
 		overflow: auto;
+
+		.MillenniumDesktopSidebar:not([data-focused-item-type="THEME"]) & {
+			margin-block-start: 24px;
+		}
+	}
+
+	.MillenniumDesktopSidebar_Editor {
+		display: contents;
+	}
+
+	.MillenniumDesktopSidebar_EditorHeader {
+		box-shadow: 0 0 7px 12px var(--sidebar-bg);
+		padding: var(--sidebar-content-spacing-inline);
+		margin-top: 12px;
+	}
+
+	.MillenniumDesktopSidebar_EditorContent {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		overflow: auto;
+
+		& > .DialogBody {
+			padding: var(--sidebar-content-spacing-inline);
+		}
+	}
+
+	.MillenniumDesktopSidebar_LibraryItemButton {
+		padding: 0 var(--MillenniumSpacing-Normal) !important;
+		margin-block: 0 var(--MillenniumSpacing-Small) !important;
+		justify-content: start !important;
+		box-sizing: border-box !important;
 	}
 
     .MillenniumDesktopSidebar_Overlay {
@@ -464,43 +499,22 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
 		 * unreliable (but set it anyway) here when it touches the top bar, not
 		 * letting us press the button but drag the window instead. */
 		padding-block-start: 65px;
-		padding-inline: 16px;
+		padding-inline: var(--sidebar-content-spacing-inline);
 		position: sticky;
 		top: 0;
+		justify-content: start;
 		-webkit-app-region: no-drag;
 
-		.tool-tip-source:not(:first-child) {
-			margin-inline-start: auto;
+		.MillenniumDesktopSidebar[data-focused-item-type] & {
+			flex-direction: row-reverse;
 		}
 	}
 
-	.MillenniumDesktopSidebar .MillenniumDesktopSidebar_Content .MillenniumSideBar_LibraryItemButton {
-        padding: 0px 10px 0px 10px;
-        margin-bottom: 10px;
-        width: -webkit-fill-available;
+	.MillenniumDesktopSidebar_TitleButtons {
+		.MillenniumDesktopSidebar:not([data-focused-item-type]) & {
+			margin-inline-start: auto;
+		}
 	}
-
-	.MillenniumSidebarThemeEditor_Content {
-    	overflow-y: auto;
-        padding: 0px 15px 15px 15px;
-    }
-
-    .MillenniumSidebarThemeEditor_TabSelector {
-        padding: 15px;
-        margin-top: 10px;
-    }
-
-    .MillenniumSidebarPluginEditor_Content {
-        padding: 15px;
-    }
-
-    .iconContainer {
-        height: 18px;
-        width: 18px;
-        justify-content: center;
-        display: flex;
-        align-items: center;
-    }
     `;
 
 	return <style>{styles}</style>;

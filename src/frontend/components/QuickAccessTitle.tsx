@@ -28,11 +28,27 @@
  * SOFTWARE.
  */
 
+import { PropsWithChildren, ReactNode } from 'react';
 import { Focusable, joinClassNames, Navigation, quickAccessMenuClasses } from '@steambrew/client';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from '../quick-access/DesktopMenuContext';
 import { getPluginView } from '../utils/globals';
 import { IconButton } from './IconButton';
 import { PluginComponent, ThemeItem } from '../types';
+
+interface TitleProps extends PropsWithChildren {
+	text: ReactNode;
+}
+
+const Title = (props: TitleProps) => {
+	const { children, text } = props;
+
+	return (
+		<Focusable className={joinClassNames('MillenniumDesktopSidebar_Title', quickAccessMenuClasses.Title)}>
+			<div>{text}</div>
+			<div className="MillenniumDesktopSidebar_TitleButtons">{children}</div>
+		</Focusable>
+	);
+};
 
 export const TitleView = () => {
 	const { closeMenu, focusedItem, focusedItemType, setFocusedItem } = useDesktopMenu();
@@ -44,10 +60,9 @@ export const TitleView = () => {
 
 	if (!focusedItem) {
 		return (
-			<Focusable className={joinClassNames('MillenniumDesktopSidebar_Title', quickAccessMenuClasses.Title)}>
-				<div>Library Settings</div>
+			<Title text="Library Settings">
 				<IconButton name="Settings" onClick={onSettingsClick} text="Settings" />
-			</Focusable>
+			</Title>
 		);
 	}
 
@@ -58,9 +73,8 @@ export const TitleView = () => {
 			: (focusedItem as ThemeItem)?.data?.name;
 
 	return (
-		<Focusable className={joinClassNames('MillenniumDesktopSidebar_Title', quickAccessMenuClasses.Title)}>
+		<Title text={libraryItemTitle}>
 			<IconButton name="KaratLeft" onClick={setFocusedItem.bind(undefined, undefined)} text="Go back" />
-			{libraryItemTitle}
-		</Focusable>
+		</Title>
 	);
 };
