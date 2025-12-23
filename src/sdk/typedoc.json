@@ -3,14 +3,15 @@
     "packages/client/src/index.ts",
     "packages/browser/src/index.ts"
   ],
-  "out": "docs",
+  /** yes i know i hard coded this idc */
+  "out": "C:\\Users\\shdw\\Development\\SteamBrew\\apps\\docs\\src\\plugins\\ts",
   "plugin": ["typedoc-plugin-markdown", "typedoc-plugin-frontmatter"],
   "readme": "README.md",
   "includeVersion": true,
-  "tsconfig": "scripts/tsconfig.base.json",
+  "tsconfig": "tsconfig.base.json",
   "expandObjects": true,
   "enumMembersFormat": "table",
-  "useCodeBlocks": true,
-  "expandParameters": false,
+  // "useCodeBlocks": true,
+  "expandParameters": true,
   "frontmatterCommentTags": ["component"]
 }
