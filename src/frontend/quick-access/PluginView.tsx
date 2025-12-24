@@ -32,7 +32,7 @@ import { DialogButton, ErrorBoundary, PanelSection, PanelSectionRow } from '@ste
 import { PluginComponent } from '../types';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuContext';
 import { getPluginConfigurableStatus, getPluginRenderers, getPluginView } from '../utils/globals';
-import { DesktopTooltip, SettingsDialogSubHeader } from '../components/SteamComponents';
+import { DesktopTooltip } from '../components/SteamComponents';
 import { useEffect, useState } from 'react';
 import { locale } from '../utils/localization-manager';
 
@@ -148,8 +148,7 @@ export const PluginSelectorView = () => {
 	}
 
 	return (
-		<PanelSection>
-			<SettingsDialogSubHeader>Plugin Settings</SettingsDialogSubHeader>
+		<PanelSection title="Plugin Settings">
 			{plugins?.map((plugin) => (
 				<RenderPluginViews
 					plugins={plugins}

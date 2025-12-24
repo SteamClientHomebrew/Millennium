@@ -31,7 +31,7 @@
 import { DialogButton, Dropdown, ErrorBoundary, PanelSection, PanelSectionRow } from '@steambrew/client';
 import { ThemeItem } from '../types';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuContext';
-import { DesktopTooltip, SettingsDialogSubHeader } from '../components/SteamComponents';
+import { DesktopTooltip } from '../components/SteamComponents';
 import { RenderThemeEditor } from '../components/ThemeEditor';
 import { locale } from '../utils/localization-manager';
 
@@ -88,8 +88,7 @@ export const ThemeSelectorView = () => {
 	}
 
 	return (
-		<PanelSection>
-			<SettingsDialogSubHeader>Theme Settings</SettingsDialogSubHeader>
+		<PanelSection title="Theme Settings">
 			{(themes as ThemeItem[])?.map((theme) => (
 				<RenderThemeViews key={theme.native} theme={theme} />
 			))}
