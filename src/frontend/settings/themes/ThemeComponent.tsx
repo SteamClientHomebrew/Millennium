@@ -30,10 +30,11 @@
 
 import { callable, DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/client';
 import { ThemeItem } from '../../types';
-import { Separator } from '../../components/SteamComponents';
+import { DesktopTooltip, Separator } from '../../components/SteamComponents';
 import { RenderThemeEditor } from '../../components/ThemeEditor';
 import { Utils } from '../../utils';
 import { formatString, locale } from '../../utils/localization-manager';
+import { SiKofi } from 'react-icons/si';
 import { Component } from 'react';
 import { PyUninstallTheme } from '../../utils/ffi';
 import { IconButton } from '../../components/IconButton';
@@ -202,11 +203,16 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				</DialogButton>
 
 				{theme?.data?.funding?.kofi && (
-					<IconButton
-						name="ShoppingCart"
-						onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}
-						text={`Donate to ${theme?.data?.author ?? 'anonymous'}`}
-					/>
+					<DesktopTooltip toolTipContent={`Donate to ${theme?.data?.author ?? 'anonymous'}`}>
+						{/* <IconButton> doesn't allow for react-icons, etc. */}
+						<DialogButton
+							className={joinClassNames('MillenniumButton', 'MillenniumIconButton', settingsClasses.SettingsDialogButton)}
+							onClick={() => Utils.OpenUrl('https://ko-fi.com/' + theme.data.funding.kofi)}
+							data-icon-name={name}
+						>
+							<SiKofi />
+						</DialogButton>
+					</DesktopTooltip>
 				)}
 
 				<IconButton name="KaratDown" onClick={this.showCtxMenu} text="Show menu" />
