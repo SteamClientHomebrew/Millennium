@@ -17,12 +17,6 @@ sha256sums=('SKIP')
 options=(!debug)
 install=millennium.install
 
-prepare() {
-    cd             $srcdir/$_pkgdir
-    echo -e        "\e[1m\e[92m==>\e[0m \e[1mCloning submodules...\e[0m"
-    git            submodule update --init --recursive
-}
-
 build() {
     cd             $srcdir/$_pkgdir
     export         NODE_NO_WARNINGS=1
