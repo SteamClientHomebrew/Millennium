@@ -181,13 +181,6 @@ static const std::unordered_set<std::string> g_doNotHook = {
 };
 // clang-format on
 
-// Thread-safe singleton implementation
-HttpHookManager& HttpHookManager::get()
-{
-    static HttpHookManager instance;
-    return instance;
-}
-
 // Thread-safe hook list operations
 void HttpHookManager::SetHookList(std::shared_ptr<std::vector<HookType>> hookList)
 {

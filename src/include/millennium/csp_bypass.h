@@ -47,7 +47,7 @@
 
 static void BypassCSP(void)
 {
-    CefSocketDispatcher::get().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
+    CefSocketDispatcher::GetInstance().OnMessage("msg", "BypassCSP", [&](const nlohmann::json& message, std::string listenerId)
     {
         try {
             if (message.contains("id") && message.value("id", -1) == 96876) {
@@ -78,7 +78,7 @@ static void BypassCSP(void)
             }
 
             if (message.contains("id") && message.value("id", -1) == 1235377) {
-                CefSocketDispatcher::get().RemoveListener("msg", listenerId);
+                CefSocketDispatcher::GetInstance().RemoveListener("msg", listenerId);
             }
         } catch (const nlohmann::detail::exception& e) {
             LOG_ERROR("error bypassing CSP -> {}", e.what());

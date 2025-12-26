@@ -29,8 +29,10 @@
  */
 
 #pragma once
+
 #include "millennium/env.h"
 #include "millennium/logger.h"
+
 #include <Python.h>
 #include <chrono>
 #include <fmt/color.h>

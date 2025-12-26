@@ -96,7 +96,7 @@ void Sockets::Shutdown()
     }
 }
 
-CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::get())
+CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::GetInstance())
 {
 }
 
@@ -139,7 +139,7 @@ void CEFBrowser::onMessage([[maybe_unused]] websocketpp::client<websocketpp::con
         });
         this->onSharedJsConnect();
     } else {
-        CefSocketDispatcher::get().EmitMessage("msg", json);
+        CefSocketDispatcher::GetInstance().EmitMessage("msg", json);
     }
     webKitHandler.DispatchSocketMessage(json);
 }
@@ -213,7 +213,7 @@ void PluginLoader::InjectWebkitShims()
 
     /** Clear all previous hooks if there are any */
     if (!hookIds.empty()) {
-        std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::get().GetHookListCopy();
+        std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::GetInstance().GetHookListCopy();
 
         for (auto it = moduleList.begin(); it != moduleList.end();) {
             if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end()) {
@@ -223,7 +223,7 @@ void PluginLoader::InjectWebkitShims()
                 ++it;
         }
 
-        HttpHookManager::get().SetHookList(std::make_shared<std::vector<HttpHookManager::HookType>>(moduleList));
+        HttpHookManager::GetInstance().SetHookList(std::make_shared<std::vector<HttpHookManager::HookType>>(moduleList));
     }
 
     const auto allPlugins = this->m_settingsStorePtr->ParseAllPlugins();
@@ -238,7 +238,7 @@ void PluginLoader::InjectWebkitShims()
             hookIds.push_back(g_hookedModuleId);
 
             Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId.load());
-            HttpHookManager::get().AddHook({ absolutePath.generic_string(), std::regex(".*"), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
+            HttpHookManager::GetInstance().AddHook({ absolutePath.generic_string(), std::regex(".*"), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
         }
     }
 }
