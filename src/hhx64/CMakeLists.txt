@@ -88,7 +88,7 @@ add_library(hhx64 SHARED ${SOURCE_FILES})
 
 if(WIN32)
     add_executable(hhx64-log-viewer log_viewer.cc)
-    target_link_libraries(hhx64 minhook)
+    target_link_libraries(hhx64 minhook wsock32)
 endif()
 
 target_link_libraries(hhx64 re2)

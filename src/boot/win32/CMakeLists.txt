@@ -10,7 +10,7 @@ if (MILLENNIUM_32BIT)
     set(BUILD_SUFFIX    ".dll")
 else()
     set(BUILD_PREFIX    "")
-    set(BUILD_NAME      "version")
+    set(BUILD_NAME      "wsock32")
     set(BUILD_SUFFIX    ".dll")
 endif()
 
@@ -40,7 +40,7 @@ endif()
 
 add_library(preload SHARED ${SOURCE_FILES})
 if (NOT MILLENNIUM_32BIT)
-    target_link_libraries(preload version)
+    target_link_libraries(preload wsock32)
 endif()
 
 if (NOT GITHUB_ACTION_BUILD)
