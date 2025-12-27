@@ -35,14 +35,24 @@ import { DesktopTooltip } from '../components/SteamComponents';
 import { RenderThemeEditor } from '../components/ThemeEditor';
 import { locale } from '../utils/localization-manager';
 
-export const NonConfigurableThemeItem = ({ theme }: { theme: ThemeItem }) => {
+enum ThemeDisabledReason {
+	NONE,
+	NOT_CONFIGURABLE,
+}
+
+const ThemeItem = ({ disabledReason, onClick, theme }: { disabledReason: ThemeDisabledReason; onClick: () => void; theme: ThemeItem }) => {
+	const disabled = disabledReason !== ThemeDisabledReason.NONE;
+
 	return (
-		<DesktopTooltip toolTipContent={locale.themeIsNotConfigurable} direction="left">
+		<DesktopTooltip toolTipContent={locale.themeIsNotConfigurable} direction="left" bDisabled={!disabled}>
 			<PanelSectionRow key={theme?.native}>
-				<DialogButton className="MillenniumSideBar_LibraryItemButton NotConfigurable" disabled={true}>
-					<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-						<div>{theme?.data?.name}</div>
-					</div>
+				<DialogButton
+					className="MillenniumButton MillenniumDesktopSidebar_LibraryItemButton"
+					disabled={disabled}
+					onClick={onClick}
+					data-disabled-reason={disabled ? ThemeDisabledReason[disabledReason] : undefined}
+				>
+					{theme?.data?.name}
 				</DialogButton>
 			</PanelSectionRow>
 		</DesktopTooltip>
@@ -53,19 +63,12 @@ export const RenderThemeViews = ({ theme }: { theme: ThemeItem }) => {
 	const { setFocusedItem } = useDesktopMenu();
 	const isConfigurable = theme?.data?.Conditions || theme?.data?.RootColors;
 
+	let disabledReason = ThemeDisabledReason.NONE;
 	if (!isConfigurable) {
-		return <NonConfigurableThemeItem theme={theme} />;
+		disabledReason = ThemeDisabledReason.NOT_CONFIGURABLE;
 	}
 
-	return (
-		<PanelSectionRow key={theme?.native}>
-			<DialogButton className="MillenniumSideBar_LibraryItemButton" onClick={setFocusedItem.spread(theme, DesktopSideBarFocusedItemType.THEME)}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-					<div>{theme?.data?.name}</div>
-				</div>
-			</DialogButton>
-		</PanelSectionRow>
-	);
+	return <ThemeItem disabledReason={disabledReason} onClick={setFocusedItem.spread(theme, DesktopSideBarFocusedItemType.THEME)} theme={theme} />;
 };
 
 export const RenderThemeView = () => {
@@ -85,8 +88,7 @@ export const ThemeSelectorView = () => {
 	}
 
 	return (
-		<PanelSection>
-			<h4>Theme Settings</h4>
+		<PanelSection title="Theme Settings">
 			{(themes as ThemeItem[])?.map((theme) => (
 				<RenderThemeViews key={theme.native} theme={theme} />
 			))}

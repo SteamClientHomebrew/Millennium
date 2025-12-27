@@ -31,7 +31,6 @@
 import { DialogButton, Field, IconsModule, Menu, MenuItem, showContextMenu, Toggle } from '@steambrew/client';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';
 import { PluginComponent } from '../../types';
-import { FaEllipsisH } from 'react-icons/fa';
 import { Utils } from '../../utils';
 import { Component } from 'react';
 import { PyUninstallPlugin } from '../../utils/ffi';
@@ -165,9 +164,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				data-plugin-status={type}
 			>
 				<Toggle key={plugin.data.name} disabled={plugin.data.name === 'core'} value={isEnabled} onChange={onSelectionChange.bind(null, index)} />
-				<IconButton onClick={this.showCtxMenu}>
-					<FaEllipsisH />
-				</IconButton>
+				<IconButton name="KaratDown" onClick={this.showCtxMenu} text="Show menu" />
 			</Field>
 		);
 	}

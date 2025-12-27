@@ -1,12 +1,43 @@
-import { DialogButton, type DialogButtonProps, joinClassNames } from '@steambrew/client';
+import { DialogButton, IconsModule, joinClassNames } from '@steambrew/client';
+import { createElement, MouseEvent } from 'react';
+import { DesktopTooltip } from './SteamComponents';
 import { settingsClasses } from '../utils/classes';
 
-export function IconButton(props: DialogButtonProps) {
-	const { children } = props;
+interface IconButtonProps {
+	/**
+	 * Button's class name.
+	 * @default "MillenniumButton MillenniumIconButton MenuBarEditor_IconButton"
+	 */
+	className?: string;
+
+	/**
+	 * Is the button disabled? Tooltip will be shown regardless of its value.
+	 */
+	disabled?: boolean;
+
+	/**
+	 * Icon name from {@link IconsModule}.
+	 */
+	name: string;
+
+	onClick: (ev?: MouseEvent) => void;
+
+	/**
+	 * Localization token for the tooltip.
+	 */
+	text: string;
+}
+
+export function IconButton(props: IconButtonProps) {
+	const { disabled, name, onClick, text } = props;
+	const className = joinClassNames('MillenniumButton', 'MillenniumIconButton', settingsClasses.SettingsDialogButton, props.className);
+	const icon = createElement(IconsModule[name]);
 
 	return (
-		<DialogButton {...props} className={joinClassNames('MillenniumButton', 'MillenniumIconButton', settingsClasses.SettingsDialogButton, props.className)}>
-			{children}
-		</DialogButton>
+		<DesktopTooltip toolTipContent={text}>
+			<DialogButton className={className} disabled={disabled} onClick={onClick} data-icon-name={name}>
+				{icon}
+			</DialogButton>
+		</DesktopTooltip>
 	);
 }

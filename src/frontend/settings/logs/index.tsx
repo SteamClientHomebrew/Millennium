@@ -60,7 +60,7 @@ interface RenderLogViewerState {
 	searchQuery: string;
 	errorCount: number;
 	warningCount: number;
-	copyIcon: any;
+	displayCopiedText: boolean;
 	logFontSize: number;
 }
 
@@ -74,7 +74,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 			searchQuery: '',
 			errorCount: 0,
 			warningCount: 0,
-			copyIcon: <IconsModule.Copy />,
+			displayCopiedText: false,
 			logFontSize: 16,
 		};
 	}
@@ -123,10 +123,10 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		document.execCommand('copy');
 		document.body.removeChild(textarea);
 
-		this.setState({ copyIcon: <IconsModule.Checkmark /> });
+		this.setState({ displayCopiedText: true });
 
 		setTimeout(() => {
-			this.setState({ copyIcon: <IconsModule.Copy /> });
+			this.setState({ displayCopiedText: false });
 		}, 2000);
 	};
 
@@ -200,7 +200,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	}
 
 	renderViewer() {
-		const { selectedLog, searchedLogs, searchQuery, errorCount, warningCount, copyIcon, logFontSize } = this.state;
+		const { selectedLog, searchedLogs, searchQuery, errorCount, warningCount, displayCopiedText, logFontSize } = this.state;
 
 		return (
 			<div className="MillenniumLogs_TextContainer">
@@ -225,13 +225,13 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 						</div>
 
 						<div className="MillenniumLogs_Icons">
-							<IconButton onClick={() => this.setState({ logFontSize: logFontSize - 1 })}>
-								<IconsModule.Minus />
-							</IconButton>
-							<IconButton onClick={() => this.setState({ logFontSize: logFontSize + 1 })}>
-								<IconsModule.Add />
-							</IconButton>
-							<IconButton onClick={this.exportToClipBoard}>{copyIcon}</IconButton>
+							<IconButton name="Minus" onClick={() => this.setState({ logFontSize: logFontSize - 1 })} text="Decrease font size" />
+							<IconButton name="Add" onClick={() => this.setState({ logFontSize: logFontSize + 1 })} text="Increase font size" />
+							<IconButton
+								name={displayCopiedText ? 'Checkmark' : 'Copy'}
+								onClick={this.exportToClipBoard}
+								text={displayCopiedText ? 'Copied to clipboard' : 'Copy to clipboard'}
+							/>
 						</div>
 					</div>
 				</div>

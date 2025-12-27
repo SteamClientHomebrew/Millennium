@@ -43,16 +43,45 @@ interface RenderPluginViewsProps {
 	editableStore: Array<{ name: string; isEditable: boolean }>;
 }
 
-export const NonConfigurablePluginItem = ({ plugin }: { plugin: PluginComponent }) => {
-	const reason = !plugin.enabled ? locale.pluginIsNotEnabled : locale.pluginIsNotConfigurable;
+enum PluginDisabledReason {
+	NONE,
+	NOT_CONFIGURABLE,
+	NOT_ENABLED,
+}
+
+interface PluginItemProps {
+	disabledReason: PluginDisabledReason;
+	onClick?: () => void;
+	plugin: PluginComponent;
+	pluginView?: any;
+}
+
+const PluginItem = ({ disabledReason, onClick, plugin, pluginView }: PluginItemProps) => {
+	const disabled = disabledReason !== PluginDisabledReason.NONE;
+	const tooltipText = (() => {
+		switch (disabledReason) {
+			case PluginDisabledReason.NOT_CONFIGURABLE:
+				return locale.pluginIsNotConfigurable;
+
+			case PluginDisabledReason.NOT_ENABLED:
+				return locale.pluginIsNotEnabled;
+
+			default:
+				return '';
+		}
+	})();
 
 	return (
-		<DesktopTooltip toolTipContent={reason} direction="left">
+		<DesktopTooltip toolTipContent={tooltipText} direction="left" bDisabled={!disabled}>
 			<PanelSectionRow key={plugin.data.name}>
-				<DialogButton className="MillenniumSideBar_LibraryItemButton NotConfigurable" disabled={true}>
-					<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-						<div>{plugin?.data?.common_name}</div>
-					</div>
+				<DialogButton
+					className="MillenniumButton MillenniumDesktopSidebar_LibraryItemButton"
+					disabled={disabled}
+					onClick={onClick}
+					data-disabled-reason={disabled ? PluginDisabledReason[disabledReason] : undefined}
+				>
+					{pluginView?.icon && pluginView?.icon}
+					{plugin?.data?.common_name}
 				</DialogButton>
 			</PanelSectionRow>
 		</DesktopTooltip>
@@ -70,18 +99,17 @@ export const RenderPluginViews = ({ plugins, pluginName, pluginView, editableSto
 	}
 
 	if (!isEditable) {
-		return <NonConfigurablePluginItem plugin={plugin} />;
+		const disabledReason = !plugin.enabled ? PluginDisabledReason.NOT_ENABLED : PluginDisabledReason.NOT_CONFIGURABLE;
+		return <PluginItem disabledReason={disabledReason} plugin={plugin} />;
 	}
 
 	return (
-		<PanelSectionRow key={pluginName}>
-			<DialogButton className="MillenniumSideBar_LibraryItemButton" onClick={setFocusedItem.spread(plugin, DesktopSideBarFocusedItemType.PLUGIN)}>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-					{pluginView?.icon && <div className="iconContainer">{pluginView?.icon}</div>}
-					<div>{plugin?.data?.common_name}</div>
-				</div>
-			</DialogButton>
-		</PanelSectionRow>
+		<PluginItem
+			disabledReason={PluginDisabledReason.NONE}
+			onClick={setFocusedItem.spread(plugin, DesktopSideBarFocusedItemType.PLUGIN)}
+			plugin={plugin}
+			pluginView={pluginView}
+		/>
 	);
 };
 
@@ -101,7 +129,7 @@ export const RenderPluginView = () => {
 
 	return (
 		<ErrorBoundary>
-			<div className="MillenniumSidebarPluginEditor_Content">{renderer}</div>
+			<div className="MillenniumDesktopSidebar_EditorContent">{renderer}</div>
 		</ErrorBoundary>
 	);
 };
@@ -120,8 +148,7 @@ export const PluginSelectorView = () => {
 	}
 
 	return (
-		<PanelSection>
-			<h4>Plugin Settings</h4>
+		<PanelSection title="Plugin Settings">
 			{plugins?.map((plugin) => (
 				<RenderPluginViews
 					plugins={plugins}

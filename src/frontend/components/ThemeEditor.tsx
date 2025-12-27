@@ -276,22 +276,20 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		}, []);
 
 		return (
-			<>
-				<div className="MillenniumSidebarThemeEditor" data-theme-name={activeTheme?.data?.name}>
-					<div className="MillenniumSidebarThemeEditor_TabSelector">
-						<Dropdown
-							contextMenuPositionOptions={{ bMatchWidth: false }}
-							onChange={handleChange}
-							rgOptions={tabItems}
-							selectedOption={1}
-							strDefaultLabel={tabItems?.[0]?.label}
-						/>
-					</div>
-					<div className="MillenniumSidebarThemeEditor_Content">
-						<ErrorBoundary>{tabItems?.find?.((page) => page?.label === activeTab)?.data}</ErrorBoundary>
-					</div>
+			<div className="MillenniumDesktopSidebar_Editor" data-theme-name={activeTheme?.data?.name}>
+				<div className="MillenniumDesktopSidebar_EditorHeader">
+					<Dropdown
+						contextMenuPositionOptions={{ bMatchWidth: false }}
+						onChange={handleChange}
+						rgOptions={tabItems}
+						selectedOption={1}
+						strDefaultLabel={tabItems?.[0]?.label}
+					/>
 				</div>
-			</>
+				<div className="MillenniumDesktopSidebar_EditorContent">
+					<ErrorBoundary>{tabItems?.find?.((page) => page?.label === activeTab)?.data}</ErrorBoundary>
+				</div>
+			</div>
 		);
 	};
 
