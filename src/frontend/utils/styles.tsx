@@ -303,7 +303,7 @@ const styles = `
 }
 
 .MillenniumItem_Version {
-	color: #8b929a;
+	color: var(--MillenniumTextColor-Muted);
 	font: var(--MillenniumText-BodySmall);
 	margin-left: var(--MillenniumSpacing-Normal);
 }
@@ -374,11 +374,6 @@ const styles = `
 	}
 }
 
-.MillenniumInstallDialog_TutorialImage {
-	margin-block: var(--MillenniumSpacing-Normal);
-	width: 100%;
-}
-
 /**
  * Other
  */
@@ -403,7 +398,7 @@ const styles = `
 .MillenniumPlaceholder_Button {
 	min-width: fit-content;
     display: flex !important;
-    gap: 10px;
+    gap: var(--MillenniumSpacing-Normal);
     justify-content: center;
     align-items: center;
 }
@@ -412,10 +407,6 @@ const styles = `
 	& > .cm-editor {
 		height: 100%;
 	}
-}
-
-.aIeh3X5T2M074RLW1qn6_ .MillenniumItem_Version {
-    color: #464a4e;
 }
 `;
 
@@ -450,19 +441,13 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
 		height: 100%;
 		overflow: auto;
 
-		.MillenniumDesktopSidebar:not([data-focused-item-type="THEME"]) & {
-			margin-block-start: 24px;
+		.MillenniumDesktopSidebar:not([data-focused-item-type]) & {
+			padding-block-start: 24px;
 		}
 	}
 
 	.MillenniumDesktopSidebar_Editor {
 		display: contents;
-	}
-
-	.MillenniumDesktopSidebar_EditorHeader {
-		box-shadow: 0 0 7px 12px var(--sidebar-bg);
-		padding: var(--sidebar-content-spacing-inline);
-		margin-top: 12px;
 	}
 
 	.MillenniumDesktopSidebar_EditorContent {
@@ -471,9 +456,19 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
 		height: 100%;
 		overflow: auto;
 
+		.MillenniumDesktopSidebar[data-focused-item-type="PLUGIN"] & {
+			padding-block-start: 24px;
+		}
+
 		& > .DialogBody {
 			padding: var(--sidebar-content-spacing-inline);
 		}
+	}
+
+	.MillenniumDesktopSidebar_EditorHeader {
+		box-shadow: 0 0 7px 12px var(--sidebar-bg);
+		padding: var(--sidebar-content-spacing-inline);
+		margin-top: 12px;
 	}
 
 	.MillenniumDesktopSidebar_LibraryItemButton {
