@@ -173,17 +173,10 @@ jobs:
           mkdir -p ./build/artifacts
           cmake --build build
 
-          mkdir -p D:/a/env/ext/compat64
-          cp ./src/vendor/python/lib32/python311.dll D:/a/env/python311.dll
-          cp ./src/vendor/python/lib64/python311.dll D:/a/env/ext/compat64/python311.dll
-
-          cp ./build/src/millennium_x86-build/millennium.dll D:/a/env/millennium.dll
-          cp ./build/src/millennium_x86-build/boot/win32/user32.dll D:/a/env/user32.dll
-
-          cp ./build/src/millennium_x64-build/boot/win32/version.dll  D:/a/env/version.dll
-          cp ./build/src/millennium_x64-build/millennium_x64.dll D:/a/env/ext/compat64/millennium_x64.dll
-
-          cp ./build/src/hhx64-build/millennium.hhx64.dll D:/a/env/millennium.hhx64.dll
+          cp ./src/vendor/python/lib64/python311.dll  D:/a/env/python311.dll
+          cp ./build/src/millennium.dll               D:/a/env/millennium.dll
+          cp ./build/src/boot/win32/wsock32.dll       D:/a/env/wsock32.dll
+          cp ./build/src/hhx64/millennium.hhx64.dll   D:/a/env/millennium.hhx64.dll
 
           mkdir -p D:/a/env/ext/data/assets
           mv src/pipx D:/a/env/ext/data/assets/pipx

@@ -38,6 +38,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_STATIC_LIBS ON)
 set(ABSL_ENABLE_INSTALL ON)
 set(ABSL_PROPAGATE_CXX_STD ON)
+set(ABSL_MSVC_STATIC_RUNTIME ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 
 function(millennium_process_package input_path)
@@ -105,9 +106,6 @@ elseif(WIN32)
 
     if(NOT GITHUB_ACTION_BUILD)
         include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
-
-        if (out_steam_path)
-            set_target_properties(hhx64 PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${out_steam_path}" LIBRARY_OUTPUT_DIRECTORY "${out_steam_path}" ARCHIVE_OUTPUT_DIRECTORY "${out_steam_path}")
-        endif()
+        find_steam_path(hhx64)
     endif()
 endif()
