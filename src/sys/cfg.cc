@@ -435,6 +435,14 @@ void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json&
 void ConfigManager::LoadFromFile()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
+
+    /** Clean up any stale temp file from interrupted writes */
+    std::string tempFilename = _filename + ".tmp";
+    if (std::filesystem::exists(tempFilename)) {
+        Logger.Warn("Found stale temp config file, removing: {}", tempFilename);
+        std::filesystem::remove(tempFilename);
+    }
+
     std::ifstream file(_filename);
 
     if (file.is_open()) {
@@ -462,14 +470,41 @@ void ConfigManager::LoadFromFile()
 void ConfigManager::SaveToFile()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
-    std::ofstream file(_filename);
 
-    if (!file.is_open()) {
-        LOG_ERROR("Failed to open config file for writing: {}", _filename);
-        return;
+    /**
+     * Use atomic write pattern: write to temp file, then rename
+     * This prevents corruption if the app is terminated mid-write
+     */
+    std::string tempFilename = _filename + ".tmp";
+
+    {
+        std::ofstream file(tempFilename);
+        if (!file.is_open()) {
+            LOG_ERROR("Failed to open temp config file for writing: {}", tempFilename);
+            return;
+        }
+
+        file << _data.dump(2);
+        file.flush();
+
+        if (file.fail()) {
+            LOG_ERROR("Failed to write config data to temp file: {}", tempFilename);
+            file.close();
+            std::filesystem::remove(tempFilename);
+            return;
+        }
+
+        file.close();
     }
 
-    file << _data.dump(2);
+    /** atomic rename - either the old file exists or the new one, never partial */
+    std::error_code ec;
+    std::filesystem::rename(tempFilename, _filename, ec);
+
+    if (ec) {
+        LOG_ERROR("Failed to rename temp config file: {} -> {}: {}", tempFilename, _filename, ec.message());
+        std::filesystem::remove(tempFilename);
+    }
 }
 
 void ConfigManager::SetDefault(const std::string& key, const nlohmann::json& value)
