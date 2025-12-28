@@ -34,11 +34,13 @@
 #include "filesystem"
 #include <set>
 
+#include "millennium/sysfs.h"
+
 class ThemeConfig
 {
   public:
     ThemeConfig();
-    ~ThemeConfig() = default;
+    ~ThemeConfig();
 
     void OnConfigChange();
     void UpgradeOldConfig();
@@ -69,6 +71,7 @@ class ThemeConfig
     void SetupConditionals();
     std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
 
+    ConfigManager::Listener config_listener_;
     std::filesystem::path themes_path;
     std::string active_theme_name;
     nlohmann::basic_json<> theme_data;
