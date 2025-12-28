@@ -52,10 +52,11 @@ class PythonGIL : public std::enable_shared_from_this<PythonGIL>
     PyGILState_STATE m_interpreterGIL{};
     PyThreadState* m_interpreterThreadState = nullptr;
     PyInterpreterState* m_mainInterpreter = nullptr;
+    std::unique_lock<std::mutex> m_interpreterLock;
 
   public:
     void HoldAndLockGIL();
-    void HoldAndLockGILOnThread(PyThreadState* threadState);
+    void HoldAndLockGILOnThread(std::shared_ptr<PythonThreadState> threadState);
     void ReleaseAndUnLockGIL();
 
     PythonGIL();

@@ -46,11 +46,7 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
     }
 
     lua_State* L = luaStateOpt.value();
-
-    if (backendManager.Lua_IsMutexLocked(L)) {
-        LOG_ERROR("Lua state is currently locked for plugin: {}", pluginName);
-        return { FFI_Type::Error, LUA_IS_LOCKED_ERROR_MESSAGE };
-    }
+    backendManager.Lua_LockLua(L);
 
     if (!script.contains("methodName") || !script["methodName"].is_string()) {
         return { FFI_Type::Error, "Missing or invalid methodName in script" };
@@ -64,8 +60,6 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
             argValues.push_back(it.value());
         }
     }
-
-    backendManager.Lua_LockLua(L);
 
     /** Support for class methods using "something:function" */
     size_t colonPos = methodName.find(':');
@@ -175,12 +169,6 @@ void Lua::CallFrontEndLoaded(std::string pluginName)
     }
 
     lua_State* L = luaStateOpt.value();
-
-    if (backendManager.Lua_IsMutexLocked(L)) {
-        LOG_ERROR("Failed to call frontend loaded on plugin: {}. Message: {}", pluginName, LUA_IS_LOCKED_ERROR_MESSAGE);
-        return;
-    }
-
     backendManager.Lua_LockLua(L);
 
     lua_getglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");

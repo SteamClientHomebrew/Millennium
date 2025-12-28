@@ -616,13 +616,12 @@ bool BackendManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugi
         PyThreadState_DeleteCurrent();
 
         std::unique_lock<std::mutex> lock(interpMutexStatePtr->mtx);
-
         interpMutexStatePtr->cv.wait(lock, [interpMutexStatePtr] { return interpMutexStatePtr->flag.load(); });
 
         Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
 
         std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-        pythonGilLock->HoldAndLockGILOnThread(interpreterState);
+        pythonGilLock->HoldAndLockGILOnThread(threadState);
 
         if (pluginName != "pipx" && PyRun_SimpleString("plugin._unload()") != 0) {
             PyErr_Print();

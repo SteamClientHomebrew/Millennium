@@ -746,17 +746,17 @@ template <typename F> void HttpHookManager::ThreadPool::enqueue(F&& f)
 }
 
 HttpHookManager::HttpHookManager()
-    : m_threadPool(std::make_unique<ThreadPool>(1)), m_lastExceptionTime{}, m_hookListPtr(std::make_shared<std::vector<HookType>>()),
+    : m_threadPool(std::make_unique<ThreadPool>(std::thread::hardware_concurrency())), m_lastExceptionTime{}, m_hookListPtr(std::make_shared<std::vector<HookType>>()),
       m_requestMap(std::make_shared<std::vector<WebHookItem>>())
 {
 }
 
 HttpHookManager::~HttpHookManager()
 {
-    /**
-     * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
-     * we free from the main function instead
-     * */
+/**
+ * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
+ * we free from the main function instead
+ * */
 #if defined(__linux__) || defined(MILLENNIUM_32BIT)
     this->Shutdown();
 #endif

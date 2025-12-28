@@ -41,7 +41,7 @@
 
 struct InterpreterMutex
 {
-    std::mutex mtx;
+    std::mutex mtx, runMutex;
     std::condition_variable cv;
     std::atomic<bool> flag{ false };
     std::atomic<bool> hasFinished{ false };

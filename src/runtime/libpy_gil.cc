@@ -60,8 +60,14 @@ void PythonGIL::HoldAndLockGIL()
  * This function locks the GIL and swaps the thread state to the provided one, allowing safe execution
  * of Python code in a multi-threaded environment.
  */
-void PythonGIL::HoldAndLockGILOnThread(PyThreadState* threadState)
+void PythonGIL::HoldAndLockGILOnThread(std::shared_ptr<PythonThreadState> __threadState)
 {
+    auto& [strPluginName, threadState, interpMutex] = *__threadState;
+
+    /** protect the interpreter, the GIL only protects the interpreter state */
+    m_interpreterLock = std::unique_lock<std::mutex>(interpMutex->runMutex, std::defer_lock);
+    m_interpreterLock.lock();
+
     PyEval_RestoreThread(m_interpreterThreadState);
     m_interpreterGIL = PyGILState_Ensure();
     PyThreadState_Swap(threadState);
@@ -90,4 +96,7 @@ void PythonGIL::ReleaseAndUnLockGIL()
 {
     std::shared_ptr<PythonGIL> self = shared_from_this();
     self.reset();
+
+    /** release interpLock */
+    m_interpreterLock.unlock();
 }
