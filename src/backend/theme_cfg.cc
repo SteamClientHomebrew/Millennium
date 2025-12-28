@@ -52,7 +52,7 @@ ThemeConfig::ThemeConfig()
 
 ThemeConfig::~ThemeConfig()
 {
-    CONFIG.UnregisterListener(config_listener_);
+    // CONFIG.UnregisterListener(config_listener_);
 }
 
 void ThemeConfig::OnConfigChange()
