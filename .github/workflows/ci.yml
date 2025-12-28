@@ -162,8 +162,8 @@ jobs:
       - name: 🛠️ Build Millennium Backend (PowerShell)
         shell: pwsh
         run: |
-          Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise"
+          Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
 
           pnpm --dir src/sdk install
           pnpm --dir src/sdk run build
