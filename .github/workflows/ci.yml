@@ -159,13 +159,12 @@ jobs:
       - name: ⚙️ Install Pnpm
         run: npm install -g pnpm
 
-      - name: ⚙️ Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.3.1
-
-      - name: 🛠️ Build Millennium Backend (bash)
-        shell: bash
+      - name: 🛠️ Build Millennium Backend (PowerShell)
+        shell: pwsh
         run: |
-          set -ex
+          Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+          Enter-VsDevShell -VsInstallPath "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise"
+
           pnpm --dir src/sdk install
           pnpm --dir src/sdk run build
 
@@ -173,16 +172,16 @@ jobs:
           pnpm --dir src/frontend run prod
 
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
-          mkdir -p ./build/artifacts
+          mkdir build/artifacts
           cmake --build build
 
-          cp ./src/vendor/python/lib64/python311.dll  D:/a/env/python311.dll
-          cp ./build/src/millennium.dll               D:/a/env/millennium.dll
-          cp ./build/src/boot/win32/wsock32.dll       D:/a/env/wsock32.dll
-          cp ./build/src/hhx64/millennium.hhx64.dll   D:/a/env/millennium.hhx64.dll
+          Copy-Item ./src/vendor/python/lib64/python311.dll  D:/a/env/python311.dll
+          Copy-Item ./build/src/millennium.dll               D:/a/env/millennium.dll
+          Copy-Item ./build/src/boot/win32/wsock32.dll       D:/a/env/wsock32.dll
+          Copy-Item ./build/src/hhx64/millennium.hhx64.dll   D:/a/env/millennium.hhx64.dll
 
-          mkdir -p D:/a/env/ext/data/assets
-          mv src/pipx D:/a/env/ext/data/assets/pipx
+          mkdir D:/a/env/ext/data/assets
+          Move-Item src/pipx D:/a/env/ext/data/assets/pipx
 
       - name: 📤 Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
