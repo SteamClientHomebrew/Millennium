@@ -162,8 +162,19 @@ jobs:
       - name: 🛠️ Build Millennium Backend (PowerShell)
         shell: pwsh
         run: |
-          Import-Module "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
+          # Source - https://stackoverflow.com/a
+          # Posted by Andy S, modified by community. See post 'Timeline' for change history
+          # Retrieved 2025-12-28, License - CC BY-SA 4.0
+
+          pushd "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools"
+          cmd /c "VsDevCmd.bat&set" |
+          foreach {
+            if ($_ -match "=") {
+              $v = $_.split("=", 2); set-item -force -path "ENV:\$($v[0])"  -value "$($v[1])" 
+            }
+          }
+          popd
+          Write-Host "`nVisual Studio 2022 Command Prompt variables set." -ForegroundColor Yellow
 
           pnpm --dir src/sdk install
           pnpm --dir src/sdk run build
