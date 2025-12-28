@@ -71,6 +71,7 @@ function(millennium_process_package input_path)
 endfunction()
 
 message(STATUS "[Millennium] Fetching dependencies...")
+set(FETCHCONTENT_QUIET OFF)
 
 FetchContent_Declare(zlib          GIT_REPOSITORY https://github.com/zlib-ng/zlib-ng               GIT_TAG 2.2.5                                   GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_Declare(luajit        GIT_REPOSITORY https://github.com/SteamClientHomebrew/LuaJIT    GIT_TAG v2.1              SOURCE_SUBDIR fakedir GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
