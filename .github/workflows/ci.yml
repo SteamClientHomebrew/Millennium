@@ -150,15 +150,15 @@ jobs:
 
           Install-EmbeddedPython -Architecture 'x64' -DestinationPath 'D:/a/env/ext/data/pyx64'
 
-      - name: Download Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 24
 
-      - name: Install Pnpm
+      - name: Setup PNPM
         run: npm install -g pnpm
 
-      - name: Build Millennium Backend (PowerShell)
+      - name: Build Millennium Backend
         shell: pwsh
         run: |
           pushd "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools"
