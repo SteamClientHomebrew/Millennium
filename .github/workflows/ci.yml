@@ -162,19 +162,23 @@ jobs:
       - name: 🛠️ Build Millennium Backend (PowerShell)
         shell: pwsh
         run: |
-          # Source - https://stackoverflow.com/a
-          # Posted by Andy S, modified by community. See post 'Timeline' for change history
-          # Retrieved 2025-12-28, License - CC BY-SA 4.0
-
           pushd "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools"
-          cmd /c "VsDevCmd.bat&set" |
-          foreach {
+
+          # Initialize Visual Studio x64 host/toolchain and import the environment into PowerShell
+          cmd /c "VsDevCmd.bat -arch=x64 -host_arch=x64 & set" |
+          ForEach-Object {
             if ($_ -match "=") {
-              $v = $_.split("=", 2); set-item -force -path "ENV:\$($v[0])"  -value "$($v[1])" 
+              $v = $_.Split("=", 2)
+              Set-Item -Force -Path "ENV:\$($v[0])" -Value "$($v[1])"
             }
           }
+
           popd
-          Write-Host "`nVisual Studio 2022 Command Prompt variables set." -ForegroundColor Yellow
+          Write-Host "`nVisual Studio 2022 x64 Command Prompt variables set." -ForegroundColor Yellow
+
+          # optional sanity checks (helpful for CI debugging)
+          cmd /c "where cl.exe"
+          cmd /c "cl.exe /Bv" 2>&1 | Write-Host
 
           pnpm --dir src/sdk install
           pnpm --dir src/sdk run build
