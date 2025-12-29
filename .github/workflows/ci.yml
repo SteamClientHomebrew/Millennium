@@ -149,7 +149,6 @@ jobs:
           }
 
           Install-EmbeddedPython -Architecture 'x64' -DestinationPath 'D:/a/env/ext/data/pyx64'
-          Install-EmbeddedPython -Architecture 'x86' -DestinationPath 'D:/a/env/ext/data/cache'
 
       - name: ⚙️ Download Node.js
         uses: actions/setup-node@v3
