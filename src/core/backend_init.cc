@@ -361,7 +361,7 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "preload");
 
-    RegisterModule(L, "cjson", luaopen_cjson);
+    RegisterModule(L, "json", luaopen_cjson);
     RegisterModule(L, "millennium", Lua_OpenMillenniumLibrary);
     RegisterModule(L, "http", Lua_OpenHttpLibrary);
     RegisterModule(L, "utils", Lua_OpenUtilsLibrary);
