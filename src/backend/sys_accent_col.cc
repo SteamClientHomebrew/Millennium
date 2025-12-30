@@ -98,9 +98,9 @@ AccentColors GetAccentColors()
     return colors;
 }
 
-#define R(c) (((c) >> 16) & 0xFF)
+#define R(c) ((c) & 0xFF)
 #define G(c) (((c) >> 8) & 0xFF)
-#define B(c) ((c) & 0xFF)
+#define B(c) (((c) >> 16) & 0xFF)
 
 /**
  * Converts a DWORD color to a hex string "#RRGGBB"
