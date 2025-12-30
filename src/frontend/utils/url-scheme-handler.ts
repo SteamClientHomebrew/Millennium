@@ -33,13 +33,16 @@ import { PluginComponent, ThemeItem } from '../types';
 import { Logger } from './Logger';
 import { PyFindAllPlugins, PyFindAllThemes, PyUpdatePluginStatus } from './ffi';
 import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';
+import { useQuickAccessStore } from '../quick-access/quickAccessStore';
 
 const DEFAULT_THEME_NAME = '__default__';
+const VALID_CONTEXTS = ['settings', 'sidebar'];
 
 /**
  * steam://millennium URL support.
  *
  * Example:
+ * "steam://millennium/sidebar" -> Open Millennium sidebar
  * "steam://millennium/settings" -> Open Millennium dialog
  * "steam://millennium/settings/general" -> Open Millennium dialog
  * "steam://millennium/settings/updates" -> Open the "Updates" tab
@@ -56,8 +59,13 @@ export const OnRunSteamURL = async (_: number, url: string) => {
 		.filter((r) => r)
 		.slice(1);
 
-	if (context !== 'settings') {
-		Logger.Log('OnRunSteamURL: Invalid context %o, expected "settings"', context);
+	if (!VALID_CONTEXTS.some((e) => e === context)) {
+		Logger.Log('OnRunSteamURL: Invalid context %o, expected one of %o', context, VALID_CONTEXTS);
+		return;
+	}
+
+	if (context === 'sidebar') {
+		useQuickAccessStore.getState().openQuickAccess();
 		return;
 	}
 
