@@ -192,6 +192,7 @@ jobs:
           Copy-Item ./src/vendor/python/lib64/python311.dll  D:/a/env/python311.dll
           Copy-Item ./build/src/millennium.dll               D:/a/env/millennium.dll
           Copy-Item ./build/src/boot/win32/wsock32.dll       D:/a/env/wsock32.dll
+          Copy-Item ./build/src/boot/win32/version.dll       D:/a/env/version.dll
           Copy-Item ./build/src/hhx64/millennium.hhx64.dll   D:/a/env/millennium.hhx64.dll
 
           mkdir D:/a/env/ext/data/assets
