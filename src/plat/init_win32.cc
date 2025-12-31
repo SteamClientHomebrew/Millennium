@@ -121,12 +121,29 @@ VOID Win32_AttachWebHelperHook(VOID)
     }
 }
 
+VOID Win32_MoveVersionHook(VOID)
+{
+    const auto versionHookPath = SystemIO::GetSteamPath() / "version.dll";
+    const auto targetPath = SystemIO::GetSteamPath() / "millennium-legacy.version.dll";
+
+    if (!std::filesystem::exists(versionHookPath)) {
+        return;
+    }
+
+    if (!MoveFileExW(versionHookPath.wstring().c_str(), targetPath.wstring().c_str(), MOVEFILE_REPLACE_EXISTING)) {
+        const DWORD error = GetLastError();
+        Plat_ShowMessageBox("Millennium Error", fmt::format("Failed to move legacy version.dll hook.\nError Code: {}", error).c_str(), MESSAGEBOX_ERROR);
+    }
+}
+
 VOID Win32_AttachMillennium(VOID)
 {
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
         Plat_ShowMessageBox("Millennium Error", "Failed to initialize Steam hooks, Millennium cannot continue startup.", MESSAGEBOX_ERROR);
     }
+
+    Win32_MoveVersionHook();
 
     /** Update legacy user32 shim if needed */
     MillenniumUpdater::UpdateLegacyUser32Shim();
