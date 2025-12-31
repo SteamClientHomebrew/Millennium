@@ -28,7 +28,7 @@ export interface Plugin {
 	titleView?: JSX.Element;
 }
 
-export type DefinePluginFn = () => Plugin;
+export type DefinePluginFn = () => Plugin | Promise<Plugin>;
 
 export const definePlugin = (fn: DefinePluginFn): DefinePluginFn => {
 	return (...args) => {
