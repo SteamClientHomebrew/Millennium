@@ -103,18 +103,23 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
 
 void Posix_AttachWebHelperHook()
 {
-    const char* existing = getenv("LD_PRELOAD");
-    char* new_value;
+    char* existing = getenv("LD_PRELOAD");
     const char* home = getenv("HOME");
 
-    if (asprintf(&new_value, "%s%s/usr/lib/millennium/libmillennium_hhx64.so", existing ? existing : "", existing ? ":" : "") < 0) {
-        LOG_ERROR("[Posix_AttachWebHelperHook] asprintf failed to allocate new buffer");
-        return;
+    if (std::strcmp(existing, "") != 0)
+    {
+        existing[strlen(existing)] = ':';
     }
 
-    setenv("LD_PRELOAD", new_value, 1);
-    Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", new_value);
-    free(new_value);
+    #ifdef DEBUG
+    const char* home_env = std::getenv("HOME");
+    std::string ld_string = fmt::format("{}./build/src/hhx64-build/libmillennium_hhx64.so", existing);
+    #else
+    std::string ld_string = fmt::format("{}/usr/share/libmillennium_hhx64.so", existing);
+    #endif
+
+    setenv("LD_PRELOAD", ld_string.c_str(), 1);
+    Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", ld_string);
 }
 
 void Posix_AttachMillennium()
