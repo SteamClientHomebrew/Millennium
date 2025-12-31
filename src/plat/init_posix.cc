@@ -101,23 +101,30 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
     }
 }
 
-void Posix_AttachWebHelperHook()
-{
-    char* existing = getenv("LD_PRELOAD");
+void Posix_AttachWebHelperHook() {
+    char buffer[4096];
 
-    if (std::strcmp(existing, "") != 0)
-    {
-        existing[strlen(existing)] = ':';
-    }
+    if (const char* raw_existing = std::getenv("LD_PRELOAD")) {
+        if (strstr(raw_existing, "libmillennium_hhx64.so")) {
+            Logger.Log("[Posix_AttachWebHelperHook] LD_PRELOAD already contains libmillennium_hhx64.so. Ignoring.");
+            return;
+        }
 
 #ifdef DEBUG
-    std::string ld_string = fmt::format("{}./build/src/hhx64-build/libmillennium_hhx64.so", existing);
+    const char* new_path = "./build/hhx64/libmillennium_hhx64.so";
 #else
-    std::string ld_string = fmt::format("{}/usr/share/libmillennium_hhx64.so", existing);
+    const char* new_path = "/usr/lib/millennium/libmillennium_hhx64.so";
 #endif
 
-    setenv("LD_PRELOAD", ld_string.c_str(), 1);
-    Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", ld_string);
+        if (raw_existing[0] != '\0') {
+            snprintf(buffer, sizeof(buffer), "%s:%s", raw_existing, new_path);
+        } else {
+            snprintf(buffer, sizeof(buffer), "%s", new_path);
+        }
+    }
+
+    Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", buffer);
+    setenv("LD_PRELOAD", buffer, 1);
 }
 
 void Posix_AttachMillennium()
