@@ -104,19 +104,17 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
 void Posix_AttachWebHelperHook()
 {
     char* existing = getenv("LD_PRELOAD");
-    const char* home = getenv("HOME");
 
     if (std::strcmp(existing, "") != 0)
     {
         existing[strlen(existing)] = ':';
     }
 
-    #ifdef DEBUG
-    const char* home_env = std::getenv("HOME");
+#ifdef DEBUG
     std::string ld_string = fmt::format("{}./build/src/hhx64-build/libmillennium_hhx64.so", existing);
-    #else
+#else
     std::string ld_string = fmt::format("{}/usr/share/libmillennium_hhx64.so", existing);
-    #endif
+#endif
 
     setenv("LD_PRELOAD", ld_string.c_str(), 1);
     Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", ld_string);
