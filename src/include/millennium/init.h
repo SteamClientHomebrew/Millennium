@@ -29,19 +29,23 @@
  */
 
 #pragma once
-#ifdef _WIN32
-#undef _WINSOCKAPI_
-#include <winsock2.h>
-#endif
+
+#include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
+#include "millennium/cef_bridge.h"
 #include "millennium/http_hooks.h"
 #include "millennium/sysfs.h"
+
 #include <nlohmann/json.hpp>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
+#ifdef _WIN32
+#undef _WINSOCKAPI_
+#include <winsock2.h>
+#endif
+
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
-#include "millennium/cef_bridge.h"
 
 class CEFBrowser
 {

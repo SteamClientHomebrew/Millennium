@@ -8,7 +8,7 @@ else()
     message(STATUS "Compiling as 64-bit")
 endif()
 
-if(WIN32) 
+if(WIN32)
     set(BUILD_PREFIX "")
     set(BUILD_NAME "millennium")
     set(BUILD_SUFFIX ".dll")
@@ -47,8 +47,13 @@ add_compile_definitions(
     "ASIO_HAS_STD_INVOKE_RESULT"
     "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
-    "LJ_TARGET_X64"
 )
+
+if (WIN32)
+    add_compile_definitions("LJ_TARGET_X64")
+elseif(UNIX AND NOT APPLE)
+    add_compile_definitions("LJ_TARGET_X86")
+endif()
 
 include_directories(
     ${MILLENNIUM_BASE}/src
@@ -77,7 +82,7 @@ set(SOURCE_FILES
     core/backend_init.cc
     core/backend_mgr.cc
     core/core_ipc.cc
-    core/http_hook.cc
+    core/http_hooks.cc
     core/init.cc
     core/lifecycle.cc
     core/millennium_api.cc
@@ -99,7 +104,7 @@ set(SOURCE_FILES
     hhx64/smem.cc
     sys/cfg.cc
     sys/env.cc
-    sys/log.cc
+    sys/logger.cc
     sys/sysfs.cc
     main.cc
 )
@@ -115,9 +120,9 @@ if(WIN32)
 elseif(UNIX)
     list(APPEND SOURCE_FILES "plat/init_posix.cc")
     list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
-    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/subhook/subhook_linux.c")
-    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/plthook/plthook_elf.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
 endif()
 
 if(WIN32)

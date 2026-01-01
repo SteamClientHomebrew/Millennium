@@ -29,6 +29,7 @@
  */
 
 #pragma once
+#include "millennium/singleton.h"
 #include "millennium/env.h"
 #include "millennium/sysfs.h"
 
@@ -78,8 +79,10 @@ struct PythonEnvPath
 
 PythonEnvPath GetPythonEnvPaths();
 
-class BackendManager
+class BackendManager : public Singleton<BackendManager>
 {
+    friend class Singleton<BackendManager>;
+
   private:
     struct LuaThreadWrapper
     {
@@ -163,10 +166,4 @@ class BackendManager
     std::optional<lua_State*> GetLuaThreadStateFromName(std::string pluginName);
 
     std::string GetPluginNameFromThreadState(PyThreadState* thread);
-
-    static BackendManager& GetInstance()
-    {
-        static BackendManager InstanceRef;
-        return InstanceRef;
-    }
 };

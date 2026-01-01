@@ -38,3 +38,25 @@ endif()
 set_target_properties(preload PROPERTIES PREFIX      "${BUILD_PREFIX}")
 set_target_properties(preload PROPERTIES OUTPUT_NAME "${BUILD_NAME}"  )
 set_target_properties(preload PROPERTIES SUFFIX      "${BUILD_SUFFIX}")
+
+project(preload-legacy)
+
+set(SOURCE_FILES
+    "version.c"
+    ${CMAKE_BINARY_DIR}/version.rc
+)
+
+list(APPEND SOURCE_FILES ${MILLENNIUM_BASE}/scripts/exports.legacy.def)
+add_compile_definitions(MILLENNIUM_64BIT)
+
+add_library(preload-legacy SHARED ${SOURCE_FILES})
+target_link_libraries(preload-legacy version)
+
+if (NOT GITHUB_ACTION_BUILD)
+    include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
+    find_steam_path(preload-legacy)
+endif()
+ 
+set_target_properties(preload-legacy PROPERTIES PREFIX              "")
+set_target_properties(preload-legacy PROPERTIES OUTPUT_NAME  "version")
+set_target_properties(preload-legacy PROPERTIES SUFFIX          ".dll")
