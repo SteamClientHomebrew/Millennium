@@ -82,7 +82,7 @@ set(SOURCE_FILES
     core/backend_init.cc
     core/backend_mgr.cc
     core/core_ipc.cc
-    core/http_hook.cc
+    core/http_hooks.cc
     core/init.cc
     core/lifecycle.cc
     core/millennium_api.cc
@@ -104,7 +104,7 @@ set(SOURCE_FILES
     hhx64/smem.cc
     sys/cfg.cc
     sys/env.cc
-    sys/log.cc
+    sys/logger.cc
     sys/sysfs.cc
     main.cc
 )
