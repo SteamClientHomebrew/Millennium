@@ -346,7 +346,7 @@ bool BackendManager::ShutdownPythonBackends()
                 thread.join();
             }
             this->m_pyThreadPool.erase(threadIt);
-            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, true);
+            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ pluginName }, true);
         } else {
             LOG_ERROR("Couldn't find thread for plugin '{}'", pluginName);
         }
@@ -403,7 +403,7 @@ bool BackendManager::DestroyPythonInstance(std::string targetPluginName, bool is
 
                 Logger.Log("Successfully joined thread");
                 threadIt = this->m_pyThreadPool.erase(threadIt); // Safe erase
-                CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ targetPluginName }, isShuttingDown);
+                CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ targetPluginName }, isShuttingDown);
                 break;
             } else {
                 ++threadIt;
@@ -510,7 +510,7 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
                 }
                 ++it;
             }
-            CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
+            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
             return true;
         }
 
@@ -541,7 +541,7 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
             }
             ++it;
         }
-        CoInitializer::BackendCallbacks::getInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
+        CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
         return true;
     }
     return false;

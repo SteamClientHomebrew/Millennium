@@ -87,7 +87,7 @@ unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const cha
     auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
     try {
-        HttpHookManager::get().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+        HttpHookManager::GetInstance().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
     } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", regexSelector, e.what());
         ErrorToLogger("executor", fmt::format("Failed to add browser module with invalid regex: {} ({})", regexSelector, e.what()));
