@@ -175,6 +175,7 @@ BackendManager::BackendManager() : m_InterpreterThreadSave(nullptr)
     PyConfig_SetString(&config, &config.home, std::wstring(pythonPath.begin(), pythonPath.end()).c_str());
     config.write_bytecode = 0;
     config.module_search_paths_set = 1;
+    config.user_site_directory = 0;
 
     Logger.Log("Using python home: {}", pythonPath);
     Logger.Log("Using python libs: {}", pythonLibs);
