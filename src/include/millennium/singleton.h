@@ -1,5 +1,5 @@
 /**
-* ==================================================
+ * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
@@ -30,10 +30,9 @@
 
 #pragma once
 
-/// Generic Singleton class.
 template <typename T> class Singleton
 {
-public:
+  public:
     static T& GetInstance()
     {
         static T instance;
@@ -43,7 +42,7 @@ public:
     Singleton(const Singleton&) = delete;
     Singleton& operator=(const Singleton&) = delete;
 
-protected:
+  protected:
     Singleton()
     {
     }

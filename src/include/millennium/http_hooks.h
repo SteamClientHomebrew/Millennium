@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "util/singleton.h"
+#include "millennium/singleton.h"
 
 #include <atomic>
 #include <chrono>

@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "util/singleton.h"
+#include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/cef_bridge.h"
 #include "millennium/http_hooks.h"

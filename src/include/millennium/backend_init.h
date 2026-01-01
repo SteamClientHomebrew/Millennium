@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "util/singleton.h"
+#include "millennium/singleton.h"
 #include "millennium/init.h"
 #include "millennium/sysfs.h"
 
@@ -39,7 +39,6 @@ namespace CoInitializer
 class BackendCallbacks : public Singleton<BackendCallbacks>
 {
     friend class Singleton<BackendCallbacks>;
-    std::mutex listenersMutex;
 
   public:
     enum eBackendLoadEvents
@@ -88,6 +87,7 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     std::vector<PluginTypeSchema> emittedPlugins;
     std::vector<eEvents> missedEvents;
     std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
+    std::mutex listenersMutex;
 };
 
 void InjectFrontendShims(bool reloadFrontend = true);

@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "util/singleton.h"
+#include "millennium/singleton.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
 
@@ -136,8 +136,6 @@ const std::string ConstructFunctionCall(const char* value, const char* methodNam
 int Lua_EvaluateFromSocket(std::string script, lua_State* L);
 PyObject* Py_EvaluateFromSocket(std::string script);
 } // namespace JavaScript
-
-using EventHandler = std::function<void(const nlohmann::json&, const std::string&)>;
 
 using EventHandler = std::function<void(const nlohmann::json&, const std::string&)>;
 
@@ -320,7 +318,6 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
     }
 
   public:
-
     void SetMaxHistoryPerEvent(size_t maxHistory)
     {
         maxHistoryPerEvent = maxHistory;

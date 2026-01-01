@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "util/singleton.h"
+#include "millennium/singleton.h"
 #include "millennium/env.h"
 #include "millennium/sysfs.h"
 

@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "util/singleton.h"
+#include "millennium/singleton.h"
 
 #include <fmt/color.h>
 #include <fmt/core.h>
