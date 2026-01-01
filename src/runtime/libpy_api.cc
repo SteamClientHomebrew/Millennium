@@ -128,7 +128,7 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    const bool success = HttpHookManager::get().RemoveHook(moduleId);
+    const bool success = HttpHookManager::GetInstance().RemoveHook(moduleId);
     return PyBool_FromLong(success);
 }
 
@@ -183,7 +183,7 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
 
-    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
     backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
 
     return PyBool_FromLong(true);
