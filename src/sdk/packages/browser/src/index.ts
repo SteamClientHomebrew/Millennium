@@ -28,6 +28,7 @@ type Millennium = {
 	 */
 	callServerMethod: (methodName: string, kwargs?: object) => Promise<any>;
 	findElement: (privateDocument: Document, querySelector: string, timeOut?: number) => Promise<NodeListOf<Element>>;
+	exposeObj?: <T extends object>(obj: T) => any;
 };
 
 // callable function definition
