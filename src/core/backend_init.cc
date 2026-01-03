@@ -120,7 +120,7 @@ void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
 #ifdef _WIN32
         // Wipe the system path clean when on windows
         // - Prevents clashing installed python versions
-        PyList_SetSlice(systemPath, 0, PyList_Size(systemPath), NULL);
+        PyList_SetSlice(systemPath, 0, PyList_Size(systemPath), nullptr);
 #endif
 
         for (const auto& systemPathItem : sitePackages) {
@@ -193,7 +193,7 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
         return;
     }
 
-    PyObject* pluginComponentInstance = PyObject_CallObject(pluginComponent, NULL);
+    PyObject* pluginComponentInstance = PyObject_CallObject(pluginComponent, nullptr);
 
     if (!pluginComponentInstance) {
         PrintError();
@@ -208,8 +208,8 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
         return;
     }
 
-    PyObject* result = PyObject_CallObject(loadMethodAttribute, NULL);
-    if (result == NULL) {
+    PyObject* result = PyObject_CallObject(loadMethodAttribute, nullptr);
+    if (result == nullptr) {
         PrintError();
     } else {
         Py_DECREF(result);
@@ -455,7 +455,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
     PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
-    if (mainModuleFilePtr == NULL) {
+    if (mainModuleFilePtr == nullptr) {
         Logger.Warn("failed to fopen file @ {}", backendMainModule);
         ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
 
@@ -610,7 +610,7 @@ void UnPatchSharedJSContext()
     }
 
     if (libraryChunkJS.empty()) {
-        MessageBoxA(NULL,
+        MessageBoxA(nullptr,
                     "Millennium failed to find a key library used by Steam. "
                     "Let our developers know if you see this message, it's likely a bug.\n"
                     "You can reach us over at steambrew.app/discord",

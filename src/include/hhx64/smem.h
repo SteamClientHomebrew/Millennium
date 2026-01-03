@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #ifdef __linux__
 #include <sys/mman.h>
 #endif

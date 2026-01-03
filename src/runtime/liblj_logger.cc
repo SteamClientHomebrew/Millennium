@@ -70,7 +70,7 @@ static const luaL_Reg loggerFunctions[] = {
     { "info",  LuaLogInfo  },
     { "warn",  LuaLogWarn  },
     { "error", LuaLogError },
-    { NULL,    NULL        }
+    { nullptr,    nullptr        }
 };
 
 extern "C" int Lua_OpenLoggerLibrary(lua_State* L)

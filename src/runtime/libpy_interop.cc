@@ -65,7 +65,7 @@ std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
         if (tracebackModule) {
             PyObject* formatExceptionFunc = PyObject_GetAttrString(tracebackModule, "format_exception");
             if (formatExceptionFunc && PyCallable_Check(formatExceptionFunc)) {
-                PyObject* tracebackList = PyObject_CallFunctionObjArgs(formatExceptionFunc, typeObj, valueObj, traceBackObj, NULL);
+                PyObject* tracebackList = PyObject_CallFunctionObjArgs(formatExceptionFunc, typeObj, valueObj, traceBackObj, nullptr);
                 if (tracebackList) {
                     PyObject* tracebackStr = PyUnicode_Join(PyUnicode_FromString(""), tracebackList);
                     if (tracebackStr) {
@@ -406,7 +406,7 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     pythonGilLock->HoldAndLockGILOnThread(threadState);
 
-    if (threadState == NULL) {
+    if (threadState == nullptr) {
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 

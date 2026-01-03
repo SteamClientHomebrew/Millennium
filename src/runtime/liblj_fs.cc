@@ -476,7 +476,7 @@ static const luaL_Reg fs_lib[] = {
     // Space info
     { "space_info",         Lua_SpaceInfo              },
 
-    { NULL,                 NULL                       }
+    { nullptr,                 nullptr                       }
 };
 
 extern "C" int Lua_OpenFS(lua_State* L)

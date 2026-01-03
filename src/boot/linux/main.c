@@ -36,8 +36,8 @@
 #include <dlfcn.h>
 #include <libgen.h>
 #include <linux/limits.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <time.h>
@@ -48,8 +48,8 @@
 #define COLOR_ERROR "\033[1;31m"
 #define COLOR_WARN "\033[1;33m"
 
-void* h_xtst = NULL;
-static void* h_millennium = NULL;
+void* h_xtst = nullptr;
+static void* h_millennium = nullptr;
 static int b_has_loaded_millennium = 0;
 
 typedef int (*start_millennium_t)(void);
@@ -58,7 +58,7 @@ typedef int (*stop_millennium_t)(void);
 #define HOOK_FUNC(name, ret_type, params, args)                                                                                                                                    \
     __attribute__((visibility("default"))) ret_type name params                                                                                                                    \
     {                                                                                                                                                                              \
-        static ret_type(*orig) params = NULL;                                                                                                                                      \
+        static ret_type(*orig) params = nullptr;                                                                                                                                      \
         if (!orig) {                                                                                                                                                               \
             orig = (ret_type(*) params)dlsym(h_xtst, #name);                                                                                                                       \
             if (!orig) {                                                                                                                                                           \
@@ -73,7 +73,7 @@ typedef int (*stop_millennium_t)(void);
     ({                                                                                                                                                                             \
         struct timeval tv;                                                                                                                                                         \
         struct tm* tm_info;                                                                                                                                                        \
-        gettimeofday(&tv, NULL);                                                                                                                                                   \
+        gettimeofday(&tv, nullptr);                                                                                                                                                   \
         tm_info = localtime(&tv.tv_sec);                                                                                                                                           \
         static char timestamp_buf[16];                                                                                                                                             \
         snprintf(timestamp_buf, sizeof(timestamp_buf), "[%02d:%02d.%03d]", tm_info->tm_min, tm_info->tm_sec, (int)(tv.tv_usec / 10000));                                           \
@@ -116,14 +116,14 @@ static char* get_process_path(void)
         path[len] = '\0';
         return path;
     }
-    return NULL;
+    return nullptr;
 }
 
 static char* get_process_path_parent(void)
 {
     static char parentPath[PATH_MAX];
     char* exePath = get_process_path();
-    if (!exePath) return NULL;
+    if (!exePath) return nullptr;
 
     strncpy(parentPath, exePath, PATH_MAX - 1);
     parentPath[PATH_MAX - 1] = '\0';
@@ -145,7 +145,7 @@ static int load_and_start_millennium(void)
     if (!fn_start_millennium) {
         LOG_ERROR("Failed to locate ordinal HookInterop::StartMillennium: %s", dlerror());
         dlclose(h_millennium);
-        h_millennium = NULL;
+        h_millennium = nullptr;
         return 0;
     }
 
@@ -153,7 +153,7 @@ static int load_and_start_millennium(void)
     if (result < 0) {
         LOG_ERROR("Failed to start Millennium: %d", result);
         dlclose(h_millennium);
-        h_millennium = NULL;
+        h_millennium = nullptr;
         return 0;
     }
 
@@ -178,7 +178,7 @@ static void stop_and_unload_millennium(void)
     }
 
     dlclose(h_millennium);
-    h_millennium = NULL;
+    h_millennium = nullptr;
 }
 
 static void setup_hooks(void)

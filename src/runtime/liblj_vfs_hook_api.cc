@@ -53,8 +53,8 @@ void load_patches(lua_State* L, lb_shm_arena_t* map)
     for (size_t i = 1; i <= patch_count; i++) {
         lua_rawgeti(L, -1, i);
 
-        const char* file = NULL;
-        const char* find = NULL;
+        const char* file = nullptr;
+        const char* find = nullptr;
 
         lua_getfield(L, -1, "file");
         if (lua_isstring(L, -1)) {
@@ -76,8 +76,8 @@ void load_patches(lua_State* L, lb_shm_arena_t* map)
             for (size_t j = 1; j <= transform_count; j++) {
                 lua_rawgeti(L, -1, j);
 
-                const char* match = NULL;
-                const char* replace = NULL;
+                const char* match = nullptr;
+                const char* replace = nullptr;
 
                 lua_getfield(L, -1, "match");
                 if (lua_isstring(L, -1)) {

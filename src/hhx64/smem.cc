@@ -37,7 +37,7 @@ lb_shm_arena_t* g_lb_patch_arena;
 
 #ifdef _WIN32
 #include <windows.h>
-#include <stdio.h>
+#include <cstdio>
 
 typedef struct
 {
@@ -45,18 +45,18 @@ typedef struct
     lb_shm_arena_t* ptr;
 } win_shm_ctx_t;
 
-static win_shm_ctx_t g_shm_ctx = { NULL, NULL };
+static win_shm_ctx_t g_shm_ctx = { nullptr, nullptr };
 
 lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
 {
     char win_name[256];
     snprintf(win_name, sizeof(win_name), "Local\\%s", name + 1); // Skip leading '/'
 
-    HANDLE hMapFile = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size, win_name);
+    HANDLE hMapFile = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, size, win_name);
     if (!hMapFile) {
         DWORD err = GetLastError();
         log_error("CreateFileMappingA failed: %s (error: %lu)\n", win_name, err);
-        return NULL;
+        return nullptr;
     }
 
     DWORD creation_result = GetLastError();
@@ -69,7 +69,7 @@ lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
         DWORD err = GetLastError();
         log_error("MapViewOfFile failed (error: %lu)\n", err);
         CloseHandle(hMapFile);
-        return NULL;
+        return nullptr;
     }
 
     g_shm_ctx.handle = hMapFile;
@@ -89,7 +89,7 @@ lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size)
     if (!hMapFile) {
         DWORD err = GetLastError();
         log_error("OpenFileMappingA failed: %s (error: %lu)\n", win_name, err);
-        return NULL;
+        return nullptr;
     }
 
     lb_shm_arena_t* arena = (lb_shm_arena_t*)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, size);
@@ -97,7 +97,7 @@ lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size)
         DWORD err = GetLastError();
         log_error("MapViewOfFile failed (error: %lu)\n", err);
         CloseHandle(hMapFile);
-        return NULL;
+        return nullptr;
     }
 
     g_shm_ctx.handle = hMapFile;
@@ -112,8 +112,8 @@ void shm_arena_close(lb_shm_arena_t* arena, uint32_t size)
     UnmapViewOfFile(arena);
     if (g_shm_ctx.handle) {
         CloseHandle(g_shm_ctx.handle);
-        g_shm_ctx.handle = NULL;
-        g_shm_ctx.ptr = NULL;
+        g_shm_ctx.handle = nullptr;
+        g_shm_ctx.ptr = nullptr;
     }
 }
 
@@ -132,17 +132,17 @@ void shm_arena_unlink(const char* name)
 lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
 {
     int fd = shm_open(name, O_CREAT | O_RDWR, 0666);
-    if (fd == -1) return NULL;
+    if (fd == -1) return nullptr;
 
     if (ftruncate(fd, size) == -1) {
         close(fd);
-        return NULL;
+        return nullptr;
     }
 
-    lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
 
-    if (arena == MAP_FAILED) return NULL;
+    if (arena == MAP_FAILED) return nullptr;
 
     arena->size = size;
     arena->used = sizeof(lb_shm_arena_t);
@@ -152,12 +152,12 @@ lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
 lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size)
 {
     int fd = shm_open(name, O_RDWR, 0666);
-    if (fd == -1) return NULL;
+    if (fd == -1) return nullptr;
 
-    lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
 
-    return (arena == MAP_FAILED) ? NULL : arena;
+    return (arena == MAP_FAILED) ? nullptr : arena;
 }
 
 void shm_arena_close(lb_shm_arena_t* arena, uint32_t size)
@@ -224,7 +224,7 @@ lb_patch_list_shm_t* hashmap_get(lb_shm_arena_t* arena, const char* key)
             return &values[i];
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 lb_patch_list_shm_t* hashmap_add_key(lb_shm_arena_t* arena, const char* key)
@@ -241,7 +241,7 @@ lb_patch_list_shm_t* hashmap_add_key(lb_shm_arena_t* arena, const char* key)
         uint32_t new_keys_off = shm_arena_alloc(arena, new_capacity * sizeof(uint32_t));
         uint32_t new_values_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_patch_list_shm_t));
 
-        if (new_keys_off == 0 || new_values_off == 0) return NULL;
+        if (new_keys_off == 0 || new_values_off == 0) return nullptr;
 
         /** copy old data */
         memcpy(SHM_PTR(arena, new_keys_off, uint32_t), SHM_PTR(arena, map->keys_off, uint32_t), map->capacity * sizeof(uint32_t));
@@ -314,7 +314,7 @@ lb_patch_shm_t* patchlist_add(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, 
     if (list->patch_count >= list->patch_capacity) {
         uint32_t new_capacity = list->patch_capacity ? list->patch_capacity * 2 : 4;
         uint32_t new_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_patch_shm_t));
-        if (new_off == 0) return NULL;
+        if (new_off == 0) return nullptr;
 
         if (list->patches_off) {
             memcpy(SHM_PTR(arena, new_off, lb_patch_shm_t), SHM_PTR(arena, list->patches_off, lb_patch_shm_t), list->patch_capacity * sizeof(lb_patch_shm_t));

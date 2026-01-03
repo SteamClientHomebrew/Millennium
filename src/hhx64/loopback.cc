@@ -34,7 +34,7 @@
 #include "hhx64/log.h"
 #include <assert.h>
 #include <atomic>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string.h>
 #ifdef __linux__
 #include <dlfcn.h>
@@ -69,9 +69,9 @@ int handle_loopback_request(const char* url, char** data, uint32_t* size);
 void* create_steamloopback_resource_handler(const char* url);
 extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
 
-struct _cef_client_t* orig_c = NULL;
-struct _cef_request_handler_t* (*original_get_request_handler)(void*) = NULL;
-struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*) = NULL;
+struct _cef_client_t* orig_c = nullptr;
+struct _cef_request_handler_t* (*original_get_request_handler)(void*) = nullptr;
+struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*) = nullptr;
 
 void CEF_CALLBACK lb_res_add_ref(void* base)
 {
@@ -212,25 +212,25 @@ cef_resource_request_handler_t* create_steamloopback_request_handler(const char*
 
     handler->handler.on_before_resource_load = lb_on_before_load_hdl;
     handler->handler.get_resource_handler = lb_get_resource_hdl;
-    handler->handler._1 = NULL;
-    handler->handler._2 = NULL;
-    handler->handler._3 = NULL;
-    handler->handler._4 = NULL;
-    handler->handler._5 = NULL;
-    handler->handler._6 = NULL;
+    handler->handler._1 = nullptr;
+    handler->handler._2 = nullptr;
+    handler->handler._3 = nullptr;
+    handler->handler._4 = nullptr;
+    handler->handler._5 = nullptr;
+    handler->handler._6 = nullptr;
     return &handler->handler;
 }
 
 int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size)
 {
-    *out_data = NULL;
+    *out_data = nullptr;
     *out_size = 0;
-    char* out_file_data = NULL;
+    char* out_file_data = nullptr;
     uint32_t out_file_size = 0;
 
-    char *local_path = NULL, *local_short_path = NULL;
+    char *local_path = nullptr, *local_short_path = nullptr;
     fread_data file_data = { 0 };
-    uint8_t* buf = NULL;
+    uint8_t* buf = nullptr;
 
     if (urlp_path_from_lb(url, &local_path, &local_short_path) != 0) {
         log_error("Failed to get path from URL: %s\n", url);
@@ -246,7 +246,7 @@ int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size
     find_file_matches(file_data.content, file_data.size, local_short_path, &out_file_data, &out_file_size);
     *out_data = out_file_data;
     *out_size = out_file_size;
-    file_data.content = NULL; /** transfer ownership */
+    file_data.content = nullptr; /** transfer ownership */
 
 cleanup:
     free(file_data.content);
@@ -254,7 +254,7 @@ cleanup:
     free(local_path);
     free(local_short_path);
 
-    return (*out_data != NULL) ? 0 : -1;
+    return (*out_data != nullptr) ? 0 : -1;
 }
 
 void* create_steamloopback_resource_handler(const char* url)
@@ -269,12 +269,12 @@ void* create_steamloopback_resource_handler(const char* url)
 #endif
     steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)calloc(1, sizeof(steamloopback_resource_handler_t));
 
-    char* data = NULL;
+    char* data = nullptr;
     uint32_t size = 0;
     if (handle_loopback_request(url, &data, &size) != 0 || !data) {
         log_error("Failed to handle loopback request\n");
         free(handler);
-        return NULL;
+        return nullptr;
     }
 
 #ifdef _WIN32
@@ -304,8 +304,8 @@ void* create_steamloopback_resource_handler(const char* url)
     handler->handler.get_response_headers = lb_get_response_headers;
     handler->handler.open = lb_open;
     handler->handler.read = lb_read;
-    handler->handler.cancel = NULL;
-    handler->handler.process_request = NULL;
-    handler->handler.skip = NULL;
+    handler->handler.cancel = nullptr;
+    handler->handler.process_request = nullptr;
+    handler->handler.skip = nullptr;
     return &handler->handler;
 }

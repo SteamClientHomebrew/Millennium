@@ -77,7 +77,7 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
 #define HOOK_OUT_WRITE(write_function)                                                                                                                                             \
     const char* message;                                                                                                                                                           \
     if (!PyArg_ParseTuple(args, "s", &message)) {                                                                                                                                  \
-        return NULL;                                                                                                                                                               \
+        return nullptr;                                                                                                                                                               \
     }                                                                                                                                                                              \
     write_function(BackendManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                      \
     return Py_BuildValue("");
@@ -94,34 +94,34 @@ extern "C" PyObject* CustomStderrWrite(PyObject* /** self */, PyObject* args)
 
 static PyMethodDef stdoutMethods[] = {
     { "write", CustomStdoutWrite, METH_VARARGS, "Custom stdout write function" },
-    { NULL,    NULL,              0,            NULL                           }
+    { nullptr,    nullptr,              0,            nullptr                           }
 };
 static PyMethodDef stderrMethods[] = {
     { "write", CustomStderrWrite, METH_VARARGS, "Custom stderr write function" },
-    { NULL,    NULL,              0,            NULL                           }
+    { nullptr,    nullptr,              0,            nullptr                           }
 };
 
 static struct PyModuleDef customStdoutModule = {
     PyModuleDef_HEAD_INIT,
     "hook_stdout",
-    NULL, // m_doc
+    nullptr, // m_doc
     -1,   // m_size
     stdoutMethods,
-    NULL, // m_slots
-    NULL, // m_traverse
-    NULL, // m_clear
-    NULL  // m_free
+    nullptr, // m_slots
+    nullptr, // m_traverse
+    nullptr, // m_clear
+    nullptr  // m_free
 };
 static struct PyModuleDef customStderrModule = {
     PyModuleDef_HEAD_INIT,
     "hook_stderr",
-    NULL, // m_doc
+    nullptr, // m_doc
     -1,   // m_size
     stderrMethods,
-    NULL, // m_slots
-    NULL, // m_traverse
-    NULL, // m_clear
-    NULL  // m_free
+    nullptr, // m_slots
+    nullptr, // m_traverse
+    nullptr, // m_clear
+    nullptr  // m_free
 };
 
 extern "C" PyObject* PyInit_CustomStderr(void)

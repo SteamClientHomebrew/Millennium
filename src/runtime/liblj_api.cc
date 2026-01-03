@@ -302,7 +302,7 @@ static const luaL_Reg millennium_lib[] = {
     { "call_frontend_method",  Lua_CallFrontendMethod  },
     { "is_plugin_enabled",     Lua_IsPluginEnable      },
     { "cmp_version",           Lua_CompareVersion      },
-    { NULL,                    NULL                    }  // Sentinel
+    { nullptr,                    nullptr                    }  // Sentinel
 };
 
 /**

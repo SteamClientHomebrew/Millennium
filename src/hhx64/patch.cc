@@ -30,8 +30,8 @@
 
 #include <assert.h>
 #include <string.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 #include <limits.h>
 #include <re2/re2.h>
 #include <re2/set.h>
@@ -198,8 +198,8 @@ extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_rege
 
     uint32_t capacity = 0;
     uint32_t file_count = 0;
-    const char** file_regex_pool = NULL;
-    match_plugin_map_t* plugin_map = NULL;
+    const char** file_regex_pool = nullptr;
+    match_plugin_map_t* plugin_map = nullptr;
 
     lb_hash_map_shm* map = &arena->map;
     uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
@@ -237,13 +237,13 @@ extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_rege
 static char* preprocess_replacement(const char* replacement, const char* plugin_name)
 {
     if (!replacement || !plugin_name) {
-        return NULL;
+        return nullptr;
     }
 
     size_t plugin_name_len = strnlen(plugin_name, MAX_PLUGIN_NAME_LEN + 1);
     if (plugin_name_len > MAX_PLUGIN_NAME_LEN) {
         log_error("Plugin name too long\n");
-        return NULL;
+        return nullptr;
     }
 
     const char* placeholder = "#{{self}}";
@@ -263,37 +263,37 @@ static char* preprocess_replacement(const char* replacement, const char* plugin_
     size_t substitute_len;
     if (!safe_add_size(template_base_len, plugin_name_len, &substitute_len)) {
         log_error("Substitute length overflow\n");
-        return NULL;
+        return nullptr;
     }
 
     if (substitute_len > 8192) {
         log_error("Substitute string too long\n");
-        return NULL;
+        return nullptr;
     }
 
     char* substitute = (char*)malloc(substitute_len + 1);
     if (!substitute) {
-        return NULL;
+        return nullptr;
     }
 
     int written = snprintf(substitute, substitute_len + 1, template_str, plugin_name);
     if (written < 0 || (size_t)written >= substitute_len + 1) {
         free(substitute);
         log_error("snprintf failed or truncated\n");
-        return NULL;
+        return nullptr;
     }
 
     size_t total_len;
     if (!safe_add_size(prefix_len, substitute_len, &total_len) || !safe_add_size(total_len, suffix_len, &total_len) || !safe_add_size(total_len, 1, &total_len)) {
         free(substitute);
         log_error("Total length overflow\n");
-        return NULL;
+        return nullptr;
     }
 
     char* result = (char*)malloc(total_len);
     if (!result) {
         free(substitute);
-        return NULL;
+        return nullptr;
     }
 
     memcpy(result, replacement, prefix_len);
@@ -309,12 +309,12 @@ static char* apply_substitution(RE2* re, const char* input, uint32_t input_size,
 {
     if (!re || !re->ok() || !input || !replacement || !out_size) {
         log_error("Invalid parameters to apply_substitution\n");
-        return NULL;
+        return nullptr;
     }
 
     if (input_size > MAX_FILE_SIZE) {
         log_error("Input size %u exceeds maximum %u\n", input_size, MAX_FILE_SIZE);
-        return NULL;
+        return nullptr;
     }
 
     std::string output(input, input_size);
@@ -324,20 +324,20 @@ static char* apply_substitution(RE2* re, const char* input, uint32_t input_size,
         count = RE2::GlobalReplace(&output, *re, replacement);
     } catch (const std::exception& e) {
         log_error("RE2::GlobalReplace threw exception: %s\n", e.what());
-        return NULL;
+        return nullptr;
     } catch (...) {
         log_error("RE2::GlobalReplace threw unknown exception\n");
-        return NULL;
+        return nullptr;
     }
 
     if (count == 0) {
         log_info("No match found\n");
-        return NULL;
+        return nullptr;
     }
 
     if (output.size() > MAX_FILE_SIZE) {
         log_error("Output size %zu exceeds maximum %u\n", output.size(), MAX_FILE_SIZE);
-        return NULL;
+        return nullptr;
     }
 
     log_info("Applied %d substitution(s), new size: %zu\n", count, output.size());
@@ -345,7 +345,7 @@ static char* apply_substitution(RE2* re, const char* input, uint32_t input_size,
     char* result = (char*)malloc(output.size());
     if (!result) {
         log_error("Failed to allocate %zu bytes\n", output.size());
-        return NULL;
+        return nullptr;
     }
 
     memcpy(result, output.data(), output.size());
@@ -356,16 +356,16 @@ static char* apply_substitution(RE2* re, const char* input, uint32_t input_size,
 static regex_cache_t* compile_transform_patterns(const transform_data_t* transforms, int count)
 {
     if (!transforms || count < 0 || count > (int)MAX_PATTERN_COUNT) {
-        return NULL;
+        return nullptr;
     }
 
     regex_cache_t* cache = (regex_cache_t*)malloc(sizeof(regex_cache_t));
-    if (!cache) return NULL;
+    if (!cache) return nullptr;
 
     cache->patterns = (RE2**)calloc(count, sizeof(RE2*));
     if (!cache->patterns) {
         free(cache);
-        return NULL;
+        return nullptr;
     }
     cache->count = count;
 
@@ -376,14 +376,14 @@ static regex_cache_t* compile_transform_patterns(const transform_data_t* transfo
                 if (!cache->patterns[i]->ok()) {
                     log_error("Failed to compile pattern %d: %s\n", i, cache->patterns[i]->error().c_str());
                     delete cache->patterns[i];
-                    cache->patterns[i] = NULL;
+                    cache->patterns[i] = nullptr;
                 }
             } catch (const std::exception& e) {
                 log_error("Exception compiling pattern %d: %s\n", i, e.what());
-                cache->patterns[i] = NULL;
+                cache->patterns[i] = nullptr;
             } catch (...) {
                 log_error("Unknown exception compiling pattern %d\n", i);
-                cache->patterns[i] = NULL;
+                cache->patterns[i] = nullptr;
             }
         }
     }
@@ -540,9 +540,9 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
         free(matches->ids);
         free(matches->froms);
         free(matches->tos);
-        matches->ids = NULL;
-        matches->froms = NULL;
-        matches->tos = NULL;
+        matches->ids = nullptr;
+        matches->froms = nullptr;
+        matches->tos = nullptr;
         return -1;
     }
 
@@ -558,9 +558,9 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
             free(matches->ids);
             free(matches->froms);
             free(matches->tos);
-            matches->ids = NULL;
-            matches->froms = NULL;
-            matches->tos = NULL;
+            matches->ids = nullptr;
+            matches->froms = nullptr;
+            matches->tos = nullptr;
             return -1;
         }
 
@@ -574,9 +574,9 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
             free(matches->ids);
             free(matches->froms);
             free(matches->tos);
-            matches->ids = NULL;
-            matches->froms = NULL;
-            matches->tos = NULL;
+            matches->ids = nullptr;
+            matches->froms = nullptr;
+            matches->tos = nullptr;
             return -1;
         }
     }
@@ -631,11 +631,11 @@ extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches,
         return -1;
     }
 
-    transform_data_t* transforms = NULL;
-    const char** finds = NULL;
-    char* working_buffer = NULL;
+    transform_data_t* transforms = nullptr;
+    const char** finds = nullptr;
+    char* working_buffer = nullptr;
     match_list_t file_matches = { 0 };
-    regex_cache_t* pattern_cache = NULL;
+    regex_cache_t* pattern_cache = nullptr;
     uint32_t working_size = f_size;
     int ret = -1;
 
@@ -703,7 +703,7 @@ extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches,
 
     *out_content = working_buffer;
     *out_size = working_size;
-    working_buffer = NULL; // Transfer ownership
+    working_buffer = nullptr; // Transfer ownership
     ret = 0;
 
     log_info("Patching complete, final size: %u\n", working_size);
@@ -745,8 +745,8 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         return -1;
     }
 
-    const char** file_regex_pool = NULL;
-    match_plugin_map_t* plugin_map = NULL;
+    const char** file_regex_pool = nullptr;
+    match_plugin_map_t* plugin_map = nullptr;
     uint32_t file_count = 0;
 
     if (get_file_regex_pool(arena, &file_regex_pool, &plugin_map, &file_count) != 0) {
@@ -788,7 +788,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         }
     }
 
-    char* out_data = NULL;
+    char* out_data = nullptr;
     uint32_t out_size = 0;
     int ret = handle_file_patches(arena, &matches, plugin_map, file_content, size, &out_data, &out_size);
 

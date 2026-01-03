@@ -30,7 +30,7 @@
 
 #include "millennium/plugin_logger.h"
 #include <Python.h>
-#include <stdio.h>
+#include <cstdio>
 
 std::vector<BackendLogger*> g_loggerList;
 
@@ -50,11 +50,11 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwd
     LoggerObject* self;
     self = (LoggerObject*)type->tp_alloc(type, 0);
     if (!self) {
-        return NULL;
+        return nullptr;
     }
 
-    const char* prefix = NULL;
-    if (PyArg_ParseTuple(args, "|s", &prefix) && prefix != NULL) {
+    const char* prefix = nullptr;
+    if (PyArg_ParseTuple(args, "|s", &prefix) && prefix != nullptr) {
         PyErr_WarnEx(PyExc_DeprecationWarning,
                      "DEVELOPER INFO: Logger() no longer accepts custom name parameters, this is not fatal however all parameters will be ignored, please remove them.", 1);
     }
@@ -63,7 +63,7 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwd
     if (!builtins) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to retrieve __builtins__.");
         Py_DECREF(self);
-        return NULL;
+        return nullptr;
     }
 
     /** Get the variable from the __builtins__ dictionary */
@@ -81,7 +81,7 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwd
     self->m_loggerPtr = new BackendLogger(pluginName);
     if (!self->m_loggerPtr) {
         Py_DECREF(self);
-        return NULL;
+        return nullptr;
     }
 
     g_loggerList.push_back(self->m_loggerPtr);
@@ -115,7 +115,7 @@ PyObject* LoggerObject_log(LoggerObject* self, PyObject* args)
 {
     const char* message;
     if (!PyArg_ParseTuple(args, "s", &message)) {
-        return NULL;
+        return nullptr;
     }
 
     self->m_loggerPtr->Log(message);
@@ -137,7 +137,7 @@ PyObject* LoggerObject_error(LoggerObject* self, PyObject* args)
 {
     const char* message;
     if (!PyArg_ParseTuple(args, "s", &message)) {
-        return NULL;
+        return nullptr;
     }
 
     self->m_loggerPtr->Error(message);
@@ -159,7 +159,7 @@ PyObject* LoggerObject_warning(LoggerObject* self, PyObject* args)
 {
     const char* message;
     if (!PyArg_ParseTuple(args, "s", &message)) {
-        return NULL;
+        return nullptr;
     }
 
     self->m_loggerPtr->Warn(message);
@@ -179,7 +179,7 @@ static PyMethodDef LoggerObject_methods[] = {
     { "error", (PyCFunction)LoggerObject_error,   METH_VARARGS, "Log an error message"  },
     { "warn",  (PyCFunction)LoggerObject_warning, METH_VARARGS, "Log a warning message" },
 
-    { NULL,    NULL,                              0,            NULL                    }  /* Sentinel */
+    { nullptr,    nullptr,                              0,            nullptr                    }  /* Sentinel */
 };
 
 /**
@@ -190,7 +190,7 @@ static PyMethodDef LoggerObject_methods[] = {
  * @returns {PyTypeObject*} - A pointer to the type object for the LoggerObject instance.
  */
 PyTypeObject LoggerType = {
-    PyVarObject_HEAD_INIT(NULL, 0) "logger.Logger", // tp_name
+    PyVarObject_HEAD_INIT(nullptr, 0) "logger.Logger", // tp_name
     sizeof(LoggerObject),                           // tp_basicsize
     0,                                              // tp_itemsize
     (destructor)LoggerObject_dealloc,               // tp_dealloc
@@ -270,20 +270,20 @@ PyObject* PyInit_Logger(void)
 {
     if (PyType_Ready(&LoggerType) < 0) {
         /** Failing indicates a serious initialization error */
-        return NULL;
+        return nullptr;
     }
 
     /** Create the logger module */
     PyObject* loggerModule = PyModule_Create(&g_loggerModuleDef);
-    if (loggerModule == NULL) {
-        return NULL;
+    if (loggerModule == nullptr) {
+        return nullptr;
     }
 
     Py_INCREF(&LoggerType);
     if (PyModule_AddObject(loggerModule, "Logger", (PyObject*)&LoggerType) < 0) {
         Py_DECREF(&LoggerType);
         Py_DECREF(loggerModule);
-        return NULL;
+        return nullptr;
     }
 
     return loggerModule;

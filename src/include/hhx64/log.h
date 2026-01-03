@@ -29,9 +29,9 @@
  */
 #pragma once
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
+#include <cstdio>
+#include <cstdarg>
+#include <ctime>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -47,7 +47,7 @@ static void get_time_mmss(char* buf, size_t len)
 #else
     struct timeval tv;
     struct tm* tm;
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
     tm = localtime(&tv.tv_sec);
     snprintf(buf, len, "%02d:%02d.%03ld", tm->tm_min, tm->tm_sec, tv.tv_usec / 1000);
 #endif

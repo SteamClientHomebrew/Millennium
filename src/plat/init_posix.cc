@@ -41,8 +41,8 @@
 #include <dlfcn.h>
 #include <fmt/core.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 std::unique_ptr<std::thread> g_millenniumThread;
 
@@ -59,7 +59,7 @@ int IsSamePath(const char* path1, const char* path2)
 {
     char realpath1[PATH_MAX], realpath2[PATH_MAX];
 
-    if (realpath(path1, realpath1) == NULL || realpath(path2, realpath2) == NULL) {
+    if (realpath(path1, realpath1) == nullptr || realpath(path2, realpath2) == nullptr) {
         LOG_ERROR("Failed to resolve paths: {} or {}", path1, path2);
         return 0;
     }
@@ -97,7 +97,7 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
     if (g_lb_patch_arena) {
         shm_arena_close(g_lb_patch_arena, SHM_IPC_SIZE);
         shm_arena_unlink(SHM_IPC_NAME);
-        g_lb_patch_arena = NULL;
+        g_lb_patch_arena = nullptr;
     }
 }
 
