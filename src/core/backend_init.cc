@@ -29,14 +29,14 @@
  */
 
 #include "hhx64/smem.h"
+
 #include "millennium/backend_init.h"
-#include "millennium/plat_msg.h"
 #include "millennium/auth.h"
 #include "millennium/backend_mgr.h"
-#include "millennium/env.h"
 #include "millennium/ffi.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
+#include "millennium/plat_msg.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
 #include "millennium/urlp.h"
@@ -76,7 +76,7 @@ class BackendLoadState : public Singleton<BackendLoadState>
  * Error Handling:
  * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
  */
-std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
+std::string GetBootstrapModule(const std::vector<std::string>& scriptModules)
 {
     std::string scriptModuleArray;
     std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
@@ -106,7 +106,7 @@ std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
  * - If the `sys` module cannot be imported, an error is logged.
  * - If the `sys.path` attribute cannot be accessed, no action is taken.
  */
-void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
+void AppendSysPathModules(const std::vector<std::filesystem::path>& sitePackages)
 {
     PyObject* sysModule = PyImport_ImportModule("sys");
     if (!sysModule) {
@@ -144,7 +144,7 @@ void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
  * - If the `site` module cannot be imported, the error is printed and logged.
  * - If the `addsitedir` function cannot be retrieved or called, an error is printed and logged.
  */
-void AddSitePackagesDirectory(std::filesystem::path customPath)
+void AddSitePackagesDirectory(const std::filesystem::path& customPath)
 {
     PyObject* siteModule = PyImport_ImportModule("site");
 
@@ -172,6 +172,7 @@ void AddSitePackagesDirectory(std::filesystem::path customPath)
  * @brief Starts the plugin backend by calling the _load method on the plugin instance.
  *
  * @param global_dict The global dictionary of the Python interpreter.
+ * @param pluginName  Name of the plugin.
  */
 void StartPluginBackend(PyObject* global_dict, std::string pluginName)
 {
@@ -315,7 +316,7 @@ extern "C" int Lua_OpenFS(lua_State* L);
 extern "C" int Lua_OpenRegex(lua_State* L);
 extern "C" int Lua_OpenDateTime(lua_State* L);
 
-static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
+static void RegisterModule(lua_State* L, const char* name, const lua_CFunction func)
 {
     lua_pushcclosure(L, func, 0);
     lua_setfield(L, -2, name);
@@ -341,9 +342,9 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "path");
-    std::string currentPath = lua_tostring(L, -1);
-    std::string pluginPath = plugin.backendAbsoluteDirectory.parent_path().string();
-    std::string newPath = pluginPath + "/?.lua;" + currentPath;
+    const std::string currentPath = lua_tostring(L, -1);
+    const std::string pluginPath = plugin.backendAbsoluteDirectory.parent_path().string();
+    const std::string newPath = pluginPath + "/?.lua;" + currentPath;
     lua_pop(L, 1);
     lua_pushstring(L, newPath.c_str());
     lua_setfield(L, -2, "path");
@@ -503,7 +504,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
             if (std::chrono::steady_clock::now() - startTime > std::chrono::seconds(30)) {
-                std::string errorMessage = fmt::format(
+                const std::string errorMessage = fmt::format(
                     "\nIt appears that the plugin '{}' either forgot to call `Millennium.ready()` or is I/O blocking the main thread. We've flagged it as a failure to load."
                     "Your _load() function MUST NOT block the main thread, logic that runs for the duration of the plugin should run in true parallelism with threading.",
                     plugin.pluginName);
@@ -554,10 +555,10 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
  *
  * The constructed module is returned as a string.
  */
-const std::string ConstructOnLoadModule()
+ std::string ConstructOnLoadModule()
 {
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
+    const std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
+    const std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
 
     std::vector<std::string> scriptImportTable;
 
@@ -664,13 +665,13 @@ void OnBackendLoad(bool reloadFrontend)
         PAGE_RELOAD = 4
     };
 
-    CefSocketDispatcher::GetInstance().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
+    CefSocketDispatcher::GetInstance().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, const std::string& listenerId)
     {
         auto& state = BackendLoadState::GetInstance();
         std::unique_lock<std::mutex> lock(state.mtx);
 
         try {
-            const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
+            const PageMessage messageId = static_cast<PageMessage>(eventMessage.value("id", -1));
 
             if (messageId == PAGE_ENABLE) {
                 Logger.Log("Injecting script to evaluate on new document...");
@@ -747,7 +748,7 @@ void CoInitializer::InjectFrontendShims(bool reloadFrontend)
  *
  * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
  */
-void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
+void CoInitializer::ReInjectFrontendShims(const std::shared_ptr<PluginLoader> pluginLoader, const bool reloadFrontend)
 {
     pluginLoader->InjectWebkitShims();
 

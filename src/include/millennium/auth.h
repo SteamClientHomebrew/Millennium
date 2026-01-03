@@ -32,5 +32,5 @@
 
 #include <string>
 
-const std::string GetAuthToken();
-const std::string GetScrambledApiPathToken();
+std::string GetAuthToken();
+std::string GetScrambledApiPathToken();

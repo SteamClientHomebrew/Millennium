@@ -38,7 +38,7 @@
  *
  * It uses mersenne twister engine for random number generation.
  */
-std::string BuildRandomString(size_t length)
+std::string BuildRandomString(const size_t length)
 {
     const std::string charset = "0123456789"
                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -46,7 +46,7 @@ std::string BuildRandomString(size_t length)
 
     std::random_device rd;        // Non-deterministic random number generator
     std::mt19937 generator(rd()); // Mersenne Twister engine
-    std::uniform_int_distribution<> dist(0, charset.size() - 1);
+    std::uniform_int_distribution<> dist(0, static_cast<int16_t>(charset.size()) - 1);
 
     std::string token;
     token.reserve(length);
@@ -62,7 +62,7 @@ std::string BuildRandomString(size_t length)
  * Just a basic security measure, and doesn't overly matter since this is all local.
  * But it stops casual snooping. It also prevent actual fs paths clashing with internal api paths.
  */
-const std::string GetScrambledApiPathToken()
+std::string GetScrambledApiPathToken()
 {
     static const std::string scrambledApiPathToken = BuildRandomString(32);
     return scrambledApiPathToken;
@@ -74,7 +74,7 @@ const std::string GetScrambledApiPathToken()
  *
  * @returns {std::string} - The auth token for the current session.
  */
-const std::string GetAuthToken()
+std::string GetAuthToken()
 {
     static const std::string authToken = BuildRandomString(128);
     return authToken;
