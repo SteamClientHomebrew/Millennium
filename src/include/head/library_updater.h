@@ -47,14 +47,14 @@ class Updater
     bool DownloadPluginUpdate(const std::string& id, const std::string& name);
     bool DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
 
-    std::optional<json> GetCachedUpdates() const;
-    bool HasCheckedForUpdates() const;
+    [[nodiscard]] std::optional<json> GetCachedUpdates() const;
+    [[nodiscard]] bool HasCheckedForUpdates() const;
 
     std::optional<json> CheckForUpdates(bool force = false);
     std::string ResyncUpdates();
 
-    ThemeInstaller& GetThemeUpdater();
-    PluginInstaller& GetPluginUpdater();
+    [[nodiscard]] ThemeInstaller& GetThemeUpdater();
+    [[nodiscard]] PluginInstaller& GetPluginUpdater();
 
   private:
     std::string api_url;

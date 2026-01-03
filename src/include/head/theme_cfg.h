@@ -29,12 +29,12 @@
  */
 
 #pragma once
+
+#include <filesystem>
+#include <set>
+#include "millennium/sysfs.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "filesystem"
-#include <set>
-
-#include "millennium/sysfs.h"
 
 class ThemeConfig
 {
@@ -43,33 +43,33 @@ class ThemeConfig
     ~ThemeConfig();
 
     void OnConfigChange();
-    void UpgradeOldConfig();
-    void ValidateTheme();
+    static void UpgradeOldConfig();
+    static void ValidateTheme();
 
-    nlohmann::json GetConfig();
-    void SetConfig(const std::string& path, const nlohmann::json& value);
+    [[nodiscard]] static nlohmann::json GetConfig();
+    static void SetConfig(const std::string& path, const nlohmann::json& value);
 
-    void ChangeTheme(const std::string& theme_name);
-    nlohmann::json GetAccentColor();
-    nlohmann::json GetActiveTheme();
+    static void ChangeTheme(const std::string& theme_name);
+    [[nodiscard]] static nlohmann::json GetAccentColor();
+    [[nodiscard]] nlohmann::json GetActiveTheme() const;
 
     void SetupThemeHooks();
-    void StartWebkitHook(const nlohmann::json& theme, const std::string& name);
+    void StartWebkitHook(const nlohmann::json& theme, const std::string& name) const;
 
     void SetupColors();
-    nlohmann::json GetColors();
-    nlohmann::json GetColorOpts(const std::string& theme_name);
-    nlohmann::json ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type);
-    void ChangeAccentColor(const std::string& new_color);
-    void ResetAccentColor();
+    [[nodiscard]] nlohmann::json GetColors() const;
+    [[nodiscard]] nlohmann::json GetColorOpts(const std::string& theme_name);
+    static nlohmann::json ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type);
+    static void ChangeAccentColor(const std::string& new_color);
+    static void ResetAccentColor();
 
     bool DoesThemeUseAccentColor();
-    std::string GetConditionals();
-    nlohmann::json ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition);
+    [[nodiscard]] static std::string GetConditionals();
+    static nlohmann::json ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition);
 
   private:
-    void SetupConditionals();
-    std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
+    static void SetupConditionals();
+    [[nodiscard]] static std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
 
     ConfigManager::Listener config_listener_;
     std::filesystem::path themes_path;

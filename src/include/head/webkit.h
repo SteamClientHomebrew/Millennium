@@ -34,6 +34,8 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
+#include "millennium/singleton.h"
+
 namespace Millennium
 {
 int AddBrowserCss(const std::string& path, const std::string& regex);
@@ -41,16 +43,16 @@ int AddBrowserJs(const std::string& path, const std::string& regex);
 bool RemoveBrowserModule(int id);
 } // namespace Millennium
 
-class WebkitHookStore
+class WebkitHookStore : Singleton<WebkitHookStore>
 {
+    friend class Singleton<WebkitHookStore>;
+
   public:
-    static WebkitHookStore& Instance();
 
     void Push(int moduleId);
     void UnregisterAll();
 
   private:
-    WebkitHookStore() = default;
     std::vector<int> stack;
 };
 

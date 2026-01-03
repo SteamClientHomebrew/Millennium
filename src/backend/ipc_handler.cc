@@ -29,11 +29,11 @@
  */
 
 #include "head/ipc_handler.h"
-#include "millennium/logger.h"
 #include "millennium/ffi.h"
+#include "millennium/logger.h"
 
 /**
- * stored in a static instance only instantiated after its called once.
+ * Stored in a static instance only instantiated after it's called once.
  * This avoids static initialization order issues.
  */
 std::unordered_map<std::string, std::any>& GetCoreExports()
@@ -43,29 +43,29 @@ std::unordered_map<std::string, std::any>& GetCoreExports()
 }
 
 /**
- * @brief handle IPC messages from Millennium frontend
- * @param functionName Name of the function to call
+ * @brief Handle IPC messages from Millennium frontend
+ * @param function_name Name of the function to call
  * @param args JSON arguments to pass to the function. Args must be an object, mapping kwargs to values.
  */
-nlohmann::ordered_json HandleIpcMessage(const std::string& functionName, const nlohmann::json& args)
+nlohmann::ordered_json HandleIpcMessage(const std::string& function_name, const nlohmann::json& args)
 {
     // Skip plugin settings parser as it's not applicable
-    if (functionName == "__builtins__.__millennium_plugin_settings_parser__") {
+    if (function_name == "__builtins__.__millennium_plugin_settings_parser__") {
         throw std::runtime_error("Not applicable to this plugin");
     }
 
     const auto& exports = GetCoreExports();
-    const auto it = exports.find(functionName);
+    const auto it = exports.find(function_name);
 
     if (it == exports.end()) {
-        const std::string errorMsg = "Function not found: " + functionName;
+        const std::string errorMsg = "Function not found: " + function_name;
         LOG_ERROR("{}", errorMsg);
         throw std::runtime_error(errorMsg);
     }
 
     using FuncType = std::function<nlohmann::ordered_json(const nlohmann::ordered_json&)>;
     if (it->second.type() != typeid(FuncType)) {
-        const std::string errorMsg = "Invalid function type: " + functionName;
+        const std::string errorMsg = "Invalid function type: " + function_name;
         LOG_ERROR("{}", errorMsg);
         throw std::runtime_error(errorMsg);
     }
@@ -76,7 +76,7 @@ nlohmann::ordered_json HandleIpcMessage(const std::string& functionName, const n
 
 void IpcForwardInstallLog(const InstallMessage& message)
 {
-    std::vector<JavaScript::JsFunctionConstructTypes> params = {
+    const std::vector<JavaScript::JsFunctionConstructTypes> params = {
         { message.status, JavaScript::Types::String },
         { fmt::format("{}", message.progress), JavaScript::Types::Integer },
         { fmt::format("{}", message.isComplete), JavaScript::Types::Boolean }

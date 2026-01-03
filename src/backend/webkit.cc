@@ -70,12 +70,6 @@ bool Millennium::RemoveBrowserModule(int id)
     return HttpHookManager::GetInstance().RemoveHook(id);
 }
 
-WebkitHookStore& WebkitHookStore::Instance()
-{
-    static WebkitHookStore instance;
-    return instance;
-}
-
 void WebkitHookStore::Push(int moduleId)
 {
     stack.push_back(moduleId);
@@ -156,14 +150,14 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
 int AddBrowserCss(const std::string& css_path, const std::string& regex)
 {
     int id = Millennium::AddBrowserCss(css_path, regex);
-    WebkitHookStore::Instance().Push(id);
+    WebkitHookStore::getInstance().Push(id);
     return id;
 }
 
 int AddBrowserJs(const std::string& js_path, const std::string& regex)
 {
     int id = Millennium::AddBrowserJs(js_path, regex);
-    WebkitHookStore::Instance().Push(id);
+    WebkitHookStore::getInstance().Push(id);
     return id;
 }
 

@@ -28,9 +28,11 @@
  * SOFTWARE.
  */
 
+#pragma once
+
+#include <optional>
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include <optional>
 
 namespace Millennium
 {
@@ -44,7 +46,7 @@ struct Plugin
 };
 
 nlohmann::json FindAllPlugins();
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
+[[nodiscard]] std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
 } // namespace Plugins
 
 namespace Themes
