@@ -227,8 +227,10 @@ nlohmann::json MillenniumUpdater::HasAnyUpdates()
 
 void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
 {
+    std::filesystem::path steam_path = SystemIO::GetSteamPath();
+
     std::error_code ec;
-    const auto temp_path = SystemIO::GetInstallPath() / MILLENNIUM_UPDATER_TEMP_DIR;
+    std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
 
     if (std::filesystem::exists(temp_path, ec)) {
         std::filesystem::remove_all(temp_path, ec);
@@ -238,12 +240,34 @@ void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
             Logger.Log("Cleaned up temporary directory: {}", temp_path.string());
         }
     }
+
+    try {
+        /** find all files in the steam directory that end with .tmp and contain uuid in the filename */
+        for (const auto& entry : std::filesystem::directory_iterator(steam_path)) {
+            if (!entry.is_regular_file()) {
+                continue;
+            }
+
+            std::string filename = entry.path().filename().string();
+            if (filename.size() > 8 && filename.substr(filename.size() - 4) == ".tmp" && filename.find("uuid") != std::string::npos) {
+                Logger.Log("Removing leftover temporary file: {}", entry.path().string());
+                std::filesystem::remove(entry.path(), ec);
+                if (ec) {
+                    Logger.Warn("Failed to remove temporary file {}: {}", entry.path().string(), ec.message());
+                }
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& fe) {
+        Logger.Warn("Filesystem error during directory iteration: {}", fe.what());
+    } catch (const std::exception& e) {
+        Logger.Warn("Exception during directory iteration: {}", e.what());
+    }
 }
 
 void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<std::string> lockedFiles)
 {
 #ifdef _WIN32
-    const auto steam_path = SystemIO::GetSteamPath();
+    std::filesystem::path steam_path = SystemIO::GetSteamPath();
 
     if (steam_path.empty()) {
         Logger.Warn("Steam path not found, skipping old Millennium cleanup.");
@@ -251,7 +275,8 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
     }
 
     /** Make temporary directory for old Millennium files */
-    const auto temp_path = SystemIO::GetInstallPath() / MILLENNIUM_UPDATER_TEMP_DIR;
+    std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
+    Logger.Log("Using temporary directory for moving old Millennium files: {}", temp_path.string());
 
     std::error_code ec;
     std::filesystem::create_directories(temp_path, ec);
@@ -263,7 +288,7 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
     bool any_files_moved = false;
 
     for (const auto& filename : lockedFiles) {
-        const auto source_path = steam_path / filename;
+        std::filesystem::path source_path = steam_path / filename;
 
         Logger.Log("Processing old file: {}", source_path.string());
 
@@ -274,9 +299,12 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
             continue;
         }
 
-        const auto dest_path = temp_path / fmt::format("{}.uuid{}.tmp", filename, GenerateUUID());
-        const auto source_wide = source_path.wstring();
-        const auto dest_wide = dest_path.wstring();
+        std::string base_filename = source_path.filename().string();
+        std::string temp_file_name = fmt::format("{}.uuid{}.tmp", base_filename, GenerateUUID());
+
+        std::filesystem::path dest_path = temp_path / temp_file_name;
+        std::filesystem::path source_wide = source_path.wstring();
+        std::filesystem::path dest_wide = dest_path.wstring();
 
         Logger.Log("Moving old Millennium file {} to temporary location {}", source_path.string(), dest_path.string());
 
