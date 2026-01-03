@@ -19,8 +19,9 @@
           pkgs = import nixpkgs { system = "x86_64-linux"; };
         in
         {
-          millennium-assets   = pkgs.callPackage ./assets.nix { inherit millennium-src; };
+          millennium-assets   = pkgs.callPackage ./assets.nix   { inherit millennium-src; };
           millennium-frontend = pkgs.callPackage ./frontend.nix { inherit millennium-src; };
+          millennium-shims    = pkgs.callPackage ./shims.nix    { inherit millennium-src; };
         };
     };
 }
