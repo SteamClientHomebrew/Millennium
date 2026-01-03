@@ -33,7 +33,7 @@
 #include <asio/ip/tcp.hpp>
 #define DEFAULT_DEVTOOLS_PORT "8080"
 extern std::string STEAM_DEVELOPER_TOOLS_PORT;
-const char* GetAppropriateDevToolsPort(const bool isDevMode);
+const char* GetAppropriateDevToolsPort(bool isDevMode);
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN

@@ -30,7 +30,6 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/cef_bridge.h"
 #include "millennium/http_hooks.h"
@@ -44,8 +43,6 @@
 #undef _WINSOCKAPI_
 #include <winsock2.h>
 #endif
-
-extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
 class CEFBrowser
 {
@@ -64,7 +61,7 @@ class CEFBrowser
 class PluginLoader
 {
   public:
-    PluginLoader(std::chrono::system_clock::time_point startTime);
+    explicit PluginLoader(std::chrono::system_clock::time_point startTime);
     // ~PluginLoader();
 
     void StartBackEnds(BackendManager& manager);

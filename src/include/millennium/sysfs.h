@@ -31,11 +31,11 @@
 #pragma once
 #define MINI_CASE_SENSITIVE
 #include <filesystem>
-#include <mini/ini.h>
-#include <nlohmann/json.hpp>
-#include <string>
-#include <vector>
 #include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 class SettingsStore
 {
@@ -81,10 +81,10 @@ namespace SystemIO
 class FileException : public std::exception
 {
   public:
-    FileException(const std::string& message) : msg(message)
+    explicit FileException(std::string message) : msg(std::move(message))
     {
     }
-    virtual const char* what() const noexcept override
+    [[nodiscard]] virtual const char* what() const noexcept override
     {
         return msg.c_str();
     }

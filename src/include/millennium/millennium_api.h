@@ -30,9 +30,11 @@
 
 #pragma once
 #include "millennium/http_hooks.h"
-#include <nlohmann/json.hpp>
+
 #include <string>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 struct PluginStatus
 {

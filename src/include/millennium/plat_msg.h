@@ -2,11 +2,11 @@
 
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
+
 #include <cstdio>
 #include <cstdlib>
 #ifdef __linux__
 #include <linux/limits.h>
-#include <unistd.h>
 #endif
 
 typedef enum
@@ -18,7 +18,7 @@ typedef enum
 } Plat_MessageBoxMessageLevel;
 
 [[maybe_unused]]
-static int Plat_ShowMessageBox(const char* title, const char* message, Plat_MessageBoxMessageLevel level)
+static int Plat_ShowMessageBox(const char* title, const char* message, const Plat_MessageBoxMessageLevel level)
 {
 #ifdef _WIN32
     if (!message) {
@@ -86,7 +86,7 @@ static int Plat_ShowMessageBox(const char* title, const char* message, Plat_Mess
     strncat(cmd, "\"", sizeof(cmd) - strlen(cmd) - 1);
 
     Logger.Log("executing command: {}", cmd);
-    int ret = system(cmd);
+    const int ret = system(cmd);
 
     if (level == MESSAGEBOX_QUESTION) return (ret == 0) ? 1 : 0; // 1=Yes/OK, 0=No/Cancel
     return ret;

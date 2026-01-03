@@ -29,14 +29,16 @@
  */
 
 #pragma once
+
 #include "millennium/backend_mgr.h"
 
 #include <atomic>
 #include <chrono>
-#include <curl/curl.h>
 #include <memory>
 #include <string>
 #include <thread>
+#include <utility>
+#include <curl/curl.h>
 
 #define MILLENNIUM_USERAGENT "Millennium/" MILLENNIUM_VERSION
 
@@ -59,7 +61,7 @@ struct DownloadData
 static size_t WriteFileCallback(void* ptr, size_t size, size_t nmemb, void* userdata)
 {
     auto* data = static_cast<DownloadData*>(userdata);
-    size_t written = fwrite(ptr, size, nmemb, data->fp);
+    const size_t written = fwrite(ptr, size, nmemb, data->fp);
 
     data->downloaded += written * size; // track bytes, not elements
 
@@ -73,11 +75,11 @@ static size_t WriteFileCallback(void* ptr, size_t size, size_t nmemb, void* user
 class HttpError : public std::exception
 {
   public:
-    HttpError(const std::string& message) : message(message)
+    explicit HttpError(std::string  message) : message(std::move(message))
     {
     }
 
-    const std::string& GetMessage() const
+    [[nodiscard]] const std::string& GetMessage() const
     {
         return message;
     }
@@ -90,12 +92,11 @@ namespace Http
 {
 inline std::string Get(const char* url, bool retry = true, const long timeout = 10L)
 {
-    CURL* curl;
-    CURLcode res;
     std::string response;
+    CURL* curl = curl_easy_init();
 
-    curl = curl_easy_init();
     if (curl) {
+        CURLcode res;
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -121,12 +122,11 @@ inline std::string Get(const char* url, bool retry = true, const long timeout = 
 }
 inline std::string Post(const char* url, const std::string& postData, bool retry = true)
 {
-    CURL* curl;
-    CURLcode res;
     std::string response;
+    CURL* curl = curl_easy_init();
 
-    curl = curl_easy_init();
     if (curl) {
+        CURLcode res;
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
@@ -154,7 +154,7 @@ inline std::string Post(const char* url, const std::string& postData, bool retry
     return response;
 }
 
-inline void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, const std::filesystem::path& destPath, std::function<void(size_t, size_t)> progressCallback)
+inline void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, const std::filesystem::path& destPath, const std::function<void(size_t, size_t)>& progressCallback)
 {
     const auto& [url, expectedSize] = download_info;
 

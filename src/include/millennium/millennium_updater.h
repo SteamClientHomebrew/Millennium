@@ -29,9 +29,9 @@
  */
 
 #pragma once
-#include <string>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <nlohmann/json.hpp>
 
 class MillenniumUpdater
@@ -71,7 +71,7 @@ class MillenniumUpdater
      * @param downloadSize Size of the update to download
      * @param background Whether to run the update in the background (separate thread) or foreground (main thread)
      */
-    static void StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background, bool forwardToIpc = true);
+    static void StartUpdate(const std::string& downloadUrl, size_t downloadSize, bool background, bool forwardToIpc = true);
 
     /**
      * Check if there is a pending Millennium update that requires a restart
@@ -97,8 +97,9 @@ class MillenniumUpdater
      * Coroutine entry point for performing the update in the background or foreground
      * @param downloadUrl URL of the update to download
      * @param downloadSize Size of the update to download
+     * @param forwardToIpc Whether to forward IPC messages to the main thread
      */
-    static void Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize, bool forwardToIpc);
+    static void Co_BeginUpdate(const std::string& downloadUrl, size_t downloadSize, bool forwardToIpc);
 
     /**
      * Shutdown the updater, waiting for any background threads to complete

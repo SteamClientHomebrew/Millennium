@@ -85,23 +85,24 @@ class HttpHookManager : public Singleton<HttpHookManager>
 
     void DispatchSocketMessage(nlohmann::basic_json<> message);
     void SetupGlobalHooks();
-    void AddHook(const HookType& hook);
-    bool RemoveHook(unsigned long long hookId);
+    void AddHook(const HookType& hook) const;
+    bool RemoveHook(unsigned long long hookId) const;
 
     // Thread-safe hook list operations
-    void SetHookList(std::shared_ptr<std::vector<HookType>> hookList);
+    void SetHookList(const std::shared_ptr<std::vector<HookType>>& hookList);
     std::vector<HookType> GetHookListCopy() const;
 
     void Shutdown();
 
   private:
     HttpHookManager();
-    ~HttpHookManager();
+
+    virtual ~HttpHookManager() override;
 
     class ThreadPool
     {
       public:
-        ThreadPool(size_t numThreads = 4);
+        explicit ThreadPool(size_t numThreads = 4);
 
         template <typename F> void enqueue(F&& f);
         void shutdown();
@@ -151,22 +152,23 @@ class HttpHookManager : public Singleton<HttpHookManager>
     std::shared_ptr<std::vector<WebHookItem>> m_requestMap;
 
     // Private methods
-    bool IsIpcCall(const nlohmann::basic_json<>& message);
-    bool IsGetBodyCall(const nlohmann::basic_json<>& message);
+    bool IsIpcCall(const nlohmann::basic_json<>& message) const;
+    bool IsGetBodyCall(const nlohmann::basic_json<>& message) const;
     std::string HandleCssHook(const std::string& body);
     std::string HandleJsHook(const std::string& body);
 
     void HandleHooks(const nlohmann::basic_json<>& message);
-    void RetrieveRequestFromDisk(const nlohmann::basic_json<>& message);
+    void RetrieveRequestFromDisk(const nlohmann::basic_json<>& message) const;
     void GetResponseBody(const nlohmann::basic_json<>& message);
-    void HandleIpcMessage(nlohmann::json message);
-    std::filesystem::path ConvertToLoopBack(const std::string& requestUrl);
+    void HandleIpcMessage(nlohmann::json message) const;
+    std::filesystem::path ConvertToLoopBack(const std::string& requestUrl) const;
 
     // Thread-safe utilities
-    void PostGlobalMessage(const nlohmann::json& message);
+    void PostGlobalMessage(const nlohmann::json& message) const;
     bool ShouldLogException();
-    void AddRequest(const WebHookItem& request);
-    template <typename Func> void ProcessRequests(Func processor);
+    void AddRequest(const WebHookItem& request) const;
+
+    template <typename Func> requires IteratorBoolable<Func, std::vector<WebHookItem>::iterator> void ProcessRequests(Func processor);
 
     struct ProcessedHooks
     {
@@ -178,10 +180,10 @@ class HttpHookManager : public Singleton<HttpHookManager>
     ProcessedHooks ProcessWebkitHooks(const std::string& requestUrl) const;
 
     std::string PatchDocumentContents(const std::string& requestUrl, const std::string& original) const;
-    std::string BuildScriptModuleArray(const std::vector<std::string>& scriptModules) const;
-    std::string BuildEnabledPluginsString() const;
+    static std::string BuildScriptModuleArray(const std::vector<std::string>& scriptModules);
+    static std::string BuildEnabledPluginsString();
     std::string CreateShimContent(const ProcessedHooks& hooks, const std::string& millenniumPreloadPath) const;
-    std::string InjectContentIntoHead(const std::string& original, const std::string& content) const;
+    static std::string InjectContentIntoHead(const std::string& original, const std::string& content);
 
-    bool IsUrlBlacklisted(const std::string& requestUrl) const;
+    static bool IsUrlBlacklisted(const std::string& requestUrl);
 };

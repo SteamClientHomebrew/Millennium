@@ -34,8 +34,9 @@
  * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
  */
 
+#pragma once
+
 #include <Python.h>
-#include <fmt/core.h>
 
 /**
  * @brief Write a message buffer to the logger. The buffer is un-flushed.

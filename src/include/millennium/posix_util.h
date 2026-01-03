@@ -28,11 +28,11 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #ifdef __linux__
 #include <fstream>
-#include <sys/auxv.h>
 #include <sys/utsname.h>
-#include <unistd.h>
 
 inline std::string GetLinuxDistro()
 {

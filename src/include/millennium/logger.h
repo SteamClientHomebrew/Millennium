@@ -32,9 +32,9 @@
 
 #include "millennium/singleton.h"
 
+#include <mutex>
 #include <fmt/color.h>
 #include <fmt/core.h>
-#include <mutex>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -61,10 +61,10 @@ class OutputLogger : public Singleton<OutputLogger>
     std::mutex logMutex;
     std::string GetLocalTime();
 
-    constexpr std::string_view ConstexprGetSourceFile(const char* file)
+    static constexpr std::string_view ConstexprGetSourceFile(const char* file)
     {
-        std::string_view srcPath(file);
-        std::string_view root(MILLENNIUM_ROOT);
+        const std::string_view srcPath(file);
+        constexpr std::string_view root(MILLENNIUM_ROOT);
 
         return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
     }
@@ -83,7 +83,7 @@ class OutputLogger : public Singleton<OutputLogger>
 
     template <typename... Args> void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args&&... args)
     {
-        std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
+        const std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
 
         PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...), COL_RED);
         PrintMessage(" * FUNCTION: ", function, COL_RED);

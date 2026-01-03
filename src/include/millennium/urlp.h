@@ -28,7 +28,8 @@
  * SOFTWARE.
  */
 
-#include <iostream>
+#pragma once
+
 #include <sstream>
 #include <string>
 
@@ -36,18 +37,18 @@ static std::string UrlEncode(const std::string& value)
 {
     std::ostringstream encoded;
 
-    for (unsigned char c : value) {
+    for (const unsigned char c : value) {
         if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '/')
             encoded << c;
         else if (c == ' ')
             encoded << '+';
         else
-            encoded << '%' << std::uppercase << std::hex << int(c);
+            encoded << '%' << std::uppercase << std::hex << static_cast<int>(c);
     }
     return encoded.str();
 }
 
-static const std::string UrlDecode(const std::string& url)
+static std::string UrlDecode(const std::string& url)
 {
     std::string decoded;
     char ch;
@@ -89,7 +90,7 @@ inline std::string PathFromUrl(const std::string& path)
 {
     // Remove query parameters for file path
     std::string cleanPath = path;
-    size_t queryPos = cleanPath.find('?');
+    const size_t queryPos = cleanPath.find('?');
     if (queryPos != std::string::npos) {
         cleanPath = cleanPath.substr(0, queryPos);
     }

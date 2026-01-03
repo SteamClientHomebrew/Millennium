@@ -29,6 +29,7 @@
  */
 
 #pragma once
+
 #include <string>
 
 namespace Semver
@@ -41,7 +42,7 @@ struct SemverVersion
     std::string prerelease;
     std::string build;
 
-    SemverVersion(int maj = 0, int min = 0, int pat = 0, const std::string& pre = "", const std::string& bld = "");
+    explicit SemverVersion(int maj = 0, int min = 0, int pat = 0, std::string  pre = "", std::string  bld = "");
 };
 
 /**

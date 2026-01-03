@@ -380,10 +380,9 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
 
     void EmitMessage(const std::string& event, const nlohmann::json& data)
     {
-        uint64_t msgId = ++messageCounter;
-        const auto message = std::make_shared<Message>(event, data, msgId);
-
         {
+            uint64_t msgId = ++messageCounter;
+            const auto message = std::make_shared<Message>(event, data, msgId);
             std::lock_guard<std::mutex> lock(pendingMtx);
             pendingMessages.push_back(message);
         }

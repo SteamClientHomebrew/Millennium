@@ -10,9 +10,12 @@
  * @property {number} Python - Represents a Python file.
  * @property {number} Other - Represents other file types.
  */
+#pragma once
+
 #include <filesystem>
 #include <map>
 #include <string>
+
 enum eFileType
 {
     css,
@@ -67,7 +70,7 @@ static std::map<eFileType, std::string> fileTypes{
  * @param {eFileType} fileType - The type of the file to check.
  * @returns {boolean} - `true` if the file type is binary, `false` otherwise.
  */
-static constexpr bool IsBinaryFile(eFileType fileType)
+static constexpr bool IsBinaryFile(const eFileType fileType)
 {
     return fileType == eFileType::ttf || fileType == eFileType::otf || fileType == eFileType::woff || fileType == eFileType::woff2 || fileType == eFileType::gif ||
            fileType == eFileType::png || fileType == eFileType::jpeg || fileType == eFileType::jpg || fileType == eFileType::webp || fileType == eFileType::svg ||
@@ -77,7 +80,7 @@ static constexpr bool IsBinaryFile(eFileType fileType)
 /**
  * Evaluates the file type based on the file extension.
  */
-inline eFileType EvaluateFileType(std::filesystem::path filePath)
+inline eFileType EvaluateFileType(const std::filesystem::path filePath)
 {
     const std::string extension = filePath.extension().string();
 
