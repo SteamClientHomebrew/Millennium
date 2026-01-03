@@ -108,11 +108,11 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/lib/millennium/
+    mkdir -p $out/lib/
 
-    install -Dm755  src/libmillennium_x86.so                        $out/lib/millennium/libmillennium_x86.so
-    install -Dm755  src/boot/linux/libmillennium_bootstrap_86x.so   $out/lib/millennium/libmillennium_bootstrap_86x.so
-    install -Dm755  src/hhx64/libmillennium_hhx64.so                $out/lib/millennium/libmillennium_hhx64.so
+    install -Dm755  src/libmillennium_x86.so                        $out/lib/libmillennium_x86.so
+    install -Dm755  src/boot/linux/libmillennium_bootstrap_86x.so   $out/lib/libmillennium_bootstrap_86x.so
+    install -Dm755  src/hhx64/libmillennium_hhx64.so                $out/lib/libmillennium_hhx64.so
 
     runHook postInstall
   '';
