@@ -1,0 +1,45 @@
+{
+  "nodes": {
+    "millennium-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1767212161,
+        "narHash": "sha256-XVeGl6YWwjKv12NNZz+V6mDywzeYFY+xO+A6dQRF60U=",
+        "owner": "SteamClientHomebrew",
+        "repo": "millennium",
+        "rev": "91bd5b530859db93857c3b0908e81809b5f3907e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "SteamClientHomebrew",
+        "repo": "millennium",
+        "rev": "91bd5b530859db93857c3b0908e81809b5f3907e",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1767379071,
+        "narHash": "sha256-EgE0pxsrW9jp9YFMkHL9JMXxcqi/OoumPJYwf+Okucw=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "fb7944c166a3b630f177938e478f0378e64ce108",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "millennium-src": "millennium-src",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
