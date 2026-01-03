@@ -34,7 +34,6 @@
 #include "millennium/sysfs.h"
 
 #include <fstream>
-#include <iostream>
 
 nlohmann::json Millennium::Plugins::FindAllPlugins()
 {

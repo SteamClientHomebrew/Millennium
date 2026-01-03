@@ -52,7 +52,7 @@ static std::string addedScriptOnNewDocumentId = "";
  */
 class BackendLoadState : public Singleton<BackendLoadState>
 {
-    friend class Singleton<BackendLoadState>;
+    friend class Singleton;
 
   private:
 

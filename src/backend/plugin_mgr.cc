@@ -39,6 +39,8 @@
 #include "millennium/millennium_api.h"
 #include "millennium/zip.h"
 
+#include <fstream>
+
 std::filesystem::path PluginInstaller::PluginsPath()
 {
     return {GetEnv("MILLENNIUM__PLUGINS_PATH")};

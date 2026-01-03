@@ -28,13 +28,15 @@
  * SOFTWARE.
  */
 
+#include "millennium/env.h"
 #include "millennium/logger.h"
 #include "millennium/plat_msg.h"
 #include "millennium/sysfs.h"
-#include "millennium/env.h"
+
+#include <fstream>
 
 #include <fmt/core.h>
-#include <fstream>
+#include <mini/ini.h>
 #ifdef _WIN32
 #include <windows.h>
 #include <winsock2.h>
@@ -85,7 +87,7 @@ SettingsStore::SettingsStore()
  * INI files don't support arrays, so we need to convert the vector to a string.
  * We use a pipe delimiter to separate the plugins.
  */
-std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
+std::string ConvertVectorToString(const std::vector<std::string>& enabledPlugins)
 {
     std::string strEnabledPlugins;
     for (const auto& plugin : enabledPlugins) {
@@ -127,7 +129,7 @@ int SettingsStore::InitializeSettingsStore()
  * @param pluginName The name of the plugin.
  * @param enabled The status of the plugin.
  */
-bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
+bool SettingsStore::TogglePluginStatus(std::string pluginName, const bool enabled)
 {
     Logger.Log("Opting to {} {}", enabled ? "enable" : "disable", pluginName);
 
@@ -146,13 +148,13 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
 
     /** Enable the target plugin */
     if (enabled) {
-        if (std::find(enabledPlugins.begin(), enabledPlugins.end(), pluginName) == enabledPlugins.end()) {
+        if (std::ranges::find(enabledPlugins, pluginName) == enabledPlugins.end()) {
             enabledPlugins.push_back(pluginName);
         }
     }
     /** Disable the target plugin */
     else {
-        auto it = std::find(enabledPlugins.begin(), enabledPlugins.end(), pluginName);
+        const auto it = std::ranges::find(enabledPlugins, pluginName);
         if (it != enabledPlugins.end()) {
             enabledPlugins.erase(it);
         }
@@ -164,9 +166,9 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
 
 /**
  * @brief Check if a plugin is enabled.
- * @param plugin_name The name of the plugin.
+ * @param pluginName The name of the plugin.
  */
-bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
+bool SettingsStore::IsEnabledPlugin(const std::string pluginName)
 {
     nlohmann::json enabledPluginsJson = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
 
@@ -175,7 +177,7 @@ bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
     }
 
     for (const auto& plugin : enabledPluginsJson) {
-        if (plugin.is_string() && plugin.get<std::string>() == plugin_name) {
+        if (plugin.is_string() && plugin.get<std::string>() == pluginName) {
             return true;
         }
     }
@@ -188,7 +190,7 @@ bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
  * @param json The JSON object to lint.
  * @param pluginName The name of the plugin.
  */
-void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
+void SettingsStore::LintPluginData(const nlohmann::json json, std::string pluginName)
 {
     /** Find a total list of all plugin.json keys in `./plugin-schema.json` */
     const std::map<std::string, bool> pluginFields = {
@@ -198,7 +200,7 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
     };
 
     for (const auto& field : pluginFields) {
-        auto [property, required] = field;
+        const auto [property, required] = field;
 
         if (!json.contains(property)) {
             if (required) {
@@ -217,7 +219,7 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
  * @param entry The directory entry for the plugin.
  * @return SettingsStore::PluginTypeSchema The plugin data.
  */
-SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry)
+SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::json json, const std::filesystem::directory_entry entry)
 {
     SettingsStore::PluginTypeSchema plugin;
     const std::string pluginDirName = entry.path().filename().string();
@@ -306,7 +308,7 @@ std::vector<std::string> SettingsStore::GetEnabledPluginNames()
     std::vector<SettingsStore::PluginTypeSchema> plugins = this->GetEnabledPlugins();
 
     /** only add the plugin name. */
-    std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
+    std::ranges::transform(plugins, std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
     return enabledPlugins;
 }
 
@@ -330,12 +332,6 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
     return enabledBackends;
 }
 
-ConfigManager& ConfigManager::Instance()
-{
-    static ConfigManager instance;
-    return instance;
-}
-
 nlohmann::json ConfigManager::GetNested(const std::string& path, const nlohmann::json& def)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
@@ -349,12 +345,12 @@ nlohmann::json ConfigManager::GetNested(const std::string& path, const nlohmann:
         start = end + 1;
     }
 
-    std::string last_key = path.substr(start);
+    const std::string last_key = path.substr(start);
     if (!current->contains(last_key)) return def;
     return (*current)[last_key];
 }
 
-void ConfigManager::SetNested(const std::string& path, const nlohmann::json& value, bool skipPropagation)
+void ConfigManager::SetNested(const std::string& path, const nlohmann::json& value, const bool skipPropagation)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     nlohmann::json* current = &_data;
@@ -368,7 +364,7 @@ void ConfigManager::SetNested(const std::string& path, const nlohmann::json& val
         start = end + 1;
     }
 
-    std::string last_key = path.substr(start);
+    const std::string last_key = path.substr(start);
     if (!current->is_object()) {
         *current = nlohmann::json::object();
     }
@@ -389,14 +385,14 @@ void ConfigManager::Delete(const std::string& key)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     if (_data.contains(key)) {
-        nlohmann::json old_value = _data[key];
+        const nlohmann::json old_value = _data[key];
         _data.erase(key);
         NotifyListeners(key, old_value, nullptr);
         SaveToFile();
     }
 }
 
-void ConfigManager::RegisterListener(Listener listener)
+void ConfigManager::RegisterListener(const Listener listener)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     _listeners.push_back(listener);
@@ -405,13 +401,10 @@ void ConfigManager::RegisterListener(Listener listener)
 void ConfigManager::UnregisterListener(Listener listener)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
-    _listeners.erase(std::remove_if(_listeners.begin(), _listeners.end(),
-                                    [&](const Listener& l)
+    std::erase_if(_listeners, [&](const Listener& l)
     {
-        return l.target_type() == listener.target_type() && l.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>() ==
-                                                                listener.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>();
-    }),
-                     _listeners.end());
+        return l.target_type() == listener.target_type() && l.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>() == listener.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>();
+    });
 }
 
 void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json& incoming, const std::string& path)
@@ -516,12 +509,12 @@ void ConfigManager::SetDefault(const std::string& key, const nlohmann::json& val
     _defaults[key] = value;
 }
 
-nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, bool skipPropagation)
+nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, const bool skipPropagation)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     try {
-        nlohmann::json old_data = _data;
+        const nlohmann::json old_data = _data;
         _data = newConfig;
 
         if (!skipPropagation) {
@@ -574,8 +567,8 @@ ConfigManager::~ConfigManager()
 void ConfigManager::NotifyListeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value)
 {
     std::string key_copy = key;
-    nlohmann::json old_value_copy = old_value;
-    nlohmann::json new_value_copy = new_value;
+    const nlohmann::json old_value_copy = old_value;
+    const nlohmann::json new_value_copy = new_value;
     std::vector<Listener> listeners_copy;
 
     {

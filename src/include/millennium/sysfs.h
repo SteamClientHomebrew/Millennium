@@ -30,6 +30,9 @@
 
 #pragma once
 #define MINI_CASE_SENSITIVE
+#include "singleton.h"
+
+
 #include <filesystem>
 #include <mutex>
 #include <string>
@@ -60,20 +63,20 @@ class SettingsStore
         bool isInternal = false;
     };
 
-    std::vector<PluginTypeSchema> ParseAllPlugins();
+    static std::vector<PluginTypeSchema> ParseAllPlugins();
     std::vector<PluginTypeSchema> GetEnabledBackends();
     std::vector<PluginTypeSchema> GetEnabledPlugins();
     std::vector<std::string> GetEnabledPluginNames();
 
-    bool IsEnabledPlugin(std::string pluginName);
-    bool TogglePluginStatus(std::string pluginName, bool enabled);
+    static bool IsEnabledPlugin(std::string pluginName);
+    static bool TogglePluginStatus(std::string pluginName, bool enabled);
 
-    int InitializeSettingsStore();
+    static int InitializeSettingsStore();
     SettingsStore();
 
   private:
-    void LintPluginData(nlohmann::json json, std::string pluginName);
-    PluginTypeSchema GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
+    static void LintPluginData(nlohmann::json json, std::string pluginName);
+    static PluginTypeSchema GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
 };
 
 namespace SystemIO
@@ -111,8 +114,9 @@ void MakeWritable(const std::filesystem::path& p);
 bool DeleteFolder(const std::filesystem::path& p);
 } // namespace SystemIO
 
-class ConfigManager
+class ConfigManager : public Singleton<ConfigManager>
 {
+    friend class Singleton;
   public:
     /**
      * A listener function that gets called when a config value changes.
@@ -210,4 +214,4 @@ class ConfigManager
 /**
  * Global config manager instance.
  */
-#define CONFIG ConfigManager::Instance()
+#define CONFIG ConfigManager::GetInstance()

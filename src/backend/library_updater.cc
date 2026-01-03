@@ -49,7 +49,7 @@ Updater::Updater() : api_url("https://steambrew.app/api/checkupdates"), has_chec
 
 bool Updater::DownloadPluginUpdate(const std::string& id, const std::string& name)
 {
-    return plugin_updater.DownloadPluginUpdate(id, name);
+    return PluginInstaller::DownloadPluginUpdate(id, name);
 }
 
 bool Updater::DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
@@ -75,7 +75,7 @@ std::optional<json> Updater::CheckForUpdates(const bool force)
             return cached_updates;
         }
 
-        const auto plugins = plugin_updater.GetRequestBody();
+        const auto plugins = PluginInstaller::GetRequestBody();
         auto themes = theme_updater.GetRequestBody();
 
         json request_body;

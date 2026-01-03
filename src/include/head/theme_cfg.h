@@ -69,7 +69,7 @@ class ThemeConfig
 
   private:
     static void SetupConditionals();
-    [[nodiscard]] static std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
+    static std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
 
     ConfigManager::Listener config_listener_;
     std::filesystem::path themes_path;

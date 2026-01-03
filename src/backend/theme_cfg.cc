@@ -36,6 +36,7 @@
 
 #include "millennium/logger.h"
 
+#include <fstream>
 #include <regex>
 #include <fmt/format.h>
 
@@ -52,7 +53,7 @@ ThemeConfig::ThemeConfig()
 
 ThemeConfig::~ThemeConfig()
 {
-    // CONFIG.UnregisterListener(config_listener_);
+    CONFIG.UnregisterListener(config_listener_);
 }
 
 void ThemeConfig::OnConfigChange()
@@ -333,7 +334,7 @@ void ThemeConfig::SetupConditionals()
         }
     }
 
-    ConfigManager::Instance().SaveToFile();
+    ConfigManager::GetInstance().SaveToFile();
 }
 
 nlohmann::json ThemeConfig::ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition)
