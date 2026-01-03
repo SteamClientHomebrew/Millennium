@@ -7,9 +7,19 @@
     millennium-src.flake = false;
   };
 
-  outputs = { self, nixpkgs, millennium-src }: {
-    packages.x86_64-linux = {
-
+  outputs =
+    {
+      self,
+      nixpkgs,
+      millennium-src,
+    }:
+    {
+      packages.x86_64-linux =
+        let
+          pkgs = import nixpkgs { system = "x86_64-linux"; };
+        in
+        {
+          millennium-assets = pkgs.callPackage ./assets.nix { inherit millennium-src; };
+        };
     };
-  };
 }
