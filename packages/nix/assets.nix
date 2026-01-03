@@ -12,8 +12,8 @@ stdenv.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/share/assets/
-    cp -r src/pipx $out/share/assets/pipx
+    mkdir -p $out/share/millennium/assets/
+    cp -r src/pipx $out/share/millennium/assets/pipx
 
     runHook postInstall
   '';
