@@ -40,8 +40,8 @@ stdenv.mkDerivation (finalAttrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/share/shims
-    cp -r src/sdk/packages/loader/build/* $out/share/shims/
+    mkdir -p $out/share/millennium/shims
+    cp -r src/sdk/packages/loader/build/* $out/share/millennium/shims/
 
     runHook postInstall
   '';
