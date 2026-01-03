@@ -30,8 +30,10 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
+#include <utility>
+
 #include "millennium/init.h"
+#include "millennium/singleton.h"
 #include "millennium/sysfs.h"
 
 namespace CoInitializer
@@ -57,10 +59,10 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
             return pluginName == other.pluginName && event == other.event;
         }
 
-        PluginTypeSchema(const std::string& name) : pluginName(name), event(BACKEND_LOAD_SUCCESS)
+        explicit PluginTypeSchema(std::string name) : pluginName(std::move(name)), event(BACKEND_LOAD_SUCCESS)
         {
         }
-        PluginTypeSchema(const std::string& name, eBackendLoadEvents ev) : pluginName(name), event(ev)
+        PluginTypeSchema(std::string name, const eBackendLoadEvents ev) : pluginName(std::move(name)), event(ev)
         {
         }
     };

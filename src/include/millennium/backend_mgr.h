@@ -29,16 +29,17 @@
  */
 
 #pragma once
+
 #include "millennium/singleton.h"
-#include "millennium/env.h"
 #include "millennium/sysfs.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <thread>
+#include <utility>
 
-#include <Python.h>
 #include <lua.hpp>
+#include <Python.h>
 
 struct InterpreterMutex
 {
@@ -55,7 +56,7 @@ struct LuaThreadPoolItem
     lua_State* L;
     std::atomic<bool> hasFinished{ false };
 
-    LuaThreadPoolItem(std::string pluginName, std::thread& thread, lua_State* L) : pluginName(pluginName), thread(std::move(thread)), L(L)
+    LuaThreadPoolItem(std::string pluginName, std::thread& thread, lua_State* L) : pluginName(std::move(pluginName)), thread(std::move(thread)), L(L)
     {
     }
 };
@@ -67,7 +68,7 @@ struct PythonThreadState
     std::shared_ptr<InterpreterMutex> mutex;
 
     PythonThreadState(std::string pluginName, PyThreadState* thread_state, std::shared_ptr<InterpreterMutex> mutex)
-        : pluginName(pluginName), thread_state(thread_state), mutex(mutex)
+        : pluginName(std::move(pluginName)), thread_state(thread_state), mutex(std::move(mutex))
     {
     }
 };
@@ -121,7 +122,7 @@ class BackendManager : public Singleton<BackendManager>
 
   public:
     BackendManager();
-    ~BackendManager();
+    virtual ~BackendManager() override;
     void Shutdown();
 
     void Lua_LockLua(lua_State* L);

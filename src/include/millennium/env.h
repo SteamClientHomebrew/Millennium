@@ -28,13 +28,16 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 /**
  * @file env.cc
  *
  * @brief This file is responsible for setting up environment variables that are used throughout the application.
  */
-#include <string>
+
 #include <map>
+#include <string>
 
 extern std::map<std::string, std::string> envVariables;
 
@@ -50,5 +53,5 @@ extern std::map<std::string, std::string> envVariables;
 #endif
 
 void SetupEnvironmentVariables();
-std::string GetEnv(std::string key);
-std::string GetEnvWithFallback(std::string key, std::string fallback);
+[[nodiscard]] std::string GetEnv(std::string key);
+[[nodiscard]] std::string GetEnvWithFallback(std::string key, std::string fallback);

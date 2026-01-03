@@ -28,6 +28,8 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #include "cef_def.h"
 
 int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel);

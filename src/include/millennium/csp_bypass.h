@@ -42,6 +42,9 @@
  * i.e making requests to external servers, loading scripts from external sources, etc.
  *
  */
+
+#pragma once
+
 #include "millennium/ffi.h"
 #include "millennium/init.h"
 

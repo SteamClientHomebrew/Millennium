@@ -58,7 +58,7 @@ ThemeConfig::~ThemeConfig()
 void ThemeConfig::OnConfigChange()
 {
     ValidateTheme();
-    WebkitHookStore::getInstance().UnregisterAll();
+    WebkitHookStore::GetInstance().UnregisterAll();
     SetupThemeHooks();
 }
 

@@ -35,13 +35,13 @@
 
 #include <unordered_set>
 
-int Millennium::AddBrowserCss(const std::string& targetPath, const std::string& regex)
+int Millennium::AddBrowserCss(const std::string& path, const std::string& regex)
 {
-    g_hookedModuleId++;
-    auto path = SystemIO::GetSteamPath() / "steamui" / targetPath;
+    ++g_hookedModuleId;
+    const auto full_path = SystemIO::GetSteamPath() / "steamui" / path;
 
     try {
-        HttpHookManager::GetInstance().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::STYLESHEET, g_hookedModuleId });
+        HttpHookManager::GetInstance().AddHook({ full_path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::STYLESHEET, g_hookedModuleId });
     } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", ".*", e.what());
         return 0;
@@ -50,13 +50,13 @@ int Millennium::AddBrowserCss(const std::string& targetPath, const std::string& 
     return g_hookedModuleId;
 }
 
-int Millennium::AddBrowserJs(const std::string& targetPath, const std::string& regex)
+int Millennium::AddBrowserJs(const std::string& path, const std::string& regex)
 {
-    g_hookedModuleId++;
-    auto path = SystemIO::GetSteamPath() / "steamui" / targetPath;
+    ++g_hookedModuleId;
+    const auto full_path = SystemIO::GetSteamPath() / "steamui" / path;
 
     try {
-        HttpHookManager::GetInstance().AddHook({ path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
+        HttpHookManager::GetInstance().AddHook({ full_path.generic_string(), std::regex(regex), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
     } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", ".*", e.what());
         return 0;
@@ -65,19 +65,19 @@ int Millennium::AddBrowserJs(const std::string& targetPath, const std::string& r
     return g_hookedModuleId;
 }
 
-bool Millennium::RemoveBrowserModule(int id)
+bool Millennium::RemoveBrowserModule(const int id)
 {
     return HttpHookManager::GetInstance().RemoveHook(id);
 }
 
-void WebkitHookStore::Push(int moduleId)
+void WebkitHookStore::Push(const int moduleId)
 {
     stack.push_back(moduleId);
 }
 
 void WebkitHookStore::UnregisterAll()
 {
-    for (int id : stack) {
+    for (const int id : stack) {
         Millennium::RemoveBrowserModule(id);
     }
     stack.clear();
@@ -95,7 +95,7 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
             std::string current_value = theme_conditions[item].get<std::string>();
 
             if (condition.contains("values") && condition["values"].is_object()) {
-                auto values = condition["values"];
+                const auto values = condition["values"];
                 if (values.contains(current_value) && values[current_value].is_object()) {
                     for (auto& [value_key, control_flow] : values[current_value].items()) {
                         if (!control_flow.is_object()) continue;
@@ -138,7 +138,7 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
     std::vector<WebkitItem> unique_items;
 
     for (auto& item : webkit_items) {
-        std::string identifier = item.matchString + "|" + item.targetPath;
+        const std::string identifier = item.matchString + "|" + item.targetPath;
         if (seen.insert(identifier).second) {
             unique_items.push_back(item);
         }
@@ -149,30 +149,29 @@ std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditiona
 
 int AddBrowserCss(const std::string& css_path, const std::string& regex)
 {
-    int id = Millennium::AddBrowserCss(css_path, regex);
-    WebkitHookStore::getInstance().Push(id);
+    const int id = Millennium::AddBrowserCss(css_path, regex);
+    WebkitHookStore::GetInstance().Push(id);
     return id;
 }
 
 int AddBrowserJs(const std::string& js_path, const std::string& regex)
 {
-    int id = Millennium::AddBrowserJs(js_path, regex);
-    WebkitHookStore::getInstance().Push(id);
+    const int id = Millennium::AddBrowserJs(js_path, regex);
+    WebkitHookStore::GetInstance().Push(id);
     return id;
 }
 
 void AddConditionalData(const std::string& path, const nlohmann::json& data, const std::string& theme_name)
 {
     try {
-        auto parsed_patches = ParseConditionalPatches(data, theme_name);
 
-        for (auto& patch : parsed_patches) {
-            if (patch.fileType == "TargetCss" && !patch.targetPath.empty() && !patch.matchString.empty()) {
-                std::string full_path = (std::filesystem::path(path) / patch.targetPath).generic_string();
-                AddBrowserCss(full_path, patch.matchString);
-            } else if (patch.fileType == "TargetJs" && !patch.targetPath.empty() && !patch.matchString.empty()) {
-                std::string full_path = (std::filesystem::path(path) / patch.targetPath).generic_string();
-                AddBrowserJs(full_path, patch.matchString);
+        for (const auto parsed_patches = ParseConditionalPatches(data, theme_name); const auto& [matchString, targetPath, fileType] : parsed_patches) {
+            if (fileType == "TargetCss" && !targetPath.empty() && !matchString.empty()) {
+                std::string full_path = (std::filesystem::path(path) / targetPath).generic_string();
+                AddBrowserCss(full_path, matchString);
+            } else if (fileType == "TargetJs" && !targetPath.empty() && !matchString.empty()) {
+                std::string full_path = (std::filesystem::path(path) / targetPath).generic_string();
+                AddBrowserJs(full_path, matchString);
             }
         }
     } catch (const std::exception& e) {

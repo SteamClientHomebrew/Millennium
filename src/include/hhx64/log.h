@@ -28,9 +28,9 @@
  * SOFTWARE.
  */
 #pragma once
-#include <fcntl.h>
-#include <cstdio>
+
 #include <cstdarg>
+#include <cstdio>
 #include <ctime>
 #ifdef _WIN32
 #include <windows.h>
@@ -38,22 +38,21 @@
 #include <sys/time.h>
 #endif
 
-static void get_time_mmss(char* buf, size_t len)
+inline void get_time_mmss(char* buf, const size_t len)
 {
 #ifdef _WIN32
     SYSTEMTIME st;
     GetLocalTime(&st);
     snprintf(buf, len, "%02d:%02d.%03d", st.wMinute, st.wSecond, st.wMilliseconds);
 #else
-    struct timeval tv;
-    struct tm* tm;
+    timeval tv{};
     gettimeofday(&tv, nullptr);
-    tm = localtime(&tv.tv_sec);
+    const tm* tm = localtime(&tv.tv_sec);
     snprintf(buf, len, "%02d:%02d.%03ld", tm->tm_min, tm->tm_sec, tv.tv_usec / 1000);
 #endif
 }
 
-static inline void log_debug(const char* fmt, ...)
+static void log_debug(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));
@@ -72,7 +71,7 @@ static inline void log_debug(const char* fmt, ...)
     va_end(args);
 }
 
-static inline void log_info(const char* fmt, ...)
+static void log_info(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));
@@ -91,7 +90,7 @@ static inline void log_info(const char* fmt, ...)
     va_end(args);
 }
 
-static inline void log_warning(const char* fmt, ...)
+static void log_warning(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));
@@ -110,7 +109,7 @@ static inline void log_warning(const char* fmt, ...)
     va_end(args);
 }
 
-static inline void log_error(const char* fmt, ...)
+static void log_error(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));
