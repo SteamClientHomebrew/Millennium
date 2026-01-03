@@ -18,7 +18,7 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
   pname = "millennium";
   version = "2.34.0";
 
-  src = ../../.;
+  src = inputs.millennium-src;
 
   nativeBuildInputs = [
     cmake

@@ -4,7 +4,7 @@
   fetchurl,
   ...
 }:
-pkgsi686Linux.stdenv.mkDerivation(finalAttrs: {
+pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-python";
   version = "3.11.8";
 
@@ -52,7 +52,7 @@ pkgsi686Linux.stdenv.mkDerivation(finalAttrs: {
     rm -f  $out/lib/libpython3.11.a
 
     strip $out/bin/python3.11
-    
+
     cp $out/lib/libpython3.11.so $out/lib/libpython-3.11.8.so
     strip $out/lib/libpython-3.11.8.so
 

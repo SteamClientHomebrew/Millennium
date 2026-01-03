@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    millennium-src.url = "github:SteamClientHomebrew/millennium/91bd5b530859db93857c3b0908e81809b5f3907e";
+    millennium-src.url = "github:Trivaris/millennium/0167fd0d8a8ebf5a2c434528347967efd5c60c91?shallow=true";
     millennium-src.flake = false;
 
     zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5?shallow=true";
@@ -54,13 +54,19 @@
         let
           pkgs = import nixpkgs { system = "x86_64-linux"; };
           packages = {
+            default = packages.millennium;
             millennium-assets = pkgs.callPackage ./assets.nix { inherit millennium-src; };
             millennium-frontend = pkgs.callPackage ./frontend.nix { inherit millennium-src; };
             millennium-shims = pkgs.callPackage ./shims.nix { inherit millennium-src; };
             millennium-python = pkgs.callPackage ./python.nix { };
             millennium = pkgs.callPackage ./millennium.nix {
-              inherit (packages) millennium-assets millennium-frontend millennium-shims millennium-python;
-              inherit inputs self;
+              inherit inputs;
+              inherit (packages)
+                millennium-assets
+                millennium-frontend
+                millennium-shims
+                millennium-python
+                ;
             };
           };
         in
