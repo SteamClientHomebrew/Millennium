@@ -29,6 +29,9 @@
  */
 
 #pragma once
+
+#include "millennium/singleton.h"
+
 #include <atomic>
 #include <chrono>
 #include <concepts>
@@ -47,16 +50,16 @@
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 
-template <typename Func, typename Iter> concept IteratorBoolable = requires(Func f, Iter it)
-{
+template <typename Func, typename Iter>
+concept IteratorBoolable = requires(Func f, Iter it) {
     { f(it) } -> std::convertible_to<bool>;
 } && std::input_or_output_iterator<Iter>;
 
-class HttpHookManager
+class HttpHookManager : public Singleton<HttpHookManager>
 {
-  public:
-    static HttpHookManager& get();
+    friend class Singleton<HttpHookManager>;
 
+  public:
     enum TagTypes
     {
         STYLESHEET,
@@ -88,10 +91,6 @@ class HttpHookManager
     // Thread-safe hook list operations
     void SetHookList(std::shared_ptr<std::vector<HookType>> hookList);
     std::vector<HookType> GetHookListCopy() const;
-
-    // Delete copy constructor and assignment operator for singleton
-    HttpHookManager(const HttpHookManager&) = delete;
-    HttpHookManager& operator=(const HttpHookManager&) = delete;
 
     void Shutdown();
 

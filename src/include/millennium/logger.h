@@ -29,13 +29,17 @@
  */
 
 #pragma once
+
+#include "millennium/singleton.h"
+
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <mutex>
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #endif
-#include <fmt/color.h>
-#include <fmt/core.h>
-#include <mutex>
 
 #define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)
 
@@ -48,8 +52,10 @@
 #define COL_WHITE "\033[37m"
 #define COL_RESET "\033[0m"
 
-class OutputLogger
+class OutputLogger : public Singleton<OutputLogger>
 {
+    friend class Singleton<OutputLogger>;
+
   private:
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
@@ -64,12 +70,9 @@ class OutputLogger
     }
 
   public:
-    void PrintMessage(std::string type, const std::string& message, std::string color = COL_WHITE);
-
-    OutputLogger(const OutputLogger&) = delete;
-    OutputLogger& operator=(const OutputLogger&) = delete;
-
     OutputLogger();
+
+    void PrintMessage(std::string type, const std::string& message, std::string color = COL_WHITE);
 
     void LogPluginMessage(std::string pname, std::string val);
 
@@ -93,7 +96,7 @@ class OutputLogger
     }
 };
 
-extern OutputLogger Logger;
+extern OutputLogger& Logger;
 
 #if defined(_MSC_VER)
 #define PRETTY_FUNCTION __FUNCSIG__

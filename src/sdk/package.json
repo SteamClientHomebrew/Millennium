@@ -1,6 +1,6 @@
 {
   "name": "@steambrew/docs",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Documentation for the SteamBrew SDK.",
   "private": false,
   "publishConfig": {
@@ -12,6 +12,7 @@
   "scripts": {
     "test": "lerna run test",
     "build": "lerna run build",
+    "publish": "lerna publish",
     "docs": "typedoc",
     "prepublish": "npm run build && npm run docs"
   },

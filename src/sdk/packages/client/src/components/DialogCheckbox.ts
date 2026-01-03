@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 
-import { findModule } from '../webpack';
+import { findModuleExport } from '../webpack';
 import { DialogCommonProps } from './Dialog';
 import { FooterLegendProps } from './FooterLegend';
 
@@ -18,15 +18,13 @@ export interface DialogCheckboxProps extends Omit<DialogCommonProps, 'onChange'>
 }
 
 /** @component React Components */
-export const DialogCheckbox = Object.values(
-	findModule((m: any) => {
-		if (typeof m !== 'object') return false;
-		for (const prop in m) {
-			if (m[prop]?.prototype?.GetPanelElementProps) return true;
-		}
-		return false;
-	}),
-).find(
-	(m: any) =>
-		m.contextType && m.prototype?.render.toString().includes('fallback:') && m?.prototype?.SetChecked && m?.prototype?.Toggle && m?.prototype?.GetPanelElementProps,
+export const DialogCheckbox = findModuleExport(
+	(e) =>
+		e?.prototype &&
+		typeof e?.prototype == 'object' &&
+		'GetPanelElementProps' in e?.prototype &&
+		'SetChecked' in e?.prototype &&
+		'Toggle' in e?.prototype &&
+		// beta || stable as of oct 2 2024
+		(e?.prototype?.render?.toString?.().includes('="DialogCheckbox"') || (e.contextType && e.prototype?.render?.toString?.().includes('fallback:'))),
 ) as FC<DialogCheckboxProps>;

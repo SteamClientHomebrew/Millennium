@@ -165,12 +165,12 @@ VOID Win32_AttachMillennium(VOID)
     Logger.Log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
 
     /** Shutdown the shared JS message emitter */
-    CefSocketDispatcher& emitter = CefSocketDispatcher::get();
+    CefSocketDispatcher& emitter = CefSocketDispatcher::GetInstance();
     (&emitter)->Shutdown();
     Logger.Log("CefSocketDispatcher has been shut down.");
 
     /** Shutdown cron threads that manage Steam HTTP hooks */
-    HttpHookManager& hookManager = HttpHookManager::get();
+    HttpHookManager& hookManager = HttpHookManager::GetInstance();
     (&hookManager)->Shutdown();
     Logger.Log("HttpHookManager has been shut down.");
 

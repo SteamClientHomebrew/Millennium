@@ -611,7 +611,7 @@ bool Plat_InitializeSteamHooks()
 {
     Logger.Log("[Plat_InitializeSteamHooks] Waiting for backend services to complete...");
 
-    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
     backendHandler.RegisterForLoad(__backend_load);
     return InitializeSteamHooks();
 }
