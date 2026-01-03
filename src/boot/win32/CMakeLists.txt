@@ -19,15 +19,15 @@ set(VERSION_TRADEMARK1   "All Rights Reserved")
 
 configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/version.rc @ONLY)
 
-set(SOURCE_FILES
+set(WSOCK_SOURCE_FILES
     main.c
     ${CMAKE_BINARY_DIR}/version.rc
 )
 
-list(APPEND SOURCE_FILES ${MILLENNIUM_BASE}/scripts/exports.def)
+list(APPEND WSOCK_SOURCE_FILES ${MILLENNIUM_BASE}/src/include/millennium/export.wsock32.def)
 add_compile_definitions(MILLENNIUM_64BIT)
 
-add_library(preload SHARED ${SOURCE_FILES})
+add_library(preload SHARED ${WSOCK_SOURCE_FILES})
 target_link_libraries(preload wsock32)
 
 if (NOT GITHUB_ACTION_BUILD)
@@ -41,15 +41,15 @@ set_target_properties(preload PROPERTIES SUFFIX      "${BUILD_SUFFIX}")
 
 project(preload-legacy)
 
-set(SOURCE_FILES
+set(VERSION_SOURCE_FILES
     "version.c"
     ${CMAKE_BINARY_DIR}/version.rc
 )
 
-list(APPEND SOURCE_FILES ${MILLENNIUM_BASE}/scripts/exports.legacy.def)
+list(APPEND VERSION_SOURCE_FILES ${MILLENNIUM_BASE}/src/include/millennium/export.version.def)
 add_compile_definitions(MILLENNIUM_64BIT)
 
-add_library(preload-legacy SHARED ${SOURCE_FILES})
+add_library(preload-legacy SHARED ${VERSION_SOURCE_FILES})
 target_link_libraries(preload-legacy version)
 
 if (NOT GITHUB_ACTION_BUILD)
