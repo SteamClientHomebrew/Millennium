@@ -28,11 +28,14 @@
  * SOFTWARE.
  */
 
-import { DialogControlsSection, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, pluginSelf, SteamSpinner } from '@steambrew/client';
 import { MillenniumUpdateCard } from './MillenniumUpdateCard';
 import { ThemeUpdateCard } from './ThemeUpdateCards';
 import { useUpdateContext } from './useUpdateContext';
 import { PluginUpdateCard } from './PluginUpdateCards';
+import { locale } from '../../utils/localization-manager';
+import { Placeholder } from '../../components/Placeholder';
+import { settingsClasses } from '../../utils/classes';
 
 // TODO: Type this properly, this is a mess. Im too lazy to do it right now
 interface UpdateProps {
@@ -51,8 +54,30 @@ const RenderAvailableUpdates: React.FC<UpdateProps> = ({ millenniumUpdates, them
 	);
 };
 
+const parseUpdateErrorMessage = () => {
+	const themeError = pluginSelf?.updates?.themes?.error || '';
+	const pluginError = pluginSelf?.updates?.plugins?.error || '';
+	if (themeError && pluginError) return `${themeError}\n${pluginError}`;
+	return themeError || pluginError;
+};
+
 const UpdatesViewModal: React.FC = () => {
-	const { themeUpdates, pluginUpdates } = useUpdateContext();
+	const { themeUpdates, pluginUpdates, hasUpdateError, hasReceivedUpdates, hasAnyUpdates, fetchAvailableUpdates } = useUpdateContext();
+
+	if (hasUpdateError) {
+		return (
+			<Placeholder icon={<IconsModule.ExclamationPoint />} header={locale.updatePanelErrorHeader} body={locale.updatePanelErrorBody + parseUpdateErrorMessage()}>
+				<DialogButton className={settingsClasses.SettingsDialogButton} onClick={fetchAvailableUpdates.spread(true)}>
+					{locale.updatePanelErrorButton}
+				</DialogButton>
+			</Placeholder>
+		);
+	}
+
+	if (!hasReceivedUpdates) return <SteamSpinner background="transparent" />;
+	if (!hasAnyUpdates()) {
+		return <Placeholder icon={<IconsModule.Checkmark />} header={locale.updatePanelNoUpdatesFoundHeader} body={locale.updatePanelNoUpdatesFound} />;
+	}
 
 	return (
 		<RenderAvailableUpdates

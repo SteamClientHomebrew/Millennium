@@ -27,35 +27,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <wchar.h>
-#include <windows.h>
 #ifdef _WIN32
-/** micro optimization -- declare functions instead of importing them from the windows header */
-// unsigned long __stdcall GetLastError(void);
-// void* __stdcall AddDllDirectory(const wchar_t* NewDirectory);
-// void* __stdcall LoadLibraryA(const char* lpLibFileName);
-// unsigned long __stdcall GetModuleFileNameA(void* hModule, char* lpFilename, unsigned long nSize);
-// int __stdcall MessageBoxA(void* hWnd, const char* lpText, const char* lpCaption, unsigned int uType);
-
-// /** fwd decl standard c funcs */
-// int _stricmp(const char* str1, const char* str2);
-// int wsprintfA(char* buf, const char* fmt, ...);
+#include <wchar.h>
 
 #define MAX_PATH 260
+#define MILLENNIUM_LIBRARY_PATH L"millennium.dll"
+
+#define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS    0x00001000
+#define LOAD_LIBRARY_SEARCH_USER_DIRS       0x00000400
+
+/** micro optimization -- declare functions instead of importing them from the windows header */
+unsigned long __stdcall GetLastError(void);
+void* __stdcall AddDllDirectory(const wchar_t* NewDirectory);
+void* __stdcall LoadLibraryExW(const wchar_t* lpLibFileName, void* hFile, unsigned long dwFlags);
+unsigned long __stdcall GetModuleFileNameA(void* hModule, char* lpFilename, unsigned long nSize);
+int __stdcall MessageBoxA(void* hWnd, const char* lpText, const char* lpCaption, unsigned int uType);
+
+// /** fwd decl standard c funcs */
+int _stricmp(const char* str1, const char* str2);
+int wsprintfA(char* buf, const char* fmt, ...);
 
 __declspec(dllexport) const char* __get_shim_version(void)
 {
     return MILLENNIUM_VERSION;
 }
-
-#ifdef MILLENNIUM_32BIT
-#define MILLENNIUM_LIBRARY_PATH L"millennium.dll"
-#elif defined(MILLENNIUM_64BIT)
-#define MILLENNIUM_LIBRARY_ROOT L"ext\\compat64"
-#define MILLENNIUM_LIBRARY_PATH L"\\millennium_x64.dll"
-#else
-#error "Neither 32bit or 64bit Millennium was provided"
-#endif
 
 wchar_t* g_millennium_path = 0;
 
@@ -102,33 +97,10 @@ static int is_steam_client(wchar_t* steam_path, size_t path_size)
 int __stdcall DllMain(void* hinstDLL, unsigned long fdwReason, void* lpReserved)
 {
     if (fdwReason == 1 /** DLL_PROCESS_ATTACH */ && is_steam_client(NULL, 0)) {
-
-        #ifdef MILLENNIUM_LIBRARY_ROOT
-        wchar_t abs_root[MAX_PATH];
-        wchar_t abs_path[MAX_PATH];
-
-        if (is_steam_client(abs_root, MAX_PATH)) {
-            wchar_t* last_slash = wcsrchr(abs_root, L'\\');
-            if (last_slash) {
-                *(last_slash + 1) = L'\0';
-            }
-            wcscat_s(abs_root, MAX_PATH, MILLENNIUM_LIBRARY_ROOT);
-
-            wcscpy_s(abs_path, MAX_PATH, abs_root);
-            wcscat_s(abs_path, MAX_PATH, MILLENNIUM_LIBRARY_PATH);
-
-            AddDllDirectory(abs_root);
-            const void* hModule = LoadLibraryExW(abs_path, NULL, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
-            if (!hModule) {
-                show_error(GetLastError(), abs_path);
-            }
-        }
-        #else
         const void* hModule = LoadLibraryExW(MILLENNIUM_LIBRARY_PATH, NULL, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
         if (!hModule) {
             show_error(GetLastError(), MILLENNIUM_LIBRARY_PATH);
         }
-        #endif
     }
     return 1;
 }

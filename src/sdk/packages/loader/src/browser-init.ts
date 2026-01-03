@@ -29,6 +29,13 @@ export async function appendQuickCss() {
 	} catch {}
 }
 
+export async function appendRootColors() {
+	try {
+		const colors: string = JSON.parse(await Millennium.callServerMethod('core', 'Core_GetRootColors'));
+		addStyleSheetFromText(document, colors, 'RootColors');
+	} catch {}
+}
+
 export async function addPluginDOMBreadCrumbs(enabledPlugins: string[] = []) {
 	document.documentElement.setAttribute('data-millennium-plugin', enabledPlugins.join(' '));
 	document.documentElement.classList.add('MillenniumWindow_SteamBrowser');

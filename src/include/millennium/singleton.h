@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -28,28 +28,25 @@
  * SOFTWARE.
  */
 
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
-#include <optional>
+#pragma once
 
-namespace Millennium
+template <typename T> class Singleton
 {
-namespace Plugins
-{
-struct Plugin
-{
-    std::string path;
-    bool enabled;
-    nlohmann::basic_json<> data;
+  public:
+    static T& GetInstance()
+    {
+        static T instance;
+        return instance;
+    }
+
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&) = delete;
+
+  protected:
+    Singleton()
+    {
+    }
+    virtual ~Singleton()
+    {
+    }
 };
-
-nlohmann::json FindAllPlugins();
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
-} // namespace Plugins
-
-namespace Themes
-{
-bool IsValid(const std::string& theme_native_name);
-nlohmann::ordered_json FindAllThemes();
-} // namespace Themes
-} // namespace Millennium

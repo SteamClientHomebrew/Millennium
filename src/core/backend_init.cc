@@ -50,25 +50,16 @@ static std::string addedScriptOnNewDocumentId = "";
  *
  * @returns {BackendLoadState} - A singleton instance of the BackendLoadState class.
  */
-class BackendLoadState
+class BackendLoadState : public Singleton<BackendLoadState>
 {
+    friend class Singleton<BackendLoadState>;
+
   private:
-    BackendLoadState() = default;
-    static BackendLoadState& getInstance()
-    {
-        static BackendLoadState instance;
-        return instance;
-    }
 
   public:
     std::mutex mtx;
     std::condition_variable cvScript;
     bool hasScriptIdentifier = false;
-
-    static BackendLoadState& get()
-    {
-        return getInstance();
-    }
 };
 
 /**
@@ -345,8 +336,18 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
     lua_pushstring(L, plugin.pluginName.c_str());
     lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
 
-    lua_pushstring(L, plugin.backendAbsoluteDirectory.string().c_str());
+    lua_pushstring(L, plugin.backendAbsoluteDirectory.parent_path().string().c_str());
     lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_BACKEND_ABSOLUTE");
+
+    lua_getglobal(L, "package");
+    lua_getfield(L, -1, "path");
+    std::string currentPath = lua_tostring(L, -1);
+    std::string pluginPath = plugin.backendAbsoluteDirectory.parent_path().string();
+    std::string newPath = pluginPath + "/?.lua;" + currentPath;
+    lua_pop(L, 1);
+    lua_pushstring(L, newPath.c_str());
+    lua_setfield(L, -2, "path");
+    lua_pop(L, 1);
 
     lua_getglobal(L, "package");
     lua_getfield(L, -1, "preload");
@@ -449,7 +450,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
     AppendSysPathModules(sysPath);
     AddSitePackagesDirectory(pythonUserLibs);
 
-    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
 
     PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
@@ -525,7 +526,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
                 }
 #endif
 
-                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::getInstance();
+                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
                 backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
 
                 break;
@@ -663,9 +664,9 @@ void OnBackendLoad(bool reloadFrontend)
         PAGE_RELOAD = 4
     };
 
-    CefSocketDispatcher::get().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
+    CefSocketDispatcher::GetInstance().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
     {
-        auto& state = BackendLoadState::get();
+        auto& state = BackendLoadState::GetInstance();
         std::unique_lock<std::mutex> lock(state.mtx);
 
         try {
@@ -707,7 +708,7 @@ void OnBackendLoad(bool reloadFrontend)
                 }
 
                 Logger.Log("Successfully notified frontend...");
-                CefSocketDispatcher::get().RemoveListener("msg", listenerId);
+                CefSocketDispatcher::GetInstance().RemoveListener("msg", listenerId);
             }
         } catch (nlohmann::detail::exception& ex) {
             LOG_ERROR("CefSocketDispatcher error -> {}", ex.what());
@@ -720,7 +721,7 @@ void OnBackendLoad(bool reloadFrontend)
         { "method", "Page.enable" }
     });
     {
-        auto& state = BackendLoadState::get();
+        auto& state = BackendLoadState::GetInstance();
         std::unique_lock<std::mutex> lock(state.mtx);
         state.cvScript.wait(lock, [&state] { return state.hasScriptIdentifier; });
     }
@@ -735,7 +736,7 @@ void OnBackendLoad(bool reloadFrontend)
  */
 void CoInitializer::InjectFrontendShims(bool reloadFrontend)
 {
-    BackendCallbacks& backendHandler = BackendCallbacks::getInstance();
+    BackendCallbacks& backendHandler = BackendCallbacks::GetInstance();
     backendHandler.RegisterForLoad(std::bind(OnBackendLoad, reloadFrontend));
 }
 

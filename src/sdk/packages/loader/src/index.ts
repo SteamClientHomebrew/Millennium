@@ -39,12 +39,11 @@ class Bootstrap {
 			window.SP_REACT = webpack.findModule((m) => m.Component && m.PureComponent && m.useLayoutEffect);
 			window.SP_REACTDOM =
 				/** react 18 react dom */
-				webpack.findModule((m) => m.createPortal && m.createRoot) ||
-					/** react 19 react dom */
-					{
-						...webpack.findModule((m) => m.createPortal && m.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE),
-						...webpack.findModule((m) => m.createRoot),
-					};
+				webpack.findModule((m) => m.createPortal && m.createRoot) || /** react 19 react dom */
+				{
+					...webpack.findModule((m) => m.createPortal && m.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE),
+					...webpack.findModule((m) => m.createRoot),
+				};
 
 			const jsx = webpack.findModule((m) => m.jsx && Object.keys(m).length == 1)?.jsx;
 
@@ -105,6 +104,7 @@ class Bootstrap {
 				window.MILLENNIUM_API = millenniumApiModule;
 
 				const browserUtils = await import('./browser-init');
+				await browserUtils.appendRootColors();
 				await browserUtils.appendAccentColor();
 				await browserUtils.appendQuickCss();
 

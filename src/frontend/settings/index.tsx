@@ -138,7 +138,6 @@ export function MillenniumSettings() {
 
 function RenderSettingsModal(_: any, retObj: any) {
 	const items = [
-		'separator',
 		{
 			name: 'Millennium',
 			onClick: () => {

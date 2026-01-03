@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -27,29 +27,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
-#include <optional>
-
-namespace Millennium
+#ifdef _WIN32
+int __stdcall DllMain(void* hinstDLL, unsigned long fdwReason, void* lpReserved)
 {
-namespace Plugins
-{
-struct Plugin
-{
-    std::string path;
-    bool enabled;
-    nlohmann::basic_json<> data;
-};
-
-nlohmann::json FindAllPlugins();
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
-} // namespace Plugins
-
-namespace Themes
-{
-bool IsValid(const std::string& theme_native_name);
-nlohmann::ordered_json FindAllThemes();
-} // namespace Themes
-} // namespace Millennium
+    return 1;
+}
+#endif

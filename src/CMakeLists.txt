@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.21)
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
 
 if (MILLENNIUM_32BIT STREQUAL "ON")
     add_compile_definitions(MILLENNIUM_32BIT)
@@ -9,11 +8,7 @@ else()
     message(STATUS "Compiling as 64-bit")
 endif()
 
-if(WIN32 AND NOT MILLENNIUM_32BIT) 
-    set(BUILD_PREFIX "")
-    set(BUILD_NAME "millennium_x64")
-    set(BUILD_SUFFIX ".dll")
-elseif(WIN32 AND MILLENNIUM_32BIT)
+if(WIN32)
     set(BUILD_PREFIX "")
     set(BUILD_NAME "millennium")
     set(BUILD_SUFFIX ".dll")
@@ -54,17 +49,17 @@ add_compile_definitions(
     "CURL_STATICLIB"
 )
 
-if (LJ_COMPILE_TARGET_X64)
+if (WIN32)
     add_compile_definitions("LJ_TARGET_X64")
-else()
+elseif(UNIX AND NOT APPLE)
     add_compile_definitions("LJ_TARGET_X86")
 endif()
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/vendor/subhook
-    ${CMAKE_SOURCE_DIR}/vendor/plthook
+    ${MILLENNIUM_BASE}/src
+    ${MILLENNIUM_BASE}/src/include
+    ${MILLENNIUM_BASE}/src/vendor/subhook
+    ${MILLENNIUM_BASE}/src/vendor/plthook
 )
 
 set(SOURCE_FILES
@@ -87,7 +82,7 @@ set(SOURCE_FILES
     core/backend_init.cc
     core/backend_mgr.cc
     core/core_ipc.cc
-    core/http_hook.cc
+    core/http_hooks.cc
     core/init.cc
     core/lifecycle.cc
     core/millennium_api.cc
@@ -109,7 +104,7 @@ set(SOURCE_FILES
     hhx64/smem.cc
     sys/cfg.cc
     sys/env.cc
-    sys/log.cc
+    sys/logger.cc
     sys/sysfs.cc
     main.cc
 )
@@ -125,9 +120,9 @@ if(WIN32)
 elseif(UNIX)
     list(APPEND SOURCE_FILES "plat/init_posix.cc")
     list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
-    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/subhook/subhook_linux.c")
-    list(APPEND SOURCE_FILES "${CMAKE_SOURCE_DIR}/vendor/plthook/plthook_elf.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
 endif()
 
 if(WIN32)
@@ -152,11 +147,11 @@ if(UNIX AND NOT APPLE)
     set(LUAJIT_TARGET_FLAGS "-m32" CACHE STRING "LuaJIT target flags" FORCE)
 endif()
 
-include(../scripts/cmake/bootstrap_deps.cmake)
+include(${MILLENNIUM_BASE}/scripts/cmake/bootstrap_deps.cmake)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/sdk/packages/loader/build")
-    set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${CMAKE_SOURCE_DIR}")
+    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/sdk/packages/loader/build")
+    set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${MILLENNIUM_BASE}/src")
 
     add_compile_definitions(
              MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}"
@@ -175,10 +170,10 @@ if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_DEBUG "")
 endif()
 
-include(../scripts/cmake/detect_aur_helper.cmake)
+include(${MILLENNIUM_BASE}/scripts/cmake/detect_aur_helper.cmake)
 
 if(WIN32)
-    include_directories(${CMAKE_SOURCE_DIR}/vendor/python/win32)
+    include_directories(${MILLENNIUM_BASE}/src/vendor/python/win32)
 elseif(APPLE)
     set(python_path "$ENV{HOME}/.pyenv/versions/3.11.8")
     include_directories("${python_path}/include/python3.11")
@@ -194,7 +189,7 @@ else()
         include_directories("${default_python_path}/include/python3.11/")
         detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     else()
-        include_directories("${CMAKE_SOURCE_DIR}/vendor/python/posix")
+        include_directories("${MILLENNIUM_BASE}/src/vendor/python/posix")
         set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://raw.githubusercontent.com/SteamClientHomebrew/Millennium/refs/heads/main/scripts/install.sh' | sh")
     endif()
     message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
@@ -218,6 +213,7 @@ elseif(UNIX)
     target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
 endif()
 
+find_steam_path(Millennium)
 target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
 
 set_target_properties(Millennium PROPERTIES PREFIX      "${BUILD_PREFIX}")
@@ -234,15 +230,9 @@ endif()
 target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)
-    if (MILLENNIUM_32BIT)
-        set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/vendor/python/lib32/python311.lib")
-        set(PYTHON_LIB_OUT_PATH "${out_steam_path}/python311.dll")
-        set(PYTHON_LIB_IN_PATH "${CMAKE_SOURCE_DIR}/vendor/python/lib32/python311.dll")
-    else()
-        set(PYTHON_LIB "${CMAKE_SOURCE_DIR}/vendor/python/lib64/python311.lib")
-        set(PYTHON_LIB_OUT_PATH "${out_steam_path}/ext/compat64/python311.dll")
-        set(PYTHON_LIB_IN_PATH "${CMAKE_SOURCE_DIR}/vendor/python/lib64/python311.dll")
-    endif()
+    set(PYTHON_LIB "${MILLENNIUM_BASE}/src/vendor/python/lib64/python311.lib")
+    set(PYTHON_LIB_IN_PATH "${MILLENNIUM_BASE}/src/vendor/python/lib64/python311.dll")
+    set(PYTHON_LIB_OUT_PATH "${out_steam_path}/python311.dll")
 
     if (NOT GITHUB_ACTION_BUILD)
         add_custom_command(

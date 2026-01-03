@@ -30,11 +30,8 @@
 
 import React, { createContext, useContext } from 'react';
 import { PyResyncUpdates } from '../../utils/ffi';
-import { DialogButton, IconsModule, pluginSelf, SteamSpinner } from '@steambrew/client';
+import { pluginSelf } from '@steambrew/client';
 import { UpdateItemType } from './UpdateCard';
-import { locale } from '../../utils/localization-manager';
-import { Placeholder } from '../../components/Placeholder';
-import { settingsClasses } from '../../utils/classes';
 
 type UpdateContextProviderProps = {
 	children: React.ReactNode;
@@ -56,6 +53,7 @@ export type UpdateContextProviderState = {
 	updatingPlugins: boolean[];
 	setUpdatingPlugins: React.Dispatch<React.SetStateAction<boolean[]>>;
 	isAnyUpdating: () => boolean;
+	hasAnyUpdates: () => boolean;
 	themeUpdates: Array<UpdateItemType> | null;
 	pluginUpdates: any;
 	hasReceivedUpdates: boolean;
@@ -128,8 +126,6 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		const hasMillenniumUpdate = pluginSelf?.millenniumUpdates?.hasUpdate;
 
 		const hasAnyUpdate = hasThemeUpdates || hasPluginUpdates || hasMillenniumUpdate;
-		console.log('Has any update:', hasAnyUpdate, { hasThemeUpdates, hasPluginUpdates, hasMillenniumUpdate });
-
 		return hasAnyUpdate;
 	};
 
@@ -138,13 +134,6 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		pluginSelf.updates.themes = updates.themes;
 		pluginSelf.updates.plugins = updates.plugins;
 		NotifyUpdateListeners();
-	};
-
-	parseUpdateErrorMessage = () => {
-		const themeError = pluginSelf?.updates?.themes?.error || '';
-		const pluginError = pluginSelf?.updates?.plugins?.error || '';
-		if (themeError && pluginError) return `${themeError}\n${pluginError}`;
-		return themeError || pluginError;
 	};
 
 	fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
@@ -170,26 +159,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 	};
 
 	render() {
-		const { updatingThemes, updatingPlugins, hasReceivedUpdates, hasUpdateError } = this.state;
-
-		if (hasUpdateError) {
-			return (
-				<Placeholder
-					icon={<IconsModule.ExclamationPoint />}
-					header={locale.updatePanelErrorHeader}
-					body={locale.updatePanelErrorBody + this.parseUpdateErrorMessage()}
-				>
-					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={this.fetchAvailableUpdates.spread(true)}>
-						{locale.updatePanelErrorButton}
-					</DialogButton>
-				</Placeholder>
-			);
-		}
-
-		if (!hasReceivedUpdates) return <SteamSpinner background="transparent" />;
-		if (!this.hasAnyUpdates()) {
-			return <Placeholder icon={<IconsModule.Checkmark />} header={locale.updatePanelNoUpdatesFoundHeader} body={locale.updatePanelNoUpdatesFound} />;
-		}
+		const { updatingThemes, updatingPlugins } = this.state;
 
 		return (
 			<UpdateContext.Provider
@@ -207,6 +177,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 					setMillenniumUpdating: this.setMillenniumUpdating,
 					setMillenniumUpdateProgress: this.setMillenniumUpdateProgress,
 					isAnyUpdating: this.isAnyUpdating,
+					hasAnyUpdates: this.hasAnyUpdates,
 					fetchAvailableUpdates: this.fetchAvailableUpdates,
 				}}
 			>

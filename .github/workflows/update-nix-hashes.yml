@@ -3,8 +3,8 @@ name: Update Nix Hashes
 on:
   push:
     paths:
-      - 'assets/pnpm-lock.yaml'
-      - 'sdk/pnpm-lock.yaml'
+      - "src/frontend/pnpm-lock.yaml"
+      - "src/sdk/pnpm-lock.yaml"
 
 jobs:
   update-nix-hashes:

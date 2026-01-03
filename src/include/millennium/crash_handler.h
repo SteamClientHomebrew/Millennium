@@ -68,9 +68,10 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
 
         if (success) {
             Plat_ShowMessageBox(
+                "Millennium Crash",
                 "Millennium has crashed! A crash dump has been written to millennium-crash.dmp in the Steam directory."
                 "Please send this file to the developers on our Discord (steambrew.app/discord) or GitHub (github.com/SteamClientHomebrew/Millennium) to help fix this issue.",
-                "Millennium Crash", MESSAGEBOX_ERROR);
+                MESSAGEBOX_ERROR);
 
             Logger.Log("Crash dump written to millennium-crash.dmp");
         } else {

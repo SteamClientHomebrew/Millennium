@@ -56,7 +56,7 @@ EvalResult HandleCoreServerMethod(const nlohmann::basic_json<>& call)
         const auto& functionName = call["data"]["methodName"].get<std::string>();
         const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : nlohmann::json::object();
 
-        nlohmann::json result = HandleIpcMessage(functionName, args);
+        nlohmann::ordered_json result = HandleIpcMessage(functionName, args);
 
         auto it = FFIMap_t.find(result.type());
         return it != FFIMap_t.end() ? EvalResult{ it->second, result.dump() } : EvalResult{ FFI_Type::UnknownType, "core IPC call returned unknown type" };

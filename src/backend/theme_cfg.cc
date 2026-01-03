@@ -35,7 +35,6 @@
 #include "head/webkit.h"
 
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
 
 #include <fmt/format.h>
 #include <regex>
@@ -46,8 +45,14 @@ ThemeConfig::ThemeConfig()
 
     UpgradeOldConfig();
     OnConfigChange();
-    ConfigManager::Listener config_listener = [this](const std::string&, const nlohmann::json&, const nlohmann::json&) { this->OnConfigChange(); };
-    CONFIG.RegisterListener(config_listener);
+
+    config_listener_ = [this](const std::string&, const nlohmann::json&, const nlohmann::json&) { this->OnConfigChange(); };
+    CONFIG.RegisterListener(config_listener_);
+}
+
+ThemeConfig::~ThemeConfig()
+{
+    // CONFIG.UnregisterListener(config_listener_);
 }
 
 void ThemeConfig::OnConfigChange()
@@ -189,7 +194,10 @@ void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string
     if (theme.contains("failed")) return;
 
     std::filesystem::path theme_path = themes_path / name;
-    std::vector<std::string> cssItems = { "Steam-WebKit", "webkitCSS", "RootColors" };
+    std::vector<std::string> cssItems = {
+        "Steam-WebKit",
+        "webkitCSS",
+    };
 
     for (const auto& item : cssItems) {
         if (theme["data"].contains(item)) {

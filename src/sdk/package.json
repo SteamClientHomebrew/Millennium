@@ -1,11 +1,20 @@
 {
-  "name": "SteamClientHomebrewSDK",
-  "version": "1.0.0",
-  "private": true,
+  "name": "@steambrew/docs",
+  "version": "1.1.2",
+  "description": "Documentation for the SteamBrew SDK.",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "docs"
+  ],
   "scripts": {
     "test": "lerna run test",
     "build": "lerna run build",
-    "docs": "typedoc"
+    "publish": "lerna publish",
+    "docs": "typedoc",
+    "prepublish": "npm run build && npm run docs"
   },
   "devDependencies": {
     "lerna": "^9.0.3",

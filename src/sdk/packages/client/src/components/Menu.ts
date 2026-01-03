@@ -111,7 +111,7 @@ export interface ContextMenuPositionOptions extends PopupCreationOptions, Partia
 	strClassName?: string;
 }
 
-interface ContextMenuInstance {
+export interface ContextMenuInstance {
 	Hide(): void;
 	Show(): void;
 }
