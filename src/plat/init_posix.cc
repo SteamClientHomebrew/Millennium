@@ -105,10 +105,24 @@ void Posix_AttachWebHelperHook()
 {
     const char* existing = getenv("LD_PRELOAD");
     char* new_value;
-
-    if (asprintf(&new_value, "%s%s/home/shdw/Development/Millennium/build/src/hhx64-build/libmillennium_hhx64.so", existing ? existing : "", existing ? ":" : "") < 0) {
-        LOG_ERROR("[Posix_AttachWebHelperHook] asprintf failed to allocate new buffer");
-        return;
+#ifdef DEBUG
+    const char* hhx_path = "./build/hhx64/libmillennium_hhx64.so";
+#else
+    const char * hhx_path = "/usr/lib/libmillennium_hhx64.so";
+#endif
+    if (existing != NULL) {
+        if (asprintf(&new_value, "%s%s%s", existing, ":", hhx_path) < 0) {
+            LOG_ERROR("[Posix_AttachWebHelperHook] asprintf failed to allocate new buffer");
+            return;
+        }
+    } else {
+        new_value = (char*)malloc(strlen(hhx_path));
+        if (new_value == NULL) {
+            LOG_ERROR("[Posix_AttachWebHelperHook] malloc failed to allocate new buffer");
+            return;
+        }
+        strcpy(new_value, hhx_path);
+        new_value[strlen(hhx_path)] = '\0';
     }
 
     setenv("LD_PRELOAD", new_value, 1);
