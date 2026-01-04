@@ -1,30 +1,10 @@
 cmake_minimum_required(VERSION 3.21)
 
-if (MILLENNIUM_32BIT STREQUAL "ON")
-    add_compile_definitions(MILLENNIUM_32BIT)
-    message(STATUS "Compiling as 32-bit")
-else()
-    add_compile_definitions(MILLENNIUM_64BIT)
-    message(STATUS "Compiling as 64-bit")
-endif()
-
-if(WIN32)
-    set(BUILD_PREFIX "")
-    set(BUILD_NAME "millennium")
-    set(BUILD_SUFFIX ".dll")
-else() # Linux build name
-    set(BUILD_PREFIX "lib")
-    set(BUILD_NAME "millennium")
-    set(BUILD_SUFFIX "_x86.so")
-endif()
-
-set(BUILD_FULLNAME "${BUILD_PREFIX}${BUILD_NAME}${BUILD_SUFFIX}")
-
 set(VERSION_COMPANY      "Steam Homebrew")
 set(VERSION_COPYRIGHT    "Steam Homebrew 2025")
 set(VERSION_TRADEMARK1   "All Rights Reserved")
 set(VERSION_DESCRIPTION  "A plugin loader for the modern Steam Client")
-set(VERSION_FILENAME     "${BUILD_FULLNAME}")
+set(VERSION_FILENAME     "${MILLENNIUM_OUTPUT_NAME}")
 set(VERSION_PRODUCT      "Millennium")
 
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use" FORCE)
@@ -47,6 +27,8 @@ add_compile_definitions(
     "ASIO_HAS_STD_INVOKE_RESULT"
     "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
+    __HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>"
+    __DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>"
 )
 
 if (WIN32)
@@ -82,7 +64,7 @@ set(SOURCE_FILES
     core/backend_init.cc
     core/backend_mgr.cc
     core/core_ipc.cc
-    core/http_hook.cc
+    core/http_hooks.cc
     core/init.cc
     core/lifecycle.cc
     core/millennium_api.cc
@@ -104,7 +86,7 @@ set(SOURCE_FILES
     hhx64/smem.cc
     sys/cfg.cc
     sys/env.cc
-    sys/log.cc
+    sys/logger.cc
     sys/sysfs.cc
     main.cc
 )
@@ -228,10 +210,11 @@ endif()
 
 find_steam_path(Millennium)
 target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
-
-set_target_properties(Millennium PROPERTIES PREFIX      "${BUILD_PREFIX}")
-set_target_properties(Millennium PROPERTIES OUTPUT_NAME "${BUILD_NAME}"  )
-set_target_properties(Millennium PROPERTIES SUFFIX      "${BUILD_SUFFIX}")
+set_target_properties(Millennium PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "${MILLENNIUM_OUTPUT_NAME}"
+    SUFFIX ""
+)
 
 if(WIN32)
     set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)

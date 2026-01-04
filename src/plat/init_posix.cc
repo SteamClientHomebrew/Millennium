@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include <optional>
 #if defined(__linux__) || defined(__APPLE__)
 #include "hhx64/smem.h"
 #include "millennium/backend_mgr.h"
@@ -101,6 +102,19 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
     }
 }
 
+std::optional<std::filesystem::path> Posix_GetModuleBasePath()
+{
+    Dl_info info;
+    if (dladdr((void*)Posix_GetModuleBasePath, &info)) {
+        char resolved[PATH_MAX];
+        if (realpath(info.dli_fname, resolved)) {
+            std::filesystem::path p(resolved);
+            return p.parent_path();
+        }
+    }
+    return std::nullopt;
+}
+
 void Posix_AttachWebHelperHook()
 {
     const char* existing = getenv("LD_PRELOAD");
@@ -132,10 +146,13 @@ void Posix_AttachWebHelperHook()
         strcpy(new_value, hhx_path);
         new_value[strlen(hhx_path)] = '\0';
     }
+    hhx_path = (std::filesystem::path(*base_path) / __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__);
+#endif
 
-    setenv("LD_PRELOAD", new_value, 1);
+    std::string new_value = existing ? std::string(existing) + ":" + hhx_path : hhx_path;
+
+    setenv("LD_PRELOAD", new_value.c_str(), 1);
     Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", new_value);
-    free(new_value);
 }
 
 void Posix_AttachMillennium()
