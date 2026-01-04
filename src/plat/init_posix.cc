@@ -105,10 +105,28 @@ void Posix_AttachWebHelperHook()
 {
     const char* existing = getenv("LD_PRELOAD");
     char* new_value;
+    
     #ifdef DEBUG
     const char* hhx_path = "./build/hhx64/libmillennium_hhx64.so";
+    #elif MILLENNIUM_HELPER_PATH
+    const char* hhx_path = MILLENNIUM_HELPER_PATH;
     #else
-    const char * hhx_path = "/usr/lib/libmillennium_hhx64.so";
+    static char path_buffer[PATH_MAX];
+    static int initialized = 0;
+
+    if (!initialized) {
+        const char* envPath = getenv("MILLENNIUM_HELPER_PATH");
+        if (envPath) {
+            strncpy(path_buffer, envPath, PATH_MAX - 1);
+            path_buffer[PATH_MAX - 1] = '\0';
+        } else {
+            strncpy(path_buffer, "/usr/lib/millennium/libmillennium_hhx64.so", PATH_MAX - 1);
+            path_buffer[PATH_MAX - 1] = '\0';
+        }
+        initialized = 1;
+    }
+
+    const char* hhx_path = path_buffer;
     #endif
     if (existing != NULL) {
         if (asprintf(&new_value, "%s%s%s", existing, ":", hhx_path) < 0) {

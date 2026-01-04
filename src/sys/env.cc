@@ -213,11 +213,12 @@ void SetupEnvironmentVariables()
     }
 
     const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
+    const std::string customHelperPath = GetEnv("MILLENNIUM_HELPER_PATH");
 
     std::map<std::string, std::string> environment_unix = {
         { "OPENSSL_CONF", "/dev/null" },
-        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so"
-        },
+        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so" },
+        { "MILLENNIUM_HELPER_PATH", customHelperPath != "" ? customHelperPath : "/usr/lib/millennium/libmillennium_hhx64.so" },
 
         { "LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH },
 
