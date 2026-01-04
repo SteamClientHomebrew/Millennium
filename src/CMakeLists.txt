@@ -81,6 +81,7 @@ set(SOURCE_FILES
     core/auth.cc
     core/backend_init.cc
     core/backend_mgr.cc
+    core/cdpapi.cc
     core/core_ipc.cc
     core/http_hooks.cc
     core/init.cc

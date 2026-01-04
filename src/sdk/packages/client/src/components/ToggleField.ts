@@ -11,4 +11,8 @@ export interface ToggleFieldProps extends ItemProps {
 }
 
 /** @component React Components */
-export const ToggleField = Object.values(CommonUIModule).find((mod: any) => mod?.render?.toString()?.includes('ToggleField,fallback')) as FC<ToggleFieldProps>;
+export const ToggleField = Object.values(CommonUIModule).find(
+	(mod: any) =>
+		// stable || beta as of oct 2 2024
+		mod?.render?.toString?.()?.includes('ToggleField,fallback') || mod?.render?.toString?.()?.includes('ToggleField",'),
+) as FC<ToggleFieldProps>;

@@ -29,6 +29,7 @@
  */
 
 #include "millennium/argp_win32.h"
+#include "millennium/cdpapi.h"
 #include "millennium/plat_msg.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"
@@ -94,7 +95,7 @@ class SocketHelpers
 
         if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR) {
             free(tcpTable);
-            return { false, "Error getting TCP table" };
+            return {false, "Error getting TCP table"};
         }
 
         for (DWORD i = 0; i < tcpTable->dwNumEntries; i++) {
@@ -106,11 +107,11 @@ class SocketHelpers
                     continue;
                 }
 
-                return { targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string() };
+                return {targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string()};
             }
         }
 #endif
-        return { true };
+        return {true};
     }
 
   public:
@@ -118,11 +119,7 @@ class SocketHelpers
     {
         std::string commonName;
         std::function<std::string()> fetchSocketUrl;
-
-        std::function<void(websocketpp::client<websocketpp::config::asio_client>*, websocketpp::connection_hdl)> onConnect;
-
-        std::function<void(websocketpp::client<websocketpp::config::asio_client>*, websocketpp::connection_hdl, std::shared_ptr<websocketpp::config::core_client::message_type>)>
-            onMessage;
+        std::function<void(std::shared_ptr<CDPClient>)> onConnect;
     };
 
     /**
@@ -141,7 +138,8 @@ class SocketHelpers
                 fmt::format("Millennium can't connect to Steam because the target port '{}' is currently being used by '{}'.\n"
                             "To address this you must uninstall/close the conflicting app, change the port it uses (assuming its possible), or uninstall Millennium.\n\n"
                             "Millennium & Steam will now close until further action is taken.",
-                            debuggerPort, processName);
+                    debuggerPort,
+                    processName);
 
             Plat_ShowMessageBox("Fatal Error", message.c_str(), MESSAGEBOX_ERROR);
             Logger.Warn(message);
@@ -172,7 +170,8 @@ class SocketHelpers
             return instance["webSocketDebuggerUrl"];
         } catch (nlohmann::detail::exception& exception) {
             LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}",
-                      debuggerPort, exception.what());
+                debuggerPort,
+                exception.what());
             std::exit(1);
         }
     }
@@ -180,13 +179,13 @@ class SocketHelpers
     void ConnectSocket(std::shared_ptr<ConnectSocketProps> socketProps)
     {
         std::string socketUrl;
-        const auto [commonName, fetchSocketUrl, onConnect, onMessage] = *socketProps;
+        std::string commonName = socketProps->commonName;
+        auto fetchSocketUrl = socketProps->fetchSocketUrl;
+        auto onConnect = socketProps->onConnect;
 
         try {
             socketUrl = fetchSocketUrl();
-        }
-        /** The request was broke early before it was received. Likely because Millennium is shutting down. */
-        catch (HttpError& exception) {
+        } catch (HttpError& exception) {
             Logger.Warn("Failed to get Steam browser context: {}", exception.GetMessage());
             return;
         }
@@ -197,33 +196,48 @@ class SocketHelpers
         }
 
         websocketpp::client<websocketpp::config::asio_client> socketClient;
+        std::shared_ptr<CDPClient> cdpClient;
 
         try {
             socketClient.set_access_channels(websocketpp::log::alevel::none);
             socketClient.clear_error_channels(websocketpp::log::elevel::none);
-            socketClient.set_error_channels(websocketpp::log::elevel::all);
-
+            socketClient.set_error_channels(websocketpp::log::elevel::none);
             socketClient.init_asio();
 
-            // Validate handlers before binding
-            if (!onConnect || !onMessage) {
+            if (!onConnect) {
                 LOG_ERROR("[{}] Invalid event handlers. Connection aborted.", commonName);
                 return;
             }
-
-            socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
-            socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
 
             websocketpp::lib::error_code errorCode;
             auto con = socketClient.get_connection(socketUrl, errorCode);
 
             if (errorCode) {
-                LOG_ERROR("[{}] Failed to establish connection: {} [{}]", commonName, errorCode.message(), errorCode.value());
+                LOG_ERROR("[{}] Failed to get_connection: {} [{}]", commonName, errorCode.message(), errorCode.value());
                 return;
             }
 
+            cdpClient = std::make_shared<CDPClient>(con);
+            con->set_message_handler([cdpClient, commonName](websocketpp::connection_hdl, websocketpp::client<websocketpp::config::asio_client>::message_ptr msg)
+            { cdpClient->handle_message(msg->get_payload()); });
+
+            con->set_open_handler([cdpClient, onConnect, commonName](websocketpp::connection_hdl)
+            {
+                try {
+                    onConnect(cdpClient);
+                } catch (const std::exception& e) {
+                    LOG_ERROR("[{}] Exception in onConnect: {}", commonName, e.what());
+                } catch (...) {
+                    LOG_ERROR("[{}] Unknown exception in onConnect", commonName);
+                }
+            });
+
+            con->set_close_handler([commonName](websocketpp::connection_hdl) { Logger.Log("[{}] *** CLOSE HANDLER ***", commonName); });
+            con->set_fail_handler([commonName](websocketpp::connection_hdl) { LOG_ERROR("[{}] *** FAIL HANDLER ***", commonName); });
+
             socketClient.connect(con);
             socketClient.run();
+
         } catch (const websocketpp::exception& ex) {
             LOG_ERROR("[{}] WebSocket exception thrown -> {}", commonName, ex.what());
         } catch (const std::exception& ex) {
@@ -232,6 +246,10 @@ class SocketHelpers
             LOG_ERROR("[{}] Unknown exception caught.", commonName);
         }
 
+        Logger.Log("[{}] Shutting down CDP client...", commonName);
+        if (cdpClient) {
+            cdpClient->shutdown();
+        }
         Logger.Log("Disconnected from [{}] module...", commonName);
     }
 };
