@@ -28,6 +28,7 @@ steam.override {
     STEAM_RUNTIME_LOGGER = "0";
     MILLENNIUM_RUNTIME_PATH = "${millennium}/lib/libmillennium_x86.so";
     MILLENNIUM_HELPER_PATH = "${millennium}/lib/libmillennium_hhx64.so";
+    LD_LIBRARY_PATH = "${pkgsi686Linux.openssl.out}/lib:$LD_LIBRARY_PATH";
   };
 
   extraProfile = ''
