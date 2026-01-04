@@ -160,18 +160,20 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 
 	renderExpandableShowMore() {
 		const { theme } = this.props;
-		if (!theme?.data?.description && !theme?.data?.github?.owner) return null;
+		const name = theme?.data?.author || theme?.data?.github?.owner;
+		if (!theme?.data?.description && !name) return null;
 
 		return (
 			<>
 				{theme?.data?.description && <div className="MillenniumThemes_Description">{theme.data.description}</div>}
-				{theme?.data?.github?.owner ? (
-					<a className="MillenniumThemes_Author" onClick={() => Utils.OpenUrl('https://github.com/' + theme.data.github.owner)}>
-						{formatString(locale.strByAuthor, theme.data.github.owner + (theme?.data?.author ? ` (${theme.data.author})` : ''))}
-					</a>
-				) : theme?.data?.author ? (
-					<a className="MillenniumThemes_Author">{formatString(locale.strByAuthor, theme.data.author)}</a>
-				) : null}
+				{name && (
+					<span className="MillenniumThemes_Author">
+						{formatString(locale.strByAuthor, name)}
+						{theme?.data?.github?.owner && (
+							<a onClick={() => Utils.OpenUrl('https://github.com/' + theme.data.github.owner)}>{`(${theme?.data?.github?.owner})`}</a>
+						)}
+					</span>
+				)}
 			</>
 		);
 	}
