@@ -200,6 +200,7 @@ class ConfigManager
     void NotifyListeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value);
 
     std::recursive_mutex _mutex;
+    std::mutex _save_mutex;
     nlohmann::json _data;
     nlohmann::json _defaults;
     std::vector<Listener> _listeners;

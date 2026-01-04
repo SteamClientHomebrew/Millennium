@@ -1,54 +1,26 @@
 cmake_minimum_required(VERSION 3.21)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "Static MSVC Runtime Library" FORCE)
+set(MILLENNIUM_BASE            ${CMAKE_SOURCE_DIR}                     CACHE PATH   "Base path to Millennium source"   )
+
 project(MillenniumBuildSlave)
-include(ExternalProject)
+add_compile_definitions(MILLENNIUM_$<IF:$<CONFIG:Debug>,DEBUG,RELEASE> MILLENNIUM_64BIT)
 
 if(WIN32)
-    include(scripts/cmake/msvc.cmake)
-elseif(UNIX)
-    include(scripts/cmake/unix.cmake)
+    # Windows build names
+    set(MILLENNIUM_OUTPUT_NAME                     "millennium.dll"                )
+    set(MILLENNIUM_HOOK_HELPER_OUTPUT_NAME         "millennium.hhx64.dll"          )
+    set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "wsock32.dll"                   )
+    set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME_LEGACY   "version.dll"                   )
+else()
+    # Linux build names
+    set(MILLENNIUM_OUTPUT_NAME                     "libmillennium_x86.so"          )
+    set(MILLENNIUM_HOOK_HELPER_OUTPUT_NAME         "libmillennium_hhx64.so"        )
+    set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "libmillennium_bootstrap_86x.so")
 endif()
 
-message(STATUS "Ninja compiler path: ${USER_CMAKE_MAKE_PROGRAM}")
-message(STATUS "X86 toolchain args: ${X86_TOOLCHAIN_ARGS}")
+add_compile_definitions(__MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}")
+add_compile_definitions(__MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}")
+add_compile_definitions(__MILLENNIUM_BOOTLOADER_OUTPUT_NAME__="${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}")
 
-set(COMMON_CMAKE_ARGS
-    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
-    -DCMAKE_C_STANDARD=${CMAKE_C_STANDARD}
-    -DCMAKE_MAKE_PROGRAM=${USER_CMAKE_MAKE_PROGRAM}
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=${CMAKE_EXPORT_COMPILE_COMMANDS}
-    -DMILLENNIUM_BASE=${CMAKE_SOURCE_DIR}
-    -DGITHUB_ACTION_BUILD=${GITHUB_ACTION_BUILD}
-    -DDISTRO_ARCH=${DISTRO_ARCH}
-    -DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}
-    -DCMAKE_SHARED_LINKER_FLAGS_RELEASE=${CMAKE_SHARED_LINKER_FLAGS_RELEASE}
-)
-
-ExternalProject_Add(millennium_x86
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
-    PREFIX ${CMAKE_BINARY_DIR}
-    CMAKE_GENERATOR "Ninja"
-    CMAKE_ARGS ${COMMON_CMAKE_ARGS} ${X86_TOOLCHAIN_ARGS} -DLJ_COMPILE_TARGET_X64=OFF -DMILLENNIUM_32BIT=ON
-    INSTALL_COMMAND ""
-    BUILD_ALWAYS 1
-)
-
-if (WIN32)
-    ExternalProject_Add(millennium_x64
-        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
-        PREFIX ${CMAKE_BINARY_DIR}
-        CMAKE_GENERATOR "Ninja"
-        CMAKE_ARGS ${COMMON_CMAKE_ARGS} -DLJ_COMPILE_TARGET_X64=ON -DMILLENNIUM_32BIT=OFF
-        INSTALL_COMMAND ""
-        BUILD_ALWAYS 1
-    )
-endif()
-
-ExternalProject_Add(hhx64
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/hhx64
-    PREFIX ${CMAKE_BINARY_DIR}
-    CMAKE_GENERATOR "Ninja"
-    CMAKE_ARGS ${COMMON_CMAKE_ARGS}
-    INSTALL_COMMAND ""
-    BUILD_ALWAYS 1
-)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/hhx64)

@@ -99,15 +99,15 @@ string(REGEX REPLACE ",\n$" "\n" HEADER_CONTENT "${HEADER_CONTENT}")
 set(HEADER_CONTENT "${HEADER_CONTENT}};\n")
 set(HEADER_CONTENT "${HEADER_CONTENT}// clang-format on\n")
 
-file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/include/millennium")
-file(WRITE "${CMAKE_SOURCE_DIR}/include/millennium/virtfs.h" "${HEADER_CONTENT}")
+file(MAKE_DIRECTORY "${MILLENNIUM_BASE}/src/include/millennium")
+file(WRITE "${MILLENNIUM_BASE}/src/include/millennium/virtfs.h" "${HEADER_CONTENT}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release" AND WIN32)
     file(WRITE "${MILLENNIUM_BASE}/scripts/resources.rc" "${RC_CONTENT}")
 endif()
 
 add_custom_command(
-    OUTPUT "${CMAKE_SOURCE_DIR}/include/millennium/virtfs.h"
+    OUTPUT "${MILLENNIUM_BASE}/src/include/millennium/virtfs.h"
     COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_LIST_FILE}"
     DEPENDS ${CHUNK_FILES}
     COMMENT "Generating asset includes"
