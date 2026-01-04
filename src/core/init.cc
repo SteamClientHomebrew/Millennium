@@ -200,49 +200,6 @@ std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(std::shared_ptr<CEF
     return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
 }
 
-/**
- * @brief Injects webkit shims into the SteamUI.
- * All hooks are internally stored in the function and are removed upon re-injection.
- */
-void PluginLoader::InjectWebkitShims()
-{
-    Logger.Log("Injecting webkit shims...");
-
-    this->Initialize();
-    static std::vector<int> hookIds;
-
-    /** Clear all previous hooks if there are any */
-    if (!hookIds.empty()) {
-        std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::GetInstance().GetHookListCopy();
-
-        for (auto it = moduleList.begin(); it != moduleList.end();) {
-            if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end()) {
-                Logger.Log("Removing hook for module id: {}", it->id);
-                it = moduleList.erase(it);
-            } else
-                ++it;
-        }
-
-        HttpHookManager::GetInstance().SetHookList(std::make_shared<std::vector<HttpHookManager::HookType>>(moduleList));
-    }
-
-    const auto allPlugins = this->m_settingsStorePtr->ParseAllPlugins();
-    std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
-
-    // Inject all webkit shims for enabled plugins if they have shims
-    for (auto& plugin : allPlugins) {
-        const auto absolutePath = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
-
-        if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath)) {
-            g_hookedModuleId++;
-            hookIds.push_back(g_hookedModuleId);
-
-            Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId.load());
-            HttpHookManager::GetInstance().AddHook({ absolutePath.generic_string(), std::regex(".*"), HttpHookManager::TagTypes::JAVASCRIPT, g_hookedModuleId });
-        }
-    }
-}
-
 void PluginLoader::StartFrontEnds()
 {
     if (g_shouldTerminateMillennium->flag.load()) {
@@ -252,8 +209,6 @@ void PluginLoader::StartFrontEnds()
 
     std::shared_ptr<CEFBrowser> cefBrowserHandler = std::make_shared<CEFBrowser>();
     std::shared_ptr<SocketHelpers> socketHelpers = std::make_shared<SocketHelpers>();
-
-    this->InjectWebkitShims();
 
     Logger.Log("Starting frontend socket...");
     std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(cefBrowserHandler, socketHelpers);
