@@ -457,6 +457,7 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
 
 	.MillenniumDesktopSidebar_EditorContent {
 		display: flex;
+		padding: 20px;
 		flex-direction: column;
 		height: 100%;
 		overflow: auto;
