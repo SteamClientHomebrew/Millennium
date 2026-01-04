@@ -16,7 +16,7 @@ set(VERSION_FILE "${CMAKE_BINARY_DIR}/${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}.rc")
 configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${VERSION_FILE} @ONLY)
 
 set(VERSION_SOURCE_FILES
-    "version.c"
+    "main.c"
     ${VERSION_FILE}
 )
 
@@ -24,7 +24,7 @@ list(APPEND VERSION_SOURCE_FILES ${MILLENNIUM_BASE}/src/include/millennium/expor
 add_compile_definitions(MILLENNIUM_64BIT)
 
 add_library(preload SHARED ${VERSION_SOURCE_FILES})
-target_link_libraries(preload version)
+target_link_libraries(preload wsock32)
 
 if (NOT GITHUB_ACTION_BUILD)
     include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)

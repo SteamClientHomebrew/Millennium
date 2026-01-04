@@ -16,7 +16,7 @@ set(VERSION_FILE "${CMAKE_BINARY_DIR}/${MILLENNIUM_BOOTLOADER_OUTPUT_NAME_LEGACY
 configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${VERSION_FILE} @ONLY)
 
 set(VERSION_SOURCE_FILES
-    "version.c"
+    "main.c"
     ${VERSION_FILE}
 )
 
