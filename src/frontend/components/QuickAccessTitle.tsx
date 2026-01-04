@@ -61,7 +61,7 @@ export const TitleView = () => {
 	if (!focusedItem) {
 		return (
 			<Title text="Library Settings">
-				<IconButton name="Settings" onClick={onSettingsClick} text="Settings" />
+				<IconButton name="Settings" onClick={onSettingsClick} />
 			</Title>
 		);
 	}
@@ -74,7 +74,7 @@ export const TitleView = () => {
 
 	return (
 		<Title text={libraryItemTitle}>
-			<IconButton name="KaratLeft" onClick={setFocusedItem.bind(undefined, undefined)} text="Go back" />
+			<IconButton name="KaratLeft" onClick={setFocusedItem.bind(undefined, undefined)} />
 		</Title>
 	);
 };

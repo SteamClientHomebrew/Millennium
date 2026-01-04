@@ -25,7 +25,7 @@ interface IconButtonProps {
 	/**
 	 * Localization token for the tooltip.
 	 */
-	text: string;
+	text?: string;
 }
 
 export function IconButton(props: IconButtonProps) {
@@ -33,11 +33,19 @@ export function IconButton(props: IconButtonProps) {
 	const className = joinClassNames('MillenniumButton', 'MillenniumIconButton', settingsClasses.SettingsDialogButton, props.className);
 	const icon = createElement(IconsModule[name]);
 
+	const Button = () => (
+		<DialogButton className={className} disabled={disabled} onClick={onClick} data-icon-name={name}>
+			{icon}
+		</DialogButton>
+	);
+
+	if (!text) {
+		return <Button />;
+	}
+
 	return (
 		<DesktopTooltip toolTipContent={text}>
-			<DialogButton className={className} disabled={disabled} onClick={onClick} data-icon-name={name}>
-				{icon}
-			</DialogButton>
+			<Button />
 		</DesktopTooltip>
 	);
 }
