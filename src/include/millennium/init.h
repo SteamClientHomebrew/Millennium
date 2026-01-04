@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "millennium/cdpapi.h"
 #include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/cef_bridge.h"
@@ -55,10 +56,9 @@ class CEFBrowser
 
   public:
     CEFBrowser();
-    void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
     void SetupSharedJSContext();
     void onSharedJsConnect();
-    void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle);
+    void onConnect(std::shared_ptr<CDPClient> cdp);
 };
 
 class PluginLoader

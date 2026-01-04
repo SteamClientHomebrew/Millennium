@@ -747,9 +747,9 @@ void CoInitializer::InjectFrontendShims(bool reloadFrontend)
  *
  * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
  */
-void CoInitializer::ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
+void CoInitializer::ReInjectFrontendShims([[maybe_unused]] std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
 {
-    pluginLoader->InjectWebkitShims();
+    // pluginLoader->InjectWebkitShims();
 
     Sockets::PostShared({
         { "id",     0                                                },

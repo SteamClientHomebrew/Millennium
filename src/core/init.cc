@@ -37,12 +37,13 @@
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
+#include "nlohmann/json_fwd.hpp"
+#include <memory>
 
 using namespace std::placeholders;
 using namespace std::chrono;
-websocketpp::client<websocketpp::config::asio_client>* browserClient;
-websocketpp::connection_hdl browserHandle;
 
+std::shared_ptr<CDPClient> cdp;
 std::shared_ptr<PluginLoader> g_pluginLoader;
 std::string sharedJsContextSessionId;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
@@ -55,14 +56,15 @@ extern std::atomic<bool> ab_shouldDisconnectFrontend;
  *
  * @note ID's are managed by the caller.
  */
-bool Sockets::PostShared(nlohmann::json data)
+bool Sockets::PostShared(nlohmann::json)
 {
-    if (sharedJsContextSessionId.empty()) {
-        return false;
-    }
+    // if (sharedJsContextSessionId.empty()) {
+    //     return false;
+    // }
 
-    data["sessionId"] = sharedJsContextSessionId;
-    return Sockets::PostGlobal(data);
+    // data["sessionId"] = sharedJsContextSessionId;
+    // return Sockets::PostGlobal(data);
+    return true;
 }
 
 /**
@@ -71,13 +73,14 @@ bool Sockets::PostShared(nlohmann::json data)
  *
  * @note ID's are managed by the caller.
  */
-bool Sockets::PostGlobal(nlohmann::json data)
+bool Sockets::PostGlobal(nlohmann::json)
 {
-    if (browserClient == nullptr) {
-        return false;
-    }
+    // if (browserClient == nullptr) {
+    //     return false;
+    // }
 
-    browserClient->send(browserHandle, data.dump(), websocketpp::frame::opcode::text);
+    // browserClient->send(browserHandle, data.dump(),
+    // websocketpp::frame::opcode::text);
     return true;
 }
 
@@ -87,69 +90,107 @@ bool Sockets::PostGlobal(nlohmann::json data)
  */
 void Sockets::Shutdown()
 {
-    try {
-        if (browserClient != nullptr) {
-            browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
-            Logger.Log("Shut down browser connection...");
-        }
-    } catch (const websocketpp::exception& e) {
-    }
+    // try {
+    //     if (browserClient != nullptr) {
+    //         browserClient->close(browserHandle,
+    //         websocketpp::close::status::normal, "Shutting down");
+    //         Logger.Log("Shut down browser connection...");
+    //     }
+    // } catch (const websocketpp::exception& e) {
+    // }
 }
 
 CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::GetInstance())
 {
 }
 
-void CEFBrowser::onMessage([[maybe_unused]] websocketpp::client<websocketpp::config::asio_client>* c, [[maybe_unused]] websocketpp::connection_hdl hdl,
-                           websocketpp::config::asio_client::message_type::ptr msg)
-{
-    const auto json = nlohmann::json::parse(msg->get_payload());
+// void CEFBrowser::onMessage([[maybe_unused]]
+// websocketpp::client<websocketpp::config::asio_client>* c, [[maybe_unused]]
+// websocketpp::connection_hdl hdl,
+//                            websocketpp::config::asio_client::message_type::ptr
+//                            msg)
+// {
+//     const auto json = nlohmann::json::parse(msg->get_payload());
 
-    if (json.contains("id") && json["id"] == 0 && json.contains("result") && json["result"].is_object() && json["result"].contains("targetInfos") &&
-        json["result"]["targetInfos"].is_array()) {
-        const auto targets = json["result"]["targetInfos"];
+//     if (json.contains("id") && json["id"] == 0 && json.contains("result") &&
+//     json["result"].is_object() && json["result"].contains("targetInfos") &&
+//         json["result"]["targetInfos"].is_array()) {
+//         const auto targets = json["result"]["targetInfos"];
 
-        auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
+//         auto targetIterator = std::find_if(targets.begin(), targets.end(),
+//         [](const auto& target) { return target["title"] == "SharedJSContext";
+//         });
 
-        if (targetIterator != targets.end() && !m_sharedJsConnected) {
-            Logger.Log("Found SharedJSContext target, attaching...");
+//         if (targetIterator != targets.end() && !m_sharedJsConnected) {
+//             Logger.Log("Found SharedJSContext target, attaching...");
 
-            Sockets::PostGlobal({
-                { "id",     0                                                                      },
-                { "method", "Target.attachToTarget"                                                },
-                { "params", { { "targetId", (*targetIterator)["targetId"] }, { "flatten", true } } }
-            });
-            Sockets::PostGlobal({
-                { "id",     0                                                                                                                                             },
-                { "method", "Target.exposeDevToolsProtocol"                                                                                                               },
-                { "params", { { "targetId", (*targetIterator)["targetId"] }, { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" } } }
-            });
-            m_sharedJsConnected = true;
-        } else if (!m_sharedJsConnected) {
-            this->SetupSharedJSContext();
-        }
-    }
+//             Sockets::PostGlobal({
+//                 { "id",     0 }, { "method", "Target.attachToTarget" }, {
+//                 "params", { { "targetId", (*targetIterator)["targetId"] }, {
+//                 "flatten", true } } }
+//             });
+//             Sockets::PostGlobal({
+//                 { "id",     0 }, { "method", "Target.exposeDevToolsProtocol"
+//                 }, { "params", { { "targetId", (*targetIterator)["targetId"]
+//                 }, { "bindingName",
+//                 "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE"
+//                 } } }
+//             });
+//             m_sharedJsConnected = true;
+//         } else if (!m_sharedJsConnected) {
+//             this->SetupSharedJSContext();
+//         }
+//     }
 
-    if (json.value("method", std::string()) == "Target.attachedToTarget" && json["params"]["targetInfo"]["title"] == "SharedJSContext") {
-        sharedJsContextSessionId = json["params"]["sessionId"];
-        Sockets::PostShared({
-            { "id",        9494                     },
-            { "method",    "Log.enable "            },
-            { "sessionId", sharedJsContextSessionId }
-        });
-        this->onSharedJsConnect();
-    } else {
-        CefSocketDispatcher::GetInstance().EmitMessage("msg", json);
-    }
-    webKitHandler.DispatchSocketMessage(json);
-}
+//     if (json.value("method", std::string()) == "Target.attachedToTarget" &&
+//     json["params"]["targetInfo"]["title"] == "SharedJSContext") {
+//         sharedJsContextSessionId = json["params"]["sessionId"];
+//         Sockets::PostShared({
+//             { "id",        9494                     },
+//             { "method",    "Log.enable "            },
+//             { "sessionId", sharedJsContextSessionId }
+//         });
+//         this->onSharedJsConnect();
+//     } else {
+//         CefSocketDispatcher::GetInstance().EmitMessage("msg", json);
+//     }
+//     webKitHandler.DispatchSocketMessage(json);
+// }
 
 void CEFBrowser::SetupSharedJSContext()
 {
-    Sockets::PostGlobal({
-        { "id",     0                   },
-        { "method", "Target.getTargets" }
+    auto targets = cdp->send("Target.getTargets").get();
+    std::cout << targets.dump(4) << std::endl;
+
+    if (!targets.contains("targetInfos") || !targets["targetInfos"].is_array()) {
+        this->SetupSharedJSContext();
+        return;
+    }
+
+    auto targetFrame = "SharedJSContext";
+    auto targetIterator = std::find_if(targets.begin(), targets.end(), [targetFrame](const auto& target) { return target["title"] == targetFrame; });
+
+    /** retry if we can't find the SharedJSContext */
+    if (targetIterator == targets.end()) {
+        this->SetupSharedJSContext();
+        return;
+    }
+
+    nlohmann::json targetId = targetIterator->at("targetId");
+
+    /** attach to the target */
+    auto attachResult = cdp->send("Target.attachToTarget", {
+                                                               { "targetId", targetId },
+                                                               { "flatten",  true     }
     });
+
+    auto exposeChromeDevTools = cdp->send("Target.exposeDevToolsProtocol", {
+                                                                               { "targetId",    targetId                                                                                                                   },
+                                                                               { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_"
+                                                                                                "USE_OR_OVERRIDE_ONMESSAGE" }
+    });
+
+    this->onSharedJsConnect();
 }
 
 void CEFBrowser::onSharedJsConnect()
@@ -161,13 +202,12 @@ void CEFBrowser::onSharedJsConnect()
     }).detach();
 }
 
-void CEFBrowser::onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
+void CEFBrowser::onConnect(std::shared_ptr<CDPClient> cdp)
 {
-    m_startTime = std::chrono::system_clock::now();
-    browserClient = client;
-    browserHandle = handle;
+    ::cdp = cdp;
 
-    Logger.Log("Connected to Steam @ {}", (void*)client);
+    m_startTime = std::chrono::system_clock::now();
+    Logger.Log("Connected to Steam @ {}", (void*)&cdp);
 
     this->SetupSharedJSContext();
     webKitHandler.SetupGlobalHooks();
@@ -193,9 +233,7 @@ std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(std::shared_ptr<CEF
 
     browserProps->commonName = "CEFBrowser";
     browserProps->fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
-
-    browserProps->onConnect = [cefBrowserHandler](auto* client, auto hdl) { cefBrowserHandler->onConnect(client, hdl); };
-    browserProps->onMessage = [cefBrowserHandler](auto* client, auto hdl, auto msg) { cefBrowserHandler->onMessage(client, hdl, msg); };
+    browserProps->onConnect = [cefBrowserHandler](std::shared_ptr<CDPClient> cdp) { std::thread([cefBrowserHandler, cdp] { cefBrowserHandler->onConnect(cdp); }).detach(); };
 
     return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
 }
@@ -217,9 +255,9 @@ void PluginLoader::StartFrontEnds()
     Logger.Log("Startup took {} ms", duration.count());
 
     if (browserSocketThread->joinable()) {
-        Logger.Warn("Joining browser socket thread {}", (void*)browserSocketThread.get());
+        Logger.Log("Joining browser socket thread {}", (void*)browserSocketThread.get());
         browserSocketThread->join();
-        Logger.Warn("Browser socket thread joined {}", (void*)browserSocketThread.get());
+        Logger.Log("Browser socket thread joined {}", (void*)browserSocketThread.get());
     }
 
     if (g_shouldTerminateMillennium->flag.load()) {
@@ -276,14 +314,16 @@ void StartPreloader(BackendManager& manager)
     plugin.backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx";
     plugin.isInternal = true;
 
-    /** Create instance on a separate thread to prevent IO blocking of concurrent threads */
+    /** Create instance on a separate thread to prevent IO blocking of concurrent
+     * threads */
     manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin)
     {
         Logger.Log("Started preloader module");
         const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
 
         PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
-        /** Set plugin name in the global dictionary so its stdout can be retrieved by the logger. */
+        /** Set plugin name in the global dictionary so its stdout can be
+         * retrieved by the logger. */
         SetPluginSecretName(globalDictionary, plugin.pluginName);
 
         PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
@@ -311,7 +351,8 @@ void StartPreloader(BackendManager& manager)
         promise.set_value();
     });
 
-    /* Wait for the package manager plugin to exit, signalling we can now start other plugins */
+    /* Wait for the package manager plugin to exit, signalling we can now start
+     * other plugins */
     promise.get_future().get();
     manager.DestroyPythonInstance("pipx");
 }
