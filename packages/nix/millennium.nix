@@ -5,6 +5,7 @@
   gtk3,
   pkg-config,
   git,
+  cacert,
   lib,
   pkgsi686Linux,
   millennium-shims,
@@ -33,6 +34,7 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     pkgsi686Linux.libpsl
     pkgsi686Linux.openssl
     pkgsi686Linux.libxtst
+    cacert
     millennium-python
   ];
 
@@ -46,6 +48,8 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     "-DNIX_FRONTEND=${millennium-frontend}/share/frontend"
     "-DNIX_SHIMS=${millennium-shims}/share/millennium/shims"
     "-DNIX_PYTHON=${millennium-python}"
+    "-DCURL_CA_BUNDLE=${cacert}/etc/ssl/certs/ca-bundle.crt"
+    "-DCURL_CA_PATH=${cacert}/etc/ssl/certs"
     "--preset=linux-release"
   ];
 

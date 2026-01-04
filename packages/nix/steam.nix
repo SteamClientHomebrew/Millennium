@@ -1,5 +1,7 @@
 {
   steam,
+  openssl,
+  pkgsi686Linux,
   stdenv,
   millennium-python,
   millennium-shims,
@@ -12,10 +14,13 @@ steam.override {
     millennium-assets
     millennium-shims
     millennium-python
+    pkgsi686Linux.openssl
   ];
 
   extraLibraries = pkgs: [
     millennium
+    pkgsi686Linux.openssl
+    openssl
   ];
 
   extraEnv = {

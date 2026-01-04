@@ -13,6 +13,10 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     sha256 = "sha256-0wGaYTueh2HSYNnr471N9jl23jBGTlwBiVZuGuP2GIk=";
   };
 
+  nativeBuildInputs = [
+    pkgsi686Linux.pkg-config
+  ];
+
   buildInputs = [
     pkgsi686Linux.zlib
     pkgsi686Linux.ncurses
@@ -32,6 +36,7 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     "--enable-shared"
     "--enable-optimizations"
     "--without-ensurepip"
+    "--with-openssl=${pkgsi686Linux.openssl.dev}"
   ];
 
   preBuild = ''
@@ -65,6 +70,6 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
   '';
 
   postFixup = ''
-    patchelf --set-rpath "$out/lib" $out/lib/libpython-3.11.8.so
+    patchelf --add-rpath "$out/lib" $out/lib/libpython-3.11.8.so
   '';
 })
