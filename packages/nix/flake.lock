@@ -156,17 +156,17 @@
     "millennium-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1767478158,
-        "narHash": "sha256-99bGL3L1Ls4+zM0VQT3h1VQMNRlL5p9M8shJASJzedQ=",
+        "lastModified": 1767489587,
+        "narHash": "sha256-gPeAFS4akAGwmwwsOmr+Fi0oADes5xljttqPYWAlA9o=",
         "owner": "Trivaris",
         "repo": "millennium",
-        "rev": "0167fd0d8a8ebf5a2c434528347967efd5c60c91",
+        "rev": "00132ea97ffd7defaa90b4c8393b640e3229fda5",
         "type": "github"
       },
       "original": {
         "owner": "Trivaris",
         "repo": "millennium",
-        "rev": "0167fd0d8a8ebf5a2c434528347967efd5c60c91",
+        "rev": "00132ea97ffd7defaa90b4c8393b640e3229fda5",
         "type": "github"
       }
     },

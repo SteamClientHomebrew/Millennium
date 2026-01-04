@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    millennium-src.url = "github:Trivaris/millennium/0167fd0d8a8ebf5a2c434528347967efd5c60c91?shallow=true";
+    millennium-src.url = "github:Trivaris/millennium/00132ea97ffd7defaa90b4c8393b640e3229fda5?shallow=true";
     millennium-src.flake = false;
 
     zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5?shallow=true";
@@ -52,22 +52,15 @@
     {
       packages.x86_64-linux =
         let
-          pkgs = import nixpkgs { system = "x86_64-linux"; };
+          pkgs = import nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; };
           packages = {
-            default = packages.millennium;
-            millennium-assets = pkgs.callPackage ./assets.nix { inherit millennium-src; };
-            millennium-frontend = pkgs.callPackage ./frontend.nix { inherit millennium-src; };
-            millennium-shims = pkgs.callPackage ./shims.nix { inherit millennium-src; };
-            millennium-python = pkgs.callPackage ./python.nix { };
-            millennium = pkgs.callPackage ./millennium.nix {
-              inherit inputs;
-              inherit (packages)
-                millennium-assets
-                millennium-frontend
-                millennium-shims
-                millennium-python
-                ;
-            };
+            default = packages.millennium-steam;
+            millennium-python   = pkgs.callPackage ./python.nix             { };
+            millennium-assets   = pkgs.callPackage ./assets.nix             { inherit millennium-src; };
+            millennium-frontend = pkgs.callPackage ./frontend.nix           { inherit millennium-src; };
+            millennium-shims    = pkgs.callPackage ./shims.nix              { inherit millennium-src; };
+            millennium          = pkgs.callPackage ./millennium.nix         { inherit (packages) millennium-python millennium-shims millennium-assets millennium-frontend; inherit inputs; };
+            millennium-steam    = pkgs.callPackage ./steam.nix              { inherit (packages) millennium-python millennium-shims millennium-assets millennium; };
           };
         in
         packages;
