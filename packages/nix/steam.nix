@@ -2,14 +2,15 @@
   steam,
   openssl,
   pkgsi686Linux,
-  stdenv,
-  lib,
   millennium-python,
   millennium-shims,
   millennium-assets,
   millennium,
-  ...
-}:
+  extraPkgs ? (_: [ ]),
+  extraLibraries ? (_: [ ]),
+  extraEnv ? { },
+  extraProfile ? "",
+}@args:
 let
   millenniumPkgs = [
     millennium-assets
@@ -51,28 +52,23 @@ let
     rm -rf ~/.local/share/Steam/ubuntu12_32/libXtst.so.6
     ln -s ${millennium}/lib/libmillennium_bootstrap_86x.so "$HOME/.local/share/Steam/ubuntu12_32/libXtst.so.6"
   '';
+
+  upstreamArgs = removeAttrs args [
+    "steam"
+    "openssl"
+    "pkgsi686Linux"
+    "millennium-python"
+    "millennium-shims"
+    "millennium-assets"
+    "millennium"
+  ];
 in
-lib.makeOverridable (
-  args:
-  let
-    extraPkgs = args.extraPkgs or (_: [ ]);
-    extraLibs = args.extraLibraries or (_: [ ]);
-    extraEnv = args.extraEnv or { };
-    extraProfile = args.extraProfile or "";
-    passedArgs = removeAttrs args [
-      "extraPkgs"
-      "extraLibraries"
-      "extraEnv"
-      "extraProfile"
-    ];
-  in
-  steam.override (
-    passedArgs
-    // {
-      extraPkgs = pkgs: (millenniumPkgs ++ extraPkgs pkgs);
-      extraLibraries = pkgs: (millenniumLibs ++ extraLibs pkgs);
-      extraEnv = extraEnv // millenniumEnv;
-      extraProfile = millenniumProfile + "\n" + extraProfile;
-    }
-  )
-) { }
+steam.override (
+  upstreamArgs
+  // {
+    extraPkgs = pkgs: millenniumPkgs ++ (extraPkgs pkgs);
+    extraLibraries = pkgs: millenniumLibs ++ (extraLibraries pkgs);
+    extraEnv = extraEnv // millenniumEnv;
+    extraProfile = millenniumProfile + "\n" + extraProfile;
+  }
+)
