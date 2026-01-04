@@ -64,5 +64,7 @@
           };
         in
         packages;
+
+      overlays.default = final: prev: { inherit (self.packages.${prev.system}) millennium-steam; };
     };
 }
