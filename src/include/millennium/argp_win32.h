@@ -29,14 +29,15 @@
  */
 
 #pragma once
+
 #include "millennium/logger.h"
+#include "millennium/steam_hooks.h"
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
 #elif __linux__
 #include <dlfcn.h>
 #endif
-#include "millennium/steam_hooks.h"
 
 namespace CommandLineArguments
 {
@@ -64,14 +65,14 @@ static bool HasArgument(const std::string& targetArgument)
         return false;
     }
 
-    auto func = (Plat_CommandLineParamExists_t)dlsym(handle, "Plat_CommandLineParamExists");
+    const auto func = reinterpret_cast<Plat_CommandLineParamExists_t>(dlsym(handle, "Plat_CommandLineParamExists"));
     if (!func) {
         LOG_ERROR("Failed to get the function handle of Plat_CommandLineParamExists!");
         dlclose(handle);
         return false;
     }
 
-    bool result = func(targetArgument.c_str());
+    const bool result = func(targetArgument.c_str());
     dlclose(handle);
     return result;
 #endif

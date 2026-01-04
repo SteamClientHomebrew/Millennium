@@ -35,8 +35,8 @@
 #include <windows.h>
 #define PATH_MAX MAX_PATH
 #endif
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <string.h>
 #include "hhx64/urlp.h"
 
@@ -81,7 +81,7 @@ int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
         HKEY key;
         if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &key) == ERROR_SUCCESS) {
             DWORD size = sizeof(steam_path);
-            RegQueryValueExA(key, "SteamPath", NULL, NULL, (LPBYTE)steam_path, &size);
+            RegQueryValueExA(key, "SteamPath", nullptr, nullptr, (LPBYTE)steam_path, &size);
             RegCloseKey(key);
         }
         if (!steam_path[0]) {

@@ -65,7 +65,7 @@ std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
         if (tracebackModule) {
             PyObject* formatExceptionFunc = PyObject_GetAttrString(tracebackModule, "format_exception");
             if (formatExceptionFunc && PyCallable_Check(formatExceptionFunc)) {
-                PyObject* tracebackList = PyObject_CallFunctionObjArgs(formatExceptionFunc, typeObj, valueObj, traceBackObj, NULL);
+                PyObject* tracebackList = PyObject_CallFunctionObjArgs(formatExceptionFunc, typeObj, valueObj, traceBackObj, nullptr);
                 if (tracebackList) {
                     PyObject* tracebackStr = PyUnicode_Join(PyUnicode_FromString(""), tracebackList);
                     if (tracebackStr) {
@@ -376,7 +376,7 @@ PyObject* InvokePythonFunction(const nlohmann::json& jsonData)
  *
  * The function ensures that the GIL is properly acquired and released before and after execution.
  */
-EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json functionCall)
+EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, const nlohmann::json& script)
 {
     const bool hasBackend = BackendManager::GetInstance().HasPythonBackend(pluginName);
 
@@ -389,7 +389,7 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
 
     if (!result.has_value()) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
-        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script.dump()));
 
         return { Error, "overstepped partying thread state" };
     }
@@ -398,7 +398,7 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
 
     if (threadState == nullptr) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
-        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script.dump()));
 
         return { Error, "overstepped partying thread state" };
     }
@@ -406,18 +406,18 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     pythonGilLock->HoldAndLockGILOnThread(threadState);
 
-    if (threadState == NULL) {
+    if (threadState == nullptr) {
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
-        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", script.dump()));
 
         return { Error, "thread state was nullptr" };
     }
 
-    EvalResult response = PyObjectCastEvalResult(InvokePythonFunction(functionCall));
+    EvalResult response = PyObjectCastEvalResult(InvokePythonFunction(script));
 
     if (response.type == FFI_Type::Error) {
-        LOG_ERROR(fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
-        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
+        LOG_ERROR(fmt::format("Failed to evaluate script: {}. Error: {}", script.dump(), response.plain));
+        ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}. Error: {}", script.dump(), response.plain));
     }
 
     pythonGilLock->ReleaseAndUnLockGIL();
@@ -470,7 +470,7 @@ void Python::CallFrontEndLoaded(std::string pluginName)
         return;
     }
 
-    std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
+    const std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     pythonGilLock->HoldAndLockGILOnThread(threadState);
     {
         PyObject* globalDictionaryObj = PyModule_GetDict(PyImport_AddModule("__main__"));

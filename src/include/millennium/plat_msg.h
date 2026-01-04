@@ -42,7 +42,7 @@ static int Plat_ShowMessageBox(const char* title, const char* message, Plat_Mess
             break;
     }
 
-    return MessageBoxA(NULL, message, title ? title : "Message", type);
+    return MessageBoxA(nullptr, message, title ? title : "Message", type);
 #elif __linux__
     if (!message) {
         LOG_ERROR("No message provided to message box call");

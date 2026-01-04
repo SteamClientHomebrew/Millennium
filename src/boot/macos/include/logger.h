@@ -1,8 +1,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_INFO "\033[1;34m"
@@ -13,7 +13,7 @@
     ({                                                                                                                                                                             \
         struct timeval tv;                                                                                                                                                         \
         struct tm* tm_info;                                                                                                                                                        \
-        gettimeofday(&tv, NULL);                                                                                                                                                   \
+        gettimeofday(&tv, nullptr);                                                                                                                                                   \
         tm_info = localtime(&tv.tv_sec);                                                                                                                                           \
         static char timestamp_buf[16];                                                                                                                                             \
         snprintf(timestamp_buf, sizeof(timestamp_buf), "[%02d:%02d.%03d]", tm_info->tm_min, tm_info->tm_sec, (int)(tv.tv_usec / 10000));                                           \

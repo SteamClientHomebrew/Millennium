@@ -29,11 +29,13 @@
  */
 
 #pragma once
+
 #include "head/theme_cfg.h"
+
 #include <filesystem>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <nlohmann/json.hpp>
 
 class ThemeInstaller
 {
@@ -55,14 +57,10 @@ class ThemeInstaller
     std::vector<std::pair<nlohmann::json, std::filesystem::path>> QueryThemesForUpdate();
     nlohmann::json ProcessUpdates(const nlohmann::json& updateQuery, const nlohmann::json& remote);
 
-    nlohmann::json GetRequestBody(void);
+    nlohmann::json GetRequestBody();
     nlohmann::json ConstructPostBody(const std::vector<nlohmann::json>& update_query);
 
   private:
-    /**
-     * @brief Attempt to delete a folder, making files writable if necessary
-     * @param p Path to the folder to delete
-     */
     std::string MakeTempDirName(const std::filesystem::path& base, const std::string& repo);
 
     /**

@@ -38,7 +38,7 @@
 #include "millennium/sysfs.h"
 
 #include <fmt/core.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 #include <iostream>
 #ifdef __linux__

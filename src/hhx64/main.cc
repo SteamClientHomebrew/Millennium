@@ -60,7 +60,7 @@ extern struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*
  *
  * This function wraps cef get_resource_request_handler to intercept all
  * resource requests. Requests to steamloopback.host are blocked by returning
- * NULL, preventing Steam's internal handlers from serving the content.
+ * nullptr, preventing Steam's internal handlers from serving the content.
  */
 void* hooked_get_resource(void* _1, void* _2, void* _3, struct _cef_request_t* request, int _5, int _6, void* _7, int* _8)
 {

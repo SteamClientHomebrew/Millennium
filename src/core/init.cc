@@ -334,7 +334,7 @@ void StartPreloader(BackendManager& manager)
         PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
         FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
-        if (mainModuleFilePtr == NULL) {
+        if (mainModuleFilePtr == nullptr) {
             LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
             ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
             return;

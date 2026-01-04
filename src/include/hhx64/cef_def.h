@@ -29,8 +29,8 @@
  */
 
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 #if defined(OS_WIN)
 #define CEF_CALLBACK __stdcall
 #else
@@ -45,7 +45,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
-    static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
+    static return_type(*lazy_##func_name) param_types = nullptr;                                                                                                                      \
     if (!lazy_##func_name) {                                                                                                                                                       \
         HMODULE hModule = GetModuleHandleA("libcef.dll");                                                                                                                          \
         if (hModule) {                                                                                                                                                             \
@@ -55,7 +55,7 @@
 #else
 #include <dlfcn.h>
 #define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
-    static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
+    static return_type(*lazy_##func_name) param_types = nullptr;                                                                                                                      \
     if (!lazy_##func_name) {                                                                                                                                                       \
         lazy_##func_name = (return_type(*) param_types)dlsym(RTLD_NEXT, #func_name);                                                                                               \
     }
@@ -167,7 +167,7 @@ typedef struct _cef_resource_request_handler_t
     char _base[sizeof(size_t) + sizeof(void*) * 0x4];
 
     /**
-     * all other padded functions are useless in our case, but we still need to NULL them when constructing
+     * all other padded functions are useless in our case, but we still need to nullptr them when constructing
      * it might be safe to pad them and let cef handle it, but I don't care enough to try
      */
     void*(CEF_CALLBACK* _1)(void* self, void*, void*, void*);

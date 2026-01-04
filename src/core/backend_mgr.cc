@@ -59,13 +59,13 @@ PyObject* PyInit_Millennium(void)
     static struct PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
         "Millennium",                          /* m_name */
-        NULL,                                  /* m_doc */
+        nullptr,                                  /* m_doc */
         -1,                                    /* m_size */
         (PyMethodDef*)PyGetMillenniumModule(), /* m_methods */
-        NULL,                                  /* m_slots */
-        NULL,                                  /* m_traverse */
-        NULL,                                  /* m_clear */
-        NULL                                   /* m_free */
+        nullptr,                                  /* m_slots */
+        nullptr,                                  /* m_traverse */
+        nullptr,                                  /* m_clear */
+        nullptr                                   /* m_free */
     };
 
     return PyModule_Create(&module_def);

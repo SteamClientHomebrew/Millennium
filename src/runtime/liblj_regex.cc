@@ -276,7 +276,7 @@ static const luaL_Reg regex_lib[] = {
     { "split",         Lua_RegexSplit        },
     { "escape",        Lua_RegexEscape       },
     { "test",          Lua_RegexTest         },
-    { NULL,            NULL                  }
+    { nullptr,            NULL                  }
 };
 
 extern "C" int Lua_OpenRegex(lua_State* L)

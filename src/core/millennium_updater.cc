@@ -575,7 +575,7 @@ void MillenniumUpdater::UpdateLegacyUser32Shim()
 
     } catch (std::exception& e) {
         LOG_ERROR("Failed to update {}: {}", SHIM_LOADER_PATH, e.what());
-        MessageBoxA(NULL, fmt::format("Failed to update {}, it's recommended that you reinstall Millennium.", SHIM_LOADER_PATH).c_str(), "Oops!", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, fmt::format("Failed to update {}, it's recommended that you reinstall Millennium.", SHIM_LOADER_PATH).c_str(), "Oops!", MB_ICONERROR | MB_OK);
     }
 #endif
 }

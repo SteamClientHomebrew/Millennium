@@ -264,7 +264,7 @@ PyObject* JavaScript::Py_EvaluateFromSocket(std::string script)
 
         if (!response.successfulCall) {
             PyErr_SetString(PyExc_RuntimeError, response.json.get<std::string>().c_str());
-            return NULL;
+            return nullptr;
         }
 
         std::string type = response.json["type"];
@@ -282,7 +282,7 @@ PyObject* JavaScript::Py_EvaluateFromSocket(std::string script)
         return PyUnicode_FromString(message.c_str());
     } catch (std::exception&) {
         PyErr_SetString(PyExc_ConnectionError, "frontend is not loaded!");
-        return NULL;
+        return nullptr;
     }
 
     Py_RETURN_NONE;

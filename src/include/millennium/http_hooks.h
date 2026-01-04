@@ -34,6 +34,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <concepts>
 #include <condition_variable>
 #include <filesystem>
 #include <functional>
@@ -48,6 +49,11 @@
 #include <vector>
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
+
+template <typename Func, typename Iter>
+concept IteratorBoolable = requires(Func f, Iter it) {
+    { f(it) } -> std::convertible_to<bool>;
+} && std::input_or_output_iterator<Iter>;
 
 class HttpHookManager : public Singleton<HttpHookManager>
 {

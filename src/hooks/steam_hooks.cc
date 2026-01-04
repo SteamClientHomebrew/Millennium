@@ -86,7 +86,7 @@ char* Command_get_executable(Command* cmd)
 void Command_init(Command* cmd, const char* full_cmd)
 {
     cmd->param_count = 0;
-    cmd->exec = NULL;
+    cmd->exec = nullptr;
     cmd->dirty = 1;
 
 #ifdef _WIN32
@@ -142,7 +142,7 @@ void Command_init(Command* cmd, const char* full_cmd)
             token++;
         }
         cmd->exec = strdup(token);
-        token = strtok(NULL, " ");
+        token = strtok(nullptr, " ");
     }
 
     while (token && cmd->param_count < MAX_PARAMS) {
@@ -152,7 +152,7 @@ void Command_init(Command* cmd, const char* full_cmd)
             token++;
         }
         cmd->params[cmd->param_count++] = strdup(token);
-        token = strtok(NULL, " ");
+        token = strtok(nullptr, " ");
     }
 
     free(copy);
@@ -349,7 +349,7 @@ typedef INT(__cdecl* CreateSimpleProcess_t)(const char* a1, char a2, const char*
 typedef BOOL(WINAPI* ReadDirectoryChangesW_t)(HANDLE, LPVOID, DWORD, BOOL, DWORD, LPDWORD, LPOVERLAPPED, LPOVERLAPPED_COMPLETION_ROUTINE);
 
 CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
-ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = NULL;
+ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = nullptr;
 
 HMODULE steamTier0Module;
 std::atomic<bool> ab_shouldDisconnectFrontend{ false };
@@ -374,7 +374,7 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
     FARPROC proc = GetProcAddress(steamTier0Module, "CreateSimpleProcess");
     if (proc != nullptr) {
         if (MH_CreateHook(reinterpret_cast<LPVOID>(proc), reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess)) != MH_OK) {
-            MessageBoxA(NULL, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
+            MessageBoxA(nullptr, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
             return;
         }
     }
@@ -487,7 +487,7 @@ bool InitializeSteamHooks()
     const auto startTime = std::chrono::system_clock::now();
 
     if (MH_Initialize() != MH_OK) {
-        MessageBoxA(NULL, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
 
@@ -503,7 +503,7 @@ bool InitializeSteamHooks()
 
     HMODULE ntdllModule = GetModuleHandleA("ntdll.dll");
     if (!ntdllModule) {
-        MessageBoxA(NULL, "Failed to get handle for ntdll.dll", "Error", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "Failed to get handle for ntdll.dll", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
 
@@ -516,7 +516,7 @@ bool InitializeSteamHooks()
     LdrUnregisterDllNotification = reinterpret_cast<LdrUnregisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrUnregisterDllNotification"));
 
     if (!LdrRegisterDllNotification || !LdrUnregisterDllNotification) {
-        MessageBoxA(NULL, "Failed to get address for LdrRegisterDllNotification or LdrUnregisterDllNotification", "Error", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "Failed to get address for LdrRegisterDllNotification or LdrUnregisterDllNotification", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
 

@@ -28,12 +28,15 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #include "millennium/backend_mgr.h"
-#include "millennium/plat_msg.h"
 #include "millennium/logger.h"
+#include "millennium/plat_msg.h"
+
 #include <exception>
-#include <fmt/format.h>
 #include <iostream>
+#include <fmt/format.h>
 
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 

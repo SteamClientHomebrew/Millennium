@@ -30,8 +30,8 @@
 
 #include "hhx64/fread.h"
 #include "hhx64/log.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -52,7 +52,7 @@ fread_data fread_file(const char* path)
     QueryPerformanceCounter(&start);
 #else
     struct timeval start, end;
-    gettimeofday(&start, NULL);
+    gettimeofday(&start, nullptr);
 #endif
 
     fread_data result = { 0, 0 };
@@ -98,7 +98,7 @@ fread_data fread_file(const char* path)
     QueryPerformanceCounter(&end);
     double elapsed_ms = (double)(end.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart;
 #else
-    gettimeofday(&end, NULL);
+    gettimeofday(&end, nullptr);
     double elapsed_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 #endif
 

@@ -30,8 +30,8 @@
 
 #include "hhx64/match.h"
 #include "hhx64/smem.h"
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 
 int match_list_alloc(match_list_t* m, unsigned int count)
 {
@@ -83,7 +83,7 @@ static lb_patch_shm_t* find_patch_by_id(lb_shm_arena_t* arena, lb_hash_map_shm* 
             global_idx++;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 static int populate_transform(lb_shm_arena_t* arena, lb_patch_shm_t* patch, transform_data_t* transform)

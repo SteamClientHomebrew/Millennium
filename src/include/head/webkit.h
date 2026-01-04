@@ -30,27 +30,32 @@
 
 #pragma once
 
-#include <nlohmann/json.hpp>
+#include "millennium/singleton.h"
+
 #include <string>
 #include <vector>
+#include <nlohmann/json.hpp>
+
 
 namespace Millennium
 {
 int AddBrowserCss(const std::string& path, const std::string& regex);
+
 int AddBrowserJs(const std::string& path, const std::string& regex);
+
 bool RemoveBrowserModule(int id);
 } // namespace Millennium
 
-class WebkitHookStore
+class WebkitHookStore : public Singleton<WebkitHookStore>
 {
-  public:
-    static WebkitHookStore& Instance();
+    friend class Singleton<WebkitHookStore>;
 
+public:
     void Push(int moduleId);
+
     void UnregisterAll();
 
-  private:
-    WebkitHookStore() = default;
+private:
     std::vector<int> stack;
 };
 
@@ -64,6 +69,7 @@ struct WebkitItem
 std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditional_patches, const std::string& theme_name);
 
 int AddBrowserCss(const std::string& css_path, const std::string& regex = ".*");
+
 int AddBrowserJs(const std::string& js_path, const std::string& regex = ".*");
 
 void AddConditionalData(const std::string& path, const nlohmann::json& data, const std::string& theme_name);

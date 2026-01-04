@@ -30,7 +30,7 @@
 
 #include <curl/curl.h>
 #include <lua.hpp>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string.h>
 
 typedef struct
@@ -44,7 +44,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, HTTPRespo
     size_t realsize = size * nmemb;
     char* ptr = (char*)realloc(response->data, response->size + realsize + 1);
 
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
         return 0; // Out of memory
     }
 
@@ -75,7 +75,7 @@ static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* use
             end--;
         }
 
-        if (strlen(header_line) > 0 && strchr(header_line, ':') != NULL) {
+        if (strlen(header_line) > 0 && strchr(header_line, ':') != nullptr) {
             char* colon = strchr(header_line, ':');
             *colon = '\0';
             char* value = colon + 1;
@@ -99,20 +99,20 @@ static int Lua_HttpRequest(lua_State* L)
 {
     CURL* curl;
     CURLcode res;
-    HTTPResponse response = { NULL, 0 };
-    struct curl_slist* headers = NULL;
+    HTTPResponse response = { nullptr, 0 };
+    struct curl_slist* headers = nullptr;
 
     const char* url = luaL_checkstring(L, 1);
 
     const char* method = "GET";
-    const char* data = NULL;
+    const char* data = nullptr;
     long timeout = 30;
     int follow_redirects = 1;
     int verify_ssl = 1;
     const char* user_agent = "Millennium/1.0";
-    const char* auth_user = NULL;
-    const char* auth_pass = NULL;
-    const char* proxy = NULL;
+    const char* auth_user = nullptr;
+    const char* auth_pass = nullptr;
+    const char* proxy = nullptr;
 
     if (lua_istable(L, 2)) {
         lua_getfield(L, 2, "method");
@@ -330,7 +330,7 @@ static int Lua_HttpGet(lua_State* L)
 static int Lua_HttpPost(lua_State* L)
 {
     const char* url = luaL_checkstring(L, 1);
-    const char* data = NULL;
+    const char* data = nullptr;
 
     if (lua_isstring(L, 2)) {
         data = lua_tostring(L, 2);
@@ -364,7 +364,7 @@ static int Lua_HttpPost(lua_State* L)
 static int Lua_HttpPut(lua_State* L)
 {
     const char* url = luaL_checkstring(L, 1);
-    const char* data = NULL;
+    const char* data = nullptr;
 
     if (lua_isstring(L, 2)) {
         data = lua_tostring(L, 2);
@@ -424,7 +424,7 @@ static const luaL_Reg httpFunctions[] = {
     { "post",    Lua_HttpPost    },
     { "put",     Lua_HttpPut     },
     { "delete",  Lua_HttpDelete  },
-    { NULL,      NULL            }
+    { nullptr,      nullptr            }
 };
 
 extern "C" int Lua_OpenHttpLibrary(lua_State* L)

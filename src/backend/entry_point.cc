@@ -72,9 +72,8 @@ std::string Millennium_GetQuickCss()
 MILLENNIUM_IPC_DECL(Core_ChangePluginStatus)
 {
     std::vector<PluginStatus> plugins;
-    auto pluginJson = nlohmann::json::parse(ARGS["pluginJson"].get<std::string>());
 
-    for (const auto& item : pluginJson) {
+    for (const auto pluginJson = nlohmann::json::parse(ARGS["pluginJson"].get<std::string>()); const auto& item : pluginJson) {
         if (item.contains("plugin_name") && item.contains("enabled")) {
             plugins.push_back({ item["plugin_name"], item["enabled"] });
         }

@@ -29,10 +29,11 @@
  */
 
 #pragma once
+
 #include <map>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <nlohmann/json.hpp>
 
 namespace Millennium
 {
@@ -49,20 +50,20 @@ enum class ColorTypes
 class CSSParser
 {
   public:
-    static std::optional<std::string> ConvertFromHex(const std::string& color, ColorTypes type);
-    static std::optional<std::string> ConvertToHex(const std::string& color, ColorTypes type);
-    static std::string ExpandShorthandHexColor(const std::string& shortHex);
-    static ColorTypes ParseColor(const std::string& color);
-    static ColorTypes TryRawParse(const std::string& color);
+    [[nodiscard]] static std::optional<std::string> ConvertFromHex(const std::string& color, ColorTypes type);
+    [[nodiscard]] static std::optional<std::string> ConvertToHex(const std::string& color, ColorTypes type);
+    [[nodiscard]] static std::string ExpandShorthandHexColor(const std::string& shortHex);
+    [[nodiscard]] static ColorTypes ParseColor(const std::string& color);
+    [[nodiscard]] static ColorTypes TryRawParse(const std::string& color);
 
-    static nlohmann::json ParseRootColors(const std::string& filePath);
+    [[nodiscard]] static nlohmann::json ParseRootColors(const std::string& filePath);
 
   private:
-    static std::string ExtractRootBlock(const std::string& fileContent);
+    [[nodiscard]] static std::string ExtractRootBlock(const std::string& fileContent);
     static void ParseProperties(const std::string& block, std::map<std::string, std::string>& properties, std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
-    static std::string Trim(const std::string& str);
+    [[nodiscard]] static std::string Trim(const std::string& str);
 
-    static nlohmann::json GenerateColorMetadata(const std::map<std::string, std::string>& properties,
+    [[nodiscard]] static nlohmann::json GenerateColorMetadata(const std::map<std::string, std::string>& properties,
                                                 const std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
 };
 } // namespace Millennium

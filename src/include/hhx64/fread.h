@@ -28,8 +28,9 @@
  * SOFTWARE.
  */
 
-#include <stddef.h>
-#include <stdint.h>
+#pragma once
+
+#include <cstdint>
 
 typedef struct
 {
