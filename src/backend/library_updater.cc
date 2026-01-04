@@ -67,6 +67,14 @@ bool Updater::HasCheckedForUpdates() const
 
 std::optional<json> Updater::CheckForUpdates(bool force)
 {
+    #ifdef DISTRO_NIX
+        Logger.Log("Skipping update check on Nix-based releases");
+        return json{
+            { "themes",  {} },
+            { "plugins", {} }
+        };
+    #endif
+
     try {
         if (!force && cached_updates.has_value()) {
             Logger.Log("Using cached updates.");
