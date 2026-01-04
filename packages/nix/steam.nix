@@ -38,7 +38,7 @@ let
     VENV_PYTHON="$MILLENNIUM_VENV/bin/python3.11"
     EXPECTED_PYTHON=$(readlink -f "${millennium-python}/bin/python3.11")
 
-    if [ -d "$MILLENNIUM_VENV" ] && [ -x "$VENV_PYTHON" ]; then
+    if [ -d "$MILLENNIUM_VENV" ]; then
       if [ ! -x "$VENV_PYTHON" ] || [ "$(readlink -f "$VENV_PYTHON")" != "$EXPECTED_PYTHON" ]; then
         echo "[Millennium Steam] venv detected as broken or outdated. Rebuilding"
         rm -rf "$MILLENNIUM_VENV"
