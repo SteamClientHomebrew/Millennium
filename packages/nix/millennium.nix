@@ -32,7 +32,6 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     pkgsi686Linux.gtk3
     pkgsi686Linux.libpsl
     pkgsi686Linux.openssl
-    pkgsi686Linux.python311
     pkgsi686Linux.libxtst
     millennium-python
   ];
