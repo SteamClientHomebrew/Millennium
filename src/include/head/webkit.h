@@ -30,6 +30,10 @@
 
 #pragma once
 
+#include "millennium/singleton.h"
+#include "millennium/sysfs.h"
+#include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
@@ -67,3 +71,28 @@ int AddBrowserCss(const std::string& css_path, const std::string& regex = ".*");
 int AddBrowserJs(const std::string& js_path, const std::string& regex = ".*");
 
 void AddConditionalData(const std::string& path, const nlohmann::json& data, const std::string& theme_name);
+
+class IsolatedPluginWebkitStore : public Singleton<IsolatedPluginWebkitStore>
+{
+    friend class Singleton<IsolatedPluginWebkitStore>;
+
+  public:
+    struct Item
+    {
+        std::string pluginName;
+        std::filesystem::path absWebkitPath;
+    };
+
+    IsolatedPluginWebkitStore() : m_settingStore(std::make_unique<SettingsStore>())
+    {
+    }
+
+    void add();
+    void clear();
+    void get();
+
+  private:
+    std::vector<Item> m_webkitStore;
+    std::unique_ptr<SettingsStore> m_settingStore;
+    std::mutex m_accessMutex;
+};

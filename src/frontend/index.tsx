@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Millennium, pluginSelf, routerHook } from '@steambrew/client';
+import { ChromeDevToolsProtocol, Millennium, pluginSelf, routerHook } from '@steambrew/client';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';
@@ -45,6 +45,7 @@ import { EUIMode } from '@steambrew/client';
 import { WelcomeModalComponent } from './components/WelcomeModal';
 import { MillenniumQuickCssEditor } from './settings/quickcss';
 import { useQuickCssState } from './utils/quick-css-state';
+import { IsolatedContextManager } from './webkit/isolated_ctx_manager';
 
 async function initializeMillennium(settings: SettingsProps) {
 	Logger.Log(`Received props`, settings);
@@ -94,6 +95,8 @@ async function initializeMillennium(settings: SettingsProps) {
 export default async function PluginMain() {
 	await initializeMillennium(JSON.parse(await PyGetStartupConfig()));
 	Millennium.AddWindowCreateHook(onWindowCreatedCallback);
+
+	const contextManager = new IsolatedContextManager();
 
 	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });
 

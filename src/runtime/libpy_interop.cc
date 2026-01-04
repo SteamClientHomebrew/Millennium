@@ -399,17 +399,15 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
     if (threadState == nullptr) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
-
         return { Error, "overstepped partying thread state" };
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-    pythonGilLock->HoldAndLockGILOnThread(threadState);
+    pythonGilLock->HoldAndLockGILOnThread(result.value());
 
     if (threadState == NULL) {
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
-
         return { Error, "thread state was nullptr" };
     }
 
@@ -471,7 +469,7 @@ void Python::CallFrontEndLoaded(std::string pluginName)
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
-    pythonGilLock->HoldAndLockGILOnThread(threadState);
+    pythonGilLock->HoldAndLockGILOnThread(result.value());
     {
         PyObject* globalDictionaryObj = PyModule_GetDict(PyImport_AddModule("__main__"));
         PyObject* plugin = PyDict_GetItemString(globalDictionaryObj, "plugin");

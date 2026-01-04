@@ -29,9 +29,12 @@
  */
 
 #include "head/webkit.h"
+#include "millennium/encode.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
+#include "millennium/env.h"
+#include "nlohmann/json_fwd.hpp"
 
 #include <unordered_set>
 
@@ -183,5 +186,15 @@ void AddConditionalData(const std::string& path, const nlohmann::json& data, con
         }
     } catch (const std::exception& e) {
         LOG_ERROR("Error adding conditional data: {}", e.what());
+    }
+}
+
+void IsolatedPluginWebkitStore::get()
+{
+    nlohmann::ordered_json response;
+
+    for (const auto& item : m_webkitStore) {
+        /** for performance, we bite the bullet and assume the file exists as its verified when its initially added. */
+        Base64Encode(SystemIO::ReadFileBytesSync(item.absWebkitPath));
     }
 }
