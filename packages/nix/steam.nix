@@ -10,6 +10,7 @@
   extraLibraries ? (_: [ ]),
   extraEnv ? { },
   extraProfile ? "",
+  ...
 }@args:
 let
   millenniumPkgs = [
