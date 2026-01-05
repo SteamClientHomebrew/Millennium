@@ -118,33 +118,15 @@ std::optional<std::filesystem::path> Posix_GetModuleBasePath()
 void Posix_AttachWebHelperHook()
 {
     const char* existing = getenv("LD_PRELOAD");
-    char* new_value;
+    std::string hhx_path;
 
-    const char* hhx_path = getenv("MILLENNIUM_HELPER_PATH");
-    
-    if (hhx_path == NULL) {
-        #ifdef DEBUG
-        hhx_path = "./build/hhx64/libmillennium_hhx64.so";
-        #elif defined(MILLENNIUM_HELPER_PATH)
-        hhx_path = MILLENNIUM_HELPER_PATH;
-        #else
-        hhx_path = "/usr/lib/millennium/libmillennium_hhx64.so";
-        #endif
-    }
-
-    if (existing != NULL) {
-        if (asprintf(&new_value, "%s%s%s", existing, ":", hhx_path) < 0) {
-            LOG_ERROR("[Posix_AttachWebHelperHook] asprintf failed to allocate new buffer");
-            return;
-        }
-    } else {
-        new_value = (char*)malloc(strlen(hhx_path)+1);
-        if (new_value == NULL) {
-            LOG_ERROR("[Posix_AttachWebHelperHook] malloc failed to allocate new buffer");
-            return;
-        }
-        strcpy(new_value, hhx_path);
-        new_value[strlen(hhx_path)] = '\0';
+#ifdef MILLENNIUM_DEBUG
+    hhx_path = __HOOK_HELPER_OUTPUT_ABSPATH__;
+#else
+    auto base_path = Posix_GetModuleBasePath();
+    if (!base_path) {
+        LOG_ERROR("[Posix_AttachWebHelperHook] Failed to get module base path");
+        return;
     }
     hhx_path = (std::filesystem::path(*base_path) / __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__);
 #endif
