@@ -138,10 +138,10 @@ class BackendManager : public Singleton<BackendManager>
 
     bool DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown = false);
 
-    void CallLuaOnUnload(lua_State* L, const std::string& pluginName);
-    void CleanupPluginNamePointer(lua_State* L);
+    static void CallLuaOnUnload(lua_State* L, const std::string& pluginName);
+    static void CleanupPluginNamePointer(lua_State* L);
     void RemoveMutexFromPool(lua_State* L);
-    void RemoveMemoryTracking(const std::string& pluginName);
+    static void RemoveMemoryTracking(const std::string& pluginName);
     bool DestroyLuaInstance(std::string pluginName, bool shouldCleanupThreadPool = true, bool isShuttingDown = false);
 
     bool ShutdownPythonBackends();
@@ -150,11 +150,11 @@ class BackendManager : public Singleton<BackendManager>
     bool CreatePythonInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema)> callback);
     bool CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> callback);
 
-    bool HasAnyPythonBackends();
-    bool HasAnyLuaBackends();
+    bool HasAnyPythonBackends()const;
+    bool HasAnyLuaBackends()const;
 
-    bool HasAllPythonBackendsStopped();
-    bool HasAllLuaBackendsStopped();
+    bool HasAllPythonBackendsStopped() const;
+    bool HasAllLuaBackendsStopped() const;
 
     bool IsPythonBackendRunning(std::string pluginName);
     bool IsLuaBackendRunning(std::string pluginName);

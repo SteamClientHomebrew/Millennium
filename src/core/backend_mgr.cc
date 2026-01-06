@@ -28,15 +28,15 @@
  * SOFTWARE.
  */
 
+#include "hhx64/smem.h"
+
 #include "millennium/backend_mgr.h"
 #include "millennium/backend_init.h"
 #include "millennium/ffi.h"
 #include "millennium/libpy_stdout_fwd.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
-#include "hhx64/smem.h"
 
-#include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
 #include <optional>
@@ -77,7 +77,7 @@ PyObject* PyInit_Millennium(void)
  *
  * @returns {std::string} - The Python version in string format.
  */
-const std::string GetPythonVersion()
+ std::string GetPythonVersion()
 {
     PyThreadState* mainThreadState = PyThreadState_New(PyInterpreterState_Main());
     PyEval_RestoreThread(mainThreadState);
@@ -258,7 +258,7 @@ void BackendManager::Shutdown()
 /**
  * @brief Check if any Python backends are running.
  */
-bool BackendManager::HasAnyPythonBackends()
+bool BackendManager::HasAnyPythonBackends() const
 {
     return this->m_pyThreadPool.size() > 0;
 }
@@ -266,7 +266,7 @@ bool BackendManager::HasAnyPythonBackends()
 /**
  * @brief Check if any Lua backends are running.
  */
-bool BackendManager::HasAnyLuaBackends()
+bool BackendManager::HasAnyLuaBackends() const
 {
     return this->m_luaThreadPool.size() > 0;
 }
@@ -275,7 +275,7 @@ bool BackendManager::HasAnyLuaBackends()
  * @brief Destroys all Lua instances.
  * This function destroys all Lua instances and removes them from the list of Lua instances.
  */
-bool BackendManager::ShutdownLuaBackends(bool isShuttingDown)
+bool BackendManager::ShutdownLuaBackends(const bool isShuttingDown)
 {
     /** No lua instances to shutdown */
     if (m_luaThreadPool.empty()) {
@@ -317,7 +317,7 @@ bool BackendManager::ShutdownPythonBackends()
     }
 
     /** Notify all plugins to shutdown */
-    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); it++) {
+    for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); ++it) {
         auto& [pluginName, threadState, interpMutex] = *(*it);
 
         std::lock_guard<std::mutex> lg(interpMutex->mtx);
@@ -337,7 +337,7 @@ bool BackendManager::ShutdownPythonBackends()
         auto& [pluginName, threadState, interpMutex] = *(*it);
 
         // Join and remove the corresponding thread safely
-        auto threadIt = std::find_if(this->m_pyThreadPool.begin(), this->m_pyThreadPool.end(), [pluginName = pluginName](const auto& t) { return std::get<0>(t) == pluginName; });
+        const auto threadIt = std::ranges::find_if(this->m_pyThreadPool, [pluginName = pluginName](const auto& t) { return std::get<0>(t) == pluginName; });
 
         if (threadIt != this->m_pyThreadPool.end()) {
             auto& [threadPluginName, thread] = *threadIt;
@@ -370,7 +370,7 @@ bool BackendManager::ShutdownPythonBackends()
  *
  * @returns {bool} - True if the Python instance was destroyed successfully, false otherwise.
  */
-bool BackendManager::DestroyPythonInstance(std::string targetPluginName, bool isShuttingDown)
+bool BackendManager::DestroyPythonInstance(std::string targetPluginName, const bool isShuttingDown)
 {
     bool successfulShutdown = false;
 
@@ -384,7 +384,7 @@ bool BackendManager::DestroyPythonInstance(std::string targetPluginName, bool is
             continue;
         }
 
-        Logger.Log("Instance state: {}", (void*)&it);
+        Logger.Log("Instance state: {}", reinterpret_cast<void*>(&it));
 
         {
             std::lock_guard<std::mutex> lg(interpMutex->mtx);
@@ -404,11 +404,11 @@ bool BackendManager::DestroyPythonInstance(std::string targetPluginName, bool is
 
                 Logger.Log("Successfully joined thread");
                 threadIt = this->m_pyThreadPool.erase(threadIt); // Safe erase
-                CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ targetPluginName }, isShuttingDown);
+                CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded(CoInitializer::BackendCallbacks::PluginTypeSchema(targetPluginName), isShuttingDown);
                 break;
-            } else {
-                ++threadIt;
             }
+
+            ++threadIt;
         }
 
         it = this->m_pythonInstances.erase(it); // Safe erase
@@ -466,7 +466,7 @@ void BackendManager::CleanupPluginNamePointer(lua_State* L)
  */
 void BackendManager::RemoveMutexFromPool(lua_State* L)
 {
-    m_luaMutexPool.erase(std::remove_if(m_luaMutexPool.begin(), m_luaMutexPool.end(), [L](const auto& entry) { return std::get<0>(entry) == L; }), m_luaMutexPool.end());
+    std::erase_if(m_luaMutexPool, [L](const auto& entry) { return std::get<0>(entry) == L; });
 }
 
 /**
@@ -484,7 +484,7 @@ void BackendManager::RemoveMemoryTracking(const std::string& pluginName)
  *
  * This function iterates through the list of Lua threads and destroys the instance for the specified plugin.
  */
-bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldCleanupThreadPool, bool isShuttingDown)
+bool BackendManager::DestroyLuaInstance(std::string pluginName, const bool shouldCleanupThreadPool, const bool isShuttingDown)
 {
     for (auto it = this->m_luaThreadPool.begin(); it != this->m_luaThreadPool.end(); /* No increment */) {
         auto& [threadPluginName, thread, L, hasFinished] = **it;
@@ -511,7 +511,7 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
                 }
                 ++it;
             }
-            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
+            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded(CoInitializer::BackendCallbacks::PluginTypeSchema(pluginName), isShuttingDown);
             return true;
         }
 
@@ -542,7 +542,7 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
             }
             ++it;
         }
-        CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ pluginName }, isShuttingDown);
+        CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded(CoInitializer::BackendCallbacks::PluginTypeSchema(pluginName), isShuttingDown);
         return true;
     }
     return false;
@@ -553,7 +553,7 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, bool shouldClean
  *
  * This function iterates through the list of Python instances and returns true if all backends have stopped.
  */
-bool BackendManager::HasAllPythonBackendsStopped()
+bool BackendManager::HasAllPythonBackendsStopped() const
 {
     for (auto instance : this->m_pythonInstances) {
         const auto& [pluginName, thread_ptr, interpMutex] = *instance;
@@ -570,7 +570,7 @@ bool BackendManager::HasAllPythonBackendsStopped()
  *
  * This function iterates through the list of Lua threads and returns true if all backends have stopped.
  */
-bool BackendManager::HasAllLuaBackendsStopped()
+bool BackendManager::HasAllLuaBackendsStopped() const
 {
     for (auto it : m_luaThreadPool) {
         auto& [pluginName, thread, L, hasFinished] = *it;
