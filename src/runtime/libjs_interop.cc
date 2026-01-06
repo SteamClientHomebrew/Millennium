@@ -30,6 +30,7 @@
 
 #include "millennium/ffi.h"
 #include "millennium/init.h"
+#include "millennium/types.h"
 #include <condition_variable>
 #include <mutex>
 
@@ -56,66 +57,27 @@
  */
 JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
 {
-    std::mutex mtx;
-    std::condition_variable cv;
-    JsEvalResult JsEvalResult;
-    bool resultReady = false; // Flag to indicate when the result is ready
+    JsEvalResult ret;
 
-    bool messageSendSuccess = Sockets::PostShared(nlohmann::json({
-        { "id",     SHARED_JS_EVALUATE_ID                                          },
-        { "method", "Runtime.evaluate"                                             },
-        { "params", { { "expression", javaScriptEval }, { "awaitPromise", true } } }
-    }));
+    const json params = {
+        { "expression",   javaScriptEval },
+        { "awaitPromise", true           }
+    };
 
-    if (!messageSendSuccess) {
-        throw std::runtime_error("couldn't send message to socket");
+    auto result = cdp->send("Runtime.evaluate", params).get();
+
+    if (result.contains("exceptionDetails")) {
+        const std::string classType = result["exceptionDetails"]["exception"]["className"];
+
+        if (classType == "MillenniumFrontEndError")
+            ret = { "__CONNECTION_ERROR__", false };
+        else
+            ret = { result["exceptionDetails"]["exception"]["description"], false };
+    } else {
+        ret = { result["result"], true };
     }
 
-    std::string listenerId = CefSocketDispatcher::GetInstance().OnMessage("msg", "ExecuteOnSharedJsContext", [&](const nlohmann::json& eventMessage, std::string listenerId)
-    {
-        std::lock_guard<std::mutex> lock(mtx); // Lock mutex for safe access
-
-        nlohmann::json response = eventMessage;
-        std::string method = response.value("method", std::string());
-
-        if (method.find("Debugger") != std::string::npos || method.find("Console") != std::string::npos) {
-            return;
-        }
-
-        try {
-            if (!response.contains("id") || (response.contains("id") && !response["id"].is_null() && response["id"] != SHARED_JS_EVALUATE_ID)) {
-                return;
-            }
-
-            if (response["result"].contains("exceptionDetails")) {
-                const std::string classType = response["result"]["exceptionDetails"]["exception"]["className"];
-
-                // Custom exception type thrown from CallFrontendMethod in executor.cc
-                if (classType == "MillenniumFrontEndError")
-                    JsEvalResult = { "__CONNECTION_ERROR__", false };
-                else
-                    JsEvalResult = { response["result"]["exceptionDetails"]["exception"]["description"], false };
-            } else {
-                JsEvalResult = { response["result"]["result"], true };
-            }
-
-            resultReady = true;
-            cv.notify_one(); // Signal that result is ready
-            CefSocketDispatcher::GetInstance().RemoveListener("msg", listenerId);
-        } catch (nlohmann::detail::exception& ex) {
-            LOG_ERROR(fmt::format("CefSocketDispatcher error -> {}", ex.what()));
-        }
-    });
-
-    // Wait for the result to be ready
-    std::unique_lock<std::mutex> lock(mtx);
-    cv.wait(lock, [&] { return resultReady; });
-
-    if (!JsEvalResult.successfulCall && JsEvalResult.json == "__CONNECTION_ERROR__") {
-        throw std::runtime_error("frontend is not loaded!");
-    }
-
-    return JsEvalResult;
+    return ret;
 }
 
 /**

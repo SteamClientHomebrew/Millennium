@@ -200,12 +200,12 @@ int Lua_GetInstallPath(lua_State* L)
 int Lua_RemoveBrowserModule(lua_State* L)
 {
     const lua_Integer hookId = luaL_checkinteger(L, 1);
-    const bool success = HttpHookManager::GetInstance().RemoveHook(hookId);
+    const bool success = network_hook_ctl::GetInstance().remove_hook(hookId);
     lua_pushboolean(L, success);
     return 1;
 }
 
-unsigned long long Lua_AddBrowserModule(lua_State* L, HttpHookManager::TagTypes type)
+unsigned long long Lua_AddBrowserModule(lua_State* L, network_hook_ctl::TagTypes type)
 {
     const char* content = luaL_checkstring(L, 1);
     const char* pattern = luaL_optstring(L, 2, ".*");
@@ -214,14 +214,14 @@ unsigned long long Lua_AddBrowserModule(lua_State* L, HttpHookManager::TagTypes 
 
 int Lua_AddBrowserCss(lua_State* L)
 {
-    const unsigned long long result = Lua_AddBrowserModule(L, HttpHookManager::TagTypes::STYLESHEET);
+    const unsigned long long result = Lua_AddBrowserModule(L, network_hook_ctl::TagTypes::STYLESHEET);
     lua_pushinteger(L, static_cast<lua_Integer>(result));
     return 1;
 }
 
 int Lua_AddBrowserJs(lua_State* L)
 {
-    const unsigned long long result = Lua_AddBrowserModule(L, HttpHookManager::TagTypes::JAVASCRIPT);
+    const unsigned long long result = Lua_AddBrowserModule(L, network_hook_ctl::TagTypes::JAVASCRIPT);
     lua_pushinteger(L, static_cast<lua_Integer>(result));
     return 1;
 }

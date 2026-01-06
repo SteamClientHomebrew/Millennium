@@ -95,7 +95,7 @@ class SocketHelpers
 
         if (GetTcpTable2(tcpTable, &size, TRUE) != NO_ERROR) {
             free(tcpTable);
-            return {false, "Error getting TCP table"};
+            return { false, "Error getting TCP table" };
         }
 
         for (DWORD i = 0; i < tcpTable->dwNumEntries; i++) {
@@ -107,11 +107,11 @@ class SocketHelpers
                     continue;
                 }
 
-                return {targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string()};
+                return { targetProcess.filename().string() == "steamwebhelper.exe", targetProcess.string() };
             }
         }
 #endif
-        return {true};
+        return { true };
     }
 
   public:
@@ -119,7 +119,7 @@ class SocketHelpers
     {
         std::string commonName;
         std::function<std::string()> fetchSocketUrl;
-        std::function<void(std::shared_ptr<CDPClient>)> onConnect;
+        std::function<void(std::shared_ptr<cdp_client>)> onConnect;
     };
 
     /**
@@ -138,8 +138,7 @@ class SocketHelpers
                 fmt::format("Millennium can't connect to Steam because the target port '{}' is currently being used by '{}'.\n"
                             "To address this you must uninstall/close the conflicting app, change the port it uses (assuming its possible), or uninstall Millennium.\n\n"
                             "Millennium & Steam will now close until further action is taken.",
-                    debuggerPort,
-                    processName);
+                            debuggerPort, processName);
 
             Plat_ShowMessageBox("Fatal Error", message.c_str(), MESSAGEBOX_ERROR);
             Logger.Warn(message);
@@ -170,8 +169,7 @@ class SocketHelpers
             return instance["webSocketDebuggerUrl"];
         } catch (nlohmann::detail::exception& exception) {
             LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}",
-                debuggerPort,
-                exception.what());
+                      debuggerPort, exception.what());
             std::exit(1);
         }
     }
@@ -196,7 +194,7 @@ class SocketHelpers
         }
 
         websocketpp::client<websocketpp::config::asio_client> socketClient;
-        std::shared_ptr<CDPClient> cdpClient;
+        std::shared_ptr<cdp_client> cdpClient;
 
         try {
             socketClient.set_access_channels(websocketpp::log::alevel::none);
@@ -217,7 +215,7 @@ class SocketHelpers
                 return;
             }
 
-            cdpClient = std::make_shared<CDPClient>(con);
+            cdpClient = std::make_shared<cdp_client>(con);
             con->set_message_handler([cdpClient, commonName](websocketpp::connection_hdl, websocketpp::client<websocketpp::config::asio_client>::message_ptr msg)
             { cdpClient->handle_message(msg->get_payload()); });
 

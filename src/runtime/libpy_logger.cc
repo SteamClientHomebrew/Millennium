@@ -32,8 +32,6 @@
 #include <Python.h>
 #include <stdio.h>
 
-std::vector<BackendLogger*> g_loggerList;
-
 /**
  * @brief Creates a new LoggerObject instance.
  *
@@ -71,7 +69,7 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwd
     std::string pluginName = value ? PyUnicode_AsUTF8(value) : "ERRNO_PLUGIN_NAME";
 
     /** Check if the logger already exists, and use it if it does */
-    for (auto logger : g_loggerList) {
+    for (auto logger : get_plugin_logger_mgr()) {
         if (logger->GetPluginName(false) == pluginName) {
             self->m_loggerPtr = logger;
             return (PyObject*)self;
@@ -84,7 +82,7 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwd
         return NULL;
     }
 
-    g_loggerList.push_back(self->m_loggerPtr);
+    get_plugin_logger_mgr().push_back(self->m_loggerPtr);
     return (PyObject*)self;
 }
 
@@ -297,8 +295,8 @@ PyObject* PyInit_Logger(void)
  */
 void CleanupLoggers()
 {
-    for (auto logger : g_loggerList) {
+    for (auto logger : get_plugin_logger_mgr()) {
         delete logger;
     }
-    g_loggerList.clear();
+    get_plugin_logger_mgr().clear();
 }

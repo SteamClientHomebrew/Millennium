@@ -70,6 +70,7 @@ set(SOURCE_FILES
     core/lifecycle.cc
     core/millennium_api.cc
     core/millennium_updater.cc
+    core/thread_pool.cc
     util/semver.cc
     util/zip.cc
     backend/css_parser.cc

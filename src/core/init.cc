@@ -43,152 +43,98 @@
 using namespace std::placeholders;
 using namespace std::chrono;
 
-std::shared_ptr<CDPClient> cdp;
+std::shared_ptr<cdp_client> cdp;
 std::shared_ptr<PluginLoader> g_pluginLoader;
 std::string sharedJsContextSessionId;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-/**
- * @brief Post a message to the SharedJSContext window.
- * @param data The data to post.
- *
- * @note ID's are managed by the caller.
- */
-bool Sockets::PostShared(nlohmann::json)
-{
-    // if (sharedJsContextSessionId.empty()) {
-    //     return false;
-    // }
-
-    // data["sessionId"] = sharedJsContextSessionId;
-    // return Sockets::PostGlobal(data);
-    return true;
-}
-
-/**
- * @brief Post a message to the entire browser.
- * @param data The data to post.
- *
- * @note ID's are managed by the caller.
- */
-bool Sockets::PostGlobal(nlohmann::json)
-{
-    // if (browserClient == nullptr) {
-    //     return false;
-    // }
-
-    // browserClient->send(browserHandle, data.dump(),
-    // websocketpp::frame::opcode::text);
-    return true;
-}
-
-/**
- * @brief Shutdown the browser connection.
- *
- */
-void Sockets::Shutdown()
-{
-    // try {
-    //     if (browserClient != nullptr) {
-    //         browserClient->close(browserHandle,
-    //         websocketpp::close::status::normal, "Shutting down");
-    //         Logger.Log("Shut down browser connection...");
-    //     }
-    // } catch (const websocketpp::exception& e) {
-    // }
-}
-
-CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::GetInstance())
-{
-}
-
-// void CEFBrowser::onMessage([[maybe_unused]]
-// websocketpp::client<websocketpp::config::asio_client>* c, [[maybe_unused]]
-// websocketpp::connection_hdl hdl,
-//                            websocketpp::config::asio_client::message_type::ptr
-//                            msg)
+// /**
+//  * @brief Post a message to the SharedJSContext window.
+//  * @param data The data to post.
+//  *
+//  * @note ID's are managed by the caller.
+//  */
+// bool Sockets::PostShared(nlohmann::json)
 // {
-//     const auto json = nlohmann::json::parse(msg->get_payload());
+//     // if (sharedJsContextSessionId.empty()) {
+//     //     return false;
+//     // }
 
-//     if (json.contains("id") && json["id"] == 0 && json.contains("result") &&
-//     json["result"].is_object() && json["result"].contains("targetInfos") &&
-//         json["result"]["targetInfos"].is_array()) {
-//         const auto targets = json["result"]["targetInfos"];
-
-//         auto targetIterator = std::find_if(targets.begin(), targets.end(),
-//         [](const auto& target) { return target["title"] == "SharedJSContext";
-//         });
-
-//         if (targetIterator != targets.end() && !m_sharedJsConnected) {
-//             Logger.Log("Found SharedJSContext target, attaching...");
-
-//             Sockets::PostGlobal({
-//                 { "id",     0 }, { "method", "Target.attachToTarget" }, {
-//                 "params", { { "targetId", (*targetIterator)["targetId"] }, {
-//                 "flatten", true } } }
-//             });
-//             Sockets::PostGlobal({
-//                 { "id",     0 }, { "method", "Target.exposeDevToolsProtocol"
-//                 }, { "params", { { "targetId", (*targetIterator)["targetId"]
-//                 }, { "bindingName",
-//                 "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE"
-//                 } } }
-//             });
-//             m_sharedJsConnected = true;
-//         } else if (!m_sharedJsConnected) {
-//             this->SetupSharedJSContext();
-//         }
-//     }
-
-//     if (json.value("method", std::string()) == "Target.attachedToTarget" &&
-//     json["params"]["targetInfo"]["title"] == "SharedJSContext") {
-//         sharedJsContextSessionId = json["params"]["sessionId"];
-//         Sockets::PostShared({
-//             { "id",        9494                     },
-//             { "method",    "Log.enable "            },
-//             { "sessionId", sharedJsContextSessionId }
-//         });
-//         this->onSharedJsConnect();
-//     } else {
-//         CefSocketDispatcher::GetInstance().EmitMessage("msg", json);
-//     }
-//     webKitHandler.DispatchSocketMessage(json);
+//     // data["sessionId"] = sharedJsContextSessionId;
+//     // return Sockets::PostGlobal(data);
+//     return true;
 // }
+
+// /**
+//  * @brief Post a message to the entire browser.
+//  * @param data The data to post.
+//  *
+//  * @note ID's are managed by the caller.
+//  */
+// bool Sockets::PostGlobal(nlohmann::json)
+// {
+//     // if (browserClient == nullptr) {
+//     //     return false;
+//     // }
+
+//     // browserClient->send(browserHandle, data.dump(),
+//     // websocketpp::frame::opcode::text);
+//     return true;
+// }
+
+// /**
+//  * @brief Shutdown the browser connection.
+//  *
+//  */
+// void Sockets::Shutdown()
+// {
+//     // try {
+//     //     if (browserClient != nullptr) {
+//     //         browserClient->close(browserHandle,
+//     //         websocketpp::close::status::normal, "Shutting down");
+//     //         Logger.Log("Shut down browser connection...");
+//     //     }
+//     // } catch (const websocketpp::exception& e) {
+//     // }
+// }
+
+CEFBrowser::CEFBrowser() : webKitHandler(network_hook_ctl::GetInstance())
+{
+}
 
 void CEFBrowser::SetupSharedJSContext()
 {
-    auto targets = cdp->send("Target.getTargets").get();
-    std::cout << targets.dump(4) << std::endl;
+    while (true) {
+        auto targets = cdp->send_host("Target.getTargets").get();
 
-    if (!targets.contains("targetInfos") || !targets["targetInfos"].is_array()) {
-        this->SetupSharedJSContext();
-        return;
+        if (!targets.contains("targetInfos") || !targets["targetInfos"].is_array() || targets["targetInfos"].empty()) {
+            continue; // retry
+        }
+
+        auto targetFrame = "SharedJSContext";
+        auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(), [&](const auto& target) { return target["title"] == targetFrame; });
+
+        if (it == targets["targetInfos"].end()) {
+            continue; // retry
+        }
+
+        auto targetId = it->at("targetId");
+        auto result = cdp->send_host("Target.attachToTarget", {
+                                                                  { "targetId", targetId },
+                                                                  { "flatten",  true     }
+        });
+
+        cdp->set_shared_js_session_id(result.get().at("sessionId").get<std::string>());
+
+        cdp->send_host("Target.exposeDevToolsProtocol", {
+                                                            { "targetId",    targetId                                                                },
+                                                            { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" }
+        });
+
+        break; // success
     }
-
-    auto targetFrame = "SharedJSContext";
-    auto targetIterator = std::find_if(targets.begin(), targets.end(), [targetFrame](const auto& target) { return target["title"] == targetFrame; });
-
-    /** retry if we can't find the SharedJSContext */
-    if (targetIterator == targets.end()) {
-        this->SetupSharedJSContext();
-        return;
-    }
-
-    nlohmann::json targetId = targetIterator->at("targetId");
-
-    /** attach to the target */
-    auto attachResult = cdp->send("Target.attachToTarget", {
-                                                               { "targetId", targetId },
-                                                               { "flatten",  true     }
-    });
-
-    auto exposeChromeDevTools = cdp->send("Target.exposeDevToolsProtocol", {
-                                                                               { "targetId",    targetId                                                                                                                   },
-                                                                               { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_"
-                                                                                                "USE_OR_OVERRIDE_ONMESSAGE" }
-    });
 
     this->onSharedJsConnect();
 }
@@ -202,7 +148,7 @@ void CEFBrowser::onSharedJsConnect()
     }).detach();
 }
 
-void CEFBrowser::onConnect(std::shared_ptr<CDPClient> cdp)
+void CEFBrowser::onConnect(std::shared_ptr<cdp_client> cdp)
 {
     ::cdp = cdp;
 
@@ -210,7 +156,7 @@ void CEFBrowser::onConnect(std::shared_ptr<CDPClient> cdp)
     Logger.Log("Connected to Steam @ {}", (void*)&cdp);
 
     this->SetupSharedJSContext();
-    webKitHandler.SetupGlobalHooks();
+    network_hook_ctl::GetInstance().init();
 }
 
 void PluginLoader::Initialize()
@@ -233,7 +179,7 @@ std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(std::shared_ptr<CEF
 
     browserProps->commonName = "CEFBrowser";
     browserProps->fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
-    browserProps->onConnect = [cefBrowserHandler](std::shared_ptr<CDPClient> cdp) { std::thread([cefBrowserHandler, cdp] { cefBrowserHandler->onConnect(cdp); }).detach(); };
+    browserProps->onConnect = [cefBrowserHandler](std::shared_ptr<cdp_client> cdp) { std::thread([cefBrowserHandler, cdp] { cefBrowserHandler->onConnect(cdp); }).detach(); };
 
     return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
 }

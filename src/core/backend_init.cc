@@ -28,18 +28,19 @@
  * SOFTWARE.
  */
 
-#include "hhx64/smem.h"
 #include "millennium/backend_init.h"
-#include "millennium/plat_msg.h"
+#include "millennium/types.h"
 #include "millennium/auth.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"
 #include "millennium/ffi.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
+#include "millennium/plat_msg.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
 #include "millennium/urlp.h"
+#include "hhx64/smem.h"
 
 static std::string addedScriptOnNewDocumentId = "";
 
@@ -55,7 +56,6 @@ class BackendLoadState : public Singleton<BackendLoadState>
     friend class Singleton<BackendLoadState>;
 
   private:
-
   public:
     std::mutex mtx;
     std::condition_variable cvScript;
@@ -653,78 +653,30 @@ void UnPatchSharedJSContext()
  */
 void OnBackendLoad(bool reloadFrontend)
 {
+    nlohmann::json reloadResult;
+
     Logger.Log("Notifying frontend of backend load...");
     UnPatchSharedJSContext();
 
-    enum PageMessage
-    {
-        DEBUGGER_RESUME = 1,
-        PAGE_ENABLE = 2,
-        PAGE_SCRIPT = 3,
-        PAGE_RELOAD = 4
+    /** enable page functions */
+    cdp->send("Page.enable").get();
+
+    json params = {
+        { "source", ConstructOnLoadModule() }
+    };
+    auto resultId = cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
+    addedScriptOnNewDocumentId = resultId["identifier"].get<std::string>();
+
+    json reload_params = {
+        { "ignoreCache", true }
     };
 
-    CefSocketDispatcher::GetInstance().OnMessage("msg", "OnBackendLoad", [reloadFrontend](const nlohmann::json& eventMessage, std::string listenerId)
-    {
-        auto& state = BackendLoadState::GetInstance();
-        std::unique_lock<std::mutex> lock(state.mtx);
-
-        try {
-            const PageMessage messageId = (PageMessage)(int)eventMessage.value("id", -1);
-
-            if (messageId == PAGE_ENABLE) {
-                Logger.Log("Injecting script to evaluate on new document...");
-                Sockets::PostShared({
-                    { "id",     PAGE_SCRIPT                               },
-                    { "method", "Page.addScriptToEvaluateOnNewDocument"   },
-                    { "params", { { "source", ConstructOnLoadModule() } } }
-                });
-            }
-            if (messageId == PAGE_SCRIPT) {
-                Logger.Log("Script injected, waiting for identifier...");
-
-                addedScriptOnNewDocumentId = eventMessage["result"]["identifier"];
-                state.hasScriptIdentifier = true;
-                Logger.Log("Successfully injected shims, reloading frontend...");
-
-                if (reloadFrontend)
-                    Sockets::PostShared({
-                        { "id",     PAGE_RELOAD                 },
-                        { "method", "Page.reload"               },
-                        { "params", { { "ignoreCache", true } } }
-                    });
-                state.cvScript.notify_one();
-            }
-            if (messageId == PAGE_RELOAD) {
-                if (eventMessage.contains("error")) {
-                    Logger.Log("Failed to reload frontend: {}", eventMessage["error"].dump(4));
-                    if (reloadFrontend)
-                        Sockets::PostShared({
-                            { "id",     PAGE_RELOAD                 },
-                            { "method", "Page.reload"               },
-                            { "params", { { "ignoreCache", true } } }
-                        });
-                    return;
-                }
-
-                Logger.Log("Successfully notified frontend...");
-                CefSocketDispatcher::GetInstance().RemoveListener("msg", listenerId);
-            }
-        } catch (nlohmann::detail::exception& ex) {
-            LOG_ERROR("CefSocketDispatcher error -> {}", ex.what());
-        }
-    });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    Sockets::PostShared({
-        { "id",     PAGE_ENABLE   },
-        { "method", "Page.enable" }
-    });
-    {
-        auto& state = BackendLoadState::GetInstance();
-        std::unique_lock<std::mutex> lock(state.mtx);
-        state.cvScript.wait(lock, [&state] { return state.hasScriptIdentifier; });
+    do {
+        reloadResult = cdp->send("Page.reload", reload_params).get();
     }
+    /** empty means it was successful */
+    while (!reloadResult.empty());
+
     Logger.Log("Frontend notifier finished!");
 }
 
@@ -751,10 +703,11 @@ void CoInitializer::ReInjectFrontendShims([[maybe_unused]] std::shared_ptr<Plugi
 {
     // pluginLoader->InjectWebkitShims();
 
-    Sockets::PostShared({
-        { "id",     0                                                },
-        { "method", "Page.removeScriptToEvaluateOnNewDocument"       },
-        { "params", { { "identifier", addedScriptOnNewDocumentId } } }
-    });
+    cdp->send("Page.removeScriptToEvaluateOnNewDocument",
+              {
+                  { "identifier", addedScriptOnNewDocumentId }
+    })
+        .get();
+
     InjectFrontendShims(reloadFrontend);
 }

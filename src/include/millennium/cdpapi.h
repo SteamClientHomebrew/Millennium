@@ -29,6 +29,8 @@
  */
 
 #pragma once
+#include "millennium/thread_pool.h"
+
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <nlohmann/json.hpp>
@@ -41,8 +43,9 @@
 #include <condition_variable>
 #include <deque>
 #include <string>
+#include <memory>
 
-class CDPClient : public std::enable_shared_from_this<CDPClient>
+class cdp_client : public std::enable_shared_from_this<cdp_client>
 {
   public:
     using WSClient = websocketpp::client<websocketpp::config::asio_client>;
@@ -50,15 +53,17 @@ class CDPClient : public std::enable_shared_from_this<CDPClient>
     using EventCallback = std::function<void(const json&)>;
     using ErrorCallback = std::function<void(const std::string&, const std::exception&)>;
 
-    explicit CDPClient(WSClient::connection_ptr conn);
-    ~CDPClient();
+    explicit cdp_client(WSClient::connection_ptr conn);
+    ~cdp_client();
 
-    CDPClient(const CDPClient&) = delete;
-    CDPClient& operator=(const CDPClient&) = delete;
-    CDPClient(CDPClient&&) = delete;
-    CDPClient& operator=(CDPClient&&) = delete;
+    cdp_client(const cdp_client&) = delete;
+    cdp_client& operator=(const cdp_client&) = delete;
+    cdp_client(cdp_client&&) = delete;
+    cdp_client& operator=(cdp_client&&) = delete;
 
     std::future<json> send(const std::string& method, const json& params = json::object(), std::chrono::milliseconds timeout = std::chrono::seconds(30));
+    std::future<json> send_host(const std::string& method, const json& params = json::object(), std::optional<std::string> sessionId = std::nullopt,
+                                std::chrono::milliseconds timeout = std::chrono::seconds(30));
 
     void on(const std::string& event, EventCallback callback);
     void off(const std::string& event);
@@ -67,6 +72,10 @@ class CDPClient : public std::enable_shared_from_this<CDPClient>
     void handle_message(const std::string& payload);
 
     void shutdown();
+    void set_shared_js_session_id(const std::string& sessionId)
+    {
+        sharedJsContextSessionId = sessionId;
+    }
 
     bool is_active() const
     {
@@ -74,12 +83,20 @@ class CDPClient : public std::enable_shared_from_this<CDPClient>
     }
 
   private:
+    std::string sharedJsContextSessionId;
+
     struct PendingRequest
     {
         std::promise<json> promise;
         std::chrono::steady_clock::time_point timestamp;
         std::chrono::milliseconds timeout;
         std::atomic<bool> completed{ false };
+    };
+
+    struct QueuedResponse
+    {
+        json message;
+        std::chrono::steady_clock::time_point timestamp;
     };
 
     WSClient::connection_ptr m_conn;
@@ -91,7 +108,8 @@ class CDPClient : public std::enable_shared_from_this<CDPClient>
     std::shared_mutex m_events_mutex;
     std::unordered_map<std::string, std::shared_ptr<EventCallback>> m_event_callbacks;
     ErrorCallback m_error_handler;
-    std::unordered_map<int, json> m_queued_responses;
+    std::unordered_map<int, QueuedResponse> m_queued_responses;
+    const size_t m_queued_response_limit{ 1000 };
     std::thread m_cleanup_thread;
     std::condition_variable m_cleanup_cv;
 
@@ -99,14 +117,14 @@ class CDPClient : public std::enable_shared_from_this<CDPClient>
     std::mutex m_incoming_mutex;
     std::condition_variable m_incoming_cv;
     std::thread m_incoming_worker;
-    size_t m_incoming_queue_limit{ 1000 };
+    const size_t m_incoming_queue_limit{ 1000 };
+
+    std::shared_ptr<thread_pool> m_callback_pool;
 
     void cleanup_loop();
     void cleanup_stale_requests();
     void invoke_error_handler(const std::string& context, const std::exception& e);
     bool check_queued_response(int id, std::shared_ptr<PendingRequest>& pending);
 
-    // Incoming queue helpers (non-blocking entrypoint + internal processor)
-    void enqueue_incoming(const std::string& payload);
     void process_message(const std::string& payload);
 };

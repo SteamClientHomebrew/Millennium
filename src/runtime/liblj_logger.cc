@@ -32,8 +32,6 @@
 #include <lua.hpp>
 #include <vector>
 
-extern std::vector<BackendLogger*> g_loggerList;
-
 static BackendLogger* GetBackendLogger(lua_State* L)
 {
     lua_getfield(L, 1, "__backend_logger");
@@ -83,7 +81,7 @@ extern "C" int Lua_OpenLoggerLibrary(lua_State* L)
     lua_pop(L, 1);
 
     BackendLogger* backend = new BackendLogger(pluginName);
-    g_loggerList.push_back(backend);
+    get_plugin_logger_mgr().push_back(backend);
 
     luaL_newlib(L, loggerFunctions);
 

@@ -81,13 +81,13 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
     CoInitializer::ReInjectFrontendShims(g_pluginLoader, true);
 }
 
-unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, HttpHookManager::TagTypes type)
+unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type)
 {
     g_hookedModuleId++;
     auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
     try {
-        HttpHookManager::GetInstance().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
+        network_hook_ctl::GetInstance().add_hook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
     } catch (const std::regex_error& e) {
         LOG_ERROR("Attempted to add a browser module with invalid regex: {} ({})", regexSelector, e.what());
         ErrorToLogger("executor", fmt::format("Failed to add browser module with invalid regex: {} ({})", regexSelector, e.what()));
@@ -104,7 +104,7 @@ nlohmann::json Millennium_GetPluginLogs()
 
     std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
 
-    for (auto& logger : g_loggerList) {
+    for (auto& logger : get_plugin_logger_mgr()) {
         nlohmann::json logDataItem;
 
         for (auto [message, logLevel] : logger->CollectLogs()) {

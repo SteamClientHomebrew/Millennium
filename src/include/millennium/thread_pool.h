@@ -29,17 +29,24 @@
  */
 
 #pragma once
-#include "millennium/http_hooks.h"
-#include <nlohmann/json.hpp>
-#include <string>
-#include <vector>
+#include <condition_variable>
+#include <queue>
+#include <functional>
 
-struct PluginStatus
+class thread_pool
 {
-    std::string pluginName;
-    bool enabled;
-};
+  public:
+    thread_pool(size_t numThreads = 4);
+    ~thread_pool();
 
-void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins);
-unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type);
-nlohmann::json Millennium_GetPluginLogs();
+    void enqueue(std::function<void()> f);
+    void shutdown();
+
+  private:
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> tasks;
+    std::mutex queueMutex;
+    std::condition_variable condition;
+    bool stop = false;
+    std::atomic<bool> shutdown_called{ false };
+};

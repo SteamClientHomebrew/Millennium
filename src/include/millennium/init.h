@@ -46,11 +46,12 @@
 #include <winsock2.h>
 #endif
 
+extern std::shared_ptr<cdp_client> cdp;
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
 class CEFBrowser
 {
-    HttpHookManager& webKitHandler;
+    network_hook_ctl& webKitHandler;
     bool m_sharedJsConnected = false;
     std::chrono::system_clock::time_point m_startTime;
 
@@ -58,7 +59,7 @@ class CEFBrowser
     CEFBrowser();
     void SetupSharedJSContext();
     void onSharedJsConnect();
-    void onConnect(std::shared_ptr<CDPClient> cdp);
+    void onConnect(std::shared_ptr<cdp_client> cdp);
 };
 
 class PluginLoader
@@ -85,10 +86,3 @@ class PluginLoader
 };
 
 extern std::shared_ptr<PluginLoader> g_pluginLoader;
-
-namespace Sockets
-{
-bool PostShared(nlohmann::json data);
-bool PostGlobal(nlohmann::json data);
-void Shutdown();
-} // namespace Sockets

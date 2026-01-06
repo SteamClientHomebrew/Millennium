@@ -164,14 +164,9 @@ VOID Win32_AttachMillennium(VOID)
     EntryMain();
     Logger.Log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
 
-    /** Shutdown the shared JS message emitter */
-    CefSocketDispatcher& emitter = CefSocketDispatcher::GetInstance();
-    (&emitter)->Shutdown();
-    Logger.Log("CefSocketDispatcher has been shut down.");
-
     /** Shutdown cron threads that manage Steam HTTP hooks */
-    HttpHookManager& hookManager = HttpHookManager::GetInstance();
-    (&hookManager)->Shutdown();
+    network_hook_ctl& hookManager = network_hook_ctl::GetInstance();
+    (&hookManager)->shutdown();
     Logger.Log("HttpHookManager has been shut down.");
 
     MH_DisableHook(MH_ALL_HOOKS);
@@ -193,13 +188,7 @@ VOID Win32_AttachMillennium(VOID)
 VOID Win32_DetachMillennium(VOID)
 {
     Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
-
     g_shouldTerminateMillennium->flag.store(true);
-    Logger.Log("Set terminate flag");
-
-    /** There should be 0% chance the socket is still somehow open, but we free it just in case to prevent deadlocks */
-    Sockets::Shutdown();
-
     Logger.Log("Waiting for Millennium thread to exit...");
 
     if (!g_millenniumThread.joinable()) {

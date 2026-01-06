@@ -128,11 +128,11 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    const bool success = HttpHookManager::GetInstance().RemoveHook(moduleId);
+    const bool success = network_hook_ctl::GetInstance().remove_hook(moduleId);
     return PyBool_FromLong(success);
 }
 
-unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes type)
+unsigned long long AddBrowserModule(PyObject* args, network_hook_ctl::TagTypes type)
 {
     const char* moduleItem;
     const char* regexSelector = ".*";
@@ -146,12 +146,12 @@ unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes ty
 
 PyObject* AddBrowserCss([[maybe_unused]] PyObject* self, PyObject* args)
 {
-    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET));
+    return PyLong_FromLong((long)AddBrowserModule(args, network_hook_ctl::TagTypes::STYLESHEET));
 }
 
 PyObject* AddBrowserJs([[maybe_unused]] PyObject* self, PyObject* args)
 {
-    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT));
+    return PyLong_FromLong((long)AddBrowserModule(args, network_hook_ctl::TagTypes::JAVASCRIPT));
 }
 
 /**
