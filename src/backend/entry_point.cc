@@ -37,7 +37,6 @@
 #include "millennium/millennium_api.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
-#include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
 
 #include <cstdio>
