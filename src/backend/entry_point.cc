@@ -33,11 +33,18 @@
 #include "head/scan.h"
 #include "head/theme_cfg.h"
 
+#include "millennium/logger.h"
 #include "millennium/millennium_api.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
+
+#include <cstdio>
+#include <filesystem>
+#include <memory>
+#include <stdexcept>
+#include <sys/stat.h>
 
 std::shared_ptr<ThemeConfig> themeConfig;
 std::shared_ptr<Updater> updater;
