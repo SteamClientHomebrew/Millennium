@@ -361,7 +361,7 @@ INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteS
 }
 
 /**
- * tier0_s.dll is a *cross platform* library bundled with Steam that helps it
+ * tier0_s.dll is a *cross-platform* library bundled with Steam that helps it
  * manage low-level system interactions and provides various utility functions.
  *
  * It houses various functions, and we are interested in hooking its functions Steam

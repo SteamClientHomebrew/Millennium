@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,28 +34,29 @@
 
 #include <string>
 #include <vector>
+
 #include <nlohmann/json.hpp>
 
 
 namespace Millennium
 {
-int AddBrowserCss(const std::string& path, const std::string& regex);
+    int AddBrowserCss(const std::string& path, const std::string& regex);
 
-int AddBrowserJs(const std::string& path, const std::string& regex);
+    int AddBrowserJs(const std::string& path, const std::string& regex);
 
-bool RemoveBrowserModule(int id);
+    bool RemoveBrowserModule(int id);
 } // namespace Millennium
 
 class WebkitHookStore : public Singleton<WebkitHookStore>
 {
     friend class Singleton<WebkitHookStore>;
 
-public:
+  public:
     void Push(int moduleId);
 
     void UnregisterAll();
 
-private:
+  private:
     std::vector<int> stack;
 };
 

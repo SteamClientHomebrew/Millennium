@@ -30,12 +30,14 @@ import importlib.metadata
 import json
 import os
 import platform
+import platform
 import subprocess
 import threading
-from plugins import find_all_plugins
-from logger import logger
-import platform
+
 from config import Config
+from logger import logger
+from plugins import find_all_plugins
+
 
 def get_installed_packages():
     logger.log("Installed packages:")

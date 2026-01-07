@@ -26,9 +26,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import Millennium # type: ignore
-import os, json
+import Millennium  # type: ignore
+import json
+import os
+
 from logger import logger
+
 
 def is_enabled(plugin_name: str) -> bool:
     return Millennium.is_plugin_enabled(plugin_name)
