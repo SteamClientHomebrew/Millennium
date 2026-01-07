@@ -71,7 +71,7 @@ const char* Millennium_GetUpdateScript()
 #if defined(_WIN32)
     return std::string("https://github.com/SteamClientHomebrew/Installer/releases/latest/download/MillenniumInstaller-Windows.exe");
 #elif defined(__APPLE__) || defined(__linux__)
-    struct stat release_buf;
+    struct stat release_buf{};
     if (stat("/bin/lsb_release", &release_buf) == 0) {
         FILE* pipe = popen("/bin/lsb_release -is", "r");
         if (!pipe) { // if popen failed to open buffer
