@@ -53,8 +53,8 @@ class CEFBrowser
   public:
     CEFBrowser();
     void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
-    void SetupSharedJSContext();
-    void onSharedJsConnect();
+    static void SetupSharedJSContext();
+    void onSharedJsConnect() const;
     void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle);
 };
 
@@ -72,7 +72,7 @@ class PluginLoader
     void Initialize();
 
     void PrintActivePlugins();
-    std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
+    static std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
 
     std::unique_ptr<SettingsStore> m_settingsStorePtr;
     std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;

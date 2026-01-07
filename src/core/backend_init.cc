@@ -522,8 +522,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
                                         MESSAGEBOX_QUESTION);
 
                 if (result == IDYES) {
-                    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-                    settingsStore->TogglePluginStatus(plugin.pluginName, false);
+                      SettingsStore::TogglePluginStatus(plugin.pluginName, false);
                 }
 #endif
 
@@ -557,13 +556,12 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
  */
  std::string ConstructOnLoadModule()
 {
-    const std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
+    const std::vector<SettingsStore::PluginTypeSchema> plugins = SettingsStore::ParseAllPlugins();
 
     std::vector<std::string> scriptImportTable;
 
     for (auto& plugin : plugins) {
-        if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) {
+        if (!SettingsStore::IsEnabledPlugin(plugin.pluginName)) {
             continue;
         }
 

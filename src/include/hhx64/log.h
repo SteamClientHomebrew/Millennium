@@ -52,7 +52,7 @@ inline void get_time_mmss(char* buf, const size_t len)
 #endif
 }
 
-static void log_debug(const char* fmt, ...)
+[[maybe_unused]] static void log_debug(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));
@@ -71,7 +71,7 @@ static void log_debug(const char* fmt, ...)
     va_end(args);
 }
 
-static void log_info(const char* fmt, ...)
+[[maybe_unused]] static void log_info(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));
@@ -90,7 +90,7 @@ static void log_info(const char* fmt, ...)
     va_end(args);
 }
 
-static void log_warning(const char* fmt, ...)
+[[maybe_unused]] static void log_warning(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));
@@ -109,7 +109,7 @@ static void log_warning(const char* fmt, ...)
     va_end(args);
 }
 
-static void log_error(const char* fmt, ...)
+[[maybe_unused]] static void log_error(const char* fmt, ...)
 {
     char timebuf[16];
     get_time_mmss(timebuf, sizeof(timebuf));

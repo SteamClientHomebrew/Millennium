@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "head/ipc_handler.h"
 #include "head/theme_mgr.h"
+#include "head/ipc_handler.h"
 #include "head/scan.h"
 
 #include "millennium/logger.h"
@@ -43,10 +43,10 @@ std::filesystem::path ThemeInstaller::SkinsRoot()
     return std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
 }
 
-void ThemeInstaller::RPCLogMessage(const std::string& status, double progress, bool isComplete)
+void ThemeInstaller::RPCLogMessage(const std::string& status, double progress, const bool isComplete)
 {
     static auto lastSent = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
+    const auto now = std::chrono::steady_clock::now();
     if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastSent).count() < 100) return;
     lastSent = now;
 
@@ -86,16 +86,16 @@ bool ThemeInstaller::CheckInstall(const std::string& repo, const std::string& ow
     return installed;
 }
 
-nlohmann::json ThemeInstaller::UninstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
+nlohmann::json ThemeInstaller::UninstallTheme(const std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
 {
     Logger.Log("UninstallTheme: {}/{}", owner, repo);
 
-    auto themeOpt = GetThemeFromGitPair(repo, owner);
+    const auto themeOpt = GetThemeFromGitPair(repo, owner);
     if (!themeOpt) return ErrorMessage("Couldn't locate theme on disk!");
 
     if (!themeOpt->contains("native")) return ErrorMessage("Theme does not have a native path!");
 
-    std::filesystem::path path = SkinsRoot() / themeOpt->value("native", std::string());
+    const std::filesystem::path path = SkinsRoot() / themeOpt->value("native", std::string());
     if (!std::filesystem::exists(path)) return ErrorMessage("Theme path does not exist!");
 
     if (!SystemIO::DeleteFolder(path)) return ErrorMessage("Failed to delete theme folder");
@@ -117,7 +117,7 @@ struct CloneProgressData
 
 int TransferProgressCallback(const git_transfer_progress* stats, void* payload)
 {
-    auto* data = static_cast<CloneProgressData*>(payload);
+    const auto* data = static_cast<CloneProgressData*>(payload);
     if (!data || !data->callback || !stats) return 0;
 
     data->callback(static_cast<size_t>(stats->received_objects), static_cast<size_t>(stats->total_objects), static_cast<size_t>(stats->indexed_objects));
@@ -168,10 +168,10 @@ int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesyst
     return 0;
 }
 
-nlohmann::json ThemeInstaller::InstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
+nlohmann::json ThemeInstaller::InstallTheme(const std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
 {
     std::error_code ec;
-    std::filesystem::path finalPath = SkinsRoot() / repo;
+    const std::filesystem::path finalPath = SkinsRoot() / repo;
 
     if (repo.empty() || owner.empty()) {
         return ErrorMessage("Repository name and owner cannot be empty");
@@ -189,8 +189,8 @@ nlohmann::json ThemeInstaller::InstallTheme(std::shared_ptr<ThemeConfig> themeCo
         return ErrorMessage("Failed to check if path exists: " + ec.message());
     }
 
-    std::string tmpName = repo + ".tmp-" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
-    std::filesystem::path tmpPath = finalPath.parent_path() / tmpName;
+    const std::string tmpName = repo + ".tmp-" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
+    const std::filesystem::path tmpPath = finalPath.parent_path() / tmpName;
 
     if (std::filesystem::exists(tmpPath, ec)) {
         Logger.Log("Warning: Temporary path already exists, removing: " + tmpPath.string());
@@ -204,11 +204,11 @@ nlohmann::json ThemeInstaller::InstallTheme(std::shared_ptr<ThemeConfig> themeCo
     RPCLogMessage("Receiving remote objects...", 40, false);
 
     std::string cloneErr;
-    std::string url = fmt::format("https://github.com/{}/{}.git", owner, repo);
-    int rc = CloneWithLibgit2(url, tmpPath, cloneErr, [&](size_t received, size_t total, size_t)
+    const std::string url = fmt::format("https://github.com/{}/{}.git", owner, repo);
+    const int rc = CloneWithLibgit2(url, tmpPath, cloneErr, [&](const size_t received, const size_t total, size_t)
     {
         if (total > 0) {
-            int percentage = 40 + static_cast<int>((received * 50.0) / total);
+            const int percentage = 40 + static_cast<int>((received * 50.0) / total);
             RPCLogMessage("Receiving objects: " + std::to_string(received) + "/" + std::to_string(total), percentage, false);
         }
     });
@@ -282,18 +282,18 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> ThemeInstaller::Qu
     }
 
     if (needsCopy) {
-        std::filesystem::path src = SkinsRoot();
-        std::filesystem::path dst = SkinsRoot().parent_path() / ("skins-backup-" + std::to_string(std::time(nullptr)));
+        const std::filesystem::path src = SkinsRoot();
+        const std::filesystem::path dst = SkinsRoot().parent_path() / ("skins-backup-" + std::to_string(std::time(nullptr)));
         std::filesystem::copy(src, dst, std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_symlinks);
     }
 
     return updateQuery;
 }
 
-bool ThemeInstaller::UpdateTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
+bool ThemeInstaller::UpdateTheme(const std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
 {
     Logger.Log("Updating theme " + native);
-    std::filesystem::path path = SkinsRoot() / native;
+    const std::filesystem::path path = SkinsRoot() / native;
 
     try {
         if (git_libgit2_init() < 0) {
@@ -320,7 +320,7 @@ bool ThemeInstaller::UpdateTheme(std::shared_ptr<ThemeConfig> themeConfig, const
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #endif
-        git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
+         constexpr git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
 #ifdef __linux__
 #pragma GCC diagnostic pop
 #endif
@@ -390,11 +390,11 @@ nlohmann::json ThemeInstaller::GetRequestBody(void)
 
     try {
         auto update_query = QueryThemesForUpdate();
-        auto post_body = ConstructPostBody([&update_query]
+        const auto post_body = ConstructPostBody([&update_query]
         {
             std::vector<nlohmann::json> themes;
-            for (const auto& pair : update_query) {
-                themes.push_back(pair.first);
+            for (const auto& key : update_query | std::views::keys) {
+                themes.push_back(key);
             }
             return themes;
         }());
@@ -458,7 +458,7 @@ const nlohmann::json* ThemeInstaller::FindRemoteTheme(const nlohmann::json& remo
         return nullptr;
     }
 
-    auto it = std::find_if(remote.begin(), remote.end(), [&repoName](const nlohmann::json& item) { return item.value("name", "") == repoName; });
+    const auto it = std::ranges::find_if(remote, [&repoName](const nlohmann::json& item) { return item.value("name", "") == repoName; });
 
     return (it != remote.end()) ? &(*it) : nullptr;
 }
@@ -481,11 +481,11 @@ nlohmann::json ThemeInstaller::CreateUpdateInfo(const nlohmann::json& theme, con
     };
 }
 
-std::string ThemeInstaller::GetLocalCommitHash(const std::filesystem::path& repoPath)
+std::string ThemeInstaller::GetLocalCommitHash(const std::filesystem::path& path)
 {
     git_libgit2_init();
     git_repository* repo = nullptr;
-    if (git_repository_open(&repo, repoPath.string().c_str()) != 0) {
+    if (git_repository_open(&repo, path.string().c_str()) != 0) {
         git_libgit2_shutdown();
         return "";
     }
@@ -512,7 +512,7 @@ bool ThemeInstaller::IsGitRepo(const std::filesystem::path& path)
 {
     git_libgit2_init();
     git_repository* repo = nullptr;
-    int ret = git_repository_open(&repo, path.string().c_str());
+    const int ret = git_repository_open(&repo, path.string().c_str());
     if (ret == 0) {
         git_repository_free(repo);
         git_libgit2_shutdown();

@@ -30,11 +30,13 @@
 
 #pragma once
 
+#include "millennium/sysfs.h"
+
 #include <filesystem>
 #include <set>
-#include "millennium/sysfs.h"
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 class ThemeConfig
 {

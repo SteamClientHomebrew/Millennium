@@ -29,19 +29,19 @@
  */
 
 #include "millennium/millennium_updater.h"
-#include "millennium/semver.h"
-#include "millennium/http.h"
-#include "millennium/sysfs.h"
-#include "millennium/logger.h"
-#include "millennium/encode.h"
-#include "millennium/zip.h"
 #include "head/ipc_handler.h"
+#include "millennium/encode.h"
+#include "millennium/http.h"
+#include "millennium/logger.h"
+#include "millennium/semver.h"
+#include "millennium/sysfs.h"
+#include "millennium/zip.h"
 
-#include <filesystem>
+#include <chrono>
 #include <exception>
+#include <filesystem>
 #include <memory>
 #include <thread>
-#include <chrono>
 
 #define SHIM_LOADER_PATH "user32.dll"
 #define SHIM_LOADER_QUEUED_PATH "user32.queue.dll" // The path of the recently updated shim loader waiting for an update.
@@ -158,7 +158,7 @@ void MillenniumUpdater::CheckForUpdates()
             return;
         }
 
-        int compare = Semver::Compare(current_version, latest_version);
+        const int compare = Semver::Compare(current_version, latest_version);
 
         {
             std::lock_guard<std::mutex> lock(_mutex);
@@ -199,7 +199,7 @@ std::optional<nlohmann::json> MillenniumUpdater::FindAsset(const nlohmann::json&
     return std::nullopt;
 #endif
 
-    std::string target_name = "millennium-" + release_info.value("tag_name", "") + "-" + platform_suffix;
+    const std::string target_name = "millennium-" + release_info.value("tag_name", "") + "-" + platform_suffix;
     for (auto& asset : release_info["assets"]) {
         if (asset.value("name", "") == target_name) return asset;
     }
@@ -214,10 +214,10 @@ nlohmann::json MillenniumUpdater::HasAnyUpdates()
     result["hasUpdate"] = __has_updates;
 
     /** Make a deep copy of the latest version to avoid race conditions */
-    nlohmann::json latest_version_copy = __latest_version;
+    const nlohmann::json latest_version_copy = __latest_version;
 
     /** Find asset while still holding the lock to ensure consistency */
-    auto asset = latest_version_copy.is_null() ? std::nullopt : FindAsset(latest_version_copy);
+    const auto asset = latest_version_copy.is_null() ? std::nullopt : FindAsset(latest_version_copy);
 
     result["newVersion"] = latest_version_copy;
     result["platformRelease"] = asset.has_value() ? asset.value() : nullptr;
@@ -227,10 +227,10 @@ nlohmann::json MillenniumUpdater::HasAnyUpdates()
 
 void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
 {
-    std::filesystem::path steam_path = SystemIO::GetSteamPath();
+    const std::filesystem::path steam_path = SystemIO::GetSteamPath();
 
     std::error_code ec;
-    std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
+    const std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
 
     if (std::filesystem::exists(temp_path, ec)) {
         std::filesystem::remove_all(temp_path, ec);
@@ -331,13 +331,13 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
 #endif
 }
 
-void RateLimitedLogger(const std::string& message, const double& progress, bool forwardToIpc)
+void RateLimitedLogger(const std::string& message, const double& progress, const bool forwardToIpc)
 {
     static std::mutex rate_limit_mutex;
     static auto last_call = std::chrono::steady_clock::now() - std::chrono::seconds(2);
 
     std::lock_guard<std::mutex> lock(rate_limit_mutex);
-    auto now = std::chrono::steady_clock::now();
+    const auto now = std::chrono::steady_clock::now();
 
     if (std::chrono::duration_cast<std::chrono::seconds>(now - last_call).count() > 1) {
 
@@ -394,7 +394,7 @@ void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const siz
         tempFilePath = std::filesystem::temp_directory_path() / fmt::format("millennium-{}.zip", GenerateUUID());
         Logger.Log("Downloading update to temporary file: " + tempFilePath.string());
 
-        Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [forwardToIpc](size_t downloaded, size_t total)
+        Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [forwardToIpc](const size_t downloaded, const size_t total)
         {
             const double progress = (static_cast<double>(downloaded) / total) * 50.0;
             RateLimitedLogger("Downloading update assets...", progress, forwardToIpc);
@@ -477,7 +477,7 @@ bool MillenniumUpdater::HasPendingRestart()
     return hasUpdatedMillennium.load();
 }
 
-void MillenniumUpdater::StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background, bool forwardToIpc)
+void MillenniumUpdater::StartUpdate(const std::string& downloadUrl, const size_t downloadSize, const bool background, bool forwardToIpc)
 {
     /** Use mutex to ensure only one update can start at a time */
     std::lock_guard<std::mutex> lock(update_mutex);

@@ -90,7 +90,7 @@ typedef struct _cef_request_t
     char _1[sizeof(char) * 0x8 * 1 /** just one memb */];
 
     /** caller must free the returned string */
-    cef_string_userfree_t(CEF_CALLBACK* get_url)(struct _cef_request_t* self);
+    cef_string_userfree_t(CEF_CALLBACK* get_url)(_cef_request_t* self);
 } cef_request_t;
 
 typedef struct _cef_response_t
@@ -100,13 +100,13 @@ typedef struct _cef_response_t
 
     /** we can just assume all functions are void* (0x8) bytes as that's the function pointer size on 64bit */
     char _1[sizeof(char) * 0x8 * 4]; /** 4 padded memb functions */
-    void (*set_status)(struct _cef_response_t* self, int status);
+    void (*set_status)(_cef_response_t* self, int status);
     char _2[sizeof(char) * 0x8 * 3]; /** 3 padded memb functions */
-    void (*set_mime_type)(struct _cef_response_t* self, const cef_string_t* mimeType);
+    void (*set_mime_type)(_cef_response_t* self, const cef_string_t* mimeType);
     char _3[sizeof(char) * 0x8 * 3]; /** 3 padded memb functions */
-    void (*set_header_by_name)(struct _cef_response_t* self, const cef_string_t* name, const cef_string_t* value, int overwrite);
+    void (*set_header_by_name)(_cef_response_t* self, const cef_string_t* name, const cef_string_t* value, int overwrite);
     char _4[sizeof(char) * 0x8 * 2]; /** 2 padded memb functions */
-    cef_string_userfree_t (*get_url)(struct _cef_response_t* self);
+    cef_string_userfree_t (*get_url)(_cef_response_t* self);
 } cef_response_t;
 
 /**
@@ -144,7 +144,7 @@ typedef struct _cef_client_t
     /** pad memb functions to properly align offsets */
     char _padd[sizeof(char) * 0x8 * 17];
 
-    struct _cef_request_handler_t*(CEF_CALLBACK* get_request_handler)(void* self);
+    _cef_request_handler_t*(CEF_CALLBACK* get_request_handler)(void* self);
 } cef_client_t;
 
 typedef struct _cef_resource_handler_t
@@ -154,7 +154,7 @@ typedef struct _cef_resource_handler_t
 
     int(CEF_CALLBACK* open)(void* self, void* request, int* handle_request, void* callback);
     int(CEF_CALLBACK* process_request)(void* self, void* request, void* callback);
-    void(CEF_CALLBACK* get_response_headers)(struct _cef_resource_handler_t* self, struct _cef_response_t* response, int64_t* response_length, cef_string_t* redirectUrl);
+    void(CEF_CALLBACK* get_response_headers)(_cef_resource_handler_t* self, _cef_response_t* response, int64_t* response_length, cef_string_t* redirectUrl);
     int(CEF_CALLBACK* skip)(void* self, int64_t bytes_to_skip, int64_t* bytes_skipped, void* callback);
     int(CEF_CALLBACK* read)(void* self, void* data_out, int bytes_to_read, int* bytes_read, void* callback);
     int(CEF_CALLBACK* read_response)(void* self, void* data_out, int bytes_to_read, int* bytes_read, void* callback);

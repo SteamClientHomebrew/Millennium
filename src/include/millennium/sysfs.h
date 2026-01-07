@@ -32,7 +32,6 @@
 #define MINI_CASE_SENSITIVE
 #include "singleton.h"
 
-
 #include <filesystem>
 #include <mutex>
 #include <string>
@@ -64,9 +63,9 @@ class SettingsStore
     };
 
     static std::vector<PluginTypeSchema> ParseAllPlugins();
-    std::vector<PluginTypeSchema> GetEnabledBackends();
-    std::vector<PluginTypeSchema> GetEnabledPlugins();
-    std::vector<std::string> GetEnabledPluginNames();
+    static std::vector<PluginTypeSchema> GetEnabledBackends();
+    static std::vector<PluginTypeSchema> GetEnabledPlugins();
+    static std::vector<std::string> GetEnabledPluginNames();
 
     static bool IsEnabledPlugin(std::string pluginName);
     static bool TogglePluginStatus(std::string pluginName, bool enabled);
@@ -125,8 +124,6 @@ class ConfigManager : public Singleton<ConfigManager>
      * @param new_value The new value of the key.
      */
     using Listener = std::function<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>;
-
-    static ConfigManager& Instance();
 
     /**
      * Delete a configuration key.
@@ -195,7 +192,7 @@ class ConfigManager : public Singleton<ConfigManager>
     void SetNested(const std::string& path, const nlohmann::json& value, bool skipPropagation = false);
 
     ConfigManager();
-    ~ConfigManager();
+    virtual ~ConfigManager() override;
 
   private:
     /**

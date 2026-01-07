@@ -29,16 +29,19 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+
+#include "hhx64/urlp.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <string.h>
+
 #ifdef __linux__
 #include <linux/limits.h>
 #elif _WIN32
 #include <windows.h>
 #define PATH_MAX MAX_PATH
 #endif
-#include <cstdio>
-#include <cstdlib>
-#include <string.h>
-#include "hhx64/urlp.h"
 
 #ifdef _WIN32
 #define plat_strdup _strdup
@@ -59,7 +62,7 @@
 int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
 {
     const char* path_start = strstr(url, "steamloopback.host");
-    if (!path_start || !(path_start = strchr(path_start, '/'))) {
+    if (!path_start || !((path_start = strchr(path_start, '/')))) {
         return -1;
     }
 
@@ -69,7 +72,7 @@ int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
     char* query = strchr(path, '?');
     if (query) *query = '\0';
 
-    char* file_path = (char*)malloc(PATH_MAX);
+    char* file_path = static_cast<char*>(malloc(PATH_MAX));
     if (!file_path) {
         free(path);
         return -1;
@@ -104,7 +107,7 @@ int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
  * we do have access to cef_parse_url from the PLT/GOT, but that likely adds more overhead
  * and I don't want to reverse it.
  */
-int urlp_should_block_lb_req(cef_string_userfree_t url)
+int urlp_should_block_lb_req(const cef_string_userfree_t url)
 {
     if (!url || !url->str) return 0;
     const char* url_str = url->str;
@@ -124,6 +127,6 @@ int urlp_should_block_lb_req(cef_string_userfree_t url)
     if (!last_dot || (query && last_dot > query)) return 0;
 
     /** only hook javascript files */
-    size_t ext_len = query ? (size_t)(query - last_dot) : strlen(last_dot);
+    const size_t ext_len = query ? static_cast<size_t>(query - last_dot) : strlen(last_dot);
     return ext_len == 3 && strncmp(last_dot, ".js", 3) == 0;
 }

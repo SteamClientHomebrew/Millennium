@@ -241,7 +241,7 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
 
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 {
-    std::vector<SettingsStore::PluginTypeSchema> plugins;
+    std::vector<PluginTypeSchema> plugins;
     const auto plugin_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
 
     try {
@@ -258,7 +258,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
                 continue;
             }
 
-            const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
+            const auto pluginConfiguration = entry.path() / pluginConfigFile;
 
             if (!std::filesystem::exists(pluginConfiguration)) {
                 continue;
@@ -287,11 +287,11 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
  */
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
 {
-    const auto allPlugins = this->ParseAllPlugins();
+    const auto allPlugins = ParseAllPlugins();
     std::vector<SettingsStore::PluginTypeSchema> enabledPlugins;
 
     for (auto& plugin : allPlugins) {
-        if (this->IsEnabledPlugin(plugin.pluginName)) {
+        if (IsEnabledPlugin(plugin.pluginName)) {
             enabledPlugins.push_back(plugin);
         }
     }
@@ -305,7 +305,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
 std::vector<std::string> SettingsStore::GetEnabledPluginNames()
 {
     std::vector<std::string> enabledPlugins;
-    std::vector<SettingsStore::PluginTypeSchema> plugins = this->GetEnabledPlugins();
+    std::vector<SettingsStore::PluginTypeSchema> plugins = GetEnabledPlugins();
 
     /** only add the plugin name. */
     std::ranges::transform(plugins, std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
@@ -320,11 +320,11 @@ std::vector<std::string> SettingsStore::GetEnabledPluginNames()
  */
 std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
 {
-    const auto allPlugins = this->ParseAllPlugins();
+    const auto allPlugins = ParseAllPlugins();
     std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
 
     for (auto& plugin : allPlugins) {
-        if (this->IsEnabledPlugin(plugin.pluginName) && plugin.pluginJson.value("useBackend", true)) {
+        if (IsEnabledPlugin(plugin.pluginName) && plugin.pluginJson.value("useBackend", true)) {
             enabledBackends.push_back(plugin);
         }
     }
@@ -427,10 +427,10 @@ void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json&
 
 void ConfigManager::LoadFromFile()
 {
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
+    std::lock_guard lock(_mutex);
 
     /** Clean up any stale temp file from interrupted writes */
-    std::string tempFilename = _filename + ".tmp";
+    const std::string tempFilename = _filename + ".tmp";
     if (std::filesystem::exists(tempFilename)) {
         Logger.Warn("Found stale temp config file, removing: {}", tempFilename);
         std::filesystem::remove(tempFilename);

@@ -39,6 +39,7 @@
 #include "millennium/virtfs.h"
 
 #include <chrono>
+#include <fstream>
 #include <thread>
 #include <unordered_set>
 #include <utility>
@@ -60,7 +61,7 @@ static const std::unordered_set<std::string> g_doNotHook = {
     R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)", 
     R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
 
-    /** Ignore youtube related content */
+    /** Ignore YouTube-related content */
     R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)",
     R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"
 };
@@ -327,9 +328,8 @@ std::string HttpHookManager::BuildScriptModuleArray(const std::vector<std::strin
 std::string HttpHookManager::BuildEnabledPluginsString()
 {
     std::string result;
-    const auto settingsStore = std::make_unique<SettingsStore>();
 
-    for (const auto& plugin : settingsStore->GetEnabledPlugins()) {
+    for (const auto& plugin : SettingsStore::GetEnabledPlugins()) {
         result.append(fmt::format("'{}',", plugin.pluginName));
     }
 

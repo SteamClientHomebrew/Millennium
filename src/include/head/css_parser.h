@@ -33,6 +33,7 @@
 #include <map>
 #include <optional>
 #include <string>
+
 #include <nlohmann/json.hpp>
 
 namespace Millennium
@@ -63,7 +64,12 @@ class CSSParser
     static void ParseProperties(const std::string& block, std::map<std::string, std::string>& properties, std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
     [[nodiscard]] static std::string Trim(const std::string& str);
 
-    [[nodiscard]] static nlohmann::json GenerateColorMetadata(const std::map<std::string, std::string>& properties,
-                                                const std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
+    [[nodiscard]] static nlohmann::json GenerateColorMetadata(
+        const std::map<std::string,
+        std::string>& properties,
+        const std::map<std::string,
+        std::pair<std::string,
+        std::string>>& propertyMap
+    );
 };
 } // namespace Millennium

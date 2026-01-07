@@ -29,8 +29,9 @@
  */
 
 #include "head/sys_accent_col.h"
-#include "fmt/format.h"
 #include "millennium/logger.h"
+
+#include <fmt/format.h>
 
 /** piss off C */
 #ifdef min
@@ -68,10 +69,10 @@ AccentColors GetAccentColors()
         return colors;
     }
 
-    auto GetColorSet = reinterpret_cast<GetImmersiveUserColorSetPreference_t>((void*)GetProcAddress(hUxTheme, "GetImmersiveUserColorSetPreference"));
-    auto GetColorFromSet = reinterpret_cast<GetImmersiveColorFromColorSetEx_t>((void*)GetProcAddress(hUxTheme, "GetImmersiveColorFromColorSetEx"));
+    auto GetColorSet = reinterpret_cast<GetImmersiveUserColorSetPreference_t>(reinterpret_cast<void*>(GetProcAddress(hUxTheme, "GetImmersiveUserColorSetPreference")));
+    auto GetColorFromSet = reinterpret_cast<GetImmersiveColorFromColorSetEx_t>(reinterpret_cast<void*>(GetProcAddress(hUxTheme, "GetImmersiveColorFromColorSetEx")));
     /** GetImmersiveColorTypeFromName is exported in without a name. its consistently ordinal 96 on windows 10/11 though */
-    auto GetColorTypeFromName = reinterpret_cast<GetImmersiveColorTypeFromName_t>((void*)GetProcAddress(hUxTheme, ((LPSTR)((ULONG_PTR)((WORD)(96))))));
+    auto GetColorTypeFromName = reinterpret_cast<GetImmersiveColorTypeFromName_t>(reinterpret_cast<void*>(GetProcAddress(hUxTheme, ((LPSTR)((ULONG_PTR)((WORD)(96)))))));
 
     if (!GetColorSet || !GetColorFromSet || !GetColorTypeFromName) {
         Logger.Warn("Failed to get function addresses from " UX_THEME_DLL);

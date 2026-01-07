@@ -39,12 +39,10 @@ nlohmann::json Millennium::Plugins::FindAllPlugins()
 {
     nlohmann::json result = nlohmann::json::array();
 
-    const std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-
-    for (const auto foundPlugins = settingsStore->ParseAllPlugins(); const auto& plugin : foundPlugins) {
+    for (const auto foundPlugins = SettingsStore::ParseAllPlugins(); const auto& plugin : foundPlugins) {
         result.push_back({
             { "path",    plugin.pluginBaseDirectory.generic_string()       },
-            { "enabled", settingsStore->IsEnabledPlugin(plugin.pluginName) },
+            { "enabled", SettingsStore::IsEnabledPlugin(plugin.pluginName) },
             { "data",    plugin.pluginJson                                 }
         });
     }

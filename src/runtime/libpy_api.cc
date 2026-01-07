@@ -166,8 +166,7 @@ PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
         return nullptr;
     }
 
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    bool isEnabled = settingsStore->IsEnabledPlugin(pluginName);
+    bool isEnabled = SettingsStore::IsEnabledPlugin(pluginName);
     return PyBool_FromLong(isEnabled);
 }
 

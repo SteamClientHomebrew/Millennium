@@ -57,7 +57,7 @@ bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
         auto pluginOpt = Millennium::Plugins::GetPluginFromName(pluginName);
         if (!pluginOpt) return false;
 
-        if (const std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>(); settingsStore->IsEnabledPlugin(pluginName)) {
+        if (SettingsStore::IsEnabledPlugin(pluginName)) {
             Millennium_TogglePluginStatus({
                 PluginStatus{ pluginName, false }
             });

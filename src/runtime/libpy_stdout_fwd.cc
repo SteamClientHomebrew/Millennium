@@ -31,22 +31,21 @@
 /**
  * bind_stdout.h
  * @brief This file is responsible for redirecting the Python stdout and stderr to the logger.
- * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
+ * @note You shouldn't rely on print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
  */
 
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
 #include <Python.h>
-#include <fmt/core.h>
 
 /**
- * @brief Write a message buffer to the logger. The buffer is un-flushed.
+ * @brief Write a message buffer to the logger. The buffer is unflushed.
  *
  * @param pname The name of the plugin.
  * @param message The message to be printed.
  */
-extern "C" void PrintPythonMessage(std::string pname, const char* message)
+extern "C" void PrintPythonMessage(const std::string pname, const char* message)
 {
     const std::string logMessage = message;
 
@@ -63,7 +62,7 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
  *
  * ex. 123 would print plugin name 1\n plugin name 2\n plugin name 3\n
  */
-extern "C" void PrintPythonError(std::string pname, const char* message)
+extern "C" void PrintPythonError(const std::string pname, const char* message)
 {
     std::cout << "\033[31m" << message << "\033[0m";
     std::cout.flush(); // Flush the buffer to ensure the message is printed immediately, and the color doesn't leak into the next message.
@@ -101,7 +100,7 @@ static PyMethodDef stderrMethods[] = {
     { nullptr,    nullptr,              0,            nullptr                           }
 };
 
-static struct PyModuleDef customStdoutModule = {
+static PyModuleDef customStdoutModule = {
     PyModuleDef_HEAD_INIT,
     "hook_stdout",
     nullptr, // m_doc
@@ -112,7 +111,7 @@ static struct PyModuleDef customStdoutModule = {
     nullptr, // m_clear
     nullptr  // m_free
 };
-static struct PyModuleDef customStderrModule = {
+static PyModuleDef customStderrModule = {
     PyModuleDef_HEAD_INIT,
     "hook_stderr",
     nullptr, // m_doc

@@ -37,10 +37,9 @@
 #include "millennium/env.h"
 #include "millennium/sysfs.h"
 
-#include <fmt/core.h>
 #include <cstdlib>
-#include <string>
 #include <iostream>
+#include <string>
 #ifdef __linux__
 #include "millennium/logger.h"
 #include <unistd.h>
@@ -58,7 +57,7 @@ class environment
   public:
     static bool set(const std::string& name, const std::string& value)
     {
-        std::string strEnv = name + "=" + value;
+        const std::string strEnv = name + "=" + value;
 
         auto stored_string = std::make_unique<char[]>(strEnv.length() + 1);
         std::strcpy(stored_string.get(), strEnv.c_str());
@@ -116,7 +115,7 @@ void SetEnv(const std::string& key, const std::string& value)
 #endif
 }
 
-std::string GetEnv(std::string key)
+std::string GetEnv(const std::string key)
 {
 #ifdef _WIN32
     static bool hasSetup = false;
@@ -127,7 +126,7 @@ std::string GetEnv(std::string key)
     }
 #endif
 
-    char* szVariable = getenv(key.c_str());
+    const char* szVariable = getenv(key.c_str());
 
     if (szVariable == nullptr) {
         return {};
@@ -137,7 +136,7 @@ std::string GetEnv(std::string key)
     return strVariable;
 }
 
-std::string GetEnvWithFallback(std::string key, std::string fallback)
+std::string GetEnvWithFallback(const std::string key, const std::string fallback)
 {
     std::string var = GetEnv(key);
     return var.empty() ? fallback : var;
@@ -213,7 +212,7 @@ void SetupEnvironmentVariables()
     const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        int result = std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+        const int result = std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
 
         if (result != 0) {
             LOG_ERROR("Failed to create python virtual environment");

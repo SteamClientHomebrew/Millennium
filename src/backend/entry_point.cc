@@ -97,7 +97,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "steamPath", SystemIO::GetSteamPath() },
         { "installPath", SystemIO::GetInstallPath() },
         { "millenniumVersion", MILLENNIUM_VERSION },
-        { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
+        { "enabledPlugins", SettingsStore::GetEnabledPluginNames() },
         { "updates", updater->CheckForUpdates() },
         { "hasCheckedForUpdates", updater->HasCheckedForUpdates() },
         { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },

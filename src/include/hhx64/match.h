@@ -29,6 +29,7 @@
  */
 
 #pragma once
+
 #include "smem.h"
 
 #ifdef __cplusplus

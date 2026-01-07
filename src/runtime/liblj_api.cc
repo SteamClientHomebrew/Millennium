@@ -235,8 +235,7 @@ int Lua_IsPluginEnable(lua_State* L)
     }
 
     try {
-        std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-        const bool isEnabled = settingsStore->IsEnabledPlugin(pluginName);
+        const bool isEnabled = SettingsStore::IsEnabledPlugin(pluginName);
         lua_pushboolean(L, isEnabled);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to check plugin status for '{}': {}", pluginName, e.what());

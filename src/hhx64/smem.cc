@@ -125,13 +125,13 @@ void shm_arena_unlink(const char* name)
 
 #else
 // Linux implementation
-#include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
-lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
+lb_shm_arena_t* shm_arena_create(const char* name, const uint32_t size)
 {
-    int fd = shm_open(name, O_CREAT | O_RDWR, 0666);
+    const int fd = shm_open(name, O_CREAT | O_RDWR, 0666);
     if (fd == -1) return nullptr;
 
     if (ftruncate(fd, size) == -1) {
@@ -139,7 +139,7 @@ lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
         return nullptr;
     }
 
-    lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    lb_shm_arena_t* arena = static_cast<lb_shm_arena_t*>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     close(fd);
 
     if (arena == MAP_FAILED) return nullptr;
@@ -149,18 +149,18 @@ lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
     return arena;
 }
 
-lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size)
+lb_shm_arena_t* shm_arena_open(const char* name, const uint32_t size)
 {
-    int fd = shm_open(name, O_RDWR, 0666);
+    const int fd = shm_open(name, O_RDWR, 0666);
     if (fd == -1) return nullptr;
 
-    lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    lb_shm_arena_t* arena = static_cast<lb_shm_arena_t*>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
     close(fd);
 
     return (arena == MAP_FAILED) ? nullptr : arena;
 }
 
-void shm_arena_close(lb_shm_arena_t* arena, uint32_t size)
+void shm_arena_close(lb_shm_arena_t* arena, const uint32_t size)
 {
     munmap(arena, size);
 }
@@ -180,15 +180,15 @@ uint32_t shm_arena_alloc(lb_shm_arena_t* arena, uint32_t size)
         return 0; /** no space */
     }
 
-    uint32_t offset = arena->used;
+    const uint32_t offset = arena->used;
     arena->used += size;
     return offset;
 }
 
 static uint32_t shm_strdup(lb_shm_arena_t* arena, const char* str)
 {
-    uint32_t len = (uint32_t)strlen(str) + 1;
-    uint32_t off = shm_arena_alloc(arena, len);
+    const uint32_t len = (uint32_t)strlen(str) + 1;
+    const uint32_t off = shm_arena_alloc(arena, len);
     if (off == 0) return 0;
 
     memcpy(SHM_PTR(arena, off, char), str, len);
@@ -214,12 +214,12 @@ void hashmap_init(lb_shm_arena_t* arena)
 
 lb_patch_list_shm_t* hashmap_get(lb_shm_arena_t* arena, const char* key)
 {
-    lb_hash_map_shm* map = &arena->map;
-    uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
+    const lb_hash_map_shm* map = &arena->map;
+    const uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
     lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
 
     for (uint32_t i = 0; i < map->count; i++) {
-        char* stored_key = SHM_PTR(arena, keys[i], char);
+        const char* stored_key = SHM_PTR(arena, keys[i], char);
         if (strcmp(stored_key, key) == 0) {
             return &values[i];
         }
@@ -236,10 +236,10 @@ lb_patch_list_shm_t* hashmap_add_key(lb_shm_arena_t* arena, const char* key)
 
     if (map->count >= map->capacity) {
         /** need to grow, alloc exponentially more space */
-        uint32_t new_capacity = map->capacity * 2;
+        const uint32_t new_capacity = map->capacity * 2;
 
-        uint32_t new_keys_off = shm_arena_alloc(arena, new_capacity * sizeof(uint32_t));
-        uint32_t new_values_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_patch_list_shm_t));
+        const uint32_t new_keys_off = shm_arena_alloc(arena, new_capacity * sizeof(uint32_t));
+        const uint32_t new_values_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_patch_list_shm_t));
 
         if (new_keys_off == 0 || new_values_off == 0) return nullptr;
 
@@ -274,7 +274,7 @@ void hashmap_remove(lb_shm_arena_t* arena, const char* key)
     lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
 
     for (uint32_t i = 0; i < map->count; i++) {
-        char* stored_key = SHM_PTR(arena, keys[i], char);
+        const char* stored_key = SHM_PTR(arena, keys[i], char);
         if (strcmp(stored_key, key) == 0) {
             /** found the key, remove it by shifting remaining elements */
             if (i < map->count - 1) {
@@ -291,8 +291,8 @@ void hashmap_remove(lb_shm_arena_t* arena, const char* key)
 void patch_add_transform(lb_shm_arena_t* arena, lb_patch_shm_t* patch, const char* match, const char* replace)
 {
     if (patch->transform_count >= patch->transform_capacity) {
-        uint32_t new_capacity = patch->transform_capacity ? patch->transform_capacity * 2 : 4;
-        uint32_t new_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_transform_shm_t));
+        const uint32_t new_capacity = patch->transform_capacity ? patch->transform_capacity * 2 : 4;
+        const uint32_t new_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_transform_shm_t));
         if (new_off == 0) return;
 
         if (patch->transforms_off) {
@@ -312,8 +312,8 @@ void patch_add_transform(lb_shm_arena_t* arena, lb_patch_shm_t* patch, const cha
 lb_patch_shm_t* patchlist_add(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, const char* file, const char* find)
 {
     if (list->patch_count >= list->patch_capacity) {
-        uint32_t new_capacity = list->patch_capacity ? list->patch_capacity * 2 : 4;
-        uint32_t new_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_patch_shm_t));
+        const uint32_t new_capacity = list->patch_capacity ? list->patch_capacity * 2 : 4;
+        const uint32_t new_off = shm_arena_alloc(arena, new_capacity * sizeof(lb_patch_shm_t));
         if (new_off == 0) return nullptr;
 
         if (list->patches_off) {
@@ -343,7 +343,7 @@ void patch_print(lb_shm_arena_t* arena, const lb_patch_shm_t* patch)
     log_info("  transforms (%u):\n", patch->transform_count);
 
     if (patch->transforms_off) {
-        lb_transform_shm_t* transforms = SHM_PTR(arena, patch->transforms_off, lb_transform_shm_t);
+        const lb_transform_shm_t* transforms = SHM_PTR(arena, patch->transforms_off, lb_transform_shm_t);
         for (uint32_t i = 0; i < patch->transform_count; i++) {
             log_info("    [%u] match: %s\n", i, transforms[i].match_off ? SHM_PTR(arena, transforms[i].match_off, char) : "(null)");
             log_info("        replace: %s\n", transforms[i].replace_off ? SHM_PTR(arena, transforms[i].replace_off, char) : "(null)");
@@ -356,7 +356,7 @@ void patchlist_print(lb_shm_arena_t* arena, const lb_patch_list_shm_t* list)
 {
     log_info("PatchList (%u patches):\n", list->patch_count);
     if (list->patches_off) {
-        lb_patch_shm_t* patches = SHM_PTR(arena, list->patches_off, lb_patch_shm_t);
+        const lb_patch_shm_t* patches = SHM_PTR(arena, list->patches_off, lb_patch_shm_t);
         for (uint32_t i = 0; i < list->patch_count; i++) {
             log_info("[%u] ", i);
             patch_print(arena, &patches[i]);
@@ -366,11 +366,11 @@ void patchlist_print(lb_shm_arena_t* arena, const lb_patch_list_shm_t* list)
 
 void hashmap_print(lb_shm_arena_t* arena)
 {
-    lb_hash_map_shm* map = &arena->map;
+    const lb_hash_map_shm* map = &arena->map;
     log_info("HashMap (%u entries):\n", map->count);
 
-    uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
-    lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
+    const uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
+    const lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
 
     for (uint32_t i = 0; i < map->count; i++) {
         log_info("Key: %s\n", SHM_PTR(arena, keys[i], char));

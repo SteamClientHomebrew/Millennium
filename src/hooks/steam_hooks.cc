@@ -513,8 +513,8 @@ bool InitializeSteamHooks()
     HandleAlreadyLoaded(L"steamclient64.dll");
     HandleAlreadyLoaded(L"tier0_s64.dll");
 
-    LdrRegisterDllNotification = reinterpret_cast<LdrRegisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrRegisterDllNotification"));
-    LdrUnregisterDllNotification = reinterpret_cast<LdrUnregisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrUnregisterDllNotification"));
+    LdrRegisterDllNotification = reinterpret_cast<LdrRegisterDllNotification_t>(static_cast<void *>(GetProcAddress(ntdllModule, "LdrRegisterDllNotification")));
+    LdrUnregisterDllNotification = reinterpret_cast<LdrUnregisterDllNotification_t>(static_cast<void *>(GetProcAddress(ntdllModule, "LdrUnregisterDllNotification")));
 
     if (!LdrRegisterDllNotification || !LdrUnregisterDllNotification) {
         MessageBoxA(nullptr, "Failed to get address for LdrRegisterDllNotification or LdrUnregisterDllNotification", "Error", MB_ICONERROR | MB_OK);

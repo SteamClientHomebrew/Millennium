@@ -1,3 +1,9 @@
+#include "watchdog.h"
+#include "exec.h"
+#include "logger.h"
+
+#include <iostream>
+
 #import <Cocoa/Cocoa.h>
 #import <Foundation/Foundation.h>
 #include <CoreServices/CoreServices.h>
@@ -5,10 +11,6 @@
 #include <Carbon/Carbon.h>
 #include <ServiceManagement/ServiceManagement.h>
 #include <libproc.h>
-#include "watchdog.h"
-#include "exec.h"
-#include "logger.h"
-#include <iostream>
 
 pid_t g_millenniumPID = -1;
 

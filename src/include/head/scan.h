@@ -31,27 +31,27 @@
 #pragma once
 
 #include <optional>
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace Millennium
 {
-namespace Plugins
-{
-struct Plugin
-{
-    std::string path;
-    bool enabled;
-    nlohmann::basic_json<> data;
-};
+    namespace Plugins
+    {
+        struct Plugin
+        {
+            std::string path;
+            bool enabled;
+            nlohmann::basic_json<> data;
+        };
 
-nlohmann::json FindAllPlugins();
-[[nodiscard]] std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
-} // namespace Plugins
+        nlohmann::json FindAllPlugins();
+        [[nodiscard]] std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
+    } // namespace Plugins
 
-namespace Themes
-{
-bool IsValid(const std::string& theme_native_name);
-nlohmann::ordered_json FindAllThemes();
-} // namespace Themes
+    namespace Themes
+    {
+        [[nodiscard]] bool IsValid(const std::string& theme_native_name);
+        nlohmann::ordered_json FindAllThemes();
+    } // namespace Themes
 } // namespace Millennium

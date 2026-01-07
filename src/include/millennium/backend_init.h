@@ -30,11 +30,11 @@
 
 #pragma once
 
-#include <utility>
-
 #include "millennium/init.h"
 #include "millennium/singleton.h"
 #include "millennium/sysfs.h"
+
+#include <utility>
 
 namespace CoInitializer
 {
@@ -76,9 +76,9 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     void Reset();
 
   private:
-    bool EvaluateBackendStatus();
-    std::string GetFailedBackendsStr();
-    std::string GetSuccessfulBackendsStr();
+    bool EvaluateBackendStatus() const;
+    std::string GetFailedBackendsStr() const;
+    std::string GetSuccessfulBackendsStr() const;
 
     enum eEvents
     {

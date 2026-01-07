@@ -29,6 +29,7 @@
  */
 
 #ifdef __linux__
+#include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
 #include "millennium/posix_util.h"

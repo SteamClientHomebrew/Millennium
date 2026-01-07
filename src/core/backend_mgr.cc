@@ -54,18 +54,18 @@ extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded;
  *
  * @returns {PyObject*} - A pointer to the Millennium module.
  */
-PyObject* PyInit_Millennium(void)
+PyObject* PyInit_Millennium()
 {
-    static struct PyModuleDef module_def = {
+    static PyModuleDef module_def = {
         PyModuleDef_HEAD_INIT,
         "Millennium",                          /* m_name */
-        nullptr,                                  /* m_doc */
+        nullptr,                               /* m_doc */
         -1,                                    /* m_size */
-        (PyMethodDef*)PyGetMillenniumModule(), /* m_methods */
-        nullptr,                                  /* m_slots */
-        nullptr,                                  /* m_traverse */
-        nullptr,                                  /* m_clear */
-        nullptr                                   /* m_free */
+        (PyGetMillenniumModule()),             /* m_methods */
+        nullptr,                               /* m_slots */
+        nullptr,                               /* m_traverse */
+        nullptr,                               /* m_clear */
+        nullptr                                /* m_free */
     };
 
     return PyModule_Create(&module_def);
@@ -238,7 +238,7 @@ void BackendManager::Shutdown()
     m_pyThreadPool.clear();
 
     /** Shutdown Lua interpreters */
-    for (auto it : m_luaThreadPool) {
+    for (const auto& it : m_luaThreadPool) {
         auto& [pluginName, thread, L, hasFinished] = *it;
         Logger.Log("Joining Lua thread for plugin '{}'", pluginName);
         if (thread.joinable()) {
@@ -260,7 +260,7 @@ void BackendManager::Shutdown()
  */
 bool BackendManager::HasAnyPythonBackends() const
 {
-    return this->m_pyThreadPool.size() > 0;
+    return !this->m_pyThreadPool.empty();
 }
 
 /**
@@ -268,7 +268,7 @@ bool BackendManager::HasAnyPythonBackends() const
  */
 bool BackendManager::HasAnyLuaBackends() const
 {
-    return this->m_luaThreadPool.size() > 0;
+    return !this->m_luaThreadPool.empty();
 }
 
 /**
@@ -347,7 +347,7 @@ bool BackendManager::ShutdownPythonBackends()
                 thread.join();
             }
             this->m_pyThreadPool.erase(threadIt);
-            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded({ pluginName }, true);
+            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded( CoInitializer::BackendCallbacks::PluginTypeSchema(pluginName), true);
         } else {
             LOG_ERROR("Couldn't find thread for plugin '{}'", pluginName);
         }
@@ -425,7 +425,7 @@ bool BackendManager::DestroyPythonInstance(std::string targetPluginName, const b
  * This function checks if the MILLENNIUM_PLUGIN_DEFINITION table exists and if it has an on_unload function.
  * If both exist, it calls the on_unload function and handles any errors that may occur.
  */
-void BackendManager::CallLuaOnUnload(lua_State* L, const std::string& pluginName)
+void BackendManager::CallLuaOnUnload(lua_State* L, const std::string targetPluginName)
 {
     lua_getglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
 
@@ -443,7 +443,7 @@ void BackendManager::CallLuaOnUnload(lua_State* L, const std::string& pluginName
 
     if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
         const char* err = lua_tostring(L, -1);
-        LOG_ERROR("Failed to unload lua plugin '{}': {}", pluginName, err ? err : "unknown error");
+        LOG_ERROR("Failed to unload lua plugin '{}': {}", targetPluginName, err ? err : "unknown error");
         lua_pop(L, 1); // remove error
     }
 
@@ -473,10 +473,10 @@ void BackendManager::RemoveMutexFromPool(lua_State* L)
  * @brief Removes memory tracking for a plugin.
  * This function removes memory tracking for a plugin by erasing its entry from the sPluginMemoryUsage map.
  */
-void BackendManager::RemoveMemoryTracking(const std::string& pluginName)
+void BackendManager::RemoveMemoryTracking(const std::string targetPluginName)
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
-    sPluginMemoryUsage.erase(pluginName);
+    sPluginMemoryUsage.erase(targetPluginName);
 }
 
 /**
@@ -484,17 +484,17 @@ void BackendManager::RemoveMemoryTracking(const std::string& pluginName)
  *
  * This function iterates through the list of Lua threads and destroys the instance for the specified plugin.
  */
-bool BackendManager::DestroyLuaInstance(std::string pluginName, const bool shouldCleanupThreadPool, const bool isShuttingDown)
+bool BackendManager::DestroyLuaInstance(std::string targetPluginName, const bool shouldCleanupThreadPool, const bool isShuttingDown)
 {
     for (auto it = this->m_luaThreadPool.begin(); it != this->m_luaThreadPool.end(); /* No increment */) {
         auto& [threadPluginName, thread, L, hasFinished] = **it;
 
-        if (threadPluginName != pluginName) {
+        if (threadPluginName != targetPluginName) {
             ++it;
             continue;
         }
 
-        Logger.Log("Joining Lua thread for plugin '{}'", pluginName);
+        Logger.Log("Joining Lua thread for plugin '{}'", targetPluginName);
 
         if (thread.joinable()) {
             thread.join();
@@ -511,13 +511,13 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, const bool shoul
                 }
                 ++it;
             }
-            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded(CoInitializer::BackendCallbacks::PluginTypeSchema(pluginName), isShuttingDown);
+            CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded(CoInitializer::BackendCallbacks::PluginTypeSchema(targetPluginName), isShuttingDown);
             return true;
         }
 
         Lua_LockLua(L);
         {
-            CallLuaOnUnload(L, pluginName);
+            CallLuaOnUnload(L, targetPluginName);
             CleanupPluginNamePointer(L);
 
             lua_close(L);
@@ -525,11 +525,11 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, const bool shoul
         Lua_UnlockLua(L);
 
         RemoveMutexFromPool(L);
-        RemoveMemoryTracking(pluginName);
+        RemoveMemoryTracking(targetPluginName);
 
         /** remove all patches from this plugin from the shared memory arena */
         if (g_lb_patch_arena) {
-            hashmap_remove(g_lb_patch_arena, pluginName.c_str());
+            hashmap_remove(g_lb_patch_arena, targetPluginName.c_str());
         }
 
         if (shouldCleanupThreadPool) {
@@ -542,7 +542,7 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, const bool shoul
             }
             ++it;
         }
-        CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded(CoInitializer::BackendCallbacks::PluginTypeSchema(pluginName), isShuttingDown);
+        CoInitializer::BackendCallbacks::GetInstance().BackendUnLoaded(CoInitializer::BackendCallbacks::PluginTypeSchema(targetPluginName), isShuttingDown);
         return true;
     }
     return false;
@@ -555,7 +555,7 @@ bool BackendManager::DestroyLuaInstance(std::string pluginName, const bool shoul
  */
 bool BackendManager::HasAllPythonBackendsStopped() const
 {
-    for (auto instance : this->m_pythonInstances) {
+    for (const auto& instance : this->m_pythonInstances) {
         const auto& [pluginName, thread_ptr, interpMutex] = *instance;
 
         if (!interpMutex->hasFinished.load()) {
@@ -572,7 +572,7 @@ bool BackendManager::HasAllPythonBackendsStopped() const
  */
 bool BackendManager::HasAllLuaBackendsStopped() const
 {
-    for (auto it : m_luaThreadPool) {
+    for (const auto& it : m_luaThreadPool) {
         auto& [pluginName, thread, L, hasFinished] = *it;
         if (!hasFinished.load()) {
             return false;
@@ -604,7 +604,7 @@ bool BackendManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugi
         PyThreadState* interpreterState = Py_NewInterpreter();
         PyThreadState_Swap(interpreterState);
 
-        std::shared_ptr<PythonThreadState> threadState = std::make_shared<PythonThreadState>(std::string(pluginName), interpreterState, interpMutexStatePtr);
+        const std::shared_ptr<PythonThreadState> threadState = std::make_shared<PythonThreadState>(std::string(pluginName), interpreterState, interpMutexStatePtr);
 
         this->m_pythonInstances.push_back(threadState);
         RedirectOutput();
@@ -622,7 +622,7 @@ bool BackendManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugi
 
         Logger.Log("Orphaned '{}', jumping off the mutex lock...", pluginName);
 
-        std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
+        const std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
         pythonGilLock->HoldAndLockGILOnThread(interpreterState);
 
         if (pluginName != "pipx" && PyRun_SimpleString("plugin._unload()") != 0) {
@@ -656,7 +656,7 @@ bool BackendManager::CreatePythonInstance(SettingsStore::PluginTypeSchema& plugi
  * @param {std::string} targetPluginName - The name of the plugin to check if it is running.
  * @returns {bool} - True if the plugin is running, false otherwise.
  */
-bool BackendManager::IsPythonBackendRunning(std::string targetPluginName)
+bool BackendManager::IsPythonBackendRunning(const std::string targetPluginName) const
 {
     for (auto instance : this->m_pythonInstances) {
         const auto& [pluginName, thread_ptr, interpMutex] = *instance;
@@ -675,7 +675,7 @@ bool BackendManager::IsPythonBackendRunning(std::string targetPluginName)
  * @param {std::string} targetPluginName - The name of the plugin to check if it is running.
  * @returns {bool} - True if the Lua backend is running for the given plugin, false otherwise.
  */
-bool BackendManager::IsLuaBackendRunning(std::string targetPluginName)
+bool BackendManager::IsLuaBackendRunning(const std::string targetPluginName) const
 {
     for (auto it : m_luaThreadPool) {
         auto& [pluginName, thread, L, hasFinished] = *it;
@@ -693,15 +693,14 @@ bool BackendManager::IsLuaBackendRunning(std::string targetPluginName)
  * @param {std::string} targetPluginName - The name of the plugin to check.
  * @returns {bool} - True if the plugin has a Python backend, false otherwise.
  */
-bool BackendManager::HasPythonBackend(std::string targetPluginName)
+bool BackendManager::HasPythonBackend(const std::string targetPluginName)
 {
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-
-    for (const auto& plugin : settingsStore->GetEnabledBackends()) {
+    for (const auto& plugin : SettingsStore::GetEnabledBackends()) {
         if (plugin.pluginName == targetPluginName) {
             return true;
         }
     }
+
     return false;
 }
 
@@ -713,12 +712,12 @@ bool BackendManager::HasPythonBackend(std::string targetPluginName)
  * @param {std::string} targetPluginName - The name of the plugin to get the thread state from.
  * @returns {std::shared_ptr<PythonThreadState>} - The thread state associated with the given plugin name.
  */
-std::optional<std::shared_ptr<PythonThreadState>> BackendManager::GetPythonThreadStateFromName(std::string targetPluginName)
+std::optional<std::shared_ptr<PythonThreadState>> BackendManager::GetPythonThreadStateFromName(const std::string targetPluginName) const
 {
     for (auto instance : this->m_pythonInstances) {
-        const auto& [pluginName, thread_ptr, interpMutex] = *instance;
+        const auto& [name, thread_ptr, interpMutex] = *instance;
 
-        if (targetPluginName == pluginName) {
+        if (targetPluginName == name) {
             return instance;
         }
     }
@@ -733,11 +732,11 @@ std::optional<std::shared_ptr<PythonThreadState>> BackendManager::GetPythonThrea
  * @param {std::string} pluginName - The name of the plugin to get the Lua state from.
  * @returns {std::optional<lua_State*>} - The Lua state associated with the given plugin name, or std::nullopt if not found.
  */
-std::optional<lua_State*> BackendManager::GetLuaThreadStateFromName(std::string pluginName)
+std::optional<lua_State*> BackendManager::GetLuaThreadStateFromName(const std::string targetPluginName) const
 {
     for (auto it : m_luaThreadPool) {
-        auto& [name, thread, L, hasFinished] = *it;
-        if (name == pluginName) {
+        const auto& [name, thread, L, hasFinished] = *it;
+        if (name == targetPluginName) {
             return L;
         }
     }
@@ -752,13 +751,13 @@ std::optional<lua_State*> BackendManager::GetLuaThreadStateFromName(std::string 
  * @param {PyThreadState*} thread - The thread state to get the plugin name from.
  * @returns {std::string} - The plugin name associated with the given thread state.
  */
-std::string BackendManager::GetPluginNameFromThreadState(PyThreadState* thread)
+std::string BackendManager::GetPluginNameFromThreadState(PyThreadState* thread) const
 {
     for (auto instance : this->m_pythonInstances) {
-        const auto& [pluginName, thread_ptr, interpMutex] = *instance;
+        const auto& [name, thread_ptr, interpMutex] = *instance;
 
         if (thread_ptr != nullptr && thread_ptr == thread) {
-            return pluginName;
+            return name;
         }
     }
     return {};
@@ -769,19 +768,19 @@ std::string BackendManager::GetPluginNameFromThreadState(PyThreadState* thread)
  * This function retrieves the backend type (Python or Lua) for a given plugin name.
  * If the plugin has an unspecified or unknown backend type, it defaults to Python for backward compatibility.
  */
-SettingsStore::PluginBackendType BackendManager::GetPluginBackendType(std::string pluginName)
+SettingsStore::PluginBackendType BackendManager::GetPluginBackendType(const std::string targetPluginName) const
 {
     for (const auto& luaPlugin : this->m_luaThreadPool) {
         const auto& [luaPluginName, thread, L, hasFinished] = *luaPlugin;
 
-        if (luaPluginName == pluginName) {
+        if (luaPluginName == targetPluginName) {
             return SettingsStore::PluginBackendType::Lua;
         }
     }
 
     for (const auto& pyPlugin : this->m_pythonInstances) {
-        const auto& [pyPluginName, thread_ptr, interpMutex] = *pyPlugin;
-        if (pyPluginName == pluginName) {
+        const auto& [name, thread_ptr, interpMutex] = *pyPlugin;
+        if (name == targetPluginName) {
             return SettingsStore::PluginBackendType::Python;
         }
     }
@@ -809,7 +808,7 @@ std::tuple<lua_State*, std::unique_ptr<std::mutex>>* BackendManager::Lua_FindEnt
  */
 void BackendManager::Lua_LockLua(lua_State* L)
 {
-    auto entry = Lua_FindEntry(L);
+    const auto entry = Lua_FindEntry(L);
     if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     std::get<1>(*entry)->lock();
@@ -823,7 +822,7 @@ void BackendManager::Lua_LockLua(lua_State* L)
  */
 void BackendManager::Lua_UnlockLua(lua_State* L)
 {
-    auto entry = Lua_FindEntry(L);
+    const auto entry = Lua_FindEntry(L);
     if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     std::get<1>(*entry)->unlock();
@@ -836,7 +835,7 @@ void BackendManager::Lua_UnlockLua(lua_State* L)
  */
 bool BackendManager::Lua_TryLockLua(lua_State* L)
 {
-    auto entry = Lua_FindEntry(L);
+    const auto entry = Lua_FindEntry(L);
     if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     return std::get<1>(*entry)->try_lock();
@@ -851,7 +850,7 @@ bool BackendManager::Lua_TryLockLua(lua_State* L)
  */
 bool BackendManager::Lua_IsMutexLocked(lua_State* L)
 {
-    auto entry = Lua_FindEntry(L);
+    const auto entry = Lua_FindEntry(L);
     if (!entry) throw std::runtime_error("lua_State not found in pool");
 
     auto& m = std::get<1>(*entry);
@@ -866,10 +865,10 @@ bool BackendManager::Lua_IsMutexLocked(lua_State* L)
  * @brief Gets the plugin counter for a given plugin name.
  * This function returns a reference to the atomic size_t counter for the specified plugin name.
  */
-std::atomic<size_t>& BackendManager::Lua_GetPluginCounter(const std::string& plugin_name)
+std::atomic<size_t>& BackendManager::Lua_GetPluginCounter(const std::string targetPluginName)
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
-    return sPluginMemoryUsage[plugin_name];
+    return sPluginMemoryUsage[targetPluginName];
 }
 
 /**
@@ -891,10 +890,10 @@ size_t BackendManager::Lua_GetTotalMemory()
  * @param {std::string} plugin_name - The name of the plugin to get the memory usage for.
  * @returns {size_t} - The memory usage of the specified plugin.
  */
-size_t BackendManager::Lua_GetPluginMemorySnapshotByName(const std::string& plugin_name)
+size_t BackendManager::Lua_GetPluginMemorySnapshotByName(const std::string targetPluginName)
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
-    auto it = sPluginMemoryUsage.find(plugin_name);
+    const auto it = sPluginMemoryUsage.find(targetPluginName);
     return (it != sPluginMemoryUsage.end()) ? it->second.load() : 0;
 }
 
@@ -908,8 +907,8 @@ std::unordered_map<std::string, size_t> BackendManager::Lua_GetAllPluginMemorySn
 {
     std::lock_guard<std::mutex> lock(sPluginMapMutex);
     std::unordered_map<std::string, size_t> snapshot;
-    for (const auto& pair : sPluginMemoryUsage) {
-        snapshot[pair.first] = pair.second.load();
+    for (const auto& [fst, snd] : sPluginMemoryUsage) {
+        snapshot[fst] = snd.load();
     }
     return snapshot;
 }
@@ -924,7 +923,7 @@ std::unordered_map<std::string, size_t> BackendManager::Lua_GetAllPluginMemorySn
  * @param {size_t} osize - Original size of the memory block.
  * @param {size_t} nsize - New size of the memory block.
  */
-void* BackendManager::Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size_t nsize)
+void* BackendManager::Lua_MemoryProfiler(void* ud, void* ptr, const size_t osize, const size_t nsize)
 {
     /** cast the userdata back into a shared_ptr */
     const std::string& pluginName = **static_cast<std::shared_ptr<std::string>*>(ud);
@@ -970,7 +969,7 @@ void* BackendManager::Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size
 bool BackendManager::CreateLuaInstance(SettingsStore::PluginTypeSchema& plugin, std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> callback)
 {
     /** create a shared_ptr for the plugin name to keep the reference alive outside of the functions scope. */
-    auto pluginNamePtr = new std::shared_ptr<std::string>(std::make_shared<std::string>(plugin.pluginName));
+    const auto pluginNamePtr = new std::shared_ptr<std::string>(std::make_shared<std::string>(plugin.pluginName));
 
     lua_State* L = lua_newstate(BackendManager::Lua_MemoryProfiler, pluginNamePtr);
     /** create a new "gil" for the lua state */
