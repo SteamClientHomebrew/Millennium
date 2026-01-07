@@ -84,9 +84,9 @@ const char* Millennium_GetUpdateScript()
         if (pclose(pipe) == -1) {
             throw std::runtime_error("pclose error: failed to close pipe!");
         }
-        if (strcmp(buffer, "Arch")) {
+        if (strcmp(buffer, "Arch") == 0) {
             return "paru/yay -S millennium";
-        } else if (strcmp(buffer, "NixOS")) {
+        } else if (strcmp(buffer, "NixOS") == 0) {
             return "nix flake update millennium";
         } else {
             return "curl -fsSL \"https://steambrew.app/install.sh\" | bash";
@@ -96,7 +96,7 @@ const char* Millennium_GetUpdateScript()
         const char* osrelease_path = stat("/etc/os-release", &release_buf) == 0       ? "/etc/os-release"
                                    : stat("/usr/lib/os-release", &release_buf) == 0   ? "/usr/lib/os-release"
                                                                                             : "err";
-        if (strcmp(osrelease_path, "err")) {
+        if (strcmp(osrelease_path, "err") == 0) {
             return "This Linux distribution is missing an os-release file!";
         }
         const std::string path = fmt::format("cat {} | grep -Po 'NAME=\\K[^\"]*'", osrelease_path);
@@ -111,9 +111,9 @@ const char* Millennium_GetUpdateScript()
         if (pclose(pipe) == -1) {
             throw std::runtime_error("pclose error: failed to close pipe!");
         }
-        if (strcmp(buffer, "Arch Linux")) {
+        if (strcmp(buffer, "Arch Linux") == 0) {
             return "paru/yay -S millennium";
-        } else if (strcmp(buffer, "NixOS")) {
+        } else if (strcmp(buffer, "NixOS") == 0) {
             return "nix flake update millennium";
         } else {
             return "curl -fsSL \"https://steambrew.app/install.sh\" | bash";
