@@ -66,6 +66,64 @@ std::string Millennium_GetQuickCss()
     return SystemIO::ReadFileSync(quickCssPath);
 }
 
+const char* Millennium_GetUpdateScript()
+{
+#if defined(_WIN32)
+    return std::string("https://github.com/SteamClientHomebrew/Installer/releases/latest/download/MillenniumInstaller-Windows.exe");
+#elif defined(__APPLE__) || defined(__linux__)
+    struct stat release_buf;
+    if (stat("/bin/lsb_release", &release_buf) == 0) {
+        FILE* pipe = popen("/bin/lsb_release -is", "r");
+        if (!pipe) { // if popen failed to open buffer
+            Logger.Log("popen error: failed to open pipe!");
+            throw std::runtime_error("popen error: failed to open pipe!");
+        }
+        // else read into buffer, convert into std::string.
+        char buffer[32];
+        fgets(buffer, sizeof(buffer), pipe); // For safety, define low. I don't think you need a >32 char string for any distribution!
+        if (pclose(pipe) == -1) {
+            throw std::runtime_error("pclose error: failed to close pipe!");
+        }
+        if (strcmp(buffer, "Arch")) {
+            return "paru/yay -S millennium";
+        } else if (strcmp(buffer, "NixOS")) {
+            return "nix flake update millennium";
+        } else {
+            return "curl -fsSL \"https://steambrew.app/install.sh\" | bash";
+        }
+    } else {
+        Logger.Log("lsb_release not found, falling back to os-release file.");
+        const char* osrelease_path = stat("/etc/os-release", &release_buf) == 0       ? "/etc/os-release"
+                                   : stat("/usr/lib/os-release", &release_buf) == 0   ? "/usr/lib/os-release"
+                                                                                            : "err";
+        if (strcmp(osrelease_path, "err")) {
+            return "This Linux distribution is missing an os-release file!";
+        }
+        const std::string path = fmt::format("cat {} | grep -Po 'NAME=\\K[^\"]*'", osrelease_path);
+        FILE* pipe = popen(path.c_str(), "r");
+        if (!pipe) { // if popen failed to open buffer
+            Logger.Log("popen error: failed to open pipe!");
+            throw std::runtime_error("popen error: failed to open pipe!");
+        }
+        // else read into buffer, convert into std::string.
+        char buffer[32];
+        fgets(buffer, sizeof(buffer), pipe); // For safety, define low. I don't think you need a >32 char string for any distribution!
+        if (pclose(pipe) == -1) {
+            throw std::runtime_error("pclose error: failed to close pipe!");
+        }
+        if (strcmp(buffer, "Arch Linux")) {
+            return "paru/yay -S millennium";
+        } else if (strcmp(buffer, "NixOS")) {
+            return "nix flake update millennium";
+        } else {
+            return "curl -fsSL \"https://steambrew.app/install.sh\" | bash";
+        }
+    }
+#else
+    return "This OS is unsupported by Millennium.";
+#endif
+}
+
 /**
  * Enable/disable plugins
  */
@@ -104,7 +162,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },
         { "buildDate", GetBuildTimestamp() },
         { "platformType", GetOperatingSystemType() },
-        { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") },
+        { "millenniumLinuxUpdateScript", Millennium_GetUpdateScript() },
         { "quickCss", Millennium_GetQuickCss() }
     };
 }
