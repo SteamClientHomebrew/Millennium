@@ -496,6 +496,6 @@ network_hook_ctl::~network_hook_ctl()
  * we free from the main function instead
  * */
 #if defined(__linux__) || defined(MILLENNIUM_32BIT)
-    this->Shutdown();
+    this->shutdown();
 #endif
 }

@@ -65,7 +65,7 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
     }
 
     if (hasEnableRequests) {
-        g_pluginLoader->StartBackEnds(manager);
+        g_plugin_loader->StartBackEnds(manager);
     }
 
     for (const auto& pluginName : pluginsToDisable) {
@@ -78,7 +78,7 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
         }
     }
 
-    CoInitializer::ReInjectFrontendShims(g_pluginLoader, true);
+    CoInitializer::ReInjectFrontendShims(g_plugin_loader, true);
 }
 
 unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type)

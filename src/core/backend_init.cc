@@ -697,9 +697,9 @@ void CoInitializer::InjectFrontendShims(bool reloadFrontend)
  *
  * This function re-injects the frontend shims by removing the existing script and injecting a new one.
  *
- * @param {std::shared_ptr<PluginLoader>} pluginLoader - The plugin loader instance.
+ * @param {std::shared_ptr<plugin_loader>} pluginLoader - The plugin loader instance.
  */
-void CoInitializer::ReInjectFrontendShims([[maybe_unused]] std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend)
+void CoInitializer::ReInjectFrontendShims([[maybe_unused]] std::shared_ptr<plugin_loader> pluginLoader, bool reloadFrontend)
 {
     // pluginLoader->InjectWebkitShims();
 

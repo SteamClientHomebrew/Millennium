@@ -49,40 +49,32 @@
 extern std::shared_ptr<cdp_client> cdp;
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
-class CEFBrowser
-{
-    network_hook_ctl& webKitHandler;
-    bool m_sharedJsConnected = false;
-    std::chrono::system_clock::time_point m_startTime;
-
-  public:
-    CEFBrowser();
-    void SetupSharedJSContext();
-    void onSharedJsConnect();
-    void onConnect(std::shared_ptr<cdp_client> cdp);
-};
-
-class PluginLoader
+class plugin_loader
 {
   public:
-    PluginLoader(std::chrono::system_clock::time_point startTime);
-    // ~PluginLoader();
+    plugin_loader();
+    ~plugin_loader();
 
     void StartBackEnds(BackendManager& manager);
     void StartFrontEnds();
-    void InjectWebkitShims();
 
   private:
-    void Initialize();
+    void init();
+    void shutdown();
 
-    void PrintActivePlugins();
-    std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
+    void init_devtools();
+    void devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp);
 
-    std::unique_ptr<SettingsStore> m_settingsStorePtr;
-    std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;
-    std::chrono::system_clock::time_point m_startTime;
+    void log_enabled_plugins();
+    std::shared_ptr<std::thread> connect_steam_socket(std::shared_ptr<SocketHelpers> socketHelpers);
 
-    std::vector<std::thread> m_threadPool;
+    std::unique_ptr<SettingsStore> m_settings_store_ptr;
+    std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_plugin_ptr, m_enabledPluginsPtr;
+
+    network_hook_ctl& webkit_handler;
+    std::unique_ptr<thread_pool> m_thread_pool;
+
+    std::chrono::system_clock::time_point m_socket_con_time;
 };
 
-extern std::shared_ptr<PluginLoader> g_pluginLoader;
+extern std::shared_ptr<plugin_loader> g_plugin_loader;

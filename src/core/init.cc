@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "millennium/types.h"
 #include "millennium/init.h"
 #include "head/entry_point.h"
 #include "millennium/backend_init.h"
@@ -44,161 +45,114 @@ using namespace std::placeholders;
 using namespace std::chrono;
 
 std::shared_ptr<cdp_client> cdp;
-std::shared_ptr<PluginLoader> g_pluginLoader;
-std::string sharedJsContextSessionId;
+std::shared_ptr<plugin_loader> g_plugin_loader;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-// /**
-//  * @brief Post a message to the SharedJSContext window.
-//  * @param data The data to post.
-//  *
-//  * @note ID's are managed by the caller.
-//  */
-// bool Sockets::PostShared(nlohmann::json)
-// {
-//     // if (sharedJsContextSessionId.empty()) {
-//     //     return false;
-//     // }
-
-//     // data["sessionId"] = sharedJsContextSessionId;
-//     // return Sockets::PostGlobal(data);
-//     return true;
-// }
-
-// /**
-//  * @brief Post a message to the entire browser.
-//  * @param data The data to post.
-//  *
-//  * @note ID's are managed by the caller.
-//  */
-// bool Sockets::PostGlobal(nlohmann::json)
-// {
-//     // if (browserClient == nullptr) {
-//     //     return false;
-//     // }
-
-//     // browserClient->send(browserHandle, data.dump(),
-//     // websocketpp::frame::opcode::text);
-//     return true;
-// }
-
-// /**
-//  * @brief Shutdown the browser connection.
-//  *
-//  */
-// void Sockets::Shutdown()
-// {
-//     // try {
-//     //     if (browserClient != nullptr) {
-//     //         browserClient->close(browserHandle,
-//     //         websocketpp::close::status::normal, "Shutting down");
-//     //         Logger.Log("Shut down browser connection...");
-//     //     }
-//     // } catch (const websocketpp::exception& e) {
-//     // }
-// }
-
-CEFBrowser::CEFBrowser() : webKitHandler(network_hook_ctl::GetInstance())
+plugin_loader::plugin_loader()
+    : m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr), webkit_handler(network_hook_ctl::GetInstance()), m_thread_pool(std::make_unique<thread_pool>(2))
 {
+    this->init();
 }
 
-void CEFBrowser::SetupSharedJSContext()
+plugin_loader::~plugin_loader()
+{
+    this->shutdown();
+}
+
+void plugin_loader::shutdown()
+{
+    m_thread_pool->shutdown();
+}
+
+void plugin_loader::init_devtools()
 {
     while (true) {
         auto targets = cdp->send_host("Target.getTargets").get();
 
         if (!targets.contains("targetInfos") || !targets["targetInfos"].is_array() || targets["targetInfos"].empty()) {
-            continue; // retry
+            continue;
         }
 
         auto targetFrame = "SharedJSContext";
         auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(), [&](const auto& target) { return target["title"] == targetFrame; });
 
         if (it == targets["targetInfos"].end()) {
-            continue; // retry
+            continue;
         }
 
         auto targetId = it->at("targetId");
-        auto result = cdp->send_host("Target.attachToTarget", {
-                                                                  { "targetId", targetId },
-                                                                  { "flatten",  true     }
-        });
 
-        cdp->set_shared_js_session_id(result.get().at("sessionId").get<std::string>());
+        const json attach_params = {
+            { "targetId", targetId },
+            { "flatten",  true     }
+        };
 
-        cdp->send_host("Target.exposeDevToolsProtocol", {
-                                                            { "targetId",    targetId                                                                },
-                                                            { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" }
-        });
+        auto result = cdp->send_host("Target.attachToTarget", attach_params).get();
+        /** set the session ID of the SharedJSContext */
+        cdp->set_shared_js_session_id(result.at("sessionId").get<std::string>());
 
-        break; // success
+        const json expose_devtools_params = {
+            { "targetId",    targetId                                                                },
+            { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" }
+        };
+
+        cdp->send_host("Target.exposeDevToolsProtocol", expose_devtools_params);
+        break;
     }
 
-    this->onSharedJsConnect();
-}
-
-void CEFBrowser::onSharedJsConnect()
-{
-    std::thread([this]()
+    m_thread_pool->enqueue([this]()
     {
-        Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_startTime).count());
+        Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_socket_con_time).count());
         CoInitializer::InjectFrontendShims();
-    }).detach();
+    });
 }
 
-void CEFBrowser::onConnect(std::shared_ptr<cdp_client> cdp)
+void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 {
     ::cdp = cdp;
+    m_socket_con_time = std::chrono::system_clock::now();
 
-    m_startTime = std::chrono::system_clock::now();
-    Logger.Log("Connected to Steam @ {}", (void*)&cdp);
+    m_thread_pool->enqueue([this]()
+    {
+        Logger.Log("Connected to Steam devtools protocol...");
 
-    this->SetupSharedJSContext();
-    network_hook_ctl::GetInstance().init();
+        this->init_devtools();
+        network_hook_ctl::GetInstance().init();
+    });
 }
 
-void PluginLoader::Initialize()
+void plugin_loader::init()
 {
-    m_settingsStorePtr = std::make_unique<SettingsStore>();
-    m_pluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->ParseAllPlugins());
-    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settingsStorePtr->GetEnabledBackends());
+    m_settings_store_ptr = std::make_unique<SettingsStore>();
+    m_plugin_ptr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settings_store_ptr->ParseAllPlugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settings_store_ptr->GetEnabledBackends());
 
-    m_settingsStorePtr->InitializeSettingsStore();
+    m_settings_store_ptr->InitializeSettingsStore();
 }
 
-PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_startTime(startTime)
-{
-    this->Initialize();
-}
-
-std::shared_ptr<std::thread> PluginLoader::ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers)
+std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr<SocketHelpers> socketHelpers)
 {
     std::shared_ptr<SocketHelpers::ConnectSocketProps> browserProps = std::make_shared<SocketHelpers::ConnectSocketProps>();
 
     browserProps->commonName = "CEFBrowser";
     browserProps->fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
-    browserProps->onConnect = [cefBrowserHandler](std::shared_ptr<cdp_client> cdp) { std::thread([cefBrowserHandler, cdp] { cefBrowserHandler->onConnect(cdp); }).detach(); };
-
+    browserProps->onConnect = std::bind(&plugin_loader::devtools_connection_hdlr, this, _1);
     return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
 }
 
-void PluginLoader::StartFrontEnds()
+void plugin_loader::StartFrontEnds()
 {
     if (g_shouldTerminateMillennium->flag.load()) {
         Logger.Log("Terminating frontend thread pool...");
         return;
     }
 
-    std::shared_ptr<CEFBrowser> cefBrowserHandler = std::make_shared<CEFBrowser>();
     std::shared_ptr<SocketHelpers> socketHelpers = std::make_shared<SocketHelpers>();
 
     Logger.Log("Starting frontend socket...");
-    std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(cefBrowserHandler, socketHelpers);
-
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - this->m_startTime);
-    Logger.Log("Startup took {} ms", duration.count());
+    std::shared_ptr<std::thread> browserSocketThread = this->connect_steam_socket(socketHelpers);
 
     if (browserSocketThread->joinable()) {
         Logger.Log("Joining browser socket thread {}", (void*)browserSocketThread.get());
@@ -226,19 +180,17 @@ void PluginLoader::StartFrontEnds()
 #endif
 
     Logger.Warn("Reconnecting to Steam...");
-
-    this->m_startTime = std::chrono::system_clock::now();
     this->StartFrontEnds();
 }
 
 /* debug function, just for developers */
-void PluginLoader::PrintActivePlugins()
+void plugin_loader::log_enabled_plugins()
 {
     std::string pluginList = "Plugins: { ";
-    for (auto it = (*this->m_pluginsPtr).begin(); it != (*this->m_pluginsPtr).end(); ++it) {
+    for (auto it = (*this->m_plugin_ptr).begin(); it != (*this->m_plugin_ptr).end(); ++it) {
         const auto pluginName = (*it).pluginName;
-        pluginList.append(fmt::format("{}: {}{}", pluginName, m_settingsStorePtr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled",
-                                      std::next(it) == (*this->m_pluginsPtr).end() ? " }" : ", "));
+        pluginList.append(fmt::format("{}: {}{}", pluginName, m_settings_store_ptr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled",
+                                      std::next(it) == (*this->m_plugin_ptr).end() ? " }" : ", "));
     }
 
     Logger.Log(pluginList);
@@ -303,14 +255,14 @@ void StartPreloader(BackendManager& manager)
     manager.DestroyPythonInstance("pipx");
 }
 
-void PluginLoader::StartBackEnds(BackendManager& manager)
+void plugin_loader::StartBackEnds(BackendManager& manager)
 {
     Logger.Log("Starting plugin backends...");
     StartPreloader(manager);
     Logger.Log("Starting backends...");
 
-    this->Initialize();
-    this->PrintActivePlugins();
+    this->init();
+    this->log_enabled_plugins();
 
     static bool hasCoreLoaded = false;
     if (!hasCoreLoaded) {

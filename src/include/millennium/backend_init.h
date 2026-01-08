@@ -91,7 +91,7 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
 };
 
 void InjectFrontendShims(bool reloadFrontend = true);
-void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend = true);
+void ReInjectFrontendShims(std::shared_ptr<plugin_loader> pluginLoader, bool reloadFrontend = true);
 void PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin);
 void LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L);
 } // namespace CoInitializer
