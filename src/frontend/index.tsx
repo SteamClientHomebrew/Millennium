@@ -86,8 +86,9 @@ async function initializeMillennium(settings: SettingsProps) {
 
 	patchMissedDocuments();
 
-	const notificationService = new NotificationService();
-	notificationService.showNotifications();
+	let showNotifications: () => Promise<void>;
+	({showNotifications} = new NotificationService());
+	await showNotifications();
 }
 
 // Entry point on the front end of your plugin
