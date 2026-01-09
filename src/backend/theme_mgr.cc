@@ -131,18 +131,13 @@ int ThemeInstaller::CloneWithLibgit2(const std::string& url, const std::filesyst
     git_libgit2_init();
 
 /** ignore underlying type definition issues with libgit2 */
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
+MILLENNIUM_DIAG_PUSH_IGNORE("-Wmissing-field-initializers")
     git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
     git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
     checkout_opts.checkout_strategy = GIT_CHECKOUT_SAFE;
     clone_opts.checkout_opts = checkout_opts;
     git_remote_callbacks callbacks = GIT_REMOTE_CALLBACKS_INIT;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+MILLENNIUM_DIAG_POP
     SetupRemoteCallbacks(callbacks);
 
     CloneProgressData progressData{ progressCallback };
@@ -316,14 +311,9 @@ bool ThemeInstaller::UpdateTheme(const std::shared_ptr<ThemeConfig> themeConfig,
             return false;
         }
         /** ignore underlying type definition issues with libgit2 */
-#ifdef __linux__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
+MILLENNIUM_DIAG_PUSH_IGNORE("-Wmissing-field-initializers")
          constexpr git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
-#ifdef __linux__
-#pragma GCC diagnostic pop
-#endif
+MILLENNIUM_DIAG_POP
         git_remote_fetch(remote, nullptr, &fetch_opts, nullptr);
 
         git_object* obj = nullptr;

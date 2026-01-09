@@ -61,7 +61,7 @@ JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
     JsEvalResult JsEvalResult;
     bool resultReady = false; // Flag to indicate when the result is ready
 
-    bool messageSendSuccess = Sockets::PostShared(nlohmann::json({
+    const bool messageSendSuccess = Sockets::PostShared(nlohmann::json({
         { "id",     SHARED_JS_EVALUATE_ID                                          },
         { "method", "Runtime.evaluate"                                             },
         { "params", { { "expression", javaScriptEval }, { "awaitPromise", true } } }
@@ -76,7 +76,7 @@ JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
         std::lock_guard<std::mutex> lock(mtx); // Lock mutex for safe access
 
         nlohmann::json response = eventMessage;
-        std::string method = response.value("method", std::string());
+        const std::string method = response.value("method", std::string());
 
         if (method.find("Debugger") != std::string::npos || method.find("Console") != std::string::npos) {
             return;
@@ -156,8 +156,8 @@ std::string EscapeJavaScriptString(const std::string& input)
                     escaped << "\\u" << std::hex << std::uppercase << std::setw(4) << std::setfill('0') << static_cast<int>(c);
                 } else if (c == 0xE2 && i + 2 < input.length()) {
                     // Check for UTF-8 encoded U+2028 (0xE2 0x80 0xA8) and U+2029 (0xE2 0x80 0xA9)
-                    unsigned char c1 = static_cast<unsigned char>(input[i + 1]);
-                    unsigned char c2 = static_cast<unsigned char>(input[i + 2]);
+                    const unsigned char c1 = static_cast<unsigned char>(input[i + 1]);
+                    const unsigned char c2 = static_cast<unsigned char>(input[i + 2]);
 
                     if (c1 == 0x80 && c2 == 0xA8) {
                         escaped << "\\u2028";
@@ -197,9 +197,9 @@ std::string EscapeJavaScriptString(const std::string& input)
  *
  * If multiple parameters exist, they are separated by commas.
  */
-const std::string JavaScript::ConstructFunctionCall(const char* plugin, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> fnParams)
+std::string JavaScript::ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params)
 {
-    std::string strFunctionFormatted = fmt::format("PLUGIN_LIST['{}'].{}(", plugin, methodName);
+    std::string strFunctionFormatted = fmt::format("PLUGIN_LIST['{}'].{}(", value, methodName);
 
     std::map<std::string, std::string> boolMap{
         /** compatibility with Python */
@@ -210,33 +210,73 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
         { "false", "false" }
     };
 
-    for (auto iterator = fnParams.begin(); iterator != fnParams.end(); ++iterator) {
-        auto& param = *iterator;
+    for (auto iterator = params.begin(); iterator != params.end(); ++iterator) {
+        auto& [pluginName, type] = *iterator;
 
-        switch (param.type) {
+        switch (type) {
             case JavaScript::Types::String:
             {
-                strFunctionFormatted += fmt::format("\"{}\"", EscapeJavaScriptString(param.pluginName));
+                strFunctionFormatted += fmt::format("\"{}\"", EscapeJavaScriptString(pluginName));
                 break;
             }
             case JavaScript::Types::Boolean:
             {
-                strFunctionFormatted += boolMap[param.pluginName];
+                strFunctionFormatted += boolMap[pluginName];
                 break;
             }
             default:
             {
-                strFunctionFormatted += param.pluginName;
+                strFunctionFormatted += pluginName;
                 break;
             }
         }
 
-        if (std::next(iterator) != fnParams.end()) {
+        if (std::next(iterator) != params.end()) {
             strFunctionFormatted += ", ";
         }
     }
     strFunctionFormatted += ");";
     return strFunctionFormatted;
+}
+
+int JavaScript::Lua_EvaluateFromSocket(std::string script, lua_State* L)
+{
+    try {
+        auto [json, successfulCall] = ExecuteOnSharedJsContext(std::string(script));
+
+        if (!successfulCall) {
+            lua_pushnil(L);
+            lua_pushstring(L, json.get<std::string>().c_str());
+            return 2; // (nil, error)
+        }
+
+        std::string type = json["type"];
+
+        if (type == "string") {
+            lua_pushstring(L, json["value"].get<std::string>().c_str());
+            return 1;
+        } else if (type == "boolean") {
+            lua_pushboolean(L, json["value"]);
+            return 1;
+        } else if (type == "number") {
+            lua_pushinteger(L, json["value"]);
+            return 1;
+        } else {
+            lua_pushnil(L);
+            const std::string msg = fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type);
+            lua_pushstring(L, msg.c_str());
+            return 2;
+        }
+    } catch (const nlohmann::detail::exception& ex) {
+        const std::string message = fmt::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what());
+        lua_pushnil(L);
+        lua_pushstring(L, message.c_str());
+        return 2;
+    } catch (const std::exception&) {
+        lua_pushnil(L);
+        lua_pushstring(L, "frontend is not loaded!");
+        return 2;
+    }
 }
 
 /**
@@ -260,25 +300,25 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
 PyObject* JavaScript::Py_EvaluateFromSocket(std::string script)
 {
     try {
-        JsEvalResult response = ExecuteOnSharedJsContext(script);
+        auto [json, successfulCall] = ExecuteOnSharedJsContext(script);
 
-        if (!response.successfulCall) {
-            PyErr_SetString(PyExc_RuntimeError, response.json.get<std::string>().c_str());
+        if (!successfulCall) {
+            PyErr_SetString(PyExc_RuntimeError, json.get<std::string>().c_str());
             return nullptr;
         }
 
-        std::string type = response.json["type"];
+        std::string type = json["type"];
 
         if (type == "string")
-            return PyUnicode_FromString(response.json["value"].get<std::string>().c_str());
+            return PyUnicode_FromString(json["value"].get<std::string>().c_str());
         else if (type == "boolean")
-            return PyBool_FromLong(response.json["value"]);
+            return PyBool_FromLong(json["value"]);
         else if (type == "number")
-            return PyLong_FromLong(response.json["value"]);
+            return PyLong_FromLong(json["value"]);
         else
             return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
     } catch (nlohmann::detail::exception& ex) {
-        std::string message = fmt::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what());
+        const std::string message = fmt::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what());
         return PyUnicode_FromString(message.c_str());
     } catch (std::exception&) {
         PyErr_SetString(PyExc_ConnectionError, "frontend is not loaded!");
@@ -286,44 +326,4 @@ PyObject* JavaScript::Py_EvaluateFromSocket(std::string script)
     }
 
     Py_RETURN_NONE;
-}
-
-int JavaScript::Lua_EvaluateFromSocket(std::string script, lua_State* L)
-{
-    try {
-        JsEvalResult response = ExecuteOnSharedJsContext(std::string(script));
-
-        if (!response.successfulCall) {
-            lua_pushnil(L);
-            lua_pushstring(L, response.json.get<std::string>().c_str());
-            return 2; // (nil, error)
-        }
-
-        std::string type = response.json["type"];
-
-        if (type == "string") {
-            lua_pushstring(L, response.json["value"].get<std::string>().c_str());
-            return 1;
-        } else if (type == "boolean") {
-            lua_pushboolean(L, response.json["value"]);
-            return 1;
-        } else if (type == "number") {
-            lua_pushinteger(L, response.json["value"]);
-            return 1;
-        } else {
-            lua_pushnil(L);
-            std::string msg = fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type);
-            lua_pushstring(L, msg.c_str());
-            return 2;
-        }
-    } catch (const nlohmann::detail::exception& ex) {
-        std::string message = fmt::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what());
-        lua_pushnil(L);
-        lua_pushstring(L, message.c_str());
-        return 2;
-    } catch (const std::exception&) {
-        lua_pushnil(L);
-        lua_pushstring(L, "frontend is not loaded!");
-        return 2;
-    }
 }

@@ -66,7 +66,7 @@ static int LuaLogError(lua_State* L)
     return 0;
 }
 
-static const luaL_Reg loggerFunctions[] = {
+static constexpr luaL_Reg loggerFunctions[] = {
     { "info",  LuaLogInfo  },
     { "warn",  LuaLogWarn  },
     { "error", LuaLogError },

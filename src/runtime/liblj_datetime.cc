@@ -28,53 +28,53 @@
  * SOFTWARE.
  */
 
-#include <lua.hpp>
 #include <chrono>
-#include <ctime>
-#include <sstream>
-#include <iomanip>
 #include <cstring>
+#include <ctime>
+#include <iomanip>
+#include <lua.hpp>
+#include <sstream>
 
 using namespace std::chrono;
 
 static int datetime_now(lua_State* L)
 {
-    auto now = system_clock::now();
-    auto ms = duration_cast<milliseconds>(now.time_since_epoch()).count();
+    const auto now = system_clock::now();
+    const auto ms = duration_cast<milliseconds>(now.time_since_epoch()).count();
     lua_pushinteger(L, ms);
     return 1;
 }
 
 static int datetime_unix(lua_State* L)
 {
-    auto now = system_clock::now();
-    auto sec = duration_cast<seconds>(now.time_since_epoch()).count();
+    const auto now = system_clock::now();
+    const auto sec = duration_cast<seconds>(now.time_since_epoch()).count();
     lua_pushinteger(L, sec);
     return 1;
 }
 
 static int datetime_from_unix(lua_State* L)
 {
-    lua_Integer sec = luaL_checkinteger(L, 1);
+    const lua_Integer sec = luaL_checkinteger(L, 1);
     lua_pushinteger(L, sec * 1000);
     return 1;
 }
 
 static int datetime_to_unix(lua_State* L)
 {
-    lua_Integer ms = luaL_checkinteger(L, 1);
+    const lua_Integer ms = luaL_checkinteger(L, 1);
     lua_pushinteger(L, ms / 1000);
     return 1;
 }
 
 static int datetime_format(lua_State* L)
 {
-    lua_Integer ms = luaL_checkinteger(L, 1);
+    const lua_Integer ms = luaL_checkinteger(L, 1);
     const char* fmt = luaL_optstring(L, 2, "%Y-%m-%d %H:%M:%S");
-    bool utc = lua_toboolean(L, 3);
+    const bool utc = lua_toboolean(L, 3);
 
-    auto tp = system_clock::time_point(milliseconds(ms));
-    auto t = system_clock::to_time_t(tp);
+    const auto tp = system_clock::time_point(milliseconds(ms));
+    const auto t = system_clock::to_time_t(tp);
 
     std::stringstream ss;
     ss << std::put_time(utc ? std::gmtime(&t) : std::localtime(&t), fmt);
@@ -98,8 +98,8 @@ static int datetime_parse(lua_State* L)
         return 2;
     }
 
-    auto tp = system_clock::from_time_t(std::mktime(&tm));
-    auto ms = duration_cast<milliseconds>(tp.time_since_epoch()).count();
+    const auto tp = system_clock::from_time_t(std::mktime(&tm));
+    const auto ms = duration_cast<milliseconds>(tp.time_since_epoch()).count();
 
     lua_pushinteger(L, ms);
     return 1;
@@ -107,8 +107,8 @@ static int datetime_parse(lua_State* L)
 
 static int datetime_add(lua_State* L)
 {
-    lua_Integer ms = luaL_checkinteger(L, 1);
-    lua_Integer delta = luaL_checkinteger(L, 2);
+    const lua_Integer ms = luaL_checkinteger(L, 1);
+    const lua_Integer delta = luaL_checkinteger(L, 2);
     const char* unit = luaL_optstring(L, 3, "seconds");
 
     lua_Integer mult = 1000;
@@ -129,11 +129,11 @@ static int datetime_add(lua_State* L)
 
 static int datetime_diff(lua_State* L)
 {
-    lua_Integer ms1 = luaL_checkinteger(L, 1);
-    lua_Integer ms2 = luaL_checkinteger(L, 2);
+    const lua_Integer ms1 = luaL_checkinteger(L, 1);
+    const lua_Integer ms2 = luaL_checkinteger(L, 2);
     const char* unit = luaL_optstring(L, 3, "seconds");
 
-    lua_Integer diff_ms = ms1 - ms2;
+    const lua_Integer diff_ms = ms1 - ms2;
     lua_Integer result = diff_ms / 1000;
 
     if (strcmp(unit, "minutes") == 0)
@@ -151,12 +151,12 @@ static int datetime_diff(lua_State* L)
 
 static int datetime_components(lua_State* L)
 {
-    lua_Integer ms = luaL_checkinteger(L, 1);
-    bool utc = lua_toboolean(L, 2);
+    const lua_Integer ms = luaL_checkinteger(L, 1);
+    const bool utc = lua_toboolean(L, 2);
 
-    auto tp = system_clock::time_point(milliseconds(ms));
-    auto t = system_clock::to_time_t(tp);
-    std::tm* tm = utc ? std::gmtime(&t) : std::localtime(&t);
+    const auto tp = system_clock::time_point(milliseconds(ms));
+    const auto t = system_clock::to_time_t(tp);
+    const std::tm* tm = utc ? std::gmtime(&t) : std::localtime(&t);
 
     lua_createtable(L, 0, 7);
     lua_pushinteger(L, tm->tm_year + 1900);
@@ -207,8 +207,8 @@ static int datetime_create(lua_State* L)
     tm.tm_sec = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    auto tp = system_clock::from_time_t(std::mktime(&tm));
-    auto ms = duration_cast<milliseconds>(tp.time_since_epoch()).count();
+    const auto tp = system_clock::from_time_t(std::mktime(&tm));
+    const auto ms = duration_cast<milliseconds>(tp.time_since_epoch()).count();
 
     lua_pushinteger(L, ms);
     return 1;

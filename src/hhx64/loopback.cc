@@ -36,11 +36,11 @@
 #include <assert.h>
 #include <atomic>
 #include <cstdlib>
-#include <string.h>
+#include <cstring>
 #ifdef __linux__
 #include <dlfcn.h>
 #endif
-#include <time.h>
+#include <ctime>
 
 #ifdef _WIN32
 #define plat_strdup _strdup

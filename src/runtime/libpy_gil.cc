@@ -58,7 +58,7 @@ void PythonGIL::HoldAndLockGIL()
  * @param {PyThreadState*} threadState - The Python thread state to switch to.
  *
  * This function locks the GIL and swaps the thread state to the provided one, allowing safe execution
- * of Python code in a multi-threaded environment.
+ * of Python code in a multithreaded environment.
  */
 void PythonGIL::HoldAndLockGILOnThread(PyThreadState* threadState)
 {

@@ -34,7 +34,7 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <string.h>
+#include <cstring>
 #include <string>
 #include <vector>
 

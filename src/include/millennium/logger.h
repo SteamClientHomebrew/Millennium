@@ -105,5 +105,32 @@ extern OutputLogger& Logger;
 #endif
 
 #ifndef LOG_ERROR
-#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION __VA_OPT__(,) __VA_ARGS__)
+    #define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION __VA_OPT__(,) __VA_ARGS__)
+#endif
+
+#ifndef MILLENNIUM_DIAG_PUSH_IGNORE
+#ifndef DO_PRAGMA
+#define DO_PRAGMA(x) _Pragma(#x)
+#endif
+#ifdef __clang__
+#define MILLENNIUM_DIAG_PUSH_IGNORE(diag) DO_PRAGMA(clang diagnostic push) DO_PRAGMA(clang diagnostic ignored diag)
+#else
+#ifdef __GNUC__
+#define MILLENNIUM_DIAG_PUSH_IGNORE(diag) DO_PRAGMA(GCC diagnostic push) DO_PRAGMA(clang diagnostic ignored diag)
+#else
+#define MILLENNIUM_DIAG_PUSH_IGNORE(diag) // Don't do anything for other systems.
+#endif
+#endif
+#endif
+
+#ifndef MILLENNIUM_DIAG_POP
+#ifdef __clang__
+#define MILLENNIUM_DIAG_POP _Pragma("clang diagnostic pop")
+#else
+#ifdef __GNUC__
+#define MILLENNIUM_DIAG_POP _Pragma("GCC diagnostic pop")
+#else
+#define MILLENNIUM_DIAG_POP // Don't do anything for other systems.
+#endif
+#endif
 #endif

@@ -40,7 +40,7 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
 {
     BackendManager& backendManager = BackendManager::GetInstance();
 
-    auto luaStateOpt = backendManager.GetLuaThreadStateFromName(pluginName);
+    const auto luaStateOpt = backendManager.GetLuaThreadStateFromName(pluginName);
     if (!luaStateOpt.has_value()) {
         return { FFI_Type::Error, "Lua state not found for plugin: " + pluginName };
     }
@@ -68,13 +68,13 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
     backendManager.Lua_LockLua(L);
 
     /** Support for class methods using "something:function" */
-    size_t colonPos = methodName.find(':');
-    bool isMethod = (colonPos != std::string::npos);
+    const size_t colonPos = methodName.find(':');
+    const bool isMethod = (colonPos != std::string::npos);
     int numArgs = static_cast<int>(argValues.size());
 
     if (isMethod) {
-        std::string tableName = methodName.substr(0, colonPos);
-        std::string funcName = methodName.substr(colonPos + 1);
+        const std::string tableName = methodName.substr(0, colonPos);
+        const std::string funcName = methodName.substr(colonPos + 1);
 
         lua_getglobal(L, tableName.c_str()); // push table
         if (!lua_istable(L, -1)) {
@@ -132,7 +132,7 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
 
     if (lua_pcall(L, numArgs, 1, 0) != LUA_OK) {
         const char* err = lua_tostring(L, -1);
-        std::string errMsg = err ? err : "Unknown Lua error";
+        const std::string errMsg = err ? err : "Unknown Lua error";
         lua_pop(L, 1);
 
         backendManager.Lua_UnlockLua(L);
@@ -168,7 +168,7 @@ void Lua::CallFrontEndLoaded(std::string pluginName)
 {
     BackendManager& backendManager = BackendManager::GetInstance();
 
-    auto luaStateOpt = backendManager.GetLuaThreadStateFromName(pluginName);
+    const auto luaStateOpt = backendManager.GetLuaThreadStateFromName(pluginName);
     if (!luaStateOpt.has_value()) {
         LOG_ERROR("Lua state not found for plugin: {}", pluginName);
         return;

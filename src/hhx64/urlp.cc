@@ -34,7 +34,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <string.h>
+#include <cstring>
 
 #ifdef __linux__
 #include <linux/limits.h>

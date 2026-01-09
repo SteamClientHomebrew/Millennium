@@ -29,8 +29,9 @@
  */
 
 #include <cstdlib>
+#include <cstring>
 #include <lua.hpp>
-#include <string.h>
+
 #include <curl/curl.h>
 
 typedef struct

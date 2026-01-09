@@ -42,31 +42,31 @@
 
 int Lua_Sleep(lua_State* L)
 {
-    int milliseconds = static_cast<int>(luaL_checkinteger(L, 1));
+    const int milliseconds = static_cast<int>(luaL_checkinteger(L, 1));
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
     return 0;
 }
 
 int Lua_GetTime(lua_State* L)
 {
-    auto now = std::chrono::system_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+    const auto now = std::chrono::system_clock::now();
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
     lua_pushnumber(L, ms.count() / 1000.0);
     return 1;
 }
 
 int Lua_GetTimeMs(lua_State* L)
 {
-    auto now = std::chrono::system_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+    const auto now = std::chrono::system_clock::now();
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
     lua_pushinteger(L, ms.count());
     return 1;
 }
 
 int Lua_GetTimeMicro(lua_State* L)
 {
-    auto now = std::chrono::system_clock::now();
-    auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch());
+    const auto now = std::chrono::system_clock::now();
+    const auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch());
     lua_pushinteger(L, us.count());
     return 1;
 }
@@ -75,32 +75,32 @@ int Lua_GetTimeMicro(lua_State* L)
 
 int Lua_Round(lua_State* L)
 {
-    double num = luaL_checknumber(L, 1);
+    const double num = luaL_checknumber(L, 1);
     lua_pushnumber(L, std::round(num));
     return 1;
 }
 
 int Lua_Clamp(lua_State* L)
 {
-    double value = luaL_checknumber(L, 1);
-    double min = luaL_checknumber(L, 2);
-    double max = luaL_checknumber(L, 3);
+    const double value = luaL_checknumber(L, 1);
+    const double min = luaL_checknumber(L, 2);
+    const double max = luaL_checknumber(L, 3);
     lua_pushnumber(L, std::clamp(value, min, max));
     return 1;
 }
 
 int Lua_Sign(lua_State* L)
 {
-    double num = luaL_checknumber(L, 1);
+    const double num = luaL_checknumber(L, 1);
     lua_pushinteger(L, (num > 0) - (num < 0));
     return 1;
 }
 
 int Lua_Lerp(lua_State* L)
 {
-    double a = luaL_checknumber(L, 1);
-    double b = luaL_checknumber(L, 2);
-    double t = luaL_checknumber(L, 3);
+    const double a = luaL_checknumber(L, 1);
+    const double b = luaL_checknumber(L, 2);
+    const double t = luaL_checknumber(L, 3);
     lua_pushnumber(L, a + t * (b - a));
     return 1;
 }
@@ -112,17 +112,17 @@ static std::mt19937 gen(rd());
 
 int Lua_RandomInt(lua_State* L)
 {
-    int min = static_cast<int>(luaL_checkinteger(L, 1));
-    int max = static_cast<int>(luaL_checkinteger(L, 2));
-    std::uniform_int_distribution<> dis(min, max);
+    const int min = static_cast<int>(luaL_checkinteger(L, 1));
+    const int max = static_cast<int>(luaL_checkinteger(L, 2));
+    std::uniform_real_distribution<> dis(min, max);
     lua_pushinteger(L, dis(gen));
     return 1;
 }
 
 int Lua_RandomFloat(lua_State* L)
 {
-    double min = luaL_optnumber(L, 1, 0.0);
-    double max = luaL_optnumber(L, 2, 1.0);
+    const double min = luaL_optnumber(L, 1, 0.0);
+    const double max = luaL_optnumber(L, 2, 1.0);
     std::uniform_real_distribution<> dis(min, max);
     lua_pushnumber(L, dis(gen));
     return 1;
@@ -130,7 +130,7 @@ int Lua_RandomFloat(lua_State* L)
 
 int Lua_RandomSeed(lua_State* L)
 {
-    unsigned int seed = static_cast<unsigned int>(luaL_checkinteger(L, 1));
+    const unsigned int seed = static_cast<unsigned int>(luaL_checkinteger(L, 1));
     gen.seed(seed);
     return 0;
 }
@@ -146,7 +146,7 @@ int Lua_Split(lua_State* L)
     int index = 1;
 
     std::string s(str);
-    std::string delimiter(delim);
+    const std::string delimiter(delim);
     size_t pos = 0;
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
@@ -163,15 +163,15 @@ int Lua_Split(lua_State* L)
 int Lua_Trim(lua_State* L)
 {
     const char* str = luaL_checkstring(L, 1);
-    std::string s(str);
+    const std::string s(str);
 
-    auto start = s.find_first_not_of(" \t\n\r\f\v");
+    const auto start = s.find_first_not_of(" \t\n\r\f\v");
     if (start == std::string::npos) {
         lua_pushstring(L, "");
         return 1;
     }
 
-    auto end = s.find_last_not_of(" \t\n\r\f\v");
+    const auto end = s.find_last_not_of(" \t\n\r\f\v");
     lua_pushstring(L, s.substr(start, end - start + 1).c_str());
     return 1;
 }
@@ -179,8 +179,8 @@ int Lua_Trim(lua_State* L)
 int Lua_LTrim(lua_State* L)
 {
     const char* str = luaL_checkstring(L, 1);
-    std::string s(str);
-    auto start = s.find_first_not_of(" \t\n\r\f\v");
+    const std::string s(str);
+    const auto start = s.find_first_not_of(" \t\n\r\f\v");
     lua_pushstring(L, start == std::string::npos ? "" : s.substr(start).c_str());
     return 1;
 }
@@ -188,8 +188,8 @@ int Lua_LTrim(lua_State* L)
 int Lua_RTrim(lua_State* L)
 {
     const char* str = luaL_checkstring(L, 1);
-    std::string s(str);
-    auto end = s.find_last_not_of(" \t\n\r\f\v");
+    const std::string s(str);
+    const auto end = s.find_last_not_of(" \t\n\r\f\v");
     lua_pushstring(L, end == std::string::npos ? "" : s.substr(0, end + 1).c_str());
     return 1;
 }
@@ -198,8 +198,8 @@ int Lua_StartsWith(lua_State* L)
 {
     const char* str = luaL_checkstring(L, 1);
     const char* prefix = luaL_checkstring(L, 2);
-    std::string s(str);
-    std::string p(prefix);
+    const std::string s(str);
+    const std::string p(prefix);
     lua_pushboolean(L, s.rfind(p, 0) == 0);
     return 1;
 }
@@ -208,8 +208,8 @@ int Lua_EndsWith(lua_State* L)
 {
     const char* str = luaL_checkstring(L, 1);
     const char* suffix = luaL_checkstring(L, 2);
-    std::string s(str);
-    std::string suf(suffix);
+    const std::string s(str);
+    const std::string suf(suffix);
     if (suf.length() > s.length()) {
         lua_pushboolean(L, false);
     } else {
@@ -224,7 +224,7 @@ int Lua_Join(lua_State* L)
     const char* delim = luaL_checkstring(L, 2);
 
     std::string result;
-    int len = lua_objlen(L, 1);
+    const int len = lua_objlen(L, 1);
 
     for (int i = 1; i <= len; i++) {
         lua_rawgeti(L, 1, i);
@@ -243,7 +243,7 @@ int Lua_Join(lua_State* L)
 int Lua_TableContains(lua_State* L)
 {
     luaL_checktype(L, 1, LUA_TTABLE);
-    int len = lua_objlen(L, 1);
+    const int len = lua_objlen(L, 1);
 
     for (int i = 1; i <= len; i++) {
         lua_rawgeti(L, 1, i);
@@ -262,8 +262,8 @@ int Lua_TableContains(lua_State* L)
 int Lua_TableSlice(lua_State* L)
 {
     luaL_checktype(L, 1, LUA_TTABLE);
-    int start = static_cast<int>(luaL_checkinteger(L, 2));
-    int end = static_cast<int>(luaL_optinteger(L, 3, lua_objlen(L, 1)));
+    const int start = static_cast<int>(luaL_checkinteger(L, 2));
+    const int end = static_cast<int>(luaL_optinteger(L, 3, lua_objlen(L, 1)));
 
     lua_newtable(L);
     int index = 1;
@@ -387,9 +387,9 @@ int Lua_Exec(lua_State* L)
     }
 
 #ifdef _WIN32
-    int status = _pclose(pipe);
+    const int status = _pclose(pipe);
 #else
-    int status = pclose(pipe);
+    const int status = pclose(pipe);
 #endif
 
     lua_pushstring(L, result.c_str());
@@ -457,7 +457,7 @@ int Lua_UrlEncode(lua_State* L)
         if (isalnum(*c) || *c == '-' || *c == '_' || *c == '.' || *c == '~') {
             escaped << *c;
         } else {
-            escaped << '%' << std::setw(2) << int((unsigned char)*c);
+            escaped << '%' << std::setw(2) << static_cast<int>(static_cast<unsigned char>(*c));
         }
     }
 
@@ -469,9 +469,7 @@ int Lua_UrlEncode(lua_State* L)
 
 int Lua_UUID(lua_State* L)
 {
-    static std::random_device rd;
-    static std::mt19937_64 gen(rd());
-    static std::uniform_int_distribution<uint64_t> dis;
+    std::uniform_int_distribution<uint64_t> dis;
 
     uint64_t data1 = dis(gen);
     uint64_t data2 = dis(gen);
@@ -481,8 +479,13 @@ int Lua_UUID(lua_State* L)
     data2 = (data2 & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
 
     char uuid[37];
-    snprintf(uuid, sizeof(uuid), "%08x-%04x-%04x-%04x-%012llx", (uint32_t)(data1 >> 32), (uint16_t)(data1 >> 16), (uint16_t)(data1), (uint16_t)(data2 >> 48),
-             (unsigned long long)(data2 & 0x0000FFFFFFFFFFFFULL));
+    snprintf(uuid, sizeof(uuid), "%08x-%04x-%04x-%04x-%012llx",
+        static_cast<uint32_t>(data1 >> 32),
+        static_cast<uint16_t>(data1 >> 16),
+        static_cast<uint16_t>(data1),
+        static_cast<uint16_t>(data2 >> 48),
+        static_cast<unsigned long long>(data2 & 0x0000FFFFFFFFFFFFULL)
+    );
 
     lua_pushstring(L, uuid);
     return 1;
@@ -493,8 +496,8 @@ int Lua_UUID(lua_State* L)
 int Lua_HashString(lua_State* L)
 {
     const char* str = luaL_checkstring(L, 1);
-    std::hash<std::string> hasher;
-    size_t hash = hasher(std::string(str));
+    constexpr std::hash<std::string> hasher;
+    const size_t hash = hasher(std::string(str));
     lua_pushinteger(L, hash);
     return 1;
 }
@@ -512,7 +515,7 @@ int Lua_ReadFile(lua_State* L)
         return 2;
     }
 
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    const std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     lua_pushlstring(L, content.c_str(), content.size());
     return 1;
@@ -578,7 +581,7 @@ int Lua_HexEncode(lua_State* L)
     result << std::hex << std::setfill('0');
 
     for (size_t i = 0; i < len; i++) {
-        result << std::setw(2) << (int)(unsigned char)input[i];
+        result << std::setw(2) << static_cast<int>(static_cast<unsigned char>(input[i]));
     }
 
     lua_pushstring(L, result.str().c_str());
@@ -587,7 +590,7 @@ int Lua_HexEncode(lua_State* L)
 
 int Lua_ToHex(lua_State* L)
 {
-    lua_Integer num = luaL_checkinteger(L, 1);
+    const lua_Integer num = luaL_checkinteger(L, 1);
     std::ostringstream result;
     result << "0x" << std::hex << num;
     lua_pushstring(L, result.str().c_str());
@@ -662,7 +665,7 @@ static const luaL_Reg utils_lib[] = {
     // Millennium
     { "get_backend_path", Lua_GetBackendPath },
 
-    { NULL,               NULL               }
+    { nullptr,            nullptr            }
 };
 
 extern "C" int Lua_OpenUtilsLibrary(lua_State* L)

@@ -37,7 +37,6 @@
 #include "millennium/sysfs.h"
 
 #include <fmt/core.h>
-#include <nlohmann/json.hpp>
 
 PyObject* GetUserSettings([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
@@ -58,7 +57,7 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
 
     static const char* keywordArgsList[] = { "method_name", "params", nullptr };
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)keywordArgsList, &methodName, &parameterList)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", const_cast<char**>(keywordArgsList), &methodName, &parameterList)) {
         return nullptr;
     }
 
@@ -70,7 +69,7 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
             return nullptr;
         }
 
-        Py_ssize_t listSize = PyList_Size(parameterList);
+        const Py_ssize_t listSize = PyList_Size(parameterList);
 
         for (Py_ssize_t i = 0; i < listSize; ++i) {
             PyObject* listItem = PyList_GetItem(parameterList, i);
@@ -132,7 +131,7 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
     return PyBool_FromLong(success);
 }
 
-unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes type)
+unsigned long long AddBrowserModule(PyObject* args, const HttpHookManager::TagTypes type)
 {
     const char* moduleItem;
     const char* regexSelector = ".*";
@@ -146,12 +145,12 @@ unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes ty
 
 PyObject* AddBrowserCss([[maybe_unused]] PyObject* self, PyObject* args)
 {
-    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET));
+    return PyLong_FromLong(static_cast<long>(AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET)));
 }
 
 PyObject* AddBrowserJs([[maybe_unused]] PyObject* self, PyObject* args)
 {
-    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT));
+    return PyLong_FromLong(static_cast<long>(AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT)));
 }
 
 /**
@@ -166,7 +165,7 @@ PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
         return nullptr;
     }
 
-    bool isEnabled = SettingsStore::IsEnabledPlugin(pluginName);
+    const bool isEnabled = SettingsStore::IsEnabledPlugin(pluginName);
     return PyBool_FromLong(isEnabled);
 }
 
@@ -190,32 +189,30 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
 
 /**
  * Method API for the Millennium module
- * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
+ * This is injected individually into each plugin's Python backend, enabling them to interop with Millennium's internal API.
  */
 PyMethodDef* PyGetMillenniumModule()
 {
+static PyMethodDef moduleMethods[] = {
+        { "ready",                 EmitReadyMessage,                                  METH_NOARGS,                  nullptr },
+        { "add_browser_css",       AddBrowserCss,                                     METH_VARARGS,                 nullptr },
+        { "add_browser_js",        AddBrowserJs,                                      METH_VARARGS,                 nullptr },
+        { "remove_browser_module", RemoveBrowserModule,                               METH_VARARGS,                 nullptr },
+        { "get_user_settings",     GetUserSettings,                                   METH_NOARGS,                  nullptr },
+        { "set_user_settings_key", SetUserSettings,                                   METH_VARARGS,                 nullptr },
+        { "version",               GetVersionInfo,                                    METH_NOARGS,                  nullptr },
+        { "steam_path",            GetSteamPath,                                      METH_NOARGS,                  nullptr },
+        { "get_install_path",      GetInstallPath,                                    METH_NOARGS,                  nullptr },
 #ifdef __linux__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-function-type"
+MILLENNIUM_DIAG_PUSH_IGNORE("-Wcast-function-type")
 #endif
-    static PyMethodDef moduleMethods[] = {
-        { "ready",                 EmitReadyMessage,                METH_NOARGS,                  nullptr },
-        { "add_browser_css",       AddBrowserCss,                   METH_VARARGS,                 nullptr },
-        { "add_browser_js",        AddBrowserJs,                    METH_VARARGS,                 nullptr },
-        { "remove_browser_module", RemoveBrowserModule,             METH_VARARGS,                 nullptr },
-        { "get_user_settings",     GetUserSettings,                 METH_NOARGS,                  nullptr },
-        { "set_user_settings_key", SetUserSettings,                 METH_VARARGS,                 nullptr },
-        { "version",               GetVersionInfo,                  METH_NOARGS,                  nullptr },
-        { "steam_path",            GetSteamPath,                    METH_NOARGS,                  nullptr },
-        { "get_install_path",      GetInstallPath,                  METH_NOARGS,                  nullptr },
-        /** this is 100% a valid cast, shut up gcc */
-        { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, nullptr },
-        { "is_plugin_enabled",     IsPluginEnable,                  METH_VARARGS,                 nullptr },
-        { nullptr,                    nullptr,                            0,                            nullptr }  // Sentinel
+        { "call_frontend_method",  reinterpret_cast<PyCFunction>(CallFrontendMethod), METH_VARARGS | METH_KEYWORDS, nullptr },
+#ifdef __linux__
+MILLENNIUM_DIAG_POP
+#endif
+        { "is_plugin_enabled",     IsPluginEnable,                                    METH_VARARGS,                 nullptr },
+        { nullptr,                 nullptr,                                           0,                            nullptr }  // Sentinel
     };
-#ifdef __linux__
-#pragma GCC diagnostic pop
-#endif
-
     return moduleMethods;
 }
+

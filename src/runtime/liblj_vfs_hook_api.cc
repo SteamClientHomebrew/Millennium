@@ -49,7 +49,7 @@ void load_patches(lua_State* L, lb_shm_arena_t* map)
         return;
     }
 
-    size_t patch_count = lua_objlen(L, -1);
+    const size_t patch_count = lua_objlen(L, -1);
     for (size_t i = 1; i <= patch_count; i++) {
         lua_rawgeti(L, -1, i);
 
@@ -72,7 +72,7 @@ void load_patches(lua_State* L, lb_shm_arena_t* map)
 
         lua_getfield(L, -1, "transforms");
         if (lua_istable(L, -1)) {
-            size_t transform_count = lua_objlen(L, -1);
+            const size_t transform_count = lua_objlen(L, -1);
             for (size_t j = 1; j <= transform_count; j++) {
                 lua_rawgeti(L, -1, j);
 

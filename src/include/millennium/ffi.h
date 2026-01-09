@@ -130,7 +130,7 @@ struct JsFunctionConstructTypes
 };
 
 JsEvalResult ExecuteOnSharedJsContext(std::string javaScriptEval);
-const std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
+std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
 
 int Lua_EvaluateFromSocket(std::string script, lua_State* L);
 PyObject* Py_EvaluateFromSocket(std::string script);
