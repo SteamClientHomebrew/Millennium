@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,15 +30,13 @@
 
 #include <chrono>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
-#include <fcntl.h>
-#include <iostream>
 
 #ifdef _WIN32
 #include "millennium/argp_win32.h"
 #endif
-#include "millennium/env.h"
 #include "millennium/logger.h"
 
 OutputLogger& Logger = OutputLogger::GetInstance();
