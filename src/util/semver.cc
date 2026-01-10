@@ -118,7 +118,8 @@ void ValidateIdentifiers(const std::string& str, const std::string& context)
 }
 } // namespace
 
-Semver::SemverVersion::SemverVersion(const int maj, const int min, const int pat, std::string  pre, std::string  bld) : major(maj), minor(min), patch(pat), prerelease(std::move(pre)), build(std::move(bld))
+Semver::SemverVersion::SemverVersion(const int maj, const int min, const int pat, std::string  pre, std::string  bld)
+    : major(maj), minor(min), patch(pat), prerelease(std::move(pre)), build(std::move(bld))
 {
 }
 
@@ -138,7 +139,7 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
     std::string prerelease;
 
     /** Extract build metadata (everything after '+') */
-    size_t buildPos = core.find('+');
+    const size_t buildPos = core.find('+');
     if (buildPos != std::string::npos) {
         if (buildPos == core.length() - 1) {
             throw std::invalid_argument("Empty build metadata after '+'");
@@ -149,7 +150,7 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
     }
 
     /** Extract prerelease (everything after '-') */
-    size_t prereleasePos = core.find('-');
+    const size_t prereleasePos = core.find('-');
     if (prereleasePos != std::string::npos) {
         if (prereleasePos == core.length() - 1) {
             throw std::invalid_argument("Empty prerelease after '-'");

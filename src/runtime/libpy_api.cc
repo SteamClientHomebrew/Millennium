@@ -203,16 +203,11 @@ static PyMethodDef moduleMethods[] = {
         { "version",               GetVersionInfo,                                    METH_NOARGS,                  nullptr },
         { "steam_path",            GetSteamPath,                                      METH_NOARGS,                  nullptr },
         { "get_install_path",      GetInstallPath,                                    METH_NOARGS,                  nullptr },
-#ifdef __linux__
 MILLENNIUM_DIAG_PUSH_IGNORE("-Wcast-function-type")
-#endif
         { "call_frontend_method",  reinterpret_cast<PyCFunction>(CallFrontendMethod), METH_VARARGS | METH_KEYWORDS, nullptr },
-#ifdef __linux__
 MILLENNIUM_DIAG_POP
-#endif
         { "is_plugin_enabled",     IsPluginEnable,                                    METH_VARARGS,                 nullptr },
         { nullptr,                 nullptr,                                           0,                            nullptr }  // Sentinel
     };
     return moduleMethods;
 }
-

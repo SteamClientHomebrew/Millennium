@@ -44,9 +44,9 @@ OutputLogger& Logger = OutputLogger::GetInstance();
 std::string OutputLogger::GetLocalTime()
 {
     std::stringstream bufferStream;
-    auto now = std::chrono::system_clock::now();
-    auto time = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    const auto now = std::chrono::system_clock::now();
+    const auto time = std::chrono::system_clock::to_time_t(now);
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
     bufferStream << std::put_time(std::localtime(&time), "%M:%S");
     bufferStream << fmt::format(".{:03}", ms.count());
@@ -111,10 +111,10 @@ void OutputLogger::LogPluginMessage(std::string pluginName, std::string strMessa
     const auto toUpper = [](const std::string& str)
     {
         std::string result = str;
-        std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+        std::ranges::transform(result, result.begin(), ::toupper);
         return result;
     };
 
-    std::string message = fmt::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", GetLocalTime(), toUpper(pluginName), strMessage);
+    const std::string message = fmt::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", GetLocalTime(), toUpper(pluginName), strMessage);
     std::cout << message;
 }

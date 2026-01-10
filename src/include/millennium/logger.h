@@ -59,7 +59,7 @@ class OutputLogger : public Singleton<OutputLogger>
   private:
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
-    std::string GetLocalTime();
+    static std::string GetLocalTime();
 
     static constexpr std::string_view ConstexprGetSourceFile(const char* file)
     {

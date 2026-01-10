@@ -28,19 +28,18 @@
  * SOFTWARE.
  */
 
+#include "millennium/sysfs.h"
+#include "millennium/auth.h"
+#include "millennium/env.h"
+#include "millennium/logger.h"
+
+#include <fstream>
+#include <iostream>
+#include <fmt/core.h>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
 #endif
-
-#include "millennium/sysfs.h"
-#include "millennium/logger.h"
-#include "millennium/auth.h"
-#include "millennium/env.h"
-
-#include <fmt/core.h>
-#include <fstream>
-#include <iostream>
 
 namespace SystemIO
 {
@@ -146,7 +145,7 @@ std::vector<char> ReadFileBytesSync(const std::string& filePath)
         throw std::runtime_error("Failed to open file: " + filePath);
     }
 
-    std::streamsize fileSize = file.tellg();
+    const std::streamsize fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
 
     std::vector<char> buffer(fileSize);
@@ -157,7 +156,7 @@ std::vector<char> ReadFileBytesSync(const std::string& filePath)
     return buffer;
 }
 
-void WriteFileSync(const std::filesystem::path& filePath, std::string content)
+void WriteFileSync(const std::filesystem::path& filePath, const std::string content)
 {
     std::ofstream outFile(filePath);
 
@@ -194,7 +193,7 @@ std::string GetMillenniumPreloadPath()
 void SafePurgeDirectory(const std::filesystem::path& root)
 {
     size_t files = 0, dirs = 0;
-    auto start = std::chrono::steady_clock::now();
+    const auto start = std::chrono::steady_clock::now();
 
     std::vector<std::filesystem::path> all_files;
     std::vector<std::filesystem::path> all_directories;
@@ -225,7 +224,7 @@ void SafePurgeDirectory(const std::filesystem::path& root)
     Logger.Log("Collecting all files and directories...");
     collectPaths(root);
 
-    std::sort(all_directories.begin(), all_directories.end(),
+    std::ranges::sort(all_directories,
               [](const std::filesystem::path& a, const std::filesystem::path& b) { return std::distance(a.begin(), a.end()) > std::distance(b.begin(), b.end()); });
 
     Logger.Log("Found {} files and {} directories to delete", all_files.size(), all_directories.size());
@@ -276,14 +275,14 @@ void SafePurgeDirectory(const std::filesystem::path& root)
         Logger.Log("Failed to delete root directory {}: {}", root.string(), e.what());
     }
 
-    auto end = std::chrono::steady_clock::now();
+    const auto end = std::chrono::steady_clock::now();
     Logger.Log("Deleted {} files and {} directories in {} ms.", files, dirs, std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
 }
 
 void MakeWritable(const std::filesystem::path& p)
 {
     std::error_code ec;
-    auto perms = std::filesystem::status(p, ec).permissions();
+    const auto perms = std::filesystem::status(p, ec).permissions();
     if (!ec) std::filesystem::permissions(p, perms | std::filesystem::perms::owner_write, ec);
 }
 

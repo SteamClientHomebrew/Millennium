@@ -247,15 +247,15 @@ PyTypeObject LoggerType = {
  * @returns {PyModuleDef*} - A pointer to the module definition for the logger module.
  */
 static PyModuleDef g_loggerModuleDef = {
-    PyModuleDef_HEAD_INIT,      // m_base
+    PyModuleDef_HEAD_INIT,   // m_base
     "logger",                   // m_name
     "Millennium logger module", // m_doc
     -1,                         // m_size
     LoggerObject_methods,       // m_methods
-    nullptr,                          // m_slots
-    nullptr,                          // m_traverse
-    nullptr,                          // m_clear
-    nullptr,                          // m_free
+    nullptr,                    // m_slots
+    nullptr,                    // m_traverse
+    nullptr,                    // m_clear
+    nullptr,                    // m_free
 };
 
 /**

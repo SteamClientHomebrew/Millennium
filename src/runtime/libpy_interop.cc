@@ -98,21 +98,21 @@ EvalResult HandleActiveException()
     return { FFI_Type::Error, errorMessage + tracebackText };
 }
 
-EvalResult HandleBooleanObject(PyObject* obj)
+EvalResult HandleBooleanObject(const PyObject* obj)
 {
     return { FFI_Type::Boolean, (obj == Py_True) ? "True" : "False" };
 }
 
 EvalResult HandleIntegerObject(PyObject* obj)
 {
-    long longValue = PyLong_AsLong(obj);
+    const long longValue = PyLong_AsLong(obj);
     if (PyErr_Occurred()) return HandleActiveException();
     return { FFI_Type::Integer, std::to_string(longValue) };
 }
 
 EvalResult HandleFloatObject(PyObject* obj)
 {
-    double doubleValue = PyFloat_AsDouble(obj);
+    const double doubleValue = PyFloat_AsDouble(obj);
     if (PyErr_Occurred()) return HandleActiveException();
     return { FFI_Type::String, std::to_string(doubleValue) };
 }
@@ -126,10 +126,10 @@ EvalResult HandleUnicodeObject(PyObject* obj)
 
 EvalResult HandleBytesObject(PyObject* obj)
 {
-    char* bytesValue = PyBytes_AsString(obj);
+    const char* bytesValue = PyBytes_AsString(obj);
     if (!bytesValue) return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string." };
 
-    Py_ssize_t size = PyBytes_Size(obj);
+    const Py_ssize_t size = PyBytes_Size(obj);
     if (size < 0) return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object." };
 
     return { FFI_Type::String, std::string(bytesValue, size) };
@@ -144,7 +144,7 @@ EvalResult HandleContainerObject(PyObject* obj)
             PyObject* jsonStr = PyObject_CallFunction(dumpsFunction, "O", obj);
             if (jsonStr && PyUnicode_Check(jsonStr)) {
                 const char* utf8JsonStr = PyUnicode_AsUTF8(jsonStr);
-                std::string result = utf8JsonStr ? utf8JsonStr : "{}";
+                const std::string result = utf8JsonStr ? utf8JsonStr : "{}";
                 Py_XDECREF(jsonStr);
                 Py_DECREF(dumpsFunction);
                 Py_DECREF(jsonModule);
@@ -160,7 +160,7 @@ EvalResult HandleContainerObject(PyObject* obj)
     PyObject* objRepresentation = PyObject_Repr(obj);
     if (objRepresentation) {
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
-        std::string result = unicodeRepresentation ? unicodeRepresentation : "{}";
+        const std::string result = unicodeRepresentation ? unicodeRepresentation : "{}";
         Py_DECREF(objRepresentation);
         return { FFI_Type::JSON, result };
     }
@@ -178,7 +178,7 @@ EvalResult HandleUnknownObject(PyObject* obj)
     PyObject* objRepresentation = PyObject_Repr(obj);
     if (objRepresentation) {
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
-        std::string result = unicodeRepresentation ? unicodeRepresentation : "<unknown object>";
+        const std::string result = unicodeRepresentation ? unicodeRepresentation : "<unknown object>";
         Py_DECREF(objRepresentation);
         return { FFI_Type::UnknownType, result };
     }
@@ -403,7 +403,7 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, const nlohmann
         return { Error, "overstepped partying thread state" };
     }
 
-    std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
+    const std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
     pythonGilLock->HoldAndLockGILOnThread(threadState);
 
     if (threadState == nullptr) {

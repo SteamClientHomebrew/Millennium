@@ -37,6 +37,7 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
+
 #include <Python.h>
 
 /**
@@ -58,7 +59,7 @@ extern "C" void PrintPythonMessage(const std::string pname, const char* message)
 
 /**
  * @brief Write an error message buffer to the logger.
- * We dont use the plugin here as most messages coming from stderr are flushed every character.
+ * We don't use the plugin here as most messages coming from stderr are flushed every character.
  *
  * ex. 123 would print plugin name 1\n plugin name 2\n plugin name 3\n
  */

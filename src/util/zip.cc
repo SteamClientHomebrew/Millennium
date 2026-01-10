@@ -30,10 +30,6 @@
 
 #include <mz.h>
 #include <mz_zip.h>
-#include <mz_strm.h>
-#include <mz_strm_buf.h>
-#include <mz_strm_mem.h>
-#include <mz_strm_os.h>
 #include <mz_zip_rw.h>
 
 #include "millennium/zip.h"
@@ -46,7 +42,7 @@
 #include <unordered_set>
 #include <vector>
 
-bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& dest_dir, ProgressCallback progress_cb)
+bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& dest_dir, const ProgressCallback progress_cb)
 {
     void* zip_reader = mz_zip_reader_create();
     if (zip_reader == nullptr) return false;
