@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,6 @@
 #define _WINSOCKAPI_
 #endif
 #include "millennium/backend_mgr.h"
-#include "millennium/crash_handler.h"
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
@@ -44,7 +43,7 @@
 #include "millennium/millennium_updater.h"
 
 #include <filesystem>
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 extern std::mutex mtx_hasSteamUnloaded;
 extern std::condition_variable cv_hasSteamUnloaded;
@@ -54,7 +53,7 @@ static void VerifyEnvironment()
     const auto cefRemoteDebugging = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
 
 #ifdef __linux__
-    if (std::filesystem::exists(cefRemoteDebugging)) {
+    if (exists(cefRemoteDebugging)) {
         /** Remove remote debugger flag if its enabled. We don't need it anymore (2025-10-22) */
         if (!std::filesystem::remove(cefRemoteDebugging)) {
             LOG_ERROR("Failed to remove '{}', this is likely non-fatal but manual intervention is recommended.", cefRemoteDebugging.string());

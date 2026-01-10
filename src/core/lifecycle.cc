@@ -42,7 +42,7 @@
  * indicates failure (`BACKEND_LOAD_FAILED`), and appends their names to the result string.
  * If no plugins fail to load, it returns `"none"`.
  */
-std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
+std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr() const
 {
     std::string failedBackends;
 
@@ -66,7 +66,7 @@ std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
  * indicates success (`BACKEND_LOAD_SUCCESS`), and appends their names to the result string.
  * If no plugins are successfully loaded, it returns `"none"`.
  */
-std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
+std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr() const
 {
     std::string successfulBackends;
 
@@ -86,10 +86,9 @@ std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
  *         the number of enabled plugins), otherwise `false`.
  *
  */
-bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
+bool CoInitializer::BackendCallbacks::EvaluateBackendStatus() const
 {
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const std::size_t pluginCount = settingsStore->GetEnabledBackends().size();
+    const std::size_t pluginCount = SettingsStore::GetEnabledBackends().size();
 
     Logger.Log("\033[1;35mEnabled Plugins: {}, Loaded Plugins : {}\033[0m", pluginCount, emittedPlugins.size());
 
@@ -97,9 +96,9 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
         const std::string failedBackends = GetFailedBackendsStr();
         const std::string successfulBackends = GetSuccessfulBackendsStr();
 
-        auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
-        Logger.Log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), failedBackends),
-                   fmt::format(fmt::fg(fmt::color::lime_green), successfulBackends));
+        const auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
+        Logger.Log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), fmt::runtime(failedBackends)),
+                   fmt::format(fmt::fg(fmt::color::lime_green), fmt::runtime(successfulBackends)));
 
         return true;
     }
@@ -134,7 +133,7 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
             lock.unlock();
 
             for (auto& cb : callbacksCopy) {
-                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&cb);
+                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", static_cast<void*>(&cb));
                 try {
                     cb();
                 } catch (const std::exception& e) {
@@ -164,7 +163,7 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
     }
 
     /** Check if its already emitted */
-    if (std::find(this->emittedPlugins.begin(), this->emittedPlugins.end(), plugin) == this->emittedPlugins.end()) {
+    if (std::ranges::find(this->emittedPlugins, plugin) == this->emittedPlugins.end()) {
         this->emittedPlugins.push_back(plugin);
         this->StatusDispatch();
     }
@@ -175,7 +174,7 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
  *
  * @param {PluginTypeSchema} plugin - The plugin whose unloading status is being processed.
  */
-void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown)
+void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, const bool isShuttingDown)
 {
     assert(plugin.pluginName.empty() == false);
 
@@ -184,7 +183,7 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, b
         std::unique_lock<std::mutex> lock(listenersMutex);
 
         // remove the plugin from the emitted list
-        auto it = std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; });
+        auto it = std::ranges::remove_if(this->emittedPlugins, [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; }).begin();
 
         if (it != this->emittedPlugins.end()) {
             this->emittedPlugins.erase(it, this->emittedPlugins.end());
@@ -214,7 +213,7 @@ void CoInitializer::BackendCallbacks::Reset()
  */
 void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback)
 {
-    Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
+    Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", static_cast<void*>(&callback));
     {
         std::unique_lock<std::mutex> lock(listenersMutex);
         listeners[ON_BACKEND_READY_EVENT].push_back(callback);

@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,26 +30,26 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
+#include "millennium/singleton.h"
 
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <functional>
+#include <lua.hpp>
 #include <memory>
 #include <mutex>
-#include <nlohmann/json.hpp>
+#include <Python.h>
 #include <shared_mutex>
 #include <string>
 #include <thread>
 #include <unordered_map>
 #include <vector>
 
-#include <Python.h>
-#include <lua.hpp>
+#include <nlohmann/json.hpp>
 
 class PythonGIL : public std::enable_shared_from_this<PythonGIL>
 {
@@ -100,11 +100,10 @@ void CallFrontEndLoaded(std::string pluginName);
 
 namespace Python
 {
-EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
+EvalResult LockGILAndInvokeMethod(std::string pluginName, const nlohmann::json& script);
 
 std::tuple<std::string, std::string> ActiveExceptionInformation();
 
-EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
 void CallFrontEndLoaded(std::string pluginName);
 } // namespace Python
 
@@ -131,7 +130,7 @@ struct JsFunctionConstructTypes
 };
 
 JsEvalResult ExecuteOnSharedJsContext(std::string javaScriptEval);
-const std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
+std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
 
 int Lua_EvaluateFromSocket(std::string script, lua_State* L);
 PyObject* Py_EvaluateFromSocket(std::string script);
@@ -166,7 +165,10 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         std::string event;
         ListenerPtr deliveryListener;
 
-        Message(std::string e, nlohmann::json d, uint64_t msgId) : data(std::move(d)), timestamp(std::chrono::steady_clock::now()), id(msgId), event(std::move(e))
+        Message(std::string e, nlohmann::json d, const uint64_t msgId) : data(std::move(d)),
+                                                                         timestamp(std::chrono::steady_clock::now()),
+                                                                         id(msgId),
+                                                                         event(std::move(e))
         {
         }
     };
@@ -178,7 +180,7 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         workerThread = std::thread([this]() { this->workerLoop(); });
     }
 
-    ~CefSocketDispatcher()
+    virtual ~CefSocketDispatcher() override
     {
 /**
  * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
@@ -235,7 +237,7 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
     void processMessage(const MessagePtr& message)
     {
         if (message->event.compare(0, 18, "__DELIVER_HISTORY__") == 0) {
-            std::string realEvent = message->event.substr(18);
+            const std::string realEvent = message->event.substr(18);
             if (message->deliveryListener && message->deliveryListener->active.load()) {
                 deliverHistoricalMessages(realEvent, message->deliveryListener);
             }
@@ -254,7 +256,7 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         std::vector<ListenerPtr> currentListeners;
         {
             std::shared_lock<std::shared_mutex> lock(listenersMtx);
-            auto eventIt = eventListeners.find(message->event);
+            const auto eventIt = eventListeners.find(message->event);
             if (eventIt != eventListeners.end()) {
                 currentListeners = eventIt->second;
             }
@@ -265,13 +267,13 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         }
     }
 
-    void deliverHistoricalMessages(const std::string& event, ListenerPtr listener)
+    void deliverHistoricalMessages(const std::string& event, const ListenerPtr& listener)
     {
         std::vector<MessagePtr> messagesToDeliver;
 
         {
             std::lock_guard<std::mutex> lock(historyMtx);
-            auto historyIt = messageHistory.find(event);
+            const auto historyIt = messageHistory.find(event);
             if (historyIt != messageHistory.end()) {
                 for (const auto& msg : historyIt->second) {
                     if (msg->id > listener->lastProcessedMessageId) {
@@ -289,7 +291,7 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         }
     }
 
-    void safeInvokeHandler(const ListenerPtr& listener, const MessagePtr& message)
+    static void safeInvokeHandler(const ListenerPtr& listener, const MessagePtr& message)
     {
         if (!listener->active.load() || message->id <= listener->lastProcessedMessageId) {
             return;
@@ -304,9 +306,9 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
 
     void cleanupOldMessages()
     {
-        auto now = std::chrono::steady_clock::now();
+        const auto now = std::chrono::steady_clock::now();
 
-        for (auto& [event, messages] : messageHistory) {
+        for (auto& messages : messageHistory | std::views::values) {
             while (!messages.empty() && (now - messages.front()->timestamp) > maxMessageAge) {
                 messages.pop_front();
             }
@@ -323,21 +325,21 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         maxHistoryPerEvent = maxHistory;
     }
 
-    void SetMaxMessageAge(std::chrono::minutes maxAge)
+    void SetMaxMessageAge(const std::chrono::minutes maxAge)
     {
         maxMessageAge = maxAge;
     }
 
     std::string OnMessage(const std::string& event, const std::string& name, EventHandler handler)
     {
-        auto listener = std::make_shared<ListenerInfo>(name, std::move(handler));
+        const auto listener = std::make_shared<ListenerInfo>(name, std::move(handler));
 
         {
             std::unique_lock<std::shared_mutex> lock(listenersMtx);
             eventListeners[event].push_back(listener);
         }
 
-        auto deliveryTask = std::make_shared<Message>("__DELIVER_HISTORY__" + event,
+        const auto deliveryTask = std::make_shared<Message>("__DELIVER_HISTORY__" + event,
                                                       nlohmann::json{
                                                           { "listener_name", name }
         },
@@ -357,20 +359,18 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
     {
         std::unique_lock<std::shared_mutex> lock(listenersMtx);
 
-        auto eventIt = eventListeners.find(event);
+        const auto eventIt = eventListeners.find(event);
         if (eventIt != eventListeners.end()) {
             auto& listeners = eventIt->second;
 
-            listeners.erase(std::remove_if(listeners.begin(), listeners.end(),
-                                           [&listenerId](const ListenerPtr& listener)
-            {
-                if (listener->name == listenerId) {
-                    listener->active.store(false);
-                    return true;
-                }
-                return false;
-            }),
-                            listeners.end());
+            std::erase_if(listeners, [&listenerId](const ListenerPtr& listener)
+                    {
+                        if (listener->name == listenerId) {
+                          listener->active.store(false);
+                          return true;
+                        }
+                        return false;
+                    });
 
             if (listeners.empty()) {
                 eventListeners.erase(eventIt);
@@ -380,10 +380,9 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
 
     void EmitMessage(const std::string& event, const nlohmann::json& data)
     {
-        uint64_t msgId = ++messageCounter;
-        auto message = std::make_shared<Message>(event, data, msgId);
-
         {
+            uint64_t msgId = ++messageCounter;
+            const auto message = std::make_shared<Message>(event, data, msgId);
             std::lock_guard<std::mutex> lock(pendingMtx);
             pendingMessages.push_back(message);
         }
@@ -416,7 +415,7 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
     size_t GetStoredMessageCount(const std::string& event) const
     {
         std::lock_guard<std::mutex> lock(historyMtx);
-        auto it = messageHistory.find(event);
+        const auto it = messageHistory.find(event);
         return (it != messageHistory.end()) ? it->second.size() : 0;
     }
 
@@ -430,7 +429,7 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
     {
         std::lock_guard<std::mutex> lock(historyMtx);
         size_t total = 0;
-        for (const auto& [event, messages] : messageHistory) {
+        for (const auto& messages : messageHistory | std::views::values) {
             total += messages.size();
         }
         return total;
@@ -439,7 +438,7 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
     size_t GetListenerCount(const std::string& event) const
     {
         std::shared_lock<std::shared_mutex> lock(listenersMtx);
-        auto it = eventListeners.find(event);
+        const auto it = eventListeners.find(event);
         return (it != eventListeners.end()) ? it->second.size() : 0;
     }
 
@@ -449,9 +448,9 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         std::vector<std::string> events;
         events.reserve(eventListeners.size());
 
-        for (const auto& pair : eventListeners) {
-            if (!pair.second.empty()) {
-                events.push_back(pair.first);
+        for (const auto& [fst, snd] : eventListeners) {
+            if (!snd.empty()) {
+                events.push_back(fst);
             }
         }
 
@@ -464,9 +463,9 @@ class CefSocketDispatcher : public Singleton<CefSocketDispatcher>
         std::vector<std::string> events;
         events.reserve(messageHistory.size());
 
-        for (const auto& pair : messageHistory) {
-            if (!pair.second.empty()) {
-                events.push_back(pair.first);
+        for (const auto& [fst, snd] : messageHistory) {
+            if (!snd.empty()) {
+                events.push_back(fst);
             }
         }
 

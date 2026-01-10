@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -59,23 +59,23 @@ inline std::string getMonthNumber(const std::string& monthAbbr)
 inline std::string GetBuildTimestamp()
 {
 #ifdef __DATE__
-    std::string date = __DATE__;
+    const std::string date = __DATE__;
 #else
     std::string date = "Jan 01 1970";
 #endif
 
 #ifdef __TIME__
-    std::string time = __TIME__;
+    const std::string time = __TIME__;
 #else
     std::string time = "00:00:00";
 #endif
 
-    std::string month = getMonthNumber(date.substr(0, 3));
+    const std::string month = getMonthNumber(date.substr(0, 3));
     std::string day = date.substr(4, 2);
-    std::string year = date.substr(7, 4);
+    const std::string year = date.substr(7, 4);
 
     if (day[0] == ' ') day[0] = '0';
-    return year + "-" + month + "-" + day + "T" + time;
+    return year + "-" += month + "-" += day + "T" += time;
 }
 
 PyMethodDef* PyGetMillenniumModule();
