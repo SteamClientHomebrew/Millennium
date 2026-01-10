@@ -28,10 +28,6 @@
  * SOFTWARE.
  */
 
-#include <mz.h>
-#include <mz_zip.h>
-#include <mz_zip_rw.h>
-
 #include "millennium/zip.h"
 #include "millennium/logger.h"
 
@@ -41,6 +37,11 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+#include <mz.h>
+#include <mz_strm.h> // IWYU pragma: keep
+#include <mz_zip.h>
+#include <mz_zip_rw.h>
 
 bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& dest_dir, const ProgressCallback progress_cb)
 {
