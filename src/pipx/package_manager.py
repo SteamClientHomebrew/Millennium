@@ -67,7 +67,7 @@ def pip(cmd, config: Config):
     os.makedirs(os.path.dirname(pip_logs), exist_ok=True)
 
     with open(pip_logs, 'w') as f:
-        command = [python_bin, '-m', 'pip'] + cmd + ["--no-warn-script-location"]
+        command = [python_bin, '-s', '-m', 'pip'] + cmd + ["--no-warn-script-location"]
         logger.log(f"Running command: {' '.join(command)}")
 
         proc = subprocess.Popen(

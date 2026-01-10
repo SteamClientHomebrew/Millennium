@@ -19,24 +19,24 @@ jobs:
       version: ${{ steps.get_version.outputs.version }}
 
     steps:
-      - name: ⚙️ Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: ⚙️ Download Node.js
+      - name: Download Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 24
 
-      - name: ⚙️ Download Semantic Release
+      - name: Download Semantic Release
         run: |
           npm install -g pnpm
           pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ⚙️ Get Next Version
+      - name: Get Next Version
         id: get_version
         run: |
           cd scripts && npx semantic-release --dry-run --no-ci
@@ -53,17 +53,17 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: ⚙️ Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: ⚙️ Update Millennium Version
+      - name: Update Millennium Version
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
-      - name: 🛠️ Build Millennium Plugin Backend
+      - name: Build Millennium Plugin Backend
         run: |
           function Install-EmbeddedPython {
               param(
@@ -149,20 +149,36 @@ jobs:
           }
 
           Install-EmbeddedPython -Architecture 'x64' -DestinationPath 'D:/a/env/ext/data/pyx64'
-          Install-EmbeddedPython -Architecture 'x86' -DestinationPath 'D:/a/env/ext/data/cache'
 
-      - name: ⚙️ Download Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 24
 
-      - name: ⚙️ Install Pnpm
+      - name: Setup PNPM
         run: npm install -g pnpm
 
-      - name: 🛠️ Build Millennium Backend (bash)
-        shell: bash
+      - name: Build Millennium Backend
+        shell: pwsh
         run: |
-          set -ex
+          pushd "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools"
+
+          # Initialize Visual Studio x64 host/toolchain and import the environment into PowerShell
+          cmd /c "VsDevCmd.bat -arch=x64 -host_arch=x64 & set" |
+          ForEach-Object {
+            if ($_ -match "=") {
+              $v = $_.Split("=", 2)
+              Set-Item -Force -Path "ENV:\$($v[0])" -Value "$($v[1])"
+            }
+          }
+
+          popd
+          Write-Host "`nVisual Studio 2022 x64 Command Prompt variables set." -ForegroundColor Yellow
+
+          # optional sanity checks (helpful for CI debugging)
+          cmd /c "where cl.exe"
+          cmd /c "cl.exe /Bv" 2>&1 | Write-Host
+
           pnpm --dir src/sdk install
           pnpm --dir src/sdk run build
 
@@ -170,25 +186,19 @@ jobs:
           pnpm --dir src/frontend run prod
 
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
-          mkdir -p ./build/artifacts
+          mkdir build/artifacts
           cmake --build build
 
-          mkdir -p D:/a/env/ext/compat64
-          cp ./src/vendor/python/lib32/python311.dll D:/a/env/python311.dll
-          cp ./src/vendor/python/lib64/python311.dll D:/a/env/ext/compat64/python311.dll
+          Copy-Item ./src/vendor/python/lib64/python311.dll  D:/a/env/python311.dll
+          Copy-Item ./build/src/millennium.dll               D:/a/env/millennium.dll
+          Copy-Item ./build/src/boot/win32/wsock32.dll       D:/a/env/wsock32.dll
+          Copy-Item ./build/src/boot/win32/version.dll       D:/a/env/version.dll
+          Copy-Item ./build/src/hhx64/millennium.hhx64.dll   D:/a/env/millennium.hhx64.dll
 
-          cp ./build/src/millennium_x86-build/millennium.dll D:/a/env/millennium.dll
-          cp ./build/src/millennium_x86-build/boot/win32/user32.dll D:/a/env/user32.dll
+          mkdir D:/a/env/ext/data/assets
+          Move-Item src/pipx D:/a/env/ext/data/assets/pipx
 
-          cp ./build/src/millennium_x64-build/boot/win32/version.dll  D:/a/env/version.dll
-          cp ./build/src/millennium_x64-build/millennium_x64.dll D:/a/env/ext/compat64/millennium_x64.dll
-
-          cp ./build/src/hhx64-build/millennium.hhx64.dll D:/a/env/millennium.hhx64.dll
-
-          mkdir -p D:/a/env/ext/data/assets
-          mv src/pipx D:/a/env/ext/data/assets/pipx
-
-      - name: 📤 Upload Unsigned Build Artifact
+      - name: Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
         uses: actions/upload-artifact@v4
         with:
@@ -196,7 +206,7 @@ jobs:
           name: unsigned-millennium-windows
           path: D:/a/env/
 
-      - name: 🛠️ Sign Millennium Build
+      - name: Sign Millennium Build
         id: sign_artifact
         uses: signpath/github-action-submit-signing-request@v1.1
         with:
@@ -204,12 +214,12 @@ jobs:
           organization-id: "f90532fc-e58c-4863-bc0d-72623720335f"
           project-slug: "Millennium"
           signing-policy-slug: "release-signing"
-          artifact-configuration-slug: "millennium-release-config"
+          artifact-configuration-slug: "wsock32-hook"
           github-artifact-id: "${{ steps.upload-unsigned-artifact.outputs.artifact-id }}"
           output-artifact-directory: "signed-millennium"
           wait-for-completion: true
 
-      - name: 📤 Upload Signed Build Release
+      - name: Upload Signed Build Release
         id: upload-signed-artifact
         uses: actions/upload-artifact@v4
         with:
@@ -227,23 +237,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⚙️ Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: ⚙️ Update Millennium Version
+      - name: Update Millennium Version
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
-      - name: ⚙️ Install GCC Dependencies
+      - name: Install Dependencies
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386 nodejs npm
 
-      - name: ⚙️ Download Python Dependencies
+      - name: Download Python Dependencies
         run: |
           npm install -g pnpm
 
@@ -258,12 +268,12 @@ jobs:
           cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so /opt/python-i686-3.11.8/lib/libpython-3.11.8.so
           ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
 
-      - name: ⚙️ Install CMake
+      - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: "3.21.1"
 
-      - name: 🛠️ Build Millennium Backend
+      - name: Build Millennium Backend
         run: |
           export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
           export CMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu"
@@ -295,14 +305,14 @@ jobs:
           mkdir -p ~/build/opt
 
           # Copy binaries and libraries directly to final locations
-          cp build/src/millennium_x86-build/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
-          cp build/src/millennium_x86-build/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
-          cp build/src/hhx64-build/libmillennium_hhx64.so ~/build/usr/lib/millennium/libmillennium_hhx64.so
+          cp build/src/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
+          cp build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
+          cp build/src/hhx64/libmillennium_hhx64.so ~/build/usr/lib/millennium/libmillennium_hhx64.so
 
           mkdir -p ~/build/usr/share/millennium/assets
           mv src/pipx ~/build/usr/share/millennium/assets/pipx
 
-      - name: 📤 Upload Build Artifact
+      - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
@@ -314,39 +324,39 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.release_artifacts == 'yes' }}
     steps:
-      - name: ⚙️ Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: ⚙️ Download Node.js
+      - name: Download Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 24
 
-      - name: ⚙️ Install Semantic Release
+      - name: Install Semantic Release
         run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: ⚙️ Download Windows Build
+      - name: Download Windows Build
         uses: actions/download-artifact@v4
         with:
           name: signed-millennium-windows
           path: ./artifacts/windows
 
-      - name: ⚙️ Download Linux Build
+      - name: Download Linux Build
         uses: actions/download-artifact@v4
         with:
           name: millennium-linux
           path: ./artifacts/linux
 
-      - name: ⚙️ Update Millennium Version
+      - name: Update Millennium Version
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
-      - name: 🛠️ Release Millennium
+      - name: Release Millennium
         run: |
           mkdir -p ./artifacts/release
 

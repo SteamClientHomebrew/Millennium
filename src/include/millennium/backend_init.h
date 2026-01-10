@@ -29,35 +29,15 @@
  */
 
 #pragma once
+
+#include "millennium/singleton.h"
 #include "millennium/init.h"
 #include "millennium/sysfs.h"
-
-template <typename T> class Singleton
-{
-  public:
-    static T& getInstance()
-    {
-        static T instance;
-        return instance;
-    }
-
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
-
-  protected:
-    Singleton()
-    {
-    }
-    virtual ~Singleton()
-    {
-    }
-};
 
 namespace CoInitializer
 {
 class BackendCallbacks : public Singleton<BackendCallbacks>
 {
-    std::mutex listenersMutex;
     friend class Singleton<BackendCallbacks>;
 
   public:
@@ -94,13 +74,6 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     void Reset();
 
   private:
-    BackendCallbacks()
-    {
-    }
-    ~BackendCallbacks()
-    {
-    }
-
     bool EvaluateBackendStatus();
     std::string GetFailedBackendsStr();
     std::string GetSuccessfulBackendsStr();
@@ -114,6 +87,7 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     std::vector<PluginTypeSchema> emittedPlugins;
     std::vector<eEvents> missedEvents;
     std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
+    std::mutex listenersMutex;
 };
 
 void InjectFrontendShims(bool reloadFrontend = true);

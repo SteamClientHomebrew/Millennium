@@ -435,24 +435,35 @@ void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json&
 void ConfigManager::LoadFromFile()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
-    std::ifstream file(_filename);
 
-    if (file.is_open()) {
-        try {
-            file >> _data;
-        } catch (...) {
-            Logger.Warn("Invalid JSON in config file: {}", _filename);
+    /** Clean up any stale temp file from interrupted writes */
+    std::string tempFilename = _filename + ".tmp";
+    if (std::filesystem::exists(tempFilename)) {
+        Logger.Warn("Found stale temp config file, removing: {}", tempFilename);
+        std::filesystem::remove(tempFilename);
+    }
+
+    {
+        std::ifstream file(_filename);
+
+        if (file.is_open()) {
+            try {
+                file >> _data;
+            } catch (...) {
+                Logger.Warn("Invalid JSON in config file: {}", _filename);
 #ifdef _WIN32
-            Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
+                Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(),
+                                    MESSAGEBOX_WARNING);
+#endif
+                _data = nlohmann::json::object();
+            }
+        } else {
+            Logger.Warn("Failed to open config file: {}", _filename);
+#ifdef _WIN32
+            Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
 #endif
             _data = nlohmann::json::object();
         }
-    } else {
-        Logger.Warn("Failed to open config file: {}", _filename);
-#ifdef _WIN32
-        Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
-#endif
-        _data = nlohmann::json::object();
     }
 
     MergeDefaults(_data, _defaults, "");
@@ -461,15 +472,42 @@ void ConfigManager::LoadFromFile()
 
 void ConfigManager::SaveToFile()
 {
+    // Serialize all file I/O operations to prevent concurrent writes
+    std::lock_guard<std::mutex> save_lock(_save_mutex);
     std::lock_guard<std::recursive_mutex> lock(_mutex);
-    std::ofstream file(_filename);
 
-    if (!file.is_open()) {
-        LOG_ERROR("Failed to open config file for writing: {}", _filename);
-        return;
+    /**
+     * Use atomic write pattern: write to temp file, then rename
+     * This prevents corruption if the app is terminated mid-write
+     */
+    std::string tempFilename = _filename + ".tmp";
+
+    {
+        std::ofstream file(tempFilename);
+        if (!file.is_open()) {
+            LOG_ERROR("Failed to open temp config file for writing: {}", tempFilename);
+            return;
+        }
+
+        file << _data.dump(2);
+        file.flush();
+
+        if (file.fail()) {
+            LOG_ERROR("Failed to write config data to temp file: {}", tempFilename);
+            file.close();
+            std::filesystem::remove(tempFilename);
+            return;
+        }
     }
 
-    file << _data.dump(2);
+    /** atomic rename - either the old file exists or the new one, never partial */
+    std::error_code ec;
+    std::filesystem::rename(tempFilename, _filename, ec);
+
+    if (ec) {
+        LOG_ERROR("Failed to rename temp config file: {} -> {}: {}", tempFilename, _filename, ec.message());
+        std::filesystem::remove(tempFilename);
+    }
 }
 
 void ConfigManager::SetDefault(const std::string& key, const nlohmann::json& value)
@@ -518,10 +556,11 @@ ConfigManager::ConfigManager()
         Logger.Warn("Could not find config file at: {}, attempting to create it...", _filename);
         std::filesystem::create_directories(std::filesystem::path(_filename).parent_path());
 
-        /** create the config file itself */
-        std::ofstream file(_filename);
-        file << _defaults.dump(4);
-        file.close();
+        {
+            /** create the config file itself */
+            std::ofstream file(_filename);
+            file << _defaults.dump(4);
+        }
     }
 
     LoadFromFile();
@@ -534,20 +573,16 @@ ConfigManager::~ConfigManager()
 
 void ConfigManager::NotifyListeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value)
 {
-    // Make copies of the data and get a copy of listeners while holding the lock
     std::string key_copy = key;
     nlohmann::json old_value_copy = old_value;
     nlohmann::json new_value_copy = new_value;
     std::vector<Listener> listeners_copy;
 
     {
-        // Only hold the lock long enough to copy the listeners
         std::lock_guard<std::recursive_mutex> lock(_mutex);
         listeners_copy = _listeners;
     }
-    // Lock is released here before calling listeners
 
-    // Call listeners without holding the lock
     for (auto& listener : listeners_copy) {
         try {
             listener(key_copy, old_value_copy, new_value_copy);
