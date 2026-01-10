@@ -5,28 +5,19 @@ include(FetchContent)
 project(hhx64 CXX)
 include(${MILLENNIUM_BASE}/scripts/cmake/millennium_version.cmake)
 
-if(WIN32)
-    set(BUILD_PREFIX "")
-    set(BUILD_NAME "millennium")
-    set(BUILD_SUFFIX ".hhx64.dll")
-else()
-    set(BUILD_PREFIX "lib")
-    set(BUILD_NAME "millennium_hh")
-    set(BUILD_SUFFIX "x64.so")
-endif()
-
-set(BUILD_FULLNAME "${BUILD_PREFIX}${BUILD_NAME}${BUILD_SUFFIX}")
-
+string(TIMESTAMP CURRENT_YEAR "%Y")
 set(VERSION_COMPANY      "Steam Homebrew")
-set(VERSION_COPYRIGHT    "Steam Homebrew 2025")
+set(VERSION_COPYRIGHT    "Steam Homebrew ${TIMESTAMP}")
 set(VERSION_TRADEMARK1   "All Rights Reserved")
 set(VERSION_DESCRIPTION  "A hook utility library for Millennium")
-set(VERSION_FILENAME     "${BUILD_FULLNAME}")
+set(VERSION_FILENAME     "${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}")
 set(VERSION_PRODUCT      "Millennium Webhelper Hook")
+
+set(VERSION_FILE "${CMAKE_BINARY_DIR}/${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}.rc")
 
 if(WIN32)
     project(hhx64-log-viewer CXX)
-    configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/version.rc @ONLY)
+    configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${VERSION_FILE} @ONLY)
 endif()
 
 set(CMAKE_C_STANDARD 99)
@@ -82,7 +73,7 @@ set(SOURCE_FILES
 
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
-    list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/version.rc")
+    list(APPEND SOURCE_FILES "${VERSION_FILE}")
 endif()
 
 add_library(hhx64 SHARED ${SOURCE_FILES})
@@ -93,10 +84,11 @@ if(WIN32)
 endif()
 
 target_link_libraries(hhx64 re2)
-
-set_target_properties(hhx64 PROPERTIES PREFIX "${BUILD_PREFIX}")
-set_target_properties(hhx64 PROPERTIES OUTPUT_NAME "${BUILD_NAME}")
-set_target_properties(hhx64 PROPERTIES SUFFIX "${BUILD_SUFFIX}")
+set_target_properties(hhx64 PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
+    SUFFIX ""
+)
 
 if(UNIX)
     set_target_properties(hhx64 PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
