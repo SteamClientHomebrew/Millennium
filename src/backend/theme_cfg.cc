@@ -39,7 +39,8 @@
 #include <fmt/format.h>
 #include <regex>
 
-ThemeConfig::ThemeConfig()
+ThemeConfig::ThemeConfig(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
+    : m_settings_store(std::move(settings_store)), m_theme_webkit_mgr(std::move(theme_webkit_mgr))
 {
     themes_path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
 
@@ -58,7 +59,7 @@ ThemeConfig::~ThemeConfig()
 void ThemeConfig::OnConfigChange()
 {
     ValidateTheme();
-    WebkitHookStore::Instance().UnregisterAll();
+    m_theme_webkit_mgr->unregister_all();
     SetupThemeHooks();
 }
 
@@ -201,13 +202,15 @@ void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string
 
     for (const auto& item : cssItems) {
         if (theme["data"].contains(item)) {
-            AddBrowserCss((theme_path / theme["data"][item].get<std::string>()).generic_string(), ".*");
+            m_theme_webkit_mgr->add_browser_hook((theme_path / theme["data"][item].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::STYLESHEET);
         }
     }
 
-    if (theme["data"].contains("webkitJS")) AddBrowserJs((theme_path / theme["data"]["webkitJS"].get<std::string>()).generic_string(), ".*");
+    if (theme["data"].contains("webkitJS")) {
+        m_theme_webkit_mgr->add_browser_hook((theme_path / theme["data"]["webkitJS"].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::JAVASCRIPT);
+    }
 
-    AddConditionalData(theme_path.generic_string(), theme["data"], name);
+    m_theme_webkit_mgr->add_conditional_data(theme_path.generic_string(), theme["data"], name);
 }
 
 void ThemeConfig::SetupColors()

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Millennium, pluginSelf, routerHook } from '@steambrew/client';
+import { ChromeDevToolsProtocol, Millennium, pluginSelf, routerHook } from '@steambrew/client';
 import { ThemeItem, SystemAccentColor, SettingsProps, ThemeItemV1 } from './types';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';

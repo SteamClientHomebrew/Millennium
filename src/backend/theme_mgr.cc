@@ -38,6 +38,10 @@
 #include <git2.h>
 #include <thread>
 
+ThemeInstaller::ThemeInstaller(std::shared_ptr<SettingsStore> settings_store_ptr) : settings_store_ptr(settings_store_ptr)
+{
+}
+
 std::filesystem::path ThemeInstaller::SkinsRoot()
 {
     return std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";

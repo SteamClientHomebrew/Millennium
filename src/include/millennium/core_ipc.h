@@ -29,21 +29,39 @@
  */
 
 #pragma once
-#include <nlohmann/json.hpp>
+#include "millennium/ffi.h"
+#include "millennium/sysfs.h"
+#include "millennium/types.h"
 
-namespace IPCMain
+class ipc_main
 {
-enum Builtins
-{
-    CALL_SERVER_METHOD,
-    FRONT_END_LOADED
+  public:
+    ipc_main(std::shared_ptr<SettingsStore> settings_store) : m_settings_store(std::move(settings_store))
+    {
+    }
+
+    enum Builtins
+    {
+        CALL_SERVER_METHOD,
+        FRONT_END_LOADED,
+        CALL_FRONTEND_METHOD
+    };
+
+    enum ErrorType
+    {
+        AUTHENTICATION_ERROR,
+        INTERNAL_ERROR
+    };
+
+    json process_message(json payload);
+
+  private:
+    json call_server_method(const json& call);
+    json on_front_end_loaded(const json& call);
+    json call_frontend_method(const json& call);
+
+    EvalResult handle_plugin_server_method(const std::string& pluginName, const json& message);
+    EvalResult handle_core_server_method(const json& call);
+
+    std::shared_ptr<SettingsStore> m_settings_store;
 };
-
-enum ErrorType
-{
-    AUTHENTICATION_ERROR,
-    INTERNAL_ERROR
-};
-
-nlohmann::json HandleEventMessage(nlohmann::json jsonPayload);
-} // namespace IPCMain

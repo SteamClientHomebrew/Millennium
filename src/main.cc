@@ -175,16 +175,14 @@ void Plat_CheckForUpdates()
 void EntryMain()
 {
     shm_init_simple();
-
-    const auto startTime = std::chrono::system_clock::now();
     VerifyEnvironment();
 
     BackendManager& manager = BackendManager::GetInstance();
-    g_pluginLoader = std::make_shared<PluginLoader>(startTime);
+    g_plugin_loader = std::make_shared<plugin_loader>();
 
     /** Start the injection process into the Steam web helper */
-    g_pluginLoader->StartBackEnds(manager);
-    g_pluginLoader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
+    g_plugin_loader->StartBackEnds(manager);
+    g_plugin_loader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
 
 #ifdef _WIN32
     /** Shutdown backend service once frontend disconnects*/

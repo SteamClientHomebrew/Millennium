@@ -35,6 +35,7 @@
 
 #include <Python.h>
 #include <chrono>
+#include <filesystem>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <fstream>
@@ -42,7 +43,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <filesystem>
 
 #define RED "\033[31m"
 #define GREEN "\033[32m"
@@ -189,11 +189,15 @@ class BackendLogger
     }
 };
 
-extern std::vector<BackendLogger*> g_loggerList;
+inline std::vector<BackendLogger*>& get_plugin_logger_mgr()
+{
+    static std::vector<BackendLogger*> loggerList;
+    return loggerList;
+}
 
 static void AddLoggerMessage(const std::string pluginName, const std::string message, BackendLogger::LogLevel level)
 {
-    for (auto logger : g_loggerList) {
+    for (auto logger : get_plugin_logger_mgr()) {
         if (logger->GetPluginName(false) == pluginName) {
             switch (level) {
                 case BackendLogger::_INFO:
@@ -224,7 +228,7 @@ static void AddLoggerMessage(const std::string pluginName, const std::string mes
             break;
     }
 
-    g_loggerList.push_back(newLogger);
+    get_plugin_logger_mgr().push_back(newLogger);
 }
 
 inline void InfoToLogger(const std::string pluginNme, const std::string message)
@@ -244,7 +248,7 @@ inline void ErrorToLogger(const std::string pluginNme, const std::string message
 
 inline void RawToLogger(const std::string pluginName, const std::string message)
 {
-    for (auto logger : g_loggerList) {
+    for (auto logger : get_plugin_logger_mgr()) {
         if (logger->GetPluginName(false) == pluginName) {
             logger->Print(message);
             return;
@@ -253,7 +257,7 @@ inline void RawToLogger(const std::string pluginName, const std::string message)
 
     BackendLogger* newLogger = new BackendLogger(pluginName);
     newLogger->Print(message);
-    g_loggerList.push_back(newLogger);
+    get_plugin_logger_mgr().push_back(newLogger);
 }
 
 typedef struct

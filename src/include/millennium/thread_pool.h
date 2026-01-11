@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -29,29 +29,24 @@
  */
 
 #pragma once
-#include "millennium/sysfs.h"
-#include <filesystem>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
+#include <condition_variable>
+#include <queue>
+#include <functional>
 
-class PluginInstaller
+class thread_pool
 {
   public:
-    PluginInstaller(std::shared_ptr<SettingsStore> settings_store_ptr);
+    thread_pool(size_t numThreads = 4);
+    ~thread_pool();
 
-    bool CheckInstall(const std::string& pluginName);
-    bool UninstallPlugin(const std::string& pluginName);
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    nlohmann::json InstallPlugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json GetRequestBody();
+    void enqueue(std::function<void()> f);
+    void shutdown();
 
   private:
-    std::shared_ptr<SettingsStore> settings_store_ptr;
-
-    void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    std::filesystem::path PluginsPath();
-
-    std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> GetPluginData();
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> tasks;
+    std::mutex queueMutex;
+    std::condition_variable condition;
+    bool stop = false;
+    std::atomic<bool> shutdown_called{ false };
 };

@@ -1,119 +1,96 @@
+#pragma once
 
-/**
- * Enum representing the different types of files.
- *
- * @enum {number}
- * @readonly
- * @property {number} StyleSheet - Represents a CSS file.
- * @property {number} JavaScript - Represents a JavaScript file.
- * @property {number} Json - Represents a JSON file.
- * @property {number} Python - Represents a Python file.
- * @property {number} Other - Represents other file types.
- */
 #include <filesystem>
-#include <map>
-#include <string>
-enum eFileType
+#include <string_view>
+
+enum class http_code
 {
-    css,
-    js,
-    json,
-    py,
-    ttf,
-    otf,
-    woff,
-    woff2,
-    png,
-    jpeg,
-    jpg,
-    gif,
-    webp,
-    svg,
-    html,
-    unknown,
+    OK = 200,
+    CREATED = 201,
+    NO_CONTENT = 204,
+    MOVED_PERMANENTLY = 301,
+    FOUND = 302,
+    SEE_OTHER = 303,
+    NOT_MODIFIED = 304,
+    TEMPORARY_REDIRECT = 307,
+    PERMANENT_REDIRECT = 308,
+    BAD_REQUEST = 400,
+    UNAUTHORIZED = 401,
+    FORBIDDEN = 403,
+    NOT_FOUND = 404,
+    INTERNAL_SERVER_ERROR = 500,
+    NOT_IMPLEMENTED = 501,
+    BAD_GATEWAY = 502,
+    SERVICE_UNAVAILABLE = 503
 };
 
-/**
- * A map that associates each file type from the `eFileType` enum to its corresponding MIME type.
- *
- * - `StyleSheet` maps to "text/css"
- * - `JavaScript` maps to "application/javascript"
- * - `Json` maps to "application/json"
- * - `Python` maps to "text/x-python"
- * - `Other` maps to "text/plain"
- */
-static std::map<eFileType, std::string> fileTypes{
-    { eFileType::css,     "text/css"               },
-    { eFileType::js,      "application/javascript" },
-    { eFileType::json,    "application/json"       },
-    { eFileType::py,      "text/x-python"          },
-    { eFileType::ttf,     "font/ttf"               },
-    { eFileType::otf,     "font/otf"               },
-    { eFileType::woff,    "font/woff"              },
-    { eFileType::woff2,   "font/woff2"             },
-    { eFileType::png,     "image/png"              },
-    { eFileType::jpeg,    "image/jpeg"             },
-    { eFileType::jpg,     "image/jpg"              },
-    { eFileType::gif,     "image/gif"              },
-    { eFileType::webp,    "image/webp"             },
-    { eFileType::svg,     "image/svg+xml"          },
-    { eFileType::html,    "text/html"              },
-    { eFileType::unknown, "text/plain"             },
+namespace mime
+{
+// clang-format off
+enum class file_type
+{
+    CSS, JS, JSON, PY,
+    TTF, OTF, WOFF, WOFF2,
+    PNG, JPEG, JPG, GIF, WEBP, SVG,
+    HTML,
+    UNKNOWN
+};
+// clang-format on
+
+struct file_type_t
+{
+    file_type type;
+    std::string_view extension;
+    std::string_view mime;
+    bool binary;
 };
 
-/**
- * Checks if the file type is a binary file.
- *
- * @param {eFileType} fileType - The type of the file to check.
- * @returns {boolean} - `true` if the file type is binary, `false` otherwise.
- */
-static constexpr bool IsBinaryFile(eFileType fileType)
+static constexpr file_type_t file_types[] = {
+    { file_type::CSS,   ".css",   "text/css",               false },
+    { file_type::JS,    ".js",    "application/javascript", false },
+    { file_type::JSON,  ".json",  "application/json",       false },
+    { file_type::PY,    ".py",    "text/x-python",          false },
+
+    { file_type::TTF,   ".ttf",   "font/ttf",               true  },
+    { file_type::OTF,   ".otf",   "font/otf",               true  },
+    { file_type::WOFF,  ".woff",  "font/woff",              true  },
+    { file_type::WOFF2, ".woff2", "font/woff2",             true  },
+
+    { file_type::PNG,   ".png",   "image/png",              true  },
+    { file_type::JPEG,  ".jpeg",  "image/jpeg",             true  },
+    { file_type::JPG,   ".jpg",   "image/jpeg",             true  },
+    { file_type::GIF,   ".gif",   "image/gif",              true  },
+    { file_type::WEBP,  ".webp",  "image/webp",             true  },
+    { file_type::SVG,   ".svg",   "image/svg+xml",          true  },
+
+    { file_type::HTML,  ".html",  "text/html",              false },
+};
+
+[[nodiscard]]
+static file_type get_file_type(const std::filesystem::path& path)
 {
-    return fileType == eFileType::ttf || fileType == eFileType::otf || fileType == eFileType::woff || fileType == eFileType::woff2 || fileType == eFileType::gif ||
-           fileType == eFileType::png || fileType == eFileType::jpeg || fileType == eFileType::jpg || fileType == eFileType::webp || fileType == eFileType::svg ||
-           fileType == eFileType::html || fileType == eFileType::unknown;
+    const auto ext = path.extension().string();
+    for (const auto& entry : file_types)
+        if (ext == entry.extension) return entry.type;
+
+    return file_type::UNKNOWN;
 }
 
-/**
- * Evaluates the file type based on the file extension.
- */
-inline eFileType EvaluateFileType(std::filesystem::path filePath)
+[[nodiscard]]
+static std::string_view get_mime_str(file_type type)
 {
-    const std::string extension = filePath.extension().string();
+    for (const auto& entry : file_types)
+        if (entry.type == type) return entry.mime;
 
-    if (extension == ".css") {
-        return eFileType::css;
-    } else if (extension == ".js") {
-        return eFileType::js;
-    } else if (extension == ".json") {
-        return eFileType::json;
-    } else if (extension == ".py") {
-        return eFileType::py;
-    } else if (extension == ".ttf") {
-        return eFileType::ttf;
-    } else if (extension == ".otf") {
-        return eFileType::otf;
-    } else if (extension == ".woff") {
-        return eFileType::woff;
-    } else if (extension == ".woff2") {
-        return eFileType::woff2;
-    } else if (extension == ".gif") {
-        return eFileType::gif;
-    } else if (extension == ".png") {
-        return eFileType::png;
-    } else if (extension == ".jpeg") {
-        return eFileType::jpeg;
-    } else if (extension == ".jpg") {
-        return eFileType::jpg;
-    } else if (extension == ".webp") {
-        return eFileType::webp;
-    } else if (extension == ".svg") {
-        return eFileType::svg;
-    } else if (extension == ".html") {
-        return eFileType::html;
-    }
-
-    else {
-        return eFileType::unknown;
-    }
+    return "text/plain";
 }
+
+[[nodiscard]]
+static constexpr bool is_bin_file(file_type type)
+{
+    for (const auto& entry : file_types)
+        if (entry.type == type) return entry.binary;
+
+    return false;
+}
+} // namespace mime

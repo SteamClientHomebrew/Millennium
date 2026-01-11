@@ -30,11 +30,17 @@
 
 #pragma once
 
+#include "millennium/http_hooks.h"
+#include "millennium/core_ipc.h"
+#include "millennium/ffi_binder.h"
+#include "millennium/cdp_api.h"
 #include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/cef_bridge.h"
 #include "millennium/http_hooks.h"
 #include "millennium/sysfs.h"
+#include "millennium/plugin_webkit_world_mgr.h"
+#include "millennium/plugin_webkit_store.h"
 
 #include <nlohmann/json.hpp>
 #include <websocketpp/client.hpp>
@@ -47,48 +53,44 @@
 
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
-class CEFBrowser
-{
-    HttpHookManager& webKitHandler;
-    bool m_sharedJsConnected = false;
-    std::chrono::system_clock::time_point m_startTime;
-
-  public:
-    CEFBrowser();
-    void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
-    void SetupSharedJSContext();
-    void onSharedJsConnect();
-    void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle);
-};
-
-class PluginLoader
+class plugin_loader
 {
   public:
-    PluginLoader(std::chrono::system_clock::time_point startTime);
-    // ~PluginLoader();
+    plugin_loader();
+    ~plugin_loader();
 
     void StartBackEnds(BackendManager& manager);
     void StartFrontEnds();
-    void InjectWebkitShims();
+    void setup_webkit_shims();
+
+    void inject_frontend_shims(bool reload_frontend);
 
   private:
-    void Initialize();
+    void init();
+    void shutdown();
 
-    void PrintActivePlugins();
-    std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
+    void init_devtools();
+    void devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp);
 
-    std::unique_ptr<SettingsStore> m_settingsStorePtr;
-    std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;
-    std::chrono::system_clock::time_point m_startTime;
+    void log_enabled_plugins();
+    std::shared_ptr<std::thread> connect_steam_socket(std::shared_ptr<SocketHelpers> socketHelpers);
 
-    std::vector<std::thread> m_threadPool;
+    std::string cdp_generate_bootstrap_module(const std::vector<std::string>& modules);
+    std::string cdp_generate_shim_module();
+
+    std::shared_ptr<SettingsStore> m_settings_store_ptr;
+    std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_plugin_ptr, m_enabledPluginsPtr;
+
+    std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
+    std::shared_ptr<plugin_webkit_store> m_plugin_webkit_store;
+    std::shared_ptr<webkit_world_mgr> world_mgr;
+    std::shared_ptr<ffi_binder> m_ffi_binder;
+    std::shared_ptr<cdp_client> m_cdp;
+    std::shared_ptr<ipc_main> m_ipc_main;
+
+    std::unique_ptr<thread_pool> m_thread_pool;
+    std::chrono::system_clock::time_point m_socket_con_time;
+    std::string document_script_id;
 };
 
-extern std::shared_ptr<PluginLoader> g_pluginLoader;
-
-namespace Sockets
-{
-bool PostShared(nlohmann::json data);
-bool PostGlobal(nlohmann::json data);
-void Shutdown();
-} // namespace Sockets
+extern std::shared_ptr<plugin_loader> g_plugin_loader;

@@ -28,11 +28,11 @@
  * SOFTWARE.
  */
 
+#include "head/entry_point.h"
 #include "millennium/backend_init.h"
 #include "millennium/ffi.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/millennium_api.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/semver.h"
 #include "millennium/sysfs.h"
@@ -157,6 +157,7 @@ int Lua_CallFrontendMethod(lua_State* L)
 
     const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
 
+    // TODO: move this safety wrapper somewhere reusable.
     int result = JavaScript::Lua_EvaluateFromSocket(
         fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
                     "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
@@ -200,12 +201,12 @@ int Lua_GetInstallPath(lua_State* L)
 int Lua_RemoveBrowserModule(lua_State* L)
 {
     const lua_Integer hookId = luaL_checkinteger(L, 1);
-    const bool success = HttpHookManager::GetInstance().RemoveHook(hookId);
+    const bool success = Millennium_RemoveBrowserModule(static_cast<unsigned long long>(hookId));
     lua_pushboolean(L, success);
     return 1;
 }
 
-unsigned long long Lua_AddBrowserModule(lua_State* L, HttpHookManager::TagTypes type)
+unsigned long long Lua_AddBrowserModule(lua_State* L, network_hook_ctl::TagTypes type)
 {
     const char* content = luaL_checkstring(L, 1);
     const char* pattern = luaL_optstring(L, 2, ".*");
@@ -214,14 +215,14 @@ unsigned long long Lua_AddBrowserModule(lua_State* L, HttpHookManager::TagTypes 
 
 int Lua_AddBrowserCss(lua_State* L)
 {
-    const unsigned long long result = Lua_AddBrowserModule(L, HttpHookManager::TagTypes::STYLESHEET);
+    const unsigned long long result = Lua_AddBrowserModule(L, network_hook_ctl::TagTypes::STYLESHEET);
     lua_pushinteger(L, static_cast<lua_Integer>(result));
     return 1;
 }
 
 int Lua_AddBrowserJs(lua_State* L)
 {
-    const unsigned long long result = Lua_AddBrowserModule(L, HttpHookManager::TagTypes::JAVASCRIPT);
+    const unsigned long long result = Lua_AddBrowserModule(L, network_hook_ctl::TagTypes::JAVASCRIPT);
     lua_pushinteger(L, static_cast<lua_Integer>(result));
     return 1;
 }

@@ -36,27 +36,26 @@
 #include <fstream>
 #include <iostream>
 
-nlohmann::json Millennium::Plugins::FindAllPlugins()
+nlohmann::json Millennium::Plugins::FindAllPlugins(std::shared_ptr<SettingsStore> settings_store_ptr)
 {
     nlohmann::json result = nlohmann::json::array();
 
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const auto foundPlugins = settingsStore->ParseAllPlugins();
+    const auto foundPlugins = settings_store_ptr->ParseAllPlugins();
 
     for (const auto& plugin : foundPlugins) {
         result.push_back({
-            { "path",    plugin.pluginBaseDirectory.generic_string()       },
-            { "enabled", settingsStore->IsEnabledPlugin(plugin.pluginName) },
-            { "data",    plugin.pluginJson                                 }
+            { "path",    plugin.pluginBaseDirectory.generic_string()            },
+            { "enabled", settings_store_ptr->IsEnabledPlugin(plugin.pluginName) },
+            { "data",    plugin.pluginJson                                      }
         });
     }
 
     return result;
 }
 
-std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name)
+std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<SettingsStore> settings_store_ptr)
 {
-    for (const auto& plugin : FindAllPlugins()) {
+    for (const auto& plugin : FindAllPlugins(settings_store_ptr)) {
         if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name) {
             return plugin;
         }

@@ -32,6 +32,7 @@
 
 #include "millennium/singleton.h"
 
+#include <array>
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <mutex>
@@ -52,6 +53,29 @@
 #define COL_WHITE "\033[37m"
 #define COL_RESET "\033[0m"
 
+/**
+ * Sanitize a NT-style path at compile-time by replacing backslashes with forward slashes.
+ */
+constexpr auto constexpr_sanitize_nt_path_spec(const char* path)
+{
+    std::array<char, 1024> result{};
+    size_t i = 0;
+    while (path[i] != '\0') {
+        result[i] = (path[i] == '\\') ? '/' : path[i];
+        ++i;
+    }
+    result[i] = '\0';
+    return result;
+}
+
+constexpr std::string_view constexpr_get_relative_path(const char* file)
+{
+    std::string_view srcPath(file);
+    std::string_view root(MILLENNIUM_ROOT);
+
+    return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
+}
+
 class OutputLogger : public Singleton<OutputLogger>
 {
     friend class Singleton<OutputLogger>;
@@ -60,14 +84,6 @@ class OutputLogger : public Singleton<OutputLogger>
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
     std::string GetLocalTime();
-
-    constexpr std::string_view ConstexprGetSourceFile(const char* file)
-    {
-        std::string_view srcPath(file);
-        std::string_view root(MILLENNIUM_ROOT);
-
-        return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
-    }
 
   public:
     OutputLogger();
@@ -83,7 +99,8 @@ class OutputLogger : public Singleton<OutputLogger>
 
     template <typename... Args> void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args&&... args)
     {
-        std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
+        std::string remoteRepository =
+            fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, constexpr_get_relative_path(file).data(), line);
 
         PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
         PrintMessage(" * FUNCTION: ", function, COL_RED);
@@ -118,5 +135,9 @@ extern OutputLogger& Logger;
 #define SELECT_10TH(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, ...) a10
 #endif
 #else
-#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
+#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, constexpr_sanitize_nt_path_spec(__FILE__).data(), __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
 #endif
+
+#define GET_GITHUB_URL_FROM_HERE()                                                                                                                                                 \
+    fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH,                                                                                \
+                constexpr_get_relative_path(constexpr_sanitize_nt_path_spec(__FILE__).data()).data(), __LINE__)
