@@ -28,20 +28,25 @@
  * SOFTWARE.
  */
 
+#include "head/entry_point.h"
 #include "head/ipc_handler.h"
 #include "head/library_updater.h"
 #include "head/scan.h"
 #include "head/theme_cfg.h"
+#include "head/webkit.h"
 
-#include "millennium/millennium_api.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
+#include "millennium/backend_init.h"
+#include "millennium/encode.h"
 
-std::shared_ptr<ThemeConfig> themeConfig;
-std::shared_ptr<Updater> updater;
-std::unique_ptr<SettingsStore> settingsStore;
+std::shared_ptr<ThemeConfig> g_theme_config;
+std::shared_ptr<Updater> g_updater;
+std::shared_ptr<SettingsStore> g_settings_store;
+std::shared_ptr<theme_webkit_mgr> g_theme_webkit_mgr;
+std::shared_ptr<network_hook_ctl> g_network_hook_ctl;
 
 int GetOperatingSystemType()
 {
@@ -64,6 +69,96 @@ std::string Millennium_GetQuickCss()
     }
 
     return SystemIO::ReadFileSync(quickCssPath);
+}
+
+void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
+{
+    BackendManager& manager = BackendManager::GetInstance();
+
+    std::unordered_map<std::string, bool> pluginStatusMap;
+    for (const auto& plugin : plugins) {
+        pluginStatusMap[plugin.pluginName] = plugin.enabled;
+    }
+
+    bool hasEnableRequests = false;
+    std::vector<std::string> pluginsToDisable;
+
+    for (const auto& entry : pluginStatusMap) {
+        const std::string& pluginName = entry.first;
+        const bool newStatus = entry.second;
+
+        g_settings_store->TogglePluginStatus(pluginName.c_str(), newStatus);
+
+        if (newStatus) {
+            hasEnableRequests = true;
+            Logger.Log("requested to enable plugin [{}]", pluginName);
+        } else {
+            pluginsToDisable.push_back(pluginName);
+            Logger.Log("requested to disable plugin [{}]", pluginName);
+        }
+    }
+
+    if (hasEnableRequests) {
+        g_plugin_loader->StartBackEnds(manager);
+    }
+
+    for (const auto& pluginName : pluginsToDisable) {
+        const auto backendType = manager.GetPluginBackendType(pluginName);
+
+        if (backendType == SettingsStore::PluginBackendType::Lua) {
+            manager.DestroyLuaInstance(pluginName);
+        } else if (backendType == SettingsStore::PluginBackendType::Python) {
+            manager.DestroyPythonInstance(pluginName);
+        }
+    }
+
+    g_plugin_loader->inject_frontend_shims(true);
+}
+
+bool Millennium_RemoveBrowserModule(unsigned long long moduleId)
+{
+    return g_theme_webkit_mgr->remove_browser_hook(moduleId);
+}
+
+unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type)
+{
+    return g_theme_webkit_mgr->add_browser_hook(moduleItem, regexSelector, type);
+}
+
+nlohmann::json Millennium_GetPluginLogs()
+{
+    nlohmann::json logData = nlohmann::json::array();
+    std::vector<SettingsStore::PluginTypeSchema> plugins = g_settings_store->ParseAllPlugins();
+
+    for (auto& logger : get_plugin_logger_mgr()) {
+        nlohmann::json logDataItem;
+
+        for (auto [message, logLevel] : logger->CollectLogs()) {
+            logDataItem.push_back({
+                { "message", Base64Encode(message) },
+                { "level",   logLevel              }
+            });
+        }
+
+        std::string pluginName = logger->GetPluginName(false);
+
+        for (auto& plugin : plugins) {
+            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false)) {
+                pluginName = plugin.pluginJson.value("common_name", pluginName);
+                break;
+            }
+        }
+
+        // Handle package manager plugin
+        if (pluginName == "pipx") pluginName = "Package Manager";
+
+        logData.push_back({
+            { "name", pluginName  },
+            { "logs", logDataItem }
+        });
+    }
+
+    return logData;
 }
 
 /**
@@ -91,16 +186,16 @@ MILLENNIUM_IPC_DECL(Core_ChangePluginStatus)
 MILLENNIUM_IPC_DECL(Core_GetStartConfig)
 {
     return {
-        { "accent_color", themeConfig->GetAccentColor() },
+        { "accent_color", g_theme_config->GetAccentColor() },
         { "conditions", CONFIG.GetNested("themes.conditions", nlohmann::json::object()) },
-        { "active_theme", themeConfig->GetActiveTheme() },
+        { "active_theme", g_theme_config->GetActiveTheme() },
         { "settings", CONFIG.GetAll() },
         { "steamPath", SystemIO::GetSteamPath() },
         { "installPath", SystemIO::GetInstallPath() },
         { "millenniumVersion", MILLENNIUM_VERSION },
-        { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
-        { "updates", updater->CheckForUpdates() },
-        { "hasCheckedForUpdates", updater->HasCheckedForUpdates() },
+        { "enabledPlugins", g_settings_store->GetEnabledPluginNames() },
+        { "updates", g_updater->CheckForUpdates() },
+        { "hasCheckedForUpdates", g_updater->HasCheckedForUpdates() },
         { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },
         { "buildDate", GetBuildTimestamp() },
         { "platformType", GetOperatingSystemType() },
@@ -116,37 +211,37 @@ IPC_NIL(Core_SaveQuickCss, SystemIO::WriteFileSync(fmt::format("{}/quickcss.css"
 /** General utilities */
 IPC_RET(Core_GetSteamPath, SystemIO::GetSteamPath())
 IPC_RET(Core_FindAllThemes, Millennium::Themes::FindAllThemes())
-IPC_RET(Core_FindAllPlugins, Millennium::Plugins::FindAllPlugins())
+IPC_RET(Core_FindAllPlugins, Millennium::Plugins::FindAllPlugins(g_settings_store))
 IPC_RET(Core_GetEnvironmentVar, GetEnv(ARGS["variable"]))
 IPC_RET(Core_GetBackendConfig, CONFIG.GetAll())
 IPC_RET(Core_SetBackendConfig, CONFIG.SetAll(nlohmann::json::parse(ARGS["config"].get<std::string>()), ARGS.value("skipPropagation", false)))
 
 /** Theme and Plugin update API */
-IPC_RET(Core_GetUpdates, updater->CheckForUpdates(ARGS.value("force", false)).value_or(nullptr))
+IPC_RET(Core_GetUpdates, g_updater->CheckForUpdates(ARGS.value("force", false)).value_or(nullptr))
 
 /** Theme manager API */
-IPC_RET(Core_GetActiveTheme, themeConfig->GetActiveTheme())
-IPC_NIL(Core_ChangeActiveTheme, themeConfig->ChangeTheme(ARGS["theme_name"]))
-IPC_RET(Core_GetSystemColors, themeConfig->GetAccentColor())
-IPC_NIL(Core_ChangeAccentColor, themeConfig->ChangeAccentColor(ARGS["new_color"]))
-IPC_RET(Core_ChangeColor, themeConfig->ChangeColor(ARGS["theme"], ARGS["color_name"], ARGS["new_color"], ARGS["color_type"]))
-IPC_RET(Core_ChangeCondition, themeConfig->ChangeCondition(ARGS["theme"], ARGS["newData"], ARGS["condition"]))
-IPC_RET(Core_GetRootColors, themeConfig->GetColors())
+IPC_RET(Core_GetActiveTheme, g_theme_config->GetActiveTheme())
+IPC_NIL(Core_ChangeActiveTheme, g_theme_config->ChangeTheme(ARGS["theme_name"]))
+IPC_RET(Core_GetSystemColors, g_theme_config->GetAccentColor())
+IPC_NIL(Core_ChangeAccentColor, g_theme_config->ChangeAccentColor(ARGS["new_color"]))
+IPC_RET(Core_ChangeColor, g_theme_config->ChangeColor(ARGS["theme"], ARGS["color_name"], ARGS["new_color"], ARGS["color_type"]))
+IPC_RET(Core_ChangeCondition, g_theme_config->ChangeCondition(ARGS["theme"], ARGS["newData"], ARGS["condition"]))
+IPC_RET(Core_GetRootColors, g_theme_config->GetColors())
 IPC_RET(Core_DoesThemeUseAccentColor, true) /** placeholder, too lazy to implement */
-IPC_RET(Core_GetThemeColorOptions, themeConfig->GetColorOpts(ARGS["theme_name"]))
+IPC_RET(Core_GetThemeColorOptions, g_theme_config->GetColorOpts(ARGS["theme_name"]))
 
 /** Theme installer related API's */
-IPC_RET(Core_InstallTheme, updater->GetThemeUpdater().InstallTheme(themeConfig, ARGS["repo"], ARGS["owner"]))
-IPC_RET(Core_UninstallTheme, updater->GetThemeUpdater().UninstallTheme(themeConfig, ARGS["repo"], ARGS["owner"]))
-IPC_RET(Core_DownloadThemeUpdate, updater->DownloadThemeUpdate(themeConfig, ARGS["native"]))
-IPC_RET(Core_IsThemeInstalled, updater->GetThemeUpdater().CheckInstall(ARGS["repo"], ARGS["owner"]))
-IPC_RET(Core_GetThemeFromGitPair, updater->GetThemeUpdater().GetThemeFromGitPair(ARGS["repo"], ARGS["owner"], ARGS.value("asString", false)).value_or(nullptr))
+IPC_RET(Core_InstallTheme, g_updater->GetThemeUpdater().InstallTheme(g_theme_config, ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_UninstallTheme, g_updater->GetThemeUpdater().UninstallTheme(g_theme_config, ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_DownloadThemeUpdate, g_updater->DownloadThemeUpdate(g_theme_config, ARGS["native"]))
+IPC_RET(Core_IsThemeInstalled, g_updater->GetThemeUpdater().CheckInstall(ARGS["repo"], ARGS["owner"]))
+IPC_RET(Core_GetThemeFromGitPair, g_updater->GetThemeUpdater().GetThemeFromGitPair(ARGS["repo"], ARGS["owner"], ARGS.value("asString", false)).value_or(nullptr))
 
 /** Plugin related API's */
-IPC_RET(Core_DownloadPluginUpdate, updater->DownloadPluginUpdate(ARGS["id"], ARGS["name"]))
-IPC_RET(Core_InstallPlugin, updater->GetPluginUpdater().InstallPlugin(ARGS["download_url"], ARGS["total_size"]))
-IPC_RET(Core_IsPluginInstalled, updater->GetPluginUpdater().CheckInstall(ARGS["plugin_name"]))
-IPC_RET(Core_UninstallPlugin, updater->GetPluginUpdater().UninstallPlugin(ARGS["pluginName"]))
+IPC_RET(Core_DownloadPluginUpdate, g_updater->DownloadPluginUpdate(ARGS["id"], ARGS["name"]))
+IPC_RET(Core_InstallPlugin, g_updater->GetPluginUpdater().InstallPlugin(ARGS["download_url"], ARGS["total_size"]))
+IPC_RET(Core_IsPluginInstalled, g_updater->GetPluginUpdater().CheckInstall(ARGS["plugin_name"]))
+IPC_RET(Core_UninstallPlugin, g_updater->GetPluginUpdater().UninstallPlugin(ARGS["pluginName"]))
 
 /** Get plugin backend logs */
 IPC_RET(Core_GetPluginBackendLogs, Millennium_GetPluginLogs())
@@ -159,17 +254,19 @@ IPC_RET(Core_HasPendingMillenniumUpdateRestart, MillenniumUpdater::HasPendingRes
  * Initialize core components
  * Called before any other plugin is loaded.
  */
-void Core_Load()
+void Core_Load(std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<network_hook_ctl> network_hook_ctl_ptr)
 {
-    settingsStore = std::make_unique<SettingsStore>();
-    updater = std::make_shared<Updater>();
-    themeConfig = std::make_shared<ThemeConfig>();
+    g_settings_store = std::move(settings_store_ptr);
+    g_network_hook_ctl = std::move(network_hook_ctl_ptr);
+    g_updater = std::make_shared<Updater>(settings_store_ptr);
+    g_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(settings_store_ptr, g_network_hook_ctl);
+    g_theme_config = std::make_shared<ThemeConfig>(settings_store_ptr, g_theme_webkit_mgr);
 }
 
 /** TODO: unused, impl later. shouldn't cause any issues on shutdown though. */
 void Core_Unload()
 {
-    settingsStore.reset();
-    updater.reset();
-    themeConfig.reset();
+    g_settings_store.reset();
+    g_updater.reset();
+    g_theme_config.reset();
 }

@@ -34,12 +34,13 @@
 #include "filesystem"
 #include <set>
 
+#include "head/webkit.h"
 #include "millennium/sysfs.h"
 
 class ThemeConfig
 {
   public:
-    ThemeConfig();
+    ThemeConfig(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
     ~ThemeConfig();
 
     void OnConfigChange();
@@ -76,4 +77,6 @@ class ThemeConfig
     std::string active_theme_name;
     nlohmann::basic_json<> theme_data;
     std::map<std::string, nlohmann::json> colors;
+    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
 };

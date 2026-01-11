@@ -63,37 +63,6 @@ class BackendLoadState : public Singleton<BackendLoadState>
 };
 
 /**
- * Constructs a JavaScript bootstrap module that includes the given script modules and a port number.
- *
- * @param {std::vector<std::string>} scriptModules - A list of script module names to include in the bootstrap.
- * @param {uint16_t} port - The port number to be included in the bootstrap call.
- * @returns {std::string} - The constructed JavaScript module as a string.
- *
- * This function reads a plugin helper module part of my plugutil repository, `client_api.js`,
- * and appends the provided script modules to it. The port number is also included in the final script.
- * The final script is returned as a string, ready for use.
- *
- * Error Handling:
- * - If the `client_api.js` file cannot be read, an error is logged, and a message box is shown on Windows.
- */
-std::string GetBootstrapModule(const std::vector<std::string> scriptModules)
-{
-    std::string scriptModuleArray;
-    std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
-
-    for (size_t i = 0; i < scriptModules.size(); i++) {
-        scriptModuleArray.append(fmt::format("\"{}\"{}", scriptModules[i], (i == scriptModules.size() - 1 ? "" : ",")));
-    }
-
-    const std::string millenniumAuthToken = GetAuthToken();
-
-    const std::string ftpPath = fmt::format("https://millennium.ftp/{}", millenniumPreloadPath);
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}]);", millenniumAuthToken, scriptModuleArray);
-
-    return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, scriptContent);
-}
-
-/**
  * Appends custom directories to the Python `sys.path`.
  *
  * @param {std::vector<std::filesystem::path>} sitePackages - A list of custom paths to be added to the Python `sys.path`.
@@ -542,41 +511,6 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
 }
 
 /**
- * Constructs a module for loading plugins based on the given FTP and IPC ports.
- *
- * @returns {std::string} - A string representing the constructed module containing the list of plugin URLs and bootstrap configuration.
- *
- * This function performs the following tasks:
- * 1. Loads the plugin configurations using `SettingsStore`.
- * 2. Filters the enabled plugins and constructs URLs for their frontend resources using the FTP port.
- * 3. Collects the constructed URLs into a script import table.
- * 4. Calls `GetBootstrapModule` with the script import table and IPC port to return the complete module configuration.
- *
- * The constructed module is returned as a string.
- */
-const std::string ConstructOnLoadModule()
-{
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
-
-    std::vector<std::string> scriptImportTable;
-
-    for (auto& plugin : plugins) {
-        if (!settingsStore->IsEnabledPlugin(plugin.pluginName)) {
-            continue;
-        }
-
-        const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
-        scriptImportTable.push_back(UrlFromPath("https://millennium.ftp/", frontEndAbs));
-    }
-
-    /** Add the builtin Millennium plugin */
-    scriptImportTable.push_back(fmt::format("https://millennium.ftp/{}/millennium-frontend.js", GetScrambledApiPathToken()));
-
-    return GetBootstrapModule(scriptImportTable);
-}
-
-/**
  * Restores the original `SharedJSContext` by renaming the backup file to the original file.
  * It reverses the patches done in the preloader module
  *
@@ -633,81 +567,4 @@ void UnPatchSharedJSContext()
 
     Logger.Log("Restored SharedJSContext...");
 #endif
-}
-
-/**
- * Notifies the frontend of the backend load and handles script injection and state updates.
- *
- * This function performs the following tasks:
- * 1. Logs the start of the backend load notification process.
- * 2. Sets up a message listener to handle the frontend's response, specifically waiting for a script identifier.
- * 3. Sends messages to enable the page and inject a script to the frontend for execution.
- * 4. Waits for a response from the frontend indicating successful script injection, then triggers a page reload.
- * 5. Logs completion of the process and removes the message listener.
- *
- * Synchronization:
- * - Uses a mutex and condition variable to ensure thread-safe waiting for the frontend's script injection acknowledgment.
- *
- * Error Handling:
- * - If any issues occur during the message processing, errors are logged with details.
- */
-void OnBackendLoad(bool reloadFrontend)
-{
-    nlohmann::json reloadResult;
-
-    Logger.Log("Notifying frontend of backend load...");
-    UnPatchSharedJSContext();
-
-    /** enable page functions */
-    cdp->send("Page.enable").get();
-
-    json params = {
-        { "source", ConstructOnLoadModule() }
-    };
-    auto resultId = cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
-    addedScriptOnNewDocumentId = resultId["identifier"].get<std::string>();
-
-    json reload_params = {
-        { "ignoreCache", true }
-    };
-
-    do {
-        reloadResult = cdp->send("Page.reload", reload_params).get();
-    }
-    /** empty means it was successful */
-    while (!reloadResult.empty());
-
-    Logger.Log("Frontend notifier finished!");
-}
-
-/**
- * @brief Injects the frontend shims.
- *
- * This function injects the frontend shims by registering a callback function to be called when the backend is loaded.
- *
- */
-void CoInitializer::InjectFrontendShims(bool reloadFrontend)
-{
-    BackendCallbacks& backendHandler = BackendCallbacks::GetInstance();
-    backendHandler.RegisterForLoad(std::bind(OnBackendLoad, reloadFrontend));
-}
-
-/**
- * @brief Re-injects the frontend shims.
- *
- * This function re-injects the frontend shims by removing the existing script and injecting a new one.
- *
- * @param {std::shared_ptr<plugin_loader>} pluginLoader - The plugin loader instance.
- */
-void CoInitializer::ReInjectFrontendShims([[maybe_unused]] std::shared_ptr<plugin_loader> pluginLoader, bool reloadFrontend)
-{
-    // pluginLoader->InjectWebkitShims();
-
-    cdp->send("Page.removeScriptToEvaluateOnNewDocument",
-              {
-                  { "identifier", addedScriptOnNewDocumentId }
-    })
-        .get();
-
-    InjectFrontendShims(reloadFrontend);
 }

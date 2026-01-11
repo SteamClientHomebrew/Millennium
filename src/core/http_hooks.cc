@@ -58,24 +58,22 @@ json make_headers(const std::vector<std::pair<std::string, std::string>>& header
     return j_headers;
 }
 
-void network_hook_ctl::set_hook_list(std::shared_ptr<std::vector<hook_t>> hookList)
-{
-    std::unique_lock<std::shared_mutex> lock(m_hook_list_mtx);
-    m_hook_list_ptr = hookList;
-}
-
-std::vector<network_hook_ctl::hook_t> network_hook_ctl::get_hook_list() const
+std::vector<network_hook_ctl::hook_item> network_hook_ctl::get_hook_list() const
 {
     std::shared_lock<std::shared_mutex> lock(m_hook_list_mtx);
-    return m_hook_list_ptr ? *m_hook_list_ptr : std::vector<hook_t>();
+    return m_hook_list_ptr ? *m_hook_list_ptr : std::vector<hook_item>();
 }
 
-void network_hook_ctl::add_hook(const hook_t& hook)
+unsigned long long network_hook_ctl::add_hook(const hook_t& hook)
 {
     std::unique_lock<std::shared_mutex> lock(m_hook_list_mtx);
+    hook_item item{ hook, g_hookedModuleId.fetch_add(1) };
+
     if (m_hook_list_ptr) {
-        m_hook_list_ptr->push_back(hook);
+        m_hook_list_ptr->push_back(item);
     }
+
+    return item.id;
 }
 
 bool network_hook_ctl::remove_hook(unsigned long long moduleId)
@@ -84,7 +82,7 @@ bool network_hook_ctl::remove_hook(unsigned long long moduleId)
     if (!m_hook_list_ptr) return false;
 
     size_t originalSize = m_hook_list_ptr->size();
-    auto newEnd = std::remove_if(m_hook_list_ptr->begin(), m_hook_list_ptr->end(), [moduleId](const hook_t& hook) { return hook.id == moduleId; });
+    auto newEnd = std::remove_if(m_hook_list_ptr->begin(), m_hook_list_ptr->end(), [moduleId](const hook_item& hook) { return hook.id == moduleId; });
     m_hook_list_ptr->erase(newEnd, m_hook_list_ptr->end());
     return m_hook_list_ptr->size() < originalSize;
 }
@@ -174,34 +172,7 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
         { "body",            fileContent          }
     };
 
-    cdp->send_host("Fetch.fulfillRequest", params);
-}
-
-static void enable_csp_bypass(std::string frameUrl)
-{
-    std::string targetId;
-    const auto targets = cdp->send_host("Target.getTargets").get();
-
-    for (auto& target : targets["targetInfos"]) {
-        if (target["url"].get<std::string>() == frameUrl) {
-            targetId = target["targetId"].get<std::string>();
-        }
-    }
-
-    if (targetId.empty()) {
-        return;
-    }
-
-    json attachParams = {
-        { "targetId", targetId },
-        { "flatten",  true     }
-    };
-    const auto attachResult = cdp->send_host("Target.attachToTarget", attachParams).get();
-
-    json cspParams = {
-        { "enabled", true }
-    };
-    cdp->send_host("Page.setBypassCSP", cspParams, attachResult["sessionId"]);
+    m_cdp->send_host("Fetch.fulfillRequest", params);
 }
 
 void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& message)
@@ -217,7 +188,7 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     // Check if the request URL is a do-not-hook URL.
     for (const auto& doNotHook : g_js_and_css_hook_blacklist) {
         if (std::regex_match(requestUrl, std::regex(doNotHook))) {
-            cdp->send_host("Fetch.continueRequest", params);
+            m_cdp->send_host("Fetch.continueRequest", params);
             return;
         }
     }
@@ -227,12 +198,12 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     // If the status code is a redirect, we just continue the request.
     for (const auto& code : redirect_codes) {
         if (statusCode == code) {
-            cdp->send_host("Fetch.continueRequest", params);
+            m_cdp->send_host("Fetch.continueRequest", params);
             return;
         }
     }
 
-    auto response = cdp->send_host("Fetch.getResponseBody", params).get();
+    auto response = m_cdp->send_host("Fetch.getResponseBody", params).get();
 
     std::string responseBody = response.value("body", std::string{});
     if (requestUrl.empty() || responseBody.empty()) {
@@ -240,8 +211,6 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     }
 
     const std::string patchedContent = this->patch_document(requestUrl, Base64Decode(responseBody));
-    enable_csp_bypass(requestUrl);
-
     const std::string responseMessage = message.value("responseStatusText", std::string{ "OK" });
     nlohmann::json responseHeaders = message.value("responseHeaders", nlohmann::json::array());
 
@@ -253,7 +222,7 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
         { "body",            Base64Encode(patchedContent)                     }
     };
 
-    cdp->send_host("Fetch.fulfillRequest", fullfillParams);
+    m_cdp->send_host("Fetch.fulfillRequest", fullfillParams);
 }
 
 network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(const std::string& requestUrl) const
@@ -261,7 +230,9 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
     processed_hooks result;
     auto hookList = get_hook_list();
 
-    for (const auto& hookItem : hookList) {
+    for (const auto& hook : hookList) {
+        const auto& hookItem = hook.hook;
+
         if (!std::regex_match(requestUrl, hookItem.url_pattern)) {
             continue;
         }
@@ -278,46 +249,9 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
     return result;
 }
 
-std::string network_hook_ctl::compile_script_module_list(const std::vector<std::string>& scriptModules) const
-{
-    std::string result;
-    for (size_t i = 0; i < scriptModules.size(); ++i) {
-        if (i > 0) {
-            result.append(",");
-        }
-        result.append(fmt::format("\"{}\"", scriptModules[i]));
-    }
-    return result;
-}
-
-std::string network_hook_ctl::stringify_plugin_names_list() const
-{
-    std::string result;
-    auto settingsStore = std::make_unique<SettingsStore>();
-
-    for (const auto& plugin : settingsStore->GetEnabledPlugins()) {
-        result.append(fmt::format("'{}',", plugin.pluginName));
-    }
-
-    return result;
-}
-
 std::string network_hook_ctl::compile_preload_script(const processed_hooks& hooks, const std::string& millenniumPreloadPath) const
 {
-    const std::string millenniumAuthToken = GetAuthToken();
-    const std::string ftpPath = m_ftp_url + millenniumPreloadPath;
-
-    std::string scriptModuleArray = compile_script_module_list(hooks.script_modules);
-    std::string enabledPlugins = stringify_plugin_names_list();
-
-    const std::string scriptContent = fmt::format("(new module.default).StartPreloader('{}', [{}], [{}]);", millenniumAuthToken, scriptModuleArray, enabledPlugins);
-
-    std::string linkPreloads = hooks.linkPreloads;
-    linkPreloads.insert(0, fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", ftpPath));
-
-    const std::string importScript = fmt::format("import('{}').then(module => {{ {} }}).catch(error => window.location.reload())", ftpPath, scriptContent);
-
-    return fmt::format("{}<script type=\"module\" async id=\"millennium-injected\">{}</script>\n{}", linkPreloads, importScript, hooks.cssContent);
+    return hooks.cssContent;
 }
 
 bool network_hook_ctl::is_url_blacklisted(const std::string& requestUrl) const
@@ -375,7 +309,7 @@ void network_hook_ctl::ipc_request_handler(nlohmann::json message)
 
     /** If the HTTP method is OPTIONS, we don't need to require auth token */
     if (message.value(json::json_pointer("/request/method"), std::string{}) == "OPTIONS") {
-        cdp->send_host("Fetch.fulfillRequest", parameters);
+        m_cdp->send_host("Fetch.fulfillRequest", parameters);
         return;
     }
 
@@ -384,7 +318,7 @@ void network_hook_ctl::ipc_request_handler(nlohmann::json message)
         LOG_ERROR("Invalid or missing X-Millennium-Auth in IPC request. Request: {}", message.dump());
 
         parameters["responseCode"] = http_code::UNAUTHORIZED;
-        cdp->send_host("Fetch.fulfillRequest", parameters);
+        m_cdp->send_host("Fetch.fulfillRequest", parameters);
         return;
     }
 
@@ -404,32 +338,32 @@ void network_hook_ctl::ipc_request_handler(nlohmann::json message)
     if (postData.is_null() || postData.empty()) {
         LOG_ERROR("IPC request with no post data, this is not allowed.");
         parameters["responseCode"] = http_code::BAD_REQUEST;
-        cdp->send_host("Fetch.fulfillRequest", parameters);
+        m_cdp->send_host("Fetch.fulfillRequest", parameters);
         return;
     }
 
-    const auto result = IPCMain::HandleEventMessage(postData);
+    const auto result = m_ipc_main->process_message(postData);
     parameters["body"] = Base64Encode(result.dump());
 
     if (result.contains("error")) {
         LOG_ERROR("IPC error: {}", result.dump(4));
 
-        const std::vector<std::pair<IPCMain::ErrorType, http_code>> errorMap = {
-            { IPCMain::ErrorType::AUTHENTICATION_ERROR, http_code::UNAUTHORIZED          },
-            { IPCMain::ErrorType::INTERNAL_ERROR,       http_code::INTERNAL_SERVER_ERROR }
+        const std::vector<std::pair<ipc_main::ErrorType, http_code>> errorMap = {
+            { ipc_main::ErrorType::AUTHENTICATION_ERROR, http_code::UNAUTHORIZED          },
+            { ipc_main::ErrorType::INTERNAL_ERROR,       http_code::INTERNAL_SERVER_ERROR }
         };
 
         parameters["responseCode"] = errorMap[result["type"]];
     }
 
-    cdp->send_host("Fetch.fulfillRequest", parameters);
+    m_cdp->send_host("Fetch.fulfillRequest", parameters);
 }
 
 void network_hook_ctl::init()
 {
     Logger.Log("Initializing HttpHookManager...");
 
-    cdp->on("Fetch.requestPaused", [this](const nlohmann::json& message)
+    m_cdp->on("Fetch.requestPaused", [this](const nlohmann::json& message)
     {
         if (is_ipc_request(message)) {
             if (m_thread_pool) {
@@ -469,7 +403,7 @@ void network_hook_ctl::init()
         { "patterns", patterns }
     });
 
-    cdp->send_host("Fetch.enable", params);
+    m_cdp->send_host("Fetch.enable", params);
 }
 
 void network_hook_ctl::shutdown()
@@ -485,7 +419,9 @@ void network_hook_ctl::shutdown()
     Logger.Log("HttpHookManager shut down successfully.");
 }
 
-network_hook_ctl::network_hook_ctl() : m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())), m_hook_list_ptr(std::make_shared<std::vector<hook_t>>())
+network_hook_ctl::network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client, std::shared_ptr<ipc_main> ipc_main)
+    : m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())), m_hook_list_ptr(std::make_shared<std::vector<hook_item>>()),
+      m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_ipc_main(std::move(ipc_main))
 {
 }
 

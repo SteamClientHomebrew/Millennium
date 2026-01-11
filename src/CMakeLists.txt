@@ -63,13 +63,15 @@ set(SOURCE_FILES
     core/auth.cc
     core/backend_init.cc
     core/backend_mgr.cc
-    core/cdpapi.cc
+    core/cdp_api.cc
     core/core_ipc.cc
+    core/ffi_binder.cc
     core/http_hooks.cc
     core/init.cc
     core/lifecycle.cc
-    core/millennium_api.cc
     core/millennium_updater.cc
+    core/plugin_webkit_store.cc
+    core/plugin_webkit_world_mgr.cc
     core/thread_pool.cc
     util/semver.cc
     util/zip.cc

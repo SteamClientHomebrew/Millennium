@@ -42,7 +42,7 @@ using json = nlohmann::json;
 class Updater
 {
   public:
-    Updater();
+    Updater(std::shared_ptr<SettingsStore> settings_store_ptr);
 
     bool DownloadPluginUpdate(const std::string& id, const std::string& name);
     bool DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);

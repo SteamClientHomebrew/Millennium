@@ -1,9 +1,9 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -29,17 +29,32 @@
  */
 
 #pragma once
-#include "millennium/http_hooks.h"
-#include <nlohmann/json.hpp>
-#include <string>
-#include <vector>
+#include "millennium/core_ipc.h"
+#include "millennium/cdp_api.h"
+#include "millennium/sysfs.h"
 
-struct PluginStatus
+namespace ffi_constants
 {
-    std::string pluginName;
-    bool enabled;
-};
+static const char* const binding_name = "__private_millennium_ffi_do_not_use__";
+static const char* const frontend_binding_name = "MILLENNIUM_PRIVATE_INTERNAL_FOREIGN_FUNCTION_INTERFACE_DO_NOT_USE";
+} // namespace ffi_constants
 
-void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins);
-unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type);
-nlohmann::json Millennium_GetPluginLogs();
+class ffi_binder
+{
+  public:
+    ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<ipc_main> ipc_main);
+
+  private:
+    std::shared_ptr<ipc_main> m_ipc_main;
+    std::shared_ptr<cdp_client> m_client;
+    std::shared_ptr<SettingsStore> m_settings_store;
+
+    void callback_into_js(const json params, const int request_id, json result);
+
+    /**
+     * event handler for Runtime.bindingCalled events
+     */
+    void binding_call_hdlr(const json& params);
+
+    bool is_valid_request(const json& params);
+};

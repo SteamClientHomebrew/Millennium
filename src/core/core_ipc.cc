@@ -43,20 +43,22 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
+using namespace std::placeholders;
+
 /**
  * @brief Handles an internal "call server method" request by dispatching it to the appropriate core IPC handler.
  * This function constructs an EvalResult based on the response from the core IPC handler.
  *
- * @param {nlohmann::basic_json<>} message - The JSON message containing the request data.
+ * @param {json} message - The JSON message containing the request data.
  * @returns {EvalResult} - The result of the core IPC method invocation.
  */
-EvalResult HandleCoreServerMethod(const nlohmann::basic_json<>& call)
+EvalResult ipc_main::handle_core_server_method(const json& call)
 {
     try {
         const auto& functionName = call["data"]["methodName"].get<std::string>();
-        const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : nlohmann::json::object();
+        const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : json::object();
 
-        nlohmann::ordered_json result = HandleIpcMessage(functionName, args);
+        ordered_json result = HandleIpcMessage(functionName, args);
 
         auto it = FFIMap_t.find(result.type());
         return it != FFIMap_t.end() ? EvalResult{ it->second, result.dump() } : EvalResult{ FFI_Type::UnknownType, "core IPC call returned unknown type" };
@@ -72,14 +74,14 @@ EvalResult HandleCoreServerMethod(const nlohmann::basic_json<>& call)
  * This function uses a static map to associate backend types with their respective handler functions.
  *
  * @param {std::string} pluginName - The name of the plugin making the request.
- * @param {nlohmann::basic_json<>} message - The JSON message containing the request data.
+ * @param {json} message - The JSON message containing the request data.
  *
  * @returns {EvalResult} - The result of the backend method invocation.
  * @note assert is used to ensure that the backend type is known and has a corresponding handler.
  */
-EvalResult HandlePluginServerMethod(const std::string& pluginName, const nlohmann::basic_json<>& message)
+EvalResult ipc_main::handle_plugin_server_method(const std::string& pluginName, const json& message)
 {
-    static const std::unordered_map<SettingsStore::PluginBackendType, std::function<EvalResult(const std::string&, const nlohmann::json&)>> handlers = {
+    static const std::unordered_map<SettingsStore::PluginBackendType, std::function<EvalResult(const std::string&, const json&)>> handlers = {
         { SettingsStore::PluginBackendType::Python, Python::LockGILAndInvokeMethod },
         { SettingsStore::PluginBackendType::Lua,    Lua::LockAndInvokeMethod       }
     };
@@ -92,19 +94,11 @@ EvalResult HandlePluginServerMethod(const std::string& pluginName, const nlohman
 }
 
 /**
- * @brief Determines if a request is internal (i.e., from the core plugin).
- */
-bool IsInternalRequest(const std::string& pluginName)
-{
-    return pluginName == "core";
-}
-
-/**
  * Calls a server method based on the provided JSON message and returns a response.
  * A "server method" is a Python function that is called by the IPC server.
  *
- * @param {nlohmann::basic_json<>} message - A JSON message containing the method to be called and its arguments.
- * @returns {nlohmann::json} - A JSON response with the result of the server method call.
+ * @param {json} message - A JSON message containing the method to be called and its arguments.
+ * @returns {json} - A JSON response with the result of the server method call.
  *
  * This function constructs a function call script using the provided message, evaluates it using Python,
  * and returns the result. The response may contain the return value, or in case of an error, the error message.
@@ -115,7 +109,7 @@ bool IsInternalRequest(const std::string& pluginName)
  * - Integer: Returned as an integer.
  * - Error: Returns a failure message and a flag indicating the failure.
  */
-nlohmann::json CallServerMethod(nlohmann::basic_json<> call)
+json ipc_main::call_server_method(const json& call)
 {
     if (!call["data"].contains("pluginName")) {
         LOG_ERROR("no plugin backend specified, doing nothing...");
@@ -124,7 +118,7 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> call)
     const auto pluginName = call["data"]["pluginName"].get<std::string>();
 
     /** Conditionally dispatch call between internal IPC call, and Python / Lua */
-    EvalResult response = IsInternalRequest(pluginName) ? HandleCoreServerMethod(call) : HandlePluginServerMethod(pluginName, call);
+    EvalResult response = pluginName == "core" ? handle_core_server_method(call) : handle_plugin_server_method(pluginName, call);
 
     /** Convert the EvalResult into a JSON response */
     auto convertResponseValue = [](const auto& response)
@@ -158,23 +152,21 @@ nlohmann::json CallServerMethod(nlohmann::basic_json<> call)
 /**
  * Handles the event when the frontend is loaded by evaluating the corresponding Python method.
  *
- * @param {nlohmann::basic_json<>} message - A JSON message containing the plugin name and event data.
- * @returns {nlohmann::json} - A JSON response indicating success.
+ * @param {json} message - A JSON message containing the plugin name and event data.
+ * @returns {json} - A JSON response indicating success.
  *
  * This function evaluates the `plugin._front_end_loaded()` method using the provided plugin name and
  * returns a response indicating the success of the operation.
  */
-nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> call)
+json ipc_main::on_front_end_loaded(const json& call)
 {
     const std::string pluginName = call["data"]["pluginName"];
 
-    auto settingsStore = std::make_unique<SettingsStore>();
-    const auto allPlugins = settingsStore->ParseAllPlugins();
-
-    auto plugin = std::find_if(allPlugins.begin(), allPlugins.end(), [&pluginName](const auto& p) { return p.pluginName == pluginName; });
+    const auto plugins = m_settings_store->ParseAllPlugins();
+    auto plugin = std::find_if(plugins.begin(), plugins.end(), [&pluginName](const auto& p) { return p.pluginName == pluginName; });
 
     /** make sure the plugin has a backend that should be called. */
-    if (plugin != allPlugins.end() && plugin->pluginJson.value("useBackend", true)) {
+    if (plugin != plugins.end() && plugin->pluginJson.value("useBackend", true)) {
         Logger.Log("Delegating frontend load for plugin: {}", pluginName);
 
         static const std::unordered_map<SettingsStore::PluginBackendType, std::function<void(const std::string&)>> handlers = {
@@ -198,6 +190,54 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> call)
     };
 }
 
+json ipc_main::call_frontend_method(const json& call)
+{
+    const std::string pluginName = call["data"]["pluginName"];
+    const std::string method_name = call["data"]["methodName"];
+
+    std::vector<JavaScript::JsFunctionConstructTypes> params;
+
+    if (call["data"].contains("argumentList")) {
+        for (const auto& arg : call["data"]["argumentList"]) {
+            JavaScript::JsFunctionConstructTypes param;
+
+            if (arg.contains("type") && arg.contains("value")) {
+                const std::string type = arg["type"];
+                param.pluginName = arg["value"];
+
+                if (type == "string") {
+                    param.type = JavaScript::Types::String;
+                } else if (type == "boolean") {
+                    param.type = JavaScript::Types::Boolean;
+                } else if (type == "number") {
+                    param.type = JavaScript::Types::Integer;
+                }
+            } else {
+                LOG_ERROR("malformed argument in CallFrontEndMethod, skipping...");
+                continue;
+            }
+
+            params.push_back(param);
+        }
+    }
+
+    const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), method_name.c_str(), params);
+
+    JsEvalResult result = JavaScript::ExecuteOnSharedJsContext(
+        fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
+                    "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
+                    "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new window.MillenniumFrontEndError('frontend not loaded yet!');\n\n{}",
+                    pluginName, script));
+
+    json response = {
+        { "returnJson", result.json           },
+        { "pluginName", pluginName            },
+        { "success",    result.successfulCall },
+    };
+
+    return response;
+}
+
 /**
  * Handles incoming WebSocket messages and dispatches them to the appropriate handler function.
  *
@@ -209,27 +249,28 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> call)
  * such as `CallServerMethod` or `OnFrontEndLoaded`. If any exceptions are caught, they are sent back
  * as error messages.
  */
-nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload)
+json ipc_main::process_message(const json payload)
 {
     try {
         static const std::unordered_map<int, std::function<nlohmann::json(nlohmann::json)>> handlers = {
-            { IPCMain::Builtins::CALL_SERVER_METHOD, CallServerMethod },
-            { IPCMain::Builtins::FRONT_END_LOADED,   OnFrontEndLoaded }
+            { ipc_main::Builtins::CALL_SERVER_METHOD,   std::bind(&ipc_main::call_server_method,   this, _1) },
+            { ipc_main::Builtins::FRONT_END_LOADED,     std::bind(&ipc_main::on_front_end_loaded,  this, _1) },
+            { ipc_main::Builtins::CALL_FRONTEND_METHOD, std::bind(&ipc_main::call_frontend_method, this, _1) }
         };
 
-        int messageId = jsonPayload["id"].get<int>();
+        int messageId = payload["id"].get<int>();
         auto it = handlers.find(messageId);
 
-        return it != handlers.end() ? it->second(jsonPayload) : nlohmann::json{};
+        return it != handlers.end() ? it->second(payload) : nlohmann::json{};
     } catch (const nlohmann::detail::exception& ex) {
         return {
             { "error", fmt::format("JSON parsing error: {}", ex.what()) },
-            { "type", IPCMain::ErrorType::INTERNAL_ERROR }
+            { "type", ipc_main::ErrorType::INTERNAL_ERROR }
         };
     } catch (const std::exception& ex) {
         return {
             { "error", fmt::format("An error occurred while processing the message: {}", ex.what()) },
-            { "type", IPCMain::ErrorType::INTERNAL_ERROR }
+            { "type", ipc_main::ErrorType::INTERNAL_ERROR }
         };
     }
 }

@@ -165,9 +165,9 @@ VOID Win32_AttachMillennium(VOID)
     Logger.Log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
 
     /** Shutdown cron threads that manage Steam HTTP hooks */
-    network_hook_ctl& hookManager = network_hook_ctl::GetInstance();
-    (&hookManager)->shutdown();
-    Logger.Log("HttpHookManager has been shut down.");
+    // network_hook_ctl& hookManager = network_hook_ctl::GetInstance();
+    // (&hookManager)->shutdown();
+    // Logger.Log("HttpHookManager has been shut down.");
 
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();

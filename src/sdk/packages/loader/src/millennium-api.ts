@@ -7,9 +7,8 @@ declare global {
 		MILLENNIUM_IPC_SOCKET: WebSocket;
 		CURRENT_IPC_CALL_COUNT: number;
 		MILLENNIUM_PLUGIN_SETTINGS_STORE: any;
-		MILLENNIUM_API: {
-			ChromeDevToolsProtocol: any;
-		};
+		MILLENNIUM_API: any;
+		MILLENNIUM_PRIVATE_INTERNAL_FOREIGN_FUNCTION_INTERFACE_DO_NOT_USE: FFI_Binder;
 	}
 }
 
@@ -44,9 +43,86 @@ const backendIPC = {
 
 window.MILLENNIUM_BACKEND_IPC = backendIPC;
 
+class FFI_Binder {
+	private pendingRequests = new Map<
+		number,
+		{
+			resolve: (value: any) => void;
+			reject: (error: Error) => void;
+			timeout: NodeJS.Timeout;
+		}
+	>();
+	private nextId = 0;
+	private requestTimeout = 5000;
+
+	async call(pluginName: string, methodName: string, ...args: any[]): Promise<any> {
+		if (!window.hasOwnProperty('__private_millennium_ffi_do_not_use__')) {
+			console.error("Millennium FFI is not available in this context. To use the FFI, make sure you've selected the 'millennium' context");
+			return;
+		}
+
+		const requestId = this.nextId++;
+		const argumentList = args.map((arg) => ({
+			type: typeof arg,
+			value: String(arg),
+		}));
+		return new Promise((resolve, reject) => {
+			const timeout = setTimeout(() => {
+				this.pendingRequests.delete(requestId);
+				reject(new Error(`Request ${requestId} timed out`));
+			}, this.requestTimeout);
+			this.pendingRequests.set(requestId, { resolve, reject, timeout });
+			(window as any).__private_millennium_ffi_do_not_use__(
+				JSON.stringify({
+					id: 2, // id for call frontend
+					call_id: requestId,
+					data: {
+						pluginName,
+						methodName,
+						argumentList,
+					},
+				}),
+			);
+		});
+	}
+
+	__handleResponse(requestId: number, response: { success: boolean; returnJson?: any; error?: string }) {
+		const pending = this.pendingRequests.get(requestId);
+		if (!pending) return;
+		clearTimeout(pending.timeout);
+		this.pendingRequests.delete(requestId);
+		if (response.success) {
+			const ret = response.returnJson;
+			if (ret.type === 'string') {
+				pending.resolve(String(ret.value));
+			} else if (ret.type === 'number') {
+				pending.resolve(Number(ret.value));
+			} else if (ret.type === 'boolean') {
+				pending.resolve(ret.value === 'true');
+			}
+		} else {
+			pending.reject(new Error('Millennium SharedJSContext Error: ' + (response.returnJson || 'Unknown error') + '\n\n\nMillennium internal traceback'));
+		}
+	}
+
+	destroy() {
+		this.pendingRequests.forEach((pending) => {
+			clearTimeout(pending.timeout);
+			pending.reject(new Error('Manager destroyed'));
+		});
+		this.pendingRequests.clear();
+	}
+}
+
+window.MILLENNIUM_PRIVATE_INTERNAL_FOREIGN_FUNCTION_INTERFACE_DO_NOT_USE = new FFI_Binder();
+
 export const Millennium = {
 	callServerMethod: (pluginName: string, methodName: string, kwargs?: any) => {
 		const query = { pluginName, methodName, ...(kwargs && { argumentList: kwargs }) };
+
+		if (methodName.startsWith('frontend:')) {
+			return window.MILLENNIUM_PRIVATE_INTERNAL_FOREIGN_FUNCTION_INTERFACE_DO_NOT_USE.call(pluginName, methodName.substring(9), ...(kwargs?.argumentList ?? []));
+		}
 
 		return backendIPC
 			.postMessage(0, query)
@@ -106,67 +182,3 @@ const m_private_context: any = undefined;
 export const pluginSelf = isClient ? m_private_context : undefined;
 
 export const BindPluginSettings = (pluginName: string) => window.MILLENNIUM_PLUGIN_SETTINGS_STORE?.[pluginName]?.settingsStore;
-
-export const __INTERNAL_CALL_WEBKIT_METHOD__ = async (pluginName: string, methodName: string, kwargs?: any): Promise<any[]> => {
-	/** get all the targets from the main Steam browser instance, which includes the sandboxed web browser used for the steam store, etc. */
-	const { targetInfos } = await window.MILLENNIUM_API.ChromeDevToolsProtocol.send('Target.getTargets');
-
-	/**
-	 * Filter out targets that are apart of the Steam Client UI
-	 * all sandboxed web browser targets have canAccessOpener=false and a valid http(s) url
-	 */
-	const webKitTargets = targetInfos.filter(
-		(e) =>
-			!e?.canAccessOpener &&
-			e?.url !== '' &&
-			(e?.url?.startsWith('http://') || e?.url?.startsWith('https://')) &&
-			!e?.url?.startsWith('https://steamloopback.host/index.html'),
-	);
-
-	/** return early if we have nothing to execute on */
-	if (webKitTargets.length === 0) {
-		return [];
-	}
-
-	const executeOnTarget = async (target) => {
-		const { sessionId } = await window.MILLENNIUM_API.ChromeDevToolsProtocol.send('Target.attachToTarget', {
-			targetId: target.targetId,
-			flatten: true,
-		});
-
-		try {
-			/*
-			 * Safe from injection attacks: JSON.stringify escapes all special characters in pluginName,
-			 * methodName, and args, preventing them from breaking out of string literals or injecting code.
-			 *
-			 * Even malicious inputs like "'; alert(1); //" are harmless escaped strings like "\"; alert(1); //".
-			 * Bracket notation [plugin][method] then safely accesses properties without eval-style execution.
-			 */
-			const expression = `(async () => {
-                const plugin = ${JSON.stringify(pluginName)};
-                const method = ${JSON.stringify(methodName)};
-                const args = ${JSON.stringify(Object.values(kwargs ?? {}))};
-                return await window.PLUGIN_LIST[plugin][method](...args);
-            })()`;
-
-			/** run the expression in the target's context */
-			const result = await window.MILLENNIUM_API.ChromeDevToolsProtocol.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sessionId);
-
-			if (result.exceptionDetails) {
-				console.error(`Error in ${target.url}:`, result);
-				return null;
-			}
-
-			return { url: target.url, value: result.result.value };
-		} catch (error) {
-			console.error(`Failed to execute on ${target.url}:`, error);
-			return null;
-		} finally {
-			await window.MILLENNIUM_API.ChromeDevToolsProtocol.send('Target.detachFromTarget', { sessionId });
-		}
-	};
-
-	/** execute on all targets in parallel */
-	const results = await Promise.all(webKitTargets.map(executeOnTarget));
-	return results.filter((r) => r !== null);
-};

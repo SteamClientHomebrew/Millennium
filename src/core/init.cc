@@ -28,9 +28,10 @@
  * SOFTWARE.
  */
 
+#include "head/entry_point.h"
 #include "millennium/types.h"
 #include "millennium/init.h"
-#include "head/entry_point.h"
+#include "millennium/urlp.h"
 #include "millennium/backend_init.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"
@@ -38,20 +39,20 @@
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
+#include "millennium/plugin_webkit_store.h"
+#include "millennium/auth.h"
 #include "nlohmann/json_fwd.hpp"
 #include <memory>
 
 using namespace std::placeholders;
 using namespace std::chrono;
 
-std::shared_ptr<cdp_client> cdp;
 std::shared_ptr<plugin_loader> g_plugin_loader;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-plugin_loader::plugin_loader()
-    : m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr), webkit_handler(network_hook_ctl::GetInstance()), m_thread_pool(std::make_unique<thread_pool>(2))
+plugin_loader::plugin_loader() : m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr), m_thread_pool(std::make_unique<thread_pool>(2))
 {
     this->init();
 }
@@ -69,7 +70,7 @@ void plugin_loader::shutdown()
 void plugin_loader::init_devtools()
 {
     while (true) {
-        auto targets = cdp->send_host("Target.getTargets").get();
+        auto targets = m_cdp->send_host("Target.getTargets").get();
 
         if (!targets.contains("targetInfos") || !targets["targetInfos"].is_array() || targets["targetInfos"].empty()) {
             continue;
@@ -89,43 +90,54 @@ void plugin_loader::init_devtools()
             { "flatten",  true     }
         };
 
-        auto result = cdp->send_host("Target.attachToTarget", attach_params).get();
+        auto result = m_cdp->send_host("Target.attachToTarget", attach_params).get();
         /** set the session ID of the SharedJSContext */
-        cdp->set_shared_js_session_id(result.at("sessionId").get<std::string>());
+        m_cdp->set_shared_js_session_id(result.at("sessionId").get<std::string>());
 
         const json expose_devtools_params = {
             { "targetId",    targetId                                                                },
             { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" }
         };
 
-        cdp->send_host("Target.exposeDevToolsProtocol", expose_devtools_params);
+        m_cdp->send_host("Target.exposeDevToolsProtocol", expose_devtools_params);
         break;
     }
 
     m_thread_pool->enqueue([this]()
     {
         Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_socket_con_time).count());
-        CoInitializer::InjectFrontendShims();
+        this->inject_frontend_shims(true /** reload SharedJSContext */);
     });
 }
 
 void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 {
-    ::cdp = cdp;
+    m_cdp = cdp;
     m_socket_con_time = std::chrono::system_clock::now();
+
+    m_thread_pool->enqueue([this]()
+    {
+        Logger.Log("Starting webkit world manager...");
+
+        this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_settings_store_ptr, m_ipc_main);
+        this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_settings_store_ptr, m_network_hook_ctl, m_plugin_webkit_store);
+    });
 
     m_thread_pool->enqueue([this]()
     {
         Logger.Log("Connected to Steam devtools protocol...");
 
         this->init_devtools();
-        network_hook_ctl::GetInstance().init();
+        m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp, m_ipc_main);
+        this->m_network_hook_ctl->init();
     });
 }
 
 void plugin_loader::init()
 {
-    m_settings_store_ptr = std::make_unique<SettingsStore>();
+    m_settings_store_ptr = std::make_shared<SettingsStore>();
+    m_ipc_main = std::make_shared<ipc_main>(m_settings_store_ptr);
+    m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_settings_store_ptr);
     m_plugin_ptr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settings_store_ptr->ParseAllPlugins());
     m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settings_store_ptr->GetEnabledBackends());
 
@@ -140,6 +152,94 @@ std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr
     browserProps->fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
     browserProps->onConnect = std::bind(&plugin_loader::devtools_connection_hdlr, this, _1);
     return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
+}
+
+void plugin_loader::setup_webkit_shims()
+{
+    Logger.Log("Injecting webkit shims...");
+    m_plugin_webkit_store->clear();
+
+    const auto plugins = this->m_settings_store_ptr->ParseAllPlugins();
+
+    for (auto& plugin : plugins) {
+        const auto abs_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
+        const auto should_isolate = plugin.pluginJson.value("webkitApiVersion", "1.0.0") == "2.0.0";
+
+        if (this->m_settings_store_ptr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(abs_path)) {
+            m_plugin_webkit_store->add({ plugin.pluginName, abs_path, should_isolate });
+        }
+    }
+}
+
+std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::string>& modules)
+{
+    std::string str_modules;
+    std::string preload_path = SystemIO::GetMillenniumPreloadPath();
+
+    for (size_t i = 0; i < modules.size(); i++) {
+        str_modules.append(fmt::format("\"{}\"{}", modules[i], (i == modules.size() - 1 ? "" : ",")));
+    }
+
+    const std::string token = GetAuthToken();
+
+    const std::string ftpPath = m_network_hook_ctl->get_ftp_url() + preload_path;
+    const std::string script = fmt::format("(new module.default).StartPreloader('{}', [{}]);", token, str_modules);
+
+    return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, script);
+}
+
+std::string plugin_loader::cdp_generate_shim_module()
+{
+    std::vector<std::string> script_list;
+    std::vector<SettingsStore::PluginTypeSchema> plugins = m_settings_store_ptr->ParseAllPlugins();
+
+    for (auto& plugin : plugins) {
+        if (!m_settings_store_ptr->IsEnabledPlugin(plugin.pluginName)) {
+            continue;
+        }
+
+        const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
+        script_list.push_back(UrlFromPath(m_network_hook_ctl->get_ftp_url(), frontEndAbs));
+    }
+
+    /** Add the builtin Millennium plugin */
+    script_list.push_back(fmt::format("{}{}/millennium-frontend.js", m_network_hook_ctl->get_ftp_url(), GetScrambledApiPathToken()));
+    return this->cdp_generate_bootstrap_module(script_list);
+}
+
+void plugin_loader::inject_frontend_shims(bool reload_frontend)
+{
+    this->setup_webkit_shims();
+
+    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
+    backendHandler.RegisterForLoad([&, this]()
+    {
+        Logger.Log("Notifying frontend of backend load...");
+        UnPatchSharedJSContext();
+
+        m_cdp->send("Page.enable").get();
+
+        json params = {
+            { "source", this->cdp_generate_shim_module() }
+        };
+        auto resultId = m_cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
+        document_script_id = resultId["identifier"].get<std::string>();
+
+        json reload_params = {
+            { "ignoreCache", true }
+        };
+
+        if (reload_frontend) {
+            json result;
+            do {
+                result = m_cdp->send("Page.reload", reload_params).get();
+            }
+            /** empty means it was successful */
+            while (!result.empty());
+        }
+
+        Logger.Log("Frontend notifier finished!");
+    });
 }
 
 void plugin_loader::StartFrontEnds()
@@ -261,12 +361,11 @@ void plugin_loader::StartBackEnds(BackendManager& manager)
     StartPreloader(manager);
     Logger.Log("Starting backends...");
 
-    this->init();
     this->log_enabled_plugins();
 
     static bool hasCoreLoaded = false;
     if (!hasCoreLoaded) {
-        Core_Load();
+        Core_Load(m_settings_store_ptr, m_network_hook_ctl);
         hasCoreLoaded = true;
     }
 

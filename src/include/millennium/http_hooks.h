@@ -30,8 +30,11 @@
 
 #pragma once
 
+#include "millennium/core_ipc.h"
+#include "millennium/cdp_api.h"
 #include "millennium/singleton.h"
 #include "millennium/thread_pool.h"
+#include "millennium/sysfs.h"
 
 #include <atomic>
 #include <chrono>
@@ -71,11 +74,12 @@ static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
 };
 // clang-format on
 
-class network_hook_ctl : public Singleton<network_hook_ctl>
+class network_hook_ctl
 {
-    friend class Singleton<network_hook_ctl>;
-
   public:
+    network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client, std::shared_ptr<ipc_main> ipc_main);
+    ~network_hook_ctl();
+
     enum TagTypes
     {
         STYLESHEET,
@@ -87,31 +91,40 @@ class network_hook_ctl : public Singleton<network_hook_ctl>
         std::string path;
         std::regex url_pattern;
         TagTypes type;
+    };
+
+    struct hook_item
+    {
+        hook_t hook;
         unsigned long long id;
     };
 
     void init();
-    void add_hook(const hook_t& hook);
+    unsigned long long add_hook(const hook_t& hook);
     bool remove_hook(unsigned long long hookId);
-    void set_hook_list(std::shared_ptr<std::vector<hook_t>> hookList);
-    std::vector<hook_t> get_hook_list() const;
+    std::vector<hook_item> get_hook_list() const;
 
     void shutdown();
+    const char* get_ftp_url() const
+    {
+        return m_ftp_url;
+    }
 
   private:
+    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<cdp_client> m_cdp;
+    std::shared_ptr<ipc_main> m_ipc_main;
+
     struct processed_hooks
     {
         std::string cssContent, linkPreloads;
         std::vector<std::string> script_modules;
     };
 
-    network_hook_ctl();
-    ~network_hook_ctl();
-
     std::atomic<bool> m_shutdown{ false };
     mutable std::shared_mutex m_hook_list_mtx;
     std::unique_ptr<thread_pool> m_thread_pool;
-    std::shared_ptr<std::vector<hook_t>> m_hook_list_ptr;
+    std::shared_ptr<std::vector<hook_item>> m_hook_list_ptr;
 
     const char* m_ftp_url = "https://millennium.ftp/";
     const char* m_ipc_url = "https://millennium.ipc/";
@@ -135,8 +148,6 @@ class network_hook_ctl : public Singleton<network_hook_ctl>
     std::filesystem::path path_from_url(const std::string& requestUrl);
     processed_hooks apply_user_webkit_hooks(const std::string& requestUrl) const;
     std::string patch_document(const std::string& requestUrl, const std::string& original) const;
-    std::string compile_script_module_list(const std::vector<std::string>& scriptModules) const;
-    std::string stringify_plugin_names_list() const;
     std::string compile_preload_script(const processed_hooks& hooks, const std::string& millenniumPreloadPath) const;
     std::string inject_into_document_head(const std::string& original, const std::string& content) const;
     bool is_url_blacklisted(const std::string& requestUrl) const;

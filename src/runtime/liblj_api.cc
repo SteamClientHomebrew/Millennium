@@ -28,11 +28,11 @@
  * SOFTWARE.
  */
 
+#include "head/entry_point.h"
 #include "millennium/backend_init.h"
 #include "millennium/ffi.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/millennium_api.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/semver.h"
 #include "millennium/sysfs.h"
@@ -157,6 +157,7 @@ int Lua_CallFrontendMethod(lua_State* L)
 
     const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
 
+    // TODO: move this safety wrapper somewhere reusable.
     int result = JavaScript::Lua_EvaluateFromSocket(
         fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
                     "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
@@ -200,7 +201,7 @@ int Lua_GetInstallPath(lua_State* L)
 int Lua_RemoveBrowserModule(lua_State* L)
 {
     const lua_Integer hookId = luaL_checkinteger(L, 1);
-    const bool success = network_hook_ctl::GetInstance().remove_hook(hookId);
+    const bool success = Millennium_RemoveBrowserModule(static_cast<unsigned long long>(hookId));
     lua_pushboolean(L, success);
     return 1;
 }

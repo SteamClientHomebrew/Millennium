@@ -90,10 +90,9 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     std::mutex listenersMutex;
 };
 
-void InjectFrontendShims(bool reloadFrontend = true);
-void ReInjectFrontendShims(std::shared_ptr<plugin_loader> pluginLoader, bool reloadFrontend = true);
 void PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin);
 void LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L);
 } // namespace CoInitializer
 
+void UnPatchSharedJSContext();
 void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName);

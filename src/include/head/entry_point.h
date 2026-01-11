@@ -29,6 +29,20 @@
  */
 
 #pragma once
-void Core_Load();
+#include "millennium/sysfs.h"
+#include "millennium/http_hooks.h"
+
+struct PluginStatus
+{
+    std::string pluginName;
+    bool enabled;
+};
+
+void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins);
+unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type);
+bool Millennium_RemoveBrowserModule(unsigned long long moduleId);
+nlohmann::json Millennium_GetPluginLogs();
+
+void Core_Load(std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<network_hook_ctl> network_hook_ctl_ptr);
 void Core_FrontendLoad();
 void Core_Unload();

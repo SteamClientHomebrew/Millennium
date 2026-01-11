@@ -38,6 +38,7 @@
 class ThemeInstaller
 {
   public:
+    ThemeInstaller(std::shared_ptr<SettingsStore> settings_store_ptr);
     std::filesystem::path SkinsRoot();
 
     void RPCLogMessage(const std::string& status, double progress, bool isComplete);
@@ -59,6 +60,8 @@ class ThemeInstaller
     nlohmann::json ConstructPostBody(const std::vector<nlohmann::json>& update_query);
 
   private:
+    std::shared_ptr<SettingsStore> settings_store_ptr;
+
     /**
      * @brief Attempt to delete a folder, making files writable if necessary
      * @param p Path to the folder to delete

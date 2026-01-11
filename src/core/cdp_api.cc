@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "millennium/cdpapi.h"
+#include "millennium/cdp_api.h"
 #include "millennium/logger.h"
 #include "millennium/thread_pool.h"
 #include <condition_variable>
@@ -339,6 +339,10 @@ void cdp_client::process_message(const std::string& payload)
 
         if (callback) {
             json params = message.contains("params") ? message["params"] : json::object();
+
+            if (message.contains("sessionId") && message["sessionId"].is_string()) {
+                params["sessionId"] = message["sessionId"].get<std::string>();
+            }
 
             if (m_callback_pool) {
                 m_callback_pool->enqueue([this, callback, params]()

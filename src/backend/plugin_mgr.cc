@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "head/entry_point.h"
 #include "head/plugin_mgr.h"
 #include "head/scan.h"
 #include "head/ipc_handler.h"
@@ -35,9 +36,12 @@
 #include "millennium/logger.h"
 #include "millennium/http.h"
 #include "millennium/env.h"
-#include "millennium/millennium_api.h"
 #include "millennium/encode.h"
 #include "millennium/zip.h"
+
+PluginInstaller::PluginInstaller(std::shared_ptr<SettingsStore> settings_store_ptr) : settings_store_ptr(settings_store_ptr)
+{
+}
 
 std::filesystem::path PluginInstaller::PluginsPath()
 {
@@ -46,18 +50,16 @@ std::filesystem::path PluginInstaller::PluginsPath()
 
 bool PluginInstaller::CheckInstall(const std::string& pluginName)
 {
-    return Millennium::Plugins::GetPluginFromName(pluginName).has_value();
+    return Millennium::Plugins::GetPluginFromName(pluginName, settings_store_ptr).has_value();
 }
 
 bool PluginInstaller::UninstallPlugin(const std::string& pluginName)
 {
     try {
-        auto pluginOpt = Millennium::Plugins::GetPluginFromName(pluginName);
+        auto pluginOpt = Millennium::Plugins::GetPluginFromName(pluginName, settings_store_ptr);
         if (!pluginOpt) return false;
 
-        std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-
-        if (settingsStore->IsEnabledPlugin(pluginName)) {
+        if (settings_store_ptr->IsEnabledPlugin(pluginName)) {
             Millennium_TogglePluginStatus({
                 PluginStatus{ pluginName, false }
             });

@@ -28,11 +28,11 @@
  * SOFTWARE.
  */
 
+#include "head/entry_point.h"
 #include "millennium/backend_init.h"
 #include "millennium/ffi.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/millennium_api.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/sysfs.h"
 
@@ -128,7 +128,8 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    const bool success = network_hook_ctl::GetInstance().remove_hook(moduleId);
+    const bool success = Millennium_RemoveBrowserModule(static_cast<unsigned long long>(moduleId));
+
     return PyBool_FromLong(success);
 }
 

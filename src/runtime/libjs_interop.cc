@@ -34,8 +34,6 @@
 #include <condition_variable>
 #include <mutex>
 
-#define SHARED_JS_EVALUATE_ID 54999
-
 /**
  * Executes JavaScript code on the SharedJSContext and retrieves the result.
  *
@@ -64,7 +62,7 @@ JsEvalResult JavaScript::ExecuteOnSharedJsContext(std::string javaScriptEval)
         { "awaitPromise", true           }
     };
 
-    auto result = cdp->send("Runtime.evaluate", params).get();
+    auto result = m_cdp->send("Runtime.evaluate", params).get();
 
     if (result.contains("exceptionDetails")) {
         const std::string classType = result["exceptionDetails"]["exception"]["className"];
@@ -177,20 +175,14 @@ const std::string JavaScript::ConstructFunctionCall(const char* plugin, const ch
 
         switch (param.type) {
             case JavaScript::Types::String:
-            {
                 strFunctionFormatted += fmt::format("\"{}\"", EscapeJavaScriptString(param.pluginName));
                 break;
-            }
             case JavaScript::Types::Boolean:
-            {
                 strFunctionFormatted += boolMap[param.pluginName];
                 break;
-            }
             default:
-            {
                 strFunctionFormatted += param.pluginName;
                 break;
-            }
         }
 
         if (std::next(iterator) != fnParams.end()) {
@@ -253,7 +245,7 @@ PyObject* JavaScript::Py_EvaluateFromSocket(std::string script)
 int JavaScript::Lua_EvaluateFromSocket(std::string script, lua_State* L)
 {
     try {
-        JsEvalResult response = ExecuteOnSharedJsContext(std::string(script));
+        JsEvalResult response = ExecuteOnSharedJsContext(script);
 
         if (!response.successfulCall) {
             lua_pushnil(L);

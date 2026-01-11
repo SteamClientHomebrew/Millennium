@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -28,30 +28,33 @@
  * SOFTWARE.
  */
 
-#pragma once
-#include "millennium/sysfs.h"
-#include <filesystem>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
+#include "millennium/plugin_webkit_store.h"
 
-class PluginInstaller
+std::vector<plugin_webkit_store::item> plugin_webkit_store::get()
 {
-  public:
-    PluginInstaller(std::shared_ptr<SettingsStore> settings_store_ptr);
+    std::lock_guard<std::mutex> lock(m_accessMutex);
+    return m_webkit_store;
+}
 
-    bool CheckInstall(const std::string& pluginName);
-    bool UninstallPlugin(const std::string& pluginName);
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    nlohmann::json InstallPlugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json GetRequestBody();
+void plugin_webkit_store::add(const item& webkit_item)
+{
+    std::lock_guard<std::mutex> lock(m_accessMutex);
+    m_webkit_store.push_back(webkit_item);
+}
 
-  private:
-    std::shared_ptr<SettingsStore> settings_store_ptr;
+bool plugin_webkit_store::remove(const item& webkit_item)
+{
+    std::lock_guard<std::mutex> lock(m_accessMutex);
+    auto it = std::find(m_webkit_store.begin(), m_webkit_store.end(), webkit_item);
+    if (it != m_webkit_store.end()) {
+        m_webkit_store.erase(it);
+        return true;
+    }
+    return false;
+}
 
-    void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    std::filesystem::path PluginsPath();
-
-    std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> GetPluginData();
-};
+void plugin_webkit_store::clear()
+{
+    std::lock_guard<std::mutex> lock(m_accessMutex);
+    m_webkit_store.clear();
+}

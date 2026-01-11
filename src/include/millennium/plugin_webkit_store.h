@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -30,28 +30,36 @@
 
 #pragma once
 #include "millennium/sysfs.h"
+#include "millennium/singleton.h"
 #include <filesystem>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
 
-class PluginInstaller
+class plugin_webkit_store
 {
   public:
-    PluginInstaller(std::shared_ptr<SettingsStore> settings_store_ptr);
+    struct item
+    {
+        std::string plugin_name;
+        std::filesystem::path abs_webkit_path;
+        bool should_isolate;
 
-    bool CheckInstall(const std::string& pluginName);
-    bool UninstallPlugin(const std::string& pluginName);
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    nlohmann::json InstallPlugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json GetRequestBody();
+        bool operator==(const item& other) const
+        {
+            return plugin_name == other.plugin_name && abs_webkit_path == other.abs_webkit_path;
+        }
+    };
+
+    plugin_webkit_store(std::shared_ptr<SettingsStore> settings_store) : m_settingStore(std::move(settings_store))
+    {
+    }
+
+    std::vector<item> get();
+
+    void add(const item& webkit_item);
+    bool remove(const item& webkit_item);
+    void clear();
 
   private:
-    std::shared_ptr<SettingsStore> settings_store_ptr;
-
-    void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    std::filesystem::path PluginsPath();
-
-    std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> GetPluginData();
+    std::vector<item> m_webkit_store;
+    std::shared_ptr<SettingsStore> m_settingStore;
+    std::mutex m_accessMutex;
 };

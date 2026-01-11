@@ -29,7 +29,7 @@
  */
 
 #include "millennium/argp_win32.h"
-#include "millennium/cdpapi.h"
+#include "millennium/cdp_api.h"
 #include "millennium/plat_msg.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"

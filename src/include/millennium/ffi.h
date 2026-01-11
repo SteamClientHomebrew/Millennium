@@ -31,7 +31,7 @@
 #pragma once
 
 #include "millennium/singleton.h"
-#include "millennium/init.h"
+#include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 
 #include <atomic>
