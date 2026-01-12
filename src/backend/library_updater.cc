@@ -34,8 +34,7 @@
 #include "millennium/http.h"
 #include "millennium/logger.h"
 
-Updater::Updater(std::shared_ptr<SettingsStore> settings_store_ptr)
-    : api_url("https://steambrew.app/api/checkupdates"), has_checked_for_updates(false), theme_updater(settings_store_ptr), plugin_updater(settings_store_ptr)
+Updater::Updater(std::shared_ptr<SettingsStore> settings_store_ptr) : theme_updater(settings_store_ptr), plugin_updater(settings_store_ptr), has_checked_for_updates(false)
 {
     if (!CONFIG.GetNested("general.checkForPluginAndThemeUpdates").get<bool>()) {
         Logger.Warn("User has disabled update checking for plugins and themes.");

@@ -29,13 +29,14 @@
  */
 
 #include "head/entry_point.h"
-#include "millennium/backend_init.h"
-#include "millennium/ffi.h"
+#include "millennium/life_cycle.h"
+#include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
+#include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_api_init.h"
 #include "millennium/sysfs.h"
 
+#include <cctype>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
@@ -62,7 +63,7 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
         return NULL;
     }
 
-    std::vector<JavaScript::JsFunctionConstructTypes> params;
+    std::vector<ipc_main::javascript_parameter> params;
 
     if (parameterList != NULL) {
         if (!PyList_Check(parameterList)) {
@@ -74,11 +75,16 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
 
         for (Py_ssize_t i = 0; i < listSize; ++i) {
             PyObject* listItem = PyList_GetItem(parameterList, i);
-            const std::string strValue = PyUnicode_AsUTF8(PyObject_Str(listItem));
-            const std::string valueType = Py_TYPE(listItem)->tp_name;
+            std::string strValue = PyUnicode_AsUTF8(PyObject_Str(listItem));
+            std::string valueType = Py_TYPE(listItem)->tp_name;
 
             try {
-                params.push_back({ strValue, typeMap[valueType] });
+                /** force lowercase boolean parameters */
+                if (ipc_main::str_type_map.at(valueType) == ipc_main::javascript_evaluation_type::Boolean) {
+                    std::transform(strValue.begin(), strValue.end(), strValue.begin(), ::tolower);
+                }
+
+                params.push_back({ strValue, ipc_main::str_type_map.at(valueType) });
             } catch (const std::exception&) {
                 PyErr_SetString(PyExc_TypeError, "Millennium's IPC can only handle [bool, str, int]");
                 return NULL;
@@ -95,14 +101,10 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
     }
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
-    const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
 
-    return JavaScript::Py_EvaluateFromSocket(
-        // Check the the frontend code is actually loaded aside from SteamUI
-        fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
-                    "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
-                    "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new window.MillenniumFrontEndError('frontend not loaded yet!');\n\n{}",
-                    pluginName, script));
+    std::shared_ptr<ipc_main> m_ipc_main = g_plugin_loader->get_ipc_main();
+    const std::string script = m_ipc_main->compile_javascript_expression(pluginName, methodName, params);
+    return m_ipc_main->evaluate_javascript_expression(script).to_python();
 }
 
 PyObject* GetVersionInfo([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
@@ -167,8 +169,7 @@ PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    bool isEnabled = settingsStore->IsEnabledPlugin(pluginName);
+    bool isEnabled = g_plugin_loader->get_settings_store()->IsEnabledPlugin(pluginName);
     return PyBool_FromLong(isEnabled);
 }
 
@@ -183,10 +184,7 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
     }
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
-
-    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
-    backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
-
+    g_plugin_loader->get_backend_event_dispatcher()->backend_loaded_event_hdlr({ pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
     return PyBool_FromLong(true);
 }
 

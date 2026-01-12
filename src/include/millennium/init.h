@@ -30,18 +30,20 @@
 
 #pragma once
 
+#include "millennium/backend_init.h"
 #include "millennium/http_hooks.h"
 #include "millennium/core_ipc.h"
 #include "millennium/ffi_binder.h"
 #include "millennium/cdp_api.h"
-#include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/cef_bridge.h"
 #include "millennium/http_hooks.h"
+#include "millennium/life_cycle.h"
 #include "millennium/sysfs.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 #include "millennium/plugin_webkit_store.h"
 
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -59,11 +61,16 @@ class plugin_loader
     plugin_loader();
     ~plugin_loader();
 
-    void StartBackEnds(BackendManager& manager);
-    void StartFrontEnds();
+    void start_plugin_backends();
+    void start_plugin_frontends();
     void setup_webkit_shims();
 
     void inject_frontend_shims(bool reload_frontend);
+
+    std::shared_ptr<ipc_main> get_ipc_main();
+    std::shared_ptr<backend_manager> get_backend_manager();
+    std::shared_ptr<backend_event_dispatcher> get_backend_event_dispatcher();
+    std::shared_ptr<SettingsStore> get_settings_store();
 
   private:
     void init();
@@ -78,19 +85,23 @@ class plugin_loader
     std::string cdp_generate_bootstrap_module(const std::vector<std::string>& modules);
     std::string cdp_generate_shim_module();
 
+    std::unique_ptr<thread_pool> m_thread_pool;
     std::shared_ptr<SettingsStore> m_settings_store_ptr;
-    std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_plugin_ptr, m_enabledPluginsPtr;
+    std::shared_ptr<std::vector<SettingsStore::plugin_t>> m_plugin_ptr, m_enabledPluginsPtr;
 
+    std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
+    std::shared_ptr<backend_manager> m_backend_manager;
+    std::shared_ptr<backend_initializer> m_backend_initializer;
+    std::shared_ptr<ipc_main> m_ipc_main;
     std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
     std::shared_ptr<plugin_webkit_store> m_plugin_webkit_store;
     std::shared_ptr<webkit_world_mgr> world_mgr;
     std::shared_ptr<ffi_binder> m_ffi_binder;
     std::shared_ptr<cdp_client> m_cdp;
-    std::shared_ptr<ipc_main> m_ipc_main;
 
-    std::unique_ptr<thread_pool> m_thread_pool;
     std::chrono::system_clock::time_point m_socket_con_time;
     std::string document_script_id;
+    bool has_loaded_core_plugin;
 };
 
 extern std::shared_ptr<plugin_loader> g_plugin_loader;

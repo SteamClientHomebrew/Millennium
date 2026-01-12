@@ -48,7 +48,7 @@ class SettingsStore
 
     static constexpr const char* pluginConfigFile = "plugin.json";
 
-    struct PluginTypeSchema
+    struct plugin_t
     {
         std::string pluginName;
         nlohmann::basic_json<> pluginJson;
@@ -60,9 +60,9 @@ class SettingsStore
         bool isInternal = false;
     };
 
-    std::vector<PluginTypeSchema> ParseAllPlugins();
-    std::vector<PluginTypeSchema> GetEnabledBackends();
-    std::vector<PluginTypeSchema> GetEnabledPlugins();
+    std::vector<plugin_t> ParseAllPlugins();
+    std::vector<plugin_t> GetEnabledBackends();
+    std::vector<plugin_t> GetEnabledPlugins();
     std::vector<std::string> GetEnabledPluginNames();
 
     bool IsEnabledPlugin(std::string pluginName);
@@ -73,7 +73,7 @@ class SettingsStore
 
   private:
     void LintPluginData(nlohmann::json json, std::string pluginName);
-    PluginTypeSchema GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
+    plugin_t GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
 };
 
 namespace SystemIO

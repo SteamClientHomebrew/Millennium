@@ -43,11 +43,12 @@ class ffi_binder
 {
   public:
     ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<ipc_main> ipc_main);
+    ~ffi_binder();
 
   private:
-    std::shared_ptr<ipc_main> m_ipc_main;
     std::shared_ptr<cdp_client> m_client;
     std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<ipc_main> m_ipc_main;
 
     void callback_into_js(const json params, const int request_id, json result);
 

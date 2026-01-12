@@ -29,8 +29,9 @@
  */
 
 #include "head/ipc_handler.h"
+#include "millennium/core_ipc.h"
+#include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/ffi.h"
 
 /**
  * stored in a static instance only instantiated after its called once.
@@ -76,11 +77,12 @@ nlohmann::ordered_json HandleIpcMessage(const std::string& functionName, const n
 
 void IpcForwardInstallLog(const InstallMessage& message)
 {
-    std::vector<JavaScript::JsFunctionConstructTypes> params = {
-        { message.status, JavaScript::Types::String },
-        { fmt::format("{}", message.progress), JavaScript::Types::Integer },
-        { fmt::format("{}", message.isComplete), JavaScript::Types::Boolean }
+    std::vector<ipc_main::javascript_parameter> params = {
+        { message.status, ipc_main::javascript_evaluation_type::String },
+        { fmt::format("{}", message.progress), ipc_main::javascript_evaluation_type::Integer },
+        { fmt::format("{}", message.isComplete), ipc_main::javascript_evaluation_type::Boolean }
     };
 
-    JavaScript::ExecuteOnSharedJsContext(JavaScript::ConstructFunctionCall("core", "InstallerMessageEmitter", params));
+    std::shared_ptr<ipc_main> m_ipc_main = g_plugin_loader->get_ipc_main();
+    m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));
 }

@@ -35,11 +35,12 @@
 #include "head/theme_cfg.h"
 #include "head/webkit.h"
 
+#include "millennium/backend_mgr.h"
+#include "millennium/init.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
-#include "millennium/backend_init.h"
 #include "millennium/encode.h"
 
 std::shared_ptr<ThemeConfig> g_theme_config;
@@ -73,7 +74,7 @@ std::string Millennium_GetQuickCss()
 
 void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
 {
-    BackendManager& manager = BackendManager::GetInstance();
+    std::shared_ptr<backend_manager> backend_manager_ptr = g_plugin_loader->get_backend_manager();
 
     std::unordered_map<std::string, bool> pluginStatusMap;
     for (const auto& plugin : plugins) {
@@ -99,16 +100,16 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
     }
 
     if (hasEnableRequests) {
-        g_plugin_loader->StartBackEnds(manager);
+        g_plugin_loader->start_plugin_backends();
     }
 
     for (const auto& pluginName : pluginsToDisable) {
-        const auto backendType = manager.GetPluginBackendType(pluginName);
+        const auto backendType = backend_manager_ptr->get_plugin_backend_type(pluginName);
 
         if (backendType == SettingsStore::PluginBackendType::Lua) {
-            manager.DestroyLuaInstance(pluginName);
+            backend_manager_ptr->destroy_lua_vm(pluginName);
         } else if (backendType == SettingsStore::PluginBackendType::Python) {
-            manager.DestroyPythonInstance(pluginName);
+            backend_manager_ptr->python_destroy_vm(pluginName);
         }
     }
 
@@ -128,7 +129,7 @@ unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const cha
 nlohmann::json Millennium_GetPluginLogs()
 {
     nlohmann::json logData = nlohmann::json::array();
-    std::vector<SettingsStore::PluginTypeSchema> plugins = g_settings_store->ParseAllPlugins();
+    std::vector<SettingsStore::plugin_t> plugins = g_settings_store->ParseAllPlugins();
 
     for (auto& logger : get_plugin_logger_mgr()) {
         nlohmann::json logDataItem;

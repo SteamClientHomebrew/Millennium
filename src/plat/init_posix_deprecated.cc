@@ -107,7 +107,6 @@ int Deprecated_HookedMain(int argc, char** argv, char** envp)
     Logger.Log("Hooked Steam entry returned {}", steam_main);
 
     g_shouldTerminateMillennium->flag.store(true);
-    Sockets::Shutdown();
     g_millenniumThread->join();
 
     Logger.Log("Shutting down Millennium...");

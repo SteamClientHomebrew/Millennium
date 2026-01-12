@@ -45,7 +45,6 @@ include_directories(
 )
 
 set(SOURCE_FILES
-    runtime/libjs_interop.cc
     runtime/liblj_api.cc
     runtime/liblj_http.cc
     runtime/liblj_interop.cc

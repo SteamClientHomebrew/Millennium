@@ -31,6 +31,8 @@
 #pragma once
 #include <condition_variable>
 #include <queue>
+#include <thread>
+#include <atomic>
 #include <functional>
 
 class thread_pool

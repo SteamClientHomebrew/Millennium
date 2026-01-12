@@ -33,9 +33,8 @@
 #include "millennium/auth.h"
 #include "millennium/core_ipc.h"
 #include "millennium/encode.h"
-#include "millennium/ffi.h"
+#include "millennium/logger.h"
 #include "millennium/sysfs.h"
-#include "millennium/backend_mgr.h"
 
 #include <fmt/core.h>
 #include <functional>
@@ -45,6 +44,138 @@
 
 using namespace std::placeholders;
 
+PyObject* ipc_main::javascript_evaluation_result::to_python() const
+{
+    if (!valid) {
+        if (error == "frontend is not loaded!") {
+            PyErr_SetString(PyExc_ConnectionError, error.c_str());
+        } else {
+            PyErr_SetString(PyExc_RuntimeError, error.c_str());
+        }
+        return nullptr;
+    }
+
+    const json& response_json = std::get<0>(response);
+    std::string type = response_json["type"];
+
+    if (type == "string") return PyUnicode_FromString(response_json["value"].get<std::string>().c_str());
+    if (type == "boolean") return PyBool_FromLong(response_json["value"]);
+    if (type == "number") return PyLong_FromLong(response_json["value"]);
+
+    return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
+}
+
+int ipc_main::javascript_evaluation_result::to_lua(lua_State* L) const
+{
+    if (!valid) {
+        lua_pushnil(L);
+        lua_pushstring(L, error.c_str());
+        return 2;
+    }
+
+    const json& response_json = std::get<0>(response);
+
+    std::string type = response_json["type"];
+    if (type == "string") {
+        lua_pushstring(L, response_json["value"].get<std::string>().c_str());
+        return 1;
+    }
+    if (type == "boolean") {
+        lua_pushboolean(L, response_json["value"]);
+        return 1;
+    }
+    if (type == "number") {
+        lua_pushinteger(L, response_json["value"]);
+        return 1;
+    }
+
+    lua_pushnil(L);
+    lua_pushstring(L, fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
+    return 2;
+}
+
+json ipc_main::javascript_evaluation_result::to_json(const std::string& pluginName) const
+{
+    return {
+        { "returnJson", std::get<0>(response) },
+        { "pluginName", pluginName            },
+        { "success",    valid                 }
+    };
+}
+
+ipc_main::javascript_evaluation_result ipc_main::evaluate_javascript_expression(std::string script)
+{
+    try {
+        std::tuple<json, bool> response;
+
+        const json params = {
+            { "expression",   script },
+            { "awaitPromise", true   }
+        };
+
+        auto result = m_cdp->send("Runtime.evaluate", params).get();
+
+        if (result.contains("exceptionDetails")) {
+            const std::string classType = result["exceptionDetails"]["exception"]["className"];
+
+            if (classType == "MillenniumFrontEndError")
+                response = std::make_tuple("__CONNECTION_ERROR__", false);
+            else
+                response = std::make_tuple(result["exceptionDetails"]["exception"]["description"], false);
+        } else {
+            response = std::make_tuple(result["result"], true);
+        }
+
+        if (!std::get<1>(response)) {
+            return javascript_evaluation_result(std::move(response), false, std::get<0>(response).get<std::string>());
+        }
+        return javascript_evaluation_result(std::move(response), true);
+    } catch (const nlohmann::detail::exception& ex) {
+        return javascript_evaluation_result({}, false, fmt::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what()));
+    } catch (const std::exception&) {
+        return javascript_evaluation_result({}, false, "frontend is not loaded!");
+    }
+}
+
+const std::string ipc_main::compile_javascript_expression(std::string plugin, std::string methodName, std::vector<javascript_parameter> fnParams)
+{
+    constexpr std::string_view error_handler = R"(
+        if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{
+            window.MillenniumFrontEndError = class MillenniumFrontEndError extends Error {{
+                constructor(message) {{
+                    super(message);
+                    this.name = 'MillenniumFrontEndError';
+                }}
+            }}
+        }}
+        if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{0}']) {{
+            throw new window.MillenniumFrontEndError('frontend not loaded yet!');
+        }}
+    )";
+
+    std::string expression;
+    expression.reserve(error_handler.size() + 256);
+
+    expression = fmt::format(error_handler, plugin);
+    expression += fmt::format("window.PLUGIN_LIST['{}'].{}(", plugin, methodName);
+
+    for (size_t i = 0; i < fnParams.size(); ++i) {
+        const auto& param = fnParams[i];
+
+        if (param.type == javascript_evaluation_type::String) {
+            expression += fmt::format("btoa(\"{}\")", Base64Encode(param.value));
+        } else {
+            expression += param.value;
+        }
+
+        if (i + 1 < fnParams.size()) {
+            expression += ", ";
+        }
+    }
+    expression += ");";
+    return expression;
+}
+
 /**
  * @brief Handles an internal "call server method" request by dispatching it to the appropriate core IPC handler.
  * This function constructs an EvalResult based on the response from the core IPC handler.
@@ -52,7 +183,7 @@ using namespace std::placeholders;
  * @param {json} message - The JSON message containing the request data.
  * @returns {EvalResult} - The result of the core IPC method invocation.
  */
-EvalResult ipc_main::handle_core_server_method(const json& call)
+ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
 {
     try {
         const auto& functionName = call["data"]["methodName"].get<std::string>();
@@ -61,7 +192,7 @@ EvalResult ipc_main::handle_core_server_method(const json& call)
         ordered_json result = HandleIpcMessage(functionName, args);
 
         auto it = FFIMap_t.find(result.type());
-        return it != FFIMap_t.end() ? EvalResult{ it->second, result.dump() } : EvalResult{ FFI_Type::UnknownType, "core IPC call returned unknown type" };
+        return it != FFIMap_t.end() ? vm_call_result{ it->second, result.dump() } : vm_call_result{ FFI_Type::UnknownType, "core IPC call returned unknown type" };
     }
     /** the internal c ipc method threw an exception */
     catch (const std::exception& ex) {
@@ -79,14 +210,14 @@ EvalResult ipc_main::handle_core_server_method(const json& call)
  * @returns {EvalResult} - The result of the backend method invocation.
  * @note assert is used to ensure that the backend type is known and has a corresponding handler.
  */
-EvalResult ipc_main::handle_plugin_server_method(const std::string& pluginName, const json& message)
+ipc_main::vm_call_result ipc_main::handle_plugin_server_method(const std::string& pluginName, const json& message)
 {
-    static const std::unordered_map<SettingsStore::PluginBackendType, std::function<EvalResult(const std::string&, const json&)>> handlers = {
-        { SettingsStore::PluginBackendType::Python, Python::LockGILAndInvokeMethod },
-        { SettingsStore::PluginBackendType::Lua,    Lua::LockAndInvokeMethod       }
+    static const std::unordered_map<SettingsStore::PluginBackendType, std::function<vm_call_result(const std::string&, const json&)>> handlers = {
+        { SettingsStore::PluginBackendType::Python, std::bind(&ipc_main::python_evaluate, this, _1, _2) },
+        { SettingsStore::PluginBackendType::Lua,    std::bind(&ipc_main::lua_evaluate,    this, _1, _2) },
     };
 
-    const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
+    const auto backendType = m_backend_manager->get_plugin_backend_type(pluginName);
     auto it = handlers.find(backendType);
     assert(it != handlers.end() && "HandlePluginServerMethod: Unknown backend type encountered?");
 
@@ -118,7 +249,7 @@ json ipc_main::call_server_method(const json& call)
     const auto pluginName = call["data"]["pluginName"].get<std::string>();
 
     /** Conditionally dispatch call between internal IPC call, and Python / Lua */
-    EvalResult response = pluginName == "core" ? handle_core_server_method(call) : handle_plugin_server_method(pluginName, call);
+    vm_call_result response = pluginName == "core" ? handle_core_server_method(call) : handle_plugin_server_method(pluginName, call);
 
     /** Convert the EvalResult into a JSON response */
     auto convertResponseValue = [](const auto& response)
@@ -135,8 +266,7 @@ json ipc_main::call_server_method(const json& call)
     };
 
     nlohmann::json responseMessage = {
-        { "returnType", response.type     },
-        { "id",         call["iteration"] }
+        { "returnType", response.type }
     };
 
     if (response.type == FFI_Type::UnknownType || response.type == FFI_Type::Error) {
@@ -170,11 +300,11 @@ json ipc_main::on_front_end_loaded(const json& call)
         Logger.Log("Delegating frontend load for plugin: {}", pluginName);
 
         static const std::unordered_map<SettingsStore::PluginBackendType, std::function<void(const std::string&)>> handlers = {
-            { SettingsStore::PluginBackendType::Python, Python::CallFrontEndLoaded },
-            { SettingsStore::PluginBackendType::Lua,    Lua::CallFrontEndLoaded    }
+            { SettingsStore::PluginBackendType::Python, std::bind(&ipc_main::python_call_frontend_loaded, this, _1) },
+            { SettingsStore::PluginBackendType::Lua,    std::bind(&ipc_main::lua_call_frontend_loaded,    this, _1) }
         };
 
-        const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
+        const auto backendType = m_backend_manager->get_plugin_backend_type(pluginName);
         auto it = handlers.find(backendType);
         if (it != handlers.end()) {
             it->second(pluginName);
@@ -185,32 +315,29 @@ json ipc_main::on_front_end_loaded(const json& call)
 
     /** call["iteration"] is always null/0 as its not provided by the frontend since moving it from socket to http hook */
     return {
-        { "id",      call["iteration"] },
-        { "success", true              }
+        { "id",      (call.contains("iteration") ? call["iteration"] : nlohmann::json(nullptr)) },
+        { "success", true                                                                       }
     };
 }
 
 json ipc_main::call_frontend_method(const json& call)
 {
-    const std::string pluginName = call["data"]["pluginName"];
-    const std::string method_name = call["data"]["methodName"];
-
-    std::vector<JavaScript::JsFunctionConstructTypes> params;
+    std::vector<javascript_parameter> params;
 
     if (call["data"].contains("argumentList")) {
         for (const auto& arg : call["data"]["argumentList"]) {
-            JavaScript::JsFunctionConstructTypes param;
+            javascript_parameter param;
 
             if (arg.contains("type") && arg.contains("value")) {
                 const std::string type = arg["type"];
-                param.pluginName = arg["value"];
+                param.value = arg["value"];
 
                 if (type == "string") {
-                    param.type = JavaScript::Types::String;
+                    param.type = javascript_evaluation_type::String;
                 } else if (type == "boolean") {
-                    param.type = JavaScript::Types::Boolean;
+                    param.type = javascript_evaluation_type::Boolean;
                 } else if (type == "number") {
-                    param.type = JavaScript::Types::Integer;
+                    param.type = javascript_evaluation_type::Integer;
                 }
             } else {
                 LOG_ERROR("malformed argument in CallFrontEndMethod, skipping...");
@@ -221,21 +348,8 @@ json ipc_main::call_frontend_method(const json& call)
         }
     }
 
-    const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), method_name.c_str(), params);
-
-    JsEvalResult result = JavaScript::ExecuteOnSharedJsContext(
-        fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
-                    "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
-                    "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new window.MillenniumFrontEndError('frontend not loaded yet!');\n\n{}",
-                    pluginName, script));
-
-    json response = {
-        { "returnJson", result.json           },
-        { "pluginName", pluginName            },
-        { "success",    result.successfulCall },
-    };
-
-    return response;
+    const std::string script = this->compile_javascript_expression(call["data"]["pluginName"], call["data"]["methodName"], params);
+    return this->evaluate_javascript_expression(script).to_json(call["data"]["pluginName"]);
 }
 
 /**

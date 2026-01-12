@@ -28,25 +28,23 @@
  * SOFTWARE.
  */
 
-#include "millennium/backend_mgr.h"
-#include "millennium/ffi.h"
+#include "millennium/core_ipc.h"
+#include "millennium/logger.h"
 
 #define LUA_IS_LOCKED_ERROR_MESSAGE                                                                                                                                                \
     "Lua state is currently locked and FFI call couldn't be made safely. "                                                                                                         \
     "You likely are IO blocking the main thread of your backend. "                                                                                                                 \
     "All backend functions should be non-blocking and finish shortly after calling."
 
-EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json script)
+ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann::json script)
 {
-    BackendManager& backendManager = BackendManager::GetInstance();
-
-    auto luaStateOpt = backendManager.GetLuaThreadStateFromName(pluginName);
+    auto luaStateOpt = m_backend_manager->lua_thread_state_from_plugin_name(pluginName);
     if (!luaStateOpt.has_value()) {
         return { FFI_Type::Error, "Lua state not found for plugin: " + pluginName };
     }
 
     lua_State* L = luaStateOpt.value();
-    backendManager.Lua_LockLua(L);
+    m_backend_manager->lua_lock(L);
 
     if (!script.contains("methodName") || !script["methodName"].is_string()) {
         return { FFI_Type::Error, "Missing or invalid methodName in script" };
@@ -73,13 +71,13 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
         lua_getglobal(L, tableName.c_str()); // push table
         if (!lua_istable(L, -1)) {
             lua_pop(L, 1);
-            backendManager.Lua_UnlockLua(L);
+            m_backend_manager->lua_unlock(L);
             return { FFI_Type::Error, "Table not found in Lua: " + tableName };
         }
         lua_getfield(L, -1, funcName.c_str()); // push function
         if (!lua_isfunction(L, -1)) {
             lua_pop(L, 2);
-            backendManager.Lua_UnlockLua(L);
+            m_backend_manager->lua_unlock(L);
             return { FFI_Type::Error, "Method not found in Lua: " + methodName };
         }
         lua_pushvalue(L, -2); /** push table as self */
@@ -106,7 +104,7 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
         lua_getglobal(L, methodName.c_str());
         if (!lua_isfunction(L, -1)) {
             lua_pop(L, 1);
-            backendManager.Lua_UnlockLua(L);
+            m_backend_manager->lua_unlock(L);
             return { FFI_Type::Error, "Function not found in Lua: " + methodName };
         }
         for (const auto& arg : argValues) {
@@ -129,7 +127,7 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
         std::string errMsg = err ? err : "Unknown Lua error";
         lua_pop(L, 1);
 
-        backendManager.Lua_UnlockLua(L);
+        m_backend_manager->lua_unlock(L);
         return { FFI_Type::Error, errMsg };
     }
 
@@ -154,28 +152,26 @@ EvalResult Lua::LockAndInvokeMethod(std::string pluginName, nlohmann::json scrip
     }
     lua_pop(L, 1);
 
-    backendManager.Lua_UnlockLua(L);
+    m_backend_manager->lua_unlock(L);
     return { resultType, result };
 }
 
-void Lua::CallFrontEndLoaded(std::string pluginName)
+void ipc_main::lua_call_frontend_loaded(std::string pluginName)
 {
-    BackendManager& backendManager = BackendManager::GetInstance();
-
-    auto luaStateOpt = backendManager.GetLuaThreadStateFromName(pluginName);
+    auto luaStateOpt = m_backend_manager->lua_thread_state_from_plugin_name(pluginName);
     if (!luaStateOpt.has_value()) {
         LOG_ERROR("Lua state not found for plugin: {}", pluginName);
         return;
     }
 
     lua_State* L = luaStateOpt.value();
-    backendManager.Lua_LockLua(L);
+    m_backend_manager->lua_lock(L);
 
     lua_getglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
     if (!lua_istable(L, -1)) {
         LOG_ERROR("MILLENNIUM_PLUGIN_DEFINITION not found or not a table for plugin: {}", pluginName);
         lua_pop(L, 1);
-        backendManager.Lua_UnlockLua(L);
+        m_backend_manager->lua_unlock(L);
         return;
     }
 
@@ -183,7 +179,7 @@ void Lua::CallFrontEndLoaded(std::string pluginName)
     if (!lua_isfunction(L, -1)) {
         Logger.Warn("on_frontend_loaded not found or not a function for plugin: {}", pluginName);
         lua_pop(L, 2);
-        backendManager.Lua_UnlockLua(L);
+        m_backend_manager->lua_unlock(L);
         return;
     }
 
@@ -194,5 +190,5 @@ void Lua::CallFrontEndLoaded(std::string pluginName)
     }
 
     lua_pop(L, 1);
-    backendManager.Lua_UnlockLua(L);
+    m_backend_manager->lua_unlock(L);
 }

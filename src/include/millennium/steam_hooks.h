@@ -68,4 +68,5 @@ bool SetupEntryPointHook();
 bool InitializeSteamHooks();
 #endif
 
+void Plat_WaitForBackendLoad();
 bool Plat_InitializeSteamHooks();

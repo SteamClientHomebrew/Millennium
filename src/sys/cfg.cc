@@ -29,9 +29,9 @@
  */
 
 #include "millennium/logger.h"
-#include "millennium/plat_msg.h"
 #include "millennium/sysfs.h"
 #include "millennium/env.h"
+#include "millennium/plat_msg.h"
 
 #include <fmt/core.h>
 #include <fstream>
@@ -217,9 +217,9 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
  * @param entry The directory entry for the plugin.
  * @return SettingsStore::PluginTypeSchema The plugin data.
  */
-SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry)
+SettingsStore::plugin_t SettingsStore::GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry)
 {
-    SettingsStore::PluginTypeSchema plugin;
+    SettingsStore::plugin_t plugin;
     const std::string pluginDirName = entry.path().filename().string();
 
     /** Check if the plugin json contains all the required fields */
@@ -237,9 +237,9 @@ SettingsStore::PluginTypeSchema SettingsStore::GetPluginInternalData(nlohmann::j
     return plugin;
 }
 
-std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
+std::vector<SettingsStore::plugin_t> SettingsStore::ParseAllPlugins()
 {
-    std::vector<SettingsStore::PluginTypeSchema> plugins;
+    std::vector<SettingsStore::plugin_t> plugins;
     const auto plugin_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
 
     try {
@@ -283,10 +283,10 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::ParseAllPlugins()
 /**
  * @brief Get all the enabled plugins from the plugin list.
  */
-std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
+std::vector<SettingsStore::plugin_t> SettingsStore::GetEnabledPlugins()
 {
     const auto allPlugins = this->ParseAllPlugins();
-    std::vector<SettingsStore::PluginTypeSchema> enabledPlugins;
+    std::vector<SettingsStore::plugin_t> enabledPlugins;
 
     for (auto& plugin : allPlugins) {
         if (this->IsEnabledPlugin(plugin.pluginName)) {
@@ -303,7 +303,7 @@ std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledPlugins()
 std::vector<std::string> SettingsStore::GetEnabledPluginNames()
 {
     std::vector<std::string> enabledPlugins;
-    std::vector<SettingsStore::PluginTypeSchema> plugins = this->GetEnabledPlugins();
+    std::vector<SettingsStore::plugin_t> plugins = this->GetEnabledPlugins();
 
     /** only add the plugin name. */
     std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
@@ -316,10 +316,10 @@ std::vector<std::string> SettingsStore::GetEnabledPluginNames()
  * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false.
  * Not all enabled plugins have backends.
  */
-std::vector<SettingsStore::PluginTypeSchema> SettingsStore::GetEnabledBackends()
+std::vector<SettingsStore::plugin_t> SettingsStore::GetEnabledBackends()
 {
     const auto allPlugins = this->ParseAllPlugins();
-    std::vector<SettingsStore::PluginTypeSchema> enabledBackends;
+    std::vector<SettingsStore::plugin_t> enabledBackends;
 
     for (auto& plugin : allPlugins) {
         if (this->IsEnabledPlugin(plugin.pluginName) && plugin.pluginJson.value("useBackend", true)) {
@@ -451,17 +451,13 @@ void ConfigManager::LoadFromFile()
                 file >> _data;
             } catch (...) {
                 Logger.Warn("Invalid JSON in config file: {}", _filename);
-#ifdef _WIN32
                 Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(),
                                     MESSAGEBOX_WARNING);
-#endif
                 _data = nlohmann::json::object();
             }
         } else {
             Logger.Warn("Failed to open config file: {}", _filename);
-#ifdef _WIN32
             Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
-#endif
             _data = nlohmann::json::object();
         }
     }

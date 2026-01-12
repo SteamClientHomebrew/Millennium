@@ -36,7 +36,6 @@
 #include "millennium/env.h"
 #include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/steam_hooks.h"
 
 #include <ctime>
 #include <dlfcn.h>
@@ -44,6 +43,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <thread>
 
 std::unique_ptr<std::thread> g_millenniumThread;
 
@@ -145,22 +145,6 @@ void Posix_AttachMillennium()
     Posix_AttachWebHelperHook();
     Plat_CheckForUpdates();
     EntryMain();
-
-    BackendManager& manager = BackendManager::GetInstance();
-    std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-
-    cv_hasSteamUnloaded.wait(lk, [&manager]()
-    {
-        /** wait for all backends to stop so we can safely free the loader lock */
-        if (manager.HasAllPythonBackendsStopped() && manager.HasAllLuaBackendsStopped()) {
-            Logger.Warn("All backends have stopped, proceeding with termination...");
-
-            std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
-            cv_hasAllPythonPluginsShutdown.notify_all();
-            return true;
-        }
-        return false;
-    });
 }
 
 /** New interop funcs that receive calls from hooked libXtst */
@@ -183,7 +167,6 @@ extern "C" __attribute__((visibility("default"))) int StopMillennium()
     Logger.Log("Unloading Millennium...");
     g_shouldTerminateMillennium->flag.store(true);
 
-    Sockets::Shutdown();
     if (g_millenniumThread && g_millenniumThread->joinable()) {
         g_millenniumThread->join();
     }

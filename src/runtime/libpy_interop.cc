@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "millennium/backend_mgr.h"
+#include "millennium/core_ipc.h"
 #include "millennium/ffi.h"
 #include "millennium/plugin_logger.h"
 #include <tuple>
@@ -43,7 +43,7 @@ using json = nlohmann::json;
  *
  * @return { errorMessageString, tracebackString }
  */
-std::tuple<std::string, std::string> Python::ActiveExceptionInformation()
+std::tuple<std::string, std::string> Python_GetActiveExceptionInformation()
 {
     PyObject* typeObj = nullptr;
     PyObject* valueObj = nullptr;
@@ -92,50 +92,50 @@ namespace Python
 {
 namespace ObjectHandler
 {
-EvalResult HandleActiveException()
+ipc_main::vm_call_result HandleActiveException()
 {
-    const auto [errorMessage, tracebackText] = ActiveExceptionInformation();
-    return { FFI_Type::Error, errorMessage + tracebackText };
+    const auto [errorMessage, tracebackText] = Python_GetActiveExceptionInformation();
+    return { ipc_main::FFI_Type::Error, errorMessage + tracebackText };
 }
 
-EvalResult HandleBooleanObject(PyObject* obj)
+ipc_main::vm_call_result HandleBooleanObject(PyObject* obj)
 {
-    return { FFI_Type::Boolean, (obj == Py_True) ? "True" : "False" };
+    return { ipc_main::FFI_Type::Boolean, (obj == Py_True) ? "True" : "False" };
 }
 
-EvalResult HandleIntegerObject(PyObject* obj)
+ipc_main::vm_call_result HandleIntegerObject(PyObject* obj)
 {
     long longValue = PyLong_AsLong(obj);
     if (PyErr_Occurred()) return HandleActiveException();
-    return { FFI_Type::Integer, std::to_string(longValue) };
+    return { ipc_main::FFI_Type::Integer, std::to_string(longValue) };
 }
 
-EvalResult HandleFloatObject(PyObject* obj)
+ipc_main::vm_call_result HandleFloatObject(PyObject* obj)
 {
     double doubleValue = PyFloat_AsDouble(obj);
     if (PyErr_Occurred()) return HandleActiveException();
-    return { FFI_Type::String, std::to_string(doubleValue) };
+    return { ipc_main::FFI_Type::String, std::to_string(doubleValue) };
 }
 
-EvalResult HandleUnicodeObject(PyObject* obj)
+ipc_main::vm_call_result HandleUnicodeObject(PyObject* obj)
 {
     const char* valueStr = PyUnicode_AsUTF8(obj);
     if (PyErr_Occurred()) return HandleActiveException();
-    return { FFI_Type::String, valueStr ? std::string(valueStr) : std::string("") };
+    return { ipc_main::FFI_Type::String, valueStr ? std::string(valueStr) : std::string("") };
 }
 
-EvalResult HandleBytesObject(PyObject* obj)
+ipc_main::vm_call_result HandleBytesObject(PyObject* obj)
 {
     char* bytesValue = PyBytes_AsString(obj);
-    if (!bytesValue) return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string." };
+    if (!bytesValue) return { ipc_main::FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to convert bytes object to string." };
 
     Py_ssize_t size = PyBytes_Size(obj);
-    if (size < 0) return { FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object." };
+    if (size < 0) return { ipc_main::FFI_Type::Error, "Python::ObjectHandler::HandleBytesObject(): Failed to get size of bytes object." };
 
-    return { FFI_Type::String, std::string(bytesValue, size) };
+    return { ipc_main::FFI_Type::String, std::string(bytesValue, size) };
 }
 
-EvalResult HandleContainerObject(PyObject* obj)
+ipc_main::vm_call_result HandleContainerObject(PyObject* obj)
 {
     PyObject* jsonModule = PyImport_ImportModule("json");
     if (jsonModule) {
@@ -148,7 +148,7 @@ EvalResult HandleContainerObject(PyObject* obj)
                 Py_XDECREF(jsonStr);
                 Py_DECREF(dumpsFunction);
                 Py_DECREF(jsonModule);
-                return { FFI_Type::JSON, result };
+                return { ipc_main::FFI_Type::JSON, result };
             }
             Py_XDECREF(jsonStr);
             Py_DECREF(dumpsFunction);
@@ -162,27 +162,27 @@ EvalResult HandleContainerObject(PyObject* obj)
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
         std::string result = unicodeRepresentation ? unicodeRepresentation : "{}";
         Py_DECREF(objRepresentation);
-        return { FFI_Type::JSON, result };
+        return { ipc_main::FFI_Type::JSON, result };
     }
 
-    return { FFI_Type::JSON, "{}" };
+    return { ipc_main::FFI_Type::JSON, "{}" };
 }
 
-EvalResult HandleNoneObject()
+ipc_main::vm_call_result HandleNoneObject()
 {
-    return { FFI_Type::JSON, "null" };
+    return { ipc_main::FFI_Type::JSON, "null" };
 }
 
-EvalResult HandleUnknownObject(PyObject* obj)
+ipc_main::vm_call_result HandleUnknownObject(PyObject* obj)
 {
     PyObject* objRepresentation = PyObject_Repr(obj);
     if (objRepresentation) {
         const char* unicodeRepresentation = PyUnicode_AsUTF8(objRepresentation);
         std::string result = unicodeRepresentation ? unicodeRepresentation : "<unknown object>";
         Py_DECREF(objRepresentation);
-        return { FFI_Type::UnknownType, result };
+        return { ipc_main::FFI_Type::UnknownType, result };
     }
-    return { FFI_Type::UnknownType, "<unknown object>" };
+    return { ipc_main::FFI_Type::UnknownType, "<unknown object>" };
 }
 } // namespace ObjectHandler
 } // namespace Python
@@ -196,7 +196,7 @@ EvalResult HandleUnknownObject(PyObject* obj)
  *
  * @throws Does not throw C++ exceptions, but handles Python exceptions internally
  */
-EvalResult PyObjectCastEvalResult(PyObject* obj)
+ipc_main::vm_call_result PyObjectCastEvalResult(PyObject* obj)
 {
     if (!obj) return Python::ObjectHandler::HandleActiveException();
 
@@ -376,22 +376,22 @@ PyObject* InvokePythonFunction(const nlohmann::json& jsonData)
  *
  * The function ensures that the GIL is properly acquired and released before and after execution.
  */
-EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json functionCall)
+ipc_main::vm_call_result ipc_main::python_evaluate(std::string pluginName, nlohmann::json functionCall)
 {
-    const bool hasBackend = BackendManager::GetInstance().HasPythonBackend(pluginName);
+    const bool hasBackend = m_backend_manager->has_python_backend(pluginName);
 
     /** Plugin has no backend and therefor the call should not be completed */
     if (!hasBackend) {
-        return { Boolean, "false" };
+        return { ipc_main::FFI_Type::Boolean, "false" };
     }
 
-    auto result = BackendManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    auto result = m_backend_manager->python_thread_state_from_plugin_name(pluginName);
 
     if (!result.has_value()) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
 
-        return { Error, "overstepped partying thread state" };
+        return { ipc_main::FFI_Type::Error, "overstepped partying thread state" };
     }
 
     auto& [strPluginName, threadState, interpMutex] = *result.value();
@@ -399,7 +399,7 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
     if (threadState == nullptr) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
-        return { Error, "overstepped partying thread state" };
+        return { ipc_main::FFI_Type::Error, "overstepped partying thread state" };
     }
 
     std::shared_ptr<PythonGIL> pythonGilLock = std::make_shared<PythonGIL>();
@@ -408,12 +408,12 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
     if (threadState == NULL) {
         LOG_ERROR("script execution was queried but the receiving parties thread state was nullptr");
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}", functionCall.dump()));
-        return { Error, "thread state was nullptr" };
+        return { ipc_main::FFI_Type::Error, "thread state was nullptr" };
     }
 
-    EvalResult response = PyObjectCastEvalResult(InvokePythonFunction(functionCall));
+    ipc_main::vm_call_result response = PyObjectCastEvalResult(InvokePythonFunction(functionCall));
 
-    if (response.type == FFI_Type::Error) {
+    if (response.type == ipc_main::FFI_Type::Error) {
         LOG_ERROR(fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
         ErrorToLogger(pluginName, fmt::format("Failed to evaluate script: {}. Error: {}", functionCall.dump(), response.plain));
     }
@@ -442,16 +442,16 @@ EvalResult Python::LockGILAndInvokeMethod(std::string pluginName, nlohmann::json
  *
  * The function ensures that the GIL is properly acquired and released before and after execution.
  */
-void Python::CallFrontEndLoaded(std::string pluginName)
+void ipc_main::python_call_frontend_loaded(std::string pluginName)
 {
-    const bool hasBackend = BackendManager::GetInstance().HasPythonBackend(pluginName);
+    const bool hasBackend = m_backend_manager->has_python_backend(pluginName);
 
     /** Plugin has no backend and therefor the call should not be completed */
     if (!hasBackend) {
         return;
     }
 
-    auto result = BackendManager::GetInstance().GetPythonThreadStateFromName(pluginName);
+    auto result = m_backend_manager->python_thread_state_from_plugin_name(pluginName);
 
     if (!result.has_value()) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to delegate frontend loaded message.", pluginName));
@@ -476,7 +476,7 @@ void Python::CallFrontEndLoaded(std::string pluginName)
 
         if (plugin == nullptr) {
             if (PyErr_Occurred()) {
-                auto [errorMsg, traceback] = Python::ActiveExceptionInformation();
+                auto [errorMsg, traceback] = Python_GetActiveExceptionInformation();
                 LOG_ERROR(fmt::format("Failed to get plugin attribute: {}:\n{}", errorMsg, traceback));
                 ErrorToLogger(pluginName, fmt::format("Failed to get plugin attribute: {}:\n{}", errorMsg, traceback));
             }
@@ -485,7 +485,7 @@ void Python::CallFrontEndLoaded(std::string pluginName)
 
         PyObject* result = PyObject_CallMethod(plugin, "_front_end_loaded", nullptr);
         if (result == nullptr) {
-            auto [errorMsg, traceback] = Python::ActiveExceptionInformation();
+            auto [errorMsg, traceback] = Python_GetActiveExceptionInformation();
             LOG_ERROR(fmt::format("Failed to call _front_end_loaded: {}:\n{}", errorMsg, traceback));
             ErrorToLogger(pluginName, fmt::format("Failed to call _front_end_loaded: {}:\n{}", errorMsg, traceback));
             Py_DECREF(plugin);

@@ -38,6 +38,11 @@ ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<Setti
     m_client->on("Runtime.bindingCalled", std::bind(&ffi_binder::binding_call_hdlr, this, std::placeholders::_1));
 }
 
+ffi_binder::~ffi_binder()
+{
+    Logger.Log("Successfully shut down ffi_binder...");
+}
+
 void ffi_binder::callback_into_js(const json params, const int request_id, json result)
 {
     json eval_params = {

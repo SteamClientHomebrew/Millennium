@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "millennium/backend_init.h"
+#include "millennium/life_cycle.h"
 #include "millennium/logger.h"
 
 /**
@@ -42,12 +42,12 @@
  * indicates failure (`BACKEND_LOAD_FAILED`), and appends their names to the result string.
  * If no plugins fail to load, it returns `"none"`.
  */
-std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
+std::string backend_event_dispatcher::str_get_failed_backends()
 {
     std::string failedBackends;
 
     for (const auto& plugin : this->emittedPlugins) {
-        if (plugin.event == BACKEND_LOAD_FAILED) {
+        if (plugin.event == backend_ready_event::BACKEND_LOAD_FAILED) {
             failedBackends += plugin.pluginName + ", ";
         }
     }
@@ -66,12 +66,12 @@ std::string CoInitializer::BackendCallbacks::GetFailedBackendsStr()
  * indicates success (`BACKEND_LOAD_SUCCESS`), and appends their names to the result string.
  * If no plugins are successfully loaded, it returns `"none"`.
  */
-std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
+std::string backend_event_dispatcher::str_get_successful_backends()
 {
     std::string successfulBackends;
 
     for (const auto& plugin : this->emittedPlugins) {
-        if (plugin.event == BACKEND_LOAD_SUCCESS) {
+        if (plugin.event == backend_ready_event::BACKEND_LOAD_SUCCESS) {
             successfulBackends += plugin.pluginName + ", ";
         }
     }
@@ -86,16 +86,15 @@ std::string CoInitializer::BackendCallbacks::GetSuccessfulBackendsStr()
  *         the number of enabled plugins), otherwise `false`.
  *
  */
-bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
+bool backend_event_dispatcher::are_all_backends_ready()
 {
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const std::size_t pluginCount = settingsStore->GetEnabledBackends().size();
+    const std::size_t pluginCount = m_settings_store->GetEnabledBackends().size();
 
     Logger.Log("\033[1;35mEnabled Plugins: {}, Loaded Plugins : {}\033[0m", pluginCount, emittedPlugins.size());
 
     if (this->emittedPlugins.size() == pluginCount) {
-        const std::string failedBackends = GetFailedBackendsStr();
-        const std::string successfulBackends = GetSuccessfulBackendsStr();
+        const std::string failedBackends = str_get_failed_backends();
+        const std::string successfulBackends = str_get_successful_backends();
 
         auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
         Logger.Log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), failedBackends),
@@ -118,16 +117,16 @@ bool CoInitializer::BackendCallbacks::EvaluateBackendStatus()
  * Error Handling:
  * - If the backend status is not ready, the function does nothing.
  */
-void CoInitializer::BackendCallbacks::StatusDispatch()
+void backend_event_dispatcher::update()
 {
-    if (this->EvaluateBackendStatus()) {
+    if (this->are_all_backends_ready()) {
         std::unique_lock<std::mutex> lock(listenersMutex);
 
         // Check if listeners map contains our event
         auto it = listeners.find(ON_BACKEND_READY_EVENT);
         if (it != listeners.end()) {
             // Copy callbacks to avoid iterator invalidation if a callback modifies the vector
-            std::vector<EventCallback> callbacksCopy = it->second;
+            std::vector<event_cb> callbacksCopy = it->second;
             it->second.clear();
 
             // Release the lock before executing callbacks to avoid deadlocks
@@ -143,7 +142,7 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
                     Logger.Warn("Unknown exception during callback");
                 }
             }
-            isReadyForCallback = true;
+            is_ready_for_cb = true;
         } else {
             missedEvents.push_back(ON_BACKEND_READY_EVENT);
         }
@@ -155,18 +154,18 @@ void CoInitializer::BackendCallbacks::StatusDispatch()
  *
  * @param {PluginTypeSchema} plugin - The plugin whose loading status is being processed.
  */
-void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
+void backend_event_dispatcher::backend_loaded_event_hdlr(plugin_t plugin)
 {
-    if (plugin.event == BACKEND_LOAD_FAILED) {
+    if (plugin.event == backend_ready_event::BACKEND_LOAD_FAILED) {
         Logger.Warn("Failed to load '{}'", plugin.pluginName);
-    } else if (plugin.event == BACKEND_LOAD_SUCCESS) {
+    } else if (plugin.event == backend_ready_event::BACKEND_LOAD_SUCCESS) {
         Logger.Log("Successfully loaded '{}'", plugin.pluginName);
     }
 
     /** Check if its already emitted */
     if (std::find(this->emittedPlugins.begin(), this->emittedPlugins.end(), plugin) == this->emittedPlugins.end()) {
         this->emittedPlugins.push_back(plugin);
-        this->StatusDispatch();
+        this->update();
     }
 }
 
@@ -175,7 +174,7 @@ void CoInitializer::BackendCallbacks::BackendLoaded(PluginTypeSchema plugin)
  *
  * @param {PluginTypeSchema} plugin - The plugin whose unloading status is being processed.
  */
-void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown)
+void backend_event_dispatcher::backend_unloaded_event_hdlr(plugin_t plugin, bool isShuttingDown)
 {
     assert(plugin.pluginName.empty() == false);
 
@@ -184,7 +183,7 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, b
         std::unique_lock<std::mutex> lock(listenersMutex);
 
         // remove the plugin from the emitted list
-        auto it = std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const PluginTypeSchema& p) { return p.pluginName == plugin.pluginName; });
+        auto it = std::remove_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const plugin_t& p) { return p.pluginName == plugin.pluginName; });
 
         if (it != this->emittedPlugins.end()) {
             this->emittedPlugins.erase(it, this->emittedPlugins.end());
@@ -194,14 +193,14 @@ void CoInitializer::BackendCallbacks::BackendUnLoaded(PluginTypeSchema plugin, b
 
     if (!isShuttingDown) {
         Logger.Log("Running status dispatcher...");
-        this->StatusDispatch();
+        this->update();
     }
 }
 
 /**
  * Resets the backend callbacks by clearing all emitted plugins, listeners, and missed events.
  */
-void CoInitializer::BackendCallbacks::Reset()
+void backend_event_dispatcher::reset()
 {
     std::unique_lock<std::mutex> lock(listenersMutex);
     emittedPlugins.clear();
@@ -212,7 +211,7 @@ void CoInitializer::BackendCallbacks::Reset()
 /**
  * Registers a callback for the backend load event.
  */
-void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback)
+void backend_event_dispatcher::on_all_backends_ready(event_cb callback)
 {
     Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
     {
@@ -220,5 +219,5 @@ void CoInitializer::BackendCallbacks::RegisterForLoad(EventCallback callback)
         listeners[ON_BACKEND_READY_EVENT].push_back(callback);
     }
 
-    this->StatusDispatch();
+    this->update();
 }

@@ -35,8 +35,8 @@ template <typename T> class Singleton
   public:
     static T& GetInstance()
     {
-        static T instance;
-        return instance;
+        static T* instance = new T();
+        return *instance;
     }
 
     Singleton(const Singleton&) = delete;

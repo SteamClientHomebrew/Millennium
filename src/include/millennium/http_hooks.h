@@ -32,23 +32,16 @@
 
 #include "millennium/core_ipc.h"
 #include "millennium/cdp_api.h"
-#include "millennium/singleton.h"
 #include "millennium/thread_pool.h"
 #include "millennium/sysfs.h"
 
 #include <atomic>
-#include <chrono>
-#include <condition_variable>
 #include <filesystem>
-#include <functional>
 #include <memory>
-#include <mutex>
 #include <nlohmann/json.hpp>
-#include <queue>
 #include <regex>
 #include <shared_mutex>
 #include <string>
-#include <thread>
 #include <vector>
 #include <unordered_set>
 
@@ -64,8 +57,8 @@ static const std::vector<std::string> g_js_hook_blacklist = { "https://checkout\
 /** Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.) */
 static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
     /** Ignore paypal related content */
-    R"(https?:\/\/(?:[\w-]+\.)*paypal\.com\/[^\s"']*)", 
-    R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)", 
+    R"(https?:\/\/(?:[\w-]+\.)*paypal\.com\/[^\s"']*)",
+    R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)",
     R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
 
     /** Ignore youtube related content */

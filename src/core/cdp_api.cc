@@ -137,6 +137,8 @@ void cdp_client::shutdown()
         std::unique_lock<std::shared_mutex> events_lock(m_events_mutex);
         m_event_callbacks.clear();
     }
+
+    Logger.Log("Successfully shut down cdp_client...");
 }
 
 /**

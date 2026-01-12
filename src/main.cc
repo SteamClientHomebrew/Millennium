@@ -35,7 +35,6 @@
 #include <winsock2.h>
 #define _WINSOCKAPI_
 #endif
-#include "millennium/backend_mgr.h"
 #include "millennium/crash_handler.h"
 #include "millennium/env.h"
 #include "millennium/init.h"
@@ -177,19 +176,15 @@ void EntryMain()
     shm_init_simple();
     VerifyEnvironment();
 
-    BackendManager& manager = BackendManager::GetInstance();
     g_plugin_loader = std::make_shared<plugin_loader>();
 
     /** Start the injection process into the Steam web helper */
-    g_plugin_loader->StartBackEnds(manager);
-    g_plugin_loader->StartFrontEnds(); /** IO blocking, returns once Steam dies */
+    g_plugin_loader->start_plugin_backends();
+    g_plugin_loader->start_plugin_frontends(); /** IO blocking, returns once Steam dies */
 
-#ifdef _WIN32
-    /** Shutdown backend service once frontend disconnects*/
-    Logger.Log("Shutting down backend services...");
-    (&manager)->Shutdown();
-    Logger.Log("Backend services shut down successfully.");
-#endif
+    // g_plugin_loader->get_backend_manager()->Shutdown();
+    g_plugin_loader.reset();
+
     Logger.Log("Finished shutting down frontend and backend...");
 
     {

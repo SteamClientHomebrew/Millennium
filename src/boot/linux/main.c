@@ -226,6 +226,14 @@ static int is_steam_process(void)
 static void proxy_sentinel_init(void) __attribute__((constructor));
 static void proxy_sentinel_cleanup(void) __attribute__((destructor));
 
+static void proxy_at_exit_handler(void)
+{
+    LOG_INFO("at_exit: invoking stop_and_unload_millennium()");
+    if (b_has_loaded_millennium) {
+        stop_and_unload_millennium();
+    }
+}
+
 static void proxy_sentinel_init(void)
 {
     const int is_steam_proc = is_steam_process();
@@ -240,18 +248,26 @@ static void proxy_sentinel_init(void)
     b_has_loaded_millennium = 1;
 
     LOG_INFO("Bootstrap library loaded successfully. Using Millennium library at: %s", k_millennium_path);
-    if (load_and_start_millennium()) {
-        LOG_INFO("Starting Millennium...");
+    if (!load_and_start_millennium()) {
+        LOG_ERROR("Failed to load Millennium...");
+        return;
+    }
+
+    LOG_INFO("Started Millennium...");
+
+    if (atexit(proxy_at_exit_handler) != 0) {
+        LOG_ERROR("Failed to register atexit handler for Millennium cleanup");
     }
 }
 
 static void proxy_sentinel_cleanup(void)
 {
-    if (h_xtst) dlclose(h_xtst);
-    if (!b_has_loaded_millennium) return;
+    // LOG_INFO("Unloading Millennium library...");
 
-    LOG_INFO("Unloading Millennium library...");
-    stop_and_unload_millennium();
+    // if (h_xtst) dlclose(h_xtst);
+    // if (!b_has_loaded_millennium) return;
+
+    // stop_and_unload_millennium();
 }
 
 /** Forward legitimate library calls to the original library */

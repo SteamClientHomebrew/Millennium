@@ -29,11 +29,11 @@
  */
 
 #include "head/entry_point.h"
-#include "millennium/backend_init.h"
-#include "millennium/ffi.h"
+#include "millennium/life_cycle.h"
+#include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
+#include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_api_init.h"
 #include "millennium/semver.h"
 #include "millennium/sysfs.h"
 #include <exception>
@@ -103,7 +103,7 @@ int Lua_SetUserSettings(lua_State* L)
 int Lua_CallFrontendMethod(lua_State* L)
 {
     const char* methodName = luaL_checkstring(L, 1);
-    std::vector<JavaScript::JsFunctionConstructTypes> params;
+    std::vector<ipc_main::javascript_parameter> params;
 
     if (lua_gettop(L) >= 2 && !lua_isnil(L, 2)) {
         if (!lua_istable(L, 2)) {
@@ -134,12 +134,12 @@ int Lua_CallFrontendMethod(lua_State* L)
             }
 
             try {
-                if (typeMap.find(valueType) == typeMap.end()) {
+                if (ipc_main::str_type_map.find(valueType) == ipc_main::str_type_map.end()) {
                     lua_pop(L, 1);
                     return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
                 }
 
-                params.push_back({ strValue, typeMap.at(valueType) });
+                params.push_back({ strValue, ipc_main::str_type_map.at(valueType) });
             } catch (const std::exception&) {
                 lua_pop(L, 1);
                 return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
@@ -155,17 +155,9 @@ int Lua_CallFrontendMethod(lua_State* L)
         return 1;
     }
 
-    const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
-
-    // TODO: move this safety wrapper somewhere reusable.
-    int result = JavaScript::Lua_EvaluateFromSocket(
-        fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
-                    "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
-                    "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new window.MillenniumFrontEndError('frontend not loaded yet!');\n\n{}",
-                    pluginName, script),
-        L);
-
-    return result;
+    std::shared_ptr<ipc_main> m_ipc_main = g_plugin_loader->get_ipc_main();
+    const std::string script = m_ipc_main->compile_javascript_expression(pluginName, methodName, params);
+    return m_ipc_main->evaluate_javascript_expression(script).to_lua(L);
 }
 
 int Lua_GetVersionInfo(lua_State* L)
@@ -236,8 +228,7 @@ int Lua_IsPluginEnable(lua_State* L)
     }
 
     try {
-        std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-        const bool isEnabled = settingsStore->IsEnabledPlugin(pluginName);
+        const bool isEnabled = g_plugin_loader->get_settings_store()->IsEnabledPlugin(pluginName);
         lua_pushboolean(L, isEnabled);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to check plugin status for '{}': {}", pluginName, e.what());
@@ -255,8 +246,7 @@ int Lua_EmitReadyMessage(lua_State* L)
     }
 
     try {
-        CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
-        backendHandler.BackendLoaded({ pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_SUCCESS });
+        g_plugin_loader->get_backend_event_dispatcher()->backend_loaded_event_hdlr({ pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
         lua_pushboolean(L, 1);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to emit ready message for plugin '{}': {}", pluginName, e.what());

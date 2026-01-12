@@ -33,13 +33,12 @@
 #include "millennium/core_ipc.h"
 #include "millennium/encode.h"
 #include "millennium/env.h"
-#include "millennium/init.h"
+#include "millennium/logger.h"
 #include "millennium/mime_types.h"
 #include "millennium/urlp.h"
 #include "millennium/virtfs.h"
 #include "millennium/types.h"
 
-#include <chrono>
 #include <nlohmann/json_fwd.hpp>
 #include <thread>
 #include <unordered_set>
@@ -249,7 +248,7 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
     return result;
 }
 
-std::string network_hook_ctl::compile_preload_script(const processed_hooks& hooks, const std::string& millenniumPreloadPath) const
+std::string network_hook_ctl::compile_preload_script(const processed_hooks& hooks, [[maybe_unused]] const std::string& millenniumPreloadPath) const
 {
     return hooks.cssContent;
 }
@@ -412,16 +411,16 @@ void network_hook_ctl::shutdown()
         Logger.Log("HttpHookManager::shutdown() called more than once, ignoring.");
         return;
     }
-    Logger.Log("Shutting down HttpHookManager...");
+
     if (m_thread_pool) {
         m_thread_pool->shutdown();
     }
-    Logger.Log("HttpHookManager shut down successfully.");
+    Logger.Log("Successfully shut down network_hook_ctl...");
 }
 
 network_hook_ctl::network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client, std::shared_ptr<ipc_main> ipc_main)
-    : m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())), m_hook_list_ptr(std::make_shared<std::vector<hook_item>>()),
-      m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_ipc_main(std::move(ipc_main))
+    : m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_ipc_main(std::move(ipc_main)),
+      m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())), m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
 {
 }
 

@@ -29,24 +29,11 @@
  */
 
 #pragma once
-
-#include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
-#include "millennium/logger.h"
 
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
-#include <deque>
-#include <functional>
 #include <memory>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include <shared_mutex>
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <vector>
 
 #include <Python.h>
 #include <lua.hpp>
@@ -67,73 +54,3 @@ class PythonGIL : public std::enable_shared_from_this<PythonGIL>
     PythonGIL();
     ~PythonGIL();
 };
-
-enum FFI_Type
-{
-    Boolean,
-    String,
-    JSON,
-    Integer,
-    Error,
-    UnknownType // non-atomic ADT's
-};
-
-static const std::unordered_map<nlohmann::json::value_t, FFI_Type> FFIMap_t = {
-    { nlohmann::json::value_t::boolean,         FFI_Type::Boolean },
-    { nlohmann::json::value_t::string,          FFI_Type::String  },
-    { nlohmann::json::value_t::number_integer,  FFI_Type::Integer },
-    { nlohmann::json::value_t::number_unsigned, FFI_Type::Integer },
-    { nlohmann::json::value_t::object,          FFI_Type::JSON    },
-    { nlohmann::json::value_t::array,           FFI_Type::JSON    }
-};
-
-struct EvalResult
-{
-    FFI_Type type;
-    std::string plain;
-};
-
-namespace Lua
-{
-EvalResult LockAndInvokeMethod(std::string pluginName, nlohmann::json script);
-void CallFrontEndLoaded(std::string pluginName);
-} // namespace Lua
-
-namespace Python
-{
-EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
-
-std::tuple<std::string, std::string> ActiveExceptionInformation();
-
-EvalResult LockGILAndInvokeMethod(std::string pluginName, nlohmann::json script);
-void CallFrontEndLoaded(std::string pluginName);
-} // namespace Python
-
-struct JsEvalResult
-{
-    nlohmann::basic_json<> json;
-    bool successfulCall;
-};
-
-namespace JavaScript
-{
-
-enum Types
-{
-    Boolean,
-    String,
-    Integer
-};
-
-struct JsFunctionConstructTypes
-{
-    std::string pluginName;
-    Types type;
-};
-
-JsEvalResult ExecuteOnSharedJsContext(std::string javaScriptEval);
-const std::string ConstructFunctionCall(const char* value, const char* methodName, std::vector<JavaScript::JsFunctionConstructTypes> params);
-
-int Lua_EvaluateFromSocket(std::string script, lua_State* L);
-PyObject* Py_EvaluateFromSocket(std::string script);
-} // namespace JavaScript

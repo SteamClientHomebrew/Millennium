@@ -29,13 +29,15 @@
  */
 
 #include "head/entry_point.h"
+#include "lua.h"
+#include "millennium/life_cycle.h"
+#include "millennium/sysfs.h"
 #include "millennium/types.h"
 #include "millennium/init.h"
 #include "millennium/urlp.h"
 #include "millennium/backend_init.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"
-#include "millennium/ffi.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
@@ -43,6 +45,7 @@
 #include "millennium/auth.h"
 #include "nlohmann/json_fwd.hpp"
 #include <memory>
+#include <mutex>
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -50,9 +53,11 @@ using namespace std::chrono;
 std::shared_ptr<plugin_loader> g_plugin_loader;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
+extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
+extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-plugin_loader::plugin_loader() : m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr), m_thread_pool(std::make_unique<thread_pool>(2))
+plugin_loader::plugin_loader() : m_thread_pool(std::make_unique<thread_pool>(2)), m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr), has_loaded_core_plugin(false)
 {
     this->init();
 }
@@ -64,7 +69,21 @@ plugin_loader::~plugin_loader()
 
 void plugin_loader::shutdown()
 {
-    m_thread_pool->shutdown();
+    Logger.Log("Successfully shut down plugin_loader...");
+
+    // std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+    // cv_hasSteamUnloaded.wait(lk, [&]()
+    // {
+    //     /** wait for all backends to stop so we can safely free the loader lock */
+    //     if (m_backend_manager->HasAllPythonBackendsStopped() && m_backend_manager->HasAllLuaBackendsStopped()) {
+    //         Logger.Warn("All backends have stopped, proceeding with termination...");
+
+    //         std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
+    //         cv_hasAllPythonPluginsShutdown.notify_all();
+    //         return true;
+    //     }
+    //     return false;
+    // });
 }
 
 void plugin_loader::init_devtools()
@@ -114,6 +133,9 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 {
     m_cdp = cdp;
     m_socket_con_time = std::chrono::system_clock::now();
+    m_ipc_main = std::make_shared<ipc_main>(m_settings_store_ptr, m_cdp, m_backend_manager);
+    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp, m_ipc_main);
+    this->m_network_hook_ctl->init();
 
     m_thread_pool->enqueue([this]()
     {
@@ -126,22 +148,24 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     m_thread_pool->enqueue([this]()
     {
         Logger.Log("Connected to Steam devtools protocol...");
-
         this->init_devtools();
-        m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp, m_ipc_main);
-        this->m_network_hook_ctl->init();
     });
 }
 
 void plugin_loader::init()
 {
     m_settings_store_ptr = std::make_shared<SettingsStore>();
-    m_ipc_main = std::make_shared<ipc_main>(m_settings_store_ptr);
+    m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_settings_store_ptr);
+    m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
+    m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);
     m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_settings_store_ptr);
-    m_plugin_ptr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settings_store_ptr->ParseAllPlugins());
-    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::PluginTypeSchema>>(m_settings_store_ptr->GetEnabledBackends());
+    m_plugin_ptr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->ParseAllPlugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->GetEnabledBackends());
 
     m_settings_store_ptr->InitializeSettingsStore();
+
+    /** setup steam hooks once backends have loaded */
+    m_backend_event_dispatcher->on_all_backends_ready(Plat_WaitForBackendLoad);
 }
 
 std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr<SocketHelpers> socketHelpers)
@@ -191,7 +215,7 @@ std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::
 std::string plugin_loader::cdp_generate_shim_module()
 {
     std::vector<std::string> script_list;
-    std::vector<SettingsStore::PluginTypeSchema> plugins = m_settings_store_ptr->ParseAllPlugins();
+    std::vector<SettingsStore::plugin_t> plugins = m_settings_store_ptr->ParseAllPlugins();
 
     for (auto& plugin : plugins) {
         if (!m_settings_store_ptr->IsEnabledPlugin(plugin.pluginName)) {
@@ -211,11 +235,10 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
 {
     this->setup_webkit_shims();
 
-    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
-    backendHandler.RegisterForLoad([&, this]()
+    g_plugin_loader->get_backend_event_dispatcher()->on_all_backends_ready([&, this]()
     {
         Logger.Log("Notifying frontend of backend load...");
-        UnPatchSharedJSContext();
+        m_backend_initializer->compat_restore_shared_js_context();
 
         m_cdp->send("Page.enable").get();
 
@@ -242,7 +265,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
     });
 }
 
-void plugin_loader::StartFrontEnds()
+void plugin_loader::start_plugin_frontends()
 {
     if (g_shouldTerminateMillennium->flag.load()) {
         Logger.Log("Terminating frontend thread pool...");
@@ -280,7 +303,7 @@ void plugin_loader::StartFrontEnds()
 #endif
 
     Logger.Warn("Reconnecting to Steam...");
-    this->StartFrontEnds();
+    this->start_plugin_frontends();
 }
 
 /* debug function, just for developers */
@@ -296,102 +319,56 @@ void plugin_loader::log_enabled_plugins()
     Logger.Log(pluginList);
 }
 
-/**
- * @brief Start the package manager preload module.
- *
- * The preloader module is responsible for python package management.
- * All packages are grouped and shared when needed, to prevent wasting space.
- * @see assets\pipx\main.py
- */
-void StartPreloader(BackendManager& manager)
+void plugin_loader::start_plugin_backends()
 {
-    std::promise<void> promise;
-
-    SettingsStore::PluginTypeSchema plugin;
-    plugin.pluginName = "pipx";
-    plugin.backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx";
-    plugin.isInternal = true;
-
-    /** Create instance on a separate thread to prevent IO blocking of concurrent
-     * threads */
-    manager.CreatePythonInstance(plugin, [&promise](SettingsStore::PluginTypeSchema plugin)
-    {
-        Logger.Log("Started preloader module");
-        const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
-
-        PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
-        /** Set plugin name in the global dictionary so its stdout can be
-         * retrieved by the logger. */
-        SetPluginSecretName(globalDictionary, plugin.pluginName);
-
-        PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
-        FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
-
-        if (mainModuleFilePtr == NULL) {
-            LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
-            ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
-            return;
-        }
-
-        try {
-            Logger.Log("Starting package manager thread @ {}", backendMainModule);
-
-            if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) {
-                LOG_ERROR("Failed to run PIPX preload", plugin.pluginName);
-                ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
-                return;
-            }
-        } catch (const std::system_error& error) {
-            LOG_ERROR("Failed to run PIPX preload due to a system error: {}", error.what());
-        }
-
-        Logger.Log("Preloader finished...");
-        promise.set_value();
-    });
-
-    /* Wait for the package manager plugin to exit, signalling we can now start
-     * other plugins */
-    promise.get_future().get();
-    manager.DestroyPythonInstance("pipx");
-}
-
-void plugin_loader::StartBackEnds(BackendManager& manager)
-{
-    Logger.Log("Starting plugin backends...");
-    StartPreloader(manager);
-    Logger.Log("Starting backends...");
-
+    m_backend_initializer->start_package_manager();
     this->log_enabled_plugins();
 
-    static bool hasCoreLoaded = false;
-    if (!hasCoreLoaded) {
+    if (!this->has_loaded_core_plugin) {
         Core_Load(m_settings_store_ptr, m_network_hook_ctl);
-        hasCoreLoaded = true;
+        this->has_loaded_core_plugin = true;
     }
 
-    for (auto& plugin : *this->m_enabledPluginsPtr) {
-        if (plugin.backendType == SettingsStore::PluginBackendType::Python) {
-            // check if plugin is already running
-            if (manager.IsPythonBackendRunning(plugin.pluginName)) {
-                Logger.Log("[Python] Skipping load for '{}' as it's already running", plugin.pluginName);
-                continue;
-            }
+    auto weak_init = std::weak_ptr(m_backend_initializer);
 
-            std::function<void(SettingsStore::PluginTypeSchema)> cb = std::bind(CoInitializer::PyBackendStartCallback, std::placeholders::_1);
+    for (auto& plugin : *m_enabledPluginsPtr) {
+        switch (plugin.backendType) {
+            case SettingsStore::PluginBackendType::Python:
+                if (m_backend_manager->is_python_backend_running(plugin.pluginName)) break;
 
-            Logger.Log("[Python] Starting backend for '{}'", plugin.pluginName);
-            manager.CreatePythonInstance(plugin, cb);
-        } else if (plugin.backendType == SettingsStore::PluginBackendType::Lua) {
-            /** check if the Lua backend is already running */
-            if (manager.IsLuaBackendRunning(plugin.pluginName)) {
-                Logger.Log("[Lua] Skipping load for '{}' as it's already running", plugin.pluginName);
-                continue;
-            }
+                m_backend_manager->create_python_vm(plugin, [weak_init](auto plugin)
+                {
+                    if (auto init = weak_init.lock()) init->python_backend_started_cb(plugin);
+                });
+                break;
+            case SettingsStore::PluginBackendType::Lua:
+                if (m_backend_manager->ia_lua_backend_running(plugin.pluginName)) break;
 
-            std::function<void(SettingsStore::PluginTypeSchema, lua_State*)> cb = std::bind(CoInitializer::LuaBackendStartCallback, std::placeholders::_1, std::placeholders::_2);
-
-            Logger.Log("[Lua] Starting backend for '{}'", plugin.pluginName);
-            manager.CreateLuaInstance(plugin, cb);
+                m_backend_manager->create_lua_vm(plugin, [weak_init](auto plugin, lua_State* L)
+                {
+                    if (auto init = weak_init.lock()) init->lua_backend_started_cb(plugin, L);
+                });
+                break;
         }
     }
+}
+
+std::shared_ptr<ipc_main> plugin_loader::get_ipc_main()
+{
+    return m_ipc_main;
+}
+
+std::shared_ptr<backend_manager> plugin_loader::get_backend_manager()
+{
+    return m_backend_manager;
+}
+
+std::shared_ptr<backend_event_dispatcher> plugin_loader::get_backend_event_dispatcher()
+{
+    return m_backend_event_dispatcher;
+}
+
+std::shared_ptr<SettingsStore> plugin_loader::get_settings_store()
+{
+    return m_settings_store_ptr;
 }

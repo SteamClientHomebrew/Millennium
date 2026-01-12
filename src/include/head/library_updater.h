@@ -57,7 +57,7 @@ class Updater
     PluginInstaller& GetPluginUpdater();
 
   private:
-    std::string api_url;
+    std::string api_url = "https://steambrew.app/api/checkupdates";
 
     ThemeInstaller theme_updater;
     PluginInstaller plugin_updater;

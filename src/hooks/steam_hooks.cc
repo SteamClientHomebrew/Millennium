@@ -33,7 +33,6 @@
 #include <mutex>
 #include "millennium/steam_hooks.h"
 #include "millennium/argp_win32.h"
-#include "millennium/backend_init.h"
 
 std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
 std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
@@ -600,7 +599,7 @@ bool InitializeSteamHooks()
 }
 #endif
 
-static void __backend_load()
+void Plat_WaitForBackendLoad()
 {
     Logger.Log("__backend_load was called!");
     cv_hasBackendsLoaded.notify_all();
@@ -609,9 +608,5 @@ static void __backend_load()
 
 bool Plat_InitializeSteamHooks()
 {
-    Logger.Log("[Plat_InitializeSteamHooks] Waiting for backend services to complete...");
-
-    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
-    backendHandler.RegisterForLoad(__backend_load);
     return InitializeSteamHooks();
 }

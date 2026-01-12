@@ -33,34 +33,14 @@
 #include "millennium/auth.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"
-#include "millennium/ffi.h"
-#include "millennium/init.h"
 #include "millennium/logger.h"
-#include "millennium/plat_msg.h"
-#include "millennium/plugin_api_init.h"
 #include "millennium/plugin_logger.h"
+#include "millennium/life_cycle.h"
 #include "millennium/urlp.h"
 #include "hhx64/smem.h"
+#include <future>
 
-static std::string addedScriptOnNewDocumentId = "";
-
-/**
- * @brief A singleton class that manages the state of the backend load.
- *
- * This class is used to manage the state of the backend load.
- *
- * @returns {BackendLoadState} - A singleton instance of the BackendLoadState class.
- */
-class BackendLoadState : public Singleton<BackendLoadState>
-{
-    friend class Singleton<BackendLoadState>;
-
-  private:
-  public:
-    std::mutex mtx;
-    std::condition_variable cvScript;
-    bool hasScriptIdentifier = false;
-};
+std::tuple<std::string, std::string> Python_GetActiveExceptionInformation();
 
 /**
  * Appends custom directories to the Python `sys.path`.
@@ -75,7 +55,7 @@ class BackendLoadState : public Singleton<BackendLoadState>
  * - If the `sys` module cannot be imported, an error is logged.
  * - If the `sys.path` attribute cannot be accessed, no action is taken.
  */
-void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
+void backend_initializer::append_sys_path_modules(std::vector<std::filesystem::path> sitePackages)
 {
     PyObject* sysModule = PyImport_ImportModule("sys");
     if (!sysModule) {
@@ -113,7 +93,7 @@ void AppendSysPathModules(std::vector<std::filesystem::path> sitePackages)
  * - If the `site` module cannot be imported, the error is printed and logged.
  * - If the `addsitedir` function cannot be retrieved or called, an error is printed and logged.
  */
-void AddSitePackagesDirectory(std::filesystem::path customPath)
+void backend_initializer::add_site_packages_directory(std::filesystem::path customPath)
 {
     PyObject* siteModule = PyImport_ImportModule("site");
 
@@ -142,11 +122,11 @@ void AddSitePackagesDirectory(std::filesystem::path customPath)
  *
  * @param global_dict The global dictionary of the Python interpreter.
  */
-void StartPluginBackend(PyObject* global_dict, std::string pluginName)
+void backend_initializer::invoke_plugin_main_fn(PyObject* global_dict, std::string pluginName)
 {
     const auto PrintError = [&pluginName]()
     {
-        const auto [errorMessage, traceback] = Python::ActiveExceptionInformation();
+        const auto [errorMessage, traceback] = Python_GetActiveExceptionInformation();
         PyErr_Clear();
 
         const auto formattedMessage = fmt::format("Millennium failed to call _load on {}: {}\n{}{}", pluginName, COL_RED, traceback, COL_RESET);
@@ -198,7 +178,7 @@ void StartPluginBackend(PyObject* global_dict, std::string pluginName)
  * - If the builtins dictionary cannot be retrieved, a `RuntimeError` is raised.
  * - If creating the placeholder function fails, a `RuntimeError` is raised.
  */
-void SetupPluginSettings()
+void backend_initializer::compat_setup_fake_plugin_settings()
 {
     PyObject* builtins = PyEval_GetBuiltins();
     if (!builtins) {
@@ -239,7 +219,7 @@ void SetupPluginSettings()
  * - If the `__builtins__` dictionary cannot be retrieved, a `RuntimeError` is raised.
  * - If setting the `MILLENNIUM_PLUGIN_SECRET_NAME` in `__builtins__` fails, a `RuntimeError` is raised.
  */
-void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName)
+void backend_initializer::set_plugin_internal_name(PyObject* globalDictionary, const std::string& pluginName)
 {
     /** Set the secret name in the global dictionary, i.e the global scope */
     PyDict_SetItemString(globalDictionary, "MILLENNIUM_PLUGIN_SECRET_NAME", PyUnicode_FromString(pluginName.c_str()));
@@ -269,7 +249,7 @@ void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginNa
  *
  * Both paths are converted to strings and set as Python variables in the global dictionary.
  */
-void SetPluginEnvironmentVariables(PyObject* globalDictionary, const SettingsStore::PluginTypeSchema& plugin)
+void backend_initializer::set_plugin_environment_variables(PyObject* globalDictionary, const SettingsStore::plugin_t& plugin)
 {
     PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.pluginBaseDirectory.generic_string().c_str()));
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
@@ -283,6 +263,7 @@ extern "C" int Lua_OpenHttpLibrary(lua_State* L);
 extern "C" int Lua_OpenFS(lua_State* L);
 extern "C" int Lua_OpenRegex(lua_State* L);
 extern "C" int Lua_OpenDateTime(lua_State* L);
+extern "C" int Lua_OpenMillenniumLibrary(lua_State* L);
 
 static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
 {
@@ -290,17 +271,16 @@ static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
     lua_setfield(L, -2, name);
 }
 
-void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L)
+void backend_initializer::lua_backend_started_cb(SettingsStore::plugin_t plugin, lua_State* L)
 {
     Logger.Log("Starting Lua backend for '{}'", plugin.pluginName);
-    BackendManager& backendManager = BackendManager::GetInstance();
 
-    if (backendManager.Lua_IsMutexLocked(L)) {
+    if (m_backend_manager->lua_is_locked(L)) {
         LOG_ERROR("Lua mutex is already locked for plugin '{}'", plugin.pluginName);
         return;
     }
 
-    backendManager.Lua_LockLua(L);
+    m_backend_manager->lua_lock(L);
 
     lua_pushstring(L, plugin.pluginName.c_str());
     lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
@@ -336,7 +316,7 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
         LOG_ERROR("Lua error: {}", lua_tostring(L, -1));
         lua_pop(L, 1);
         lua_close(L);
-        backendManager.Lua_UnlockLua(L);
+        m_backend_manager->lua_unlock(L);
         return;
     }
 
@@ -351,7 +331,7 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
         LOG_ERROR("Lua file should return a table with functions");
         lua_pop(L, 1);
         lua_close(L);
-        backendManager.Lua_UnlockLua(L);
+        m_backend_manager->lua_unlock(L);
         return;
     }
 
@@ -360,7 +340,7 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
         LOG_ERROR("Failed to locate 'on_load' function in plugin backend for '{}'", plugin.pluginName);
         lua_pop(L, 2);
         lua_close(L);
-        backendManager.Lua_UnlockLua(L);
+        m_backend_manager->lua_unlock(L);
         return;
     }
 
@@ -370,7 +350,7 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
     }
 
     lua_pop(L, 1);
-    backendManager.Lua_UnlockLua(L);
+    m_backend_manager->lua_unlock(L);
 }
 
 /**
@@ -391,7 +371,7 @@ void CoInitializer::LuaBackendStartCallback(SettingsStore::PluginTypeSchema plug
  * Error Handling:
  * - If any step of the process fails (e.g., file opening, module import), the error is logged and the backend load is marked as failed.
  */
-void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin)
+void backend_initializer::python_backend_started_cb(SettingsStore::plugin_t plugin)
 {
     const auto [pythonPath, pythonLibs, pythonUserLibs] = GetPythonEnvPaths();
 
@@ -399,8 +379,8 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
     const auto backendMainModule = plugin.backendAbsoluteDirectory.generic_string();
 
     // associate the plugin name with the running plugin. used for IPC/FFI
-    SetPluginSecretName(globalDictionary, plugin.pluginName);
-    SetPluginEnvironmentVariables(globalDictionary, plugin);
+    this->set_plugin_internal_name(globalDictionary, plugin.pluginName);
+    this->set_plugin_environment_variables(globalDictionary, plugin);
 
     std::vector<std::filesystem::path> sysPath;
     sysPath.push_back(plugin.pluginBaseDirectory / plugin.backendAbsoluteDirectory.parent_path());
@@ -416,10 +396,8 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
     }
 #endif
 
-    AppendSysPathModules(sysPath);
-    AddSitePackagesDirectory(pythonUserLibs);
-
-    CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
+    append_sys_path_modules(sysPath);
+    add_site_packages_directory(pythonUserLibs);
 
     PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
@@ -428,7 +406,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
         Logger.Warn("failed to fopen file @ {}", backendMainModule);
         ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
 
-        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        m_backend_event_dispatcher->backend_loaded_event_hdlr({ plugin.pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_FAILED });
         return;
     }
 
@@ -439,7 +417,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
         Logger.Warn("Millennium failed to initialize the main module.");
         ErrorToLogger(plugin.pluginName, "Failed to initialize the main module.");
 
-        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        m_backend_event_dispatcher->backend_loaded_event_hdlr({ plugin.pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_FAILED });
         fclose(mainModuleFilePtr);
         return;
     }
@@ -449,7 +427,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
     PyObject* result = PyRun_FileEx(mainModuleFilePtr, backendMainModule.c_str(), Py_file_input, mainModuleDict, mainModuleDict, 1);
 
     if (!result) {
-        const auto [errorMessage, traceback] = Python::ActiveExceptionInformation();
+        const auto [errorMessage, traceback] = Python_GetActiveExceptionInformation();
 
         Logger.PrintMessage(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
         Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
@@ -457,7 +435,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
         ErrorToLogger(plugin.pluginName,
                       fmt::format("Failed to start plugin: {}. This is likely due to failing module side effects, unrelated to Millennium.\n\n{}", plugin.pluginName, traceback));
 
-        backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
+        m_backend_event_dispatcher->backend_loaded_event_hdlr({ plugin.pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_FAILED });
         return;
     }
 
@@ -466,7 +444,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
     const auto startTime = std::chrono::steady_clock::now();
     std::atomic<bool> timeOutLockThreadRunning = true;
 
-    std::thread timeOutThread([&timeOutLockThreadRunning, startTime, plugin]
+    std::thread timeOutThread([dispatcher = m_backend_event_dispatcher, settings = m_settings_store, &timeOutLockThreadRunning, startTime, plugin]
     {
         while (timeOutLockThreadRunning.load()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -490,21 +468,17 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
                                         MESSAGEBOX_QUESTION);
 
                 if (result == IDYES) {
-                    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-                    settingsStore->TogglePluginStatus(plugin.pluginName, false);
+                    settings->TogglePluginStatus(plugin.pluginName, false);
                 }
 #endif
-
-                CoInitializer::BackendCallbacks& backendHandler = CoInitializer::BackendCallbacks::GetInstance();
-                backendHandler.BackendLoaded({ plugin.pluginName, CoInitializer::BackendCallbacks::BACKEND_LOAD_FAILED });
-
+                dispatcher->backend_loaded_event_hdlr({ plugin.pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_FAILED });
                 break;
             }
         }
     });
 
-    SetupPluginSettings();
-    StartPluginBackend(globalDictionary, plugin.pluginName);
+    compat_setup_fake_plugin_settings();
+    invoke_plugin_main_fn(globalDictionary, plugin.pluginName);
 
     timeOutLockThreadRunning.store(false);
     timeOutThread.join();
@@ -516,7 +490,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
  *
  * @note this function is only applicable to Windows
  */
-void UnPatchSharedJSContext()
+void backend_initializer::compat_restore_shared_js_context()
 {
 #ifdef _WIN32
     Logger.Log("Restoring SharedJSContext...");
@@ -567,4 +541,56 @@ void UnPatchSharedJSContext()
 
     Logger.Log("Restored SharedJSContext...");
 #endif
+}
+
+void backend_initializer::start_package_manager()
+{
+    std::promise<void> promise;
+
+    SettingsStore::plugin_t plugin;
+    plugin.pluginName = "pipx";
+    plugin.backendAbsoluteDirectory = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx";
+    plugin.isInternal = true;
+
+    /** Create instance on a separate thread to prevent IO blocking of concurrent
+     * threads */
+    m_backend_manager->create_python_vm(plugin, [this, &promise](SettingsStore::plugin_t plugin)
+    {
+        Logger.Log("Started preloader module");
+        const auto backendMainModule = (plugin.backendAbsoluteDirectory / "main.py").generic_string();
+
+        PyObject* globalDictionary = PyModule_GetDict(PyImport_AddModule("__main__"));
+        /** Set plugin name in the global dictionary so its stdout can be
+         * retrieved by the logger. */
+        set_plugin_internal_name(globalDictionary, plugin.pluginName);
+
+        PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
+        FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
+
+        if (mainModuleFilePtr == NULL) {
+            LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
+            ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
+            return;
+        }
+
+        try {
+            Logger.Log("Starting package manager thread @ {}", backendMainModule);
+
+            if (PyRun_SimpleFile(mainModuleFilePtr, backendMainModule.c_str()) != 0) {
+                LOG_ERROR("Failed to run PIPX preload", plugin.pluginName);
+                ErrorToLogger(plugin.pluginName, "Failed to preload plugins");
+                return;
+            }
+        } catch (const std::system_error& error) {
+            LOG_ERROR("Failed to run PIPX preload due to a system error: {}", error.what());
+        }
+
+        Logger.Log("Preloader finished...");
+        promise.set_value();
+    });
+
+    /* Wait for the package manager plugin to exit, signalling we can now start
+     * other plugins */
+    promise.get_future().get();
+    m_backend_manager->python_destroy_vm("pipx");
 }

@@ -29,6 +29,7 @@
  */
 
 #pragma once
+#include "millennium/http_hooks.h"
 #include "millennium/cdp_api.h"
 #include "millennium/types.h"
 #include "millennium/sysfs.h"
@@ -65,11 +66,11 @@ class webkit_world_mgr
         bool attaching{ false };
     };
 
-    std::shared_ptr<plugin_webkit_store> m_plugin_webkit_store;
-    std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
-    std::shared_ptr<SettingsStore> m_settings_store;
-
     std::shared_ptr<cdp_client> m_client;
+    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
+    std::shared_ptr<plugin_webkit_store> m_plugin_webkit_store;
+
     std::unordered_map<std::string, target_context> m_attached_targets;
     std::mutex m_targets_mutex;
 
