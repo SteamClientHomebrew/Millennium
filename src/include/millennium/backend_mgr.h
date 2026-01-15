@@ -120,7 +120,7 @@ class backend_manager
     bool has_all_lua_backends_stopped();
 
     bool is_python_backend_running(std::string pluginName);
-    bool ia_lua_backend_running(std::string pluginName);
+    bool is_lua_backend_running(std::string pluginName);
 
     bool has_python_backend(std::string pluginName);
 

@@ -677,7 +677,7 @@ bool backend_manager::is_python_backend_running(std::string targetPluginName)
  * @param {std::string} targetPluginName - The name of the plugin to check if it is running.
  * @returns {bool} - True if the Lua backend is running for the given plugin, false otherwise.
  */
-bool backend_manager::ia_lua_backend_running(std::string targetPluginName)
+bool backend_manager::is_lua_backend_running(std::string targetPluginName)
 {
     for (auto it : m_luaThreadPool) {
         auto& [pluginName, thread, L, hasFinished] = *it;

@@ -337,7 +337,7 @@ void plugin_loader::start_plugin_backends()
                 });
                 break;
             case SettingsStore::PluginBackendType::Lua:
-                if (m_backend_manager->ia_lua_backend_running(plugin.pluginName)) break;
+                if (m_backend_manager->is_lua_backend_running(plugin.pluginName)) break;
 
                 m_backend_manager->create_lua_vm(plugin, [weak_init](auto plugin, lua_State* L)
                 {
