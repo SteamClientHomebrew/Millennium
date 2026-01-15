@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,40 +29,40 @@
  */
 
 #pragma once
+
 #include "head/theme_cfg.h"
+
 #include <filesystem>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <vector>
+
+#include <nlohmann/json.hpp>
 
 class ThemeInstaller
 {
   public:
-    std::filesystem::path SkinsRoot();
+    static std::filesystem::path SkinsRoot();
 
-    void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    nlohmann::json ErrorMessage(const std::string& message);
-    nlohmann::json SuccessMessage();
+    static void RPCLogMessage(const std::string& status, double progress, bool isComplete);
+    static nlohmann::json ErrorMessage(const std::string& message);
+    static nlohmann::json SuccessMessage();
 
-    std::optional<nlohmann::json> GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString = false);
-    bool CheckInstall(const std::string& repo, const std::string& owner);
-    nlohmann::json UninstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
-    nlohmann::json InstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
+    static std::optional<nlohmann::json> GetThemeFromGitPair(const std::string& repo, const std::string& owner, bool asString = false);
+    static bool CheckInstall(const std::string& repo, const std::string& owner);
+    static nlohmann::json UninstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
+    static nlohmann::json InstallTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
 
-    int CloneWithLibgit2(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback);
-    bool UpdateTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
+    static int CloneWithLibgit2(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback);
+    static bool UpdateTheme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
 
-    std::vector<std::pair<nlohmann::json, std::filesystem::path>> QueryThemesForUpdate();
-    nlohmann::json ProcessUpdates(const nlohmann::json& updateQuery, const nlohmann::json& remote);
+    static std::vector<std::pair<nlohmann::json, std::filesystem::path>> QueryThemesForUpdate();
+    static nlohmann::json ProcessUpdates(const nlohmann::json& updateQuery, const nlohmann::json& remote);
 
-    nlohmann::json GetRequestBody(void);
-    nlohmann::json ConstructPostBody(const std::vector<nlohmann::json>& update_query);
+    static nlohmann::json GetRequestBody();
+    static nlohmann::json ConstructPostBody(const std::vector<nlohmann::json>& update_query);
 
   private:
-    /**
-     * @brief Attempt to delete a folder, making files writable if necessary
-     * @param p Path to the folder to delete
-     */
     std::string MakeTempDirName(const std::filesystem::path& base, const std::string& repo);
 
     /**
@@ -70,21 +70,21 @@ class ThemeInstaller
      * @param path Directory path to check
      * @return true if directory is a Git repository, false otherwise
      */
-    bool IsGitRepo(const std::filesystem::path& path);
+    static bool IsGitRepo(const std::filesystem::path& path);
 
     /**
      * @brief Check if theme contains GitHub data
      * @param theme Theme JSON object to check
      * @return true if theme has GitHub data, false otherwise
      */
-    bool HasGithubData(const nlohmann::json& theme);
+    static bool HasGithubData(const nlohmann::json& theme);
 
     /**
      * @brief Extract repository name from theme's GitHub data
      * @param theme Theme JSON object
      * @return Repository name as string, empty if not found
      */
-    std::string GetRepoName(const nlohmann::json& theme);
+    static std::string GetRepoName(const nlohmann::json& theme);
 
     /**
      * @brief Find matching remote theme by repository name
@@ -92,7 +92,7 @@ class ThemeInstaller
      * @param repoName Repository name to search for
      * @return Pointer to matching remote theme, nullptr if not found
      */
-    const nlohmann::json* FindRemoteTheme(const nlohmann::json& remote, const std::string& repoName);
+    static const nlohmann::json* FindRemoteTheme(const nlohmann::json& remote, const std::string& repoName);
 
     /**
      * @brief Check if local theme has updates available
@@ -100,7 +100,7 @@ class ThemeInstaller
      * @param remoteTheme Remote theme information
      * @return true if updates are available, false otherwise
      */
-    bool HasUpdates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
+    static bool HasUpdates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
 
     /**
      * @brief Create update information object
@@ -108,12 +108,12 @@ class ThemeInstaller
      * @param remoteTheme Remote theme data
      * @return JSON object containing update information
      */
-    nlohmann::json CreateUpdateInfo(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
+    static nlohmann::json CreateUpdateInfo(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
 
     /**
      * @brief Get local commit hash for a theme
      * @param path Local theme path
      * @return Commit hash as string
      */
-    std::string GetLocalCommitHash(const std::filesystem::path& path);
+    static std::string GetLocalCommitHash(const std::filesystem::path& path);
 };

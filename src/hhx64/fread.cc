@@ -30,8 +30,8 @@
 
 #include "hhx64/fread.h"
 #include "hhx64/log.h"
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -51,11 +51,11 @@ fread_data fread_file(const char* path)
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&start);
 #else
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
+    timeval start, end;
+    gettimeofday(&start, nullptr);
 #endif
 
-    fread_data result = { 0, 0 };
+    fread_data result = { nullptr, 0 };
 
     /** open as read bytes */
     FILE* f = fopen(path, "rb");
@@ -63,7 +63,7 @@ fread_data fread_file(const char* path)
 
     /** get the length of the file by reading to the end */
     fseek(f, 0, SEEK_END);
-    long file_size = ftell(f);
+    const long file_size = ftell(f);
     fseek(f, 0, SEEK_SET);
 
     if (file_size <= 0) {
@@ -72,7 +72,7 @@ fread_data fread_file(const char* path)
     }
 
     /** allocate file size in memory */
-    result.content = (char*)malloc(file_size);
+    result.content = static_cast<char*>(malloc(file_size));
     if (!result.content) {
         fclose(f);
         return result;
@@ -84,7 +84,7 @@ fread_data fread_file(const char* path)
         /** read the file in chunks, this increases the read speed for large files */
         if (to_read > 65536) to_read = 65536;
 
-        long n = fread(result.content + total, 1, to_read, f);
+        const long n = fread(result.content + total, 1, to_read, f);
         if (n == 0) break;
 
         total += n;
@@ -98,8 +98,8 @@ fread_data fread_file(const char* path)
     QueryPerformanceCounter(&end);
     double elapsed_ms = (double)(end.QuadPart - start.QuadPart) * 1000.0 / frequency.QuadPart;
 #else
-    gettimeofday(&end, NULL);
-    double elapsed_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+    gettimeofday(&end, nullptr);
+    const double elapsed_ms = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 #endif
 
     log_info("Read file '%s' (%ld bytes) in %.2f ms\n", path, total, elapsed_ms);

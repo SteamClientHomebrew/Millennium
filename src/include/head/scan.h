@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,28 +28,31 @@
  * SOFTWARE.
  */
 
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
+#pragma once
+
 #include <optional>
+
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 namespace Millennium
 {
-namespace Plugins
-{
-struct Plugin
-{
-    std::string path;
-    bool enabled;
-    nlohmann::basic_json<> data;
-};
+    namespace Plugins
+    {
+        struct Plugin
+        {
+            std::string path;
+            bool enabled;
+            nlohmann::basic_json<> data;
+        };
 
-nlohmann::json FindAllPlugins();
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
-} // namespace Plugins
+        nlohmann::json FindAllPlugins();
+        [[nodiscard]] std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
+    } // namespace Plugins
 
-namespace Themes
-{
-bool IsValid(const std::string& theme_native_name);
-nlohmann::ordered_json FindAllThemes();
-} // namespace Themes
+    namespace Themes
+    {
+        [[nodiscard]] bool IsValid(const std::string& theme_native_name);
+        nlohmann::ordered_json FindAllThemes();
+    } // namespace Themes
 } // namespace Millennium

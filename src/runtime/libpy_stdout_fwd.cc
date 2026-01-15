@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,22 +31,22 @@
 /**
  * bind_stdout.h
  * @brief This file is responsible for redirecting the Python stdout and stderr to the logger.
- * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
+ * @note You shouldn't rely on print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
  */
 
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
+
 #include <Python.h>
-#include <fmt/core.h>
 
 /**
- * @brief Write a message buffer to the logger. The buffer is un-flushed.
+ * @brief Write a message buffer to the logger. The buffer is unflushed.
  *
  * @param pname The name of the plugin.
  * @param message The message to be printed.
  */
-extern "C" void PrintPythonMessage(std::string pname, const char* message)
+extern "C" void PrintPythonMessage(const std::string pname, const char* message)
 {
     const std::string logMessage = message;
 
@@ -59,11 +59,11 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
 
 /**
  * @brief Write an error message buffer to the logger.
- * We dont use the plugin here as most messages coming from stderr are flushed every character.
+ * We don't use the plugin here as most messages coming from stderr are flushed every character.
  *
  * ex. 123 would print plugin name 1\n plugin name 2\n plugin name 3\n
  */
-extern "C" void PrintPythonError(std::string pname, const char* message)
+extern "C" void PrintPythonError(const std::string pname, const char* message)
 {
     std::cout << "\033[31m" << message << "\033[0m";
     std::cout.flush(); // Flush the buffer to ensure the message is printed immediately, and the color doesn't leak into the next message.
@@ -77,7 +77,7 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
 #define HOOK_OUT_WRITE(write_function)                                                                                                                                             \
     const char* message;                                                                                                                                                           \
     if (!PyArg_ParseTuple(args, "s", &message)) {                                                                                                                                  \
-        return NULL;                                                                                                                                                               \
+        return nullptr;                                                                                                                                                               \
     }                                                                                                                                                                              \
     write_function(BackendManager::GetInstance().GetPluginNameFromThreadState(PyThreadState_Get()), message);                                                                      \
     return Py_BuildValue("");
@@ -94,34 +94,34 @@ extern "C" PyObject* CustomStderrWrite(PyObject* /** self */, PyObject* args)
 
 static PyMethodDef stdoutMethods[] = {
     { "write", CustomStdoutWrite, METH_VARARGS, "Custom stdout write function" },
-    { NULL,    NULL,              0,            NULL                           }
+    { nullptr,    nullptr,              0,            nullptr                           }
 };
 static PyMethodDef stderrMethods[] = {
     { "write", CustomStderrWrite, METH_VARARGS, "Custom stderr write function" },
-    { NULL,    NULL,              0,            NULL                           }
+    { nullptr,    nullptr,              0,            nullptr                           }
 };
 
-static struct PyModuleDef customStdoutModule = {
+static PyModuleDef customStdoutModule = {
     PyModuleDef_HEAD_INIT,
     "hook_stdout",
-    NULL, // m_doc
+    nullptr, // m_doc
     -1,   // m_size
     stdoutMethods,
-    NULL, // m_slots
-    NULL, // m_traverse
-    NULL, // m_clear
-    NULL  // m_free
+    nullptr, // m_slots
+    nullptr, // m_traverse
+    nullptr, // m_clear
+    nullptr  // m_free
 };
-static struct PyModuleDef customStderrModule = {
+static PyModuleDef customStderrModule = {
     PyModuleDef_HEAD_INIT,
     "hook_stderr",
-    NULL, // m_doc
+    nullptr, // m_doc
     -1,   // m_size
     stderrMethods,
-    NULL, // m_slots
-    NULL, // m_traverse
-    NULL, // m_clear
-    NULL  // m_free
+    nullptr, // m_slots
+    nullptr, // m_traverse
+    nullptr, // m_clear
+    nullptr  // m_free
 };
 
 extern "C" PyObject* PyInit_CustomStderr(void)
