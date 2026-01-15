@@ -29,43 +29,46 @@
  */
 
 #pragma once
-#include "millennium/fwd_decl.h"
 #include "head/theme_cfg.h"
+
 #include <filesystem>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+
+#include <nlohmann/json.hpp>
 
 class theme_installer
 {
   public:
-    theme_installer(std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<Updater> updater);
-    std::filesystem::path get_skins_folder();
+    theme_installer(std::shared_ptr<SettingsStore> settings_store_ptr, std::weak_ptr<Updater> updater);
+    static std::filesystem::path get_skins_folder();
 
-    nlohmann::json create_error_response(const std::string& message);
-    nlohmann::json create_successful_response();
+    static nlohmann::json create_error_response(const std::string& message);
+    static nlohmann::json create_successful_response();
 
-    std::optional<nlohmann::json> get_theme_from_github(const std::string& repo, const std::string& owner, bool asString = false);
-    bool is_theme_installed(const std::string& repo, const std::string& owner);
-    nlohmann::json uninstall_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
-    nlohmann::json install_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
+    static std::optional<nlohmann::json> get_theme_from_github(const std::string& repo, const std::string& owner, bool asString = false);
+    static bool is_theme_installed(const std::string& repo, const std::string& owner);
+    static nlohmann::json uninstall_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
+    nlohmann::json install_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner) const;
 
-    int clone(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback);
-    bool update_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
+    static int clone(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback);
+    static bool update_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
 
-    std::vector<std::pair<nlohmann::json, std::filesystem::path>> query_themes_for_updates();
-    nlohmann::json process_update(const nlohmann::json& updateQuery, const nlohmann::json& remote);
+    static std::vector<std::pair<nlohmann::json, std::filesystem::path>> query_themes_for_updates();
+    static nlohmann::json process_update(const nlohmann::json& updateQuery, const nlohmann::json& remote);
 
     nlohmann::json get_request_body(void);
-    nlohmann::json make_post_body(const std::vector<nlohmann::json>& update_query);
+    static nlohmann::json make_post_body(const std::vector<nlohmann::json>& update_query);
 
   private:
     std::shared_ptr<SettingsStore> m_settings_store_ptr;
-    std::shared_ptr<Updater> m_updater;
+    std::weak_ptr<Updater> m_updater;
 
     /**
-     * @brief Attempt to delete a folder, making files writable if necessary
-     * @param p Path to the folder to delete
+     * @brief Generates a unique temporary directory name for theme/plugin extraction.
+     * @param base The base filesystem path where the temporary directory should be created.
+     * @param repo The repository name or identifier to include in the directory name.
+     * @return An std::string representing the full path of the generated temporary directory.
      */
     std::string make_temp_dir_name(const std::filesystem::path& base, const std::string& repo);
 
@@ -74,21 +77,21 @@ class theme_installer
      * @param path Directory path to check
      * @return true if directory is a Git repository, false otherwise
      */
-    bool is_git_repository(const std::filesystem::path& path);
+    static bool is_git_repository(const std::filesystem::path& path);
 
     /**
      * @brief Check if theme contains GitHub data
      * @param theme Theme JSON object to check
      * @return true if theme has GitHub data, false otherwise
      */
-    bool has_github_data(const nlohmann::json& theme);
+    static bool has_github_data(const nlohmann::json& theme);
 
     /**
      * @brief Extract repository name from theme's GitHub data
      * @param theme Theme JSON object
      * @return Repository name as string, empty if not found
      */
-    std::string get_repository_name(const nlohmann::json& theme);
+    static std::string get_repository_name(const nlohmann::json& theme);
 
     /**
      * @brief Find matching remote theme by repository name
@@ -96,7 +99,7 @@ class theme_installer
      * @param repoName Repository name to search for
      * @return Pointer to matching remote theme, nullptr if not found
      */
-    const nlohmann::json* find_remote_theme(const nlohmann::json& remote, const std::string& repoName);
+    static const nlohmann::json* find_remote_theme(const nlohmann::json& remote, const std::string& repoName);
 
     /**
      * @brief Check if local theme has updates available
@@ -104,7 +107,7 @@ class theme_installer
      * @param remoteTheme Remote theme information
      * @return true if updates are available, false otherwise
      */
-    bool has_updates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
+    static bool has_updates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
 
     /**
      * @brief Create update information object
@@ -112,12 +115,12 @@ class theme_installer
      * @param remoteTheme Remote theme data
      * @return JSON object containing update information
      */
-    nlohmann::json create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
+    static nlohmann::json create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
 
     /**
      * @brief Get local commit hash for a theme
      * @param path Local theme path
      * @return Commit hash as string
      */
-    std::string get_commit_hash(const std::filesystem::path& path);
+    static std::string get_commit_hash(const std::filesystem::path& path);
 };
