@@ -33,13 +33,67 @@ import { PluginComponent, ThemeItem } from '../types';
 import { Logger } from './Logger';
 import { PyFindAllPlugins, PyFindAllThemes, PyUpdatePluginStatus } from './ffi';
 import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';
+import { useQuickAccessStore } from '../quick-access/quickAccessStore';
+
+type SteamURLContext = 'settings' | 'sidebar';
 
 const DEFAULT_THEME_NAME = '__default__';
+
+const contexts: Record<SteamURLContext, (action?: string, option?: string, parameter?: string) => void> = {
+	settings: async (action, option, parameter) => {
+		if (!option) {
+			Logger.Log('OnRunSteamURL: No option specified, navigating to settings');
+			Navigation.Navigate('/millennium/settings/' + action);
+			return;
+		}
+
+		if (action === 'devtools' && parameter === 'open') {
+			// Open the DevTools window
+			SteamClient.Browser.OpenDevTools();
+		}
+
+		if (action === 'plugins') {
+			// God, why
+			const plugins: PluginComponent[] = JSON.parse(await PyFindAllPlugins()).map((e: PluginComponent) => ({ ...e, plugin_name: e.data.name }));
+			if (parameter) {
+				if (!plugins.some((e) => e.data.name === parameter)) {
+					return;
+				}
+
+				const neededPlugin = plugins.find((e) => e.data.name === parameter);
+				neededPlugin.enabled = option === 'enable';
+			} else {
+				// Disable them all
+				for (const plugin of plugins) {
+					// ..except me, of course
+					plugin.enabled = plugin.data.name === 'core';
+				}
+			}
+
+			PyUpdatePluginStatus({ pluginJson: JSON.stringify(plugins) });
+			SteamClient.Browser.RestartJSContext();
+		}
+
+		if (action === 'themes') {
+			const themes: ThemeItem[] = JSON.parse(await PyFindAllThemes());
+			const theme = themes.find((e) => e.native === parameter);
+			const theme_name = !!theme && option === 'enable' ? theme.native : DEFAULT_THEME_NAME;
+
+			ChangeActiveTheme(theme_name, UIReloadProps.Force);
+			SteamClient.Browser.RestartJSContext();
+		}
+	},
+
+	sidebar: () => {
+		useQuickAccessStore.getState().openQuickAccess();
+	},
+};
 
 /**
  * steam://millennium URL support.
  *
  * Example:
+ * "steam://millennium/sidebar" -> Open Millennium sidebar
  * "steam://millennium/settings" -> Open Millennium dialog
  * "steam://millennium/settings/general" -> Open Millennium dialog
  * "steam://millennium/settings/updates" -> Open the "Updates" tab
@@ -49,57 +103,17 @@ const DEFAULT_THEME_NAME = '__default__';
  * "steam://millennium/settings/plugins/disable" -> Disable all plugins
  * "steam://millennium/settings/devtools/open" -> Open the DevTools window
  */
-export const OnRunSteamURL = async (_: number, url: string) => {
+export const OnRunSteamURL = (_: number, url: string) => {
 	const [context, action, option, parameter] = url
 		.replace(/^steam:\/{1,2}/, '/')
 		.split('/')
 		.filter((r) => r)
-		.slice(1);
+		.slice(1) as [SteamURLContext, string, string, string];
+	const fn = contexts[context];
 
-	if (context !== 'settings') {
-		Logger.Log('OnRunSteamURL: Invalid context %o, expected "settings"', context);
+	if (!fn) {
+		Logger.Log('OnRunSteamURL: Invalid context %o', context);
 		return;
 	}
-
-	if (!option) {
-		Logger.Log('OnRunSteamURL: No option specified, navigating to settings');
-		Navigation.Navigate('/millennium/settings/' + action);
-		return;
-	}
-
-	if (action === 'devtools' && parameter === 'open') {
-		// Open the DevTools window
-		SteamClient.Browser.OpenDevTools();
-	}
-
-	if (action === 'plugins') {
-		// God, why
-		const plugins: PluginComponent[] = JSON.parse(await PyFindAllPlugins()).map((e: PluginComponent) => ({ ...e, plugin_name: e.data.name }));
-		if (parameter) {
-			if (!plugins.some((e) => e.data.name === parameter)) {
-				return;
-			}
-
-			const neededPlugin = plugins.find((e) => e.data.name === parameter);
-			neededPlugin.enabled = option === 'enable';
-		} else {
-			// Disable them all
-			for (const plugin of plugins) {
-				// ..except me, of course
-				plugin.enabled = plugin.data.name === 'core';
-			}
-		}
-
-		PyUpdatePluginStatus({ pluginJson: JSON.stringify(plugins) });
-		SteamClient.Browser.RestartJSContext();
-	}
-
-	if (action === 'themes') {
-		const themes: ThemeItem[] = JSON.parse(await PyFindAllThemes());
-		const theme = themes.find((e) => e.native === parameter);
-		const theme_name = !!theme && option === 'enable' ? theme.native : DEFAULT_THEME_NAME;
-
-		ChangeActiveTheme(theme_name, UIReloadProps.Force);
-		SteamClient.Browser.RestartJSContext();
-	}
+	fn(action, option, parameter);
 };
