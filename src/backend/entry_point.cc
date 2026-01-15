@@ -73,7 +73,8 @@ const char* Millennium_GetUpdateScript()
 #ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
     return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
 #else
-    return "Error(Millennium_GetUpdateScript): missing MILLENNIUM__UPDATE_SCRIPT_PROMPT.";
+    #error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
+    return nullptr;
 #endif
 }
 
