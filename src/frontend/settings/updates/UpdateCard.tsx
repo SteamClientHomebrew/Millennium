@@ -28,13 +28,12 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogButtonPrimary, Field, IconsModule, ProgressBarWithInfo } from '@steambrew/client';
+import { DialogButton, DialogButtonPrimary, Field, IconsModule, joinClassNames, ProgressBarWithInfo } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
 import { Component, createRef, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../../utils/localization-manager';
 import { IconButton } from '../../components/IconButton';
-import { DesktopTooltip } from '../../components/SteamComponents';
 import { MillenniumIcons } from '../../components/Icons';
 
 interface UpdateProps {
@@ -111,20 +110,14 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 
 		if (isUpdating) {
 			return (
-				<DialogButton style={{ width: '-webkit-fill-available', padding: '0px 10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-					<MillenniumIcons.LoadingSpinner style={{ height: '16px', width: '16px' }} />
+				<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumButton')}>
+					<MillenniumIcons.LoadingSpinner />
 					{statusText}
 				</DialogButton>
 			);
 		}
 
-		return (
-			<DesktopTooltip toolTipContent={`Update ${toolTipText || update.name}`} direction="left">
-				<IconButton onClick={onUpdateClick} disabled={this.props.disabled}>
-					<IconsModule.Download key="download-icon" />
-				</IconButton>
-			</DesktopTooltip>
-		);
+		return <IconButton name="Download" onClick={onUpdateClick} disabled={this.props.disabled} text={`Update ${toolTipText || update.name}`} />;
 	}
 
 	private makeAnchorExternalLink({ children, ...props }: { children: any; [key: string]: any }) {
@@ -154,15 +147,13 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	private renderChildren() {
+		const { showingMore } = this.state;
 		const { disabled } = this.props;
 
 		if (disabled) {
 			return (
-				<DialogButton
-					style={{ width: '-webkit-fill-available', padding: '0px 10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}
-					disabled={true}
-				>
-					<IconsModule.Checkmark style={{ height: '16px', width: '16px' }} />
+				<DialogButton className="MillenniumButton" disabled={true}>
+					<IconsModule.Checkmark />
 					{'Complete! Pending restart.'}
 				</DialogButton>
 			);
@@ -171,9 +162,13 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		return (
 			<>
 				{this.showInteractables()}
-				<IconButton onClick={this.handleToggle} className="MillenniumUpdates_ExpandButton" disabled={this.props.disabled}>
-					<IconsModule.Carat direction="up" />
-				</IconButton>
+				<IconButton
+					name="KaratDown"
+					onClick={this.handleToggle}
+					className="MillenniumUpdates_ExpandButton"
+					disabled={this.props.disabled}
+					text={showingMore ? 'Collapse' : 'Expand'}
+				/>
 			</>
 		);
 	}

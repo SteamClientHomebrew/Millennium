@@ -2,13 +2,25 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { css } from '@codemirror/lang-css';
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
-import { callable, Classes, DialogBody, DialogButton, DialogControlsSection, Field, findModuleDetailsByExport, IconsModule, pluginSelf } from '@steambrew/client';
+import {
+	callable,
+	Classes,
+	DialogBody,
+	DialogButton,
+	DialogControlsSection,
+	DialogHeader,
+	Field,
+	findModuleDetailsByExport,
+	IconsModule,
+	pluginSelf,
+} from '@steambrew/client';
 import { ViewUpdate } from '@codemirror/view';
 import ReactDOM from 'react-dom';
 import {
 	contextMenuManager,
 	createWindowContext,
 	g_ModalManager,
+	GenericConfirmDialog,
 	ModalManagerInstance,
 	OwnerWindowRef,
 	PopupModalHandler,
@@ -20,6 +32,7 @@ import {
 import { settingsClasses } from '../../utils/classes';
 import { setEditorCode, setIsMillenniumOpen, useQuickCssState } from '../../utils/quick-css-state';
 import { locale } from '../../utils/localization-manager';
+import Styles from '../../utils/styles';
 
 function UpdateStylesLive(cssContent: string) {
 	for (const popup of g_PopupManager.GetPopups()) {
@@ -136,19 +149,18 @@ export const MillenniumQuickCssEditor = () => {
 			<OwnerWindowRef ownerWindow={popup}>
 				<div className="PopupFullWindow">
 					<RenderWindowTitle popup={popup} onClose={setIsMillenniumOpen.bind(null, false)} />
+					<GenericConfirmDialog>
+						<DialogHeader>Quick CSS Editor</DialogHeader>
+						<Styles />
+						{/* For whatever reason only a <form> gets the full width in generic modals */}
+						<form ref={containerRef} className="MillenniumQuickCss_CodeEditor" />
+					</GenericConfirmDialog>
 					{activeMenu && (
 						<PopupModalHandler options={dialogProps} instance={activeMenu} element={activeMenu.m_position.element}>
 							{activeMenu.m_rctElement}
 						</PopupModalHandler>
 					)}
 				</div>
-				<style>{`.cm-editor { height: 100%; } .TitleBar.title-area { height: 32px !important; } .MillenniumQuickCss_Title { position: absolute; top: 5px; left: 10px; color: lightgrey; font-weight: 500; }`}</style>
-				<div className="MillenniumQuickCss_Title">Quick CSS Editor</div>
-				<div
-					ref={containerRef}
-					style={{ height: '-webkit-fill-available', marginTop: '32px', width: '100%', position: 'absolute', top: 0, left: 0 }}
-					className="MillenniumQuickCss_CodeEditor"
-				/>
 			</OwnerWindowRef>,
 			element,
 		)
