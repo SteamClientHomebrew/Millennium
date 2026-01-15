@@ -39,6 +39,7 @@
 #include "millennium/cef_bridge.h"
 #include "millennium/http_hooks.h"
 #include "millennium/life_cycle.h"
+#include "millennium/millennium_updater.h"
 #include "millennium/sysfs.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 #include "millennium/plugin_webkit_store.h"
@@ -58,7 +59,7 @@ extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 class plugin_loader
 {
   public:
-    plugin_loader();
+    plugin_loader(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
     ~plugin_loader();
 
     void start_plugin_backends();
@@ -70,7 +71,7 @@ class plugin_loader
     std::shared_ptr<ipc_main> get_ipc_main();
     std::shared_ptr<backend_manager> get_backend_manager();
     std::shared_ptr<backend_event_dispatcher> get_backend_event_dispatcher();
-    std::shared_ptr<SettingsStore> get_settings_store();
+    std::shared_ptr<millennium_backend> get_millennium_backend();
 
   private:
     void init();
@@ -89,6 +90,8 @@ class plugin_loader
     std::shared_ptr<SettingsStore> m_settings_store_ptr;
     std::shared_ptr<std::vector<SettingsStore::plugin_t>> m_plugin_ptr, m_enabledPluginsPtr;
 
+    std::shared_ptr<millennium_backend> m_millennium_backend;
+    std::shared_ptr<millennium_updater> m_millennium_updater;
     std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
     std::shared_ptr<backend_manager> m_backend_manager;
     std::shared_ptr<backend_initializer> m_backend_initializer;
@@ -103,5 +106,3 @@ class plugin_loader
     std::string document_script_id;
     bool has_loaded_core_plugin;
 };
-
-extern std::shared_ptr<plugin_loader> g_plugin_loader;

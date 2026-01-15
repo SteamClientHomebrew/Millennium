@@ -51,6 +51,8 @@
 class webkit_world_mgr
 {
   public:
+    static inline std::string m_context_name = "millennium";
+
     explicit webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
                               std::shared_ptr<plugin_webkit_store> plugin_webkit_store);
     ~webkit_world_mgr();
@@ -81,7 +83,6 @@ class webkit_world_mgr
     std::unordered_set<std::string> m_attachments_in_flight;
     std::mutex m_inflight_mutex;
 
-    std::string m_context_name = "millennium";
     std::atomic<bool> m_shutdown{ false };
 
     /** separate thread pool for attachment operations to avoid deadlock */
@@ -99,5 +100,4 @@ class webkit_world_mgr
     void target_create_hdlr(const json& params);
     void target_destroy_hdlr(const json& params);
     void target_change_hdlr(const json& params);
-    void execution_ctx_hdlr(const json& params);
 };

@@ -31,15 +31,20 @@
 #include "millennium/ffi_binder.h"
 #include "millennium/logger.h"
 #include "millennium/core_ipc.h"
+#include "millennium/plugin_webkit_world_mgr.h"
 
 ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<ipc_main> ipc_main)
     : m_client(client), m_settings_store(std::move(settings_store)), m_ipc_main(std::move(ipc_main))
 {
     m_client->on("Runtime.bindingCalled", std::bind(&ffi_binder::binding_call_hdlr, this, std::placeholders::_1));
+    m_client->on("Runtime.executionContextCreated", std::bind(&ffi_binder::execution_ctx_created_hdlr, this, std::placeholders::_1));
 }
 
 ffi_binder::~ffi_binder()
 {
+    m_client->off("Runtime.bindingCalled");
+    m_client->off("Runtime.executionContextCreated");
+
     Logger.Log("Successfully shut down ffi_binder...");
 }
 
@@ -110,6 +115,39 @@ void ffi_binder::binding_call_hdlr(const json& params)
             { "success",    false    },
             { "returnJson", e.what() }
         };
+        /** hope we got the call id before the exception, if not we're fucked */
         this->callback_into_js(params, payload.value("call_id", -1), callback_params);
+    }
+}
+
+void ffi_binder::execution_ctx_created_hdlr(const json& params)
+{
+    if (!params.contains("context") || !params.contains("sessionId")) {
+        return;
+    }
+
+    std::string session_id = params["sessionId"].get<std::string>();
+
+    const auto& context = params["context"];
+    if (!context.contains("id") || !context.contains("name")) {
+        return;
+    }
+
+    std::string context_name = context["name"].get<std::string>();
+    if (context_name != webkit_world_mgr::m_context_name) {
+        return;
+    }
+
+    int context_id = context["id"].get<int>();
+
+    try {
+        const json add_binding_params = {
+            { "name",               ffi_constants::binding_name },
+            { "executionContextId", context_id                  }
+        };
+        m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
+        Logger.Log("ffi_binder: re-added binding to context {} in session {}", context_id, session_id);
+    } catch (const std::exception& e) {
+        LOG_ERROR("ffi_binder: failed to re-add binding: {}", e.what());
     }
 }

@@ -66,7 +66,7 @@ set(SOURCE_FILES
     core/core_ipc.cc
     core/ffi_binder.cc
     core/http_hooks.cc
-    core/init.cc
+    core/plugin_loader.cc
     core/lifecycle.cc
     core/millennium_updater.cc
     core/plugin_webkit_store.cc
@@ -77,7 +77,6 @@ set(SOURCE_FILES
     backend/css_parser.cc
     backend/default_cfg.cc
     backend/entry_point.cc
-    backend/ipc_handler.cc
     backend/library_updater.cc
     backend/plugin_mgr.cc
     backend/scan.cc
@@ -91,7 +90,7 @@ set(SOURCE_FILES
     sys/env.cc
     sys/logger.cc
     sys/sysfs.cc
-    main.cc
+    millennium.cc
 )
 
 if(WIN32)

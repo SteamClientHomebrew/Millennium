@@ -95,11 +95,6 @@ bool network_hook_ctl::is_vfs_request(const nlohmann::basic_json<>& message)
     });
 }
 
-bool network_hook_ctl::is_ipc_request(const nlohmann::basic_json<>& message)
-{
-    return message["request"]["url"].get<std::string>().find(this->m_ipc_url) != std::string::npos;
-}
-
 std::filesystem::path network_hook_ctl::path_from_url(const std::string& requestUrl)
 {
     std::string_view url(requestUrl);
@@ -149,7 +144,7 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
                 fileContent = Base64Encode(SystemIO::ReadFileBytesSync(localFilePath.string()));
             } catch (const std::exception& error) {
                 LOG_ERROR("Failed to read file bytes from disk: {}", error.what());
-                bFailedRead = true; /** Force fail even if the file exists. */
+                bFailedRead = true; /** force fail even if the file exists. */
             }
         } else {
             fileContent = Base64Encode(std::string(std::istreambuf_iterator<char>(localFileStream), std::istreambuf_iterator<char>()));
@@ -184,7 +179,7 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
         { "requestId", message["requestId"] }
     };
 
-    // Check if the request URL is a do-not-hook URL.
+    /** check if the request URL is a do-not-hook URL. */
     for (const auto& doNotHook : g_js_and_css_hook_blacklist) {
         if (std::regex_match(requestUrl, std::regex(doNotHook))) {
             m_cdp->send_host("Fetch.continueRequest", params);
@@ -194,7 +189,7 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
 
     const auto redirect_codes = { http_code::SEE_OTHER, http_code::MOVED_PERMANENTLY, http_code::FOUND, http_code::TEMPORARY_REDIRECT, http_code::PERMANENT_REDIRECT };
 
-    // If the status code is a redirect, we just continue the request.
+    /** if the status code is a redirect, we just continue the request. */
     for (const auto& code : redirect_codes) {
         if (statusCode == code) {
             m_cdp->send_host("Fetch.continueRequest", params);
@@ -287,92 +282,10 @@ std::string network_hook_ctl::patch_document(const std::string& requestUrl, cons
     return inject_into_document_head(original, shimContent);
 }
 
-void network_hook_ctl::ipc_request_handler(nlohmann::json message)
-{
-    std::vector<std::pair<std::string, std::string>> defaultHeaders = {
-        { "Access-Control-Allow-Origin",  "*"                                                                                },
-        { "Access-Control-Allow-Headers", "Origin, X-Requested-With, X-Millennium-Auth, Content-Type, Accept, Authorization" },
-        { "Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"                                                  },
-        { "Access-Control-Max-Age",       "86400"                                                                            },
-        { "Content-Type",                 "application/json"                                                                 }
-    };
-
-    json headers = make_headers(defaultHeaders);
-
-    json parameters = {
-        { "responseCode",    http_code::OK        },
-        { "requestId",       message["requestId"] },
-        { "responseHeaders", headers              },
-        { "responsePhrase",  "Millennium"         }
-    };
-
-    /** If the HTTP method is OPTIONS, we don't need to require auth token */
-    if (message.value(json::json_pointer("/request/method"), std::string{}) == "OPTIONS") {
-        m_cdp->send_host("Fetch.fulfillRequest", parameters);
-        return;
-    }
-
-    std::string authToken = message.value(json::json_pointer("/request/headers/X-Millennium-Auth"), std::string{});
-    if (authToken.empty() || GetAuthToken() != authToken) {
-        LOG_ERROR("Invalid or missing X-Millennium-Auth in IPC request. Request: {}", message.dump());
-
-        parameters["responseCode"] = http_code::UNAUTHORIZED;
-        m_cdp->send_host("Fetch.fulfillRequest", parameters);
-        return;
-    }
-
-    nlohmann::json postData;
-    std::string strPostData = message.value(json::json_pointer("/request/postData"), std::string{});
-
-    if (!strPostData.empty()) {
-        try {
-            postData = nlohmann::json::parse(strPostData);
-        } catch (const nlohmann::json::parse_error& e) {
-            postData = nlohmann::json::object();
-        }
-    } else {
-        postData = nlohmann::json::object();
-    }
-
-    if (postData.is_null() || postData.empty()) {
-        LOG_ERROR("IPC request with no post data, this is not allowed.");
-        parameters["responseCode"] = http_code::BAD_REQUEST;
-        m_cdp->send_host("Fetch.fulfillRequest", parameters);
-        return;
-    }
-
-    const auto result = m_ipc_main->process_message(postData);
-    parameters["body"] = Base64Encode(result.dump());
-
-    if (result.contains("error")) {
-        LOG_ERROR("IPC error: {}", result.dump(4));
-
-        const std::vector<std::pair<ipc_main::ErrorType, http_code>> errorMap = {
-            { ipc_main::ErrorType::AUTHENTICATION_ERROR, http_code::UNAUTHORIZED          },
-            { ipc_main::ErrorType::INTERNAL_ERROR,       http_code::INTERNAL_SERVER_ERROR }
-        };
-
-        parameters["responseCode"] = errorMap[result["type"]];
-    }
-
-    m_cdp->send_host("Fetch.fulfillRequest", parameters);
-}
-
 void network_hook_ctl::init()
 {
-    Logger.Log("Initializing HttpHookManager...");
-
     m_cdp->on("Fetch.requestPaused", [this](const nlohmann::json& message)
     {
-        if (is_ipc_request(message)) {
-            if (m_thread_pool) {
-                m_thread_pool->enqueue([this, msg = std::move(message)]() { this->ipc_request_handler(std::move(msg)); });
-            } else {
-                LOG_ERROR("Thread pool is not initialized, cannot handle IPC message.");
-            }
-            return;
-        }
-
         if (this->is_vfs_request(message)) {
             this->vfs_request_handler(message);
             return;
@@ -381,7 +294,7 @@ void network_hook_ctl::init()
         this->mime_doc_request_handler(message);
     });
 
-    const auto hooks = { this->m_ipc_url, this->m_ftp_url, this->m_legacy_hook_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url };
+    const auto hooks = { this->m_ftp_url, this->m_legacy_hook_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url };
 
     nlohmann::json patterns = nlohmann::json::array();
     for (const auto& hook : hooks) {
@@ -402,7 +315,13 @@ void network_hook_ctl::init()
         { "patterns", patterns }
     });
 
-    m_cdp->send_host("Fetch.enable", params);
+    try {
+        m_cdp->send_host("Fetch.enable", params);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Exception calling Fetch.enable in HttpHookManager::init(): {}", e.what());
+    } catch (...) {
+        LOG_ERROR("Unknown exception calling Fetch.enable in HttpHookManager::init()");
+    }
 }
 
 void network_hook_ctl::shutdown()
@@ -418,16 +337,17 @@ void network_hook_ctl::shutdown()
     Logger.Log("Successfully shut down network_hook_ctl...");
 }
 
-network_hook_ctl::network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client, std::shared_ptr<ipc_main> ipc_main)
-    : m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_ipc_main(std::move(ipc_main)),
-      m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())), m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
+network_hook_ctl::network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client)
+    : m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
+      m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
 {
+    this->init();
 }
 
 network_hook_ctl::~network_hook_ctl()
 {
 /**
- * deconstructor's aren't used on windows as the dll loader lock causes dead locks.
+ * dtors aren't used on windows as the dll loader lock causes dead locks.
  * we free from the main function instead
  * */
 #if defined(__linux__) || defined(MILLENNIUM_32BIT)

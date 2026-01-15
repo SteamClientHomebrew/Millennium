@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -29,31 +29,27 @@
  */
 
 #pragma once
-#include "millennium/fwd_decl.h"
+#include "millennium/plugin_loader.h"
+#include "millennium/millennium_updater.h"
 #include "millennium/sysfs.h"
-#include <filesystem>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
 
-class plugin_installer
+class millennium
 {
   public:
-    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<Updater> updater);
+    millennium();
 
-    bool is_plugin_installed(const std::string& pluginName);
-    bool uninstall_plugin(const std::string& pluginName);
-    bool update_plugin(const std::string& id, const std::string& name);
-    nlohmann::json install_plugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json get_updater_request_body();
+    void check_health();
+    void check_for_updates();
+    void entry();
+
+    std::shared_ptr<plugin_loader> get_plugin_loader();
+    std::shared_ptr<SettingsStore> get_settings_store();
 
   private:
-    std::weak_ptr<millennium_backend> m_millennium_backend;
-    std::shared_ptr<SettingsStore> settings_store_ptr;
-    std::shared_ptr<Updater> m_updater;
-
-    std::filesystem::path get_plugins_path();
-
-    std::optional<nlohmann::json> read_plugin_metadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> get_plugin_data();
+    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<plugin_loader> m_plugin_loader;
+    std::shared_ptr<millennium_backend> m_millennium_backend;
+    std::shared_ptr<millennium_updater> m_millennium_updater;
 };
+
+extern std::unique_ptr<millennium> g_millennium;

@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -28,32 +28,9 @@
  * SOFTWARE.
  */
 
-#pragma once
-#include "millennium/fwd_decl.h"
-#include "millennium/sysfs.h"
-#include <filesystem>
-#include <nlohmann/json.hpp>
-#include <optional>
-#include <string>
-
-class plugin_installer
-{
-  public:
-    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<Updater> updater);
-
-    bool is_plugin_installed(const std::string& pluginName);
-    bool uninstall_plugin(const std::string& pluginName);
-    bool update_plugin(const std::string& id, const std::string& name);
-    nlohmann::json install_plugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json get_updater_request_body();
-
-  private:
-    std::weak_ptr<millennium_backend> m_millennium_backend;
-    std::shared_ptr<SettingsStore> settings_store_ptr;
-    std::shared_ptr<Updater> m_updater;
-
-    std::filesystem::path get_plugins_path();
-
-    std::optional<nlohmann::json> read_plugin_metadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> get_plugin_data();
-};
+/**
+ * this file is used to circularly reference stuff
+ */
+class ipc_main;
+class millennium_backend;
+class Updater;

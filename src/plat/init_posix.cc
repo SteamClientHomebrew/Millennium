@@ -28,13 +28,16 @@
  * SOFTWARE.
  */
 
+#include <memory>
 #include <optional>
 #if defined(__linux__) || defined(__APPLE__)
 #include "hhx64/smem.h"
+
+#include "millennium/millennium.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/crash_handler.h"
 #include "millennium/env.h"
-#include "millennium/init.h"
+#include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 
 #include <ctime>
@@ -48,10 +51,6 @@
 std::unique_ptr<std::thread> g_millenniumThread;
 
 void VerifyEnvironment();
-
-/** forward declare main function */
-void EntryMain();
-void Plat_CheckForUpdates();
 
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
@@ -141,10 +140,12 @@ void Posix_AttachMillennium()
 {
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
+
     Plat_InitializeSteamHooks();
     Posix_AttachWebHelperHook();
-    Plat_CheckForUpdates();
-    EntryMain();
+    g_millennium = std::make_unique<millennium>();
+    g_millennium->check_for_updates();
+    g_millennium->entry();
 }
 
 /** New interop funcs that receive calls from hooked libXtst */

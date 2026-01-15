@@ -28,12 +28,11 @@
  * SOFTWARE.
  */
 
-#include "head/entry_point.h"
 #include "millennium/life_cycle.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
-#include "millennium/init.h"
 #include "millennium/logger.h"
+#include "millennium/millennium.h"
 #include "millennium/semver.h"
 #include "millennium/sysfs.h"
 #include <exception>
@@ -82,14 +81,6 @@ static std::string GetPluginNameSafe(lua_State* L)
     return pluginNameStr ? std::string(pluginNameStr) : std::string();
 }
 
-/**
- * Convert number to string with same precision as original
- */
-static std::string NumberToString(double number)
-{
-    return fmt::format("{:.17g}", number);
-}
-
 int Lua_GetUserSettings(lua_State* L)
 {
     return luaL_error(L, "get_user_settings is not implemented yet. It will likely be removed in the future.");
@@ -114,37 +105,23 @@ int Lua_CallFrontendMethod(lua_State* L)
 
         for (int i = 1; i <= len; ++i) {
             lua_rawgeti(L, 2, i);
-
-            std::string valueType;
-            std::string strValue;
+            ipc_main::javascript_parameter param;
 
             if (lua_isstring(L, -1)) {
-                valueType = "string";
-                const char* temp = lua_tostring(L, -1);
-                strValue = temp ? temp : "";
+                param = lua_tostring(L, -1);
             } else if (lua_isboolean(L, -1)) {
-                valueType = "boolean";
-                strValue = lua_toboolean(L, -1) ? "true" : "false";
+                param = lua_toboolean(L, -1);
             } else if (lua_isnumber(L, -1)) {
-                valueType = "number";
-                strValue = NumberToString(lua_tonumber(L, -1));
+                /**
+                 * LuaJIT only has 1 numerical type, being a double; so we don't have to worry about overflow.
+                 * https://bitop.luajit.org/semantics.html
+                 */
+                param = lua_tonumber(L, -1);
             } else {
                 lua_pop(L, 1);
                 return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
             }
-
-            try {
-                if (ipc_main::str_type_map.find(valueType) == ipc_main::str_type_map.end()) {
-                    lua_pop(L, 1);
-                    return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
-                }
-
-                params.push_back({ strValue, ipc_main::str_type_map.at(valueType) });
-            } catch (const std::exception&) {
-                lua_pop(L, 1);
-                return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
-            }
-
+            params.push_back(param);
             lua_pop(L, 1);
         }
     }
@@ -155,7 +132,7 @@ int Lua_CallFrontendMethod(lua_State* L)
         return 1;
     }
 
-    std::shared_ptr<ipc_main> m_ipc_main = g_plugin_loader->get_ipc_main();
+    std::shared_ptr<ipc_main> m_ipc_main = g_millennium->get_plugin_loader()->get_ipc_main();
     const std::string script = m_ipc_main->compile_javascript_expression(pluginName, methodName, params);
     return m_ipc_main->evaluate_javascript_expression(script).to_lua(L);
 }
@@ -193,7 +170,7 @@ int Lua_GetInstallPath(lua_State* L)
 int Lua_RemoveBrowserModule(lua_State* L)
 {
     const lua_Integer hookId = luaL_checkinteger(L, 1);
-    const bool success = Millennium_RemoveBrowserModule(static_cast<unsigned long long>(hookId));
+    const bool success = g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_RemoveBrowserModule(static_cast<unsigned long long>(hookId));
     lua_pushboolean(L, success);
     return 1;
 }
@@ -202,7 +179,7 @@ unsigned long long Lua_AddBrowserModule(lua_State* L, network_hook_ctl::TagTypes
 {
     const char* content = luaL_checkstring(L, 1);
     const char* pattern = luaL_optstring(L, 2, ".*");
-    return Millennium_AddBrowserModule(content, pattern, type);
+    return g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_AddBrowserModule(content, pattern, type);
 }
 
 int Lua_AddBrowserCss(lua_State* L)
@@ -228,7 +205,7 @@ int Lua_IsPluginEnable(lua_State* L)
     }
 
     try {
-        const bool isEnabled = g_plugin_loader->get_settings_store()->IsEnabledPlugin(pluginName);
+        const bool isEnabled = g_millennium->get_settings_store()->IsEnabledPlugin(pluginName);
         lua_pushboolean(L, isEnabled);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to check plugin status for '{}': {}", pluginName, e.what());
@@ -246,7 +223,8 @@ int Lua_EmitReadyMessage(lua_State* L)
     }
 
     try {
-        g_plugin_loader->get_backend_event_dispatcher()->backend_loaded_event_hdlr({ pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
+        g_millennium->get_plugin_loader()->get_backend_event_dispatcher()->backend_loaded_event_hdlr(
+            { pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
         lua_pushboolean(L, 1);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to emit ready message for plugin '{}': {}", pluginName, e.what());

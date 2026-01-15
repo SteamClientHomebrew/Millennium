@@ -28,14 +28,13 @@
  * SOFTWARE.
  */
 
-#include "head/ipc_handler.h"
-
 #include "millennium/auth.h"
 #include "millennium/core_ipc.h"
 #include "millennium/encode.h"
 #include "millennium/logger.h"
 #include "millennium/sysfs.h"
 
+#include <cstdint>
 #include <fmt/core.h>
 #include <functional>
 
@@ -160,18 +159,21 @@ const std::string ipc_main::compile_javascript_expression(std::string plugin, st
     expression += fmt::format("window.PLUGIN_LIST['{}'].{}(", plugin, methodName);
 
     for (size_t i = 0; i < fnParams.size(); ++i) {
-        const auto& param = fnParams[i];
+        if (i > 0) expression += ", ";
 
-        if (param.type == javascript_evaluation_type::String) {
-            expression += fmt::format("btoa(\"{}\")", Base64Encode(param.value));
-        } else {
-            expression += param.value;
-        }
-
-        if (i + 1 < fnParams.size()) {
-            expression += ", ";
-        }
+        expression += std::visit([](auto&& arg) -> std::string
+        {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::string>) {
+                /** if the param is a string, the best way to escape it
+                 * is to just pass it as base64 and decode it on the frontend */
+                return fmt::format(R"(atob("{}"))", Base64Encode(arg));
+            } else {
+                return fmt::format("{}", arg);
+            }
+        }, fnParams[i]);
     }
+
     expression += ");";
     return expression;
 }
@@ -189,14 +191,12 @@ ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
         const auto& functionName = call["data"]["methodName"].get<std::string>();
         const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : json::object();
 
-        ordered_json result = HandleIpcMessage(functionName, args);
-
-        auto it = FFIMap_t.find(result.type());
-        return it != FFIMap_t.end() ? vm_call_result{ it->second, result.dump() } : vm_call_result{ FFI_Type::UnknownType, "core IPC call returned unknown type" };
+        ordered_json result = m_millennium_backend->HandleIpcMessage(functionName, args);
+        return { true, result.dump() };
     }
     /** the internal c ipc method threw an exception */
     catch (const std::exception& ex) {
-        return { FFI_Type::Error, ex.what() };
+        return { false, std::string(ex.what()) };
     }
 }
 
@@ -251,30 +251,20 @@ json ipc_main::call_server_method(const json& call)
     /** Conditionally dispatch call between internal IPC call, and Python / Lua */
     vm_call_result response = pluginName == "core" ? handle_core_server_method(call) : handle_plugin_server_method(pluginName, call);
 
-    /** Convert the EvalResult into a JSON response */
-    auto convertResponseValue = [](const auto& response)
+    nlohmann::json responseMessage = {};
+    responseMessage["success"] = response.success;
+    responseMessage["pluginName"] = pluginName;
+    auto& return_json = responseMessage["returnJson"];
+
+    std::visit([&return_json](auto&& arg)
     {
-        switch (response.type) {
-            case FFI_Type::Boolean:
-                /** handle truthy types for python and lua backends */
-                return nlohmann::json(response.plain == "True" || response.plain == "true");
-            case FFI_Type::Integer:
-                return nlohmann::json(std::stoi(response.plain));
-            default:
-                return nlohmann::json(Base64Encode(response.plain));
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, std::monostate>) {
+            return_json = nullptr;
+        } else {
+            return_json = arg;
         }
-    };
-
-    nlohmann::json responseMessage = {
-        { "returnType", response.type }
-    };
-
-    if (response.type == FFI_Type::UnknownType || response.type == FFI_Type::Error) {
-        responseMessage["failedRequest"] = true;
-        responseMessage["failMessage"] = response.plain;
-    } else {
-        responseMessage["returnValue"] = convertResponseValue(response);
-    }
+    }, response.value);
 
     return responseMessage;
 }
@@ -326,24 +316,25 @@ json ipc_main::call_frontend_method(const json& call)
 
     if (call["data"].contains("argumentList")) {
         for (const auto& arg : call["data"]["argumentList"]) {
-            javascript_parameter param;
-
-            if (arg.contains("type") && arg.contains("value")) {
-                const std::string type = arg["type"];
-                param.value = arg["value"];
-
-                if (type == "string") {
-                    param.type = javascript_evaluation_type::String;
-                } else if (type == "boolean") {
-                    param.type = javascript_evaluation_type::Boolean;
-                } else if (type == "number") {
-                    param.type = javascript_evaluation_type::Integer;
-                }
-            } else {
-                LOG_ERROR("malformed argument in CallFrontEndMethod, skipping...");
+            if (!arg.contains("value")) {
+                LOG_ERROR("malformed argument in call_frontend_method, skipping...");
                 continue;
             }
 
+            javascript_parameter param;
+            const auto& value = arg["value"];
+
+            if (value.is_string()) {
+                param = value.get<std::string>();
+            } else if (value.is_boolean()) {
+                param = value.get<bool>();
+            } else if (value.is_number_float()) {
+                param = value.get<double>();
+            } else if (value.is_number_integer()) {
+                param = value.get<int64_t>();
+            } else if (value.is_number_unsigned()) {
+                param = value.get<uint64_t>();
+            }
             params.push_back(param);
         }
     }
@@ -367,9 +358,9 @@ json ipc_main::process_message(const json payload)
 {
     try {
         static const std::unordered_map<int, std::function<nlohmann::json(nlohmann::json)>> handlers = {
-            { ipc_main::Builtins::CALL_SERVER_METHOD,   std::bind(&ipc_main::call_server_method,   this, _1) },
-            { ipc_main::Builtins::FRONT_END_LOADED,     std::bind(&ipc_main::on_front_end_loaded,  this, _1) },
-            { ipc_main::Builtins::CALL_FRONTEND_METHOD, std::bind(&ipc_main::call_frontend_method, this, _1) }
+            { ipc_main::ipc_method::CALL_SERVER_METHOD,   std::bind(&ipc_main::call_server_method,   this, _1) },
+            { ipc_main::ipc_method::FRONT_END_LOADED,     std::bind(&ipc_main::on_front_end_loaded,  this, _1) },
+            { ipc_main::ipc_method::CALL_FRONTEND_METHOD, std::bind(&ipc_main::call_frontend_method, this, _1) }
         };
 
         int messageId = payload["id"].get<int>();
@@ -379,12 +370,17 @@ json ipc_main::process_message(const json payload)
     } catch (const nlohmann::detail::exception& ex) {
         return {
             { "error", fmt::format("JSON parsing error: {}", ex.what()) },
-            { "type", ipc_main::ErrorType::INTERNAL_ERROR }
+            { "type", ipc_main::ipc_error::INTERNAL_ERROR }
         };
     } catch (const std::exception& ex) {
         return {
             { "error", fmt::format("An error occurred while processing the message: {}", ex.what()) },
-            { "type", ipc_main::ErrorType::INTERNAL_ERROR }
+            { "type", ipc_main::ipc_error::INTERNAL_ERROR }
         };
     }
+}
+
+void ipc_main::set_millennium_backend(std::shared_ptr<millennium_backend> millennium_backend)
+{
+    this->m_millennium_backend = millennium_backend;
 }

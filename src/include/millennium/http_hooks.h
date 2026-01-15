@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include "millennium/core_ipc.h"
+#include "millennium/fwd_decl.h"
 #include "millennium/cdp_api.h"
 #include "millennium/thread_pool.h"
 #include "millennium/sysfs.h"
@@ -70,7 +70,7 @@ static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
 class network_hook_ctl
 {
   public:
-    network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client, std::shared_ptr<ipc_main> ipc_main);
+    network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client);
     ~network_hook_ctl();
 
     enum TagTypes
@@ -106,7 +106,6 @@ class network_hook_ctl
   private:
     std::shared_ptr<SettingsStore> m_settings_store;
     std::shared_ptr<cdp_client> m_cdp;
-    std::shared_ptr<ipc_main> m_ipc_main;
 
     struct processed_hooks
     {
@@ -120,7 +119,6 @@ class network_hook_ctl
     std::shared_ptr<std::vector<hook_item>> m_hook_list_ptr;
 
     const char* m_ftp_url = "https://millennium.ftp/";
-    const char* m_ipc_url = "https://millennium.ipc/";
 
     /** Maintain backwards compatibility for themes that explicitly rely on this url */
     const char* m_legacy_hook_url = "https://pseudo.millennium.app/";
@@ -130,14 +128,12 @@ class network_hook_ctl
     /** list of all FTP related urls */
     const std::vector<const char*> m_ftpUrls = { this->m_ftp_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url, this->m_legacy_hook_url };
 
-    bool is_ipc_request(const nlohmann::basic_json<>& message);
     bool is_vfs_request(const nlohmann::basic_json<>& message);
     std::string HandleCssHook(const std::string& body);
     std::string HandleJsHook(const std::string& body);
     void HandleHooks(const nlohmann::basic_json<>& message);
     void vfs_request_handler(const nlohmann::basic_json<>& message);
     void mime_doc_request_handler(const nlohmann::basic_json<>& message);
-    void ipc_request_handler(nlohmann::json message);
     std::filesystem::path path_from_url(const std::string& requestUrl);
     processed_hooks apply_user_webkit_hooks(const std::string& requestUrl) const;
     std::string patch_document(const std::string& requestUrl, const std::string& original) const;

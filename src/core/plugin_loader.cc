@@ -28,12 +28,15 @@
  * SOFTWARE.
  */
 
+#include "millennium/core_ipc.h"
 #include "head/entry_point.h"
 #include "lua.h"
 #include "millennium/life_cycle.h"
+#include "millennium/millennium.h"
+#include "millennium/millennium_updater.h"
 #include "millennium/sysfs.h"
 #include "millennium/types.h"
-#include "millennium/init.h"
+#include "millennium/plugin_loader.h"
 #include "millennium/urlp.h"
 #include "millennium/backend_init.h"
 #include "millennium/backend_mgr.h"
@@ -50,14 +53,15 @@
 using namespace std::placeholders;
 using namespace std::chrono;
 
-std::shared_ptr<plugin_loader> g_plugin_loader;
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-plugin_loader::plugin_loader() : m_thread_pool(std::make_unique<thread_pool>(2)), m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr), has_loaded_core_plugin(false)
+plugin_loader::plugin_loader(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<millennium_updater> millennium_updater)
+    : m_thread_pool(std::make_unique<thread_pool>(2)), m_settings_store_ptr(std::move(settings_store)), m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr),
+      m_millennium_updater(std::move(millennium_updater)), has_loaded_core_plugin(false)
 {
     this->init();
 }
@@ -70,20 +74,6 @@ plugin_loader::~plugin_loader()
 void plugin_loader::shutdown()
 {
     Logger.Log("Successfully shut down plugin_loader...");
-
-    // std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-    // cv_hasSteamUnloaded.wait(lk, [&]()
-    // {
-    //     /** wait for all backends to stop so we can safely free the loader lock */
-    //     if (m_backend_manager->HasAllPythonBackendsStopped() && m_backend_manager->HasAllLuaBackendsStopped()) {
-    //         Logger.Warn("All backends have stopped, proceeding with termination...");
-
-    //         std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
-    //         cv_hasAllPythonPluginsShutdown.notify_all();
-    //         return true;
-    //     }
-    //     return false;
-    // });
 }
 
 void plugin_loader::init_devtools()
@@ -134,8 +124,12 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     m_cdp = cdp;
     m_socket_con_time = std::chrono::system_clock::now();
     m_ipc_main = std::make_shared<ipc_main>(m_settings_store_ptr, m_cdp, m_backend_manager);
-    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp, m_ipc_main);
-    this->m_network_hook_ctl->init();
+    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp);
+    m_millennium_backend = std::make_shared<millennium_backend>(m_ipc_main, m_settings_store_ptr, m_network_hook_ctl, m_millennium_updater);
+
+    m_millennium_backend->init(); /** manual ctor, shared_from_this requires a ref holder before its valid */
+    m_ipc_main->set_millennium_backend(m_millennium_backend);
+    m_millennium_updater->set_ipc_main(m_ipc_main);
 
     m_thread_pool->enqueue([this]()
     {
@@ -154,7 +148,6 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
 void plugin_loader::init()
 {
-    m_settings_store_ptr = std::make_shared<SettingsStore>();
     m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_settings_store_ptr);
     m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
     m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);
@@ -174,7 +167,7 @@ std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr
 
     browserProps->commonName = "CEFBrowser";
     browserProps->fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
-    browserProps->onConnect = std::bind(&plugin_loader::devtools_connection_hdlr, this, _1);
+    browserProps->onConnect = [this](std::shared_ptr<cdp_client> cdp) { this->devtools_connection_hdlr(std::move(cdp)); };
     return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
 }
 
@@ -235,7 +228,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
 {
     this->setup_webkit_shims();
 
-    g_plugin_loader->get_backend_event_dispatcher()->on_all_backends_ready([&, this]()
+    g_millennium->get_plugin_loader()->get_backend_event_dispatcher()->on_all_backends_ready([&, this]()
     {
         Logger.Log("Notifying frontend of backend load...");
         m_backend_initializer->compat_restore_shared_js_context();
@@ -260,6 +253,14 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
             /** empty means it was successful */
             while (!result.empty());
         }
+
+        /** add binding for initial context */
+        const json add_binding_params = {
+            { "name", ffi_constants::binding_name }
+        };
+
+        m_cdp->send("Runtime.enable").get();
+        m_cdp->send("Runtime.addBinding", add_binding_params).get();
 
         Logger.Log("Frontend notifier finished!");
     });
@@ -324,11 +325,6 @@ void plugin_loader::start_plugin_backends()
     m_backend_initializer->start_package_manager();
     this->log_enabled_plugins();
 
-    if (!this->has_loaded_core_plugin) {
-        Core_Load(m_settings_store_ptr, m_network_hook_ctl);
-        this->has_loaded_core_plugin = true;
-    }
-
     auto weak_init = std::weak_ptr(m_backend_initializer);
 
     for (auto& plugin : *m_enabledPluginsPtr) {
@@ -368,7 +364,7 @@ std::shared_ptr<backend_event_dispatcher> plugin_loader::get_backend_event_dispa
     return m_backend_event_dispatcher;
 }
 
-std::shared_ptr<SettingsStore> plugin_loader::get_settings_store()
+std::shared_ptr<millennium_backend> plugin_loader::get_millennium_backend()
 {
-    return m_settings_store_ptr;
+    return this->m_millennium_backend;
 }

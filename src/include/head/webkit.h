@@ -31,10 +31,8 @@
 #pragma once
 
 #include "millennium/http_hooks.h"
-#include "millennium/singleton.h"
 #include "millennium/sysfs.h"
 #include <memory>
-#include <mutex>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>

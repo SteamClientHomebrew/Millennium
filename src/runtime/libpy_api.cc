@@ -28,15 +28,13 @@
  * SOFTWARE.
  */
 
-#include "head/entry_point.h"
 #include "millennium/life_cycle.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
-#include "millennium/init.h"
 #include "millennium/logger.h"
+#include "millennium/millennium.h"
 #include "millennium/sysfs.h"
 
-#include <cctype>
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
@@ -74,19 +72,26 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
         Py_ssize_t listSize = PyList_Size(parameterList);
 
         for (Py_ssize_t i = 0; i < listSize; ++i) {
-            PyObject* listItem = PyList_GetItem(parameterList, i);
-            std::string strValue = PyUnicode_AsUTF8(PyObject_Str(listItem));
-            std::string valueType = Py_TYPE(listItem)->tp_name;
+            PyObject* item = PyList_GetItem(parameterList, i);
 
-            try {
-                /** force lowercase boolean parameters */
-                if (ipc_main::str_type_map.at(valueType) == ipc_main::javascript_evaluation_type::Boolean) {
-                    std::transform(strValue.begin(), strValue.end(), strValue.begin(), ::tolower);
+            if (PyBool_Check(item)) {
+                params.emplace_back(static_cast<bool>(PyObject_IsTrue(item)));
+            } else if (PyLong_Check(item)) {
+                int overflow = 0;
+                long long v = PyLong_AsLongLongAndOverflow(item, &overflow);
+
+                if (overflow != 0) {
+                    PyErr_SetString(PyExc_OverflowError, "integer too large for int64");
+                    return NULL;
                 }
 
-                params.push_back({ strValue, ipc_main::str_type_map.at(valueType) });
-            } catch (const std::exception&) {
-                PyErr_SetString(PyExc_TypeError, "Millennium's IPC can only handle [bool, str, int]");
+                params.emplace_back(static_cast<int64_t>(v));
+            } else if (PyFloat_Check(item)) {
+                params.emplace_back(PyFloat_AsDouble(item));
+            } else if (PyUnicode_Check(item)) {
+                params.emplace_back(std::string(PyUnicode_AsUTF8(item)));
+            } else {
+                PyErr_SetString(PyExc_TypeError, "Millennium IPC only supports [bool, int, float, str]");
                 return NULL;
             }
         }
@@ -102,7 +107,7 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
 
-    std::shared_ptr<ipc_main> m_ipc_main = g_plugin_loader->get_ipc_main();
+    std::shared_ptr<ipc_main> m_ipc_main = g_millennium->get_plugin_loader()->get_ipc_main();
     const std::string script = m_ipc_main->compile_javascript_expression(pluginName, methodName, params);
     return m_ipc_main->evaluate_javascript_expression(script).to_python();
 }
@@ -130,8 +135,7 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    const bool success = Millennium_RemoveBrowserModule(static_cast<unsigned long long>(moduleId));
-
+    const bool success = g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_RemoveBrowserModule(static_cast<unsigned long long>(moduleId));
     return PyBool_FromLong(success);
 }
 
@@ -144,7 +148,7 @@ unsigned long long AddBrowserModule(PyObject* args, network_hook_ctl::TagTypes t
         return 0;
     }
 
-    return Millennium_AddBrowserModule(moduleItem, regexSelector, type);
+    return g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_AddBrowserModule(moduleItem, regexSelector, type);
 }
 
 PyObject* AddBrowserCss([[maybe_unused]] PyObject* self, PyObject* args)
@@ -169,7 +173,7 @@ PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    bool isEnabled = g_plugin_loader->get_settings_store()->IsEnabledPlugin(pluginName);
+    bool isEnabled = g_millennium->get_settings_store()->IsEnabledPlugin(pluginName);
     return PyBool_FromLong(isEnabled);
 }
 
@@ -184,7 +188,8 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
     }
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
-    g_plugin_loader->get_backend_event_dispatcher()->backend_loaded_event_hdlr({ pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
+    g_millennium->get_plugin_loader()->get_backend_event_dispatcher()->backend_loaded_event_hdlr(
+        { pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
     return PyBool_FromLong(true);
 }
 

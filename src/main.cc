@@ -28,7 +28,9 @@
  * SOFTWARE.
  */
 
+#include "head/entry_point.h"
 #include "hhx64/smem.h"
+#include <memory>
 #define UNICODE
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -37,41 +39,50 @@
 #endif
 #include "millennium/crash_handler.h"
 #include "millennium/env.h"
-#include "millennium/init.h"
+#include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 #include "head/default_cfg.h"
 #include "millennium/millennium_updater.h"
+#include "millennium/millennium.h"
 
 #include <filesystem>
 #include <fmt/core.h>
 
-extern std::mutex mtx_hasSteamUnloaded;
-extern std::condition_variable cv_hasSteamUnloaded;
+std::unique_ptr<millennium> g_millennium;
 
-static void VerifyEnvironment()
+millennium::millennium()
+{
+    m_settings_store = std::make_shared<SettingsStore>();
+    m_millennium_updater = std::make_shared<millennium_updater>();
+    m_plugin_loader = std::make_shared<plugin_loader>(m_settings_store, m_millennium_updater);
+}
+
+std::shared_ptr<plugin_loader> millennium::get_plugin_loader()
+{
+    return this->m_plugin_loader;
+}
+
+std::shared_ptr<SettingsStore> millennium::get_settings_store()
+{
+    return this->m_settings_store;
+}
+
+void millennium::check_health()
 {
     const auto cefRemoteDebugging = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
-
 #ifdef __linux__
-    if (std::filesystem::exists(cefRemoteDebugging)) {
-        /** Remove remote debugger flag if its enabled. We don't need it anymore (2025-10-22) */
-        if (!std::filesystem::remove(cefRemoteDebugging)) {
-            LOG_ERROR("Failed to remove '{}', this is likely non-fatal but manual intervention is recommended.", cefRemoteDebugging.string());
-        }
+    if (std::filesystem::exists(cefRemoteDebugging) && !std::filesystem::remove(cefRemoteDebugging)) {
+        LOG_ERROR("Failed to remove '{}', likely non-fatal but manual intervention recommended.", cefRemoteDebugging.string());
     }
 #elif _WIN32
-    /** Check if the user has set a Steam.cfg file to block updates, this is incompatible with Millennium as Millennium relies on the latest version of Steam. */
-    const auto steamUpdateBlock = SystemIO::GetSteamPath() / "Steam.cfg";
+    const auto steam_cfg = SystemIO::GetSteamPath() / "Steam.cfg";
+    const auto bootstrap_error = fmt::format("Millennium is incompatible with your {} config. Remove this file to allow Steam updates.", steam_cfg.string());
+    const auto cef_error = fmt::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cefRemoteDebugging.string());
 
-    const std::string errorMessage = fmt::format(
-        "Millennium is incompatible with your {} config. This is a file you likely created to block Steam updates. In order for Millennium to properly function, remove it.",
-        steamUpdateBlock.string());
-
-    if (std::filesystem::exists(steamUpdateBlock)) {
+    if (std::filesystem::exists(steam_cfg)) {
         try {
-            std::string steamConfig = SystemIO::ReadFileSync(steamUpdateBlock.string());
-
-            std::vector<std::string> blackListedKeys = {
+            const std::string steamConfig = SystemIO::ReadFileSync(steam_cfg.string());
+            static const std::vector<std::string> blackListedKeys = {
                 "BootStrapperInhibitAll",
                 "BootStrapperForceSelfUpdate",
                 "BootStrapperInhibitClientChecksum",
@@ -81,86 +92,54 @@ static void VerifyEnvironment()
 
             for (const auto& key : blackListedKeys) {
                 if (steamConfig.find(key) != std::string::npos) {
-                    throw SystemIO::FileException("Steam.cfg contains blacklisted keys");
+                    Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
+                    LOG_ERROR(bootstrap_error);
+                    break;
                 }
             }
-        } catch (const SystemIO::FileException& e) {
-            Plat_ShowMessageBox("Startup Error", errorMessage.c_str(), MESSAGEBOX_ERROR);
-            LOG_ERROR(errorMessage);
+        } catch (const SystemIO::FileException&) {
+            Plat_ShowMessageBox("Startup Error", bootstrap_error, MESSAGEBOX_ERROR);
+            LOG_ERROR(bootstrap_error);
         }
     }
 
-#ifdef MILLENNIUM_64BIT
-    const auto RemoveDeprecatedFile = [](const std::filesystem::path& filePath)
-    {
-        if (std::filesystem::exists(filePath)) {
-            try {
-                if (std::filesystem::is_directory(filePath)) {
-                    std::filesystem::remove_all(filePath);
-                    Logger.Log("Removed deprecated directory: {}", filePath.string());
-                } else {
-                    std::filesystem::remove(filePath);
-                    Logger.Log("Removed deprecated file: {}", filePath.string());
-                }
-            } catch (const std::filesystem::filesystem_error& e) {
-                LOG_ERROR("Failed to remove deprecated file or directory {}: {}", filePath.string(), e.what());
-                Plat_ShowMessageBox("Startup Error",
-                                    fmt::format("Failed to remove deprecated file or directory: {}\nPlease remove it manually and restart Steam.", filePath.string()).c_str(),
-                                    MESSAGEBOX_ERROR);
-            }
+    if (std::filesystem::exists(cefRemoteDebugging)) {
+        try {
+            std::filesystem::remove(cefRemoteDebugging);
+        } catch (const std::filesystem::filesystem_error& e) {
+            LOG_ERROR("Failed to remove deprecated file {}: {}", cefRemoteDebugging.string(), e.what());
+            Plat_ShowMessageBox("Startup Error", cef_error).c_str(), MESSAGEBOX_ERROR);
         }
-    };
-
-    /** Remove deprecated CEF remote debugging file in place of virtually enabling it in memory */
-    RemoveDeprecatedFile(cefRemoteDebugging);
-    /** Remove old shims folder (they've been added into process memory) */
-    // RemoveDeprecatedFile(SystemIO::GetInstallPath() / "ext" / "data" / "shims");
-#elif defined(MILLENNIUM_32BIT)
-    if (!std::filesystem::exists(cefRemoteDebugging)) {
-        std::ofstream file(cefRemoteDebugging);
-        if (!file) {
-            LOG_ERROR("Failed to create {}", cefRemoteDebugging.string());
-            Plat_ShowMessageBox("Fatal Error", fmt::format("Failed to create remote debugger file! Manually create: {}", cefRemoteDebugging.string()).c_str(), MESSAGEBOX_ERROR);
-            return;
-        }
-        file.close();
-        Plat_ShowMessageBox("Restart Required!", "Please restart Steam to complete Millennium setup!", MESSAGEBOX_INFO);
     }
-#endif
 #endif
 }
 
-/**
- * Called on startup to check for Millennium updates
- */
-void Plat_CheckForUpdates()
+void millennium::check_for_updates()
 {
     try {
-        MillenniumUpdater::CheckForUpdates();
+        m_millennium_updater->check_for_updates();
 
-        const auto update = MillenniumUpdater::HasAnyUpdates();
-        const bool shouldAutoInstall = CONFIG.GetNested("general.onMillenniumUpdate", OnMillenniumUpdate::AUTO_INSTALL) == OnMillenniumUpdate::AUTO_INSTALL;
+        const auto update = m_millennium_updater->has_any_updates();
+        const bool should_auto_install = CONFIG.GetNested("general.onMillenniumUpdate", OnMillenniumUpdate::AUTO_INSTALL) == OnMillenniumUpdate::AUTO_INSTALL;
 
         if (!update["hasUpdate"]) {
             Logger.Log("No Millennium updates available.");
             return;
         }
 
-        const std::string newVersion = update.value("newVersion", nlohmann::json::object()).value("tag_name", std::string("unknown"));
+        const std::string new_version = update.value("newVersion", nlohmann::json::object()).value("tag_name", std::string("unknown"));
 
-        if (!shouldAutoInstall) {
-            Logger.Log("Millennium update available to version {}. Auto-install is disabled, please update manually.", newVersion);
+        if (!should_auto_install) {
+            Logger.Log("Millennium update available to version {}. Auto-install is disabled, please update manually.", new_version);
             return;
         }
 
-        const std::string downloadUrl = update["platformRelease"]["browser_download_url"];
-        const size_t downloadSize = update["platformRelease"]["size"].get<size_t>();
+        const std::string download_url = update["platformRelease"]["browser_download_url"];
+        const size_t download_size = update["platformRelease"]["size"].get<size_t>();
 
-        Logger.Log("Auto-updating Millennium to version {}...", newVersion);
-        MillenniumUpdater::StartUpdate(downloadUrl, downloadSize, false, false);
+        Logger.Log("Auto-updating Millennium to version {}...", new_version);
+        m_millennium_updater->update(download_url, download_size, false); // TODO: Removed should forward flag, check if it works.
 
-    } catch (const nlohmann::json::exception& e) {
-        LOG_ERROR("Failed to check for Millennium updates: {}", e.what());
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to check for Millennium updates: {}", e.what());
     } catch (...) {
@@ -169,27 +148,14 @@ void Plat_CheckForUpdates()
 }
 
 /**
- * @brief Millennium's main method, called on startup on both Windows and Linux.
+ * Millennium main entry point.
+ * This entry point is called on posix and windows.
  */
-void EntryMain()
+void millennium::entry()
 {
     shm_init_simple();
-    VerifyEnvironment();
+    this->check_health();
 
-    g_plugin_loader = std::make_shared<plugin_loader>();
-
-    /** Start the injection process into the Steam web helper */
-    g_plugin_loader->start_plugin_backends();
-    g_plugin_loader->start_plugin_frontends(); /** IO blocking, returns once Steam dies */
-
-    // g_plugin_loader->get_backend_manager()->Shutdown();
-    g_plugin_loader.reset();
-
-    Logger.Log("Finished shutting down frontend and backend...");
-
-    {
-        /** new scope to prevent deadlocks */
-        std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-        cv_hasSteamUnloaded.notify_all();
-    }
+    m_plugin_loader->start_plugin_backends();
+    m_plugin_loader->start_plugin_frontends();
 }

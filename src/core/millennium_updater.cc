@@ -29,22 +29,20 @@
  */
 
 #include "millennium/millennium_updater.h"
+#include "millennium/core_ipc.h"
 #include "millennium/semver.h"
 #include "millennium/http.h"
 #include "millennium/sysfs.h"
 #include "millennium/logger.h"
 #include "millennium/encode.h"
 #include "millennium/zip.h"
-#include "head/ipc_handler.h"
 
 #include <filesystem>
 #include <exception>
 #include <memory>
-#include <thread>
-#include <chrono>
 
 #define SHIM_LOADER_PATH "user32.dll"
-#define SHIM_LOADER_QUEUED_PATH "user32.queue.dll" // The path of the recently updated shim loader waiting for an update.
+#define SHIM_LOADER_QUEUED_PATH "user32.queue.dll"
 
 #define MILLENNIUM_UPDATER_TEMP_DIR "millennium-updater-temp-files"
 #define MILLENNIUM_UPDATER_LEGACY_SHIM_TEMP_DIR "millennium-updater-legacy-shim-temp"
@@ -65,33 +63,17 @@
 #define DEBUG_LOG(...) ((void)0)
 #endif
 
-static std::atomic<bool> hasUpdatedMillennium{ false }; /** Tracks if update has completed successfully */
-static std::atomic<bool> updateInProgress{ false };     /** Tracks if update is currently running */
-static std::mutex update_mutex;                         /** Protects the update process */
-static std::shared_ptr<std::thread> update_thread;      /** Managed background thread */
-
-class UpdateProgressGuard
+millennium_updater::millennium_updater() : m_thread_pool(std::make_shared<thread_pool>(1))
 {
-  public:
-    UpdateProgressGuard()
-    {
-        updateInProgress.store(true);
-    }
-    ~UpdateProgressGuard()
-    {
-        updateInProgress.store(false);
-    }
-    UpdateProgressGuard(const UpdateProgressGuard&) = delete;
-    UpdateProgressGuard& operator=(const UpdateProgressGuard&) = delete;
-};
+}
 
-std::string MillenniumUpdater::ParseVersion(const std::string& version)
+std::string millennium_updater::parse_version(const std::string& version)
 {
     if (!version.empty() && version[0] == 'v') return version.substr(1);
     return version;
 }
 
-void MillenniumUpdater::CheckForUpdates()
+void millennium_updater::check_for_updates()
 {
     const bool checkForUpdates = CONFIG.GetNested("general.checkForMillenniumUpdates", true).get<bool>();
     std::string channel = CONFIG.GetNested("general.millenniumUpdateChannel", "stable").get<std::string>();
@@ -144,7 +126,7 @@ void MillenniumUpdater::CheckForUpdates()
 
         std::string current_version;
         try {
-            current_version = ParseVersion(MILLENNIUM_VERSION);
+            current_version = parse_version(MILLENNIUM_VERSION);
         } catch (...) {
             LOG_ERROR("Failed to parse current Millennium version.");
             return;
@@ -152,40 +134,39 @@ void MillenniumUpdater::CheckForUpdates()
 
         std::string latest_version;
         try {
-            latest_version = ParseVersion(latest_release["tag_name"].get<std::string>());
+            latest_version = parse_version(latest_release["tag_name"].get<std::string>());
         } catch (...) {
             LOG_ERROR("Failed to parse latest release version.");
             return;
         }
 
         int compare = Semver::Compare(current_version, latest_version);
-
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            __latest_version = latest_release;
+            std::lock_guard<std::mutex> lock(m_state_mutex);
+            m_latest_version = std::move(latest_release);
 
             if (compare == -1) {
-                __has_updates = true;
-                Logger.Log("New version available: " + latest_release["tag_name"].get<std::string>());
+                m_has_updates = true;
+                Logger.Log("New version available: " + m_latest_version["tag_name"].get<std::string>());
             } else if (compare == 1) {
                 Logger.Warn("Current version {} is newer than latest release {}.", current_version, latest_version);
-                __has_updates = false;
+                m_has_updates = false;
             } else {
                 Logger.Log("Millennium is up to date.");
-                __has_updates = false;
+                m_has_updates = false;
             }
         }
     } catch (const std::exception& e) {
         LOG_ERROR("Unexpected error while checking for updates: {}. Received stream: {}", e.what(), response);
 
-        /** Reset state on error to avoid inconsistent state */
-        std::lock_guard<std::mutex> lock(_mutex);
-        __has_updates = false;
-        __latest_version = nlohmann::json{};
+        // Reset state on error
+        std::lock_guard<std::mutex> lock(m_state_mutex);
+        m_has_updates = false;
+        m_latest_version = nlohmann::json{};
     }
 }
 
-std::optional<nlohmann::json> MillenniumUpdater::FindAsset(const nlohmann::json& release_info)
+std::optional<nlohmann::json> millennium_updater::find_asset(const nlohmann::json& release_info)
 {
     if (!release_info.contains("assets")) return std::nullopt;
 
@@ -206,26 +187,32 @@ std::optional<nlohmann::json> MillenniumUpdater::FindAsset(const nlohmann::json&
     return std::nullopt;
 }
 
-nlohmann::json MillenniumUpdater::HasAnyUpdates()
+void millennium_updater::dispatch_progress_to_frontend(std::string status, double progress, bool is_complete)
 {
-    std::lock_guard<std::mutex> lock(_mutex);
-    nlohmann::json result;
-    result["updateInProgress"] = hasUpdatedMillennium.load();
-    result["hasUpdate"] = __has_updates;
+    if (!m_ipc_main) {
+        return; /** ipc hasn't connected to Steam yet */
+    }
 
-    /** Make a deep copy of the latest version to avoid race conditions */
-    nlohmann::json latest_version_copy = __latest_version;
+    std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete };
+    m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));
+}
 
-    /** Find asset while still holding the lock to ensure consistency */
-    auto asset = latest_version_copy.is_null() ? std::nullopt : FindAsset(latest_version_copy);
+json millennium_updater::has_any_updates()
+{
+    std::lock_guard<std::mutex> lock(m_state_mutex);
 
-    result["newVersion"] = latest_version_copy;
+    json result;
+    result["updateInProgress"] = m_has_updated_millennium;
+    result["hasUpdate"] = m_has_updates;
+    result["newVersion"] = m_latest_version;
+
+    auto asset = m_latest_version.is_null() ? std::nullopt : find_asset(m_latest_version);
     result["platformRelease"] = asset.has_value() ? asset.value() : nullptr;
 
     return result;
 }
 
-void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
+void millennium_updater::cleanup()
 {
     std::filesystem::path steam_path = SystemIO::GetSteamPath();
 
@@ -242,7 +229,7 @@ void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
     }
 
     try {
-        /** find all files in the steam directory that end with .tmp and contain uuid in the filename */
+        // Find all temp files with uuid in filename
         for (const auto& entry : std::filesystem::directory_iterator(steam_path)) {
             if (!entry.is_regular_file()) {
                 continue;
@@ -264,7 +251,7 @@ void MillenniumUpdater::CleanupMillenniumUpdaterTempFiles()
     }
 }
 
-void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<std::string> lockedFiles)
+void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std::vector<std::string> lockedFiles)
 {
 #ifdef _WIN32
     std::filesystem::path steam_path = SystemIO::GetSteamPath();
@@ -274,7 +261,6 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
         return;
     }
 
-    /** Make temporary directory for old Millennium files */
     std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
     Logger.Log("Using temporary directory for moving old Millennium files: {}", temp_path.string());
 
@@ -308,7 +294,6 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
 
         Logger.Log("Moving old Millennium file {} to temporary location {}", source_path.string(), dest_path.string());
 
-        /** Move file to temporary location */
         if (!MoveFileExW(source_wide.c_str(), dest_wide.c_str(), MOVEFILE_REPLACE_EXISTING)) {
             const DWORD error = GetLastError();
             Logger.Warn("Failed to move {} to temporary location. Error: {}", source_path.string(), error);
@@ -319,7 +304,7 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
         any_files_moved = true;
     }
 
-    /** No files were moved, so delete the temporary directory */
+    // No files were moved, so delete the temporary directory
     if (!any_files_moved) {
         std::filesystem::remove_all(temp_path, ec);
         if (ec) {
@@ -331,215 +316,143 @@ void MillenniumUpdater::DeleteOldMillenniumVersion([[maybe_unused]] std::vector<
 #endif
 }
 
-void RateLimitedLogger(const std::string& message, const double& progress, bool forwardToIpc)
+void millennium_updater::update_impl(const std::string& downloadUrl, const size_t downloadSize)
 {
-    static std::mutex rate_limit_mutex;
-    static auto last_call = std::chrono::steady_clock::now() - std::chrono::seconds(2);
-
-    std::lock_guard<std::mutex> lock(rate_limit_mutex);
-    auto now = std::chrono::steady_clock::now();
-
-    if (std::chrono::duration_cast<std::chrono::seconds>(now - last_call).count() > 1) {
-
-        if (forwardToIpc)
-            IpcForwardInstallLog({ message, progress, false });
-        else
-            Logger.Log("{}", message);
-
-        last_call = now;
-    }
-}
-
-void MillenniumUpdater::Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize, bool forwardToIpc)
-{
-    /** RAII guard ensures progress flag is reset even on exception */
-    UpdateProgressGuard progressGuard;
-
     std::filesystem::path tempFilePath;
 
+    auto cleanup_temp_file = [&tempFilePath]()
+    {
+#ifndef UPDATER_DEBUG_MODE
+        if (!tempFilePath.empty() && std::filesystem::exists(tempFilePath)) {
+            std::error_code ec;
+            std::filesystem::remove(tempFilePath, ec);
+            if (ec) {
+                Logger.Warn("Failed to clean up temp file: {}", ec.message());
+            }
+        }
+#endif
+    };
+
+    auto update_state = [this](bool success)
+    {
+        std::lock_guard<std::mutex> lock(m_state_mutex);
+        m_has_updated_millennium = success;
+        m_update_in_progress = false;
+    };
+
     try {
+        tempFilePath = std::filesystem::temp_directory_path() / fmt::format("millennium-{}.zip", GenerateUUID());
+
 #ifdef UPDATER_DEBUG_MODE
         DEBUG_LOG("[DEBUG] === DRY RUN MODE ENABLED ===");
         DEBUG_LOG("[DEBUG] Would download from: {}", downloadUrl);
-        DEBUG_LOG("[DEBUG] Expected size: {} bytes", downloadSize);
-
-        tempFilePath = std::filesystem::temp_directory_path() / fmt::format("millennium-{}.zip", GenerateUUID());
         DEBUG_LOG("[DEBUG] Would download to: {}", tempFilePath.string());
 
-        /** Simulate download progress */
         for (int i = 0; i <= 10; ++i) {
-            const double progress = (i / 10.0) * 50.0;
-            RateLimitedLogger("Downloading update assets... (DRY RUN)", progress, forwardToIpc);
+            const double progress = (i / 10.0) * 100.0;
+            const char* msg = i <= 5 ? "Downloading update assets... (DRY RUN)" : "Processing update files (DRY RUN)";
+            this->dispatch_progress_to_frontend(msg, progress, false);
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-#ifdef _WIN32
-        DEBUG_LOG("[DEBUG] Would check for locked files on Windows");
-        DEBUG_LOG("[DEBUG] Would move old Millennium files to temp location");
-#endif
-
-        DEBUG_LOG("[DEBUG] Would extract to: {}", SystemIO::GetInstallPath().generic_string());
-
-        /** Simulate extraction progress */
-        for (int i = 0; i <= 10; ++i) {
-            const double progress = 50.0 + (i / 10.0) * 50.0;
-            RateLimitedLogger(fmt::format("Processing update file {}/{} (DRY RUN)", i, 10), progress, forwardToIpc);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        DEBUG_LOG("[DEBUG] Dry run completed successfully - no files were actually modified");
-        Logger.Log("Update completed successfully (DRY RUN - no actual changes made).");
-
+        DEBUG_LOG("[DEBUG] Dry run completed - no files modified");
 #else
-        tempFilePath = std::filesystem::temp_directory_path() / fmt::format("millennium-{}.zip", GenerateUUID());
-        Logger.Log("Downloading update to temporary file: " + tempFilePath.string());
-
-        Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [forwardToIpc](size_t downloaded, size_t total)
+        Logger.Log("Downloading update to: {}", tempFilePath.string());
+        Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [this](size_t downloaded, size_t total)
         {
             const double progress = (static_cast<double>(downloaded) / total) * 50.0;
-            RateLimitedLogger("Downloading update assets...", progress, forwardToIpc);
+            this->dispatch_progress_to_frontend("Downloading update assets...", progress, false);
         });
 
 #ifdef _WIN32
-        /** Windows locks files when in use, so we need to use tricks to "unlock" them */
-        std::vector<std::string> lockedFiles = Util::GetLockedFiles(tempFilePath.string(), SystemIO::GetInstallPath().generic_string());
-        DeleteOldMillenniumVersion(lockedFiles);
+        auto lockedFiles = Util::GetLockedFiles(tempFilePath.string(), SystemIO::GetInstallPath().generic_string());
+        win32_move_old_millennium_version(lockedFiles);
 #endif
-
-        Logger.Log("Extracting and installing update to {}", SystemIO::GetInstallPath().generic_string());
-        Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [forwardToIpc](int current, int total, const char*)
+        Logger.Log("Extracting to {}", SystemIO::GetInstallPath().generic_string());
+        Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [this](int current, int total, const char*)
         {
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;
-            RateLimitedLogger(fmt::format("Processing update file {}/{}", current, total), progress, forwardToIpc);
+            this->dispatch_progress_to_frontend(fmt::format("Processing file {}/{}", current, total), progress, false);
         });
 
-        /** Remove the temporary file after installation */
         std::error_code ec;
-        if (std::filesystem::remove(tempFilePath, ec)) {
-            Logger.Log("Removed temporary file: " + tempFilePath.string());
-        } else {
-            Logger.Warn("Failed to remove temporary file: {}, error: {}", tempFilePath.string(), ec.message());
+        if (!std::filesystem::remove(tempFilePath, ec)) {
+            Logger.Warn("Failed to remove temp file: {}", ec.message());
         }
-
-        Logger.Log("Update completed successfully.");
 #endif
-
-        /** Mark that update has completed successfully */
-        hasUpdatedMillennium.store(true);
-
-        if (forwardToIpc) IpcForwardInstallLog({ "Successfully updated Millennium!", 100.0f, true });
+        Logger.Log("Update completed successfully.");
+        this->dispatch_progress_to_frontend("Successfully updated Millennium!", 100.0f, true);
+        update_state(true);
 
     } catch (const std::exception& e) {
-        LOG_ERROR("Update failed with exception: {}", e.what());
-
-        /** Reset update state on failure */
-        hasUpdatedMillennium.store(false);
-
-        if (forwardToIpc) IpcForwardInstallLog({ fmt::format("Update failed: {}", e.what()), 0.0f, true });
-
-        /** Clean up temp file on failure */
-#ifndef UPDATER_DEBUG_MODE
-        if (!tempFilePath.empty() && std::filesystem::exists(tempFilePath)) {
-            std::error_code ec;
-            std::filesystem::remove(tempFilePath, ec);
-            if (ec) {
-                Logger.Warn("Failed to clean up temp file after error: {}", ec.message());
-            }
-        }
-#endif
+        LOG_ERROR("Update failed: {}", e.what());
+        this->dispatch_progress_to_frontend(fmt::format("Update failed: {}", e.what()), 0.0f, true);
+        cleanup_temp_file();
+        update_state(false);
         throw;
     } catch (...) {
         LOG_ERROR("Update failed with unknown exception.");
-
-        /** Reset update state on failure */
-        hasUpdatedMillennium.store(false);
-
-        if (forwardToIpc) IpcForwardInstallLog({ "Update failed with unknown error", 0.0f, true });
-
-        /** Clean up temp file on failure */
-#ifndef UPDATER_DEBUG_MODE
-        if (!tempFilePath.empty() && std::filesystem::exists(tempFilePath)) {
-            std::error_code ec;
-            std::filesystem::remove(tempFilePath, ec);
-            if (ec) {
-                Logger.Warn("Failed to clean up temp file after error: {}", ec.message());
-            }
-        }
-#endif
+        this->dispatch_progress_to_frontend("Update failed with unknown error", 0.0f, true);
+        cleanup_temp_file();
+        update_state(false);
         throw;
     }
-
-    /** UpdateProgressGuard destructor will reset updateInProgress here */
 }
 
-bool MillenniumUpdater::HasPendingRestart()
+bool millennium_updater::is_pending_restart()
 {
-    return hasUpdatedMillennium.load();
+    std::lock_guard<std::mutex> lock(m_state_mutex);
+    return m_has_updated_millennium;
 }
 
-void MillenniumUpdater::StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background, bool forwardToIpc)
+void millennium_updater::update(const std::string& downloadUrl, const size_t downloadSize, bool background)
 {
-    /** Use mutex to ensure only one update can start at a time */
-    std::lock_guard<std::mutex> lock(update_mutex);
+    {
+        std::lock_guard<std::mutex> lock(m_state_mutex);
 
-    if (updateInProgress.load()) {
-        Logger.Warn("Update already in progress, aborting new update request.");
-        return;
+        if (m_update_in_progress) {
+            Logger.Warn("Update already in progress, aborting new update request.");
+            return;
+        }
+
+        if (m_has_updated_millennium) {
+            Logger.Warn("Update already completed, restart pending. Aborting new update request.");
+            return;
+        }
+
+        m_update_in_progress = true;
     }
 
-    /** Join previous background thread if it exists and has finished */
-    if (update_thread && update_thread->joinable()) {
-        Logger.Log("Waiting for previous background update thread to complete...");
-        update_thread->join();
-        update_thread.reset();
-    }
-
-    /** Reset the update completion flag for new update */
-    hasUpdatedMillennium.store(false);
+    const auto start_update = [this, downloadUrl, downloadSize]()
+    {
+        try {
+            update_impl(downloadUrl, downloadSize);
+        } catch (const std::exception& e) {
+            LOG_ERROR("Background update thread caught exception: {}", e.what());
+        } catch (...) {
+            LOG_ERROR("Background update thread caught unknown exception");
+        }
+    };
 
     if (background) {
         Logger.Log("Starting Millennium update in background thread...");
-
-        /** Start the update process in a managed thread */
-        update_thread = std::make_shared<std::thread>([downloadUrl, downloadSize, forwardToIpc]()
-        {
-            try {
-                Co_BeginUpdate(downloadUrl, downloadSize, forwardToIpc);
-            } catch (const std::exception& e) {
-                LOG_ERROR("Background update thread caught exception: {}", e.what());
-            } catch (...) {
-                LOG_ERROR("Background update thread caught unknown exception");
-            }
-        });
-
+        m_thread_pool->enqueue(start_update);
         return;
     }
-
-    Logger.Log("Starting Millennium update in blocking mode...");
-    /** Run the update process in the current thread (blocking) */
-    try {
-        Co_BeginUpdate(downloadUrl, downloadSize, forwardToIpc);
-        Logger.Log("Millennium update process finished.");
-    } catch (const std::exception& e) {
-        LOG_ERROR("Blocking update caught exception: {}", e.what());
-    } catch (...) {
-        LOG_ERROR("Blocking update caught unknown exception");
-    }
+    start_update();
 }
 
-void MillenniumUpdater::Shutdown()
+void millennium_updater::shutdown()
 {
-    /** Wait for background update thread to complete on shutdown */
-    std::lock_guard<std::mutex> lock(update_mutex);
-
-    if (update_thread && update_thread->joinable()) {
-        Logger.Log("Waiting for background update thread to complete before shutdown...");
-        update_thread->join();
-        update_thread.reset();
-    }
+    Logger.Log("Successfully shut down millennium_updater...");
 }
 
-void MillenniumUpdater::UpdateLegacyUser32Shim()
+void millennium_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
+{
+    this->m_ipc_main = ipc_main;
+}
+
+void millennium_updater::win32_update_legacy_shims()
 {
 #ifdef _WIN32
     try {

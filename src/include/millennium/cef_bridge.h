@@ -216,13 +216,15 @@ class SocketHelpers
             }
 
             cdpClient = std::make_shared<cdp_client>(con);
-            con->set_message_handler([cdpClient, commonName](websocketpp::connection_hdl, websocketpp::client<websocketpp::config::asio_client>::message_ptr msg)
-            { cdpClient->handle_message(msg->get_payload()); });
+            con->set_message_handler([cdp = cdpClient, commonName](websocketpp::connection_hdl, websocketpp::client<websocketpp::config::asio_client>::message_ptr msg)
+            { cdp->handle_message(msg->get_payload()); });
 
-            con->set_open_handler([cdpClient, onConnect, commonName](websocketpp::connection_hdl)
+            con->set_open_handler([cdp = cdpClient, onConnect, commonName](websocketpp::connection_hdl h)
             {
                 try {
-                    onConnect(cdpClient);
+                    if (auto locked = h.lock()) {
+                        onConnect(cdp);
+                    }
                 } catch (const std::exception& e) {
                     LOG_ERROR("[{}] Exception in onConnect: {}", commonName, e.what());
                 } catch (...) {

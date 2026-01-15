@@ -56,6 +56,7 @@ class ffi_binder
      * event handler for Runtime.bindingCalled events
      */
     void binding_call_hdlr(const json& params);
+    void execution_ctx_created_hdlr(const json& params);
 
     bool is_valid_request(const json& params);
 };

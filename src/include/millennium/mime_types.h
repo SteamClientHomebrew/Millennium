@@ -67,7 +67,7 @@ static constexpr file_type_t file_types[] = {
 };
 
 [[nodiscard]]
-static file_type get_file_type(const std::filesystem::path& path)
+inline file_type get_file_type(const std::filesystem::path& path)
 {
     const auto ext = path.extension().string();
     for (const auto& entry : file_types)
@@ -77,7 +77,7 @@ static file_type get_file_type(const std::filesystem::path& path)
 }
 
 [[nodiscard]]
-static std::string_view get_mime_str(file_type type)
+inline std::string_view get_mime_str(file_type type)
 {
     for (const auto& entry : file_types)
         if (entry.type == type) return entry.mime;
@@ -86,7 +86,7 @@ static std::string_view get_mime_str(file_type type)
 }
 
 [[nodiscard]]
-static constexpr bool is_bin_file(file_type type)
+inline constexpr bool is_bin_file(file_type type)
 {
     for (const auto& entry : file_types)
         if (entry.type == type) return entry.binary;

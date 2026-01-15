@@ -27,88 +27,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 #pragma once
+#include "millennium/types.h"
+#include "millennium/fwd_decl.h"
+#include "millennium/thread_pool.h"
 #include <string>
 #include <mutex>
 #include <optional>
 #include <nlohmann/json.hpp>
 
-class MillenniumUpdater
+class millennium_updater
 {
   public:
-    static constexpr const char* GITHUB_API_URL = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
-
-    /**
-     * Parse version string, removing leading 'v' if present
-     * @param version Version string to parse
-     * @return Cleaned version string
-     */
-    static std::string ParseVersion(const std::string& version);
-
-    /**
-     * Check for Millennium updates from GitHub releases
-     * Updates internal state with latest version information
-     */
-    static void CheckForUpdates();
-
-    /**
-     * Find platform-specific asset in release information
-     * @param release_info JSON object containing release data
-     * @return Optional JSON object with asset information, nullopt if not found
-     */
-    static std::optional<nlohmann::json> FindAsset(const nlohmann::json& release_info);
-
-    /**
-     * Get comprehensive update status information
-     * @return JSON object with update status, version info, and platform release data
-     */
-    static nlohmann::json HasAnyUpdates();
-
-    /**
-     * Queue an update by writing the download URL to update.flag
-     * @param downloadUrl URL of the update to download
-     * @param downloadSize Size of the update to download
-     * @param background Whether to run the update in the background (separate thread) or foreground (main thread)
-     */
-    static void StartUpdate(const std::string& downloadUrl, const size_t downloadSize, bool background, bool forwardToIpc = true);
-
-    /**
-     * Check if there is a pending Millennium update that requires a restart
-     * @return true if a restart is pending, false otherwise
-     */
-    static bool HasPendingRestart();
-
-    /**
-     * Since NTFS (Windows file system) locks files that are in use, we need to move the old files
-     * to a temporary location and schedule them for deletion on next reboot.
-     *
-     * This frees up the files so that the new version can be copied in place.
-     */
-    static void DeleteOldMillenniumVersion(std::vector<std::string> lockedFiles);
-
-    /**
-     * Cleanup temporary files created by the Millennium Updater
-     * This is ran on startup to ensure no leftover files remain from the previous update
-     */
-    static void CleanupMillenniumUpdaterTempFiles();
-
-    /**
-     * Coroutine entry point for performing the update in the background or foreground
-     * @param downloadUrl URL of the update to download
-     * @param downloadSize Size of the update to download
-     */
-    static void Co_BeginUpdate(const std::string& downloadUrl, const size_t downloadSize, bool forwardToIpc);
-
-    /**
-     * Shutdown the updater, waiting for any background threads to complete
-     */
-    static void Shutdown();
-
-    static void UpdateLegacyUser32Shim();
+    millennium_updater();
+    void check_for_updates();
+    json has_any_updates();
+    bool is_pending_restart();
+    void update(const std::string& downloadUrl, const size_t downloadSize, bool background);
+    void win32_move_old_millennium_version(std::vector<std::string> lockedFiles);
+    void win32_update_legacy_shims();
+    void cleanup();
+    void shutdown();
+    void set_ipc_main(std::shared_ptr<ipc_main> ipc_main);
 
   private:
-    static inline bool __has_updates = false;
-    static inline nlohmann::json __latest_version;
-    static inline std::mutex _mutex;
+    static constexpr const char* GITHUB_API_URL = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases";
+
+    std::string parse_version(const std::string& version);
+    void update_impl(const std::string& downloadUrl, const size_t downloadSize);
+    std::optional<json> find_asset(const json& release_info);
+    void dispatch_progress_to_frontend(std::string status, double progress, bool is_complete);
+
+    mutable std::mutex m_state_mutex;
+    bool m_has_updates{ false };
+    bool m_has_updated_millennium{ false };
+    bool m_update_in_progress{ false };
+    json m_latest_version;
+
+    std::shared_ptr<ipc_main> m_ipc_main;
+    std::shared_ptr<thread_pool> m_thread_pool;
 };

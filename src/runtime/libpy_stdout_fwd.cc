@@ -34,7 +34,7 @@
  * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
  */
 
-#include "millennium/init.h"
+#include "millennium/millennium.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
 #include <Python.h>
@@ -79,7 +79,7 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
     if (!PyArg_ParseTuple(args, "s", &message)) {                                                                                                                                  \
         return NULL;                                                                                                                                                               \
     }                                                                                                                                                                              \
-    write_function(g_plugin_loader->get_backend_manager()->get_plugin_name_from_thread_state(PyThreadState_Get()), message);                                                       \
+    write_function(g_millennium->get_plugin_loader()->get_backend_manager()->get_plugin_name_from_thread_state(PyThreadState_Get()), message);                                     \
     return Py_BuildValue("");
 
 /** Forward messages to respective logger type. */

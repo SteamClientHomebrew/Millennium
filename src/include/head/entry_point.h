@@ -3,7 +3,7 @@
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -29,8 +29,20 @@
  */
 
 #pragma once
-#include "millennium/sysfs.h"
+
+#include "millennium/fwd_decl.h"
+#include "head/library_updater.h"
+#include "head/theme_cfg.h"
 #include "millennium/http_hooks.h"
+#include "millennium/millennium_updater.h"
+#include "millennium/sysfs.h"
+#include "nlohmann/json_fwd.hpp"
+
+#include <functional>
+#include <memory>
+#include <map>
+#include <string>
+#include <vector>
 
 struct PluginStatus
 {
@@ -38,11 +50,95 @@ struct PluginStatus
     bool enabled;
 };
 
-void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins);
-unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type);
-bool Millennium_RemoveBrowserModule(unsigned long long moduleId);
-nlohmann::json Millennium_GetPluginLogs();
+using builtin_payload = nlohmann::ordered_json;
 
-void Core_Load(std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<network_hook_ctl> network_hook_ctl_ptr);
-void Core_FrontendLoad();
-void Core_Unload();
+class ipc_main;
+class SettingsStore;
+class network_hook_ctl;
+class ThemeConfig;
+class Updater;
+class theme_webkit_mgr;
+
+class millennium_backend : public std::enable_shared_from_this<millennium_backend>
+{
+  public:
+    void init();
+    millennium_backend(std::shared_ptr<ipc_main> ipc_main, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> hook_ctl,
+                       std::shared_ptr<millennium_updater> millennium_updater);
+
+    int GetOperatingSystemType();
+
+    void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins);
+    bool Millennium_RemoveBrowserModule(unsigned long long moduleId);
+    unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type);
+    builtin_payload Millennium_GetPluginLogs();
+
+    /**
+     * Enable/disable plugins
+     */
+    builtin_payload Core_ChangePluginStatus(const builtin_payload& args);
+
+    /**
+     * Get the configuration needed to start the frontend
+     * @note exceptions are caught by the IPC handler
+     */
+    builtin_payload Core_GetStartConfig(const builtin_payload& args);
+
+    /** Quick CSS utilities */
+    builtin_payload Core_LoadQuickCss(const builtin_payload& args);
+    builtin_payload Core_SaveQuickCss(const builtin_payload& args);
+
+    /** General utilities */
+    builtin_payload Core_GetSteamPath(const builtin_payload& args);
+    builtin_payload Core_FindAllThemes(const builtin_payload& args);
+    builtin_payload Core_FindAllPlugins(const builtin_payload& args);
+    builtin_payload Core_GetEnvironmentVar(const builtin_payload& args);
+    builtin_payload Core_GetBackendConfig(const builtin_payload& args);
+    builtin_payload Core_SetBackendConfig(const builtin_payload& args);
+
+    /** Theme and Plugin update API */
+    builtin_payload Core_GetUpdates(const builtin_payload& args);
+
+    /** Theme manager API */
+    builtin_payload Core_GetActiveTheme(const builtin_payload& args);
+    builtin_payload Core_ChangeActiveTheme(const builtin_payload& args);
+    builtin_payload Core_GetSystemColors(const builtin_payload& args);
+    builtin_payload Core_ChangeAccentColor(const builtin_payload& args);
+    builtin_payload Core_ChangeColor(const builtin_payload& args);
+    builtin_payload Core_ChangeCondition(const builtin_payload& args);
+    builtin_payload Core_GetRootColors(const builtin_payload& args);
+    builtin_payload Core_DoesThemeUseAccentColor(const builtin_payload& args);
+    builtin_payload Core_GetThemeColorOptions(const builtin_payload& args);
+
+    /** Theme installer related API's */
+    builtin_payload Core_InstallTheme(const builtin_payload& args);
+    builtin_payload Core_UninstallTheme(const builtin_payload& args);
+    builtin_payload Core_DownloadThemeUpdate(const builtin_payload& args);
+    builtin_payload Core_IsThemeInstalled(const builtin_payload& args);
+    builtin_payload Core_GetThemeFromGitPair(const builtin_payload& args);
+
+    /** Plugin related API's */
+    builtin_payload Core_DownloadPluginUpdate(const builtin_payload& args);
+    builtin_payload Core_InstallPlugin(const builtin_payload& args);
+    builtin_payload Core_IsPluginInstalled(const builtin_payload& args);
+    builtin_payload Core_UninstallPlugin(const builtin_payload& args);
+
+    /** Get plugin backend logs */
+    builtin_payload Core_GetPluginBackendLogs(const builtin_payload& args);
+
+    /** Update Millennium API */
+    builtin_payload Core_UpdateMillennium(const builtin_payload& args);
+    builtin_payload Core_HasPendingMillenniumUpdateRestart(const builtin_payload& args);
+
+    builtin_payload HandleIpcMessage(const std::string& functionName, const builtin_payload& args);
+
+  private:
+    std::shared_ptr<ipc_main> m_ipc_main;
+    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<millennium_updater> m_millennium_updater;
+    std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
+    std::shared_ptr<ThemeConfig> m_theme_config;
+    std::shared_ptr<Updater> m_updater;
+    std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
+    std::map<std::string, std::function<builtin_payload(const builtin_payload&)>> function_map;
+};

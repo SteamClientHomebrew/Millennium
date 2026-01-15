@@ -35,7 +35,7 @@
 #include "millennium/plat_msg.h"
 #include "millennium/env.h"
 #include "millennium/http_hooks.h"
-#include "millennium/init.h"
+#include "millennium/plugin_loader.h"
 #include "millennium/ffi.h"
 #include "millennium/crash_handler.h"
 #include "millennium/millennium_updater.h"

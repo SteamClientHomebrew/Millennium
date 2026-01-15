@@ -30,24 +30,40 @@
 
 #include "millennium/core_ipc.h"
 #include "millennium/logger.h"
+#include <variant>
 
 #define LUA_IS_LOCKED_ERROR_MESSAGE                                                                                                                                                \
     "Lua state is currently locked and FFI call couldn't be made safely. "                                                                                                         \
     "You likely are IO blocking the main thread of your backend. "                                                                                                                 \
     "All backend functions should be non-blocking and finish shortly after calling."
 
+std::string ipc_main::get_vm_call_result_error(vm_call_result result)
+{
+    nlohmann::json j;
+    std::visit([&j](auto&& arg)
+    {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, std::monostate>) {
+            j = nullptr;
+        } else {
+            j = arg;
+        }
+    }, result.value);
+    return j.dump();
+}
+
 ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann::json script)
 {
     auto luaStateOpt = m_backend_manager->lua_thread_state_from_plugin_name(pluginName);
     if (!luaStateOpt.has_value()) {
-        return { FFI_Type::Error, "Lua state not found for plugin: " + pluginName };
+        return { false, "Lua state not found for plugin: " + pluginName };
     }
 
     lua_State* L = luaStateOpt.value();
     m_backend_manager->lua_lock(L);
 
     if (!script.contains("methodName") || !script["methodName"].is_string()) {
-        return { FFI_Type::Error, "Missing or invalid methodName in script" };
+        return { false, std::string("Missing or invalid methodName in script") };
     }
 
     std::string methodName = script["methodName"];
@@ -72,13 +88,13 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
         if (!lua_istable(L, -1)) {
             lua_pop(L, 1);
             m_backend_manager->lua_unlock(L);
-            return { FFI_Type::Error, "Table not found in Lua: " + tableName };
+            return { false, "Table not found in Lua: " + tableName };
         }
         lua_getfield(L, -1, funcName.c_str()); // push function
         if (!lua_isfunction(L, -1)) {
             lua_pop(L, 2);
             m_backend_manager->lua_unlock(L);
-            return { FFI_Type::Error, "Method not found in Lua: " + methodName };
+            return { false, "Method not found in Lua: " + methodName };
         }
         lua_pushvalue(L, -2); /** push table as self */
         /** Now stack: table, function, self */
@@ -105,7 +121,7 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
         if (!lua_isfunction(L, -1)) {
             lua_pop(L, 1);
             m_backend_manager->lua_unlock(L);
-            return { FFI_Type::Error, "Function not found in Lua: " + methodName };
+            return { false, "Function not found in Lua: " + methodName };
         }
         for (const auto& arg : argValues) {
             if (arg.is_string()) {
@@ -128,32 +144,27 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
         lua_pop(L, 1);
 
         m_backend_manager->lua_unlock(L);
-        return { FFI_Type::Error, errMsg };
+        return { false, errMsg };
     }
 
-    std::string result;
-    FFI_Type resultType = FFI_Type::UnknownType;
+    ipc_main::vm_call_result result;
 
     if (lua_isstring(L, -1)) {
-        result = lua_tostring(L, -1);
-        resultType = FFI_Type::String;
+        std::string res = std::string(lua_tostring(L, -1));
     } else if (lua_isboolean(L, -1)) {
-        result = lua_toboolean(L, -1) ? "true" : "false";
-        resultType = FFI_Type::Boolean;
+        result.value = bool(lua_toboolean(L, -1));
     } else if (lua_isnumber(L, -1)) {
-        result = std::to_string(lua_tonumber(L, -1));
-        resultType = FFI_Type::Integer;
+        result.value = lua_tonumber(L, -1);
     } else if (lua_isnil(L, -1)) {
-        result = "nil";
-        resultType = FFI_Type::Integer;
+        result.value = std::monostate{};
     } else {
-        result = "Unsupported return type";
-        resultType = FFI_Type::UnknownType;
+        result.value = std::monostate{};
     }
     lua_pop(L, 1);
+    result.success = true;
 
     m_backend_manager->lua_unlock(L);
-    return { resultType, result };
+    return result;
 }
 
 void ipc_main::lua_call_frontend_loaded(std::string pluginName)

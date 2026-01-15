@@ -53,7 +53,6 @@ webkit_world_mgr::~webkit_world_mgr()
     m_client->off("Target.targetCreated");
     m_client->off("Target.targetDestroyed");
     m_client->off("Target.targetInfoChanged");
-    m_client->off("Runtime.bindingCalled");
     m_client->off("Runtime.executionContextCreated");
 
     Logger.Log("Successfully shut down webkit_world_mgr...");
@@ -426,50 +425,9 @@ void webkit_world_mgr::target_change_hdlr(const json& params)
     }
 }
 
-void webkit_world_mgr::execution_ctx_hdlr(const json& params)
-{
-    if (!params.contains("context") || !params.contains("sessionId")) return;
-
-    std::string session_id = params["sessionId"].get<std::string>();
-
-    /** only handle contexts for sessions we're managing */
-    bool is_managed_session = false;
-    {
-        std::lock_guard<std::mutex> lock(m_targets_mutex);
-        for (const auto& [tid, ctx] : m_attached_targets) {
-            if (ctx.session_id == session_id) {
-                is_managed_session = true;
-                break;
-            }
-        }
-    }
-
-    if (!is_managed_session) return;
-
-    const auto& context = params["context"];
-    if (!context.contains("id") || !context.contains("name")) return;
-
-    std::string context_name = context["name"].get<std::string>();
-    if (context_name != m_context_name) return;
-
-    int context_id = context["id"].get<int>();
-
-    try {
-        const json add_binding_params = {
-            { "name",               ffi_constants::binding_name },
-            { "executionContextId", context_id                  }
-        };
-        m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
-        Logger.Log("webkit_world_mgr: re-added binding to context {} in session {}", context_id, session_id);
-    } catch (const std::exception& e) {
-        LOG_ERROR("webkit_world_mgr: failed to re-add binding: {}", e.what());
-    }
-}
-
 void webkit_world_mgr::setup_event_listeners()
 {
     m_client->on("Target.targetCreated", std::bind(&webkit_world_mgr::target_create_hdlr, this, std::placeholders::_1));
     m_client->on("Target.targetDestroyed", std::bind(&webkit_world_mgr::target_destroy_hdlr, this, std::placeholders::_1));
     m_client->on("Target.targetInfoChanged", std::bind(&webkit_world_mgr::target_change_hdlr, this, std::placeholders::_1));
-    m_client->on("Runtime.executionContextCreated", std::bind(&webkit_world_mgr::execution_ctx_hdlr, this, std::placeholders::_1));
 }
