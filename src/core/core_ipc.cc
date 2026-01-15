@@ -188,10 +188,15 @@ const std::string ipc_main::compile_javascript_expression(std::string plugin, st
 ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
 {
     try {
+        auto backend = m_millennium_backend.lock();
+        if (!backend) {
+            return { false, std::string("millennium_backend is no longer available") };
+        }
+
         const auto& functionName = call["data"]["methodName"].get<std::string>();
         const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : json::object();
 
-        ordered_json result = m_millennium_backend->HandleIpcMessage(functionName, args);
+        ordered_json result = backend->HandleIpcMessage(functionName, args);
         return { true, result.dump() };
     }
     /** the internal c ipc method threw an exception */
@@ -217,7 +222,13 @@ ipc_main::vm_call_result ipc_main::handle_plugin_server_method(const std::string
         { SettingsStore::PluginBackendType::Lua,    std::bind(&ipc_main::lua_evaluate,    this, _1, _2) },
     };
 
-    const auto backendType = m_backend_manager->get_plugin_backend_type(pluginName);
+    auto backend = m_backend_manager.lock();
+    if (!backend) {
+        Logger.Warn("HandlePluginServerMethod: backend_manager is no longer available");
+        return { false, std::string("backend_manager unavailable") };
+    }
+
+    const auto backendType = backend->get_plugin_backend_type(pluginName);
     auto it = handlers.find(backendType);
     assert(it != handlers.end() && "HandlePluginServerMethod: Unknown backend type encountered?");
 
@@ -294,12 +305,17 @@ json ipc_main::on_front_end_loaded(const json& call)
             { SettingsStore::PluginBackendType::Lua,    std::bind(&ipc_main::lua_call_frontend_loaded,    this, _1) }
         };
 
-        const auto backendType = m_backend_manager->get_plugin_backend_type(pluginName);
-        auto it = handlers.find(backendType);
-        if (it != handlers.end()) {
-            it->second(pluginName);
+        auto backend = m_backend_manager.lock();
+        if (!backend) {
+            Logger.Warn("Delegating frontend load for plugin: {} but backend_manager not available", pluginName);
         } else {
-            Logger.Warn("Unknown backend type for plugin '{}'", pluginName);
+            const auto backendType = backend->get_plugin_backend_type(pluginName);
+            auto it = handlers.find(backendType);
+            if (it != handlers.end()) {
+                it->second(pluginName);
+            } else {
+                Logger.Warn("Unknown backend type for plugin '{}'", pluginName);
+            }
         }
     }
 

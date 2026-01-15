@@ -254,14 +254,13 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
             while (!result.empty());
         }
 
-        /** add binding for initial context */
+        m_cdp->send("Runtime.enable").get();
+
+        /** add the initial binding for the shared js context. the rest is handled by the ffi_binder */
         const json add_binding_params = {
             { "name", ffi_constants::binding_name }
         };
-
-        m_cdp->send("Runtime.enable").get();
         m_cdp->send("Runtime.addBinding", add_binding_params).get();
-
         Logger.Log("Frontend notifier finished!");
     });
 }

@@ -40,6 +40,7 @@ class millennium_updater
 {
   public:
     millennium_updater();
+    ~millennium_updater();
     void check_for_updates();
     json has_any_updates();
     bool is_pending_restart();

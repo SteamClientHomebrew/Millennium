@@ -65,6 +65,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     void init();
     millennium_backend(std::shared_ptr<ipc_main> ipc_main, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> hook_ctl,
                        std::shared_ptr<millennium_updater> millennium_updater);
+    ~millennium_backend();
 
     int GetOperatingSystemType();
 

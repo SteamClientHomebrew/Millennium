@@ -145,6 +145,11 @@ builtin_payload millennium_backend::Millennium_GetPluginLogs()
     return logData;
 }
 
+millennium_backend::~millennium_backend()
+{
+    Logger.Log("Successfully shut down millennium_backend...");
+}
+
 void millennium_backend::init()
 {
     m_updater = std::make_shared<Updater>(shared_from_this(), m_ipc_main);

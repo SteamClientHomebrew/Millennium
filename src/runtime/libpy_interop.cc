@@ -30,6 +30,7 @@
 
 #include "millennium/core_ipc.h"
 #include "millennium/ffi.h"
+#include "millennium/logger.h"
 #include "millennium/plugin_logger.h"
 #include <tuple>
 #include <variant>
@@ -369,14 +370,19 @@ PyObject* InvokePythonFunction(const nlohmann::json& jsonData)
  */
 ipc_main::vm_call_result ipc_main::python_evaluate(std::string pluginName, nlohmann::json functionCall)
 {
-    const bool hasBackend = m_backend_manager->has_python_backend(pluginName);
+    const auto shared_backend_mgr = m_backend_manager.lock();
+    if (!shared_backend_mgr) {
+        LOG_ERROR("Failed to lock backend manager");
+    }
+
+    const bool hasBackend = shared_backend_mgr->has_python_backend(pluginName);
 
     /** Plugin has no backend and therefor the call should not be completed */
     if (!hasBackend) {
         return { true /** success */, false /** no backend */ };
     }
 
-    auto result = m_backend_manager->python_thread_state_from_plugin_name(pluginName);
+    auto result = shared_backend_mgr->python_thread_state_from_plugin_name(pluginName);
 
     if (!result.has_value()) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early?", pluginName));
@@ -437,14 +443,19 @@ ipc_main::vm_call_result ipc_main::python_evaluate(std::string pluginName, nlohm
  */
 void ipc_main::python_call_frontend_loaded(std::string pluginName)
 {
-    const bool hasBackend = m_backend_manager->has_python_backend(pluginName);
+    const auto shared_backend_mgr = m_backend_manager.lock();
+    if (!shared_backend_mgr) {
+        LOG_ERROR("Failed to lock backend manager");
+    }
+
+    const bool hasBackend = shared_backend_mgr->has_python_backend(pluginName);
 
     /** Plugin has no backend and therefor the call should not be completed */
     if (!hasBackend) {
         return;
     }
 
-    auto result = m_backend_manager->python_thread_state_from_plugin_name(pluginName);
+    auto result = shared_backend_mgr->python_thread_state_from_plugin_name(pluginName);
 
     if (!result.has_value()) {
         LOG_ERROR(fmt::format("couldn't get thread state ptr from plugin [{}], maybe it crashed or exited early? Tried to delegate frontend loaded message.", pluginName));

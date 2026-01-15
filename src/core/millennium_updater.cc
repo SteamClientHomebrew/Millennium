@@ -67,6 +67,11 @@ millennium_updater::millennium_updater() : m_thread_pool(std::make_shared<thread
 {
 }
 
+millennium_updater::~millennium_updater()
+{
+    Logger.Log("millennium_updater destructor, m_ipc_main use_count: {}", m_ipc_main ? m_ipc_main.use_count() : 0);
+}
+
 std::string millennium_updater::parse_version(const std::string& version)
 {
     if (!version.empty() && version[0] == 'v') return version.substr(1);

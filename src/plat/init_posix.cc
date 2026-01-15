@@ -172,6 +172,8 @@ extern "C" __attribute__((visibility("default"))) int StopMillennium()
         g_millenniumThread->join();
     }
 
+    g_millennium.reset();
+
     Logger.Log("Millennium unloaded successfully.");
     return 0;
 }

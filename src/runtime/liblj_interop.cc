@@ -54,13 +54,18 @@ std::string ipc_main::get_vm_call_result_error(vm_call_result result)
 
 ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann::json script)
 {
-    auto luaStateOpt = m_backend_manager->lua_thread_state_from_plugin_name(pluginName);
+    const auto shared_backend_mgr = m_backend_manager.lock();
+    if (!shared_backend_mgr) {
+        LOG_ERROR("Failed to lock backend manager");
+    }
+
+    auto luaStateOpt = shared_backend_mgr->lua_thread_state_from_plugin_name(pluginName);
     if (!luaStateOpt.has_value()) {
         return { false, "Lua state not found for plugin: " + pluginName };
     }
 
     lua_State* L = luaStateOpt.value();
-    m_backend_manager->lua_lock(L);
+    shared_backend_mgr->lua_lock(L);
 
     if (!script.contains("methodName") || !script["methodName"].is_string()) {
         return { false, std::string("Missing or invalid methodName in script") };
@@ -87,13 +92,13 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
         lua_getglobal(L, tableName.c_str()); // push table
         if (!lua_istable(L, -1)) {
             lua_pop(L, 1);
-            m_backend_manager->lua_unlock(L);
+            shared_backend_mgr->lua_unlock(L);
             return { false, "Table not found in Lua: " + tableName };
         }
         lua_getfield(L, -1, funcName.c_str()); // push function
         if (!lua_isfunction(L, -1)) {
             lua_pop(L, 2);
-            m_backend_manager->lua_unlock(L);
+            shared_backend_mgr->lua_unlock(L);
             return { false, "Method not found in Lua: " + methodName };
         }
         lua_pushvalue(L, -2); /** push table as self */
@@ -120,7 +125,7 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
         lua_getglobal(L, methodName.c_str());
         if (!lua_isfunction(L, -1)) {
             lua_pop(L, 1);
-            m_backend_manager->lua_unlock(L);
+            shared_backend_mgr->lua_unlock(L);
             return { false, "Function not found in Lua: " + methodName };
         }
         for (const auto& arg : argValues) {
@@ -143,7 +148,7 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
         std::string errMsg = err ? err : "Unknown Lua error";
         lua_pop(L, 1);
 
-        m_backend_manager->lua_unlock(L);
+        shared_backend_mgr->lua_unlock(L);
         return { false, errMsg };
     }
 
@@ -163,26 +168,31 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
     lua_pop(L, 1);
     result.success = true;
 
-    m_backend_manager->lua_unlock(L);
+    shared_backend_mgr->lua_unlock(L);
     return result;
 }
 
 void ipc_main::lua_call_frontend_loaded(std::string pluginName)
 {
-    auto luaStateOpt = m_backend_manager->lua_thread_state_from_plugin_name(pluginName);
+    const auto shared_backend_mgr = m_backend_manager.lock();
+    if (!shared_backend_mgr) {
+        LOG_ERROR("Failed to lock backend manager");
+    }
+
+    auto luaStateOpt = shared_backend_mgr->lua_thread_state_from_plugin_name(pluginName);
     if (!luaStateOpt.has_value()) {
         LOG_ERROR("Lua state not found for plugin: {}", pluginName);
         return;
     }
 
     lua_State* L = luaStateOpt.value();
-    m_backend_manager->lua_lock(L);
+    shared_backend_mgr->lua_lock(L);
 
     lua_getglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
     if (!lua_istable(L, -1)) {
         LOG_ERROR("MILLENNIUM_PLUGIN_DEFINITION not found or not a table for plugin: {}", pluginName);
         lua_pop(L, 1);
-        m_backend_manager->lua_unlock(L);
+        shared_backend_mgr->lua_unlock(L);
         return;
     }
 
@@ -190,7 +200,7 @@ void ipc_main::lua_call_frontend_loaded(std::string pluginName)
     if (!lua_isfunction(L, -1)) {
         Logger.Warn("on_frontend_loaded not found or not a function for plugin: {}", pluginName);
         lua_pop(L, 2);
-        m_backend_manager->lua_unlock(L);
+        shared_backend_mgr->lua_unlock(L);
         return;
     }
 
@@ -201,5 +211,5 @@ void ipc_main::lua_call_frontend_loaded(std::string pluginName)
     }
 
     lua_pop(L, 1);
-    m_backend_manager->lua_unlock(L);
+    shared_backend_mgr->lua_unlock(L);
 }
