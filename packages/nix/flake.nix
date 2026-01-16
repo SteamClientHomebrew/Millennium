@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    millennium-src.url = "github:Trivaris/millennium/4722a8ec5824e0425a3d07f2c21935dbf694813f?shallow=true";
+    millennium-src.url = "github:SteamClientHomebrew/Millennium/4722a8ec5824e0425a3d07f2c21935dbf694813f?shallow=true";
     millennium-src.flake = false;
 
     zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5?shallow=true";
