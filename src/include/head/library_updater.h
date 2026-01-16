@@ -39,25 +39,23 @@
 #include <optional>
 #include <string>
 
-using json = nlohmann::json;
-
-class Updater : public std::enable_shared_from_this<Updater>
+class library_updater : public std::enable_shared_from_this<library_updater>
 {
   public:
-    Updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main);
+    library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main);
     void init(std::shared_ptr<SettingsStore> settings_store_ptr);
 
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    bool DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
+    bool download_plugin_update(const std::string& id, const std::string& name);
+    bool download_theme_update(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
 
-    std::optional<json> GetCachedUpdates() const;
-    bool HasCheckedForUpdates() const;
+    std::optional<json> get_cached_updates() const;
+    bool has_checked_for_updates() const;
 
-    std::optional<json> CheckForUpdates(bool force = false);
-    std::string ResyncUpdates();
+    std::optional<json> check_for_updates(bool force = false);
+    std::string re_check_for_updates();
 
-    std::shared_ptr<theme_installer> GetThemeUpdater();
-    std::shared_ptr<plugin_installer> GetPluginUpdater();
+    std::weak_ptr<theme_installer> get_theme_updater();
+    std::weak_ptr<plugin_installer> get_plugin_updater();
 
     void dispatch_progress(const std::string& status, double progress, bool is_complete);
 
@@ -70,5 +68,5 @@ class Updater : public std::enable_shared_from_this<Updater>
     std::shared_ptr<plugin_installer> plugin_updater;
 
     std::optional<json> cached_updates;
-    bool has_checked_for_updates;
+    bool m_has_checked_for_updates;
 };

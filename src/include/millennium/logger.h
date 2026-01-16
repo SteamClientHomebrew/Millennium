@@ -30,19 +30,25 @@
 
 #pragma once
 
+#include "millennium/env.h"
 #include "millennium/singleton.h"
 
+#include <Python.h>
 #include <array>
 #include <fmt/color.h>
 #include <fmt/core.h>
+#include <fstream>
 #include <mutex>
+#include <vector>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#endif
-
-#define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[38;5;214m"
+#define BLUE "\x1b[94m"
+#define MAGENTA "\033[35m"
+#define CYAN "\033[36m"
+#define WHITE "\033[37m"
+#define RESET "\033[0m"
 
 #define COL_RED "\033[31m"
 #define COL_GREEN "\033[32m"
@@ -53,10 +59,9 @@
 #define COL_WHITE "\033[37m"
 #define COL_RESET "\033[0m"
 
-/**
- * Sanitize a NT-style path at compile-time by replacing backslashes with forward slashes.
- */
-constexpr auto constexpr_sanitize_nt_path_spec(const char* path)
+#define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)
+
+constexpr std::array<char, 1024> constexpr_sanitize_nt_path_spec(const char* path)
 {
     std::array<char, 1024> result{};
     size_t i = 0;
@@ -76,25 +81,71 @@ constexpr std::string_view constexpr_get_relative_path(const char* file)
     return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
 }
 
-class OutputLogger : public Singleton<OutputLogger>
+class logger_base
 {
-    friend class Singleton<OutputLogger>;
+  public:
+    enum LogLevel
+    {
+        _INFO,
+        _WARN,
+        _ERROR
+    };
 
-  private:
-    bool m_bIsConsoleEnabled = false;
-    std::mutex logMutex;
-    std::string GetLocalTime();
+    struct LogEntry
+    {
+        std::string message;
+        LogLevel level;
+    };
+
+  protected:
+    std::mutex log_mutex;
+    std::vector<LogEntry> logBuffer;
+
+    std::string GetLocalTime(bool withHours = false);
+    std::string GetLocalDateStr();
 
   public:
-    OutputLogger();
+    virtual ~logger_base() = default;
+};
 
-    void PrintMessage(std::string type, const std::string& message, std::string color = COL_WHITE);
+class plugin_logger : public logger_base
+{
+  private:
+    std::ofstream file;
+    std::string filename;
+    std::string pluginName;
 
-    void LogPluginMessage(std::string pname, std::string val);
+  public:
+    plugin_logger(const std::string& pluginName);
+    ~plugin_logger();
+
+    void Log(const std::string& message, bool onlyBuffer = false);
+    void Warn(const std::string& message, bool onlyBuffer = false);
+    void Error(const std::string& message, bool onlyBuffer = false);
+    void Print(const std::string& message);
+
+    std::vector<LogEntry> CollectLogs();
+    std::string GetPluginName(bool upperCase = true);
+};
+
+class logger : public logger_base, public Singleton<logger>
+{
+    friend class Singleton<logger>;
+
+  private:
+    bool m_should_log = false;
+    bool m_bIsConsoleEnabled = false;
+
+    std::string get_local_time_stamp();
+    logger();
+
+  public:
+    void print(std::string type, const std::string& message, std::string color = COL_WHITE);
+    void log_plugin_message(std::string pname, std::string val);
 
     template <typename... Args> void Log(std::string fmt, Args&&... args)
     {
-        PrintMessage(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_GREEN);
+        print(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_GREEN);
     }
 
     template <typename... Args> void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args&&... args)
@@ -102,18 +153,100 @@ class OutputLogger : public Singleton<OutputLogger>
         std::string remoteRepository =
             fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, constexpr_get_relative_path(file).data(), line);
 
-        PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
-        PrintMessage(" * FUNCTION: ", function, COL_RED);
-        PrintMessage(" * LOCATION: ", remoteRepository, COL_RED);
+        print(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
+        print(" * FUNCTION: ", function, COL_RED);
+        print(" * LOCATION: ", remoteRepository, COL_RED);
     }
 
     template <typename... Args> void Warn(std::string fmt, Args&&... args)
     {
-        PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
+        print(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
     }
 };
 
-extern OutputLogger& Logger;
+extern logger& Logger;
+
+inline std::vector<plugin_logger*>& get_plugin_logger_mgr()
+{
+    static std::vector<plugin_logger*> loggerList;
+    return loggerList;
+}
+
+static void AddLoggerMessage(const std::string pluginName, const std::string message, logger_base::LogLevel level)
+{
+    for (auto logger : get_plugin_logger_mgr()) {
+        if (logger->GetPluginName(false) == pluginName) {
+            switch (level) {
+                case logger_base::_INFO:
+                    logger->Log(message, true);
+                    break;
+                case logger_base::_WARN:
+                    logger->Warn(message, true);
+                    break;
+                case logger_base::_ERROR:
+                    logger->Error(message, true);
+                    break;
+            }
+            return;
+        }
+    }
+
+    plugin_logger* newLogger = new plugin_logger(pluginName);
+
+    switch (level) {
+        case logger_base::_INFO:
+            newLogger->Log(message, true);
+            break;
+        case logger_base::_WARN:
+            newLogger->Warn(message, true);
+            break;
+        case logger_base::_ERROR:
+            newLogger->Error(message, true);
+            break;
+    }
+
+    get_plugin_logger_mgr().push_back(newLogger);
+}
+
+inline void InfoToLogger(const std::string pluginNme, const std::string message)
+{
+    AddLoggerMessage(pluginNme, message, logger_base::_INFO);
+}
+
+inline void WarnToLogger(const std::string pluginNme, const std::string message)
+{
+    AddLoggerMessage(pluginNme, message, logger_base::_WARN);
+}
+
+inline void ErrorToLogger(const std::string pluginNme, const std::string message)
+{
+    AddLoggerMessage(pluginNme, message, logger_base::_ERROR);
+}
+
+inline void RawToLogger(const std::string pluginName, const std::string message)
+{
+    for (auto logger : get_plugin_logger_mgr()) {
+        if (logger->GetPluginName(false) == pluginName) {
+            logger->Print(message);
+            return;
+        }
+    }
+
+    plugin_logger* newLogger = new plugin_logger(pluginName);
+    newLogger->Print(message);
+    get_plugin_logger_mgr().push_back(newLogger);
+}
+
+void CleanupLoggers();
+
+typedef struct
+{
+    PyObject_HEAD char* prefix;
+    plugin_logger* m_loggerPtr;
+} LoggerObject;
+
+extern PyTypeObject LoggerType;
+PyObject* PyInit_Logger(void);
 
 #if defined(_MSC_VER)
 #define PRETTY_FUNCTION __FUNCSIG__

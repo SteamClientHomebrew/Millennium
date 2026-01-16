@@ -39,7 +39,7 @@
 class plugin_installer
 {
   public:
-    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<Updater> updater);
+    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<library_updater> updater);
 
     bool is_plugin_installed(const std::string& pluginName);
     bool uninstall_plugin(const std::string& pluginName);
@@ -50,7 +50,7 @@ class plugin_installer
   private:
     std::weak_ptr<millennium_backend> m_millennium_backend;
     std::shared_ptr<SettingsStore> settings_store_ptr;
-    std::shared_ptr<Updater> m_updater;
+    std::shared_ptr<library_updater> m_updater;
 
     std::filesystem::path get_plugins_path();
 

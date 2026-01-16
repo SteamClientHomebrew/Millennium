@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "head/webkit.h"
 #include "millennium/life_cycle.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
@@ -170,16 +171,30 @@ int Lua_GetInstallPath(lua_State* L)
 int Lua_RemoveBrowserModule(lua_State* L)
 {
     const lua_Integer hookId = luaL_checkinteger(L, 1);
-    const bool success = g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_RemoveBrowserModule(static_cast<unsigned long long>(hookId));
-    lua_pushboolean(L, success);
-    return 1;
+
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    if (auto webkit_mgr = webkit_mgr_weak.lock()) {
+        const bool success = webkit_mgr->remove_browser_hook(static_cast<unsigned long long>(hookId));
+        lua_pushboolean(L, success);
+        return 1;
+    }
+
+    LOG_ERROR("Failed to lock theme_webkit_mgr, it likely shutdown.");
+    return 0;
 }
 
 unsigned long long Lua_AddBrowserModule(lua_State* L, network_hook_ctl::TagTypes type)
 {
     const char* content = luaL_checkstring(L, 1);
     const char* pattern = luaL_optstring(L, 2, ".*");
-    return g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_AddBrowserModule(content, pattern, type);
+
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    if (auto webkit_mgr = webkit_mgr_weak.lock()) {
+        return webkit_mgr->add_browser_hook(content, pattern, type);
+    }
+
+    LOG_ERROR("Failed to lock theme_webkit_mgr, it likely shutdown.");
+    return -1;
 }
 
 int Lua_AddBrowserCss(lua_State* L)

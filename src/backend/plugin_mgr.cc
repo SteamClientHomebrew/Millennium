@@ -39,7 +39,8 @@
 #include "millennium/encode.h"
 #include "millennium/zip.h"
 
-plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<Updater> updater)
+plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr,
+                                   std::shared_ptr<library_updater> updater)
     : m_millennium_backend(std::move(millennium_backend)), settings_store_ptr(std::move(settings_store_ptr)), m_updater(std::move(updater))
 {
 }
@@ -62,9 +63,10 @@ bool plugin_installer::uninstall_plugin(const std::string& pluginName)
 
         if (settings_store_ptr->IsEnabledPlugin(pluginName)) {
             if (auto ptr = m_millennium_backend.lock()) {
-                ptr->Millennium_TogglePluginStatus({
-                    PluginStatus{ pluginName, false }
-                });
+                // ptr->Millennium_TogglePluginStatus({
+                //     PluginStatus{ pluginName, false }
+                // });
+                // TODO: Fix
             } else {
                 LOG_ERROR("[plugin_installer] Failed to lock builtin_plugin_backend...");
             }

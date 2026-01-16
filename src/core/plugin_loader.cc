@@ -32,7 +32,6 @@
 #include "head/entry_point.h"
 #include "lua.h"
 #include "millennium/life_cycle.h"
-#include "millennium/millennium.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/sysfs.h"
 #include "millennium/types.h"
@@ -43,12 +42,14 @@
 #include "millennium/env.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_logger.h"
 #include "millennium/plugin_webkit_store.h"
 #include "millennium/auth.h"
 #include "nlohmann/json_fwd.hpp"
 #include <memory>
 #include <mutex>
+#include <fmt/ranges.h>
+#include <tuple>
+#include <utility>
 
 using namespace std::placeholders;
 using namespace std::chrono;
@@ -74,6 +75,48 @@ plugin_loader::~plugin_loader()
 void plugin_loader::shutdown()
 {
     Logger.Log("Successfully shut down plugin_loader...");
+}
+
+void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
+{
+    m_cdp = cdp;
+    m_socket_con_time = std::chrono::system_clock::now();
+    m_ipc_main = std::make_shared<ipc_main>(m_settings_store_ptr, m_cdp, m_backend_manager);
+    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp);
+    m_millennium_backend = std::make_shared<millennium_backend>(m_ipc_main, m_settings_store_ptr, m_network_hook_ctl, m_millennium_updater);
+
+    m_millennium_backend->init(); /** manual ctor, shared_from_this requires a ref holder before its valid */
+    m_ipc_main->set_millennium_backend(m_millennium_backend);
+    m_millennium_updater->set_ipc_main(m_ipc_main);
+
+    m_thread_pool->enqueue([this]()
+    {
+        Logger.Log("Starting webkit world manager...");
+
+        this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_settings_store_ptr, m_ipc_main);
+        this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_settings_store_ptr, m_network_hook_ctl, m_plugin_webkit_store);
+    });
+
+    m_thread_pool->enqueue([this]()
+    {
+        Logger.Log("Connected to Steam devtools protocol...");
+        this->init_devtools();
+    });
+}
+
+void plugin_loader::init()
+{
+    m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_settings_store_ptr);
+    m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
+    m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);
+    m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_settings_store_ptr);
+    m_plugin_ptr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->ParseAllPlugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->GetEnabledBackends());
+
+    m_settings_store_ptr->InitializeSettingsStore();
+
+    /** setup steam hooks once backends have loaded */
+    m_backend_event_dispatcher->on_all_backends_ready(Plat_WaitForBackendLoad);
 }
 
 void plugin_loader::init_devtools()
@@ -119,48 +162,6 @@ void plugin_loader::init_devtools()
     });
 }
 
-void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
-{
-    m_cdp = cdp;
-    m_socket_con_time = std::chrono::system_clock::now();
-    m_ipc_main = std::make_shared<ipc_main>(m_settings_store_ptr, m_cdp, m_backend_manager);
-    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp);
-    m_millennium_backend = std::make_shared<millennium_backend>(m_ipc_main, m_settings_store_ptr, m_network_hook_ctl, m_millennium_updater);
-
-    m_millennium_backend->init(); /** manual ctor, shared_from_this requires a ref holder before its valid */
-    m_ipc_main->set_millennium_backend(m_millennium_backend);
-    m_millennium_updater->set_ipc_main(m_ipc_main);
-
-    m_thread_pool->enqueue([this]()
-    {
-        Logger.Log("Starting webkit world manager...");
-
-        this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_settings_store_ptr, m_ipc_main);
-        this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_settings_store_ptr, m_network_hook_ctl, m_plugin_webkit_store);
-    });
-
-    m_thread_pool->enqueue([this]()
-    {
-        Logger.Log("Connected to Steam devtools protocol...");
-        this->init_devtools();
-    });
-}
-
-void plugin_loader::init()
-{
-    m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_settings_store_ptr);
-    m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
-    m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);
-    m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_settings_store_ptr);
-    m_plugin_ptr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->ParseAllPlugins());
-    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->GetEnabledBackends());
-
-    m_settings_store_ptr->InitializeSettingsStore();
-
-    /** setup steam hooks once backends have loaded */
-    m_backend_event_dispatcher->on_all_backends_ready(Plat_WaitForBackendLoad);
-}
-
 std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr<SocketHelpers> socketHelpers)
 {
     std::shared_ptr<SocketHelpers::ConnectSocketProps> browserProps = std::make_shared<SocketHelpers::ConnectSocketProps>();
@@ -190,19 +191,12 @@ void plugin_loader::setup_webkit_shims()
 
 std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::string>& modules)
 {
-    std::string str_modules;
-    std::string preload_path = SystemIO::GetMillenniumPreloadPath();
-
-    for (size_t i = 0; i < modules.size(); i++) {
-        str_modules.append(fmt::format("\"{}\"{}", modules[i], (i == modules.size() - 1 ? "" : ",")));
-    }
-
+    const std::string preload_path = SystemIO::GetMillenniumPreloadPath();
     const std::string token = GetAuthToken();
+    const std::string ftp_path = m_network_hook_ctl->get_ftp_url() + preload_path;
+    const std::string module_list = fmt::format(R"("{}")", fmt::join(modules, R"(", ")"));
 
-    const std::string ftpPath = m_network_hook_ctl->get_ftp_url() + preload_path;
-    const std::string script = fmt::format("(new module.default).StartPreloader('{}', [{}]);", token, str_modules);
-
-    return fmt::format("import('{}').then(module => {{ {} }})", ftpPath, script);
+    return fmt::format("import('{}').then(m => (new m.default).StartPreloader('{}', [{}]))", ftp_path, token, module_list);
 }
 
 std::string plugin_loader::cdp_generate_shim_module()
@@ -227,20 +221,29 @@ std::string plugin_loader::cdp_generate_shim_module()
 void plugin_loader::inject_frontend_shims(bool reload_frontend)
 {
     this->setup_webkit_shims();
+    auto self = this->shared_from_this();
 
-    g_millennium->get_plugin_loader()->get_backend_event_dispatcher()->on_all_backends_ready([&, this]()
+    /**
+     * add the initial binding for the shared js context.
+     * the rest is handled by the ffi_binder.
+     */
+    const auto insert_ipc = std::make_shared<std::function<void()>>([self]()
     {
-        Logger.Log("Notifying frontend of backend load...");
-        m_backend_initializer->compat_restore_shared_js_context();
+        self->m_cdp->send("Runtime.enable").get();
 
-        m_cdp->send("Page.enable").get();
-
-        json params = {
-            { "source", this->cdp_generate_shim_module() }
+        const json add_binding_params = {
+            { "name", ffi_constants::binding_name }
         };
-        auto resultId = m_cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
-        document_script_id = resultId["identifier"].get<std::string>();
+        self->m_cdp->send("Runtime.addBinding", add_binding_params).get();
+        Logger.Log("Frontend notifier finished!");
+    });
 
+    /**
+     * reload the frontend of Steam if need be.
+     * sometimes we need to queue a change instead of instantly applying it.
+     */
+    const auto reload = std::make_shared<std::function<void()>>([reload_frontend, self]()
+    {
         json reload_params = {
             { "ignoreCache", true }
         };
@@ -248,20 +251,40 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
         if (reload_frontend) {
             json result;
             do {
-                result = m_cdp->send("Page.reload", reload_params).get();
+                result = self->m_cdp->send("Page.reload", reload_params).get();
             }
             /** empty means it was successful */
             while (!result.empty());
         }
+    });
 
-        m_cdp->send("Runtime.enable").get();
+    /**
+     * tell chromium to run Millennium's frontend every time a new document is loaded.
+     */
+    const auto insert_millennium = std::make_shared<std::function<void()>>([self]()
+    {
+        self->m_cdp->send("Page.enable").get();
 
-        /** add the initial binding for the shared js context. the rest is handled by the ffi_binder */
-        const json add_binding_params = {
-            { "name", ffi_constants::binding_name }
+        json params = {
+            { "source", self->cdp_generate_shim_module() }
         };
-        m_cdp->send("Runtime.addBinding", add_binding_params).get();
-        Logger.Log("Frontend notifier finished!");
+        auto resultId = self->m_cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
+        self->document_script_id = resultId["identifier"].get<std::string>();
+    });
+
+    /**
+     * wait for millennium to finish starting the plugin backends
+     * we garunetee the backends will be loaded before the plugin, so
+     * we need to enforce that here.
+     */
+    m_backend_event_dispatcher->on_all_backends_ready([insert_millennium, reload, insert_ipc, self]()
+    {
+        Logger.Log("Notifying frontend of backend load...");
+        self->m_backend_initializer->compat_restore_shared_js_context();
+
+        (*insert_millennium)();
+        (*reload)();
+        (*insert_ipc)();
     });
 }
 
@@ -272,15 +295,13 @@ void plugin_loader::start_plugin_frontends()
         return;
     }
 
-    std::shared_ptr<SocketHelpers> socketHelpers = std::make_shared<SocketHelpers>();
+    std::shared_ptr<SocketHelpers> helper = std::make_shared<SocketHelpers>();
 
     Logger.Log("Starting frontend socket...");
-    std::shared_ptr<std::thread> browserSocketThread = this->connect_steam_socket(socketHelpers);
+    std::shared_ptr<std::thread> socket_thread = this->connect_steam_socket(helper);
 
-    if (browserSocketThread->joinable()) {
-        Logger.Log("Joining browser socket thread {}", (void*)browserSocketThread.get());
-        browserSocketThread->join();
-        Logger.Log("Browser socket thread joined {}", (void*)browserSocketThread.get());
+    if (socket_thread->joinable()) {
+        socket_thread->join();
     }
 
     if (g_shouldTerminateMillennium->flag.load()) {
@@ -309,14 +330,14 @@ void plugin_loader::start_plugin_frontends()
 /* debug function, just for developers */
 void plugin_loader::log_enabled_plugins()
 {
-    std::string pluginList = "Plugins: { ";
-    for (auto it = (*this->m_plugin_ptr).begin(); it != (*this->m_plugin_ptr).end(); ++it) {
-        const auto pluginName = (*it).pluginName;
-        pluginList.append(fmt::format("{}: {}{}", pluginName, m_settings_store_ptr->IsEnabledPlugin(pluginName) ? "Enabled" : "Disabled",
-                                      std::next(it) == (*this->m_plugin_ptr).end() ? " }" : ", "));
+    std::vector<std::string> statuses;
+    statuses.reserve(m_plugin_ptr->size());
+
+    for (const auto& plugin : *m_plugin_ptr) {
+        statuses.push_back(fmt::format("{}: {}", plugin.pluginName, m_settings_store_ptr->IsEnabledPlugin(plugin.pluginName) ? "enabled" : "disabled"));
     }
 
-    Logger.Log(pluginList);
+    Logger.Log("Plugins: {{ {} }}", fmt::join(statuses, ", "));
 }
 
 void plugin_loader::start_plugin_backends()
@@ -327,25 +348,56 @@ void plugin_loader::start_plugin_backends()
     auto weak_init = std::weak_ptr(m_backend_initializer);
 
     for (auto& plugin : *m_enabledPluginsPtr) {
-        switch (plugin.backendType) {
-            case SettingsStore::PluginBackendType::Python:
-                if (m_backend_manager->is_python_backend_running(plugin.pluginName)) break;
+        if (m_backend_manager->is_any_backend_running(plugin.pluginName)) {
+            continue;
+        }
 
-                m_backend_manager->create_python_vm(plugin, [weak_init](auto plugin)
-                {
-                    if (auto init = weak_init.lock()) init->python_backend_started_cb(plugin);
-                });
-                break;
-            case SettingsStore::PluginBackendType::Lua:
-                if (m_backend_manager->is_lua_backend_running(plugin.pluginName)) break;
-
-                m_backend_manager->create_lua_vm(plugin, [weak_init](auto plugin, lua_State* L)
-                {
-                    if (auto init = weak_init.lock()) init->lua_backend_started_cb(plugin, L);
-                });
-                break;
+        if (plugin.backendType == SettingsStore::PluginBackendType::Lua) {
+            m_backend_manager->create_lua_vm(plugin, [weak_init](auto plugin, lua_State* L)
+            {
+                if (auto init = weak_init.lock()) {
+                    init->lua_backend_started_cb(plugin, L);
+                }
+            });
+        } else {
+            m_backend_manager->create_python_vm(plugin, [weak_init](auto plugin)
+            {
+                if (auto init = weak_init.lock()) {
+                    init->python_backend_started_cb(plugin);
+                }
+            });
         }
     }
+}
+void plugin_loader::set_plugin_enable(std::string plugin_name, bool enabled)
+{
+    this->set_plugins_enabled({ std::make_pair(plugin_name, enabled) });
+}
+
+void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string, bool>>& plugins)
+{
+    bool should_start_backends = false;
+    std::vector<std::string> plugins_to_disable;
+
+    for (const auto& [name, enabled] : plugins) {
+        m_settings_store_ptr->TogglePluginStatus(name.c_str(), enabled);
+        Logger.Log("requested to {} plugin [{}]", enabled ? "enable" : "disable", name);
+
+        if (enabled) {
+            should_start_backends = true;
+        } else {
+            plugins_to_disable.push_back(name);
+        }
+    }
+
+    /** destroy all plugins that need to be disabled */
+    for (const auto& name : plugins_to_disable)
+        m_backend_manager->destroy_generic_vm(name);
+
+    /** if any new backends were enabled, we need to start them */
+    if (should_start_backends) start_plugin_backends();
+
+    inject_frontend_shims(true);
 }
 
 std::shared_ptr<ipc_main> plugin_loader::get_ipc_main()

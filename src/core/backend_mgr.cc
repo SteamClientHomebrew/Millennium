@@ -32,7 +32,7 @@
 #include "millennium/life_cycle.h"
 #include "millennium/ffi.h"
 #include "millennium/libpy_stdout_fwd.h"
-#include "millennium/plugin_logger.h"
+#include "millennium/logger.h"
 #include "hhx64/smem.h"
 
 #include <lauxlib.h>
@@ -688,6 +688,11 @@ bool backend_manager::is_lua_backend_running(std::string targetPluginName)
     return false;
 }
 
+bool backend_manager::is_any_backend_running(std::string plugin_name)
+{
+    return is_lua_backend_running(plugin_name) || is_python_backend_running(plugin_name);
+}
+
 /**
  * @brief Checks if a plugin has a Python backend.
  * This function checks if a plugin has a Python backend by looking it up in the settings store.
@@ -993,4 +998,26 @@ bool backend_manager::create_lua_vm(SettingsStore::plugin_t& plugin, std::functi
 
     m_luaThreadPool.emplace_back(std::make_shared<LuaThreadPoolItem>(pluginName, luaThread, L));
     return true;
+}
+
+bool backend_manager::destroy_generic_vm(std::string plugin_name)
+{
+    auto backend_type = this->get_plugin_backend_type(plugin_name);
+
+    switch (backend_type) {
+        case SettingsStore::PluginBackendType::Lua:
+        {
+            return this->destroy_lua_vm(plugin_name);
+            break;
+        }
+        case SettingsStore::PluginBackendType::Python:
+        {
+            return this->python_destroy_vm(plugin_name);
+        }
+        default:
+        {
+            LOG_ERROR("Failed to find a backend type for plugin '{}'", plugin_name);
+            return false;
+        }
+    }
 }

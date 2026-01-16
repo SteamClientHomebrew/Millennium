@@ -31,7 +31,6 @@
 #include "millennium/core_ipc.h"
 #include "millennium/ffi.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_logger.h"
 #include <tuple>
 #include <variant>
 

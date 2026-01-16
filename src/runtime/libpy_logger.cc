@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "millennium/plugin_logger.h"
+#include "millennium/logger.h"
 #include <Python.h>
 #include <stdio.h>
 
@@ -76,7 +76,7 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwd
         }
     }
 
-    self->m_loggerPtr = new BackendLogger(pluginName);
+    self->m_loggerPtr = new plugin_logger(pluginName);
     if (!self->m_loggerPtr) {
         Py_DECREF(self);
         return NULL;

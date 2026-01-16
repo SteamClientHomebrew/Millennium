@@ -28,21 +28,21 @@
  * SOFTWARE.
  */
 
-#include "millennium/plugin_logger.h"
+#include "millennium/logger.h"
 #include <lua.hpp>
 #include <vector>
 
-static BackendLogger* GetBackendLogger(lua_State* L)
+static plugin_logger* GetBackendLogger(lua_State* L)
 {
     lua_getfield(L, 1, "__backend_logger");
-    BackendLogger* backend = static_cast<BackendLogger*>(lua_touserdata(L, -1));
+    plugin_logger* backend = static_cast<plugin_logger*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
     return backend;
 }
 
 static int LuaLogInfo(lua_State* L)
 {
-    BackendLogger* backend = GetBackendLogger(L);
+    plugin_logger* backend = GetBackendLogger(L);
     const char* message = luaL_checkstring(L, 2);
     if (backend) backend->Log(message);
     return 0;
@@ -50,7 +50,7 @@ static int LuaLogInfo(lua_State* L)
 
 static int LuaLogWarn(lua_State* L)
 {
-    BackendLogger* backend = GetBackendLogger(L);
+    plugin_logger* backend = GetBackendLogger(L);
     const char* message = luaL_checkstring(L, 2);
     if (backend) backend->Warn(message);
     return 0;
@@ -58,7 +58,7 @@ static int LuaLogWarn(lua_State* L)
 
 static int LuaLogError(lua_State* L)
 {
-    BackendLogger* backend = GetBackendLogger(L);
+    plugin_logger* backend = GetBackendLogger(L);
     const char* message = luaL_checkstring(L, 2);
     if (backend) backend->Error(message);
     return 0;
@@ -80,7 +80,7 @@ extern "C" int Lua_OpenLoggerLibrary(lua_State* L)
     }
     lua_pop(L, 1);
 
-    BackendLogger* backend = new BackendLogger(pluginName);
+    plugin_logger* backend = new plugin_logger(pluginName);
     get_plugin_logger_mgr().push_back(backend);
 
     luaL_newlib(L, loggerFunctions);

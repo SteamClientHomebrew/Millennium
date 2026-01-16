@@ -106,6 +106,7 @@ class backend_manager
 
     bool python_destroy_vm(std::string targetPluginName, bool isShuttingDown = false);
     bool destroy_lua_vm(std::string pluginName, bool shouldCleanupThreadPool = true, bool isShuttingDown = false);
+    bool destroy_generic_vm(std::string plugin_name);
 
     bool destroy_python_vms();
     bool destroy_lua_vms(bool isShuttingDown = false);
@@ -121,6 +122,7 @@ class backend_manager
 
     bool is_python_backend_running(std::string pluginName);
     bool is_lua_backend_running(std::string pluginName);
+    bool is_any_backend_running(std::string plugin_name);
 
     bool has_python_backend(std::string pluginName);
 

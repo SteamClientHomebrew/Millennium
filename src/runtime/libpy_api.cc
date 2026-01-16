@@ -135,8 +135,13 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    const bool success = g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_RemoveBrowserModule(static_cast<unsigned long long>(moduleId));
-    return PyBool_FromLong(success);
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    if (auto webkit_mgr = webkit_mgr_weak.lock()) {
+        return PyBool_FromLong(webkit_mgr->remove_browser_hook(static_cast<unsigned long long>(moduleId)));
+    }
+
+    LOG_ERROR("Failed to lock theme_webkit_mgr, it likely shutdown.");
+    return PyBool_FromLong(false);
 }
 
 unsigned long long AddBrowserModule(PyObject* args, network_hook_ctl::TagTypes type)
@@ -148,7 +153,13 @@ unsigned long long AddBrowserModule(PyObject* args, network_hook_ctl::TagTypes t
         return 0;
     }
 
-    return g_millennium->get_plugin_loader()->get_millennium_backend()->Millennium_AddBrowserModule(moduleItem, regexSelector, type);
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    if (auto webkit_mgr = webkit_mgr_weak.lock()) {
+        return webkit_mgr->add_browser_hook(moduleItem, regexSelector, type);
+    }
+
+    LOG_ERROR("Failed to lock theme_webkit_mgr, it likely shutdown.");
+    return -1;
 }
 
 PyObject* AddBrowserCss([[maybe_unused]] PyObject* self, PyObject* args)

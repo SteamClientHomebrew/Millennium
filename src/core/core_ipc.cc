@@ -115,12 +115,7 @@ ipc_main::javascript_evaluation_result ipc_main::evaluate_javascript_expression(
         auto result = m_cdp->send("Runtime.evaluate", params).get();
 
         if (result.contains("exceptionDetails")) {
-            const std::string classType = result["exceptionDetails"]["exception"]["className"];
-
-            if (classType == "MillenniumFrontEndError")
-                response = std::make_tuple("__CONNECTION_ERROR__", false);
-            else
-                response = std::make_tuple(result["exceptionDetails"]["exception"]["description"], false);
+            response = std::make_tuple(result["exceptionDetails"]["exception"]["description"], false);
         } else {
             response = std::make_tuple(result["result"], true);
         }
@@ -196,7 +191,7 @@ ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
         const auto& functionName = call["data"]["methodName"].get<std::string>();
         const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : json::object();
 
-        ordered_json result = backend->HandleIpcMessage(functionName, args);
+        ordered_json result = backend->ipc_message_hdlr(functionName, args);
         return { true, result.dump() };
     }
     /** the internal c ipc method threw an exception */
@@ -253,28 +248,26 @@ ipc_main::vm_call_result ipc_main::handle_plugin_server_method(const std::string
  */
 json ipc_main::call_server_method(const json& call)
 {
-    if (!call["data"].contains("pluginName")) {
+    const auto& data = call["data"];
+    if (!data.contains("pluginName")) {
         LOG_ERROR("no plugin backend specified, doing nothing...");
         return {};
     }
-    const auto pluginName = call["data"]["pluginName"].get<std::string>();
 
-    /** Conditionally dispatch call between internal IPC call, and Python / Lua */
-    vm_call_result response = pluginName == "core" ? handle_core_server_method(call) : handle_plugin_server_method(pluginName, call);
+    const std::string pluginName = data["pluginName"];
+    const auto response = pluginName == "core" ? handle_core_server_method(call) : handle_plugin_server_method(pluginName, call);
 
-    nlohmann::json responseMessage = {};
-    responseMessage["success"] = response.success;
-    responseMessage["pluginName"] = pluginName;
-    auto& return_json = responseMessage["returnJson"];
+    json responseMessage{
+        { "success",    response.success },
+        { "pluginName", pluginName       }
+    };
 
-    std::visit([&return_json](auto&& arg)
+    std::visit([&](auto&& arg)
     {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, std::monostate>) {
-            return_json = nullptr;
-        } else {
-            return_json = arg;
-        }
+        if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::monostate>)
+            responseMessage["returnJson"] = nullptr;
+        else
+            responseMessage["returnJson"] = arg;
     }, response.value);
 
     return responseMessage;
@@ -340,17 +333,17 @@ json ipc_main::call_frontend_method(const json& call)
             javascript_parameter param;
             const auto& value = arg["value"];
 
-            if (value.is_string()) {
+            if (value.is_string())
                 param = value.get<std::string>();
-            } else if (value.is_boolean()) {
+            else if (value.is_boolean())
                 param = value.get<bool>();
-            } else if (value.is_number_float()) {
+            else if (value.is_number_float())
                 param = value.get<double>();
-            } else if (value.is_number_integer()) {
+            else if (value.is_number_integer())
                 param = value.get<int64_t>();
-            } else if (value.is_number_unsigned()) {
+            else if (value.is_number_unsigned())
                 param = value.get<uint64_t>();
-            }
+
             params.push_back(param);
         }
     }
@@ -373,7 +366,7 @@ json ipc_main::call_frontend_method(const json& call)
 json ipc_main::process_message(const json payload)
 {
     try {
-        static const std::unordered_map<int, std::function<nlohmann::json(nlohmann::json)>> handlers = {
+        const std::unordered_map<int, std::function<nlohmann::json(nlohmann::json)>> handlers = {
             { ipc_main::ipc_method::CALL_SERVER_METHOD,   std::bind(&ipc_main::call_server_method,   this, _1) },
             { ipc_main::ipc_method::FRONT_END_LOADED,     std::bind(&ipc_main::on_front_end_loaded,  this, _1) },
             { ipc_main::ipc_method::CALL_FRONTEND_METHOD, std::bind(&ipc_main::call_frontend_method, this, _1) }

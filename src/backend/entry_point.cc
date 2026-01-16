@@ -37,12 +37,21 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/encode.h"
 #include "millennium/http_hooks.h"
+#include "millennium/logger.h"
 #include "millennium/millennium.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
+#include "millennium/plugin_loader.h"
+#include "millennium/logger.h"
 #include "millennium/sysfs.h"
+#include <exception>
 
-int millennium_backend::GetOperatingSystemType()
+std::weak_ptr<theme_webkit_mgr> millennium_backend::get_theme_webkit_mgr()
+{
+    return m_theme_webkit_mgr;
+}
+
+int millennium_backend::get_operating_system()
 {
 #if defined(_WIN32)
     return 0; // Windows
@@ -54,96 +63,6 @@ int millennium_backend::GetOperatingSystemType()
 #endif
 }
 
-void millennium_backend::Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
-{
-    std::shared_ptr<backend_manager> backend_manager_ptr = g_millennium->get_plugin_loader()->get_backend_manager();
-
-    std::unordered_map<std::string, bool> pluginStatusMap;
-    for (const auto& plugin : plugins) {
-        pluginStatusMap[plugin.pluginName] = plugin.enabled;
-    }
-
-    bool hasEnableRequests = false;
-    std::vector<std::string> pluginsToDisable;
-
-    for (const auto& entry : pluginStatusMap) {
-        const std::string& pluginName = entry.first;
-        const bool newStatus = entry.second;
-
-        m_settings_store->TogglePluginStatus(pluginName.c_str(), newStatus);
-
-        if (newStatus) {
-            hasEnableRequests = true;
-            Logger.Log("requested to enable plugin [{}]", pluginName);
-        } else {
-            pluginsToDisable.push_back(pluginName);
-            Logger.Log("requested to disable plugin [{}]", pluginName);
-        }
-    }
-
-    if (hasEnableRequests) {
-        g_millennium->get_plugin_loader()->start_plugin_backends();
-    }
-
-    for (const auto& pluginName : pluginsToDisable) {
-        const auto backendType = backend_manager_ptr->get_plugin_backend_type(pluginName);
-
-        if (backendType == SettingsStore::PluginBackendType::Lua) {
-            backend_manager_ptr->destroy_lua_vm(pluginName);
-        } else if (backendType == SettingsStore::PluginBackendType::Python) {
-            backend_manager_ptr->python_destroy_vm(pluginName);
-        }
-    }
-
-    g_millennium->get_plugin_loader()->inject_frontend_shims(true);
-}
-
-bool millennium_backend::Millennium_RemoveBrowserModule(unsigned long long moduleId)
-{
-    return m_theme_webkit_mgr->remove_browser_hook(moduleId);
-}
-
-unsigned long long millennium_backend::Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type)
-{
-    return m_theme_webkit_mgr->add_browser_hook(moduleItem, regexSelector, type);
-}
-
-builtin_payload millennium_backend::Millennium_GetPluginLogs()
-{
-    nlohmann::json logData = nlohmann::json::array();
-    std::vector<SettingsStore::plugin_t> plugins = m_settings_store->ParseAllPlugins();
-
-    for (auto& logger : get_plugin_logger_mgr()) {
-        nlohmann::json logDataItem;
-
-        for (auto [message, logLevel] : logger->CollectLogs()) {
-            logDataItem.push_back({
-                { "message", Base64Encode(message) },
-                { "level",   logLevel              }
-            });
-        }
-
-        std::string pluginName = logger->GetPluginName(false);
-
-        for (auto& plugin : plugins) {
-            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false)) {
-                pluginName = plugin.pluginJson.value("common_name", pluginName);
-                break;
-            }
-        }
-
-        // Handle package manager plugin
-        if (pluginName == "pipx") pluginName = "Package Manager";
-
-        logData.push_back({
-            { "name", pluginName  },
-            { "logs", logDataItem }
-        });
-    }
-
-    return logData;
-}
-
 millennium_backend::~millennium_backend()
 {
     Logger.Log("Successfully shut down millennium_backend...");
@@ -151,7 +70,7 @@ millennium_backend::~millennium_backend()
 
 void millennium_backend::init()
 {
-    m_updater = std::make_shared<Updater>(shared_from_this(), m_ipc_main);
+    m_updater = std::make_shared<library_updater>(shared_from_this(), m_ipc_main);
     m_updater->init(m_settings_store);
     m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, m_network_hook_ctl);
     m_theme_config = std::make_shared<ThemeConfig>(m_settings_store, m_theme_webkit_mgr);
@@ -203,7 +122,7 @@ const char* Millennium_GetUpdateScript()
 #ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
     return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
 #else
-    #error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
+#error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
     return nullptr;
 #endif
 }
@@ -213,16 +132,20 @@ const char* Millennium_GetUpdateScript()
  */
 builtin_payload millennium_backend::Core_ChangePluginStatus(const builtin_payload& args)
 {
-    std::vector<PluginStatus> plugins;
+    plugin_loader::plugin_state plugins;
     auto pluginJson = nlohmann::json::parse(args["pluginJson"].get<std::string>());
 
     for (const auto& item : pluginJson) {
-        if (item.contains("plugin_name") && item.contains("enabled")) {
-            plugins.push_back({ item["plugin_name"], item["enabled"] });
+        try {
+            if (item.contains("plugin_name") && item.contains("enabled")) {
+                plugins.push_back({ item["plugin_name"], item["enabled"] });
+            }
+        } catch (const std::exception& ex) {
+            LOG_ERROR("Failed to add a plugin to list: {}", ex.what());
         }
     }
 
-    Millennium_TogglePluginStatus(plugins);
+    g_millennium->get_plugin_loader()->set_plugins_enabled(plugins);
     return {};
 }
 
@@ -241,8 +164,8 @@ builtin_payload millennium_backend::Core_GetStartConfig(const builtin_payload&)
         { "installPath", SystemIO::GetInstallPath() },
         { "millenniumVersion", MILLENNIUM_VERSION },
         { "enabledPlugins", m_settings_store->GetEnabledPluginNames() },
-        { "updates", m_updater->CheckForUpdates() },
-        { "hasCheckedForUpdates", m_updater->HasCheckedForUpdates() },
+        { "updates", m_updater->check_for_updates() },
+        { "hasCheckedForUpdates", m_updater->has_checked_for_updates() },
         { "millenniumUpdates", m_millennium_updater->has_any_updates() },
         { "buildDate", GetBuildTimestamp() },
         { "platformType", GetOperatingSystemType() },
@@ -298,7 +221,7 @@ builtin_payload millennium_backend::Core_SetBackendConfig(const builtin_payload&
 /** Theme and Plugin update API */
 builtin_payload millennium_backend::Core_GetUpdates(const builtin_payload& args)
 {
-    return m_updater->CheckForUpdates(args.value("force", false)).value_or(nullptr);
+    return m_updater->check_for_updates(args.value("force", false)).value_or(nullptr);
 }
 
 /** Theme manager API */
@@ -344,47 +267,113 @@ builtin_payload millennium_backend::Core_GetThemeColorOptions(const builtin_payl
 /** Theme installer related API's */
 builtin_payload millennium_backend::Core_InstallTheme(const builtin_payload& args)
 {
-    return m_updater->GetThemeUpdater()->install_theme(m_theme_config, args["repo"], args["owner"]);
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->install_theme(m_theme_config, args["repo"], args["owner"]);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
 }
 builtin_payload millennium_backend::Core_UninstallTheme(const builtin_payload& args)
 {
-    return m_updater->GetThemeUpdater()->uninstall_theme(m_theme_config, args["repo"], args["owner"]);
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->uninstall_theme(m_theme_config, args["repo"], args["owner"]);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
 }
 builtin_payload millennium_backend::Core_DownloadThemeUpdate(const builtin_payload& args)
 {
-    return m_updater->DownloadThemeUpdate(m_theme_config, args["native"]);
+    return m_updater->download_theme_update(m_theme_config, args["native"]);
 }
 builtin_payload millennium_backend::Core_IsThemeInstalled(const builtin_payload& args)
 {
-    return m_updater->GetThemeUpdater()->is_theme_installed(args["repo"], args["owner"]);
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->is_theme_installed(args["repo"], args["owner"]);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
 }
 builtin_payload millennium_backend::Core_GetThemeFromGitPair(const builtin_payload& args)
 {
-    return m_updater->GetThemeUpdater()->get_theme_from_github(args["repo"], args["owner"], args.value("asString", false)).value_or(nullptr);
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->get_theme_from_github(args["repo"], args["owner"], args.value("asString", false)).value_or(nullptr);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
 }
 
 /** Plugin related API's */
 builtin_payload millennium_backend::Core_DownloadPluginUpdate(const builtin_payload& args)
 {
-    return m_updater->DownloadPluginUpdate(args["id"], args["name"]);
+    return m_updater->download_plugin_update(args["id"], args["name"]);
 }
 builtin_payload millennium_backend::Core_InstallPlugin(const builtin_payload& args)
 {
-    return m_updater->GetPluginUpdater()->install_plugin(args["download_url"], args["total_size"]);
+    if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
+        return plugin_updater->install_plugin(args["download_url"], args["total_size"]);
+    }
+
+    LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
+    return false;
 }
 builtin_payload millennium_backend::Core_IsPluginInstalled(const builtin_payload& args)
 {
-    return m_updater->GetPluginUpdater()->is_plugin_installed(args["plugin_name"]);
+    if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
+        return plugin_updater->is_plugin_installed(args["pluginName"]);
+    }
+
+    LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
+    return false;
 }
 builtin_payload millennium_backend::Core_UninstallPlugin(const builtin_payload& args)
 {
-    return m_updater->GetPluginUpdater()->uninstall_plugin(args["pluginName"]);
+    if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
+        return plugin_updater->uninstall_plugin(args["pluginName"]);
+    }
+
+    LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
+    return false;
 }
 
 /** Get plugin backend logs */
 builtin_payload millennium_backend::Core_GetPluginBackendLogs(const builtin_payload&)
 {
-    return Millennium_GetPluginLogs();
+    nlohmann::json logData = nlohmann::json::array();
+    std::vector<SettingsStore::plugin_t> plugins = m_settings_store->ParseAllPlugins();
+
+    for (auto& logger : get_plugin_logger_mgr()) {
+        nlohmann::json logDataItem;
+
+        for (auto [message, logLevel] : logger->CollectLogs()) {
+            logDataItem.push_back({
+                { "message", Base64Encode(message) },
+                { "level",   logLevel              }
+            });
+        }
+
+        std::string pluginName = logger->GetPluginName(false);
+
+        for (auto& plugin : plugins) {
+            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false)) {
+                pluginName = plugin.pluginJson.value("common_name", pluginName);
+                break;
+            }
+        }
+
+        // Handle package manager plugin
+        if (pluginName == "pipx") pluginName = "Package Manager";
+
+        logData.push_back({
+            { "name", pluginName  },
+            { "logs", logDataItem }
+        });
+    }
+
+    return logData;
 }
 
 /** Update Millennium API */
@@ -399,7 +388,7 @@ builtin_payload millennium_backend::Core_HasPendingMillenniumUpdateRestart(const
     return m_millennium_updater->is_pending_restart();
 }
 
-builtin_payload millennium_backend::HandleIpcMessage(const std::string& functionName, const builtin_payload& args)
+builtin_payload millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)
 {
     // Skip plugin settings parser as it's not applicable
     if (functionName == "__builtins__.__millennium_plugin_settings_parser__") {

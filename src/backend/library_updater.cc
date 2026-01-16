@@ -39,12 +39,12 @@
 #include "millennium/logger.h"
 #include <memory>
 
-Updater::Updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main)
-    : m_millennium_backend(std::move(millennium_backend)), m_ipc_main(std::move(ipc_main)), has_checked_for_updates(false)
+library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main)
+    : m_millennium_backend(std::move(millennium_backend)), m_ipc_main(std::move(ipc_main)), m_has_checked_for_updates(false)
 {
 }
 
-void Updater::init(std::shared_ptr<SettingsStore> settings_store_ptr)
+void library_updater::init(std::shared_ptr<SettingsStore> settings_store_ptr)
 {
     theme_updater = std::make_shared<theme_installer>(settings_store_ptr, shared_from_this());
     plugin_updater = std::make_shared<plugin_installer>(m_millennium_backend, settings_store_ptr, shared_from_this());
@@ -54,31 +54,31 @@ void Updater::init(std::shared_ptr<SettingsStore> settings_store_ptr)
         return;
     }
 
-    cached_updates = CheckForUpdates();
-    has_checked_for_updates = true;
+    cached_updates = check_for_updates();
+    m_has_checked_for_updates = true;
 }
 
-bool Updater::DownloadPluginUpdate(const std::string& id, const std::string& name)
+bool library_updater::download_plugin_update(const std::string& id, const std::string& name)
 {
     return plugin_updater->update_plugin(id, name);
 }
 
-bool Updater::DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
+bool library_updater::download_theme_update(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
 {
     return theme_updater->update_theme(themeConfig, native);
 }
 
-std::optional<json> Updater::GetCachedUpdates() const
+std::optional<json> library_updater::get_cached_updates() const
 {
     return cached_updates;
 }
 
-bool Updater::HasCheckedForUpdates() const
+bool library_updater::has_checked_for_updates() const
 {
-    return has_checked_for_updates;
+    return m_has_checked_for_updates;
 }
 
-std::optional<json> Updater::CheckForUpdates(bool force)
+std::optional<json> library_updater::check_for_updates(bool force)
 {
     try {
         if (!force && cached_updates.has_value()) {
@@ -111,7 +111,7 @@ std::optional<json> Updater::CheckForUpdates(bool force)
         }
 
         cached_updates = resp;
-        has_checked_for_updates = true;
+        m_has_checked_for_updates = true;
         return resp;
     } catch (const std::exception& e) {
         Logger.Log(std::string("An error occurred while checking for updates: ") + e.what());
@@ -121,26 +121,26 @@ std::optional<json> Updater::CheckForUpdates(bool force)
     }
 }
 
-std::string Updater::ResyncUpdates()
+std::string library_updater::re_check_for_updates()
 {
     Logger.Log("Resyncing updates...");
-    cached_updates = CheckForUpdates(true);
-    has_checked_for_updates = true;
+    cached_updates = check_for_updates(true);
+    m_has_checked_for_updates = true;
     Logger.Log("Resync complete.");
     return cached_updates.has_value() ? cached_updates->dump() : "{}";
 }
 
-std::shared_ptr<theme_installer> Updater::GetThemeUpdater()
+std::weak_ptr<theme_installer> library_updater::get_theme_updater()
 {
     return theme_updater;
 }
 
-std::shared_ptr<plugin_installer> Updater::GetPluginUpdater()
+std::weak_ptr<plugin_installer> library_updater::get_plugin_updater()
 {
     return plugin_updater;
 }
 
-void Updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
+void library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
 {
     std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete };
     m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));

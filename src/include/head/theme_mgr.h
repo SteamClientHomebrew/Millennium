@@ -39,7 +39,7 @@
 class theme_installer
 {
   public:
-    theme_installer(std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<Updater> updater);
+    theme_installer(std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<library_updater> updater);
     std::filesystem::path get_skins_folder();
 
     nlohmann::json create_error_response(const std::string& message);
@@ -61,7 +61,7 @@ class theme_installer
 
   private:
     std::shared_ptr<SettingsStore> m_settings_store_ptr;
-    std::shared_ptr<Updater> m_updater;
+    std::shared_ptr<library_updater> m_updater;
 
     /**
      * @brief Attempt to delete a folder, making files writable if necessary

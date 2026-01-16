@@ -31,33 +31,19 @@
 #pragma once
 
 #include "millennium/fwd_decl.h"
-#include "head/library_updater.h"
-#include "head/theme_cfg.h"
 #include "millennium/http_hooks.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/sysfs.h"
-#include "nlohmann/json_fwd.hpp"
+
+#include "head/library_updater.h"
+#include "head/theme_cfg.h"
 
 #include <functional>
 #include <memory>
 #include <map>
 #include <string>
-#include <vector>
-
-struct PluginStatus
-{
-    std::string pluginName;
-    bool enabled;
-};
 
 using builtin_payload = nlohmann::ordered_json;
-
-class ipc_main;
-class SettingsStore;
-class network_hook_ctl;
-class ThemeConfig;
-class Updater;
-class theme_webkit_mgr;
 
 class millennium_backend : public std::enable_shared_from_this<millennium_backend>
 {
@@ -67,22 +53,13 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
                        std::shared_ptr<millennium_updater> millennium_updater);
     ~millennium_backend();
 
-    int GetOperatingSystemType();
+    std::weak_ptr<theme_webkit_mgr> get_theme_webkit_mgr();
+    int get_operating_system();
 
-    void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins);
-    bool Millennium_RemoveBrowserModule(unsigned long long moduleId);
-    unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, network_hook_ctl::TagTypes type);
-    builtin_payload Millennium_GetPluginLogs();
-
-    /**
-     * Enable/disable plugins
-     */
+    /** Enable/disable plugins */
     builtin_payload Core_ChangePluginStatus(const builtin_payload& args);
 
-    /**
-     * Get the configuration needed to start the frontend
-     * @note exceptions are caught by the IPC handler
-     */
+    /** Get the configuration needed to start the frontend */
     builtin_payload Core_GetStartConfig(const builtin_payload& args);
 
     /** Quick CSS utilities */
@@ -131,7 +108,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     builtin_payload Core_UpdateMillennium(const builtin_payload& args);
     builtin_payload Core_HasPendingMillenniumUpdateRestart(const builtin_payload& args);
 
-    builtin_payload HandleIpcMessage(const std::string& functionName, const builtin_payload& args);
+    builtin_payload ipc_message_hdlr(const std::string& functionName, const builtin_payload& args);
 
   private:
     std::shared_ptr<ipc_main> m_ipc_main;
@@ -139,7 +116,8 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     std::shared_ptr<millennium_updater> m_millennium_updater;
     std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
     std::shared_ptr<ThemeConfig> m_theme_config;
-    std::shared_ptr<Updater> m_updater;
+    std::shared_ptr<library_updater> m_updater;
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
+
     std::map<std::string, std::function<builtin_payload(const builtin_payload&)>> function_map;
 };

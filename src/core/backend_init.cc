@@ -34,7 +34,6 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/env.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_logger.h"
 #include "millennium/life_cycle.h"
 #include "millennium/urlp.h"
 #include "hhx64/smem.h"
@@ -132,7 +131,7 @@ void backend_initializer::invoke_plugin_main_fn(PyObject* global_dict, std::stri
         const auto formattedMessage = fmt::format("Millennium failed to call _load on {}: {}\n{}{}", pluginName, COL_RED, traceback, COL_RESET);
 
         ErrorToLogger(pluginName, formattedMessage);
-        Logger.PrintMessage(" BOOT ", formattedMessage, COL_RED);
+        Logger.print(" BOOT ", formattedMessage, COL_RED);
     };
 
     PyObject* pluginComponent = PyDict_GetItemString(global_dict, "Plugin");
@@ -188,7 +187,7 @@ void backend_initializer::compat_setup_fake_plugin_settings()
 
     PyObject* parserFunc = PyDict_GetItemString(builtins, "__millennium_plugin_settings_parser__");
     if (!parserFunc) {
-        Logger.PrintMessage(" BOOT ", "Creating __millennium_plugin_settings_parser__ function in builtins.", COL_YELLOW);
+        Logger.print(" BOOT ", "Creating __millennium_plugin_settings_parser__ function in builtins.", COL_YELLOW);
 
         static PyMethodDef methodDef = { "__millennium_plugin_settings_parser__", [](PyObject*, PyObject*) -> PyObject* { Py_RETURN_FALSE; }, METH_NOARGS,
                                          "Millennium plugin settings parser placeholder." };
@@ -429,7 +428,7 @@ void backend_initializer::python_backend_started_cb(SettingsStore::plugin_t plug
     if (!result) {
         const auto [errorMessage, traceback] = Python_GetActiveExceptionInformation();
 
-        Logger.PrintMessage(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
+        Logger.print(" PY-MAN ", fmt::format("Millennium failed to start {}: {}\n{}{}", plugin.pluginName, COL_RED, traceback, COL_RESET), COL_RED);
         Logger.Warn("Millennium failed to start '{}'. This is likely due to failing module side effects, unrelated to Millennium.", plugin.pluginName);
 
         ErrorToLogger(plugin.pluginName,

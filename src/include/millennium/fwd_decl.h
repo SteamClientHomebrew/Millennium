@@ -33,4 +33,4 @@
  */
 class ipc_main;
 class millennium_backend;
-class Updater;
+class library_updater;

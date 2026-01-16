@@ -56,15 +56,20 @@
 
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
-class plugin_loader
+class plugin_loader : std::enable_shared_from_this<plugin_loader>
 {
   public:
+    using plugin_state = std::vector<std::pair<std::string, bool>>;
+
     plugin_loader(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
     ~plugin_loader();
 
     void start_plugin_backends();
     void start_plugin_frontends();
     void setup_webkit_shims();
+
+    void set_plugin_enable(std::string plugin_name, bool enabled);
+    void set_plugins_enabled(const plugin_state& plugins);
 
     void inject_frontend_shims(bool reload_frontend);
 

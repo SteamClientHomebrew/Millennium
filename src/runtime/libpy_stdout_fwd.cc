@@ -36,7 +36,6 @@
 
 #include "millennium/millennium.h"
 #include "millennium/logger.h"
-#include "millennium/plugin_logger.h"
 #include <Python.h>
 #include <fmt/core.h>
 
@@ -52,7 +51,7 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
 
     /** Dont process new lines or empty spaces (which seem to represent empty lines) */
     if (logMessage != "\n" && logMessage != " ") {
-        Logger.LogPluginMessage(pname, message);
+        Logger.log_plugin_message(pname, message);
         InfoToLogger(pname, message);
     }
 }
