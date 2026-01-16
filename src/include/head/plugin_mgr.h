@@ -29,31 +29,34 @@
  */
 
 #pragma once
+
 #include "millennium/fwd_decl.h"
 #include "millennium/sysfs.h"
+
 #include <filesystem>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+
+#include <nlohmann/json.hpp>
 
 class plugin_installer
 {
   public:
-    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<Updater> updater);
+    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr, std::weak_ptr<Updater> updater);
 
-    bool is_plugin_installed(const std::string& pluginName);
-    bool uninstall_plugin(const std::string& pluginName);
-    bool update_plugin(const std::string& id, const std::string& name);
-    nlohmann::json install_plugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json get_updater_request_body();
+    bool is_plugin_installed(const std::string& pluginName) const;
+    bool uninstall_plugin(const std::string& pluginName) const;
+    bool update_plugin(const std::string& id, const std::string& name) const;
+    nlohmann::json install_plugin(const std::string& downloadUrl, size_t totalSize) const;
+    static nlohmann::json get_updater_request_body();
 
   private:
     std::weak_ptr<millennium_backend> m_millennium_backend;
     std::shared_ptr<SettingsStore> settings_store_ptr;
-    std::shared_ptr<Updater> m_updater;
+    std::weak_ptr<Updater> m_updater;
 
-    std::filesystem::path get_plugins_path();
+    static std::filesystem::path get_plugins_path();
 
-    std::optional<nlohmann::json> read_plugin_metadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> get_plugin_data();
+    static std::optional<nlohmann::json> read_plugin_metadata(const std::filesystem::path& pluginPath);
+    static std::vector<nlohmann::json> get_plugin_data();
 };
