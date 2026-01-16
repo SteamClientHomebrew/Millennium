@@ -40,7 +40,6 @@
 #include "millennium/millennium.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
-#include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
 
 int millennium_backend::GetOperatingSystemType()
@@ -199,6 +198,16 @@ millennium_backend::millennium_backend(std::shared_ptr<ipc_main> ipc_main, std::
     };
 }
 
+const char* Millennium_GetUpdateScript()
+{
+#ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
+    return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
+#else
+    #error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
+    return nullptr;
+#endif
+}
+
 /**
  * Enable/disable plugins
  */
@@ -237,7 +246,7 @@ builtin_payload millennium_backend::Core_GetStartConfig(const builtin_payload&)
         { "millenniumUpdates", m_millennium_updater->has_any_updates() },
         { "buildDate", GetBuildTimestamp() },
         { "platformType", GetOperatingSystemType() },
-        { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") },
+        { "millenniumLinuxUpdateScript", Millennium_GetUpdateScript() },
         { "quickCss", Core_LoadQuickCss(nullptr) }  // TODO check this works
     };
 }
