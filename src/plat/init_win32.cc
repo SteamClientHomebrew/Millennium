@@ -29,8 +29,7 @@
  */
 
 #ifdef _WIN32
-#include <winsock2.h>
-
+#include "millennium/millennium.h"
 #include "millennium/argp_win32.h"
 #include "millennium/plat_msg.h"
 #include "millennium/env.h"
@@ -46,8 +45,6 @@
 
 /** forward declare function */
 std::thread g_millenniumThread;
-void EntryMain();
-void Plat_CheckForUpdates();
 
 /**
  * Setup environment variables used throughout Millennium.
@@ -145,29 +142,17 @@ VOID Win32_AttachMillennium(VOID)
 
     Win32_MoveVersionHook();
 
-    /** Update legacy user32 shim if needed */
-    MillenniumUpdater::UpdateLegacyUser32Shim();
+    g_millennium = std::make_unique<millennium>();
 
-    Plat_CheckForUpdates();
     Win32_AttachWebHelperHook();
-
-    // SetConsoleTitleA(std::string("Millennium@" + std::string(MILLENNIUM_VERSION)).c_str());
     SetupEnvironmentVariables();
 
     // Set custom terminate handler for easier debugging
     std::set_terminate(UnhandledExceptionHandler);
     SetUnhandledExceptionFilter(Win32_CrashHandler);
 
-    /** cleanup temp files created by the updater from the previous update */
-    MillenniumUpdater::CleanupMillenniumUpdaterTempFiles();
-
-    EntryMain();
+    g_millennium->entry();
     Logger.Log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
-
-    /** Shutdown cron threads that manage Steam HTTP hooks */
-    // network_hook_ctl& hookManager = network_hook_ctl::GetInstance();
-    // (&hookManager)->shutdown();
-    // Logger.Log("HttpHookManager has been shut down.");
 
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();
@@ -187,7 +172,7 @@ VOID Win32_AttachMillennium(VOID)
  */
 VOID Win32_DetachMillennium(VOID)
 {
-    Logger.PrintMessage(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
+    Logger.print(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
     g_shouldTerminateMillennium->flag.store(true);
     Logger.Log("Waiting for Millennium thread to exit...");
 

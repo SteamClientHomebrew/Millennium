@@ -81,12 +81,13 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 {
     m_cdp = cdp;
     m_socket_con_time = std::chrono::system_clock::now();
-    m_ipc_main = std::make_shared<ipc_main>(m_settings_store_ptr, m_cdp, m_backend_manager);
-    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr, m_cdp);
-    m_millennium_backend = std::make_shared<millennium_backend>(m_ipc_main, m_settings_store_ptr, m_network_hook_ctl, m_millennium_updater);
 
-    m_millennium_backend->init(); /** manual ctor, shared_from_this requires a ref holder before its valid */
-    m_ipc_main->set_millennium_backend(m_millennium_backend);
+    m_network_hook_ctl->set_cdp_client(m_cdp);
+    m_network_hook_ctl->init();
+
+    m_ipc_main = std::make_shared<ipc_main>(m_millennium_backend, m_settings_store_ptr, m_cdp, m_backend_manager);
+
+    m_millennium_backend->set_ipc_main(m_ipc_main);
     m_millennium_updater->set_ipc_main(m_ipc_main);
 
     m_thread_pool->enqueue([this]()
@@ -106,6 +107,11 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
 void plugin_loader::init()
 {
+    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr);
+
+    m_millennium_backend = std::make_shared<millennium_backend>(m_network_hook_ctl, m_settings_store_ptr, m_millennium_updater);
+    m_millennium_backend->init(); /** manual ctor, shared_from_this requires a ref holder before its valid */
+
     m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_settings_store_ptr);
     m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
     m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);

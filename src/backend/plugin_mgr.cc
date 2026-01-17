@@ -33,6 +33,7 @@
 #include "head/plugin_mgr.h"
 #include "head/scan.h"
 
+#include "millennium/millennium.h"
 #include "millennium/logger.h"
 #include "millennium/http.h"
 #include "millennium/env.h"
@@ -62,14 +63,7 @@ bool plugin_installer::uninstall_plugin(const std::string& pluginName)
         if (!pluginOpt) return false;
 
         if (settings_store_ptr->IsEnabledPlugin(pluginName)) {
-            if (auto ptr = m_millennium_backend.lock()) {
-                // ptr->Millennium_TogglePluginStatus({
-                //     PluginStatus{ pluginName, false }
-                // });
-                // TODO: Fix
-            } else {
-                LOG_ERROR("[plugin_installer] Failed to lock builtin_plugin_backend...");
-            }
+            g_millennium->get_plugin_loader()->set_plugin_enable(pluginName, false);
         }
 
         std::filesystem::path pluginPath = pluginOpt->at("path").get<std::string>();

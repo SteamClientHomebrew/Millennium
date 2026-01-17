@@ -337,11 +337,10 @@ void network_hook_ctl::shutdown()
     Logger.Log("Successfully shut down network_hook_ctl...");
 }
 
-network_hook_ctl::network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client)
-    : m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
+network_hook_ctl::network_hook_ctl(std::shared_ptr<SettingsStore> settings_store)
+    : m_settings_store(std::move(settings_store)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
       m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
 {
-    this->init();
 }
 
 network_hook_ctl::~network_hook_ctl()
@@ -353,4 +352,9 @@ network_hook_ctl::~network_hook_ctl()
 #if defined(__linux__) || defined(MILLENNIUM_32BIT)
     this->shutdown();
 #endif
+}
+
+void network_hook_ctl::set_cdp_client(std::shared_ptr<cdp_client> cdp)
+{
+    m_cdp = std::move(cdp);
 }

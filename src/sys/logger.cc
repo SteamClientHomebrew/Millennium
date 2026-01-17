@@ -28,6 +28,11 @@
  * SOFTWARE.
  */
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
 #include "millennium/logger.h"
 #include <algorithm>
 #include <fcntl.h>
@@ -35,7 +40,6 @@
 #include <iostream>
 
 #ifdef _WIN32
-#include <windows.h>
 #include "millennium/argp_win32.h"
 
 void EnableVirtualTerminalProcessing()

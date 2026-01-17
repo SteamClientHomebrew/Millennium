@@ -49,8 +49,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
 {
   public:
     void init();
-    millennium_backend(std::shared_ptr<ipc_main> ipc_main, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> hook_ctl,
-                       std::shared_ptr<millennium_updater> millennium_updater);
+    millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
     ~millennium_backend();
 
     std::weak_ptr<theme_webkit_mgr> get_theme_webkit_mgr();
@@ -109,15 +108,16 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     builtin_payload Core_HasPendingMillenniumUpdateRestart(const builtin_payload& args);
 
     builtin_payload ipc_message_hdlr(const std::string& functionName, const builtin_payload& args);
+    void set_ipc_main(std::shared_ptr<ipc_main> ipc_main);
 
   private:
     std::shared_ptr<ipc_main> m_ipc_main;
     std::shared_ptr<SettingsStore> m_settings_store;
     std::shared_ptr<millennium_updater> m_millennium_updater;
-    std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
     std::shared_ptr<ThemeConfig> m_theme_config;
     std::shared_ptr<library_updater> m_updater;
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
+    std::shared_ptr<network_hook_ctl>& m_network_hook_ctl; /** hold ref to pass to webkit mgr without ref inc */
 
     std::map<std::string, std::function<builtin_payload(const builtin_payload&)>> function_map;
 };

@@ -388,8 +388,3 @@ json ipc_main::process_message(const json payload)
         };
     }
 }
-
-void ipc_main::set_millennium_backend(std::shared_ptr<millennium_backend> millennium_backend)
-{
-    this->m_millennium_backend = millennium_backend;
-}

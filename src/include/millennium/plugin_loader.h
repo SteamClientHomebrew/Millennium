@@ -49,14 +49,9 @@
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
-#ifdef _WIN32
-#undef _WINSOCKAPI_
-#include <winsock2.h>
-#endif
-
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
-class plugin_loader : std::enable_shared_from_this<plugin_loader>
+class plugin_loader : public std::enable_shared_from_this<plugin_loader>
 {
   public:
     using plugin_state = std::vector<std::pair<std::string, bool>>;

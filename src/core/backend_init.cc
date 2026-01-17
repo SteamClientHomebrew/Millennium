@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "millennium/plat_msg.h"
 #include "millennium/backend_init.h"
 #include "millennium/types.h"
 #include "millennium/auth.h"

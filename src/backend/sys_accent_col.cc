@@ -29,7 +29,11 @@
  */
 
 #include "head/sys_accent_col.h"
+#include "millennium/logger.h"
 #include "fmt/format.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 /** piss off C */
 #ifdef min

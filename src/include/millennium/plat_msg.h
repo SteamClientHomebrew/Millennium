@@ -7,6 +7,8 @@
 #ifdef __linux__
 #include <linux/limits.h>
 #include <unistd.h>
+#elif _WIN32
+#include <windows.h>
 #endif
 
 typedef enum

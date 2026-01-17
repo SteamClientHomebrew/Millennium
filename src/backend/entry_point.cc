@@ -72,13 +72,14 @@ void millennium_backend::init()
 {
     m_updater = std::make_shared<library_updater>(shared_from_this(), m_ipc_main);
     m_updater->init(m_settings_store);
-    m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, m_network_hook_ctl);
+
+    m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, std::shared_ptr<network_hook_ctl>(m_network_hook_ctl));
     m_theme_config = std::make_shared<ThemeConfig>(m_settings_store, m_theme_webkit_mgr);
 }
 
-millennium_backend::millennium_backend(std::shared_ptr<ipc_main> ipc_main, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> hook_ctl,
+millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<SettingsStore> settings_store,
                                        std::shared_ptr<millennium_updater> millennium_updater)
-    : m_ipc_main(std::move(ipc_main)), m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(std::move(hook_ctl))
+    : m_network_hook_ctl(network_hook_ctl), m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater))
 {
 #define register_function(name) { #name, std::bind(&millennium_backend::name, this, std::placeholders::_1) }
     function_map = {
@@ -168,7 +169,7 @@ builtin_payload millennium_backend::Core_GetStartConfig(const builtin_payload&)
         { "hasCheckedForUpdates", m_updater->has_checked_for_updates() },
         { "millenniumUpdates", m_millennium_updater->has_any_updates() },
         { "buildDate", GetBuildTimestamp() },
-        { "platformType", GetOperatingSystemType() },
+        { "platformType", get_operating_system() },
         { "millenniumLinuxUpdateScript", Millennium_GetUpdateScript() },
         { "quickCss", Core_LoadQuickCss(nullptr) }  // TODO check this works
     };
@@ -405,4 +406,9 @@ builtin_payload millennium_backend::ipc_message_hdlr(const std::string& function
 
     /** call the functions with provided args */
     return (std::any_cast<std::function<builtin_payload(const builtin_payload&)>>(it->second))(args);
+}
+
+void millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
+{
+    m_ipc_main = std::move(ipc_main);
 }

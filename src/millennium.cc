@@ -30,18 +30,12 @@
 
 #include "head/entry_point.h"
 #include "hhx64/smem.h"
-#include <memory>
-#define UNICODE
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
-#define _WINSOCKAPI_
-#endif
+#include "head/default_cfg.h"
+
 #include "millennium/crash_handler.h"
 #include "millennium/env.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
-#include "head/default_cfg.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/millennium.h"
 
@@ -55,6 +49,10 @@ millennium::millennium()
     m_settings_store = std::make_shared<SettingsStore>();
     m_millennium_updater = std::make_shared<millennium_updater>();
     m_plugin_loader = std::make_shared<plugin_loader>(m_settings_store, m_millennium_updater);
+
+    m_millennium_updater->win32_update_legacy_shims();
+    this->check_for_updates();
+    m_millennium_updater->cleanup();
 }
 
 std::shared_ptr<plugin_loader> millennium::get_plugin_loader()
@@ -98,7 +96,7 @@ void millennium::check_health()
                 }
             }
         } catch (const SystemIO::FileException&) {
-            Plat_ShowMessageBox("Startup Error", bootstrap_error, MESSAGEBOX_ERROR);
+            Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
             LOG_ERROR(bootstrap_error);
         }
     }
@@ -108,7 +106,7 @@ void millennium::check_health()
             std::filesystem::remove(cefRemoteDebugging);
         } catch (const std::filesystem::filesystem_error& e) {
             LOG_ERROR("Failed to remove deprecated file {}: {}", cefRemoteDebugging.string(), e.what());
-            Plat_ShowMessageBox("Startup Error", cef_error).c_str(), MESSAGEBOX_ERROR);
+            Plat_ShowMessageBox("Startup Error", cef_error.c_str(), MESSAGEBOX_ERROR);
         }
     }
 #endif

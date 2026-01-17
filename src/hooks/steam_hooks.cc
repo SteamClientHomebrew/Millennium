@@ -330,7 +330,6 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 }
 
 #ifdef _WIN32
-#include <winsock2.h>
 #include "MinHook.h"
 
 #include "millennium/argp_win32.h"
@@ -394,30 +393,30 @@ VOID HandleSteamUnload()
      * once the frontend disconnects, it will shutdown the rest of Millennium
      */
     ab_shouldDisconnectFrontend.store(true);
-    auto& backendManager = BackendManager::GetInstance();
+    // auto& backendManager = BackendManager::GetInstance();
 
-    /** No need to wait if all backends aren't python */
-    if (!backendManager.HasAnyPythonBackends() && !backendManager.HasAnyLuaBackends()) {
-        Logger.Warn("No backends detected, skipping shutdown wait...");
-        return;
-    }
+    // /** No need to wait if all backends aren't python */
+    // if (!backendManager.HasAnyPythonBackends() && !backendManager.HasAnyLuaBackends()) {
+    //     Logger.Warn("No backends detected, skipping shutdown wait...");
+    //     return;
+    // }
 
-    std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-    Logger.Warn("Waiting for Millennium to be unloaded...");
+    // std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+    // Logger.Warn("Waiting for Millennium to be unloaded...");
 
-    /** wait for Millennium to be unloaded */
-    cv_hasSteamUnloaded.wait(lk, [&backendManager]()
-    {
-        /** wait for all backends to stop so we can safely free the loader lock */
-        if (backendManager.HasAllPythonBackendsStopped() && backendManager.HasAllLuaBackendsStopped()) {
-            Logger.Warn("All backends have stopped, proceeding with termination...");
+    // /** wait for Millennium to be unloaded */
+    // cv_hasSteamUnloaded.wait(lk, [&backendManager]()
+    // {
+    //     /** wait for all backends to stop so we can safely free the loader lock */
+    //     if (backendManager.HasAllPythonBackendsStopped() && backendManager.HasAllLuaBackendsStopped()) {
+    //         Logger.Warn("All backends have stopped, proceeding with termination...");
 
-            std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
-            cv_hasAllPythonPluginsShutdown.notify_all();
-            return true;
-        }
-        return false;
-    });
+    //         std::unique_lock<std::mutex> lk2(mtx_hasAllPythonPluginsShutdown);
+    //         cv_hasAllPythonPluginsShutdown.notify_all();
+    //         return true;
+    //     }
+    //     return false;
+    // });
 
     Logger.Warn("Terminate condition variable signaled, exiting...");
 }

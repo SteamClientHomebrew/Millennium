@@ -224,6 +224,7 @@ json millennium_updater::has_any_updates()
 
 void millennium_updater::cleanup()
 {
+#ifdef _WIN32
     std::filesystem::path steam_path = SystemIO::GetSteamPath();
 
     std::error_code ec;
@@ -259,6 +260,7 @@ void millennium_updater::cleanup()
     } catch (const std::exception& e) {
         Logger.Warn("Exception during directory iteration: {}", e.what());
     }
+#endif
 }
 
 void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std::vector<std::string> lockedFiles)
@@ -459,7 +461,7 @@ void millennium_updater::shutdown()
 
 void millennium_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
-    this->m_ipc_main = ipc_main;
+    this->m_ipc_main = std::move(ipc_main);
 }
 
 void millennium_updater::win32_update_legacy_shims()

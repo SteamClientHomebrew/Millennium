@@ -45,8 +45,9 @@ class ipc_main
   public:
     using javascript_parameter = std::variant<bool, uint64_t, int64_t, double, std::string>;
 
-    ipc_main(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client, std::shared_ptr<backend_manager> manager)
-        : m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_backend_manager(manager)
+    ipc_main(std::shared_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client,
+             std::shared_ptr<backend_manager> manager)
+        : m_millennium_backend(std::move(millennium_backend)), m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_backend_manager(manager)
     {
     }
 
@@ -101,8 +102,6 @@ class ipc_main
     javascript_evaluation_result evaluate_javascript_expression(std::string script);
     const std::string compile_javascript_expression(std::string plugin, std::string methodName, std::vector<javascript_parameter> fnParams);
     json process_message(json payload);
-
-    void set_millennium_backend(std::shared_ptr<millennium_backend> millennium_backend);
 
   private:
     json call_server_method(const json& call);

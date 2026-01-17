@@ -37,7 +37,6 @@
 #include <fstream>
 #ifdef _WIN32
 #include <windows.h>
-#include <winsock2.h>
 #endif
 
 #include "head/default_cfg.h"

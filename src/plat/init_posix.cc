@@ -144,7 +144,6 @@ void Posix_AttachMillennium()
     Plat_InitializeSteamHooks();
     Posix_AttachWebHelperHook();
     g_millennium = std::make_unique<millennium>();
-    g_millennium->check_for_updates();
     g_millennium->entry();
 }
 

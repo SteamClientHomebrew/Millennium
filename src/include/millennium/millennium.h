@@ -39,13 +39,14 @@ class millennium
     millennium();
 
     void check_health();
-    void check_for_updates();
     void entry();
 
     std::shared_ptr<plugin_loader> get_plugin_loader();
     std::shared_ptr<SettingsStore> get_settings_store();
 
   private:
+    void check_for_updates();
+
     std::shared_ptr<SettingsStore> m_settings_store;
     std::shared_ptr<plugin_loader> m_plugin_loader;
     std::shared_ptr<millennium_backend> m_millennium_backend;

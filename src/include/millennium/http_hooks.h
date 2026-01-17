@@ -73,8 +73,10 @@ static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
 class network_hook_ctl
 {
   public:
-    network_hook_ctl(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client);
+    network_hook_ctl(std::shared_ptr<SettingsStore> settings_store);
     ~network_hook_ctl();
+
+    void set_cdp_client(std::shared_ptr<cdp_client> cdp);
 
     enum TagTypes
     {
