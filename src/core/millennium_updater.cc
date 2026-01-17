@@ -80,6 +80,11 @@ std::string millennium_updater::parse_version(const std::string& version)
 
 void millennium_updater::check_for_updates()
 {
+    #ifdef DISTRO_NIX
+        Logger.Log("Skipping update check on Nix-based releases");
+        return;
+    #endif
+    
     const bool checkForUpdates = CONFIG.GetNested("general.checkForMillenniumUpdates", true).get<bool>();
     std::string channel = CONFIG.GetNested("general.millenniumUpdateChannel", "stable").get<std::string>();
 

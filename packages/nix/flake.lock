@@ -1,0 +1,315 @@
+{
+  "nodes": {
+    "abseil-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1722535511,
+        "narHash": "sha256-51jpDhdZ0n+KLmxh8KVaTz53pZAB0dHjmILFX+OLud4=",
+        "owner": "abseil",
+        "repo": "abseil-cpp",
+        "rev": "4447c7562e3bc702ade25105912dce503f0c4010",
+        "type": "github"
+      },
+      "original": {
+        "owner": "abseil",
+        "ref": "20240722.0",
+        "repo": "abseil-cpp",
+        "type": "github"
+      }
+    },
+    "asio-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1702548444,
+        "narHash": "sha256-8Xo6J6+dTvDtsthjbLMMTInHMDnMMM0rQwzbZu70J/s=",
+        "owner": "chriskohlhoff",
+        "repo": "asio",
+        "rev": "22ccfc94fc77356f7820601f9f33b9129a337d2d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "chriskohlhoff",
+        "ref": "asio-1-30-0",
+        "repo": "asio",
+        "type": "github"
+      }
+    },
+    "curl-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1743572790,
+        "narHash": "sha256-huAGWNm2rYBmgzUuYQ21IYp2skyQECelEkXPMBJY3cE=",
+        "owner": "curl",
+        "repo": "curl",
+        "rev": "1c3149881769e7bd79b072e48374e4c2b3678b2f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "curl",
+        "ref": "curl-8_13_0",
+        "repo": "curl",
+        "type": "github"
+      }
+    },
+    "fmt-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1758127535,
+        "narHash": "sha256-AZDmIeU1HbadC+K0TIAGogvVnxt0oE9U6ocpawIgl6g=",
+        "owner": "fmtlib",
+        "repo": "fmt",
+        "rev": "e424e3f2e607da02742f73db84873b8084fc714c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "fmtlib",
+        "ref": "12.0.0",
+        "repo": "fmt",
+        "type": "github"
+      }
+    },
+    "incbin-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1748303270,
+        "narHash": "sha256-vgOfViZnWTKpBB6vDNDJSB3YuuGGVhg++zsi9Ubatno=",
+        "owner": "graphitemaster",
+        "repo": "incbin",
+        "rev": "22061f51fe9f2f35f061f85c2b217b55dd75310d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "graphitemaster",
+        "ref": "main",
+        "repo": "incbin",
+        "type": "github"
+      }
+    },
+    "json-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1744360948,
+        "narHash": "sha256-cECvDOLxgX7Q9R3IE86Hj9JJUxraDQvhoyPDF03B2CY=",
+        "owner": "nlohmann",
+        "repo": "json",
+        "rev": "55f93686c01528224f448c19128836e7df245f72",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nlohmann",
+        "ref": "v3.12.0",
+        "repo": "json",
+        "type": "github"
+      }
+    },
+    "libgit2-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1749227175,
+        "narHash": "sha256-/xI3v7LNhpgfjv/m+sZwYDhhYvS6kQYxiiiG3+EF8Mw=",
+        "owner": "libgit2",
+        "repo": "libgit2",
+        "rev": "0060d9cf5666f015b1067129bd874c6cc4c9c7ac",
+        "type": "github"
+      },
+      "original": {
+        "owner": "libgit2",
+        "ref": "v1.9.1",
+        "repo": "libgit2",
+        "type": "github"
+      }
+    },
+    "luajit-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763177035,
+        "narHash": "sha256-oYD86MqmlJpiCuEs4LwVtxvarPtz1RPWm8nJqNE0sBs=",
+        "owner": "SteamClientHomebrew",
+        "repo": "LuaJIT",
+        "rev": "89550023569c3e195e75e12951c067fe5591e0d2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "SteamClientHomebrew",
+        "ref": "v2.1",
+        "repo": "LuaJIT",
+        "type": "github"
+      }
+    },
+    "luajson-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1763065879,
+        "narHash": "sha256-5Mdp4jp+rqz2ufkBa1gMfd8nep+Um+mBdr6+Ut6yz9I=",
+        "owner": "SteamClientHomebrew",
+        "repo": "LuaJSON",
+        "rev": "0c1fabf07c42f3907287d1e4f729e0620c1fe6fd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "SteamClientHomebrew",
+        "ref": "master",
+        "repo": "LuaJSON",
+        "type": "github"
+      }
+    },
+    "millennium-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1767577350,
+        "narHash": "sha256-vtnqP4WxEr8C0vJ59rvEPSJTAyx0MmxzIEn+HrlCobI=",
+        "owner": "SteamClientHomebrew",
+        "repo": "Millennium",
+        "rev": "4722a8ec5824e0425a3d07f2c21935dbf694813f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "SteamClientHomebrew",
+        "repo": "Millennium",
+        "rev": "4722a8ec5824e0425a3d07f2c21935dbf694813f",
+        "type": "github"
+      }
+    },
+    "minhook-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1743163800,
+        "narHash": "sha256-0eGFfg365bb4zic1WTHMvKHbxuhhGp72/clu8OklHXs=",
+        "owner": "TsudaKageyu",
+        "repo": "minhook",
+        "rev": "c3fcafdc10146beb5919319d0683e44e3c30d537",
+        "type": "github"
+      },
+      "original": {
+        "owner": "TsudaKageyu",
+        "ref": "v1.3.4",
+        "repo": "minhook",
+        "type": "github"
+      }
+    },
+    "mini-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1743356736,
+        "narHash": "sha256-zBFFOlECbie7+62fTGf+NP4gNmfv2Qddw3ys6xn7o9U=",
+        "owner": "metayeti",
+        "repo": "mINI",
+        "rev": "52b66e987cb56171dc91d96115cdf094b6e4d7a0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "metayeti",
+        "ref": "0.9.18",
+        "repo": "mINI",
+        "type": "github"
+      }
+    },
+    "minizip-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1746408966,
+        "narHash": "sha256-I3CZwtfJMsZYQOMdGhooUN8vssnQj6rCzv8F+rne3vg=",
+        "owner": "zlib-ng",
+        "repo": "minizip-ng",
+        "rev": "f3ed731e27a97e30dffe076ed5e0537daae5c1bd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zlib-ng",
+        "ref": "4.0.10",
+        "repo": "minizip-ng",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1767379071,
+        "narHash": "sha256-EgE0pxsrW9jp9YFMkHL9JMXxcqi/OoumPJYwf+Okucw=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "fb7944c166a3b630f177938e478f0378e64ce108",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "re2-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1762353507,
+        "narHash": "sha256-0J1HVk+eR7VN0ymucW9dNlT36j16XIfCzcs1EVyEIEU=",
+        "owner": "google",
+        "repo": "re2",
+        "rev": "927f5d53caf8111721e734cf24724686bb745f55",
+        "type": "github"
+      },
+      "original": {
+        "owner": "google",
+        "ref": "2025-11-05",
+        "repo": "re2",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "abseil-src": "abseil-src",
+        "asio-src": "asio-src",
+        "curl-src": "curl-src",
+        "fmt-src": "fmt-src",
+        "incbin-src": "incbin-src",
+        "json-src": "json-src",
+        "libgit2-src": "libgit2-src",
+        "luajit-src": "luajit-src",
+        "luajson-src": "luajson-src",
+        "millennium-src": "millennium-src",
+        "minhook-src": "minhook-src",
+        "mini-src": "mini-src",
+        "minizip-src": "minizip-src",
+        "nixpkgs": "nixpkgs",
+        "re2-src": "re2-src",
+        "websocketpp-src": "websocketpp-src",
+        "zlib-src": "zlib-src"
+      }
+    },
+    "websocketpp-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1587320717,
+        "narHash": "sha256-9fIwouthv2GcmBe/UPvV7Xn9P2o0Kmn2hCI4jCh0hPM=",
+        "owner": "zaphoyd",
+        "repo": "websocketpp",
+        "rev": "56123c87598f8b1dd471be83ca841ceae07f95ba",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zaphoyd",
+        "ref": "0.8.2",
+        "repo": "websocketpp",
+        "type": "github"
+      }
+    },
+    "zlib-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1754565515,
+        "narHash": "sha256-c2RYqHi3hj/ViBzJcYWoNib27GAbq/B1SJUfvG7CPG4=",
+        "owner": "zlib-ng",
+        "repo": "zlib-ng",
+        "rev": "425439062b114a0f6cf625022c41d929c7e879f9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zlib-ng",
+        "ref": "2.2.5",
+        "repo": "zlib-ng",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
