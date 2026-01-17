@@ -30,7 +30,7 @@
 
 #pragma once
 #include "millennium/fwd_decl.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <optional>

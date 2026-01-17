@@ -3,7 +3,7 @@
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -28,43 +28,15 @@
  * SOFTWARE.
  */
 
-#pragma once
-#include "millennium/logger.h"
-#include "millennium/filesystem.h"
-#include <filesystem>
+#include "instrumentation/smem.h"
+#include "lua.hpp"
 
-class plugin_webkit_store
-{
-  public:
-    struct item
-    {
-        std::string plugin_name;
-        std::filesystem::path abs_webkit_path;
-        bool should_isolate;
-
-        bool operator==(const item& other) const
-        {
-            return plugin_name == other.plugin_name && abs_webkit_path == other.abs_webkit_path;
-        }
-    };
-
-    plugin_webkit_store(std::shared_ptr<SettingsStore> settings_store) : m_settingStore(std::move(settings_store))
-    {
-    }
-
-    ~plugin_webkit_store()
-    {
-        Logger.Log("Successfully shut down plugin_webkit_store...");
-    }
-
-    std::vector<item> get();
-
-    void add(const item& webkit_item);
-    bool remove(const item& webkit_item);
-    void clear();
-
-  private:
-    std::vector<item> m_webkit_store;
-    std::shared_ptr<SettingsStore> m_settingStore;
-    std::mutex m_accessMutex;
-};
+extern "C" int Lua_OpenUtilsLibrary(lua_State* L);
+extern "C" int Lua_OpenLoggerLibrary(lua_State* L);
+extern "C" int luaopen_cjson(lua_State* l);
+void load_patches(lua_State* L, lb_shm_arena_t* map);
+extern "C" int Lua_OpenHttpLibrary(lua_State* L);
+extern "C" int Lua_OpenFS(lua_State* L);
+extern "C" int Lua_OpenRegex(lua_State* L);
+extern "C" int Lua_OpenDateTime(lua_State* L);
+extern "C" int Lua_OpenMillenniumLibrary(lua_State* L);

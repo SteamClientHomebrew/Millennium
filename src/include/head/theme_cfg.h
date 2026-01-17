@@ -35,7 +35,7 @@
 #include <set>
 
 #include "head/webkit.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 class ThemeConfig
 {

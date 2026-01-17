@@ -35,7 +35,7 @@
 #include "head/webkit.h"
 
 #include "millennium/backend_mgr.h"
-#include "millennium/encode.h"
+#include "millennium/encoding.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/millennium.h"
@@ -43,7 +43,7 @@
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include <exception>
 
 std::weak_ptr<theme_webkit_mgr> millennium_backend::get_theme_webkit_mgr()

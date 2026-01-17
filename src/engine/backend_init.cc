@@ -31,14 +31,15 @@
 #ifdef _WIN32
 #include "millennium/plat_msg.h"
 #endif
+#include "millennium/lua_modules.h"
 #include "millennium/backend_init.h"
 #include "millennium/types.h"
 #include "millennium/auth.h"
 #include "millennium/backend_mgr.h"
-#include "millennium/env.h"
+#include "millennium/environment.h"
 #include "millennium/logger.h"
 #include "millennium/life_cycle.h"
-#include "millennium/urlp.h"
+#include "millennium/url_parser.h"
 #include "instrumentation/smem.h"
 #include <future>
 
@@ -256,16 +257,6 @@ void backend_initializer::set_plugin_environment_variables(PyObject* globalDicti
     PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.pluginBaseDirectory.generic_string().c_str()));
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.backendAbsoluteDirectory / "main.py").generic_string().c_str()));
 }
-
-extern "C" int Lua_OpenUtilsLibrary(lua_State* L);
-extern "C" int Lua_OpenLoggerLibrary(lua_State* L);
-extern "C" int luaopen_cjson(lua_State* l);
-void load_patches(lua_State* L, lb_shm_arena_t* map);
-extern "C" int Lua_OpenHttpLibrary(lua_State* L);
-extern "C" int Lua_OpenFS(lua_State* L);
-extern "C" int Lua_OpenRegex(lua_State* L);
-extern "C" int Lua_OpenDateTime(lua_State* L);
-extern "C" int Lua_OpenMillenniumLibrary(lua_State* L);
 
 static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
 {

@@ -34,8 +34,8 @@
  * @brief This file is responsible for setting up environment variables that are used throughout the application.
  */
 
-#include "millennium/env.h"
-#include "millennium/sysfs.h"
+#include "millennium/environment.h"
+#include "millennium/filesystem.h"
 
 #include <fmt/core.h>
 #include <stdlib.h>
@@ -216,7 +216,7 @@ void SetupEnvironmentVariables()
 
     std::map<std::string, std::string> environment_unix = {
         { "OPENSSL_CONF", "/dev/null" },
-        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so"},
+        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so" },
 
         { "LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH },
 

@@ -30,8 +30,8 @@
 
 #include "millennium/backend_mgr.h"
 #include "millennium/life_cycle.h"
-#include "millennium/ffi.h"
-#include "millennium/libpy_stdout_fwd.h"
+#include "millennium/python_gil.h"
+#include "millennium/python_stdout_hook.h"
 #include "millennium/logger.h"
 #include "instrumentation/smem.h"
 

@@ -32,7 +32,7 @@
 #include "head/default_cfg.h"
 
 #include "millennium/crash_handler.h"
-#include "millennium/env.h"
+#include "millennium/environment.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 #include "millennium/millennium_updater.h"

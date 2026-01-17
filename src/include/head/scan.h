@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"

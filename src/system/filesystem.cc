@@ -32,10 +32,10 @@
 #include <windows.h>
 #endif
 
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include "millennium/logger.h"
 #include "millennium/auth.h"
-#include "millennium/env.h"
+#include "millennium/environment.h"
 
 #include <fmt/core.h>
 #include <fstream>

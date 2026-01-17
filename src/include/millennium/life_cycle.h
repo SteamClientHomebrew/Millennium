@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include <functional>
 #include <string>
 #include <mutex>

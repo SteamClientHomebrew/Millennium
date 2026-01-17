@@ -29,7 +29,7 @@
  */
 
 #include "head/default_cfg.h"
-#include "millennium/env.h"
+#include "millennium/environment.h"
 
 nlohmann::json GetDefaultConfig()
 {
@@ -45,7 +45,7 @@ nlohmann::json GetDefaultConfig()
 
     // clang-format off
     nlohmann::json default_config = {
-        { "general", { 
+        { "general", {
             { "injectJavascript", true },
             { "injectCSS", true },
             { "checkForMillenniumUpdates", true },
@@ -53,20 +53,20 @@ nlohmann::json GetDefaultConfig()
             { "onMillenniumUpdate", static_cast<int>(updateBehavior) },
             { "millenniumUpdateChannel", "stable" },
             { "shouldShowThemePluginUpdateNotifications", true },
-            { "accentColor", "DEFAULT_ACCENT_COLOR" } 
+            { "accentColor", "DEFAULT_ACCENT_COLOR" }
         } },
-        { "misc", { 
-            { "hasShownWelcomeModal", hasShownWelcomeModal } 
+        { "misc", {
+            { "hasShownWelcomeModal", hasShownWelcomeModal }
         } },
-        { "themes", { 
-            { "activeTheme", "default" }, 
-            { "allowedStyles", true }, 
-            { "allowedScripts", true } 
+        { "themes", {
+            { "activeTheme", "default" },
+            { "allowedStyles", true },
+            { "allowedScripts", true }
         } },
-        { "notifications", { 
-            { "showNotifications", true }, 
-            { "showUpdateNotifications", true }, 
-            { "showPluginNotifications", true } 
+        { "notifications", {
+            { "showNotifications", true },
+            { "showUpdateNotifications", true },
+            { "showPluginNotifications", true }
         } }
     };
     // clang-format on

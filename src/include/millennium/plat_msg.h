@@ -1,7 +1,7 @@
 #pragma once
 
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include <cstdio>
 #include <cstdlib>
 #ifdef __linux__

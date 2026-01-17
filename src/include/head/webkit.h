@@ -31,7 +31,7 @@
 #pragma once
 
 #include "millennium/http_hooks.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>

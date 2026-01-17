@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#ifdef _WIN32
 #include "millennium/backend_mgr.h"
 #include "millennium/plat_msg.h"
 #include "millennium/logger.h"
@@ -37,7 +38,6 @@
 
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
-#ifdef _WIN32
 #include "millennium/http_hooks.h"
 #include "millennium/steam_hooks.h"
 
@@ -84,8 +84,6 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-#endif
-
 /**
  * @brief Custom terminate handler for Millennium.
  * This function is called when Millennium encounters a fatal error that it can't recover from.
@@ -121,3 +119,4 @@ inline void UnhandledExceptionHandler()
     std::cerr << errorMessage << std::endl;
 #endif
 }
+#endif

@@ -33,7 +33,7 @@
 #include "head/plugin_mgr.h"
 #include "head/theme_mgr.h"
 
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"

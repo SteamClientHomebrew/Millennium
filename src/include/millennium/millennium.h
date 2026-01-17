@@ -31,7 +31,7 @@
 #pragma once
 #include "millennium/plugin_loader.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 class millennium
 {

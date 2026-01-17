@@ -33,7 +33,7 @@
 #include "millennium/fwd_decl.h"
 #include "millennium/http_hooks.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 #include "head/library_updater.h"
 #include "head/theme_cfg.h"

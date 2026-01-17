@@ -36,11 +36,11 @@
 #include "millennium/ffi_binder.h"
 #include "millennium/cdp_api.h"
 #include "millennium/backend_mgr.h"
-#include "millennium/cef_bridge.h"
+#include "millennium/cdp_connector.h"
 #include "millennium/http_hooks.h"
 #include "millennium/life_cycle.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 #include "millennium/plugin_webkit_store.h"
 

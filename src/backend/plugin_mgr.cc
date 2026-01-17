@@ -36,8 +36,8 @@
 #include "millennium/millennium.h"
 #include "millennium/logger.h"
 #include "millennium/http.h"
-#include "millennium/env.h"
-#include "millennium/encode.h"
+#include "millennium/environment.h"
+#include "millennium/encoding.h"
 #include "millennium/zip.h"
 
 plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store_ptr,

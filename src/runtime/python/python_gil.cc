@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "millennium/ffi.h"
+#include "millennium/python_gil.h"
 
 /**
  * @brief Constructs a PythonGIL instance and initializes a new thread state.

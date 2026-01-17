@@ -33,7 +33,7 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/cdp_api.h"
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include "millennium/types.h"
 
 #include <Python.h>

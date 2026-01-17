@@ -32,7 +32,7 @@
 #include "millennium/http_hooks.h"
 #include "millennium/cdp_api.h"
 #include "millennium/types.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 #include "millennium/plugin_webkit_store.h"
 
 #include <memory>

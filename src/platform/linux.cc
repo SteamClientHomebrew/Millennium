@@ -36,7 +36,7 @@
 #include "millennium/millennium.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/crash_handler.h"
-#include "millennium/env.h"
+#include "millennium/environment.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 

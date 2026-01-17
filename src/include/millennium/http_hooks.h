@@ -33,7 +33,7 @@
 #include "millennium/fwd_decl.h"
 #include "millennium/cdp_api.h"
 #include "millennium/thread_pool.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 #include <atomic>
 #include <filesystem>
@@ -64,7 +64,7 @@ static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
     /** Ignore youtube related content */
     R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)",
     R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)",
-    
+
     /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
     R"(https?:\/\/(?:[\w-]+\.)*chromewebstore\.google\.com\/[^\s"']*)",
 };

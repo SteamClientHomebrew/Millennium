@@ -31,7 +31,7 @@
 #ifdef __linux__
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
-#include "millennium/posix_util.h"
+#include "millennium/linux_distro_helpers.h"
 
 #include <unistd.h>
 #include <dlfcn.h>

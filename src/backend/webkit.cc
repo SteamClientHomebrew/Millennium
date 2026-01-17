@@ -31,8 +31,8 @@
 #include "head/webkit.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
-#include "millennium/env.h"
+#include "millennium/filesystem.h"
+#include "millennium/environment.h"
 #include "nlohmann/json_fwd.hpp"
 
 #include <unordered_set>

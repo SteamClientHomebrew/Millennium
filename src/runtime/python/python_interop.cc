@@ -29,7 +29,7 @@
  */
 
 #include "millennium/core_ipc.h"
-#include "millennium/ffi.h"
+#include "millennium/python_gil.h"
 #include "millennium/logger.h"
 #include <tuple>
 #include <variant>

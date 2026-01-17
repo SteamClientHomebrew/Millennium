@@ -33,7 +33,7 @@
 #include "head/scan.h"
 
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 #include <git2.h>
 #include <thread>

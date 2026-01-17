@@ -29,9 +29,9 @@
  */
 
 #pragma once
-#include "millennium/env.h"
+#include "millennium/environment.h"
 #include "millennium/life_cycle.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 #include <atomic>
 #include <condition_variable>

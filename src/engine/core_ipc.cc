@@ -30,9 +30,9 @@
 
 #include "millennium/auth.h"
 #include "millennium/core_ipc.h"
-#include "millennium/encode.h"
+#include "millennium/encoding.h"
 #include "millennium/logger.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 #include <cstdint>
 #include <fmt/core.h>

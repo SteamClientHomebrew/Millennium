@@ -31,7 +31,7 @@
 #pragma once
 #include "millennium/core_ipc.h"
 #include "millennium/cdp_api.h"
-#include "millennium/sysfs.h"
+#include "millennium/filesystem.h"
 
 namespace ffi_constants
 {

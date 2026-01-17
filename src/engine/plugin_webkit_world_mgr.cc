@@ -34,7 +34,7 @@
 #include "millennium/plugin_webkit_store.h"
 #include "millennium/logger.h"
 #include "millennium/auth.h"
-#include "millennium/urlp.h"
+#include "millennium/url_parser.h"
 #include <fmt/format.h>
 
 webkit_world_mgr::webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
