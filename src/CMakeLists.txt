@@ -45,20 +45,20 @@ include_directories(
 )
 
 set(SOURCE_FILES
-    runtime/liblj_api.cc
-    runtime/liblj_http.cc
-    runtime/liblj_interop.cc
-    runtime/liblj_logger.cc
-    runtime/liblj_utils.cc
-    runtime/liblj_fs.cc
-    runtime/liblj_regex.cc
-    runtime/liblj_datetime.cc
-    runtime/libpy_api.cc
-    runtime/libpy_gil.cc
-    runtime/libpy_interop.cc
-    runtime/libpy_logger.cc
-    runtime/libpy_stdout_fwd.cc
-    runtime/liblj_vfs_hook_api.cc
+    runtime/lua/lua_api.cc
+    runtime/lua/lua_http.cc
+    runtime/lua/lua_interop.cc
+    runtime/lua/lua_logger.cc
+    runtime/lua/lua_utils.cc
+    runtime/lua/lua_filesystem.cc
+    runtime/lua/lua_regex.cc
+    runtime/lua/lua_datetime.cc
+    runtime/lua/lua_hook_api.cc
+    runtime/python/python_api.cc
+    runtime/python/python_gil.cc
+    runtime/python/python_interop.cc
+    runtime/python/python_logger.cc
+    runtime/python/python_stdout_hook.cc
     engine/auth.cc
     engine/backend_init.cc
     engine/backend_mgr.cc
@@ -86,24 +86,24 @@ set(SOURCE_FILES
     backend/webkit.cc
     instrumentation/steam_hooks.cc
     instrumentation/smem.cc
-    system/cfg.cc
-    system/env.cc
+    system/config.cc
+    system/environment.cc
     system/logger.cc
-    system/sysfs.cc
+    system/filesystem.cc
     millennium.cc
 )
 
 if(WIN32)
     configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/millennium_version.rc @ONLY)
 
-    list(APPEND SOURCE_FILES "platform/init_win32.cc")
+    list(APPEND SOURCE_FILES "platform/windows.cc")
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/millennium_version.rc")
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/resources.rc")
     endif()
 elseif(UNIX)
-    list(APPEND SOURCE_FILES "platform/init_posix.cc")
-    list(APPEND SOURCE_FILES "platform/init_posix_deprecated.cc")
+    list(APPEND SOURCE_FILES "platform/linux.cc")
+    list(APPEND SOURCE_FILES "platform/linux_legacy.cc")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
