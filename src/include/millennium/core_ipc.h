@@ -47,7 +47,7 @@ class ipc_main
 
     ipc_main(std::shared_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client,
              std::shared_ptr<backend_manager> manager)
-        : m_millennium_backend(std::move(millennium_backend)), m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_backend_manager(manager)
+        : m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_backend_manager(manager), m_millennium_backend(std::move(millennium_backend))
     {
     }
 

@@ -29,8 +29,8 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include "hhx64/smem.h"
-#include "hhx64/log.h"
+#include "instrumentation/smem.h"
+#include "instrumentation/log.h"
 #include <string.h>
 
 lb_shm_arena_t* g_lb_patch_arena;

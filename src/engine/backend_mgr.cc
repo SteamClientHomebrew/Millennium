@@ -33,7 +33,7 @@
 #include "millennium/ffi.h"
 #include "millennium/libpy_stdout_fwd.h"
 #include "millennium/logger.h"
-#include "hhx64/smem.h"
+#include "instrumentation/smem.h"
 
 #include <lauxlib.h>
 #include <lua.h>

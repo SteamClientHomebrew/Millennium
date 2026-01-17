@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "hhx64/smem.h"
+#include "instrumentation/smem.h"
 #include <lua.hpp>
 
 void load_patches(lua_State* L, lb_shm_arena_t* map)

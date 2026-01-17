@@ -28,10 +28,11 @@
  * SOFTWARE.
  */
 
-#include "hhx64/cef_def.h"
-#include "hhx64/urlp.h"
-#include "hhx64/fread.h"
-#include "hhx64/log.h"
+#include "instrumentation/cef_def.h"
+#include "instrumentation/urlp.h"
+#include "instrumentation/fread.h"
+#include "instrumentation/log.h"
+
 #include <assert.h>
 #include <atomic>
 #include <stdlib.h>

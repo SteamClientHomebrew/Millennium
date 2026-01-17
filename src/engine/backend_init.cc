@@ -28,7 +28,9 @@
  * SOFTWARE.
  */
 
+#ifdef _WIN32
 #include "millennium/plat_msg.h"
+#endif
 #include "millennium/backend_init.h"
 #include "millennium/types.h"
 #include "millennium/auth.h"
@@ -37,7 +39,7 @@
 #include "millennium/logger.h"
 #include "millennium/life_cycle.h"
 #include "millennium/urlp.h"
-#include "hhx64/smem.h"
+#include "instrumentation/smem.h"
 #include <future>
 
 std::tuple<std::string, std::string> Python_GetActiveExceptionInformation();

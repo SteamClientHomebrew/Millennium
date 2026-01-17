@@ -38,9 +38,8 @@
  * precedence as its no-opped.
  */
 
-#include "hhx64/cef_def.h"
-#include "hhx64/urlp.h"
-#include "hhx64/log.h"
+#include "instrumentation/cef_def.h"
+#include "instrumentation/urlp.h"
 
 #ifdef __linux__
 #include <unistd.h>

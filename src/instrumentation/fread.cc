@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "hhx64/fread.h"
-#include "hhx64/log.h"
+#include "instrumentation/fread.h"
+#include "instrumentation/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef _WIN32

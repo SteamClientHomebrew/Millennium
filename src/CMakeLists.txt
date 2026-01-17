@@ -59,19 +59,19 @@ set(SOURCE_FILES
     runtime/libpy_logger.cc
     runtime/libpy_stdout_fwd.cc
     runtime/liblj_vfs_hook_api.cc
-    core/auth.cc
-    core/backend_init.cc
-    core/backend_mgr.cc
-    core/cdp_api.cc
-    core/core_ipc.cc
-    core/ffi_binder.cc
-    core/http_hooks.cc
-    core/plugin_loader.cc
-    core/lifecycle.cc
-    core/millennium_updater.cc
-    core/plugin_webkit_store.cc
-    core/plugin_webkit_world_mgr.cc
-    core/thread_pool.cc
+    engine/auth.cc
+    engine/backend_init.cc
+    engine/backend_mgr.cc
+    engine/cdp_api.cc
+    engine/core_ipc.cc
+    engine/ffi_binder.cc
+    engine/http_hooks.cc
+    engine/plugin_loader.cc
+    engine/lifecycle.cc
+    engine/millennium_updater.cc
+    engine/plugin_webkit_store.cc
+    engine/plugin_webkit_world_mgr.cc
+    engine/thread_pool.cc
     util/semver.cc
     util/zip.cc
     backend/css_parser.cc
@@ -84,37 +84,37 @@ set(SOURCE_FILES
     backend/theme_cfg.cc
     backend/theme_mgr.cc
     backend/webkit.cc
-    hooks/steam_hooks.cc
-    hhx64/smem.cc
-    sys/cfg.cc
-    sys/env.cc
-    sys/logger.cc
-    sys/sysfs.cc
+    instrumentation/steam_hooks.cc
+    instrumentation/smem.cc
+    system/cfg.cc
+    system/env.cc
+    system/logger.cc
+    system/sysfs.cc
     millennium.cc
 )
 
 if(WIN32)
     configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/millennium_version.rc @ONLY)
 
-    list(APPEND SOURCE_FILES "plat/init_win32.cc")
+    list(APPEND SOURCE_FILES "platform/init_win32.cc")
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/millennium_version.rc")
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/resources.rc")
     endif()
 elseif(UNIX)
-    list(APPEND SOURCE_FILES "plat/init_posix.cc")
-    list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
+    list(APPEND SOURCE_FILES "platform/init_posix.cc")
+    list(APPEND SOURCE_FILES "platform/init_posix_deprecated.cc")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
 endif()
 
 if(WIN32)
-    add_subdirectory(boot/win32)
+    add_subdirectory(bootstrap/win32)
 elseif(UNIX AND NOT APPLE AND NOT NIX_BUILD)
-    add_subdirectory(boot/linux)
+    add_subdirectory(bootstrap/linux)
 elseif(UNIX AND APPLE)
-    add_subdirectory(boot/macos)
+    add_subdirectory(bootstrap/macos)
 endif()
 
 if(UNIX AND NOT APPLE)

@@ -31,7 +31,7 @@
 #include <memory>
 #include <optional>
 #if defined(__linux__) || defined(__APPLE__)
-#include "hhx64/smem.h"
+#include "instrumentation/smem.h"
 
 #include "millennium/millennium.h"
 #include "millennium/backend_mgr.h"

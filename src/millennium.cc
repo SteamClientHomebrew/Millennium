@@ -28,8 +28,7 @@
  * SOFTWARE.
  */
 
-#include "head/entry_point.h"
-#include "hhx64/smem.h"
+#include "instrumentation/smem.h"
 #include "head/default_cfg.h"
 
 #include "millennium/crash_handler.h"

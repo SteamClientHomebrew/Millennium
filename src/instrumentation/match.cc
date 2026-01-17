@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "hhx64/match.h"
-#include "hhx64/smem.h"
+#include "instrumentation/match.h"
+#include "instrumentation/smem.h"
 #include <stdint.h>
 #include <stdlib.h>
 

@@ -37,9 +37,9 @@
 #include <re2/set.h>
 #include <vector>
 #include <string>
-#include "hhx64/match.h"
-#include "hhx64/smem.h"
-#include "hhx64/log.h"
+#include "instrumentation/match.h"
+#include "instrumentation/smem.h"
+#include "instrumentation/log.h"
 
 static const uint32_t MAX_FILE_SIZE = 256 * 1024 * 1024; /** 256MB */
 static const uint32_t MAX_POOL_CAPACITY = 1000000;       /** 1M entries */

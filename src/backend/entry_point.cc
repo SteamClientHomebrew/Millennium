@@ -73,13 +73,13 @@ void millennium_backend::init()
     m_updater = std::make_shared<library_updater>(shared_from_this(), m_ipc_main);
     m_updater->init(m_settings_store);
 
-    m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, std::shared_ptr<network_hook_ctl>(m_network_hook_ctl));
+    m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, m_network_hook_ctl);
     m_theme_config = std::make_shared<ThemeConfig>(m_settings_store, m_theme_webkit_mgr);
 }
 
 millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<SettingsStore> settings_store,
                                        std::shared_ptr<millennium_updater> millennium_updater)
-    : m_network_hook_ctl(network_hook_ctl), m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater))
+    : m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
 {
 #define register_function(name) { #name, std::bind(&millennium_backend::name, this, std::placeholders::_1) }
     function_map = {

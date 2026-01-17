@@ -117,7 +117,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     std::shared_ptr<ThemeConfig> m_theme_config;
     std::shared_ptr<library_updater> m_updater;
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
-    std::shared_ptr<network_hook_ctl>& m_network_hook_ctl; /** hold ref to pass to webkit mgr without ref inc */
+    std::shared_ptr<network_hook_ctl> m_network_hook_ctl; /** store network hook controller as shared_ptr (was reference) */
 
     std::map<std::string, std::function<builtin_payload(const builtin_payload&)>> function_map;
 };
