@@ -75,6 +75,7 @@ set(SOURCE_FILES
     util/semver.cc
     util/zip.cc
     backend/css_parser.cc
+    backend/browser_extension_mgr.cc
     backend/default_cfg.cc
     backend/entry_point.cc
     backend/library_updater.cc

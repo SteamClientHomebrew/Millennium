@@ -9,7 +9,7 @@ export interface Browser {
 
     CloseDevTools(): void;
 
-    GetBrowserID(): Promise<number>;
+    GetBrowserID(): number;
 
     GetSpellingSuggestions(word: string): string[];
 
