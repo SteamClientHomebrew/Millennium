@@ -37,7 +37,7 @@
 
 #include <unordered_set>
 
-theme_webkit_mgr::theme_webkit_mgr(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl)
+theme_webkit_mgr::theme_webkit_mgr(std::shared_ptr<settings_store> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl)
     : m_settings_store(std::move(settings_store)), m_network_hook_ctl(std::move(network_hook_ctl))
 {
 }
@@ -55,7 +55,7 @@ std::vector<theme_webkit_mgr::webkit_item> theme_webkit_mgr::parse_conditional_d
 {
     std::vector<theme_webkit_mgr::webkit_item> webkit_items;
 
-    nlohmann::json theme_conditions = CONFIG.GetNested("themes.conditions." + theme_name, nlohmann::json::object());
+    nlohmann::json theme_conditions = CONFIG.get("themes.conditions." + theme_name, nlohmann::json::object());
 
     if (conditional_patches.contains("Conditions")) {
         for (auto& [item, condition] : conditional_patches["Conditions"].items()) {
@@ -117,7 +117,7 @@ std::vector<theme_webkit_mgr::webkit_item> theme_webkit_mgr::parse_conditional_d
 
 unsigned long long theme_webkit_mgr::add_browser_hook(const std::string& path, const std::string& regex, network_hook_ctl::TagTypes type)
 {
-    unsigned long long hook_id = m_network_hook_ctl->add_hook({ (SystemIO::GetSteamPath() / "steamui" / path).generic_string(), std::regex(regex), type });
+    unsigned long long hook_id = m_network_hook_ctl->add_hook({ (platform::get_steam_path() / "steamui" / path).generic_string(), std::regex(regex), type });
     m_registered_hooks.push_back(hook_id);
     return hook_id;
 }

@@ -81,11 +81,11 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
 
     std::string steamPath = fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
     if (!IsSamePath(path, steamPath.c_str())) {
-        Logger.Warn("[Millennium] Process is not running under Steam: {}", path);
+        logger.warn("[Millennium] Process is not running under Steam: {}", path);
         return;
     }
 
-    Logger.Log("[Millennium] Setting up environment for Steam process: {}", path);
+    logger.log("[Millennium] Setting up environment for Steam process: {}", path);
 
     /** Setup environment variables if loaded into Steam process */
     SetupEnvironmentVariables();
@@ -133,7 +133,7 @@ void Posix_AttachWebHelperHook()
     std::string new_value = existing ? std::string(existing) + ":" + hhx_path : hhx_path;
 
     setenv("LD_PRELOAD", new_value.c_str(), 1);
-    Logger.Log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", new_value);
+    logger.log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", new_value);
 }
 
 void Posix_AttachMillennium()
@@ -150,21 +150,21 @@ void Posix_AttachMillennium()
 /** New interop funcs that receive calls from hooked libXtst */
 extern "C" __attribute__((visibility("default"))) int StartMillennium()
 {
-    Logger.Log("Hooked main() with PID: {}", getpid());
-    Logger.Log("Loading python libraries from {}", LIBPYTHON_RUNTIME_PATH);
+    logger.log("Hooked main() with PID: {}", getpid());
+    logger.log("Loading python libraries from {}", LIBPYTHON_RUNTIME_PATH);
 
     if (!dlopen(LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
         LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
     }
 
     g_millenniumThread = std::make_unique<std::thread>(Posix_AttachMillennium);
-    Logger.Log("Millennium started successfully.");
+    logger.log("Millennium started successfully.");
     return 0;
 }
 
 extern "C" __attribute__((visibility("default"))) int StopMillennium()
 {
-    Logger.Log("Unloading Millennium...");
+    logger.log("Unloading Millennium...");
     g_shouldTerminateMillennium->flag.store(true);
 
     if (g_millenniumThread && g_millenniumThread->joinable()) {
@@ -173,7 +173,7 @@ extern "C" __attribute__((visibility("default"))) int StopMillennium()
 
     g_millennium.reset();
 
-    Logger.Log("Millennium unloaded successfully.");
+    logger.log("Millennium unloaded successfully.");
     return 0;
 }
 #endif

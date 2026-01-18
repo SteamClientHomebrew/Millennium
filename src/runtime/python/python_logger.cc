@@ -70,7 +70,7 @@ PyObject* LoggerObject_new(PyTypeObject* type, PyObject* args, PyObject* /** kwd
 
     /** Check if the logger already exists, and use it if it does */
     for (auto logger : get_plugin_logger_mgr()) {
-        if (logger->GetPluginName(false) == pluginName) {
+        if (logger->get_plugin_name(false) == pluginName) {
             self->m_loggerPtr = logger;
             return (PyObject*)self;
         }
@@ -116,7 +116,7 @@ PyObject* LoggerObject_log(LoggerObject* self, PyObject* args)
         return NULL;
     }
 
-    self->m_loggerPtr->Log(message);
+    self->m_loggerPtr->log(message);
     Py_INCREF(Py_None);
     return Py_None;
 }
@@ -138,7 +138,7 @@ PyObject* LoggerObject_error(LoggerObject* self, PyObject* args)
         return NULL;
     }
 
-    self->m_loggerPtr->Error(message);
+    self->m_loggerPtr->error(message);
     Py_INCREF(Py_None);
     return Py_None;
 }
@@ -160,7 +160,7 @@ PyObject* LoggerObject_warning(LoggerObject* self, PyObject* args)
         return NULL;
     }
 
-    self->m_loggerPtr->Warn(message);
+    self->m_loggerPtr->warn(message);
     Py_INCREF(Py_None);
     return Py_None;
 }

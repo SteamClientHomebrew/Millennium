@@ -30,23 +30,23 @@
 
 #pragma once
 
-template <typename T> class Singleton
+template <typename T> class singleton
 {
   public:
-    static T& GetInstance()
+    static T& get_instance()
     {
         static T* instance = new T();
         return *instance;
     }
 
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
+    singleton(const singleton&) = delete;
+    singleton& operator=(const singleton&) = delete;
 
   protected:
-    Singleton()
+    singleton()
     {
     }
-    virtual ~Singleton()
+    virtual ~singleton()
     {
     }
 };

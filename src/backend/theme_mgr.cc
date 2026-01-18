@@ -38,14 +38,14 @@
 #include <git2.h>
 #include <thread>
 
-theme_installer::theme_installer(std::shared_ptr<SettingsStore> settings_store_ptr, std::shared_ptr<library_updater> updater)
+theme_installer::theme_installer(std::shared_ptr<settings_store> settings_store_ptr, std::shared_ptr<library_updater> updater)
     : m_settings_store_ptr(std::move(settings_store_ptr)), m_updater(std::move(updater))
 {
 }
 
 std::filesystem::path theme_installer::get_skins_folder()
 {
-    return std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
+    return std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
 }
 
 nlohmann::json theme_installer::create_error_response(const std::string& message)
@@ -76,13 +76,13 @@ std::optional<nlohmann::json> theme_installer::get_theme_from_github(const std::
 bool theme_installer::is_theme_installed(const std::string& repo, const std::string& owner)
 {
     bool installed = get_theme_from_github(repo, owner).has_value();
-    Logger.Log("CheckInstall: {}/{} -> {}", owner, repo, installed);
+    logger.log("CheckInstall: {}/{} -> {}", owner, repo, installed);
     return installed;
 }
 
 nlohmann::json theme_installer::uninstall_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
 {
-    Logger.Log("UninstallTheme: {}/{}", owner, repo);
+    logger.log("UninstallTheme: {}/{}", owner, repo);
 
     auto themeOpt = get_theme_from_github(repo, owner);
     if (!themeOpt) return create_error_response("Couldn't locate theme on disk!");
@@ -92,7 +92,7 @@ nlohmann::json theme_installer::uninstall_theme(std::shared_ptr<ThemeConfig> the
     std::filesystem::path path = get_skins_folder() / themeOpt->value("native", std::string());
     if (!std::filesystem::exists(path)) return create_error_response("Theme path does not exist!");
 
-    if (!SystemIO::DeleteFolder(path)) return create_error_response("Failed to delete theme folder");
+    if (!platform::remove_directory(path)) return create_error_response("Failed to delete theme folder");
 
     /** trigger config update to regenerate config */
     themeConfig->OnConfigChange();
@@ -175,7 +175,7 @@ nlohmann::json theme_installer::install_theme(std::shared_ptr<ThemeConfig> theme
     }
 
     if (std::filesystem::exists(finalPath, ec)) {
-        if (!SystemIO::DeleteFolder(finalPath)) {
+        if (!platform::remove_directory(finalPath)) {
             return create_error_response("Failed to remove existing target path: " + finalPath.string());
         }
     } else if (ec) {
@@ -186,8 +186,8 @@ nlohmann::json theme_installer::install_theme(std::shared_ptr<ThemeConfig> theme
     std::filesystem::path tmpPath = finalPath.parent_path() / tmpName;
 
     if (std::filesystem::exists(tmpPath, ec)) {
-        Logger.Log("Warning: Temporary path already exists, removing: " + tmpPath.string());
-        if (!SystemIO::DeleteFolder(tmpPath)) {
+        logger.log("Warning: Temporary path already exists, removing: " + tmpPath.string());
+        if (!platform::remove_directory(tmpPath)) {
             return create_error_response("Failed to clean up existing temporary path: " + tmpPath.string());
         }
     }
@@ -208,8 +208,8 @@ nlohmann::json theme_installer::install_theme(std::shared_ptr<ThemeConfig> theme
 
     if (rc != 0) {
         if (std::filesystem::exists(tmpPath, ec)) {
-            if (!SystemIO::DeleteFolder(tmpPath)) {
-                Logger.Log("Warning: Failed to clean up temporary path after clone failure: " + tmpPath.string());
+            if (!platform::remove_directory(tmpPath)) {
+                logger.log("Warning: Failed to clean up temporary path after clone failure: " + tmpPath.string());
             }
         }
         return create_error_response("Failed to clone theme repository: " + cloneErr);
@@ -222,7 +222,7 @@ nlohmann::json theme_installer::install_theme(std::shared_ptr<ThemeConfig> theme
     std::filesystem::rename(tmpPath, finalPath, ec);
 
     if (ec) {
-        Logger.Log("Rename failed (" + ec.message() + "), attempting copy fallback");
+        logger.log("Rename failed (" + ec.message() + "), attempting copy fallback");
         std::filesystem::copy(tmpPath, finalPath, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
 
         if (ec) {
@@ -236,8 +236,8 @@ nlohmann::json theme_installer::install_theme(std::shared_ptr<ThemeConfig> theme
             return create_error_response("Failed to install theme (copy failed): " + ec.message());
         }
 
-        if (!SystemIO::DeleteFolder(tmpPath)) {
-            Logger.Log("Warning: Failed to remove temporary directory: " + tmpPath.string());
+        if (!platform::remove_directory(tmpPath)) {
+            logger.log("Warning: Failed to remove temporary directory: " + tmpPath.string());
         }
     }
 
@@ -285,18 +285,18 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> theme_installer::q
 
 bool theme_installer::update_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
 {
-    Logger.Log("Updating theme " + native);
+    logger.log("Updating theme " + native);
     std::filesystem::path path = get_skins_folder() / native;
 
     try {
         if (git_libgit2_init() < 0) {
-            Logger.Log("Failed to initialize libgit2");
+            logger.log("Failed to initialize libgit2");
             return false;
         }
 
         git_repository* repo = nullptr;
         if (git_repository_open(&repo, path.string().c_str()) != 0) {
-            Logger.Log("Failed to open Git repository: {}", path.string());
+            logger.log("Failed to open Git repository: {}", path.string());
             git_libgit2_shutdown();
             return false;
         }
@@ -304,7 +304,7 @@ bool theme_installer::update_theme(std::shared_ptr<ThemeConfig> themeConfig, con
         git_remote* remote = nullptr;
         if (git_remote_lookup(&remote, repo, "origin") != 0) {
             git_repository_free(repo);
-            Logger.Log("Failed to get remote 'origin' for repo: {}", path.string());
+            logger.log("Failed to get remote 'origin' for repo: {}", path.string());
             git_libgit2_shutdown();
             return false;
         }
@@ -323,7 +323,7 @@ bool theme_installer::update_theme(std::shared_ptr<ThemeConfig> themeConfig, con
         if (git_revparse_single(&obj, repo, "refs/remotes/origin/HEAD") != 0) {
             git_remote_free(remote);
             git_repository_free(repo);
-            Logger.Log("Failed to parse HEAD in repo: {}", path.string());
+            logger.log("Failed to parse HEAD in repo: {}", path.string());
             git_libgit2_shutdown();
             return false;
         }
@@ -332,7 +332,7 @@ bool theme_installer::update_theme(std::shared_ptr<ThemeConfig> themeConfig, con
             git_object_free(obj);
             git_remote_free(remote);
             git_repository_free(repo);
-            Logger.Log("Failed to reset repository to origin/HEAD: {}", path.string());
+            logger.log("Failed to reset repository to origin/HEAD: {}", path.string());
             git_libgit2_shutdown();
             return false;
         }
@@ -344,14 +344,14 @@ bool theme_installer::update_theme(std::shared_ptr<ThemeConfig> themeConfig, con
         // Shut down libgit2
         git_libgit2_shutdown();
     } catch (const std::exception& e) {
-        Logger.Log("An exception occurred: {}", e.what());
+        logger.log("An exception occurred: {}", e.what());
         git_libgit2_shutdown();
         return false;
     }
 
     /** trigger config update to regenerate config */
     themeConfig->OnConfigChange();
-    Logger.Log("Theme {} updated successfully.", native);
+    logger.log("Theme {} updated successfully.", native);
     return true;
 }
 
@@ -393,7 +393,7 @@ nlohmann::json theme_installer::get_request_body(void)
         }());
 
         if (update_query.empty()) {
-            Logger.Log("No themes to update!");
+            logger.log("No themes to update!");
             return {
                 { "update_query", nullptr },
                 { "post_body",    nullptr }
@@ -403,7 +403,7 @@ nlohmann::json theme_installer::get_request_body(void)
         result["update_query"] = update_query;
         result["post_body"] = post_body;
     } catch (const std::exception& e) {
-        Logger.Log(std::string("Exception in GetRequestBody: ") + e.what());
+        logger.log(std::string("Exception in GetRequestBody: ") + e.what());
         result["update_query"] = nullptr;
         result["post_body"] = nullptr;
     }

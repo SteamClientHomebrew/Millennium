@@ -36,24 +36,24 @@
 #include <fstream>
 #include <iostream>
 
-nlohmann::json Millennium::Plugins::FindAllPlugins(std::shared_ptr<SettingsStore> settings_store_ptr)
+nlohmann::json Millennium::Plugins::FindAllPlugins(std::shared_ptr<settings_store> settings_store_ptr)
 {
     nlohmann::json result = nlohmann::json::array();
 
-    const auto foundPlugins = settings_store_ptr->ParseAllPlugins();
+    const auto foundPlugins = settings_store_ptr->get_all_plugins();
 
     for (const auto& plugin : foundPlugins) {
         result.push_back({
-            { "path",    plugin.pluginBaseDirectory.generic_string()            },
-            { "enabled", settings_store_ptr->IsEnabledPlugin(plugin.pluginName) },
-            { "data",    plugin.pluginJson                                      }
+            { "path",    plugin.plugin_base_dir.generic_string()            },
+            { "enabled", settings_store_ptr->is_enabled(plugin.plugin_name) },
+            { "data",    plugin.plugin_json                                 }
         });
     }
 
     return result;
 }
 
-std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<SettingsStore> settings_store_ptr)
+std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<settings_store> settings_store_ptr)
 {
     for (const auto& plugin : FindAllPlugins(settings_store_ptr)) {
         if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name) {
@@ -69,7 +69,7 @@ std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::
  */
 bool Millennium::Themes::IsValid(const std::string& theme_native_name)
 {
-    std::filesystem::path file_path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins" / theme_native_name / "skin.json";
+    std::filesystem::path file_path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins" / theme_native_name / "skin.json";
 
     if (!std::filesystem::is_regular_file(file_path)) return false;
 
@@ -83,7 +83,7 @@ bool Millennium::Themes::IsValid(const std::string& theme_native_name)
  */
 nlohmann::ordered_json Millennium::Themes::FindAllThemes()
 {
-    auto path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
+    auto path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
     std::filesystem::create_directories(path);
 
     nlohmann::ordered_json themes = nlohmann::ordered_json::array();
@@ -111,7 +111,7 @@ nlohmann::ordered_json Millennium::Themes::FindAllThemes()
             });
         }
     } catch (const std::filesystem::filesystem_error& e) {
-        Logger.Log("Filesystem error: " + std::string(e.what()));
+        logger.log("Filesystem error: " + std::string(e.what()));
     }
 
     return themes;

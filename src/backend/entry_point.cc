@@ -43,6 +43,7 @@
 #include "millennium/plugin_api_init.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
+#include "millennium/config.h"
 #include "millennium/filesystem.h"
 #include <exception>
 
@@ -65,7 +66,7 @@ int millennium_backend::get_operating_system()
 
 millennium_backend::~millennium_backend()
 {
-    Logger.Log("Successfully shut down millennium_backend...");
+    logger.log("Successfully shut down millennium_backend...");
 }
 
 void millennium_backend::init()
@@ -77,7 +78,7 @@ void millennium_backend::init()
     m_theme_config = std::make_shared<ThemeConfig>(m_settings_store, m_theme_webkit_mgr);
 }
 
-millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<SettingsStore> settings_store,
+millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<settings_store> settings_store,
                                        std::shared_ptr<millennium_updater> millennium_updater)
     : m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
 {
@@ -118,7 +119,7 @@ millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network
     };
 }
 
-const char* Millennium_GetUpdateScript()
+const char* millennium_backend::get_millennium_updater_script()
 {
 #ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
     return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
@@ -158,19 +159,19 @@ builtin_payload millennium_backend::Core_GetStartConfig(const builtin_payload&)
 {
     return {
         { "accent_color", m_theme_config->GetAccentColor() },
-        { "conditions", CONFIG.GetNested("themes.conditions", nlohmann::json::object()) },
+        { "conditions", CONFIG.get("themes.conditions", nlohmann::json::object()) },
         { "active_theme", m_theme_config->GetActiveTheme() },
-        { "settings", CONFIG.GetAll() },
-        { "steamPath", SystemIO::GetSteamPath() },
-        { "installPath", SystemIO::GetInstallPath() },
+        { "settings", CONFIG.get_all() },
+        { "steamPath", platform::get_steam_path() },
+        { "installPath", platform::get_install_path() },
         { "millenniumVersion", MILLENNIUM_VERSION },
-        { "enabledPlugins", m_settings_store->GetEnabledPluginNames() },
+        { "enabledPlugins", m_settings_store->get_enabled_plugin_names() },
         { "updates", m_updater->check_for_updates() },
         { "hasCheckedForUpdates", m_updater->has_checked_for_updates() },
         { "millenniumUpdates", m_millennium_updater->has_any_updates() },
         { "buildDate", GetBuildTimestamp() },
         { "platformType", get_operating_system() },
-        { "millenniumLinuxUpdateScript", Millennium_GetUpdateScript() },
+        { "millenniumLinuxUpdateScript", this->get_millennium_updater_script() },
         { "quickCss", Core_LoadQuickCss(nullptr) }  // TODO check this works
     };
 }
@@ -181,22 +182,22 @@ builtin_payload millennium_backend::Core_LoadQuickCss(const builtin_payload&)
     const std::string quickCssPath = fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH"));
 
     if (!std::filesystem::exists(quickCssPath)) {
-        SystemIO::WriteFileSync(quickCssPath, "/* Quick CSS file created by Millennium */\n");
+        platform::write_file(quickCssPath, "/* Quick CSS file created by Millennium */\n");
     }
 
-    return SystemIO::ReadFileSync(quickCssPath);
+    return platform::read_file(quickCssPath);
 }
 builtin_payload millennium_backend::Core_SaveQuickCss(const builtin_payload& args)
 {
     const std::string quickCssPath = fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH"));
-    SystemIO::WriteFileSync(quickCssPath, args["css"].get<std::string>());
+    platform::write_file(quickCssPath, args["css"].get<std::string>());
     return {};
 }
 
 /** General utilities */
 builtin_payload millennium_backend::Core_GetSteamPath(const builtin_payload&)
 {
-    return SystemIO::GetSteamPath();
+    return platform::get_steam_path();
 }
 builtin_payload millennium_backend::Core_FindAllThemes(const builtin_payload&)
 {
@@ -212,11 +213,11 @@ builtin_payload millennium_backend::Core_GetEnvironmentVar(const builtin_payload
 }
 builtin_payload millennium_backend::Core_GetBackendConfig(const builtin_payload&)
 {
-    return CONFIG.GetAll();
+    return CONFIG.get_all();
 }
 builtin_payload millennium_backend::Core_SetBackendConfig(const builtin_payload& args)
 {
-    return CONFIG.SetAll(nlohmann::json::parse(args["config"].get<std::string>()), args.value("skipPropagation", false));
+    return CONFIG.set_all(nlohmann::json::parse(args["config"].get<std::string>()), args.value("skipPropagation", false));
 }
 
 /** Theme and Plugin update API */
@@ -344,23 +345,23 @@ builtin_payload millennium_backend::Core_UninstallPlugin(const builtin_payload& 
 builtin_payload millennium_backend::Core_GetPluginBackendLogs(const builtin_payload&)
 {
     nlohmann::json logData = nlohmann::json::array();
-    std::vector<SettingsStore::plugin_t> plugins = m_settings_store->ParseAllPlugins();
+    std::vector<settings_store::plugin_t> plugins = m_settings_store->get_all_plugins();
 
     for (auto& logger : get_plugin_logger_mgr()) {
         nlohmann::json logDataItem;
 
-        for (auto [message, logLevel] : logger->CollectLogs()) {
+        for (auto [message, logLevel] : logger->collect_logs()) {
             logDataItem.push_back({
                 { "message", Base64Encode(message) },
                 { "level",   logLevel              }
             });
         }
 
-        std::string pluginName = logger->GetPluginName(false);
+        std::string pluginName = logger->get_plugin_name(false);
 
         for (auto& plugin : plugins) {
-            if (plugin.pluginJson.contains("name") && plugin.pluginJson["name"] == logger->GetPluginName(false)) {
-                pluginName = plugin.pluginJson.value("common_name", pluginName);
+            if (plugin.plugin_json.contains("name") && plugin.plugin_json["name"] == logger->get_plugin_name(false)) {
+                pluginName = plugin.plugin_json.value("common_name", pluginName);
                 break;
             }
         }

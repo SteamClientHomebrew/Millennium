@@ -149,15 +149,15 @@ std::string GetEnvWithFallback(std::string key, std::string fallback)
 void SetupEnvironmentVariables()
 {
     std::map<std::string, std::string> environment = {
-        { "MILLENNIUM__VERSION",    MILLENNIUM_VERSION                },
-        { "MILLENNIUM__STEAM_PATH", SystemIO::GetSteamPath().string() }
+        { "MILLENNIUM__VERSION",    MILLENNIUM_VERSION                  },
+        { "MILLENNIUM__STEAM_PATH", platform::get_steam_path().string() }
     };
 
 #if defined(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
     const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
 #else
 #ifdef _WIN32
-    const auto shimsPath = SystemIO::GetInstallPath().string() + "/ext/data/shims";
+    const auto shimsPath = platform::get_install_path().string() + "/ext/data/shims";
 #elif __linux__
     const auto shimsPath = "/usr/share/millennium/shims";
 #elif __APPLE__
@@ -169,7 +169,7 @@ void SetupEnvironmentVariables()
     const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
 #else
 #ifdef _WIN32
-    const auto assetsPath = SystemIO::GetInstallPath().string() + "/ext/data/assets";
+    const auto assetsPath = platform::get_install_path().string() + "/ext/data/assets";
 #elif __linux__
     const auto assetsPath = "/usr/share/millennium/assets";
 #elif __APPLE__
@@ -181,20 +181,20 @@ void SetupEnvironmentVariables()
 
 #ifdef _WIN32
     std::map<std::string, std::string> environment_windows = {
-        { "MILLENNIUM__PLUGINS_PATH", SystemIO::GetInstallPath().string() + "/plugins"        },
-        { "MILLENNIUM__CONFIG_PATH",  SystemIO::GetInstallPath().string() + "/ext"            },
-        { "MILLENNIUM__LOGS_PATH",    SystemIO::GetInstallPath().string() + "/ext/logs"       },
-        { "MILLENNIUM__DATA_LIB",     dataLibPath                                             },
+        { "MILLENNIUM__PLUGINS_PATH", platform::get_install_path().string() + "/plugins"        },
+        { "MILLENNIUM__CONFIG_PATH",  platform::get_install_path().string() + "/ext"            },
+        { "MILLENNIUM__LOGS_PATH",    platform::get_install_path().string() + "/ext/logs"       },
+        { "MILLENNIUM__DATA_LIB",     dataLibPath                                               },
 #if defined(MILLENNIUM_64BIT)
-        { "MILLENNIUM__PYTHON_ENV",   SystemIO::GetInstallPath().string() + "/ext/data/pyx64" },
+        { "MILLENNIUM__PYTHON_ENV",   platform::get_install_path().string() + "/ext/data/pyx64" },
 #elif defined(MILLENNIUM_32BIT)
-        { "MILLENNIUM__PYTHON_ENV", SystemIO::GetInstallPath().string() + "/ext/data/cache" },
+        { "MILLENNIUM__PYTHON_ENV", platform::get_install_path().string() + "/ext/data/cache" },
 #else
 #error "Invalid platform"
 #endif
-        { "MILLENNIUM__SHIMS_PATH",   shimsPath                                               },
-        { "MILLENNIUM__ASSETS_PATH",  assetsPath                                              },
-        { "MILLENNIUM__INSTALL_PATH", SystemIO::GetInstallPath().string()                     }
+        { "MILLENNIUM__SHIMS_PATH",   shimsPath                                                 },
+        { "MILLENNIUM__ASSETS_PATH",  assetsPath                                                },
+        { "MILLENNIUM__INSTALL_PATH", platform::get_install_path().string()                     }
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
 #elif __linux__

@@ -141,7 +141,7 @@ class SocketHelpers
                             debuggerPort, processName);
 
             Plat_ShowMessageBox("Fatal Error", message.c_str(), MESSAGEBOX_ERROR);
-            Logger.Warn(message);
+            logger.warn(message);
             std::exit(1);
         }
 
@@ -150,7 +150,7 @@ class SocketHelpers
 
     SocketHelpers() : debuggerPort(GetDebuggerPort())
     {
-        Logger.Log("Opting to use '{}' for SteamDBG port", debuggerPort);
+        logger.log("Opting to use '{}' for SteamDBG port", debuggerPort);
         this->VerifySteamConnection();
     }
 
@@ -184,7 +184,7 @@ class SocketHelpers
         try {
             socketUrl = fetchSocketUrl();
         } catch (HttpError& exception) {
-            Logger.Warn("Failed to get Steam browser context: {}", exception.GetMessage());
+            logger.warn("Failed to get Steam browser context: {}", exception.GetMessage());
             return;
         }
 
@@ -232,7 +232,7 @@ class SocketHelpers
                 }
             });
 
-            con->set_close_handler([commonName](websocketpp::connection_hdl) { Logger.Log("[{}] *** CLOSE HANDLER ***", commonName); });
+            con->set_close_handler([commonName](websocketpp::connection_hdl) { logger.log("[{}] *** CLOSE HANDLER ***", commonName); });
             con->set_fail_handler([commonName](websocketpp::connection_hdl) { LOG_ERROR("[{}] *** FAIL HANDLER ***", commonName); });
 
             socketClient.connect(con);
@@ -246,10 +246,10 @@ class SocketHelpers
             LOG_ERROR("[{}] Unknown exception caught.", commonName);
         }
 
-        Logger.Log("[{}] Shutting down CDP client...", commonName);
+        logger.log("[{}] Shutting down CDP client...", commonName);
         if (cdpClient) {
             cdpClient->shutdown();
         }
-        Logger.Log("Disconnected from [{}] module...", commonName);
+        logger.log("Disconnected from [{}] module...", commonName);
     }
 };

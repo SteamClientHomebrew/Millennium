@@ -32,7 +32,6 @@
 #include "millennium/http_hooks.h"
 #include "millennium/cdp_api.h"
 #include "millennium/types.h"
-#include "millennium/filesystem.h"
 #include "millennium/plugin_webkit_store.h"
 
 #include <memory>
@@ -53,7 +52,7 @@ class webkit_world_mgr
   public:
     static inline std::string m_context_name = "millennium";
 
-    explicit webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
+    explicit webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<settings_store> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
                               std::shared_ptr<plugin_webkit_store> plugin_webkit_store);
     ~webkit_world_mgr();
 
@@ -69,7 +68,7 @@ class webkit_world_mgr
     };
 
     std::shared_ptr<cdp_client> m_client;
-    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<settings_store> m_settings_store;
     std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
     std::shared_ptr<plugin_webkit_store> m_plugin_webkit_store;
 

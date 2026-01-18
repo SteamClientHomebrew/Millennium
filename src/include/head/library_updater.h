@@ -43,7 +43,7 @@ class library_updater : public std::enable_shared_from_this<library_updater>
 {
   public:
     library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main);
-    void init(std::shared_ptr<SettingsStore> settings_store_ptr);
+    void init(std::shared_ptr<settings_store> settings_store_ptr);
 
     bool download_plugin_update(const std::string& id, const std::string& name);
     bool download_theme_update(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);

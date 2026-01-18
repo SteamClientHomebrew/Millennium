@@ -57,7 +57,7 @@ void EnableVirtualTerminalProcessing()
 }
 #endif
 
-std::string logger_base::GetLocalTime(bool withHours)
+std::string logger_base::get_local_time(bool withHours)
 {
     std::stringstream bufferStream;
     auto now = std::chrono::system_clock::now();
@@ -73,7 +73,7 @@ std::string logger_base::GetLocalTime(bool withHours)
     return fmt::format("[{}]", bufferStream.str());
 }
 
-std::string logger_base::GetLocalDateStr()
+std::string logger_base::get_local_date_str()
 {
     auto now = std::chrono::system_clock::now();
     std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
@@ -94,7 +94,7 @@ plugin_logger::plugin_logger(const std::string& pluginName) : pluginName(pluginN
     this->filename = (std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / fmt::format("{}_log.log", pluginName)).generic_string();
     file.open(filename, std::ios::app);
 
-    file << fmt::format("\n\n\n--------------------------------- [{}] ---------------------------------\n", GetLocalDateStr());
+    file << fmt::format("\n\n\n--------------------------------- [{}] ---------------------------------\n", get_local_date_str());
     file.flush();
 }
 
@@ -103,60 +103,60 @@ plugin_logger::~plugin_logger()
     file.close();
 }
 
-void plugin_logger::Log(const std::string& message, bool onlyBuffer)
+void plugin_logger::log(const std::string& message, bool onlyBuffer)
 {
-    std::string formatted = fmt::format("{} ", GetPluginName());
+    std::string formatted = fmt::format("{} ", get_plugin_name());
 
     if (!onlyBuffer) {
-        std::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", GetLocalTime(), formatted) << message << "\n";
+        std::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
 
         file << formatted << message << "\n";
         file.flush();
     }
 
-    logBuffer.push_back({ WHITE + GetLocalTime(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", _INFO });
+    logBuffer.push_back({ WHITE + get_local_time(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", log_level::INFO });
 }
 
-void plugin_logger::Warn(const std::string& message, bool onlyBuffer)
+void plugin_logger::warn(const std::string& message, bool onlyBuffer)
 {
     if (!onlyBuffer) {
-        std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+        std::string formatted = fmt::format("{}{}{}", get_local_time(), fmt::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
 
         file << formatted;
         file.flush();
     }
 
-    logBuffer.push_back({ WHITE + GetLocalTime(true) + YELLOW + " " + GetPluginName() + " " + message + RESET + "\n", _WARN });
+    logBuffer.push_back({ WHITE + get_local_time(true) + YELLOW + " " + get_plugin_name() + " " + message + RESET + "\n", log_level::WARN });
 }
 
-void plugin_logger::Error(const std::string& message, bool onlyBuffer)
+void plugin_logger::error(const std::string& message, bool onlyBuffer)
 {
     if (!onlyBuffer) {
-        std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+        std::string formatted = fmt::format("{}{}{}", get_local_time(), fmt::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_RED << formatted << COL_RESET << '\n';
 
         file << formatted;
         file.flush();
     }
 
-    logBuffer.push_back({ RED + message + RESET, _ERROR });
+    logBuffer.push_back({ RED + message + RESET, log_level::ERROR });
 }
 
-void plugin_logger::Print(const std::string& message)
+void plugin_logger::print(const std::string& message)
 {
     file << message;
     file.flush();
 
-    logBuffer.push_back({ message, _INFO });
+    logBuffer.push_back({ message, log_level::INFO });
 }
 
-std::vector<logger_base::LogEntry> plugin_logger::CollectLogs()
+std::vector<logger_base::log_entry> plugin_logger::collect_logs()
 {
     return logBuffer;
 }
 
-std::string plugin_logger::GetPluginName(bool upperCase)
+std::string plugin_logger::get_plugin_name(bool upperCase)
 {
     const auto toUpper = [](const std::string& str)
     {
@@ -168,9 +168,9 @@ std::string plugin_logger::GetPluginName(bool upperCase)
     return upperCase ? toUpper(pluginName) : pluginName;
 }
 
-logger& Logger = logger::GetInstance();
+millennium_logger& logger = millennium_logger::get_instance();
 
-std::string logger::get_local_time_stamp()
+std::string millennium_logger::get_local_time_stamp()
 {
     std::stringstream bufferStream;
     auto now = std::chrono::system_clock::now();
@@ -182,13 +182,13 @@ std::string logger::get_local_time_stamp()
     return fmt::format("[{}]", bufferStream.str());
 }
 
-void logger::print(std::string type, const std::string& message, std::string color)
+void millennium_logger::print(std::string type, const std::string& message, std::string color)
 {
     std::lock_guard<std::mutex> lock(log_mutex);
     std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", get_local_time_stamp(), color, type, COL_RESET, message);
 }
 
-logger::logger()
+millennium_logger::millennium_logger()
 {
 #ifdef _WIN32
     this->m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev");
@@ -210,7 +210,7 @@ logger::logger()
 #endif
 }
 
-void logger::log_plugin_message(std::string pluginName, std::string strMessage)
+void millennium_logger::log_plugin_message(std::string pluginName, std::string strMessage)
 {
     std::lock_guard<std::mutex> lock(log_mutex);
     const auto toUpper = [](const std::string& str)

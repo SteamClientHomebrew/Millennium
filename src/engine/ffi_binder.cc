@@ -33,7 +33,7 @@
 #include "millennium/core_ipc.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 
-ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<ipc_main> ipc_main)
+ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<settings_store> settings_store, std::shared_ptr<ipc_main> ipc_main)
     : m_client(client), m_settings_store(std::move(settings_store)), m_ipc_main(std::move(ipc_main))
 {
     m_client->on("Runtime.bindingCalled", std::bind(&ffi_binder::binding_call_hdlr, this, std::placeholders::_1));
@@ -45,7 +45,7 @@ ffi_binder::~ffi_binder()
     m_client->off("Runtime.bindingCalled");
     m_client->off("Runtime.executionContextCreated");
 
-    Logger.Log("Successfully shut down ffi_binder...");
+    logger.log("Successfully shut down ffi_binder...");
 }
 
 void ffi_binder::callback_into_js(const json params, const int request_id, json result)
@@ -146,7 +146,7 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                  }
         };
         m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
-        Logger.Log("ffi_binder: re-added binding to context {} in session {}", context_id, session_id);
+        logger.log("ffi_binder: re-added binding to context {} in session {}", context_id, session_id);
     } catch (const std::exception& e) {
         LOG_ERROR("ffi_binder: failed to re-add binding: {}", e.what());
     }

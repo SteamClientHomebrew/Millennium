@@ -31,7 +31,6 @@
 #pragma once
 #include "millennium/plugin_loader.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/filesystem.h"
 
 class millennium
 {
@@ -42,12 +41,11 @@ class millennium
     void entry();
 
     std::shared_ptr<plugin_loader> get_plugin_loader();
-    std::shared_ptr<SettingsStore> get_settings_store();
 
   private:
     void check_for_updates();
 
-    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<settings_store> m_settings_store;
     std::shared_ptr<plugin_loader> m_plugin_loader;
     std::shared_ptr<millennium_backend> m_millennium_backend;
     std::shared_ptr<millennium_updater> m_millennium_updater;

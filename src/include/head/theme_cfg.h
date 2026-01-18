@@ -35,12 +35,12 @@
 #include <set>
 
 #include "head/webkit.h"
-#include "millennium/filesystem.h"
+#include "millennium/config.h"
 
 class ThemeConfig
 {
   public:
-    ThemeConfig(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
+    ThemeConfig(std::shared_ptr<settings_store> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
     ~ThemeConfig();
 
     void OnConfigChange();
@@ -72,11 +72,11 @@ class ThemeConfig
     void SetupConditionals();
     std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
 
-    ConfigManager::Listener config_listener_;
+    config_manager::listener config_listener_;
     std::filesystem::path themes_path;
     std::string active_theme_name;
     nlohmann::basic_json<> theme_data;
     std::map<std::string, nlohmann::json> colors;
-    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<settings_store> m_settings_store;
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
 };

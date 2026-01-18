@@ -31,7 +31,7 @@
 #pragma once
 #include "millennium/environment.h"
 #include "millennium/life_cycle.h"
-#include "millennium/filesystem.h"
+#include "millennium/config.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -83,7 +83,7 @@ PythonEnvPath GetPythonEnvPaths();
 class backend_manager
 {
   public:
-    backend_manager(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<backend_event_dispatcher> event_dispatcher);
+    backend_manager(std::shared_ptr<settings_store> settings_store, std::shared_ptr<backend_event_dispatcher> event_dispatcher);
     ~backend_manager();
 
     void shutdown();
@@ -111,8 +111,8 @@ class backend_manager
     bool destroy_python_vms();
     bool destroy_lua_vms(bool isShuttingDown = false);
 
-    bool create_python_vm(SettingsStore::plugin_t& plugin, std::function<void(SettingsStore::plugin_t)> callback);
-    bool create_lua_vm(SettingsStore::plugin_t& plugin, std::function<void(SettingsStore::plugin_t, lua_State*)> callback);
+    bool create_python_vm(settings_store::plugin_t& plugin, std::function<void(settings_store::plugin_t)> callback);
+    bool create_lua_vm(settings_store::plugin_t& plugin, std::function<void(settings_store::plugin_t, lua_State*)> callback);
 
     bool has_any_python_backends();
     bool has_any_lua_backends();
@@ -126,7 +126,7 @@ class backend_manager
 
     bool has_python_backend(std::string pluginName);
 
-    SettingsStore::PluginBackendType get_plugin_backend_type(std::string pluginName);
+    settings_store::backend_t get_plugin_backend_type(std::string pluginName);
 
     std::optional<std::shared_ptr<PythonThreadState>> python_thread_state_from_plugin_name(std::string pluginName);
     std::optional<lua_State*> lua_thread_state_from_plugin_name(std::string pluginName);
@@ -137,11 +137,11 @@ class backend_manager
     struct LuaThreadWrapper
     {
         lua_State* L;
-        SettingsStore::plugin_t plugin;
-        std::function<void(SettingsStore::plugin_t)> callback;
+        settings_store::plugin_t plugin;
+        std::function<void(settings_store::plugin_t)> callback;
         std::thread thread;
 
-        LuaThreadWrapper(lua_State* state, SettingsStore::plugin_t p, std::function<void(SettingsStore::plugin_t)> cb) : L(state), plugin(std::move(p)), callback(std::move(cb))
+        LuaThreadWrapper(lua_State* state, settings_store::plugin_t p, std::function<void(settings_store::plugin_t)> cb) : L(state), plugin(std::move(p)), callback(std::move(cb))
         {
         }
 
@@ -168,6 +168,6 @@ class backend_manager
 
     std::tuple<lua_State*, std::unique_ptr<std::mutex>>* Lua_FindEntry(lua_State* L);
 
-    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<settings_store> m_settings_store;
     std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
 };

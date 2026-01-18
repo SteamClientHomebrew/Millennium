@@ -58,7 +58,7 @@
 #ifndef _DEBUG
 #error "UPDATER_DEBUG_MODE can only be enabled in debug builds"
 #endif
-#define DEBUG_LOG(...) Logger.Log(__VA_ARGS__)
+#define DEBUG_LOG(...) logger.log(__VA_ARGS__)
 #else
 #define DEBUG_LOG(...) ((void)0)
 #endif
@@ -69,7 +69,7 @@ millennium_updater::millennium_updater() : m_thread_pool(std::make_shared<thread
 
 millennium_updater::~millennium_updater()
 {
-    Logger.Log("millennium_updater destructor, m_ipc_main use_count: {}", m_ipc_main ? m_ipc_main.use_count() : 0);
+    logger.log("millennium_updater destructor, m_ipc_main use_count: {}", m_ipc_main ? m_ipc_main.use_count() : 0);
 }
 
 std::string millennium_updater::parse_version(const std::string& version)
@@ -81,19 +81,19 @@ std::string millennium_updater::parse_version(const std::string& version)
 void millennium_updater::check_for_updates()
 {
 #ifdef DISTRO_NIX
-    Logger.Log("Skipping update check on Nix-based releases");
+    logger.log("Skipping update check on Nix-based releases");
     return;
 #endif
 
-    const bool checkForUpdates = CONFIG.GetNested("general.checkForMillenniumUpdates", true).get<bool>();
-    std::string channel = CONFIG.GetNested("general.millenniumUpdateChannel", "stable").get<std::string>();
+    const bool checkForUpdates = CONFIG.get("general.checkForMillenniumUpdates", true).get<bool>();
+    std::string channel = CONFIG.get("general.millenniumUpdateChannel", "stable").get<std::string>();
 
     if (!checkForUpdates) {
-        Logger.Warn("User has disabled update checking for Millennium.");
+        logger.warn("User has disabled update checking for Millennium.");
         return;
     }
 
-    Logger.Log("Checking for updates on {} channel...", channel);
+    logger.log("Checking for updates on {} channel...", channel);
     std::string response;
 
     try {
@@ -107,7 +107,7 @@ void millennium_updater::check_for_updates()
         nlohmann::json latest_release;
         for (auto& release : response_data) {
             if (!release.is_object()) {
-                Logger.Warn("Skipping invalid release data in API response.");
+                logger.warn("Skipping invalid release data in API response.");
                 continue;
             }
 
@@ -122,10 +122,10 @@ void millennium_updater::check_for_updates()
             }
         }
 
-        Logger.Log("Latest Millennium release: {}", latest_release.value("tag_name", "unknown"));
+        logger.log("Latest Millennium release: {}", latest_release.value("tag_name", "unknown"));
 
         if (latest_release.empty()) {
-            Logger.Warn("No stable releases found in GitHub API response.");
+            logger.warn("No stable releases found in GitHub API response.");
             return;
         }
 
@@ -157,12 +157,12 @@ void millennium_updater::check_for_updates()
 
             if (compare == -1) {
                 m_has_updates = true;
-                Logger.Log("New version available: " + m_latest_version["tag_name"].get<std::string>());
+                logger.log("New version available: " + m_latest_version["tag_name"].get<std::string>());
             } else if (compare == 1) {
-                Logger.Warn("Current version {} is newer than latest release {}.", current_version, latest_version);
+                logger.warn("Current version {} is newer than latest release {}.", current_version, latest_version);
                 m_has_updates = false;
             } else {
-                Logger.Log("Millennium is up to date.");
+                logger.log("Millennium is up to date.");
                 m_has_updates = false;
             }
         }
@@ -186,7 +186,7 @@ std::optional<nlohmann::json> millennium_updater::find_asset(const nlohmann::jso
 #elif __linux__
     platform_suffix = "linux-x86_64.tar.gz";
 #else
-    Logger.Error("Invalid platform, cannot find platform-specific assets.");
+    LOG_ERROR("Invalid platform, cannot find platform-specific assets.");
     return std::nullopt;
 #endif
 
@@ -225,7 +225,7 @@ json millennium_updater::has_any_updates()
 void millennium_updater::cleanup()
 {
 #ifdef _WIN32
-    std::filesystem::path steam_path = SystemIO::GetSteamPath();
+    std::filesystem::path steam_path = platform::GetSteamPath();
 
     std::error_code ec;
     std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
@@ -233,9 +233,9 @@ void millennium_updater::cleanup()
     if (std::filesystem::exists(temp_path, ec)) {
         std::filesystem::remove_all(temp_path, ec);
         if (ec) {
-            Logger.Warn("Failed to clean up temporary directory {}: {}", temp_path.string(), ec.message());
+            logger.warn("Failed to clean up temporary directory {}: {}", temp_path.string(), ec.message());
         } else {
-            Logger.Log("Cleaned up temporary directory: {}", temp_path.string());
+            logger.log("Cleaned up temporary directory: {}", temp_path.string());
         }
     }
 
@@ -248,17 +248,17 @@ void millennium_updater::cleanup()
 
             std::string filename = entry.path().filename().string();
             if (filename.size() > 8 && filename.substr(filename.size() - 4) == ".tmp" && filename.find("uuid") != std::string::npos) {
-                Logger.Log("Removing leftover temporary file: {}", entry.path().string());
+                logger.log("Removing leftover temporary file: {}", entry.path().string());
                 std::filesystem::remove(entry.path(), ec);
                 if (ec) {
-                    Logger.Warn("Failed to remove temporary file {}: {}", entry.path().string(), ec.message());
+                    logger.warn("Failed to remove temporary file {}: {}", entry.path().string(), ec.message());
                 }
             }
         }
     } catch (const std::filesystem::filesystem_error& fe) {
-        Logger.Warn("Filesystem error during directory iteration: {}", fe.what());
+        logger.warn("Filesystem error during directory iteration: {}", fe.what());
     } catch (const std::exception& e) {
-        Logger.Warn("Exception during directory iteration: {}", e.what());
+        logger.warn("Exception during directory iteration: {}", e.what());
     }
 #endif
 }
@@ -266,20 +266,20 @@ void millennium_updater::cleanup()
 void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std::vector<std::string> lockedFiles)
 {
 #ifdef _WIN32
-    std::filesystem::path steam_path = SystemIO::GetSteamPath();
+    std::filesystem::path steam_path = platform::GetSteamPath();
 
     if (steam_path.empty()) {
-        Logger.Warn("Steam path not found, skipping old Millennium cleanup.");
+        logger.warn("Steam path not found, skipping old Millennium cleanup.");
         return;
     }
 
     std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
-    Logger.Log("Using temporary directory for moving old Millennium files: {}", temp_path.string());
+    logger.log("Using temporary directory for moving old Millennium files: {}", temp_path.string());
 
     std::error_code ec;
     std::filesystem::create_directories(temp_path, ec);
     if (ec) {
-        Logger.Warn("Failed to create temporary directory for moving old Millennium files: {}", ec.message());
+        logger.warn("Failed to create temporary directory for moving old Millennium files: {}", ec.message());
         return;
     }
 
@@ -288,11 +288,11 @@ void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std:
     for (const auto& filename : lockedFiles) {
         std::filesystem::path source_path = steam_path / filename;
 
-        Logger.Log("Processing old file: {}", source_path.string());
+        logger.log("Processing old file: {}", source_path.string());
 
         if (!std::filesystem::exists(source_path, ec)) {
             if (ec) {
-                Logger.Warn("Error checking existence of {}: {}", source_path.string(), ec.message());
+                logger.warn("Error checking existence of {}: {}", source_path.string(), ec.message());
             }
             continue;
         }
@@ -304,15 +304,15 @@ void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std:
         std::filesystem::path source_wide = source_path.wstring();
         std::filesystem::path dest_wide = dest_path.wstring();
 
-        Logger.Log("Moving old Millennium file {} to temporary location {}", source_path.string(), dest_path.string());
+        logger.log("Moving old Millennium file {} to temporary location {}", source_path.string(), dest_path.string());
 
         if (!MoveFileExW(source_wide.c_str(), dest_wide.c_str(), MOVEFILE_REPLACE_EXISTING)) {
             const DWORD error = GetLastError();
-            Logger.Warn("Failed to move {} to temporary location. Error: {}", source_path.string(), error);
+            logger.warn("Failed to move {} to temporary location. Error: {}", source_path.string(), error);
             continue;
         }
 
-        Logger.Log("Successfully moved old file {} to {} and queued for deletion", source_path.string(), dest_path.string());
+        logger.log("Successfully moved old file {} to {} and queued for deletion", source_path.string(), dest_path.string());
         any_files_moved = true;
     }
 
@@ -320,11 +320,11 @@ void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std:
     if (!any_files_moved) {
         std::filesystem::remove_all(temp_path, ec);
         if (ec) {
-            Logger.Warn("Failed to clean up empty temporary directory {}: {}", temp_path.string(), ec.message());
+            logger.warn("Failed to clean up empty temporary directory {}: {}", temp_path.string(), ec.message());
         }
     }
 
-    Logger.Log("Old Millennium version cleanup completed. Files moved: {}", any_files_moved);
+    logger.log("Old Millennium version cleanup completed. Files moved: {}", any_files_moved);
 #endif
 }
 
@@ -339,7 +339,7 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
             std::error_code ec;
             std::filesystem::remove(tempFilePath, ec);
             if (ec) {
-                Logger.Warn("Failed to clean up temp file: {}", ec.message());
+                logger.warn("Failed to clean up temp file: {}", ec.message());
             }
         }
 #endif
@@ -369,7 +369,7 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
 
         DEBUG_LOG("[DEBUG] Dry run completed - no files modified");
 #else
-        Logger.Log("Downloading update to: {}", tempFilePath.string());
+        logger.log("Downloading update to: {}", tempFilePath.string());
         Http::DownloadWithProgress({ downloadUrl, downloadSize }, tempFilePath, [this](size_t downloaded, size_t total)
         {
             const double progress = (static_cast<double>(downloaded) / total) * 50.0;
@@ -377,11 +377,11 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
         });
 
 #ifdef _WIN32
-        auto lockedFiles = Util::GetLockedFiles(tempFilePath.string(), SystemIO::GetInstallPath().generic_string());
+        auto lockedFiles = Util::GetLockedFiles(tempFilePath.string(), platform::GetInstallPath().generic_string());
         win32_move_old_millennium_version(lockedFiles);
 #endif
-        Logger.Log("Extracting to {}", SystemIO::GetInstallPath().generic_string());
-        Util::ExtractZipArchive(tempFilePath.string(), SystemIO::GetInstallPath().generic_string(), [this](int current, int total, const char*)
+        logger.log("Extracting to {}", platform::get_install_path().generic_string());
+        Util::ExtractZipArchive(tempFilePath.string(), platform::get_install_path().generic_string(), [this](int current, int total, const char*)
         {
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;
             this->dispatch_progress_to_frontend(fmt::format("Processing file {}/{}", current, total), progress, false);
@@ -389,10 +389,10 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
 
         std::error_code ec;
         if (!std::filesystem::remove(tempFilePath, ec)) {
-            Logger.Warn("Failed to remove temp file: {}", ec.message());
+            logger.warn("Failed to remove temp file: {}", ec.message());
         }
 #endif
-        Logger.Log("Update completed successfully.");
+        logger.log("Update completed successfully.");
         this->dispatch_progress_to_frontend("Successfully updated Millennium!", 100.0f, true);
         update_state(true);
 
@@ -423,12 +423,12 @@ void millennium_updater::update(const std::string& downloadUrl, const size_t dow
         std::lock_guard<std::mutex> lock(m_state_mutex);
 
         if (m_update_in_progress) {
-            Logger.Warn("Update already in progress, aborting new update request.");
+            logger.warn("Update already in progress, aborting new update request.");
             return;
         }
 
         if (m_has_updated_millennium) {
-            Logger.Warn("Update already completed, restart pending. Aborting new update request.");
+            logger.warn("Update already completed, restart pending. Aborting new update request.");
             return;
         }
 
@@ -447,7 +447,7 @@ void millennium_updater::update(const std::string& downloadUrl, const size_t dow
     };
 
     if (background) {
-        Logger.Log("Starting Millennium update in background thread...");
+        logger.log("Starting Millennium update in background thread...");
         m_thread_pool->enqueue(start_update);
         return;
     }
@@ -456,7 +456,7 @@ void millennium_updater::update(const std::string& downloadUrl, const size_t dow
 
 void millennium_updater::shutdown()
 {
-    Logger.Log("Successfully shut down millennium_updater...");
+    logger.log("Successfully shut down millennium_updater...");
 }
 
 void millennium_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
@@ -468,21 +468,21 @@ void millennium_updater::win32_update_legacy_shims()
 {
 #ifdef _WIN32
     try {
-        if (!std::filesystem::exists(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH)) {
-            Logger.Log("No queued shim loader found...");
+        if (!std::filesystem::exists(platform::get_install_path() / SHIM_LOADER_QUEUED_PATH)) {
+            logger.log("No queued shim loader found...");
             return;
         }
 
-        Logger.Log("Updating shim module from cache...");
-        const auto oldShimPath = SystemIO::GetInstallPath() / SHIM_LOADER_PATH;
+        logger.log("Updating shim module from cache...");
+        const auto oldShimPath = platform::get_install_path() / SHIM_LOADER_PATH;
 
         if (std::filesystem::exists(oldShimPath)) {
-            const auto tempPath = SystemIO::GetInstallPath() / MILLENNIUM_UPDATER_LEGACY_SHIM_TEMP_DIR;
+            const auto tempPath = platform::get_install_path() / MILLENNIUM_UPDATER_LEGACY_SHIM_TEMP_DIR;
 
             std::error_code ec;
             std::filesystem::create_directories(tempPath, ec);
             if (ec) {
-                Logger.Warn("Failed to create temporary directory: {}", ec.message());
+                logger.warn("Failed to create temporary directory: {}", ec.message());
             }
 
             const auto destPath = tempPath / fmt::format("{}.uuid{}.tmp", SHIM_LOADER_PATH, GenerateUUID());
@@ -492,11 +492,11 @@ void millennium_updater::win32_update_legacy_shims()
                 throw std::runtime_error(fmt::format("Failed to move old shim to temp location. Error: {}", error));
             }
 
-            Logger.Log("Moved old shim to temporary location: {}", destPath.string());
+            logger.log("Moved old shim to temporary location: {}", destPath.string());
         }
 
-        std::filesystem::rename(SystemIO::GetInstallPath() / SHIM_LOADER_QUEUED_PATH, SystemIO::GetInstallPath() / SHIM_LOADER_PATH);
-        Logger.Log("Successfully updated {}!", SHIM_LOADER_PATH);
+        std::filesystem::rename(platform::get_install_path() / SHIM_LOADER_QUEUED_PATH, platform::get_install_path() / SHIM_LOADER_PATH);
+        logger.log("Successfully updated {}!", SHIM_LOADER_PATH);
 
     } catch (std::exception& e) {
         LOG_ERROR("Failed to update {}: {}", SHIM_LOADER_PATH, e.what());

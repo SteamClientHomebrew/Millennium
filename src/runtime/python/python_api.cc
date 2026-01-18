@@ -28,12 +28,13 @@
  * SOFTWARE.
  */
 
+#include "millennium/config.h"
 #include "millennium/life_cycle.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/millennium.h"
 #include "millennium/filesystem.h"
+#include "millennium/plugin_loader.h"
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
@@ -107,9 +108,20 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
 
-    std::shared_ptr<ipc_main> m_ipc_main = g_millennium->get_plugin_loader()->get_ipc_main();
-    const std::string script = m_ipc_main->compile_javascript_expression(pluginName, methodName, params);
-    return m_ipc_main->evaluate_javascript_expression(script).to_python();
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_python_vm();
+    if (!loader) {
+        LOG_ERROR("Failed to contact Millennium's plugin loader, it's likely shut down.");
+        return NULL;
+    }
+
+    std::shared_ptr<ipc_main> ipc = loader->get_ipc_main();
+    if (!ipc) {
+        LOG_ERROR("Failed to contact Millennium's IPC, it's likely shut down.");
+        return NULL;
+    }
+
+    const std::string script = ipc->compile_javascript_expression(pluginName, methodName, params);
+    return ipc->evaluate_javascript_expression(script).to_python();
 }
 
 PyObject* GetVersionInfo([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
@@ -119,12 +131,12 @@ PyObject* GetVersionInfo([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObj
 
 PyObject* GetSteamPath([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
-    return PyUnicode_FromString(SystemIO::GetSteamPath().string().c_str());
+    return PyUnicode_FromString(platform::get_steam_path().string().c_str());
 }
 
 PyObject* GetInstallPath([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
-    return PyUnicode_FromString(SystemIO::GetInstallPath().string().c_str());
+    return PyUnicode_FromString(platform::get_install_path().string().c_str());
 }
 
 PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
@@ -132,10 +144,22 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
     int moduleId;
 
     if (!PyArg_ParseTuple(args, "i", &moduleId)) {
-        return NULL;
+        return PyBool_FromLong(false);
     }
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_python_vm();
+    if (!loader) {
+        LOG_ERROR("Failed to contact Millennium's plugin loader, it's likely shut down.");
+        return PyBool_FromLong(false);
+    }
+
+    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    if (!backend) {
+        LOG_ERROR("Failed to contact Millennium's backend, it's likely shut down.");
+        return PyBool_FromLong(false);
+    }
+
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         return PyBool_FromLong(webkit_mgr->remove_browser_hook(static_cast<unsigned long long>(moduleId)));
     }
@@ -153,7 +177,19 @@ unsigned long long AddBrowserModule(PyObject* args, network_hook_ctl::TagTypes t
         return 0;
     }
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_python_vm();
+    if (!loader) {
+        LOG_ERROR("Failed to contact Millennium's plugin loader, it's likely shut down.");
+        return -1;
+    }
+
+    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    if (!backend) {
+        LOG_ERROR("Failed to contact Millennium's backend, it's likely shut down.");
+        return -1;
+    }
+
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         return webkit_mgr->add_browser_hook(moduleItem, regexSelector, type);
     }
@@ -184,7 +220,19 @@ PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    bool isEnabled = g_millennium->get_settings_store()->IsEnabledPlugin(pluginName);
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_python_vm();
+    if (!loader) {
+        LOG_ERROR("Failed to contact Millennium's plugin loader, it's likely shut down.");
+        return NULL;
+    }
+
+    std::shared_ptr<settings_store> settings = loader->get_settings_store();
+    if (!settings) {
+        LOG_ERROR("Failed to contact Millennium's settings store, it's likely shut down.");
+        return NULL;
+    }
+
+    bool isEnabled = settings->is_enabled(pluginName);
     return PyBool_FromLong(isEnabled);
 }
 
@@ -199,8 +247,20 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
     }
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
-    g_millennium->get_plugin_loader()->get_backend_event_dispatcher()->backend_loaded_event_hdlr(
-        { pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
+
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_python_vm();
+    if (!loader) {
+        LOG_ERROR("Failed to contact Millennium's plugin loader, it's likely shut down.");
+        return NULL;
+    }
+
+    std::shared_ptr<backend_event_dispatcher> backend_dispatcher = loader->get_backend_event_dispatcher();
+    if (!backend_dispatcher) {
+        LOG_ERROR("Failed to contact Millennium's backend event dispatcher, it's likely shut down.");
+        return NULL;
+    }
+
+    backend_dispatcher->backend_loaded_event_hdlr({ pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
     return PyBool_FromLong(true);
 }
 

@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "millennium/filesystem.h"
 #include "millennium/http_hooks.h"
 #include "millennium/auth.h"
 #include "millennium/core_ipc.h"
@@ -141,7 +142,7 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
 
         if (is_bin_file(fileType)) {
             try {
-                fileContent = Base64Encode(SystemIO::ReadFileBytesSync(localFilePath.string()));
+                fileContent = Base64Encode(platform::read_file_bytes(localFilePath.string()));
             } catch (const std::exception& error) {
                 LOG_ERROR("Failed to read file bytes from disk: {}", error.what());
                 bFailedRead = true; /** force fail even if the file exists. */
@@ -269,7 +270,7 @@ std::string network_hook_ctl::inject_into_document_head(const std::string& origi
 
 std::string network_hook_ctl::patch_document(const std::string& requestUrl, const std::string& original) const
 {
-    std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
+    std::string millenniumPreloadPath = platform::get_millennium_preload_path();
 
     processed_hooks hooks = apply_user_webkit_hooks(requestUrl);
     std::string shimContent = compile_preload_script(hooks, millenniumPreloadPath);
@@ -327,17 +328,17 @@ void network_hook_ctl::init()
 void network_hook_ctl::shutdown()
 {
     if (m_shutdown.exchange(true)) {
-        Logger.Log("HttpHookManager::shutdown() called more than once, ignoring.");
+        logger.log("HttpHookManager::shutdown() called more than once, ignoring.");
         return;
     }
 
     if (m_thread_pool) {
         m_thread_pool->shutdown();
     }
-    Logger.Log("Successfully shut down network_hook_ctl...");
+    logger.log("Successfully shut down network_hook_ctl...");
 }
 
-network_hook_ctl::network_hook_ctl(std::shared_ptr<SettingsStore> settings_store)
+network_hook_ctl::network_hook_ctl(std::shared_ptr<settings_store> settings_store)
     : m_settings_store(std::move(settings_store)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
       m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
 {

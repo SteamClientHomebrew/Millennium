@@ -31,6 +31,7 @@
 /**
  * this file is used to circularly reference stuff
  */
+class plugin_loader;
 class ipc_main;
 class millennium_backend;
 class library_updater;

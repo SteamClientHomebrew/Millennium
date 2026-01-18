@@ -33,7 +33,6 @@
 #include "millennium/fwd_decl.h"
 #include "millennium/http_hooks.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/filesystem.h"
 
 #include "head/library_updater.h"
 #include "head/theme_cfg.h"
@@ -49,9 +48,10 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
 {
   public:
     void init();
-    millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
+    millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<settings_store> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
     ~millennium_backend();
 
+    const char* get_millennium_updater_script();
     std::weak_ptr<theme_webkit_mgr> get_theme_webkit_mgr();
     int get_operating_system();
 
@@ -112,7 +112,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
 
   private:
     std::shared_ptr<ipc_main> m_ipc_main;
-    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<settings_store> m_settings_store;
     std::shared_ptr<millennium_updater> m_millennium_updater;
     std::shared_ptr<ThemeConfig> m_theme_config;
     std::shared_ptr<library_updater> m_updater;

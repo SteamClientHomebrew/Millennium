@@ -55,7 +55,7 @@ static int Plat_ShowMessageBox(const char* title, const char* message, Plat_Mess
      * try getting zenity from the system first, and fallback to using steams pinned version.
      * Both should work without issue, but if zenity is installed on the system its better to prefer it.
      */
-    const std::string steam_path = SystemIO::GetSteamPath().generic_string();
+    const std::string steam_path = platform::get_steam_path().generic_string();
     static char steam_msg_path[PATH_MAX];
     snprintf(steam_msg_path, sizeof(steam_msg_path), "%s%s", steam_path.c_str(), "ubuntu12_32/steam-runtime/i386/usr/bin/zenity");
 
@@ -87,7 +87,7 @@ static int Plat_ShowMessageBox(const char* title, const char* message, Plat_Mess
     strncat(cmd, message, sizeof(cmd) - strlen(cmd) - 1);
     strncat(cmd, "\"", sizeof(cmd) - strlen(cmd) - 1);
 
-    Logger.Log("executing command: {}", cmd);
+    logger.log("executing command: {}", cmd);
     int ret = system(cmd);
 
     if (level == MESSAGEBOX_QUESTION) return (ret == 0) ? 1 : 0; // 1=Yes/OK, 0=No/Cancel

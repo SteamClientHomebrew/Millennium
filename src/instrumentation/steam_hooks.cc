@@ -284,7 +284,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 {
     /** only wait on the first call. */
     if (!g_hasWaitedForBackends.load()) {
-        Logger.Log("[Plat_HookedCreateSimpleProcess] Waiting for backends to finish first load...");
+        logger.log("[Plat_HookedCreateSimpleProcess] Waiting for backends to finish first load...");
         std::unique_lock<std::mutex> lock(mtx_hasBackendsLoaded);
 
         /** if backends have already loaded before this function was called, we don't need to wait. */
@@ -292,7 +292,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
             cv_hasBackendsLoaded.wait(lock);
         }
 
-        Logger.Log("[Plat_HookedCreateSimpleProcess] All backends have loaded, proceeding with CEF start...");
+        logger.log("[Plat_HookedCreateSimpleProcess] All backends have loaded, proceeding with CEF start...");
         g_hasWaitedForBackends.store(true);
     }
 
@@ -418,7 +418,7 @@ VOID HandleSteamUnload()
     //     return false;
     // });
 
-    Logger.Warn("Terminate condition variable signaled, exiting...");
+    logger.warn("Terminate condition variable signaled, exiting...");
 }
 
 VOID HandleSteamLoad()
@@ -591,16 +591,16 @@ bool InitializeSteamHooks()
         return false;
     }
 
-    Logger.Log("Located {} at address {}", symbol, target);
+    logger.log("Located {} at address {}", symbol, target);
     const bool success = create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
-    Logger.Log("Hook install success?: {}", success);
+    logger.log("Hook install success?: {}", success);
     return true;
 }
 #endif
 
 void Plat_WaitForBackendLoad()
 {
-    Logger.Log("__backend_load was called!");
+    logger.log("__backend_load was called!");
     cv_hasBackendsLoaded.notify_all();
     atm_hasBackendsAlreadyLoaded.store(true);
 }

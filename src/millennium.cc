@@ -45,7 +45,7 @@ std::unique_ptr<millennium> g_millennium;
 
 millennium::millennium()
 {
-    m_settings_store = std::make_shared<SettingsStore>();
+    m_settings_store = std::make_shared<settings_store>();
     m_millennium_updater = std::make_shared<millennium_updater>();
     m_plugin_loader = std::make_shared<plugin_loader>(m_settings_store, m_millennium_updater);
 
@@ -59,26 +59,21 @@ std::shared_ptr<plugin_loader> millennium::get_plugin_loader()
     return this->m_plugin_loader;
 }
 
-std::shared_ptr<SettingsStore> millennium::get_settings_store()
-{
-    return this->m_settings_store;
-}
-
 void millennium::check_health()
 {
-    const auto cefRemoteDebugging = SystemIO::GetSteamPath() / ".cef-enable-remote-debugging";
+    const auto cefRemoteDebugging = platform::get_steam_path() / ".cef-enable-remote-debugging";
 #ifdef __linux__
     if (std::filesystem::exists(cefRemoteDebugging) && !std::filesystem::remove(cefRemoteDebugging)) {
         LOG_ERROR("Failed to remove '{}', likely non-fatal but manual intervention recommended.", cefRemoteDebugging.string());
     }
 #elif _WIN32
-    const auto steam_cfg = SystemIO::GetSteamPath() / "Steam.cfg";
+    const auto steam_cfg = platform::get_steam_path() / "Steam.cfg";
     const auto bootstrap_error = fmt::format("Millennium is incompatible with your {} config. Remove this file to allow Steam updates.", steam_cfg.string());
     const auto cef_error = fmt::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cefRemoteDebugging.string());
 
     if (std::filesystem::exists(steam_cfg)) {
         try {
-            const std::string steamConfig = SystemIO::ReadFileSync(steam_cfg.string());
+            const std::string steamConfig = platform::read_file(steam_cfg.string());
             static const std::vector<std::string> blackListedKeys = {
                 "BootStrapperInhibitAll",
                 "BootStrapperForceSelfUpdate",
@@ -94,7 +89,7 @@ void millennium::check_health()
                     break;
                 }
             }
-        } catch (const SystemIO::FileException&) {
+        } catch (const platform::file_exception&) {
             Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
             LOG_ERROR(bootstrap_error);
         }
@@ -117,24 +112,24 @@ void millennium::check_for_updates()
         m_millennium_updater->check_for_updates();
 
         const auto update = m_millennium_updater->has_any_updates();
-        const bool should_auto_install = CONFIG.GetNested("general.onMillenniumUpdate", OnMillenniumUpdate::AUTO_INSTALL) == OnMillenniumUpdate::AUTO_INSTALL;
+        const bool should_auto_install = CONFIG.get("general.onMillenniumUpdate", OnMillenniumUpdate::AUTO_INSTALL) == OnMillenniumUpdate::AUTO_INSTALL;
 
         if (!update["hasUpdate"]) {
-            Logger.Log("No Millennium updates available.");
+            logger.log("No Millennium updates available.");
             return;
         }
 
         const std::string new_version = update.value("newVersion", nlohmann::json::object()).value("tag_name", std::string("unknown"));
 
         if (!should_auto_install) {
-            Logger.Log("Millennium update available to version {}. Auto-install is disabled, please update manually.", new_version);
+            logger.log("Millennium update available to version {}. Auto-install is disabled, please update manually.", new_version);
             return;
         }
 
         const std::string download_url = update["platformRelease"]["browser_download_url"];
         const size_t download_size = update["platformRelease"]["size"].get<size_t>();
 
-        Logger.Log("Auto-updating Millennium to version {}...", new_version);
+        logger.log("Auto-updating Millennium to version {}...", new_version);
         m_millennium_updater->update(download_url, download_size, false); // TODO: Removed should forward flag, check if it works.
 
     } catch (const std::exception& e) {

@@ -29,8 +29,7 @@
  */
 
 #pragma once
-#include "millennium/filesystem.h"
-
+#include "millennium/config.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <optional>
@@ -46,8 +45,8 @@ struct Plugin
     nlohmann::basic_json<> data;
 };
 
-nlohmann::json FindAllPlugins(std::shared_ptr<SettingsStore> settings_store_ptr);
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<SettingsStore> settings_store_ptr);
+nlohmann::json FindAllPlugins(std::shared_ptr<settings_store> settings_store_ptr);
+std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<settings_store> settings_store_ptr);
 } // namespace Plugins
 
 namespace Themes

@@ -33,7 +33,7 @@
 #include "millennium/fwd_decl.h"
 #include "millennium/cdp_api.h"
 #include "millennium/thread_pool.h"
-#include "millennium/filesystem.h"
+#include "millennium/config.h"
 
 #include <atomic>
 #include <filesystem>
@@ -73,7 +73,7 @@ static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
 class network_hook_ctl
 {
   public:
-    network_hook_ctl(std::shared_ptr<SettingsStore> settings_store);
+    network_hook_ctl(std::shared_ptr<settings_store> settings_store);
     ~network_hook_ctl();
 
     void set_cdp_client(std::shared_ptr<cdp_client> cdp);
@@ -109,7 +109,7 @@ class network_hook_ctl
     }
 
   private:
-    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<settings_store> m_settings_store;
     std::shared_ptr<cdp_client> m_cdp;
 
     struct processed_hooks

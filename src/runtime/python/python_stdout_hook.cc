@@ -34,7 +34,8 @@
  * @note You shouldn't rely print() in python, use "PluginUtils" utils module, this is just a catch-all for any print() calls that may be made.
  */
 
-#include "millennium/millennium.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 #include <Python.h>
 #include <fmt/core.h>
@@ -51,7 +52,7 @@ extern "C" void PrintPythonMessage(std::string pname, const char* message)
 
     /** Dont process new lines or empty spaces (which seem to represent empty lines) */
     if (logMessage != "\n" && logMessage != " ") {
-        Logger.log_plugin_message(pname, message);
+        logger.log_plugin_message(pname, message);
         InfoToLogger(pname, message);
     }
 }
@@ -78,7 +79,18 @@ extern "C" void PrintPythonError(std::string pname, const char* message)
     if (!PyArg_ParseTuple(args, "s", &message)) {                                                                                                                                  \
         return NULL;                                                                                                                                                               \
     }                                                                                                                                                                              \
-    write_function(g_millennium->get_plugin_loader()->get_backend_manager()->get_plugin_name_from_thread_state(PyThreadState_Get()), message);                                     \
+    if (!message || message[0] == '\0') return NULL;                                                                                                                               \
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_python_vm();                                                                               \
+    if (!loader) {                                                                                                                                                                 \
+        LOG_ERROR("Failed to contact Millennium's plugin loader, it's likely shut down.");                                                                                         \
+        return NULL;                                                                                                                                                               \
+    }                                                                                                                                                                              \
+    std::shared_ptr<backend_manager> backend_manager = loader->get_backend_manager();                                                                                              \
+    if (!backend_manager) {                                                                                                                                                        \
+        LOG_ERROR("Failed to contact Millennium's backend manager, it's likely shut down.");                                                                                       \
+        return NULL;                                                                                                                                                               \
+    }                                                                                                                                                                              \
+    write_function(backend_manager->get_plugin_name_from_thread_state(PyThreadState_Get()), message);                                                                              \
     return Py_BuildValue("");
 
 /** Forward messages to respective logger type. */

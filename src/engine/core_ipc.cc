@@ -32,7 +32,6 @@
 #include "millennium/core_ipc.h"
 #include "millennium/encoding.h"
 #include "millennium/logger.h"
-#include "millennium/filesystem.h"
 
 #include <cstdint>
 #include <fmt/core.h>
@@ -212,14 +211,14 @@ ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
  */
 ipc_main::vm_call_result ipc_main::handle_plugin_server_method(const std::string& pluginName, const json& message)
 {
-    static const std::unordered_map<SettingsStore::PluginBackendType, std::function<vm_call_result(const std::string&, const json&)>> handlers = {
-        { SettingsStore::PluginBackendType::Python, std::bind(&ipc_main::python_evaluate, this, _1, _2) },
-        { SettingsStore::PluginBackendType::Lua,    std::bind(&ipc_main::lua_evaluate,    this, _1, _2) },
+    static const std::unordered_map<settings_store::backend_t, std::function<vm_call_result(const std::string&, const json&)>> handlers = {
+        { settings_store::backend_t::Python, std::bind(&ipc_main::python_evaluate, this, _1, _2) },
+        { settings_store::backend_t::Lua,    std::bind(&ipc_main::lua_evaluate,    this, _1, _2) },
     };
 
     auto backend = m_backend_manager.lock();
     if (!backend) {
-        Logger.Warn("HandlePluginServerMethod: backend_manager is no longer available");
+        logger.warn("HandlePluginServerMethod: backend_manager is no longer available");
         return { false, std::string("backend_manager unavailable") };
     }
 
@@ -286,28 +285,28 @@ json ipc_main::on_front_end_loaded(const json& call)
 {
     const std::string pluginName = call["data"]["pluginName"];
 
-    const auto plugins = m_settings_store->ParseAllPlugins();
-    auto plugin = std::find_if(plugins.begin(), plugins.end(), [&pluginName](const auto& p) { return p.pluginName == pluginName; });
+    const auto plugins = m_settings_store->get_all_plugins();
+    auto plugin = std::find_if(plugins.begin(), plugins.end(), [&pluginName](const auto& p) { return p.plugin_name == pluginName; });
 
     /** make sure the plugin has a backend that should be called. */
-    if (plugin != plugins.end() && plugin->pluginJson.value("useBackend", true)) {
-        Logger.Log("Delegating frontend load for plugin: {}", pluginName);
+    if (plugin != plugins.end() && plugin->plugin_json.value("useBackend", true)) {
+        logger.log("Delegating frontend load for plugin: {}", pluginName);
 
-        static const std::unordered_map<SettingsStore::PluginBackendType, std::function<void(const std::string&)>> handlers = {
-            { SettingsStore::PluginBackendType::Python, std::bind(&ipc_main::python_call_frontend_loaded, this, _1) },
-            { SettingsStore::PluginBackendType::Lua,    std::bind(&ipc_main::lua_call_frontend_loaded,    this, _1) }
+        static const std::unordered_map<settings_store::backend_t, std::function<void(const std::string&)>> handlers = {
+            { settings_store::backend_t::Python, std::bind(&ipc_main::python_call_frontend_loaded, this, _1) },
+            { settings_store::backend_t::Lua,    std::bind(&ipc_main::lua_call_frontend_loaded,    this, _1) }
         };
 
         auto backend = m_backend_manager.lock();
         if (!backend) {
-            Logger.Warn("Delegating frontend load for plugin: {} but backend_manager not available", pluginName);
+            logger.warn("Delegating frontend load for plugin: {} but backend_manager not available", pluginName);
         } else {
             const auto backendType = backend->get_plugin_backend_type(pluginName);
             auto it = handlers.find(backendType);
             if (it != handlers.end()) {
                 it->second(pluginName);
             } else {
-                Logger.Warn("Unknown backend type for plugin '{}'", pluginName);
+                logger.warn("Unknown backend type for plugin '{}'", pluginName);
             }
         }
     }

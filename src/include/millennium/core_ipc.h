@@ -33,7 +33,7 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/cdp_api.h"
 #include "millennium/logger.h"
-#include "millennium/filesystem.h"
+#include "millennium/config.h"
 #include "millennium/types.h"
 
 #include <Python.h>
@@ -45,7 +45,7 @@ class ipc_main
   public:
     using javascript_parameter = std::variant<bool, uint64_t, int64_t, double, std::string>;
 
-    ipc_main(std::shared_ptr<millennium_backend> millennium_backend, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<cdp_client> cdp_client,
+    ipc_main(std::shared_ptr<millennium_backend> millennium_backend, std::shared_ptr<settings_store> settings_store, std::shared_ptr<cdp_client> cdp_client,
              std::shared_ptr<backend_manager> manager)
         : m_settings_store(std::move(settings_store)), m_cdp(std::move(cdp_client)), m_backend_manager(manager), m_millennium_backend(std::move(millennium_backend))
     {
@@ -53,7 +53,7 @@ class ipc_main
 
     ~ipc_main()
     {
-        Logger.Log("Successfully shut down ipc_main...");
+        logger.log("Successfully shut down ipc_main...");
     }
 
     enum ipc_method
@@ -111,7 +111,7 @@ class ipc_main
     vm_call_result handle_plugin_server_method(const std::string& pluginName, const json& message);
     vm_call_result handle_core_server_method(const json& call);
 
-    std::shared_ptr<SettingsStore> m_settings_store;
+    std::shared_ptr<settings_store> m_settings_store;
     std::shared_ptr<cdp_client> m_cdp;
     std::weak_ptr<backend_manager> m_backend_manager;
     std::weak_ptr<millennium_backend> m_millennium_backend;

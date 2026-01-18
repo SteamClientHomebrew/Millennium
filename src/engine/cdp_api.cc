@@ -138,7 +138,7 @@ void cdp_client::shutdown()
         m_event_callbacks.clear();
     }
 
-    Logger.Log("Successfully shut down cdp_client...");
+    logger.log("Successfully shut down cdp_client...");
 }
 
 /**

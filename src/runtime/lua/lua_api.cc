@@ -29,11 +29,12 @@
  */
 
 #include "head/webkit.h"
+#include "millennium/config.h"
+#include "millennium/plugin_loader.h"
 #include "millennium/life_cycle.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/millennium.h"
 #include "millennium/semver.h"
 #include "millennium/filesystem.h"
 #include <exception>
@@ -133,9 +134,18 @@ int Lua_CallFrontendMethod(lua_State* L)
         return 1;
     }
 
-    std::shared_ptr<ipc_main> m_ipc_main = g_millennium->get_plugin_loader()->get_ipc_main();
-    const std::string script = m_ipc_main->compile_javascript_expression(pluginName, methodName, params);
-    return m_ipc_main->evaluate_javascript_expression(script).to_lua(L);
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_lua_vm(L);
+    if (!loader) {
+        return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
+    }
+
+    std::shared_ptr<ipc_main> ipc = loader->get_ipc_main();
+    if (!ipc) {
+        return luaL_error(L, "Failed to contact Millennium's IPC, it's likely shut down.");
+    }
+
+    const std::string script = ipc->compile_javascript_expression(pluginName, methodName, params);
+    return ipc->evaluate_javascript_expression(script).to_lua(L);
 }
 
 int Lua_GetVersionInfo(lua_State* L)
@@ -147,7 +157,7 @@ int Lua_GetVersionInfo(lua_State* L)
 int Lua_GetSteamPath(lua_State* L)
 {
     try {
-        const std::string steamPath = SystemIO::GetSteamPath().string();
+        const std::string steamPath = platform::get_steam_path().string();
         lua_pushstring(L, steamPath.c_str());
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to get Steam path: {}", e.what());
@@ -159,7 +169,7 @@ int Lua_GetSteamPath(lua_State* L)
 int Lua_GetInstallPath(lua_State* L)
 {
     try {
-        const std::string installPath = SystemIO::GetInstallPath().string();
+        const std::string installPath = platform::get_install_path().string();
         lua_pushstring(L, installPath.c_str());
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to get install path: {}", e.what());
@@ -172,7 +182,17 @@ int Lua_RemoveBrowserModule(lua_State* L)
 {
     const lua_Integer hookId = luaL_checkinteger(L, 1);
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_lua_vm(L);
+    if (!loader) {
+        return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
+    }
+
+    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    if (!backend) {
+        return luaL_error(L, "Failed to contact Millennium's backend, it's likely shut down.");
+    }
+
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         const bool success = webkit_mgr->remove_browser_hook(static_cast<unsigned long long>(hookId));
         lua_pushboolean(L, success);
@@ -188,7 +208,17 @@ unsigned long long Lua_AddBrowserModule(lua_State* L, network_hook_ctl::TagTypes
     const char* content = luaL_checkstring(L, 1);
     const char* pattern = luaL_optstring(L, 2, ".*");
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = g_millennium->get_plugin_loader()->get_millennium_backend()->get_theme_webkit_mgr();
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_lua_vm(L);
+    if (!loader) {
+        return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
+    }
+
+    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    if (!backend) {
+        return luaL_error(L, "Failed to contact Millennium's backend it's likely shut down.");
+    }
+
+    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         return webkit_mgr->add_browser_hook(content, pattern, type);
     }
@@ -219,8 +249,18 @@ int Lua_IsPluginEnable(lua_State* L)
         return 1;
     }
 
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_lua_vm(L);
+    if (!loader) {
+        return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
+    }
+
+    std::shared_ptr<settings_store> settings = loader->get_settings_store();
+    if (!settings) {
+        return luaL_error(L, "Failed to contact Millennium's settings store, it's likely shut down.");
+    }
+
     try {
-        const bool isEnabled = g_millennium->get_settings_store()->IsEnabledPlugin(pluginName);
+        const bool isEnabled = settings->is_enabled(pluginName);
         lua_pushboolean(L, isEnabled);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to check plugin status for '{}': {}", pluginName, e.what());
@@ -237,9 +277,18 @@ int Lua_EmitReadyMessage(lua_State* L)
         return 1;
     }
 
+    std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_lua_vm(L);
+    if (!loader) {
+        return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
+    }
+
+    std::shared_ptr<backend_event_dispatcher> backend_dispatcher = loader->get_backend_event_dispatcher();
+    if (!backend_dispatcher) {
+        return luaL_error(L, "Failed to contact Millennium's backend event dispatcher, it's likely shut down.");
+    }
+
     try {
-        g_millennium->get_plugin_loader()->get_backend_event_dispatcher()->backend_loaded_event_hdlr(
-            { pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
+        backend_dispatcher->backend_loaded_event_hdlr({ pluginName, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
         lua_pushboolean(L, 1);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to emit ready message for plugin '{}': {}", pluginName, e.what());

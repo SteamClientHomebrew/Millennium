@@ -65,7 +65,7 @@ void RemoveFromLdPreload()
 
     std::string ldPreloadStr(ldPreload);
     std::string millenniumPath = GetEnv("MILLENNIUM_RUNTIME_PATH");
-    Logger.Log("Removing Millennium from LD_PRELOAD: {}", millenniumPath);
+    logger.log("Removing Millennium from LD_PRELOAD: {}", millenniumPath);
 
     size_t pos = 0;
     while ((pos = ldPreloadStr.find(millenniumPath, pos)) != std::string::npos) {
@@ -94,8 +94,8 @@ void RemoveFromLdPreload()
 int Deprecated_HookedMain(int argc, char** argv, char** envp)
 {
     RemoveFromLdPreload();
-    Logger.Log("Hooked main() with PID: {}", getpid());
-    Logger.Log("Loading python libraries from {}", LIBPYTHON_RUNTIME_PATH);
+    logger.log("Hooked main() with PID: {}", getpid());
+    logger.log("Loading python libraries from {}", LIBPYTHON_RUNTIME_PATH);
 
     if (!dlopen(LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
         LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
@@ -104,12 +104,12 @@ int Deprecated_HookedMain(int argc, char** argv, char** envp)
     /** Start Millennium on a new thread to prevent I/O blocking */
     g_millenniumThread = std::make_unique<std::thread>(Posix_AttachMillennium);
     int steam_main = fnMainOriginal(argc, argv, envp);
-    Logger.Log("Hooked Steam entry returned {}", steam_main);
+    logger.log("Hooked Steam entry returned {}", steam_main);
 
     g_shouldTerminateMillennium->flag.store(true);
     g_millenniumThread->join();
 
-    Logger.Log("Shutting down Millennium...");
+    logger.log("Shutting down Millennium...");
     return steam_main;
 }
 
@@ -142,10 +142,10 @@ extern "C" int __libc_start_main(int (*main)(int, char**, char**), int argc, cha
         return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
     }
 
-    Logger.Log("Hooked __libc_start_main() {} pid: {}", argv[0], getpid());
+    logger.log("Hooked __libc_start_main() {} pid: {}", argv[0], getpid());
 
 #ifdef __linux__
-    Logger.Log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
+    logger.log("Loaded Millennium on {}, system architecture {}", GetLinuxDistro(), GetSystemArchitecture());
 #endif
     return orig(Deprecated_HookedMain, argc, argv, init, fini, rtld_fini, stack_end);
 }

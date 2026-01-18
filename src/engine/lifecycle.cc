@@ -88,16 +88,16 @@ std::string backend_event_dispatcher::str_get_successful_backends()
  */
 bool backend_event_dispatcher::are_all_backends_ready()
 {
-    const std::size_t pluginCount = m_settings_store->GetEnabledBackends().size();
+    const std::size_t pluginCount = m_settings_store->get_enabled_backends().size();
 
-    Logger.Log("\033[1;35mEnabled Plugins: {}, Loaded Plugins : {}\033[0m", pluginCount, emittedPlugins.size());
+    logger.log("\033[1;35mEnabled Plugins: {}, Loaded Plugins : {}\033[0m", pluginCount, emittedPlugins.size());
 
     if (this->emittedPlugins.size() == pluginCount) {
         const std::string failedBackends = str_get_failed_backends();
         const std::string successfulBackends = str_get_successful_backends();
 
         auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
-        Logger.Log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), failedBackends),
+        logger.log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), failedBackends),
                    fmt::format(fmt::fg(fmt::color::lime_green), successfulBackends));
 
         return true;
@@ -133,13 +133,13 @@ void backend_event_dispatcher::update()
             lock.unlock();
 
             for (auto& cb : callbacksCopy) {
-                Logger.Log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&cb);
+                logger.log("\033[1;35mInvoking & removing on load event @ {}\033[0m", (void*)&cb);
                 try {
                     cb();
                 } catch (const std::exception& e) {
-                    Logger.Warn("Exception during callback: {}", e.what());
+                    logger.warn("Exception during callback: {}", e.what());
                 } catch (...) {
-                    Logger.Warn("Unknown exception during callback");
+                    logger.warn("Unknown exception during callback");
                 }
             }
             is_ready_for_cb = true;
@@ -157,9 +157,9 @@ void backend_event_dispatcher::update()
 void backend_event_dispatcher::backend_loaded_event_hdlr(plugin_t plugin)
 {
     if (plugin.event == backend_ready_event::BACKEND_LOAD_FAILED) {
-        Logger.Warn("Failed to load '{}'", plugin.pluginName);
+        logger.warn("Failed to load '{}'", plugin.pluginName);
     } else if (plugin.event == backend_ready_event::BACKEND_LOAD_SUCCESS) {
-        Logger.Log("Successfully loaded '{}'", plugin.pluginName);
+        logger.log("Successfully loaded '{}'", plugin.pluginName);
     }
 
     /** Check if its already emitted */
@@ -187,12 +187,12 @@ void backend_event_dispatcher::backend_unloaded_event_hdlr(plugin_t plugin, bool
 
         if (it != this->emittedPlugins.end()) {
             this->emittedPlugins.erase(it, this->emittedPlugins.end());
-            Logger.Log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
+            logger.log("\033[1;35mSuccessfully unloaded {}\033[0m", plugin.pluginName);
         }
     }
 
     if (!isShuttingDown) {
-        Logger.Log("Running status dispatcher...");
+        logger.log("Running status dispatcher...");
         this->update();
     }
 }
@@ -213,7 +213,7 @@ void backend_event_dispatcher::reset()
  */
 void backend_event_dispatcher::on_all_backends_ready(event_cb callback)
 {
-    Logger.Log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
+    logger.log("\033[1;35mRegistering for load event @ {}\033[0m", (void*)&callback);
     {
         std::unique_lock<std::mutex> lock(listenersMutex);
         listeners[ON_BACKEND_READY_EVENT].push_back(callback);

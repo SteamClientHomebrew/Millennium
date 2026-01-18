@@ -29,6 +29,7 @@
  */
 
 #include "millennium/ffi_binder.h"
+#include "millennium/filesystem.h"
 #include "millennium/http_hooks.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 #include "millennium/plugin_webkit_store.h"
@@ -37,7 +38,7 @@
 #include "millennium/url_parser.h"
 #include <fmt/format.h>
 
-webkit_world_mgr::webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
+webkit_world_mgr::webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<settings_store> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
                                    std::shared_ptr<plugin_webkit_store> plugin_webkit_store)
     : m_client(std::move(client)), m_settings_store(std::move(settings_store)), m_network_hook_ctl(std::move(network_hook_ctl)),
       m_plugin_webkit_store(std::move(plugin_webkit_store))
@@ -55,7 +56,7 @@ webkit_world_mgr::~webkit_world_mgr()
     m_client->off("Target.targetInfoChanged");
     m_client->off("Runtime.executionContextCreated");
 
-    Logger.Log("Successfully shut down webkit_world_mgr...");
+    logger.log("Successfully shut down webkit_world_mgr...");
 }
 
 void webkit_world_mgr::initialize()
@@ -247,7 +248,7 @@ import('{ftpPath}')
 
     const std::string m_ftp_url = m_network_hook_ctl->get_ftp_url();
     const std::vector<plugin_webkit_store::item> webkit_items = m_plugin_webkit_store->get();
-    const std::vector<SettingsStore::plugin_t> plist = m_settings_store->GetEnabledPlugins();
+    const std::vector<settings_store::plugin_t> plist = m_settings_store->get_enabled_plugins();
 
     /**
      * Separate isolated and non-isolated webkit modules
@@ -267,10 +268,10 @@ import('{ftpPath}')
         return acc;
     });
 
-    const std::string plugins = std::accumulate(plist.begin(), plist.end(), std::string{}, [](auto acc, auto& p) { return acc + fmt::format("'{}',", p.pluginName); });
+    const std::string plugins = std::accumulate(plist.begin(), plist.end(), std::string{}, [](auto acc, auto& p) { return acc + fmt::format("'{}',", p.plugin_name); });
     const std::string location = GET_GITHUB_URL_FROM_HERE();
     const std::string token = GetAuthToken();
-    const std::string ftp_path = m_ftp_url + SystemIO::GetMillenniumPreloadPath();
+    const std::string ftp_path = m_ftp_url + platform::get_millennium_preload_path();
     const std::string ftp_base = m_ftp_url + GetScrambledApiPathToken();
 
     return fmt::format(                         //
@@ -305,7 +306,7 @@ void webkit_world_mgr::expose_millennium_to_ctx(int context_id, const std::strin
         if (can_reload) {
             /** reload page to apply CSP bypass and run script */
             m_client->send_host("Page.reload", json::object(), session_id).get();
-            Logger.Log("webkit_world_mgr: reloaded page for context {} (top-level target)", context_id);
+            logger.log("webkit_world_mgr: reloaded page for context {} (top-level target)", context_id);
         } else {
             /** nested target - can't reload, just evaluate immediately (CSP bypass already applied) */
             const json evaluate_params = {
@@ -313,7 +314,7 @@ void webkit_world_mgr::expose_millennium_to_ctx(int context_id, const std::strin
                 { "expression", this->compile_api_shim() }
             };
             m_client->send_host("Runtime.evaluate", evaluate_params, session_id).get();
-            Logger.Log("webkit_world_mgr: evaluated script in context {} (nested target, no reload)", context_id);
+            logger.log("webkit_world_mgr: evaluated script in context {} (nested target, no reload)", context_id);
         }
 
     } catch (const std::exception& e) {

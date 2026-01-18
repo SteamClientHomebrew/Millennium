@@ -91,8 +91,8 @@ BOOL AreFilesIdentical(LPCWSTR path1, LPCWSTR path2)
  */
 VOID Win32_AttachWebHelperHook(VOID)
 {
-    const auto hookPath = SystemIO::GetSteamPath() / "millennium.hhx64.dll";
-    const auto targetPath = SystemIO::GetSteamPath() / "bin" / "cef" / "cef.win7x64" / "version.dll";
+    const auto hookPath = platform::get_steam_path() / "millennium.hhx64.dll";
+    const auto targetPath = platform::get_steam_path() / "bin" / "cef" / "cef.win7x64" / "version.dll";
 
     if (!std::filesystem::exists(hookPath)) {
         Plat_ShowMessageBox("Millennium Error", "Millennium webhelper hook is missing. Please reinstall Millennium.", MESSAGEBOX_ERROR);
@@ -120,8 +120,8 @@ VOID Win32_AttachWebHelperHook(VOID)
 
 VOID Win32_MoveVersionHook(VOID)
 {
-    const auto versionHookPath = SystemIO::GetSteamPath() / "version.dll";
-    const auto targetPath = SystemIO::GetSteamPath() / "millennium-legacy.version.dll";
+    const auto versionHookPath = platform::get_steam_path() / "version.dll";
+    const auto targetPath = platform::get_steam_path() / "millennium-legacy.version.dll";
 
     if (!std::filesystem::exists(versionHookPath)) {
         return;

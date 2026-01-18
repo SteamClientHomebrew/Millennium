@@ -43,7 +43,6 @@
 #include "millennium/logger.h"
 #include "millennium/plugin_webkit_store.h"
 #include "millennium/auth.h"
-#include "nlohmann/json_fwd.hpp"
 #include <memory>
 #include <mutex>
 #include <fmt/ranges.h>
@@ -59,10 +58,11 @@ extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_has
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-plugin_loader::plugin_loader(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<millennium_updater> millennium_updater)
+plugin_loader::plugin_loader(std::shared_ptr<settings_store> settings_store, std::shared_ptr<millennium_updater> millennium_updater)
     : m_thread_pool(std::make_unique<thread_pool>(2)), m_settings_store_ptr(std::move(settings_store)), m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr),
       m_millennium_updater(std::move(millennium_updater)), has_loaded_core_plugin(false)
 {
+    logger.log("Initializing plugin_loader...");
     this->init();
 }
 
@@ -73,7 +73,7 @@ plugin_loader::~plugin_loader()
 
 void plugin_loader::shutdown()
 {
-    Logger.Log("Successfully shut down plugin_loader...");
+    logger.log("Successfully shut down plugin_loader...");
 }
 
 void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
@@ -91,7 +91,7 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
     m_thread_pool->enqueue([this]()
     {
-        Logger.Log("Starting webkit world manager...");
+        logger.log("Starting webkit world manager...");
 
         this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_settings_store_ptr, m_ipc_main);
         this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_settings_store_ptr, m_network_hook_ctl, m_plugin_webkit_store);
@@ -99,7 +99,7 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
     m_thread_pool->enqueue([this]()
     {
-        Logger.Log("Connected to Steam devtools protocol...");
+        logger.log("Connected to Steam devtools protocol...");
         this->init_devtools();
     });
 }
@@ -115,10 +115,10 @@ void plugin_loader::init()
     m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
     m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);
     m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_settings_store_ptr);
-    m_plugin_ptr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->ParseAllPlugins());
-    m_enabledPluginsPtr = std::make_shared<std::vector<SettingsStore::plugin_t>>(m_settings_store_ptr->GetEnabledBackends());
+    m_plugin_ptr = std::make_shared<std::vector<settings_store::plugin_t>>(m_settings_store_ptr->get_all_plugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<settings_store::plugin_t>>(m_settings_store_ptr->get_enabled_backends());
 
-    m_settings_store_ptr->InitializeSettingsStore();
+    m_settings_store_ptr->init();
 
     /** setup steam hooks once backends have loaded */
     m_backend_event_dispatcher->on_all_backends_ready(Plat_WaitForBackendLoad);
@@ -162,7 +162,7 @@ void plugin_loader::init_devtools()
 
     m_thread_pool->enqueue([this]()
     {
-        Logger.Log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_socket_con_time).count());
+        logger.log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_socket_con_time).count());
         this->inject_frontend_shims(true /** reload SharedJSContext */);
     });
 }
@@ -179,24 +179,24 @@ std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr
 
 void plugin_loader::setup_webkit_shims()
 {
-    Logger.Log("Injecting webkit shims...");
+    logger.log("Injecting webkit shims...");
     m_plugin_webkit_store->clear();
 
-    const auto plugins = this->m_settings_store_ptr->ParseAllPlugins();
+    const auto plugins = this->m_settings_store_ptr->get_all_plugins();
 
     for (auto& plugin : plugins) {
-        const auto abs_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
-        const auto should_isolate = plugin.pluginJson.value("webkitApiVersion", "1.0.0") == "2.0.0";
+        const auto abs_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
+        const auto should_isolate = plugin.plugin_json.value("webkitApiVersion", "1.0.0") == "2.0.0";
 
-        if (this->m_settings_store_ptr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(abs_path)) {
-            m_plugin_webkit_store->add({ plugin.pluginName, abs_path, should_isolate });
+        if (this->m_settings_store_ptr->is_enabled(plugin.plugin_name) && std::filesystem::exists(abs_path)) {
+            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path, should_isolate });
         }
     }
 }
 
 std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::string>& modules)
 {
-    const std::string preload_path = SystemIO::GetMillenniumPreloadPath();
+    const std::string preload_path = platform::get_millennium_preload_path();
     const std::string token = GetAuthToken();
     const std::string ftp_path = m_network_hook_ctl->get_ftp_url() + preload_path;
     const std::string module_list = fmt::format(R"("{}")", fmt::join(modules, R"(", ")"));
@@ -207,14 +207,14 @@ std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::
 std::string plugin_loader::cdp_generate_shim_module()
 {
     std::vector<std::string> script_list;
-    std::vector<SettingsStore::plugin_t> plugins = m_settings_store_ptr->ParseAllPlugins();
+    std::vector<settings_store::plugin_t> plugins = m_settings_store_ptr->get_all_plugins();
 
     for (auto& plugin : plugins) {
-        if (!m_settings_store_ptr->IsEnabledPlugin(plugin.pluginName)) {
+        if (!m_settings_store_ptr->is_enabled(plugin.plugin_name)) {
             continue;
         }
 
-        const auto frontEndAbs = plugin.frontendAbsoluteDirectory.generic_string();
+        const auto frontEndAbs = plugin.plugin_frontend_dir.generic_string();
         script_list.push_back(UrlFromPath(m_network_hook_ctl->get_ftp_url(), frontEndAbs));
     }
 
@@ -240,7 +240,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
             { "name", ffi_constants::binding_name }
         };
         self->m_cdp->send("Runtime.addBinding", add_binding_params).get();
-        Logger.Log("Frontend notifier finished!");
+        logger.log("Frontend notifier finished!");
     });
 
     /**
@@ -284,7 +284,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
      */
     m_backend_event_dispatcher->on_all_backends_ready([insert_millennium, reload, insert_ipc, self]()
     {
-        Logger.Log("Notifying frontend of backend load...");
+        logger.log("Notifying frontend of backend load...");
         self->m_backend_initializer->compat_restore_shared_js_context();
 
         (*insert_millennium)();
@@ -296,13 +296,13 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
 void plugin_loader::start_plugin_frontends()
 {
     if (g_shouldTerminateMillennium->flag.load()) {
-        Logger.Log("Terminating frontend thread pool...");
+        logger.log("Terminating frontend thread pool...");
         return;
     }
 
     std::shared_ptr<SocketHelpers> helper = std::make_shared<SocketHelpers>();
 
-    Logger.Log("Starting frontend socket...");
+    logger.log("Starting frontend socket...");
     std::shared_ptr<std::thread> socket_thread = this->connect_steam_socket(helper);
 
     if (socket_thread->joinable()) {
@@ -310,17 +310,17 @@ void plugin_loader::start_plugin_frontends()
     }
 
     if (g_shouldTerminateMillennium->flag.load()) {
-        Logger.Log("Terminating frontend thread pool...");
+        logger.log("Terminating frontend thread pool...");
         return;
     }
 
-    Logger.Warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
+    logger.warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
 
 #ifdef _WIN32
     auto start = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start < std::chrono::seconds(10)) {
         if (ab_shouldDisconnectFrontend.load()) {
-            Logger.Log("Steam is shutting down, terminating frontend thread pool...");
+            logger.log("Steam is shutting down, terminating frontend thread pool...");
             return;
         }
 
@@ -328,7 +328,7 @@ void plugin_loader::start_plugin_frontends()
     }
 #endif
 
-    Logger.Warn("Reconnecting to Steam...");
+    logger.warn("Reconnecting to Steam...");
     this->start_plugin_frontends();
 }
 
@@ -339,36 +339,37 @@ void plugin_loader::log_enabled_plugins()
     statuses.reserve(m_plugin_ptr->size());
 
     for (const auto& plugin : *m_plugin_ptr) {
-        statuses.push_back(fmt::format("{}: {}", plugin.pluginName, m_settings_store_ptr->IsEnabledPlugin(plugin.pluginName) ? "enabled" : "disabled"));
+        statuses.push_back(fmt::format("{}: {}", plugin.plugin_name, m_settings_store_ptr->is_enabled(plugin.plugin_name) ? "enabled" : "disabled"));
     }
 
-    Logger.Log("Plugins: {{ {} }}", fmt::join(statuses, ", "));
+    logger.log("Plugins: {{ {} }}", fmt::join(statuses, ", "));
 }
 
 void plugin_loader::start_plugin_backends()
 {
-    m_backend_initializer->start_package_manager();
+    std::weak_ptr<plugin_loader> weak_plugin_loader = weak_from_this();
+    m_backend_initializer->start_package_manager(weak_plugin_loader);
     this->log_enabled_plugins();
 
-    auto weak_init = std::weak_ptr(m_backend_initializer);
+    std::weak_ptr<backend_initializer> weak_init = std::weak_ptr(m_backend_initializer);
 
     for (auto& plugin : *m_enabledPluginsPtr) {
-        if (m_backend_manager->is_any_backend_running(plugin.pluginName)) {
+        if (m_backend_manager->is_any_backend_running(plugin.plugin_name)) {
             continue;
         }
 
-        if (plugin.backendType == SettingsStore::PluginBackendType::Lua) {
-            m_backend_manager->create_lua_vm(plugin, [weak_init](auto plugin, lua_State* L)
+        if (plugin.backend_type == settings_store::backend_t::Lua) {
+            m_backend_manager->create_lua_vm(plugin, [weak_init, weak_plugin_loader](auto plugin, lua_State* L)
             {
                 if (auto init = weak_init.lock()) {
-                    init->lua_backend_started_cb(plugin, L);
+                    init->lua_backend_started_cb(plugin, weak_plugin_loader, L);
                 }
             });
         } else {
-            m_backend_manager->create_python_vm(plugin, [weak_init](auto plugin)
+            m_backend_manager->create_python_vm(plugin, [weak_init, weak_plugin_loader](auto plugin)
             {
                 if (auto init = weak_init.lock()) {
-                    init->python_backend_started_cb(plugin);
+                    init->python_backend_started_cb(plugin, weak_plugin_loader);
                 }
             });
         }
@@ -385,8 +386,8 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
     std::vector<std::string> plugins_to_disable;
 
     for (const auto& [name, enabled] : plugins) {
-        m_settings_store_ptr->TogglePluginStatus(name.c_str(), enabled);
-        Logger.Log("requested to {} plugin [{}]", enabled ? "enable" : "disable", name);
+        m_settings_store_ptr->set_plugin_enabled(name.c_str(), enabled);
+        logger.log("requested to {} plugin [{}]", enabled ? "enable" : "disable", name);
 
         if (enabled) {
             should_start_backends = true;
@@ -423,4 +424,9 @@ std::shared_ptr<backend_event_dispatcher> plugin_loader::get_backend_event_dispa
 std::shared_ptr<millennium_backend> plugin_loader::get_millennium_backend()
 {
     return this->m_millennium_backend;
+}
+
+std::shared_ptr<settings_store> plugin_loader::get_settings_store()
+{
+    return this->m_settings_store_ptr;
 }

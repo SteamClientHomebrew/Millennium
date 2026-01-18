@@ -198,7 +198,7 @@ void ipc_main::lua_call_frontend_loaded(std::string pluginName)
 
     lua_getfield(L, -1, "on_frontend_loaded");
     if (!lua_isfunction(L, -1)) {
-        Logger.Warn("on_frontend_loaded not found or not a function for plugin: {}", pluginName);
+        logger.warn("on_frontend_loaded not found or not a function for plugin: {}", pluginName);
         lua_pop(L, 2);
         shared_backend_mgr->lua_unlock(L);
         return;

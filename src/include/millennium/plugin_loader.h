@@ -40,7 +40,7 @@
 #include "millennium/http_hooks.h"
 #include "millennium/life_cycle.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/filesystem.h"
+#include "millennium/config.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 #include "millennium/plugin_webkit_store.h"
 
@@ -56,7 +56,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
   public:
     using plugin_state = std::vector<std::pair<std::string, bool>>;
 
-    plugin_loader(std::shared_ptr<SettingsStore> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
+    plugin_loader(std::shared_ptr<settings_store> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
     ~plugin_loader();
 
     void start_plugin_backends();
@@ -72,6 +72,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::shared_ptr<backend_manager> get_backend_manager();
     std::shared_ptr<backend_event_dispatcher> get_backend_event_dispatcher();
     std::shared_ptr<millennium_backend> get_millennium_backend();
+    std::shared_ptr<settings_store> get_settings_store();
 
   private:
     void init();
@@ -87,8 +88,8 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::string cdp_generate_shim_module();
 
     std::unique_ptr<thread_pool> m_thread_pool;
-    std::shared_ptr<SettingsStore> m_settings_store_ptr;
-    std::shared_ptr<std::vector<SettingsStore::plugin_t>> m_plugin_ptr, m_enabledPluginsPtr;
+    std::shared_ptr<settings_store> m_settings_store_ptr;
+    std::shared_ptr<std::vector<settings_store::plugin_t>> m_plugin_ptr, m_enabledPluginsPtr;
 
     std::shared_ptr<millennium_backend> m_millennium_backend;
     std::shared_ptr<millennium_updater> m_millennium_updater;

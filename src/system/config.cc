@@ -29,7 +29,7 @@
  */
 
 #include "millennium/logger.h"
-#include "millennium/filesystem.h"
+#include "millennium/config.h"
 #include "millennium/environment.h"
 #include "millennium/plat_msg.h"
 
@@ -41,19 +41,19 @@
 
 #include "head/default_cfg.h"
 
-SettingsStore::SettingsStore()
+settings_store::settings_store()
 {
     const auto path = std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
 
     if (std::filesystem::exists(path)) {
-        Logger.Log("Found legacy config file at {}, migrating to new config system...", path.string());
+        logger.log("Found legacy config file at {}, migrating to new config system...", path.string());
 
         mINI::INIFile iniFile(path.string());
         mINI::INIStructure ini;
         iniFile.read(ini);
 
         if (ini["Settings"].has("enabled_plugins")) {
-            Logger.Log("Migrating enabled plugins from legacy config...");
+            logger.log("Migrating enabled plugins from legacy config...");
 
             std::string token;
             std::vector<std::string> enabledPlugins;
@@ -64,17 +64,17 @@ SettingsStore::SettingsStore()
                     continue; /** no need to migrate it, it doesn't exist anymore */
                 }
 
-                Logger.Log(" - Migrated plugin: {}", token);
+                logger.log(" - Migrated plugin: {}", token);
                 enabledPlugins.push_back(token);
             }
 
-            Logger.Log("Successfully migrated {} enabled plugins from legacy config.", enabledPlugins.size());
-            CONFIG.SetNested("plugins.enabledPlugins", enabledPlugins);
+            logger.log("Successfully migrated {} enabled plugins from legacy config.", enabledPlugins.size());
+            CONFIG.set("plugins.enabledPlugins", enabledPlugins);
         } else {
-            Logger.Log("No enabled plugins found in legacy config.");
+            logger.log("No enabled plugins found in legacy config.");
         }
 
-        Logger.Warn("Removing legacy config file at {}, it is no longer needed.", path.string());
+        logger.warn("Removing legacy config file at {}, it is no longer needed.", path.string());
         std::filesystem::remove(path);
     }
 }
@@ -96,16 +96,16 @@ std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
 
 nlohmann::json ResetEnabledPlugins()
 {
-    CONFIG.SetNested("plugins.enabledPlugins", std::vector<std::string>{});
+    CONFIG.set("plugins.enabledPlugins", std::vector<std::string>{});
     return {};
 }
 
 /**
  * @brief Initialize and optionally fix the settings store.
  */
-int SettingsStore::InitializeSettingsStore()
+int settings_store::init()
 {
-    nlohmann::json enabledPlugins = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
+    nlohmann::json enabledPlugins = CONFIG.get("plugins.enabledPlugins", std::vector<std::string>{});
 
     if (!enabledPlugins.is_array()) {
         enabledPlugins = ResetEnabledPlugins();
@@ -126,14 +126,11 @@ int SettingsStore::InitializeSettingsStore()
  * @param pluginName The name of the plugin.
  * @param enabled The status of the plugin.
  */
-bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
+bool settings_store::set_plugin_enabled(std::string pluginName, bool enabled)
 {
-    Logger.Log("Opting to {} {}", enabled ? "enable" : "disable", pluginName);
+    logger.log("Opting to {} {}", enabled ? "enable" : "disable", pluginName);
+    nlohmann::json enabledPluginsJson = CONFIG.get("plugins.enabledPlugins", std::vector<std::string>{});
 
-    // Get the current enabled plugins as JSON array
-    nlohmann::json enabledPluginsJson = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
-
-    // Convert to vector for easier manipulation
     std::vector<std::string> enabledPlugins;
     if (enabledPluginsJson.is_array()) {
         for (const auto& plugin : enabledPluginsJson) {
@@ -143,21 +140,18 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
         }
     }
 
-    /** Enable the target plugin */
     if (enabled) {
         if (std::find(enabledPlugins.begin(), enabledPlugins.end(), pluginName) == enabledPlugins.end()) {
             enabledPlugins.push_back(pluginName);
         }
-    }
-    /** Disable the target plugin */
-    else {
+    } else {
         auto it = std::find(enabledPlugins.begin(), enabledPlugins.end(), pluginName);
         if (it != enabledPlugins.end()) {
             enabledPlugins.erase(it);
         }
     }
 
-    CONFIG.SetNested("plugins.enabledPlugins", enabledPlugins);
+    CONFIG.set("plugins.enabledPlugins", enabledPlugins);
     return true;
 }
 
@@ -165,9 +159,9 @@ bool SettingsStore::TogglePluginStatus(std::string pluginName, bool enabled)
  * @brief Check if a plugin is enabled.
  * @param plugin_name The name of the plugin.
  */
-bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
+bool settings_store::is_enabled(std::string plugin_name)
 {
-    nlohmann::json enabledPluginsJson = CONFIG.GetNested("plugins.enabledPlugins", std::vector<std::string>{});
+    nlohmann::json enabledPluginsJson = CONFIG.get("plugins.enabledPlugins", std::vector<std::string>{});
 
     if (!enabledPluginsJson.is_array()) {
         return false;
@@ -187,7 +181,7 @@ bool SettingsStore::IsEnabledPlugin(std::string plugin_name)
  * @param json The JSON object to lint.
  * @param pluginName The name of the plugin.
  */
-void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
+void settings_store::lint_plugin(nlohmann::json json, std::string pluginName)
 {
     /** Find a total list of all plugin.json keys in `./plugin-schema.json` */
     const std::map<std::string, bool> pluginFields = {
@@ -203,7 +197,7 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
             if (required) {
                 throw std::runtime_error(fmt::format("plugin configuration must contain '{}'", property));
             } else {
-                Logger.Warn("plugin '{}' doesn't contain a property field '{}' in '{}'", pluginName, property, SettingsStore::pluginConfigFile);
+                logger.warn("plugin '{}' doesn't contain a property field '{}' in '{}'", pluginName, property, settings_store::plugin_config_file);
             }
         }
     }
@@ -216,29 +210,28 @@ void SettingsStore::LintPluginData(nlohmann::json json, std::string pluginName)
  * @param entry The directory entry for the plugin.
  * @return SettingsStore::PluginTypeSchema The plugin data.
  */
-SettingsStore::plugin_t SettingsStore::GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry)
+settings_store::plugin_t settings_store::get_plugin_internal_metadata(nlohmann::json json, std::filesystem::directory_entry entry)
 {
-    SettingsStore::plugin_t plugin;
-    const std::string pluginDirName = entry.path().filename().string();
-
     /** Check if the plugin json contains all the required fields */
-    LintPluginData(json, pluginDirName);
+    lint_plugin(json, entry.path().filename().string());
 
-    plugin.backendType = json.value("backendType", "python") == "lua" ? Lua : Python;
-    plugin.pluginJson = json;
-    plugin.pluginName = json["name"];
-    plugin.pluginBaseDirectory = entry.path();
-    plugin.backendAbsoluteDirectory = entry.path() / json.value("backend", "backend") / (plugin.backendType == Lua ? "main.lua" : "main.py");
-    plugin.frontendAbsoluteDirectory = entry.path() / ".millennium" / "Dist" / "index.js";
-    plugin.webkitAbsolutePath = entry.path() / ".millennium" / "Dist" / "webkit.js";
-    plugin.backendType = json.value("backendType", "python") == "lua" ? Lua : Python;
+    const auto backend_type = json.value("backendType", "python") == "lua" ? backend_t::Lua : backend_t::Python;
+
+    settings_store::plugin_t plugin;
+    plugin.plugin_json = json;
+    plugin.plugin_name = json["name"];
+    plugin.plugin_base_dir = entry.path();
+    plugin.plugin_backend_dir = entry.path() / json.value("backend", "backend") / (backend_type == backend_t::Lua ? "main.lua" : "main.py");
+    plugin.plugin_frontend_dir = entry.path() / ".millennium" / "Dist" / "index.js";
+    plugin.plugin_webkit_path = entry.path() / ".millennium" / "Dist" / "webkit.js";
+    plugin.backend_type = backend_type;
 
     return plugin;
 }
 
-std::vector<SettingsStore::plugin_t> SettingsStore::ParseAllPlugins()
+std::vector<settings_store::plugin_t> settings_store::get_all_plugins()
 {
-    std::vector<SettingsStore::plugin_t> plugins;
+    std::vector<settings_store::plugin_t> plugins;
     const auto plugin_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
 
     try {
@@ -255,18 +248,18 @@ std::vector<SettingsStore::plugin_t> SettingsStore::ParseAllPlugins()
                 continue;
             }
 
-            const auto pluginConfiguration = entry.path() / SettingsStore::pluginConfigFile;
+            const auto pluginConfiguration = entry.path() / settings_store::plugin_config_file;
 
             if (!std::filesystem::exists(pluginConfiguration)) {
                 continue;
             }
 
             try {
-                const auto pluginJson = SystemIO::ReadJsonSync(pluginConfiguration.string());
-                const auto pluginData = GetPluginInternalData(pluginJson, entry);
+                const auto pluginJson = platform::read_file_json(pluginConfiguration.string());
+                const auto pluginData = get_plugin_internal_metadata(pluginJson, entry);
 
                 plugins.push_back(pluginData);
-            } catch (SystemIO::FileException& exception) {
+            } catch (platform::file_exception& exception) {
                 LOG_ERROR("An error occurred reading plugin '{}', exception: {}", entry.path().string(), exception.what());
             } catch (std::exception& exception) {
                 LOG_ERROR("An error occurred parsing plugin '{}', exception: {}", entry.path().string(), exception.what());
@@ -282,13 +275,13 @@ std::vector<SettingsStore::plugin_t> SettingsStore::ParseAllPlugins()
 /**
  * @brief Get all the enabled plugins from the plugin list.
  */
-std::vector<SettingsStore::plugin_t> SettingsStore::GetEnabledPlugins()
+std::vector<settings_store::plugin_t> settings_store::get_enabled_plugins()
 {
-    const auto allPlugins = this->ParseAllPlugins();
-    std::vector<SettingsStore::plugin_t> enabledPlugins;
+    const auto allPlugins = this->get_all_plugins();
+    std::vector<settings_store::plugin_t> enabledPlugins;
 
     for (auto& plugin : allPlugins) {
-        if (this->IsEnabledPlugin(plugin.pluginName)) {
+        if (this->is_enabled(plugin.plugin_name)) {
             enabledPlugins.push_back(plugin);
         }
     }
@@ -299,13 +292,13 @@ std::vector<SettingsStore::plugin_t> SettingsStore::GetEnabledPlugins()
 /**
  * @brief Get the names of all enabled plugins.
  */
-std::vector<std::string> SettingsStore::GetEnabledPluginNames()
+std::vector<std::string> settings_store::get_enabled_plugin_names()
 {
     std::vector<std::string> enabledPlugins;
-    std::vector<SettingsStore::plugin_t> plugins = this->GetEnabledPlugins();
+    std::vector<settings_store::plugin_t> plugins = this->get_enabled_plugins();
 
     /** only add the plugin name. */
-    std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.pluginName; });
+    std::transform(plugins.begin(), plugins.end(), std::back_inserter(enabledPlugins), [](auto& plugin) { return plugin.plugin_name; });
     return enabledPlugins;
 }
 
@@ -315,13 +308,13 @@ std::vector<std::string> SettingsStore::GetEnabledPluginNames()
  * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false.
  * Not all enabled plugins have backends.
  */
-std::vector<SettingsStore::plugin_t> SettingsStore::GetEnabledBackends()
+std::vector<settings_store::plugin_t> settings_store::get_enabled_backends()
 {
-    const auto allPlugins = this->ParseAllPlugins();
-    std::vector<SettingsStore::plugin_t> enabledBackends;
+    const auto allPlugins = this->get_all_plugins();
+    std::vector<settings_store::plugin_t> enabledBackends;
 
     for (auto& plugin : allPlugins) {
-        if (this->IsEnabledPlugin(plugin.pluginName) && plugin.pluginJson.value("useBackend", true)) {
+        if (this->is_enabled(plugin.plugin_name) && plugin.plugin_json.value("useBackend", true)) {
             enabledBackends.push_back(plugin);
         }
     }
@@ -329,13 +322,7 @@ std::vector<SettingsStore::plugin_t> SettingsStore::GetEnabledBackends()
     return enabledBackends;
 }
 
-ConfigManager& ConfigManager::Instance()
-{
-    static ConfigManager instance;
-    return instance;
-}
-
-nlohmann::json ConfigManager::GetNested(const std::string& path, const nlohmann::json& def)
+nlohmann::json config_manager::get(const std::string& path, const nlohmann::json& def)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     const nlohmann::json* current = &_data;
@@ -353,7 +340,7 @@ nlohmann::json ConfigManager::GetNested(const std::string& path, const nlohmann:
     return (*current)[last_key];
 }
 
-void ConfigManager::SetNested(const std::string& path, const nlohmann::json& value, bool skipPropagation)
+void config_manager::set(const std::string& path, const nlohmann::json& value, bool skipPropagation)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     nlohmann::json* current = &_data;
@@ -379,41 +366,30 @@ void ConfigManager::SetNested(const std::string& path, const nlohmann::json& val
 
     if (old_value != value) {
         (*current)[last_key] = value;
-        NotifyListeners(path, old_value, value);
-        if (!skipPropagation) SaveToFile();
+        notify_listeners(path, old_value, value);
+        if (!skipPropagation) save_to_disk();
     }
 }
 
-void ConfigManager::Delete(const std::string& key)
-{
-    std::lock_guard<std::recursive_mutex> lock(_mutex);
-    if (_data.contains(key)) {
-        nlohmann::json old_value = _data[key];
-        _data.erase(key);
-        NotifyListeners(key, old_value, nullptr);
-        SaveToFile();
-    }
-}
-
-void ConfigManager::RegisterListener(Listener listener)
+void config_manager::register_listener(listener listener)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     _listeners.push_back(listener);
 }
 
-void ConfigManager::UnregisterListener(Listener listener)
+void config_manager::unregister_listener(listener _listener)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     _listeners.erase(std::remove_if(_listeners.begin(), _listeners.end(),
-                                    [&](const Listener& l)
+                                    [&](const listener& l)
     {
-        return l.target_type() == listener.target_type() && l.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>() ==
-                                                                listener.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>();
+        return l.target_type() == _listener.target_type() && l.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>() ==
+                                                                 _listener.target<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>();
     }),
                      _listeners.end());
 }
 
-void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json& incoming, const std::string& path)
+void config_manager::merge_default_config(nlohmann::json& current, const nlohmann::json& incoming, const std::string& path)
 {
     for (auto& [key, value] : incoming.items()) {
         std::string fullKey = path.empty() ? key : path + "." + key;
@@ -421,24 +397,24 @@ void ConfigManager::MergeDefaults(nlohmann::json& current, const nlohmann::json&
             if (!current.contains(key) || !current[key].is_object()) {
                 current[key] = nlohmann::json::object();
             }
-            MergeDefaults(current[key], value, fullKey);
+            merge_default_config(current[key], value, fullKey);
         } else {
             if (!current.contains(key)) {
                 current[key] = value;
-                NotifyListeners(fullKey, nullptr, value);
+                notify_listeners(fullKey, nullptr, value);
             }
         }
     }
 }
 
-void ConfigManager::LoadFromFile()
+void config_manager::load_from_disk()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
     /** Clean up any stale temp file from interrupted writes */
     std::string tempFilename = _filename + ".tmp";
     if (std::filesystem::exists(tempFilename)) {
-        Logger.Warn("Found stale temp config file, removing: {}", tempFilename);
+        logger.warn("Found stale temp config file, removing: {}", tempFilename);
         std::filesystem::remove(tempFilename);
     }
 
@@ -449,23 +425,23 @@ void ConfigManager::LoadFromFile()
             try {
                 file >> _data;
             } catch (...) {
-                Logger.Warn("Invalid JSON in config file: {}", _filename);
+                logger.warn("Invalid JSON in config file: {}", _filename);
                 Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(),
                                     MESSAGEBOX_WARNING);
                 _data = nlohmann::json::object();
             }
         } else {
-            Logger.Warn("Failed to open config file: {}", _filename);
+            logger.warn("Failed to open config file: {}", _filename);
             Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
             _data = nlohmann::json::object();
         }
     }
 
-    MergeDefaults(_data, _defaults, "");
-    SaveToFile();
+    merge_default_config(_data, _defaults, "");
+    save_to_disk();
 }
 
-void ConfigManager::SaveToFile()
+void config_manager::save_to_disk()
 {
     // Serialize all file I/O operations to prevent concurrent writes
     std::lock_guard<std::mutex> save_lock(_save_mutex);
@@ -505,13 +481,13 @@ void ConfigManager::SaveToFile()
     }
 }
 
-void ConfigManager::SetDefault(const std::string& key, const nlohmann::json& value)
+void config_manager::set_default_config(const std::string& key, const nlohmann::json& value)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     _defaults[key] = value;
 }
 
-nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, bool skipPropagation)
+nlohmann::json config_manager::set_all(const nlohmann::json& newConfig, bool skipPropagation)
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
 
@@ -521,11 +497,11 @@ nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, bool skipP
 
         if (!skipPropagation) {
             for (auto& [k, v] : newConfig.items()) {
-                NotifyListeners(k, old_data.value(k, nlohmann::json(nullptr)), v);
+                notify_listeners(k, old_data.value(k, nlohmann::json(nullptr)), v);
             }
         }
 
-        SaveToFile();
+        save_to_disk();
         return _data;
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to set entire config: {}", e.what());
@@ -533,7 +509,7 @@ nlohmann::json ConfigManager::SetAll(const nlohmann::json& newConfig, bool skipP
     }
 }
 
-nlohmann::json ConfigManager::GetAll()
+nlohmann::json config_manager::get_all()
 {
     std::lock_guard<std::recursive_mutex> lock(_mutex);
     nlohmann::json result = _defaults;
@@ -542,13 +518,13 @@ nlohmann::json ConfigManager::GetAll()
     return result;
 }
 
-ConfigManager::ConfigManager()
+config_manager::config_manager()
 {
     _filename = GetEnv("MILLENNIUM__CONFIG_PATH") + "/config.json";
     _defaults = GetDefaultConfig();
 
     if (!std::filesystem::exists(_filename)) {
-        Logger.Warn("Could not find config file at: {}, attempting to create it...", _filename);
+        logger.warn("Could not find config file at: {}, attempting to create it...", _filename);
         std::filesystem::create_directories(std::filesystem::path(_filename).parent_path());
 
         {
@@ -558,20 +534,20 @@ ConfigManager::ConfigManager()
         }
     }
 
-    LoadFromFile();
+    load_from_disk();
 }
 
-ConfigManager::~ConfigManager()
+config_manager::~config_manager()
 {
-    SaveToFile();
+    save_to_disk();
 }
 
-void ConfigManager::NotifyListeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value)
+void config_manager::notify_listeners(const std::string& key, const nlohmann::json& old_value, const nlohmann::json& new_value)
 {
     std::string key_copy = key;
     nlohmann::json old_value_copy = old_value;
     nlohmann::json new_value_copy = new_value;
-    std::vector<Listener> listeners_copy;
+    std::vector<listener> listeners_copy;
 
     {
         std::lock_guard<std::recursive_mutex> lock(_mutex);

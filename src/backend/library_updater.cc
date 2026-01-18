@@ -33,7 +33,6 @@
 #include "head/plugin_mgr.h"
 #include "head/theme_mgr.h"
 
-#include "millennium/filesystem.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"
@@ -44,13 +43,13 @@ library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_ba
 {
 }
 
-void library_updater::init(std::shared_ptr<SettingsStore> settings_store_ptr)
+void library_updater::init(std::shared_ptr<settings_store> settings_store_ptr)
 {
     theme_updater = std::make_shared<theme_installer>(settings_store_ptr, shared_from_this());
     plugin_updater = std::make_shared<plugin_installer>(m_millennium_backend, settings_store_ptr, shared_from_this());
 
-    if (!CONFIG.GetNested("general.checkForPluginAndThemeUpdates").get<bool>()) {
-        Logger.Warn("User has disabled update checking for plugins and themes.");
+    if (!CONFIG.get("general.checkForPluginAndThemeUpdates").get<bool>()) {
+        logger.warn("User has disabled update checking for plugins and themes.");
         return;
     }
 
@@ -82,7 +81,7 @@ std::optional<json> library_updater::check_for_updates(bool force)
 {
     try {
         if (!force && cached_updates.has_value()) {
-            Logger.Log("Using cached updates.");
+            logger.log("Using cached updates.");
             return cached_updates;
         }
 
@@ -96,7 +95,7 @@ std::optional<json> library_updater::check_for_updates(bool force)
         if (themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty()) request_body["themes"] = themes["post_body"];
 
         if (request_body.empty()) {
-            Logger.Log("No themes or plugins to update!");
+            logger.log("No themes or plugins to update!");
             return json{
                 { "themes",  {} },
                 { "plugins", {} }
@@ -114,7 +113,7 @@ std::optional<json> library_updater::check_for_updates(bool force)
         m_has_checked_for_updates = true;
         return resp;
     } catch (const std::exception& e) {
-        Logger.Log(std::string("An error occurred while checking for updates: ") + e.what());
+        logger.log(std::string("An error occurred while checking for updates: ") + e.what());
         return json{
             { "themes", { { "error", e.what() } } }
         };
@@ -123,10 +122,10 @@ std::optional<json> library_updater::check_for_updates(bool force)
 
 std::string library_updater::re_check_for_updates()
 {
-    Logger.Log("Resyncing updates...");
+    logger.log("Resyncing updates...");
     cached_updates = check_for_updates(true);
     m_has_checked_for_updates = true;
-    Logger.Log("Resync complete.");
+    logger.log("Resync complete.");
     return cached_updates.has_value() ? cached_updates->dump() : "{}";
 }
 

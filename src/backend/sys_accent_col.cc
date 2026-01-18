@@ -29,9 +29,9 @@
  */
 
 #include "head/sys_accent_col.h"
-#include "millennium/logger.h"
 #include "fmt/format.h"
 #ifdef _WIN32
+#include "millennium/logger.h"
 #include <windows.h>
 #endif
 
@@ -77,7 +77,7 @@ AccentColors GetAccentColors()
     auto GetColorTypeFromName = reinterpret_cast<GetImmersiveColorTypeFromName_t>((void*)GetProcAddress(hUxTheme, ((LPSTR)((ULONG_PTR)((WORD)(96))))));
 
     if (!GetColorSet || !GetColorFromSet || !GetColorTypeFromName) {
-        Logger.Warn("Failed to get function addresses from " UX_THEME_DLL);
+        logger.warn("Failed to get function addresses from " UX_THEME_DLL);
         FreeLibrary(hUxTheme);
         return colors;
     }
