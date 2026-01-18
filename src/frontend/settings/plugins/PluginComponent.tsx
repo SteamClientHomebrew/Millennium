@@ -28,16 +28,15 @@
  * SOFTWARE.
  */
 
-import { DialogButton, Field, IconsModule, Menu, MenuItem, showContextMenu, Toggle } from '@steambrew/client';
+import { Field, IconsModule, Menu, MenuItem, showContextMenu, Toggle } from '@steambrew/client';
+import { Component } from 'react';
+import { IconButton } from '../../components/IconButton';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';
+import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
+import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
 import { PluginComponent } from '../../types';
 import { Utils } from '../../utils';
-import { Component } from 'react';
 import { PyUninstallPlugin } from '../../utils/ffi';
-import { IconButton } from '../../components/IconButton';
-import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
-import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
-import { getPluginConfigurableStatus } from '../../utils/globals';
 import { locale } from '../../utils/localization-manager';
 
 interface PluginComponentProps {
@@ -151,6 +150,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 					<div className="MillenniumPlugins_PluginLabel">
 						{plugin.data.common_name}
 						{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
+						{plugin.data.browser_extension && <div className="MillenniumItem_BrowserExtension">Browser Extension</div>}
 					</div>
 				}
 				description={plugin?.data?.description}

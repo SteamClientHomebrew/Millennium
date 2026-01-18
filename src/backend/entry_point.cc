@@ -76,6 +76,7 @@ void millennium_backend::init()
 
     m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, m_network_hook_ctl);
     m_theme_config = std::make_shared<ThemeConfig>(m_settings_store, m_theme_webkit_mgr);
+    m_extension_mgr = std::make_shared<browser_extension_manager>();
 }
 
 millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<settings_store> settings_store,
@@ -116,6 +117,7 @@ millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network
         register_function(Core_GetPluginBackendLogs),
         register_function(Core_UpdateMillennium),
         register_function(Core_HasPendingMillenniumUpdateRestart),
+        register_function(Core_GetBrowserExtensions),
     };
 }
 
@@ -205,7 +207,7 @@ builtin_payload millennium_backend::Core_FindAllThemes(const builtin_payload&)
 }
 builtin_payload millennium_backend::Core_FindAllPlugins(const builtin_payload&)
 {
-    return Millennium::Plugins::FindAllPlugins(m_settings_store);
+    return Millennium::Plugins::FindAllPlugins(m_settings_store, m_extension_mgr);
 }
 builtin_payload millennium_backend::Core_GetEnvironmentVar(const builtin_payload& args)
 {
@@ -390,6 +392,14 @@ builtin_payload millennium_backend::Core_HasPendingMillenniumUpdateRestart(const
     return m_millennium_updater->is_pending_restart();
 }
 
+builtin_payload millennium_backend::Core_GetBrowserExtensions(const builtin_payload&)
+{
+    if (!m_extension_mgr) {
+        return nlohmann::json::array();
+    }
+    return m_extension_mgr->get_all_extensions();
+}
+
 builtin_payload millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)
 {
     // Skip plugin settings parser as it's not applicable
@@ -412,4 +422,11 @@ builtin_payload millennium_backend::ipc_message_hdlr(const std::string& function
 void millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
     m_ipc_main = std::move(ipc_main);
+}
+
+void millennium_backend::initialize_extension_mgr() const
+{
+    if (m_ipc_main && m_extension_mgr) {
+        m_extension_mgr->initialize(m_ipc_main->get_cdp_client());
+    }
 }

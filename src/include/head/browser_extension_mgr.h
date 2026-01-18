@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -29,30 +29,27 @@
  */
 
 #pragma once
-#include "millennium/config.h"
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
-#include <optional>
-#include "browser_extension_mgr.h"
 
-namespace Millennium
-{
-namespace Plugins
-{
-struct Plugin
-{
-    std::string path;
-    bool enabled;
-    nlohmann::basic_json<> data;
+#include "millennium/cdp_api.h"
+#include <nlohmann/json.hpp>
+#include <memory>
+#include <string>
+
+class browser_extension_manager {
+public:
+    browser_extension_manager() = default;
+    ~browser_extension_manager();
+
+    void initialize(const std::shared_ptr<cdp_client>& cdp);
+    nlohmann::json get_all_extensions();
+    void target_destroyed(const nlohmann::json& params);
+
+private:
+    std::shared_ptr<cdp_client> m_cdp;
+    std::string m_target_id;
+    std::string m_session_id;
+
+    bool create_target();
+    std::string create_hidden_window() const;
+    bool attach_to_target();
 };
-
-nlohmann::json FindAllPlugins(std::shared_ptr<settings_store> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr = nullptr);
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<settings_store> settings_store_ptr);
-} // namespace Plugins
-
-namespace Themes
-{
-bool IsValid(const std::string& theme_native_name);
-nlohmann::ordered_json FindAllThemes();
-} // namespace Themes
-} // namespace Millennium

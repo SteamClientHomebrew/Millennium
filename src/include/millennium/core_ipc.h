@@ -103,6 +103,8 @@ class ipc_main
     const std::string compile_javascript_expression(std::string plugin, std::string methodName, std::vector<javascript_parameter> fnParams);
     json process_message(json payload);
 
+    std::shared_ptr<cdp_client> get_cdp_client() const { return m_cdp; }
+
   private:
     json call_server_method(const json& call);
     json on_front_end_loaded(const json& call);
