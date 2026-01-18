@@ -69,9 +69,9 @@ class backend_initializer
     void start_package_manager(std::weak_ptr<plugin_loader> plugin_loader);
 
   private:
-    void append_sys_path_modules(std::vector<std::filesystem::path> sitePackages);
-    void add_site_packages_directory(std::filesystem::path customPath);
-    void invoke_plugin_main_fn(PyObject* global_dict, std::string pluginName);
+    void python_append_sys_path_modules(std::vector<std::filesystem::path> sitePackages);
+    void python_add_site_packages_directory(std::filesystem::path customPath);
+    void python_invoke_plugin_main_fn(PyObject* global_dict, std::string pluginName);
     void compat_setup_fake_plugin_settings();
     void set_plugin_environment_variables(PyObject* globalDictionary, const settings_store::plugin_t& plugin);
     void set_plugin_internal_name(PyObject* globalDictionary, const std::string& pluginName);

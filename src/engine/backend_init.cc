@@ -125,7 +125,7 @@ void backend_initializer::python_set_plugin_loader_ud(std::weak_ptr<plugin_loade
  * - If the `sys` module cannot be imported, an error is logged.
  * - If the `sys.path` attribute cannot be accessed, no action is taken.
  */
-void backend_initializer::append_sys_path_modules(std::vector<std::filesystem::path> sitePackages)
+void backend_initializer::python_append_sys_path_modules(std::vector<std::filesystem::path> sitePackages)
 {
     PyObject* sysModule = PyImport_ImportModule("sys");
     if (!sysModule) {
@@ -163,7 +163,7 @@ void backend_initializer::append_sys_path_modules(std::vector<std::filesystem::p
  * - If the `site` module cannot be imported, the error is printed and logged.
  * - If the `addsitedir` function cannot be retrieved or called, an error is printed and logged.
  */
-void backend_initializer::add_site_packages_directory(std::filesystem::path customPath)
+void backend_initializer::python_add_site_packages_directory(std::filesystem::path customPath)
 {
     PyObject* siteModule = PyImport_ImportModule("site");
 
@@ -192,7 +192,7 @@ void backend_initializer::add_site_packages_directory(std::filesystem::path cust
  *
  * @param global_dict The global dictionary of the Python interpreter.
  */
-void backend_initializer::invoke_plugin_main_fn(PyObject* global_dict, std::string pluginName)
+void backend_initializer::python_invoke_plugin_main_fn(PyObject* global_dict, std::string pluginName)
 {
     const auto PrintError = [&pluginName]()
     {
@@ -459,8 +459,8 @@ void backend_initializer::python_backend_started_cb(settings_store::plugin_t plu
     }
 #endif
 
-    append_sys_path_modules(sysPath);
-    add_site_packages_directory(pythonUserLibs);
+    python_append_sys_path_modules(sysPath);
+    python_add_site_packages_directory(pythonUserLibs);
 
     PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
     FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
@@ -541,7 +541,7 @@ void backend_initializer::python_backend_started_cb(settings_store::plugin_t plu
     });
 
     compat_setup_fake_plugin_settings();
-    invoke_plugin_main_fn(globalDictionary, plugin.plugin_name);
+    python_invoke_plugin_main_fn(globalDictionary, plugin.plugin_name);
 
     timeOutLockThreadRunning.store(false);
     timeOutThread.join();
