@@ -28,6 +28,8 @@
  * SOFTWARE.
  */
 
+#pragma once
+#include "millennium/config.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <optional>
@@ -43,8 +45,8 @@ struct Plugin
     nlohmann::basic_json<> data;
 };
 
-nlohmann::json FindAllPlugins();
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
+nlohmann::json FindAllPlugins(std::shared_ptr<settings_store> settings_store_ptr);
+std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<settings_store> settings_store_ptr);
 } // namespace Plugins
 
 namespace Themes

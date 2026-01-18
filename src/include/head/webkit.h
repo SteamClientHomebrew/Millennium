@@ -30,40 +30,33 @@
 
 #pragma once
 
+#include "millennium/http_hooks.h"
+#include "millennium/config.h"
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
-namespace Millennium
-{
-int AddBrowserCss(const std::string& path, const std::string& regex);
-int AddBrowserJs(const std::string& path, const std::string& regex);
-bool RemoveBrowserModule(int id);
-} // namespace Millennium
-
-class WebkitHookStore
+class theme_webkit_mgr
 {
   public:
-    static WebkitHookStore& Instance();
+    struct webkit_item
+    {
+        std::string match_pattern;
+        std::string path;
+        std::string fileType; // "TargetCss" or "TargetJs"
+    };
 
-    void Push(int moduleId);
-    void UnregisterAll();
+    theme_webkit_mgr(std::shared_ptr<settings_store> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl);
+
+    void unregister_all();
+    void add_conditional_data(const std::string& path, const nlohmann::json& data, const std::string& theme_name);
+    unsigned long long add_browser_hook(const std::string& path, const std::string& regex = ".*", network_hook_ctl::TagTypes type = network_hook_ctl::STYLESHEET);
+    bool remove_browser_hook(unsigned long long hookId);
+    std::vector<webkit_item> parse_conditional_data(const nlohmann::json& conditional_patches, const std::string& theme_name);
 
   private:
-    WebkitHookStore() = default;
-    std::vector<int> stack;
+    std::vector<int> m_registered_hooks;
+    std::shared_ptr<settings_store> m_settings_store;
+    std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
 };
-
-struct WebkitItem
-{
-    std::string matchString;
-    std::string targetPath;
-    std::string fileType; // "TargetCss" or "TargetJs"
-};
-
-std::vector<WebkitItem> ParseConditionalPatches(const nlohmann::json& conditional_patches, const std::string& theme_name);
-
-int AddBrowserCss(const std::string& css_path, const std::string& regex = ".*");
-int AddBrowserJs(const std::string& js_path, const std::string& regex = ".*");
-
-void AddConditionalData(const std::string& path, const nlohmann::json& data, const std::string& theme_name);

@@ -29,24 +29,31 @@
  */
 
 #pragma once
+#include "millennium/fwd_decl.h"
+#include "millennium/config.h"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 
-class PluginInstaller
+class plugin_installer
 {
   public:
-    bool CheckInstall(const std::string& pluginName);
-    bool UninstallPlugin(const std::string& pluginName);
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    nlohmann::json InstallPlugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json GetRequestBody();
+    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<settings_store> settings_store_ptr, std::shared_ptr<library_updater> updater);
+
+    bool is_plugin_installed(const std::string& pluginName);
+    bool uninstall_plugin(const std::string& pluginName);
+    bool update_plugin(const std::string& id, const std::string& name);
+    nlohmann::json install_plugin(const std::string& downloadUrl, size_t totalSize);
+    nlohmann::json get_updater_request_body();
 
   private:
-    void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    std::filesystem::path PluginsPath();
+    std::weak_ptr<millennium_backend> m_millennium_backend;
+    std::shared_ptr<settings_store> settings_store_ptr;
+    std::shared_ptr<library_updater> m_updater;
 
-    std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> GetPluginData();
+    std::filesystem::path get_plugins_path();
+
+    std::optional<nlohmann::json> read_plugin_metadata(const std::filesystem::path& pluginPath);
+    std::vector<nlohmann::json> get_plugin_data();
 };
