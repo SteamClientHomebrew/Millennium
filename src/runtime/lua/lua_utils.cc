@@ -665,7 +665,7 @@ static const luaL_Reg utils_lib[] = {
     { NULL,               NULL               }
 };
 
-extern "C" int Lua_OpenUtilsLibrary(lua_State* L)
+extern "C" int luaopen_utils_lib(lua_State* L)
 {
     luaL_newlib(L, utils_lib);
     return 1;

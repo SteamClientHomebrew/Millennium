@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "millennium/steam_hooks.h"
 #include <memory>
 #include <optional>
 #if defined(__linux__) || defined(__APPLE__)

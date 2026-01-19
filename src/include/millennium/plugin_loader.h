@@ -82,7 +82,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     void devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp);
 
     void log_enabled_plugins();
-    std::shared_ptr<std::thread> connect_steam_socket(std::shared_ptr<SocketHelpers> socketHelpers);
+    std::shared_ptr<std::thread> connect_steam_socket(std::shared_ptr<socket_utils> socketHelpers);
 
     std::string cdp_generate_bootstrap_module(const std::vector<std::string>& modules);
     std::string cdp_generate_shim_module();

@@ -364,13 +364,13 @@ void backend_initializer::lua_backend_started_cb(settings_store::plugin_t plugin
     lua_getfield(L, -1, "preload");
 
     RegisterModule(L, "json", luaopen_cjson);
-    RegisterModule(L, "millennium", Lua_OpenMillenniumLibrary);
-    RegisterModule(L, "http", Lua_OpenHttpLibrary);
-    RegisterModule(L, "utils", Lua_OpenUtilsLibrary);
-    RegisterModule(L, "logger", Lua_OpenLoggerLibrary);
-    RegisterModule(L, "fs", Lua_OpenFS);
-    RegisterModule(L, "regex", Lua_OpenRegex);
-    RegisterModule(L, "datetime", Lua_OpenDateTime);
+    RegisterModule(L, "millennium", luaopen_millennium_lib);
+    RegisterModule(L, "http", luaopen_http_lib);
+    RegisterModule(L, "utils", luaopen_utils_lib);
+    RegisterModule(L, "logger", luaopen_logger_lib);
+    RegisterModule(L, "fs", luaopen_fs_lib);
+    RegisterModule(L, "regex", luaopen_regex_lib);
+    RegisterModule(L, "datetime", luaopen_datatime_lib);
 
     lua_pop(L, 2);
 

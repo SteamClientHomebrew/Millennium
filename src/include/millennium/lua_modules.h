@@ -31,12 +31,12 @@
 #include "instrumentation/smem.h"
 #include "lua.hpp"
 
-extern "C" int Lua_OpenUtilsLibrary(lua_State* L);
-extern "C" int Lua_OpenLoggerLibrary(lua_State* L);
+extern "C" int luaopen_utils_lib(lua_State* L);
+extern "C" int luaopen_logger_lib(lua_State* L);
 extern "C" int luaopen_cjson(lua_State* l);
 void load_patches(lua_State* L, lb_shm_arena_t* map);
-extern "C" int Lua_OpenHttpLibrary(lua_State* L);
-extern "C" int Lua_OpenFS(lua_State* L);
-extern "C" int Lua_OpenRegex(lua_State* L);
-extern "C" int Lua_OpenDateTime(lua_State* L);
-extern "C" int Lua_OpenMillenniumLibrary(lua_State* L);
+extern "C" int luaopen_http_lib(lua_State* L);
+extern "C" int luaopen_fs_lib(lua_State* L);
+extern "C" int luaopen_regex_lib(lua_State* L);
+extern "C" int luaopen_datatime_lib(lua_State* L);
+extern "C" int luaopen_millennium_lib(lua_State* L);

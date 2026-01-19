@@ -279,7 +279,7 @@ static const luaL_Reg regex_lib[] = {
     { NULL,            NULL                  }
 };
 
-extern "C" int Lua_OpenRegex(lua_State* L)
+extern "C" int luaopen_regex_lib(lua_State* L)
 {
     luaL_newlib(L, regex_lib);
     return 1;

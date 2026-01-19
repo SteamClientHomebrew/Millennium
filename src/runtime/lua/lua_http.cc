@@ -427,7 +427,7 @@ static const luaL_Reg httpFunctions[] = {
     { NULL,      NULL            }
 };
 
-extern "C" int Lua_OpenHttpLibrary(lua_State* L)
+extern "C" int luaopen_http_lib(lua_State* L)
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
     luaL_newlib(L, httpFunctions);

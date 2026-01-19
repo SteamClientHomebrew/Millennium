@@ -33,6 +33,7 @@
 #include "head/plugin_mgr.h"
 #include "head/scan.h"
 
+#include "millennium/filesystem.h"
 #include "millennium/millennium.h"
 #include "millennium/logger.h"
 #include "millennium/http.h"

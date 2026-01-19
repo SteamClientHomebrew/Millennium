@@ -33,6 +33,7 @@
 #include "millennium/life_cycle.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/filesystem.h"
+#include "millennium/steam_hooks.h"
 #include "millennium/types.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/url_parser.h"
@@ -168,14 +169,14 @@ void plugin_loader::init_devtools()
     });
 }
 
-std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr<SocketHelpers> socketHelpers)
+std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr<socket_utils> socketHelpers)
 {
-    std::shared_ptr<SocketHelpers::ConnectSocketProps> browserProps = std::make_shared<SocketHelpers::ConnectSocketProps>();
+    std::shared_ptr<socket_utils::socket_t> browserProps = std::make_shared<socket_utils::socket_t>();
 
-    browserProps->commonName = "CEFBrowser";
-    browserProps->fetchSocketUrl = std::bind(&SocketHelpers::GetSteamBrowserContext, socketHelpers);
-    browserProps->onConnect = [this](std::shared_ptr<cdp_client> cdp) { this->devtools_connection_hdlr(std::move(cdp)); };
-    return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->ConnectSocket(browserProps); }));
+    browserProps->name = "CEFBrowser";
+    browserProps->fetch_socket_url = std::bind(&socket_utils::get_steam_browser_context, socketHelpers);
+    browserProps->on_connect = [this](std::shared_ptr<cdp_client> cdp) { this->devtools_connection_hdlr(std::move(cdp)); };
+    return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->connect_socket(browserProps); }));
 }
 
 void plugin_loader::setup_webkit_shims()
@@ -301,7 +302,7 @@ void plugin_loader::start_plugin_frontends()
         return;
     }
 
-    std::shared_ptr<SocketHelpers> helper = std::make_shared<SocketHelpers>();
+    std::shared_ptr<socket_utils> helper = std::make_shared<socket_utils>();
 
     logger.log("Starting frontend socket...");
     std::shared_ptr<std::thread> socket_thread = this->connect_steam_socket(helper);

@@ -228,7 +228,7 @@ static const luaL_Reg datetime_funcs[] = {
     { nullptr,      nullptr             }
 };
 
-extern "C" int Lua_OpenDateTime(lua_State* L)
+extern "C" int luaopen_datatime_lib(lua_State* L)
 {
     luaL_newlib(L, datetime_funcs);
     return 1;
