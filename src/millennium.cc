@@ -33,6 +33,7 @@
 
 #include "millennium/crash_handler.h"
 #include "millennium/environment.h"
+#include "millennium/filesystem.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 #include "millennium/millennium_updater.h"

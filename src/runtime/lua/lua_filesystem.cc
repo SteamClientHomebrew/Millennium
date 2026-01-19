@@ -479,7 +479,7 @@ static const luaL_Reg fs_lib[] = {
     { NULL,                 NULL                       }
 };
 
-extern "C" int Lua_OpenFS(lua_State* L)
+extern "C" int luaopen_fs_lib(lua_State* L)
 {
     luaL_newlib(L, fs_lib);
     return 1;

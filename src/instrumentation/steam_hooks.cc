@@ -31,8 +31,10 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+
+#include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
-#include "millennium/argp_win32.h"
+#include "millennium/cmdline_parse.h"
 
 std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
 std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
@@ -313,7 +315,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
         return cmd;
     }
 
-    int is_developer_mode = CommandLineArguments::HasArgument("-dev");
+    int is_developer_mode = CommandLineArguments::has_argument("-dev");
 
     /** block any browser web requests when running in normal mode */
     Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");

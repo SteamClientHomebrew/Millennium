@@ -71,7 +71,7 @@ static const luaL_Reg loggerFunctions[] = {
     { NULL,    NULL        }
 };
 
-extern "C" int Lua_OpenLoggerLibrary(lua_State* L)
+extern "C" int luaopen_logger_lib(lua_State* L)
 {
     const char* pluginName = nullptr;
     lua_getglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");

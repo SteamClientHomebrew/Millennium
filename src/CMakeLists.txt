@@ -63,6 +63,8 @@ set(SOURCE_FILES
     engine/backend_init.cc
     engine/backend_mgr.cc
     engine/cdp_api.cc
+    engine/cdp_connector.cc
+    engine/cmdline_parse.cc
     engine/core_ipc.cc
     engine/ffi_binder.cc
     engine/http_hooks.cc

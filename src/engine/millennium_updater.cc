@@ -150,7 +150,7 @@ void millennium_updater::check_for_updates()
             return;
         }
 
-        int compare = Semver::Compare(current_version, latest_version);
+        int compare = semver::cmp(current_version, latest_version);
         {
             std::lock_guard<std::mutex> lock(m_state_mutex);
             m_latest_version = std::move(latest_release);

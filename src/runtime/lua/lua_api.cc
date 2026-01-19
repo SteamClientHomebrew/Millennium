@@ -310,7 +310,7 @@ int Lua_CompareVersion(lua_State* L)
     if (v2[0] == 'v' || v2[0] == 'V') v2++;
 
     try {
-        compare = Semver::Compare(v1, v2);
+        compare = semver::cmp(v1, v2);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to compare versions [{}, {}]: {}", v1, v2, e.what());
         compare = -2; /** signify there was an error when comparing */
@@ -341,7 +341,7 @@ static const luaL_Reg millennium_lib[] = {
 /**
  * Register the Millennium module with Lua
  */
-extern "C" int Lua_OpenMillenniumLibrary(lua_State* L)
+extern "C" int luaopen_millennium_lib(lua_State* L)
 {
     luaL_newlib(L, millennium_lib);
     return 1;

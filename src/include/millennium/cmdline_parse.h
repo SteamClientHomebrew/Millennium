@@ -31,21 +31,9 @@
 #pragma once
 #include <string>
 
-namespace semver
+namespace CommandLineArguments
 {
-    struct semver_version
-    {
-        int major;
-        int minor;
-        int patch;
-        std::string prerelease;
-        std::string build;
+    bool has_argument(const std::string& targetArgument);
+    u_short get_remote_debugger_port();
 
-        semver_version(int maj = 0, int min = 0, int pat = 0, const std::string& pre = "", const std::string& bld = "");
-    };
-
-    semver_version parse(const std::string& version);
-
-    int cmp(const std::string& v1, const std::string& v2);
-    int cmp_pre_release(const std::string& pre1, const std::string& pre2);
-} // namespace semver
+}; // namespace CommandLineArguments
