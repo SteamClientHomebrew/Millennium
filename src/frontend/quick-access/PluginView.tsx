@@ -140,7 +140,7 @@ export const PluginSelectorView = () => {
 	const [configurablePluginStore, setConfigurablePluginStore] = useState<Array<{ name: string; isEditable: boolean }>>();
 
 	useEffect(() => {
-		getPluginConfigurableStatus().then(setConfigurablePluginStore);
+		getPluginConfigurableStatus(plugins).then(setConfigurablePluginStore);
 	}, []);
 
 	if (!plugins || !plugins?.length) {

@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-#include "millennium/config.h"
 #include "millennium/life_cycle.h"
 #include "millennium/core_ipc.h"
 #include "millennium/http_hooks.h"
@@ -226,7 +225,7 @@ PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    std::shared_ptr<settings_store> settings = loader->get_settings_store();
+    std::shared_ptr<plugin_manager> settings = loader->get_settings_store();
     if (!settings) {
         LOG_ERROR("Failed to contact Millennium's settings store, it's likely shut down.");
         return NULL;

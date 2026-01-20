@@ -38,6 +38,7 @@ import { PluginComponent } from '../../types';
 import { Utils } from '../../utils';
 import { PyUninstallPlugin } from '../../utils/ffi';
 import { locale } from '../../utils/localization-manager';
+import { MillenniumIcons } from '../../components/Icons';
 
 interface PluginComponentProps {
 	plugin: PluginComponent;
@@ -117,6 +118,17 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 	getTooltipContent() {
 		const { plugin, hasErrors, hasWarnings } = this.props;
 
+		if (plugin.data.__private_browser_extension) {
+			return {
+				type: TooltipType.None,
+				content: (
+					<DesktopTooltip toolTipContent={'This plugin is an external chrome extension'} direction="top">
+						<MillenniumIcons.ChromeExtension />
+					</DesktopTooltip>
+				),
+			};
+		}
+
 		const statusMap = [
 			{ condition: hasErrors, color: 'red', message: 'encountered errors', type: TooltipType.Error },
 			{ condition: hasWarnings, color: '#ffc82c', message: 'issued warnings', type: TooltipType.Warning },
@@ -150,7 +162,6 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 					<div className="MillenniumPlugins_PluginLabel">
 						{plugin.data.common_name}
 						{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
-						{plugin.data.browser_extension && <div className="MillenniumItem_BrowserExtension">Browser Extension</div>}
 					</div>
 				}
 				description={plugin?.data?.description}

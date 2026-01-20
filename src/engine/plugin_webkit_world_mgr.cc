@@ -38,7 +38,7 @@
 #include "millennium/url_parser.h"
 #include <fmt/format.h>
 
-webkit_world_mgr::webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<settings_store> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
+webkit_world_mgr::webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl,
                                    std::shared_ptr<plugin_webkit_store> plugin_webkit_store)
     : m_client(std::move(client)), m_settings_store(std::move(settings_store)), m_network_hook_ctl(std::move(network_hook_ctl)),
       m_plugin_webkit_store(std::move(plugin_webkit_store))
@@ -248,7 +248,7 @@ import('{ftpPath}')
 
     const std::string m_ftp_url = m_network_hook_ctl->get_ftp_url();
     const std::vector<plugin_webkit_store::item> webkit_items = m_plugin_webkit_store->get();
-    const std::vector<settings_store::plugin_t> plist = m_settings_store->get_enabled_plugins();
+    const std::vector<plugin_manager::plugin_t> plist = m_settings_store->get_enabled_plugins();
 
     /**
      * Separate isolated and non-isolated webkit modules

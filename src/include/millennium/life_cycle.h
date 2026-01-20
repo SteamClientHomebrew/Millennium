@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "millennium/config.h"
+#include "millennium/plugin_manager.h"
 #include <functional>
 #include <string>
 #include <mutex>
@@ -37,7 +37,7 @@
 class backend_event_dispatcher
 {
   public:
-    backend_event_dispatcher(std::shared_ptr<settings_store> settings_store) : m_settings_store(std::move(settings_store))
+    backend_event_dispatcher(std::shared_ptr<plugin_manager> settings_store) : m_settings_store(std::move(settings_store))
     {
     }
 
@@ -89,5 +89,5 @@ class backend_event_dispatcher
     std::unordered_map<backend_event, std::vector<event_cb>> listeners;
     std::mutex listenersMutex;
 
-    std::shared_ptr<settings_store> m_settings_store;
+    std::shared_ptr<plugin_manager> m_settings_store;
 };

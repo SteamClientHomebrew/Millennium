@@ -45,7 +45,7 @@ class millennium
   private:
     void check_for_updates();
 
-    std::shared_ptr<settings_store> m_settings_store;
+    std::shared_ptr<plugin_manager> m_settings_store;
     std::shared_ptr<plugin_loader> m_plugin_loader;
     std::shared_ptr<millennium_backend> m_millennium_backend;
     std::shared_ptr<millennium_updater> m_millennium_updater;

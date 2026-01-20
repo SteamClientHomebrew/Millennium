@@ -46,7 +46,7 @@ std::unique_ptr<millennium> g_millennium;
 
 millennium::millennium()
 {
-    m_settings_store = std::make_shared<settings_store>();
+    m_settings_store = std::make_shared<plugin_manager>();
     m_millennium_updater = std::make_shared<millennium_updater>();
     m_plugin_loader = std::make_shared<plugin_loader>(m_settings_store, m_millennium_updater);
 

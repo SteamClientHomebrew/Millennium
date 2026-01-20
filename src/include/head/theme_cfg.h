@@ -40,7 +40,7 @@
 class ThemeConfig
 {
   public:
-    ThemeConfig(std::shared_ptr<settings_store> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
+    ThemeConfig(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
     ~ThemeConfig();
 
     void OnConfigChange();
@@ -77,6 +77,6 @@ class ThemeConfig
     std::string active_theme_name;
     nlohmann::basic_json<> theme_data;
     std::map<std::string, nlohmann::json> colors;
-    std::shared_ptr<settings_store> m_settings_store;
+    std::shared_ptr<plugin_manager> m_settings_store;
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
 };

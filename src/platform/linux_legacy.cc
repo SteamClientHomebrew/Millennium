@@ -29,6 +29,7 @@
  */
 
 #ifdef __linux__
+#include "millennium/environment.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 #include "millennium/linux_distro_helpers.h"
@@ -64,7 +65,7 @@ void RemoveFromLdPreload()
     }
 
     std::string ldPreloadStr(ldPreload);
-    std::string millenniumPath = GetEnv("MILLENNIUM_RUNTIME_PATH");
+    std::string millenniumPath = platform::environment::get("MILLENNIUM_RUNTIME_PATH");
     logger.log("Removing Millennium from LD_PRELOAD: {}", millenniumPath);
 
     size_t pos = 0;
@@ -138,7 +139,7 @@ extern "C" int __libc_start_main(int (*main)(int, char**, char**), int argc, cha
     fnMainOriginal = main;
     decltype(&__libc_start_main) orig = (decltype(&__libc_start_main))dlsym(RTLD_NEXT, "__libc_start_main");
 
-    if (!IsSamePath(argv[0], GetEnv("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv)) {
+    if (!IsSamePath(argv[0], platform::environment::get("MILLENNIUM__STEAM_EXE_PATH").c_str()) || IsChildUpdaterProc(argc, argv)) {
         return orig(main, argc, argv, init, fini, rtld_fini, stack_end);
     }
 

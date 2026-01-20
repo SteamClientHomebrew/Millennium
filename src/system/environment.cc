@@ -50,73 +50,65 @@ std::map<std::string, std::string> envVariables;
 
 #if defined(__linux__) || defined(__APPLE__)
 extern char** environ;
-class environment
+
+bool platform::environment::set_unix(const std::string& name, const std::string& value)
 {
-  private:
-    static std::vector<std::unique_ptr<char[]>> allocated_strings;
+    std::string strEnv = name + "=" + value;
 
-  public:
-    static bool set(const std::string& name, const std::string& value)
-    {
-        std::string strEnv = name + "=" + value;
+    auto stored_string = std::make_unique<char[]>(strEnv.length() + 1);
+    std::strcpy(stored_string.get(), strEnv.c_str());
 
-        auto stored_string = std::make_unique<char[]>(strEnv.length() + 1);
-        std::strcpy(stored_string.get(), strEnv.c_str());
-
-        for (int i = 0; environ[i] != nullptr; ++i) {
-            std::string current(environ[i]);
-            if (current.substr(0, name.length() + 1) == name + "=") {
-                environ[i] = stored_string.get();
-                allocated_strings.push_back(std::move(stored_string));
-                return true;
-            }
+    for (int i = 0; environ[i] != nullptr; ++i) {
+        std::string current(environ[i]);
+        if (current.substr(0, name.length() + 1) == name + "=") {
+            environ[i] = stored_string.get();
+            allocated_strings.push_back(std::move(stored_string));
+            return true;
         }
-
-        return add(std::move(stored_string));
     }
 
-  private:
-    static bool add(std::unique_ptr<char[]> strEnv)
-    {
-        int count = 0;
-        while (environ[count] != nullptr)
-            count++;
+    return add(std::move(stored_string));
+}
 
-        char** new_environ = new char*[count + 2];
+bool platform::environment::add(std::unique_ptr<char[]> strEnv)
+{
+    int count = 0;
+    while (environ[count] != nullptr)
+        count++;
 
-        for (int i = 0; i < count; ++i) {
-            new_environ[i] = environ[i];
-        }
+    char** new_environ = new char*[count + 2];
 
-        new_environ[count] = strEnv.get();
-        new_environ[count + 1] = nullptr;
-
-        environ = new_environ;
-        allocated_strings.push_back(std::move(strEnv));
-
-        return true;
+    for (int i = 0; i < count; ++i) {
+        new_environ[i] = environ[i];
     }
-};
-std::vector<std::unique_ptr<char[]>> environment::allocated_strings;
+
+    new_environ[count] = strEnv.get();
+    new_environ[count + 1] = nullptr;
+
+    environ = new_environ;
+    allocated_strings.push_back(std::move(strEnv));
+
+    return true;
+}
+
+std::vector<std::unique_ptr<char[]>> platform::environment::allocated_strings;
 #endif
 
-void SetupEnvironmentVariables();
-
-void SetEnv(const std::string& key, const std::string& value)
+void platform::environment::set(const std::string& key, const std::string& value)
 {
 #ifdef _WIN32
     _putenv_s(key.c_str(), value.c_str()); // Windows
 #else
-    if (!GetEnv(key).empty()) {
+    if (!get(key).empty()) {
         /** allow the user to set the environment variables themselves */
         return;
     }
 
-    environment::set(key, value);
+    environment::set_unix(key, value);
 #endif
 }
 
-std::string GetEnv(std::string key)
+std::string platform::environment::get(std::string key)
 {
 #ifdef _WIN32
     static bool hasSetup = false;
@@ -137,16 +129,16 @@ std::string GetEnv(std::string key)
     return strVariable;
 }
 
-std::string GetEnvWithFallback(std::string key, std::string fallback)
+std::string platform::environment::get(std::string key, std::string fallback)
 {
-    std::string var = GetEnv(key);
+    std::string var = get(key);
     return var.empty() ? fallback : var;
 }
 
 /**
  * @brief Set up environment variables used throughout the application.
  */
-void SetupEnvironmentVariables()
+void platform::environment::setup()
 {
     std::map<std::string, std::string> environment = {
         { "MILLENNIUM__VERSION",    MILLENNIUM_VERSION                  },
@@ -198,10 +190,10 @@ void SetupEnvironmentVariables()
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
 #elif __linux__
-    const std::string homeDir = GetEnv("HOME");
-    const std::string configDir = GetEnvWithFallback("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
-    const std::string dataDir = GetEnvWithFallback("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
-    const std::string stateDir = GetEnvWithFallback("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
+    const std::string homeDir = get("HOME");
+    const std::string configDir = get("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
+    const std::string dataDir = get("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
+    const std::string stateDir = get("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
     const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
@@ -212,7 +204,7 @@ void SetupEnvironmentVariables()
         }
     }
 
-    const std::string customLdPreload = GetEnv("MILLENNIUM_RUNTIME_PATH");
+    const std::string customLdPreload = get("MILLENNIUM_RUNTIME_PATH");
 
     std::map<std::string, std::string> environment_unix = {
         { "OPENSSL_CONF", "/dev/null" },
@@ -237,7 +229,7 @@ void SetupEnvironmentVariables()
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
-    const std::string homeDir = GetEnv("HOME");
+    const std::string homeDir = platform::environment::get("HOME");
     const std::string configDir = fmt::format("{}/Library/Application Support", homeDir);
     const std::string dataDir = fmt::format("{}/Library/Application Support", homeDir);
     const std::string stateDir = fmt::format("{}/Library/Logs", homeDir);
@@ -271,7 +263,7 @@ void SetupEnvironmentVariables()
 #endif
 
 #ifdef __linux__
-    const bool shouldLog = GetEnv("MLOG_ENV") == "1" || GetEnv("MLOG_ENV") == "true";
+    const bool shouldLog = get("MLOG_ENV") == "1" || get("MLOG_ENV") == "true";
 #elif defined(_WIN32)
     const bool shouldLog = false;
 #endif
@@ -283,6 +275,6 @@ void SetupEnvironmentVariables()
 #define RESET "\033[0m"
         if (shouldLog) std::cout << fmt::format("{}={}", key, value) << std::endl;
 #endif
-        SetEnv(key, value);
+        set(key, value);
     }
 }

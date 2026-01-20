@@ -30,19 +30,16 @@
 
 #include "head/scan.h"
 #include "head/browser_extension_mgr.h"
-#include "millennium/cdp_api.h"
-#include "millennium/core_ipc.h"
-#include "millennium/environment.h"
 #include "millennium/logger.h"
 #include "millennium/filesystem.h"
+#include "millennium/plugin_manager.h"
 
 #include <fstream>
 #include <iostream>
 
-nlohmann::json Millennium::Plugins::FindAllPlugins(std::shared_ptr<settings_store> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr)
+nlohmann::json Millennium::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr)
 {
     nlohmann::json result = nlohmann::json::array();
-
     const auto foundPlugins = settings_store_ptr->get_all_plugins();
 
     for (const auto& plugin : foundPlugins) {
@@ -53,29 +50,33 @@ nlohmann::json Millennium::Plugins::FindAllPlugins(std::shared_ptr<settings_stor
         });
     }
 
-    if (extension_mgr) {
-        auto extensions = extension_mgr->get_all_extensions();
+    if (!extension_mgr) {
+        return result;
+    }
 
-        // TODO: likely move this to it's own function and let the frontend merge the data. As it doesn't belong here
-        for (const auto& extension : extensions) {
-            result.push_back({
-                { "path",    "extension" },
-                { "enabled", extension.value("enabled", true) },
-                { "data",    {
-                    {"name",        extension.value("id", "unknown")},
-                    {"common_name", extension.value("name", "Unknown Extension")},
-                    {"version",     extension.value("version", "0.0.0")},
-                    {"description", extension.value("description", "No description available")},
-                    {"browser_extension", true}
-                } }
-            });
-        }
+    auto extensions = extension_mgr->get_extensions();
+
+    // TODO: likely move this to it's own function and let the frontend merge the data. As it doesn't belong here
+    for (const auto& extension : extensions) {
+        result.push_back({
+            { "path", "extension" },
+            { "enabled", extension.value("enabled", true) },
+            { "data",
+             {
+                  { "name", extension.value("id", "unknown") },
+                  { "common_name", extension.value("name", "Unknown Extension") },
+                  { "version", extension.value("version", "0.0.0") },
+                  { "description", extension.value("description", "No description available") },
+                  { "__private_browser_extension", true },
+                  { "extension_data", extension },
+              } }
+        });
     }
 
     return result;
 }
 
-std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<settings_store> settings_store_ptr)
+std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> settings_store_ptr)
 {
     for (const auto& plugin : FindAllPlugins(settings_store_ptr, nullptr)) {
         if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name) {

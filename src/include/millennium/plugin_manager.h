@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -29,30 +29,46 @@
  */
 
 #pragma once
-#include "millennium/plugin_manager.h"
 #include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
-#include <optional>
-#include "browser_extension_mgr.h"
+#include "millennium/types.h"
+#include <filesystem>
+#include <vector>
 
-namespace Millennium
+class plugin_manager
 {
-    namespace Plugins
+  public:
+    enum class backend_t
     {
-        struct Plugin
-        {
-            std::string path;
-            bool enabled;
-            nlohmann::basic_json<> data;
-        };
+        Python,
+        Lua
+    };
 
-        nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr = nullptr);
-        std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> settings_store_ptr);
-    } // namespace Plugins
+    static constexpr const char* plugin_config_file = "plugin.json";
 
-    namespace Themes
+    struct plugin_t
     {
-        bool IsValid(const std::string& theme_native_name);
-        nlohmann::ordered_json FindAllThemes();
-    } // namespace Themes
-} // namespace Millennium
+        std::string plugin_name;
+        json plugin_json;
+        std::filesystem::path plugin_base_dir;
+        std::filesystem::path plugin_backend_dir;
+        std::filesystem::path plugin_frontend_dir;
+        std::filesystem::path plugin_webkit_path;
+        backend_t backend_type;
+        bool is_internal = false;
+    };
+
+    std::vector<plugin_t> get_all_plugins();
+    std::vector<plugin_t> get_enabled_backends();
+    std::vector<plugin_t> get_enabled_plugins();
+    std::vector<std::string> get_enabled_plugin_names();
+
+    bool is_enabled(std::string pluginName);
+    bool set_plugin_enabled(std::string pluginName, bool enabled);
+    int init();
+
+    plugin_manager();
+
+  private:
+    void lint_plugin(json json, std::string pluginName);
+    plugin_t get_plugin_internal_metadata(json json, std::filesystem::directory_entry entry);
+};

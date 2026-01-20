@@ -28,36 +28,52 @@
  * SOFTWARE.
  */
 
+#include "millennium/auth.h"
 #include "head/browser_extension_mgr.h"
 #include "millennium/logger.h"
-#include <fstream>
-#include <regex>
+
+browser_extension_manager::browser_extension_manager(std::shared_ptr<cdp_client> cdp) : m_cdp(std::move(cdp))
+{
+}
 
 browser_extension_manager::~browser_extension_manager()
 {
-    if (m_cdp && !m_target_id.empty()) {
-        try {
-            m_cdp->send_host("Target.closeTarget", {{"targetId", m_target_id}}).get();
-        } catch (const std::exception& e) {
-            LOG_ERROR("Failed to close extension target: {}", e.what());
-        }
-    }
+    this->destroy_and_detach();
 }
 
-void browser_extension_manager::initialize(const std::shared_ptr<cdp_client>& cdp)
+void browser_extension_manager::create_and_attach()
 {
-    m_cdp = cdp;
-    if (!m_cdp) return;
+    if (!create_target()) {
+        LOG_ERROR("Extension manager failed to create target!");
+    }
 
-    if (create_target()) {
-        attach_to_target();
+    attach_to_target();
+}
+
+void browser_extension_manager::destroy_and_detach()
+{
+    if (!m_cdp || m_target_id.empty()) {
+        return;
+    }
+
+    const json params = {
+        { "targetId", m_target_id }
+    };
+
+    try {
+        m_cdp->send_host("Target.closeTarget", params).get();
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to close extension target: {}", e.what());
     }
 }
 
 bool browser_extension_manager::create_target()
 {
     const auto window_id = create_hidden_window();
-    if (window_id.empty()) return false;
+    if (window_id.empty()) {
+        LOG_ERROR("Failed to create hidden window");
+        return false;
+    }
 
     auto targets = m_cdp->send_host("Target.getTargets").get();
     if (!targets.contains("targetInfos") || !targets["targetInfos"].is_array() || targets["targetInfos"].empty()) {
@@ -75,24 +91,30 @@ bool browser_extension_manager::create_target()
 
 std::string browser_extension_manager::create_hidden_window() const
 {
-     std::string window_id = "millennium_ext_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+    json eval_res;
+    const std::string window_id = build_random_string(32);
+    const std::string script = R"({{
+        const parentPopupBrowserID = g_PopupManager.GetExistingPopup('SP Desktop_uid0')?.window.SteamClient.Browser.GetBrowserID()
+    	const popup = window.open(SteamClient.BrowserView.CreatePopup({{ parentPopupBrowserID }}).strCreateURL);
+    	if (!popup) throw new Error('Failed to open popup window');
+    	popup.document.title = '{}';
+    }})";
 
     json eval_params = {
-        { "expression", "window.createHiddenWindow(\"" + window_id + "\")" }
+        { "expression", fmt::format(script, window_id) }
     };
 
-    json eval_res;
     try {
         eval_res = m_cdp->send("Runtime.evaluate", eval_params).get();
+        logger.log("Eval result: {}", eval_res.dump(4));
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to create hidden extension window: {}", e.what());
-        return "";
+        return {};
     }
 
-    // Check for error
     if (eval_res.contains("error")) {
         LOG_ERROR("Failed to create hidden extension window: {}", eval_res["error"]["message"].get<std::string>());
-        return "";
+        return {};
     }
 
     return window_id;
@@ -100,22 +122,25 @@ std::string browser_extension_manager::create_hidden_window() const
 
 bool browser_extension_manager::attach_to_target()
 {
-    if (m_target_id.empty()) return false;
+    if (m_target_id.empty()) {
+        return false;
+    }
+
+    const json attach_params = {
+        { "targetId", m_target_id },
+        { "flatten",  true        }
+    };
+
+    const json page_params = {
+        { "url", "chrome://extensions" }
+    };
 
     try {
-        const nlohmann::json attach_params = {
-            { "targetId", m_target_id },
-            { "flatten", true }
-        };
         auto attach_res = m_cdp->send_host("Target.attachToTarget", attach_params).get();
 
         if (attach_res.contains("sessionId")) {
             m_session_id = attach_res["sessionId"];
-
-            m_cdp->send_host("Page.navigate", {
-                { "url", "chrome://extensions" }
-            }, m_session_id);
-
+            m_cdp->send_host("Page.navigate", page_params, m_session_id);
             return true;
         }
     } catch (const std::exception& e) {
@@ -124,58 +149,32 @@ bool browser_extension_manager::attach_to_target()
     return false;
 }
 
-nlohmann::json browser_extension_manager::get_all_extensions()
+json browser_extension_manager::evaluate_expression(std::string script)
 {
-    if (!m_cdp || m_session_id.empty()) {
-        // Try to re-initialize if session is missing
-        if (m_cdp) {
-            if (m_target_id.empty()) {
-                if (create_target()) attach_to_target();
-            } else {
-                attach_to_target();
-            }
-        }
-
-        if (m_session_id.empty()) {
-            return nlohmann::json::array();
-        }
-    }
+    create_and_attach();
+    json result;
 
     try {
         const nlohmann::json eval_params = {
-            { "expression", "(async function() { return (await chrome.management.getAll()) })()" },
-            { "returnByValue", true },
-            { "awaitPromise", true }
+            { "expression",    script },
+            { "returnByValue", true   },
+            { "awaitPromise",  true   }
         };
         auto eval_res = m_cdp->send_host("Runtime.evaluate", eval_params, m_session_id).get();
 
         if (eval_res.contains("result") && eval_res["result"].contains("value") && eval_res["result"]["value"].is_array()) {
-            return eval_res["result"]["value"];
+            result = eval_res["result"]["value"];
         }
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to get extensions: {}", e.what());
-        // If it failed, maybe the session is stale, clear it
         m_session_id.clear();
     }
 
-    return nlohmann::json::array();
+    destroy_and_detach();
+    return result;
 }
 
-// TODO: figure out a way to call this when our target get's destroyed from for example a dev reload.
-void browser_extension_manager::target_destroyed(const nlohmann::json& params)
+json browser_extension_manager::get_extensions()
 {
-    if (!params.contains("targetId")) {
-        LOG_ERROR("webkit_world_mgr: Target.targetDestroyed missing targetId");
-        return;
-    }
-
-    std::string target_id = params["targetId"];
-    if (target_id == m_target_id) {
-        m_target_id.clear();
-        m_session_id.clear();
-
-        if (create_target()) {
-            attach_to_target();
-        }
-    }
+    return this->evaluate_expression("chrome.management.getAll()");
 }

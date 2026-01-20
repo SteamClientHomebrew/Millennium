@@ -33,7 +33,6 @@
 #include "millennium/auth.h"
 #include "millennium/core_ipc.h"
 #include "millennium/encoding.h"
-#include "millennium/environment.h"
 #include "millennium/logger.h"
 #include "millennium/mime_types.h"
 #include "millennium/url_parser.h"
@@ -338,7 +337,7 @@ void network_hook_ctl::shutdown()
     logger.log("Successfully shut down network_hook_ctl...");
 }
 
-network_hook_ctl::network_hook_ctl(std::shared_ptr<settings_store> settings_store)
+network_hook_ctl::network_hook_ctl(std::shared_ptr<plugin_manager> settings_store)
     : m_settings_store(std::move(settings_store)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
       m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
 {

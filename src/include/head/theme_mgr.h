@@ -39,7 +39,7 @@
 class theme_installer
 {
   public:
-    theme_installer(std::shared_ptr<settings_store> settings_store_ptr, std::shared_ptr<library_updater> updater);
+    theme_installer(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<library_updater> updater);
     std::filesystem::path get_skins_folder();
 
     nlohmann::json create_error_response(const std::string& message);
@@ -60,7 +60,7 @@ class theme_installer
     nlohmann::json make_post_body(const std::vector<nlohmann::json>& update_query);
 
   private:
-    std::shared_ptr<settings_store> m_settings_store_ptr;
+    std::shared_ptr<plugin_manager> m_settings_store_ptr;
     std::shared_ptr<library_updater> m_updater;
 
     /**

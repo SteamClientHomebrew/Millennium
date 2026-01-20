@@ -38,14 +38,12 @@
  *
  * It uses mersenne twister engine for random number generation.
  */
-std::string BuildRandomString(size_t length)
+const std::string build_random_string(size_t length)
 {
-    const std::string charset = "0123456789"
-                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                "abcdefghijklmnopqrstuvwxyz";
+    const std::string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ";
 
-    std::random_device rd;        // Non-deterministic random number generator
-    std::mt19937 generator(rd()); // Mersenne Twister engine
+    std::random_device rd;
+    std::mt19937 generator(rd());
     std::uniform_int_distribution<> dist(0, charset.size() - 1);
 
     std::string token;
@@ -64,7 +62,7 @@ std::string BuildRandomString(size_t length)
  */
 const std::string GetScrambledApiPathToken()
 {
-    static const std::string scrambledApiPathToken = BuildRandomString(32);
+    static const std::string scrambledApiPathToken = build_random_string(32);
     return scrambledApiPathToken;
 }
 
@@ -76,6 +74,6 @@ const std::string GetScrambledApiPathToken()
  */
 const std::string GetAuthToken()
 {
-    static const std::string authToken = BuildRandomString(128);
+    static const std::string authToken = build_random_string(128);
     return authToken;
 }

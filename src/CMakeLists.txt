@@ -68,9 +68,10 @@ set(SOURCE_FILES
     engine/core_ipc.cc
     engine/ffi_binder.cc
     engine/http_hooks.cc
-    engine/plugin_loader.cc
     engine/lifecycle.cc
     engine/millennium_updater.cc
+    engine/plugin_loader.cc
+    engine/plugin_manager.cc
     engine/plugin_webkit_store.cc
     engine/plugin_webkit_world_mgr.cc
     engine/thread_pool.cc

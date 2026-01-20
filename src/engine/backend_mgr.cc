@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#include "millennium/environment.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/life_cycle.h"
 #include "millennium/python_gil.h"
@@ -110,19 +111,19 @@ const std::string GetPythonVersion()
 
 PythonEnvPath GetPythonEnvPaths()
 {
-    static const std::filesystem::path pythonModulesBaseDir = std::filesystem::path(GetEnv("MILLENNIUM__PYTHON_ENV"));
+    static const std::filesystem::path pythonModulesBaseDir = std::filesystem::path(platform::environment::get("MILLENNIUM__PYTHON_ENV"));
 
 #ifdef _WIN32
     static const std::string pythonPath = pythonModulesBaseDir.generic_string();
     static const std::string pythonLibs = (pythonModulesBaseDir / "python311.zip").generic_string();
     static const std::string pythonUserLibs = (pythonModulesBaseDir / "Lib" / "site-packages").generic_string();
 #elif __linux__
-    static const std::string pythonPath = GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH");
-    static const std::string pythonLibs = GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
+    static const std::string pythonPath = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_PATH");
+    static const std::string pythonLibs = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
     static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
 #elif __APPLE__
-    static const std::string pythonPath = GetEnv("LIBPYTHON_BUILTIN_MODULES_PATH");
-    static const std::string pythonLibs = GetEnv("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
+    static const std::string pythonPath = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_PATH");
+    static const std::string pythonLibs = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
     static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
 #endif
 
@@ -149,7 +150,7 @@ backend_manager::~backend_manager()
  *
  * @returns {BackendManager} - A new BackendManager instance.
  */
-backend_manager::backend_manager(std::shared_ptr<settings_store> settings_store, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
+backend_manager::backend_manager(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
     : m_InterpreterThreadSave(nullptr), m_settings_store(std::move(settings_store)), m_backend_event_dispatcher(std::move(event_dispatcher))
 {
     const auto [pythonPath, pythonLibs, pythonUserLibs] = GetPythonEnvPaths();
@@ -594,7 +595,7 @@ bool backend_manager::has_all_lua_backends_stopped()
  *
  * @returns {bool} - True if the Python instance was created successfully, false otherwise.
  */
-bool backend_manager::create_python_vm(settings_store::plugin_t& plugin, std::function<void(settings_store::plugin_t)> callback)
+bool backend_manager::create_python_vm(plugin_manager::plugin_t& plugin, std::function<void(plugin_manager::plugin_t)> callback)
 {
     const std::string pluginName = plugin.plugin_name;
     std::shared_ptr<InterpreterMutex> interpMutexState = std::make_shared<InterpreterMutex>();
@@ -774,24 +775,24 @@ std::string backend_manager::get_plugin_name_from_thread_state(PyThreadState* th
  * This function retrieves the backend type (Python or Lua) for a given plugin name.
  * If the plugin has an unspecified or unknown backend type, it defaults to Python for backward compatibility.
  */
-settings_store::backend_t backend_manager::get_plugin_backend_type(std::string pluginName)
+plugin_manager::backend_t backend_manager::get_plugin_backend_type(std::string pluginName)
 {
     for (const auto& luaPlugin : this->m_luaThreadPool) {
         const auto& [luaPluginName, thread, L, hasFinished] = *luaPlugin;
 
         if (luaPluginName == pluginName) {
-            return settings_store::backend_t::Lua;
+            return plugin_manager::backend_t::Lua;
         }
     }
 
     for (const auto& pyPlugin : this->m_pythonInstances) {
         const auto& [pyPluginName, thread_ptr, interpMutex] = *pyPlugin;
         if (pyPluginName == pluginName) {
-            return settings_store::backend_t::Python;
+            return plugin_manager::backend_t::Python;
         }
     }
 
-    return settings_store::backend_t::Python;
+    return plugin_manager::backend_t::Python;
 }
 
 /**
@@ -972,7 +973,7 @@ void* backend_manager::Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, siz
  * @param {std::function<void(SettingsStore::PluginTypeSchema, lua_State*)>} callback - The callback function to delegate to the thread.
  * @returns {bool} - always true, it used to have meaning in the early days with the python backend, but has since been removed.
  */
-bool backend_manager::create_lua_vm(settings_store::plugin_t& plugin, std::function<void(settings_store::plugin_t, lua_State*)> callback)
+bool backend_manager::create_lua_vm(plugin_manager::plugin_t& plugin, std::function<void(plugin_manager::plugin_t, lua_State*)> callback)
 {
     /** create a shared_ptr for the plugin name to keep the reference alive outside of the functions scope. */
     auto pluginNamePtr = new std::shared_ptr<std::string>(std::make_shared<std::string>(plugin.plugin_name));
@@ -1005,12 +1006,12 @@ bool backend_manager::destroy_generic_vm(std::string plugin_name)
     auto backend_type = this->get_plugin_backend_type(plugin_name);
 
     switch (backend_type) {
-        case settings_store::backend_t::Lua:
+        case plugin_manager::backend_t::Lua:
         {
             return this->destroy_lua_vm(plugin_name);
             break;
         }
-        case settings_store::backend_t::Python:
+        case plugin_manager::backend_t::Python:
         {
             return this->python_destroy_vm(plugin_name);
         }

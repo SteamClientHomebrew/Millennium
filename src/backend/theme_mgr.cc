@@ -38,7 +38,7 @@
 #include <git2.h>
 #include <thread>
 
-theme_installer::theme_installer(std::shared_ptr<settings_store> settings_store_ptr, std::shared_ptr<library_updater> updater)
+theme_installer::theme_installer(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<library_updater> updater)
     : m_settings_store_ptr(std::move(settings_store_ptr)), m_updater(std::move(updater))
 {
 }

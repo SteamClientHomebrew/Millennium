@@ -211,9 +211,9 @@ ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
  */
 ipc_main::vm_call_result ipc_main::handle_plugin_server_method(const std::string& pluginName, const json& message)
 {
-    static const std::unordered_map<settings_store::backend_t, std::function<vm_call_result(const std::string&, const json&)>> handlers = {
-        { settings_store::backend_t::Python, std::bind(&ipc_main::python_evaluate, this, _1, _2) },
-        { settings_store::backend_t::Lua,    std::bind(&ipc_main::lua_evaluate,    this, _1, _2) },
+    static const std::unordered_map<plugin_manager::backend_t, std::function<vm_call_result(const std::string&, const json&)>> handlers = {
+        { plugin_manager::backend_t::Python, std::bind(&ipc_main::python_evaluate, this, _1, _2) },
+        { plugin_manager::backend_t::Lua,    std::bind(&ipc_main::lua_evaluate,    this, _1, _2) },
     };
 
     auto backend = m_backend_manager.lock();
@@ -292,9 +292,9 @@ json ipc_main::on_front_end_loaded(const json& call)
     if (plugin != plugins.end() && plugin->plugin_json.value("useBackend", true)) {
         logger.log("Delegating frontend load for plugin: {}", pluginName);
 
-        static const std::unordered_map<settings_store::backend_t, std::function<void(const std::string&)>> handlers = {
-            { settings_store::backend_t::Python, std::bind(&ipc_main::python_call_frontend_loaded, this, _1) },
-            { settings_store::backend_t::Lua,    std::bind(&ipc_main::lua_call_frontend_loaded,    this, _1) }
+        static const std::unordered_map<plugin_manager::backend_t, std::function<void(const std::string&)>> handlers = {
+            { plugin_manager::backend_t::Python, std::bind(&ipc_main::python_call_frontend_loaded, this, _1) },
+            { plugin_manager::backend_t::Lua,    std::bind(&ipc_main::lua_call_frontend_loaded,    this, _1) }
         };
 
         auto backend = m_backend_manager.lock();

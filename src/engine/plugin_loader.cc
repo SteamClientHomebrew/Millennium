@@ -59,7 +59,7 @@ extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_has
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-plugin_loader::plugin_loader(std::shared_ptr<settings_store> settings_store, std::shared_ptr<millennium_updater> millennium_updater)
+plugin_loader::plugin_loader(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<millennium_updater> millennium_updater)
     : m_thread_pool(std::make_unique<thread_pool>(2)), m_settings_store_ptr(std::move(settings_store)), m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr),
       m_millennium_updater(std::move(millennium_updater)), has_loaded_core_plugin(false)
 {
@@ -85,10 +85,12 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     m_network_hook_ctl->set_cdp_client(m_cdp);
     m_network_hook_ctl->init();
 
+    m_extension_mgr = std::make_shared<browser_extension_manager>(cdp);
     m_ipc_main = std::make_shared<ipc_main>(m_millennium_backend, m_settings_store_ptr, m_cdp, m_backend_manager);
 
-    m_millennium_backend->set_ipc_main(m_ipc_main);
     m_millennium_updater->set_ipc_main(m_ipc_main);
+    m_millennium_backend->set_ipc_main(m_ipc_main);
+    m_millennium_backend->set_extension_mgr(m_extension_mgr);
 
     m_thread_pool->enqueue([this]()
     {
@@ -96,7 +98,6 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
         this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_settings_store_ptr, m_ipc_main);
         this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_settings_store_ptr, m_network_hook_ctl, m_plugin_webkit_store);
-        m_millennium_backend->initialize_extension_mgr();
     });
 
     m_thread_pool->enqueue([this]()
@@ -117,8 +118,8 @@ void plugin_loader::init()
     m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
     m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);
     m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_settings_store_ptr);
-    m_plugin_ptr = std::make_shared<std::vector<settings_store::plugin_t>>(m_settings_store_ptr->get_all_plugins());
-    m_enabledPluginsPtr = std::make_shared<std::vector<settings_store::plugin_t>>(m_settings_store_ptr->get_enabled_backends());
+    m_plugin_ptr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_settings_store_ptr->get_all_plugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_settings_store_ptr->get_enabled_backends());
 
     m_settings_store_ptr->init();
 
@@ -187,7 +188,7 @@ void plugin_loader::setup_webkit_shims()
     const auto plugins = this->m_settings_store_ptr->get_all_plugins();
 
     for (auto& plugin : plugins) {
-        const auto abs_path = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
+        const auto abs_path = std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
         const auto should_isolate = plugin.plugin_json.value("webkitApiVersion", "1.0.0") == "2.0.0";
 
         if (this->m_settings_store_ptr->is_enabled(plugin.plugin_name) && std::filesystem::exists(abs_path)) {
@@ -209,7 +210,7 @@ std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::
 std::string plugin_loader::cdp_generate_shim_module()
 {
     std::vector<std::string> script_list;
-    std::vector<settings_store::plugin_t> plugins = m_settings_store_ptr->get_all_plugins();
+    std::vector<plugin_manager::plugin_t> plugins = m_settings_store_ptr->get_all_plugins();
 
     for (auto& plugin : plugins) {
         if (!m_settings_store_ptr->is_enabled(plugin.plugin_name)) {
@@ -360,7 +361,7 @@ void plugin_loader::start_plugin_backends()
             continue;
         }
 
-        if (plugin.backend_type == settings_store::backend_t::Lua) {
+        if (plugin.backend_type == plugin_manager::backend_t::Lua) {
             m_backend_manager->create_lua_vm(plugin, [weak_init, weak_plugin_loader](auto plugin, lua_State* L)
             {
                 if (auto init = weak_init.lock()) {
@@ -428,7 +429,7 @@ std::shared_ptr<millennium_backend> plugin_loader::get_millennium_backend()
     return this->m_millennium_backend;
 }
 
-std::shared_ptr<settings_store> plugin_loader::get_settings_store()
+std::shared_ptr<plugin_manager> plugin_loader::get_settings_store()
 {
     return this->m_settings_store_ptr;
 }

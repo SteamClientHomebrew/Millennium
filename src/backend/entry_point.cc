@@ -34,7 +34,7 @@
 #include "head/theme_cfg.h"
 #include "head/webkit.h"
 
-#include "millennium/backend_mgr.h"
+#include "millennium/environment.h"
 #include "millennium/encoding.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
@@ -76,10 +76,9 @@ void millennium_backend::init()
 
     m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, m_network_hook_ctl);
     m_theme_config = std::make_shared<ThemeConfig>(m_settings_store, m_theme_webkit_mgr);
-    m_extension_mgr = std::make_shared<browser_extension_manager>();
 }
 
-millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<settings_store> settings_store,
+millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<plugin_manager> settings_store,
                                        std::shared_ptr<millennium_updater> millennium_updater)
     : m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
 {
@@ -117,7 +116,6 @@ millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network
         register_function(Core_GetPluginBackendLogs),
         register_function(Core_UpdateMillennium),
         register_function(Core_HasPendingMillenniumUpdateRestart),
-        register_function(Core_GetBrowserExtensions),
     };
 }
 
@@ -181,7 +179,7 @@ builtin_payload millennium_backend::Core_GetStartConfig(const builtin_payload&)
 /** Quick CSS utilities */
 builtin_payload millennium_backend::Core_LoadQuickCss(const builtin_payload&)
 {
-    const std::string quickCssPath = fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH"));
+    const std::string quickCssPath = fmt::format("{}/quickcss.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
 
     if (!std::filesystem::exists(quickCssPath)) {
         platform::write_file(quickCssPath, "/* Quick CSS file created by Millennium */\n");
@@ -191,7 +189,7 @@ builtin_payload millennium_backend::Core_LoadQuickCss(const builtin_payload&)
 }
 builtin_payload millennium_backend::Core_SaveQuickCss(const builtin_payload& args)
 {
-    const std::string quickCssPath = fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH"));
+    const std::string quickCssPath = fmt::format("{}/quickcss.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
     platform::write_file(quickCssPath, args["css"].get<std::string>());
     return {};
 }
@@ -211,7 +209,7 @@ builtin_payload millennium_backend::Core_FindAllPlugins(const builtin_payload&)
 }
 builtin_payload millennium_backend::Core_GetEnvironmentVar(const builtin_payload& args)
 {
-    return GetEnv(args["variable"]);
+    return platform::environment::get(args["variable"]);
 }
 builtin_payload millennium_backend::Core_GetBackendConfig(const builtin_payload&)
 {
@@ -347,7 +345,7 @@ builtin_payload millennium_backend::Core_UninstallPlugin(const builtin_payload& 
 builtin_payload millennium_backend::Core_GetPluginBackendLogs(const builtin_payload&)
 {
     nlohmann::json logData = nlohmann::json::array();
-    std::vector<settings_store::plugin_t> plugins = m_settings_store->get_all_plugins();
+    std::vector<plugin_manager::plugin_t> plugins = m_settings_store->get_all_plugins();
 
     for (auto& logger : get_plugin_logger_mgr()) {
         nlohmann::json logDataItem;
@@ -392,14 +390,6 @@ builtin_payload millennium_backend::Core_HasPendingMillenniumUpdateRestart(const
     return m_millennium_updater->is_pending_restart();
 }
 
-builtin_payload millennium_backend::Core_GetBrowserExtensions(const builtin_payload&)
-{
-    if (!m_extension_mgr) {
-        return nlohmann::json::array();
-    }
-    return m_extension_mgr->get_all_extensions();
-}
-
 builtin_payload millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)
 {
     // Skip plugin settings parser as it's not applicable
@@ -424,9 +414,7 @@ void millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
     m_ipc_main = std::move(ipc_main);
 }
 
-void millennium_backend::initialize_extension_mgr() const
+void millennium_backend::set_extension_mgr(std::shared_ptr<browser_extension_manager> extension_mgr)
 {
-    if (m_ipc_main && m_extension_mgr) {
-        m_extension_mgr->initialize(m_ipc_main->get_cdp_client());
-    }
+    m_extension_mgr = std::move(extension_mgr);
 }

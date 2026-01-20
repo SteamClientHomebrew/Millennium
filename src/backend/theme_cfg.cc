@@ -34,13 +34,14 @@
 #include "head/sys_accent_col.h"
 #include "head/webkit.h"
 
+#include "millennium/environment.h"
 #include "millennium/filesystem.h"
 #include "millennium/logger.h"
 
 #include <fmt/format.h>
 #include <regex>
 
-ThemeConfig::ThemeConfig(std::shared_ptr<settings_store> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
+ThemeConfig::ThemeConfig(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
     : m_settings_store(std::move(settings_store)), m_theme_webkit_mgr(std::move(theme_webkit_mgr))
 {
     themes_path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
@@ -66,7 +67,7 @@ void ThemeConfig::OnConfigChange()
 
 void ThemeConfig::UpgradeOldConfig()
 {
-    std::filesystem::path old_config_path = std::filesystem::path(std::getenv("MILLENNIUM__CONFIG_PATH")) / "themes.json";
+    std::filesystem::path old_config_path = std::filesystem::path(platform::environment::get("MILLENNIUM__CONFIG_PATH")) / "themes.json";
 
     if (!std::filesystem::exists(old_config_path)) return;
 

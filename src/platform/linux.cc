@@ -35,7 +35,6 @@
 #include "instrumentation/smem.h"
 
 #include "millennium/millennium.h"
-#include "millennium/backend_mgr.h"
 #include "millennium/crash_handler.h"
 #include "millennium/environment.h"
 #include "millennium/plugin_loader.h"
@@ -50,9 +49,6 @@
 #include <thread>
 
 std::unique_ptr<std::thread> g_millenniumThread;
-
-void VerifyEnvironment();
-
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 
@@ -89,7 +85,7 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
     logger.log("[Millennium] Setting up environment for Steam process: {}", path);
 
     /** Setup environment variables if loaded into Steam process */
-    SetupEnvironmentVariables();
+    platform::environment::setup();
 }
 
 DESTRUCTOR void Posix_UnInitializeEnvironment()

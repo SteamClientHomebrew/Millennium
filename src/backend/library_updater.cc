@@ -43,7 +43,7 @@ library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_ba
 {
 }
 
-void library_updater::init(std::shared_ptr<settings_store> settings_store_ptr)
+void library_updater::init(std::shared_ptr<plugin_manager> settings_store_ptr)
 {
     theme_updater = std::make_shared<theme_installer>(settings_store_ptr, shared_from_this());
     plugin_updater = std::make_shared<plugin_installer>(m_millennium_backend, settings_store_ptr, shared_from_this());

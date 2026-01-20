@@ -41,7 +41,7 @@ nlohmann::json GetDefaultConfig()
 #endif
 
     /** Detect old file to determine welcome modal status */
-    bool hasShownWelcomeModal = std::filesystem::exists(std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "themes.json");
+    bool hasShownWelcomeModal = std::filesystem::exists(std::filesystem::path(platform::environment::get("MILLENNIUM__CONFIG_PATH")) / "themes.json");
 
     // clang-format off
     nlohmann::json default_config = {

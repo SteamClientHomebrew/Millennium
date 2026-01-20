@@ -30,7 +30,6 @@
 
 #pragma once
 
-#include "millennium/environment.h"
 #include "millennium/singleton.h"
 
 #include <Python.h>

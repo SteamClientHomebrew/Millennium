@@ -33,7 +33,7 @@
 #include "millennium/core_ipc.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 
-ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<settings_store> settings_store, std::shared_ptr<ipc_main> ipc_main)
+ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<ipc_main> ipc_main)
     : m_client(client), m_settings_store(std::move(settings_store)), m_ipc_main(std::move(ipc_main))
 {
     m_client->on("Runtime.bindingCalled", std::bind(&ffi_binder::binding_call_hdlr, this, std::placeholders::_1));

@@ -35,21 +35,23 @@
 #include <memory>
 #include <string>
 
-class browser_extension_manager {
-public:
-    browser_extension_manager() = default;
+class browser_extension_manager
+{
+  public:
+    browser_extension_manager(std::shared_ptr<cdp_client> cdp);
     ~browser_extension_manager();
 
-    void initialize(const std::shared_ptr<cdp_client>& cdp);
-    nlohmann::json get_all_extensions();
-    void target_destroyed(const nlohmann::json& params);
+    json get_extensions();
 
-private:
+  private:
     std::shared_ptr<cdp_client> m_cdp;
-    std::string m_target_id;
-    std::string m_session_id;
+    std::string m_target_id, m_session_id;
 
+    void create_and_attach();
+    void destroy_and_detach();
     bool create_target();
-    std::string create_hidden_window() const;
     bool attach_to_target();
+
+    std::string create_hidden_window() const;
+    json evaluate_expression(std::string script);
 };

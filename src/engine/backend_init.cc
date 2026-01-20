@@ -319,7 +319,7 @@ void backend_initializer::set_plugin_internal_name(PyObject* globalDictionary, c
  *
  * Both paths are converted to strings and set as Python variables in the global dictionary.
  */
-void backend_initializer::set_plugin_environment_variables(PyObject* globalDictionary, const settings_store::plugin_t& plugin)
+void backend_initializer::set_plugin_environment_variables(PyObject* globalDictionary, const plugin_manager::plugin_t& plugin)
 {
     PyDict_SetItemString(globalDictionary, "PLUGIN_BASE_DIR", PyUnicode_FromString(plugin.plugin_base_dir.generic_string().c_str()));
     PyDict_SetItemString(globalDictionary, "__file__", PyUnicode_FromString((plugin.plugin_backend_dir / "main.py").generic_string().c_str()));
@@ -331,7 +331,7 @@ static void RegisterModule(lua_State* L, const char* name, lua_CFunction func)
     lua_setfield(L, -2, name);
 }
 
-void backend_initializer::lua_backend_started_cb(settings_store::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader, lua_State* L)
+void backend_initializer::lua_backend_started_cb(plugin_manager::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader, lua_State* L)
 {
     logger.log("Starting Lua backend for '{}'", plugin.plugin_name);
 
@@ -433,7 +433,7 @@ void backend_initializer::lua_backend_started_cb(settings_store::plugin_t plugin
  * Error Handling:
  * - If any step of the process fails (e.g., file opening, module import), the error is logged and the backend load is marked as failed.
  */
-void backend_initializer::python_backend_started_cb(settings_store::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader)
+void backend_initializer::python_backend_started_cb(plugin_manager::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader)
 {
     const auto [pythonPath, pythonLibs, pythonUserLibs] = GetPythonEnvPaths();
 
@@ -610,18 +610,18 @@ void backend_initializer::start_package_manager(std::weak_ptr<plugin_loader> plu
 {
     std::promise<void> promise;
 
-    settings_store::plugin_t plugin;
+    plugin_manager::plugin_t plugin;
     plugin.plugin_name = "pipx";
 #ifdef MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS
-    plugin.plugin_backend_dir = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "package_manager";
+    plugin.plugin_backend_dir = std::filesystem::path(platform::environment::get("MILLENNIUM__ASSETS_PATH")) / "package_manager";
 #else
-    plugin.plugin_backend_dir = std::filesystem::path(GetEnv("MILLENNIUM__ASSETS_PATH")) / "pipx";
+    plugin.plugin_backend_dir = std::filesystem::path(platform::environment::get("MILLENNIUM__ASSETS_PATH")) / "pipx";
 #endif
     plugin.is_internal = true;
 
     /** Create instance on a separate thread to prevent IO blocking of concurrent
      * threads */
-    m_backend_manager->create_python_vm(plugin, [this, plugin_loader, &promise](settings_store::plugin_t plugin)
+    m_backend_manager->create_python_vm(plugin, [this, plugin_loader, &promise](plugin_manager::plugin_t plugin)
     {
         logger.log("Started preloader module");
         const auto backendMainModule = (plugin.plugin_backend_dir / "main.py").generic_string();

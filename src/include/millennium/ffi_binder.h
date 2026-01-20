@@ -41,12 +41,12 @@ static const char* const frontend_binding_name = "MILLENNIUM_PRIVATE_INTERNAL_FO
 class ffi_binder
 {
   public:
-    ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<settings_store> settings_store, std::shared_ptr<ipc_main> ipc_main);
+    ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<ipc_main> ipc_main);
     ~ffi_binder();
 
   private:
     std::shared_ptr<cdp_client> m_client;
-    std::shared_ptr<settings_store> m_settings_store;
+    std::shared_ptr<plugin_manager> m_settings_store;
     std::shared_ptr<ipc_main> m_ipc_main;
 
     void callback_into_js(const json params, const int request_id, json result);

@@ -43,7 +43,6 @@
 
 namespace platform
 {
-
     std::filesystem::path get_steam_path()
     {
 #ifdef _WIN32
@@ -92,7 +91,7 @@ namespace platform
     std::filesystem::path get_install_path()
     {
 #if defined(__linux__) || defined(__APPLE__)
-        return GetEnv("MILLENNIUM__CONFIG_PATH");
+        return platform::environment::get("MILLENNIUM__CONFIG_PATH");
 #elif defined(_WIN32)
         return GetSteamPath();
 #endif

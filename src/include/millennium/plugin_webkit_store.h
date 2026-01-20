@@ -30,7 +30,7 @@
 
 #pragma once
 #include "millennium/logger.h"
-#include "millennium/config.h"
+#include "millennium/plugin_manager.h"
 #include <filesystem>
 
 class plugin_webkit_store
@@ -48,7 +48,7 @@ class plugin_webkit_store
         }
     };
 
-    plugin_webkit_store(std::shared_ptr<settings_store> settings_store) : m_settingStore(std::move(settings_store))
+    plugin_webkit_store(std::shared_ptr<plugin_manager> settings_store) : m_settingStore(std::move(settings_store))
     {
     }
 
@@ -65,6 +65,6 @@ class plugin_webkit_store
 
   private:
     std::vector<item> m_webkit_store;
-    std::shared_ptr<settings_store> m_settingStore;
+    std::shared_ptr<plugin_manager> m_settingStore;
     std::mutex m_accessMutex;
 };

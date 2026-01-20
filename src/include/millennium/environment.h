@@ -33,8 +33,11 @@
  *
  * @brief This file is responsible for setting up environment variables that are used throughout the application.
  */
+#pragma once
+#include <memory>
 #include <string>
 #include <map>
+#include <vector>
 
 extern std::map<std::string, std::string> envVariables;
 
@@ -49,6 +52,19 @@ extern std::map<std::string, std::string> envVariables;
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 #endif
 
-void SetupEnvironmentVariables();
-std::string GetEnv(std::string key);
-std::string GetEnvWithFallback(std::string key, std::string fallback);
+namespace platform
+{
+    class environment
+    {
+      public:
+        static void setup();
+        static std::string get(std::string key);
+        static std::string get(std::string key, std::string fallback);
+        static void set(const std::string& key, const std::string& value);
+
+      private:
+        static std::vector<std::unique_ptr<char[]>> allocated_strings;
+        static bool add(std::unique_ptr<char[]> strEnv);
+        static bool set_unix(const std::string& name, const std::string& value);
+    }; // namespace environment
+} // namespace platform

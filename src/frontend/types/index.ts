@@ -133,7 +133,7 @@ export interface Plugin {
 	description?: string;
 	venv?: string;
 	version?: string;
-	browser_extension?: boolean;
+	__private_browser_extension?: boolean;
 }
 
 export interface PluginComponent {

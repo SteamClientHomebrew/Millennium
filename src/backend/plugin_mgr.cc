@@ -41,7 +41,7 @@
 #include "millennium/encoding.h"
 #include "millennium/zip.h"
 
-plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<settings_store> settings_store_ptr,
+plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<plugin_manager> settings_store_ptr,
                                    std::shared_ptr<library_updater> updater)
     : m_millennium_backend(std::move(millennium_backend)), settings_store_ptr(std::move(settings_store_ptr)), m_updater(std::move(updater))
 {
@@ -49,7 +49,7 @@ plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_
 
 std::filesystem::path plugin_installer::get_plugins_path()
 {
-    return std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH"));
+    return std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH"));
 }
 
 bool plugin_installer::is_plugin_installed(const std::string& pluginName)

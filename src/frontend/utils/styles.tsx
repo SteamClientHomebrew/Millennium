@@ -30,7 +30,7 @@
 
 import { fieldClasses, pagedSettingsClasses } from './classes';
 
-const styles = /* css */`
+const styles = /* css */ `
 :root {
 	/* Stolen from Steam store */
 	--MillenniumText-Font: "Motiva Sans", Arial, Sans-serif;

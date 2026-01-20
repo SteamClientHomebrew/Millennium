@@ -34,10 +34,12 @@
 #endif
 
 #include "millennium/logger.h"
+#include "millennium/environment.h"
+
 #include <algorithm>
 #include <fcntl.h>
-#include <filesystem>
 #include <iostream>
+#include <filesystem>
 
 #ifdef _WIN32
 #include "millennium/argp_win32.h"
@@ -91,7 +93,7 @@ std::string logger_base::get_local_date_str()
 
 plugin_logger::plugin_logger(const std::string& pluginName) : pluginName(pluginName)
 {
-    this->filename = (std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / fmt::format("{}_log.log", pluginName)).generic_string();
+    this->filename = (std::filesystem::path(platform::environment::get("MILLENNIUM__LOGS_PATH")) / fmt::format("{}_log.log", pluginName)).generic_string();
     file.open(filename, std::ios::app);
 
     file << fmt::format("\n\n\n--------------------------------- [{}] ---------------------------------\n", get_local_date_str());

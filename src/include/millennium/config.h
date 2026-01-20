@@ -32,48 +32,8 @@
 #include "nlohmann/json.hpp"
 #include "millennium/singleton.h"
 #include "millennium/types.h"
-#include <filesystem>
 #include <functional>
 #include <mutex>
-
-class settings_store
-{
-  public:
-    enum class backend_t
-    {
-        Python,
-        Lua
-    };
-
-    static constexpr const char* plugin_config_file = "plugin.json";
-
-    struct plugin_t
-    {
-        std::string plugin_name;
-        json plugin_json;
-        std::filesystem::path plugin_base_dir;
-        std::filesystem::path plugin_backend_dir;
-        std::filesystem::path plugin_frontend_dir;
-        std::filesystem::path plugin_webkit_path;
-        backend_t backend_type;
-        bool is_internal = false;
-    };
-
-    std::vector<plugin_t> get_all_plugins();
-    std::vector<plugin_t> get_enabled_backends();
-    std::vector<plugin_t> get_enabled_plugins();
-    std::vector<std::string> get_enabled_plugin_names();
-
-    bool is_enabled(std::string pluginName);
-    bool set_plugin_enabled(std::string pluginName, bool enabled);
-    int init();
-
-    settings_store();
-
-  private:
-    void lint_plugin(json json, std::string pluginName);
-    plugin_t get_plugin_internal_metadata(json json, std::filesystem::directory_entry entry);
-};
 
 class config_manager : public singleton<config_manager>
 {

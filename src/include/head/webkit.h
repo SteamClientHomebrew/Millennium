@@ -47,7 +47,7 @@ class theme_webkit_mgr
         std::string fileType; // "TargetCss" or "TargetJs"
     };
 
-    theme_webkit_mgr(std::shared_ptr<settings_store> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl);
+    theme_webkit_mgr(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl);
 
     void unregister_all();
     void add_conditional_data(const std::string& path, const nlohmann::json& data, const std::string& theme_name);
@@ -57,6 +57,6 @@ class theme_webkit_mgr
 
   private:
     std::vector<int> m_registered_hooks;
-    std::shared_ptr<settings_store> m_settings_store;
+    std::shared_ptr<plugin_manager> m_settings_store;
     std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
 };

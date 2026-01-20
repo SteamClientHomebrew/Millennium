@@ -38,12 +38,7 @@ import { MillenniumDesktopSidebar } from './quick-access';
 import { DesktopMenuProvider } from './quick-access/DesktopMenuContext';
 import { MillenniumSettings } from './settings';
 import { MillenniumQuickCssEditor } from './settings/quickcss';
-import {
-    SettingsProps,
-    SystemAccentColor,
-    ThemeItem,
-    ThemeItemV1
-} from './types';
+import { SettingsProps, SystemAccentColor, ThemeItem, ThemeItemV1 } from './types';
 import { PyGetRootColors, PyGetStartupConfig } from './utils/ffi';
 import { Logger } from './utils/Logger';
 import { useQuickCssState } from './utils/quick-css-state';
@@ -92,20 +87,6 @@ async function initializeMillennium(settings: SettingsProps) {
 
 	const notificationService = new NotificationService();
 	notificationService.showNotifications();
-
-    // TODO: Move this out of the global window scope
-	window.createHiddenWindow = (windowId: string) => {
-		const popup = SteamClient.BrowserView.CreatePopup({
-			parentPopupBrowserID: g_PopupManager.GetExistingPopup('SP Desktop_uid0')?.window.SteamClient.Browser.GetBrowserID(),
-		});
-		const popupWindow = window.open(popup.strCreateURL);
-		if (!popupWindow) {
-			throw new Error('Failed to open popup window');
-		}
-
-		popupWindow.SteamClient.Window.HideWindow();
-		popupWindow.document.title = windowId;
-	};
 }
 
 // Entry point on the front end of your plugin
