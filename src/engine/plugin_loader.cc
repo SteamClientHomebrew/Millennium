@@ -96,6 +96,7 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
         this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_settings_store_ptr, m_ipc_main);
         this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_settings_store_ptr, m_network_hook_ctl, m_plugin_webkit_store);
+        m_millennium_backend->initialize_extension_mgr();
     });
 
     m_thread_pool->enqueue([this]()
