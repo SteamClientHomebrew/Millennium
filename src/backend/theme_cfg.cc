@@ -41,31 +41,31 @@
 #include <fmt/format.h>
 #include <regex>
 
-ThemeConfig::ThemeConfig(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
+head::theme_config_store::theme_config_store(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
     : m_settings_store(std::move(settings_store)), m_theme_webkit_mgr(std::move(theme_webkit_mgr))
 {
     themes_path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
 
-    UpgradeOldConfig();
-    OnConfigChange();
+    migrate_old_config();
+    on_config_change_hdlr();
 
-    config_listener_ = [this](const std::string&, const nlohmann::json&, const nlohmann::json&) { this->OnConfigChange(); };
+    config_listener_ = [this](const std::string&, const nlohmann::json&, const nlohmann::json&) { this->on_config_change_hdlr(); };
     CONFIG.register_listener(config_listener_);
 }
 
-ThemeConfig::~ThemeConfig()
+head::theme_config_store::~theme_config_store()
 {
     // CONFIG.UnregisterListener(config_listener_);
 }
 
-void ThemeConfig::OnConfigChange()
+void head::theme_config_store::on_config_change_hdlr()
 {
-    ValidateTheme();
+    validate_theme();
     m_theme_webkit_mgr->unregister_all();
-    SetupThemeHooks();
+    setup_theme_hooks();
 }
 
-void ThemeConfig::UpgradeOldConfig()
+void head::theme_config_store::migrate_old_config()
 {
     std::filesystem::path old_config_path = std::filesystem::path(platform::environment::get("MILLENNIUM__CONFIG_PATH")) / "themes.json";
 
@@ -131,38 +131,38 @@ void ThemeConfig::UpgradeOldConfig()
     if (ec) LOG_ERROR("Failed to remove old config file: " + ec.message());
 }
 
-void ThemeConfig::ValidateTheme()
+void head::theme_config_store::validate_theme()
 {
     if (CONFIG.get("themes.activeTheme").is_null()) CONFIG.set("themes.activeTheme", "default");
 
     std::string active = CONFIG.get("themes.activeTheme").get<std::string>();
-    if (active != "default" && !Millennium::Themes::IsValid(active)) {
+    if (active != "default" && !head::Themes::IsValid(active)) {
         logger.log("Theme '" + active + "' is invalid. Resetting to default.");
         CONFIG.set("themes.activeTheme", "default");
     }
 }
 
-nlohmann::json ThemeConfig::GetConfig()
+nlohmann::json head::theme_config_store::get_config()
 {
     return CONFIG.get_all();
 }
 
-void ThemeConfig::SetConfig(const std::string& path, const nlohmann::json& value)
+void head::theme_config_store::set_config(const std::string& path, const nlohmann::json& value)
 {
     CONFIG.set(path, value);
 }
 
-void ThemeConfig::ChangeTheme(const std::string& theme_name)
+void head::theme_config_store::change_theme(const std::string& theme_name)
 {
     CONFIG.set("themes.activeTheme", theme_name);
 }
 
-nlohmann::json ThemeConfig::GetAccentColor()
+nlohmann::json head::theme_config_store::get_accent_color()
 {
-    return Colors::GetAccentColor(CONFIG.get("general.accentColor").get<std::string>());
+    return head::system_accent_color::plat_get_accent_color(CONFIG.get("general.accentColor").get<std::string>());
 }
 
-nlohmann::json ThemeConfig::GetActiveTheme()
+nlohmann::json head::theme_config_store::get_active_theme()
 {
     std::string active = CONFIG.get("themes.activeTheme").get<std::string>();
     std::filesystem::path path = themes_path / active / "skin.json";
@@ -182,17 +182,17 @@ nlohmann::json ThemeConfig::GetActiveTheme()
     }
 }
 
-void ThemeConfig::SetupThemeHooks()
+void head::theme_config_store::setup_theme_hooks()
 {
-    theme_data = GetActiveTheme();
+    theme_data = get_active_theme();
     active_theme_name = CONFIG.get("themes.activeTheme").get<std::string>();
 
-    SetupConditionals();
-    StartWebkitHook(theme_data, active_theme_name);
-    SetupColors();
+    setup_conditionals();
+    start_webkit_hook(theme_data, active_theme_name);
+    setup_colors();
 }
 
-void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string& name)
+void head::theme_config_store::start_webkit_hook(const nlohmann::json& theme, const std::string& name)
 {
     if (theme.contains("failed")) return;
 
@@ -215,9 +215,9 @@ void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string
     m_theme_webkit_mgr->add_conditional_data(theme_path.generic_string(), theme["data"], name);
 }
 
-void ThemeConfig::SetupColors()
+void head::theme_config_store::setup_colors()
 {
-    nlohmann::json all_themes = Millennium::Themes::FindAllThemes();
+    nlohmann::json all_themes = head::Themes::FindAllThemes();
 
     for (auto& theme : all_themes) {
         if (theme.contains("failed") || !theme.contains("data") || !theme["data"].contains("RootColors")) {
@@ -228,7 +228,7 @@ void ThemeConfig::SetupColors()
         std::string rootFile = theme["data"]["RootColors"].get<std::string>();
         const auto colorsPath = platform::get_steam_path() / "steamui" / "skins" / nativeName / rootFile;
 
-        colors[nativeName] = Millennium::CSSParser::ParseRootColors(colorsPath.generic_string());
+        colors[nativeName] = head::css_parser::parse_root_colors(colorsPath.generic_string());
 
         if (CONFIG.get("themes.themeColors", nullptr).is_null()) CONFIG.set("themes.themeColors", nlohmann::json::object(), /*skipPropagation=*/false);
 
@@ -239,7 +239,7 @@ void ThemeConfig::SetupColors()
             std::string defaultHex = color["defaultColor"].get<std::string>();
             int typeEnum = color["type"].get<int>();
 
-            auto colorValue = Millennium::CSSParser::ConvertFromHex(defaultHex, static_cast<Millennium::ColorTypes>(typeEnum));
+            auto colorValue = head::css_parser::convert_from_hex(defaultHex, static_cast<head::color_type>(typeEnum));
 
             if (CONFIG.get("themes.themeColors." + nativeName + "." + colorName, nullptr).is_null())
                 CONFIG.set("themes.themeColors." + nativeName + "." + colorName, colorValue.value_or(""), /*skipPropagation=*/false);
@@ -247,7 +247,7 @@ void ThemeConfig::SetupColors()
     }
 }
 
-nlohmann::json ThemeConfig::GetColors()
+nlohmann::json head::theme_config_store::get_colors()
 {
     std::string root = ":root {";
     std::string name = active_theme_name;
@@ -263,7 +263,7 @@ nlohmann::json ThemeConfig::GetColors()
     return root;
 }
 
-nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
+nlohmann::json head::theme_config_store::get_color_options(const std::string& theme_name)
 {
     if (colors.find(theme_name) == colors.end()) {
         logger.warn("No root colors found for theme: {}", theme_name);
@@ -276,7 +276,7 @@ nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
     for (auto& color : root_colors) {
         std::string cname = color["color"].get<std::string>();
         if (saved_colors.contains(cname)) {
-            const auto hex_color = Millennium::CSSParser::ConvertToHex(saved_colors[cname].get<std::string>(), static_cast<Millennium::ColorTypes>(color["type"].get<int>()));
+            const auto hex_color = head::css_parser::convert_to_hex(saved_colors[cname].get<std::string>(), static_cast<head::color_type>(color["type"].get<int>()));
             if (hex_color.has_value()) color["hex"] = hex_color.value();
         }
     }
@@ -284,9 +284,9 @@ nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
     return root_colors;
 }
 
-nlohmann::json ThemeConfig::ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type)
+nlohmann::json head::theme_config_store::set_theme_color(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type)
 {
-    std::optional<std::string> parsed_color = Millennium::CSSParser::ConvertFromHex(new_color, static_cast<Millennium::ColorTypes>(color_type));
+    std::optional<std::string> parsed_color = head::css_parser::convert_from_hex(new_color, static_cast<head::color_type>(color_type));
 
     if (!parsed_color.has_value()) {
         LOG_ERROR("Failed to parse color: {}", new_color);
@@ -297,21 +297,21 @@ nlohmann::json ThemeConfig::ChangeColor(const std::string& theme, const std::str
     return parsed_color.value();
 }
 
-void ThemeConfig::ChangeAccentColor(const std::string& new_color)
+void head::theme_config_store::set_accent_color(const std::string& new_color)
 {
     CONFIG.set("general.accentColor", new_color);
 }
 
-void ThemeConfig::ResetAccentColor()
+void head::theme_config_store::reset_accent_color()
 {
     CONFIG.set("general.accentColor", "DEFAULT_ACCENT_COLOR");
 }
 
-void ThemeConfig::SetupConditionals()
+void head::theme_config_store::setup_conditionals()
 {
     if (!CONFIG.get("themes.conditions", nlohmann::json::object()).is_object()) CONFIG.set("themes.conditions", nlohmann::json::object());
 
-    nlohmann::json themes = Millennium::Themes::FindAllThemes();
+    nlohmann::json themes = head::Themes::FindAllThemes();
 
     for (auto& theme : themes) {
         if (!theme.contains("data") || theme.contains("failed")) {
@@ -351,7 +351,7 @@ void ThemeConfig::SetupConditionals()
     CONFIG.save_to_disk();
 }
 
-nlohmann::json ThemeConfig::ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition)
+nlohmann::json head::theme_config_store::set_condition(const std::string& theme, const nlohmann::json& newData, const std::string& condition)
 {
     CONFIG.set(fmt::format("themes.conditions.{}.{}", theme, condition), newData, true);
 
@@ -360,14 +360,14 @@ nlohmann::json ThemeConfig::ChangeCondition(const std::string& theme, const nloh
     };
 }
 
-std::string ThemeConfig::GetConditionals()
+std::string head::theme_config_store::get_theme_conditionals()
 {
     if (!CONFIG.CONFIG.get("themes.conditions").is_object()) return "{}";
 
     return CONFIG.CONFIG.get("themes.conditions").dump(4);
 }
 
-std::set<std::string> ThemeConfig::GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited)
+std::set<std::string> head::theme_config_store::get_all_imports(const std::filesystem::path& css_path, std::set<std::string> visited)
 {
     std::string abs_path = std::filesystem::absolute(css_path).string();
     if (visited.count(abs_path)) return visited;
@@ -389,7 +389,7 @@ std::set<std::string> ThemeConfig::GetAllImports(const std::filesystem::path& cs
         std::string imported_path = match[1].str();
         if (!(imported_path.rfind("http://", 0) == 0) && !(imported_path.rfind("https://", 0) == 0)) imported_path = (css_path.parent_path() / imported_path).string();
 
-        GetAllImports(imported_path, visited);
+        get_all_imports(imported_path, visited);
         search_start = match.suffix().first;
     }
 

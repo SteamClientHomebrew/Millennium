@@ -30,54 +30,23 @@
 
 #pragma once
 
+#include "millennium/types.h"
 #include <nlohmann/json.hpp>
 #include <string>
 
 /**
  * Colors utility class for managing Windows accent colors and theme colors
  */
-class Colors
+namespace head
 {
-  public:
-    /**
-     * Gets Windows accent colors using WinRT APIs
-     * @return JSON string containing accent color variations
-     */
-    static nlohmann::json GetAccentColorWin32();
+namespace system_accent_color
+{
+json get_accent_color_win32();
+json get_accent_color_posix();
+json extrapolate_color(const std::string& accent_color);
+json plat_get_accent_color(const std::string& accent_color);
 
-    /**
-     * Gets default black colors for POSIX systems
-     * @return JSON string containing default black color variations
-     */
-    static nlohmann::json GetAccentColorPosix();
-
-    /**
-     * Extrapolates color variations from a custom accent color
-     * @param accent_color Hex color string (e.g., "#FF5733")
-     * @return JSON string containing color variations
-     */
-    static nlohmann::json ExtrapolateCustomColor(const std::string& accent_color);
-
-    /**
-     * Gets accent color based on input parameter
-     * @param accent_color Either "DEFAULT_ACCENT_COLOR" or a hex color string
-     * @return JSON string containing accent color data
-     */
-    static nlohmann::json GetAccentColor(const std::string& accent_color);
-
-  private:
-    /**
-     * Adjusts a hex color by a percentage (lighter/darker)
-     * @param hex_color Input hex color string
-     * @param percent Adjustment percentage (positive=lighter, negative=darker)
-     * @return Adjusted hex color string
-     */
-    static std::string AdjustColorIntensity(const std::string& hex_color, int percent);
-
-    /**
-     * Converts hex color to RGB string format
-     * @param hex_color Hex color string
-     * @return RGB string in format "r, g, b"
-     */
-    static std::string Hex2Rgb(const std::string& hex_color);
-};
+std::string adjust_color_intensity(const std::string& hex_color, int percent);
+std::string hex_to_rgb(const std::string& hex_color);
+}; // namespace system_accent_color
+} // namespace head

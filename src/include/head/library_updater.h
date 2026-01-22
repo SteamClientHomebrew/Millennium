@@ -39,6 +39,8 @@
 #include <optional>
 #include <string>
 
+namespace head
+{
 class library_updater : public std::enable_shared_from_this<library_updater>
 {
   public:
@@ -46,7 +48,7 @@ class library_updater : public std::enable_shared_from_this<library_updater>
     void init(std::shared_ptr<plugin_manager> settings_store_ptr);
 
     bool download_plugin_update(const std::string& id, const std::string& name);
-    bool download_theme_update(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
+    bool download_theme_update(std::shared_ptr<theme_config_store> themeConfig, const std::string& native);
 
     std::optional<json> get_cached_updates() const;
     bool has_checked_for_updates() const;
@@ -70,3 +72,4 @@ class library_updater : public std::enable_shared_from_this<library_updater>
     std::optional<json> cached_updates;
     bool m_has_checked_for_updates;
 };
+} // namespace head

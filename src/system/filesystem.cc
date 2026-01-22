@@ -45,47 +45,41 @@ namespace platform
 {
     std::filesystem::path get_steam_path()
     {
+        /** cache the result since the Steam path is not going to be changing during runtime */
+        static const std::filesystem::path cached_path = []()
+        {
 #ifdef _WIN32
-        HKEY hKey;
-        LONG result;
-
-        /** try to open the Steam registry key */
-        result = RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &hKey);
-        if (result != ERROR_SUCCESS) {
-            LOG_ERROR("GetSteamPath: Failed to open Steam registry key (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
-            return "C:/Program Files (x86)/Steam";
-        }
-
-        DWORD dataType;
-        DWORD dataSize = 0;
-
-        /** first call to get the required buffer size */
-        result = RegQueryValueExA(hKey, "SteamPath", nullptr, &dataType, nullptr, &dataSize);
-        if (result != ERROR_SUCCESS || dataType != REG_SZ) {
+            HKEY hKey;
+            LONG result;
+            result = RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, KEY_READ, &hKey);
+            if (result != ERROR_SUCCESS) {
+                LOG_ERROR("GetSteamPath: Failed to open Steam registry key (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
+                return std::filesystem::path("C:/Program Files (x86)/Steam");
+            }
+            DWORD dataType;
+            DWORD dataSize = 0;
+            result = RegQueryValueExA(hKey, "SteamPath", nullptr, &dataType, nullptr, &dataSize);
+            if (result != ERROR_SUCCESS || dataType != REG_SZ) {
+                RegCloseKey(hKey);
+                LOG_ERROR("GetSteamPath: Failed to query SteamPath registry value (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
+                return std::filesystem::path("C:/Program Files (x86)/Steam");
+            }
+            std::vector<char> buffer(dataSize);
+            result = RegQueryValueExA(hKey, "SteamPath", nullptr, &dataType, reinterpret_cast<LPBYTE>(buffer.data()), &dataSize);
             RegCloseKey(hKey);
-            LOG_ERROR("GetSteamPath: Failed to query SteamPath registry value (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
-            return "C:/Program Files (x86)/Steam";
-        }
-
-        /** now allocate space using that buffer length */
-        std::vector<char> buffer(dataSize);
-        result = RegQueryValueExA(hKey, "SteamPath", nullptr, &dataType, reinterpret_cast<LPBYTE>(buffer.data()), &dataSize);
-
-        RegCloseKey(hKey);
-
-        if (result != ERROR_SUCCESS) {
-            LOG_ERROR("GetSteamPath: Failed to read SteamPath registry value (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
-            return "C:/Program Files (x86)/Steam";
-        }
-
-        /** convert to string, removing null terminator if present */
-        std::string steamPath(buffer.data(), dataSize > 0 && buffer[dataSize - 1] == '\0' ? dataSize - 1 : dataSize);
-        return steamPath;
+            if (result != ERROR_SUCCESS) {
+                LOG_ERROR("GetSteamPath: Failed to read SteamPath registry value (error: {}), defaulting to C:/Program Files (x86)/Steam", result);
+                return std::filesystem::path("C:/Program Files (x86)/Steam");
+            }
+            std::string steamPath(buffer.data(), dataSize > 0 && buffer[dataSize - 1] == '\0' ? dataSize - 1 : dataSize);
+            return std::filesystem::path(steamPath);
 #elif __linux__
-        return fmt::format("{}/.steam/steam/", std::getenv("HOME"));
+            return std::filesystem::path(fmt::format("{}/.steam/steam/", std::getenv("HOME")));
 #elif __APPLE__
-        return fmt::format("{}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS", std::getenv("HOME"));
+            return std::filesystem::path(fmt::format("{}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS", std::getenv("HOME")));
 #endif
+        }();
+        return cached_path;
     }
 
     std::filesystem::path get_install_path()
@@ -93,7 +87,7 @@ namespace platform
 #if defined(__linux__) || defined(__APPLE__)
         return platform::environment::get("MILLENNIUM__CONFIG_PATH");
 #elif defined(_WIN32)
-        return GetSteamPath();
+        return get_steam_path();
 #endif
     }
 
@@ -167,18 +161,18 @@ namespace platform
 
     void write_file_bytes(const std::filesystem::path& filePath, const std::vector<unsigned char>& fileContent)
     {
-        logger.log(fmt::format("writing file to: {}", filePath.string()));
+        logger.log("writing file to: {}", filePath.string());
 
         std::ofstream fileStream(filePath, std::ios::binary);
         if (!fileStream) {
-            logger.log(fmt::format("Failed to open file for writing: {}", filePath.string()));
+            logger.log("Failed to open file for writing: {}", filePath.string());
             return;
         }
 
         fileStream.write(reinterpret_cast<const char*>(fileContent.data()), fileContent.size());
 
         if (!fileStream) {
-            logger.log(fmt::format("Error writing to file: {}", filePath.string()));
+            logger.log("Error writing to file: {}", filePath.string());
         }
 
         fileStream.close();

@@ -29,30 +29,30 @@
  */
 
 #pragma once
+#include "millennium/browser_extension_mgr.h"
 #include "millennium/plugin_manager.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <optional>
-#include "browser_extension_mgr.h"
 
-namespace Millennium
+namespace head
 {
-    namespace Plugins
-    {
-        struct Plugin
-        {
-            std::string path;
-            bool enabled;
-            nlohmann::basic_json<> data;
-        };
+namespace Plugins
+{
+struct Plugin
+{
+    std::string path;
+    bool enabled;
+    nlohmann::basic_json<> data;
+};
 
-        nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr = nullptr);
-        std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> settings_store_ptr);
-    } // namespace Plugins
+nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr = nullptr);
+std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> settings_store_ptr);
+} // namespace Plugins
 
-    namespace Themes
-    {
-        bool IsValid(const std::string& theme_native_name);
-        nlohmann::ordered_json FindAllThemes();
-    } // namespace Themes
-} // namespace Millennium
+namespace Themes
+{
+bool IsValid(const std::string& theme_native_name);
+nlohmann::ordered_json FindAllThemes();
+} // namespace Themes
+} // namespace head

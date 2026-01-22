@@ -30,7 +30,7 @@
 
 #pragma once
 #include "millennium/life_cycle.h"
-#include "millennium/config.h"
+#include "millennium/plugin_manager.h"
 
 #include <atomic>
 #include <condition_variable>

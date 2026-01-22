@@ -36,6 +36,8 @@
 #include <optional>
 #include <string>
 
+namespace head
+{
 class theme_installer
 {
   public:
@@ -47,11 +49,11 @@ class theme_installer
 
     std::optional<nlohmann::json> get_theme_from_github(const std::string& repo, const std::string& owner, bool asString = false);
     bool is_theme_installed(const std::string& repo, const std::string& owner);
-    nlohmann::json uninstall_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
-    nlohmann::json install_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner);
+    nlohmann::json uninstall_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner);
+    nlohmann::json install_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner);
 
     int clone(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback);
-    bool update_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
+    bool update_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& native);
 
     std::vector<std::pair<nlohmann::json, std::filesystem::path>> query_themes_for_updates();
     nlohmann::json process_update(const nlohmann::json& updateQuery, const nlohmann::json& remote);
@@ -63,61 +65,13 @@ class theme_installer
     std::shared_ptr<plugin_manager> m_settings_store_ptr;
     std::shared_ptr<library_updater> m_updater;
 
-    /**
-     * @brief Attempt to delete a folder, making files writable if necessary
-     * @param p Path to the folder to delete
-     */
     std::string make_temp_dir_name(const std::filesystem::path& base, const std::string& repo);
-
-    /**
-     * @brief Check if a directory is a Git repository
-     * @param path Directory path to check
-     * @return true if directory is a Git repository, false otherwise
-     */
     bool is_git_repository(const std::filesystem::path& path);
-
-    /**
-     * @brief Check if theme contains GitHub data
-     * @param theme Theme JSON object to check
-     * @return true if theme has GitHub data, false otherwise
-     */
     bool has_github_data(const nlohmann::json& theme);
-
-    /**
-     * @brief Extract repository name from theme's GitHub data
-     * @param theme Theme JSON object
-     * @return Repository name as string, empty if not found
-     */
     std::string get_repository_name(const nlohmann::json& theme);
-
-    /**
-     * @brief Find matching remote theme by repository name
-     * @param remote Array of remote themes
-     * @param repoName Repository name to search for
-     * @return Pointer to matching remote theme, nullptr if not found
-     */
     const nlohmann::json* find_remote_theme(const nlohmann::json& remote, const std::string& repoName);
-
-    /**
-     * @brief Check if local theme has updates available
-     * @param path Local theme path
-     * @param remoteTheme Remote theme information
-     * @return true if updates are available, false otherwise
-     */
     bool has_updates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
-
-    /**
-     * @brief Create update information object
-     * @param theme Local theme data
-     * @param remoteTheme Remote theme data
-     * @return JSON object containing update information
-     */
     nlohmann::json create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
-
-    /**
-     * @brief Get local commit hash for a theme
-     * @param path Local theme path
-     * @return Commit hash as string
-     */
     std::string get_commit_hash(const std::filesystem::path& path);
 };
+} // namespace head

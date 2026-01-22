@@ -38,17 +38,17 @@
 #include <git2.h>
 #include <thread>
 
-theme_installer::theme_installer(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<library_updater> updater)
+head::theme_installer::theme_installer(std::shared_ptr<::plugin_manager> settings_store_ptr, std::shared_ptr<library_updater> updater)
     : m_settings_store_ptr(std::move(settings_store_ptr)), m_updater(std::move(updater))
 {
 }
 
-std::filesystem::path theme_installer::get_skins_folder()
+std::filesystem::path head::theme_installer::get_skins_folder()
 {
     return std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
 }
 
-nlohmann::json theme_installer::create_error_response(const std::string& message)
+nlohmann::json head::theme_installer::create_error_response(const std::string& message)
 {
     return nlohmann::json({
         { "success", false   },
@@ -56,16 +56,16 @@ nlohmann::json theme_installer::create_error_response(const std::string& message
     });
 }
 
-nlohmann::json theme_installer::create_successful_response()
+nlohmann::json head::theme_installer::create_successful_response()
 {
     return nlohmann::json({
         { "success", true }
     });
 }
 
-std::optional<nlohmann::json> theme_installer::get_theme_from_github(const std::string& repo, const std::string& owner, [[maybe_unused]] bool asString)
+std::optional<nlohmann::json> head::theme_installer::get_theme_from_github(const std::string& repo, const std::string& owner, [[maybe_unused]] bool asString)
 {
-    nlohmann::json themes = Millennium::Themes::FindAllThemes();
+    nlohmann::json themes = head::Themes::FindAllThemes();
     for (auto& theme : themes) {
         auto github = theme.value("data", nlohmann::json::object()).value("github", nlohmann::json::object());
         if (github.value("owner", "") == owner && github.value("repo_name", "") == repo) return theme;
@@ -73,14 +73,14 @@ std::optional<nlohmann::json> theme_installer::get_theme_from_github(const std::
     return std::nullopt;
 }
 
-bool theme_installer::is_theme_installed(const std::string& repo, const std::string& owner)
+bool head::theme_installer::is_theme_installed(const std::string& repo, const std::string& owner)
 {
     bool installed = get_theme_from_github(repo, owner).has_value();
     logger.log("CheckInstall: {}/{} -> {}", owner, repo, installed);
     return installed;
 }
 
-nlohmann::json theme_installer::uninstall_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
+nlohmann::json head::theme_installer::uninstall_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner)
 {
     logger.log("UninstallTheme: {}/{}", owner, repo);
 
@@ -95,7 +95,7 @@ nlohmann::json theme_installer::uninstall_theme(std::shared_ptr<ThemeConfig> the
     if (!platform::remove_directory(path)) return create_error_response("Failed to delete theme folder");
 
     /** trigger config update to regenerate config */
-    themeConfig->OnConfigChange();
+    themeConfig->on_config_change_hdlr();
     return create_successful_response();
 }
 
@@ -119,7 +119,7 @@ int transfer_progress_cb(const git_transfer_progress* stats, void* payload)
     return 0;
 }
 
-int theme_installer::clone(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback)
+int head::theme_installer::clone(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback)
 {
     git_libgit2_init();
 
@@ -161,7 +161,7 @@ int theme_installer::clone(const std::string& url, const std::filesystem::path& 
     return 0;
 }
 
-nlohmann::json theme_installer::install_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& repo, const std::string& owner)
+nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner)
 {
     std::error_code ec;
     std::filesystem::path finalPath = get_skins_folder() / repo;
@@ -248,16 +248,16 @@ nlohmann::json theme_installer::install_theme(std::shared_ptr<ThemeConfig> theme
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     /** trigger config update to regenerate config */
-    themeConfig->OnConfigChange();
+    themeConfig->on_config_change_hdlr();
 
     m_updater->dispatch_progress("Done!", 100, true);
     return create_successful_response();
 }
 
-std::vector<std::pair<nlohmann::json, std::filesystem::path>> theme_installer::query_themes_for_updates()
+std::vector<std::pair<nlohmann::json, std::filesystem::path>> head::theme_installer::query_themes_for_updates()
 {
     std::vector<std::pair<nlohmann::json, std::filesystem::path>> updateQuery;
-    nlohmann::json themes = Millennium::Themes::FindAllThemes();
+    nlohmann::json themes = head::Themes::FindAllThemes();
     bool needsCopy = false;
 
     for (auto& theme : themes) {
@@ -283,7 +283,7 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> theme_installer::q
     return updateQuery;
 }
 
-bool theme_installer::update_theme(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
+bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
 {
     logger.log("Updating theme " + native);
     std::filesystem::path path = get_skins_folder() / native;
@@ -350,12 +350,12 @@ bool theme_installer::update_theme(std::shared_ptr<ThemeConfig> themeConfig, con
     }
 
     /** trigger config update to regenerate config */
-    themeConfig->OnConfigChange();
+    themeConfig->on_config_change_hdlr();
     logger.log("Theme {} updated successfully.", native);
     return true;
 }
 
-nlohmann::json theme_installer::make_post_body(const std::vector<nlohmann::json>& update_query)
+nlohmann::json head::theme_installer::make_post_body(const std::vector<nlohmann::json>& update_query)
 {
     nlohmann::json post_body = nlohmann::json::array();
 
@@ -377,7 +377,7 @@ nlohmann::json theme_installer::make_post_body(const std::vector<nlohmann::json>
     return post_body;
 }
 
-nlohmann::json theme_installer::get_request_body(void)
+nlohmann::json head::theme_installer::get_request_body(void)
 {
     nlohmann::json result;
 
@@ -411,7 +411,7 @@ nlohmann::json theme_installer::get_request_body(void)
     return result;
 }
 
-nlohmann::json theme_installer::process_update(const nlohmann::json& updateQuery, const nlohmann::json& remote)
+nlohmann::json head::theme_installer::process_update(const nlohmann::json& updateQuery, const nlohmann::json& remote)
 {
     nlohmann::json updatedThemes = nlohmann::json::array();
 
@@ -434,18 +434,18 @@ nlohmann::json theme_installer::process_update(const nlohmann::json& updateQuery
     return updatedThemes;
 }
 
-bool theme_installer::has_github_data(const nlohmann::json& theme)
+bool head::theme_installer::has_github_data(const nlohmann::json& theme)
 {
     return theme["data"].contains("github");
 }
 
-std::string theme_installer::get_repository_name(const nlohmann::json& theme)
+std::string head::theme_installer::get_repository_name(const nlohmann::json& theme)
 {
     const nlohmann::json& githubData = theme["data"]["github"];
     return githubData.value("repo_name", "");
 }
 
-const nlohmann::json* theme_installer::find_remote_theme(const nlohmann::json& remote, const std::string& repoName)
+const nlohmann::json* head::theme_installer::find_remote_theme(const nlohmann::json& remote, const std::string& repoName)
 {
     if (!remote.is_array()) {
         return nullptr;
@@ -456,14 +456,14 @@ const nlohmann::json* theme_installer::find_remote_theme(const nlohmann::json& r
     return (it != remote.end()) ? &(*it) : nullptr;
 }
 
-bool theme_installer::has_updates(const std::filesystem::path& path, const nlohmann::json& remoteTheme)
+bool head::theme_installer::has_updates(const std::filesystem::path& path, const nlohmann::json& remoteTheme)
 {
     const std::string remoteCommit = remoteTheme.value("commit", "");
     const std::string localCommit = get_commit_hash(path);
     return localCommit != remoteCommit;
 }
 
-nlohmann::json theme_installer::create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme)
+nlohmann::json head::theme_installer::create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme)
 {
     return nlohmann::json{
         { "message", remoteTheme.value("message", "No commit message.") },
@@ -474,7 +474,7 @@ nlohmann::json theme_installer::create_update_info(const nlohmann::json& theme, 
     };
 }
 
-std::string theme_installer::get_commit_hash(const std::filesystem::path& repoPath)
+std::string head::theme_installer::get_commit_hash(const std::filesystem::path& repoPath)
 {
     git_libgit2_init();
     git_repository* repo = nullptr;
@@ -501,7 +501,7 @@ std::string theme_installer::get_commit_hash(const std::filesystem::path& repoPa
     return std::string(hash);
 }
 
-bool theme_installer::is_git_repository(const std::filesystem::path& path)
+bool head::theme_installer::is_git_repository(const std::filesystem::path& path)
 {
     git_libgit2_init();
     git_repository* repo = nullptr;

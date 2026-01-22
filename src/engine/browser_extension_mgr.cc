@@ -29,7 +29,7 @@
  */
 
 #include "millennium/auth.h"
-#include "head/browser_extension_mgr.h"
+#include "millennium/browser_extension_mgr.h"
 #include "millennium/logger.h"
 
 browser_extension_manager::browser_extension_manager(std::shared_ptr<cdp_client> cdp) : m_cdp(std::move(cdp))
@@ -106,7 +106,6 @@ std::string browser_extension_manager::create_hidden_window() const
 
     try {
         eval_res = m_cdp->send("Runtime.evaluate", eval_params).get();
-        logger.log("Eval result: {}", eval_res.dump(4));
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to create hidden extension window: {}", e.what());
         return {};

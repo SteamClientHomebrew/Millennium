@@ -36,6 +36,8 @@
 #include <optional>
 #include <string>
 
+namespace head
+{
 class plugin_installer
 {
   public:
@@ -57,3 +59,4 @@ class plugin_installer
     std::optional<nlohmann::json> read_plugin_metadata(const std::filesystem::path& pluginPath);
     std::vector<nlohmann::json> get_plugin_data();
 };
+} // namespace head

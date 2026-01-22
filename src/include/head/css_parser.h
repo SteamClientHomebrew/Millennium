@@ -29,14 +29,15 @@
  */
 
 #pragma once
+#include "millennium/types.h"
 #include <map>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 
-namespace Millennium
+namespace head
 {
-enum class ColorTypes
+enum class color_type
 {
     RawRGB = 1,
     RGB = 2,
@@ -46,23 +47,21 @@ enum class ColorTypes
     Unknown = 6
 };
 
-class CSSParser
+namespace css_parser
 {
-  public:
-    static std::optional<std::string> ConvertFromHex(const std::string& color, ColorTypes type);
-    static std::optional<std::string> ConvertToHex(const std::string& color, ColorTypes type);
-    static std::string ExpandShorthandHexColor(const std::string& shortHex);
-    static ColorTypes ParseColor(const std::string& color);
-    static ColorTypes TryRawParse(const std::string& color);
+std::optional<std::string> convert_from_hex(const std::string& color, color_type type);
+std::optional<std::string> convert_to_hex(const std::string& color, color_type type);
+std::string expand_shorthand_hex(const std::string& shortHex);
 
-    static nlohmann::json ParseRootColors(const std::string& filePath);
+color_type parse_color(const std::string& color);
+color_type try_raw_parse(const std::string& color);
 
-  private:
-    static std::string ExtractRootBlock(const std::string& fileContent);
-    static void ParseProperties(const std::string& block, std::map<std::string, std::string>& properties, std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
-    static std::string Trim(const std::string& str);
+nlohmann::json parse_root_colors(const std::string& filePath);
 
-    static nlohmann::json GenerateColorMetadata(const std::map<std::string, std::string>& properties,
-                                                const std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
-};
-} // namespace Millennium
+std::string extract_root_block(const std::string& fileContent);
+void parse_properties(const std::string& block, std::map<std::string, std::string>& properties, std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
+std::string trim(const std::string& str);
+
+json generate_color_metadata(const std::map<std::string, std::string>& properties, const std::map<std::string, std::pair<std::string, std::string>>& propertyMap);
+}; // namespace css_parser
+} // namespace head

@@ -29,7 +29,6 @@
  */
 
 #include "head/webkit.h"
-#include "millennium/config.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/life_cycle.h"
 #include "millennium/core_ipc.h"
@@ -187,12 +186,12 @@ int Lua_RemoveBrowserModule(lua_State* L)
         return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
     }
 
-    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    std::shared_ptr<head::millennium_backend> backend = loader->get_millennium_backend();
     if (!backend) {
         return luaL_error(L, "Failed to contact Millennium's backend, it's likely shut down.");
     }
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
+    std::weak_ptr<head::theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         const bool success = webkit_mgr->remove_browser_hook(static_cast<unsigned long long>(hookId));
         lua_pushboolean(L, success);
@@ -213,12 +212,12 @@ unsigned long long Lua_AddBrowserModule(lua_State* L, network_hook_ctl::TagTypes
         return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
     }
 
-    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    std::shared_ptr<head::millennium_backend> backend = loader->get_millennium_backend();
     if (!backend) {
         return luaL_error(L, "Failed to contact Millennium's backend it's likely shut down.");
     }
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
+    std::weak_ptr<head::theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         return webkit_mgr->add_browser_hook(content, pattern, type);
     }

@@ -102,10 +102,10 @@ std::filesystem::path network_hook_ctl::path_from_url(const std::string& request
     for (std::string_view addr : m_ftpUrls) {
         if (auto pos = url.find(addr); pos != std::string_view::npos) {
             std::string cleaned = std::string(url.substr(0, pos)) + std::string(url.substr(pos + addr.size()));
-            return PathFromUrl(cleaned);
+            return utils::url::get_path_from_url(cleaned);
         }
     }
-    return PathFromUrl(requestUrl);
+    return utils::url::get_path_from_url(requestUrl);
 }
 
 void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message)
@@ -232,9 +232,9 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
         }
 
         if (hookItem.type == TagTypes::STYLESHEET) {
-            result.cssContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", UrlFromPath(m_ftp_url, hookItem.path)));
+            result.cssContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", utils::url::get_url_from_path(m_ftp_url, hookItem.path)));
         } else if (hookItem.type == TagTypes::JAVASCRIPT) {
-            auto jsPath = UrlFromPath(m_ftp_url, hookItem.path);
+            auto jsPath = utils::url::get_url_from_path(m_ftp_url, hookItem.path);
             result.script_modules.push_back(jsPath);
             result.linkPreloads.append(fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", jsPath));
         }
@@ -286,12 +286,16 @@ void network_hook_ctl::init()
 {
     m_cdp->on("Fetch.requestPaused", [this](const nlohmann::json& message)
     {
-        if (this->is_vfs_request(message)) {
-            this->vfs_request_handler(message);
-            return;
-        }
+        try {
+            if (this->is_vfs_request(message)) {
+                this->vfs_request_handler(message);
+                return;
+            }
 
-        this->mime_doc_request_handler(message);
+            this->mime_doc_request_handler(message);
+        } catch (const std::exception& ex) {
+            LOG_ERROR(ex.what());
+        }
     });
 
     const auto hooks = { this->m_ftp_url, this->m_legacy_hook_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url };

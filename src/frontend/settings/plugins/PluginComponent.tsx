@@ -92,9 +92,29 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		});
 	}
 
+	onExtensionSettings() {
+		const { plugin } = this.props;
+	}
+
 	showCtxMenu(e: React.MouseEvent<HTMLButtonElement>) {
 		const { plugin, isPluginConfigurable } = this.props;
 		const reason = !plugin.enabled ? locale.pluginIsNotEnabled : locale.pluginIsNotConfigurable;
+
+		const millenniumPluginConfigMenuItem = () => (
+			<DesktopTooltip toolTipContent={reason} direction="left">
+				<MenuItem onSelected={this.openPluginSettings.bind(this)} disabled={!isPluginConfigurable}>
+					Configure
+				</MenuItem>
+			</DesktopTooltip>
+		);
+
+		const chromeExtensionConfigMenuItem = () => (
+			<DesktopTooltip toolTipContent={reason} direction="left">
+				<MenuItem onSelected={this.openPluginSettings.bind(this)}>Configure</MenuItem>
+			</DesktopTooltip>
+		);
+
+		const config = plugin?.isChromeExtension ? chromeExtensionConfigMenuItem : millenniumPluginConfigMenuItem;
 
 		showContextMenu(
 			<Menu label="MillenniumPluginContextMenu">
@@ -103,11 +123,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				</MenuItem>
 				<Separator />
 				<MenuItem onSelected={() => {}}>Reload</MenuItem>
-				<DesktopTooltip toolTipContent={reason} direction="left">
-					<MenuItem onSelected={this.openPluginSettings.bind(this)} disabled={!isPluginConfigurable}>
-						Configure
-					</MenuItem>
-				</DesktopTooltip>
+				{config()}
 				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>Uninstall</MenuItem>
 				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>Browse local files</MenuItem>
 			</Menu>,

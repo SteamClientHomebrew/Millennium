@@ -38,12 +38,12 @@
 #include "millennium/logger.h"
 #include <memory>
 
-library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main)
+head::library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main)
     : m_millennium_backend(std::move(millennium_backend)), m_ipc_main(std::move(ipc_main)), m_has_checked_for_updates(false)
 {
 }
 
-void library_updater::init(std::shared_ptr<plugin_manager> settings_store_ptr)
+void head::library_updater::init(std::shared_ptr<plugin_manager> settings_store_ptr)
 {
     theme_updater = std::make_shared<theme_installer>(settings_store_ptr, shared_from_this());
     plugin_updater = std::make_shared<plugin_installer>(m_millennium_backend, settings_store_ptr, shared_from_this());
@@ -57,27 +57,27 @@ void library_updater::init(std::shared_ptr<plugin_manager> settings_store_ptr)
     m_has_checked_for_updates = true;
 }
 
-bool library_updater::download_plugin_update(const std::string& id, const std::string& name)
+bool head::library_updater::download_plugin_update(const std::string& id, const std::string& name)
 {
     return plugin_updater->update_plugin(id, name);
 }
 
-bool library_updater::download_theme_update(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
+bool head::library_updater::download_theme_update(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
 {
     return theme_updater->update_theme(themeConfig, native);
 }
 
-std::optional<json> library_updater::get_cached_updates() const
+std::optional<json> head::library_updater::get_cached_updates() const
 {
     return cached_updates;
 }
 
-bool library_updater::has_checked_for_updates() const
+bool head::library_updater::has_checked_for_updates() const
 {
     return m_has_checked_for_updates;
 }
 
-std::optional<json> library_updater::check_for_updates(bool force)
+std::optional<json> head::library_updater::check_for_updates(bool force)
 {
     try {
         if (!force && cached_updates.has_value()) {
@@ -120,7 +120,7 @@ std::optional<json> library_updater::check_for_updates(bool force)
     }
 }
 
-std::string library_updater::re_check_for_updates()
+std::string head::library_updater::re_check_for_updates()
 {
     logger.log("Resyncing updates...");
     cached_updates = check_for_updates(true);
@@ -129,17 +129,17 @@ std::string library_updater::re_check_for_updates()
     return cached_updates.has_value() ? cached_updates->dump() : "{}";
 }
 
-std::weak_ptr<theme_installer> library_updater::get_theme_updater()
+std::weak_ptr<head::theme_installer> head::library_updater::get_theme_updater()
 {
     return theme_updater;
 }
 
-std::weak_ptr<plugin_installer> library_updater::get_plugin_updater()
+std::weak_ptr<head::plugin_installer> head::library_updater::get_plugin_updater()
 {
     return plugin_updater;
 }
 
-void library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
+void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
 {
     std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete };
     m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));

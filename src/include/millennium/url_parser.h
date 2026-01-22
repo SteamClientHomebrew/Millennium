@@ -32,75 +32,74 @@
 #include <sstream>
 #include <string>
 
-static std::string UrlEncode(const std::string& value)
+namespace utils
 {
-    std::ostringstream encoded;
+    namespace url
+    {
+        static std::string encode_url(const std::string& value)
+        {
+            std::ostringstream encoded;
 
-    for (unsigned char c : value) {
-        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '/')
-            encoded << c;
-        else if (c == ' ')
-            encoded << '+';
-        else
-            encoded << '%' << std::uppercase << std::hex << int(c);
-    }
-    return encoded.str();
-}
-
-static const std::string UrlDecode(const std::string& url)
-{
-    std::string decoded;
-    char ch;
-    int hexValue;
-
-    for (size_t i = 0; i < url.length(); ++i) {
-        if (url[i] == '%') {
-            if (i + 2 < url.length() && std::isxdigit(url[i + 1]) && std::isxdigit(url[i + 2])) {
-                std::stringstream ss;
-                ss << std::hex << url.substr(i + 1, 2);
-                ss >> hexValue;
-                ch = static_cast<char>(hexValue);
-                decoded += ch;
-                i += 2;
+            for (unsigned char c : value) {
+                if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '/')
+                    encoded << c;
+                else if (c == ' ')
+                    encoded << '+';
+                else
+                    encoded << '%' << std::uppercase << std::hex << int(c);
             }
-        } else if (url[i] == '+') {
-            decoded += ' ';
-        } else {
-            decoded += url[i];
+            return encoded.str();
         }
-    }
-    return decoded;
-}
 
-inline std::string UrlFromPath(const std::string baseAddress, const std::string path)
-{
+        static const std::string decode_url(const std::string& url)
+        {
+            std::string decoded;
+            char ch;
+            int hexValue;
+
+            for (size_t i = 0; i < url.length(); ++i) {
+                if (url[i] == '%') {
+                    if (i + 2 < url.length() && std::isxdigit(url[i + 1]) && std::isxdigit(url[i + 2])) {
+                        std::stringstream ss;
+                        ss << std::hex << url.substr(i + 1, 2);
+                        ss >> hexValue;
+                        ch = static_cast<char>(hexValue);
+                        decoded += ch;
+                        i += 2;
+                    }
+                } else if (url[i] == '+') {
+                    decoded += ' ';
+                } else {
+                    decoded += url[i];
+                }
+            }
+            return decoded;
+        }
+
+        inline std::string get_url_from_path(const std::string baseAddress, const std::string path)
+        {
 #if defined(__linux__) || defined(__APPLE__)
-    {
-        return baseAddress + UrlEncode(path.substr(1));
-    }
+            return baseAddress + encode_url(path.substr(1));
 #elif _WIN32
-    {
-        return baseAddress + UrlEncode(path);
-    }
+            return baseAddress + encode_url(path);
 #endif
-}
+        }
 
-inline std::string PathFromUrl(const std::string& path)
-{
-    // Remove query parameters for file path
-    std::string cleanPath = path;
-    size_t queryPos = cleanPath.find('?');
-    if (queryPos != std::string::npos) {
-        cleanPath = cleanPath.substr(0, queryPos);
-    }
+        inline std::string get_path_from_url(const std::string& path)
+        {
+            // Remove query parameters for file path
+            std::string cleanPath = path;
+            size_t queryPos = cleanPath.find('?');
+            if (queryPos != std::string::npos) {
+                cleanPath = cleanPath.substr(0, queryPos);
+            }
 
 #if defined(__linux__) || defined(__APPLE__)
-    {
-        return "/" + UrlDecode(cleanPath);
-    }
+            return "/" + decode_url(cleanPath);
 #elif _WIN32
-    {
-        return UrlDecode(cleanPath);
-    }
+            return decode_url(cleanPath);
 #endif
-}
+        }
+
+    } // namespace url
+} // namespace utils

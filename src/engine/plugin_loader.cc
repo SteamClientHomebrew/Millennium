@@ -33,6 +33,7 @@
 #include "millennium/life_cycle.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/filesystem.h"
+#include "millennium/plugin_manager.h"
 #include "millennium/steam_hooks.h"
 #include "millennium/types.h"
 #include "millennium/plugin_loader.h"
@@ -111,7 +112,7 @@ void plugin_loader::init()
 {
     m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr);
 
-    m_millennium_backend = std::make_shared<millennium_backend>(m_network_hook_ctl, m_settings_store_ptr, m_millennium_updater);
+    m_millennium_backend = std::make_shared<head::millennium_backend>(m_network_hook_ctl, m_settings_store_ptr, m_millennium_updater);
     m_millennium_backend->init(); /** manual ctor, shared_from_this requires a ref holder before its valid */
 
     m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_settings_store_ptr);
@@ -218,7 +219,7 @@ std::string plugin_loader::cdp_generate_shim_module()
         }
 
         const auto frontEndAbs = plugin.plugin_frontend_dir.generic_string();
-        script_list.push_back(UrlFromPath(m_network_hook_ctl->get_ftp_url(), frontEndAbs));
+        script_list.push_back(utils::url::get_url_from_path(m_network_hook_ctl->get_ftp_url(), frontEndAbs));
     }
 
     /** Add the builtin Millennium plugin */
@@ -424,7 +425,7 @@ std::shared_ptr<backend_event_dispatcher> plugin_loader::get_backend_event_dispa
     return m_backend_event_dispatcher;
 }
 
-std::shared_ptr<millennium_backend> plugin_loader::get_millennium_backend()
+std::shared_ptr<head::millennium_backend> plugin_loader::get_millennium_backend()
 {
     return this->m_millennium_backend;
 }

@@ -31,12 +31,13 @@
 #pragma once
 
 #include "millennium/http_hooks.h"
-#include "millennium/config.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
+namespace head
+{
 class theme_webkit_mgr
 {
   public:
@@ -60,3 +61,4 @@ class theme_webkit_mgr
     std::shared_ptr<plugin_manager> m_settings_store;
     std::shared_ptr<network_hook_ctl> m_network_hook_ctl;
 };
+} // namespace head

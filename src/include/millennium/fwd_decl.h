@@ -31,7 +31,12 @@
 /**
  * this file is used to circularly reference stuff
  */
-class plugin_loader;
-class ipc_main;
+namespace head
+{
 class millennium_backend;
 class library_updater;
+} // namespace head
+
+class millennium_updater;
+class plugin_loader;
+class ipc_main;

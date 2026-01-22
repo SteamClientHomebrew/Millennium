@@ -32,7 +32,6 @@
 #include "head/default_cfg.h"
 
 #include "millennium/crash_handler.h"
-#include "millennium/environment.h"
 #include "millennium/filesystem.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
@@ -62,15 +61,23 @@ std::shared_ptr<plugin_loader> millennium::get_plugin_loader()
 
 void millennium::check_health()
 {
-    const auto cefRemoteDebugging = platform::get_steam_path() / ".cef-enable-remote-debugging";
+    const auto steam_path = platform::get_steam_path();
+    const auto cef_remote_debugger_file = steam_path / ".cef-enable-remote-debugging";
+
 #ifdef __linux__
-    if (std::filesystem::exists(cefRemoteDebugging) && !std::filesystem::remove(cefRemoteDebugging)) {
-        LOG_ERROR("Failed to remove '{}', likely non-fatal but manual intervention recommended.", cefRemoteDebugging.string());
+    if (std::filesystem::exists(cef_remote_debugger_file) && !std::filesystem::remove(cef_remote_debugger_file)) {
+        LOG_ERROR("Failed to remove '{}', likely non-fatal but manual intervention recommended.", cef_remote_debugger_file.string());
     }
 #elif _WIN32
-    const auto steam_cfg = platform::get_steam_path() / "Steam.cfg";
+    const auto steam_cfg = steamPath / "Steam.cfg";
     const auto bootstrap_error = fmt::format("Millennium is incompatible with your {} config. Remove this file to allow Steam updates.", steam_cfg.string());
     const auto cef_error = fmt::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cefRemoteDebugging.string());
+
+    auto show_bootstrap_error = [&]()
+    {
+        Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
+        LOG_ERROR(bootstrap_error);
+    };
 
     if (std::filesystem::exists(steam_cfg)) {
         try {
@@ -83,16 +90,11 @@ void millennium::check_health()
                 "BootStrapperInhibitUpdateOnLaunch",
             };
 
-            for (const auto& key : blackListedKeys) {
-                if (steamConfig.find(key) != std::string::npos) {
-                    Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
-                    LOG_ERROR(bootstrap_error);
-                    break;
-                }
+            if (std::any_of(blackListedKeys.begin(), blackListedKeys.end(), [&](const auto& key) { return steamConfig.find(key) != std::string::npos; })) {
+                show_bootstrap_error();
             }
         } catch (const platform::file_exception&) {
-            Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
-            LOG_ERROR(bootstrap_error);
+            show_bootstrap_error();
         }
     }
 
@@ -113,7 +115,7 @@ void millennium::check_for_updates()
         m_millennium_updater->check_for_updates();
 
         const auto update = m_millennium_updater->has_any_updates();
-        const bool should_auto_install = CONFIG.get("general.onMillenniumUpdate", OnMillenniumUpdate::AUTO_INSTALL) == OnMillenniumUpdate::AUTO_INSTALL;
+        const bool should_auto_install = CONFIG.get("general.onMillenniumUpdate", head::OnMillenniumUpdate::AUTO_INSTALL) == head::OnMillenniumUpdate::AUTO_INSTALL;
 
         if (!update["hasUpdate"]) {
             logger.log("No Millennium updates available.");

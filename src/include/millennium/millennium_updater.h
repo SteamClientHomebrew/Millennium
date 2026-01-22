@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 #pragma once
+#include "millennium/core_ipc.h"
 #include "millennium/types.h"
 #include "millennium/fwd_decl.h"
 #include "millennium/thread_pool.h"

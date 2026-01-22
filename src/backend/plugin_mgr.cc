@@ -41,26 +41,26 @@
 #include "millennium/encoding.h"
 #include "millennium/zip.h"
 
-plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<plugin_manager> settings_store_ptr,
-                                   std::shared_ptr<library_updater> updater)
+head::plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<::plugin_manager> settings_store_ptr,
+                                         std::shared_ptr<library_updater> updater)
     : m_millennium_backend(std::move(millennium_backend)), settings_store_ptr(std::move(settings_store_ptr)), m_updater(std::move(updater))
 {
 }
 
-std::filesystem::path plugin_installer::get_plugins_path()
+std::filesystem::path head::plugin_installer::get_plugins_path()
 {
     return std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH"));
 }
 
-bool plugin_installer::is_plugin_installed(const std::string& pluginName)
+bool head::plugin_installer::is_plugin_installed(const std::string& pluginName)
 {
-    return Millennium::Plugins::GetPluginFromName(pluginName, settings_store_ptr).has_value();
+    return head::Plugins::GetPluginFromName(pluginName, settings_store_ptr).has_value();
 }
 
-bool plugin_installer::uninstall_plugin(const std::string& pluginName)
+bool head::plugin_installer::uninstall_plugin(const std::string& pluginName)
 {
     try {
-        auto pluginOpt = Millennium::Plugins::GetPluginFromName(pluginName, settings_store_ptr);
+        auto pluginOpt = head::Plugins::GetPluginFromName(pluginName, settings_store_ptr);
         if (!pluginOpt) return false;
 
         if (settings_store_ptr->is_enabled(pluginName)) {
@@ -84,7 +84,7 @@ bool plugin_installer::uninstall_plugin(const std::string& pluginName)
     }
 }
 
-nlohmann::json plugin_installer::install_plugin(const std::string& downloadUrl, size_t totalSize)
+nlohmann::json head::plugin_installer::install_plugin(const std::string& downloadUrl, size_t totalSize)
 {
     try {
         logger.log("Requesting to install plugin -> " + downloadUrl);
@@ -132,7 +132,7 @@ nlohmann::json plugin_installer::install_plugin(const std::string& downloadUrl, 
     }
 }
 
-std::optional<nlohmann::json> plugin_installer::read_plugin_metadata(const std::filesystem::path& pluginPath)
+std::optional<nlohmann::json> head::plugin_installer::read_plugin_metadata(const std::filesystem::path& pluginPath)
 {
     std::filesystem::path metadataPath = pluginPath / "metadata.json";
     if (!std::filesystem::exists(metadataPath)) return std::nullopt;
@@ -155,7 +155,7 @@ std::optional<nlohmann::json> plugin_installer::read_plugin_metadata(const std::
     return std::nullopt;
 }
 
-std::vector<nlohmann::json> plugin_installer::get_plugin_data()
+std::vector<nlohmann::json> head::plugin_installer::get_plugin_data()
 {
     std::vector<nlohmann::json> pluginData;
     for (const auto& entry : std::filesystem::directory_iterator(get_plugins_path())) {
@@ -167,7 +167,7 @@ std::vector<nlohmann::json> plugin_installer::get_plugin_data()
     return pluginData;
 }
 
-bool plugin_installer::update_plugin(const std::string& id, const std::string& name)
+bool head::plugin_installer::update_plugin(const std::string& id, const std::string& name)
 {
     try {
         std::string url = "https://steambrew.app/api/v1/plugins/download?id=" + id + "&n=" + name + ".zip";
@@ -237,7 +237,7 @@ bool plugin_installer::update_plugin(const std::string& id, const std::string& n
     }
 }
 
-nlohmann::json plugin_installer::get_updater_request_body()
+nlohmann::json head::plugin_installer::get_updater_request_body()
 {
     auto data = get_plugin_data();
     return data.empty() ? nlohmann::json::array() : nlohmann::json(data);

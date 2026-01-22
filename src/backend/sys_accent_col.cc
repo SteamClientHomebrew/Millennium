@@ -124,7 +124,7 @@ std::string CastToRgb(unsigned long color)
 /**
  * Gets Windows accent colors using WinRT APIs
  */
-nlohmann::json Colors::GetAccentColorWin32()
+nlohmann::json head::system_accent_color::get_accent_color_win32()
 {
 #ifdef _WIN32
     try {
@@ -159,7 +159,7 @@ nlohmann::json Colors::GetAccentColorWin32()
  * TODO: Maybe find a better way to do this. Gnome/KDE/Macos all have different standards.
  * Currently just returns black colors for POSIX systems.
  */
-nlohmann::json Colors::GetAccentColorPosix()
+nlohmann::json head::system_accent_color::get_accent_color_posix()
 {
     nlohmann::json color_dictionary = {
         { "accent",         "#000"    },
@@ -187,7 +187,7 @@ nlohmann::json Colors::GetAccentColorPosix()
  * @param hex_color Input hex color string
  * @param percent Adjustment percentage (positive=lighter, negative=darker)
  */
-std::string Colors::AdjustColorIntensity(const std::string& hex_color, int percent)
+std::string head::system_accent_color::adjust_color_intensity(const std::string& hex_color, int percent)
 {
     auto clamp = [](int v) { return std::max(0, std::min(255, v)); };
     std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
@@ -211,7 +211,7 @@ std::string Colors::AdjustColorIntensity(const std::string& hex_color, int perce
  * @param hex_color Hex color string
  * @return RGB string in format "r, g, b"
  */
-std::string Colors::Hex2Rgb(const std::string& hex_color)
+std::string head::system_accent_color::hex_to_rgb(const std::string& hex_color)
 {
     std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
     if (color.length() != 6) {
@@ -234,44 +234,44 @@ std::string Colors::Hex2Rgb(const std::string& hex_color)
  * @param accentColor Hex color string (e.g., "#FF5733")
  * @return JSON string containing color variations
  */
-nlohmann::json Colors::ExtrapolateCustomColor(const std::string& accentColor)
+nlohmann::json head::system_accent_color::extrapolate_color(const std::string& accentColor)
 {
 #ifdef _WIN32
     std::string originalAccent = GetAccentColorWin32()["originalAccent"];
 #else
-    std::string originalAccent = GetAccentColorPosix()["originalAccent"];
+    std::string originalAccent = get_accent_color_posix()["originalAccent"];
 #endif
 
     nlohmann::json result = {
         { "accent", accentColor },
-        { "light1", AdjustColorIntensity(accentColor, 15) },
-        { "light2", AdjustColorIntensity(accentColor, 30) },
-        { "light3", AdjustColorIntensity(accentColor, 45) },
-        { "dark1", AdjustColorIntensity(accentColor, -15) },
-        { "dark2", AdjustColorIntensity(accentColor, -30) },
-        { "dark3", AdjustColorIntensity(accentColor, -45) },
-        { "accentRgb", Hex2Rgb(accentColor) },
-        { "light1Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, 15)) },
-        { "light2Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, 30)) },
-        { "light3Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, 45)) },
-        { "dark1Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, -15)) },
-        { "dark2Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, -30)) },
-        { "dark3Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, -45)) },
+        { "light1", adjust_color_intensity(accentColor, 15) },
+        { "light2", adjust_color_intensity(accentColor, 30) },
+        { "light3", adjust_color_intensity(accentColor, 45) },
+        { "dark1", adjust_color_intensity(accentColor, -15) },
+        { "dark2", adjust_color_intensity(accentColor, -30) },
+        { "dark3", adjust_color_intensity(accentColor, -45) },
+        { "accentRgb", hex_to_rgb(accentColor) },
+        { "light1Rgb", hex_to_rgb(adjust_color_intensity(accentColor, 15)) },
+        { "light2Rgb", hex_to_rgb(adjust_color_intensity(accentColor, 30)) },
+        { "light3Rgb", hex_to_rgb(adjust_color_intensity(accentColor, 45)) },
+        { "dark1Rgb", hex_to_rgb(adjust_color_intensity(accentColor, -15)) },
+        { "dark2Rgb", hex_to_rgb(adjust_color_intensity(accentColor, -30)) },
+        { "dark3Rgb", hex_to_rgb(adjust_color_intensity(accentColor, -45)) },
         { "originalAccent", originalAccent }
     };
 
     return result;
 }
 
-nlohmann::json Colors::GetAccentColor(const std::string& accentColor)
+nlohmann::json head::system_accent_color::plat_get_accent_color(const std::string& accentColor)
 {
     if (accentColor == "DEFAULT_ACCENT_COLOR") {
 #ifdef _WIN32
         return GetAccentColorWin32();
 #else
-        return GetAccentColorPosix();
+        return get_accent_color_posix();
 #endif
     } else {
-        return ExtrapolateCustomColor(accentColor);
+        return extrapolate_color(accentColor);
     }
 }

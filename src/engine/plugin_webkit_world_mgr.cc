@@ -263,7 +263,7 @@ import('{ftpPath}')
         auto& target = item.should_isolate ? iso : non_iso;
 
         if (!target.empty()) target += ",";
-        target += fmt::format("\"{}\"", UrlFromPath(m_ftp_url, item.abs_webkit_path.generic_string()));
+        target += fmt::format("\"{}\"", utils::url::get_url_from_path(m_ftp_url, item.abs_webkit_path.generic_string()));
 
         return acc;
     });

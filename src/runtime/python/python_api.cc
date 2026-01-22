@@ -152,13 +152,13 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
         return PyBool_FromLong(false);
     }
 
-    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    std::shared_ptr<head::millennium_backend> backend = loader->get_millennium_backend();
     if (!backend) {
         LOG_ERROR("Failed to contact Millennium's backend, it's likely shut down.");
         return PyBool_FromLong(false);
     }
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
+    std::weak_ptr<head::theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         return PyBool_FromLong(webkit_mgr->remove_browser_hook(static_cast<unsigned long long>(moduleId)));
     }
@@ -182,13 +182,13 @@ unsigned long long AddBrowserModule(PyObject* args, network_hook_ctl::TagTypes t
         return -1;
     }
 
-    std::shared_ptr<millennium_backend> backend = loader->get_millennium_backend();
+    std::shared_ptr<head::millennium_backend> backend = loader->get_millennium_backend();
     if (!backend) {
         LOG_ERROR("Failed to contact Millennium's backend, it's likely shut down.");
         return -1;
     }
 
-    std::weak_ptr<theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
+    std::weak_ptr<head::theme_webkit_mgr> webkit_mgr_weak = backend->get_theme_webkit_mgr();
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         return webkit_mgr->add_browser_hook(moduleItem, regexSelector, type);
     }

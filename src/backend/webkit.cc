@@ -29,20 +29,20 @@
  */
 
 #include "head/webkit.h"
+#include "millennium/config.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/filesystem.h"
-#include "millennium/environment.h"
 #include "nlohmann/json_fwd.hpp"
 
 #include <unordered_set>
 
-theme_webkit_mgr::theme_webkit_mgr(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl)
+head::theme_webkit_mgr::theme_webkit_mgr(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl)
     : m_settings_store(std::move(settings_store)), m_network_hook_ctl(std::move(network_hook_ctl))
 {
 }
 
-void theme_webkit_mgr::unregister_all()
+void head::theme_webkit_mgr::unregister_all()
 {
     for (auto& id : m_registered_hooks) {
         m_network_hook_ctl->remove_hook(id);
@@ -51,7 +51,7 @@ void theme_webkit_mgr::unregister_all()
     m_registered_hooks.clear();
 }
 
-std::vector<theme_webkit_mgr::webkit_item> theme_webkit_mgr::parse_conditional_data(const nlohmann::json& conditional_patches, const std::string& theme_name)
+std::vector<head::theme_webkit_mgr::webkit_item> head::theme_webkit_mgr::parse_conditional_data(const nlohmann::json& conditional_patches, const std::string& theme_name)
 {
     std::vector<theme_webkit_mgr::webkit_item> webkit_items;
 
@@ -115,14 +115,14 @@ std::vector<theme_webkit_mgr::webkit_item> theme_webkit_mgr::parse_conditional_d
     return unique_items;
 }
 
-unsigned long long theme_webkit_mgr::add_browser_hook(const std::string& path, const std::string& regex, network_hook_ctl::TagTypes type)
+unsigned long long head::theme_webkit_mgr::add_browser_hook(const std::string& path, const std::string& regex, network_hook_ctl::TagTypes type)
 {
     unsigned long long hook_id = m_network_hook_ctl->add_hook({ (platform::get_steam_path() / "steamui" / path).generic_string(), std::regex(regex), type });
     m_registered_hooks.push_back(hook_id);
     return hook_id;
 }
 
-bool theme_webkit_mgr::remove_browser_hook(unsigned long long hookId)
+bool head::theme_webkit_mgr::remove_browser_hook(unsigned long long hookId)
 {
     auto it = std::find(m_registered_hooks.begin(), m_registered_hooks.end(), hookId);
     if (it != m_registered_hooks.end()) {
@@ -132,7 +132,7 @@ bool theme_webkit_mgr::remove_browser_hook(unsigned long long hookId)
     return false;
 }
 
-void theme_webkit_mgr::add_conditional_data(const std::string& path, const nlohmann::json& data, const std::string& theme_name)
+void head::theme_webkit_mgr::add_conditional_data(const std::string& path, const nlohmann::json& data, const std::string& theme_name)
 {
     try {
         auto parsed_patches = this->parse_conditional_data(data, theme_name);

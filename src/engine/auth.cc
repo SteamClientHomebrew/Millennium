@@ -40,7 +40,7 @@
  */
 const std::string build_random_string(size_t length)
 {
-    const std::string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ";
+    const std::string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     std::random_device rd;
     std::mt19937 generator(rd());

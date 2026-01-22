@@ -99,7 +99,7 @@ IncludeBlocks: Preserve
 InsertTrailingCommas: None
 KeepEmptyLinesAtTheStartOfBlocks: true
 MaxEmptyLinesToKeep: 1
-NamespaceIndentation: All
+NamespaceIndentation: None
 SortIncludes: Never
 SortUsingDeclarations: true
 Language: Cpp

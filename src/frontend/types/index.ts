@@ -140,6 +140,7 @@ export interface PluginComponent {
 	path: string;
 	enabled: boolean;
 	data: Plugin;
+	isChromeExtension?: boolean;
 }
 
 /**

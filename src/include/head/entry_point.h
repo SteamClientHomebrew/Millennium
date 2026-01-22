@@ -34,8 +34,8 @@
 #include "millennium/fwd_decl.h"
 #include "millennium/http_hooks.h"
 #include "millennium/millennium_updater.h"
+#include "millennium/browser_extension_mgr.h"
 
-#include "head/browser_extension_mgr.h"
 #include "head/library_updater.h"
 #include "head/theme_cfg.h"
 
@@ -46,11 +46,13 @@
 
 using builtin_payload = nlohmann::ordered_json;
 
+namespace head
+{
 class millennium_backend : public std::enable_shared_from_this<millennium_backend>
 {
   public:
     void init();
-    millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
+    millennium_backend(std::shared_ptr<network_hook_ctl> network_hook, std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
     ~millennium_backend();
 
     const char* get_millennium_updater_script();
@@ -121,10 +123,11 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     std::shared_ptr<ipc_main> m_ipc_main;
     std::shared_ptr<plugin_manager> m_settings_store;
     std::shared_ptr<millennium_updater> m_millennium_updater;
-    std::shared_ptr<ThemeConfig> m_theme_config;
+    std::shared_ptr<theme_config_store> m_theme_config;
     std::shared_ptr<library_updater> m_updater;
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
     std::shared_ptr<network_hook_ctl> m_network_hook_ctl; /** store network hook controller as shared_ptr (was reference) */
 
     std::map<std::string, std::function<builtin_payload(const builtin_payload&)>> function_map;
 };
+} // namespace head

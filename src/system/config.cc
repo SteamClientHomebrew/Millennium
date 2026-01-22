@@ -240,7 +240,7 @@ nlohmann::json config_manager::get_all()
 config_manager::config_manager()
 {
     _filename = platform::environment::get("MILLENNIUM__CONFIG_PATH") + "/config.json";
-    _defaults = GetDefaultConfig();
+    _defaults = head::get_default_config();
 
     if (!std::filesystem::exists(_filename)) {
         logger.warn("Could not find config file at: {}, attempting to create it...", _filename);

@@ -40,7 +40,6 @@
 #include "millennium/http_hooks.h"
 #include "millennium/life_cycle.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/config.h"
 #include "millennium/plugin_webkit_world_mgr.h"
 #include "millennium/plugin_webkit_store.h"
 
@@ -71,7 +70,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::shared_ptr<ipc_main> get_ipc_main();
     std::shared_ptr<backend_manager> get_backend_manager();
     std::shared_ptr<backend_event_dispatcher> get_backend_event_dispatcher();
-    std::shared_ptr<millennium_backend> get_millennium_backend();
+    std::shared_ptr<head::millennium_backend> get_millennium_backend();
     std::shared_ptr<plugin_manager> get_settings_store();
 
   private:
@@ -92,7 +91,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::shared_ptr<std::vector<plugin_manager::plugin_t>> m_plugin_ptr, m_enabledPluginsPtr;
 
     std::shared_ptr<browser_extension_manager> m_extension_mgr;
-    std::shared_ptr<millennium_backend> m_millennium_backend;
+    std::shared_ptr<head::millennium_backend> m_millennium_backend;
     std::shared_ptr<millennium_updater> m_millennium_updater;
     std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
     std::shared_ptr<backend_manager> m_backend_manager;

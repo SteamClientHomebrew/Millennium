@@ -47,12 +47,12 @@
 #include "millennium/filesystem.h"
 #include <exception>
 
-std::weak_ptr<theme_webkit_mgr> millennium_backend::get_theme_webkit_mgr()
+std::weak_ptr<head::theme_webkit_mgr> head::millennium_backend::get_theme_webkit_mgr()
 {
     return m_theme_webkit_mgr;
 }
 
-int millennium_backend::get_operating_system()
+int head::millennium_backend::get_operating_system()
 {
 #if defined(_WIN32)
     return 0; // Windows
@@ -64,22 +64,22 @@ int millennium_backend::get_operating_system()
 #endif
 }
 
-millennium_backend::~millennium_backend()
+head::millennium_backend::~millennium_backend()
 {
     logger.log("Successfully shut down millennium_backend...");
 }
 
-void millennium_backend::init()
+void head::millennium_backend::init()
 {
     m_updater = std::make_shared<library_updater>(shared_from_this(), m_ipc_main);
     m_updater->init(m_settings_store);
 
     m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, m_network_hook_ctl);
-    m_theme_config = std::make_shared<ThemeConfig>(m_settings_store, m_theme_webkit_mgr);
+    m_theme_config = std::make_shared<theme_config_store>(m_settings_store, m_theme_webkit_mgr);
 }
 
-millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<plugin_manager> settings_store,
-                                       std::shared_ptr<millennium_updater> millennium_updater)
+head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<plugin_manager> settings_store,
+                                             std::shared_ptr<millennium_updater> millennium_updater)
     : m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
 {
 #define register_function(name) { #name, std::bind(&millennium_backend::name, this, std::placeholders::_1) }
@@ -119,7 +119,7 @@ millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network
     };
 }
 
-const char* millennium_backend::get_millennium_updater_script()
+const char* head::millennium_backend::get_millennium_updater_script()
 {
 #ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
     return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
@@ -132,9 +132,9 @@ const char* millennium_backend::get_millennium_updater_script()
 /**
  * Enable/disable plugins
  */
-builtin_payload millennium_backend::Core_ChangePluginStatus(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_ChangePluginStatus(const builtin_payload& args)
 {
-    plugin_loader::plugin_state plugins;
+    ::plugin_loader::plugin_state plugins;
     auto pluginJson = nlohmann::json::parse(args["pluginJson"].get<std::string>());
 
     for (const auto& item : pluginJson) {
@@ -155,12 +155,12 @@ builtin_payload millennium_backend::Core_ChangePluginStatus(const builtin_payloa
  * Get the configuration needed to start the frontend
  * @note exceptions are caught by the IPC handler
  */
-builtin_payload millennium_backend::Core_GetStartConfig(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_GetStartConfig(const builtin_payload&)
 {
     return {
-        { "accent_color", m_theme_config->GetAccentColor() },
+        { "accent_color", m_theme_config->get_accent_color() },
         { "conditions", CONFIG.get("themes.conditions", nlohmann::json::object()) },
-        { "active_theme", m_theme_config->GetActiveTheme() },
+        { "active_theme", m_theme_config->get_active_theme() },
         { "settings", CONFIG.get_all() },
         { "steamPath", platform::get_steam_path() },
         { "installPath", platform::get_install_path() },
@@ -177,7 +177,7 @@ builtin_payload millennium_backend::Core_GetStartConfig(const builtin_payload&)
 }
 
 /** Quick CSS utilities */
-builtin_payload millennium_backend::Core_LoadQuickCss(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_LoadQuickCss(const builtin_payload&)
 {
     const std::string quickCssPath = fmt::format("{}/quickcss.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
 
@@ -187,7 +187,7 @@ builtin_payload millennium_backend::Core_LoadQuickCss(const builtin_payload&)
 
     return platform::read_file(quickCssPath);
 }
-builtin_payload millennium_backend::Core_SaveQuickCss(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_SaveQuickCss(const builtin_payload& args)
 {
     const std::string quickCssPath = fmt::format("{}/quickcss.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
     platform::write_file(quickCssPath, args["css"].get<std::string>());
@@ -195,79 +195,79 @@ builtin_payload millennium_backend::Core_SaveQuickCss(const builtin_payload& arg
 }
 
 /** General utilities */
-builtin_payload millennium_backend::Core_GetSteamPath(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_GetSteamPath(const builtin_payload&)
 {
     return platform::get_steam_path();
 }
-builtin_payload millennium_backend::Core_FindAllThemes(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_FindAllThemes(const builtin_payload&)
 {
-    return Millennium::Themes::FindAllThemes();
+    return head::Themes::FindAllThemes();
 }
-builtin_payload millennium_backend::Core_FindAllPlugins(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_FindAllPlugins(const builtin_payload&)
 {
-    return Millennium::Plugins::FindAllPlugins(m_settings_store, m_extension_mgr);
+    return head::Plugins::FindAllPlugins(m_settings_store, m_extension_mgr);
 }
-builtin_payload millennium_backend::Core_GetEnvironmentVar(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_GetEnvironmentVar(const builtin_payload& args)
 {
     return platform::environment::get(args["variable"]);
 }
-builtin_payload millennium_backend::Core_GetBackendConfig(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_GetBackendConfig(const builtin_payload&)
 {
     return CONFIG.get_all();
 }
-builtin_payload millennium_backend::Core_SetBackendConfig(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_SetBackendConfig(const builtin_payload& args)
 {
     return CONFIG.set_all(nlohmann::json::parse(args["config"].get<std::string>()), args.value("skipPropagation", false));
 }
 
 /** Theme and Plugin update API */
-builtin_payload millennium_backend::Core_GetUpdates(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_GetUpdates(const builtin_payload& args)
 {
     return m_updater->check_for_updates(args.value("force", false)).value_or(nullptr);
 }
 
 /** Theme manager API */
-builtin_payload millennium_backend::Core_GetActiveTheme(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_GetActiveTheme(const builtin_payload&)
 {
-    return m_theme_config->GetActiveTheme();
+    return m_theme_config->get_active_theme();
 }
-builtin_payload millennium_backend::Core_ChangeActiveTheme(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_ChangeActiveTheme(const builtin_payload& args)
 {
-    m_theme_config->ChangeTheme(args["theme_name"]);
+    m_theme_config->change_theme(args["theme_name"]);
     return {};
 }
-builtin_payload millennium_backend::Core_GetSystemColors(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_GetSystemColors(const builtin_payload&)
 {
-    return m_theme_config->GetAccentColor();
+    return m_theme_config->get_accent_color();
 }
-builtin_payload millennium_backend::Core_ChangeAccentColor(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_ChangeAccentColor(const builtin_payload& args)
 {
-    m_theme_config->ChangeAccentColor(args["new_color"]);
+    m_theme_config->set_accent_color(args["new_color"]);
     return {};
 }
-builtin_payload millennium_backend::Core_ChangeColor(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_ChangeColor(const builtin_payload& args)
 {
-    return m_theme_config->ChangeColor(args["theme"], args["color_name"], args["new_color"], args["color_type"]);
+    return m_theme_config->set_theme_color(args["theme"], args["color_name"], args["new_color"], args["color_type"]);
 }
-builtin_payload millennium_backend::Core_ChangeCondition(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_ChangeCondition(const builtin_payload& args)
 {
-    return m_theme_config->ChangeCondition(args["theme"], args["newData"], args["condition"]);
+    return m_theme_config->set_condition(args["theme"], args["newData"], args["condition"]);
 }
-builtin_payload millennium_backend::Core_GetRootColors(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_GetRootColors(const builtin_payload&)
 {
-    return m_theme_config->GetColors();
+    return m_theme_config->get_colors();
 }
-builtin_payload millennium_backend::Core_DoesThemeUseAccentColor(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_DoesThemeUseAccentColor(const builtin_payload&)
 {
     return true; /** placeholder, too lazy to implement */
 }
-builtin_payload millennium_backend::Core_GetThemeColorOptions(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_GetThemeColorOptions(const builtin_payload& args)
 {
-    return m_theme_config->GetColorOpts(args["theme_name"]);
+    return m_theme_config->get_color_options(args["theme_name"]);
 }
 
 /** Theme installer related API's */
-builtin_payload millennium_backend::Core_InstallTheme(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_InstallTheme(const builtin_payload& args)
 {
     if (auto theme_updater = m_updater->get_theme_updater().lock()) {
         return theme_updater->install_theme(m_theme_config, args["repo"], args["owner"]);
@@ -276,7 +276,7 @@ builtin_payload millennium_backend::Core_InstallTheme(const builtin_payload& arg
     LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
     return false;
 }
-builtin_payload millennium_backend::Core_UninstallTheme(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_UninstallTheme(const builtin_payload& args)
 {
     if (auto theme_updater = m_updater->get_theme_updater().lock()) {
         return theme_updater->uninstall_theme(m_theme_config, args["repo"], args["owner"]);
@@ -285,11 +285,11 @@ builtin_payload millennium_backend::Core_UninstallTheme(const builtin_payload& a
     LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
     return false;
 }
-builtin_payload millennium_backend::Core_DownloadThemeUpdate(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_DownloadThemeUpdate(const builtin_payload& args)
 {
     return m_updater->download_theme_update(m_theme_config, args["native"]);
 }
-builtin_payload millennium_backend::Core_IsThemeInstalled(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_IsThemeInstalled(const builtin_payload& args)
 {
     if (auto theme_updater = m_updater->get_theme_updater().lock()) {
         return theme_updater->is_theme_installed(args["repo"], args["owner"]);
@@ -298,7 +298,7 @@ builtin_payload millennium_backend::Core_IsThemeInstalled(const builtin_payload&
     LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
     return false;
 }
-builtin_payload millennium_backend::Core_GetThemeFromGitPair(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_GetThemeFromGitPair(const builtin_payload& args)
 {
     if (auto theme_updater = m_updater->get_theme_updater().lock()) {
         return theme_updater->get_theme_from_github(args["repo"], args["owner"], args.value("asString", false)).value_or(nullptr);
@@ -309,11 +309,11 @@ builtin_payload millennium_backend::Core_GetThemeFromGitPair(const builtin_paylo
 }
 
 /** Plugin related API's */
-builtin_payload millennium_backend::Core_DownloadPluginUpdate(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_DownloadPluginUpdate(const builtin_payload& args)
 {
     return m_updater->download_plugin_update(args["id"], args["name"]);
 }
-builtin_payload millennium_backend::Core_InstallPlugin(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_payload& args)
 {
     if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
         return plugin_updater->install_plugin(args["download_url"], args["total_size"]);
@@ -322,7 +322,7 @@ builtin_payload millennium_backend::Core_InstallPlugin(const builtin_payload& ar
     LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
     return false;
 }
-builtin_payload millennium_backend::Core_IsPluginInstalled(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_IsPluginInstalled(const builtin_payload& args)
 {
     if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
         return plugin_updater->is_plugin_installed(args["pluginName"]);
@@ -331,7 +331,7 @@ builtin_payload millennium_backend::Core_IsPluginInstalled(const builtin_payload
     LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
     return false;
 }
-builtin_payload millennium_backend::Core_UninstallPlugin(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_UninstallPlugin(const builtin_payload& args)
 {
     if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
         return plugin_updater->uninstall_plugin(args["pluginName"]);
@@ -342,7 +342,7 @@ builtin_payload millennium_backend::Core_UninstallPlugin(const builtin_payload& 
 }
 
 /** Get plugin backend logs */
-builtin_payload millennium_backend::Core_GetPluginBackendLogs(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builtin_payload&)
 {
     nlohmann::json logData = nlohmann::json::array();
     std::vector<plugin_manager::plugin_t> plugins = m_settings_store->get_all_plugins();
@@ -379,18 +379,18 @@ builtin_payload millennium_backend::Core_GetPluginBackendLogs(const builtin_payl
 }
 
 /** Update Millennium API */
-builtin_payload millennium_backend::Core_UpdateMillennium(const builtin_payload& args)
+builtin_payload head::millennium_backend::Core_UpdateMillennium(const builtin_payload& args)
 {
     m_millennium_updater->update(args["downloadUrl"], args["downloadSize"], args["background"]);
     return {};
 }
 
-builtin_payload millennium_backend::Core_HasPendingMillenniumUpdateRestart(const builtin_payload&)
+builtin_payload head::millennium_backend::Core_HasPendingMillenniumUpdateRestart(const builtin_payload&)
 {
     return m_millennium_updater->is_pending_restart();
 }
 
-builtin_payload millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)
+builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)
 {
     // Skip plugin settings parser as it's not applicable
     if (functionName == "__builtins__.__millennium_plugin_settings_parser__") {
@@ -409,12 +409,12 @@ builtin_payload millennium_backend::ipc_message_hdlr(const std::string& function
     return (std::any_cast<std::function<builtin_payload(const builtin_payload&)>>(it->second))(args);
 }
 
-void millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
+void head::millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
     m_ipc_main = std::move(ipc_main);
 }
 
-void millennium_backend::set_extension_mgr(std::shared_ptr<browser_extension_manager> extension_mgr)
+void head::millennium_backend::set_extension_mgr(std::shared_ptr<browser_extension_manager> extension_mgr)
 {
     m_extension_mgr = std::move(extension_mgr);
 }
