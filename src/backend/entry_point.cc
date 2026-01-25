@@ -36,8 +36,10 @@
 #include "millennium/millennium_api.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
-#include "millennium/plugin_logger.h"
 #include "millennium/sysfs.h"
+
+#include <filesystem>
+#include <memory>
 
 std::shared_ptr<ThemeConfig> themeConfig;
 std::shared_ptr<Updater> updater;
@@ -64,6 +66,16 @@ std::string Millennium_GetQuickCss()
     }
 
     return SystemIO::ReadFileSync(quickCssPath);
+}
+
+const char* Millennium_GetUpdateScript()
+{
+#ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
+    return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
+#else
+    #error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
+    return nullptr;
+#endif
 }
 
 /**
@@ -104,7 +116,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },
         { "buildDate", GetBuildTimestamp() },
         { "platformType", GetOperatingSystemType() },
-        { "millenniumLinuxUpdateScript", GetEnv("MILLENNIUM_UPDATE_SCRIPT_PROMPT") },
+        { "millenniumLinuxUpdateScript", Millennium_GetUpdateScript() },
         { "quickCss", Millennium_GetQuickCss() }
     };
 }
