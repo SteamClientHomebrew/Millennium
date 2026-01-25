@@ -136,7 +136,7 @@
   "optionBrowseLocalFiles": "Sfoglia file locali",
   "tooltipCheckForMillenniumUpdates": "Il controllo degli aggiornamenti è disabilitato, questa impostazione non avrà effetto.",
   "strWelcomeModalTitle": "Benvenuto in Millennium 👋",
-  "strWelcomeModalDescription": "Siamo felici di darti il benvenuto nella community! Poiché è la prima volta che avvii Millennium, è il momento perfetto per una breve introduzione alle funzionalità principali.\n\nLa maggior parte delle impostazioni di Millennium è accessibile da Steam → Millennium.\n\nDa lì troverai indicazioni su dove installare temi e plugin, come abilitare o disabilitare funzioni e molto altro. E ricorda: puoi sempre consultare la nostra documentazione.",
+  "strWelcomeModalDescription": "Siamo felici di darti il benvenuto nella community! Poiché è la prima volta che avvii Millennium, è il momento perfetto per una breve introduzione alle funzionalità principali.\n\nLa maggior parte delle impostazioni di Millennium è accessibile da Steam → Millennium.\n\nDa lì troverai indicazioni su dove installare temi e plugin, come abilitare o disabilitare funzioni e molto altro. E ricorda: puoi sempre consultare [la nostra documentazione](https://docs.steambrew.app).",
   "strWelcomeModalOKButton": "Chiaro!",
   "strAbout": "Informazioni",
   "strAboutVersion": "Versione di Millennium",
