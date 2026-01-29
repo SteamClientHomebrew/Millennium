@@ -34,6 +34,7 @@ import { Utils } from '../../utils';
 
 import { PLUGINS_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
+import { locale } from '../../utils/localization-manager';
 
 interface PluginIdModalProps {
 	installer: Installer;
@@ -46,15 +47,15 @@ function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) 
 
 	return (
 		<ConfirmModal
-			strTitle="Enter an ID"
+			strTitle={locale.installerEnterIdTitle}
 			strDescription={
 				<>
-					Install a user plugin from an ID. These ID's can be found after selecting a plugin at <Utils.URLComponent url={PLUGINS_URL} />
+					{locale.installerPluginDescription} <Utils.URLComponent url={PLUGINS_URL} />
 					<br />
 					<br />
 					<TextField
 						// @ts-ignore
-						placeholder={'Enter an ID here...'}
+						placeholder={locale.installerIdPlaceholder}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
 					/>
@@ -68,7 +69,7 @@ function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) 
 			onCancel={() => {
 				modal?.Close();
 			}}
-			strOKButtonText="Download & Install"
+			strOKButtonText={locale.installerDownloadButton}
 		/>
 	);
 }

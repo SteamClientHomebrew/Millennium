@@ -183,7 +183,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 
 		if (!this.state.plugins || !this.state.plugins.length || (this.state.plugins.length === 1 && this.state.plugins[0].data.name === 'core')) {
 			return (
-				<Placeholder icon={<PiPlugsFill className="SVGIcon_Button" />} header={'No Plugins Found.'} body={"It appears you don't have any plugin yet!"}>
+				<Placeholder icon={<PiPlugsFill className="SVGIcon_Button" />} header={locale.placeholderNoPluginsHeader} body={locale.placeholderNoPluginsBody}>
 					<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumPlaceholder_Button')} onClick={this.InstallPluginMenu.bind(this)}>
 						<FaStore />
 						{locale.optionInstallPlugin}

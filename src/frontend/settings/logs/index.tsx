@@ -32,7 +32,7 @@ import { DialogButton, DialogControlsSection, IconsModule, TextField, joinClassN
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';
-import { locale } from '../../utils/localization-manager';
+import { formatString, locale } from '../../utils/localization-manager';
 import { PyGetLogData } from '../../utils/ffi';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { IconButton } from '../../components/IconButton';
@@ -143,7 +143,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		const errors = log?.logs?.filter((log) => log.level === LogLevel.ERROR) ?? [];
 		const warnings = log?.logs?.filter((log) => log.level === LogLevel.WARNING) ?? [];
 
-		const messageType = errors?.length !== 0 ? 'encountered errors' : 'issued warnings';
+		const messageType = errors?.length !== 0 ? locale.statusEncounteredErrors : locale.statusIssuedWarnings;
 
 		return (
 			<DialogButton
@@ -181,7 +181,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		if (millenniumItems.length) {
 			components.push(
 				<DialogControlsSection>
-					<SettingsDialogSubHeader>Millennium Logs</SettingsDialogSubHeader>
+					<SettingsDialogSubHeader>{locale.logsMillenniumHeader}</SettingsDialogSubHeader>
 					<div className="MillenniumButtonsSection MillenniumLogsSection">{millenniumItems.map((log) => this.renderLogItemButton(log))}</div>
 				</DialogControlsSection>,
 			);
@@ -190,7 +190,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		if (userPlugins.length) {
 			components.push(
 				<DialogControlsSection>
-					<SettingsDialogSubHeader>User Plugins</SettingsDialogSubHeader>
+					<SettingsDialogSubHeader>{locale.logsUserPluginsHeader}</SettingsDialogSubHeader>
 					<div className="MillenniumButtonsSection MillenniumLogsSection">{userPlugins.map((log) => this.renderLogItemButton(log))}</div>
 				</DialogControlsSection>,
 			);
@@ -208,29 +208,29 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 					<div className="MillenniumLogs_NavContainer">
 						<DialogButton onClick={() => this.setState({ selectedLog: null })} className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`}>
 							<IconsModule.Carat direction="left" />
-							Back
+							{locale.buttonBack}
 						</DialogButton>
 						{/* @ts-ignore */}
-						<TextField placeholder="Search..." onChange={this.filterLogsBySearchQuery} />
+						<TextField placeholder={locale.placeholderSearch} onChange={this.filterLogsBySearchQuery} />
 					</div>
 
 					<div className="MillenniumLogs_TextControls">
 						<div className="MillenniumLogs_HeaderTextTypeContainer">
 							<div className="MillenniumLogs_HeaderTextTypeCount" data-type="error" data-count={errorCount}>
-								{errorCount} Errors
+								{formatString(locale.logsErrorCount, String(errorCount))}
 							</div>
 							<div className="MillenniumLogs_HeaderTextTypeCount" data-type="warning" data-count={warningCount}>
-								{warningCount} Warnings
+								{formatString(locale.logsWarningCount, String(warningCount))}
 							</div>
 						</div>
 
 						<div className="MillenniumLogs_Icons">
-							<IconButton name="Minus" onClick={() => this.setState({ logFontSize: logFontSize - 1 })} text="Decrease font size" />
-							<IconButton name="Add" onClick={() => this.setState({ logFontSize: logFontSize + 1 })} text="Increase font size" />
+							<IconButton name="Minus" onClick={() => this.setState({ logFontSize: logFontSize - 1 })} text={locale.buttonDecreaseFontSize} />
+							<IconButton name="Add" onClick={() => this.setState({ logFontSize: logFontSize + 1 })} text={locale.buttonIncreaseFontSize} />
 							<IconButton
 								name={displayCopiedText ? 'Checkmark' : 'Copy'}
 								onClick={this.exportToClipBoard}
-								text={displayCopiedText ? 'Copied to clipboard' : 'Copy to clipboard'}
+								text={locale.buttonCopyToClipboard}
 							/>
 						</div>
 					</div>

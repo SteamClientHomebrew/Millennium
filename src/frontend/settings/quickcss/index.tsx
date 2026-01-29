@@ -71,7 +71,7 @@ export const MillenniumQuickCssEditor = () => {
 	};
 
 	const windowConfig = {
-		title: 'Quick CSS Editor',
+		title: locale.quickCssEditorTitle,
 		body_class: 'fullheight ModalDialogBody DesktopUI',
 		html_class: 'client_chat_frame fullheight ModalDialogPopup',
 		popup_class: 'fullheight MillenniumQuickCss_Popup',
@@ -150,7 +150,7 @@ export const MillenniumQuickCssEditor = () => {
 				<div className="PopupFullWindow">
 					<RenderWindowTitle popup={popup} onClose={setIsMillenniumOpen.bind(null, false)} />
 					<GenericConfirmDialog>
-						<DialogHeader>Quick CSS Editor</DialogHeader>
+						<DialogHeader>{locale.quickCssEditorTitle}</DialogHeader>
 						<Styles />
 						{/* For whatever reason only a <form> gets the full width in generic modals */}
 						<form ref={containerRef} className="MillenniumQuickCss_CodeEditor" />
