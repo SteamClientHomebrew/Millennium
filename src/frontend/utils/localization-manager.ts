@@ -43,6 +43,7 @@ import french from '../../locales/french.json';
 import turkish from '../../locales/turkish.json';
 import ukrainian from '../../locales/ukrainian.json';
 import japanese from '../../locales/japanese.json';
+import hungarian from '../../locales/hungarian.json';
 import { Logger } from './Logger';
 
 interface LocalizationData {
