@@ -131,6 +131,7 @@ extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_clien
 
 #if defined(_WIN32)
 #include <MinHook.h>
+#include "instrumentation/log.h"
 #define fn(x) #x
 
 /** the function name we want to tramp */

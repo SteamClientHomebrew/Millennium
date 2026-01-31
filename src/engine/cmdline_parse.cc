@@ -76,7 +76,7 @@ bool CommandLineArguments::has_argument(const std::string& targetArgument)
 #endif
 }
 
-u_short CommandLineArguments::get_remote_debugger_port()
+unsigned short CommandLineArguments::get_remote_debugger_port()
 {
     const char* portValue = GetAppropriateDevToolsPort(CommandLineArguments::has_argument("-dev"));
 
@@ -85,7 +85,7 @@ u_short CommandLineArguments::get_remote_debugger_port()
     }
 
     try {
-        return static_cast<u_short>(std::stoi(portValue));
+        return static_cast<unsigned short>(std::stoi(portValue));
     } catch (const std::exception&) {
         return 0;
     }

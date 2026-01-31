@@ -132,7 +132,7 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> socket
     logger.log("Disconnected from [{}] module...", name);
 }
 
-u_short socket_utils::get_steam_debugger_port()
+unsigned short socket_utils::get_steam_debugger_port()
 {
     return CommandLineArguments::get_remote_debugger_port();
 }

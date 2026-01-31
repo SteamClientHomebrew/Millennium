@@ -237,7 +237,7 @@ std::string head::system_accent_color::hex_to_rgb(const std::string& hex_color)
 nlohmann::json head::system_accent_color::extrapolate_color(const std::string& accentColor)
 {
 #ifdef _WIN32
-    std::string originalAccent = GetAccentColorWin32()["originalAccent"];
+    std::string originalAccent = get_accent_color_win32()["originalAccent"];
 #else
     std::string originalAccent = get_accent_color_posix()["originalAccent"];
 #endif
@@ -267,7 +267,7 @@ nlohmann::json head::system_accent_color::plat_get_accent_color(const std::strin
 {
     if (accentColor == "DEFAULT_ACCENT_COLOR") {
 #ifdef _WIN32
-        return GetAccentColorWin32();
+        return get_accent_color_win32();
 #else
         return get_accent_color_posix();
 #endif

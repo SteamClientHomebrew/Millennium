@@ -225,7 +225,7 @@ json millennium_updater::has_any_updates()
 void millennium_updater::cleanup()
 {
 #ifdef _WIN32
-    std::filesystem::path steam_path = platform::GetSteamPath();
+    std::filesystem::path steam_path = platform::get_steam_path();
 
     std::error_code ec;
     std::filesystem::path temp_path = steam_path / MILLENNIUM_UPDATER_TEMP_DIR;
@@ -266,7 +266,7 @@ void millennium_updater::cleanup()
 void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std::vector<std::string> lockedFiles)
 {
 #ifdef _WIN32
-    std::filesystem::path steam_path = platform::GetSteamPath();
+    std::filesystem::path steam_path = platform::get_steam_path();
 
     if (steam_path.empty()) {
         logger.warn("Steam path not found, skipping old Millennium cleanup.");
@@ -377,7 +377,7 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
         });
 
 #ifdef _WIN32
-        auto lockedFiles = Util::GetLockedFiles(tempFilePath.string(), platform::GetInstallPath().generic_string());
+        auto lockedFiles = Util::GetLockedFiles(tempFilePath.string(), platform::get_install_path().generic_string());
         win32_move_old_millennium_version(lockedFiles);
 #endif
         logger.log("Extracting to {}", platform::get_install_path().generic_string());

@@ -369,7 +369,7 @@ INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteS
 VOID HandleTier0Dll(PVOID moduleBaseAddress)
 {
     steamTier0Module = static_cast<HMODULE>(moduleBaseAddress);
-    Logger.Log("Setting up hooks for tier0_s.dll");
+    logger.log("Setting up hooks for tier0_s.dll");
 
     FARPROC proc = GetProcAddress(steamTier0Module, "CreateSimpleProcess");
     if (proc != nullptr) {
@@ -425,7 +425,7 @@ VOID HandleSteamUnload()
 
 VOID HandleSteamLoad()
 {
-    Logger.Log("[DllNotificationCallback] Notified that Steam UI has loaded, notifying main thread...");
+    logger.log("[DllNotificationCallback] Notified that Steam UI has loaded, notifying main thread...");
     cv_hasSteamUIStartedLoading.notify_all();
 }
 
@@ -441,7 +441,7 @@ VOID CALLBACK DllNotificationCallback(ULONG NotificationReason, PLDR_DLL_NOTIFIC
 
     /** hook Steam unload */
     if (NotificationReason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && baseDllName == L"steamclient64.dll") {
-        Logger.Log("[DllNotificationCallback] Notified that steamclient64.dll has unloaded, handling Steam unload...");
+        logger.log("[DllNotificationCallback] Notified that steamclient64.dll has unloaded, handling Steam unload...");
         HandleSteamUnload();
         return;
     }
@@ -476,7 +476,7 @@ void HandleAlreadyLoaded(LPCWSTR dllName)
  */
 BOOL WINAPI Hooked_ReadDirectoryChangesW(void*, void*, void*, void*, void*, LPDWORD bytesRet, void*, void*)
 {
-    Logger.Log("[Steam] Blocked attempt to ReadDirectoryChangesW...");
+    logger.log("[Steam] Blocked attempt to ReadDirectoryChangesW...");
 
     if (bytesRet) *bytesRet = 0; // no changes
     return TRUE;                 // indicate success
@@ -522,7 +522,7 @@ bool InitializeSteamHooks()
 
     auto dllRegStatus = NT_SUCCESS(LdrRegisterDllNotification(0, DllNotificationCallback, nullptr, &g_NotificationCookie));
 
-    Logger.Log("[SH_Hook] Waiting for Steam UI to load...");
+    logger.log("[SH_Hook] Waiting for Steam UI to load...");
 
     /** wait for steamui.dll to load (which signifies Steam is actually starting and not updating/verifying files) */
     std::unique_lock<std::mutex> lk(mtx_hasSteamUIStartedLoading);
@@ -531,10 +531,10 @@ bool InitializeSteamHooks()
     bool dllRegStatus = true;
 #endif
     const auto endTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - startTime).count();
-    Logger.Log("[SH_Hook] Steam UI loaded in {} ms, continuing Millennium startup...", endTime);
+    logger.log("[SH_Hook] Steam UI loaded in {} ms, continuing Millennium startup...", endTime);
 
     /** only hook if developer mode is enabled */
-    if (CommandLineArguments::HasArgument("-dev")) {
+    if (CommandLineArguments::has_argument("-dev")) {
         MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
         MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
     }

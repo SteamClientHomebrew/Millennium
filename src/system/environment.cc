@@ -115,7 +115,7 @@ std::string platform::environment::get(std::string key)
 
     if (!hasSetup) {
         hasSetup = true;
-        SetupEnvironmentVariables();
+        setup();
     }
 #endif
 

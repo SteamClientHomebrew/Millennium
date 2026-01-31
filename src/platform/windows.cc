@@ -30,12 +30,11 @@
 
 #ifdef _WIN32
 #include "millennium/millennium.h"
-#include "millennium/argp_win32.h"
+#include "millennium/cmdline_parse.h"
 #include "millennium/plat_msg.h"
-#include "millennium/env.h"
+#include "millennium/environment.h"
 #include "millennium/http_hooks.h"
 #include "millennium/plugin_loader.h"
-#include "millennium/ffi.h"
 #include "millennium/crash_handler.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plat_msg.h"
@@ -53,7 +52,7 @@ std::thread g_millenniumThread;
 CONSTRUCTOR VOID Win32_InitializeEnvironment(VOID)
 {
     try {
-        SetupEnvironmentVariables();
+        platform::environment::setup();
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to set up environment variables: {}", e.what());
         std::exit(EXIT_FAILURE);
@@ -145,21 +144,20 @@ VOID Win32_AttachMillennium(VOID)
     g_millennium = std::make_unique<millennium>();
 
     Win32_AttachWebHelperHook();
-    SetupEnvironmentVariables();
+    platform::environment::setup();
 
     // Set custom terminate handler for easier debugging
     std::set_terminate(UnhandledExceptionHandler);
     SetUnhandledExceptionFilter(Win32_CrashHandler);
 
     g_millennium->entry();
-    Logger.Log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
+    logger.log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
 
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();
-    Logger.Log("MinHook has been uninitialized.");
-
+    logger.log("MinHook has been uninitialized.");
     /** Deallocate the developer console */
-    if (CommandLineArguments::HasArgument("-dev")) {
+    if (CommandLineArguments::has_argument("-dev")) {
         FreeConsole();
     }
 }
@@ -172,9 +170,9 @@ VOID Win32_AttachMillennium(VOID)
  */
 VOID Win32_DetachMillennium(VOID)
 {
-    Logger.print(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
+    logger.print(" MAIN ", "Shutting Millennium down...", COL_MAGENTA);
     g_shouldTerminateMillennium->flag.store(true);
-    Logger.Log("Waiting for Millennium thread to exit...");
+    logger.log("Waiting for Millennium thread to exit...");
 
     if (!g_millenniumThread.joinable()) {
         Plat_ShowMessageBox("Warning", "Millennium thread is not joinable, skipping join. This is likely because Millennium failed to start properly.", MESSAGEBOX_WARNING);
@@ -182,7 +180,7 @@ VOID Win32_DetachMillennium(VOID)
     }
 
     g_millenniumThread.join();
-    Logger.Log("Millennium thread has exited.");
+    logger.log("Millennium thread has exited.");
 }
 
 /**
@@ -202,7 +200,7 @@ DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReas
 #else
 #error "Unsupported Platform"
 #endif
-            Logger.Log("Millennium-{}@{} attached...", plat, MILLENNIUM_VERSION);
+            logger.log("Millennium-{}@{} attached...", plat, MILLENNIUM_VERSION);
 
             g_millenniumThread = std::thread(Win32_AttachMillennium);
             break;

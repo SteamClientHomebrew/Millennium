@@ -16,7 +16,6 @@ set(VERSION_PRODUCT      "Millennium Webhelper Hook")
 set(VERSION_FILE "${CMAKE_BINARY_DIR}/${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}.rc")
 
 if(WIN32)
-    project(hhx64-log-viewer CXX)
     configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${VERSION_FILE} @ONLY)
 endif()
 
@@ -83,7 +82,6 @@ endif()
 add_library(hhx64 SHARED ${SOURCE_FILES})
 
 if(WIN32)
-    add_executable(hhx64-log-viewer log_viewer.cc)
     target_link_libraries(hhx64 minhook wsock32)
 endif()
 

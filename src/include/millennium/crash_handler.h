@@ -73,9 +73,9 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
                 "Please send this file to the developers on our Discord (steambrew.app/discord) or GitHub (github.com/SteamClientHomebrew/Millennium) to help fix this issue.",
                 MESSAGEBOX_ERROR);
 
-            Logger.Log("Crash dump written to millennium-crash.dmp");
+            logger.log("Crash dump written to millennium-crash.dmp");
         } else {
-            Logger.Log("MiniDumpWriteDump failed. Error: {}", GetLastError());
+            logger.log("MiniDumpWriteDump failed. Error: {}", GetLastError());
         }
 
         CloseHandle(hFile);

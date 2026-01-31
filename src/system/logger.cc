@@ -28,11 +28,6 @@
  * SOFTWARE.
  */
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
-
 #include "millennium/logger.h"
 #include "millennium/environment.h"
 
@@ -42,6 +37,9 @@
 #include <filesystem>
 
 #ifdef _WIN32
+#include <sstream>
+#include "millennium/cmdline_parse.h"
+#include <windows.h>
 #include "millennium/argp_win32.h"
 
 void EnableVirtualTerminalProcessing()
@@ -116,7 +114,7 @@ void plugin_logger::log(const std::string& message, bool onlyBuffer)
         file.flush();
     }
 
-    logBuffer.push_back({ WHITE + get_local_time(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", log_level::INFO });
+    logBuffer.push_back({ WHITE + get_local_time(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", log_level::info });
 }
 
 void plugin_logger::warn(const std::string& message, bool onlyBuffer)
@@ -129,7 +127,7 @@ void plugin_logger::warn(const std::string& message, bool onlyBuffer)
         file.flush();
     }
 
-    logBuffer.push_back({ WHITE + get_local_time(true) + YELLOW + " " + get_plugin_name() + " " + message + RESET + "\n", log_level::WARN });
+    logBuffer.push_back({ WHITE + get_local_time(true) + YELLOW + " " + get_plugin_name() + " " + message + RESET + "\n", log_level::warn });
 }
 
 void plugin_logger::error(const std::string& message, bool onlyBuffer)
@@ -142,7 +140,7 @@ void plugin_logger::error(const std::string& message, bool onlyBuffer)
         file.flush();
     }
 
-    logBuffer.push_back({ RED + message + RESET, log_level::ERROR });
+    logBuffer.push_back({ RED + message + RESET, log_level::error });
 }
 
 void plugin_logger::print(const std::string& message)
@@ -150,7 +148,7 @@ void plugin_logger::print(const std::string& message)
     file << message;
     file.flush();
 
-    logBuffer.push_back({ message, log_level::INFO });
+    logBuffer.push_back({ message, log_level::info });
 }
 
 std::vector<logger_base::log_entry> plugin_logger::collect_logs()
@@ -193,7 +191,7 @@ void millennium_logger::print(std::string type, const std::string& message, std:
 millennium_logger::millennium_logger()
 {
 #ifdef _WIN32
-    this->m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::HasArgument("-dev");
+    this->m_bIsConsoleEnabled = ((GetAsyncKeyState(VK_MENU) & 0x8000) && (GetAsyncKeyState('M') & 0x8000)) || CommandLineArguments::has_argument("-dev");
 
     if (m_bIsConsoleEnabled) {
         (void)static_cast<bool>(AllocConsole());

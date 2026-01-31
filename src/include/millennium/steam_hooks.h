@@ -44,6 +44,9 @@ const char* GetAppropriateDevToolsPort(const bool isDevMode);
 #include "MinHook.h"
 #include <iostream>
 #include <thread>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <winternl.h>
 

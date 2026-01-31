@@ -52,7 +52,7 @@ class socket_utils
     void connect_socket(std::shared_ptr<socket_t> socket_props);
 
   private:
-    u_short m_debugger_port;
-    u_short get_steam_debugger_port();
+    unsigned short m_debugger_port;
+    unsigned short get_steam_debugger_port();
     const std::string get_steam_debugger_url();
 };

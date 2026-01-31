@@ -324,26 +324,17 @@ json ipc_main::call_frontend_method(const json& call)
 
     if (call["data"].contains("argumentList")) {
         for (const auto& arg : call["data"]["argumentList"]) {
-            if (!arg.contains("value")) {
-                LOG_ERROR("malformed argument in call_frontend_method, skipping...");
-                continue;
-            }
 
-            javascript_parameter param;
-            const auto& value = arg["value"];
-
-            if (value.is_string())
-                param = value.get<std::string>();
-            else if (value.is_boolean())
-                param = value.get<bool>();
-            else if (value.is_number_float())
-                param = value.get<double>();
-            else if (value.is_number_integer())
-                param = value.get<int64_t>();
-            else if (value.is_number_unsigned())
-                param = value.get<uint64_t>();
-
-            params.push_back(param);
+            if (arg.is_string())
+                params.push_back(arg.get<std::string>());
+            else if (arg.is_boolean())
+                params.push_back(arg.get<bool>());
+            else if (arg.is_number_float())
+                params.push_back(arg.get<double>());
+            else if (arg.is_number_integer())
+                params.push_back(arg.get<int64_t>());
+            else if (arg.is_number_unsigned())
+                params.push_back(arg.get<uint64_t>());
         }
     }
 

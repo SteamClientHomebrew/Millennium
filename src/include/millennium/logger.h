@@ -86,9 +86,9 @@ class logger_base
   public:
     enum class log_level
     {
-        INFO,
-        WARN,
-        ERROR
+        info,
+        warn,
+        error
     };
 
     struct log_entry
@@ -176,13 +176,13 @@ static void add_logger_message(const std::string pluginName, const std::string m
     const auto add_log = [](plugin_logger* logger, const std::string& message, const logger_base::log_level& level)
     {
         switch (level) {
-            case logger_base::log_level::INFO:
+            case logger_base::log_level::info:
                 logger->log(message, true);
                 break;
-            case logger_base::log_level::WARN:
+            case logger_base::log_level::warn:
                 logger->warn(message, true);
                 break;
-            case logger_base::log_level::ERROR:
+            case logger_base::log_level::error:
                 logger->error(message, true);
                 break;
         }
@@ -202,17 +202,17 @@ static void add_logger_message(const std::string pluginName, const std::string m
 
 inline void InfoToLogger(const std::string pluginNme, const std::string message)
 {
-    add_logger_message(pluginNme, message, logger_base::log_level::INFO);
+    add_logger_message(pluginNme, message, logger_base::log_level::info);
 }
 
 inline void WarnToLogger(const std::string pluginNme, const std::string message)
 {
-    add_logger_message(pluginNme, message, logger_base::log_level::WARN);
+    add_logger_message(pluginNme, message, logger_base::log_level::warn);
 }
 
 inline void ErrorToLogger(const std::string pluginNme, const std::string message)
 {
-    add_logger_message(pluginNme, message, logger_base::log_level::ERROR);
+    add_logger_message(pluginNme, message, logger_base::log_level::error);
 }
 
 inline void RawToLogger(const std::string pluginName, const std::string message)

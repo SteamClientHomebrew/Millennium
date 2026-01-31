@@ -531,7 +531,7 @@ void backend_initializer::python_backend_started_cb(plugin_manager::plugin_t plu
                                         MESSAGEBOX_QUESTION);
 
                 if (result == IDYES) {
-                    settings->TogglePluginStatus(plugin.plugin_name, false);
+                    settings->set_plugin_enabled(plugin.plugin_name, false);
                 }
 #endif
                 dispatcher->backend_loaded_event_hdlr({ plugin.plugin_name, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_FAILED });
@@ -558,15 +558,15 @@ void backend_initializer::compat_restore_shared_js_context()
 #ifdef _WIN32
     logger.log("Restoring SharedJSContext...");
 
-    const auto SteamUIModulePath = platform::GetSteamPath() / "steamui" / "index.html";
+    const auto SteamUIModulePath = platform::get_steam_path() / "steamui" / "index.html";
 
     /** if the sequence isn't found, it indicates it hasn't been patched by millennium <= 2.30.0 preloader */
-    if (platform::ReadFileSync(SteamUIModulePath.string()).find("<!doctype html><html><head><title>SharedJSContext</title></head></html>") == std::string::npos) {
+    if (platform::read_file(SteamUIModulePath.string()).find("<!doctype html><html><head><title>SharedJSContext</title></head></html>") == std::string::npos) {
         logger.log("SharedJSContext isn't patched, skipping...");
         return;
     }
 
-    const auto librariesPath = platform::GetSteamPath() / "steamui" / "libraries";
+    const auto librariesPath = platform::get_steam_path() / "steamui" / "libraries";
     std::string libraryChunkJS;
 
     try {
@@ -595,7 +595,7 @@ void backend_initializer::compat_restore_shared_js_context()
         libraryChunkJS);
 
     try {
-        platform::WriteFileSync(SteamUIModulePath.string(), fileContent);
+        platform::write_file(SteamUIModulePath.string(), fileContent);
     } catch (const std::system_error& e) {
         logger.warn("Failed to restore SharedJSContext: {}", e.what());
     } catch (const std::exception& e) {
