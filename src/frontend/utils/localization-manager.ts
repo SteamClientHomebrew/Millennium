@@ -83,6 +83,7 @@ const localizationFiles: { [key: string]: LocalizationData } = {
 	turkish,
 	ukrainian,
 	japanese,
+	hungarian
 	// Add other languages here
 };
 
