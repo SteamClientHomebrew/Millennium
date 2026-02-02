@@ -29,9 +29,10 @@
  */
 
 #pragma once
+#include "millennium/types.h"
 
-#include <nlohmann/json.hpp>
-
+namespace head
+{
 enum class OnMillenniumUpdate
 {
     DO_NOTHING = 0,
@@ -39,5 +40,5 @@ enum class OnMillenniumUpdate
     AUTO_INSTALL = 2
 };
 
-// Returns the default configuration JSON
-nlohmann::json GetDefaultConfig();
+json get_default_config();
+} // namespace head

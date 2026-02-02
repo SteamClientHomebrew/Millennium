@@ -37,10 +37,8 @@
 #include <cerrno>
 #include <cstdlib>
 
-namespace
-{
 /** Helper: Validate that a string contains only allowed characters */
-bool IsValidIdentifier(const std::string& id, bool allowDash = true)
+bool is_valid_identifier(const std::string& id, bool allowDash = true)
 {
     if (id.empty()) return false;
     for (char c : id) {
@@ -52,19 +50,19 @@ bool IsValidIdentifier(const std::string& id, bool allowDash = true)
 }
 
 /** Helper: Check if string has leading zeros (invalid for semver numeric parts) */
-bool HasLeadingZero(const std::string& s)
+bool has_leading_zero(const std::string& s)
 {
     return s.length() > 1 && s[0] == '0';
 }
 
 /** Helper: Safe integer parsing with overflow detection */
-int ParseInt(const std::string& s)
+int parse_int(const std::string& s)
 {
     if (s.empty() || !std::all_of(s.begin(), s.end(), ::isdigit)) {
         throw std::invalid_argument("Invalid numeric part: " + s);
     }
 
-    if (HasLeadingZero(s)) {
+    if (has_leading_zero(s)) {
         throw std::invalid_argument("Leading zeros not allowed in numeric parts: " + s);
     }
 
@@ -80,7 +78,7 @@ int ParseInt(const std::string& s)
 }
 
 /** Helper: Split string by delimiter */
-std::vector<std::string> Split(const std::string& s, char delimiter)
+std::vector<std::string> split(const std::string& s, char delimiter)
 {
     std::vector<std::string> parts;
     size_t start = 0;
@@ -95,34 +93,33 @@ std::vector<std::string> Split(const std::string& s, char delimiter)
 }
 
 /** Helper: Validate prerelease or build metadata identifiers */
-void ValidateIdentifiers(const std::string& str, const std::string& context)
+void validate(const std::string& str, const std::string& context)
 {
     if (str.empty()) {
         throw std::invalid_argument("Empty " + context + " not allowed");
     }
 
-    std::vector<std::string> parts = Split(str, '.');
+    std::vector<std::string> parts = split(str, '.');
     for (const auto& part : parts) {
         if (part.empty()) {
             throw std::invalid_argument("Empty identifier in " + context + ": " + str);
         }
-        if (!IsValidIdentifier(part, true)) {
+        if (!is_valid_identifier(part, true)) {
             throw std::invalid_argument("Invalid characters in " + context + " identifier: " + part);
         }
         /** Check for leading zeros in numeric identifiers (prerelease only, per spec) */
         bool isNumeric = std::all_of(part.begin(), part.end(), ::isdigit);
-        if (isNumeric && HasLeadingZero(part) && context == "prerelease") {
+        if (isNumeric && has_leading_zero(part) && context == "prerelease") {
             throw std::invalid_argument("Leading zeros not allowed in numeric prerelease identifier: " + part);
         }
     }
 }
-} // namespace
 
-Semver::SemverVersion::SemverVersion(int maj, int min, int pat, const std::string& pre, const std::string& bld) : major(maj), minor(min), patch(pat), prerelease(pre), build(bld)
+semver::semver_version::semver_version(int maj, int min, int pat, const std::string& pre, const std::string& bld) : major(maj), minor(min), patch(pat), prerelease(pre), build(bld)
 {
 }
 
-Semver::SemverVersion Semver::ParseSemver(const std::string& version)
+semver::semver_version semver::parse(const std::string& version)
 {
     if (version.empty()) {
         throw std::invalid_argument("Empty version string");
@@ -145,7 +142,7 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
         }
         build = core.substr(buildPos + 1);
         core = core.substr(0, buildPos);
-        ValidateIdentifiers(build, "build metadata");
+        validate(build, "build metadata");
     }
 
     /** Extract prerelease (everything after '-') */
@@ -156,29 +153,29 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
         }
         prerelease = core.substr(prereleasePos + 1);
         core = core.substr(0, prereleasePos);
-        ValidateIdentifiers(prerelease, "prerelease");
+        validate(prerelease, "prerelease");
     }
 
     /** Parse major.minor.patch */
-    std::vector<std::string> parts = Split(core, '.');
+    std::vector<std::string> parts = split(core, '.');
 
     if (parts.size() != 3) {
         throw std::invalid_argument("Semver requires exactly 3 numeric parts (major.minor.patch)");
     }
 
     /** Validate and parse each part */
-    int major = ParseInt(parts[0]);
-    int minor = ParseInt(parts[1]);
-    int patch = ParseInt(parts[2]);
+    int major = parse_int(parts[0]);
+    int minor = parse_int(parts[1]);
+    int patch = parse_int(parts[2]);
 
     if (major < 0 || minor < 0 || patch < 0) {
         throw std::invalid_argument("Version numbers cannot be negative");
     }
 
-    return Semver::SemverVersion(major, minor, patch, prerelease, build);
+    return semver::semver_version(major, minor, patch, prerelease, build);
 }
 
-int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
+int semver::cmp_pre_release(const std::string& pre1, const std::string& pre2)
 {
     /** No prerelease has higher precedence than any prerelease */
     if (pre1.empty() && pre2.empty()) return 0;
@@ -186,8 +183,8 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
     if (pre2.empty()) return -1; /** 1.0.0-alpha < 1.0.0 */
 
     /** Split prerelease identifiers by '.' */
-    std::vector<std::string> parts1 = Split(pre1, '.');
-    std::vector<std::string> parts2 = Split(pre2, '.');
+    std::vector<std::string> parts1 = split(pre1, '.');
+    std::vector<std::string> parts2 = split(pre2, '.');
 
     size_t minSize = std::min(parts1.size(), parts2.size());
 
@@ -241,11 +238,11 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
     return 0;
 }
 
-int Semver::Compare(const std::string& v1, const std::string& v2)
+int semver::cmp(const std::string& v1, const std::string& v2)
 {
     try {
-        SemverVersion ver1 = ParseSemver(v1);
-        SemverVersion ver2 = ParseSemver(v2);
+        semver_version ver1 = parse(v1);
+        semver_version ver2 = parse(v2);
 
         /** Compare major.minor.patch */
         if (ver1.major != ver2.major) {
@@ -262,7 +259,7 @@ int Semver::Compare(const std::string& v1, const std::string& v2)
          * If core versions are equal, compare prereleases
          * Build metadata is ignored in precedence comparison per semver spec
          */
-        return ComparePrereleases(ver1.prerelease, ver2.prerelease);
+        return cmp_pre_release(ver1.prerelease, ver2.prerelease);
 
     } catch (const std::exception&) {
         throw std::invalid_argument("Invalid semver format");
