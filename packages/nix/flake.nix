@@ -52,19 +52,39 @@
     {
       packages.x86_64-linux =
         let
-          pkgs = import nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; };
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+            config.allowUnfree = true;
+          };
           packages = {
             default = packages.millennium-steam;
-            millennium-python   = pkgs.callPackage ./python.nix             { };
-            millennium-assets   = pkgs.callPackage ./assets.nix             { inherit millennium-src; };
-            millennium-frontend = pkgs.callPackage ./frontend.nix           { inherit millennium-src; };
-            millennium-shims    = pkgs.callPackage ./shims.nix              { inherit millennium-src; };
-            millennium          = pkgs.callPackage ./millennium.nix         { inherit (packages) millennium-python millennium-shims millennium-assets millennium-frontend; inherit inputs; };
-            millennium-steam    = pkgs.callPackage ./steam.nix              { inherit (packages) millennium-python millennium-shims millennium-assets millennium; };
+            millennium-python = pkgs.callPackage ./python.nix { };
+            millennium-assets = pkgs.callPackage ./assets.nix { inherit millennium-src; };
+            millennium-frontend = pkgs.callPackage ./frontend.nix { inherit millennium-src; };
+            millennium-shims = pkgs.callPackage ./shims.nix { inherit millennium-src; };
+            millennium = pkgs.callPackage ./millennium.nix {
+              inherit (packages)
+                millennium-python
+                millennium-shims
+                millennium-assets
+                millennium-frontend
+                ;
+              inherit inputs;
+            };
+            millennium-steam = pkgs.callPackage ./steam.nix {
+              inherit (packages)
+                millennium-python
+                millennium-shims
+                millennium-assets
+                millennium
+                ;
+            };
           };
         in
         packages;
 
-      overlays.default = final: prev: { inherit (self.packages.${prev.system}) millennium-steam; };
+      overlays.default = final: prev: {
+        inherit (self.packages.${prev.stdenv.hostPlatform.system}) millennium-steam;
+      };
     };
 }
