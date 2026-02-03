@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,16 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 /**
  * @file env.cc
  *
  * @brief This file is responsible for setting up environment variables that are used throughout the application.
  */
-#include <string>
+
 #include <map>
+#include <string>
 
 extern std::map<std::string, std::string> envVariables;
 
@@ -50,5 +53,5 @@ extern std::map<std::string, std::string> envVariables;
 #endif
 
 void SetupEnvironmentVariables();
-std::string GetEnv(std::string key);
-std::string GetEnvWithFallback(std::string key, std::string fallback);
+[[nodiscard]] std::string GetEnv(std::string key);
+[[nodiscard]] std::string GetEnvWithFallback(std::string key, std::string fallback);

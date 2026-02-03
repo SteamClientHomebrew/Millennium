@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,12 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #include "millennium/argp_win32.h"
-#include "millennium/plat_msg.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"
+#include "millennium/plat_msg.h"
 
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
@@ -50,12 +52,12 @@ class SocketHelpers
   private:
     u_short debuggerPort;
 
-    u_short GetDebuggerPort()
+    static u_short GetDebuggerPort()
     {
         return CommandLineArguments::GetRemoteDebuggerPort();
     }
 
-    const std::string GetDebuggerUrl()
+    [[nodiscard]] std::string GetDebuggerUrl() const
     {
         return fmt::format("http://127.0.0.1:{}", debuggerPort);
     }
@@ -83,7 +85,7 @@ class SocketHelpers
     }
 #endif
 
-    SteamConnectionProps GetSteamConnectionProps()
+    static SteamConnectionProps GetSteamConnectionProps()
     {
 #ifdef _WIN32
         // Windows-specific code
@@ -135,7 +137,7 @@ class SocketHelpers
             return;
         }
 
-        auto [canConnect, processName] = this->GetSteamConnectionProps();
+        const auto [canConnect, processName] = GetSteamConnectionProps();
         if (!canConnect) {
             const std::string message =
                 fmt::format("Millennium can't connect to Steam because the target port '{}' is currently being used by '{}'.\n"
@@ -163,10 +165,10 @@ class SocketHelpers
      *
      * @return std::string The Steam browser context.
      */
-    const std::string GetSteamBrowserContext()
+    std::string GetSteamBrowserContext()
     {
         try {
-            std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
+            const std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
             nlohmann::basic_json<> instance = nlohmann::json::parse(Http::Get(browserUrl.c_str(), true, 5L));
 
             return instance["webSocketDebuggerUrl"];
@@ -177,7 +179,7 @@ class SocketHelpers
         }
     }
 
-    void ConnectSocket(std::shared_ptr<ConnectSocketProps> socketProps)
+    static void ConnectSocket(const std::shared_ptr<ConnectSocketProps>& socketProps)
     {
         std::string socketUrl;
         const auto [commonName, fetchSocketUrl, onConnect, onMessage] = *socketProps;
@@ -211,11 +213,19 @@ class SocketHelpers
                 return;
             }
 
-            socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
-            socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
+            socketClient.set_open_handler([onConnect, &socketClient](websocketpp::connection_hdl hdl)
+                {
+                    onConnect(&socketClient, std::move(hdl));
+                }
+                );
+            socketClient.set_message_handler([onMessage, &socketClient](websocketpp::connection_hdl hdl, std::shared_ptr<websocketpp::config::core_client::message_type> msg)
+                {
+                    onMessage(&socketClient, std::move(hdl), std::move(msg));
+                }
+                );
 
             websocketpp::lib::error_code errorCode;
-            auto con = socketClient.get_connection(socketUrl, errorCode);
+            const auto con = socketClient.get_connection(socketUrl, errorCode);
 
             if (errorCode) {
                 LOG_ERROR("[{}] Failed to establish connection: {} [{}]", commonName, errorCode.message(), errorCode.value());

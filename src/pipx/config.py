@@ -26,10 +26,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import Millennium # type: ignore
+import Millennium  # type: ignore
+import configparser
+import os
 import platform
-import configparser, os
+
 from logger import logger
+
 
 class Config:
 

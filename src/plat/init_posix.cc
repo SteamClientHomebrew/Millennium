@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,12 +38,10 @@
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
 
-#include <ctime>
+#include <cstdio>
+#include <cstdlib>
 #include <dlfcn.h>
-#include <fmt/core.h>
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 std::unique_ptr<std::thread> g_millenniumThread;
 
@@ -60,7 +58,7 @@ int IsSamePath(const char* path1, const char* path2)
 {
     char realpath1[PATH_MAX], realpath2[PATH_MAX];
 
-    if (realpath(path1, realpath1) == NULL || realpath(path2, realpath2) == NULL) {
+    if (realpath(path1, realpath1) == nullptr || realpath(path2, realpath2) == nullptr) {
         LOG_ERROR("Failed to resolve paths: {} or {}", path1, path2);
         return 0;
     }
@@ -71,7 +69,7 @@ int IsSamePath(const char* path1, const char* path2)
 CONSTRUCTOR void Posix_InitializeEnvironment()
 {
     char path[PATH_MAX];
-    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    const ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
 
     if (len == -1) {
         perror("readlink");
@@ -80,7 +78,7 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
 
     path[len] = '\0';
 
-    std::string steamPath = fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
+    const std::string steamPath = fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
     if (!IsSamePath(path, steamPath.c_str())) {
         Logger.Warn("[Millennium] Process is not running under Steam: {}", path);
         return;
@@ -98,7 +96,7 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
     if (g_lb_patch_arena) {
         shm_arena_close(g_lb_patch_arena, SHM_IPC_SIZE);
         shm_arena_unlink(SHM_IPC_NAME);
-        g_lb_patch_arena = NULL;
+        g_lb_patch_arena = nullptr;
     }
 }
 
