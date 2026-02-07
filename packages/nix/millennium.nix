@@ -48,6 +48,7 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     "-DNIX_FRONTEND=${millennium-frontend}/share/frontend"
     "-DNIX_SHIMS=${millennium-shims}/share/millennium/shims"
     "-DNIX_PYTHON=${millennium-python}"
+    "-DNIX_PYTHON_LIB=${millennium-python}/lib/libpython-3.11.8.so"
     "-DCURL_CA_BUNDLE=${cacert}/etc/ssl/certs/ca-bundle.crt"
     "-DCURL_CA_PATH=${cacert}/etc/ssl/certs"
     "--preset=linux-release"
