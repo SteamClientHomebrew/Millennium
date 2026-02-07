@@ -3,7 +3,7 @@
   pnpm_9,
   fetchPnpmDeps,
   pnpmConfigHook,
-  
+
   lib,
   stdenv,
 
@@ -12,7 +12,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-frontend";
-  version = "1.0.0";
+  version = "2.34.0";
 
   src = millennium-src;
 
@@ -54,8 +54,8 @@ stdenv.mkDerivation (finalAttrs: {
     license = lib.licenses.mit;
     description = "Frontend for Millennium";
 
-    maintainers = with lib.maintainers; [
-      trivaris
+    maintainers = [
+      lib.maintainers.trivaris
     ];
 
     platforms = [

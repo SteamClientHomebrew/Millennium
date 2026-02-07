@@ -6,13 +6,13 @@
 
   lib,
   stdenv,
-  
+
   millennium-src,
   ...
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-shims";
-  version = "5.8.3";
+  version = "2.34.0";
 
   src = millennium-src;
 
@@ -54,8 +54,8 @@ stdenv.mkDerivation (finalAttrs: {
     license = lib.licenses.mit;
     description = "Millennium Shims to inject into Steam";
 
-    maintainers = with lib.maintainers; [
-      trivaris
+    maintainers = [
+      lib.maintainers.trivaris
     ];
 
     platforms = [

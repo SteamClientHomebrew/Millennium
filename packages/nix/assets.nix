@@ -1,13 +1,13 @@
 {
   lib,
   stdenv,
-  
+
   millennium-src,
   ...
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-assets";
-  version = "1.0.0";
+  version = "2.34.0";
 
   src = millennium-src;
 
