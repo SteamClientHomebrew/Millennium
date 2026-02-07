@@ -158,13 +158,13 @@
       "locked": {
         "lastModified": 1770463863,
         "narHash": "sha256-MceGTpXobCAh5Ll/1iTWcEf6/nHY3Ll1t06JxbYc+Co=",
-        "owner": "Trivaris",
+        "owner": "SteamClientHomebrew",
         "repo": "Millennium",
         "rev": "1bc62c94a06f25f7e8d7e269f11cd968cf576bff",
         "type": "github"
       },
       "original": {
-        "owner": "Trivaris",
+        "owner": "SteamClientHomebrew",
         "repo": "Millennium",
         "rev": "1bc62c94a06f25f7e8d7e269f11cd968cf576bff",
         "type": "github"

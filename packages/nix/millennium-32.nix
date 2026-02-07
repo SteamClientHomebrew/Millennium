@@ -9,6 +9,7 @@
   pkgsi686Linux,
 
   inputs,
+  millennium-python ? pkgsi686Linux.python311,
   millennium-shims,
   millennium-assets,
   millennium-frontend,
@@ -45,11 +46,10 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     "-DDISTRO_NIX=ON"
     "-DNIX_FRONTEND=${millennium-frontend}/share/frontend"
     "-DNIX_SHIMS=${millennium-shims}/share/millennium/shims"
-    "-DNIX_PYTHON=${pkgsi686Linux.python311}"
-    "-DNIX_PYTHON_LIB=${pkgsi686Linux.python311}/lib/libpython3.11.so"
+    "-DNIX_PYTHON=${millennium-python}"
+    "-DNIX_PYTHON_LIB=${millennium-python}/lib/libpython${millennium-python.pythonVersion}.so"
     "-DCURL_CA_BUNDLE=${cacert}/etc/ssl/certs/ca-bundle.crt"
     "-DCURL_CA_PATH=${cacert}/etc/ssl/certs"
-    "--preset=linux-release"
   ];
 
   postPatch = ''
