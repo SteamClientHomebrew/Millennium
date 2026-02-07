@@ -2,7 +2,6 @@
   steam,
   openssl,
   pkgsi686Linux,
-  millennium-python,
   millennium-shims,
   millennium-assets,
   millennium,
@@ -16,7 +15,7 @@ let
   millenniumPkgs = [
     millennium-assets
     millennium-shims
-    millennium-python
+    pkgsi686Linux.python311
     pkgsi686Linux.openssl
   ];
 
@@ -35,7 +34,7 @@ let
   millenniumProfile = ''
     MILLENNIUM_VENV="$HOME/.local/share/millennium/.venv"
     VENV_PYTHON="$MILLENNIUM_VENV/bin/python3.11"
-    EXPECTED_PYTHON=$(readlink -f "${millennium-python}/bin/python3.11")
+    EXPECTED_PYTHON=$(readlink -f "${pkgsi686Linux.python311}/bin/python3.11")
 
     if [ -d "$MILLENNIUM_VENV" ]; then
       if [ ! -x "$VENV_PYTHON" ] || [ "$(readlink -f "$VENV_PYTHON")" != "$EXPECTED_PYTHON" ]; then
@@ -56,7 +55,6 @@ let
     "steam"
     "openssl"
     "pkgsi686Linux"
-    "millennium-python"
     "millennium-shims"
     "millennium-assets"
     "millennium"
