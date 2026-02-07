@@ -3,13 +3,16 @@
   pnpm_9,
   fetchPnpmDeps,
   pnpmConfigHook,
+
+  lib,
   stdenv,
+
   millennium-src,
   ...
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-shims";
-  version = "5.8.3";
+  version = "2.34.0";
 
   src = millennium-src;
 
@@ -46,4 +49,17 @@ stdenv.mkDerivation (finalAttrs: {
     runHook postInstall
   '';
 
+  meta = {
+    homepage = "https://steambrew.app/";
+    license = lib.licenses.mit;
+    description = "Millennium Shims to inject into Steam";
+
+    maintainers = [
+      lib.maintainers.trivaris
+    ];
+
+    platforms = [
+      "x86_64-linux"
+    ];
+  };
 })

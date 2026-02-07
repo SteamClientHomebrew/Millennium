@@ -4,12 +4,12 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    millennium-src.url = "github:SteamClientHomebrew/Millennium/4722a8ec5824e0425a3d07f2c21935dbf694813f?shallow=true";
+    millennium-src.url = "github:SteamClientHomebrew/Millennium/1bc62c94a06f25f7e8d7e269f11cd968cf576bff?shallow=true";
     millennium-src.flake = false;
 
     zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5?shallow=true";
     luajit-src.url = "github:SteamClientHomebrew/LuaJIT/v2.1?shallow=true";
-    luajson-src.url = "github:SteamClientHomebrew/LuaJSON/master?shallow=true";
+    luajson-src.url = "github:SteamClientHomebrew/LuaJSON/0c1fabf07c42f3907287d1e4f729e0620c1fe6fd?shallow=true";
     minhook-src.url = "github:TsudaKageyu/minhook/v1.3.4?shallow=true";
     mini-src.url = "github:metayeti/mINI/0.9.18?shallow=true";
     websocketpp-src.url = "github:zaphoyd/websocketpp/0.8.2?shallow=true";
@@ -18,7 +18,7 @@
     libgit2-src.url = "github:libgit2/libgit2/v1.9.1?shallow=true";
     minizip-src.url = "github:zlib-ng/minizip-ng/4.0.10?shallow=true";
     curl-src.url = "github:curl/curl/curl-8_13_0?shallow=true";
-    incbin-src.url = "github:graphitemaster/incbin/main?shallow=true";
+    incbin-src.url = "github:graphitemaster/incbin/22061f51fe9f2f35f061f85c2b217b55dd75310d?shallow=true";
     asio-src.url = "github:chriskohlhoff/asio/asio-1-30-0?shallow=true";
 
     abseil-src.url = "github:abseil/abseil-cpp/20240722.0";
@@ -56,29 +56,25 @@
             system = "x86_64-linux";
             config.allowUnfree = true;
           };
+
+          millennium-deps = {
+            inherit inputs;
+            inherit (packages)
+              millennium-shims
+              millennium-assets
+              millennium-frontend
+              ;
+          };
+
           packages = {
-            default = packages.millennium-steam;
-            millennium-python = pkgs.callPackage ./python.nix { };
-            millennium-assets = pkgs.callPackage ./assets.nix { inherit millennium-src; };
-            millennium-frontend = pkgs.callPackage ./frontend.nix { inherit millennium-src; };
-            millennium-shims = pkgs.callPackage ./shims.nix { inherit millennium-src; };
-            millennium = pkgs.callPackage ./millennium.nix {
-              inherit (packages)
-                millennium-python
-                millennium-shims
-                millennium-assets
-                millennium-frontend
-                ;
-              inherit inputs;
-            };
-            millennium-steam = pkgs.callPackage ./steam.nix {
-              inherit (packages)
-                millennium-python
-                millennium-shims
-                millennium-assets
-                millennium
-                ;
-            };
+            default             = packages.millennium-steam;
+            millennium-assets   = pkgs.callPackage ./assets.nix         { inherit millennium-src; };
+            millennium-frontend = pkgs.callPackage ./frontend.nix       { inherit millennium-src; };
+            millennium-shims    = pkgs.callPackage ./shims.nix          { inherit millennium-src; };
+            millennium-32       = pkgs.callPackage ./millennium-32.nix  ( millennium-deps );
+            millennium-64       = pkgs.callPackage ./millennium-64.nix  ( millennium-deps );
+            millennium          = pkgs.callPackage ./millennium.nix     ( millennium-deps // { inherit (packages) millennium-32 millennium-64; } );
+            millennium-steam    = pkgs.callPackage ./steam.nix          { inherit (packages) millennium millennium-shims millennium-assets; };
           };
         in
         packages;

@@ -80,8 +80,8 @@
       },
       "original": {
         "owner": "graphitemaster",
-        "ref": "main",
         "repo": "incbin",
+        "rev": "22061f51fe9f2f35f061f85c2b217b55dd75310d",
         "type": "github"
       }
     },
@@ -148,25 +148,25 @@
       },
       "original": {
         "owner": "SteamClientHomebrew",
-        "ref": "master",
         "repo": "LuaJSON",
+        "rev": "0c1fabf07c42f3907287d1e4f729e0620c1fe6fd",
         "type": "github"
       }
     },
     "millennium-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1767577350,
-        "narHash": "sha256-vtnqP4WxEr8C0vJ59rvEPSJTAyx0MmxzIEn+HrlCobI=",
+        "lastModified": 1770463863,
+        "narHash": "sha256-MceGTpXobCAh5Ll/1iTWcEf6/nHY3Ll1t06JxbYc+Co=",
         "owner": "SteamClientHomebrew",
         "repo": "Millennium",
-        "rev": "4722a8ec5824e0425a3d07f2c21935dbf694813f",
+        "rev": "1bc62c94a06f25f7e8d7e269f11cd968cf576bff",
         "type": "github"
       },
       "original": {
         "owner": "SteamClientHomebrew",
         "repo": "Millennium",
-        "rev": "4722a8ec5824e0425a3d07f2c21935dbf694813f",
+        "rev": "1bc62c94a06f25f7e8d7e269f11cd968cf576bff",
         "type": "github"
       }
     },
@@ -223,11 +223,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1767379071,
-        "narHash": "sha256-EgE0pxsrW9jp9YFMkHL9JMXxcqi/OoumPJYwf+Okucw=",
+        "lastModified": 1770115704,
+        "narHash": "sha256-KHFT9UWOF2yRPlAnSXQJh6uVcgNcWlFqqiAZ7OVlHNc=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "fb7944c166a3b630f177938e478f0378e64ce108",
+        "rev": "e6eae2ee2110f3d31110d5c222cd395303343b08",
         "type": "github"
       },
       "original": {

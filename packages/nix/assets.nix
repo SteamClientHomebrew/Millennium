@@ -1,11 +1,13 @@
 {
+  lib,
   stdenv,
+
   millennium-src,
   ...
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-assets";
-  version = "1.0.0";
+  version = "2.34.0";
 
   src = millennium-src;
 
@@ -18,4 +20,17 @@ stdenv.mkDerivation (finalAttrs: {
     runHook postInstall
   '';
 
+  meta = {
+    homepage = "https://steambrew.app/";
+    license = lib.licenses.mit;
+    description = "Python Assets for Millennium";
+
+    maintainers = [
+      lib.maintainers.trivaris
+    ];
+
+    platforms = [
+      "x86_64-linux"
+    ];
+  };
 })
