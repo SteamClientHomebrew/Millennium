@@ -56,26 +56,25 @@
             system = "x86_64-linux";
             config.allowUnfree = true;
           };
+
+          millennium-deps = {
+            inherit inputs;
+            inherit (packages)
+              millennium-shims
+              millennium-assets
+              millennium-frontend
+              ;
+          };
+
           packages = {
-            default = packages.millennium-steam;
-            millennium-assets = pkgs.callPackage ./assets.nix { inherit millennium-src; };
-            millennium-frontend = pkgs.callPackage ./frontend.nix { inherit millennium-src; };
-            millennium-shims = pkgs.callPackage ./shims.nix { inherit millennium-src; };
-            millennium = pkgs.callPackage ./millennium.nix {
-              inherit (packages)
-                millennium-shims
-                millennium-assets
-                millennium-frontend
-                ;
-              inherit inputs;
-            };
-            millennium-steam = pkgs.callPackage ./steam.nix {
-              inherit (packages)
-                millennium-shims
-                millennium-assets
-                millennium
-                ;
-            };
+            default             = packages.millennium-steam;
+            millennium-assets   = pkgs.callPackage ./assets.nix         { inherit millennium-src; };
+            millennium-frontend = pkgs.callPackage ./frontend.nix       { inherit millennium-src; };
+            millennium-shims    = pkgs.callPackage ./shims.nix          { inherit millennium-src; };
+            millennium-32       = pkgs.callPackage ./millennium-32.nix  ( millennium-deps );
+            millennium-64       = pkgs.callPackage ./millennium-64.nix  ( millennium-deps );
+            millennium          = pkgs.callPackage ./millennium.nix     ( millennium-deps // { inherit (packages) millennium-32 millennium-64; } );
+            millennium-steam    = pkgs.callPackage ./steam.nix          { inherit (packages) millennium millennium-shims millennium-assets; };
           };
         in
         packages;
