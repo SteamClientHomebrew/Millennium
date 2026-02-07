@@ -35,6 +35,7 @@ import { Utils } from '../../utils';
 import FindThemeIdGif from '../../../static/theme_id.gif';
 import { THEMES_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
+import { locale } from '../../utils/localization-manager';
 
 interface ThemeIdModalProps {
 	installer: Installer;
@@ -47,15 +48,15 @@ function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 
 	return (
 		<ConfirmModal
-			strTitle="Enter an ID"
+			strTitle={locale.installerEnterIdTitle}
 			strDescription={
 				<>
-					Install a user theme from an ID. These ID's can be found after selecting a theme at <Utils.URLComponent url={THEMES_URL} />
+					{locale.installerThemeDescription} <Utils.URLComponent url={THEMES_URL} />
 					<br />
 					<br />
 					<TextField
 						// @ts-ignore
-						placeholder={'Enter an ID here...'}
+						placeholder={locale.installerIdPlaceholder}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
 					/>
@@ -69,7 +70,7 @@ function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 			onCancel={() => {
 				modal?.Close();
 			}}
-			strOKButtonText="Download & Install"
+			strOKButtonText={locale.installerDownloadButton}
 		/>
 	);
 }

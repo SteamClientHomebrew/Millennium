@@ -38,7 +38,7 @@ import { IconButton } from '../../components/IconButton';
 import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
 import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
 import { getPluginConfigurableStatus } from '../../utils/globals';
-import { locale } from '../../utils/localization-manager';
+import { formatString, locale } from '../../utils/localization-manager';
 
 interface PluginComponentProps {
 	plugin: PluginComponent;
@@ -68,13 +68,13 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 	async uninstallPlugin() {
 		const { plugin, refetchPlugins } = this.props;
 
-		const shouldUninstall = await Utils.ShowMessageBox(`Are you sure you want to uninstall ${plugin.data.common_name}?`, 'Heads up!');
+		const shouldUninstall = await Utils.ShowMessageBox(formatString(locale.confirmUninstallItem, plugin.data.common_name), locale.dialogTitleHeadsUp);
 		if (!shouldUninstall) return;
 
 		const success = await PyUninstallPlugin({ pluginName: plugin.data.name });
 
 		if (success == false) {
-			Utils.ShowMessageBox(`Failed to uninstall ${plugin.data.common_name}. Check the logs tab for more details.`, 'Whoops', {
+			Utils.ShowMessageBox(formatString(locale.errorUninstallFailed, plugin.data.common_name), locale.dialogTitleWhoops, {
 				bAlertDialog: true,
 			});
 		}
@@ -102,14 +102,14 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 					{plugin.data.common_name}
 				</MenuItem>
 				<Separator />
-				<MenuItem onSelected={() => {}}>Reload</MenuItem>
+				<MenuItem onSelected={() => {}}>{locale.menuItemReload}</MenuItem>
 				<DesktopTooltip toolTipContent={reason} direction="left">
 					<MenuItem onSelected={this.openPluginSettings.bind(this)} disabled={!isPluginConfigurable}>
-						Configure
+						{locale.menuItemConfigure}
 					</MenuItem>
 				</DesktopTooltip>
-				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>Uninstall</MenuItem>
-				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>Browse local files</MenuItem>
+				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>{locale.menuItemUninstall}</MenuItem>
+				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>{locale.menuItemBrowseLocalFiles}</MenuItem>
 			</Menu>,
 			e.currentTarget ?? window,
 		);
@@ -119,8 +119,8 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		const { plugin, hasErrors, hasWarnings } = this.props;
 
 		const statusMap = [
-			{ condition: hasErrors, color: 'red', message: 'encountered errors', type: TooltipType.Error },
-			{ condition: hasWarnings, color: '#ffc82c', message: 'issued warnings', type: TooltipType.Warning },
+			{ condition: hasErrors, color: 'red', message: locale.statusEncounteredErrors, type: TooltipType.Error },
+			{ condition: hasWarnings, color: '#ffc82c', message: locale.statusIssuedWarnings, type: TooltipType.Warning },
 		];
 
 		const status = statusMap.find((entry) => entry.condition);
@@ -129,7 +129,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		return {
 			type: status.type,
 			content: (
-				<DesktopTooltip toolTipContent={`${plugin?.data?.common_name} ${status.message}. Please check the logs tab for more details.`} direction="top">
+				<DesktopTooltip toolTipContent={formatString(locale.statusCheckLogsForDetails, plugin?.data?.common_name, status.message)} direction="top">
 					<IconsModule.ExclamationPoint color={status.color} />
 				</DesktopTooltip>
 			),
@@ -164,7 +164,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				data-plugin-status={type}
 			>
 				<Toggle key={plugin.data.name} disabled={plugin.data.name === 'core'} value={isEnabled} onChange={onSelectionChange.bind(null, index)} />
-				<IconButton name="KaratDown" onClick={this.showCtxMenu} text="Show menu" />
+				<IconButton name="KaratDown" onClick={this.showCtxMenu} text={locale.buttonShowMenu} />
 			</Field>
 		);
 	}

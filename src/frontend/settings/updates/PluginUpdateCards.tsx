@@ -124,7 +124,7 @@ export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
 
 	return (
 		<>
-			<SettingsDialogSubHeader>Plugins</SettingsDialogSubHeader>
+			<SettingsDialogSubHeader>{locale.sectionHeaderPlugins}</SettingsDialogSubHeader>
 			{pluginUpdates?.map((update: any, index: number) => (
 				<UpdateCard
 					update={{

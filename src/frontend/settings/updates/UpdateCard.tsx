@@ -32,7 +32,7 @@ import { DialogButton, DialogButtonPrimary, Field, IconsModule, joinClassNames, 
 import { settingsClasses } from '../../utils/classes';
 import { Component, createRef, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
-import { locale } from '../../utils/localization-manager';
+import { formatString, locale } from '../../utils/localization-manager';
 import { IconButton } from '../../components/IconButton';
 import { MillenniumIcons } from '../../components/Icons';
 
@@ -117,7 +117,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 			);
 		}
 
-		return <IconButton name="Download" onClick={onUpdateClick} disabled={this.props.disabled} text={`Update ${toolTipText || update.name}`} />;
+		return <IconButton name="Download" onClick={onUpdateClick} disabled={this.props.disabled} text={formatString(locale.buttonUpdateItem, toolTipText || update.name)} />;
 	}
 
 	private makeAnchorExternalLink({ children, ...props }: { children: any; [key: string]: any }) {
@@ -154,7 +154,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 			return (
 				<DialogButton className="MillenniumButton" disabled={true}>
 					<IconsModule.Checkmark />
-					{'Complete! Pending restart.'}
+					{locale.updateCompletePendingRestart}
 				</DialogButton>
 			);
 		}
@@ -167,7 +167,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 					onClick={this.handleToggle}
 					className="MillenniumUpdates_ExpandButton"
 					disabled={this.props.disabled}
-					text={showingMore ? 'Collapse' : 'Expand'}
+					text={showingMore ? locale.buttonCollapse : locale.buttonExpand}
 				/>
 			</>
 		);
