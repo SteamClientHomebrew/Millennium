@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,12 +30,14 @@
 
 #pragma once
 #define MINI_CASE_SENSITIVE
+#include "singleton.h"
+
 #include <filesystem>
-#include <mini/ini.h>
-#include <nlohmann/json.hpp>
-#include <string>
-#include <vector>
 #include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+#include <nlohmann/json.hpp>
 
 class SettingsStore
 {
@@ -60,20 +62,20 @@ class SettingsStore
         bool isInternal = false;
     };
 
-    std::vector<PluginTypeSchema> ParseAllPlugins();
-    std::vector<PluginTypeSchema> GetEnabledBackends();
-    std::vector<PluginTypeSchema> GetEnabledPlugins();
-    std::vector<std::string> GetEnabledPluginNames();
+    static std::vector<PluginTypeSchema> ParseAllPlugins();
+    static std::vector<PluginTypeSchema> GetEnabledBackends();
+    static std::vector<PluginTypeSchema> GetEnabledPlugins();
+    static std::vector<std::string> GetEnabledPluginNames();
 
-    bool IsEnabledPlugin(std::string pluginName);
-    bool TogglePluginStatus(std::string pluginName, bool enabled);
+    static bool IsEnabledPlugin(std::string pluginName);
+    static bool TogglePluginStatus(std::string pluginName, bool enabled);
 
-    int InitializeSettingsStore();
+    static int InitializeSettingsStore();
     SettingsStore();
 
   private:
-    void LintPluginData(nlohmann::json json, std::string pluginName);
-    PluginTypeSchema GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
+    static void LintPluginData(nlohmann::json json, std::string pluginName);
+    static PluginTypeSchema GetPluginInternalData(nlohmann::json json, std::filesystem::directory_entry entry);
 };
 
 namespace SystemIO
@@ -81,10 +83,10 @@ namespace SystemIO
 class FileException : public std::exception
 {
   public:
-    FileException(const std::string& message) : msg(message)
+    explicit FileException(std::string message) : msg(std::move(message))
     {
     }
-    virtual const char* what() const noexcept override
+    [[nodiscard]] virtual const char* what() const noexcept override
     {
         return msg.c_str();
     }
@@ -111,8 +113,9 @@ void MakeWritable(const std::filesystem::path& p);
 bool DeleteFolder(const std::filesystem::path& p);
 } // namespace SystemIO
 
-class ConfigManager
+class ConfigManager : public Singleton<ConfigManager>
 {
+    friend class Singleton;
   public:
     /**
      * A listener function that gets called when a config value changes.
@@ -121,8 +124,6 @@ class ConfigManager
      * @param new_value The new value of the key.
      */
     using Listener = std::function<void(const std::string&, const nlohmann::json&, const nlohmann::json&)>;
-
-    static ConfigManager& Instance();
 
     /**
      * Delete a configuration key.
@@ -191,7 +192,7 @@ class ConfigManager
     void SetNested(const std::string& path, const nlohmann::json& value, bool skipPropagation = false);
 
     ConfigManager();
-    ~ConfigManager();
+    virtual ~ConfigManager() override;
 
   private:
     /**
@@ -210,4 +211,4 @@ class ConfigManager
 /**
  * Global config manager instance.
  */
-#define CONFIG ConfigManager::Instance()
+#define CONFIG ConfigManager::GetInstance()

@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,24 +29,27 @@
  */
 
 #pragma once
+
 #include <filesystem>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <vector>
+
+#include <nlohmann/json.hpp>
 
 class PluginInstaller
 {
   public:
-    bool CheckInstall(const std::string& pluginName);
-    bool UninstallPlugin(const std::string& pluginName);
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    nlohmann::json InstallPlugin(const std::string& downloadUrl, size_t totalSize);
-    nlohmann::json GetRequestBody();
+    static bool CheckInstall(const std::string& pluginName);
+    static bool UninstallPlugin(const std::string& pluginName);
+    static bool DownloadPluginUpdate(const std::string& id, const std::string& name);
+    static nlohmann::json InstallPlugin(const std::string& downloadUrl, size_t totalSize);
+    [[nodiscard]] static nlohmann::json GetRequestBody();
 
   private:
-    void RPCLogMessage(const std::string& status, double progress, bool isComplete);
-    std::filesystem::path PluginsPath();
+    static void RPCLogMessage(const std::string& status, double progress, bool isComplete);
+    static std::filesystem::path PluginsPath();
 
-    std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);
-    std::vector<nlohmann::json> GetPluginData();
+    static std::optional<nlohmann::json> ReadMetadata(const std::filesystem::path& pluginPath);
+    [[nodiscard]] static std::vector<nlohmann::json> GetPluginData();
 };

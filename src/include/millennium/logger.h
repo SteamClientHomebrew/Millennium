@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,9 +32,9 @@
 
 #include "millennium/singleton.h"
 
+#include <mutex>
 #include <fmt/color.h>
 #include <fmt/core.h>
-#include <mutex>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -59,12 +59,12 @@ class OutputLogger : public Singleton<OutputLogger>
   private:
     bool m_bIsConsoleEnabled = false;
     std::mutex logMutex;
-    std::string GetLocalTime();
+    static std::string GetLocalTime();
 
-    constexpr std::string_view ConstexprGetSourceFile(const char* file)
+    static constexpr std::string_view ConstexprGetSourceFile(const char* file)
     {
-        std::string_view srcPath(file);
-        std::string_view root(MILLENNIUM_ROOT);
+        const std::string_view srcPath(file);
+        constexpr std::string_view root(MILLENNIUM_ROOT);
 
         return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
     }
@@ -78,21 +78,21 @@ class OutputLogger : public Singleton<OutputLogger>
 
     template <typename... Args> void Log(std::string fmt, Args&&... args)
     {
-        PrintMessage(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_GREEN);
+        PrintMessage(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...), COL_GREEN);
     }
 
     template <typename... Args> void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args&&... args)
     {
-        std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
+        const std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
 
-        PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
+        PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...), COL_RED);
         PrintMessage(" * FUNCTION: ", function, COL_RED);
         PrintMessage(" * LOCATION: ", remoteRepository, COL_RED);
     }
 
     template <typename... Args> void Warn(std::string fmt, Args&&... args)
     {
-        PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
+        PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt::runtime(fmt), std::forward<Args>(args)...), COL_YELLOW);
     }
 };
 
@@ -104,19 +104,33 @@ extern OutputLogger& Logger;
 #define PRETTY_FUNCTION __PRETTY_FUNCTION__
 #endif
 
-#if defined(__clang__)
 #ifndef LOG_ERROR
-#define LOG_ERROR(...) Logger.ErrorTrace(FIRST(__VA_ARGS__), __FILE__, __LINE__, PRETTY_FUNCTION REST(__VA_ARGS__))
-#define FIRST(...) FIRST_HELPER(__VA_ARGS__, throwaway)
-#define FIRST_HELPER(first, ...) first
-#define REST(...) REST_HELPER(NUM(__VA_ARGS__), __VA_ARGS__)
-#define REST_HELPER(qty, ...) REST_HELPER2(qty, __VA_ARGS__)
-#define REST_HELPER2(qty, ...) REST_HELPER_##qty(__VA_ARGS__)
-#define REST_HELPER_ONE(first)
-#define REST_HELPER_TWOORMORE(first, ...) , __VA_ARGS__
-#define NUM(...) SELECT_10TH(__VA_ARGS__, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, ONE, throwaway)
-#define SELECT_10TH(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, ...) a10
+    #define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION __VA_OPT__(,) __VA_ARGS__)
 #endif
+
+#ifndef MILLENNIUM_DIAG_PUSH_IGNORE
+#ifndef DO_PRAGMA
+#define DO_PRAGMA(x) _Pragma(#x)
+#endif
+#ifdef __clang__
+#define MILLENNIUM_DIAG_PUSH_IGNORE(diag) DO_PRAGMA(clang diagnostic push) DO_PRAGMA(clang diagnostic ignored diag)
 #else
-#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
+#ifdef __GNUC__
+#define MILLENNIUM_DIAG_PUSH_IGNORE(diag) DO_PRAGMA(GCC diagnostic push) DO_PRAGMA(clang diagnostic ignored diag)
+#else
+#define MILLENNIUM_DIAG_PUSH_IGNORE(diag) // Don't do anything for other systems.
+#endif
+#endif
+#endif
+
+#ifndef MILLENNIUM_DIAG_POP
+#ifdef __clang__
+#define MILLENNIUM_DIAG_POP _Pragma("clang diagnostic pop")
+#else
+#ifdef __GNUC__
+#define MILLENNIUM_DIAG_POP _Pragma("GCC diagnostic pop")
+#else
+#define MILLENNIUM_DIAG_POP // Don't do anything for other systems.
+#endif
+#endif
 #endif
