@@ -73,7 +73,7 @@ static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
 class network_hook_ctl
 {
   public:
-    network_hook_ctl(std::shared_ptr<plugin_manager> settings_store);
+    network_hook_ctl(std::shared_ptr<plugin_manager> plugin_manager);
     ~network_hook_ctl();
 
     void set_cdp_client(std::shared_ptr<cdp_client> cdp);
@@ -109,7 +109,7 @@ class network_hook_ctl
     }
 
   private:
-    std::shared_ptr<plugin_manager> m_settings_store;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<cdp_client> m_cdp;
 
     struct processed_hooks

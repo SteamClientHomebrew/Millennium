@@ -92,8 +92,9 @@ set(SOURCE_FILES
     instrumentation/smem.cc
     system/config.cc
     system/environment.cc
-    system/logger.cc
     system/filesystem.cc
+    system/health_check.cc
+    system/logger.cc
     millennium.cc
 )
 

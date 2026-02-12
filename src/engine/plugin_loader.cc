@@ -60,8 +60,8 @@ extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_has
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
-plugin_loader::plugin_loader(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<millennium_updater> millennium_updater)
-    : m_thread_pool(std::make_unique<thread_pool>(2)), m_settings_store_ptr(std::move(settings_store)), m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr),
+plugin_loader::plugin_loader(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<millennium_updater> millennium_updater)
+    : m_thread_pool(std::make_unique<thread_pool>(2)), m_plugin_manager(std::move(plugin_manager)), m_plugin_ptr(nullptr), m_enabledPluginsPtr(nullptr),
       m_millennium_updater(std::move(millennium_updater)), has_loaded_core_plugin(false)
 {
     logger.log("Initializing plugin_loader...");
@@ -87,7 +87,7 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     m_network_hook_ctl->init();
 
     m_extension_mgr = std::make_shared<browser_extension_manager>(cdp);
-    m_ipc_main = std::make_shared<ipc_main>(m_millennium_backend, m_settings_store_ptr, m_cdp, m_backend_manager);
+    m_ipc_main = std::make_shared<ipc_main>(m_millennium_backend, m_plugin_manager, m_cdp, m_backend_manager);
 
     m_millennium_updater->set_ipc_main(m_ipc_main);
     m_millennium_backend->set_ipc_main(m_ipc_main);
@@ -97,8 +97,8 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     {
         logger.log("Starting webkit world manager...");
 
-        this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_settings_store_ptr, m_ipc_main);
-        this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_settings_store_ptr, m_network_hook_ctl, m_plugin_webkit_store);
+        this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_plugin_manager, m_ipc_main);
+        this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_plugin_manager, m_network_hook_ctl, m_plugin_webkit_store);
     });
 
     m_thread_pool->enqueue([this]()
@@ -110,19 +110,19 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
 void plugin_loader::init()
 {
-    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_settings_store_ptr);
+    m_network_hook_ctl = std::make_shared<network_hook_ctl>(m_plugin_manager);
 
-    m_millennium_backend = std::make_shared<head::millennium_backend>(m_network_hook_ctl, m_settings_store_ptr, m_millennium_updater);
+    m_millennium_backend = std::make_shared<head::millennium_backend>(m_network_hook_ctl, m_plugin_manager, m_millennium_updater);
     m_millennium_backend->init(); /** manual ctor, shared_from_this requires a ref holder before its valid */
 
-    m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_settings_store_ptr);
-    m_backend_manager = std::make_shared<backend_manager>(m_settings_store_ptr, m_backend_event_dispatcher);
-    m_backend_initializer = std::make_shared<backend_initializer>(m_settings_store_ptr, m_backend_manager, m_backend_event_dispatcher);
-    m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_settings_store_ptr);
-    m_plugin_ptr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_settings_store_ptr->get_all_plugins());
-    m_enabledPluginsPtr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_settings_store_ptr->get_enabled_backends());
+    m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_plugin_manager);
+    m_backend_manager = std::make_shared<backend_manager>(m_plugin_manager, m_backend_event_dispatcher);
+    m_backend_initializer = std::make_shared<backend_initializer>(m_plugin_manager, m_backend_manager, m_backend_event_dispatcher);
+    m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_plugin_manager);
+    m_plugin_ptr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_plugin_manager->get_all_plugins());
+    m_enabledPluginsPtr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_plugin_manager->get_enabled_backends());
 
-    m_settings_store_ptr->init();
+    m_plugin_manager->init();
 
     /** setup steam hooks once backends have loaded */
     m_backend_event_dispatcher->on_all_backends_ready(Plat_WaitForBackendLoad);
@@ -186,13 +186,13 @@ void plugin_loader::setup_webkit_shims()
     logger.log("Injecting webkit shims...");
     m_plugin_webkit_store->clear();
 
-    const auto plugins = this->m_settings_store_ptr->get_all_plugins();
+    const auto plugins = this->m_plugin_manager->get_all_plugins();
 
     for (auto& plugin : plugins) {
         const auto abs_path = std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
         const auto should_isolate = plugin.plugin_json.value("webkitApiVersion", "1.0.0") == "2.0.0";
 
-        if (this->m_settings_store_ptr->is_enabled(plugin.plugin_name) && std::filesystem::exists(abs_path)) {
+        if (this->m_plugin_manager->is_enabled(plugin.plugin_name) && std::filesystem::exists(abs_path)) {
             m_plugin_webkit_store->add({ plugin.plugin_name, abs_path, should_isolate });
         }
     }
@@ -211,10 +211,10 @@ std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::
 std::string plugin_loader::cdp_generate_shim_module()
 {
     std::vector<std::string> script_list;
-    std::vector<plugin_manager::plugin_t> plugins = m_settings_store_ptr->get_all_plugins();
+    std::vector<plugin_manager::plugin_t> plugins = m_plugin_manager->get_all_plugins();
 
     for (auto& plugin : plugins) {
-        if (!m_settings_store_ptr->is_enabled(plugin.plugin_name)) {
+        if (!m_plugin_manager->is_enabled(plugin.plugin_name)) {
             continue;
         }
 
@@ -343,7 +343,7 @@ void plugin_loader::log_enabled_plugins()
     statuses.reserve(m_plugin_ptr->size());
 
     for (const auto& plugin : *m_plugin_ptr) {
-        statuses.push_back(fmt::format("{}: {}", plugin.plugin_name, m_settings_store_ptr->is_enabled(plugin.plugin_name) ? "enabled" : "disabled"));
+        statuses.push_back(fmt::format("{}: {}", plugin.plugin_name, m_plugin_manager->is_enabled(plugin.plugin_name) ? "enabled" : "disabled"));
     }
 
     logger.log("Plugins: {{ {} }}", fmt::join(statuses, ", "));
@@ -390,7 +390,7 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
     std::vector<std::string> plugins_to_disable;
 
     for (const auto& [name, enabled] : plugins) {
-        m_settings_store_ptr->set_plugin_enabled(name.c_str(), enabled);
+        m_plugin_manager->set_plugin_enabled(name.c_str(), enabled);
         logger.log("requested to {} plugin [{}]", enabled ? "enable" : "disable", name);
 
         if (enabled) {
@@ -430,7 +430,7 @@ std::shared_ptr<head::millennium_backend> plugin_loader::get_millennium_backend(
     return this->m_millennium_backend;
 }
 
-std::shared_ptr<plugin_manager> plugin_loader::get_settings_store()
+std::shared_ptr<plugin_manager> plugin_loader::get_plugin_manager()
 {
-    return this->m_settings_store_ptr;
+    return this->m_plugin_manager;
 }

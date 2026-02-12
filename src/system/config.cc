@@ -145,13 +145,14 @@ void config_manager::load_from_disk()
                 file >> _data;
             } catch (...) {
                 logger.warn("Invalid JSON in config file: {}", _filename);
-                Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename).c_str(),
-                                    MESSAGEBOX_WARNING);
+                platform::messagebox::show("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults.", _filename),
+                                           platform::messagebox::level::warn);
                 _data = nlohmann::json::object();
             }
         } else {
             logger.warn("Failed to open config file: {}", _filename);
-            Plat_ShowMessageBox("Millennium", fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename).c_str(), MESSAGEBOX_WARNING);
+            platform::messagebox::show("Millennium", fmt::format("The config file at '{}' could not be opened and will be reset to defaults.", _filename),
+                                       platform::messagebox::level::warn);
             _data = nlohmann::json::object();
         }
     }

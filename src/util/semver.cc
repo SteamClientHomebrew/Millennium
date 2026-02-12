@@ -37,8 +37,7 @@
 #include <cerrno>
 #include <cstdlib>
 
-/** Helper: Validate that a string contains only allowed characters */
-bool is_valid_identifier(const std::string& id, bool allowDash = true)
+static bool is_valid_identifier(const std::string& id, bool allowDash = true)
 {
     if (id.empty()) return false;
     for (char c : id) {
@@ -49,14 +48,12 @@ bool is_valid_identifier(const std::string& id, bool allowDash = true)
     return true;
 }
 
-/** Helper: Check if string has leading zeros (invalid for semver numeric parts) */
-bool has_leading_zero(const std::string& s)
+static bool has_leading_zero(const std::string& s)
 {
     return s.length() > 1 && s[0] == '0';
 }
 
-/** Helper: Safe integer parsing with overflow detection */
-int parse_int(const std::string& s)
+static int parse_int(const std::string& s)
 {
     if (s.empty() || !std::all_of(s.begin(), s.end(), ::isdigit)) {
         throw std::invalid_argument("Invalid numeric part: " + s);
@@ -77,8 +74,7 @@ int parse_int(const std::string& s)
     return static_cast<int>(val);
 }
 
-/** Helper: Split string by delimiter */
-std::vector<std::string> split(const std::string& s, char delimiter)
+static std::vector<std::string> split(const std::string& s, char delimiter)
 {
     std::vector<std::string> parts;
     size_t start = 0;
@@ -92,8 +88,7 @@ std::vector<std::string> split(const std::string& s, char delimiter)
     return parts;
 }
 
-/** Helper: Validate prerelease or build metadata identifiers */
-void validate(const std::string& str, const std::string& context)
+static void validate(const std::string& str, const std::string& context)
 {
     if (str.empty()) {
         throw std::invalid_argument("Empty " + context + " not allowed");

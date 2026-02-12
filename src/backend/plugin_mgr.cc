@@ -41,9 +41,9 @@
 #include "millennium/encoding.h"
 #include "millennium/zip.h"
 
-head::plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<::plugin_manager> settings_store_ptr,
+head::plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<::plugin_manager> plugin_mgr,
                                          std::shared_ptr<library_updater> updater)
-    : m_millennium_backend(std::move(millennium_backend)), settings_store_ptr(std::move(settings_store_ptr)), m_updater(std::move(updater))
+    : m_millennium_backend(std::move(millennium_backend)), m_plugin_manager(std::move(plugin_mgr)), m_updater(std::move(updater))
 {
 }
 
@@ -54,16 +54,16 @@ std::filesystem::path head::plugin_installer::get_plugins_path()
 
 bool head::plugin_installer::is_plugin_installed(const std::string& pluginName)
 {
-    return head::Plugins::GetPluginFromName(pluginName, settings_store_ptr).has_value();
+    return head::Plugins::GetPluginFromName(pluginName, m_plugin_manager).has_value();
 }
 
 bool head::plugin_installer::uninstall_plugin(const std::string& pluginName)
 {
     try {
-        auto pluginOpt = head::Plugins::GetPluginFromName(pluginName, settings_store_ptr);
+        auto pluginOpt = head::Plugins::GetPluginFromName(pluginName, m_plugin_manager);
         if (!pluginOpt) return false;
 
-        if (settings_store_ptr->is_enabled(pluginName)) {
+        if (m_plugin_manager->is_enabled(pluginName)) {
             g_millennium->get_plugin_loader()->set_plugin_enable(pluginName, false);
         }
 

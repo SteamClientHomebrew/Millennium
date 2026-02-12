@@ -154,8 +154,8 @@ static void add_file_entry(const char** file_pool, match_plugin_map_t* plugin_ma
     plugin_map[index].plugin_name = plugin_name;
 }
 
-static int process_patch_list(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, const char* plugin_name, const char*** file_pool, match_plugin_map_t** plugin_map,
-                              uint32_t* capacity, uint32_t* file_count)
+static int process_patch_list(platform::shared_memory::lb_shm_arena_t* arena, platform::shared_memory::lb_patch_list_shm_t* list, const char* plugin_name, const char*** file_pool,
+                              match_plugin_map_t** plugin_map, uint32_t* capacity, uint32_t* file_count)
 {
     if (!arena || !list || !plugin_name || !file_pool || !plugin_map || !capacity || !file_count) {
         return -1;
@@ -168,7 +168,7 @@ static int process_patch_list(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, 
         return -1;
     }
 
-    lb_patch_shm_t* patches = SHM_PTR(arena, list->patches_off, lb_patch_shm_t);
+    platform::shared_memory::lb_patch_shm_t* patches = SHM_PTR(arena, list->patches_off, platform::shared_memory::lb_patch_shm_t);
 
     for (uint32_t j = 0; j < list->patch_count; j++) {
         if (*file_count >= UINT32_MAX) {
@@ -190,7 +190,7 @@ static int process_patch_list(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, 
     return 0;
 }
 
-extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_regex_pool, match_plugin_map_t** out_plugin_map, uint32_t* out_size)
+extern "C" int get_file_regex_pool(platform::shared_memory::lb_shm_arena_t* arena, const char*** out_regex_pool, match_plugin_map_t** out_plugin_map, uint32_t* out_size)
 {
     if (!arena || !out_regex_pool || !out_plugin_map || !out_size) {
         return -1;
@@ -201,9 +201,9 @@ extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_rege
     const char** file_regex_pool = NULL;
     match_plugin_map_t* plugin_map = NULL;
 
-    lb_hash_map_shm* map = &arena->map;
+    platform::shared_memory::lb_hash_map_shm* map = &arena->map;
     uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
-    lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
+    platform::shared_memory::lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, platform::shared_memory::lb_patch_list_shm_t);
 
     if (map->count > MAX_PATTERN_COUNT) {
         log_error("Map count %u exceeds maximum\n", map->count);
@@ -618,8 +618,8 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
     return 0;
 }
 
-extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches, match_plugin_map_t* plugin_map, char* file_content, uint32_t f_size, char** out_content,
-                                   uint32_t* out_size)
+extern "C" int handle_file_patches(platform::shared_memory::lb_shm_arena_t* arena, match_list_t* matches, match_plugin_map_t* plugin_map, char* file_content, uint32_t f_size,
+                                   char** out_content, uint32_t* out_size)
 {
     if (!arena || !matches || !plugin_map || !file_content || !out_content || !out_size) {
         log_error("Invalid parameters to handle_file_patches\n");
@@ -739,7 +739,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         return -1;
     }
 
-    lb_shm_arena_t* arena = shm_arena_open(SHM_IPC_NAME, 1024 * 1024);
+    platform::shared_memory::lb_shm_arena_t* arena = platform::shared_memory::open(SHM_IPC_NAME, 1024 * 1024);
     if (!arena) {
         log_error("Failed to open shared memory arena\n");
         return -1;
@@ -751,7 +751,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
 
     if (get_file_regex_pool(arena, &file_regex_pool, &plugin_map, &file_count) != 0) {
         log_error("Failed to get file regex pool\n");
-        shm_arena_close(arena, arena->size);
+        close(arena, arena->size);
         return -1;
     }
 
@@ -759,7 +759,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         log_info("Skipping patch, no regex pool to process. file_count: %u, file_regex_pool: %d\n", file_count, !!file_regex_pool);
         if (file_regex_pool) free(file_regex_pool);
         free(plugin_map);
-        shm_arena_close(arena, arena->size);
+        close(arena, arena->size);
         return 0;
     }
 
@@ -768,7 +768,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         log_error("re2_multi_match failed\n");
         free(file_regex_pool);
         free(plugin_map);
-        shm_arena_close(arena, arena->size);
+        close(arena, arena->size);
         return -1;
     }
 
@@ -777,7 +777,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         match_list_destroy(&matches);
         free(file_regex_pool);
         free(plugin_map);
-        shm_arena_close(arena, arena->size);
+        close(arena, arena->size);
         return 0;
     }
 
@@ -803,6 +803,6 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
     match_list_destroy(&matches);
     free(file_regex_pool);
     free(plugin_map);
-    shm_arena_close(arena, arena->size);
+    close(arena, arena->size);
     return ret;
 }

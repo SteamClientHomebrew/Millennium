@@ -253,7 +253,7 @@ int Lua_IsPluginEnable(lua_State* L)
         return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
     }
 
-    std::shared_ptr<plugin_manager> settings = loader->get_settings_store();
+    std::shared_ptr<plugin_manager> settings = loader->get_plugin_manager();
     if (!settings) {
         return luaL_error(L, "Failed to contact Millennium's settings store, it's likely shut down.");
     }

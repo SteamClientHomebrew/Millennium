@@ -55,7 +55,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
   public:
     using plugin_state = std::vector<std::pair<std::string, bool>>;
 
-    plugin_loader(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
+    plugin_loader(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<millennium_updater> millennium_updater);
     ~plugin_loader();
 
     void start_plugin_backends();
@@ -71,7 +71,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::shared_ptr<backend_manager> get_backend_manager();
     std::shared_ptr<backend_event_dispatcher> get_backend_event_dispatcher();
     std::shared_ptr<head::millennium_backend> get_millennium_backend();
-    std::shared_ptr<plugin_manager> get_settings_store();
+    std::shared_ptr<plugin_manager> get_plugin_manager();
 
   private:
     void init();
@@ -87,7 +87,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::string cdp_generate_shim_module();
 
     std::unique_ptr<thread_pool> m_thread_pool;
-    std::shared_ptr<plugin_manager> m_settings_store_ptr;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<std::vector<plugin_manager::plugin_t>> m_plugin_ptr, m_enabledPluginsPtr;
 
     std::shared_ptr<browser_extension_manager> m_extension_mgr;

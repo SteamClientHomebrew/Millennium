@@ -46,8 +46,8 @@ struct Plugin
     nlohmann::basic_json<> data;
 };
 
-nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr = nullptr);
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> settings_store_ptr);
+nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<browser_extension_manager> extension_mgr = nullptr);
+std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> plugin_manager);
 } // namespace Plugins
 
 namespace Themes

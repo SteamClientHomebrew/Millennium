@@ -72,15 +72,15 @@ head::millennium_backend::~millennium_backend()
 void head::millennium_backend::init()
 {
     m_updater = std::make_shared<library_updater>(shared_from_this(), m_ipc_main);
-    m_updater->init(m_settings_store);
+    m_updater->init(m_plugin_manager);
 
-    m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_settings_store, m_network_hook_ctl);
-    m_theme_config = std::make_shared<theme_config_store>(m_settings_store, m_theme_webkit_mgr);
+    m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_plugin_manager, m_network_hook_ctl);
+    m_theme_config = std::make_shared<theme_config_store>(m_plugin_manager, m_theme_webkit_mgr);
 }
 
-head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<plugin_manager> settings_store,
+head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<plugin_manager> plugin_manager,
                                              std::shared_ptr<millennium_updater> millennium_updater)
-    : m_settings_store(std::move(settings_store)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
+    : m_plugin_manager(std::move(plugin_manager)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
 {
 #define register_function(name) { #name, std::bind(&millennium_backend::name, this, std::placeholders::_1) }
     function_map = {
@@ -165,7 +165,7 @@ builtin_payload head::millennium_backend::Core_GetStartConfig(const builtin_payl
         { "steamPath", platform::get_steam_path() },
         { "installPath", platform::get_install_path() },
         { "millenniumVersion", MILLENNIUM_VERSION },
-        { "enabledPlugins", m_settings_store->get_enabled_plugin_names() },
+        { "enabledPlugins", m_plugin_manager->get_enabled_plugin_names() },
         { "updates", m_updater->check_for_updates() },
         { "hasCheckedForUpdates", m_updater->has_checked_for_updates() },
         { "millenniumUpdates", m_millennium_updater->has_any_updates() },
@@ -205,7 +205,7 @@ builtin_payload head::millennium_backend::Core_FindAllThemes(const builtin_paylo
 }
 builtin_payload head::millennium_backend::Core_FindAllPlugins(const builtin_payload&)
 {
-    return head::Plugins::FindAllPlugins(m_settings_store, m_extension_mgr);
+    return head::Plugins::FindAllPlugins(m_plugin_manager, m_extension_mgr);
 }
 builtin_payload head::millennium_backend::Core_GetEnvironmentVar(const builtin_payload& args)
 {
@@ -345,7 +345,7 @@ builtin_payload head::millennium_backend::Core_UninstallPlugin(const builtin_pay
 builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builtin_payload&)
 {
     nlohmann::json logData = nlohmann::json::array();
-    std::vector<plugin_manager::plugin_t> plugins = m_settings_store->get_all_plugins();
+    std::vector<plugin_manager::plugin_t> plugins = m_plugin_manager->get_all_plugins();
 
     for (auto& logger : get_plugin_logger_mgr()) {
         nlohmann::json logDataItem;

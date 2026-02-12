@@ -40,7 +40,7 @@ namespace head
 class theme_config_store
 {
   public:
-    theme_config_store(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
+    theme_config_store(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
     ~theme_config_store();
 
     void on_config_change_hdlr();
@@ -77,7 +77,7 @@ class theme_config_store
     std::string active_theme_name;
     json theme_data;
     std::map<std::string, json> colors;
-    std::shared_ptr<plugin_manager> m_settings_store;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
 };
 } // namespace head

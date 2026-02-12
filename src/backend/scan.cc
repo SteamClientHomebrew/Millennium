@@ -36,17 +36,17 @@
 
 #include <fstream>
 
-nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<browser_extension_manager> extension_mgr)
+nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<browser_extension_manager> extension_mgr)
 {
     nlohmann::json result = nlohmann::json::array();
-    const auto foundPlugins = settings_store_ptr->get_all_plugins();
+    const auto foundPlugins = plugin_manager->get_all_plugins();
 
     for (const auto& plugin : foundPlugins) {
         result.push_back({
-            { "path",              plugin.plugin_base_dir.generic_string()            },
-            { "enabled",           settings_store_ptr->is_enabled(plugin.plugin_name) },
-            { "isChromeExtension", false                                              },
-            { "data",              plugin.plugin_json                                 }
+            { "path",              plugin.plugin_base_dir.generic_string()        },
+            { "enabled",           plugin_manager->is_enabled(plugin.plugin_name) },
+            { "isChromeExtension", false                                          },
+            { "data",              plugin.plugin_json                             }
         });
     }
 
@@ -77,9 +77,9 @@ nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> set
     return result;
 }
 
-std::optional<nlohmann::json> head::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> settings_store_ptr)
+std::optional<nlohmann::json> head::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> plugin_manager)
 {
-    for (const auto& plugin : FindAllPlugins(settings_store_ptr, nullptr)) {
+    for (const auto& plugin : FindAllPlugins(plugin_manager, nullptr)) {
         if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name) {
             return plugin;
         }

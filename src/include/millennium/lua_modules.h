@@ -34,7 +34,7 @@
 extern "C" int luaopen_utils_lib(lua_State* L);
 extern "C" int luaopen_logger_lib(lua_State* L);
 extern "C" int luaopen_cjson(lua_State* l);
-void load_patches(lua_State* L, lb_shm_arena_t* map);
+void load_patches(lua_State* L, platform::shared_memory::lb_shm_arena_t* map);
 extern "C" int luaopen_http_lib(lua_State* L);
 extern "C" int luaopen_fs_lib(lua_State* L);
 extern "C" int luaopen_regex_lib(lua_State* L);

@@ -82,7 +82,7 @@ PythonEnvPath GetPythonEnvPaths();
 class backend_manager
 {
   public:
-    backend_manager(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<backend_event_dispatcher> event_dispatcher);
+    backend_manager(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher);
     ~backend_manager();
 
     void shutdown();
@@ -167,6 +167,6 @@ class backend_manager
 
     std::tuple<lua_State*, std::unique_ptr<std::mutex>>* Lua_FindEntry(lua_State* L);
 
-    std::shared_ptr<plugin_manager> m_settings_store;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
 };

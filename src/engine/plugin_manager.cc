@@ -78,22 +78,7 @@ plugin_manager::plugin_manager()
     }
 }
 
-/**
- * @brief Convert a vector of strings to a single string.
- * INI files don't support arrays, so we need to convert the vector to a string.
- * We use a pipe delimiter to separate the plugins.
- */
-std::string ConvertVectorToString(std::vector<std::string> enabledPlugins)
-{
-    std::string strEnabledPlugins;
-    for (const auto& plugin : enabledPlugins) {
-        strEnabledPlugins += plugin + "|";
-    }
-
-    return strEnabledPlugins.substr(0, strEnabledPlugins.size() - 1);
-}
-
-nlohmann::json ResetEnabledPlugins()
+nlohmann::json reset_enabled_plugins()
 {
     CONFIG.set("plugins.enabledPlugins", std::vector<std::string>{});
     return {};
@@ -107,12 +92,12 @@ int plugin_manager::init()
     nlohmann::json enabledPlugins = CONFIG.get("plugins.enabledPlugins", std::vector<std::string>{});
 
     if (!enabledPlugins.is_array()) {
-        enabledPlugins = ResetEnabledPlugins();
+        enabledPlugins = reset_enabled_plugins();
     }
 
     for (const auto& plugin : enabledPlugins) {
         if (!plugin.is_string()) {
-            enabledPlugins = ResetEnabledPlugins();
+            enabledPlugins = reset_enabled_plugins();
             break;
         }
     }

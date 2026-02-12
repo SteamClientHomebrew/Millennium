@@ -31,7 +31,7 @@
 #include "instrumentation/smem.h"
 #include <lua.hpp>
 
-void load_patches(lua_State* L, lb_shm_arena_t* map)
+void load_patches(lua_State* L, platform::shared_memory::lb_shm_arena_t* map)
 {
     lua_getglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
     if (!lua_isstring(L, -1)) {
@@ -41,7 +41,7 @@ void load_patches(lua_State* L, lb_shm_arena_t* map)
     const char* plugin_name = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    lb_patch_list_shm_t* patch_list = hashmap_add_key(map, plugin_name);
+    platform::shared_memory::lb_patch_list_shm_t* patch_list = hashmap_add_key(map, plugin_name);
 
     lua_getfield(L, -1, "patches");
     if (!lua_istable(L, -1)) {
@@ -68,7 +68,7 @@ void load_patches(lua_State* L, lb_shm_arena_t* map)
         }
         lua_pop(L, 1);
 
-        lb_patch_shm_t* patch = patchlist_add(g_lb_patch_arena, patch_list, file ? file : "", find ? find : "");
+        platform::shared_memory::lb_patch_shm_t* patch = patchlist_add(g_lb_patch_arena, patch_list, file ? file : "", find ? find : "");
 
         lua_getfield(L, -1, "transforms");
         if (lua_istable(L, -1)) {

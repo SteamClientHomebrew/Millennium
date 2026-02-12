@@ -48,7 +48,7 @@ class plugin_webkit_store
         }
     };
 
-    plugin_webkit_store(std::shared_ptr<plugin_manager> settings_store) : m_settingStore(std::move(settings_store))
+    plugin_webkit_store(std::shared_ptr<plugin_manager> plugin_manager) : m_settingStore(std::move(plugin_manager))
     {
     }
 

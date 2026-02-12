@@ -39,8 +39,8 @@
 class backend_initializer
 {
   public:
-    backend_initializer(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<backend_manager> manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
-        : m_settings_store(std::move(settings_store)), m_backend_manager(std::move(manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
+    backend_initializer(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_manager> manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
+        : m_plugin_manager(std::move(plugin_manager)), m_backend_manager(std::move(manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
     {
     }
     ~backend_initializer()
@@ -75,7 +75,7 @@ class backend_initializer
     void set_plugin_environment_variables(PyObject* globalDictionary, const plugin_manager::plugin_t& plugin);
     void set_plugin_internal_name(PyObject* globalDictionary, const std::string& pluginName);
 
-    std::shared_ptr<plugin_manager> m_settings_store;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<backend_manager> m_backend_manager;
     std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
 };

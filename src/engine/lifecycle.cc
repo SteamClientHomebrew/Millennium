@@ -88,7 +88,7 @@ std::string backend_event_dispatcher::str_get_successful_backends()
  */
 bool backend_event_dispatcher::are_all_backends_ready()
 {
-    const std::size_t pluginCount = m_settings_store->get_enabled_backends().size();
+    const std::size_t pluginCount = m_plugin_manager->get_enabled_backends().size();
 
     logger.log("\033[1;35mEnabled Plugins: {}, Loaded Plugins : {}\033[0m", pluginCount, emittedPlugins.size());
 

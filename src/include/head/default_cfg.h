@@ -33,7 +33,7 @@
 
 namespace head
 {
-enum class OnMillenniumUpdate
+enum class on_millennium_update
 {
     DO_NOTHING = 0,
     NOTIFY = 1,

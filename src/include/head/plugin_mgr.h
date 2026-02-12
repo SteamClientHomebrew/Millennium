@@ -41,7 +41,7 @@ namespace head
 class plugin_installer
 {
   public:
-    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<plugin_manager> settings_store_ptr, std::shared_ptr<library_updater> updater);
+    plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<plugin_manager> plugin_mgr, std::shared_ptr<library_updater> updater);
 
     bool is_plugin_installed(const std::string& pluginName);
     bool uninstall_plugin(const std::string& pluginName);
@@ -51,7 +51,7 @@ class plugin_installer
 
   private:
     std::weak_ptr<millennium_backend> m_millennium_backend;
-    std::shared_ptr<plugin_manager> settings_store_ptr;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<library_updater> m_updater;
 
     std::filesystem::path get_plugins_path();

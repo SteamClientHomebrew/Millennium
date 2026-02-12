@@ -92,8 +92,8 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
 {
     /** destroy the shared memory pool between millennium and the web helper hook */
     if (g_lb_patch_arena) {
-        shm_arena_close(g_lb_patch_arena, SHM_IPC_SIZE);
-        shm_arena_unlink(SHM_IPC_NAME);
+        platform::shared_memory::close(g_lb_patch_arena, SHM_IPC_SIZE);
+        platform::shared_memory::unlink(SHM_IPC_NAME);
         g_lb_patch_arena = NULL;
     }
 }

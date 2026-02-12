@@ -14,89 +14,89 @@
 #include <windows.h>
 #endif
 
+namespace platform
+{
+namespace messagebox
+{
 typedef enum
 {
-    MESSAGEBOX_ERROR,
-    MESSAGEBOX_WARNING,
-    MESSAGEBOX_INFO,
-    MESSAGEBOX_QUESTION
-} Plat_MessageBoxMessageLevel;
+    error,
+    warn,
+    info,
+    question
+} level;
 
 [[maybe_unused]]
-static int Plat_ShowMessageBox(const char* title, const char* message, Plat_MessageBoxMessageLevel level)
+static int show(const std::string title, const std::string message, platform::messagebox::level level)
 {
-#ifdef _WIN32
-    if (!message) {
+    if (message.empty()) {
         LOG_ERROR("No message provided to message box call");
         return -1;
     }
 
+#ifdef _WIN32
     UINT type = MB_OK;
+
     switch (level) {
-        case MESSAGEBOX_ERROR:
+        case MessageLevel::Error:
             type |= MB_ICONERROR;
             break;
-        case MESSAGEBOX_WARNING:
+        case MessageLevel::Warning:
             type |= MB_ICONWARNING;
             break;
-        case MESSAGEBOX_INFO:
+        case MessageLevel::Info:
             type |= MB_ICONINFORMATION;
             break;
-        case MESSAGEBOX_QUESTION:
+        case MessageLevel::Question:
             type |= MB_YESNO | MB_ICONQUESTION;
             break;
     }
 
-    return MessageBoxA(NULL, message, title ? title : "Message", type);
+    return MessageBoxA(nullptr, message.data(), title.empty() ? "Message" : title.data(), type);
+
 #elif __linux__
-    if (!message) {
-        LOG_ERROR("No message provided to message box call");
-        return -1;
-    }
-
-    /**
-     * try getting zenity from the system first, and fallback to using steams pinned version.
-     * Both should work without issue, but if zenity is installed on the system its better to prefer it.
-     */
     const std::string steam_path = platform::get_steam_path().generic_string();
-    static char steam_msg_path[PATH_MAX];
-    snprintf(steam_msg_path, sizeof(steam_msg_path), "%s%s", steam_path.c_str(), "ubuntu12_32/steam-runtime/i386/usr/bin/zenity");
 
-    char cmd[PATH_MAX * 2];
-    snprintf(cmd, sizeof(cmd), "%s ", steam_msg_path);
+    char zenity_path[PATH_MAX];
+    snprintf(zenity_path, sizeof(zenity_path), "%s%s", steam_path.c_str(), "ubuntu12_32/steam-runtime/i386/usr/bin/zenity");
+
+    std::string cmd = zenity_path;
 
     switch (level) {
-        case MESSAGEBOX_ERROR:
-            strncat(cmd, "--error", sizeof(cmd) - strlen(cmd) - 1);
+        case level::error:
+            cmd += " --error";
             break;
-        case MESSAGEBOX_WARNING:
-            strncat(cmd, "--warning", sizeof(cmd) - strlen(cmd) - 1);
+        case level::warn:
+            cmd += " --warning";
             break;
-        case MESSAGEBOX_INFO:
-            strncat(cmd, "--info", sizeof(cmd) - strlen(cmd) - 1);
+        case level::info:
+            cmd += " --info";
             break;
-        case MESSAGEBOX_QUESTION:
-            strncat(cmd, "--question", sizeof(cmd) - strlen(cmd) - 1);
+        case level::question:
+            cmd += " --question";
             break;
     }
 
-    if (title) {
-        strncat(cmd, " --title=\"", sizeof(cmd) - strlen(cmd) - 1);
-        strncat(cmd, title, sizeof(cmd) - strlen(cmd) - 1);
-        strncat(cmd, "\"", sizeof(cmd) - strlen(cmd) - 1);
+    if (!title.empty()) {
+        cmd += " --title=\"";
+        cmd += title;
+        cmd += "\"";
     }
 
-    strncat(cmd, " --text=\"", sizeof(cmd) - strlen(cmd) - 1);
-    strncat(cmd, message, sizeof(cmd) - strlen(cmd) - 1);
-    strncat(cmd, "\"", sizeof(cmd) - strlen(cmd) - 1);
+    cmd += " --text=\"";
+    cmd += message;
+    cmd += "\"";
 
     logger.log("executing command: {}", cmd);
-    int ret = system(cmd);
+    int ret = std::system(cmd.c_str());
 
-    if (level == MESSAGEBOX_QUESTION) return (ret == 0) ? 1 : 0; // 1=Yes/OK, 0=No/Cancel
+    if (level == level::question) return ret == 0 ? 1 : 0;
+
     return ret;
+
 #else
 #error "Unsupported Platform"
-    return -1;
 #endif
 }
+} // namespace messagebox
+} // namespace platform

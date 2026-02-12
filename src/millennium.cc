@@ -32,22 +32,19 @@
 #include "head/default_cfg.h"
 
 #include "millennium/crash_handler.h"
-#include "millennium/filesystem.h"
+#include "millennium/health_check.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/millennium.h"
 
-#include <filesystem>
-#include <fmt/core.h>
-
 std::unique_ptr<millennium> g_millennium;
 
 millennium::millennium()
 {
-    m_settings_store = std::make_shared<plugin_manager>();
+    m_plugin_manager = std::make_shared<plugin_manager>();
     m_millennium_updater = std::make_shared<millennium_updater>();
-    m_plugin_loader = std::make_shared<plugin_loader>(m_settings_store, m_millennium_updater);
+    m_plugin_loader = std::make_shared<plugin_loader>(m_plugin_manager, m_millennium_updater);
 
     m_millennium_updater->win32_update_legacy_shims();
     this->check_for_updates();
@@ -59,63 +56,13 @@ std::shared_ptr<plugin_loader> millennium::get_plugin_loader()
     return this->m_plugin_loader;
 }
 
-void millennium::check_health()
-{
-    const auto steam_path = platform::get_steam_path();
-    const auto cef_remote_debugger_file = steam_path / ".cef-enable-remote-debugging";
-
-#ifdef __linux__
-    if (std::filesystem::exists(cef_remote_debugger_file) && !std::filesystem::remove(cef_remote_debugger_file)) {
-        LOG_ERROR("Failed to remove '{}', likely non-fatal but manual intervention recommended.", cef_remote_debugger_file.string());
-    }
-#elif _WIN32
-    const auto steam_cfg = steam_path / "Steam.cfg";
-    const auto bootstrap_error = fmt::format("Millennium is incompatible with your {} config. Remove this file to allow Steam updates.", steam_cfg.string());
-    const auto cef_error = fmt::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cef_remote_debugger_file.string());
-
-    auto show_bootstrap_error = [&]()
-    {
-        Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
-        LOG_ERROR(bootstrap_error);
-    };
-
-    if (std::filesystem::exists(steam_cfg)) {
-        try {
-            const std::string steamConfig = platform::read_file(steam_cfg.string());
-            static const std::vector<std::string> blackListedKeys = {
-                "BootStrapperInhibitAll",
-                "BootStrapperForceSelfUpdate",
-                "BootStrapperInhibitClientChecksum",
-                "BootStrapperInhibitBootstrapperChecksum",
-                "BootStrapperInhibitUpdateOnLaunch",
-            };
-
-            if (std::any_of(blackListedKeys.begin(), blackListedKeys.end(), [&](const auto& key) { return steamConfig.find(key) != std::string::npos; })) {
-                show_bootstrap_error();
-            }
-        } catch (const platform::file_exception&) {
-            show_bootstrap_error();
-        }
-    }
-
-    if (std::filesystem::exists(cef_remote_debugger_file)) {
-        try {
-            std::filesystem::remove(cef_remote_debugger_file);
-        } catch (const std::filesystem::filesystem_error& e) {
-            LOG_ERROR("Failed to remove deprecated file {}: {}", cef_remote_debugger_file.string(), e.what());
-            Plat_ShowMessageBox("Startup Error", cef_error.c_str(), MESSAGEBOX_ERROR);
-        }
-    }
-#endif
-}
-
 void millennium::check_for_updates()
 {
     try {
         m_millennium_updater->check_for_updates();
 
         const auto update = m_millennium_updater->has_any_updates();
-        const bool should_auto_install = CONFIG.get("general.onMillenniumUpdate", head::OnMillenniumUpdate::AUTO_INSTALL) == head::OnMillenniumUpdate::AUTO_INSTALL;
+        const bool should_auto_install = CONFIG.get("general.onMillenniumUpdate", head::on_millennium_update::AUTO_INSTALL) == head::on_millennium_update::AUTO_INSTALL;
 
         if (!update["hasUpdate"]) {
             logger.log("No Millennium updates available.");
@@ -148,8 +95,8 @@ void millennium::check_for_updates()
  */
 void millennium::entry()
 {
-    shm_init_simple();
-    this->check_health();
+    platform::shared_memory::init();
+    platform::health::check_health();
 
     m_plugin_loader->start_plugin_backends();
     m_plugin_loader->start_plugin_frontends();

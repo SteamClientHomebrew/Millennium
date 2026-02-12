@@ -59,7 +59,7 @@ extern "C"
         unsigned int* ids;
     } finds_from_file_match_t;
 
-    int get_transform_from_matches(lb_shm_arena_t* arena, match_list_t* matches, const char*** out_finds, transform_data_t** out_transforms);
+    int get_transform_from_matches(platform::shared_memory::lb_shm_arena_t* arena, match_list_t* matches, const char*** out_finds, transform_data_t** out_transforms);
     int match_list_alloc(match_list_t* m, unsigned int count);
     void match_list_destroy(match_list_t* m);
     int match_list_vecscan_handler(unsigned int id, unsigned long long from, unsigned long long to, unsigned int flags, void* ctx);

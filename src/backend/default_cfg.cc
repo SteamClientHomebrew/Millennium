@@ -39,7 +39,7 @@ json head::get_default_config()
 #ifdef _WIN32
     OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::AUTO_INSTALL;
 #else
-    OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::NOTIFY;
+    on_millennium_update updateBehavior = on_millennium_update::NOTIFY;
 #endif
 
     /** Detect old file to determine welcome modal status */

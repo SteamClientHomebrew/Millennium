@@ -225,7 +225,7 @@ PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
         return NULL;
     }
 
-    std::shared_ptr<plugin_manager> settings = loader->get_settings_store();
+    std::shared_ptr<plugin_manager> settings = loader->get_plugin_manager();
     if (!settings) {
         LOG_ERROR("Failed to contact Millennium's settings store, it's likely shut down.");
         return NULL;

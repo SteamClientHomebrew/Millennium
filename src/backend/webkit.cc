@@ -37,8 +37,8 @@
 
 #include <unordered_set>
 
-head::theme_webkit_mgr::theme_webkit_mgr(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<network_hook_ctl> network_hook_ctl)
-    : m_settings_store(std::move(settings_store)), m_network_hook_ctl(std::move(network_hook_ctl))
+head::theme_webkit_mgr::theme_webkit_mgr(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<network_hook_ctl> network_hook_ctl)
+    : m_plugin_manager(std::move(plugin_manager)), m_network_hook_ctl(std::move(network_hook_ctl))
 {
 }
 

@@ -341,8 +341,8 @@ void network_hook_ctl::shutdown()
     logger.log("Successfully shut down network_hook_ctl...");
 }
 
-network_hook_ctl::network_hook_ctl(std::shared_ptr<plugin_manager> settings_store)
-    : m_settings_store(std::move(settings_store)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
+network_hook_ctl::network_hook_ctl(std::shared_ptr<plugin_manager> plugin_manager)
+    : m_plugin_manager(std::move(plugin_manager)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
       m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
 {
 }

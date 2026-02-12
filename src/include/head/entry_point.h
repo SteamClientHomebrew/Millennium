@@ -52,7 +52,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
 {
   public:
     void init();
-    millennium_backend(std::shared_ptr<network_hook_ctl> network_hook, std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<millennium_updater> millennium_updater);
+    millennium_backend(std::shared_ptr<network_hook_ctl> network_hook, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<millennium_updater> millennium_updater);
     ~millennium_backend();
 
     const char* get_millennium_updater_script();
@@ -121,7 +121,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
   private:
     std::shared_ptr<browser_extension_manager> m_extension_mgr;
     std::shared_ptr<ipc_main> m_ipc_main;
-    std::shared_ptr<plugin_manager> m_settings_store;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<millennium_updater> m_millennium_updater;
     std::shared_ptr<theme_config_store> m_theme_config;
     std::shared_ptr<library_updater> m_updater;

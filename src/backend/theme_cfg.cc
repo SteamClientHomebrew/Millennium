@@ -41,8 +41,8 @@
 #include <fmt/format.h>
 #include <regex>
 
-head::theme_config_store::theme_config_store(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
-    : m_settings_store(std::move(settings_store)), m_theme_webkit_mgr(std::move(theme_webkit_mgr))
+head::theme_config_store::theme_config_store(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
+    : m_plugin_manager(std::move(plugin_manager)), m_theme_webkit_mgr(std::move(theme_webkit_mgr))
 {
     themes_path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
 

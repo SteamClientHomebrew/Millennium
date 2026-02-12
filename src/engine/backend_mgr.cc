@@ -150,8 +150,8 @@ backend_manager::~backend_manager()
  *
  * @returns {BackendManager} - A new BackendManager instance.
  */
-backend_manager::backend_manager(std::shared_ptr<plugin_manager> settings_store, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
-    : m_InterpreterThreadSave(nullptr), m_settings_store(std::move(settings_store)), m_backend_event_dispatcher(std::move(event_dispatcher))
+backend_manager::backend_manager(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
+    : m_InterpreterThreadSave(nullptr), m_plugin_manager(std::move(plugin_manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
 {
     const auto [pythonPath, pythonLibs, pythonUserLibs] = GetPythonEnvPaths();
 
@@ -703,7 +703,7 @@ bool backend_manager::is_any_backend_running(std::string plugin_name)
  */
 bool backend_manager::has_python_backend(std::string targetPluginName)
 {
-    for (const auto& plugin : m_settings_store->get_enabled_backends()) {
+    for (const auto& plugin : m_plugin_manager->get_enabled_backends()) {
         if (plugin.plugin_name == targetPluginName) {
             return true;
         }

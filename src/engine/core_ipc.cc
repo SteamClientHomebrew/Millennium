@@ -285,7 +285,7 @@ json ipc_main::on_front_end_loaded(const json& call)
 {
     const std::string pluginName = call["data"]["pluginName"];
 
-    const auto plugins = m_settings_store->get_all_plugins();
+    const auto plugins = m_plugin_manager->get_all_plugins();
     auto plugin = std::find_if(plugins.begin(), plugins.end(), [&pluginName](const auto& p) { return p.plugin_name == pluginName; });
 
     /** make sure the plugin has a backend that should be called. */

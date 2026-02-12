@@ -507,7 +507,7 @@ void backend_initializer::python_backend_started_cb(plugin_manager::plugin_t plu
     const auto startTime = std::chrono::steady_clock::now();
     std::atomic<bool> timeOutLockThreadRunning = true;
 
-    std::thread timeOutThread([dispatcher = m_backend_event_dispatcher, settings = m_settings_store, &timeOutLockThreadRunning, startTime, plugin]
+    std::thread timeOutThread([dispatcher = m_backend_event_dispatcher, plugin_manager = m_plugin_manager, &timeOutLockThreadRunning, startTime, plugin]
     {
         while (timeOutLockThreadRunning.load()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));

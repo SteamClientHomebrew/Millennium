@@ -1,4 +1,2 @@
 CompileFlags:
   CompilationDatabase: ../build/
-Rename:
-  LimitFiles: 0
