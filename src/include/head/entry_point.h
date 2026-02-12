@@ -34,7 +34,6 @@
 #include "millennium/fwd_decl.h"
 #include "millennium/http_hooks.h"
 #include "millennium/millennium_updater.h"
-#include "millennium/browser_extension_mgr.h"
 
 #include "head/library_updater.h"
 #include "head/theme_cfg.h"
@@ -116,10 +115,8 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
 
     builtin_payload ipc_message_hdlr(const std::string& functionName, const builtin_payload& args);
     void set_ipc_main(std::shared_ptr<ipc_main> ipc_main);
-    void set_extension_mgr(std::shared_ptr<browser_extension_manager> extension_mgr);
 
   private:
-    std::shared_ptr<browser_extension_manager> m_extension_mgr;
     std::shared_ptr<ipc_main> m_ipc_main;
     std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<millennium_updater> m_millennium_updater;

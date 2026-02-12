@@ -85,13 +85,10 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
     m_network_hook_ctl->set_cdp_client(m_cdp);
     m_network_hook_ctl->init();
-
-    m_extension_mgr = std::make_shared<browser_extension_manager>(cdp);
     m_ipc_main = std::make_shared<ipc_main>(m_millennium_backend, m_plugin_manager, m_cdp, m_backend_manager);
 
     m_millennium_updater->set_ipc_main(m_ipc_main);
     m_millennium_backend->set_ipc_main(m_ipc_main);
-    m_millennium_backend->set_extension_mgr(m_extension_mgr);
 
     m_thread_pool->enqueue([this]()
     {

@@ -205,7 +205,7 @@ builtin_payload head::millennium_backend::Core_FindAllThemes(const builtin_paylo
 }
 builtin_payload head::millennium_backend::Core_FindAllPlugins(const builtin_payload&)
 {
-    return head::Plugins::FindAllPlugins(m_plugin_manager, m_extension_mgr);
+    return head::Plugins::FindAllPlugins(m_plugin_manager);
 }
 builtin_payload head::millennium_backend::Core_GetEnvironmentVar(const builtin_payload& args)
 {
@@ -412,9 +412,4 @@ builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& fu
 void head::millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
     m_ipc_main = std::move(ipc_main);
-}
-
-void head::millennium_backend::set_extension_mgr(std::shared_ptr<browser_extension_manager> extension_mgr)
-{
-    m_extension_mgr = std::move(extension_mgr);
 }

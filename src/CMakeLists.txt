@@ -62,7 +62,6 @@ set(SOURCE_FILES
     engine/auth.cc
     engine/backend_init.cc
     engine/backend_mgr.cc
-    engine/browser_extension_mgr.cc
     engine/cdp_api.cc
     engine/cdp_connector.cc
     engine/cmdline_parse.cc

@@ -28,15 +28,13 @@
  * SOFTWARE.
  */
 
+#include <fstream>
 #include "head/scan.h"
 
-#include "millennium/browser_extension_mgr.h"
 #include "millennium/logger.h"
 #include "millennium/filesystem.h"
 
-#include <fstream>
-
-nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<browser_extension_manager> extension_mgr)
+nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager)
 {
     nlohmann::json result = nlohmann::json::array();
     const auto foundPlugins = plugin_manager->get_all_plugins();
@@ -50,36 +48,12 @@ nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> plu
         });
     }
 
-    if (!extension_mgr) {
-        return result;
-    }
-
-    auto extensions = extension_mgr->get_extensions();
-
-    // TODO: likely move this to it's own function and let the frontend merge the data. As it doesn't belong here
-    for (const auto& extension : extensions) {
-        result.push_back({
-            { "path", "extension" },
-            { "enabled", extension.value("enabled", true) },
-            { "isChromeExtension", true },
-            { "data",
-             {
-                  { "name", extension.value("id", "unknown") },
-                  { "common_name", extension.value("name", "Unknown Extension") },
-                  { "version", extension.value("version", "0.0.0") },
-                  { "description", extension.value("description", "No description available") },
-                  { "__private_browser_extension", true },
-                  { "extension_data", extension },
-              } }
-        });
-    }
-
     return result;
 }
 
 std::optional<nlohmann::json> head::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> plugin_manager)
 {
-    for (const auto& plugin : FindAllPlugins(plugin_manager, nullptr)) {
+    for (const auto& plugin : FindAllPlugins(plugin_manager)) {
         if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name) {
             return plugin;
         }

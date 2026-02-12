@@ -29,7 +29,6 @@
  */
 
 #pragma once
-#include "millennium/browser_extension_mgr.h"
 #include "millennium/plugin_manager.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
@@ -46,7 +45,7 @@ struct Plugin
     nlohmann::basic_json<> data;
 };
 
-nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<browser_extension_manager> extension_mgr = nullptr);
+nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager);
 std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> plugin_manager);
 } // namespace Plugins
 
