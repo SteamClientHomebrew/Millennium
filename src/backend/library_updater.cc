@@ -29,52 +29,64 @@
  */
 
 #include "head/library_updater.h"
-#include "millennium/sysfs.h"
+#include "head/entry_point.h"
+#include "head/plugin_mgr.h"
+#include "head/theme_mgr.h"
 
+#include "millennium/core_ipc.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"
+#include <memory>
 
-Updater::Updater() : api_url("https://steambrew.app/api/checkupdates"), has_checked_for_updates(false)
+head::library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main)
+    : m_millennium_backend(std::move(millennium_backend)), m_ipc_main(std::move(ipc_main)), m_has_checked_for_updates(false)
 {
-    if (!CONFIG.GetNested("general.checkForPluginAndThemeUpdates").get<bool>()) {
-        Logger.Warn("User has disabled update checking for plugins and themes.");
+}
+
+void head::library_updater::init(std::shared_ptr<plugin_manager> plugin_manager)
+{
+    theme_updater = std::make_shared<theme_installer>(plugin_manager, shared_from_this());
+    plugin_updater = std::make_shared<plugin_installer>(m_millennium_backend, plugin_manager, shared_from_this());
+
+    if (!CONFIG.get("general.checkForPluginAndThemeUpdates").get<bool>()) {
+        logger.warn("User has disabled update checking for plugins and themes.");
         return;
     }
 
-    cached_updates = CheckForUpdates();
-    has_checked_for_updates = true;
+    cached_updates = check_for_updates();
+    m_has_checked_for_updates = true;
 }
 
-bool Updater::DownloadPluginUpdate(const std::string& id, const std::string& name)
+bool head::library_updater::download_plugin_update(const std::string& id, const std::string& name)
 {
-    return plugin_updater.DownloadPluginUpdate(id, name);
+    return plugin_updater->update_plugin(id, name);
 }
 
-bool Updater::DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
+bool head::library_updater::download_theme_update(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
 {
-    return theme_updater.UpdateTheme(themeConfig, native);
+    return theme_updater->update_theme(themeConfig, native);
 }
 
-std::optional<json> Updater::GetCachedUpdates() const
+std::optional<json> head::library_updater::get_cached_updates() const
 {
     return cached_updates;
 }
 
-bool Updater::HasCheckedForUpdates() const
+bool head::library_updater::has_checked_for_updates() const
 {
-    return has_checked_for_updates;
+    return m_has_checked_for_updates;
 }
 
-std::optional<json> Updater::CheckForUpdates(bool force)
+std::optional<json> head::library_updater::check_for_updates(bool force)
 {
     try {
         if (!force && cached_updates.has_value()) {
-            Logger.Log("Using cached updates.");
+            logger.log("Using cached updates.");
             return cached_updates;
         }
 
-        auto plugins = plugin_updater.GetRequestBody();
-        auto themes = theme_updater.GetRequestBody();
+        auto plugins = plugin_updater->get_updater_request_body();
+        auto themes = theme_updater->get_request_body();
 
         json request_body;
 
@@ -83,7 +95,7 @@ std::optional<json> Updater::CheckForUpdates(bool force)
         if (themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty()) request_body["themes"] = themes["post_body"];
 
         if (request_body.empty()) {
-            Logger.Log("No themes or plugins to update!");
+            logger.log("No themes or plugins to update!");
             return json{
                 { "themes",  {} },
                 { "plugins", {} }
@@ -94,35 +106,41 @@ std::optional<json> Updater::CheckForUpdates(bool force)
         json resp = json::parse(response_str);
 
         if (resp.contains("themes") && !resp["themes"].empty() && !resp["themes"].contains("error")) {
-            resp["themes"] = theme_updater.ProcessUpdates(themes["update_query"], resp["themes"]);
+            resp["themes"] = theme_updater->process_update(themes["update_query"], resp["themes"]);
         }
 
         cached_updates = resp;
-        has_checked_for_updates = true;
+        m_has_checked_for_updates = true;
         return resp;
     } catch (const std::exception& e) {
-        Logger.Log(std::string("An error occurred while checking for updates: ") + e.what());
+        logger.log(std::string("An error occurred while checking for updates: ") + e.what());
         return json{
             { "themes", { { "error", e.what() } } }
         };
     }
 }
 
-std::string Updater::ResyncUpdates()
+std::string head::library_updater::re_check_for_updates()
 {
-    Logger.Log("Resyncing updates...");
-    cached_updates = CheckForUpdates(true);
-    has_checked_for_updates = true;
-    Logger.Log("Resync complete.");
+    logger.log("Resyncing updates...");
+    cached_updates = check_for_updates(true);
+    m_has_checked_for_updates = true;
+    logger.log("Resync complete.");
     return cached_updates.has_value() ? cached_updates->dump() : "{}";
 }
 
-ThemeInstaller& Updater::GetThemeUpdater()
+std::weak_ptr<head::theme_installer> head::library_updater::get_theme_updater()
 {
     return theme_updater;
 }
 
-PluginInstaller& Updater::GetPluginUpdater()
+std::weak_ptr<head::plugin_installer> head::library_updater::get_plugin_updater()
 {
     return plugin_updater;
+}
+
+void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
+{
+    std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete };
+    m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));
 }

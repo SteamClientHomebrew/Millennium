@@ -30,38 +30,46 @@
 
 #pragma once
 
+#include "millennium/fwd_decl.h"
 #include "head/plugin_mgr.h"
 #include "head/theme_mgr.h"
 
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 
-using json = nlohmann::json;
-
-class Updater
+namespace head
+{
+class library_updater : public std::enable_shared_from_this<library_updater>
 {
   public:
-    Updater();
+    library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main);
+    void init(std::shared_ptr<plugin_manager> plugin_manager);
 
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
-    bool DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
+    bool download_plugin_update(const std::string& id, const std::string& name);
+    bool download_theme_update(std::shared_ptr<theme_config_store> themeConfig, const std::string& native);
 
-    std::optional<json> GetCachedUpdates() const;
-    bool HasCheckedForUpdates() const;
+    std::optional<json> get_cached_updates() const;
+    bool has_checked_for_updates() const;
 
-    std::optional<json> CheckForUpdates(bool force = false);
-    std::string ResyncUpdates();
+    std::optional<json> check_for_updates(bool force = false);
+    std::string re_check_for_updates();
 
-    ThemeInstaller& GetThemeUpdater();
-    PluginInstaller& GetPluginUpdater();
+    std::weak_ptr<theme_installer> get_theme_updater();
+    std::weak_ptr<plugin_installer> get_plugin_updater();
+
+    void dispatch_progress(const std::string& status, double progress, bool is_complete);
 
   private:
-    std::string api_url;
+    std::string api_url = "https://steambrew.app/api/checkupdates";
 
-    ThemeInstaller theme_updater;
-    PluginInstaller plugin_updater;
+    std::weak_ptr<millennium_backend> m_millennium_backend;
+    std::shared_ptr<ipc_main> m_ipc_main;
+    std::shared_ptr<theme_installer> theme_updater;
+    std::shared_ptr<plugin_installer> plugin_updater;
 
     std::optional<json> cached_updates;
-    bool has_checked_for_updates;
+    bool m_has_checked_for_updates;
 };
+} // namespace head

@@ -28,27 +28,22 @@
  * SOFTWARE.
  */
 
-import {EUIMode, Millennium, pluginSelf, routerHook} from '@steambrew/client';
-import {
-    SettingsProps,
-    SystemAccentColor,
-    ThemeItem,
-    ThemeItemV1
-} from './types';
-import {DispatchSystemColors} from './patcher/SystemColors';
-import {ParseLocalTheme} from './patcher/ThemeParser';
-import {Logger} from './utils/Logger';
-import {DispatchGlobalColors} from './patcher/v1/GlobalColors';
-import {OnRunSteamURL} from './utils/url-scheme-handler';
-import {PyGetRootColors, PyGetStartupConfig} from './utils/ffi';
-import {onWindowCreatedCallback, patchMissedDocuments} from './patcher';
-import {MillenniumSettings} from './settings';
-import {NotificationService} from './utils/update-notification-service';
-import {MillenniumDesktopSidebar} from './quick-access';
-import {DesktopMenuProvider} from './quick-access/DesktopMenuContext';
-import {WelcomeModalComponent} from './components/WelcomeModal';
-import {MillenniumQuickCssEditor} from './settings/quickcss';
-import {useQuickCssState} from './utils/quick-css-state';
+import { EUIMode, Millennium, pluginSelf, routerHook } from '@steambrew/client';
+import { WelcomeModalComponent } from './components/WelcomeModal';
+import { onWindowCreatedCallback, patchMissedDocuments } from './patcher';
+import { DispatchSystemColors } from './patcher/SystemColors';
+import { ParseLocalTheme } from './patcher/ThemeParser';
+import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
+import { MillenniumDesktopSidebar } from './quick-access';
+import { DesktopMenuProvider } from './quick-access/DesktopMenuContext';
+import { MillenniumSettings } from './settings';
+import { MillenniumQuickCssEditor } from './settings/quickcss';
+import { SettingsProps, SystemAccentColor, ThemeItem, ThemeItemV1 } from './types';
+import { PyGetRootColors, PyGetStartupConfig } from './utils/ffi';
+import { Logger } from './utils/Logger';
+import { useQuickCssState } from './utils/quick-css-state';
+import { NotificationService } from './utils/update-notification-service';
+import { OnRunSteamURL } from './utils/url-scheme-handler';
 
 async function initializeMillennium(settings: SettingsProps) {
 	Logger.Log(`Received props`, settings);
@@ -90,8 +85,8 @@ async function initializeMillennium(settings: SettingsProps) {
 
 	patchMissedDocuments();
 
-    const notificationService = new NotificationService();
-    notificationService.showNotifications();
+	const notificationService = new NotificationService();
+	notificationService.showNotifications();
 }
 
 // Entry point on the front end of your plugin

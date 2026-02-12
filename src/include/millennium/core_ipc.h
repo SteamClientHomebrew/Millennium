@@ -29,21 +29,95 @@
  */
 
 #pragma once
-#include <nlohmann/json.hpp>
+#include "head/entry_point.h"
+#include "millennium/backend_mgr.h"
+#include "millennium/cdp_api.h"
+#include "millennium/logger.h"
+#include "millennium/config.h"
+#include "millennium/types.h"
 
-namespace IPCMain
+#include <Python.h>
+#include <lua.hpp>
+#include <variant>
+
+class ipc_main
 {
-enum Builtins
-{
-    CALL_SERVER_METHOD,
-    FRONT_END_LOADED
+  public:
+    using javascript_parameter = std::variant<bool, uint64_t, int64_t, double, std::string>;
+
+    ipc_main(std::shared_ptr<head::millennium_backend> millennium_backend, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<cdp_client> cdp_client,
+             std::shared_ptr<backend_manager> manager)
+        : m_plugin_manager(std::move(plugin_manager)), m_cdp(std::move(cdp_client)), m_backend_manager(manager), m_millennium_backend(std::move(millennium_backend))
+    {
+    }
+
+    ~ipc_main()
+    {
+        logger.log("Successfully shut down ipc_main...");
+    }
+
+    enum ipc_method
+    {
+        CALL_SERVER_METHOD,
+        FRONT_END_LOADED,
+        CALL_FRONTEND_METHOD
+    };
+
+    enum ipc_error
+    {
+        AUTHENTICATION_ERROR,
+        INTERNAL_ERROR
+    };
+
+    struct vm_call_result
+    {
+        bool success;
+        std::variant<std::monostate, bool, uint64_t, int64_t, double, std::string, nlohmann::json> value;
+    };
+
+    static std::string get_vm_call_result_error(vm_call_result result);
+
+    vm_call_result lua_evaluate(std::string pluginName, nlohmann::json script);
+    void lua_call_frontend_loaded(std::string pluginName);
+
+    vm_call_result python_evaluate(std::string pluginName, nlohmann::json script);
+    void python_call_frontend_loaded(std::string pluginName);
+
+    class javascript_evaluation_result
+    {
+        std::tuple<json /** payload */, bool /** success */> response;
+        bool valid;
+        std::string error;
+
+      public:
+        javascript_evaluation_result(std::tuple<json, bool> res, bool v, std::string err = "") : response(std::move(res)), valid(v), error(std::move(err))
+        {
+        }
+
+        PyObject* to_python() const;
+        int to_lua(lua_State* L) const;
+        json to_json(const std::string& pluginName) const;
+    };
+
+    javascript_evaluation_result evaluate_javascript_expression(std::string script);
+    const std::string compile_javascript_expression(std::string plugin, std::string methodName, std::vector<javascript_parameter> fnParams);
+    json process_message(json payload);
+
+    std::shared_ptr<cdp_client> get_cdp_client() const
+    {
+        return m_cdp;
+    }
+
+  private:
+    json call_server_method(const json& call);
+    json on_front_end_loaded(const json& call);
+    json call_frontend_method(const json& call);
+
+    vm_call_result handle_plugin_server_method(const std::string& pluginName, const json& message);
+    vm_call_result handle_core_server_method(const json& call);
+
+    std::shared_ptr<plugin_manager> m_plugin_manager;
+    std::shared_ptr<cdp_client> m_cdp;
+    std::weak_ptr<backend_manager> m_backend_manager;
+    std::weak_ptr<head::millennium_backend> m_millennium_backend;
 };
-
-enum ErrorType
-{
-    AUTHENTICATION_ERROR,
-    INTERNAL_ERROR
-};
-
-nlohmann::json HandleEventMessage(nlohmann::json jsonPayload);
-} // namespace IPCMain
