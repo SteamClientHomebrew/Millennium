@@ -184,7 +184,7 @@ else()
     set(LIBPYTHON_RUNTIME_PATH "${default_python_path}/lib/libpython-3.11.8.so")
 
     if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
-        include_directories("${default_python_path}/include/python3.11/")
+        include_directories("${MILLENNIUM_BASE}/src/vendor/python/posix")
         detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     elseif(NIX_BUILD OR LSB_RELEASE_ID_SHORT STREQUAL "NixOS")
         include_directories("${default_python_path}/include/python3.11/")

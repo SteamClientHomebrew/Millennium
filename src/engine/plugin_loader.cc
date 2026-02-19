@@ -127,38 +127,43 @@ void plugin_loader::init()
 
 void plugin_loader::init_devtools()
 {
+    constexpr auto targetFrame = "SharedJSContext";
+    int attempts = 0;
+
     while (true) {
         auto targets = m_cdp->send_host("Target.getTargets").get();
 
-        if (!targets.contains("targetInfos") || !targets["targetInfos"].is_array() || targets["targetInfos"].empty()) {
-            continue;
+        if (targets.contains("targetInfos") && targets["targetInfos"].is_array() && !targets["targetInfos"].empty()) {
+            auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(),
+                [&](const auto& target) { return target.value("title", "") == targetFrame; });
+
+            if (it != targets["targetInfos"].end()) {
+                auto targetId = it->at("targetId").get<std::string>();
+
+                const json attach_params = {
+                    { "targetId", targetId },
+                    { "flatten",  true     }
+                };
+
+                auto result = m_cdp->send_host("Target.attachToTarget", attach_params).get();
+                /** set the session ID of the SharedJSContext */
+                m_cdp->set_shared_js_session_id(result.at("sessionId").get<std::string>());
+
+                const json expose_devtools_params = {
+                    { "targetId",    targetId                                                                },
+                    { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" }
+                };
+
+                m_cdp->send_host("Target.exposeDevToolsProtocol", expose_devtools_params);
+                break;
+            }
         }
 
-        auto targetFrame = "SharedJSContext";
-        auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(), [&](const auto& target) { return target["title"] == targetFrame; });
-
-        if (it == targets["targetInfos"].end()) {
-            continue;
+        if (attempts++ % 20 == 0) {
+            logger.warn("SharedJSContext not found yet, waiting... (attempt {})", attempts);
         }
 
-        auto targetId = it->at("targetId");
-
-        const json attach_params = {
-            { "targetId", targetId },
-            { "flatten",  true     }
-        };
-
-        auto result = m_cdp->send_host("Target.attachToTarget", attach_params).get();
-        /** set the session ID of the SharedJSContext */
-        m_cdp->set_shared_js_session_id(result.at("sessionId").get<std::string>());
-
-        const json expose_devtools_params = {
-            { "targetId",    targetId                                                                },
-            { "bindingName", "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE" }
-        };
-
-        m_cdp->send_host("Target.exposeDevToolsProtocol", expose_devtools_params);
-        break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 
     m_thread_pool->enqueue([this]()
