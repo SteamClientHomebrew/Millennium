@@ -53,7 +53,7 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
 
     int32_t err = mz_zip_reader_open_file(zip_reader, zip_path.c_str());
     if (err != MZ_OK) {
-        Logger.Log("Failed to open zip file: {} (error: {})", zip_path, err);
+        logger.log("Failed to open zip file: {} (error: {})", zip_path, err);
         mz_zip_reader_delete(&zip_reader);
         return false;
     }
@@ -99,7 +99,7 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
 
             int32_t extract_err = mz_zip_reader_entry_save_file(zip_reader, out_path.c_str());
             if (extract_err != MZ_OK) {
-                Logger.Warn("Failed to extract file: {} (error code: {})", out_path, extract_err);
+                logger.warn("Failed to extract file: {} (error code: {})", out_path, extract_err);
                 failed_count++;
             }
         }
@@ -114,7 +114,7 @@ bool Util::ExtractZipArchive(const std::string& zip_path, const std::string& des
     mz_zip_reader_delete(&zip_reader);
 
     if (failed_count > 0) {
-        Logger.Warn("Extraction completed with {} failed files", failed_count);
+        logger.warn("Extraction completed with {} failed files", failed_count);
     }
 
     return (err == MZ_END_OF_LIST || err == MZ_OK);
@@ -129,7 +129,7 @@ std::vector<std::string> Util::GetLockedFiles(const std::string& zip_path, const
 
     int32_t err = mz_zip_reader_open_file(zip_reader, zip_path.c_str());
     if (err != MZ_OK) {
-        Logger.Log("Failed to open zip file: {} (error: {})", zip_path, err);
+        logger.log("Failed to open zip file: {} (error: {})", zip_path, err);
         mz_zip_reader_delete(&zip_reader);
         return locked_files;
     }

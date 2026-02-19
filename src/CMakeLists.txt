@@ -45,36 +45,41 @@ include_directories(
 )
 
 set(SOURCE_FILES
-    runtime/libjs_interop.cc
-    runtime/liblj_api.cc
-    runtime/liblj_http.cc
-    runtime/liblj_interop.cc
-    runtime/liblj_logger.cc
-    runtime/liblj_utils.cc
-    runtime/liblj_fs.cc
-    runtime/liblj_regex.cc
-    runtime/liblj_datetime.cc
-    runtime/libpy_api.cc
-    runtime/libpy_gil.cc
-    runtime/libpy_interop.cc
-    runtime/libpy_logger.cc
-    runtime/libpy_stdout_fwd.cc
-    runtime/liblj_vfs_hook_api.cc
-    core/auth.cc
-    core/backend_init.cc
-    core/backend_mgr.cc
-    core/core_ipc.cc
-    core/http_hooks.cc
-    core/init.cc
-    core/lifecycle.cc
-    core/millennium_api.cc
-    core/millennium_updater.cc
+    runtime/lua/lua_api.cc
+    runtime/lua/lua_http.cc
+    runtime/lua/lua_interop.cc
+    runtime/lua/lua_logger.cc
+    runtime/lua/lua_utils.cc
+    runtime/lua/lua_filesystem.cc
+    runtime/lua/lua_regex.cc
+    runtime/lua/lua_datetime.cc
+    runtime/lua/lua_hook_api.cc
+    runtime/python/python_api.cc
+    runtime/python/python_gil.cc
+    runtime/python/python_interop.cc
+    runtime/python/python_logger.cc
+    runtime/python/python_stdout_hook.cc
+    engine/auth.cc
+    engine/backend_init.cc
+    engine/backend_mgr.cc
+    engine/cdp_api.cc
+    engine/cdp_connector.cc
+    engine/cmdline_parse.cc
+    engine/core_ipc.cc
+    engine/ffi_binder.cc
+    engine/http_hooks.cc
+    engine/lifecycle.cc
+    engine/millennium_updater.cc
+    engine/plugin_loader.cc
+    engine/plugin_manager.cc
+    engine/plugin_webkit_store.cc
+    engine/plugin_webkit_world_mgr.cc
+    engine/thread_pool.cc
     util/semver.cc
     util/zip.cc
     backend/css_parser.cc
     backend/default_cfg.cc
     backend/entry_point.cc
-    backend/ipc_handler.cc
     backend/library_updater.cc
     backend/plugin_mgr.cc
     backend/scan.cc
@@ -82,37 +87,38 @@ set(SOURCE_FILES
     backend/theme_cfg.cc
     backend/theme_mgr.cc
     backend/webkit.cc
-    hooks/steam_hooks.cc
-    hhx64/smem.cc
-    sys/cfg.cc
-    sys/env.cc
-    sys/logger.cc
-    sys/sysfs.cc
-    main.cc
+    instrumentation/steam_hooks.cc
+    instrumentation/smem.cc
+    system/config.cc
+    system/environment.cc
+    system/filesystem.cc
+    system/health_check.cc
+    system/logger.cc
+    millennium.cc
 )
 
 if(WIN32)
     configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/millennium_version.rc @ONLY)
 
-    list(APPEND SOURCE_FILES "plat/init_win32.cc")
+    list(APPEND SOURCE_FILES "platform/windows.cc")
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/millennium_version.rc")
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/resources.rc")
     endif()
 elseif(UNIX)
-    list(APPEND SOURCE_FILES "plat/init_posix.cc")
-    list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
+    list(APPEND SOURCE_FILES "platform/linux.cc")
+    list(APPEND SOURCE_FILES "platform/linux_legacy.cc")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
 endif()
 
 if(WIN32)
-    add_subdirectory(boot/win32)
+    add_subdirectory(bootstrap/win32)
 elseif(UNIX AND NOT APPLE AND NOT NIX_BUILD)
-    add_subdirectory(boot/linux)
+    add_subdirectory(bootstrap/linux)
 elseif(UNIX AND APPLE)
-    add_subdirectory(boot/macos)
+    add_subdirectory(bootstrap/macos)
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -178,7 +184,7 @@ else()
     set(LIBPYTHON_RUNTIME_PATH "${default_python_path}/lib/libpython-3.11.8.so")
 
     if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
-        include_directories("${default_python_path}/include/python3.11/")
+        include_directories("${MILLENNIUM_BASE}/src/vendor/python/posix")
         detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     elseif(NIX_BUILD OR LSB_RELEASE_ID_SHORT STREQUAL "NixOS")
         include_directories("${default_python_path}/include/python3.11/")

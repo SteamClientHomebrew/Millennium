@@ -29,23 +29,25 @@
  */
 
 #include "head/default_cfg.h"
-#include "millennium/env.h"
+#include "nlohmann/json.hpp"
+#include "millennium/environment.h"
+#include <filesystem>
 
-nlohmann::json GetDefaultConfig()
+json head::get_default_config()
 {
     /** Use auto install on windows, otherwise just notify (auto install/upgrade is only supported on windows as linux primarily uses pm) */
 #ifdef _WIN32
     OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::AUTO_INSTALL;
 #else
-    OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::NOTIFY;
+    on_millennium_update updateBehavior = on_millennium_update::NOTIFY;
 #endif
 
     /** Detect old file to determine welcome modal status */
-    bool hasShownWelcomeModal = std::filesystem::exists(std::filesystem::path(GetEnv("MILLENNIUM__CONFIG_PATH")) / "themes.json");
+    bool hasShownWelcomeModal = std::filesystem::exists(std::filesystem::path(platform::environment::get("MILLENNIUM__CONFIG_PATH")) / "themes.json");
 
     // clang-format off
-    nlohmann::json default_config = {
-        { "general", { 
+    json default_config = {
+        { "general", {
             { "injectJavascript", true },
             { "injectCSS", true },
             { "checkForMillenniumUpdates", true },
@@ -53,20 +55,20 @@ nlohmann::json GetDefaultConfig()
             { "onMillenniumUpdate", static_cast<int>(updateBehavior) },
             { "millenniumUpdateChannel", "stable" },
             { "shouldShowThemePluginUpdateNotifications", true },
-            { "accentColor", "DEFAULT_ACCENT_COLOR" } 
+            { "accentColor", "DEFAULT_ACCENT_COLOR" }
         } },
-        { "misc", { 
-            { "hasShownWelcomeModal", hasShownWelcomeModal } 
+        { "misc", {
+            { "hasShownWelcomeModal", hasShownWelcomeModal }
         } },
-        { "themes", { 
-            { "activeTheme", "default" }, 
-            { "allowedStyles", true }, 
-            { "allowedScripts", true } 
+        { "themes", {
+            { "activeTheme", "default" },
+            { "allowedStyles", true },
+            { "allowedScripts", true }
         } },
-        { "notifications", { 
-            { "showNotifications", true }, 
-            { "showUpdateNotifications", true }, 
-            { "showPluginNotifications", true } 
+        { "notifications", {
+            { "showNotifications", true },
+            { "showUpdateNotifications", true },
+            { "showPluginNotifications", true }
         } }
     };
     // clang-format on

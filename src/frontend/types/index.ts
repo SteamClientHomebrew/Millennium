@@ -133,12 +133,14 @@ export interface Plugin {
 	description?: string;
 	venv?: string;
 	version?: string;
+	__private_browser_extension?: boolean;
 }
 
 export interface PluginComponent {
 	path: string;
 	enabled: boolean;
 	data: Plugin;
+	isChromeExtension?: boolean;
 }
 
 /**

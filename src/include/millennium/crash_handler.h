@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#ifdef _WIN32
 #include "millennium/backend_mgr.h"
 #include "millennium/plat_msg.h"
 #include "millennium/logger.h"
@@ -37,7 +38,6 @@
 
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
-#ifdef _WIN32
 #include "millennium/http_hooks.h"
 #include "millennium/steam_hooks.h"
 
@@ -73,9 +73,9 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
                 "Please send this file to the developers on our Discord (steambrew.app/discord) or GitHub (github.com/SteamClientHomebrew/Millennium) to help fix this issue.",
                 MESSAGEBOX_ERROR);
 
-            Logger.Log("Crash dump written to millennium-crash.dmp");
+            logger.log("Crash dump written to millennium-crash.dmp");
         } else {
-            Logger.Log("MiniDumpWriteDump failed. Error: {}", GetLastError());
+            logger.log("MiniDumpWriteDump failed. Error: {}", GetLastError());
         }
 
         CloseHandle(hFile);
@@ -83,8 +83,6 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
-
-#endif
 
 /**
  * @brief Custom terminate handler for Millennium.
@@ -121,3 +119,4 @@ inline void UnhandledExceptionHandler()
     std::cerr << errorMessage << std::endl;
 #endif
 }
+#endif

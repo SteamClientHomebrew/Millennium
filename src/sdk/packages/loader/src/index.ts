@@ -1,11 +1,6 @@
-enum Context {
-	Client,
-	Browser,
-}
-
 declare global {
 	interface Window {
-		MILLENNIUM_API: object;
+		MILLENNIUM_API: any;
 		SP_REACTDOM: any;
 		MILLENNIUM_IPC_PORT: number;
 		MILLENNIUM_FRONTEND_LIB_VERSION: string;
@@ -17,15 +12,24 @@ declare global {
 class Bootstrap {
 	logger: import('@steambrew/client/build/logger').default;
 	startTime: number;
-	ctx: Context;
 	millenniumAuthToken: string | undefined = undefined;
 
-	async init() {
+	async init(authToken: string) {
 		const loggerModule = await import('@steambrew/client/build/logger');
+		this.millenniumAuthToken = authToken;
+
+		window.MILLENNIUM_FRONTEND_LIB_VERSION = process.env.MILLENNIUM_FRONTEND_LIB_VERSION || 'unknown';
+		window.MILLENNIUM_BROWSER_LIB_VERSION = process.env.MILLENNIUM_FRONTEND_LIB_VERSION || 'unknown';
+		window.MILLENNIUM_LOADER_BUILD_DATE = process.env.MILLENNIUM_LOADER_BUILD_DATE || 'unknown';
 
 		this.logger = new loggerModule.default('Bootstrap');
-		this.ctx = window.location.hostname === 'steamloopback.host' ? Context.Client : Context.Browser;
 		this.startTime = performance.now();
+	}
+
+	async logDbgInfo() {
+		const endTime = performance.now();
+		const connectionTime = endTime - this.startTime;
+		this.logger.log(`done. ${connectionTime.toFixed(2)} ms.`);
 	}
 
 	async injectLegacyReactGlobals() {
@@ -39,8 +43,7 @@ class Bootstrap {
 			window.SP_REACT = webpack.findModule((m) => m.Component && m.PureComponent && m.useLayoutEffect);
 			window.SP_REACTDOM =
 				/** react 18 react dom */
-				webpack.findModule((m) => m.createPortal && m.createRoot) || /** react 19 react dom */
-				{
+				webpack.findModule((m) => m.createPortal && m.createRoot) /** react 19 react dom */ || {
 					...webpack.findModule((m) => m.createPortal && m.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE),
 					...webpack.findModule((m) => m.createRoot),
 				};
@@ -82,43 +85,7 @@ class Bootstrap {
 		});
 	}
 
-	async StartPreloader(millenniumAuthToken: string, shimList?: string[], enabledPlugins?: string[]) {
-		await this.init();
-		this.millenniumAuthToken = millenniumAuthToken;
-
-		window.MILLENNIUM_FRONTEND_LIB_VERSION = process.env.MILLENNIUM_FRONTEND_LIB_VERSION || 'unknown';
-		window.MILLENNIUM_BROWSER_LIB_VERSION = process.env.MILLENNIUM_FRONTEND_LIB_VERSION || 'unknown';
-		window.MILLENNIUM_LOADER_BUILD_DATE = process.env.MILLENNIUM_LOADER_BUILD_DATE || 'unknown';
-
-		switch (this.ctx) {
-			case Context.Client: {
-				this.logger.log('Running in client context...');
-				await this.waitForClientReady();
-				break;
-			}
-			case Context.Browser: {
-				this.logger.log('Running in browser context...');
-				const millenniumApiModule = await import('./millennium-api');
-				millenniumApiModule.setMillenniumAuthToken(this.millenniumAuthToken);
-
-				window.MILLENNIUM_API = millenniumApiModule;
-
-				const browserUtils = await import('./browser-init');
-				await browserUtils.appendRootColors();
-				await browserUtils.appendAccentColor();
-				await browserUtils.appendQuickCss();
-
-				await browserUtils.addPluginDOMBreadCrumbs(enabledPlugins);
-				break;
-			}
-			default: {
-				this.logger.error("Unknown context, can't load Millennium:", this.ctx);
-				return;
-			}
-		}
-
-		this.logger.log('Loading user plugins...');
-
+	async appendShimsToDOM(shimList: string[]) {
 		/** Inject the JavaScript shims into the DOM */
 		shimList?.forEach(
 			(shim) =>
@@ -131,10 +98,64 @@ class Bootstrap {
 					}),
 				),
 		);
+	}
 
-		const endTime = performance.now(); // End timing
-		const connectionTime = endTime - this.startTime;
-		this.logger.log(`Successfully injected shims into the DOM in ${connectionTime.toFixed(2)} ms.`);
+	async importShimsInContext(shimList: string[]) {
+		/** Import the JavaScript shims in the current context */
+		await Promise.all(shimList?.map((shim) => import(shim)) ?? []);
+	}
+
+	/**
+	 * Append Millennium API to the public context (web page context)
+	 * Millennium is running this script from an isolated context, so to expose the API to the web page,
+	 * we need to inject a script tag that runs in the public context.
+	 */
+	async appendMillenniumToPublicContext(ftpBasePath: string) {
+		/** This unfortunately is a dog shit that we have to hardcode the filepath, but there is genuinely no other way to do this currently */
+		const code = `(window.MILLENNIUM_API = await import('${ftpBasePath}/chunks/chunk-millennium-api.js')).setMillenniumAuthToken(${JSON.stringify(
+			this.millenniumAuthToken,
+		)})`;
+
+		const script = document.createElement('script');
+		script.type = 'module';
+		script.textContent = code;
+		document.documentElement.appendChild(script);
+	}
+
+	async startWebkitPreloader(millenniumAuthToken: string, enabledPlugins?: string[], legacyShimList?: string[], ctxShimList?: string[], ftpBasePath?: string) {
+		await this.init(millenniumAuthToken);
+
+		this.logger.log('bootstrapping plugin webkits...');
+		const millenniumApiModule = await import('./millennium-api');
+
+		millenniumApiModule.setMillenniumAuthToken(this.millenniumAuthToken);
+		window.MILLENNIUM_API = millenniumApiModule;
+
+		this.appendMillenniumToPublicContext(ftpBasePath);
+
+		const browserUtils = await import('./browser-init');
+		await browserUtils.appendRootColors();
+		await browserUtils.appendAccentColor();
+		await browserUtils.appendQuickCss();
+		await browserUtils.addPluginDOMBreadCrumbs(enabledPlugins);
+
+		/** Inject the JavaScript shims into the DOM */
+		await this.appendShimsToDOM(legacyShimList);
+
+		/** Import the JavaScript shims in the current context */
+		await this.importShimsInContext(ctxShimList);
+		this.logDbgInfo();
+	}
+
+	async StartPreloader(millenniumAuthToken: string, shimList?: string[], enabledPlugins?: string[]) {
+		await this.init(millenniumAuthToken);
+
+		this.logger.log('Running in client context...');
+		await this.waitForClientReady();
+		this.logger.log('Client is ready.');
+
+		await this.appendShimsToDOM(shimList);
+		this.logDbgInfo();
 	}
 }
 

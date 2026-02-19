@@ -29,6 +29,11 @@
  */
 
 #pragma once
+
+#if defined(_WIN32) && !defined(_WIN32_WINNT)
+#define _WIN32_WINNT 0x0A00 /** Windows 10 & 11 */
+#endif
+
 #include <asio.hpp>
 #include <asio/ip/tcp.hpp>
 #define DEFAULT_DEVTOOLS_PORT "8080"
@@ -36,12 +41,12 @@ extern std::string STEAM_DEVELOPER_TOOLS_PORT;
 const char* GetAppropriateDevToolsPort(const bool isDevMode);
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
-#define _WINSOCKAPI_
 #include "MinHook.h"
 #include <iostream>
 #include <thread>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
 #include <windows.h>
 #include <winternl.h>
 
@@ -68,4 +73,5 @@ bool SetupEntryPointHook();
 bool InitializeSteamHooks();
 #endif
 
+void Plat_WaitForBackendLoad();
 bool Plat_InitializeSteamHooks();

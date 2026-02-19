@@ -29,51 +29,55 @@
  */
 
 #pragma once
-#include "nlohmann/json.hpp"
-#include "nlohmann/json_fwd.hpp"
 #include "filesystem"
 #include <set>
 
-#include "millennium/sysfs.h"
+#include "head/webkit.h"
+#include "millennium/config.h"
 
-class ThemeConfig
+namespace head
+{
+class theme_config_store
 {
   public:
-    ThemeConfig();
-    ~ThemeConfig();
+    theme_config_store(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr);
+    ~theme_config_store();
 
-    void OnConfigChange();
-    void UpgradeOldConfig();
-    void ValidateTheme();
+    void on_config_change_hdlr();
+    void migrate_old_config();
+    void validate_theme();
 
-    nlohmann::json GetConfig();
-    void SetConfig(const std::string& path, const nlohmann::json& value);
+    json get_config();
+    void set_config(const std::string& path, const json& value);
 
-    void ChangeTheme(const std::string& theme_name);
-    nlohmann::json GetAccentColor();
-    nlohmann::json GetActiveTheme();
+    void change_theme(const std::string& theme_name);
+    json get_accent_color();
+    json get_active_theme();
 
-    void SetupThemeHooks();
-    void StartWebkitHook(const nlohmann::json& theme, const std::string& name);
+    void setup_theme_hooks();
+    void start_webkit_hook(const json& theme, const std::string& name);
 
-    void SetupColors();
-    nlohmann::json GetColors();
-    nlohmann::json GetColorOpts(const std::string& theme_name);
-    nlohmann::json ChangeColor(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type);
-    void ChangeAccentColor(const std::string& new_color);
-    void ResetAccentColor();
+    void setup_colors();
+    json get_colors();
+    json get_color_options(const std::string& theme_name);
+    json set_theme_color(const std::string& theme, const std::string& color_name, const std::string& new_color, int color_type);
+    void set_accent_color(const std::string& new_color);
+    void reset_accent_color();
 
-    bool DoesThemeUseAccentColor();
-    std::string GetConditionals();
-    nlohmann::json ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition);
+    bool does_theme_use_accent_color();
+    std::string get_theme_conditionals();
+    json set_condition(const std::string& theme, const json& newData, const std::string& condition);
 
   private:
-    void SetupConditionals();
-    std::set<std::string> GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
+    void setup_conditionals();
+    std::set<std::string> get_all_imports(const std::filesystem::path& css_path, std::set<std::string> visited = {});
 
-    ConfigManager::Listener config_listener_;
+    config_manager::listener config_listener_;
     std::filesystem::path themes_path;
     std::string active_theme_name;
-    nlohmann::basic_json<> theme_data;
-    std::map<std::string, nlohmann::json> colors;
+    json theme_data;
+    std::map<std::string, json> colors;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
+    std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
 };
+} // namespace head

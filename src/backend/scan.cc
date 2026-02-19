@@ -28,35 +28,32 @@
  * SOFTWARE.
  */
 
-#include "head/scan.h"
-#include "millennium/env.h"
-#include "millennium/logger.h"
-#include "millennium/sysfs.h"
-
 #include <fstream>
-#include <iostream>
+#include "head/scan.h"
 
-nlohmann::json Millennium::Plugins::FindAllPlugins()
+#include "millennium/logger.h"
+#include "millennium/filesystem.h"
+
+nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager)
 {
     nlohmann::json result = nlohmann::json::array();
-
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const auto foundPlugins = settingsStore->ParseAllPlugins();
+    const auto foundPlugins = plugin_manager->get_all_plugins();
 
     for (const auto& plugin : foundPlugins) {
         result.push_back({
-            { "path",    plugin.pluginBaseDirectory.generic_string()       },
-            { "enabled", settingsStore->IsEnabledPlugin(plugin.pluginName) },
-            { "data",    plugin.pluginJson                                 }
+            { "path",              plugin.plugin_base_dir.generic_string()        },
+            { "enabled",           plugin_manager->is_enabled(plugin.plugin_name) },
+            { "isChromeExtension", false                                          },
+            { "data",              plugin.plugin_json                             }
         });
     }
 
     return result;
 }
 
-std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::string& plugin_name)
+std::optional<nlohmann::json> head::Plugins::GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> plugin_manager)
 {
-    for (const auto& plugin : FindAllPlugins()) {
+    for (const auto& plugin : FindAllPlugins(plugin_manager)) {
         if (plugin.contains("data") && plugin["data"].contains("name") && plugin["data"]["name"] == plugin_name) {
             return plugin;
         }
@@ -68,9 +65,9 @@ std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::
  * Check if a theme is valid by verifying the existence and validity of skin.json
  * @param theme_native_name The native name of the theme (folder name).
  */
-bool Millennium::Themes::IsValid(const std::string& theme_native_name)
+bool head::Themes::IsValid(const std::string& theme_native_name)
 {
-    std::filesystem::path file_path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins" / theme_native_name / "skin.json";
+    std::filesystem::path file_path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins" / theme_native_name / "skin.json";
 
     if (!std::filesystem::is_regular_file(file_path)) return false;
 
@@ -82,9 +79,9 @@ bool Millennium::Themes::IsValid(const std::string& theme_native_name)
  * Find all themes in the skins directory.
  * @return A JSON array of themes, each containing "native" (the theme folder name) and "data" (and skin data) fields.
  */
-nlohmann::ordered_json Millennium::Themes::FindAllThemes()
+nlohmann::ordered_json head::Themes::FindAllThemes()
 {
-    auto path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins";
+    auto path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
     std::filesystem::create_directories(path);
 
     nlohmann::ordered_json themes = nlohmann::ordered_json::array();
@@ -112,7 +109,7 @@ nlohmann::ordered_json Millennium::Themes::FindAllThemes()
             });
         }
     } catch (const std::filesystem::filesystem_error& e) {
-        Logger.Log("Filesystem error: " + std::string(e.what()));
+        logger.log("Filesystem error: " + std::string(e.what()));
     }
 
     return themes;

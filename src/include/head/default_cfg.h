@@ -29,15 +29,16 @@
  */
 
 #pragma once
+#include "millennium/types.h"
 
-#include <nlohmann/json.hpp>
-
-enum class OnMillenniumUpdate
+namespace head
+{
+enum class on_millennium_update
 {
     DO_NOTHING = 0,
     NOTIFY = 1,
     AUTO_INSTALL = 2
 };
 
-// Returns the default configuration JSON
-nlohmann::json GetDefaultConfig();
+json get_default_config();
+} // namespace head

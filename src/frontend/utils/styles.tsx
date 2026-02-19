@@ -30,7 +30,7 @@
 
 import { fieldClasses, pagedSettingsClasses } from './classes';
 
-const styles = `
+const styles = /* css */ `
 :root {
 	/* Stolen from Steam store */
 	--MillenniumText-Font: "Motiva Sans", Arial, Sans-serif;
@@ -306,6 +306,15 @@ const styles = `
 	color: var(--MillenniumTextColor-Muted);
 	font: var(--MillenniumText-BodySmall);
 	margin-left: var(--MillenniumSpacing-Normal);
+}
+
+.MillenniumItem_BrowserExtension {
+	height: 20px;
+	padding: 0 8px;
+	border-radius: 6px;
+	background-color: var(--MillenniumTextColor-Muted);
+	border: 1px solid #5c5c5c;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 /**

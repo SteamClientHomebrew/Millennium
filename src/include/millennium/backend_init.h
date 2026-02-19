@@ -30,70 +30,52 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
-#include "millennium/init.h"
-#include "millennium/sysfs.h"
+#include "millennium/fwd_decl.h"
+#include "millennium/life_cycle.h"
+#include "millennium/logger.h"
+#include "millennium/backend_mgr.h"
+#include <memory>
 
-namespace CoInitializer
+class backend_initializer
 {
-class BackendCallbacks : public Singleton<BackendCallbacks>
-{
-    friend class Singleton<BackendCallbacks>;
-
   public:
-    enum eBackendLoadEvents
+    backend_initializer(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_manager> manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
+        : m_plugin_manager(std::move(plugin_manager)), m_backend_manager(std::move(manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
     {
-        BACKEND_LOAD_SUCCESS,
-        BACKEND_LOAD_FAILED,
-    };
-
-    struct PluginTypeSchema
+    }
+    ~backend_initializer()
     {
-        std::string pluginName;
-        eBackendLoadEvents event;
+        logger.log("Successfully shut down backend_initializer...");
+    }
 
-        bool operator==(const PluginTypeSchema& other) const
-        {
-            return pluginName == other.pluginName && event == other.event;
-        }
+    static std::shared_ptr<plugin_loader> get_plugin_loader_from_lua_vm(lua_State* L);
+    static std::shared_ptr<plugin_loader> get_plugin_loader_from_python_vm();
 
-        PluginTypeSchema(const std::string& name) : pluginName(name), event(BACKEND_LOAD_SUCCESS)
-        {
-        }
-        PluginTypeSchema(const std::string& name, eBackendLoadEvents ev) : pluginName(name), event(ev)
-        {
-        }
-    };
+    static void python_set_plugin_loader_ud(std::weak_ptr<plugin_loader> wp);
+    static int lua_set_plugin_loader_ud(lua_State* L, std::weak_ptr<plugin_loader> wp);
 
-    using EventCallback = std::function<void()>;
+    void python_backend_started_cb(plugin_manager::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader);
+    void lua_backend_started_cb(plugin_manager::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader, lua_State* L);
 
-    void RegisterForLoad(EventCallback callback);
-    void StatusDispatch();
-    void BackendLoaded(PluginTypeSchema plugin);
-    void BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown);
-    void Reset();
+    /** Fix an old issue previous versions of Millennium introduced */
+    void compat_restore_shared_js_context();
+
+    /**
+     * @brief Start the package manager preload module.
+     * The package manager module is responsible for python package management.
+     * All packages are grouped and shared when needed, to prevent wasting space.
+     */
+    void start_package_manager(std::weak_ptr<plugin_loader> plugin_loader);
 
   private:
-    bool EvaluateBackendStatus();
-    std::string GetFailedBackendsStr();
-    std::string GetSuccessfulBackendsStr();
+    void python_append_sys_path_modules(std::vector<std::filesystem::path> sitePackages);
+    void python_add_site_packages_directory(std::filesystem::path customPath);
+    void python_invoke_plugin_main_fn(PyObject* global_dict, std::string pluginName);
+    void compat_setup_fake_plugin_settings();
+    void set_plugin_environment_variables(PyObject* globalDictionary, const plugin_manager::plugin_t& plugin);
+    void set_plugin_internal_name(PyObject* globalDictionary, const std::string& pluginName);
 
-    enum eEvents
-    {
-        ON_BACKEND_READY_EVENT
-    };
-
-    bool isReadyForCallback = false;
-    std::vector<PluginTypeSchema> emittedPlugins;
-    std::vector<eEvents> missedEvents;
-    std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
-    std::mutex listenersMutex;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
+    std::shared_ptr<backend_manager> m_backend_manager;
+    std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
 };
-
-void InjectFrontendShims(bool reloadFrontend = true);
-void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend = true);
-void PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin);
-void LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L);
-} // namespace CoInitializer
-
-void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName);

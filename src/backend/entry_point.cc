@@ -28,24 +28,31 @@
  * SOFTWARE.
  */
 
-#include "head/ipc_handler.h"
+#include "head/entry_point.h"
 #include "head/library_updater.h"
 #include "head/scan.h"
 #include "head/theme_cfg.h"
+#include "head/webkit.h"
 
-#include "millennium/millennium_api.h"
+#include "millennium/environment.h"
+#include "millennium/encoding.h"
+#include "millennium/http_hooks.h"
+#include "millennium/logger.h"
+#include "millennium/millennium.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
-#include "millennium/sysfs.h"
+#include "millennium/plugin_loader.h"
+#include "millennium/logger.h"
+#include "millennium/config.h"
+#include "millennium/filesystem.h"
+#include <exception>
 
-#include <filesystem>
-#include <memory>
+std::weak_ptr<head::theme_webkit_mgr> head::millennium_backend::get_theme_webkit_mgr()
+{
+    return m_theme_webkit_mgr;
+}
 
-std::shared_ptr<ThemeConfig> themeConfig;
-std::shared_ptr<Updater> updater;
-std::unique_ptr<SettingsStore> settingsStore;
-
-int GetOperatingSystemType()
+int head::millennium_backend::get_operating_system()
 {
 #if defined(_WIN32)
     return 0; // Windows
@@ -57,23 +64,67 @@ int GetOperatingSystemType()
 #endif
 }
 
-std::string Millennium_GetQuickCss()
+head::millennium_backend::~millennium_backend()
 {
-    const std::string quickCssPath = fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH"));
-
-    if (!std::filesystem::exists(quickCssPath)) {
-        SystemIO::WriteFileSync(quickCssPath, "/* Quick CSS file created by Millennium */\n");
-    }
-
-    return SystemIO::ReadFileSync(quickCssPath);
+    logger.log("Successfully shut down millennium_backend...");
 }
 
-const char* Millennium_GetUpdateScript()
+void head::millennium_backend::init()
+{
+    m_updater = std::make_shared<library_updater>(shared_from_this(), m_ipc_main);
+    m_updater->init(m_plugin_manager);
+
+    m_theme_webkit_mgr = std::make_shared<theme_webkit_mgr>(m_plugin_manager, m_network_hook_ctl);
+    m_theme_config = std::make_shared<theme_config_store>(m_plugin_manager, m_theme_webkit_mgr);
+}
+
+head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> network_hook_ctl, std::shared_ptr<plugin_manager> plugin_manager,
+                                             std::shared_ptr<millennium_updater> millennium_updater)
+    : m_plugin_manager(std::move(plugin_manager)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
+{
+#define register_function(name) { #name, std::bind(&millennium_backend::name, this, std::placeholders::_1) }
+    function_map = {
+        register_function(Core_ChangePluginStatus),
+        register_function(Core_GetStartConfig),
+        register_function(Core_LoadQuickCss),
+        register_function(Core_SaveQuickCss),
+        register_function(Core_GetSteamPath),
+        register_function(Core_FindAllThemes),
+        register_function(Core_FindAllPlugins),
+        register_function(Core_GetEnvironmentVar),
+        register_function(Core_GetBackendConfig),
+        register_function(Core_SetBackendConfig),
+        register_function(Core_GetUpdates),
+        register_function(Core_GetActiveTheme),
+        register_function(Core_ChangeActiveTheme),
+        register_function(Core_GetSystemColors),
+        register_function(Core_ChangeAccentColor),
+        register_function(Core_ChangeColor),
+        register_function(Core_ChangeCondition),
+        register_function(Core_GetRootColors),
+        register_function(Core_DoesThemeUseAccentColor),
+        register_function(Core_GetThemeColorOptions),
+        register_function(Core_InstallTheme),
+        register_function(Core_UninstallTheme),
+        register_function(Core_DownloadThemeUpdate),
+        register_function(Core_IsThemeInstalled),
+        register_function(Core_GetThemeFromGitPair),
+        register_function(Core_DownloadPluginUpdate),
+        register_function(Core_InstallPlugin),
+        register_function(Core_IsPluginInstalled),
+        register_function(Core_UninstallPlugin),
+        register_function(Core_GetPluginBackendLogs),
+        register_function(Core_UpdateMillennium),
+        register_function(Core_HasPendingMillenniumUpdateRestart),
+    };
+}
+
+const char* head::millennium_backend::get_millennium_updater_script()
 {
 #ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
     return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
 #else
-    #error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
+#error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
     return nullptr;
 #endif
 }
@@ -81,18 +132,22 @@ const char* Millennium_GetUpdateScript()
 /**
  * Enable/disable plugins
  */
-MILLENNIUM_IPC_DECL(Core_ChangePluginStatus)
+builtin_payload head::millennium_backend::Core_ChangePluginStatus(const builtin_payload& args)
 {
-    std::vector<PluginStatus> plugins;
-    auto pluginJson = nlohmann::json::parse(ARGS["pluginJson"].get<std::string>());
+    ::plugin_loader::plugin_state plugins;
+    auto pluginJson = nlohmann::json::parse(args["pluginJson"].get<std::string>());
 
     for (const auto& item : pluginJson) {
-        if (item.contains("plugin_name") && item.contains("enabled")) {
-            plugins.push_back({ item["plugin_name"], item["enabled"] });
+        try {
+            if (item.contains("plugin_name") && item.contains("enabled")) {
+                plugins.push_back({ item["plugin_name"], item["enabled"] });
+            }
+        } catch (const std::exception& ex) {
+            LOG_ERROR("Failed to add a plugin to list: {}", ex.what());
         }
     }
 
-    Millennium_TogglePluginStatus(plugins);
+    g_millennium->get_plugin_loader()->set_plugins_enabled(plugins);
     return {};
 }
 
@@ -100,88 +155,261 @@ MILLENNIUM_IPC_DECL(Core_ChangePluginStatus)
  * Get the configuration needed to start the frontend
  * @note exceptions are caught by the IPC handler
  */
-MILLENNIUM_IPC_DECL(Core_GetStartConfig)
+builtin_payload head::millennium_backend::Core_GetStartConfig(const builtin_payload&)
 {
     return {
-        { "accent_color", themeConfig->GetAccentColor() },
-        { "conditions", CONFIG.GetNested("themes.conditions", nlohmann::json::object()) },
-        { "active_theme", themeConfig->GetActiveTheme() },
-        { "settings", CONFIG.GetAll() },
-        { "steamPath", SystemIO::GetSteamPath() },
-        { "installPath", SystemIO::GetInstallPath() },
+        { "accent_color", m_theme_config->get_accent_color() },
+        { "conditions", CONFIG.get("themes.conditions", nlohmann::json::object()) },
+        { "active_theme", m_theme_config->get_active_theme() },
+        { "settings", CONFIG.get_all() },
+        { "steamPath", platform::get_steam_path() },
+        { "installPath", platform::get_install_path() },
         { "millenniumVersion", MILLENNIUM_VERSION },
-        { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
-        { "updates", updater->CheckForUpdates() },
-        { "hasCheckedForUpdates", updater->HasCheckedForUpdates() },
-        { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },
+        { "enabledPlugins", m_plugin_manager->get_enabled_plugin_names() },
+        { "updates", m_updater->check_for_updates() },
+        { "hasCheckedForUpdates", m_updater->has_checked_for_updates() },
+        { "millenniumUpdates", m_millennium_updater->has_any_updates() },
         { "buildDate", GetBuildTimestamp() },
-        { "platformType", GetOperatingSystemType() },
-        { "millenniumLinuxUpdateScript", Millennium_GetUpdateScript() },
-        { "quickCss", Millennium_GetQuickCss() }
+        { "platformType", get_operating_system() },
+        { "millenniumLinuxUpdateScript", this->get_millennium_updater_script() },
+        { "quickCss", Core_LoadQuickCss(nullptr) }  // TODO check this works
     };
 }
 
 /** Quick CSS utilities */
-IPC_RET(Core_LoadQuickCss, Millennium_GetQuickCss());
-IPC_NIL(Core_SaveQuickCss, SystemIO::WriteFileSync(fmt::format("{}/quickcss.css", GetEnv("MILLENNIUM__CONFIG_PATH")), ARGS["css"].get<std::string>()));
-
-/** General utilities */
-IPC_RET(Core_GetSteamPath, SystemIO::GetSteamPath())
-IPC_RET(Core_FindAllThemes, Millennium::Themes::FindAllThemes())
-IPC_RET(Core_FindAllPlugins, Millennium::Plugins::FindAllPlugins())
-IPC_RET(Core_GetEnvironmentVar, GetEnv(ARGS["variable"]))
-IPC_RET(Core_GetBackendConfig, CONFIG.GetAll())
-IPC_RET(Core_SetBackendConfig, CONFIG.SetAll(nlohmann::json::parse(ARGS["config"].get<std::string>()), ARGS.value("skipPropagation", false)))
-
-/** Theme and Plugin update API */
-IPC_RET(Core_GetUpdates, updater->CheckForUpdates(ARGS.value("force", false)).value_or(nullptr))
-
-/** Theme manager API */
-IPC_RET(Core_GetActiveTheme, themeConfig->GetActiveTheme())
-IPC_NIL(Core_ChangeActiveTheme, themeConfig->ChangeTheme(ARGS["theme_name"]))
-IPC_RET(Core_GetSystemColors, themeConfig->GetAccentColor())
-IPC_NIL(Core_ChangeAccentColor, themeConfig->ChangeAccentColor(ARGS["new_color"]))
-IPC_RET(Core_ChangeColor, themeConfig->ChangeColor(ARGS["theme"], ARGS["color_name"], ARGS["new_color"], ARGS["color_type"]))
-IPC_RET(Core_ChangeCondition, themeConfig->ChangeCondition(ARGS["theme"], ARGS["newData"], ARGS["condition"]))
-IPC_RET(Core_GetRootColors, themeConfig->GetColors())
-IPC_RET(Core_DoesThemeUseAccentColor, true) /** placeholder, too lazy to implement */
-IPC_RET(Core_GetThemeColorOptions, themeConfig->GetColorOpts(ARGS["theme_name"]))
-
-/** Theme installer related API's */
-IPC_RET(Core_InstallTheme, updater->GetThemeUpdater().InstallTheme(themeConfig, ARGS["repo"], ARGS["owner"]))
-IPC_RET(Core_UninstallTheme, updater->GetThemeUpdater().UninstallTheme(themeConfig, ARGS["repo"], ARGS["owner"]))
-IPC_RET(Core_DownloadThemeUpdate, updater->DownloadThemeUpdate(themeConfig, ARGS["native"]))
-IPC_RET(Core_IsThemeInstalled, updater->GetThemeUpdater().CheckInstall(ARGS["repo"], ARGS["owner"]))
-IPC_RET(Core_GetThemeFromGitPair, updater->GetThemeUpdater().GetThemeFromGitPair(ARGS["repo"], ARGS["owner"], ARGS.value("asString", false)).value_or(nullptr))
-
-/** Plugin related API's */
-IPC_RET(Core_DownloadPluginUpdate, updater->DownloadPluginUpdate(ARGS["id"], ARGS["name"]))
-IPC_RET(Core_InstallPlugin, updater->GetPluginUpdater().InstallPlugin(ARGS["download_url"], ARGS["total_size"]))
-IPC_RET(Core_IsPluginInstalled, updater->GetPluginUpdater().CheckInstall(ARGS["plugin_name"]))
-IPC_RET(Core_UninstallPlugin, updater->GetPluginUpdater().UninstallPlugin(ARGS["pluginName"]))
-
-/** Get plugin backend logs */
-IPC_RET(Core_GetPluginBackendLogs, Millennium_GetPluginLogs())
-
-/** Update Millennium API */
-IPC_NIL(Core_UpdateMillennium, MillenniumUpdater::StartUpdate(ARGS["downloadUrl"], ARGS["downloadSize"], ARGS["background"]))
-IPC_RET(Core_HasPendingMillenniumUpdateRestart, MillenniumUpdater::HasPendingRestart())
-
-/**
- * Initialize core components
- * Called before any other plugin is loaded.
- */
-void Core_Load()
+builtin_payload head::millennium_backend::Core_LoadQuickCss(const builtin_payload&)
 {
-    settingsStore = std::make_unique<SettingsStore>();
-    updater = std::make_shared<Updater>();
-    themeConfig = std::make_shared<ThemeConfig>();
+    const std::string quickCssPath = fmt::format("{}/quickcss.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
+
+    if (!std::filesystem::exists(quickCssPath)) {
+        platform::write_file(quickCssPath, "/* Quick CSS file created by Millennium */\n");
+    }
+
+    return platform::read_file(quickCssPath);
+}
+builtin_payload head::millennium_backend::Core_SaveQuickCss(const builtin_payload& args)
+{
+    const std::string quickCssPath = fmt::format("{}/quickcss.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
+    platform::write_file(quickCssPath, args["css"].get<std::string>());
+    return {};
 }
 
-/** TODO: unused, impl later. shouldn't cause any issues on shutdown though. */
-void Core_Unload()
+/** General utilities */
+builtin_payload head::millennium_backend::Core_GetSteamPath(const builtin_payload&)
 {
-    settingsStore.reset();
-    updater.reset();
-    themeConfig.reset();
+    return platform::get_steam_path();
+}
+builtin_payload head::millennium_backend::Core_FindAllThemes(const builtin_payload&)
+{
+    return head::Themes::FindAllThemes();
+}
+builtin_payload head::millennium_backend::Core_FindAllPlugins(const builtin_payload&)
+{
+    return head::Plugins::FindAllPlugins(m_plugin_manager);
+}
+builtin_payload head::millennium_backend::Core_GetEnvironmentVar(const builtin_payload& args)
+{
+    return platform::environment::get(args["variable"]);
+}
+builtin_payload head::millennium_backend::Core_GetBackendConfig(const builtin_payload&)
+{
+    return CONFIG.get_all();
+}
+builtin_payload head::millennium_backend::Core_SetBackendConfig(const builtin_payload& args)
+{
+    return CONFIG.set_all(nlohmann::json::parse(args["config"].get<std::string>()), args.value("skipPropagation", false));
+}
+
+/** Theme and Plugin update API */
+builtin_payload head::millennium_backend::Core_GetUpdates(const builtin_payload& args)
+{
+    return m_updater->check_for_updates(args.value("force", false)).value_or(nullptr);
+}
+
+/** Theme manager API */
+builtin_payload head::millennium_backend::Core_GetActiveTheme(const builtin_payload&)
+{
+    return m_theme_config->get_active_theme();
+}
+builtin_payload head::millennium_backend::Core_ChangeActiveTheme(const builtin_payload& args)
+{
+    m_theme_config->change_theme(args["theme_name"]);
+    return {};
+}
+builtin_payload head::millennium_backend::Core_GetSystemColors(const builtin_payload&)
+{
+    return m_theme_config->get_accent_color();
+}
+builtin_payload head::millennium_backend::Core_ChangeAccentColor(const builtin_payload& args)
+{
+    m_theme_config->set_accent_color(args["new_color"]);
+    return {};
+}
+builtin_payload head::millennium_backend::Core_ChangeColor(const builtin_payload& args)
+{
+    return m_theme_config->set_theme_color(args["theme"], args["color_name"], args["new_color"], args["color_type"]);
+}
+builtin_payload head::millennium_backend::Core_ChangeCondition(const builtin_payload& args)
+{
+    return m_theme_config->set_condition(args["theme"], args["newData"], args["condition"]);
+}
+builtin_payload head::millennium_backend::Core_GetRootColors(const builtin_payload&)
+{
+    return m_theme_config->get_colors();
+}
+builtin_payload head::millennium_backend::Core_DoesThemeUseAccentColor(const builtin_payload&)
+{
+    return true; /** placeholder, too lazy to implement */
+}
+builtin_payload head::millennium_backend::Core_GetThemeColorOptions(const builtin_payload& args)
+{
+    return m_theme_config->get_color_options(args["theme_name"]);
+}
+
+/** Theme installer related API's */
+builtin_payload head::millennium_backend::Core_InstallTheme(const builtin_payload& args)
+{
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->install_theme(m_theme_config, args["repo"], args["owner"]);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
+}
+builtin_payload head::millennium_backend::Core_UninstallTheme(const builtin_payload& args)
+{
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->uninstall_theme(m_theme_config, args["repo"], args["owner"]);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
+}
+builtin_payload head::millennium_backend::Core_DownloadThemeUpdate(const builtin_payload& args)
+{
+    return m_updater->download_theme_update(m_theme_config, args["native"]);
+}
+builtin_payload head::millennium_backend::Core_IsThemeInstalled(const builtin_payload& args)
+{
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->is_theme_installed(args["repo"], args["owner"]);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
+}
+builtin_payload head::millennium_backend::Core_GetThemeFromGitPair(const builtin_payload& args)
+{
+    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
+        return theme_updater->get_theme_from_github(args["repo"], args["owner"], args.value("asString", false)).value_or(nullptr);
+    }
+
+    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+    return false;
+}
+
+/** Plugin related API's */
+builtin_payload head::millennium_backend::Core_DownloadPluginUpdate(const builtin_payload& args)
+{
+    return m_updater->download_plugin_update(args["id"], args["name"]);
+}
+builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_payload& args)
+{
+    if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
+        return plugin_updater->install_plugin(args["download_url"], args["total_size"]);
+    }
+
+    LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
+    return false;
+}
+builtin_payload head::millennium_backend::Core_IsPluginInstalled(const builtin_payload& args)
+{
+    if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
+        return plugin_updater->is_plugin_installed(args["pluginName"]);
+    }
+
+    LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
+    return false;
+}
+builtin_payload head::millennium_backend::Core_UninstallPlugin(const builtin_payload& args)
+{
+    if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
+        return plugin_updater->uninstall_plugin(args["pluginName"]);
+    }
+
+    LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
+    return false;
+}
+
+/** Get plugin backend logs */
+builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builtin_payload&)
+{
+    nlohmann::json logData = nlohmann::json::array();
+    std::vector<plugin_manager::plugin_t> plugins = m_plugin_manager->get_all_plugins();
+
+    for (auto& logger : get_plugin_logger_mgr()) {
+        nlohmann::json logDataItem;
+
+        for (auto [message, logLevel] : logger->collect_logs()) {
+            logDataItem.push_back({
+                { "message", Base64Encode(message) },
+                { "level",   logLevel              }
+            });
+        }
+
+        std::string pluginName = logger->get_plugin_name(false);
+
+        for (auto& plugin : plugins) {
+            if (plugin.plugin_json.contains("name") && plugin.plugin_json["name"] == logger->get_plugin_name(false)) {
+                pluginName = plugin.plugin_json.value("common_name", pluginName);
+                break;
+            }
+        }
+
+        // Handle package manager plugin
+        if (pluginName == "pipx") pluginName = "Package Manager";
+
+        logData.push_back({
+            { "name", pluginName  },
+            { "logs", logDataItem }
+        });
+    }
+
+    return logData;
+}
+
+/** Update Millennium API */
+builtin_payload head::millennium_backend::Core_UpdateMillennium(const builtin_payload& args)
+{
+    m_millennium_updater->update(args["downloadUrl"], args["downloadSize"], args["background"]);
+    return {};
+}
+
+builtin_payload head::millennium_backend::Core_HasPendingMillenniumUpdateRestart(const builtin_payload&)
+{
+    return m_millennium_updater->is_pending_restart();
+}
+
+builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)
+{
+    // Skip plugin settings parser as it's not applicable
+    if (functionName == "__builtins__.__millennium_plugin_settings_parser__") {
+        throw std::runtime_error("Not applicable to this plugin");
+    }
+
+    const auto it = function_map.find(functionName);
+
+    if (it == function_map.end()) {
+        const std::string errorMsg = "Function not found: " + functionName;
+        LOG_ERROR("{}", errorMsg);
+        throw std::runtime_error(errorMsg);
+    }
+
+    /** call the functions with provided args */
+    return (std::any_cast<std::function<builtin_payload(const builtin_payload&)>>(it->second))(args);
+}
+
+void head::millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
+{
+    m_ipc_main = std::move(ipc_main);
 }
