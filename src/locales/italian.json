@@ -92,7 +92,6 @@
   "errorFailedConnectionButton": "Apri cartella dei log",
   "strDone": "Fatto",
   "strUnknown": "Sconosciuto",
-  "strInstallPlugin": "Installa {0}",
   "strSuccessfulInstall": "{0} installato con successo!",
   "strInstallComplete": "Installazione completata",
   "strInstallProgress": "Avanzamento installazione",
