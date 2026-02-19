@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,9 +84,8 @@ const char* Millennium_GetUpdateScript()
 MILLENNIUM_IPC_DECL(Core_ChangePluginStatus)
 {
     std::vector<PluginStatus> plugins;
-    auto pluginJson = nlohmann::json::parse(ARGS["pluginJson"].get<std::string>());
 
-    for (const auto& item : pluginJson) {
+    for (const auto pluginJson = nlohmann::json::parse(ARGS["pluginJson"].get<std::string>()); const auto& item : pluginJson) {
         if (item.contains("plugin_name") && item.contains("enabled")) {
             plugins.push_back({ item["plugin_name"], item["enabled"] });
         }
@@ -110,7 +109,7 @@ MILLENNIUM_IPC_DECL(Core_GetStartConfig)
         { "steamPath", SystemIO::GetSteamPath() },
         { "installPath", SystemIO::GetInstallPath() },
         { "millenniumVersion", MILLENNIUM_VERSION },
-        { "enabledPlugins", settingsStore->GetEnabledPluginNames() },
+        { "enabledPlugins", SettingsStore::GetEnabledPluginNames() },
         { "updates", updater->CheckForUpdates() },
         { "hasCheckedForUpdates", updater->HasCheckedForUpdates() },
         { "millenniumUpdates", MillenniumUpdater::HasAnyUpdates() },

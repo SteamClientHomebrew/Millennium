@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,11 @@
  * SOFTWARE.
  */
 
-#include <curl/curl.h>
+#include <cstdlib>
+#include <cstring>
 #include <lua.hpp>
-#include <stdlib.h>
-#include <string.h>
+
+#include <curl/curl.h>
 
 typedef struct
 {
@@ -39,12 +40,12 @@ typedef struct
     size_t size;
 } HTTPResponse;
 
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, HTTPResponse* response)
+static size_t WriteCallback(const void* contents, const size_t size, const size_t nmemb, HTTPResponse* response)
 {
-    size_t realsize = size * nmemb;
-    char* ptr = (char*)realloc(response->data, response->size + realsize + 1);
+    const size_t realsize = size * nmemb;
+    char* ptr = static_cast<char*>(realloc(response->data, response->size + realsize + 1));
 
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
         return 0; // Out of memory
     }
 
@@ -56,16 +57,16 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, HTTPRespo
     return realsize;
 }
 
-static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* userdata)
+static size_t HeaderCallback(const char* buffer, const size_t size, const size_t nitems, void* userdata)
 {
-    lua_State* L = (lua_State*)userdata;
-    size_t realsize = size * nitems;
+    lua_State* L = static_cast<lua_State*>(userdata);
+    const size_t realsize = size * nitems;
 
     lua_pushstring(L, "response_headers");
     lua_gettable(L, LUA_REGISTRYINDEX);
 
     if (lua_istable(L, -1)) {
-        char* header_line = (char*)malloc(realsize + 1);
+        char* header_line = static_cast<char*>(malloc(realsize + 1));
         memcpy(header_line, buffer, realsize);
         header_line[realsize] = '\0';
 
@@ -75,10 +76,10 @@ static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* use
             end--;
         }
 
-        if (strlen(header_line) > 0 && strchr(header_line, ':') != NULL) {
+        if (strlen(header_line) > 0 && strchr(header_line, ':') != nullptr) {
             char* colon = strchr(header_line, ':');
             *colon = '\0';
-            char* value = colon + 1;
+            const char* value = colon + 1;
 
             while (*value == ' ')
                 value++;
@@ -97,22 +98,20 @@ static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* use
 
 static int Lua_HttpRequest(lua_State* L)
 {
-    CURL* curl;
-    CURLcode res;
-    HTTPResponse response = { NULL, 0 };
-    struct curl_slist* headers = NULL;
+    HTTPResponse response = { nullptr, 0 };
+    curl_slist* headers = nullptr;
 
     const char* url = luaL_checkstring(L, 1);
 
     const char* method = "GET";
-    const char* data = NULL;
+    const char* data = nullptr;
     long timeout = 30;
     int follow_redirects = 1;
     int verify_ssl = 1;
     const char* user_agent = "Millennium/1.0";
-    const char* auth_user = NULL;
-    const char* auth_pass = NULL;
-    const char* proxy = NULL;
+    const char* auth_user = nullptr;
+    const char* auth_pass = nullptr;
+    const char* proxy = nullptr;
 
     if (lua_istable(L, 2)) {
         lua_getfield(L, 2, "method");
@@ -181,8 +180,8 @@ static int Lua_HttpRequest(lua_State* L)
                     const char* key = lua_tostring(L, -2);
                     const char* value = lua_tostring(L, -1);
 
-                    size_t header_len = strlen(key) + strlen(value) + 3;
-                    char* header = (char*)malloc(header_len);
+                    const size_t header_len = strlen(key) + strlen(value) + 3;
+                    char* header = static_cast<char*>(malloc(header_len));
                     snprintf(header, header_len, "%s: %s", key, value);
 
                     headers = curl_slist_append(headers, header);
@@ -194,7 +193,7 @@ static int Lua_HttpRequest(lua_State* L)
         lua_pop(L, 1);
     }
 
-    curl = curl_easy_init();
+    CURL * curl = curl_easy_init();
     if (!curl) {
         lua_pushnil(L);
         lua_pushstring(L, "Failed to initialize curl");
@@ -245,7 +244,7 @@ static int Lua_HttpRequest(lua_State* L)
     }
 
     if (auth_user && auth_pass) {
-        char* auth_string = (char*)malloc(strlen(auth_user) + strlen(auth_pass) + 2);
+        char* auth_string = static_cast<char*>(malloc(strlen(auth_user) + strlen(auth_pass) + 2));
         sprintf(auth_string, "%s:%s", auth_user, auth_pass);
         curl_easy_setopt(curl, CURLOPT_USERPWD, auth_string);
         curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
@@ -260,7 +259,7 @@ static int Lua_HttpRequest(lua_State* L)
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     }
 
-    res = curl_easy_perform(curl);
+    const CURLcode res = curl_easy_perform(curl);
 
     long response_code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
@@ -330,7 +329,7 @@ static int Lua_HttpGet(lua_State* L)
 static int Lua_HttpPost(lua_State* L)
 {
     const char* url = luaL_checkstring(L, 1);
-    const char* data = NULL;
+    const char* data = nullptr;
 
     if (lua_isstring(L, 2)) {
         data = lua_tostring(L, 2);
@@ -364,7 +363,7 @@ static int Lua_HttpPost(lua_State* L)
 static int Lua_HttpPut(lua_State* L)
 {
     const char* url = luaL_checkstring(L, 1);
-    const char* data = NULL;
+    const char* data = nullptr;
 
     if (lua_isstring(L, 2)) {
         data = lua_tostring(L, 2);
@@ -424,7 +423,7 @@ static const luaL_Reg httpFunctions[] = {
     { "post",    Lua_HttpPost    },
     { "put",     Lua_HttpPut     },
     { "delete",  Lua_HttpDelete  },
-    { NULL,      NULL            }
+    { nullptr,      nullptr            }
 };
 
 extern "C" int Lua_OpenHttpLibrary(lua_State* L)

@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include <lua.hpp>
 #include <filesystem>
+#include <lua.hpp>
 #include <system_error>
 
 namespace fs = std::filesystem;
@@ -78,7 +78,7 @@ int Lua_CreateDirectory(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    bool result = fs::create_directory(path, ec);
+    const bool result = fs::create_directory(path, ec);
     lua_pushboolean(L, result);
     if (ec) {
         lua_pushstring(L, ec.message().c_str());
@@ -91,7 +91,7 @@ int Lua_CreateDirectories(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    bool result = fs::create_directories(path, ec);
+    const bool result = fs::create_directories(path, ec);
     lua_pushboolean(L, result);
     if (ec) {
         lua_pushstring(L, ec.message().c_str());
@@ -104,7 +104,7 @@ int Lua_Remove(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    bool result = fs::remove(path, ec);
+    const bool result = fs::remove(path, ec);
     lua_pushboolean(L, result);
     if (ec) {
         lua_pushstring(L, ec.message().c_str());
@@ -117,7 +117,7 @@ int Lua_RemoveAll(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    uintmax_t count = fs::remove_all(path, ec);
+    const uintmax_t count = fs::remove_all(path, ec);
     lua_pushinteger(L, count);
     if (ec) {
         lua_pushstring(L, ec.message().c_str());
@@ -154,7 +154,7 @@ int Lua_ListDirectory(lua_State* L)
 
         if (entry.is_regular_file()) {
             std::error_code size_ec;
-            auto size = entry.file_size(size_ec);
+            const auto size = entry.file_size(size_ec);
             if (!size_ec) {
                 lua_pushinteger(L, size);
                 lua_setfield(L, -2, "size");
@@ -183,7 +183,7 @@ int Lua_ListDirectoryRecursive(lua_State* L)
     int index = 1;
 
     fs::recursive_directory_iterator it(path, ec);
-    fs::recursive_directory_iterator end;
+    const fs::recursive_directory_iterator end;
     for (; it != end; ++it) {
         const auto& entry = *it;
         lua_newtable(L);
@@ -220,7 +220,7 @@ int Lua_Copy(lua_State* L)
 {
     const char* from = luaL_checkstring(L, 1);
     const char* to = luaL_checkstring(L, 2);
-    bool throw_error = lua_toboolean(L, 3);
+    const bool throw_error = lua_toboolean(L, 3);
     std::error_code ec;
     fs::copy(from, to, fs::copy_options::overwrite_existing, ec);
     if (ec) {
@@ -240,7 +240,7 @@ int Lua_CopyRecursive(lua_State* L)
 {
     const char* from = luaL_checkstring(L, 1);
     const char* to = luaL_checkstring(L, 2);
-    bool throw_error = lua_toboolean(L, 3);
+    const bool throw_error = lua_toboolean(L, 3);
     std::error_code ec;
     fs::copy(from, to, fs::copy_options::overwrite_existing | fs::copy_options::recursive, ec);
     if (ec) {
@@ -260,7 +260,7 @@ int Lua_Rename(lua_State* L)
 {
     const char* from = luaL_checkstring(L, 1);
     const char* to = luaL_checkstring(L, 2);
-    bool throw_error = lua_toboolean(L, 3);
+    const bool throw_error = lua_toboolean(L, 3);
     std::error_code ec;
     fs::rename(from, to, ec);
     if (ec) {
@@ -280,7 +280,7 @@ int Lua_FileSize(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    auto size = fs::file_size(path, ec);
+    const auto size = fs::file_size(path, ec);
     if (ec) {
         lua_pushnil(L);
         lua_pushstring(L, ec.message().c_str());
@@ -294,14 +294,14 @@ int Lua_LastWriteTime(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    auto ftime = fs::last_write_time(path, ec);
+    const auto ftime = fs::last_write_time(path, ec);
     if (ec) {
         lua_pushnil(L);
         lua_pushstring(L, ec.message().c_str());
         return 2;
     }
-    auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
-    auto time = std::chrono::system_clock::to_time_t(sctp);
+    const auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(ftime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+    const auto time = std::chrono::system_clock::to_time_t(sctp);
     lua_pushinteger(L, time);
     return 1;
 }
@@ -309,7 +309,7 @@ int Lua_LastWriteTime(lua_State* L)
 int Lua_CurrentPath(lua_State* L)
 {
     std::error_code ec;
-    auto path = fs::current_path(ec);
+    const auto path = fs::current_path(ec);
     if (ec) {
         lua_pushnil(L);
         lua_pushstring(L, ec.message().c_str());
@@ -336,7 +336,7 @@ int Lua_Absolute(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    auto abs = fs::absolute(path, ec);
+    const auto abs = fs::absolute(path, ec);
     if (ec) {
         lua_pushnil(L);
         lua_pushstring(L, ec.message().c_str());
@@ -350,7 +350,7 @@ int Lua_Canonical(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    auto canonical = fs::canonical(path, ec);
+    const auto canonical = fs::canonical(path, ec);
     if (ec) {
         lua_pushnil(L);
         lua_pushstring(L, ec.message().c_str());
@@ -365,7 +365,7 @@ int Lua_Relative(lua_State* L)
     const char* path = luaL_checkstring(L, 1);
     const char* base = lua_isstring(L, 2) ? lua_tostring(L, 2) : nullptr;
     std::error_code ec;
-    auto rel = base ? fs::relative(path, base, ec) : fs::relative(path, ec);
+    const auto rel = base ? fs::relative(path, base, ec) : fs::relative(path, ec);
     if (ec) {
         lua_pushnil(L);
         lua_pushstring(L, ec.message().c_str());
@@ -378,7 +378,7 @@ int Lua_Relative(lua_State* L)
 int Lua_Filename(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
-    fs::path p(path);
+    const fs::path p(path);
     lua_pushstring(L, p.filename().string().c_str());
     return 1;
 }
@@ -386,7 +386,7 @@ int Lua_Filename(lua_State* L)
 int Lua_Extension(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
-    fs::path p(path);
+    const fs::path p(path);
     lua_pushstring(L, p.extension().string().c_str());
     return 1;
 }
@@ -394,7 +394,7 @@ int Lua_Extension(lua_State* L)
 int Lua_Stem(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
-    fs::path p(path);
+    const fs::path p(path);
     lua_pushstring(L, p.stem().string().c_str());
     return 1;
 }
@@ -402,14 +402,14 @@ int Lua_Stem(lua_State* L)
 int Lua_ParentPath(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
-    fs::path p(path);
+    const fs::path p(path);
     lua_pushstring(L, p.parent_path().string().c_str());
     return 1;
 }
 
 int Lua_JoinPath(lua_State* L)
 {
-    int n = lua_gettop(L);
+    const int n = lua_gettop(L);
     fs::path result;
     for (int i = 1; i <= n; i++) {
         result /= luaL_checkstring(L, i);
@@ -422,18 +422,18 @@ int Lua_SpaceInfo(lua_State* L)
 {
     const char* path = luaL_checkstring(L, 1);
     std::error_code ec;
-    auto space = fs::space(path, ec);
+    const auto [capacity, free, available] = fs::space(path, ec);
     if (ec) {
         lua_pushnil(L);
         lua_pushstring(L, ec.message().c_str());
         return 2;
     }
     lua_newtable(L);
-    lua_pushinteger(L, space.capacity);
+    lua_pushinteger(L, capacity);
     lua_setfield(L, -2, "capacity");
-    lua_pushinteger(L, space.free);
+    lua_pushinteger(L, free);
     lua_setfield(L, -2, "free");
-    lua_pushinteger(L, space.available);
+    lua_pushinteger(L, available);
     lua_setfield(L, -2, "available");
     return 1;
 }
@@ -476,7 +476,7 @@ static const luaL_Reg fs_lib[] = {
     // Space info
     { "space_info",         Lua_SpaceInfo              },
 
-    { NULL,                 NULL                       }
+    { nullptr,                 nullptr                       }
 };
 
 extern "C" int Lua_OpenFS(lua_State* L)

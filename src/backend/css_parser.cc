@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,26 +31,26 @@
 #include "head/css_parser.h"
 
 #include <fstream>
-#include <fmt/core.h>
 #include <regex>
 #include <sstream>
+#include <fmt/core.h>
 
 std::string Millennium::CSSParser::Trim(const std::string& str)
 {
     const std::string whitespace = " \t\n\r";
-    size_t start = str.find_first_not_of(whitespace);
+    const size_t start = str.find_first_not_of(whitespace);
     if (start == std::string::npos) return "";
-    size_t end = str.find_last_not_of(whitespace);
+    const size_t end = str.find_last_not_of(whitespace);
     return str.substr(start, end - start + 1);
 }
 
-std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::string& color, ColorTypes type)
+std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::string& color, const ColorTypes type)
 {
     if (type == ColorTypes::Unknown) {
         return std::nullopt;
     }
 
-    std::string hex = (color[0] == '#') ? color.substr(1) : color;
+    const std::string hex = (color[0] == '#') ? color.substr(1) : color;
 
     const int r = std::stoi(hex.substr(0, 2), nullptr, 16);
     const int g = std::stoi(hex.substr(2, 2), nullptr, 16);
@@ -79,7 +79,7 @@ std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::stri
     }
 }
 
-std::optional<std::string> Millennium::CSSParser::ConvertToHex(const std::string& color, ColorTypes type)
+std::optional<std::string> Millennium::CSSParser::ConvertToHex(const std::string& color, const ColorTypes type)
 {
     if (type == ColorTypes::Hex) {
         return color;
@@ -138,7 +138,7 @@ Millennium::ColorTypes Millennium::CSSParser::ParseColor(const std::string& colo
 {
     if (color.rfind("rgb(", 0) == 0) return ColorTypes::RGB;
     if (color.rfind("rgba(", 0) == 0) return ColorTypes::RGBA;
-    if (color.rfind("#", 0) == 0) return ColorTypes::Hex;
+    if (color.rfind('#', 0) == 0) return ColorTypes::Hex;
     return TryRawParse(color);
 }
 
@@ -171,9 +171,8 @@ nlohmann::json Millennium::CSSParser::GenerateColorMetadata(const std::map<std::
 }
 std::string Millennium::CSSParser::ExtractRootBlock(const std::string& fileContent)
 {
-    std::regex rootRegex(R"(:root\s*\{([\s\S]*)\})", std::regex::ECMAScript);
-    std::smatch match;
-    if (std::regex_search(fileContent, match, rootRegex)) return match[1].str();
+    const std::regex rootRegex(R"(:root\s*\{([\s\S]*)\})", std::regex::ECMAScript);
+    if (std::smatch match; std::regex_search(fileContent, match, rootRegex)) return match[1].str();
     return "";
 }
 
@@ -201,8 +200,7 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
         }
 
         std::regex propRegex(R"(([\w-]+)\s*:\s*([^;]+);)");
-        std::smatch match;
-        if (std::regex_match(line, match, propRegex)) {
+        if (std::smatch match; std::regex_match(line, match, propRegex)) {
             std::string propName = match[1].str();
             std::string propValue = Trim(match[2].str());
             properties[propName] = propValue;
@@ -211,9 +209,8 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
             if (!lastComment.empty()) {
                 std::regex nameRegex(R"(@name\s+([^\*]+))");
                 std::regex descRegex(R"(@description\s+([^\*]+))");
-                std::smatch nameMatch, descMatch;
-                if (std::regex_search(lastComment, nameMatch, nameRegex)) name = Trim(nameMatch[1].str());
-                if (std::regex_search(lastComment, descMatch, descRegex)) description = Trim(descMatch[1].str());
+                if (std::smatch nameMatch; std::regex_search(lastComment, nameMatch, nameRegex)) name = Trim(nameMatch[1].str());
+                if (std::smatch descMatch; std::regex_search(lastComment, descMatch, descRegex)) description = Trim(descMatch[1].str());
                 lastComment.clear();
             }
 

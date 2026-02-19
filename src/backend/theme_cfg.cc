@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,8 +36,9 @@
 
 #include "millennium/logger.h"
 
-#include <fmt/format.h>
+#include <fstream>
 #include <regex>
+#include <fmt/format.h>
 
 ThemeConfig::ThemeConfig()
 {
@@ -52,13 +53,13 @@ ThemeConfig::ThemeConfig()
 
 ThemeConfig::~ThemeConfig()
 {
-    // CONFIG.UnregisterListener(config_listener_);
+    CONFIG.UnregisterListener(config_listener_);
 }
 
 void ThemeConfig::OnConfigChange()
 {
     ValidateTheme();
-    WebkitHookStore::Instance().UnregisterAll();
+    WebkitHookStore::GetInstance().UnregisterAll();
     SetupThemeHooks();
 }
 
@@ -85,8 +86,8 @@ void ThemeConfig::UpgradeOldConfig()
             if (!CONFIG.GetNested("themes.conditions." + theme_name).is_object()) CONFIG.SetNested("themes.conditions." + theme_name, nlohmann::json::object(), true);
 
             for (auto& [condition_name, condition_value] : conditions.items()) {
-                Logger.Log("Upgrading condition '" + condition_name + "' for theme '" + theme_name + "'");
-                CONFIG.SetNested("themes.conditions." + theme_name + "." + condition_name, condition_value, true);
+                Logger.Log("Upgrading condition '" + condition_name + "' for theme '" += theme_name + "'");
+                CONFIG.SetNested("themes.conditions." + theme_name + "." += condition_name, condition_value, true);
             }
         }
     }
@@ -99,8 +100,8 @@ void ThemeConfig::UpgradeOldConfig()
             if (!CONFIG.GetNested("themes.themeColors." + theme_name).is_object()) CONFIG.SetNested("themes.themeColors." + theme_name, nlohmann::json::object(), true);
 
             for (auto& [color_name, color_value] : colors_obj.items()) {
-                Logger.Log("Upgrading color '" + color_name + "' for theme '" + theme_name + "'");
-                CONFIG.SetNested("themes.themeColors." + theme_name + "." + color_name, color_value, true);
+                Logger.Log("Upgrading color '" + color_name + "' for theme '" += theme_name + "'");
+                CONFIG.SetNested("themes.themeColors." + theme_name + "." += color_name, color_value, true);
             }
         }
     }
@@ -132,8 +133,7 @@ void ThemeConfig::ValidateTheme()
 {
     if (CONFIG.GetNested("themes.activeTheme").is_null()) CONFIG.SetNested("themes.activeTheme", "default");
 
-    std::string active = CONFIG.GetNested("themes.activeTheme").get<std::string>();
-    if (active != "default" && !Millennium::Themes::IsValid(active)) {
+    if (const std::string active = CONFIG.GetNested("themes.activeTheme").get<std::string>(); active != "default" && !Millennium::Themes::IsValid(active)) {
         Logger.Log("Theme '" + active + "' is invalid. Resetting to default.");
         CONFIG.SetNested("themes.activeTheme", "default");
     }
@@ -159,7 +159,7 @@ nlohmann::json ThemeConfig::GetAccentColor()
     return Colors::GetAccentColor(CONFIG.GetNested("general.accentColor").get<std::string>());
 }
 
-nlohmann::json ThemeConfig::GetActiveTheme()
+nlohmann::json ThemeConfig::GetActiveTheme() const
 {
     std::string active = CONFIG.GetNested("themes.activeTheme").get<std::string>();
     std::filesystem::path path = themes_path / active / "skin.json";
@@ -189,12 +189,12 @@ void ThemeConfig::SetupThemeHooks()
     SetupColors();
 }
 
-void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string& name)
+void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string& name) const
 {
     if (theme.contains("failed")) return;
 
-    std::filesystem::path theme_path = themes_path / name;
-    std::vector<std::string> cssItems = {
+    const std::filesystem::path theme_path = themes_path / name;
+    const std::vector<std::string> cssItems = {
         "Steam-WebKit",
         "webkitCSS",
     };
@@ -212,9 +212,8 @@ void ThemeConfig::StartWebkitHook(const nlohmann::json& theme, const std::string
 
 void ThemeConfig::SetupColors()
 {
-    nlohmann::json all_themes = Millennium::Themes::FindAllThemes();
 
-    for (auto& theme : all_themes) {
+    for (const nlohmann::json all_themes = Millennium::Themes::FindAllThemes(); auto& theme : all_themes) {
         if (theme.contains("failed") || !theme.contains("data") || !theme["data"].contains("RootColors")) {
             continue;
         }
@@ -231,28 +230,26 @@ void ThemeConfig::SetupColors()
             CONFIG.SetNested("themes.themeColors." + nativeName, nlohmann::json::object(), /*skipPropagation=*/false);
 
         for (auto& color : colors[nativeName]) {
-            std::string colorName = color["color"].get<std::string>();
-            std::string defaultHex = color["defaultColor"].get<std::string>();
+            const std::string colorName = color["color"].get<std::string>();
+            const std::string defaultHex = color["defaultColor"].get<std::string>();
             int typeEnum = color["type"].get<int>();
 
             auto colorValue = Millennium::CSSParser::ConvertFromHex(defaultHex, static_cast<Millennium::ColorTypes>(typeEnum));
 
-            if (CONFIG.GetNested("themes.themeColors." + nativeName + "." + colorName, nullptr).is_null())
-                CONFIG.SetNested("themes.themeColors." + nativeName + "." + colorName, colorValue.value_or(""), /*skipPropagation=*/false);
+            if (CONFIG.GetNested("themes.themeColors." + nativeName + "." += colorName, nullptr).is_null())
+                CONFIG.SetNested("themes.themeColors." + nativeName + "." += colorName, colorValue.value_or(""), /*skipPropagation=*/false);
         }
     }
 }
 
-nlohmann::json ThemeConfig::GetColors()
+nlohmann::json ThemeConfig::GetColors() const
 {
     std::string root = ":root {";
     std::string name = active_theme_name;
 
     if (!CONFIG.GetNested("themes.themeColors." + name).is_object()) return ":root {}";
 
-    const auto themeColors = CONFIG.GetNested(fmt::format("themes.themeColors.{}", name));
-
-    for (auto& [color, value] : themeColors.items())
+    for (const auto themeColors = CONFIG.GetNested(fmt::format("themes.themeColors.{}", name)); auto& [color, value] : themeColors.items())
         root += fmt::format("{}: {};", color, value.get<std::string>());
 
     root += "}";
@@ -261,7 +258,7 @@ nlohmann::json ThemeConfig::GetColors()
 
 nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
 {
-    if (colors.find(theme_name) == colors.end()) {
+    if (!colors.contains(theme_name)) {
         Logger.Warn("No root colors found for theme: {}", theme_name);
         return nlohmann::json::array();
     }
@@ -270,10 +267,8 @@ nlohmann::json ThemeConfig::GetColorOpts(const std::string& theme_name)
     auto saved_colors = CONFIG.GetNested("themes.themeColors." + theme_name);
 
     for (auto& color : root_colors) {
-        std::string cname = color["color"].get<std::string>();
-        if (saved_colors.contains(cname)) {
-            const auto hex_color = Millennium::CSSParser::ConvertToHex(saved_colors[cname].get<std::string>(), static_cast<Millennium::ColorTypes>(color["type"].get<int>()));
-            if (hex_color.has_value()) color["hex"] = hex_color.value();
+        if (const std::string cname = color["color"].get<std::string>(); saved_colors.contains(cname)) {
+            if (const auto hex_color = Millennium::CSSParser::ConvertToHex(saved_colors[cname].get<std::string>(), static_cast<Millennium::ColorTypes>(color["type"].get<int>())); hex_color.has_value()) color["hex"] = hex_color.value();
         }
     }
 
@@ -307,9 +302,7 @@ void ThemeConfig::SetupConditionals()
 {
     if (!CONFIG.GetNested("themes.conditions", nlohmann::json::object()).is_object()) CONFIG.SetNested("themes.conditions", nlohmann::json::object());
 
-    nlohmann::json themes = Millennium::Themes::FindAllThemes();
-
-    for (auto& theme : themes) {
+    for (const nlohmann::json themes = Millennium::Themes::FindAllThemes(); auto& theme : themes) {
         if (!theme.contains("data") || theme.contains("failed")) {
             Logger.Log("Skipping invalid or failed theme.");
             continue;
@@ -331,20 +324,17 @@ void ThemeConfig::SetupConditionals()
                 continue;
             }
 
-            nlohmann::json current_conditions = CONFIG.GetNested(fmt::format("themes.conditions.{}", theme_name), nlohmann::json::object());
-
-            if (!current_conditions.contains(condition_name)) {
+            if (const nlohmann::json current_conditions = CONFIG.GetNested(fmt::format("themes.conditions.{}", theme_name), nlohmann::json::object()); !current_conditions.contains(condition_name)) {
                 CONFIG.SetNested(fmt::format("themes.conditions.{}.{}", theme_name, condition_name), default_value);
             } else {
-                nlohmann::json value = current_conditions[condition_name];
-                if (!condition_value["values"].contains(value)) {
+                if (const nlohmann::json& value = current_conditions[condition_name]; !condition_value["values"].contains(value)) {
                     CONFIG.SetNested(fmt::format("themes.conditions.{}.{}", theme_name, condition_name), default_value);
                 }
             }
         }
     }
 
-    ConfigManager::Instance().SaveToFile();
+    ConfigManager::GetInstance().SaveToFile();
 }
 
 nlohmann::json ThemeConfig::ChangeCondition(const std::string& theme, const nlohmann::json& newData, const std::string& condition)
@@ -366,7 +356,7 @@ std::string ThemeConfig::GetConditionals()
 std::set<std::string> ThemeConfig::GetAllImports(const std::filesystem::path& css_path, std::set<std::string> visited)
 {
     std::string abs_path = std::filesystem::absolute(css_path).string();
-    if (visited.count(abs_path)) return visited;
+    if (visited.contains(abs_path)) return visited;
 
     visited.insert(abs_path);
 
@@ -383,7 +373,7 @@ std::set<std::string> ThemeConfig::GetAllImports(const std::filesystem::path& cs
     std::string::const_iterator search_start(content.cbegin());
     while (std::regex_search(search_start, content.cend(), match, import_regex)) {
         std::string imported_path = match[1].str();
-        if (!(imported_path.rfind("http://", 0) == 0) && !(imported_path.rfind("https://", 0) == 0)) imported_path = (css_path.parent_path() / imported_path).string();
+        if (imported_path.rfind("http://", 0) != 0 && imported_path.rfind("https://", 0) != 0) imported_path = (css_path.parent_path() / imported_path).string();
 
         GetAllImports(imported_path, visited);
         search_start = match.suffix().first;

@@ -42,18 +42,18 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
     std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
     std::unordered_map<std::string, bool> pluginStatusMap;
-    for (const auto& plugin : plugins) {
-        pluginStatusMap[plugin.pluginName] = plugin.enabled;
+    for (const auto& [pluginName, enabled] : plugins) {
+        pluginStatusMap[pluginName] = enabled;
     }
 
     bool hasEnableRequests = false;
     std::vector<std::string> pluginsToDisable;
 
-    for (const auto& entry : pluginStatusMap) {
-        const std::string& pluginName = entry.first;
-        const bool newStatus = entry.second;
+    for (const auto& [fst, snd] : pluginStatusMap) {
+        const std::string& pluginName = fst;
+        const bool newStatus = snd;
 
-        settingsStore->TogglePluginStatus(pluginName.c_str(), newStatus);
+        SettingsStore::TogglePluginStatus(pluginName.c_str(), newStatus);
 
         if (newStatus) {
             hasEnableRequests = true;
@@ -81,10 +81,10 @@ void Millennium_TogglePluginStatus(const std::vector<PluginStatus>& plugins)
     CoInitializer::ReInjectFrontendShims(g_pluginLoader, true);
 }
 
-unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, HttpHookManager::TagTypes type)
+unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const char* regexSelector, const HttpHookManager::TagTypes type)
 {
-    g_hookedModuleId++;
-    auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
+    ++g_hookedModuleId;
+    const auto path = SystemIO::GetSteamPath() / "steamui" / moduleItem;
 
     try {
         HttpHookManager::GetInstance().AddHook({ path.generic_string(), std::regex(regexSelector), type, g_hookedModuleId });
@@ -100,11 +100,10 @@ unsigned long long Millennium_AddBrowserModule(const char* moduleItem, const cha
 nlohmann::json Millennium_GetPluginLogs()
 {
     nlohmann::json logData = nlohmann::json::array();
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
 
-    std::vector<SettingsStore::PluginTypeSchema> plugins = settingsStore->ParseAllPlugins();
+    std::vector<SettingsStore::PluginTypeSchema> plugins = SettingsStore::ParseAllPlugins();
 
-    for (auto& logger : g_loggerList) {
+    for (const auto& logger : g_loggerList) {
         nlohmann::json logDataItem;
 
         for (auto [message, logLevel] : logger->CollectLogs()) {

@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/cef_bridge.h"
 #include "millennium/http_hooks.h"
@@ -45,8 +44,6 @@
 #include <winsock2.h>
 #endif
 
-extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
-
 class CEFBrowser
 {
     HttpHookManager& webKitHandler;
@@ -56,15 +53,15 @@ class CEFBrowser
   public:
     CEFBrowser();
     void onMessage(websocketpp::client<websocketpp::config::asio_client>* c, websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg);
-    void SetupSharedJSContext();
-    void onSharedJsConnect();
+    static void SetupSharedJSContext();
+    void onSharedJsConnect() const;
     void onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle);
 };
 
 class PluginLoader
 {
   public:
-    PluginLoader(std::chrono::system_clock::time_point startTime);
+    explicit PluginLoader(std::chrono::system_clock::time_point startTime);
     // ~PluginLoader();
 
     void StartBackEnds(BackendManager& manager);
@@ -75,7 +72,7 @@ class PluginLoader
     void Initialize();
 
     void PrintActivePlugins();
-    std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
+    static std::shared_ptr<std::thread> ConnectCEFBrowser(std::shared_ptr<CEFBrowser> cefBrowserHandler, std::shared_ptr<SocketHelpers> socketHelpers);
 
     std::unique_ptr<SettingsStore> m_settingsStorePtr;
     std::shared_ptr<std::vector<SettingsStore::PluginTypeSchema>> m_pluginsPtr, m_enabledPluginsPtr;

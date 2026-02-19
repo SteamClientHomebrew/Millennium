@@ -39,43 +39,43 @@
  */
 
 #include "hhx64/cef_def.h"
-#include "hhx64/urlp.h"
 #include "hhx64/log.h"
+#include "hhx64/urlp.h"
 
 #ifdef __linux__
 #include <unistd.h>
 #endif
 
 #ifdef _WIN32
-static int(__cdecl* win32_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;
+static int(__cdecl* win32_cef_browser_host_create_browser)(const void*, _cef_client_t*, void*, const void*, void*, void*) = nullptr;
 #endif
 
 extern cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url);
-extern struct _cef_client_t* orig_c;
-extern struct _cef_request_handler_t* (*original_get_request_handler)(void*);
-extern struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*);
+extern _cef_client_t* orig_c;
+extern _cef_request_handler_t* (*original_get_request_handler)(void*);
+extern _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, _cef_request_t*, int, int, void*, int*);
 
 /**
  * hook resource request handler to block steamloopback.host requests.
  *
  * This function wraps cef get_resource_request_handler to intercept all
  * resource requests. Requests to steamloopback.host are blocked by returning
- * NULL, preventing Steam's internal handlers from serving the content.
+ * nullptr, preventing Steam's internal handlers from serving the content.
  */
-void* hooked_get_resource(void* _1, void* _2, void* _3, struct _cef_request_t* request, int _5, int _6, void* _7, int* _8)
+void* hooked_get_resource(void* _1, void* _2, void* _3, _cef_request_t* request, const int _5, const int _6, void* _7, int* _8)
 {
     CEF_LAZY_LOAD(cef_string_userfree_utf8_free, void, (cef_string_userfree_utf8_t));
-    cef_string_userfree_t url = request->get_url(request);
+    const cef_string_userfree_t url = request->get_url(request);
 
     if (urlp_should_block_lb_req(url)) {
         cef_resource_request_handler_t* custom_handler = create_steamloopback_request_handler(url->str);
-        if (url && lazy_cef_string_userfree_utf8_free) lazy_cef_string_userfree_utf8_free((cef_string_userfree_utf8_t)url);
+        if (url && lazy_cef_string_userfree_utf8_free) lazy_cef_string_userfree_utf8_free(static_cast<cef_string_userfree_utf8_t>(url));
         return custom_handler;
     }
 
     /** free the requested url */
     if (url && lazy_cef_string_userfree_utf8_free) {
-        lazy_cef_string_userfree_utf8_free((cef_string_userfree_utf8_t)url);
+        lazy_cef_string_userfree_utf8_free(static_cast<cef_string_userfree_utf8_t>(url));
     }
 
     return orig_get_resource(_1, _2, _3, request, _5, _6, _7, _8);
@@ -89,9 +89,9 @@ void* hooked_get_resource(void* _1, void* _2, void* _3, struct _cef_request_t* r
  * Steam creates. (not sure why they have multiple handlers for the same type of thing,
  * but maybe im just dumb)
  */
-struct _cef_request_handler_t* hooked_get_request_handler(void* self)
+_cef_request_handler_t* hooked_get_request_handler(void* self)
 {
-    struct _cef_request_handler_t* handler = original_get_request_handler(self);
+    _cef_request_handler_t* handler = original_get_request_handler(self);
     if (!handler || !handler->get_resource_request_handler) {
         return handler;
     }
@@ -112,9 +112,9 @@ struct _cef_request_handler_t* hooked_get_request_handler(void* self)
  * thankfully since steam doesn't statically link against cef (not even sure if its possible), it allows us to trampoline
  * calls it makes to cef.
  */
-extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
+extern "C" int cef_browser_host_create_browser(const void* _1, _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
 {
-    CEF_LAZY_LOAD(cef_browser_host_create_browser, int, (const void*, struct _cef_client_t*, void*, const void*, void*, void*));
+    CEF_LAZY_LOAD(cef_browser_host_create_browser, int, (const void*, _cef_client_t*, void*, const void*, void*, void*));
 
     /** overwrite steams get request handler they provide. */
     if (c && c->get_request_handler && !orig_c) {

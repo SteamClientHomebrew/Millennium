@@ -28,22 +28,22 @@
  * SOFTWARE.
  */
 
-#include <assert.h>
-#include <string.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <re2/re2.h>
-#include <re2/set.h>
-#include <vector>
-#include <string>
+#include "hhx64/log.h"
 #include "hhx64/match.h"
 #include "hhx64/smem.h"
-#include "hhx64/log.h"
 
-static const uint32_t MAX_FILE_SIZE = 256 * 1024 * 1024; /** 256MB */
-static const uint32_t MAX_POOL_CAPACITY = 1000000;       /** 1M entries */
-static const unsigned long long MAX_PATTERN_COUNT = 100000;
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <vector>
+
+#include <re2/re2.h>
+#include <re2/set.h>
+
+static constexpr uint32_t MAX_FILE_SIZE = 256 * 1024 * 1024; /** 256MB */
+static constexpr uint32_t MAX_POOL_CAPACITY = 1000000;       /** 1M entries */
+static constexpr unsigned long long MAX_PATTERN_COUNT = 100000;
 
 #ifdef _WIN32
 #define plat_strdup _strdup
@@ -52,7 +52,7 @@ static const unsigned long long MAX_PATTERN_COUNT = 100000;
 #endif
 
 /** there should absolutely never be a scenario where this happens, but just to be safe */
-static const uint32_t MAX_PLUGIN_NAME_LEN = 1024;
+static constexpr uint32_t MAX_PLUGIN_NAME_LEN = 1024;
 
 typedef struct
 {
@@ -66,7 +66,7 @@ typedef struct
     uint32_t count;
 } regex_cache_t;
 
-static inline bool safe_mul_u32(uint32_t a, uint32_t b, uint32_t* result)
+static bool safe_mul_u32(const uint32_t a, const uint32_t b, uint32_t* result)
 {
     if (b != 0 && a > UINT32_MAX / b) {
         return false;
@@ -75,7 +75,7 @@ static inline bool safe_mul_u32(uint32_t a, uint32_t b, uint32_t* result)
     return true;
 }
 
-static inline bool safe_add_u32(uint32_t a, uint32_t b, uint32_t* result)
+[[maybe_unused]] static bool safe_add_u32(const uint32_t a, const uint32_t b, uint32_t* result)
 {
     if (a > UINT32_MAX - b) {
         return false;
@@ -84,7 +84,7 @@ static inline bool safe_add_u32(uint32_t a, uint32_t b, uint32_t* result)
     return true;
 }
 
-static inline bool safe_mul_size(size_t a, size_t b, size_t* result)
+static bool safe_mul_size(const size_t a, const size_t b, size_t* result)
 {
     if (b != 0 && a > SIZE_MAX / b) {
         return false;
@@ -93,7 +93,7 @@ static inline bool safe_mul_size(size_t a, size_t b, size_t* result)
     return true;
 }
 
-static inline bool safe_add_size(size_t a, size_t b, size_t* result)
+static  bool safe_add_size(const size_t a, const size_t b, size_t* result)
 {
     if (a > SIZE_MAX - b) {
         return false;
@@ -132,8 +132,8 @@ static int resize_pools(const char*** file_pool, match_plugin_map_t** plugin_map
         return -1;
     }
 
-    const char** new_pool = (const char**)realloc(*file_pool, pool_size);
-    match_plugin_map_t* new_map = (match_plugin_map_t*)realloc(*plugin_map, map_size);
+    const char** new_pool = static_cast<const char**>(realloc(*file_pool, pool_size));
+    match_plugin_map_t* new_map = static_cast<match_plugin_map_t*>(realloc(*plugin_map, map_size));
 
     if (!new_pool || !new_map) {
         free(new_pool);
@@ -147,14 +147,14 @@ static int resize_pools(const char*** file_pool, match_plugin_map_t** plugin_map
     return 0;
 }
 
-static void add_file_entry(const char** file_pool, match_plugin_map_t* plugin_map, uint32_t index, const char* file, const char* plugin_name)
+static void add_file_entry(const char** file_pool, match_plugin_map_t* plugin_map, const uint32_t index, const char* file, const char* plugin_name)
 {
     file_pool[index] = file;
     plugin_map[index].match_id = index;
     plugin_map[index].plugin_name = plugin_name;
 }
 
-static int process_patch_list(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, const char* plugin_name, const char*** file_pool, match_plugin_map_t** plugin_map,
+static int process_patch_list(lb_shm_arena_t* arena, const lb_patch_list_shm_t* list, const char* plugin_name, const char*** file_pool, match_plugin_map_t** plugin_map,
                               uint32_t* capacity, uint32_t* file_count)
 {
     if (!arena || !list || !plugin_name || !file_pool || !plugin_map || !capacity || !file_count) {
@@ -168,7 +168,7 @@ static int process_patch_list(lb_shm_arena_t* arena, lb_patch_list_shm_t* list, 
         return -1;
     }
 
-    lb_patch_shm_t* patches = SHM_PTR(arena, list->patches_off, lb_patch_shm_t);
+    const lb_patch_shm_t* patches = SHM_PTR(arena, list->patches_off, lb_patch_shm_t);
 
     for (uint32_t j = 0; j < list->patch_count; j++) {
         if (*file_count >= UINT32_MAX) {
@@ -198,12 +198,12 @@ extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_rege
 
     uint32_t capacity = 0;
     uint32_t file_count = 0;
-    const char** file_regex_pool = NULL;
-    match_plugin_map_t* plugin_map = NULL;
+    const char** file_regex_pool = nullptr;
+    match_plugin_map_t* plugin_map = nullptr;
 
-    lb_hash_map_shm* map = &arena->map;
-    uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
-    lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
+    const lb_hash_map_shm* map = &arena->map;
+    const uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
+    const lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
 
     if (map->count > MAX_PATTERN_COUNT) {
         log_error("Map count %u exceeds maximum\n", map->count);
@@ -213,7 +213,7 @@ extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_rege
     for (uint32_t i = 0; i < map->count; i++) {
         const char* plugin_name = SHM_PTR(arena, keys[i], char);
 
-        size_t name_len = strnlen(plugin_name, MAX_PLUGIN_NAME_LEN + 1);
+        const size_t name_len = strnlen(plugin_name, MAX_PLUGIN_NAME_LEN + 1);
         if (name_len > MAX_PLUGIN_NAME_LEN) {
             log_error("Plugin name exceeds maximum length\n");
             free(file_regex_pool);
@@ -237,13 +237,13 @@ extern "C" int get_file_regex_pool(lb_shm_arena_t* arena, const char*** out_rege
 static char* preprocess_replacement(const char* replacement, const char* plugin_name)
 {
     if (!replacement || !plugin_name) {
-        return NULL;
+        return nullptr;
     }
 
-    size_t plugin_name_len = strnlen(plugin_name, MAX_PLUGIN_NAME_LEN + 1);
+    const size_t plugin_name_len = strnlen(plugin_name, MAX_PLUGIN_NAME_LEN + 1);
     if (plugin_name_len > MAX_PLUGIN_NAME_LEN) {
         log_error("Plugin name too long\n");
-        return NULL;
+        return nullptr;
     }
 
     const char* placeholder = "#{{self}}";
@@ -253,47 +253,47 @@ static char* preprocess_replacement(const char* replacement, const char* plugin_
         return plat_strdup(replacement);
     }
 
-    size_t placeholder_len = strlen(placeholder);
-    size_t prefix_len = ptr - replacement;
-    size_t suffix_len = strlen(ptr + placeholder_len);
+    const size_t placeholder_len = strlen(placeholder);
+    const size_t prefix_len = ptr - replacement;
+    const size_t suffix_len = strlen(ptr + placeholder_len);
 
     const char* template_str = "window.PLUGIN_LIST['%s']";
-    size_t template_base_len = strlen(template_str) - 2;
+    const size_t template_base_len = strlen(template_str) - 2;
 
     size_t substitute_len;
     if (!safe_add_size(template_base_len, plugin_name_len, &substitute_len)) {
         log_error("Substitute length overflow\n");
-        return NULL;
+        return nullptr;
     }
 
     if (substitute_len > 8192) {
         log_error("Substitute string too long\n");
-        return NULL;
+        return nullptr;
     }
 
-    char* substitute = (char*)malloc(substitute_len + 1);
+    char* substitute = static_cast<char*>(malloc(substitute_len + 1));
     if (!substitute) {
-        return NULL;
+        return nullptr;
     }
 
-    int written = snprintf(substitute, substitute_len + 1, template_str, plugin_name);
-    if (written < 0 || (size_t)written >= substitute_len + 1) {
+    const int written = snprintf(substitute, substitute_len + 1, template_str, plugin_name);
+    if (written < 0 || static_cast<size_t>(written) >= substitute_len + 1) {
         free(substitute);
         log_error("snprintf failed or truncated\n");
-        return NULL;
+        return nullptr;
     }
 
     size_t total_len;
     if (!safe_add_size(prefix_len, substitute_len, &total_len) || !safe_add_size(total_len, suffix_len, &total_len) || !safe_add_size(total_len, 1, &total_len)) {
         free(substitute);
         log_error("Total length overflow\n");
-        return NULL;
+        return nullptr;
     }
 
-    char* result = (char*)malloc(total_len);
+    char* result = static_cast<char*>(malloc(total_len));
     if (!result) {
         free(substitute);
-        return NULL;
+        return nullptr;
     }
 
     memcpy(result, replacement, prefix_len);
@@ -305,16 +305,16 @@ static char* preprocess_replacement(const char* replacement, const char* plugin_
     return result;
 }
 
-static char* apply_substitution(RE2* re, const char* input, uint32_t input_size, const char* replacement, uint32_t* out_size)
+static char* apply_substitution(const RE2* re, const char* input, const uint32_t input_size, const char* replacement, uint32_t* out_size)
 {
     if (!re || !re->ok() || !input || !replacement || !out_size) {
         log_error("Invalid parameters to apply_substitution\n");
-        return NULL;
+        return nullptr;
     }
 
     if (input_size > MAX_FILE_SIZE) {
         log_error("Input size %u exceeds maximum %u\n", input_size, MAX_FILE_SIZE);
-        return NULL;
+        return nullptr;
     }
 
     std::string output(input, input_size);
@@ -324,28 +324,28 @@ static char* apply_substitution(RE2* re, const char* input, uint32_t input_size,
         count = RE2::GlobalReplace(&output, *re, replacement);
     } catch (const std::exception& e) {
         log_error("RE2::GlobalReplace threw exception: %s\n", e.what());
-        return NULL;
+        return nullptr;
     } catch (...) {
         log_error("RE2::GlobalReplace threw unknown exception\n");
-        return NULL;
+        return nullptr;
     }
 
     if (count == 0) {
         log_info("No match found\n");
-        return NULL;
+        return nullptr;
     }
 
     if (output.size() > MAX_FILE_SIZE) {
         log_error("Output size %zu exceeds maximum %u\n", output.size(), MAX_FILE_SIZE);
-        return NULL;
+        return nullptr;
     }
 
     log_info("Applied %d substitution(s), new size: %zu\n", count, output.size());
 
-    char* result = (char*)malloc(output.size());
+    char* result = static_cast<char*>(malloc(output.size()));
     if (!result) {
         log_error("Failed to allocate %zu bytes\n", output.size());
-        return NULL;
+        return nullptr;
     }
 
     memcpy(result, output.data(), output.size());
@@ -353,19 +353,19 @@ static char* apply_substitution(RE2* re, const char* input, uint32_t input_size,
     return result;
 }
 
-static regex_cache_t* compile_transform_patterns(const transform_data_t* transforms, int count)
+static regex_cache_t* compile_transform_patterns(const transform_data_t* transforms, const int count)
 {
-    if (!transforms || count < 0 || count > (int)MAX_PATTERN_COUNT) {
-        return NULL;
+    if (!transforms || count < 0 || count > static_cast<int>(MAX_PATTERN_COUNT)) {
+        return nullptr;
     }
 
-    regex_cache_t* cache = (regex_cache_t*)malloc(sizeof(regex_cache_t));
-    if (!cache) return NULL;
+    regex_cache_t* cache = static_cast<regex_cache_t*>(malloc(sizeof(regex_cache_t)));
+    if (!cache) return nullptr;
 
-    cache->patterns = (RE2**)calloc(count, sizeof(RE2*));
+    cache->patterns = static_cast<RE2**>(calloc(count, sizeof(RE2*)));
     if (!cache->patterns) {
         free(cache);
-        return NULL;
+        return nullptr;
     }
     cache->count = count;
 
@@ -376,14 +376,14 @@ static regex_cache_t* compile_transform_patterns(const transform_data_t* transfo
                 if (!cache->patterns[i]->ok()) {
                     log_error("Failed to compile pattern %d: %s\n", i, cache->patterns[i]->error().c_str());
                     delete cache->patterns[i];
-                    cache->patterns[i] = NULL;
+                    cache->patterns[i] = nullptr;
                 }
             } catch (const std::exception& e) {
                 log_error("Exception compiling pattern %d: %s\n", i, e.what());
-                cache->patterns[i] = NULL;
+                cache->patterns[i] = nullptr;
             } catch (...) {
                 log_error("Unknown exception compiling pattern %d\n", i);
-                cache->patterns[i] = NULL;
+                cache->patterns[i] = nullptr;
             }
         }
     }
@@ -403,7 +403,7 @@ static void free_regex_cache(regex_cache_t* cache)
     free(cache);
 }
 
-static int apply_transform_set(const transform_data_t* transform, RE2* compiled_pattern, const char* plugin_name, char** buffer, uint32_t* buffer_size)
+static int apply_transform_set(const transform_data_t* transform, const RE2* compiled_pattern, const char* plugin_name, char** buffer, uint32_t* buffer_size)
 {
     if (!transform || !compiled_pattern || !plugin_name || !buffer || !*buffer || !buffer_size) {
         return -1;
@@ -449,7 +449,7 @@ static void log_matches(const match_list_t* matches, const char** finds, const t
     log_info("Processing %d match entries\n", matches->count);
     for (int i = 0; i < matches->count; i++) {
         const char* pattern = (finds && finds[i]) ? finds[i] : "NULL";
-        int transform_count = transforms ? transforms[i].count : 0;
+        const int transform_count = transforms ? transforms[i].count : 0;
         log_info("  [%d] pattern: '%s' (%d transforms)\n", i, pattern, transform_count);
     }
 }
@@ -466,7 +466,7 @@ static void log_file_matches(const match_list_t* matches)
     }
 }
 
-static int re2_multi_match(const char** patterns, uint32_t pattern_count, const char* text, uint32_t text_size, match_list_t* matches)
+static int re2_multi_match(const char** patterns, const uint32_t pattern_count, const char* text, const uint32_t text_size, match_list_t* matches)
 {
     if (!patterns || !text || !matches || text_size > MAX_FILE_SIZE) {
         log_error("Invalid parameters to re2_multi_match\n");
@@ -504,7 +504,7 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
     }
 
     std::vector<int> match_ids;
-    re2::StringPiece text_piece(text, text_size);
+    const re2::StringPiece text_piece(text, text_size);
 
     try {
         if (!re_set.Match(text_piece, &match_ids)) {
@@ -524,7 +524,7 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
         return -1;
     }
 
-    matches->count = (int)match_ids.size();
+    matches->count = static_cast<int>(match_ids.size());
 
     size_t ids_size, ranges_size;
     if (!safe_mul_size(matches->count, sizeof(uint32_t), &ids_size) || !safe_mul_size(matches->count, sizeof(uint64_t), &ranges_size)) {
@@ -532,17 +532,17 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
         return -1;
     }
 
-    matches->ids = (unsigned int*)malloc(ids_size);
-    matches->froms = (unsigned long long*)malloc(ranges_size);
-    matches->tos = (unsigned long long*)malloc(ranges_size);
+    matches->ids = static_cast<unsigned int*>(malloc(ids_size));
+    matches->froms = static_cast<unsigned long long*>(malloc(ranges_size));
+    matches->tos = static_cast<unsigned long long*>(malloc(ranges_size));
 
     if (!matches->ids || !matches->froms || !matches->tos) {
         free(matches->ids);
         free(matches->froms);
         free(matches->tos);
-        matches->ids = NULL;
-        matches->froms = NULL;
-        matches->tos = NULL;
+        matches->ids = nullptr;
+        matches->froms = nullptr;
+        matches->tos = nullptr;
         return -1;
     }
 
@@ -550,17 +550,17 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
     compiled_patterns.reserve(match_ids.size());
 
     for (size_t i = 0; i < match_ids.size(); i++) {
-        if (match_ids[i] < 0 || (uint32_t)match_ids[i] >= pattern_count) {
+        if (match_ids[i] < 0 || static_cast<uint32_t>(match_ids[i]) >= pattern_count) {
             log_error("Invalid match_id %d at index %zu\n", match_ids[i], i);
-            for (auto* re : compiled_patterns) {
+            for (const auto* re : compiled_patterns) {
                 delete re;
             }
             free(matches->ids);
             free(matches->froms);
             free(matches->tos);
-            matches->ids = NULL;
-            matches->froms = NULL;
-            matches->tos = NULL;
+            matches->ids = nullptr;
+            matches->froms = nullptr;
+            matches->tos = nullptr;
             return -1;
         }
 
@@ -568,15 +568,15 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
             compiled_patterns.push_back(new RE2(patterns[match_ids[i]]));
         } catch (const std::exception& e) {
             log_error("Exception creating RE2 for pattern %d: %s\n", match_ids[i], e.what());
-            for (auto* re : compiled_patterns) {
+            for (const auto* re : compiled_patterns) {
                 delete re;
             }
             free(matches->ids);
             free(matches->froms);
             free(matches->tos);
-            matches->ids = NULL;
-            matches->froms = NULL;
-            matches->tos = NULL;
+            matches->ids = nullptr;
+            matches->froms = nullptr;
+            matches->tos = nullptr;
             return -1;
         }
     }
@@ -587,8 +587,8 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
         re2::StringPiece match;
         try {
             if (compiled_patterns[i]->Match(text_piece, 0, text_size, RE2::UNANCHORED, &match, 1)) {
-                ptrdiff_t offset = match.data() - text;
-                if (offset < 0 || offset > (ptrdiff_t)text_size) {
+                const ptrdiff_t offset = match.data() - text;
+                if (offset < 0 || offset > static_cast<ptrdiff_t>(text_size)) {
                     matches->froms[i] = 0;
                     matches->tos[i] = 0;
                 } else {
@@ -611,14 +611,14 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
         }
     }
 
-    for (auto* re : compiled_patterns) {
+    for (const auto* re : compiled_patterns) {
         delete re;
     }
 
     return 0;
 }
 
-extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches, match_plugin_map_t* plugin_map, char* file_content, uint32_t f_size, char** out_content,
+extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches, const match_plugin_map_t* plugin_map, const char* file_content, const uint32_t f_size, char** out_content,
                                    uint32_t* out_size)
 {
     if (!arena || !matches || !plugin_map || !file_content || !out_content || !out_size) {
@@ -631,11 +631,11 @@ extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches,
         return -1;
     }
 
-    transform_data_t* transforms = NULL;
-    const char** finds = NULL;
-    char* working_buffer = NULL;
-    match_list_t file_matches = { 0 };
-    regex_cache_t* pattern_cache = NULL;
+    transform_data_t* transforms = nullptr;
+    const char** finds = nullptr;
+    char* working_buffer = nullptr;
+    match_list_t file_matches = { nullptr };
+    regex_cache_t* pattern_cache = nullptr;
     uint32_t working_size = f_size;
     int ret = -1;
 
@@ -666,7 +666,7 @@ extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches,
         alloc_size = MAX_FILE_SIZE * 2;
     }
 
-    working_buffer = (char*)malloc(alloc_size);
+    working_buffer = static_cast<char*>(malloc(alloc_size));
     if (!working_buffer) {
         log_error("Failed to allocate working buffer\n");
         goto cleanup;
@@ -680,7 +680,7 @@ extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches,
     }
 
     for (int i = 0; i < file_matches.count; i++) {
-        uint32_t match_id = file_matches.ids[i];
+        const uint32_t match_id = file_matches.ids[i];
 
         // Bounds check on match_id
         if (match_id >= matches->count) {
@@ -703,7 +703,7 @@ extern "C" int handle_file_patches(lb_shm_arena_t* arena, match_list_t* matches,
 
     *out_content = working_buffer;
     *out_size = working_size;
-    working_buffer = NULL; // Transfer ownership
+    working_buffer = nullptr; // Transfer ownership
     ret = 0;
 
     log_info("Patching complete, final size: %u\n", working_size);
@@ -724,7 +724,7 @@ cleanup:
     return ret;
 }
 
-extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size)
+extern "C" int find_file_matches(char* file_content, const uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size)
 {
     *out_file_content = file_content;
     *out_file_size = size;
@@ -745,8 +745,8 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         return -1;
     }
 
-    const char** file_regex_pool = NULL;
-    match_plugin_map_t* plugin_map = NULL;
+    const char** file_regex_pool = nullptr;
+    match_plugin_map_t* plugin_map = nullptr;
     uint32_t file_count = 0;
 
     if (get_file_regex_pool(arena, &file_regex_pool, &plugin_map, &file_count) != 0) {
@@ -763,7 +763,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         return 0;
     }
 
-    match_list_t matches = { 0 };
+    match_list_t matches = { nullptr };
     if (re2_multi_match(file_regex_pool, file_count, file_content, size, &matches) != 0) {
         log_error("re2_multi_match failed\n");
         free(file_regex_pool);
@@ -788,9 +788,9 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         }
     }
 
-    char* out_data = NULL;
+    char* out_data = nullptr;
     uint32_t out_size = 0;
-    int ret = handle_file_patches(arena, &matches, plugin_map, file_content, size, &out_data, &out_size);
+    const int ret = handle_file_patches(arena, &matches, plugin_map, file_content, size, &out_data, &out_size);
 
     if (ret == 0) {
         log_info("[find_file_matches] out_size: %u\n", out_size);

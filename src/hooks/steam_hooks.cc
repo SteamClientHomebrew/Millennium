@@ -28,12 +28,13 @@
  * SOFTWARE.
  */
 
-#include <atomic>
-#include <condition_variable>
-#include <mutex>
 #include "millennium/steam_hooks.h"
 #include "millennium/argp_win32.h"
 #include "millennium/backend_init.h"
+
+#include <atomic>
+#include <condition_variable>
+#include <mutex>
 
 std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
 std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
@@ -46,7 +47,7 @@ static std::atomic<bool> g_hasWaitedForBackends{ false };
 uint_least16_t GetRandomOpenPort()
 {
     asio::io_context io_context;
-    asio::ip::tcp::acceptor acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 0));
+    const asio::ip::tcp::acceptor acceptor(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 0));
     return acceptor.local_endpoint().port();
 }
 
@@ -75,7 +76,7 @@ void Command_mark_dirty(Command* cmd)
     cmd->dirty = 1;
 }
 
-char* Command_get_executable(Command* cmd)
+char* Command_get_executable(const Command* cmd)
 {
     char* last_slash = strrchr(cmd->exec, '/');
     char* last_backslash = strrchr(cmd->exec, '\\');
@@ -86,7 +87,7 @@ char* Command_get_executable(Command* cmd)
 void Command_init(Command* cmd, const char* full_cmd)
 {
     cmd->param_count = 0;
-    cmd->exec = NULL;
+    cmd->exec = nullptr;
     cmd->dirty = 1;
 
 #ifdef _WIN32
@@ -136,39 +137,39 @@ void Command_init(Command* cmd, const char* full_cmd)
     char* token = strtok(copy, " ");
 
     if (token) {
-        size_t len = strlen(token);
+        const size_t len = strlen(token);
         if (len >= 2 && token[0] == '\'' && token[len - 1] == '\'') {
             token[len - 1] = '\0';
             token++;
         }
         cmd->exec = strdup(token);
-        token = strtok(NULL, " ");
+        token = strtok(nullptr, " ");
     }
 
     while (token && cmd->param_count < MAX_PARAMS) {
-        size_t len = strlen(token);
+        const size_t len = strlen(token);
         if (len >= 2 && token[0] == '\'' && token[len - 1] == '\'') {
             token[len - 1] = '\0';
             token++;
         }
         cmd->params[cmd->param_count++] = strdup(token);
-        token = strtok(NULL, " ");
+        token = strtok(nullptr, " ");
     }
 
     free(copy);
 #endif
 }
 
-void Command_free(Command* cmd)
+void Command_free(const Command* cmd)
 {
     if (cmd->exec) free(cmd->exec);
     for (int i = 0; i < cmd->param_count; i++)
         free(cmd->params[i]);
 }
 
-int Command_has_param(Command* cmd, const char* key)
+int Command_has_param(const Command* cmd, const char* key)
 {
-    size_t key_len = strlen(key);
+    const size_t key_len = strlen(key);
     for (int i = 0; i < cmd->param_count; i++) {
         if (strcmp(cmd->params[i], key) == 0) return 1;
         if (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=') return 1;
@@ -190,7 +191,7 @@ void Command_add_param(Command* cmd, const char* param)
 
 void Command_remove_param(Command* cmd, const char* key)
 {
-    size_t key_len = strlen(key);
+    const size_t key_len = strlen(key);
     for (int i = 0; i < cmd->param_count; i++) {
         if (strcmp(cmd->params[i], key) == 0 || (strncmp(cmd->params[i], key, key_len) == 0 && cmd->params[i][key_len] == '=')) {
             free(cmd->params[i]);
@@ -205,7 +206,7 @@ void Command_remove_param(Command* cmd, const char* key)
 
 void Command_update_param(Command* cmd, const char* key, const char* value)
 {
-    size_t key_len = strlen(key);
+    const size_t key_len = strlen(key);
     char new_param[MAX_PARAM_LEN];
     if (value)
         snprintf(new_param, sizeof(new_param), "%s=%s", key, value);
@@ -307,14 +308,14 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
         "steamwebhelper.sh";
 #endif
 
-    char* hooked_target = Command_get_executable(&c);
+    const char* hooked_target = Command_get_executable(&c);
 
     if (strcmp(hooked_target, target_executable) != 0) {
         Command_free(&c);
         return cmd;
     }
 
-    int is_developer_mode = CommandLineArguments::HasArgument("-dev");
+    const int is_developer_mode = CommandLineArguments::HasArgument("-dev");
 
     /** block any browser web requests when running in normal mode */
     Command_ensure_parameter(&c, "--remote-allow-origins", is_developer_mode ? "*" : "");
@@ -324,7 +325,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
     Command_ensure_parameter(&c, "--remote-debugging-port", GetAppropriateDevToolsPort(is_developer_mode));
 
     const char* result = Command_get(&c);
-    char* owned_cmd = strdup(result);
+    const char* owned_cmd = strdup(result);
     Command_free(&c);
 
     return owned_cmd;
@@ -349,7 +350,7 @@ typedef INT(__cdecl* CreateSimpleProcess_t)(const char* a1, char a2, const char*
 typedef BOOL(WINAPI* ReadDirectoryChangesW_t)(HANDLE, LPVOID, DWORD, BOOL, DWORD, LPDWORD, LPOVERLAPPED, LPOVERLAPPED_COMPLETION_ROUTINE);
 
 CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
-ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = NULL;
+ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = nullptr;
 
 HMODULE steamTier0Module;
 std::atomic<bool> ab_shouldDisconnectFrontend{ false };
@@ -360,7 +361,7 @@ INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteS
 }
 
 /**
- * tier0_s.dll is a *cross platform* library bundled with Steam that helps it
+ * tier0_s.dll is a *cross-platform* library bundled with Steam that helps it
  * manage low-level system interactions and provides various utility functions.
  *
  * It houses various functions, and we are interested in hooking its functions Steam
@@ -374,7 +375,7 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
     FARPROC proc = GetProcAddress(steamTier0Module, "CreateSimpleProcess");
     if (proc != nullptr) {
         if (MH_CreateHook(reinterpret_cast<LPVOID>(proc), reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess)) != MH_OK) {
-            MessageBoxA(NULL, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
+            MessageBoxA(nullptr, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
             return;
         }
     }
@@ -487,7 +488,7 @@ bool InitializeSteamHooks()
     const auto startTime = std::chrono::system_clock::now();
 
     if (MH_Initialize() != MH_OK) {
-        MessageBoxA(NULL, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
 
@@ -503,7 +504,7 @@ bool InitializeSteamHooks()
 
     HMODULE ntdllModule = GetModuleHandleA("ntdll.dll");
     if (!ntdllModule) {
-        MessageBoxA(NULL, "Failed to get handle for ntdll.dll", "Error", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "Failed to get handle for ntdll.dll", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
 
@@ -512,11 +513,11 @@ bool InitializeSteamHooks()
     HandleAlreadyLoaded(L"steamclient64.dll");
     HandleAlreadyLoaded(L"tier0_s64.dll");
 
-    LdrRegisterDllNotification = reinterpret_cast<LdrRegisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrRegisterDllNotification"));
-    LdrUnregisterDllNotification = reinterpret_cast<LdrUnregisterDllNotification_t>((void*)GetProcAddress(ntdllModule, "LdrUnregisterDllNotification"));
+    LdrRegisterDllNotification = reinterpret_cast<LdrRegisterDllNotification_t>(static_cast<void *>(GetProcAddress(ntdllModule, "LdrRegisterDllNotification")));
+    LdrUnregisterDllNotification = reinterpret_cast<LdrUnregisterDllNotification_t>(static_cast<void *>(GetProcAddress(ntdllModule, "LdrUnregisterDllNotification")));
 
     if (!LdrRegisterDllNotification || !LdrUnregisterDllNotification) {
-        MessageBoxA(NULL, "Failed to get address for LdrRegisterDllNotification or LdrUnregisterDllNotification", "Error", MB_ICONERROR | MB_OK);
+        MessageBoxA(nullptr, "Failed to get address for LdrRegisterDllNotification or LdrUnregisterDllNotification", "Error", MB_ICONERROR | MB_OK);
         return false;
     }
 
@@ -546,17 +547,17 @@ bool InitializeSteamHooks()
 
 #include <dlfcn.h>
 #include <string>
-#include <fmt/format.h>
 #include <subhook.h>
+#include <fmt/format.h>
 
 static SubHook create_hook;
 
 /**
  * It seems a2, a3 might be a stack allocated struct pointer, but we don't really need them
  * Even if we mistyped them, it doesn't change the actual underlying data being sent in memory.
- * I assume it has something to with working directory &| flags
+ * I assume it has something to do with the working directory and/or flags
  */
-extern "C" int Hooked_CreateSimpleProcess(const char* cmd, unsigned int a2, const char* a3)
+extern "C" int Hooked_CreateSimpleProcess(const char* cmd, const unsigned int a2, const char* a3)
 {
     /** temporarily remove the hook to prevent recursive hook calls */
     SubHook::ScopedRemove remove(&create_hook);
@@ -594,7 +595,7 @@ bool InitializeSteamHooks()
     }
 
     Logger.Log("Located {} at address {}", symbol, target);
-    const bool success = create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
+    const bool success = create_hook.Install(target, reinterpret_cast<void*>(Hooked_CreateSimpleProcess));
     Logger.Log("Hook install success?: {}", success);
     return true;
 }

@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +58,7 @@ void PythonGIL::HoldAndLockGIL()
  * @param {PyThreadState*} threadState - The Python thread state to switch to.
  *
  * This function locks the GIL and swaps the thread state to the provided one, allowing safe execution
- * of Python code in a multi-threaded environment.
+ * of Python code in a multithreaded environment.
  */
 void PythonGIL::HoldAndLockGILOnThread(PyThreadState* threadState)
 {

@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@
  * SOFTWARE.
  */
 
+#include <utility>
+
 #include "head/library_updater.h"
 #include "millennium/sysfs.h"
 
@@ -47,12 +49,12 @@ Updater::Updater() : api_url("https://steambrew.app/api/checkupdates"), has_chec
 
 bool Updater::DownloadPluginUpdate(const std::string& id, const std::string& name)
 {
-    return plugin_updater.DownloadPluginUpdate(id, name);
+    return PluginInstaller::DownloadPluginUpdate(id, name);
 }
 
 bool Updater::DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native)
 {
-    return theme_updater.UpdateTheme(themeConfig, native);
+    return theme_updater.UpdateTheme(std::move(themeConfig), native);
 }
 
 std::optional<json> Updater::GetCachedUpdates() const
@@ -65,7 +67,7 @@ bool Updater::HasCheckedForUpdates() const
     return has_checked_for_updates;
 }
 
-std::optional<json> Updater::CheckForUpdates(bool force)
+std::optional<json> Updater::CheckForUpdates(const bool force)
 {
     try {
         if (!force && cached_updates.has_value()) {
@@ -73,7 +75,7 @@ std::optional<json> Updater::CheckForUpdates(bool force)
             return cached_updates;
         }
 
-        auto plugins = plugin_updater.GetRequestBody();
+        const auto plugins = PluginInstaller::GetRequestBody();
         auto themes = theme_updater.GetRequestBody();
 
         json request_body;

@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,14 +29,16 @@
  */
 
 #pragma once
+
 #include "millennium/logger.h"
+#include "millennium/steam_hooks.h"
+
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
 #elif __linux__
 #include <dlfcn.h>
 #endif
-#include "millennium/steam_hooks.h"
 
 namespace CommandLineArguments
 {
@@ -64,14 +66,14 @@ static bool HasArgument(const std::string& targetArgument)
         return false;
     }
 
-    auto func = (Plat_CommandLineParamExists_t)dlsym(handle, "Plat_CommandLineParamExists");
+    const auto func = reinterpret_cast<Plat_CommandLineParamExists_t>(dlsym(handle, "Plat_CommandLineParamExists"));
     if (!func) {
         LOG_ERROR("Failed to get the function handle of Plat_CommandLineParamExists!");
         dlclose(handle);
         return false;
     }
 
-    bool result = func(targetArgument.c_str());
+    const bool result = func(targetArgument.c_str());
     dlclose(handle);
     return result;
 #endif

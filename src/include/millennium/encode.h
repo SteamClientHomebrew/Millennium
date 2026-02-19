@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,11 +29,12 @@
  */
 
 #pragma once
-#include <string>
-#include <vector>
-#include <sstream>
+
 #include <iomanip>
 #include <random>
+#include <sstream>
+#include <string>
+#include <vector>
 
 // https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
 
@@ -41,12 +42,12 @@ static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                         "abcdefghijklmnopqrstuvwxyz"
                                         "0123456789+/";
 
-static inline bool is_base64(unsigned char c)
+[[maybe_unused]] [[nodiscard]] static bool is_base64(const unsigned char c)
 {
     return (isalnum(c) || (c == '+') || (c == '/'));
 }
 
-inline std::string Base64Decode(const std::string& in)
+[[nodiscard]] inline std::string Base64Decode(const std::string& in)
 {
     std::string out;
     std::vector<int> T(256, -1);
@@ -54,23 +55,23 @@ inline std::string Base64Decode(const std::string& in)
         T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
 
     int val = 0, valb = -8;
-    for (unsigned char c : in) {
+    for (const unsigned char c : in) {
         if (T[c] == -1) break;
         val = (val << 6) + T[c];
         valb += 6;
         if (valb >= 0) {
-            out.push_back(char((val >> valb) & 0xFF));
+            out.push_back(static_cast<char>((val >> valb) & 0xFF));
             valb -= 8;
         }
     }
     return out;
 }
 
-inline std::string Base64Encode(const std::vector<char>& data)
+[[nodiscard]] inline std::string Base64Encode(const std::vector<char>& data)
 {
     std::string encoded;
     size_t i = 0;
-    size_t dataSize = data.size();
+    const size_t dataSize = data.size();
     unsigned char char_array_3[3];
     unsigned char char_array_4[4];
 
@@ -112,12 +113,12 @@ inline std::string Base64Encode(const std::vector<char>& data)
     return encoded;
 }
 
-inline std::string Base64Encode(const std::string& in)
+[[nodiscard]] inline std::string Base64Encode(const std::string& in)
 {
     std::string out;
 
     int val = 0, valb = -6;
-    for (unsigned char c : in) {
+    for (const unsigned char c : in) {
         val = (val << 8) + c;
         valb += 8;
         while (valb >= 0) {
@@ -131,15 +132,15 @@ inline std::string Base64Encode(const std::string& in)
     return out;
 }
 
-inline std::string GenerateUUID()
+[[nodiscard]] inline std::string GenerateUUID()
 {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<uint32_t> dis(0, 0xFFFFFFFF);
 
     uint32_t data[4];
-    for (int i = 0; i < 4; ++i)
-        data[i] = dis(gen);
+    for (unsigned int & i : data)
+        i = dis(gen);
 
     std::stringstream ss;
     ss << std::hex << std::setfill('0') << std::setw(8) << data[0] << "-" << std::setw(4) << ((data[1] >> 16) & 0xFFFF) << "-" << std::setw(4)

@@ -28,138 +28,24 @@
  * SOFTWARE.
  */
 
+#include "millennium/http_hooks.h"
 #include "millennium/auth.h"
 #include "millennium/core_ipc.h"
 #include "millennium/csp_bypass.h"
 #include "millennium/encode.h"
-#include "millennium/env.h"
-#include "millennium/http_hooks.h"
 #include "millennium/init.h"
+#include "millennium/mime_types.h"
 #include "millennium/urlp.h"
 #include "millennium/virtfs.h"
 
 #include <chrono>
-#include <nlohmann/json.hpp>
+#include <fstream>
 #include <thread>
 #include <unordered_set>
+#include <utility>
+#include <nlohmann/json.hpp>
 
 using namespace nlohmann;
-
-/**
- * Enum representing the different types of files.
- *
- * @enum {number}
- * @readonly
- * @property {number} StyleSheet - Represents a CSS file.
- * @property {number} JavaScript - Represents a JavaScript file.
- * @property {number} Json - Represents a JSON file.
- * @property {number} Python - Represents a Python file.
- * @property {number} Other - Represents other file types.
- */
-enum eFileType
-{
-    css,
-    js,
-    json,
-    py,
-    ttf,
-    otf,
-    woff,
-    woff2,
-    png,
-    jpeg,
-    jpg,
-    gif,
-    webp,
-    svg,
-    html,
-    unknown,
-};
-
-/**
- * A map that associates each file type from the `eFileType` enum to its corresponding MIME type.
- *
- * - `StyleSheet` maps to "text/css"
- * - `JavaScript` maps to "application/javascript"
- * - `Json` maps to "application/json"
- * - `Python` maps to "text/x-python"
- * - `Other` maps to "text/plain"
- */
-static std::map<eFileType, std::string> fileTypes{
-    { eFileType::css,     "text/css"               },
-    { eFileType::js,      "application/javascript" },
-    { eFileType::json,    "application/json"       },
-    { eFileType::py,      "text/x-python"          },
-    { eFileType::ttf,     "font/ttf"               },
-    { eFileType::otf,     "font/otf"               },
-    { eFileType::woff,    "font/woff"              },
-    { eFileType::woff2,   "font/woff2"             },
-    { eFileType::png,     "image/png"              },
-    { eFileType::jpeg,    "image/jpeg"             },
-    { eFileType::jpg,     "image/jpg"              },
-    { eFileType::gif,     "image/gif"              },
-    { eFileType::webp,    "image/webp"             },
-    { eFileType::svg,     "image/svg+xml"          },
-    { eFileType::html,    "text/html"              },
-    { eFileType::unknown, "text/plain"             },
-};
-
-/**
- * Checks if the file type is a binary file.
- *
- * @param {eFileType} fileType - The type of the file to check.
- * @returns {boolean} - `true` if the file type is binary, `false` otherwise.
- */
-static constexpr bool IsBinaryFile(eFileType fileType)
-{
-    return fileType == eFileType::ttf || fileType == eFileType::otf || fileType == eFileType::woff || fileType == eFileType::woff2 || fileType == eFileType::gif ||
-           fileType == eFileType::png || fileType == eFileType::jpeg || fileType == eFileType::jpg || fileType == eFileType::webp || fileType == eFileType::svg ||
-           fileType == eFileType::html || fileType == eFileType::unknown;
-}
-
-/**
- * Evaluates the file type based on the file extension.
- */
-static eFileType EvaluateFileType(std::filesystem::path filePath)
-{
-    const std::string extension = filePath.extension().string();
-
-    if (extension == ".css") {
-        return eFileType::css;
-    } else if (extension == ".js") {
-        return eFileType::js;
-    } else if (extension == ".json") {
-        return eFileType::json;
-    } else if (extension == ".py") {
-        return eFileType::py;
-    } else if (extension == ".ttf") {
-        return eFileType::ttf;
-    } else if (extension == ".otf") {
-        return eFileType::otf;
-    } else if (extension == ".woff") {
-        return eFileType::woff;
-    } else if (extension == ".woff2") {
-        return eFileType::woff2;
-    } else if (extension == ".gif") {
-        return eFileType::gif;
-    } else if (extension == ".png") {
-        return eFileType::png;
-    } else if (extension == ".jpeg") {
-        return eFileType::jpeg;
-    } else if (extension == ".jpg") {
-        return eFileType::jpg;
-    } else if (extension == ".webp") {
-        return eFileType::webp;
-    } else if (extension == ".svg") {
-        return eFileType::svg;
-    } else if (extension == ".html") {
-        return eFileType::html;
-    }
-
-    else {
-        return eFileType::unknown;
-    }
-}
 
 std::atomic<unsigned long long> g_hookedModuleId{ 0 };
 
@@ -175,7 +61,7 @@ static const std::unordered_set<std::string> g_doNotHook = {
     R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)", 
     R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
 
-    /** Ignore youtube related content */
+    /** Ignore YouTube-related content */
     R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)",
     R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)",
 
@@ -185,7 +71,7 @@ static const std::unordered_set<std::string> g_doNotHook = {
 // clang-format on
 
 // Thread-safe hook list operations
-void HttpHookManager::SetHookList(std::shared_ptr<std::vector<HookType>> hookList)
+void HttpHookManager::SetHookList(const std::shared_ptr<std::vector<HookType>>& hookList)
 {
     std::unique_lock<std::shared_mutex> lock(m_hookListMutex);
     m_hookListPtr = hookList;
@@ -197,7 +83,7 @@ std::vector<HttpHookManager::HookType> HttpHookManager::GetHookListCopy() const
     return m_hookListPtr ? *m_hookListPtr : std::vector<HookType>();
 }
 
-void HttpHookManager::AddHook(const HookType& hook)
+void HttpHookManager::AddHook(const HookType& hook) const
 {
     std::unique_lock<std::shared_mutex> lock(m_hookListMutex);
     if (m_hookListPtr) {
@@ -205,7 +91,7 @@ void HttpHookManager::AddHook(const HookType& hook)
     }
 }
 
-bool HttpHookManager::RemoveHook(unsigned long long moduleId)
+bool HttpHookManager::RemoveHook(const unsigned long long hookId) const
 {
     std::unique_lock<std::shared_mutex> lock(m_hookListMutex);
 
@@ -213,22 +99,23 @@ bool HttpHookManager::RemoveHook(unsigned long long moduleId)
         return false; // Nothing to remove
     }
 
-    size_t originalSize = m_hookListPtr->size();
+    const size_t originalSize = m_hookListPtr->size();
 
-    auto newEnd = std::remove_if(m_hookListPtr->begin(), m_hookListPtr->end(), [moduleId](const HookType& hook) { return hook.id == moduleId; });
+    const auto newEnd = std::ranges::remove_if(*m_hookListPtr, [hookId](const HookType& hook) { return hook.id == hookId; }).begin();
     m_hookListPtr->erase(newEnd, m_hookListPtr->end());
 
     return m_hookListPtr->size() < originalSize; // Return true if something was removed
 }
 
 // Thread-safe request management
-void HttpHookManager::AddRequest(const WebHookItem& request)
+void HttpHookManager::AddRequest(const WebHookItem& request) const
 {
     std::unique_lock<std::shared_mutex> lock(m_requestMapMutex);
     m_requestMap->push_back(request);
 }
 
-template <typename Func> void HttpHookManager::ProcessRequests(Func processor)
+template <typename Func> requires IteratorBoolable<Func, std::vector<HttpHookManager::WebHookItem>::iterator>
+void HttpHookManager::ProcessRequests(Func processor)
 {
     std::unique_lock<std::shared_mutex> lock(m_requestMapMutex);
     for (auto it = m_requestMap->begin(); it != m_requestMap->end();) {
@@ -241,7 +128,7 @@ template <typename Func> void HttpHookManager::ProcessRequests(Func processor)
 }
 
 // Thread-safe socket communication
-void HttpHookManager::PostGlobalMessage(const nlohmann::json& message)
+void HttpHookManager::PostGlobalMessage(const nlohmann::json& message) const
 {
     std::lock_guard<std::mutex> lock(m_socketMutex);
     Sockets::PostGlobal(message);
@@ -251,7 +138,7 @@ void HttpHookManager::PostGlobalMessage(const nlohmann::json& message)
 bool HttpHookManager::ShouldLogException()
 {
     std::lock_guard<std::mutex> lock(m_exceptionTimeMutex);
-    auto now = std::chrono::system_clock::now();
+    const auto now = std::chrono::system_clock::now();
     if (now - m_lastExceptionTime > std::chrono::seconds(5)) {
         m_lastExceptionTime = now;
         return true;
@@ -276,27 +163,27 @@ void HttpHookManager::SetupGlobalHooks()
     });
 }
 
-bool HttpHookManager::IsGetBodyCall(const nlohmann::basic_json<>& message)
+bool HttpHookManager::IsGetBodyCall(const nlohmann::basic_json<>& message) const
 {
-    std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
+    const std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
 
     return requestUrl.find(this->m_javaScriptVirtualUrl) != std::string::npos || requestUrl.find(this->m_styleSheetVirtualUrl) != std::string::npos ||
            requestUrl.find(this->m_oldHookAddress) != std::string::npos || requestUrl.find(this->m_ftpHookAddress) != std::string::npos;
 }
 
-bool HttpHookManager::IsIpcCall(const nlohmann::basic_json<>& message)
+bool HttpHookManager::IsIpcCall(const nlohmann::basic_json<>& message) const
 {
-    std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
+    const std::string requestUrl = message["params"]["request"]["url"].get<std::string>();
     return requestUrl.find(this->m_ipcHookAddress) != std::string::npos;
 }
 
-std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requestUrl)
+std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requestUrl) const
 {
     std::string url = requestUrl;
     const std::initializer_list<const char*> addresses = { this->m_ftpHookAddress, this->m_javaScriptVirtualUrl, this->m_styleSheetVirtualUrl, this->m_oldHookAddress };
 
     for (std::string addr : addresses) {
-        size_t pos = url.find(addr);
+        const size_t pos = url.find(addr);
         if (pos != std::string::npos) {
             url.erase(pos, addr.length());
             break;
@@ -306,10 +193,10 @@ std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requ
     return std::filesystem::path(PathFromUrl(url));
 }
 
-void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& message)
+void HttpHookManager::RetrieveRequestFromDisk(const basic_json<>& message) const
 {
     std::string fileContent;
-    eFileType fileType = eFileType::unknown;
+    eFileType fileType = unknown;
 
     uint16_t responseCode = 200;
     std::string responseMessage = "OK millennium";
@@ -317,9 +204,9 @@ void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& mess
     const std::string strRequestFile = message["params"]["request"]["url"];
 
     /** Handle internal virtual FS request (pull virtfs from memory) */
-    auto it = INTERNAL_FTP_CALL_DATA.find(strRequestFile);
+    const auto it = INTERNAL_FTP_CALL_DATA.find(strRequestFile);
     if (it != INTERNAL_FTP_CALL_DATA.end()) {
-        fileType = eFileType::js;
+        fileType = js;
         fileContent = Base64Encode(it->second());
 
     }
@@ -394,7 +281,7 @@ void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
     } else {
         long long currentMessageId = hookMessageId.fetch_sub(1) - 1;
 
-        WebHookItem item = { currentMessageId, message.value("/params/requestId"_json_pointer, std::string{}), message.value("/params/resourceType"_json_pointer, std::string{}),
+        const WebHookItem item = { currentMessageId, message.value("/params/requestId"_json_pointer, std::string{}), message.value("/params/resourceType"_json_pointer, std::string{}),
                              message };
 
         AddRequest(item);
@@ -410,7 +297,7 @@ void HttpHookManager::GetResponseBody(const nlohmann::basic_json<>& message)
 HttpHookManager::ProcessedHooks HttpHookManager::ProcessWebkitHooks(const std::string& requestUrl) const
 {
     ProcessedHooks result;
-    auto hookList = GetHookListCopy();
+    const auto hookList = GetHookListCopy();
 
     for (const auto& hookItem : hookList) {
         if (!std::regex_match(requestUrl, hookItem.urlPattern)) {
@@ -429,7 +316,7 @@ HttpHookManager::ProcessedHooks HttpHookManager::ProcessWebkitHooks(const std::s
     return result;
 }
 
-std::string HttpHookManager::BuildScriptModuleArray(const std::vector<std::string>& scriptModules) const
+std::string HttpHookManager::BuildScriptModuleArray(const std::vector<std::string>& scriptModules)
 {
     std::string result;
     for (size_t i = 0; i < scriptModules.size(); ++i) {
@@ -441,12 +328,11 @@ std::string HttpHookManager::BuildScriptModuleArray(const std::vector<std::strin
     return result;
 }
 
-std::string HttpHookManager::BuildEnabledPluginsString() const
+std::string HttpHookManager::BuildEnabledPluginsString()
 {
     std::string result;
-    auto settingsStore = std::make_unique<SettingsStore>();
 
-    for (const auto& plugin : settingsStore->GetEnabledPlugins()) {
+    for (const auto& plugin : SettingsStore::GetEnabledPlugins()) {
         result.append(fmt::format("'{}',", plugin.pluginName));
     }
 
@@ -471,7 +357,7 @@ std::string HttpHookManager::CreateShimContent(const ProcessedHooks& hooks, cons
     return fmt::format("{}<script type=\"module\" async id=\"millennium-injected\">{}</script>\n{}", linkPreloads, importScript, hooks.cssContent);
 }
 
-bool HttpHookManager::IsUrlBlacklisted(const std::string& requestUrl) const
+bool HttpHookManager::IsUrlBlacklisted(const std::string& requestUrl)
 {
     for (const auto& blacklistedUrl : g_blackListedUrls) {
         if (std::regex_match(requestUrl, std::regex(blacklistedUrl))) {
@@ -481,7 +367,7 @@ bool HttpHookManager::IsUrlBlacklisted(const std::string& requestUrl) const
     return false;
 }
 
-std::string HttpHookManager::InjectContentIntoHead(const std::string& original, const std::string& content) const
+std::string HttpHookManager::InjectContentIntoHead(const std::string& original, const std::string& content)
 {
     const size_t headPos = original.find("<head>");
     if (headPos == std::string::npos) {
@@ -492,9 +378,9 @@ std::string HttpHookManager::InjectContentIntoHead(const std::string& original, 
 
 std::string HttpHookManager::PatchDocumentContents(const std::string& requestUrl, const std::string& original) const
 {
-    std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
+    const std::string millenniumPreloadPath = SystemIO::GetMillenniumPreloadPath();
 
-    ProcessedHooks hooks = ProcessWebkitHooks(requestUrl);
+    const ProcessedHooks hooks = ProcessWebkitHooks(requestUrl);
     std::string shimContent = CreateShimContent(hooks, millenniumPreloadPath);
 
     // Apply blacklist filtering - remove JavaScript for blacklisted URLs
@@ -512,15 +398,15 @@ void HttpHookManager::HandleHooks(const nlohmann::basic_json<>& message)
         try {
             auto [id, requestId, type, response] = (*requestIterator);
 
-            int64_t messageId = message.value(json::json_pointer("/id"), int64_t(0));
-            bool base64Encoded = message.value(json::json_pointer("/result/base64Encoded"), false);
+            int64_t messageId = message.value(json::json_pointer("/id"), static_cast<int64_t>(0));
+            const bool base64Encoded = message.value(json::json_pointer("/result/base64Encoded"), false);
 
             if (messageId != id || (messageId == id && !base64Encoded)) {
                 return false;
             }
 
-            std::string requestUrl = response.value(json::json_pointer("/params/request/url"), std::string{});
-            std::string responseBody = message.value(json::json_pointer("/result/body"), std::string{});
+            const std::string requestUrl = response.value(json::json_pointer("/params/request/url"), std::string{});
+            const std::string responseBody = message.value(json::json_pointer("/result/body"), std::string{});
 
             if (requestUrl.empty() || responseBody.empty()) {
                 return true;
@@ -554,7 +440,7 @@ void HttpHookManager::HandleHooks(const nlohmann::basic_json<>& message)
     });
 }
 
-void HttpHookManager::HandleIpcMessage(nlohmann::json message)
+void HttpHookManager::HandleIpcMessage(nlohmann::json message) const
 {
     nlohmann::json headers = nlohmann::json::array({
         { { "name", "Access-Control-Allow-Origin" },  { "value", "*" }                                                                                },
@@ -576,7 +462,7 @@ void HttpHookManager::HandleIpcMessage(nlohmann::json message)
         return;
     }
 
-    std::string authToken = message.value(json::json_pointer("/params/request/headers/X-Millennium-Auth"), std::string{});
+    const std::string authToken = message.value(json::json_pointer("/params/request/headers/X-Millennium-Auth"), std::string{});
     if (authToken.empty() || GetAuthToken() != authToken) {
         LOG_ERROR("Invalid or missing X-Millennium-Auth in IPC request. Request: {}", message.dump());
         responseJson["params"]["responseCode"] = 401; // Unauthorized
@@ -585,12 +471,12 @@ void HttpHookManager::HandleIpcMessage(nlohmann::json message)
     }
 
     nlohmann::json postData;
-    std::string strPostData = message.value(json::json_pointer("/params/request/postData"), std::string{});
+    const std::string strPostData = message.value(json::json_pointer("/params/request/postData"), std::string{});
 
     if (!strPostData.empty()) {
         try {
             postData = nlohmann::json::parse(strPostData);
-        } catch (const nlohmann::json::parse_error& e) {
+        } catch ([[maybe_unused]] const nlohmann::json::parse_error& e) {
             postData = nlohmann::json::object();
         }
     } else {
@@ -633,22 +519,14 @@ void HttpHookManager::DispatchSocketMessage(nlohmann::basic_json<> message)
                 return;
             }
 
-            switch ((int)this->IsGetBodyCall(message)) {
-                case true:
-                {
-                    this->RetrieveRequestFromDisk(message);
-                    break;
-                }
-                case false:
-                {
-                    this->GetResponseBody(message);
-                    break;
-                }
+            if (this->IsGetBodyCall(message)) {
+                this->RetrieveRequestFromDisk(message);
+            } else {
+                this->GetResponseBody(message);
             }
         }
-
         this->HandleHooks(message);
-    } catch (const nlohmann::detail::exception& ex) {
+    } catch (const detail::exception& ex) {
         if (ShouldLogException()) {
             LOG_ERROR("error dispatching socket message -> {}", ex.what());
         }
@@ -659,7 +537,7 @@ void HttpHookManager::DispatchSocketMessage(nlohmann::basic_json<> message)
     }
 }
 
-HttpHookManager::ThreadPool::ThreadPool(size_t numThreads) : stop(false), shutdownCalled(false)
+HttpHookManager::ThreadPool::ThreadPool(const size_t numThreads) : stop(false), shutdownCalled(false)
 {
     for (size_t i = 0; i < numThreads; ++i) {
         workers.emplace_back([this]

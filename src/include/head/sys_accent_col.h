@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,8 +30,9 @@
 
 #pragma once
 
-#include <nlohmann/json.hpp>
 #include <string>
+
+#include <nlohmann/json.hpp>
 
 /**
  * Colors utility class for managing Windows accent colors and theme colors
@@ -43,27 +44,27 @@ class Colors
      * Gets Windows accent colors using WinRT APIs
      * @return JSON string containing accent color variations
      */
-    static nlohmann::json GetAccentColorWin32();
+    [[nodiscard]] static nlohmann::json GetAccentColorWin32();
 
     /**
      * Gets default black colors for POSIX systems
      * @return JSON string containing default black color variations
      */
-    static nlohmann::json GetAccentColorPosix();
+    [[nodiscard]] static nlohmann::json GetAccentColorPosix();
 
     /**
      * Extrapolates color variations from a custom accent color
      * @param accent_color Hex color string (e.g., "#FF5733")
      * @return JSON string containing color variations
      */
-    static nlohmann::json ExtrapolateCustomColor(const std::string& accent_color);
+    [[nodiscard]] static nlohmann::json ExtrapolateCustomColor(const std::string& accent_color);
 
     /**
      * Gets accent color based on input parameter
      * @param accent_color Either "DEFAULT_ACCENT_COLOR" or a hex color string
      * @return JSON string containing accent color data
      */
-    static nlohmann::json GetAccentColor(const std::string& accent_color);
+    [[nodiscard]] static nlohmann::json GetAccentColor(const std::string& accent_color);
 
   private:
     /**
@@ -72,12 +73,12 @@ class Colors
      * @param percent Adjustment percentage (positive=lighter, negative=darker)
      * @return Adjusted hex color string
      */
-    static std::string AdjustColorIntensity(const std::string& hex_color, int percent);
+    [[nodiscard]] static std::string AdjustColorIntensity(const std::string& hex_color, int percent);
 
     /**
      * Converts hex color to RGB string format
      * @param hex_color Hex color string
      * @return RGB string in format "r, g, b"
      */
-    static std::string Hex2Rgb(const std::string& hex_color);
+    [[nodiscard]] static std::string Hex2Rgb(const std::string& hex_color);
 };

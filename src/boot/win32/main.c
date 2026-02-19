@@ -96,8 +96,8 @@ static int is_steam_client(wchar_t* steam_path, size_t path_size)
 /** entry point of the dll */
 int __stdcall DllMain(void* hinstDLL, unsigned long fdwReason, void* lpReserved)
 {
-    if (fdwReason == 1 /** DLL_PROCESS_ATTACH */ && is_steam_client(NULL, 0)) {
-        const void* hModule = LoadLibraryExW(MILLENNIUM_LIBRARY_PATH, NULL, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    if (fdwReason == 1 /** DLL_PROCESS_ATTACH */ && is_steam_client(nullptr, 0)) {
+        const void* hModule = LoadLibraryExW(MILLENNIUM_LIBRARY_PATH, nullptr, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
         if (!hModule) {
             show_error(GetLastError(), MILLENNIUM_LIBRARY_PATH);
         }

@@ -30,18 +30,16 @@
 
 #include "head/ipc_handler.h"
 
-#include "millennium/auth.h"
 #include "millennium/core_ipc.h"
+#include "millennium/backend_mgr.h"
 #include "millennium/encode.h"
 #include "millennium/ffi.h"
 #include "millennium/sysfs.h"
-#include "millennium/backend_mgr.h"
 
-#include <fmt/core.h>
 #include <functional>
+#include <fmt/core.h>
 
 #include <websocketpp/config/asio_no_tls.hpp>
-#include <websocketpp/server.hpp>
 
 /**
  * @brief Handles an internal "call server method" request by dispatching it to the appropriate core IPC handler.
@@ -56,9 +54,9 @@ EvalResult HandleCoreServerMethod(const nlohmann::basic_json<>& call)
         const auto& functionName = call["data"]["methodName"].get<std::string>();
         const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : nlohmann::json::object();
 
-        nlohmann::ordered_json result = HandleIpcMessage(functionName, args);
+        const nlohmann::ordered_json result = HandleIpcMessage(functionName, args);
 
-        auto it = FFIMap_t.find(result.type());
+        const auto it = FFIMap_t.find(result.type());
         return it != FFIMap_t.end() ? EvalResult{ it->second, result.dump() } : EvalResult{ FFI_Type::UnknownType, "core IPC call returned unknown type" };
     }
     /** the internal c ipc method threw an exception */
@@ -85,7 +83,7 @@ EvalResult HandlePluginServerMethod(const std::string& pluginName, const nlohman
     };
 
     const auto backendType = BackendManager::GetInstance().GetPluginBackendType(pluginName);
-    auto it = handlers.find(backendType);
+    const auto it = handlers.find(backendType);
     assert(it != handlers.end() && "HandlePluginServerMethod: Unknown backend type encountered?");
 
     return it->second(pluginName, message["data"]);
@@ -168,10 +166,9 @@ nlohmann::json OnFrontEndLoaded(nlohmann::basic_json<> call)
 {
     const std::string pluginName = call["data"]["pluginName"];
 
-    auto settingsStore = std::make_unique<SettingsStore>();
-    const auto allPlugins = settingsStore->ParseAllPlugins();
+    const auto allPlugins = SettingsStore::ParseAllPlugins();
 
-    auto plugin = std::find_if(allPlugins.begin(), allPlugins.end(), [&pluginName](const auto& p) { return p.pluginName == pluginName; });
+    auto plugin = std::ranges::find_if(allPlugins, [&pluginName](const auto& p) { return p.pluginName == pluginName; });
 
     /** make sure the plugin has a backend that should be called. */
     if (plugin != allPlugins.end() && plugin->pluginJson.value("useBackend", true)) {
@@ -217,8 +214,8 @@ nlohmann::json IPCMain::HandleEventMessage(nlohmann::json jsonPayload)
             { IPCMain::Builtins::FRONT_END_LOADED,   OnFrontEndLoaded }
         };
 
-        int messageId = jsonPayload["id"].get<int>();
-        auto it = handlers.find(messageId);
+        const int messageId = jsonPayload["id"].get<int>();
+        const auto it = handlers.find(messageId);
 
         return it != handlers.end() ? it->second(jsonPayload) : nlohmann::json{};
     } catch (const nlohmann::detail::exception& ex) {

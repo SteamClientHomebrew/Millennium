@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,19 +34,15 @@
 #include "millennium/sysfs.h"
 
 #include <fstream>
-#include <iostream>
 
 nlohmann::json Millennium::Plugins::FindAllPlugins()
 {
     nlohmann::json result = nlohmann::json::array();
 
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    const auto foundPlugins = settingsStore->ParseAllPlugins();
-
-    for (const auto& plugin : foundPlugins) {
+    for (const auto foundPlugins = SettingsStore::ParseAllPlugins(); const auto& plugin : foundPlugins) {
         result.push_back({
             { "path",    plugin.pluginBaseDirectory.generic_string()       },
-            { "enabled", settingsStore->IsEnabledPlugin(plugin.pluginName) },
+            { "enabled", SettingsStore::IsEnabledPlugin(plugin.pluginName) },
             { "data",    plugin.pluginJson                                 }
         });
     }
@@ -70,7 +66,7 @@ std::optional<nlohmann::json> Millennium::Plugins::GetPluginFromName(const std::
  */
 bool Millennium::Themes::IsValid(const std::string& theme_native_name)
 {
-    std::filesystem::path file_path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins" / theme_native_name / "skin.json";
+    const std::filesystem::path file_path = std::filesystem::path(SystemIO::GetSteamPath()) / "steamui" / "skins" / theme_native_name / "skin.json";
 
     if (!std::filesystem::is_regular_file(file_path)) return false;
 
@@ -94,7 +90,7 @@ nlohmann::ordered_json Millennium::Themes::FindAllThemes()
         std::copy_if(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator{}, std::back_inserter(dirs),
                      [](const auto& entry) { return entry.is_directory(); });
 
-        std::sort(dirs.begin(), dirs.end(), [](const auto& a, const auto& b) { return a.path().filename() < b.path().filename(); });
+        std::ranges::sort(dirs, [](const auto& a, const auto& b) { return a.path().filename() < b.path().filename(); });
 
         for (const auto& dir : dirs) {
             auto skinJsonPath = dir.path() / "skin.json";

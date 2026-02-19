@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,12 +28,15 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #include "millennium/backend_mgr.h"
-#include "millennium/plat_msg.h"
 #include "millennium/logger.h"
+#include "millennium/plat_msg.h"
+
 #include <exception>
-#include <fmt/format.h>
 #include <iostream>
+#include <fmt/format.h>
 
 extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
 
@@ -95,7 +98,7 @@ inline void UnhandledExceptionHandler()
 #ifdef _WIN32
     if (IsDebuggerPresent()) __debugbreak();
 #endif
-    auto const exceptionPtr = std::current_exception();
+    const auto exceptionPtr = std::current_exception();
     std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
 
     if (exceptionPtr) {

@@ -1,4 +1,34 @@
 
+/*
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2023 - 2026. Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 /**
  * Enum representing the different types of files.
  *
@@ -10,9 +40,12 @@
  * @property {number} Python - Represents a Python file.
  * @property {number} Other - Represents other file types.
  */
+#pragma once
+
 #include <filesystem>
 #include <map>
 #include <string>
+
 enum eFileType
 {
     css,
@@ -67,7 +100,7 @@ static std::map<eFileType, std::string> fileTypes{
  * @param {eFileType} fileType - The type of the file to check.
  * @returns {boolean} - `true` if the file type is binary, `false` otherwise.
  */
-static constexpr bool IsBinaryFile(eFileType fileType)
+static constexpr bool IsBinaryFile(const eFileType fileType)
 {
     return fileType == eFileType::ttf || fileType == eFileType::otf || fileType == eFileType::woff || fileType == eFileType::woff2 || fileType == eFileType::gif ||
            fileType == eFileType::png || fileType == eFileType::jpeg || fileType == eFileType::jpg || fileType == eFileType::webp || fileType == eFileType::svg ||
@@ -77,7 +110,7 @@ static constexpr bool IsBinaryFile(eFileType fileType)
 /**
  * Evaluates the file type based on the file extension.
  */
-inline eFileType EvaluateFileType(std::filesystem::path filePath)
+inline eFileType EvaluateFileType(const std::filesystem::path filePath)
 {
     const std::string extension = filePath.extension().string();
 

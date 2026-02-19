@@ -20,8 +20,8 @@
         timestamp_buf;                                                                                                                                                             \
     })
 
-#define LOG_INFO(fmt, ...) fprintf(stdout, "%s " COLOR_INFO "OSX-INFO " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
-#define LOG_ERROR(fmt, ...) fprintf(stderr, "%s " COLOR_ERROR "OSX-ERROR " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
-#define LOG_WARN(fmt, ...) fprintf(stderr, "%s " COLOR_WARN "OSX-WARN " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
+#define LOG_INFO(fmt, ...) fprintf(stdout, "%s " COLOR_INFO "OSX-INFO " COLOR_RESET fmt "\n", GET_TIMESTAMP() __VA_OPT__(,) __VA_ARGS__)
+#define LOG_ERROR(fmt, ...) fprintf(stderr, "%s " COLOR_ERROR "OSX-ERROR " COLOR_RESET fmt "\n", GET_TIMESTAMP() __VA_OPT__(,) __VA_ARGS__)
+#define LOG_WARN(fmt, ...) fprintf(stderr, "%s " COLOR_WARN "OSX-WARN " COLOR_RESET fmt "\n", GET_TIMESTAMP() __VA_OPT__(,) __VA_ARGS__)
 
 #endif // LOGGER_H

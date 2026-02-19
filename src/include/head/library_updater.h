@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,9 +33,10 @@
 #include "head/plugin_mgr.h"
 #include "head/theme_mgr.h"
 
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
@@ -44,17 +45,17 @@ class Updater
   public:
     Updater();
 
-    bool DownloadPluginUpdate(const std::string& id, const std::string& name);
+    static bool DownloadPluginUpdate(const std::string& id, const std::string& name);
     bool DownloadThemeUpdate(std::shared_ptr<ThemeConfig> themeConfig, const std::string& native);
 
-    std::optional<json> GetCachedUpdates() const;
-    bool HasCheckedForUpdates() const;
+    [[nodiscard]] std::optional<json> GetCachedUpdates() const;
+    [[nodiscard]] bool HasCheckedForUpdates() const;
 
     std::optional<json> CheckForUpdates(bool force = false);
     std::string ResyncUpdates();
 
-    ThemeInstaller& GetThemeUpdater();
-    PluginInstaller& GetPluginUpdater();
+    [[nodiscard]] ThemeInstaller& GetThemeUpdater();
+    [[nodiscard]] PluginInstaller& GetPluginUpdater();
 
   private:
     std::string api_url;

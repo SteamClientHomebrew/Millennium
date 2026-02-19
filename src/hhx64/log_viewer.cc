@@ -28,7 +28,7 @@ static std::string pid_to_imagepath(DWORD pid)
         CloseHandle(hProc);
         return std::string(path, size);
     }
-    if (GetModuleFileNameExA(hProc, NULL, path, MAX_PATH) > 0) {
+    if (GetModuleFileNameExA(hProc, nullptr, path, MAX_PATH) > 0) {
         CloseHandle(hProc);
         return std::string(path);
     }
@@ -75,13 +75,13 @@ int main(int argc, char** argv)
     const char* eventDataName = "DBWIN_DATA_READY";
     const char* eventBufferReadyName = "DBWIN_BUFFER_READY";
 
-    HANDLE hMutex = CreateMutexA(NULL, FALSE, mutexName);
+    HANDLE hMutex = CreateMutexA(nullptr, FALSE, mutexName);
     if (!hMutex) {
         std::fprintf(stderr, "CreateMutexA failed: %lu\n", GetLastError());
         return 1;
     }
 
-    HANDLE hMap = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(DBWIN_BUFFER), mapName);
+    HANDLE hMap = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(DBWIN_BUFFER), mapName);
     if (!hMap) {
         std::fprintf(stderr, "CreateFileMappingA failed: %lu\n", GetLastError());
         CloseHandle(hMutex);
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    HANDLE hEventData = CreateEventA(NULL, FALSE, FALSE, eventDataName);
+    HANDLE hEventData = CreateEventA(nullptr, FALSE, FALSE, eventDataName);
     if (!hEventData) {
         std::fprintf(stderr, "CreateEventA (data) failed: %lu\n", GetLastError());
         UnmapViewOfFile(buf);
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    HANDLE hEventBufferReady = CreateEventA(NULL, FALSE, TRUE, eventBufferReadyName);
+    HANDLE hEventBufferReady = CreateEventA(nullptr, FALSE, TRUE, eventBufferReadyName);
     if (!hEventBufferReady) {
         std::fprintf(stderr, "CreateEventA (buffer ready) failed: %lu\n", GetLastError());
         CloseHandle(hEventData);

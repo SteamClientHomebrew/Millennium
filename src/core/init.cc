@@ -71,7 +71,7 @@ bool Sockets::PostShared(nlohmann::json data)
  *
  * @note ID's are managed by the caller.
  */
-bool Sockets::PostGlobal(nlohmann::json data)
+bool Sockets::PostGlobal(const nlohmann::json data)
 {
     if (browserClient == nullptr) {
         return false;
@@ -92,8 +92,7 @@ void Sockets::Shutdown()
             browserClient->close(browserHandle, websocketpp::close::status::normal, "Shutting down");
             Logger.Log("Shut down browser connection...");
         }
-    } catch (const websocketpp::exception& e) {
-    }
+    } catch (const websocketpp::exception&) {}
 }
 
 CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::GetInstance())
@@ -101,7 +100,7 @@ CEFBrowser::CEFBrowser() : webKitHandler(HttpHookManager::GetInstance())
 }
 
 void CEFBrowser::onMessage([[maybe_unused]] websocketpp::client<websocketpp::config::asio_client>* c, [[maybe_unused]] websocketpp::connection_hdl hdl,
-                           websocketpp::config::asio_client::message_type::ptr msg)
+                           const websocketpp::config::asio_client::message_type::ptr msg)
 {
     const auto json = nlohmann::json::parse(msg->get_payload());
 
@@ -109,7 +108,7 @@ void CEFBrowser::onMessage([[maybe_unused]] websocketpp::client<websocketpp::con
         json["result"]["targetInfos"].is_array()) {
         const auto targets = json["result"]["targetInfos"];
 
-        auto targetIterator = std::find_if(targets.begin(), targets.end(), [](const auto& target) { return target["title"] == "SharedJSContext"; });
+        auto targetIterator = std::ranges::find_if(targets, [](const auto& target) { return target["title"] == "SharedJSContext"; });
 
         if (targetIterator != targets.end() && !m_sharedJsConnected) {
             Logger.Log("Found SharedJSContext target, attaching...");
@@ -152,7 +151,7 @@ void CEFBrowser::SetupSharedJSContext()
     });
 }
 
-void CEFBrowser::onSharedJsConnect()
+void CEFBrowser::onSharedJsConnect() const
 {
     std::thread([this]()
     {
@@ -161,13 +160,13 @@ void CEFBrowser::onSharedJsConnect()
     }).detach();
 }
 
-void CEFBrowser::onConnect(websocketpp::client<websocketpp::config::asio_client>* client, websocketpp::connection_hdl handle)
+void CEFBrowser::onConnect(websocketpp::client<websocketpp::config::asio_client>* client, const websocketpp::connection_hdl handle)
 {
     m_startTime = std::chrono::system_clock::now();
     browserClient = client;
     browserHandle = handle;
 
-    Logger.Log("Connected to Steam @ {}", (void*)client);
+    Logger.Log("Connected to Steam @ {}", reinterpret_cast<void*>(client));
 
     this->SetupSharedJSContext();
     webKitHandler.SetupGlobalHooks();
@@ -182,7 +181,7 @@ void PluginLoader::Initialize()
     m_settingsStorePtr->InitializeSettingsStore();
 }
 
-PluginLoader::PluginLoader(std::chrono::system_clock::time_point startTime) : m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_startTime(startTime)
+PluginLoader::PluginLoader(const std::chrono::system_clock::time_point startTime) : m_pluginsPtr(nullptr), m_enabledPluginsPtr(nullptr), m_startTime(startTime)
 {
     this->Initialize();
 }
@@ -216,7 +215,7 @@ void PluginLoader::InjectWebkitShims()
         std::vector<HttpHookManager::HookType, std::allocator<HttpHookManager::HookType>> moduleList = HttpHookManager::GetInstance().GetHookListCopy();
 
         for (auto it = moduleList.begin(); it != moduleList.end();) {
-            if (std::find(hookIds.begin(), hookIds.end(), it->id) != hookIds.end()) {
+            if (std::ranges::find(hookIds, it->id) != hookIds.end()) {
                 Logger.Log("Removing hook for module id: {}", it->id);
                 it = moduleList.erase(it);
             } else
@@ -234,7 +233,7 @@ void PluginLoader::InjectWebkitShims()
         const auto absolutePath = std::filesystem::path(GetEnv("MILLENNIUM__PLUGINS_PATH")) / plugin.webkitAbsolutePath;
 
         if (this->m_settingsStorePtr->IsEnabledPlugin(plugin.pluginName) && std::filesystem::exists(absolutePath)) {
-            g_hookedModuleId++;
+            ++g_hookedModuleId;
             hookIds.push_back(g_hookedModuleId);
 
             Logger.Log("Injecting hook for '{}' with id {}", plugin.pluginName, g_hookedModuleId.load());
@@ -250,8 +249,8 @@ void PluginLoader::StartFrontEnds()
         return;
     }
 
-    std::shared_ptr<CEFBrowser> cefBrowserHandler = std::make_shared<CEFBrowser>();
-    std::shared_ptr<SocketHelpers> socketHelpers = std::make_shared<SocketHelpers>();
+    const std::shared_ptr<CEFBrowser> cefBrowserHandler = std::make_shared<CEFBrowser>();
+    const std::shared_ptr<SocketHelpers> socketHelpers = std::make_shared<SocketHelpers>();
 
     this->InjectWebkitShims();
 
@@ -262,9 +261,9 @@ void PluginLoader::StartFrontEnds()
     Logger.Log("Startup took {} ms", duration.count());
 
     if (browserSocketThread->joinable()) {
-        Logger.Warn("Joining browser socket thread {}", (void*)browserSocketThread.get());
+        Logger.Warn("Joining browser socket thread {}", reinterpret_cast<void*>(browserSocketThread.get()));
         browserSocketThread->join();
-        Logger.Warn("Browser socket thread joined {}", (void*)browserSocketThread.get());
+        Logger.Warn("Browser socket thread joined {}", reinterpret_cast<void*>(browserSocketThread.get()));
     }
 
     if (g_shouldTerminateMillennium->flag.load()) {
@@ -334,7 +333,7 @@ void StartPreloader(BackendManager& manager)
         PyObject* mainModuleObj = Py_BuildValue("s", backendMainModule.c_str());
         FILE* mainModuleFilePtr = _Py_fopen_obj(mainModuleObj, "r");
 
-        if (mainModuleFilePtr == NULL) {
+        if (mainModuleFilePtr == nullptr) {
             LOG_ERROR("Failed to fopen file @ {}", backendMainModule);
             ErrorToLogger(plugin.pluginName, fmt::format("Failed to open file @ {}", backendMainModule));
             return;
