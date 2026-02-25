@@ -82,11 +82,11 @@ typedef struct
     lb_hash_map_shm map;
 } lb_shm_arena_t;
 
-lb_shm_arena_t* create(const char* name, uint32_t size);
-lb_shm_arena_t* open(const char* name, uint32_t size);
-void close(lb_shm_arena_t* arena, uint32_t size);
-void unlink(const char* name);
-uint32_t alloc(lb_shm_arena_t* arena, uint32_t size);
+lb_shm_arena_t* screate(const char* name, uint32_t size);
+lb_shm_arena_t* sopen(const char* name, uint32_t size);
+void sclose(lb_shm_arena_t* arena, uint32_t size);
+void sunlink(const char* name);
+uint32_t salloc(lb_shm_arena_t* arena, uint32_t size);
 void init();
 
 void hashmap_init(lb_shm_arena_t* arena);

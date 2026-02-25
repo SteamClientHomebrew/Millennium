@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "instrumentation/smem.h"
+#include "state/shared_memory.h"
 #include "head/default_cfg.h"
 
 #include "millennium/crash_handler.h"

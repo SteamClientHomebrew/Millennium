@@ -29,8 +29,8 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
-#include "instrumentation/smem.h"
-#include "instrumentation/log.h"
+#include "state/shared_memory.h"
+#include "instrumentation/logger.h"
 #include <string.h>
 
 platform::shared_memory::lb_shm_arena_t* g_lb_patch_arena;
@@ -129,7 +129,7 @@ void shm_arena_unlink(const char* name)
 #include <fcntl.h>
 #include <unistd.h>
 
-platform::shared_memory::lb_shm_arena_t* platform::shared_memory::create(const char* name, uint32_t size)
+platform::shared_memory::lb_shm_arena_t* platform::shared_memory::screate(const char* name, uint32_t size)
 {
     int fd = shm_open(name, O_CREAT | O_RDWR, 0666);
     if (fd == -1) return NULL;
@@ -149,7 +149,7 @@ platform::shared_memory::lb_shm_arena_t* platform::shared_memory::create(const c
     return arena;
 }
 
-platform::shared_memory::lb_shm_arena_t* platform::shared_memory::open(const char* name, uint32_t size)
+platform::shared_memory::lb_shm_arena_t* platform::shared_memory::sopen(const char* name, uint32_t size)
 {
     int fd = shm_open(name, O_RDWR, 0666);
     if (fd == -1) return NULL;
@@ -160,18 +160,18 @@ platform::shared_memory::lb_shm_arena_t* platform::shared_memory::open(const cha
     return (arena == MAP_FAILED) ? NULL : arena;
 }
 
-void platform::shared_memory::close(lb_shm_arena_t* arena, uint32_t size)
+void platform::shared_memory::sclose(lb_shm_arena_t* arena, uint32_t size)
 {
     munmap(arena, size);
 }
 
-void platform::shared_memory::unlink(const char* name)
+void platform::shared_memory::sunlink(const char* name)
 {
     shm_unlink(name);
 }
 #endif
 
-uint32_t platform::shared_memory::alloc(lb_shm_arena_t* arena, uint32_t size)
+uint32_t platform::shared_memory::salloc(lb_shm_arena_t* arena, uint32_t size)
 {
     /** align to 8 bytes across domain as srv is 32bit and client is 64bit */
     size = (size + 7) & ~7;
@@ -188,7 +188,7 @@ uint32_t platform::shared_memory::alloc(lb_shm_arena_t* arena, uint32_t size)
 static uint32_t shm_strdup(platform::shared_memory::lb_shm_arena_t* arena, const char* str)
 {
     uint32_t len = (uint32_t)strlen(str) + 1;
-    uint32_t off = alloc(arena, len);
+    uint32_t off = salloc(arena, len);
     if (off == 0) return 0;
 
     memcpy(SHM_PTR(arena, off, char), str, len);
@@ -202,12 +202,12 @@ void platform::shared_memory::hashmap_init(lb_shm_arena_t* arena)
     map->count = 0;
 
     /** allocate keys array (array of offsets) */
-    map->keys_off = alloc(arena, map->capacity * sizeof(uint32_t));
+    map->keys_off = salloc(arena, map->capacity * sizeof(uint32_t));
     uint32_t* keys = SHM_PTR(arena, map->keys_off, uint32_t);
     memset(keys, 0, map->capacity * sizeof(uint32_t));
 
     /** allocate values array */
-    map->values_off = alloc(arena, map->capacity * sizeof(lb_patch_list_shm_t));
+    map->values_off = salloc(arena, map->capacity * sizeof(lb_patch_list_shm_t));
     lb_patch_list_shm_t* values = SHM_PTR(arena, map->values_off, lb_patch_list_shm_t);
     memset(values, 0, map->capacity * sizeof(lb_patch_list_shm_t));
 }
@@ -238,8 +238,8 @@ platform::shared_memory::lb_patch_list_shm_t* platform::shared_memory::hashmap_a
         /** need to grow, alloc exponentially more space */
         uint32_t new_capacity = map->capacity * 2;
 
-        uint32_t new_keys_off = alloc(arena, new_capacity * sizeof(uint32_t));
-        uint32_t new_values_off = alloc(arena, new_capacity * sizeof(lb_patch_list_shm_t));
+        uint32_t new_keys_off = salloc(arena, new_capacity * sizeof(uint32_t));
+        uint32_t new_values_off = salloc(arena, new_capacity * sizeof(lb_patch_list_shm_t));
 
         if (new_keys_off == 0 || new_values_off == 0) return NULL;
 
@@ -292,7 +292,7 @@ void platform::shared_memory::patch_add_transform(lb_shm_arena_t* arena, lb_patc
 {
     if (patch->transform_count >= patch->transform_capacity) {
         uint32_t new_capacity = patch->transform_capacity ? patch->transform_capacity * 2 : 4;
-        uint32_t new_off = alloc(arena, new_capacity * sizeof(lb_transform_shm_t));
+        uint32_t new_off = salloc(arena, new_capacity * sizeof(lb_transform_shm_t));
         if (new_off == 0) return;
 
         if (patch->transforms_off) {
@@ -313,7 +313,7 @@ platform::shared_memory::lb_patch_shm_t* platform::shared_memory::patchlist_add(
 {
     if (list->patch_count >= list->patch_capacity) {
         uint32_t new_capacity = list->patch_capacity ? list->patch_capacity * 2 : 4;
-        uint32_t new_off = alloc(arena, new_capacity * sizeof(lb_patch_shm_t));
+        uint32_t new_off = salloc(arena, new_capacity * sizeof(lb_patch_shm_t));
         if (new_off == 0) return NULL;
 
         if (list->patches_off) {
@@ -385,7 +385,7 @@ void platform::shared_memory::init()
 
     /** allocate the ipc arena */
     if (!g_lb_patch_arena) {
-        g_lb_patch_arena = create(SHM_IPC_NAME, SHM_IPC_SIZE);
+        g_lb_patch_arena = screate(SHM_IPC_NAME, SHM_IPC_SIZE);
         if (!g_lb_patch_arena) {
             log_error("Failed to create shared memory");
             return;

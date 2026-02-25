@@ -28,10 +28,11 @@
  * SOFTWARE.
  */
 
-#include "instrumentation/cef_def.h"
-#include "instrumentation/urlp.h"
-#include "instrumentation/fread.h"
-#include "instrumentation/log.h"
+#include "instrumentation/chromium.h"
+#include "instrumentation/resource_query_parser.h"
+#include "instrumentation/resource_transformer.h"
+#include "instrumentation/resource_reader.h"
+#include "instrumentation/logger.h"
 
 #include <assert.h>
 #include <atomic>
@@ -68,7 +69,6 @@ typedef struct
 /** fwd decl */
 int handle_loopback_request(const char* url, char** data, uint32_t* size);
 void* create_steamloopback_resource_handler(const char* url);
-extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
 
 struct _cef_client_t* orig_c = NULL;
 struct _cef_request_handler_t* (*original_get_request_handler)(void*) = NULL;

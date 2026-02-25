@@ -34,6 +34,7 @@
 #include "head/plugin_mgr.h"
 #include "head/theme_mgr.h"
 
+#include <chrono>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
@@ -71,5 +72,8 @@ class library_updater : public std::enable_shared_from_this<library_updater>
 
     std::optional<json> cached_updates;
     bool m_has_checked_for_updates;
+
+    std::chrono::steady_clock::time_point m_last_dispatch_time{};
+    double m_last_dispatched_progress = -1.0;
 };
 } // namespace head

@@ -28,15 +28,7 @@
  * SOFTWARE.
  */
 
-#include "state/shared_memory.h"
-#include "lua.hpp"
+#include "chromium.h"
 
-extern "C" int luaopen_utils_lib(lua_State* L);
-extern "C" int luaopen_logger_lib(lua_State* L);
-extern "C" int luaopen_cjson(lua_State* l);
-void load_patches(lua_State* L, platform::shared_memory::lb_shm_arena_t* map);
-extern "C" int luaopen_http_lib(lua_State* L);
-extern "C" int luaopen_fs_lib(lua_State* L);
-extern "C" int luaopen_regex_lib(lua_State* L);
-extern "C" int luaopen_datatime_lib(lua_State* L);
-extern "C" int luaopen_millennium_lib(lua_State* L);
+int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel);
+int urlp_should_block_lb_req(cef_string_userfree_t url);

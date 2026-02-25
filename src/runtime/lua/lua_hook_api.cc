@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "instrumentation/smem.h"
+#include "state/shared_memory.h"
 #include <lua.hpp>
 
 void load_patches(lua_State* L, platform::shared_memory::lb_shm_arena_t* map)

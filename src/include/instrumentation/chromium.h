@@ -28,6 +28,11 @@
  * SOFTWARE.
  */
 
+/**
+ * NOTICE:
+ * This is not a automatically generated file nor is it owned by any of Chromium's partners.
+ * Although this reversal works in Millennium, I wouldn't recommend its use in other apps unless you know how to update it.
+ */
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
@@ -54,10 +59,20 @@
     }
 #else
 #include <dlfcn.h>
+static inline void* get_cef_handle()
+{
+    static void* handle = NULL;
+    if (!handle) {
+        handle = dlopen("libcef.so", RTLD_LAZY | RTLD_NOLOAD);
+        if (!handle) handle = dlopen("libcef.so", RTLD_LAZY);
+    }
+    return handle;
+}
+
 #define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
     static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \
     if (!lazy_##func_name) {                                                                                                                                                       \
-        lazy_##func_name = (return_type(*) param_types)dlsym(RTLD_NEXT, #func_name);                                                                                               \
+        lazy_##func_name = (return_type(*) param_types)dlsym(get_cef_handle(), #func_name);                                                                                        \
     }
 #endif
 

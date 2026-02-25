@@ -87,8 +87,8 @@ set(SOURCE_FILES
     backend/theme_cfg.cc
     backend/theme_mgr.cc
     backend/webkit.cc
-    instrumentation/steam_hooks.cc
-    instrumentation/smem.cc
+    instrumentation/internal/steam_hooks.cc
+    state/shared_memory.cc
     system/config.cc
     system/environment.cc
     system/filesystem.cc
@@ -144,6 +144,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(
              MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}"
         MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}"
+                                   MILLENNIUM_DEBUG=1
     )
 endif()
 

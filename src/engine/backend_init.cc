@@ -42,7 +42,7 @@
 #include "millennium/logger.h"
 #include "millennium/life_cycle.h"
 #include "millennium/url_parser.h"
-#include "instrumentation/smem.h"
+#include "state/shared_memory.h"
 #include <future>
 
 std::tuple<std::string, std::string> Python_GetActiveExceptionInformation();

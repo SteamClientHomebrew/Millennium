@@ -38,11 +38,80 @@
  * precedence as its no-opped.
  */
 
-#include "instrumentation/cef_def.h"
-#include "instrumentation/urlp.h"
+#include "instrumentation/chromium.h"
+#include "instrumentation/resource_query_parser.h"
+#include <linux/limits.h>
 
 #ifdef __linux__
+#include <cstdio>
+#include <dlfcn.h>
+#include <link.h>
+#include <cstring>
+#include <sys/mman.h>
 #include <unistd.h>
+#include "subhook.h"
+
+extern "C" int tramp_cef_browser_host_create_browser(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
+static subhook_t g_cef_hook = nullptr;
+
+static void page_rx(void* addr)
+{
+    long ps = sysconf(_SC_PAGESIZE);
+    mprotect(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(addr) & ~(ps - 1)), ps, PROT_READ | PROT_EXEC);
+}
+
+static void page_rwx(void* addr)
+{
+    long ps = sysconf(_SC_PAGESIZE);
+    mprotect(reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(addr) & ~(ps - 1)), ps, PROT_READ | PROT_WRITE | PROT_EXEC);
+}
+
+static int find_cef_fn(struct dl_phdr_info* info, size_t, void* data)
+{
+    if (!info->dlpi_name || !strstr(info->dlpi_name, "libcef")) return 0;
+
+    void* h = dlopen(info->dlpi_name, RTLD_NOLOAD | RTLD_NOW);
+    if (!h) return 0;
+
+    void** out = static_cast<void**>(data);
+    *out = dlsym(h, "cef_browser_host_create_browser");
+    dlclose(h);
+
+    return *out ? 1 : 0; /* stop iterating once found */
+}
+
+static void install_hook(void)
+{
+    void* cef_fn = nullptr;
+    dl_iterate_phdr(find_cef_fn, &cef_fn);
+
+    if (!cef_fn) {
+        fprintf(stderr, "hook: cef_browser_host_create_browser not found in libcef\n");
+        return;
+    }
+
+    g_cef_hook = subhook_new(cef_fn, reinterpret_cast<void*>(tramp_cef_browser_host_create_browser));
+    if (!g_cef_hook) {
+        fprintf(stderr, "hook: subhook_new failed\n");
+        return;
+    }
+
+    if (subhook_install(g_cef_hook) < 0) {
+        fprintf(stderr, "hook: subhook_install failed\n");
+        subhook_free(g_cef_hook);
+        g_cef_hook = nullptr;
+        return;
+    }
+
+    /* restore RX — subhook leaves the page RWX which Chromium's sandbox detects and kills */
+    page_rx(cef_fn);
+    fprintf(stderr, "hook: installed on cef_browser_host_create_browser at %p\n", cef_fn);
+}
+
+__attribute__((constructor)) static void init(void)
+{
+    install_hook();
+}
 #endif
 
 #ifdef _WIN32
@@ -111,10 +180,8 @@ struct _cef_request_handler_t* hooked_get_request_handler(void* self)
  * thankfully since steam doesn't statically link against cef (not even sure if its possible), it allows us to trampoline
  * calls it makes to cef.
  */
-extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
+extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
 {
-    CEF_LAZY_LOAD(cef_browser_host_create_browser, int, (const void*, struct _cef_client_t*, void*, const void*, void*, void*));
-
     /** overwrite steams get request handler they provide. */
     if (c && c->get_request_handler && !orig_c) {
         orig_c = c;
@@ -125,7 +192,22 @@ extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_clien
 #ifdef _WIN32
     return win32_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
 #else
-    return lazy_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
+    if (!g_cef_hook) {
+        fprintf(stderr, "cef_browser_host_create_browser: hook not installed, call dropped\n");
+        return 0;
+    }
+
+    /* temporarily remove the prologue patch to call the original without recursing */
+    void* src = subhook_get_src(g_cef_hook);
+    page_rwx(src);
+    subhook_remove(g_cef_hook);
+    page_rx(src);
+    auto orig = reinterpret_cast<decltype(&tramp_cef_browser_host_create_browser)>(src);
+    int result = orig(_1, c, _3, _4, _5, _6);
+    page_rwx(src);
+    subhook_install(g_cef_hook);
+    page_rx(src);
+    return result;
 #endif
 }
 

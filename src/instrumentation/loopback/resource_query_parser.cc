@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "instrumentation/urlp.h"
+#include "instrumentation/resource_query_parser.h"
 
 #ifdef _WIN32
 #define plat_strdup _strdup

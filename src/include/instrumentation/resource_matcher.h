@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "smem.h"
+#include "state/shared_memory.h"
 
 #ifdef __cplusplus
 extern "C"

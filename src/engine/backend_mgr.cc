@@ -34,7 +34,7 @@
 #include "millennium/python_gil.h"
 #include "millennium/python_stdout_hook.h"
 #include "millennium/logger.h"
-#include "instrumentation/smem.h"
+#include "state/shared_memory.h"
 
 #include <lauxlib.h>
 #include <lua.h>

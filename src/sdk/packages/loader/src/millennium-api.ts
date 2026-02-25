@@ -46,6 +46,23 @@ interface ResponsePayload {
 	error?: string;
 }
 
+// Wrap objects so that legacy plugin code calling JSON.parse(result) still works.
+// Primitives (boolean, number, string, null) are returned as-is.
+// Objects and arrays are wrapped in a Proxy that stringifies on toString/valueOf.
+function wrapIfObject(obj: any): any {
+	if (obj === null || typeof obj !== 'object') {
+		return obj;
+	}
+	return new Proxy(obj, {
+		get(target, prop) {
+			if (prop === 'toString' || prop === 'valueOf') {
+				return () => JSON.stringify(target);
+			}
+			return target[prop as string];
+		},
+	});
+}
+
 class FFI_Binder {
 	private pendingRequests = new Map<
 		number,
@@ -92,10 +109,11 @@ class FFI_Binder {
 			console.warn('[Millennium] No pending request for', requestId, response);
 			return;
 		}
+
 		clearTimeout(pending.timeout);
 		this.pendingRequests.delete(requestId);
 		if (response.success) {
-			pending.resolve(response.returnJson);
+			pending.resolve(wrapIfObject(response.returnJson));
 		} else {
 			pending.reject(new Error('Millennium Error: ' + (response.returnJson || 'Unknown error') + '\n\n\nMillennium internal traceback'));
 		}

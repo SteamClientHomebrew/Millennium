@@ -48,19 +48,38 @@ export interface RendererProps {
 	onProgressUpdate: ({ progress, status }: { progress: number; status: string }) => React.ReactElement;
 }
 
+/**
+ * Module-level progress listener for installer events dispatched from C++.
+ * Use registerInstallerProgressListener / unregisterInstallerProgressListener
+ * rather than reaching into pluginSelf directly.
+ */
+let _progressListener: ((event: IProgressProps) => void) | null = null;
+let _pendingEvent: IProgressProps | null = null;
+
+export function registerInstallerProgressListener(listener: (event: IProgressProps) => void) {
+	_progressListener = listener;
+	// Drain any event that arrived before the listener was registered.
+	if (_pendingEvent) {
+		listener(_pendingEvent);
+		_pendingEvent = null;
+	}
+}
+
+export function unregisterInstallerProgressListener() {
+	_progressListener = null;
+}
+
 function InstallerMessageEmitter(status: string, progress: number, isComplete: boolean) {
 	try {
-		if (!pluginSelf.InstallerEventEmitter) {
-			return;
+		const event: IProgressProps = { progress, status, isComplete };
+		if (_progressListener) {
+			_progressListener(event);
+		} else {
+			// Buffer the latest event so it can be replayed once a listener registers.
+			_pendingEvent = event;
 		}
-
-		pluginSelf.InstallerEventEmitter({
-			progress,
-			status,
-			isComplete,
-		});
 	} catch (error) {
-		console.error('Failed to parse message:', error);
+		console.error('Failed to emit installer progress:', error);
 	}
 }
 
@@ -110,7 +129,12 @@ export class Installer {
 		}
 	}
 
-	async PromptInstallation(type: InstallType, data: any): Promise<ShowModalResult> {
+	/**
+	 * Shows the initial "proceed with installation?" modal.
+	 * @param onStateSetter Called with the modal's state setter once the component
+	 *   mounts — lets the caller swap content without touching pluginSelf.
+	 */
+	async PromptInstallation(type: InstallType, data: any, onStateSetter: (setter: (el: React.ReactElement) => void) => void): Promise<ShowModalResult> {
 		const itemName = (type === InstallType.Plugin ? data?.pluginJson?.common_name : data?.name) ?? locale.strUnknown;
 
 		return new Promise((resolve) => {
@@ -121,15 +145,15 @@ export class Installer {
 					<ConfirmModal
 						strTitle={itemName}
 						strDescription={locale.warnProceedInstallation}
-						onOK={resolve.bind(null, modal)}
+						onOK={() => resolve(modal)}
 						bHideCloseIcon={true}
 						closeModal={() => {}}
-						onCancel={modal?.Close}
+						onCancel={() => modal?.Close()}
 					/>,
 				);
 
 				useEffect(() => {
-					setElement && (pluginSelf.UpdateInstallerState = setElement);
+					onStateSetter(setElement);
 				}, []);
 
 				return element;
@@ -146,6 +170,8 @@ export class Installer {
 	async OpenInstallPrompt(id: string, refetchDataCb: () => void) {
 		let modal: ShowModalResult;
 		let renderProps: RendererProps;
+		// Local state setter for the modal — avoids mutable pluginSelf properties.
+		let updateInstallerState: ((element: React.ReactElement) => void) | null = null;
 
 		function ShowMessageBox(message: React.ReactNode, title: React.ReactNode, props?: ConfirmModalProps) {
 			return new Promise((resolve) => {
@@ -162,12 +188,11 @@ export class Installer {
 						bHideCloseIcon={true}
 						onOK={handle.bind(null, true, props?.onOK)}
 						onCancel={handle.bind(null, false, props?.onCancel)}
-						// bAlertDialog={true}
 					/>
 				);
 
-				if (pluginSelf?.UpdateInstallerState) {
-					pluginSelf.UpdateInstallerState(element);
+				if (updateInstallerState) {
+					updateInstallerState(element);
 				} else {
 					showModal(element, pluginSelf.mainWindow, {
 						bNeverPopOut: true,
@@ -179,14 +204,18 @@ export class Installer {
 		}
 
 		function OnInstallComplete() {
-			pluginSelf.UpdateInstallerState(renderProps.onInstallComplete());
+			const element = renderProps.onInstallComplete();
+			if (React.isValidElement(element)) {
+				updateInstallerState?.(element);
+			}
 		}
 
 		function RenderInstallerProgress() {
 			const [event, setEvent] = useState<IProgressProps>(null);
 
 			useEffect(() => {
-				setEvent && (pluginSelf.InstallerEventEmitter = setEvent);
+				registerInstallerProgressListener(setEvent);
+				return () => unregisterInstallerProgressListener();
 			}, []);
 
 			useEffect(() => {
@@ -198,15 +227,20 @@ export class Installer {
 
 		try {
 			const { type, data } = await this.FetchInformationFromId(id);
-			modal = await this.PromptInstallation(type, data);
+			modal = await this.PromptInstallation(type, data, (setter) => {
+				updateInstallerState = setter;
+			});
+
+			// updateInstallerState is guaranteed set here — the Renderer useEffect
+			// fires before the user can click OK.
+			const installerProps = { updateInstallerState: updateInstallerState!, ShowMessageBox, modal, refetchDataCb };
 
 			switch (type) {
 				case InstallType.Plugin: {
 					Logger.Log(`Installing plugin with ID: ${id}`);
-
 					IncrementPluginDownloadFromId(id);
 
-					const result = await StartPluginInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal, refetchDataCb });
+					const result = await StartPluginInstaller(data, installerProps);
 					if (!result) return;
 
 					renderProps = result as RendererProps;
@@ -214,10 +248,9 @@ export class Installer {
 				}
 				case InstallType.Theme: {
 					Logger.Log(`Installing theme with ID: ${id}`);
-
 					IncrementThemeDownloadFromId(id);
 
-					const result = await StartThemeInstaller(data, { updateInstallerState: pluginSelf.UpdateInstallerState, ShowMessageBox, modal, refetchDataCb });
+					const result = await StartThemeInstaller(data, installerProps);
 					if (!result) return;
 
 					renderProps = result as RendererProps;
@@ -225,7 +258,7 @@ export class Installer {
 				}
 			}
 
-			pluginSelf.UpdateInstallerState(<RenderInstallerProgress />);
+			updateInstallerState!(<RenderInstallerProgress />);
 		} catch (error) {
 			ShowMessageBox(error.message, locale.errorMessageTitle);
 		}

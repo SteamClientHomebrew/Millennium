@@ -37,9 +37,9 @@
 #include <re2/set.h>
 #include <vector>
 #include <string>
-#include "instrumentation/match.h"
-#include "instrumentation/smem.h"
-#include "instrumentation/log.h"
+#include "state/shared_memory.h"
+#include "instrumentation/resource_matcher.h"
+#include "instrumentation/logger.h"
 
 static const uint32_t MAX_FILE_SIZE = 256 * 1024 * 1024; /** 256MB */
 static const uint32_t MAX_POOL_CAPACITY = 1000000;       /** 1M entries */
@@ -724,7 +724,7 @@ cleanup:
     return ret;
 }
 
-extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size)
+int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size)
 {
     *out_file_content = file_content;
     *out_file_size = size;
@@ -739,7 +739,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         return -1;
     }
 
-    platform::shared_memory::lb_shm_arena_t* arena = platform::shared_memory::open(SHM_IPC_NAME, 1024 * 1024);
+    platform::shared_memory::lb_shm_arena_t* arena = platform::shared_memory::sopen(SHM_IPC_NAME, 1024 * 1024);
     if (!arena) {
         log_error("Failed to open shared memory arena\n");
         return -1;
@@ -751,7 +751,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
 
     if (get_file_regex_pool(arena, &file_regex_pool, &plugin_map, &file_count) != 0) {
         log_error("Failed to get file regex pool\n");
-        close(arena, arena->size);
+        sclose(arena, arena->size);
         return -1;
     }
 
@@ -759,7 +759,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         log_info("Skipping patch, no regex pool to process. file_count: %u, file_regex_pool: %d\n", file_count, !!file_regex_pool);
         if (file_regex_pool) free(file_regex_pool);
         free(plugin_map);
-        close(arena, arena->size);
+        sclose(arena, arena->size);
         return 0;
     }
 
@@ -768,7 +768,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         log_error("re2_multi_match failed\n");
         free(file_regex_pool);
         free(plugin_map);
-        close(arena, arena->size);
+        sclose(arena, arena->size);
         return -1;
     }
 
@@ -777,7 +777,7 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
         match_list_destroy(&matches);
         free(file_regex_pool);
         free(plugin_map);
-        close(arena, arena->size);
+        sclose(arena, arena->size);
         return 0;
     }
 
@@ -803,6 +803,6 @@ extern "C" int find_file_matches(char* file_content, uint32_t size, char* local_
     match_list_destroy(&matches);
     free(file_regex_pool);
     free(plugin_map);
-    close(arena, arena->size);
+    sclose(arena, arena->size);
     return ret;
 }

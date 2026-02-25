@@ -22,6 +22,17 @@ endif()
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+if(UNIX AND NOT WIN32)
+    # The parent project targets i686 (-m32), but hhx64 must be a native 64-bit
+    # shared library because Steam's CEF renderer process is 64-bit.
+    string(REPLACE "-m32" "" CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}")
+    string(REPLACE "-m32" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    string(REPLACE "-m32" "" CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS}")
+    string(REPLACE "-m32" "" CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+    add_compile_options(-m64)
+    add_link_options(-m64)
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -41,11 +52,11 @@ function(millennium_process_package input_path)
     endif()
 endfunction()
 if(DISTRO_NIX)
-FetchContent_Declare(abseil SOURCE_DIR "${MILLENNIUM_BASE}/deps/abseil"     SOURCE_SUBDIR fakedir)
-FetchContent_Declare(re2    SOURCE_DIR "${MILLENNIUM_BASE}/deps/re2"        SOURCE_SUBDIR fakedir)
+    FetchContent_Declare(abseil SOURCE_DIR "${MILLENNIUM_BASE}/deps/abseil"     SOURCE_SUBDIR fakedir)
+    FetchContent_Declare(re2    SOURCE_DIR "${MILLENNIUM_BASE}/deps/re2"        SOURCE_SUBDIR fakedir)
 else()
-FetchContent_Declare(abseil GIT_REPOSITORY https://github.com/abseil/abseil-cpp GIT_TAG 20240722.0 SOURCE_SUBDIR fakedir)
-FetchContent_Declare(re2    GIT_REPOSITORY https://github.com/google/re2        GIT_TAG 2025-11-05 SOURCE_SUBDIR fakedir)
+    FetchContent_Declare(abseil GIT_REPOSITORY https://github.com/abseil/abseil-cpp GIT_TAG 20240722.0 SOURCE_SUBDIR fakedir)
+    FetchContent_Declare(re2    GIT_REPOSITORY https://github.com/google/re2        GIT_TAG 2025-11-05 SOURCE_SUBDIR fakedir)
 endif()
 
 FetchContent_MakeAvailable(abseil re2)
@@ -63,15 +74,18 @@ if(WIN32)
 endif()
 
 include_directories("${MILLENNIUM_BASE}/src/include")
+include_directories("${MILLENNIUM_BASE}/src/vendor/subhook")
 
 set(SOURCE_FILES
     main.cc
-    patch.cc
-    match.cc
-    smem.cc
-    urlp.cc
-    fread.cc
-    loopback.cc
+    ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c
+    ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c
+    resource_transformer.cc
+    resource_reader.cc
+    resource_handler.cc
+    resource_query_parser.cc
+    resource_matcher.cc
+    ${MILLENNIUM_BASE}/src/state/shared_memory.cc
 )
 
 if(WIN32)

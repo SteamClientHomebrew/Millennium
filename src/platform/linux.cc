@@ -30,9 +30,8 @@
 
 #include "millennium/steam_hooks.h"
 #include <memory>
-#include <optional>
 #if defined(__linux__) || defined(__APPLE__)
-#include "instrumentation/smem.h"
+#include "state/shared_memory.h"
 
 #include "millennium/millennium.h"
 #include "millennium/crash_handler.h"
@@ -47,6 +46,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
+#include <unistd.h>
+#include <string.h>
 
 std::unique_ptr<std::thread> g_millenniumThread;
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
@@ -92,46 +93,12 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
 {
     /** destroy the shared memory pool between millennium and the web helper hook */
     if (g_lb_patch_arena) {
-        platform::shared_memory::close(g_lb_patch_arena, SHM_IPC_SIZE);
-        platform::shared_memory::unlink(SHM_IPC_NAME);
+        platform::shared_memory::sclose(g_lb_patch_arena, SHM_IPC_SIZE);
+        platform::shared_memory::sunlink(SHM_IPC_NAME);
         g_lb_patch_arena = NULL;
     }
 }
 
-std::optional<std::filesystem::path> Posix_GetModuleBasePath()
-{
-    Dl_info info;
-    if (dladdr((void*)Posix_GetModuleBasePath, &info)) {
-        char resolved[PATH_MAX];
-        if (realpath(info.dli_fname, resolved)) {
-            std::filesystem::path p(resolved);
-            return p.parent_path();
-        }
-    }
-    return std::nullopt;
-}
-
-void Posix_AttachWebHelperHook()
-{
-    const char* existing = getenv("LD_PRELOAD");
-    std::string hhx_path;
-
-#ifdef MILLENNIUM_DEBUG
-    hhx_path = __HOOK_HELPER_OUTPUT_ABSPATH__;
-#else
-    auto base_path = Posix_GetModuleBasePath();
-    if (!base_path) {
-        LOG_ERROR("[Posix_AttachWebHelperHook] Failed to get module base path");
-        return;
-    }
-    hhx_path = (std::filesystem::path(*base_path) / __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__);
-#endif
-
-    std::string new_value = existing ? std::string(existing) + ":" + hhx_path : hhx_path;
-
-    setenv("LD_PRELOAD", new_value.c_str(), 1);
-    logger.log("[Posix_AttachWebHelperHook] Setting LD_PRELOAD to {}", new_value);
-}
 
 void Posix_AttachMillennium()
 {
@@ -139,7 +106,6 @@ void Posix_AttachMillennium()
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
 
     Plat_InitializeSteamHooks();
-    Posix_AttachWebHelperHook();
     g_millennium = std::make_unique<millennium>();
     g_millennium->entry();
 }

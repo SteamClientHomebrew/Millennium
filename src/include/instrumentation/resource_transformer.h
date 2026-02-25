@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-#include "cef_def.h"
+#include <cstdint>
 
-int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel);
-int urlp_should_block_lb_req(cef_string_userfree_t url);
+int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);

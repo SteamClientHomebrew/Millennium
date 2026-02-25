@@ -36,6 +36,7 @@
 #include "millennium/core_ipc.h"
 #include "millennium/http.h"
 #include "millennium/logger.h"
+#include <cmath>
 #include <memory>
 
 head::library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main)
@@ -141,6 +142,22 @@ std::weak_ptr<head::plugin_installer> head::library_updater::get_plugin_updater(
 
 void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
 {
+    // Completion events always go through immediately.
+    if (!is_complete) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_dispatch_time).count();
+        double delta = std::abs(progress - m_last_dispatched_progress);
+
+        // Throttle: skip if progress hasn't moved ≥2% and it's been less than 250ms.
+        // This prevents flooding the CDP channel during rapid libgit2 callbacks.
+        if (delta < 2.0 && elapsed_ms < 250) {
+            return;
+        }
+
+        m_last_dispatched_progress = progress;
+        m_last_dispatch_time = now;
+    }
+
     std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete };
     m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));
 }

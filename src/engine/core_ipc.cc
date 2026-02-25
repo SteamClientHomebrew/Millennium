@@ -191,7 +191,7 @@ ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
         const auto& args = call["data"].contains("argumentList") ? call["data"]["argumentList"] : json::object();
 
         ordered_json result = backend->ipc_message_hdlr(functionName, args);
-        return { true, result.dump() };
+        return { true, nlohmann::json(result) };
     }
     /** the internal c ipc method threw an exception */
     catch (const std::exception& ex) {

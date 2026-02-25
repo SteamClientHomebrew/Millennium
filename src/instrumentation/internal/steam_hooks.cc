@@ -548,6 +548,7 @@ bool InitializeSteamHooks()
 #include <string>
 #include <fmt/format.h>
 #include <subhook.h>
+#include <stdlib.h>
 
 static SubHook create_hook;
 

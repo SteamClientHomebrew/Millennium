@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "instrumentation/fread.h"
-#include "instrumentation/log.h"
+#include "instrumentation/resource_reader.h"
+#include "instrumentation/logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef _WIN32

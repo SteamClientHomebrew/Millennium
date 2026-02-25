@@ -75,14 +75,21 @@ std::optional<nlohmann::json> head::theme_installer::get_theme_from_github(const
 
 bool head::theme_installer::is_theme_installed(const std::string& repo, const std::string& owner)
 {
-    bool installed = get_theme_from_github(repo, owner).has_value();
-    logger.log("CheckInstall: {}/{} -> {}", owner, repo, installed);
+    auto theme = get_theme_from_github(repo, owner);
+    if (!theme.has_value()) {
+        logger.log("is_theme_installed: {}/{} -> false (not found)", owner, repo);
+        return false;
+    }
+
+    std::filesystem::path path = get_skins_folder() / theme->value("native", std::string());
+    bool installed = std::filesystem::exists(path);
+    logger.log("is_theme_installed: {}/{} -> {} (path: {})", owner, repo, installed, path.string());
     return installed;
 }
 
 nlohmann::json head::theme_installer::uninstall_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner)
 {
-    logger.log("UninstallTheme: {}/{}", owner, repo);
+    logger.log("uninstall_theme: {}/{}", owner, repo);
 
     auto themeOpt = get_theme_from_github(repo, owner);
     if (!themeOpt) return create_error_response("Couldn't locate theme on disk!");
@@ -193,8 +200,6 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
     }
 
     m_updater->dispatch_progress("Starting Installer...", 10, false);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    m_updater->dispatch_progress("Receiving remote objects...", 40, false);
 
     std::string cloneErr;
     std::string url = fmt::format("https://github.com/{}/{}.git", owner, repo);
@@ -244,8 +249,6 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
     if (!std::filesystem::exists(finalPath, ec) || ec) {
         return create_error_response("Installation completed but theme directory is not accessible");
     }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     /** trigger config update to regenerate config */
     themeConfig->on_config_change_hdlr();
@@ -319,11 +322,14 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
 #endif
         git_remote_fetch(remote, nullptr, &fetch_opts, nullptr);
 
+        // FETCH_HEAD is always written by git_remote_fetch, regardless of whether
+        // the remote publishes a symbolic HEAD (refs/remotes/origin/HEAD is only
+        // set by git clone, not by git fetch).
         git_object* obj = nullptr;
-        if (git_revparse_single(&obj, repo, "refs/remotes/origin/HEAD") != 0) {
+        if (git_revparse_single(&obj, repo, "FETCH_HEAD") != 0) {
             git_remote_free(remote);
             git_repository_free(repo);
-            logger.log("Failed to parse HEAD in repo: {}", path.string());
+            logger.log("Failed to resolve FETCH_HEAD in repo: {}", path.string());
             git_libgit2_shutdown();
             return false;
         }

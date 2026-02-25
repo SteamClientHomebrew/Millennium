@@ -146,7 +146,6 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                  }
         };
         m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
-        logger.log("ffi_binder: re-added binding to context {} in session {}", context_id, session_id);
     } catch (const std::exception& e) {
         LOG_ERROR("ffi_binder: failed to re-add binding: {}", e.what());
     }

@@ -91,8 +91,6 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
         m_updater->dispatch_progress("Starting Plugin Installer...", 0, false);
 
         const auto downloadPath = get_plugins_path();
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-
         std::string uuidStr = GenerateUUID();
         std::filesystem::path zipPath = downloadPath / uuidStr;
 
@@ -103,8 +101,6 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
         };
 
         Http::DownloadWithProgress({ downloadUrl, totalSize }, zipPath, progressCallback);
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-
         m_updater->dispatch_progress("Setting up installed plugin...", 50, false);
         std::filesystem::create_directories(downloadPath);
         Util::ExtractZipArchive(zipPath.string(), downloadPath.string(), [&](int current, int total, const char*)
@@ -115,8 +111,6 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
 
         m_updater->dispatch_progress("Cleaning up...", 95, false);
         std::filesystem::remove(zipPath);
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-
         m_updater->dispatch_progress("Done!", 100, true);
 
         return {

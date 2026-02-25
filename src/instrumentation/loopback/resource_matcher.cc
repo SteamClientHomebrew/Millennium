@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-#include "instrumentation/match.h"
-#include "instrumentation/smem.h"
+#include "instrumentation/resource_matcher.h"
+#include "state/shared_memory.h"
 #include <stdint.h>
 #include <stdlib.h>
 
