@@ -25,7 +25,7 @@ const Logger = {
 
 	error(message: string, loc?: string) {
 		if (loc) {
-			console.error(`${chalk.dim(loc + ':')} ${message}`);
+			console.error(`${chalk.red(loc + ':')} ${message}`);
 		} else {
 			console.error(`${chalk.red('error:')} ${message}`);
 		}

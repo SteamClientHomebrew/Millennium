@@ -5,7 +5,6 @@ import resolve, { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
-import esbuild from 'rollup-plugin-esbuild';
 import url from '@rollup/plugin-url';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
 import { InputPluginOption, OutputBundle, OutputOptions, Plugin, RollupOptions, rollup } from 'rollup';
@@ -184,9 +183,7 @@ class FrontendBuild extends MillenniumBuild {
 	}
 
 	protected plugins(sysfsPlugin: InputPluginOption): InputPluginOption[] {
-		const tsPlugin = this.props.minify
-			? typescript({ tsconfig: resolveTsConfig(this.frontendDir), compilerOptions: { outDir: undefined } })
-			: esbuild({ tsconfig: resolveTsConfig(this.frontendDir) });
+		const tsPlugin = typescript({ tsconfig: resolveTsConfig(this.frontendDir), compilerOptions: { noCheck: !this.props.minify, outDir: undefined } });
 
 		return [
 			tsPlugin,
@@ -239,9 +236,7 @@ class WebkitBuild extends MillenniumBuild {
 	}
 
 	protected async plugins(sysfsPlugin: InputPluginOption): Promise<InputPluginOption[]> {
-		const tsPlugin = this.props.minify
-			? typescript({ tsconfig: './webkit/tsconfig.json' })
-			: esbuild({ tsconfig: './webkit/tsconfig.json' });
+		const tsPlugin = typescript({ tsconfig: './webkit/tsconfig.json', compilerOptions: { noCheck: !this.props.minify } });
 
 		const base: InputPluginOption[] = [
 			insertMillennium(BuildTarget.Webkit, this.props),
