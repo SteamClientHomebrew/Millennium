@@ -47,6 +47,7 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 	const filter = createFilter(options.include, options.exclude);
 	const pluginName = 'millennium-const-sysfs-expr';
 	let count = 0;
+	const globCache = new Map<string, string>();
 
 	const plugin: Plugin = {
 		name: pluginName,
@@ -97,9 +98,6 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 							}
 						}
 					},
-				});
-
-				traverse(ast, {
 					CallExpression: (nodePath) => {
 						const node = nodePath.node;
 						if (node.callee.type === 'Identifier' && node.callee.name === 'constSysfsExpr') {
@@ -220,55 +218,61 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 
 								let embeddedContent: string;
 
-								const isPotentialPattern = /[?*+!@()[\]{}]/.test(pathOrPattern);
-
-								if (
-									!isPotentialPattern &&
-									fs.existsSync(path.resolve(searchBasePath, pathOrPattern)) &&
-									fs.statSync(path.resolve(searchBasePath, pathOrPattern)).isFile()
-								) {
-									const singleFilePath = path.resolve(searchBasePath, pathOrPattern);
-
-									try {
-										const rawContent: string | Buffer = fs.readFileSync(singleFilePath, callOptions.encoding);
-										const contentString = rawContent.toString();
-										const fileInfo: FileInfo = {
-											content: contentString,
-											filePath: singleFilePath,
-											fileName: path.relative(searchBasePath, singleFilePath),
-										};
-										embeddedContent = JSON.stringify(fileInfo);
-										this.addWatchFile(singleFilePath);
-									} catch (fileError: unknown) {
-										let message = String(fileError instanceof Error ? fileError.message : (fileError ?? 'Unknown file read error'));
-										this.error(`Error reading file ${singleFilePath}: ${message}`, node.loc?.start.index);
-										return;
-									}
+								const cacheKey = `${searchBasePath}\0${pathOrPattern}\0${callOptions.encoding}`;
+								if (globCache.has(cacheKey)) {
+									embeddedContent = globCache.get(cacheKey)!;
 								} else {
-									const matchingFiles = glob.sync(pathOrPattern, {
-										cwd: searchBasePath,
-										nodir: true,
-										absolute: true,
-									});
+									const isPotentialPattern = /[?*+!@()[\]{}]/.test(pathOrPattern);
 
-									const fileInfoArray: FileInfo[] = [];
-									for (const fullPath of matchingFiles) {
+									if (
+										!isPotentialPattern &&
+										fs.existsSync(path.resolve(searchBasePath, pathOrPattern)) &&
+										fs.statSync(path.resolve(searchBasePath, pathOrPattern)).isFile()
+									) {
+										const singleFilePath = path.resolve(searchBasePath, pathOrPattern);
+
 										try {
-											const rawContent: string | Buffer = fs.readFileSync(fullPath, callOptions.encoding);
+											const rawContent: string | Buffer = fs.readFileSync(singleFilePath, callOptions.encoding);
 											const contentString = rawContent.toString();
-											fileInfoArray.push({
+											const fileInfo: FileInfo = {
 												content: contentString,
-												filePath: fullPath,
-												fileName: path.relative(searchBasePath, fullPath),
-											});
-											this.addWatchFile(fullPath);
+												filePath: singleFilePath,
+												fileName: path.relative(searchBasePath, singleFilePath),
+											};
+											embeddedContent = JSON.stringify(fileInfo);
+											this.addWatchFile(singleFilePath);
 										} catch (fileError: unknown) {
 											let message = String(fileError instanceof Error ? fileError.message : (fileError ?? 'Unknown file read error'));
-											this.warn(`Error reading file ${fullPath}: ${message}`);
+											this.error(`Error reading file ${singleFilePath}: ${message}`, node.loc?.start.index);
+											return;
 										}
+									} else {
+										const matchingFiles = glob.sync(pathOrPattern, {
+											cwd: searchBasePath,
+											nodir: true,
+											absolute: true,
+										});
+
+										const fileInfoArray: FileInfo[] = [];
+										for (const fullPath of matchingFiles) {
+											try {
+												const rawContent: string | Buffer = fs.readFileSync(fullPath, callOptions.encoding);
+												const contentString = rawContent.toString();
+												fileInfoArray.push({
+													content: contentString,
+													filePath: fullPath,
+													fileName: path.relative(searchBasePath, fullPath),
+												});
+												this.addWatchFile(fullPath);
+											} catch (fileError: unknown) {
+												let message = String(fileError instanceof Error ? fileError.message : (fileError ?? 'Unknown file read error'));
+												this.warn(`Error reading file ${fullPath}: ${message}`);
+											}
+										}
+										embeddedContent = JSON.stringify(fileInfoArray);
 									}
-									embeddedContent = JSON.stringify(fileInfoArray);
-								}
+									globCache.set(cacheKey, embeddedContent);
+								} // end cache miss
 
 								// Replace the call expression with the generated content string
 								magicString.overwrite(node.start, node.end, embeddedContent);

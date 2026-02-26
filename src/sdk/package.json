@@ -10,14 +10,12 @@
     "docs"
   ],
   "scripts": {
-    "test": "lerna run test",
-    "build": "lerna run build",
+    "build": "bun run --filter '*' build",
     "publish": "lerna publish",
     "docs": "typedoc",
-    "prepublish": "npm run build && npm run docs"
+    "prepublish": "bun run build && bun run docs"
   },
   "devDependencies": {
-    "lerna": "^9.0.3",
     "typedoc": "^0.28.15",
     "typedoc-plugin-frontmatter": "^1.3.1",
     "typedoc-plugin-markdown": "^4.9.0"
@@ -40,5 +38,8 @@
       "electron",
       "nx"
     ]
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }
