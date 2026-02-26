@@ -32,6 +32,7 @@
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.2",
+    "typescript": ">=5.0.0",
     "@rollup/plugin-url": "^8.0.2",
     "@rollup/pluginutils": "^5.1.4",
     "chalk": "^5.4.1",

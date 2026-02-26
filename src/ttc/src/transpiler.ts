@@ -6,6 +6,7 @@ import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import esbuild from 'rollup-plugin-esbuild';
+import ts from 'typescript';
 import url from '@rollup/plugin-url';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
 import chalk from 'chalk';
@@ -137,100 +138,17 @@ function stripPluginPrefix(message: string): string {
 
 class BuildFailedError extends Error {}
 
-interface PathEntry {
-	pattern: string;
-	targets: string[];
-	configDir: string;
-}
-
-/**
- * tsconfig.json files use JSONC, not regular JSON.
- * JSONC supports comments and trailing commas, while JSON does not.
- * This function sanitizes JSONC into JSON.parse()-able content.
- *
- * @param text input text
- * @returns object
- */
-function parseJsonc(text: string): any {
-	let out = '';
-	let i = 0;
-	const n = text.length;
-	while (i < n) {
-		const ch = text[i];
-		if (ch === '"') {
-			out += ch;
-			i++;
-			while (i < n) {
-				const c = text[i];
-				out += c;
-				if (c === '\\') {
-					i++;
-					if (i < n) {
-						out += text[i];
-						i++;
-					}
-				} else if (c === '"') {
-					i++;
-					break;
-				} else i++;
-			}
-		} else if (ch === '/' && i + 1 < n && text[i + 1] === '/') {
-			i += 2;
-			while (i < n && text[i] !== '\n') i++;
-		} else if (ch === '/' && i + 1 < n && text[i + 1] === '*') {
-			i += 2;
-			while (i < n - 1 && !(text[i] === '*' && text[i + 1] === '/')) i++;
-			i += 2;
-		} else if (ch === ',') {
-			let j = i + 1;
-			while (j < n && (text[j] === ' ' || text[j] === '\t' || text[j] === '\n' || text[j] === '\r')) j++;
-			if (j < n && (text[j] === '}' || text[j] === ']')) {
-				i++;
-			} else {
-				out += ch;
-				i++;
-			}
-		} else {
-			out += ch;
-			i++;
-		}
-	}
-	return JSON.parse(out);
-}
-
 function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
-	function readConfig(cfgPath: string): { baseUrl: string | null; entries: PathEntry[] } {
-		const dir = path.dirname(path.resolve(cfgPath));
-		let raw: any;
-		try {
-			raw = parseJsonc(fs.readFileSync(cfgPath, 'utf8'));
-		} catch {
-			return { baseUrl: null, entries: [] };
-		}
+	const absPath = path.resolve(tsconfigPath);
+	const configDir = path.dirname(absPath);
 
-		let parentResult: { baseUrl: string | null; entries: PathEntry[] } = { baseUrl: null, entries: [] };
-		if (raw.extends) {
-			const ext = raw.extends as string;
-			const parentPath = path.resolve(dir, ext.endsWith('.json') ? ext : `${ext}.json`);
-			parentResult = readConfig(parentPath);
-		}
+	const { config, error } = ts.readConfigFile(absPath, ts.sys.readFile);
+	if (error) return { name: 'tsconfig-paths' };
 
-		const opts = raw.compilerOptions ?? {};
-		const baseUrl = opts.baseUrl ? path.resolve(dir, opts.baseUrl as string) : parentResult.baseUrl;
-
-		const ownEntries: PathEntry[] = Object.entries(opts.paths ?? {}).map(([pattern, targets]) => ({
-			pattern,
-			targets: targets as string[],
-			configDir: dir,
-		}));
-
-		const ownPatterns = new Set(ownEntries.map((e) => e.pattern));
-		const parentEntries = parentResult.entries.filter((e) => !ownPatterns.has(e.pattern));
-
-		return { baseUrl, entries: [...ownEntries, ...parentEntries] };
-	}
-
-	const { baseUrl, entries } = readConfig(tsconfigPath);
+	const { options } = ts.parseJsonConfigFileContent(config, ts.sys, configDir);
+	const baseUrl = options.baseUrl ?? null;
+	const pathsBase = (options.pathsBasePath as string | undefined) ?? configDir;
+	const paths = options.paths ?? {};
 
 	function resolveWithExtensions(base: string): string | null {
 		for (const ext of ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx']) {
@@ -242,14 +160,14 @@ function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
 	return {
 		name: 'tsconfig-paths',
 		async resolveId(source: string, importer: string | undefined) {
-			for (const { pattern, targets, configDir } of entries) {
+			for (const [pattern, targets] of Object.entries(paths)) {
 				if (!targets.length) continue;
 				const isWild = pattern.endsWith('/*');
 				if (isWild) {
 					const prefix = pattern.slice(0, -2);
 					if (source === prefix || source.startsWith(prefix + '/')) {
 						const rest = source.startsWith(prefix + '/') ? source.slice(prefix.length + 1) : '';
-						const targetBase = path.resolve(configDir, targets[0].replace('*', rest));
+						const targetBase = path.resolve(pathsBase, targets[0].replace('*', rest));
 						const resolved = resolveWithExtensions(targetBase);
 						if (resolved) {
 							const result = await this.resolve(resolved, importer, { skipSelf: true });
@@ -257,7 +175,7 @@ function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
 						}
 					}
 				} else if (source === pattern) {
-					const targetBase = path.resolve(configDir, targets[0]);
+					const targetBase = path.resolve(pathsBase, targets[0]);
 					const resolved = resolveWithExtensions(targetBase);
 					if (resolved) {
 						const result = await this.resolve(resolved, importer, { skipSelf: true });
