@@ -8,6 +8,7 @@
 import { BuildType, ValidateParameters } from './query-parser';
 import { CheckForUpdates } from './version-control';
 import { ValidatePlugin } from './check-health';
+import { PluginJson } from './plugin-json';
 import { TranspilerPluginComponent, TranspilerProps } from './transpiler';
 import { performance } from 'perf_hooks';
 
@@ -25,13 +26,15 @@ const StartCompilerModule = () => {
 	const bTersePlugin = parameters.type == BuildType.ProdBuild;
 
 	ValidatePlugin(bIsMillennium, parameters.targetPlugin)
-		.then((json: any) => {
+		.then((json: PluginJson) => {
 			const props: TranspilerProps = {
 				minify: bTersePlugin,
-				pluginName: json?.name,
+				pluginName: json.name,
+				watch: parameters.watch || false,
+				isMillennium: bIsMillennium,
 			};
 
-			TranspilerPluginComponent(bIsMillennium, json, props);
+			TranspilerPluginComponent(json, props);
 		})
 		.catch(() => {
 			process.exit();

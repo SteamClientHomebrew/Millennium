@@ -33,6 +33,16 @@ interface FileInfo {
 	fileName: string;
 }
 
+interface ImportSpecifierInfo {
+	specifierStart: number;
+	specifierEnd: number;
+	declStart: number;
+	declEnd: number;
+	isOnlySpecifier: boolean;
+	prevSpecifierEnd: number | null;
+	nextSpecifierStart: number | null;
+}
+
 export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsPlugin {
 	const filter = createFilter(options.include, options.exclude);
 	const pluginName = 'millennium-const-sysfs-expr';
@@ -47,6 +57,7 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 
 			const magicString = new MagicString(code);
 			let hasReplaced = false;
+			let constSysfsImport: ImportSpecifierInfo | null = null;
 
 			try {
 				const stringVariables = new Map<string, string>();
@@ -62,6 +73,28 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 						const id = path.node.id;
 						if (id.type === 'Identifier' && init && init.type === 'StringLiteral') {
 							stringVariables.set(id.name, init.value);
+						}
+					},
+					ImportDeclaration(nodePath) {
+						const decl = nodePath.node;
+						const specifiers = decl.specifiers;
+						const idx = specifiers.findIndex(
+							(s) => s.type === 'ImportSpecifier' && ((s as any).imported?.name === 'constSysfsExpr' || (s as any).local?.name === 'constSysfsExpr'),
+						);
+						if (idx !== -1 && typeof decl.start === 'number' && typeof decl.end === 'number') {
+							const spec = specifiers[idx];
+							if (typeof spec.start === 'number' && typeof spec.end === 'number') {
+								constSysfsImport = {
+									specifierStart: spec.start,
+									specifierEnd: spec.end,
+									declStart: decl.start,
+									declEnd: decl.end,
+									isOnlySpecifier: specifiers.length === 1,
+									prevSpecifierEnd: idx > 0 && typeof specifiers[idx - 1].end === 'number' ? (specifiers[idx - 1].end as number) : null,
+									nextSpecifierStart:
+										idx < specifiers.length - 1 && typeof specifiers[idx + 1].start === 'number' ? (specifiers[idx + 1].start as number) : null,
+								};
+							}
 						}
 					},
 				});
@@ -177,14 +210,13 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 							}
 
 							try {
-
 								const searchBasePath = callOptions.basePath
 									? path.isAbsolute(callOptions.basePath)
 										? callOptions.basePath
 										: path.resolve(path.dirname(id), callOptions.basePath)
 									: path.isAbsolute(pathOrPattern) && !/[?*+!@()[\]{}]/.test(pathOrPattern)
-									? path.dirname(pathOrPattern)
-									: path.resolve(path.dirname(id), path.dirname(pathOrPattern));
+										? path.dirname(pathOrPattern)
+										: path.resolve(path.dirname(id), path.dirname(pathOrPattern));
 
 								let embeddedContent: string;
 
@@ -206,14 +238,13 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 											fileName: path.relative(searchBasePath, singleFilePath),
 										};
 										embeddedContent = JSON.stringify(fileInfo);
+										this.addWatchFile(singleFilePath);
 									} catch (fileError: unknown) {
-										let message = String(fileError instanceof Error ? fileError.message : fileError ?? 'Unknown file read error');
+										let message = String(fileError instanceof Error ? fileError.message : (fileError ?? 'Unknown file read error'));
 										this.error(`Error reading file ${singleFilePath}: ${message}`, node.loc?.start.index);
 										return;
 									}
 								} else {
-
-
 									const matchingFiles = glob.sync(pathOrPattern, {
 										cwd: searchBasePath,
 										nodir: true,
@@ -230,8 +261,9 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 												filePath: fullPath,
 												fileName: path.relative(searchBasePath, fullPath),
 											});
+											this.addWatchFile(fullPath);
 										} catch (fileError: unknown) {
-											let message = String(fileError instanceof Error ? fileError.message : fileError ?? 'Unknown file read error');
+											let message = String(fileError instanceof Error ? fileError.message : (fileError ?? 'Unknown file read error'));
 											this.warn(`Error reading file ${fullPath}: ${message}`);
 										}
 									}
@@ -243,7 +275,7 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 								hasReplaced = true;
 								count++;
 							} catch (error: unknown) {
-												const message = String(error instanceof Error ? error.message : error ?? 'Unknown error during file processing');
+								const message = String(error instanceof Error ? error.message : (error ?? 'Unknown error during file processing'));
 								this.error(`Could not process files for constSysfsExpr: ${message}`, node.loc?.start.index);
 								return;
 							}
@@ -251,9 +283,23 @@ export default function constSysfsExpr(options: EmbedPluginOptions = {}): SysfsP
 					},
 				});
 			} catch (error: unknown) {
-				const message = String(error instanceof Error ? error.message : error ?? 'Unknown parsing error');
+				const message = String(error instanceof Error ? error.message : (error ?? 'Unknown parsing error'));
 				this.error(`Failed to parse ${id}: ${message}`);
 				return null;
+			}
+
+			if (constSysfsImport !== null && hasReplaced) {
+				const info = constSysfsImport as ImportSpecifierInfo;
+				if (info.isOnlySpecifier) {
+					let endPos = info.declEnd;
+					if (code[endPos] === '\n') endPos++;
+					else if (code[endPos] === '\r' && code[endPos + 1] === '\n') endPos += 2;
+					magicString.remove(info.declStart, endPos);
+				} else if (info.nextSpecifierStart !== null) {
+					magicString.remove(info.specifierStart, info.nextSpecifierStart);
+				} else if (info.prevSpecifierEnd !== null) {
+					magicString.remove(info.prevSpecifierEnd, info.specifierEnd);
+				}
 			}
 
 			// If no replacements were made, return null

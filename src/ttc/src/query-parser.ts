@@ -9,6 +9,7 @@ export const PrintParamHelp = () => {
 			'options:',
 			'  --build <dev|prod>   build type (prod enables minification)',
 			'  --target <path>      plugin directory (default: current directory)',
+			'  --watch              enable watch mode for continuous rebuilding',
 			'  --no-update          skip update check',
 			'  --help               show this message',
 			'',
@@ -25,12 +26,14 @@ export interface ParameterProps {
 	type: BuildType;
 	targetPlugin: string; // path
 	isMillennium?: boolean;
+	watch?: boolean;
 }
 
 export const ValidateParameters = (args: Array<string>): ParameterProps => {
 	let typeProp: BuildType = BuildType.DevBuild,
 		targetProp: string = process.cwd(),
-		isMillennium: boolean = false;
+		isMillennium: boolean = false,
+		watch: boolean = false;
 
 	if (args.includes('--help')) {
 		PrintParamHelp();
@@ -73,11 +76,16 @@ export const ValidateParameters = (args: Array<string>): ParameterProps => {
 		if (args[i] == '--millennium-internal') {
 			isMillennium = true;
 		}
+
+		if (args[i] === '--watch') {
+			watch = true;
+		}
 	}
 
 	return {
 		type: typeProp,
 		targetPlugin: targetProp,
-		isMillennium: isMillennium,
+		isMillennium,
+		watch,
 	};
 };

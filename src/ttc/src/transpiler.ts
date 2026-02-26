@@ -7,7 +7,8 @@ import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import url from '@rollup/plugin-url';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
-import { InputPluginOption, OutputBundle, OutputOptions, Plugin, RollupOptions, rollup } from 'rollup';
+import chalk from 'chalk';
+import { InputPluginOption, OutputBundle, OutputOptions, Plugin, RollupOptions, rollup, watch as rollupWatch } from 'rollup';
 import { minify_sync } from 'terser';
 import scss from 'rollup-plugin-scss';
 import * as sass from 'sass';
@@ -16,8 +17,10 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import dotenv from 'dotenv';
 import injectProcessEnv from 'rollup-plugin-inject-process-env';
+import { performance } from 'perf_hooks';
 import { ExecutePluginModule, InitializePlugins } from './plugin-api';
 import { Logger } from './logger';
+import { PluginJson } from './plugin-json';
 import constSysfsExpr from './static-embed';
 
 const env = dotenv.config().parsed ?? {};
@@ -41,6 +44,8 @@ declare const __call_server_method__: (methodName: string, kwargs: any) => any;
 export interface TranspilerProps {
 	minify: boolean;
 	pluginName: string;
+	watch?: boolean;
+	isMillennium?: boolean;
 }
 
 enum BuildTarget {
@@ -129,6 +134,8 @@ function stripPluginPrefix(message: string): string {
 	return message;
 }
 
+class BuildFailedError extends Error {}
+
 abstract class MillenniumBuild {
 	protected abstract readonly externals: ReadonlySet<string>;
 	protected abstract readonly forbidden: ReadonlyMap<string, string>;
@@ -142,6 +149,25 @@ abstract class MillenniumBuild {
 			process.exit(1);
 		}
 		return this.externals.has(id);
+	}
+
+	async watchConfig(input: string, sysfsPlugin: InputPluginOption, isMillennium: boolean): Promise<RollupOptions> {
+		return {
+			input,
+			plugins: await this.plugins(sysfsPlugin),
+			onwarn: (warning) => {
+				const msg = stripPluginPrefix(warning.message);
+				const loc = logLocation(warning);
+				if (warning.plugin === 'typescript') {
+					Logger.error(msg, loc);
+				} else {
+					Logger.warn(msg, loc);
+				}
+			},
+			context: 'window',
+			external: (id) => this.isExternal(id),
+			output: this.output(isMillennium),
+		};
 	}
 
 	async build(input: string, sysfsPlugin: InputPluginOption, isMillennium: boolean): Promise<void> {
@@ -167,7 +193,7 @@ abstract class MillenniumBuild {
 
 		await (await rollup(config)).write(config.output as OutputOptions);
 
-		if (hasErrors) process.exit(1);
+		if (hasErrors) throw new BuildFailedError();
 	}
 }
 
@@ -273,10 +299,50 @@ class WebkitBuild extends MillenniumBuild {
 	}
 }
 
-export const TranspilerPluginComponent = async (isMillennium: boolean, pluginJson: any, props: TranspilerProps) => {
+function RunWatchMode(frontendConfig: RollupOptions, webkitConfig: RollupOptions | null): void {
+	const configs = webkitConfig ? [frontendConfig, webkitConfig] : [frontendConfig];
+	const watcher = rollupWatch(configs);
+
+	console.log(chalk.blueBright.bold('watch'), 'watching for file changes...');
+
+	watcher.on('event', async (event) => {
+		if (event.code === 'BUNDLE_START') {
+			const label = (event.output as readonly string[]).some((f) => f.includes('index.js')) ? 'frontend' : 'webkit';
+			console.log(chalk.yellowBright.bold('watch'), `rebuilding ${label}...`);
+		} else if (event.code === 'BUNDLE_END') {
+			const label = (event.output as readonly string[]).some((f) => f.includes('index.js')) ? 'frontend' : 'webkit';
+			console.log(chalk.greenBright.bold('watch'), `${label} built in ${chalk.green(`${event.duration}ms`)}`);
+			await event.result.close();
+		} else if (event.code === 'ERROR') {
+			const err = event.error;
+			const msg = stripPluginPrefix(err?.message ?? String(err));
+			Logger.error(msg, logLocation(err as any));
+			if (event.result) await event.result.close();
+		}
+	});
+
+	const shutdown = () => {
+		console.log(chalk.yellowBright.bold('watch'), 'stopping...');
+		watcher.close();
+		process.exit(0);
+	};
+
+	process.on('SIGINT', shutdown);
+	process.on('SIGUSR2', shutdown);
+}
+
+export const TranspilerPluginComponent = async (pluginJson: PluginJson, props: TranspilerProps) => {
 	const webkitDir = './webkit/index.tsx';
 	const frontendDir = getFrontendDir(pluginJson);
 	const sysfs = constSysfsExpr();
+	const isMillennium = props.isMillennium ?? false;
+
+	if (props.watch) {
+		const frontendConfig = await new FrontendBuild(frontendDir, props).watchConfig(resolveEntryFile(frontendDir), sysfs.plugin, isMillennium);
+		const webkitConfig = fs.existsSync(webkitDir) ? await new WebkitBuild(props).watchConfig(webkitDir, sysfs.plugin, isMillennium) : null;
+		RunWatchMode(frontendConfig, webkitConfig);
+		return;
+	}
 
 	try {
 		await new FrontendBuild(frontendDir, props).build(resolveEntryFile(frontendDir), sysfs.plugin, isMillennium);
@@ -292,7 +358,10 @@ export const TranspilerPluginComponent = async (isMillennium: boolean, pluginJso
 			envCount: Object.keys(env).length || undefined,
 		});
 	} catch (exception: any) {
-		Logger.error(stripPluginPrefix(exception?.message ?? String(exception)), logLocation(exception));
+		if (!(exception instanceof BuildFailedError)) {
+			Logger.error(stripPluginPrefix(exception?.message ?? String(exception)), logLocation(exception));
+		}
+		Logger.failed({ elapsedMs: performance.now() - global.PerfStartTime, buildType: props.minify ? 'prod' : 'dev' });
 		process.exit(1);
 	}
 };

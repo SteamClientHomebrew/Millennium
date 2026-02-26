@@ -44,6 +44,11 @@ const Logger = {
 		if (envCount) meta.push(`${envCount} env var${envCount > 1 ? 's' : ''}`);
 		console.log(`${chalk.green('Finished')} ${buildType} in ${elapsed} ` + chalk.dim('(' + meta.join(', ') + ')'));
 	},
+
+	failed({ elapsedMs, buildType }: Pick<DoneOptions, 'elapsedMs' | 'buildType'>) {
+		const elapsed = `${(elapsedMs / 1000).toFixed(2)}s`;
+		console.error(`${chalk.red('Failed')} ${buildType} in ${elapsed} ` + chalk.dim(`(ttc v${version})`));
+	},
 };
 
 export { Logger };

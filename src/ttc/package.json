@@ -1,6 +1,6 @@
 {
   "name": "@steambrew/ttc",
-  "version": "3.0.1",
+  "version": "3.1.1",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "rollup -c",
+    "dev": "rollup -c -w",
     "prepare": "bun run build"
   },
   "publishConfig": {

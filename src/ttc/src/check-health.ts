@@ -1,9 +1,10 @@
 import path from 'path';
 import { existsSync, readFile } from 'fs';
 import { Logger } from './logger';
+import { PluginJson } from './plugin-json';
 
-export const ValidatePlugin = (bIsMillennium: boolean, target: string): Promise<any> => {
-	return new Promise<any>((resolve, reject) => {
+export const ValidatePlugin = (bIsMillennium: boolean, target: string): Promise<PluginJson> => {
+	return new Promise<PluginJson>((resolve, reject) => {
 		if (!existsSync(target)) {
 			Logger.error(`target path does not exist: ${target}`);
 			reject();
