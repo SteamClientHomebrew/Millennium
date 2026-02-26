@@ -138,7 +138,7 @@ endif()
 include(${MILLENNIUM_BASE}/scripts/cmake/bootstrap_deps.cmake)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/sdk/packages/loader/build")
+    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/typescript/sdk/packages/loader/build")
     set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${MILLENNIUM_BASE}/src")
 
     add_compile_definitions(
