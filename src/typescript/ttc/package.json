@@ -9,8 +9,7 @@
   },
   "scripts": {
     "build": "rollup -c",
-    "dev": "rollup -c -w",
-    "prepare": "bun run build"
+    "dev": "rollup -c -w"
   },
   "publishConfig": {
     "access": "public"

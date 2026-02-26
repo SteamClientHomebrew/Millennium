@@ -1,0 +1,12 @@
+{
+  "name": "@steambrew/millennium",
+  "scripts": {
+    "build": "bun build.ts"
+  },
+  "workspaces": [
+    "frontend",
+    "sdk",
+    "sdk/packages/*",
+    "ttc"
+  ]
+}

@@ -42,13 +42,13 @@ type Millennium = {
  *    pass
  * ```
  */
-declare const callable: <
+const callable: <
 	// Ideally this would be `Params extends Record<...>` but for backwards compatibility we keep a tuple type
 	Params extends [params: Record<string, IPCType>] | [] = [],
 	Return extends IPCType = IPCType,
 >(
 	route: string,
-) => (...params: Params) => Promise<Return>;
+) => (...params: Params) => Promise<Return> = (_route: string) => (..._params: any[]) => Promise.resolve(undefined as any);
 
 const m_private_context: any = undefined;
 export const pluginSelf = m_private_context;
@@ -61,7 +61,7 @@ declare global {
 	}
 }
 
-declare const BindPluginSettings: () => any;
+const BindPluginSettings: () => any = (): any => undefined;
 
 interface CDPMessage {
 	id?: number;

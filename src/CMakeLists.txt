@@ -77,16 +77,16 @@ set(SOURCE_FILES
     engine/thread_pool.cc
     util/semver.cc
     util/zip.cc
-    backend/css_parser.cc
-    backend/default_cfg.cc
-    backend/entry_point.cc
-    backend/library_updater.cc
-    backend/plugin_mgr.cc
-    backend/scan.cc
-    backend/sys_accent_col.cc
-    backend/theme_cfg.cc
-    backend/theme_mgr.cc
-    backend/webkit.cc
+    bindings/css_parser.cc
+    bindings/default_cfg.cc
+    bindings/entry_point.cc
+    bindings/library_updater.cc
+    bindings/plugin_mgr.cc
+    bindings/scan.cc
+    bindings/sys_accent_col.cc
+    bindings/theme_cfg.cc
+    bindings/theme_mgr.cc
+    bindings/webkit.cc
     instrumentation/internal/steam_hooks.cc
     state/shared_memory.cc
     system/config.cc

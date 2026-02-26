@@ -1,7 +1,7 @@
 {
-  "name": "@steambrew/docs",
+  "name": "@steambrew/sdk",
   "version": "1.1.2",
-  "description": "Documentation for the SteamBrew SDK.",
+  "description": "The SteamBrew SDK.",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -10,8 +10,7 @@
     "docs"
   ],
   "scripts": {
-    "build": "bun run --filter '*' build",
-    "publish": "lerna publish",
+    "build": "exit 0",
     "docs": "typedoc",
     "prepublish": "bun run build && bun run docs"
   },

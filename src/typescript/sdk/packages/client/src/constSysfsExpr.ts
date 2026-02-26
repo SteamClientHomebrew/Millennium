@@ -21,9 +21,9 @@ interface MultiFileExprProps {
  * Create a compile time filesystem expression.
  * This function will evaluate a file path at compile time, and embed a files content statically into the bundle.
  */
-declare const constSysfsExpr: {
+const constSysfsExpr: {
 	(fileName: string, props: SingleFileExprProps): FileInfo;
 	(props: MultiFileExprProps): FileInfo[];
-};
+} = (..._args: any[]): any => ({ content: '', filePath: '', fileName: '' });
 
 export { constSysfsExpr };
