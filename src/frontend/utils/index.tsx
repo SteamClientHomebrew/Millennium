@@ -69,7 +69,7 @@ export namespace Utils {
 		const buttonText = customOK ?? SteamLocale('#Settings_RestartNow_ButtonText');
 
 		showModal(
-			<ConfirmModal strTitle={title} strDescription={description} strOKButtonText={buttonText} onOK={callback.spread(true)} onCancel={callback.spread(false)} />,
+			<ConfirmModal strTitle={title} strDescription={description} strOKButtonText={buttonText} onOK={callback.bind(null, true)} onCancel={callback.bind(null, false)} />,
 			pluginSelf.mainWindow,
 			{
 				bNeverPopOut: false,

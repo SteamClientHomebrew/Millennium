@@ -44,7 +44,17 @@ function UpdateStylesLive(cssContent: string) {
 }
 
 export async function LoadStylesFromDisk(): Promise<string> {
-	return JSON.parse(await callable<[], string>('Core_LoadQuickCss')());
+	try {
+		return JSON.parse(await callable<[], string>('Core_LoadQuickCss')());
+	} catch (error) {
+		try {
+			return await callable<[], string>('Core_LoadQuickCss')();
+		} catch {
+			console.warn('Failed to load styles from disk!');
+		}
+	}
+
+	return String();
 }
 
 export function SaveStylesToDisk(cssContent: string) {

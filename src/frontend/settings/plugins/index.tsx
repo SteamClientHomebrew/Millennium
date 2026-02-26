@@ -104,7 +104,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 			}
 		}
 
-		const configurablePluginStore = await getPluginConfigurableStatus();
+		const configurablePluginStore = await getPluginConfigurableStatus(plugins);
 		this.setState({ plugins, checkedItems, pluginsWithLogs, configurablePluginStore });
 	}
 

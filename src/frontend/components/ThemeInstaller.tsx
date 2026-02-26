@@ -112,8 +112,12 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 			const response = JSON.parse(result);
 
 			if (!response || !response?.success) {
-				ShowMessageBox(formatString(locale.errorFailedToUninstallTheme, response?.message ?? locale.strUnknown), locale.errorMessageTitle);
+				ShowMessageBox(formatString(locale.errorFailedToUninstallTheme, response?.message ?? locale.strUnknown), locale.errorMessageTitle, {
+					onOK: () => props?.modal?.Close?.(),
+					onCancel: () => props?.modal?.Close?.(),
+				});
 				resolve(false);
+				return;
 			}
 
 			resolve(true);
@@ -140,7 +144,23 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 
 	/** Run installer in the background */
 	PyInstallTheme({ repo, owner }).then((result: any) => {
-		!result && ShowMessageBox(locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle);
+		try {
+			const response = JSON.parse(result);
+			if (!response?.success) {
+				ShowMessageBox(response?.message ?? locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle, {
+					onOK: () => props?.modal?.Close?.(),
+					onCancel: () => props?.modal?.Close?.(),
+				});
+			}
+		} catch {
+			// result was not JSON (e.g. null/undefined on unexpected early exit)
+			if (!result) {
+				ShowMessageBox(locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle, {
+					onOK: () => props?.modal?.Close?.(),
+					onCancel: () => props?.modal?.Close?.(),
+				});
+			}
+		}
 	});
 
 	return {

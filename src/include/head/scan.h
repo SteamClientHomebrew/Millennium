@@ -28,11 +28,13 @@
  * SOFTWARE.
  */
 
+#pragma once
+#include "millennium/plugin_manager.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <optional>
 
-namespace Millennium
+namespace head
 {
 namespace Plugins
 {
@@ -43,8 +45,8 @@ struct Plugin
     nlohmann::basic_json<> data;
 };
 
-nlohmann::json FindAllPlugins();
-std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name);
+nlohmann::json FindAllPlugins(std::shared_ptr<plugin_manager> plugin_manager);
+std::optional<nlohmann::json> GetPluginFromName(const std::string& plugin_name, std::shared_ptr<plugin_manager> plugin_manager);
 } // namespace Plugins
 
 namespace Themes
@@ -52,4 +54,4 @@ namespace Themes
 bool IsValid(const std::string& theme_native_name);
 nlohmann::ordered_json FindAllThemes();
 } // namespace Themes
-} // namespace Millennium
+} // namespace head

@@ -35,7 +35,7 @@
 #include <regex>
 #include <sstream>
 
-std::string Millennium::CSSParser::Trim(const std::string& str)
+std::string head::css_parser::trim(const std::string& str)
 {
     const std::string whitespace = " \t\n\r";
     size_t start = str.find_first_not_of(whitespace);
@@ -44,9 +44,9 @@ std::string Millennium::CSSParser::Trim(const std::string& str)
     return str.substr(start, end - start + 1);
 }
 
-std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::string& color, ColorTypes type)
+std::optional<std::string> head::css_parser::convert_from_hex(const std::string& color, color_type type)
 {
-    if (type == ColorTypes::Unknown) {
+    if (type == color_type::Unknown) {
         return std::nullopt;
     }
 
@@ -57,18 +57,18 @@ std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::stri
     const int b = std::stoi(hex.substr(4, 2), nullptr, 16);
 
     switch (type) {
-        case ColorTypes::RawRGB:
+        case color_type::RawRGB:
             return fmt::format("{}, {}, {}", r, g, b);
 
-        case ColorTypes::RGB:
+        case color_type::RGB:
             return fmt::format("rgb({}, {}, {})", r, g, b);
 
-        case ColorTypes::RawRGBA:
-        case ColorTypes::RGBA:
+        case color_type::RawRGBA:
+        case color_type::RGBA:
         {
             const double a = (hex.size() == 8) ? std::stoi(hex.substr(6, 2), nullptr, 16) / 255.0 : 1.0;
 
-            if (type == ColorTypes::RawRGBA) {
+            if (type == color_type::RawRGBA) {
                 return fmt::format("{}, {}, {}, {:.2f}", r, g, b, a);
             }
             return fmt::format("rgba({}, {}, {}, {:.2f})", r, g, b, a);
@@ -79,14 +79,14 @@ std::optional<std::string> Millennium::CSSParser::ConvertFromHex(const std::stri
     }
 }
 
-std::optional<std::string> Millennium::CSSParser::ConvertToHex(const std::string& color, ColorTypes type)
+std::optional<std::string> head::css_parser::convert_to_hex(const std::string& color, color_type type)
 {
-    if (type == ColorTypes::Hex) {
+    if (type == color_type::Hex) {
         return color;
     }
 
     std::string valueString = color;
-    if (type == ColorTypes::RGB || type == ColorTypes::RGBA) {
+    if (type == color_type::RGB || type == color_type::RGBA) {
         const auto start = color.find('(') + 1;
         const auto end = color.find(')');
         valueString = color.substr(start, end - start);
@@ -99,11 +99,11 @@ std::optional<std::string> Millennium::CSSParser::ConvertToHex(const std::string
         values.push_back(std::stoi(token));
     }
 
-    if (type == ColorTypes::RawRGB || type == ColorTypes::RGB) {
+    if (type == color_type::RawRGB || type == color_type::RGB) {
         return fmt::format("#{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]));
     }
 
-    if (type == ColorTypes::RawRGBA || type == ColorTypes::RGBA) {
+    if (type == color_type::RawRGBA || type == color_type::RGBA) {
         const int alpha = static_cast<int>(values[3] * 255.0);
         return fmt::format("#{:02x}{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]), alpha);
     }
@@ -111,7 +111,7 @@ std::optional<std::string> Millennium::CSSParser::ConvertToHex(const std::string
     return std::nullopt;
 }
 
-std::string Millennium::CSSParser::ExpandShorthandHexColor(const std::string& shortHex)
+std::string head::css_parser::expand_shorthand_hex(const std::string& shortHex)
 {
     if (shortHex.size() == 4 && shortHex[0] == '#') {
         std::ostringstream out;
@@ -123,40 +123,39 @@ std::string Millennium::CSSParser::ExpandShorthandHexColor(const std::string& sh
     return shortHex;
 }
 
-Millennium::ColorTypes Millennium::CSSParser::TryRawParse(const std::string& color)
+head::color_type head::css_parser::try_raw_parse(const std::string& color)
 {
-    if (color.find(", ") == std::string::npos) return ColorTypes::Unknown;
+    if (color.find(", ") == std::string::npos) return color_type::Unknown;
     std::istringstream ss(color);
     std::string token;
     int count = 0;
     while (std::getline(ss, token, ','))
         count++;
-    return count == 3 ? ColorTypes::RawRGB : (count == 4 ? ColorTypes::RawRGBA : ColorTypes::Unknown);
+    return count == 3 ? color_type::RawRGB : (count == 4 ? color_type::RawRGBA : color_type::Unknown);
 }
 
-Millennium::ColorTypes Millennium::CSSParser::ParseColor(const std::string& color)
+head::color_type head::css_parser::parse_color(const std::string& color)
 {
-    if (color.rfind("rgb(", 0) == 0) return ColorTypes::RGB;
-    if (color.rfind("rgba(", 0) == 0) return ColorTypes::RGBA;
-    if (color.rfind("#", 0) == 0) return ColorTypes::Hex;
-    return TryRawParse(color);
+    if (color.rfind("rgb(", 0) == 0) return color_type::RGB;
+    if (color.rfind("rgba(", 0) == 0) return color_type::RGBA;
+    if (color.rfind("#", 0) == 0) return color_type::Hex;
+    return try_raw_parse(color);
 }
 
-nlohmann::json Millennium::CSSParser::GenerateColorMetadata(const std::map<std::string, std::string>& properties,
-                                                            const std::map<std::string, std::pair<std::string, std::string>>& propertyMap)
+json head::css_parser::generate_color_metadata(const std::map<std::string, std::string>& properties, const std::map<std::string, std::pair<std::string, std::string>>& propertyMap)
 {
     nlohmann::json result = nlohmann::json::array();
 
     for (const auto& [prop, value] : properties) {
-        std::string expanded = ExpandShorthandHexColor(value);
-        ColorTypes type = ParseColor(expanded);
-        if (type == ColorTypes::Unknown) continue;
+        std::string expanded = expand_shorthand_hex(value);
+        color_type type = parse_color(expanded);
+        if (type == color_type::Unknown) continue;
 
         auto it = propertyMap.find(prop);
         nlohmann::json name = (it != propertyMap.end() && !it->second.first.empty()) ? nlohmann::json(it->second.first) : nlohmann::json(nullptr);
         nlohmann::json description = (it != propertyMap.end() && !it->second.second.empty()) ? nlohmann::json(it->second.second) : nlohmann::json(nullptr);
 
-        auto hex = ConvertToHex(expanded, type).value_or("");
+        auto hex = convert_to_hex(expanded, type).value_or("");
 
         result.push_back({
             { "color",        prop                   },
@@ -169,7 +168,7 @@ nlohmann::json Millennium::CSSParser::GenerateColorMetadata(const std::map<std::
 
     return result;
 }
-std::string Millennium::CSSParser::ExtractRootBlock(const std::string& fileContent)
+std::string head::css_parser::extract_root_block(const std::string& fileContent)
 {
     std::regex rootRegex(R"(:root\s*\{([\s\S]*)\})", std::regex::ECMAScript);
     std::smatch match;
@@ -177,8 +176,8 @@ std::string Millennium::CSSParser::ExtractRootBlock(const std::string& fileConte
     return "";
 }
 
-void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<std::string, std::string>& properties,
-                                            std::map<std::string, std::pair<std::string, std::string>>& propertyMap)
+void head::css_parser::parse_properties(const std::string& block, std::map<std::string, std::string>& properties,
+                                        std::map<std::string, std::pair<std::string, std::string>>& propertyMap)
 {
     std::istringstream ss(block);
     std::string line;
@@ -186,7 +185,7 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
     bool inComment = false;
 
     while (std::getline(ss, line)) {
-        line = Trim(line);
+        line = trim(line);
         if (line.empty()) continue;
 
         if (line.rfind("/*", 0) == 0) {
@@ -204,7 +203,7 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
         std::smatch match;
         if (std::regex_match(line, match, propRegex)) {
             std::string propName = match[1].str();
-            std::string propValue = Trim(match[2].str());
+            std::string propValue = trim(match[2].str());
             properties[propName] = propValue;
 
             std::string name, description;
@@ -212,8 +211,8 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
                 std::regex nameRegex(R"(@name\s+([^\*]+))");
                 std::regex descRegex(R"(@description\s+([^\*]+))");
                 std::smatch nameMatch, descMatch;
-                if (std::regex_search(lastComment, nameMatch, nameRegex)) name = Trim(nameMatch[1].str());
-                if (std::regex_search(lastComment, descMatch, descRegex)) description = Trim(descMatch[1].str());
+                if (std::regex_search(lastComment, nameMatch, nameRegex)) name = trim(nameMatch[1].str());
+                if (std::regex_search(lastComment, descMatch, descRegex)) description = trim(descMatch[1].str());
                 lastComment.clear();
             }
 
@@ -222,7 +221,7 @@ void Millennium::CSSParser::ParseProperties(const std::string& block, std::map<s
     }
 }
 
-nlohmann::json Millennium::CSSParser::ParseRootColors(const std::string& filePath)
+nlohmann::json head::css_parser::parse_root_colors(const std::string& filePath)
 {
     std::ifstream file(filePath);
     if (!file.is_open()) return nlohmann::json::array();
@@ -231,12 +230,12 @@ nlohmann::json Millennium::CSSParser::ParseRootColors(const std::string& filePat
     buffer << file.rdbuf();
     std::string content = buffer.str();
 
-    std::string rootBlock = ExtractRootBlock(content);
+    std::string rootBlock = extract_root_block(content);
     if (rootBlock.empty()) return nlohmann::json::array();
 
     std::map<std::string, std::string> properties;
     std::map<std::string, std::pair<std::string, std::string>> propertyMap;
-    ParseProperties(rootBlock, properties, propertyMap);
+    parse_properties(rootBlock, properties, propertyMap);
 
-    return GenerateColorMetadata(properties, propertyMap);
+    return generate_color_metadata(properties, propertyMap);
 }

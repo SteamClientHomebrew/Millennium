@@ -38,6 +38,7 @@ import { OSType } from '../../types';
 import Markdown from 'markdown-to-jsx';
 import { useUpdateContext } from './useUpdateContext';
 import { Core_HasPendingMillenniumUpdateRestart } from '../../utils/ffi';
+import { registerInstallerProgressListener, unregisterInstallerProgressListener } from '../general/Installer';
 
 export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
 	const ctx = useUpdateContext();
@@ -48,12 +49,12 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 
 	useEffect(() => {
 		if (pluginSelf.platformType !== OSType.Windows) {
-			return; /** we don't want this to fire on linux */
+			return null; /** we don't want this to fire on linux */
 		}
 
-		pluginSelf.InstallerEventEmitter = ({ progress, status, isComplete }: any) => {
+		registerInstallerProgressListener(({ progress, status, isComplete }) => {
 			ctx.setMillenniumUpdateProgress({ statusText: status, progress, isComplete });
-		};
+		});
 
 		let interval = setInterval(() => {
 			Core_HasPendingMillenniumUpdateRestart().then((hasUpdated: boolean) => {
@@ -64,6 +65,11 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 				}
 			});
 		}, 100);
+
+		return () => {
+			unregisterInstallerProgressListener();
+			clearInterval(interval);
+		};
 	}, []);
 
 	function StartUpdateWindows() {

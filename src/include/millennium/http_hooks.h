@@ -30,152 +30,119 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
+#include "millennium/fwd_decl.h"
+#include "millennium/cdp_api.h"
+#include "millennium/plugin_manager.h"
+#include "millennium/thread_pool.h"
 
 #include <atomic>
-#include <chrono>
-#include <condition_variable>
 #include <filesystem>
-#include <functional>
 #include <memory>
-#include <mutex>
 #include <nlohmann/json.hpp>
-#include <queue>
 #include <regex>
 #include <shared_mutex>
 #include <string>
-#include <thread>
 #include <vector>
+#include <unordered_set>
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 
-class HttpHookManager : public Singleton<HttpHookManager>
-{
-    friend class Singleton<HttpHookManager>;
+/**
+ * Millennium will not load JavaScript into the following URLs to favor user safety.
+ * This is a list of URLs that may have sensitive information or are not safe to load JavaScript into.
+ */
+static const std::vector<std::string> g_js_hook_blacklist = { "https://checkout\\.steampowered\\.com/.*" };
 
+// clang-format off
+/** Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.) */
+static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
+    /** Ignore paypal related content */
+    R"(https?:\/\/(?:[\w-]+\.)*paypal\.com\/[^\s"']*)",
+    R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)",
+    R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
+
+    /** Ignore youtube related content */
+    R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)",
+    R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)",
+
+    /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
+    R"(https?:\/\/(?:[\w-]+\.)*chromewebstore\.google\.com\/[^\s"']*)",
+};
+// clang-format on
+
+class network_hook_ctl
+{
   public:
+    network_hook_ctl(std::shared_ptr<plugin_manager> plugin_manager);
+    ~network_hook_ctl();
+
+    void set_cdp_client(std::shared_ptr<cdp_client> cdp);
+
     enum TagTypes
     {
         STYLESHEET,
         JAVASCRIPT
     };
 
-    struct HookType
+    struct hook_t
     {
         std::string path;
-        std::regex urlPattern;
+        std::regex url_pattern;
         TagTypes type;
+    };
+
+    struct hook_item
+    {
+        hook_t hook;
         unsigned long long id;
     };
 
-    enum RedirectType
+    void init();
+    unsigned long long add_hook(const hook_t& hook);
+    bool remove_hook(unsigned long long hookId);
+    std::vector<hook_item> get_hook_list() const;
+
+    void shutdown();
+    const char* get_ftp_url() const
     {
-        REDIRECT = 301,
-        MOVED_PERMANENTLY = 302,
-        FOUND = 303,
-        TEMPORARY_REDIRECT = 307,
-        PERMANENT_REDIRECT = 308
-    };
-
-    void DispatchSocketMessage(nlohmann::basic_json<> message);
-    void SetupGlobalHooks();
-    void AddHook(const HookType& hook);
-    bool RemoveHook(unsigned long long hookId);
-
-    // Thread-safe hook list operations
-    void SetHookList(std::shared_ptr<std::vector<HookType>> hookList);
-    std::vector<HookType> GetHookListCopy() const;
-
-    void Shutdown();
+        return m_ftp_url;
+    }
 
   private:
-    HttpHookManager();
-    ~HttpHookManager();
+    std::shared_ptr<plugin_manager> m_plugin_manager;
+    std::shared_ptr<cdp_client> m_cdp;
 
-    class ThreadPool
+    struct processed_hooks
     {
-      public:
-        ThreadPool(size_t numThreads = 4);
-
-        template <typename F> void enqueue(F&& f);
-        void shutdown();
-
-      private:
-        std::vector<std::thread> workers;
-        std::queue<std::function<void()>> tasks;
-        std::mutex queueMutex;
-        std::condition_variable condition;
-        bool stop = false;
-        std::atomic<bool> shutdownCalled{ false };
+        std::string cssContent, linkPreloads;
+        std::vector<std::string> script_modules;
     };
-
-    std::unique_ptr<ThreadPool> m_threadPool;
-
-    // Thread synchronization
-    mutable std::shared_mutex m_hookListMutex;
-    mutable std::shared_mutex m_requestMapMutex;
-    mutable std::mutex m_socketMutex;
-    mutable std::mutex m_configMutex;
-    mutable std::mutex m_exceptionTimeMutex;
 
     std::atomic<bool> m_shutdown{ false };
-    std::atomic<long long> hookMessageId{ -69 };
+    mutable std::shared_mutex m_hook_list_mtx;
+    std::unique_ptr<thread_pool> m_thread_pool;
+    std::shared_ptr<std::vector<hook_item>> m_hook_list_ptr;
 
-    // Exception throttling
-    std::chrono::time_point<std::chrono::system_clock> m_lastExceptionTime;
-
-    const char* m_ftpHookAddress = "https://millennium.ftp/";
-    const char* m_ipcHookAddress = "https://millennium.ipc/";
+    const char* m_ftp_url = "https://millennium.ftp/";
 
     /** Maintain backwards compatibility for themes that explicitly rely on this url */
-    const char* m_oldHookAddress = "https://pseudo.millennium.app/";
-    const char* m_javaScriptVirtualUrl = "https://js.millennium.app/";
-    const char* m_styleSheetVirtualUrl = "https://css.millennium.app/";
+    const char* m_legacy_hook_url = "https://pseudo.millennium.app/";
+    const char* m_legacy_virt_js_url = "https://js.millennium.app/";
+    const char* m_legacy_virt_css_url = "https://css.millennium.app/";
 
-    // Protected data structures
-    std::shared_ptr<std::vector<HookType>> m_hookListPtr;
+    /** list of all FTP related urls */
+    const std::vector<const char*> m_ftpUrls = { this->m_ftp_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url, this->m_legacy_hook_url };
 
-    struct WebHookItem
-    {
-        long long id;
-        std::string requestId;
-        std::string type;
-        nlohmann::basic_json<> message;
-    };
-    std::shared_ptr<std::vector<WebHookItem>> m_requestMap;
-
-    // Private methods
-    bool IsIpcCall(const nlohmann::basic_json<>& message);
-    bool IsGetBodyCall(const nlohmann::basic_json<>& message);
+    bool is_vfs_request(const nlohmann::basic_json<>& message);
     std::string HandleCssHook(const std::string& body);
     std::string HandleJsHook(const std::string& body);
-
     void HandleHooks(const nlohmann::basic_json<>& message);
-    void RetrieveRequestFromDisk(const nlohmann::basic_json<>& message);
-    void GetResponseBody(const nlohmann::basic_json<>& message);
-    void HandleIpcMessage(nlohmann::json message);
-    std::filesystem::path ConvertToLoopBack(const std::string& requestUrl);
-
-    // Thread-safe utilities
-    void PostGlobalMessage(const nlohmann::json& message);
-    bool ShouldLogException();
-    void AddRequest(const WebHookItem& request);
-    template <typename Func> void ProcessRequests(Func processor);
-
-    struct ProcessedHooks
-    {
-        std::string cssContent;
-        std::string linkPreloads;
-        std::vector<std::string> scriptModules;
-    };
-
-    ProcessedHooks ProcessWebkitHooks(const std::string& requestUrl) const;
-
-    std::string PatchDocumentContents(const std::string& requestUrl, const std::string& original) const;
-    std::string BuildScriptModuleArray(const std::vector<std::string>& scriptModules) const;
-    std::string BuildEnabledPluginsString() const;
-    std::string CreateShimContent(const ProcessedHooks& hooks, const std::string& millenniumPreloadPath) const;
-    std::string InjectContentIntoHead(const std::string& original, const std::string& content) const;
-
-    bool IsUrlBlacklisted(const std::string& requestUrl) const;
+    void vfs_request_handler(const nlohmann::basic_json<>& message);
+    void mime_doc_request_handler(const nlohmann::basic_json<>& message);
+    std::filesystem::path path_from_url(const std::string& requestUrl);
+    processed_hooks apply_user_webkit_hooks(const std::string& requestUrl) const;
+    std::string patch_document(const std::string& requestUrl, const std::string& original) const;
+    std::string compile_preload_script(const processed_hooks& hooks, const std::string& millenniumPreloadPath) const;
+    std::string inject_into_document_head(const std::string& original, const std::string& content) const;
+    bool is_url_blacklisted(const std::string& requestUrl) const;
 };

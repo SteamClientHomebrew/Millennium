@@ -127,7 +127,7 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 	});
 
 	return {
-		onInstallComplete: OnInstallComplete.spread(data, props),
+		onInstallComplete: OnInstallComplete.bind(null, data, props),
 		onProgressUpdate: OnProgressUpdate,
 	};
 };

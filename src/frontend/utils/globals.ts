@@ -29,7 +29,6 @@
  */
 
 import { PluginComponent } from '../types';
-import { PyFindAllPlugins } from './ffi';
 
 export const API_URL = 'https://steambrew.app';
 export const PLUGINS_URL = [API_URL, 'plugins'].join('/');
@@ -52,11 +51,11 @@ export function getPluginRenderers() {
  * If plugins aren't provided, they are fetched automatically from the backend.
  * This can introduce overhead if called often.
  */
-export async function getPluginConfigurableStatus(plugins?: Array<PluginComponent>): Promise<Array<{ name: string; isEditable: boolean }>> {
+export async function getPluginConfigurableStatus(plugins: Array<PluginComponent>): Promise<Array<{ name: string; isEditable: boolean }>> {
 	const renderers = getPluginRenderers();
 
 	/** fetch from the backend if not provided. */
-	return (plugins ?? (JSON.parse(await PyFindAllPlugins()) as Array<PluginComponent>))?.map((plugin) => {
+	return plugins?.map((plugin) => {
 		return {
 			name: plugin.data.name,
 			isEditable: renderers[plugin?.data?.name],

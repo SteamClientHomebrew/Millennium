@@ -30,5 +30,6 @@
 
 #include <string>
 
+const std::string build_random_string(size_t length);
 const std::string GetAuthToken();
 const std::string GetScrambledApiPathToken();

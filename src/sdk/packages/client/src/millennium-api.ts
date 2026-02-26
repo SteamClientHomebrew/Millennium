@@ -45,8 +45,10 @@ type Millennium = {
 declare const callable: <
 	// Ideally this would be `Params extends Record<...>` but for backwards compatibility we keep a tuple type
 	Params extends [params: Record<string, IPCType>] | [] = [],
-	Return extends IPCType = IPCType
->(route: string) => (...params: Params) => Promise<Return>;
+	Return extends IPCType = IPCType,
+>(
+	route: string,
+) => (...params: Params) => Promise<Return>;
 
 const m_private_context: any = undefined;
 export const pluginSelf = m_private_context;
@@ -77,11 +79,13 @@ class MillenniumChromeDevToolsProtocol {
 	devTools: any;
 	currentId: number;
 	pendingRequests: Map<number, { resolve: (value: any) => void; reject: (reason?: any) => void }>;
+	eventListeners: Map<string, Set<(params: any) => void>>;
 
 	constructor() {
 		this.devTools = window.MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE;
 		this.currentId = 0;
 		this.pendingRequests = new Map();
+		this.eventListeners = new Map();
 
 		// Override the onmessage callback to handle responses
 		this.devTools.onmessage = (message: any) => {
@@ -92,7 +96,6 @@ class MillenniumChromeDevToolsProtocol {
 	handleMessage(message: any) {
 		const data = typeof message === 'string' ? JSON.parse(message) : message;
 
-		// Check if this is a response to one of our requests
 		if (data.id !== undefined && this.pendingRequests.has(data.id)) {
 			const pending = this.pendingRequests.get(data.id);
 			this.pendingRequests.delete(data.id);
@@ -105,10 +108,39 @@ class MillenniumChromeDevToolsProtocol {
 					resolve(data.result);
 				}
 			}
+		} else if (data.method) {
+			const listeners = this.eventListeners.get(data.method);
+			if (listeners) {
+				for (const listener of listeners) {
+					listener(data.params);
+				}
+			}
 		}
 	}
 
-	send<T extends keyof ProtocolMapping.Commands>(method: T, params: ProtocolMapping.Commands[T]['paramsType'][0] = {}, sessionId?: string): Promise<ProtocolMapping.Commands[T]['returnType']> {
+	on<T extends keyof ProtocolMapping.Events>(event: T, listener: (params: ProtocolMapping.Events[T][0]) => void): () => void {
+		if (!this.eventListeners.has(event)) {
+			this.eventListeners.set(event, new Set());
+		}
+		this.eventListeners.get(event)!.add(listener);
+		return () => this.off(event, listener);
+	}
+
+	off<T extends keyof ProtocolMapping.Events>(event: T, listener: (params: ProtocolMapping.Events[T][0]) => void) {
+		const listeners = this.eventListeners.get(event);
+		if (listeners) {
+			listeners.delete(listener);
+			if (listeners.size === 0) {
+				this.eventListeners.delete(event);
+			}
+		}
+	}
+
+	send<T extends keyof ProtocolMapping.Commands>(
+		method: T,
+		params: ProtocolMapping.Commands[T]['paramsType'][0] = {},
+		sessionId?: string,
+	): Promise<ProtocolMapping.Commands[T]['returnType']> {
 		return new Promise((resolve, reject) => {
 			const id = this.currentId++;
 
@@ -160,4 +192,3 @@ class MillenniumChromeDevToolsProtocol {
 const ChromeDevToolsProtocol: MillenniumChromeDevToolsProtocol = new MillenniumChromeDevToolsProtocol();
 const Millennium: Millennium = window.Millennium;
 export { BindPluginSettings, callable, ChromeDevToolsProtocol, Millennium };
-
