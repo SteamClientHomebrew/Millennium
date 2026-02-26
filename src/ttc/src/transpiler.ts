@@ -5,6 +5,7 @@ import resolve, { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
+import esbuild from 'rollup-plugin-esbuild';
 import url from '@rollup/plugin-url';
 import nodePolyfills from 'rollup-plugin-polyfill-node';
 import chalk from 'chalk';
@@ -136,6 +137,148 @@ function stripPluginPrefix(message: string): string {
 
 class BuildFailedError extends Error {}
 
+interface PathEntry {
+	pattern: string;
+	targets: string[];
+	configDir: string;
+}
+
+/**
+ * tsconfig.json files use JSONC, not regular JSON.
+ * JSONC supports comments and trailing commas, while JSON does not.
+ * This function sanitizes JSONC into JSON.parse()-able content.
+ *
+ * @param text input text
+ * @returns object
+ */
+function parseJsonc(text: string): any {
+	let out = '';
+	let i = 0;
+	const n = text.length;
+	while (i < n) {
+		const ch = text[i];
+		if (ch === '"') {
+			out += ch;
+			i++;
+			while (i < n) {
+				const c = text[i];
+				out += c;
+				if (c === '\\') {
+					i++;
+					if (i < n) {
+						out += text[i];
+						i++;
+					}
+				} else if (c === '"') {
+					i++;
+					break;
+				} else i++;
+			}
+		} else if (ch === '/' && i + 1 < n && text[i + 1] === '/') {
+			i += 2;
+			while (i < n && text[i] !== '\n') i++;
+		} else if (ch === '/' && i + 1 < n && text[i + 1] === '*') {
+			i += 2;
+			while (i < n - 1 && !(text[i] === '*' && text[i + 1] === '/')) i++;
+			i += 2;
+		} else if (ch === ',') {
+			let j = i + 1;
+			while (j < n && (text[j] === ' ' || text[j] === '\t' || text[j] === '\n' || text[j] === '\r')) j++;
+			if (j < n && (text[j] === '}' || text[j] === ']')) {
+				i++;
+			} else {
+				out += ch;
+				i++;
+			}
+		} else {
+			out += ch;
+			i++;
+		}
+	}
+	return JSON.parse(out);
+}
+
+function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
+	function readConfig(cfgPath: string): { baseUrl: string | null; entries: PathEntry[] } {
+		const dir = path.dirname(path.resolve(cfgPath));
+		let raw: any;
+		try {
+			raw = parseJsonc(fs.readFileSync(cfgPath, 'utf8'));
+		} catch {
+			return { baseUrl: null, entries: [] };
+		}
+
+		let parentResult: { baseUrl: string | null; entries: PathEntry[] } = { baseUrl: null, entries: [] };
+		if (raw.extends) {
+			const ext = raw.extends as string;
+			const parentPath = path.resolve(dir, ext.endsWith('.json') ? ext : `${ext}.json`);
+			parentResult = readConfig(parentPath);
+		}
+
+		const opts = raw.compilerOptions ?? {};
+		const baseUrl = opts.baseUrl ? path.resolve(dir, opts.baseUrl as string) : parentResult.baseUrl;
+
+		const ownEntries: PathEntry[] = Object.entries(opts.paths ?? {}).map(([pattern, targets]) => ({
+			pattern,
+			targets: targets as string[],
+			configDir: dir,
+		}));
+
+		const ownPatterns = new Set(ownEntries.map((e) => e.pattern));
+		const parentEntries = parentResult.entries.filter((e) => !ownPatterns.has(e.pattern));
+
+		return { baseUrl, entries: [...ownEntries, ...parentEntries] };
+	}
+
+	const { baseUrl, entries } = readConfig(tsconfigPath);
+
+	function resolveWithExtensions(base: string): string | null {
+		for (const ext of ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx']) {
+			if (fs.existsSync(base + ext)) return base + ext;
+		}
+		return null;
+	}
+
+	return {
+		name: 'tsconfig-paths',
+		async resolveId(source: string, importer: string | undefined) {
+			for (const { pattern, targets, configDir } of entries) {
+				if (!targets.length) continue;
+				const isWild = pattern.endsWith('/*');
+				if (isWild) {
+					const prefix = pattern.slice(0, -2);
+					if (source === prefix || source.startsWith(prefix + '/')) {
+						const rest = source.startsWith(prefix + '/') ? source.slice(prefix.length + 1) : '';
+						const targetBase = path.resolve(configDir, targets[0].replace('*', rest));
+						const resolved = resolveWithExtensions(targetBase);
+						if (resolved) {
+							const result = await this.resolve(resolved, importer, { skipSelf: true });
+							if (result) return result;
+						}
+					}
+				} else if (source === pattern) {
+					const targetBase = path.resolve(configDir, targets[0]);
+					const resolved = resolveWithExtensions(targetBase);
+					if (resolved) {
+						const result = await this.resolve(resolved, importer, { skipSelf: true });
+						if (result) return result;
+					}
+				}
+			}
+
+			if (baseUrl && !source.startsWith('.') && !source.startsWith('/') && !source.startsWith('\0') && !source.startsWith('@')) {
+				const resolved = resolveWithExtensions(path.resolve(baseUrl, source));
+				if (resolved) {
+					const result = await this.resolve(resolved, importer, { skipSelf: true });
+					if (result) return result;
+				}
+			}
+
+			return null;
+		},
+	};
+}
+
 abstract class MillenniumBuild {
 	protected abstract readonly externals: ReadonlySet<string>;
 	protected abstract readonly forbidden: ReadonlyMap<string, string>;
@@ -209,9 +352,13 @@ class FrontendBuild extends MillenniumBuild {
 	}
 
 	protected plugins(sysfsPlugin: InputPluginOption): InputPluginOption[] {
-		const tsPlugin = typescript({ tsconfig: resolveTsConfig(this.frontendDir), compilerOptions: { noCheck: !this.props.minify, outDir: undefined } });
+		const tsconfigPath = resolveTsConfig(this.frontendDir);
+		const tsPlugin = this.props.minify
+			? typescript({ tsconfig: tsconfigPath, compilerOptions: { outDir: undefined } })
+			: esbuild({ tsconfig: tsconfigPath, target: 'esnext', jsx: 'automatic' });
 
 		return [
+			...(this.props.minify ? [] : [tsconfigPathsPlugin(tsconfigPath)]),
 			tsPlugin,
 			url({ include: ['**/*.gif', '**/*.webm', '**/*.svg'], limit: 0, fileName: '[hash][extname]' }),
 			insertMillennium(BuildTarget.Plugin, this.props),
@@ -262,9 +409,11 @@ class WebkitBuild extends MillenniumBuild {
 	}
 
 	protected async plugins(sysfsPlugin: InputPluginOption): Promise<InputPluginOption[]> {
-		const tsPlugin = typescript({ tsconfig: './webkit/tsconfig.json', compilerOptions: { noCheck: !this.props.minify } });
+		const webkitTsconfig = './webkit/tsconfig.json';
+		const tsPlugin = this.props.minify ? typescript({ tsconfig: webkitTsconfig }) : esbuild({ tsconfig: webkitTsconfig, target: 'esnext', jsx: 'automatic' });
 
 		const base: InputPluginOption[] = [
+			...(this.props.minify ? [] : [tsconfigPathsPlugin(webkitTsconfig)]),
 			insertMillennium(BuildTarget.Webkit, this.props),
 			tsPlugin,
 			url({ include: ['**/*.mp4', '**/*.webm', '**/*.ogg'], limit: 0, fileName: '[name][extname]', destDir: 'dist/assets' }),
@@ -280,7 +429,7 @@ class WebkitBuild extends MillenniumBuild {
 				'webkit.Millennium.exposeObj(': 'webkit.Millennium.exposeObj(exports, ',
 				'client.BindPluginSettings()': 'client.BindPluginSettings(pluginName)',
 			}),
-			babel({ presets: ['@babel/preset-env', '@babel/preset-react'], babelHelpers: 'bundled' }),
+			...(this.props.minify ? [babel({ presets: ['@babel/preset-env', '@babel/preset-react'], babelHelpers: 'bundled' })] : []),
 			...(Object.keys(env).length > 0 ? [injectProcessEnv(env)] : []),
 		];
 
