@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,19 +33,19 @@
 
 namespace semver
 {
-    struct semver_version
-    {
-        int major;
-        int minor;
-        int patch;
-        std::string prerelease;
-        std::string build;
+struct semver_version
+{
+    int major;
+    int minor;
+    int patch;
+    std::string prerelease;
+    std::string build;
 
-        semver_version(int maj = 0, int min = 0, int pat = 0, const std::string& pre = "", const std::string& bld = "");
-    };
+    semver_version(int maj = 0, int min = 0, int pat = 0, const std::string& pre = "", const std::string& bld = "");
+};
 
-    semver_version parse(const std::string& version);
+semver_version parse(const std::string& version);
 
-    int cmp(const std::string& v1, const std::string& v2);
-    int cmp_pre_release(const std::string& pre1, const std::string& pre2);
+int cmp(const std::string& v1, const std::string& v2);
+int cmp_pre_release(const std::string& pre1, const std::string& pre2);
 } // namespace semver

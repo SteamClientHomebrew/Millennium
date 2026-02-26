@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,8 @@
 #define MAX_PATH 260
 #define MILLENNIUM_LIBRARY_PATH L"millennium.dll"
 
-#define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS    0x00001000
-#define LOAD_LIBRARY_SEARCH_USER_DIRS       0x00000400
+#define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS 0x00001000
+#define LOAD_LIBRARY_SEARCH_USER_DIRS 0x00000400
 
 /** micro optimization -- declare functions instead of importing them from the windows header */
 unsigned long __stdcall GetLastError(void);
@@ -58,12 +58,15 @@ wchar_t* g_millennium_path = 0;
  * Show an error message box if we fail to load Millennium
  * it assumes the message is less than 256 characters (which it should be)
  */
- static void show_error(unsigned long errorCode, const wchar_t* dll_path)
- {
-     wchar_t msg[512];
-     wsprintfW(msg, L"Millennium failed to load (%s). This will not affect the functionality of the Steam Client.\n\nCommon Causes:\n- Antivirus deleting Millennium\n- Outdated Millennium version, try updating\n\nError Code: %lu", dll_path, errorCode);
-     MessageBoxW(0, msg, L"Millennium", 0x00000010l /** magic number -> MB_ICONERROR */);
- }
+static void show_error(unsigned long errorCode, const wchar_t* dll_path)
+{
+    wchar_t msg[512];
+    wsprintfW(msg,
+              L"Millennium failed to load (%s). This will not affect the functionality of the Steam Client.\n\nCommon Causes:\n- Antivirus deleting Millennium\n- Outdated "
+              L"Millennium version, try updating\n\nError Code: %lu",
+              dll_path, errorCode);
+    MessageBoxW(0, msg, L"Millennium", 0x00000010l /** magic number -> MB_ICONERROR */);
+}
 
 /**
  * Check if the current process is steam.exe

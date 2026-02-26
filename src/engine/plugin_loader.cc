@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -134,8 +134,7 @@ void plugin_loader::init_devtools()
         auto targets = m_cdp->send_host("Target.getTargets").get();
 
         if (targets.contains("targetInfos") && targets["targetInfos"].is_array() && !targets["targetInfos"].empty()) {
-            auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(),
-                [&](const auto& target) { return target.value("title", "") == targetFrame; });
+            auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(), [&](const auto& target) { return target.value("title", "") == targetFrame; });
 
             if (it != targets["targetInfos"].end()) {
                 auto targetId = it->at("targetId").get<std::string>();

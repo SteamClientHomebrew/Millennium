@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,17 +54,17 @@ extern std::map<std::string, std::string> envVariables;
 
 namespace platform
 {
-    class environment
-    {
-      public:
-        static void setup();
-        static std::string get(std::string key);
-        static std::string get(std::string key, std::string fallback);
-        static void set(const std::string& key, const std::string& value);
+class environment
+{
+  public:
+    static void setup();
+    static std::string get(std::string key);
+    static std::string get(std::string key, std::string fallback);
+    static void set(const std::string& key, const std::string& value);
 
-      private:
-        static std::vector<std::unique_ptr<char[]>> allocated_strings;
-        static bool add(std::unique_ptr<char[]> strEnv);
-        static bool set_unix(const std::string& name, const std::string& value);
-    }; // namespace environment
+  private:
+    static std::vector<std::unique_ptr<char[]>> allocated_strings;
+    static bool add(std::unique_ptr<char[]> strEnv);
+    static bool set_unix(const std::string& name, const std::string& value);
+}; // namespace environment
 } // namespace platform

@@ -1,23 +1,23 @@
 # ==================================================
-#   _____ _ _ _             _                     
-#  |     |_| | |___ ___ ___|_|_ _ _____           
-#  | | | | | | | -_|   |   | | | |     |          
-#  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|          
-# 
+#   _____ _ _ _             _
+#  |     |_| | |___ ___ ___|_|_ _ _____
+#  | | | | | | | -_|   |   | | | |     |
+#  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+#
 # ==================================================
-# 
-# Copyright (c) 2025 Project Millennium
-# 
+#
+# Copyright (c) 2026 Project Millennium
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,10 +26,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import Millennium # type: ignore
+import configparser
+import os
 import platform
-import configparser, os
+
+import Millennium  # type: ignore
 from logger import logger
+
 
 class Config:
 
@@ -39,11 +42,11 @@ class Config:
     # Get the absolute path to the python binary
     def get_python_path(self):
         return self.PYTHON_BIN
-    
+
     # Get the path to the pip logs
     def get_pip_logs(self):
         return self.PIP_INSTALL_LOGS
-    
+
     # Get the path to the pacman logs
     def get_pacman_logs(self):
         return self.PACMAN_LOGS
@@ -52,7 +55,7 @@ class Config:
         _platform = platform.system()
 
         if _platform == "Windows":
-            self.PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "python.exe")  
+            self.PYTHON_BIN = os.path.join(os.getenv("MILLENNIUM__PYTHON_ENV"), "python.exe")
         elif _platform == "Linux" or  _platform == "Darwin":
             self.PYTHON_BIN = os.getenv("LIBPYTHON_RUNTIME_BIN_PATH")
 
