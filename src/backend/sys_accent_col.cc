@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,8 @@
 
 #include "head/sys_accent_col.h"
 #include "millennium/logger.h"
-#include "fmt/format.h"
+
+#include <fmt/format.h>
 
 /** piss off C */
 #ifdef min
@@ -68,10 +69,10 @@ AccentColors GetAccentColors()
         return colors;
     }
 
-    auto GetColorSet = reinterpret_cast<GetImmersiveUserColorSetPreference_t>((void*)GetProcAddress(hUxTheme, "GetImmersiveUserColorSetPreference"));
-    auto GetColorFromSet = reinterpret_cast<GetImmersiveColorFromColorSetEx_t>((void*)GetProcAddress(hUxTheme, "GetImmersiveColorFromColorSetEx"));
+    auto GetColorSet = reinterpret_cast<GetImmersiveUserColorSetPreference_t>(reinterpret_cast<void*>(GetProcAddress(hUxTheme, "GetImmersiveUserColorSetPreference")));
+    auto GetColorFromSet = reinterpret_cast<GetImmersiveColorFromColorSetEx_t>(reinterpret_cast<void*>(GetProcAddress(hUxTheme, "GetImmersiveColorFromColorSetEx")));
     /** GetImmersiveColorTypeFromName is exported in without a name. its consistently ordinal 96 on windows 10/11 though */
-    auto GetColorTypeFromName = reinterpret_cast<GetImmersiveColorTypeFromName_t>((void*)GetProcAddress(hUxTheme, ((LPSTR)((ULONG_PTR)((WORD)(96))))));
+    auto GetColorTypeFromName = reinterpret_cast<GetImmersiveColorTypeFromName_t>(reinterpret_cast<void*>(GetProcAddress(hUxTheme, ((LPSTR)((ULONG_PTR)((WORD)(96)))))));
 
     if (!GetColorSet || !GetColorFromSet || !GetColorTypeFromName) {
         Logger.Warn("Failed to get function addresses from " UX_THEME_DLL);
@@ -105,7 +106,7 @@ AccentColors GetAccentColors()
 /**
  * Converts a DWORD color to a hex string "#RRGGBB"
  */
-std::string CastToHex(unsigned long color)
+std::string CastToHex(const unsigned long color)
 {
     return fmt::format("#{0:02x}{1:02x}{2:02x}", R(color), G(color), B(color));
 }
@@ -113,7 +114,7 @@ std::string CastToHex(unsigned long color)
 /**
  * Converts a DWORD color to an RGB string "r, g, b"
  */
-std::string CastToRgb(unsigned long color)
+std::string CastToRgb(const unsigned long color)
 {
     return fmt::format("{}, {}, {}", R(color), G(color), B(color));
 }
@@ -184,17 +185,17 @@ nlohmann::json Colors::GetAccentColorPosix()
  * @param hex_color Input hex color string
  * @param percent Adjustment percentage (positive=lighter, negative=darker)
  */
-std::string Colors::AdjustColorIntensity(const std::string& hex_color, int percent)
+std::string Colors::AdjustColorIntensity(const std::string& hex_color, const int percent)
 {
-    auto clamp = [](int v) { return std::max(0, std::min(255, v)); };
-    std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
+    auto clamp = [](const int v) { return std::max(0, std::min(255, v)); };
+    const std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
     if (color.length() != 6) return hex_color;
 
     int r = std::stoi(color.substr(0, 2), nullptr, 16);
     int g = std::stoi(color.substr(2, 2), nullptr, 16);
     int b = std::stoi(color.substr(4, 2), nullptr, 16);
 
-    auto adjust = [&](int c) { return clamp(percent < 0 ? static_cast<int>(c * (1.0 + percent / 100.0)) : static_cast<int>(c + (255 - c) * (percent / 100.0))); };
+    auto adjust = [&](const int c) { return clamp(percent < 0 ? static_cast<int>(c * (1.0 + percent / 100.0)) : static_cast<int>(c + (255 - c) * (percent / 100.0))); };
 
     r = adjust(r);
     g = adjust(g);
@@ -210,7 +211,7 @@ std::string Colors::AdjustColorIntensity(const std::string& hex_color, int perce
  */
 std::string Colors::Hex2Rgb(const std::string& hex_color)
 {
-    std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
+    const std::string color = (hex_color[0] == '#') ? hex_color.substr(1) : hex_color;
     if (color.length() != 6) {
         return "0, 0, 0";
     }
@@ -228,10 +229,10 @@ std::string Colors::Hex2Rgb(const std::string& hex_color)
  *
  * TODO: This is a very naive approach and probably doesn't look good with all colors.
  *
- * @param accentColor Hex color string (e.g., "#FF5733")
+ * @param accent_color Hex color string (e.g., "#FF5733")
  * @return JSON string containing color variations
  */
-nlohmann::json Colors::ExtrapolateCustomColor(const std::string& accentColor)
+nlohmann::json Colors::ExtrapolateCustomColor(const std::string& accent_color)
 {
 #ifdef _WIN32
     std::string originalAccent = GetAccentColorWin32()["originalAccent"];
@@ -240,35 +241,35 @@ nlohmann::json Colors::ExtrapolateCustomColor(const std::string& accentColor)
 #endif
 
     nlohmann::json result = {
-        { "accent", accentColor },
-        { "light1", AdjustColorIntensity(accentColor, 15) },
-        { "light2", AdjustColorIntensity(accentColor, 30) },
-        { "light3", AdjustColorIntensity(accentColor, 45) },
-        { "dark1", AdjustColorIntensity(accentColor, -15) },
-        { "dark2", AdjustColorIntensity(accentColor, -30) },
-        { "dark3", AdjustColorIntensity(accentColor, -45) },
-        { "accentRgb", Hex2Rgb(accentColor) },
-        { "light1Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, 15)) },
-        { "light2Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, 30)) },
-        { "light3Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, 45)) },
-        { "dark1Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, -15)) },
-        { "dark2Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, -30)) },
-        { "dark3Rgb", Hex2Rgb(AdjustColorIntensity(accentColor, -45)) },
+        { "accent", accent_color },
+        { "light1", AdjustColorIntensity(accent_color, 15) },
+        { "light2", AdjustColorIntensity(accent_color, 30) },
+        { "light3", AdjustColorIntensity(accent_color, 45) },
+        { "dark1", AdjustColorIntensity(accent_color, -15) },
+        { "dark2", AdjustColorIntensity(accent_color, -30) },
+        { "dark3", AdjustColorIntensity(accent_color, -45) },
+        { "accentRgb", Hex2Rgb(accent_color) },
+        { "light1Rgb", Hex2Rgb(AdjustColorIntensity(accent_color, 15)) },
+        { "light2Rgb", Hex2Rgb(AdjustColorIntensity(accent_color, 30)) },
+        { "light3Rgb", Hex2Rgb(AdjustColorIntensity(accent_color, 45)) },
+        { "dark1Rgb", Hex2Rgb(AdjustColorIntensity(accent_color, -15)) },
+        { "dark2Rgb", Hex2Rgb(AdjustColorIntensity(accent_color, -30)) },
+        { "dark3Rgb", Hex2Rgb(AdjustColorIntensity(accent_color, -45)) },
         { "originalAccent", originalAccent }
     };
 
     return result;
 }
 
-nlohmann::json Colors::GetAccentColor(const std::string& accentColor)
+nlohmann::json Colors::GetAccentColor(const std::string& accent_color)
 {
-    if (accentColor == "DEFAULT_ACCENT_COLOR") {
+    if (accent_color == "DEFAULT_ACCENT_COLOR") {
 #ifdef _WIN32
         return GetAccentColorWin32();
 #else
         return GetAccentColorPosix();
 #endif
     } else {
-        return ExtrapolateCustomColor(accentColor);
+        return ExtrapolateCustomColor(accent_color);
     }
 }

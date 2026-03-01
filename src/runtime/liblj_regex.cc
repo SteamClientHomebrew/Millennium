@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,8 +38,8 @@ int Lua_RegexMatch(lua_State* L)
     const char* pattern = luaL_checkstring(L, 2);
 
     try {
-        std::regex re(pattern);
-        bool matches = std::regex_match(str, re);
+        const std::regex re(pattern);
+        const bool matches = std::regex_match(str, re);
         lua_pushboolean(L, matches);
         return 1;
     } catch (const std::regex_error& e) {
@@ -55,9 +55,9 @@ int Lua_RegexSearch(lua_State* L)
     const char* pattern = luaL_checkstring(L, 2);
 
     try {
-        std::regex re(pattern);
+        const std::regex re(pattern);
         std::smatch match;
-        std::string s(str);
+        const std::string s(str);
 
         if (std::regex_search(s, match, re)) {
             lua_newtable(L);
@@ -94,10 +94,10 @@ int Lua_RegexFindAll(lua_State* L)
     const char* pattern = luaL_checkstring(L, 2);
 
     try {
-        std::regex re(pattern);
+        const std::regex re(pattern);
         std::string s(str);
         std::sregex_iterator iter(s.begin(), s.end(), re);
-        std::sregex_iterator end;
+        const std::sregex_iterator end;
 
         lua_newtable(L);
         int index = 1;
@@ -138,9 +138,9 @@ int Lua_RegexReplace(lua_State* L)
     const char* replacement = luaL_checkstring(L, 3);
 
     try {
-        std::regex re(pattern);
-        std::string s(str);
-        std::string result = std::regex_replace(s, re, replacement);
+        const std::regex re(pattern);
+        const std::string s(str);
+        const std::string result = std::regex_replace(s, re, replacement);
 
         lua_pushstring(L, result.c_str());
         return 1;
@@ -158,12 +158,12 @@ int Lua_RegexReplaceFirst(lua_State* L)
     const char* replacement = luaL_checkstring(L, 3);
 
     try {
-        std::regex re(pattern);
-        std::string s(str);
+        const std::regex re(pattern);
+        const std::string s(str);
         std::smatch match;
 
         if (std::regex_search(s, match, re)) {
-            std::string result = match.prefix().str() + replacement + match.suffix().str();
+            const std::string result = match.prefix().str() + replacement + match.suffix().str();
             lua_pushstring(L, result.c_str());
             return 1;
         }
@@ -183,10 +183,10 @@ int Lua_RegexSplit(lua_State* L)
     const char* pattern = luaL_checkstring(L, 2);
 
     try {
-        std::regex re(pattern);
+        const std::regex re(pattern);
         std::string s(str);
         std::sregex_token_iterator iter(s.begin(), s.end(), re, -1);
-        std::sregex_token_iterator end;
+        const std::sregex_token_iterator end;
 
         lua_newtable(L);
         int index = 1;
@@ -253,11 +253,13 @@ int Lua_RegexTest(lua_State* L)
                     break;
                 case 'g':
                     break; // Global flag handled elsewhere
+                default:
+                    return luaL_error(L, "Invalid regex flags: %s", flags);
             }
         }
 
-        std::regex re(pattern, flags_type);
-        bool matches = std::regex_search(str, re);
+        const std::regex re(pattern, flags_type);
+        const bool matches = std::regex_search(str, re);
         lua_pushboolean(L, matches);
         return 1;
     } catch (const std::regex_error& e) {
@@ -276,7 +278,7 @@ static const luaL_Reg regex_lib[] = {
     { "split",         Lua_RegexSplit        },
     { "escape",        Lua_RegexEscape       },
     { "test",          Lua_RegexTest         },
-    { NULL,            NULL                  }
+    { nullptr,         nullptr               }
 };
 
 extern "C" int Lua_OpenRegex(lua_State* L)

@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,26 +29,26 @@
  */
 
 #include "millennium/semver.h"
+
 #include <algorithm>
-#include <stdexcept>
 #include <cctype>
-#include <vector>
-#include <climits>
 #include <cerrno>
+#include <climits>
 #include <cstdlib>
+#include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace
 {
 /** Helper: Validate that a string contains only allowed characters */
-bool IsValidIdentifier(const std::string& id, bool allowDash = true)
+bool IsValidIdentifier(const std::string& id, const bool allowDash = true)
 {
     if (id.empty()) return false;
-    for (char c : id) {
-        if (!std::isalnum(static_cast<unsigned char>(c)) && !(allowDash && c == '-')) {
-            return false;
-        }
-    }
-    return true;
+    return std::ranges::all_of(id, [allowDash](const char c) {
+        const auto uc = static_cast<unsigned char>(c);
+        return std::isalnum(uc) || (allowDash && c == '-');
+    });
 }
 
 /** Helper: Check if string has leading zeros (invalid for semver numeric parts) */
@@ -60,7 +60,7 @@ bool HasLeadingZero(const std::string& s)
 /** Helper: Safe integer parsing with overflow detection */
 int ParseInt(const std::string& s)
 {
-    if (s.empty() || !std::all_of(s.begin(), s.end(), ::isdigit)) {
+    if (s.empty() || !std::ranges::all_of(s, ::isdigit)) {
         throw std::invalid_argument("Invalid numeric part: " + s);
     }
 
@@ -70,7 +70,7 @@ int ParseInt(const std::string& s)
 
     errno = 0;
     char* end;
-    long val = std::strtol(s.c_str(), &end, 10);
+    const long val = std::strtol(s.c_str(), &end, 10);
 
     if (errno == ERANGE || val < 0 || val > INT_MAX || *end != '\0') {
         throw std::invalid_argument("Numeric part out of range or invalid: " + s);
@@ -80,7 +80,7 @@ int ParseInt(const std::string& s)
 }
 
 /** Helper: Split string by delimiter */
-std::vector<std::string> Split(const std::string& s, char delimiter)
+std::vector<std::string> Split(const std::string& s, const char delimiter)
 {
     std::vector<std::string> parts;
     size_t start = 0;
@@ -101,16 +101,16 @@ void ValidateIdentifiers(const std::string& str, const std::string& context)
         throw std::invalid_argument("Empty " + context + " not allowed");
     }
 
-    std::vector<std::string> parts = Split(str, '.');
+    const std::vector<std::string> parts = Split(str, '.');
     for (const auto& part : parts) {
         if (part.empty()) {
-            throw std::invalid_argument("Empty identifier in " + context + ": " + str);
+            throw std::invalid_argument("Empty identifier in " + context + ": " += str);
         }
         if (!IsValidIdentifier(part, true)) {
-            throw std::invalid_argument("Invalid characters in " + context + " identifier: " + part);
+            throw std::invalid_argument("Invalid characters in " + context + " identifier: " += part);
         }
         /** Check for leading zeros in numeric identifiers (prerelease only, per spec) */
-        bool isNumeric = std::all_of(part.begin(), part.end(), ::isdigit);
+        const bool isNumeric = std::ranges::all_of(part, ::isdigit);
         if (isNumeric && HasLeadingZero(part) && context == "prerelease") {
             throw std::invalid_argument("Leading zeros not allowed in numeric prerelease identifier: " + part);
         }
@@ -118,7 +118,8 @@ void ValidateIdentifiers(const std::string& str, const std::string& context)
 }
 } // namespace
 
-Semver::SemverVersion::SemverVersion(int maj, int min, int pat, const std::string& pre, const std::string& bld) : major(maj), minor(min), patch(pat), prerelease(pre), build(bld)
+Semver::SemverVersion::SemverVersion(const int maj, const int min, const int pat, std::string  pre, std::string  bld)
+    : major(maj), minor(min), patch(pat), prerelease(std::move(pre)), build(std::move(bld))
 {
 }
 
@@ -138,7 +139,7 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
     std::string prerelease;
 
     /** Extract build metadata (everything after '+') */
-    size_t buildPos = core.find('+');
+    const size_t buildPos = core.find('+');
     if (buildPos != std::string::npos) {
         if (buildPos == core.length() - 1) {
             throw std::invalid_argument("Empty build metadata after '+'");
@@ -149,7 +150,7 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
     }
 
     /** Extract prerelease (everything after '-') */
-    size_t prereleasePos = core.find('-');
+    const size_t prereleasePos = core.find('-');
     if (prereleasePos != std::string::npos) {
         if (prereleasePos == core.length() - 1) {
             throw std::invalid_argument("Empty prerelease after '-'");
@@ -160,16 +161,16 @@ Semver::SemverVersion Semver::ParseSemver(const std::string& version)
     }
 
     /** Parse major.minor.patch */
-    std::vector<std::string> parts = Split(core, '.');
+    const std::vector<std::string> parts = Split(core, '.');
 
     if (parts.size() != 3) {
         throw std::invalid_argument("Semver requires exactly 3 numeric parts (major.minor.patch)");
     }
 
     /** Validate and parse each part */
-    int major = ParseInt(parts[0]);
-    int minor = ParseInt(parts[1]);
-    int patch = ParseInt(parts[2]);
+    const int major = ParseInt(parts[0]);
+    const int minor = ParseInt(parts[1]);
+    const int patch = ParseInt(parts[2]);
 
     if (major < 0 || minor < 0 || patch < 0) {
         throw std::invalid_argument("Version numbers cannot be negative");
@@ -186,10 +187,10 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
     if (pre2.empty()) return -1; /** 1.0.0-alpha < 1.0.0 */
 
     /** Split prerelease identifiers by '.' */
-    std::vector<std::string> parts1 = Split(pre1, '.');
-    std::vector<std::string> parts2 = Split(pre2, '.');
+    const std::vector<std::string> parts1 = Split(pre1, '.');
+    const std::vector<std::string> parts2 = Split(pre2, '.');
 
-    size_t minSize = std::min(parts1.size(), parts2.size());
+    const size_t minSize = std::min(parts1.size(), parts2.size());
 
     for (size_t i = 0; i < minSize; ++i) {
         const std::string& p1 = parts1[i];
@@ -200,8 +201,8 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
             throw std::invalid_argument("Empty prerelease identifier encountered");
         }
 
-        bool p1IsNumeric = std::all_of(p1.begin(), p1.end(), ::isdigit);
-        bool p2IsNumeric = std::all_of(p2.begin(), p2.end(), ::isdigit);
+        const bool p1IsNumeric = std::ranges::all_of(p1, ::isdigit);
+        const bool p2IsNumeric = std::ranges::all_of(p2, ::isdigit);
 
         if (p1IsNumeric && p2IsNumeric) {
             /** Both numeric: compare numerically
@@ -210,8 +211,8 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
                 errno = 0;
                 char* end1;
                 char* end2;
-                long n1 = std::strtol(p1.c_str(), &end1, 10);
-                long n2 = std::strtol(p2.c_str(), &end2, 10);
+                const long n1 = std::strtol(p1.c_str(), &end1, 10);
+                const long n2 = std::strtol(p2.c_str(), &end2, 10);
 
                 if (errno == ERANGE || n1 > INT_MAX || n2 > INT_MAX) {
                     throw std::invalid_argument("Prerelease numeric identifier overflow");
@@ -244,8 +245,8 @@ int Semver::ComparePrereleases(const std::string& pre1, const std::string& pre2)
 int Semver::Compare(const std::string& v1, const std::string& v2)
 {
     try {
-        SemverVersion ver1 = ParseSemver(v1);
-        SemverVersion ver2 = ParseSemver(v2);
+        const SemverVersion ver1 = ParseSemver(v1);
+        const SemverVersion ver2 = ParseSemver(v2);
 
         /** Compare major.minor.patch */
         if (ver1.major != ver2.major) {
