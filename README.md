@@ -28,6 +28,8 @@ Installing Millennium is only a few steps. See [this page](https://docs.steambre
 macOS support now defaults to the passive tier0 install path for direct `Steam.app`
 launches. For active development, use `./scripts/launch_macos.sh`.
 
+#### Install
+
 1. Build the repository-local dependencies:
 
 ```bash
@@ -76,7 +78,7 @@ open 'steam://millennium/settings'
 
 Also, you can use `./scripts/install_macos.sh --help` for help and more information.
 
-### Development/Debug
+#### Run (Development/Debug)
 
 For local development/debug iteration, use the wrapper launcher:
 
@@ -104,7 +106,7 @@ MILLENNIUM_HHX_TRACE_PATH=/tmp/millennium-hhx.trace \
 ./scripts/launch_macos.sh
 ```
 
-### Development Builds
+#### Build (Development)
 
 For development checkouts, populate `deps/` once:
 
