@@ -4,4 +4,4 @@
 >
 > -   Windows -> version.dll || user32.dll (both work, user32.dll is legacy and deprecated as it has some caveats)
 > -   Linux -> libXtst.so.6 proxy hook
-> -   MacOS -> external `steam_osx` launcher + temporary `.cef-enable-remote-debugging` marker + bootstrap dylib preload + `execve`-based reinjection for the final Steam main process + child-process shim that loads `hhx64` inside Steam Helper
+> -   MacOS -> `steam_osx` wrapper + bootstrap dylib preload + `execve` reinjection into Steam main process + child hook that loads `hhx64` in Steam Helper

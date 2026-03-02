@@ -60,18 +60,17 @@ usage() {
     cat <<EOF
 Usage: $(basename "$0") [--build-dir <dir>] [--wrapper-build-dir <dir>] [--runtime-build-dir <dir>] [--steam-dir <dir>] [--dry-run] [--uninstall]
 
-Installs the local macOS Millennium build into Steam's user runtime bundle by:
+Installs local macOS Millennium artifacts into Steam's runtime bundle:
 1. Backing up steam_osx to steam_osx.real
 2. Copying the wrapper to steam_osx
 3. Copying the child hook + Millennium dylibs beside steam_osx
 
-This is a debug-only fallback. Steam currently verifies these files at startup and
-may immediately treat the modified bundle as corrupted. Prefer ./scripts/launch_macos.sh
-for day-to-day local development because it launches Steam without replacing Valve's files.
+This is a debug fallback for legacy in-place replacement testing. For normal local
+development, use ./scripts/launch_macos.sh.
 
-Use --uninstall to restore both original executables and remove the injected dylibs.
+Use --uninstall to restore steam_osx and remove injected dylibs.
 
---build-dir keeps the old behavior and searches one directory for everything.
+--build-dir keeps the old behavior and searches one directory for all artifacts.
 --wrapper-build-dir defaults to ${WRAPPER_BUILD_DIR}
 --runtime-build-dir defaults to auto-detecting the top-level macOS build output.
 EOF
