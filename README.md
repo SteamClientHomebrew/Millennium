@@ -23,6 +23,92 @@ If you enjoy this tool, please consider starring the project ⭐
 
 Installing Millennium is only a few steps. See [this page](https://docs.steambrew.app/users/installing) for a more detailed guide.
 
+### macOS (Experimental)
+
+macOS support is currently aimed at local development builds. The recommended enablement
+path does not replace Valve's `steam_osx` binary in place.
+
+1. Build the repository-local dependencies:
+
+```bash
+./scripts/bootstrap_deps.sh
+```
+
+2. Build the macOS runtime and wrapper:
+
+```bash
+cmake --preset osx-debug-make
+cmake --build build/osx-debug-make
+```
+
+3. Launch Steam through Millennium's macOS wrapper:
+
+```bash
+./scripts/launch_macos.sh
+```
+
+If you need trace logs while debugging startup, launch with:
+
+```bash
+MILLENNIUM_BOOTSTRAP_TRACE_PATH=/tmp/millennium-bootstrap.trace \
+MILLENNIUM_HHX_TRACE_PATH=/tmp/millennium-hhx.trace \
+./scripts/launch_macos.sh
+```
+
+After Steam finishes starting, open Millennium from Steam's menu or run:
+
+```bash
+open 'steam://millennium/settings'
+```
+
+This wrapper flow is the current supported macOS enablement path. Use
+`./scripts/install_macos.sh` only when you specifically need to test the legacy in-place
+replacement workflow.
+
+## Development Builds
+
+For local development builds, populate the repository-local `deps/` directory first:
+
+```bash
+./scripts/bootstrap_deps.sh
+```
+
+This mirrors the third-party revisions used by the CMake build so local builds can avoid repeated `FetchContent` downloads.
+
+The top-level macOS build can then use the checked-in Unix Makefiles preset:
+
+```bash
+cmake --preset osx-debug-make
+cmake --build build/osx-debug-make
+```
+
+On macOS, you can build the Steam wrapper/bootstrap subproject independently while the
+full runtime is still under development:
+
+```bash
+./scripts/build_macos_boot.sh
+```
+
+This produces `steam_osx`, `libmillennium_bootstrap.dylib`, and
+`libmillennium_child_hook.dylib` under `build/macos-boot`. The full top-level build is
+still required for `libmillennium.dylib` and `libmillennium_hhx64.dylib`.
+
+For the current macOS enablement and launch flow, follow the `macOS (Experimental)`
+section above. `./scripts/launch_macos.sh` remains the preferred path because it starts
+Steam without replacing Valve's runtime files.
+
+If you specifically need to test the older in-place replacement flow, you can still install
+both outputs into a local Steam runtime bundle:
+
+```bash
+./scripts/install_macos.sh \
+  --wrapper-build-dir ./build/macos-boot \
+  --runtime-build-dir ./build/osx-debug-make
+```
+
+Expect Steam to verify and potentially reject the modified bundle during startup. Use this
+only for targeted debugging of the legacy replacement path.
+
 ## Features
 ### Plugins
 
@@ -68,6 +154,7 @@ Supported Platforms:
 
 -   Windows (x86/x64/ARM) NT (10 and newer)
 -   Linux (x86/x86_64/i686/i386)
+-   macOS (experimental local-development path via `./scripts/launch_macos.sh`)
 
 ## Sponsors
 

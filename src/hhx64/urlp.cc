@@ -34,6 +34,8 @@
 #elif _WIN32
 #include <windows.h>
 #define PATH_MAX MAX_PATH
+#else
+#include <limits.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>

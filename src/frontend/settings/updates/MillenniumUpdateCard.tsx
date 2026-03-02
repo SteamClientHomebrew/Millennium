@@ -71,12 +71,20 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		ctx.setMillenniumUpdating(true);
 	}
 
-	const StartUpdateLinux = () => {
+	const GetManualUpdateDescription = () => {
+		if (pluginSelf.platformType === OSType.Darwin) {
+			return `Automatic Millennium updates are not yet available on macOS.\n\nRebuild the current branch, reinstall it with \`./scripts/install_macos.sh --build-dir ./build\`, then restart Steam to finish updating to ${millenniumUpdates?.newVersion?.tag_name}.`;
+		}
+
+		return `To update Millennium to ${millenniumUpdates?.newVersion?.tag_name}, run the following command in your terminal:\n\n\`${pluginSelf.millenniumLinuxUpdateScript}\``;
+	};
+
+	const StartManualUpdate = () => {
 		showModal(
 			<ConfirmModal
 				strTitle={'Update Millennium'}
 				strDescription={
-					<Markdown>{`To update Millennium to ${millenniumUpdates?.newVersion?.tag_name}, run the following command in your terminal:\n\n\`${pluginSelf.millenniumLinuxUpdateScript}\``}</Markdown>
+					<Markdown>{GetManualUpdateDescription()}</Markdown>
 				}
 				bAlertDialog={true}
 			/>,
@@ -97,8 +105,8 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 	function StartUpdate() {
 		if (pluginSelf.platformType === OSType.Windows) {
 			StartUpdateWindows();
-		} else if (pluginSelf.platformType === OSType.Linux) {
-			StartUpdateLinux();
+		} else if (pluginSelf.platformType === OSType.Linux || pluginSelf.platformType === OSType.Darwin) {
+			StartManualUpdate();
 		}
 	}
 

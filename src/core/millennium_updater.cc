@@ -112,8 +112,18 @@ void MillenniumUpdater::CheckForUpdates()
     try {
         response = Http::Get(GITHUB_API_URL, false);
         auto response_data = nlohmann::json::parse(response);
-        if (!response_data.is_array() || response_data.empty()) {
-            LOG_ERROR("Invalid response from GitHub API: expected non-empty array.");
+        if (!response_data.is_array()) {
+            const std::string apiMessage = response_data.value("message", "");
+            if (!apiMessage.empty()) {
+                Logger.Warn("GitHub API returned a non-release response while checking for updates: {}", apiMessage);
+            } else {
+                Logger.Warn("GitHub API returned a non-array response while checking for updates.");
+            }
+            return;
+        }
+
+        if (response_data.empty()) {
+            Logger.Warn("GitHub API returned no releases while checking for updates.");
             return;
         }
 
@@ -199,6 +209,8 @@ std::optional<nlohmann::json> MillenniumUpdater::FindAsset(const nlohmann::json&
     platform_suffix = "windows-x86_64.zip";
 #elif __linux__
     platform_suffix = "linux-x86_64.tar.gz";
+#elif defined(__APPLE__)
+    return std::nullopt;
 #else
     Logger.Error("Invalid platform, cannot find platform-specific assets.");
     return std::nullopt;

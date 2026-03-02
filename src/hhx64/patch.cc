@@ -47,7 +47,7 @@ static const unsigned long long MAX_PATTERN_COUNT = 100000;
 
 #ifdef _WIN32
 #define plat_strdup _strdup
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 #define plat_strdup strdup
 #endif
 

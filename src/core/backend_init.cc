@@ -432,6 +432,7 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
     // associate the plugin name with the running plugin. used for IPC/FFI
     SetPluginSecretName(globalDictionary, plugin.pluginName);
     SetPluginEnvironmentVariables(globalDictionary, plugin);
+    SetupPluginSettings();
 
     std::vector<std::filesystem::path> sysPath;
     sysPath.push_back(plugin.pluginBaseDirectory / plugin.backendAbsoluteDirectory.parent_path());
@@ -534,7 +535,6 @@ void CoInitializer::PyBackendStartCallback(SettingsStore::PluginTypeSchema plugi
         }
     });
 
-    SetupPluginSettings();
     StartPluginBackend(globalDictionary, plugin.pluginName);
 
     timeOutLockThreadRunning.store(false);

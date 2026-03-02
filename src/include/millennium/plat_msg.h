@@ -90,6 +90,31 @@ static int Plat_ShowMessageBox(const char* title, const char* message, Plat_Mess
 
     if (level == MESSAGEBOX_QUESTION) return (ret == 0) ? 1 : 0; // 1=Yes/OK, 0=No/Cancel
     return ret;
+#elif defined(__APPLE__)
+    if (!message) {
+        LOG_ERROR("No message provided to message box call");
+        return -1;
+    }
+
+    const char* effectiveTitle = title ? title : "Message";
+
+    switch (level) {
+        case MESSAGEBOX_ERROR:
+            LOG_ERROR("[{}] {}", effectiveTitle, message);
+            break;
+        case MESSAGEBOX_WARNING:
+            Logger.Warn("[{}] {}", effectiveTitle, message);
+            break;
+        case MESSAGEBOX_INFO:
+            Logger.Log("[{}] {}", effectiveTitle, message);
+            break;
+        case MESSAGEBOX_QUESTION:
+            Logger.Warn("[{}] {} (defaulting to Cancel on macOS fallback)", effectiveTitle, message);
+            break;
+    }
+
+    std::fprintf(stderr, "[Millennium:%s] %s\n", effectiveTitle, message);
+    return (level == MESSAGEBOX_QUESTION) ? 0 : 0;
 #else
 #error "Unsupported Platform"
     return -1;

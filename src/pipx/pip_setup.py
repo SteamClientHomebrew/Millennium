@@ -26,10 +26,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import importlib.util
+
 from logger import logger
 
 def verify_pip():
-    try:
-        from pip._internal import main
-    except ImportError:
-        logger.error("PIP was not found on your Millennium installation. Please reinstall...")
+    if importlib.util.find_spec("pip") is None:
+        logger.log("PIP is not currently importable in Millennium's embedded runtime. Attempting subprocess bootstrap...")

@@ -250,10 +250,10 @@ void PluginLoader::StartFrontEnds()
         return;
     }
 
+    this->InjectWebkitShims();
+
     std::shared_ptr<CEFBrowser> cefBrowserHandler = std::make_shared<CEFBrowser>();
     std::shared_ptr<SocketHelpers> socketHelpers = std::make_shared<SocketHelpers>();
-
-    this->InjectWebkitShims();
 
     Logger.Log("Starting frontend socket...");
     std::shared_ptr<std::thread> browserSocketThread = this->ConnectCEFBrowser(cefBrowserHandler, socketHelpers);

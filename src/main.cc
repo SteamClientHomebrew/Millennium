@@ -154,8 +154,14 @@ void Plat_CheckForUpdates()
             return;
         }
 
-        const std::string downloadUrl = update["platformRelease"]["browser_download_url"];
-        const size_t downloadSize = update["platformRelease"]["size"].get<size_t>();
+        const auto platformRelease = update.value("platformRelease", nlohmann::json{});
+        if (!platformRelease.is_object()) {
+            Logger.Log("Millennium update available to version {}. This platform currently requires a manual reinstall.", newVersion);
+            return;
+        }
+
+        const std::string downloadUrl = platformRelease["browser_download_url"];
+        const size_t downloadSize = platformRelease["size"].get<size_t>();
 
         Logger.Log("Auto-updating Millennium to version {}...", newVersion);
         MillenniumUpdater::StartUpdate(downloadUrl, downloadSize, false, false);

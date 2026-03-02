@@ -67,7 +67,7 @@ def pip(cmd, config: Config):
     os.makedirs(os.path.dirname(pip_logs), exist_ok=True)
 
     with open(pip_logs, 'w') as f:
-        command = [python_bin, '-s', '-m', 'pip'] + cmd + ["--no-warn-script-location"]
+        command = [python_bin, '-s', '-m', 'pip'] + cmd + ["--no-warn-script-location", "--progress-bar", "off"]
         logger.log(f"Running command: {' '.join(command)}")
 
         proc = subprocess.Popen(
@@ -101,8 +101,9 @@ def pip(cmd, config: Config):
 
 
 def install_packages(package_names, config: Config):
-    pip(["install", "--upgrade", "pip", "setuptools", "wheel"], config)
-    pip(["install"] + package_names, config)
+    unique_packages = list(dict.fromkeys(package_names))
+    pip(["install", "--upgrade", "--ignore-installed", "pip", "setuptools", "wheel"], config)
+    pip(["install", "--ignore-installed"] + unique_packages, config)
 
 
 def uninstall_packages(package_names, config: Config):
