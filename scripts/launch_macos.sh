@@ -44,6 +44,13 @@ Debug example:
 EOF
 }
 
+ensure_steam_not_running() {
+    if pgrep -x "steam_osx" >/dev/null 2>&1 || pgrep -f "/Steam Helper" >/dev/null 2>&1; then
+        printf "Steam appears to already be running. Quit Steam before launching through %s.\n" "$(basename "$0")" >&2
+        exit 1
+    fi
+}
+
 find_artifact() {
     local artifact_name="$1"
     shift
@@ -106,6 +113,8 @@ done
     printf "Steam executable not found: %s\n" "${STEAM_EXECUTABLE}" >&2
     exit 1
 }
+
+ensure_steam_not_running
 
 declare -a runtime_search_dirs
 if [ -n "${RUNTIME_BUILD_DIR}" ]; then
