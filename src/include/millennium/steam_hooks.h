@@ -64,7 +64,7 @@ bool InitializeSteamHooks();
 
 bool Millennium_Plat_CommandLineIsSetup();
 bool SetupEntryPointHook();
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 bool InitializeSteamHooks();
 #endif
 

@@ -29,7 +29,9 @@
  */
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
+#include <cstdlib>
 #include <mutex>
 #include "millennium/steam_hooks.h"
 #include "millennium/argp_win32.h"
@@ -75,6 +77,60 @@ void Command_mark_dirty(Command* cmd)
     cmd->dirty = 1;
 }
 
+#ifndef _WIN32
+static int Command_needs_quotes(const char* value)
+{
+    for (const char* cursor = value; *cursor; ++cursor) {
+        if (*cursor == ' ' || *cursor == '\t' || *cursor == '"' || *cursor == '\'') {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static void Command_append_char(Command* cmd, size_t* pos, char value)
+{
+    if (*pos + 1 >= MAX_COMMAND_LEN) {
+        return;
+    }
+
+    cmd->full_command[*pos] = value;
+    (*pos)++;
+    cmd->full_command[*pos] = '\0';
+}
+
+static void Command_append_token(Command* cmd, size_t* pos, const char* value)
+{
+    if (*pos >= MAX_COMMAND_LEN) {
+        return;
+    }
+
+    if (!Command_needs_quotes(value)) {
+        int written = snprintf(cmd->full_command + *pos, MAX_COMMAND_LEN - *pos, "%s", value);
+        if (written < 0) {
+            return;
+        }
+
+        *pos += static_cast<size_t>(written);
+        if (*pos >= MAX_COMMAND_LEN) {
+            *pos = MAX_COMMAND_LEN - 1;
+            cmd->full_command[*pos] = '\0';
+        }
+        return;
+    }
+
+    Command_append_char(cmd, pos, '"');
+    for (const char* cursor = value; *cursor; ++cursor) {
+        if (*cursor == '"' || *cursor == '\\') {
+            Command_append_char(cmd, pos, '\\');
+        }
+        Command_append_char(cmd, pos, *cursor);
+    }
+    Command_append_char(cmd, pos, '"');
+}
+#endif
+
 char* Command_get_executable(Command* cmd)
 {
     char* last_slash = strrchr(cmd->exec, '/');
@@ -89,16 +145,17 @@ void Command_init(Command* cmd, const char* full_cmd)
     cmd->exec = NULL;
     cmd->dirty = 1;
 
-#ifdef _WIN32
     char* copy = strdup(full_cmd);
     char* p = copy;
     char token[MAX_PARAM_LEN];
     int token_idx = 0;
+    char quote_char = 0;
     int in_quotes = 0;
     int token_count = 0;
 
     while (*p) {
-        if (*p == '"') {
+        if ((*p == '"' || *p == '\'') && (!in_quotes || *p == quote_char)) {
+            quote_char = in_quotes ? 0 : *p;
             in_quotes = !in_quotes;
             p++;
             continue;
@@ -131,32 +188,6 @@ void Command_init(Command* cmd, const char* full_cmd)
         }
     }
     free(copy);
-#else
-    char* copy = strdup(full_cmd);
-    char* token = strtok(copy, " ");
-
-    if (token) {
-        size_t len = strlen(token);
-        if (len >= 2 && token[0] == '\'' && token[len - 1] == '\'') {
-            token[len - 1] = '\0';
-            token++;
-        }
-        cmd->exec = strdup(token);
-        token = strtok(NULL, " ");
-    }
-
-    while (token && cmd->param_count < MAX_PARAMS) {
-        size_t len = strlen(token);
-        if (len >= 2 && token[0] == '\'' && token[len - 1] == '\'') {
-            token[len - 1] = '\0';
-            token++;
-        }
-        cmd->params[cmd->param_count++] = strdup(token);
-        token = strtok(NULL, " ");
-    }
-
-    free(copy);
-#endif
 }
 
 void Command_free(Command* cmd)
@@ -255,6 +286,7 @@ const char* Command_get(Command* cmd)
     if (!cmd->dirty) return cmd->full_command;
 
     size_t pos = 0;
+    cmd->full_command[0] = '\0';
 #ifdef _WIN32
     if (strchr(cmd->exec, ' ')) {
         pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "\"%s\"", cmd->exec);
@@ -262,7 +294,7 @@ const char* Command_get(Command* cmd)
         pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "%s", cmd->exec);
     }
 #else
-    pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, "%s", cmd->exec);
+    Command_append_token(cmd, &pos, cmd->exec);
 #endif
 
     for (int i = 0; i < cmd->param_count; i++) {
@@ -273,7 +305,8 @@ const char* Command_get(Command* cmd)
             pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " %s", cmd->params[i]);
         }
 #else
-        pos += snprintf(cmd->full_command + pos, MAX_COMMAND_LEN - pos, " %s", cmd->params[i]);
+        Command_append_char(cmd, &pos, ' ');
+        Command_append_token(cmd, &pos, cmd->params[i]);
 #endif
     }
 
@@ -305,6 +338,8 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
         "steamwebhelper.exe";
 #elif __linux__
         "steamwebhelper.sh";
+#elif defined(__APPLE__)
+        "Steam Helper";
 #endif
 
     char* hooked_target = Command_get_executable(&c);
@@ -596,6 +631,75 @@ bool InitializeSteamHooks()
     Logger.Log("Located {} at address {}", symbol, target);
     const bool success = create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
     Logger.Log("Hook install success?: {}", success);
+    return true;
+}
+#elif defined(__APPLE__)
+#include "millennium/logger.h"
+
+#include <filesystem>
+#include <unistd.h>
+
+bool InitializeSteamHooks()
+{
+    const char* configuredPort = std::getenv("MILLENNIUM_DEBUG_PORT");
+    if (configuredPort && configuredPort[0] != '\0') {
+        STEAM_DEVELOPER_TOOLS_PORT = configuredPort;
+    } else {
+        STEAM_DEVELOPER_TOOLS_PORT = DEFAULT_DEVTOOLS_PORT;
+    }
+
+    std::filesystem::path helperHookPath;
+    std::filesystem::path childHookPath;
+
+    const char* configuredHookPath = std::getenv("MILLENNIUM_HOOK_HELPER_PATH");
+    if (configuredHookPath && configuredHookPath[0] != '\0') {
+        helperHookPath = configuredHookPath;
+    } else {
+        const char* runtimePath = std::getenv("MILLENNIUM_RUNTIME_PATH");
+        if (runtimePath && runtimePath[0] != '\0') {
+            const std::filesystem::path runtimeDirectory = std::filesystem::path(runtimePath).parent_path();
+            helperHookPath = runtimeDirectory / "libmillennium_hhx64.dylib";
+            childHookPath = runtimeDirectory / "libmillennium_child_hook.dylib";
+        }
+    }
+
+    const char* configuredChildHookPath = std::getenv("MILLENNIUM_CHILD_HOOK_PATH");
+    if (configuredChildHookPath && configuredChildHookPath[0] != '\0') {
+        childHookPath = configuredChildHookPath;
+    }
+
+    if (helperHookPath.empty()) {
+        const char* steamPath = std::getenv("MILLENNIUM__STEAM_PATH");
+        if (steamPath && steamPath[0] != '\0') {
+            const std::filesystem::path steamDirectory = steamPath;
+            helperHookPath = steamDirectory / "libmillennium_hhx64.dylib";
+            if (childHookPath.empty()) {
+                childHookPath = steamDirectory / "libmillennium_child_hook.dylib";
+            }
+        }
+    }
+
+    if (helperHookPath.empty()) {
+        Logger.Warn("macOS bootstrap-based helper injection could not resolve libmillennium_hhx64.dylib.");
+        return false;
+    }
+
+    if (access(helperHookPath.c_str(), R_OK) != 0) {
+        Logger.Warn("macOS bootstrap-based helper injection is not available because '{}' is missing.", helperHookPath.string());
+        return false;
+    }
+
+    if (childHookPath.empty()) {
+        Logger.Warn("macOS bootstrap-based helper injection could not resolve libmillennium_child_hook.dylib.");
+        return false;
+    }
+
+    if (access(childHookPath.c_str(), R_OK) != 0) {
+        Logger.Warn("macOS bootstrap-based helper injection is not available because '{}' is missing.", childHookPath.string());
+        return false;
+    }
+
+    Logger.Log("Using bootstrap-based Steam Helper injection on macOS with debugger port {}", STEAM_DEVELOPER_TOOLS_PORT);
     return true;
 }
 #endif

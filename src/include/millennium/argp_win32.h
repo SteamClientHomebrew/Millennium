@@ -33,7 +33,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
 #include <dlfcn.h>
 #endif
 #include "millennium/steam_hooks.h"
@@ -56,11 +56,16 @@ static bool HasArgument(const std::string& targetArgument)
         LocalFree(argv);
     }
     return false;
-#elif __linux__
+#elif defined(__linux__) || defined(__APPLE__)
     using Plat_CommandLineParamExists_t = bool (*)(const char*);
-    void* handle = dlopen("libtier0_s.so", RTLD_NOW);
+#if defined(__APPLE__)
+    const char* libraryName = "libtier0_s.dylib";
+#else
+    const char* libraryName = "libtier0_s.so";
+#endif
+    void* handle = dlopen(libraryName, RTLD_NOW);
     if (!handle) {
-        LOG_ERROR("Failed to get handle of libtier0_s.so!");
+        LOG_ERROR("Failed to get handle of {}!", libraryName);
         return false;
     }
 
@@ -75,6 +80,7 @@ static bool HasArgument(const std::string& targetArgument)
     dlclose(handle);
     return result;
 #endif
+    return false;
 }
 
 inline u_short GetRemoteDebuggerPort()

@@ -42,6 +42,57 @@
 #include "hhx64/urlp.h"
 #include "hhx64/log.h"
 
+#ifdef __APPLE__
+#include <dlfcn.h>
+#include <limits.h>
+#include <mach-o/dyld.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#define DYLD_INTERPOSE(_replacement, _replacee)                                                                                                                                    \
+    __attribute__((used)) static struct                                                                                                                                            \
+    {                                                                                                                                                                              \
+        const void* replacement;                                                                                                                                                   \
+        const void* replacee;                                                                                                                                                      \
+    } _interpose_##_replacee __attribute__((section("__DATA,__interpose"))) = {                                                                                                   \
+        reinterpret_cast<const void*>(&_replacement), reinterpret_cast<const void*>(&_replacee)                                                                                   \
+    }
+
+static void append_hhx_trace(const char* stage)
+{
+    const char* trace_path = getenv("MILLENNIUM_HHX_TRACE_PATH");
+    if (!trace_path || trace_path[0] == '\0') {
+        return;
+    }
+
+    char executable_path[PATH_MAX];
+    uint32_t executable_path_size = sizeof(executable_path);
+    const char* resolved_path = "";
+
+    if (_NSGetExecutablePath(executable_path, &executable_path_size) == 0) {
+        char real_executable_path[PATH_MAX];
+        if (realpath(executable_path, real_executable_path)) {
+            resolved_path = real_executable_path;
+        } else {
+            resolved_path = executable_path;
+        }
+    }
+
+    FILE* file = fopen(trace_path, "a");
+    if (!file) {
+        return;
+    }
+
+    fprintf(file, "%s|pid=%d|exe=%s\n", stage ? stage : "", getpid(), resolved_path);
+    fclose(file);
+}
+
+__attribute__((constructor)) static void hhx_trace_ctor()
+{
+    append_hhx_trace("hhx-loaded");
+}
+#endif
+
 #ifdef __linux__
 #include <unistd.h>
 #endif
@@ -106,15 +157,13 @@ struct _cef_request_handler_t* hooked_get_request_handler(void* self)
     return handler;
 }
 
-/**
- * hooked cef_browser_host_create_browser.
- * as this module is loaded via LD_PRELOAD, its procedural link its directly replaced on the IAT/GOT inline.
- * thankfully since steam doesn't statically link against cef (not even sure if its possible), it allows us to trampoline
- * calls it makes to cef.
- */
-extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
+static void prepare_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
 {
-    CEF_LAZY_LOAD(cef_browser_host_create_browser, int, (const void*, struct _cef_client_t*, void*, const void*, void*, void*));
+    (void)_1;
+    (void)_3;
+    (void)_4;
+    (void)_5;
+    (void)_6;
 
     /** overwrite steams get request handler they provide. */
     if (c && c->get_request_handler && !orig_c) {
@@ -122,6 +171,47 @@ extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_clien
         original_get_request_handler = c->get_request_handler;
         c->get_request_handler = reinterpret_cast<decltype(c->get_request_handler)>(hooked_get_request_handler);
     }
+}
+
+/**
+ * hooked cef_browser_host_create_browser.
+ * on Linux this is still resolved through LD_PRELOAD symbol precedence. On macOS,
+ * Steam Helper launches with Chromium Embedded Framework already linked, so we keep
+ * the CEF symbol unresolved at link time and let dyld bind this interpose at runtime.
+ */
+#ifdef __APPLE__
+typedef int (*cef_browser_host_create_browser_t)(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6);
+/** keep this unresolved until Steam Helper loads CEF; hhx64 links with -undefined dynamic_lookup on macOS. */
+extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6);
+
+static cef_browser_host_create_browser_t resolve_original_cef_browser_host_create_browser()
+{
+    static auto original = reinterpret_cast<cef_browser_host_create_browser_t>(dlsym(RTLD_NEXT, "cef_browser_host_create_browser"));
+    return original;
+}
+
+extern "C" int millennium_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
+{
+    prepare_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
+
+    const auto original = resolve_original_cef_browser_host_create_browser();
+    if (!original) {
+        log_error("failed to resolve original cef_browser_host_create_browser\n");
+        return 0;
+    }
+
+    return original(_1, c, _3, _4, _5, _6);
+}
+
+DYLD_INTERPOSE(millennium_cef_browser_host_create_browser, cef_browser_host_create_browser);
+#else
+extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_client_t* c, void* _3, const void* _4, void* _5, void* _6)
+{
+    prepare_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
+
+#ifndef _WIN32
+    CEF_LAZY_LOAD(cef_browser_host_create_browser, int, (const void*, struct _cef_client_t*, void*, const void*, void*, void*));
+#endif
 
 #ifdef _WIN32
     return win32_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
@@ -129,6 +219,7 @@ extern "C" int cef_browser_host_create_browser(const void* _1, struct _cef_clien
     return lazy_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
 #endif
 }
+#endif
 
 #if defined(_WIN32)
 #include <MinHook.h>

@@ -36,7 +36,14 @@
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
+#include <filesystem>
+#include <fstream>
 #include <fmt/format.h>
+
+#ifdef __APPLE__
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 #ifdef _WIN32
 #include <psapi.h>
@@ -49,6 +56,36 @@ class SocketHelpers
 {
   private:
     u_short debuggerPort;
+
+#ifdef __APPLE__
+    std::string GetPrecomputedBrowserContext()
+    {
+        const char* browserContextPath = std::getenv("MILLENNIUM_BROWSER_CONTEXT_PATH");
+        if (browserContextPath && browserContextPath[0] != '\0') {
+            for (size_t attempt = 1; attempt <= 120; ++attempt) {
+                if (g_shouldTerminateMillennium->flag.load()) {
+                    throw HttpError("Thread termination flag is set, aborting HTTP request.");
+                }
+
+                const int browserContextFile = open(browserContextPath, O_RDONLY);
+                if (browserContextFile >= 0) {
+                    char buffer[512];
+                    const ssize_t bytesRead = read(browserContextFile, buffer, sizeof(buffer));
+                    close(browserContextFile);
+
+                    if (bytesRead > 0) {
+                        unlink(browserContextPath);
+                        return std::string(buffer, static_cast<size_t>(bytesRead));
+                    }
+                }
+
+                usleep(250000);
+            }
+        }
+
+        return {};
+    }
+#endif
 
     u_short GetDebuggerPort()
     {
@@ -165,24 +202,63 @@ class SocketHelpers
      */
     const std::string GetSteamBrowserContext()
     {
-        try {
-            std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
-            nlohmann::basic_json<> instance = nlohmann::json::parse(Http::Get(browserUrl.c_str(), true, 5L));
+        const std::string browserUrl = fmt::format("{}/json/version", this->GetDebuggerUrl());
 
-            return instance["webSocketDebuggerUrl"];
-        } catch (nlohmann::detail::exception& exception) {
-            LOG_ERROR("An error occurred while making a connection to Steam browser context. It's likely that the debugger port '{}' is in use by another process. exception -> {}",
-                      debuggerPort, exception.what());
-            std::exit(1);
+#ifdef __APPLE__
+        const std::string precomputedContext = GetPrecomputedBrowserContext();
+        if (!precomputedContext.empty()) {
+            Logger.Log("Resolved precomputed Steam browser websocket URL: {}", precomputedContext);
+            return precomputedContext;
+        }
+#endif
+
+        Logger.Log("Waiting for Steam browser context at {}", browserUrl);
+
+        for (size_t attempt = 1;; ++attempt) {
+            if (g_shouldTerminateMillennium->flag.load()) {
+                throw HttpError("Thread termination flag is set, aborting HTTP request.");
+            }
+
+            try {
+                const std::string response = Http::Get(browserUrl.c_str(), false, 1L);
+                if (response.empty()) {
+                    if (attempt == 1 || attempt % 10 == 0) {
+                        Logger.Log("Steam browser context is not ready yet (attempt {}).", attempt);
+                    }
+                } else {
+                    nlohmann::basic_json<> instance = nlohmann::json::parse(response);
+                    if (instance.contains("webSocketDebuggerUrl") && instance["webSocketDebuggerUrl"].is_string()) {
+                        const std::string socketUrl = instance["webSocketDebuggerUrl"];
+                        Logger.Log("Resolved Steam browser websocket URL: {}", socketUrl);
+                        return socketUrl;
+                    }
+
+                    Logger.Warn("Steam browser context response is missing webSocketDebuggerUrl (attempt {}).", attempt);
+                }
+            } catch (nlohmann::detail::exception& exception) {
+                if (attempt == 1 || attempt % 10 == 0) {
+                    Logger.Warn("Steam browser context parse failed on attempt {}: {}", attempt, exception.what());
+                }
+            }
+
+#ifdef __APPLE__
+            usleep(250000);
+#else
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+#endif
         }
     }
 
     void ConnectSocket(std::shared_ptr<ConnectSocketProps> socketProps)
     {
         std::string socketUrl;
-        const auto [commonName, fetchSocketUrl, onConnect, onMessage] = *socketProps;
+        const std::string commonName = socketProps->commonName;
+        const auto fetchSocketUrl = socketProps->fetchSocketUrl;
+        const auto onConnect = socketProps->onConnect;
+        const auto onMessage = socketProps->onMessage;
 
         try {
+            Logger.Log("[{}] Resolving websocket endpoint...", commonName);
             socketUrl = fetchSocketUrl();
         }
         /** The request was broke early before it was received. Likely because Millennium is shutting down. */
@@ -211,8 +287,23 @@ class SocketHelpers
                 return;
             }
 
-            socketClient.set_open_handler(bind(onConnect, &socketClient, std::placeholders::_1));
+            socketClient.set_open_handler([&socketClient, &commonName, &onConnect](websocketpp::connection_hdl hdl)
+            {
+                Logger.Log("[{}] WebSocket handshake completed.", commonName);
+                onConnect(&socketClient, hdl);
+            });
             socketClient.set_message_handler(bind(onMessage, &socketClient, std::placeholders::_1, std::placeholders::_2));
+            socketClient.set_fail_handler([&socketClient, &commonName](websocketpp::connection_hdl hdl)
+            {
+                auto connection = socketClient.get_con_from_hdl(hdl);
+                LOG_ERROR("[{}] WebSocket handshake failed: {} [{}]", commonName, connection->get_ec().message(), connection->get_ec().value());
+            });
+            socketClient.set_close_handler([&socketClient, &commonName](websocketpp::connection_hdl hdl)
+            {
+                auto connection = socketClient.get_con_from_hdl(hdl);
+                Logger.Warn("[{}] WebSocket closed with code {} ({})", commonName, connection->get_remote_close_code(),
+                            connection->get_remote_close_reason().empty() ? "no reason" : connection->get_remote_close_reason());
+            });
 
             websocketpp::lib::error_code errorCode;
             auto con = socketClient.get_connection(socketUrl, errorCode);
@@ -222,6 +313,7 @@ class SocketHelpers
                 return;
             }
 
+            Logger.Log("[{}] Connecting to {}", commonName, socketUrl);
             socketClient.connect(con);
             socketClient.run();
         } catch (const websocketpp::exception& ex) {

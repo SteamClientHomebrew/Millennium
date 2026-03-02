@@ -11,6 +11,12 @@ if(WIN32)
     set(MILLENNIUM_HOOK_HELPER_OUTPUT_NAME         "millennium.hhx64.dll"          )
     set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "wsock32.dll"                   )
     set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME_LEGACY   "version.dll"                   )
+elseif(APPLE)
+    # macOS build names
+    set(MILLENNIUM_OUTPUT_NAME                     "libmillennium.dylib"           )
+    set(MILLENNIUM_HOOK_HELPER_OUTPUT_NAME         "libmillennium_hhx64.dylib"     )
+    set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "libmillennium_bootstrap.dylib" )
+    set(MILLENNIUM_CHILD_HOOK_OUTPUT_NAME          "libmillennium_child_hook.dylib")
 else()
     # Linux build names
     set(MILLENNIUM_OUTPUT_NAME                     "libmillennium_x86.so"          )
