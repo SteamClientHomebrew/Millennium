@@ -40,6 +40,7 @@
 
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <thread>
 #include <unordered_set>
 
@@ -290,6 +291,58 @@ bool HttpHookManager::IsIpcCall(const nlohmann::basic_json<>& message)
     return requestUrl.find(this->m_ipcHookAddress) != std::string::npos;
 }
 
+static std::optional<std::filesystem::path> ResolveInternalFtpAssetPath(const std::string& requestUrl, const char* ftpHookAddress)
+{
+    if (!ftpHookAddress) {
+        return std::nullopt;
+    }
+
+    const std::string base(ftpHookAddress);
+    if (requestUrl.rfind(base, 0) != 0) {
+        return std::nullopt;
+    }
+
+    std::string relative = requestUrl.substr(base.size());
+    const size_t queryPos = relative.find('?');
+    if (queryPos != std::string::npos) {
+        relative = relative.substr(0, queryPos);
+    }
+
+    const std::string tokenPrefix = GetScrambledApiPathToken() + "/";
+    if (relative.rfind(tokenPrefix, 0) != 0) {
+        return std::nullopt;
+    }
+
+    const std::string assetPath = relative.substr(tokenPrefix.size());
+    const std::filesystem::path repoRoot(MILLENNIUM_ROOT);
+
+    if (assetPath == "millennium.js") {
+        return repoRoot / "src" / "sdk" / "packages" / "loader" / "build" / "millennium.js";
+    }
+
+    if (assetPath == "millennium-frontend.js") {
+        return repoRoot / "build" / "frontend.bin";
+    }
+
+    if (assetPath.rfind("chunks/", 0) == 0) {
+        const std::filesystem::path candidate = repoRoot / "src" / "sdk" / "packages" / "loader" / "build" / assetPath;
+        const std::string filename = candidate.filename().string();
+        const std::string extension = candidate.extension().string();
+
+        if (filename.rfind("chunk-", 0) != 0) {
+            return std::nullopt;
+        }
+
+        if (extension != ".js" && extension != ".map") {
+            return std::nullopt;
+        }
+
+        return candidate;
+    }
+
+    return std::nullopt;
+}
+
 std::filesystem::path HttpHookManager::ConvertToLoopBack(const std::string& requestUrl)
 {
     std::string url = requestUrl;
@@ -325,7 +378,7 @@ void HttpHookManager::RetrieveRequestFromDisk(const nlohmann::basic_json<>& mess
     }
     /** Handle normal disk request */
     else {
-        std::filesystem::path localFilePath = this->ConvertToLoopBack(strRequestFile);
+        std::filesystem::path localFilePath = ResolveInternalFtpAssetPath(strRequestFile, this->m_ftpHookAddress).value_or(this->ConvertToLoopBack(strRequestFile));
         std::ifstream localFileStream(localFilePath);
 
         bool bFailedRead = !localFileStream.is_open();
