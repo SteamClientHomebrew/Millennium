@@ -25,8 +25,8 @@ Installing Millennium is only a few steps. See [this page](https://docs.steambre
 
 ### macOS (Experimental)
 
-macOS support currently targets local development builds. The default flow uses a
-wrapper and does not replace Valve's `steam_osx` binary in place.
+macOS support now defaults to the passive tier0 install path for direct `Steam.app`
+launches. For active development, use `./scripts/launch_macos.sh`.
 
 1. Build the repository-local dependencies:
 
@@ -55,28 +55,42 @@ pnpm -C src/sdk/packages/loader build
 pnpm -C src/frontend build
 ```
 
-5. Launch Steam through Millennium's macOS wrapper:
+5. Install Millennium into Steam's runtime bundle (passive tier0 mode):
+
+```bash
+./scripts/install_macos.sh
+```
+
+6. Start Steam normally from `Steam.app`.
+
+
+Once Millennium is installed, you can find its related settings within the Steam user interface.
+
+From the Steam menu in the macOS menu bar (next to the Apple logo), select Millennium.
+
+You can also open Millennium from the steam url:
+
+```bash
+open 'steam://millennium/settings'
+```
+
+Also, you can use `./scripts/install_macos.sh --help` for help and more information.
+
+### Development/Debug
+
+For local development/debug iteration, use the wrapper launcher:
 
 ```bash
 ./scripts/launch_macos.sh
 ```
 
-To enable Steam DevTools shortcuts on macOS, launch with `-dev` (via wrapper
-helper flag `--dev`):
-
-```bash
-./scripts/launch_macos.sh --dev
-```
-
-You can also pin a specific devtools port:
+To enable Steam DevTools shortcuts on macOS via wrapper launch:
 
 ```bash
 ./scripts/launch_macos.sh --dev --devtools-port 8080
 ```
 
-Then open DevTools with `F12` or `Ctrl+Shift+I`.
-
-As a fallback, connect from Chrome to:
+Then open DevTools with `F12` or `Ctrl+Shift+I`, or connect Chrome to:
 
 ```text
 http://127.0.0.1:8080
@@ -89,18 +103,6 @@ MILLENNIUM_BOOTSTRAP_TRACE_PATH=/tmp/millennium-bootstrap.trace \
 MILLENNIUM_HHX_TRACE_PATH=/tmp/millennium-hhx.trace \
 ./scripts/launch_macos.sh
 ```
-
-Once Millennium is installed, you can find its related settings within the Steam user interface.  
-From the Steam menu in the macOS menu bar (next to the Apple logo), select Millennium.
-
-You can also open Millennium from the steam url:
-
-```bash
-open 'steam://millennium/settings'
-```
-
-`./scripts/launch_macos.sh` is the default development path. Use
-`./scripts/install_macos.sh` only when testing the legacy in-place replacement flow.
 
 ### Development Builds
 
@@ -137,17 +139,17 @@ This produces `steam_osx`, `libmillennium_bootstrap.dylib`, and
 `libmillennium_child_hook.dylib` under `build/macos-boot`. The top-level build still
 produces `libmillennium.dylib` and `libmillennium_hhx64.dylib`.
 
-If you need to test the legacy in-place replacement flow, install both outputs into
-the Steam runtime bundle:
+Install or repair the default passive tier0 path into the Steam runtime bundle:
 
 ```bash
-./scripts/install_macos.sh \
-  --wrapper-build-dir ./build/macos-boot \
-  --runtime-build-dir ./build/osx-debug-make
+./scripts/install_macos.sh --repair
 ```
 
-Steam may verify and reject modified runtime files at startup. Use this path only for
-targeted debugging.
+For fast iteration while actively developing, launch Steam through:
+
+```bash
+./scripts/launch_macos.sh
+```
 
 ## Features
 ### Plugins
@@ -194,7 +196,7 @@ Supported Platforms:
 
 -   Windows (x86/x64/ARM) NT (10 and newer)
 -   Linux (x86/x86_64/i686/i386)
--   macOS (experimental local-development path via `./scripts/launch_macos.sh`)
+-   macOS (experimental passive tier0 install via `./scripts/install_macos.sh`, development launch via `./scripts/launch_macos.sh`)
 
 ## Sponsors
 
