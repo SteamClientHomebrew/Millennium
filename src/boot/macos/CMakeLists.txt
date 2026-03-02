@@ -3,6 +3,14 @@ project(MacOSBootstrap LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Resolve repo root robustly for both standalone wrapper builds (-S src/boot/macos)
+# and top-level builds that include this directory.
+if(DEFINED MILLENNIUM_REPO_ROOT)
+    get_filename_component(MILLENNIUM_RESOLVED_ROOT "${MILLENNIUM_REPO_ROOT}" ABSOLUTE)
+else()
+    get_filename_component(MILLENNIUM_RESOLVED_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+endif()
+
 foreach(required_var IN ITEMS MILLENNIUM_OUTPUT_NAME MILLENNIUM_BOOTLOADER_OUTPUT_NAME MILLENNIUM_HOOK_HELPER_OUTPUT_NAME MILLENNIUM_CHILD_HOOK_OUTPUT_NAME)
     if(NOT DEFINED ${required_var})
         message(FATAL_ERROR "${required_var} must be defined before configuring src/boot/macos")
@@ -37,7 +45,7 @@ target_compile_definitions(SteamWrapper PRIVATE
     __MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}"
     __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
     __MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__="${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
-    MILLENNIUM_ROOT="${CMAKE_SOURCE_DIR}"
+    MILLENNIUM_ROOT="${MILLENNIUM_RESOLVED_ROOT}"
 )
 set_target_properties(SteamWrapper PROPERTIES
     PREFIX ""

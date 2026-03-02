@@ -62,6 +62,7 @@ cmake -S "${SOURCE_DIR}" \
     -B "${BUILD_DIR}" \
     -G "${GENERATOR}" \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+    -DMILLENNIUM_REPO_ROOT="${REPO_ROOT}" \
     -DMILLENNIUM_OUTPUT_NAME=libmillennium.dylib \
     -DMILLENNIUM_BOOTLOADER_OUTPUT_NAME=libmillennium_bootstrap.dylib \
     -DMILLENNIUM_HOOK_HELPER_OUTPUT_NAME=libmillennium_hhx64.dylib \
