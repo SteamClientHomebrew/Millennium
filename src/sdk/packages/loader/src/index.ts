@@ -5,7 +5,10 @@ enum Context {
 
 declare global {
 	interface Window {
-		MILLENNIUM_API: object;
+		MILLENNIUM_API?: {
+			callable?: (...args: any[]) => any;
+			BindPluginSettings?: (...args: any[]) => any;
+		};
 		SP_REACTDOM: any;
 		MILLENNIUM_IPC_PORT: number;
 		MILLENNIUM_FRONTEND_LIB_VERSION: string;

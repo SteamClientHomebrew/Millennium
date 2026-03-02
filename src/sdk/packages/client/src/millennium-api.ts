@@ -27,6 +27,21 @@ type Millennium = {
 	AddWindowCreateHook?: (callback: (context: object) => void) => void;
 };
 
+const m_private_context: any = undefined;
+export const pluginSelf = m_private_context;
+
+declare global {
+	interface Window {
+		Millennium: Millennium;
+		MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE: any;
+		CHROME_DEV_TOOLS_PROTOCOL_API_BINDING: MillenniumChromeDevToolsProtocol;
+		MILLENNIUM_API?: {
+			callable?: (...args: any[]) => any;
+			BindPluginSettings?: (...args: any[]) => any;
+		};
+	}
+}
+
 /**
  * Make reusable IPC call declarations
  *
@@ -42,24 +57,38 @@ type Millennium = {
  *    pass
  * ```
  */
-declare const callable: <
+const callable = <
 	// Ideally this would be `Params extends Record<...>` but for backwards compatibility we keep a tuple type
 	Params extends [params: Record<string, IPCType>] | [] = [],
 	Return extends IPCType = IPCType
->(route: string) => (...params: Params) => Promise<Return>;
-
-const m_private_context: any = undefined;
-export const pluginSelf = m_private_context;
-
-declare global {
-	interface Window {
-		Millennium: Millennium;
-		MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE: any;
-		CHROME_DEV_TOOLS_PROTOCOL_API_BINDING: MillenniumChromeDevToolsProtocol;
+>(
+	route: string,
+): ((...params: Params) => Promise<Return>) => {
+	const runtimeCallable = window.MILLENNIUM_API?.callable;
+	if (typeof runtimeCallable === 'function') {
+		try {
+			const maybeBound = runtimeCallable(route);
+			if (typeof maybeBound === 'function') {
+				return maybeBound as (...params: Params) => Promise<Return>;
+			}
+		} catch {
+			// Fall through to a deterministic error below.
+		}
 	}
-}
 
-declare const BindPluginSettings: () => any;
+	return (...params: Params): Promise<Return> => {
+		void params;
+		return Promise.reject(new Error(`[Millennium] callable("${route}") is unavailable before bootstrap runtime is initialized.`));
+	};
+};
+
+const BindPluginSettings = (pluginName?: string): any => {
+	const runtimeBind = window.MILLENNIUM_API?.BindPluginSettings;
+	if (typeof runtimeBind === 'function') {
+		return runtimeBind(pluginName);
+	}
+	return undefined;
+};
 
 interface CDPMessage {
 	id?: number;
@@ -160,4 +189,3 @@ class MillenniumChromeDevToolsProtocol {
 const ChromeDevToolsProtocol: MillenniumChromeDevToolsProtocol = new MillenniumChromeDevToolsProtocol();
 const Millennium: Millennium = window.Millennium;
 export { BindPluginSettings, callable, ChromeDevToolsProtocol, Millennium };
-
