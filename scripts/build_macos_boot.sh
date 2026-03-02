@@ -21,6 +21,8 @@ Configures and builds the standalone macOS Steam wrappers:
 
 This only builds the wrapper/bootstrap subproject. Build the top-level project
 separately to produce libmillennium.dylib and libmillennium_hhx64.dylib.
+The passive tier0 mode compiles its proxy during install via:
+  ./scripts/install_macos.sh
 EOF
 }
 

@@ -73,7 +73,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 
 	const GetManualUpdateDescription = () => {
 		if (pluginSelf.platformType === OSType.Darwin) {
-			return `Automatic Millennium updates are not yet available on macOS.\n\nRebuild the current branch, reinstall it with \`./scripts/install_macos.sh --build-dir ./build\`, then restart Steam to finish updating to ${millenniumUpdates?.newVersion?.tag_name}.`;
+			return `Automatic Millennium updates are not yet available on macOS.\n\nRebuild the current branch, reinstall it with \`./scripts/install_macos.sh --repair\`, then restart Steam to finish updating to ${millenniumUpdates?.newVersion?.tag_name}.`;
 		}
 
 		return `To update Millennium to ${millenniumUpdates?.newVersion?.tag_name}, run the following command in your terminal:\n\n\`${pluginSelf.millenniumLinuxUpdateScript}\``;
