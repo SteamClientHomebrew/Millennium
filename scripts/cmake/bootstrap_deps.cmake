@@ -70,9 +70,40 @@ function(millennium_process_package input_path)
     endif()
 endfunction()
 
-message(STATUS "[Millennium] Fetching dependencies...")
+set(MILLENNIUM_LOCAL_DEP_PATHS
+    "${MILLENNIUM_BASE}/deps/zlib"
+    "${MILLENNIUM_BASE}/deps/luajit"
+    "${MILLENNIUM_BASE}/deps/luajson"
+    "${MILLENNIUM_BASE}/deps/mini"
+    "${MILLENNIUM_BASE}/deps/websocketpp"
+    "${MILLENNIUM_BASE}/deps/fmt"
+    "${MILLENNIUM_BASE}/deps/json"
+    "${MILLENNIUM_BASE}/deps/libgit2"
+    "${MILLENNIUM_BASE}/deps/minizip"
+    "${MILLENNIUM_BASE}/deps/curl"
+    "${MILLENNIUM_BASE}/deps/incbin"
+    "${MILLENNIUM_BASE}/deps/asio"
+)
 
-if(DISTRO_NIX)
+if(WIN32)
+    list(APPEND MILLENNIUM_LOCAL_DEP_PATHS "${MILLENNIUM_BASE}/deps/minhook")
+endif()
+
+set(MILLENNIUM_USE_LOCAL_DEPS TRUE)
+foreach(local_dep_path ${MILLENNIUM_LOCAL_DEP_PATHS})
+    if(NOT EXISTS "${local_dep_path}")
+        set(MILLENNIUM_USE_LOCAL_DEPS FALSE)
+        break()
+    endif()
+endforeach()
+
+if(MILLENNIUM_USE_LOCAL_DEPS)
+    message(STATUS "[Millennium] Using local dependencies from ${MILLENNIUM_BASE}/deps")
+else()
+    message(STATUS "[Millennium] Local deps not found. Run ./scripts/bootstrap_deps.sh to pre-populate ${MILLENNIUM_BASE}/deps, or let CMake fetch dependencies from upstream repositories.")
+endif()
+
+if(DISTRO_NIX OR MILLENNIUM_USE_LOCAL_DEPS)
     set(FETCHCONTENT_FULLY_DISCONNECTED ON)
 
     FetchContent_Declare(zlib           SOURCE_DIR "${MILLENNIUM_BASE}/deps/zlib"                                 )

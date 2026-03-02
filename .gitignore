@@ -22,3 +22,6 @@ scripts/RC*
 
 # Nix build files
 **/result
+
+# Deps
+/deps

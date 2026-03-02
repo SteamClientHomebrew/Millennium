@@ -73,6 +73,28 @@
       }
     },
     {
+      "inherits": "default",
+      "name": "osx-release-make",
+      "displayName": "osx-release-make",
+      "description": "MacOS release build using Unix Makefiles.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/osx-release-make",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "inherits": "default",
+      "name": "osx-debug-make",
+      "displayName": "osx-debug-make",
+      "description": "MacOS debug build using Unix Makefiles.",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/osx-debug-make",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
       "name": "linux-debug",
       "inherits": "default",
       "generator": "Ninja",
