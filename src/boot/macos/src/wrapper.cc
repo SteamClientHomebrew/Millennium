@@ -1,4 +1,5 @@
 #ifdef __APPLE__
+#include <algorithm>
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
@@ -536,16 +537,39 @@ static bool prepare_macos_bootstrap_assets(const char* steam_executable_path)
         return false;
     }
 
-    static constexpr const char* kLoaderChunks[] = {
-        "chunk-browser-init.js",
-        "chunk-index.js",
-        "chunk-logger.js",
-        "chunk-millennium-api.js",
-        "chunk-webpack.js",
-    };
+    const std::filesystem::path loader_chunks_dir = loader_source_dir / "chunks";
+    std::error_code directory_error;
+    if (!std::filesystem::exists(loader_chunks_dir, directory_error) || directory_error) {
+        return false;
+    }
 
-    for (const char* chunk_name : kLoaderChunks) {
-        if (!sync_text_file(loader_source_dir / "chunks" / chunk_name, chunks_target_dir / chunk_name)) {
+    std::vector<std::filesystem::path> chunk_files;
+    for (std::filesystem::directory_iterator it(loader_chunks_dir, directory_error), end;
+         !directory_error && it != end; it.increment(directory_error)) {
+        const std::filesystem::directory_entry& entry = *it;
+        if (!entry.is_regular_file(directory_error) || directory_error) {
+            continue;
+        }
+
+        const std::filesystem::path chunk_path = entry.path();
+        const std::string chunk_name = chunk_path.filename().string();
+        if (chunk_name.rfind("chunk-", 0) != 0 || chunk_path.extension() != ".js") {
+            continue;
+        }
+
+        chunk_files.push_back(chunk_path);
+    }
+
+    if (directory_error || chunk_files.empty()) {
+        return false;
+    }
+
+    std::sort(chunk_files.begin(), chunk_files.end(), [](const std::filesystem::path& lhs, const std::filesystem::path& rhs) {
+        return lhs.filename().string() < rhs.filename().string();
+    });
+
+    for (const std::filesystem::path& chunk_path : chunk_files) {
+        if (!sync_text_file(chunk_path, chunks_target_dir / chunk_path.filename())) {
             return false;
         }
     }

@@ -53,6 +53,8 @@ cmake --build build/osx-debug-make
 4. Build the macOS bootstrap web assets used by the wrapper:
 
 ```bash
+pnpm -C src/sdk/packages/client build
+pnpm -C src/sdk/packages/browser build
 pnpm -C src/sdk/packages/loader build
 pnpm -C src/frontend build
 ```
@@ -127,8 +129,19 @@ cmake --build build/osx-debug-make
 Build or refresh the bootstrap web assets used by `./scripts/launch_macos.sh`:
 
 ```bash
+pnpm -C src/sdk/packages/client build
+pnpm -C src/sdk/packages/browser build
 pnpm -C src/sdk/packages/loader build
 pnpm -C src/frontend build
+```
+
+If you changed native macOS runtime/bootstrap code (for example under `src/core` or
+`src/boot/macos`), rebuild the affected native targets:
+
+```bash
+cmake --build build/osx-debug-make --target Millennium
+cmake --build build/osx-debug-make --target SteamWrapper
+cmake --build build/osx-debug-make --target macos-bootstrap
 ```
 
 You can also build only the Steam wrapper/bootstrap subproject while iterating:

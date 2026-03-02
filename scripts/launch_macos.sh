@@ -81,19 +81,46 @@ find_artifact() {
 
 ensure_bootstrap_assets() {
     local missing_assets=0
+    local loader_entry="${REPO_ROOT}/src/sdk/packages/loader/build/millennium.js"
+    local chunks_dir="${REPO_ROOT}/src/sdk/packages/loader/build/chunks"
     local required_assets=(
         "${REPO_ROOT}/build/frontend.bin"
-        "${REPO_ROOT}/src/sdk/packages/loader/build/millennium.js"
-        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-browser-init.js"
-        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-index.js"
-        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-logger.js"
-        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-millennium-api.js"
-        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-webpack.js"
+        "${loader_entry}"
     )
+    local required_chunks=()
+    local chunk_name
 
     for asset_path in "${required_assets[@]}"; do
         if [ ! -r "${asset_path}" ]; then
             printf "Missing macOS bootstrap asset: %s\n" "${asset_path}" >&2
+            missing_assets=1
+        fi
+    done
+
+    if [ "${missing_assets}" -eq 0 ]; then
+        mapfile -t required_chunks < <(
+            grep -oE "chunks/chunk-[A-Za-z0-9._-]+\\.js" "${loader_entry}" \
+                | sed 's#^chunks/##' \
+                | sort -u \
+                || true
+        )
+
+        if [ "${#required_chunks[@]}" -eq 0 ]; then
+            for chunk_path in "${chunks_dir}"/chunk-*.js; do
+                [ -e "${chunk_path}" ] || continue
+                required_chunks+=("$(basename "${chunk_path}")")
+            done
+        fi
+
+        if [ "${#required_chunks[@]}" -eq 0 ]; then
+            printf "Missing macOS bootstrap asset: no chunk-*.js files in %s\n" "${chunks_dir}" >&2
+            missing_assets=1
+        fi
+    fi
+
+    for chunk_name in "${required_chunks[@]}"; do
+        if [ ! -r "${chunks_dir}/${chunk_name}" ]; then
+            printf "Missing macOS bootstrap asset: %s/%s\n" "${chunks_dir}" "${chunk_name}" >&2
             missing_assets=1
         fi
     done
@@ -104,7 +131,9 @@ ensure_bootstrap_assets() {
 
     cat >&2 <<EOF
 Build the missing bootstrap assets before launching Steam:
+  rm -rf src/sdk/packages/client/build
   pnpm -C src/sdk/packages/loader build
+  pnpm -C src/sdk/packages/client build
   pnpm -C src/frontend build
 EOF
     exit 1
