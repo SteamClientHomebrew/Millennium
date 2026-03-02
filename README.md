@@ -41,7 +41,21 @@ cmake --preset osx-debug-make
 cmake --build build/osx-debug-make
 ```
 
-3. Launch Steam through Millennium's macOS wrapper:
+3. Build the macOS bootstrap web assets used by the wrapper:
+
+```bash
+pnpm -C src/sdk/packages/loader build
+pnpm -C src/frontend build
+```
+
+If this is your first frontend build in this checkout, install JS deps first:
+
+```bash
+pnpm -C src/sdk install
+pnpm -C src/frontend install
+```
+
+4. Launch Steam through Millennium's macOS wrapper:
 
 ```bash
 ./scripts/launch_macos.sh

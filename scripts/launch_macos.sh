@@ -69,6 +69,37 @@ find_artifact() {
     exit 1
 }
 
+ensure_bootstrap_assets() {
+    local missing_assets=0
+    local required_assets=(
+        "${REPO_ROOT}/build/frontend.bin"
+        "${REPO_ROOT}/src/sdk/packages/loader/build/millennium.js"
+        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-browser-init.js"
+        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-index.js"
+        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-logger.js"
+        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-millennium-api.js"
+        "${REPO_ROOT}/src/sdk/packages/loader/build/chunks/chunk-webpack.js"
+    )
+
+    for asset_path in "${required_assets[@]}"; do
+        if [ ! -r "${asset_path}" ]; then
+            printf "Missing macOS bootstrap asset: %s\n" "${asset_path}" >&2
+            missing_assets=1
+        fi
+    done
+
+    if [ "${missing_assets}" -eq 0 ]; then
+        return 0
+    fi
+
+    cat >&2 <<EOF
+Build the missing bootstrap assets before launching Steam:
+  pnpm -C src/sdk/packages/loader build
+  pnpm -C src/frontend build
+EOF
+    exit 1
+}
+
 while [ $# -gt 0 ]; do
     case "$1" in
         --wrapper-build-dir)
@@ -114,6 +145,7 @@ done
     exit 1
 }
 
+ensure_bootstrap_assets
 ensure_steam_not_running
 
 declare -a runtime_search_dirs
