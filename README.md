@@ -61,6 +61,27 @@ pnpm -C src/frontend build
 ./scripts/launch_macos.sh
 ```
 
+To enable Steam DevTools shortcuts on macOS, launch with `-dev` (via wrapper
+helper flag `--dev`):
+
+```bash
+./scripts/launch_macos.sh --dev
+```
+
+You can also pin a specific devtools port:
+
+```bash
+./scripts/launch_macos.sh --dev --devtools-port 8080
+```
+
+Then open DevTools with `F12` or `Ctrl+Shift+I`.
+
+As a fallback, connect from Chrome to:
+
+```text
+http://127.0.0.1:8080
+```
+
 If you need trace logs while debugging startup, launch with:
 
 ```bash

@@ -16,6 +16,8 @@ readonly DEFAULT_STEAM_EXECUTABLE="${HOME}/Library/Application Support/Steam/Ste
 WRAPPER_BUILD_DIR="${DEFAULT_WRAPPER_BUILD_DIR}"
 RUNTIME_BUILD_DIR=""
 STEAM_EXECUTABLE="${DEFAULT_STEAM_EXECUTABLE}"
+ENABLE_DEV_MODE=0
+EXPLICIT_DEVTOOLS_PORT=""
 
 usage() {
     cat <<EOF
@@ -29,6 +31,11 @@ Launches Steam on macOS without modifying Steam's runtime bundle. The launcher:
 5. Lets bootstrap hand off future child injection to libmillennium_child_hook.dylib
 6. Injects libmillennium_hhx64.dylib alongside the child hook so Steam Helper gets CEF hooks before startup
 
+Developer tools helpers:
+- Use --dev to append Steam's -dev flag (required on macOS for F10 / Ctrl+Shift+I).
+- Use --devtools-port <port> to force a specific devtools port.
+- You can still pass raw Steam args after --.
+
 Once Millennium is installed, open it from the Steam menu in the macOS menu bar
 (next to the Apple logo) by selecting Millennium.
 You can also open Millennium from the steam url:
@@ -41,6 +48,9 @@ Debug example:
   MILLENNIUM_BOOTSTRAP_TRACE_PATH=/tmp/millennium-bootstrap.trace \\
   MILLENNIUM_HHX_TRACE_PATH=/tmp/millennium-hhx.trace \\
   ./scripts/launch_macos.sh
+
+DevTools example:
+  ./scripts/launch_macos.sh --dev --devtools-port 8080
 EOF
 }
 
@@ -126,6 +136,18 @@ while [ $# -gt 0 ]; do
             STEAM_EXECUTABLE="$2"
             shift 2
             ;;
+        --dev)
+            ENABLE_DEV_MODE=1
+            shift
+            ;;
+        --devtools-port)
+            [ $# -ge 2 ] || {
+                printf "Missing value for --devtools-port\n" >&2
+                exit 1
+            }
+            EXPLICIT_DEVTOOLS_PORT="$2"
+            shift 2
+            ;;
         --help|-h)
             usage
             exit 0
@@ -170,4 +192,37 @@ export MILLENNIUM_RUNTIME_PATH="${runtime_path}"
 export MILLENNIUM_HOOK_HELPER_PATH="${hook_helper_path}"
 export MILLENNIUM_CHILD_HOOK_PATH="${child_hook_path}"
 
-exec "${launcher_path}" "$@"
+declare -a steam_args
+steam_args=("$@")
+
+if [ "${ENABLE_DEV_MODE}" -eq 1 ]; then
+    has_dev_flag=0
+    for arg in "${steam_args[@]}"; do
+        if [ "${arg}" = "-dev" ]; then
+            has_dev_flag=1
+            break
+        fi
+    done
+
+    if [ "${has_dev_flag}" -eq 0 ]; then
+        steam_args+=("-dev")
+    fi
+fi
+
+if [ -n "${EXPLICIT_DEVTOOLS_PORT}" ]; then
+    has_devtools_port=0
+    for arg in "${steam_args[@]}"; do
+        case "${arg}" in
+            -devtools-port|-devtools-port=*)
+                has_devtools_port=1
+                break
+                ;;
+        esac
+    done
+
+    if [ "${has_devtools_port}" -eq 0 ]; then
+        steam_args+=("-devtools-port" "${EXPLICIT_DEVTOOLS_PORT}")
+    fi
+fi
+
+exec "${launcher_path}" "${steam_args[@]}"
