@@ -58,6 +58,7 @@ void VerifyEnvironment();
 /** forward declare main function */
 void EntryMain();
 void Plat_CheckForUpdates();
+extern "C" void Plat_InstallMacOSMenuItems();
 
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded;
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown;
@@ -115,6 +116,7 @@ DESTRUCTOR void MacOS_UnInitializeEnvironment()
 static void MacOS_AttachMillennium()
 {
     signal(SIGINT, [](int) { std::exit(128 + SIGINT); });
+    Plat_InstallMacOSMenuItems();
     if (!Plat_InitializeSteamHooks()) {
         Logger.Warn("macOS Steam helper injection is currently inactive because the wrapper installation could not be verified.");
     }

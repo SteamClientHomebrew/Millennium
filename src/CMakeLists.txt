@@ -100,7 +100,9 @@ if(WIN32)
         list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/resources.rc")
     endif()
 elseif(APPLE)
+    enable_language(OBJCXX)
     list(APPEND SOURCE_FILES "plat/init_macos.cc")
+    list(APPEND SOURCE_FILES "plat/macos_menu.mm")
 elseif(UNIX)
     list(APPEND SOURCE_FILES "plat/init_posix.cc")
     list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
@@ -215,6 +217,7 @@ elseif(UNIX)
         target_compile_definitions(Millennium PRIVATE
             MILLENNIUM__PYTHON_VERSION="${MILLENNIUM__PYTHON_VERSION}"
             MILLENNIUM__PYTHON_BIN_NAME="${MILLENNIUM__PYTHON_BIN_NAME}"
+            MILLENNIUM_MENU_ICON_PATH="${MILLENNIUM_BASE}/src/boot/macos/AppIcon.icns"
         )
     endif()
     if(DISTRO_NIX)
@@ -269,4 +272,5 @@ elseif(UNIX AND NOT APPLE)
     endif()
 elseif(APPLE)
     target_link_libraries(Millennium "${LIBPYTHON_RUNTIME_PATH}")
+    target_link_libraries(Millennium "-framework AppKit")
 endif()

@@ -29,8 +29,10 @@ Launches Steam on macOS without modifying Steam's runtime bundle. The launcher:
 5. Lets bootstrap hand off future child injection to libmillennium_child_hook.dylib
 6. Injects libmillennium_hhx64.dylib alongside the child hook so Steam Helper gets CEF hooks before startup
 
-After Steam starts, open steam://millennium/settings (or Steam -> Millennium settings)
-to verify the frontend is active.
+Once Millennium is installed, open it from the Steam menu in the macOS menu bar
+(next to the Apple logo) by selecting Millennium.
+You can also open Millennium from the steam url:
+  open 'steam://millennium/settings'
 
 Example:
   ./scripts/launch_macos.sh

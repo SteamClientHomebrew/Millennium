@@ -55,7 +55,10 @@ MILLENNIUM_HHX_TRACE_PATH=/tmp/millennium-hhx.trace \
 ./scripts/launch_macos.sh
 ```
 
-After Steam finishes starting, open Millennium from Steam's menu or run:
+Once Millennium is installed, you can find its related settings within the Steam user interface.  
+From the Steam menu in the macOS menu bar (next to the Apple logo), select Millennium.
+
+You can also open Millennium from the steam url:
 
 ```bash
 open 'steam://millennium/settings'
