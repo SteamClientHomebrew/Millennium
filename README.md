@@ -34,28 +34,28 @@ wrapper and does not replace Valve's `steam_osx` binary in place.
 ./scripts/bootstrap_deps.sh
 ```
 
-2. Build the macOS runtime and wrapper:
-
-```bash
-cmake --preset osx-debug-make
-cmake --build build/osx-debug-make
-```
-
-3. Build the macOS bootstrap web assets used by the wrapper:
-
-```bash
-pnpm -C src/sdk/packages/loader build
-pnpm -C src/frontend build
-```
-
-If this is your first frontend build in this checkout, install JS deps first:
+2. Install JS dependencies required for bootstrap web assets:
 
 ```bash
 pnpm -C src/sdk install
 pnpm -C src/frontend install
 ```
 
-4. Launch Steam through Millennium's macOS wrapper:
+3. Build the macOS runtime and wrapper:
+
+```bash
+cmake --preset osx-debug-make
+cmake --build build/osx-debug-make
+```
+
+4. Build the macOS bootstrap web assets used by the wrapper:
+
+```bash
+pnpm -C src/sdk/packages/loader build
+pnpm -C src/frontend build
+```
+
+5. Launch Steam through Millennium's macOS wrapper:
 
 ```bash
 ./scripts/launch_macos.sh
@@ -81,7 +81,7 @@ open 'steam://millennium/settings'
 `./scripts/launch_macos.sh` is the default development path. Use
 `./scripts/install_macos.sh` only when testing the legacy in-place replacement flow.
 
-## Development Builds
+### Development Builds
 
 For development checkouts, populate `deps/` once:
 
@@ -97,6 +97,13 @@ Build the macOS runtime with the checked-in Unix Makefiles preset:
 ```bash
 cmake --preset osx-debug-make
 cmake --build build/osx-debug-make
+```
+
+Build or refresh the bootstrap web assets used by `./scripts/launch_macos.sh`:
+
+```bash
+pnpm -C src/sdk/packages/loader build
+pnpm -C src/frontend build
 ```
 
 You can also build only the Steam wrapper/bootstrap subproject while iterating:
