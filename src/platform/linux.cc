@@ -48,10 +48,17 @@
 #include <thread>
 #include <unistd.h>
 #include <string.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
 std::unique_ptr<std::thread> g_millenniumThread;
 extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
+
+#ifdef __APPLE__
+extern "C" void Plat_InstallMacOSMenuItems();
+#endif
 
 int IsSamePath(const char* path1, const char* path2)
 {
@@ -67,6 +74,7 @@ int IsSamePath(const char* path1, const char* path2)
 
 CONSTRUCTOR void Posix_InitializeEnvironment()
 {
+#if defined(__linux__)
     char path[PATH_MAX];
     ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
 
@@ -87,6 +95,28 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
 
     /** Setup environment variables if loaded into Steam process */
     platform::environment::setup();
+#elif defined(__APPLE__)
+    char path[PATH_MAX];
+    uint32_t path_size = static_cast<uint32_t>(sizeof(path));
+
+    if (_NSGetExecutablePath(path, &path_size) != 0) {
+        logger.warn("[Millennium] Could not resolve macOS executable path. Continuing with environment setup.");
+        platform::environment::setup();
+        return;
+    }
+
+    path[sizeof(path) - 1] = '\0';
+    const char* executable_name = strrchr(path, '/');
+    executable_name = executable_name ? executable_name + 1 : path;
+
+    if (strcmp(executable_name, "steam_osx") != 0) {
+        logger.warn("[Millennium] Process is not Steam main executable: {}", path);
+        return;
+    }
+
+    logger.log("[Millennium] Setting up environment for Steam process: {}", path);
+    platform::environment::setup();
+#endif
 }
 
 DESTRUCTOR void Posix_UnInitializeEnvironment()
@@ -104,6 +134,9 @@ void Posix_AttachMillennium()
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
 
+#ifdef __APPLE__
+    Plat_InstallMacOSMenuItems();
+#endif
     Plat_InitializeSteamHooks();
     g_millennium = std::make_unique<millennium>();
     g_millennium->entry();

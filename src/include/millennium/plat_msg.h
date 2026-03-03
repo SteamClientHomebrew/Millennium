@@ -7,6 +7,8 @@
 #ifdef __linux__
 #include <linux/limits.h>
 #include <unistd.h>
+#elif __APPLE__
+#include <unistd.h>
 #elif _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -92,6 +94,43 @@ static int show(const std::string title, const std::string message, platform::me
 
     if (level == level::question) return ret == 0 ? 1 : 0;
 
+    return ret;
+
+#elif __APPLE__
+    auto escape_osascript = [](const std::string& input) {
+        std::string escaped;
+        escaped.reserve(input.size());
+        for (char ch : input) {
+            if (ch == '\\' || ch == '"') escaped.push_back('\\');
+            escaped.push_back(ch);
+        }
+        return escaped;
+    };
+
+    const std::string finalTitle = title.empty() ? "Message" : title;
+    const std::string escapedTitle = escape_osascript(finalTitle);
+    const std::string escapedMessage = escape_osascript(message);
+
+    std::string cmd;
+    switch (level) {
+        case level::error:
+            cmd = "osascript -e \"display alert \\\"" + escapedTitle + "\\\" message \\\"" + escapedMessage + "\\\" as critical\"";
+            break;
+        case level::warn:
+            cmd = "osascript -e \"display alert \\\"" + escapedTitle + "\\\" message \\\"" + escapedMessage + "\\\" as warning\"";
+            break;
+        case level::info:
+            cmd = "osascript -e \"display alert \\\"" + escapedTitle + "\\\" message \\\"" + escapedMessage + "\\\" as informational\"";
+            break;
+        case level::question:
+            cmd = "osascript -e \"display dialog \\\"" + escapedMessage + "\\\" with title \\\"" + escapedTitle + "\\\" buttons {\\\"No\\\",\\\"Yes\\\"} default button \\\"Yes\\\"\"";
+            break;
+    }
+
+    logger.log("executing command: {}", cmd);
+    int ret = std::system(cmd.c_str());
+
+    if (level == level::question) return ret == 0 ? 1 : 0;
     return ret;
 
 #else
