@@ -59,12 +59,21 @@
     }
 #else
 #include <dlfcn.h>
+#ifndef RTLD_NOLOAD
+#define RTLD_NOLOAD 0
+#endif
 static inline void* get_cef_handle()
 {
     static void* handle = NULL;
     if (!handle) {
+#ifdef __APPLE__
+        handle = dlopen("Chromium Embedded Framework", RTLD_LAZY | RTLD_NOLOAD);
+        if (!handle) handle = dlopen("Chromium Embedded Framework", RTLD_LAZY);
+        if (!handle) handle = dlopen(nullptr, RTLD_LAZY);
+#else
         handle = dlopen("libcef.so", RTLD_LAZY | RTLD_NOLOAD);
         if (!handle) handle = dlopen("libcef.so", RTLD_LAZY);
+#endif
     }
     return handle;
 }
