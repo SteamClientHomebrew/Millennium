@@ -5,16 +5,12 @@ set -euo pipefail
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly DEFAULT_STEAM_EXECUTABLE="${HOME}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_osx"
 readonly DEFAULT_WRAPPER_SEARCH_DIRS=(
-    "${REPO_ROOT}/build/osx-debug-make/src/bootstrap/macos"
-    "${REPO_ROOT}/build/osx-release-make/src/bootstrap/macos"
     "${REPO_ROOT}/build/osx-debug/src/bootstrap/macos"
     "${REPO_ROOT}/build/osx-release/src/bootstrap/macos"
     "${REPO_ROOT}/build/src/bootstrap/macos"
     "${REPO_ROOT}/build"
 )
 readonly DEFAULT_RUNTIME_SEARCH_DIRS=(
-    "${REPO_ROOT}/build/osx-debug-make/src"
-    "${REPO_ROOT}/build/osx-release-make/src"
     "${REPO_ROOT}/build/osx-debug/src"
     "${REPO_ROOT}/build/osx-release/src"
     "${REPO_ROOT}/build/src"
@@ -88,8 +84,13 @@ abspath_existing() {
 }
 
 ensure_steam_not_running() {
-    if pgrep -x "steam_osx" >/dev/null 2>&1 || pgrep -f "/Steam Helper" >/dev/null 2>&1; then
-        fail "Steam appears to already be running. Quit Steam before launching through $(basename "$0")."
+    local matched_processes
+    matched_processes="$(ps -axo pid,ppid,comm,args 2>/dev/null | rg "[s]team_osx|[S]team Helper" || true)"
+
+    if [ -n "${matched_processes}" ]; then
+        fail "Steam appears to already be running. Quit Steam before launching through $(basename "$0").
+Matched processes:
+${matched_processes}"
     fi
 }
 
@@ -305,16 +306,28 @@ else
 fi
 
 launcher_path="$(find_artifact_by_names "steam_osx" -- "${wrapper_search_dirs[@]}" || true)"
-[ -n "${launcher_path}" ] || fail "Missing build artifact: steam_osx. Checked: ${wrapper_search_dirs[*]}"
+[ -n "${launcher_path}" ] || fail "Missing build artifact: steam_osx. Checked: ${wrapper_search_dirs[*]}
+Build with:
+  cmake --preset osx-debug
+  cmake --build --preset osx-debug -j"
 
 runtime_path="$(find_artifact_by_names "${RUNTIME_ARTIFACT_CANDIDATES[@]}" -- "${runtime_search_dirs[@]}" || true)"
-[ -n "${runtime_path}" ] || fail "Missing runtime artifact. Tried: ${RUNTIME_ARTIFACT_CANDIDATES[*]} in ${runtime_search_dirs[*]}"
+[ -n "${runtime_path}" ] || fail "Missing runtime artifact. Tried: ${RUNTIME_ARTIFACT_CANDIDATES[*]} in ${runtime_search_dirs[*]}
+Build with:
+  cmake --preset osx-debug
+  cmake --build --preset osx-debug -j"
 
 hook_helper_path="$(find_artifact_by_names "${HOOK_HELPER_ARTIFACT_CANDIDATES[@]}" -- "${runtime_search_dirs[@]}" || true)"
-[ -n "${hook_helper_path}" ] || fail "Missing helper hook artifact. Tried: ${HOOK_HELPER_ARTIFACT_CANDIDATES[*]} in ${runtime_search_dirs[*]}"
+[ -n "${hook_helper_path}" ] || fail "Missing helper hook artifact. Tried: ${HOOK_HELPER_ARTIFACT_CANDIDATES[*]} in ${runtime_search_dirs[*]}
+Build with:
+  cmake --preset osx-debug
+  cmake --build --preset osx-debug -j"
 
 child_hook_path="$(find_artifact_by_names "${CHILD_HOOK_ARTIFACT_CANDIDATES[@]}" -- "${wrapper_search_dirs[@]}" "${runtime_search_dirs[@]}" || true)"
-[ -n "${child_hook_path}" ] || fail "Missing child hook artifact. Tried: ${CHILD_HOOK_ARTIFACT_CANDIDATES[*]} in ${wrapper_search_dirs[*]} ${runtime_search_dirs[*]}"
+[ -n "${child_hook_path}" ] || fail "Missing child hook artifact. Tried: ${CHILD_HOOK_ARTIFACT_CANDIDATES[*]} in ${wrapper_search_dirs[*]} ${runtime_search_dirs[*]}
+Build with:
+  cmake --preset osx-debug
+  cmake --build --preset osx-debug -j"
 
 launcher_path="$(abspath_existing "${launcher_path}")"
 runtime_path="$(abspath_existing "${runtime_path}")"
@@ -360,4 +373,8 @@ if [ -n "${EXPLICIT_DEVTOOLS_PORT}" ]; then
     fi
 fi
 
-exec "${launcher_path}" "${steam_args[@]}"
+if [ "${#steam_args[@]}" -gt 0 ]; then
+    exec "${launcher_path}" "${steam_args[@]}"
+else
+    exec "${launcher_path}"
+fi
