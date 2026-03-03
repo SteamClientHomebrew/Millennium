@@ -60,6 +60,11 @@ std::vector<head::theme_webkit_mgr::webkit_item> head::theme_webkit_mgr::parse_c
     if (conditional_patches.contains("Conditions")) {
         for (auto& [item, condition] : conditional_patches["Conditions"].items()) {
             if (!theme_conditions.contains(item)) continue;
+            if (!theme_conditions[item].is_string()) {
+                logger.warn("Skipping condition '{}' for theme '{}' because stored value is not a string.", item, theme_name);
+                continue;
+            }
+
             std::string current_value = theme_conditions[item].get<std::string>();
 
             if (condition.contains("values") && condition["values"].is_object()) {
@@ -72,7 +77,11 @@ std::vector<head::theme_webkit_mgr::webkit_item> head::theme_webkit_mgr::parse_c
                             for (auto& match_string : control_flow["affects"]) {
                                 if (!match_string.is_string()) continue;
 
-                                std::string target_path = control_flow.value("src", "");
+                                if (!control_flow.contains("src") || !control_flow["src"].is_string()) {
+                                    continue;
+                                }
+
+                                std::string target_path = control_flow["src"].get<std::string>();
                                 webkit_items.push_back({ match_string.get<std::string>(), target_path, value_key });
                             }
                         }
