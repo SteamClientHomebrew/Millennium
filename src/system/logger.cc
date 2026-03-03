@@ -35,9 +35,9 @@
 #include <fcntl.h>
 #include <iostream>
 #include <filesystem>
+#include <sstream>
 
 #ifdef _WIN32
-#include <sstream>
 #include "millennium/cmdline_parse.h"
 #include <windows.h>
 #include "millennium/argp_win32.h"

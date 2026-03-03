@@ -59,6 +59,7 @@ class library_updater : public std::enable_shared_from_this<library_updater>
 
     std::weak_ptr<theme_installer> get_theme_updater();
     std::weak_ptr<plugin_installer> get_plugin_updater();
+    void set_ipc_main(std::shared_ptr<ipc_main> ipc_main);
 
     void dispatch_progress(const std::string& status, double progress, bool is_complete);
 

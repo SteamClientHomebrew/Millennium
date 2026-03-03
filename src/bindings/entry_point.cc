@@ -414,4 +414,8 @@ builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& fu
 void head::millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
     m_ipc_main = std::move(ipc_main);
+
+    if (m_updater) {
+        m_updater->set_ipc_main(m_ipc_main);
+    }
 }

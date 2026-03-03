@@ -125,6 +125,7 @@ void shm_arena_unlink(const char* name)
 
 #else
 // Linux implementation
+#include <errno.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -132,9 +133,13 @@ void shm_arena_unlink(const char* name)
 platform::shared_memory::lb_shm_arena_t* platform::shared_memory::screate(const char* name, uint32_t size)
 {
     int fd = shm_open(name, O_CREAT | O_RDWR, 0666);
-    if (fd == -1) return NULL;
+    if (fd == -1) {
+        log_error("shm_open create failed for %s: %s\n", name, strerror(errno));
+        return NULL;
+    }
 
     if (ftruncate(fd, size) == -1) {
+        log_error("ftruncate failed for %s: %s\n", name, strerror(errno));
         ::close(fd);
         return NULL;
     }
@@ -142,7 +147,10 @@ platform::shared_memory::lb_shm_arena_t* platform::shared_memory::screate(const 
     lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     ::close(fd);
 
-    if (arena == MAP_FAILED) return NULL;
+    if (arena == MAP_FAILED) {
+        log_error("mmap failed for %s: %s\n", name, strerror(errno));
+        return NULL;
+    }
 
     arena->size = size;
     arena->used = sizeof(lb_shm_arena_t);
@@ -152,12 +160,20 @@ platform::shared_memory::lb_shm_arena_t* platform::shared_memory::screate(const 
 platform::shared_memory::lb_shm_arena_t* platform::shared_memory::sopen(const char* name, uint32_t size)
 {
     int fd = shm_open(name, O_RDWR, 0666);
-    if (fd == -1) return NULL;
+    if (fd == -1) {
+        log_error("shm_open open failed for %s: %s\n", name, strerror(errno));
+        return NULL;
+    }
 
     lb_shm_arena_t* arena = (lb_shm_arena_t*)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     ::close(fd);
 
-    return (arena == MAP_FAILED) ? NULL : arena;
+    if (arena == MAP_FAILED) {
+        log_error("mmap open failed for %s: %s\n", name, strerror(errno));
+        return NULL;
+    }
+
+    return arena;
 }
 
 void platform::shared_memory::sclose(lb_shm_arena_t* arena, uint32_t size)
@@ -381,7 +397,7 @@ void platform::shared_memory::hashmap_print(lb_shm_arena_t* arena)
 void platform::shared_memory::init()
 {
     /** delete any stale instance of the millennium ipc shared memory */
-    unlink(SHM_IPC_NAME);
+    sunlink(SHM_IPC_NAME);
 
     /** allocate the ipc arena */
     if (!g_lb_patch_arena) {

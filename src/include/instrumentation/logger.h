@@ -49,7 +49,7 @@ static void get_time_mmss(char* buf, size_t len)
     struct tm* tm;
     gettimeofday(&tv, NULL);
     tm = localtime(&tv.tv_sec);
-    snprintf(buf, len, "%02d:%02d.%03ld", tm->tm_min, tm->tm_sec, tv.tv_usec / 1000);
+    snprintf(buf, len, "%02d:%02d.%03d", tm->tm_min, tm->tm_sec, static_cast<int>(tv.tv_usec / 1000));
 #endif
 }
 
