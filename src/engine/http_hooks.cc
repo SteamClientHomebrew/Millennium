@@ -40,6 +40,7 @@
 #include "millennium/types.h"
 
 #include <nlohmann/json_fwd.hpp>
+#include <optional>
 #include <thread>
 #include <unordered_set>
 
@@ -108,6 +109,58 @@ std::filesystem::path network_hook_ctl::path_from_url(const std::string& request
     return utils::url::get_path_from_url(requestUrl);
 }
 
+static std::optional<std::filesystem::path> resolve_internal_ftp_asset_path(const std::string& requestUrl, const char* ftpHookAddress)
+{
+    if (!ftpHookAddress) {
+        return std::nullopt;
+    }
+
+    const std::string base(ftpHookAddress);
+    if (requestUrl.rfind(base, 0) != 0) {
+        return std::nullopt;
+    }
+
+    std::string relative = requestUrl.substr(base.size());
+    const size_t queryPos = relative.find('?');
+    if (queryPos != std::string::npos) {
+        relative = relative.substr(0, queryPos);
+    }
+
+    const std::string tokenPrefix = GetScrambledApiPathToken() + "/";
+    if (relative.rfind(tokenPrefix, 0) != 0) {
+        return std::nullopt;
+    }
+
+    const std::string assetPath = relative.substr(tokenPrefix.size());
+    const std::filesystem::path repoRoot(MILLENNIUM_ROOT);
+
+    if (assetPath == "millennium.js") {
+        return repoRoot / "src" / "typescript" / "sdk" / "packages" / "loader" / "build" / "millennium.js";
+    }
+
+    if (assetPath == "millennium-frontend.js") {
+        return repoRoot / "build" / "frontend.bin";
+    }
+
+    if (assetPath.rfind("chunks/", 0) == 0) {
+        const std::filesystem::path candidate = repoRoot / "src" / "typescript" / "sdk" / "packages" / "loader" / "build" / assetPath;
+        const std::string filename = candidate.filename().string();
+        const std::string extension = candidate.extension().string();
+
+        if (filename.rfind("chunk-", 0) != 0) {
+            return std::nullopt;
+        }
+
+        if (extension != ".js" && extension != ".map") {
+            return std::nullopt;
+        }
+
+        return candidate;
+    }
+
+    return std::nullopt;
+}
+
 void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message)
 {
     std::string fileContent;
@@ -127,7 +180,7 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
     }
     /** Handle normal disk request */
     else {
-        std::filesystem::path localFilePath = this->path_from_url(strRequestFile);
+        std::filesystem::path localFilePath = resolve_internal_ftp_asset_path(strRequestFile, this->m_ftp_url).value_or(this->path_from_url(strRequestFile));
         std::ifstream localFileStream(localFilePath);
 
         bool bFailedRead = !localFileStream.is_open();
@@ -138,6 +191,10 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
         }
 
         fileType = mime::get_file_type(localFilePath.string());
+        if (fileType == mime::file_type::UNKNOWN) {
+            const std::filesystem::path requestPath = this->path_from_url(strRequestFile);
+            fileType = mime::get_file_type(requestPath);
+        }
 
         if (is_bin_file(fileType)) {
             try {
@@ -200,11 +257,15 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     auto response = m_cdp->send_host("Fetch.getResponseBody", params).get();
 
     std::string responseBody = response.value("body", std::string{});
-    if (requestUrl.empty() || responseBody.empty()) {
+    const bool isBase64 = response.value("base64Encoded", false);
+    const std::string decodedBody = isBase64 ? Base64Decode(responseBody) : responseBody;
+
+    if (requestUrl.empty() || decodedBody.empty()) {
+        m_cdp->send_host("Fetch.continueRequest", params);
         return;
     }
 
-    const std::string patchedContent = this->patch_document(requestUrl, Base64Decode(responseBody));
+    const std::string patchedContent = this->patch_document(requestUrl, decodedBody);
     const std::string responseMessage = message.value("responseStatusText", std::string{ "OK" });
     nlohmann::json responseHeaders = message.value("responseHeaders", nlohmann::json::array());
 
@@ -245,6 +306,10 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
 
 std::string network_hook_ctl::compile_preload_script(const processed_hooks& hooks, [[maybe_unused]] const std::string& millenniumPreloadPath) const
 {
+    /**
+     * In current architecture, frontend bootstrap is injected by plugin_loader/webkit_world_mgr.
+     * Keep document patching for stylesheet hooks only to avoid duplicate JS bootstrap execution.
+     */
     return hooks.cssContent;
 }
 

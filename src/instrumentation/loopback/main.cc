@@ -40,7 +40,7 @@
 
 #include "instrumentation/chromium.h"
 #include "instrumentation/resource_query_parser.h"
-#include <linux/limits.h>
+#include <limits.h>
 
 #ifdef __linux__
 #include <cstdio>
@@ -191,7 +191,7 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
 
 #ifdef _WIN32
     return win32_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
-#else
+#elif __linux__
     if (!g_cef_hook) {
         fprintf(stderr, "cef_browser_host_create_browser: hook not installed, call dropped\n");
         return 0;
@@ -208,6 +208,8 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
     subhook_install(g_cef_hook);
     page_rx(src);
     return result;
+#else
+    return 0;
 #endif
 }
 
