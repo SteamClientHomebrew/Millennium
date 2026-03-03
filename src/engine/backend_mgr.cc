@@ -120,11 +120,11 @@ PythonEnvPath GetPythonEnvPaths()
 #elif __linux__
     static const std::string pythonPath = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_PATH");
     static const std::string pythonLibs = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
-    static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
+    static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / MILLENNIUM__PYTHON_STDLIB_DIR / "site-packages").generic_string();
 #elif __APPLE__
     static const std::string pythonPath = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_PATH");
     static const std::string pythonLibs = platform::environment::get("LIBPYTHON_BUILTIN_MODULES_DLL_PATH");
-    static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / "python3.11" / "site-packages").generic_string();
+    static const std::string pythonUserLibs = (pythonModulesBaseDir / "lib" / MILLENNIUM__PYTHON_STDLIB_DIR / "site-packages").generic_string();
 #endif
 
     return { pythonPath, pythonLibs, pythonUserLibs };

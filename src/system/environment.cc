@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include "millennium/logger.h"
 #include <unistd.h>
 #endif
@@ -195,9 +195,9 @@ void platform::environment::setup()
     const std::string dataDir = get("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
     const std::string stateDir = get("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
     const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
-    const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
+    const std::string pythonEnvBin = fmt::format("{}/bin/{}", pythonEnv, MILLENNIUM__PYTHON_BIN_NAME);
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        int result = std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+        int result = std::system(fmt::format("\"{}/bin/{}\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_BIN_NAME, pythonEnv).c_str());
 
         if (result != 0) {
             LOG_ERROR("Failed to create python virtual environment");
@@ -224,8 +224,8 @@ void platform::environment::setup()
 
         { "MILLENNIUM__PYTHON_ENV", pythonEnv },
         { "LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin },
-        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/python3.11", MILLENNIUM__PYTHON_ENV) },
-        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV) }
+        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/{}", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) },
+        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/{}/lib-dynload", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) }
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
@@ -234,10 +234,10 @@ void platform::environment::setup()
     const std::string dataDir = fmt::format("{}/Library/Application Support", homeDir);
     const std::string stateDir = fmt::format("{}/Library/Logs", homeDir);
     const static std::string pythonEnv = fmt::format("{}/Millennium/runtime", dataDir);
-    const std::string pythonEnvBin = fmt::format("{}/bin/python3.11", pythonEnv);
+    const std::string pythonEnvBin = fmt::format("{}/bin/{}", pythonEnv, MILLENNIUM__PYTHON_BIN_NAME);
 
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        std::system(fmt::format("\"{}/bin/python3.11\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, pythonEnv).c_str());
+        std::system(fmt::format("\"{}/bin/{}\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_BIN_NAME, pythonEnv).c_str());
     }
 
     std::map<std::string, std::string> environment_macos = {
@@ -256,13 +256,15 @@ void platform::environment::setup()
 
         { "MILLENNIUM__PYTHON_ENV", pythonEnv },
         { "LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin },
-        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/python3.11", MILLENNIUM__PYTHON_ENV) },
-        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/python3.11/lib-dynload", MILLENNIUM__PYTHON_ENV) }
+        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/{}", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) },
+        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/{}/lib-dynload", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) }
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif
 
 #ifdef __linux__
+    const bool shouldLog = get("MLOG_ENV") == "1" || get("MLOG_ENV") == "true";
+#elif defined(__APPLE__)
     const bool shouldLog = get("MLOG_ENV") == "1" || get("MLOG_ENV") == "true";
 #elif defined(_WIN32)
     const bool shouldLog = false;
