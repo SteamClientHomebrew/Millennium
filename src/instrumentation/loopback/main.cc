@@ -40,9 +40,9 @@
 
 #include "instrumentation/chromium.h"
 #include "instrumentation/resource_query_parser.h"
-#include <linux/limits.h>
 
 #ifdef __linux__
+#include <linux/limits.h>
 #include <cstdio>
 #include <dlfcn.h>
 #include <link.h>
@@ -213,11 +213,11 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
 
 #if defined(_WIN32)
 #include <MinHook.h>
-#include "instrumentation/log.h"
+#include "instrumentation/logger.h"
 #define fn(x) #x
 
 /** the function name we want to tramp */
-#define hook_fn_name fn(cef_browser_host_create_browser)
+#define hook_fn_name fn(tramp_cef_browser_host_create_browser)
 #define hook_target_dll "libcef.dll"
 
 void* get_module_base()
@@ -258,7 +258,7 @@ void win32_initialize_trampoline()
         return;
     }
 
-    if (MH_CreateHook(proc, reinterpret_cast<void*>(&cef_browser_host_create_browser), reinterpret_cast<void**>(&win32_cef_browser_host_create_browser)) != MH_OK) {
+    if (MH_CreateHook(proc, reinterpret_cast<void*>(&tramp_cef_browser_host_create_browser), reinterpret_cast<void**>(&win32_cef_browser_host_create_browser)) != MH_OK) {
         log_error("failed to create hook on %s...\n", hook_fn_name);
         return;
     }

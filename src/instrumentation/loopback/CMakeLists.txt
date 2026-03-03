@@ -78,8 +78,6 @@ include_directories("${MILLENNIUM_BASE}/src/vendor/subhook")
 
 set(SOURCE_FILES
     main.cc
-    ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c
-    ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c
     resource_transformer.cc
     resource_reader.cc
     resource_handler.cc
@@ -91,6 +89,9 @@ set(SOURCE_FILES
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
     list(APPEND SOURCE_FILES "${VERSION_FILE}")
+elseif(UNIX)
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
 endif()
 
 add_library(hhx64 SHARED ${SOURCE_FILES})

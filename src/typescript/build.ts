@@ -30,27 +30,38 @@
 
 // import reference bun types. works without type decls.
 /// <reference types="bun-types" />
+
 import { $ } from "bun";
+import chalk from "chalk";
+
+const startTime = performance.now();
+process.stdout.write("\n");
 
 const steps = [
-    { name: "ttc", filter: "@steambrew/ttc" },
-    { name: "client", filter: "@steambrew/client" },
-    { name: "webkit", filter: "@steambrew/webkit" },
-    { name: "api", filter: "@steambrew/api" },
-    { name: "frontend", filter: "core" },
+  "@steambrew/ttc",
+  "@steambrew/client",
+  "@steambrew/webkit",
+  "@steambrew/api",
+  "core",
 ];
 
-for (const { name, filter } of steps) {
-    process.stdout.write(`  building ${name}...`);
-    const start = performance.now();
-    try {
-        await $`bun run --filter ${filter} build`.quiet();
-        console.log(
-            ` done (${((performance.now() - start) / 1000).toFixed(2)}s)`,
-        );
-    } catch (e: any) {
-        console.log(" failed\n");
-        process.stderr.write(e.stderr?.toString() ?? String(e));
-        process.exit(1);
-    }
+for (const filter of steps) {
+  process.stdout.write(`building ${chalk.yellow(filter)}... `);
+  const start = performance.now();
+  try {
+    await $`bun run --filter ${filter} build`.quiet();
+    console.log(
+      chalk.dim(`done (${((performance.now() - start) / 1000).toFixed(2)}s)`),
+    );
+  } catch (e: any) {
+    console.log("failed\n");
+    if (e.stdout?.length) process.stderr.write(e.stdout.toString());
+    if (e.stderr?.length) process.stderr.write(e.stderr.toString());
+    if (!e.stdout?.length && !e.stderr?.length) process.stderr.write(String(e));
+    process.exit(1);
+  }
 }
+
+console.log(
+  `\n${chalk.green("Finished")} build in ${((performance.now() - startTime) / 1000).toFixed(2)}s`,
+);

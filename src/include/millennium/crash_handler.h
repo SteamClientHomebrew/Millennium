@@ -67,11 +67,11 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
         BOOL success = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpWithFullMemory, &dumpInfo, nullptr, nullptr);
 
         if (success) {
-            Plat_ShowMessageBox(
+            platform::messagebox::show(
                 "Millennium Crash",
                 "Millennium has crashed! A crash dump has been written to millennium-crash.dmp in the Steam directory."
                 "Please send this file to the developers on our Discord (steambrew.app/discord) or GitHub (github.com/SteamClientHomebrew/Millennium) to help fix this issue.",
-                MESSAGEBOX_ERROR);
+                platform::messagebox::error);
 
             logger.log("Crash dump written to millennium-crash.dmp");
         } else {
@@ -114,7 +114,7 @@ inline void UnhandledExceptionHandler()
     }
 
 #ifdef _WIN32
-    Plat_ShowMessageBox("Oops!", errorMessage.c_str(), MESSAGEBOX_ERROR);
+    platform::messagebox::show("Oops!", errorMessage.c_str(), platform::messagebox::error);
 #elif __linux__
     std::cerr << errorMessage << std::endl;
 #endif
