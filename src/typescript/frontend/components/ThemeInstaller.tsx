@@ -40,7 +40,7 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 	const UseNewTheme = async () => {
 		try {
 			const themeData: ThemeItem = JSON.parse(await PyGetThemeInfo({ repo: data?.skin_data?.github?.repo_name, owner: data?.skin_data?.github?.owner, asString: true }));
-			ChangeActiveTheme(themeData?.native, UIReloadProps.Force);
+			await ChangeActiveTheme(themeData?.native, UIReloadProps.Force);
 		} catch (error) {
 			console.error('Error finding theme on disk:', error);
 		}
@@ -56,9 +56,11 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 			bHideCloseIcon={true}
 			strOKButtonText={locale.strUseThemeRequiresReload}
 			onOK={() => {
-				// ChangeActiveTheme(data.name, UIReloadProps.Force);
-				UseNewTheme();
 				props?.modal?.Close?.();
+				// Let the modal finish closing before restarting Steam's JS context.
+				setTimeout(() => {
+					void UseNewTheme();
+				}, 150);
 			}}
 			onCancel={() => {
 				props?.modal?.Close?.();
