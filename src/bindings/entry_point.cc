@@ -56,8 +56,10 @@ int head::millennium_backend::get_operating_system()
 {
 #if defined(_WIN32)
     return 0; // Windows
-#elif defined(__APPLE__) || defined(__linux__)
-    return 1; // macOS or Linux
+#elif defined(__linux__)
+    return 1; // Linux
+#elif defined(__APPLE__)
+    return 2; // macOS
 #else
 #error "Unsupported platform"
     return -1; // Unknown
