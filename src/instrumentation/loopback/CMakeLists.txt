@@ -86,24 +86,17 @@ set(SOURCE_FILES
     ${MILLENNIUM_BASE}/src/state/shared_memory.cc
 )
 
-if(APPLE)
+if(WIN32)
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
+    list(APPEND SOURCE_FILES "${VERSION_FILE}")
+elseif(APPLE)
     enable_language(OBJCXX)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/platform/macos_window_style.mm")
-endif()
-
-if(UNIX AND NOT APPLE)
+elseif(UNIX)
     list(APPEND SOURCE_FILES
         ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c
         ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c
     )
-endif()
-
-if(WIN32)
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
-    list(APPEND SOURCE_FILES "${VERSION_FILE}")
-elseif(UNIX)
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
 endif()
 
 add_library(hhx64 SHARED ${SOURCE_FILES})
