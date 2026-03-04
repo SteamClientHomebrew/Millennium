@@ -58,6 +58,7 @@ extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdo
 
 #ifdef __APPLE__
 extern "C" void Plat_InstallMacOSMenuItems();
+extern "C" void Plat_InstallMacOSNativeWindowStyling();
 #endif
 
 int IsSamePath(const char* path1, const char* path2)
@@ -136,6 +137,7 @@ void Posix_AttachMillennium()
 
 #ifdef __APPLE__
     Plat_InstallMacOSMenuItems();
+    Plat_InstallMacOSNativeWindowStyling();
 #endif
     Plat_InitializeSteamHooks();
     g_millennium = std::make_unique<millennium>();
