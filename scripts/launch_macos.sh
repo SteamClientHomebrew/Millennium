@@ -31,10 +31,12 @@ RUNTIME_BUILD_DIR=""
 STEAM_EXECUTABLE="${DEFAULT_STEAM_EXECUTABLE}"
 ENABLE_DEV_MODE=0
 EXPLICIT_DEVTOOLS_PORT=""
+EXPLICIT_NATIVE_CORNERS=""
+EXPLICIT_NATIVE_CORNER_RADIUS=""
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [--build-dir <dir>] [--wrapper-build-dir <dir>] [--runtime-build-dir <dir>] [--steam-executable <path>] [--dev] [--devtools-port <port>] [--] [steam args...]
+Usage: $(basename "$0") [--build-dir <dir>] [--wrapper-build-dir <dir>] [--runtime-build-dir <dir>] [--steam-executable <path>] [--dev] [--devtools-port <port>] [--native-corners <auto|off|force>] [--native-corner-radius <number>] [--] [steam args...]
 
 Launches Steam on macOS through Millennium's wrapper flow:
 1. Resolves steam_osx wrapper and runtime artifacts from your build output
@@ -48,11 +50,18 @@ Options:
   --steam-executable <path> Override Steam runtime executable path
   --dev                     Append -dev when missing
   --devtools-port <port>    Force -devtools-port when missing
+  --native-corners <auto|off|force>
+                            auto: style frameless/custom-chrome windows only (default)
+                            off: disable native corner styling
+                            force: style all normal app windows
+  --native-corner-radius <number>
+                            Override corner radius (clamped by runtime to 6..20)
 
 Examples:
   ./scripts/launch_macos.sh
   ./scripts/launch_macos.sh --build-dir ./build/osx-debug
   ./scripts/launch_macos.sh --dev --devtools-port 8080
+  ./scripts/launch_macos.sh --native-corner-radius 12
 EOF
 }
 
@@ -271,6 +280,16 @@ while [ $# -gt 0 ]; do
             EXPLICIT_DEVTOOLS_PORT="$2"
             shift 2
             ;;
+        --native-corners)
+            [ $# -ge 2 ] || fail "Missing value for --native-corners"
+            EXPLICIT_NATIVE_CORNERS="$2"
+            shift 2
+            ;;
+        --native-corner-radius)
+            [ $# -ge 2 ] || fail "Missing value for --native-corner-radius"
+            EXPLICIT_NATIVE_CORNER_RADIUS="$2"
+            shift 2
+            ;;
         --help|-h)
             usage
             exit 0
@@ -339,6 +358,14 @@ export MILLENNIUM_STEAM_EXECUTABLE="${STEAM_EXECUTABLE}"
 export MILLENNIUM_RUNTIME_PATH="${runtime_path}"
 export MILLENNIUM_HOOK_HELPER_PATH="${hook_helper_path}"
 export MILLENNIUM_CHILD_HOOK_PATH="${child_hook_path}"
+
+if [ -n "${EXPLICIT_NATIVE_CORNERS}" ]; then
+    export MILLENNIUM_MACOS_NATIVE_CORNERS="${EXPLICIT_NATIVE_CORNERS}"
+fi
+
+if [ -n "${EXPLICIT_NATIVE_CORNER_RADIUS}" ]; then
+    export MILLENNIUM_MACOS_NATIVE_CORNER_RADIUS="${EXPLICIT_NATIVE_CORNER_RADIUS}"
+fi
 
 declare -a steam_args
 steam_args=("$@")
