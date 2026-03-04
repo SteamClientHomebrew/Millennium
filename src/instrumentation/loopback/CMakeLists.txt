@@ -86,6 +86,11 @@ set(SOURCE_FILES
     ${MILLENNIUM_BASE}/src/state/shared_memory.cc
 )
 
+if(APPLE)
+    enable_language(OBJCXX)
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/platform/macos_window_style.mm")
+endif()
+
 if(UNIX AND NOT APPLE)
     list(APPEND SOURCE_FILES
         ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c
@@ -102,6 +107,10 @@ add_library(hhx64 SHARED ${SOURCE_FILES})
 
 if(WIN32)
     target_link_libraries(hhx64 minhook wsock32)
+endif()
+
+if(APPLE)
+    target_link_libraries(hhx64 "-framework AppKit" "-framework QuartzCore")
 endif()
 
 target_link_libraries(hhx64 re2)
