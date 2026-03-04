@@ -321,7 +321,7 @@ builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_paylo
         if (!args.contains("download_url") || !args["download_url"].is_string()) {
             LOG_ERROR("Core_InstallPlugin called without a valid 'download_url' string.");
             return {
-                { "success", false                                },
+                { "success", false                               },
                 { "error",   "missing or invalid 'download_url'" }
             };
         }

@@ -39,7 +39,8 @@
 #include <string.h>
 #include <unistd.h>
 
-namespace {
+namespace
+{
 int is_same_path(const char* path1, const char* path2)
 {
     char realpath1[PATH_MAX], realpath2[PATH_MAX];

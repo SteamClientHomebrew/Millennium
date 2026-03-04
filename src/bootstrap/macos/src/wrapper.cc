@@ -18,7 +18,8 @@
 #include <unistd.h>
 #include <vector>
 
-namespace {
+namespace
+{
 constexpr const char* kDefaultDebugPort = "8080";
 constexpr const char* kDebugPortEnv = "MILLENNIUM_DEBUG_PORT";
 constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
@@ -32,7 +33,7 @@ constexpr const char* kBootstrapDirectoryName = "millennium";
 constexpr const char* kBootstrapLoaderDirectoryName = "loader";
 constexpr const char* kBootstrapChunksDirectoryName = "chunks";
 constexpr const char* kBootstrapFrontendModuleName = "millennium-frontend.js";
-}
+} // namespace
 
 static bool get_executable_path(char* output, size_t output_size)
 {
@@ -334,8 +335,7 @@ static std::string fetch_browser_context_once(const char* debug_port)
         return {};
     }
 
-    const std::string request =
-        std::string("GET /json/version HTTP/1.1\r\nHost: 127.0.0.1:") + debug_port + "\r\nConnection: close\r\n\r\n";
+    const std::string request = std::string("GET /json/version HTTP/1.1\r\nHost: 127.0.0.1:") + debug_port + "\r\nConnection: close\r\n\r\n";
 
     if (send(fd, request.c_str(), request.size(), 0) < 0) {
         close(fd);
@@ -544,8 +544,7 @@ static bool prepare_macos_bootstrap_assets(const char* steam_executable_path)
     }
 
     std::vector<std::filesystem::path> chunk_files;
-    for (std::filesystem::directory_iterator it(loader_chunks_dir, directory_error), end;
-         !directory_error && it != end; it.increment(directory_error)) {
+    for (std::filesystem::directory_iterator it(loader_chunks_dir, directory_error), end; !directory_error && it != end; it.increment(directory_error)) {
         const std::filesystem::directory_entry& entry = *it;
         if (!entry.is_regular_file(directory_error) || directory_error) {
             continue;
@@ -564,9 +563,8 @@ static bool prepare_macos_bootstrap_assets(const char* steam_executable_path)
         return false;
     }
 
-    std::sort(chunk_files.begin(), chunk_files.end(), [](const std::filesystem::path& lhs, const std::filesystem::path& rhs) {
-        return lhs.filename().string() < rhs.filename().string();
-    });
+    std::sort(chunk_files.begin(), chunk_files.end(),
+              [](const std::filesystem::path& lhs, const std::filesystem::path& rhs) { return lhs.filename().string() < rhs.filename().string(); });
 
     for (const std::filesystem::path& chunk_path : chunk_files) {
         if (!sync_text_file(chunk_path, chunks_target_dir / chunk_path.filename())) {
@@ -593,8 +591,8 @@ static std::vector<char*> build_launch_arguments(const char* target_steam_path, 
         }
     }
 
-    const bool has_devtools_flag = get_argument_value(argc, argv, "-devtools-port") != nullptr ||
-                                   has_argument(argc, argv, "-devtools-port") || has_prefixed_argument(argc, argv, "-devtools-port=");
+    const bool has_devtools_flag =
+        get_argument_value(argc, argv, "-devtools-port") != nullptr || has_argument(argc, argv, "-devtools-port") || has_prefixed_argument(argc, argv, "-devtools-port=");
     if (!has_devtools_flag) {
         const char* debug_port = getenv(kDebugPortEnv);
         if (debug_port && debug_port[0] != '\0') {

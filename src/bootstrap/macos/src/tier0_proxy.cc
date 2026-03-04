@@ -27,7 +27,8 @@
 typedef int (*start_millennium_t)(void);
 typedef int (*stop_millennium_t)(void);
 
-namespace {
+namespace
+{
 constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
 constexpr const char* kHookHelperPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
 constexpr const char* kChildHookPathEnv = "MILLENNIUM_CHILD_HOOK_PATH";
@@ -36,7 +37,7 @@ constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kCefRemoteDebuggingMarker = ".cef-enable-remote-debugging";
 constexpr const char* kDefaultDebugPort = "8080";
 constexpr const char* kDevtoolsPortArgument = "-devtools-port";
-}
+} // namespace
 
 static void* g_millennium_handle = nullptr;
 static bool g_millennium_started = false;

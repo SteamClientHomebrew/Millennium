@@ -18,13 +18,14 @@ typedef int (*stop_millennium_t)(void);
 
 extern char** environ;
 
-namespace {
+namespace
+{
 constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
 constexpr const char* kHookHelperPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
 constexpr const char* kChildHookPathEnv = "MILLENNIUM_CHILD_HOOK_PATH";
 constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kBootstrapTraceEnv = "MILLENNIUM_BOOTSTRAP_TRACE_PATH";
-}
+} // namespace
 
 #define DYLD_INTERPOSE(_replacement, _replacee)                                                                                                                                    \
     __attribute__((used)) static struct                                                                                                                                            \
@@ -242,13 +243,7 @@ static void append_exec_trace(const char* stage, const char* path, char* const a
         return;
     }
 
-    fprintf(
-        file,
-        "%s|path=%s|arg0=%s|note=%s\n",
-        stage ? stage : "",
-        path ? path : "",
-        arg0,
-        note ? note : "");
+    fprintf(file, "%s|path=%s|arg0=%s|note=%s\n", stage ? stage : "", path ? path : "", arg0, note ? note : "");
     fclose(file);
 }
 

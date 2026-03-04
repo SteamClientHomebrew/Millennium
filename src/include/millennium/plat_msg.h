@@ -97,7 +97,8 @@ static int show(const std::string title, const std::string message, platform::me
     return ret;
 
 #elif __APPLE__
-    auto escape_osascript = [](const std::string& input) {
+    auto escape_osascript = [](const std::string& input)
+    {
         std::string escaped;
         escaped.reserve(input.size());
         for (char ch : input) {
@@ -123,7 +124,8 @@ static int show(const std::string title, const std::string message, platform::me
             cmd = "osascript -e \"display alert \\\"" + escapedTitle + "\\\" message \\\"" + escapedMessage + "\\\" as informational\"";
             break;
         case level::question:
-            cmd = "osascript -e \"display dialog \\\"" + escapedMessage + "\\\" with title \\\"" + escapedTitle + "\\\" buttons {\\\"No\\\",\\\"Yes\\\"} default button \\\"Yes\\\"\"";
+            cmd = "osascript -e \"display dialog \\\"" + escapedMessage + "\\\" with title \\\"" + escapedTitle +
+                  "\\\" buttons {\\\"No\\\",\\\"Yes\\\"} default button \\\"Yes\\\"\"";
             break;
     }
 

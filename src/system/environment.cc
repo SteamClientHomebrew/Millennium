@@ -197,7 +197,8 @@ void platform::environment::setup()
     const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
     const std::string pythonEnvBin = fmt::format("{}/bin/{}", pythonEnv, MILLENNIUM__PYTHON_BIN_NAME);
     if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        int result = std::system(fmt::format("\"{}/bin/{}\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_BIN_NAME, pythonEnv).c_str());
+        int result =
+            std::system(fmt::format("\"{}/bin/{}\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_BIN_NAME, pythonEnv).c_str());
 
         if (result != 0) {
             LOG_ERROR("Failed to create python virtual environment");

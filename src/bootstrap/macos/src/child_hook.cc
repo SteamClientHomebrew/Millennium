@@ -8,11 +8,12 @@
 #include <string.h>
 #include <unistd.h>
 
-namespace {
+namespace
+{
 constexpr const char* kHookHelperPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
 constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kCefRemoteDebuggingMarker = ".cef-enable-remote-debugging";
-}
+} // namespace
 
 static bool get_current_executable(char* output, size_t output_size)
 {
