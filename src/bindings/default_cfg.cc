@@ -37,9 +37,9 @@ json head::get_default_config()
 {
     /** Use auto install on windows, otherwise just notify (auto install/upgrade is only supported on windows as linux primarily uses pm) */
 #ifdef _WIN32
-    OnMillenniumUpdate updateBehavior = OnMillenniumUpdate::AUTO_INSTALL;
+    head::on_millennium_update updateBehavior = head::on_millennium_update::AUTO_INSTALL;
 #else
-    on_millennium_update updateBehavior = on_millennium_update::NOTIFY;
+    head::on_millennium_update updateBehavior = head::on_millennium_update::NOTIFY;
 #endif
 
     /** Detect old file to determine welcome modal status */

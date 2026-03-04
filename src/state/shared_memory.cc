@@ -39,6 +39,8 @@ platform::shared_memory::lb_shm_arena_t* g_lb_patch_arena;
 #include <windows.h>
 #include <stdio.h>
 
+using namespace platform::shared_memory;
+
 typedef struct
 {
     HANDLE handle;
@@ -47,7 +49,7 @@ typedef struct
 
 static win_shm_ctx_t g_shm_ctx = { NULL, NULL };
 
-lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
+lb_shm_arena_t* platform::shared_memory::screate(const char* name, uint32_t size)
 {
     char win_name[256];
     snprintf(win_name, sizeof(win_name), "Local\\%s", name + 1); // Skip leading '/'
@@ -80,7 +82,7 @@ lb_shm_arena_t* shm_arena_create(const char* name, uint32_t size)
     return arena;
 }
 
-lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size)
+lb_shm_arena_t* platform::shared_memory::sopen(const char* name, uint32_t size)
 {
     char win_name[256];
     snprintf(win_name, sizeof(win_name), "Local\\%s", name + 1);
@@ -106,7 +108,7 @@ lb_shm_arena_t* shm_arena_open(const char* name, uint32_t size)
     return arena;
 }
 
-void shm_arena_close(lb_shm_arena_t* arena, uint32_t size)
+void platform::shared_memory::sclose(lb_shm_arena_t* arena, uint32_t size)
 {
     (void)size;
     UnmapViewOfFile(arena);
@@ -117,7 +119,7 @@ void shm_arena_close(lb_shm_arena_t* arena, uint32_t size)
     }
 }
 
-void shm_arena_unlink(const char* name)
+void platform::shared_memory::sunlink(const char* name)
 {
     // Windows doesn't require explicit unlinking - handled by last CloseHandle
     (void)name;

@@ -524,15 +524,15 @@ void backend_initializer::python_backend_started_cb(plugin_manager::plugin_t plu
 
 #ifdef _WIN32
                 const int result =
-                    Plat_ShowMessageBox("Millennium - Startup Error",
+                    platform::messagebox::show("Millennium - Startup Error",
                                         fmt::format("It appears that the plugin '{}' has either crashed or is taking too long to respond, this may cause side effects "
                                                     "or break the Steam UI. Would you like to disable it on next Steam startup?",
                                                     plugin.plugin_name)
                                             .c_str(),
-                                        MESSAGEBOX_QUESTION);
+                                        platform::messagebox::question);
 
                 if (result == IDYES) {
-                    settings->set_plugin_enabled(plugin.plugin_name, false);
+                    plugin_manager->set_plugin_enabled(plugin.plugin_name, false);
                 }
 #endif
                 dispatcher->backend_loaded_event_hdlr({ plugin.plugin_name, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_FAILED });

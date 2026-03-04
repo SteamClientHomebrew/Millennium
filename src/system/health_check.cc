@@ -31,6 +31,7 @@
 #include "millennium/filesystem.h"
 #include "millennium/logger.h"
 #include "millennium/health_check.h"
+#include "millennium/plat_msg.h"
 #include <filesystem>
 #include <vector>
 
@@ -52,13 +53,13 @@ void platform::health::check_health()
         LOG_ERROR("Failed to remove '{}', likely non-fatal but manual intervention recommended.", cef_remote_debugger_file.string());
     }
 #elif _WIN32
-    const auto steam_cfg = steamPath / "Steam.cfg";
+    const auto steam_cfg = steam_path / "Steam.cfg";
     const auto bootstrap_error = fmt::format("Millennium is incompatible with your {} config. Remove this file to allow Steam updates.", steam_cfg.string());
-    const auto cef_error = fmt::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cefRemoteDebugging.string());
+    const auto cef_error = fmt::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cef_remote_debugger_file.string());
 
     auto show_bootstrap_error = [&]()
     {
-        Plat_ShowMessageBox("Startup Error", bootstrap_error.c_str(), MESSAGEBOX_ERROR);
+        platform::messagebox::show("Startup Error", bootstrap_error.c_str(), platform::messagebox::error);
         LOG_ERROR(bootstrap_error);
     };
 
@@ -73,12 +74,12 @@ void platform::health::check_health()
         }
     }
 
-    if (std::filesystem::exists(cefRemoteDebugging)) {
+    if (std::filesystem::exists(cef_remote_debugger_file)) {
         try {
-            std::filesystem::remove(cefRemoteDebugging);
+            std::filesystem::remove(cef_remote_debugger_file);
         } catch (const std::filesystem::filesystem_error& e) {
-            LOG_ERROR("Failed to remove deprecated file {}: {}", cefRemoteDebugging.string(), e.what());
-            Plat_ShowMessageBox("Startup Error", cef_error.c_str(), MESSAGEBOX_ERROR);
+            LOG_ERROR("Failed to remove deprecated file {}: {}", cef_remote_debugger_file.string(), e.what());
+            platform::messagebox::show("Startup Error", cef_error.c_str(), platform::messagebox::error);
         }
     }
 #endif

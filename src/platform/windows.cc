@@ -94,7 +94,7 @@ VOID Win32_AttachWebHelperHook(VOID)
     const auto targetPath = platform::get_steam_path() / "bin" / "cef" / "cef.win7x64" / "version.dll";
 
     if (!std::filesystem::exists(hookPath)) {
-        Plat_ShowMessageBox("Millennium Error", "Millennium webhelper hook is missing. Please reinstall Millennium.", MESSAGEBOX_ERROR);
+        platform::messagebox::show("Millennium Error", "Millennium webhelper hook is missing. Please reinstall Millennium.", platform::messagebox::error);
         return;
     }
 
@@ -110,10 +110,10 @@ VOID Win32_AttachWebHelperHook(VOID)
 
     BOOL result = CreateHardLinkA(targetPath.string().c_str(), hookPath.string().c_str(), NULL);
     if (!result) {
-        Plat_ShowMessageBox(
+        platform::messagebox::show(
             "Millennium Error",
             fmt::format("Failed to create hardlink for Millennium webhelper hook.\nError Code: {}\nMake sure Steam is not running and try again.", GetLastError()).c_str(),
-            MESSAGEBOX_ERROR);
+            platform::messagebox::error);
     }
 }
 
@@ -128,7 +128,7 @@ VOID Win32_MoveVersionHook(VOID)
 
     if (!MoveFileExW(versionHookPath.wstring().c_str(), targetPath.wstring().c_str(), MOVEFILE_REPLACE_EXISTING)) {
         const DWORD error = GetLastError();
-        Plat_ShowMessageBox("Millennium Error", fmt::format("Failed to move legacy version.dll hook.\nError Code: {}", error).c_str(), MESSAGEBOX_ERROR);
+        platform::messagebox::show("Millennium Error", fmt::format("Failed to move legacy version.dll hook.\nError Code: {}", error).c_str(), platform::messagebox::error);
     }
 }
 
@@ -136,7 +136,7 @@ VOID Win32_AttachMillennium(VOID)
 {
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
-        Plat_ShowMessageBox("Millennium Error", "Failed to initialize Steam hooks, Millennium cannot continue startup.", MESSAGEBOX_ERROR);
+        platform::messagebox::show("Millennium Error", "Failed to initialize Steam hooks, Millennium cannot continue startup.", platform::messagebox::error);
     }
 
     Win32_MoveVersionHook();
@@ -175,7 +175,8 @@ VOID Win32_DetachMillennium(VOID)
     logger.log("Waiting for Millennium thread to exit...");
 
     if (!g_millenniumThread.joinable()) {
-        Plat_ShowMessageBox("Warning", "Millennium thread is not joinable, skipping join. This is likely because Millennium failed to start properly.", MESSAGEBOX_WARNING);
+        platform::messagebox::show("Warning", "Millennium thread is not joinable, skipping join. This is likely because Millennium failed to start properly.",
+                                   platform::messagebox::warn);
         return;
     }
 

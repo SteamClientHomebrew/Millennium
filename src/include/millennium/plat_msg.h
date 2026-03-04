@@ -40,16 +40,16 @@ static int show(const std::string title, const std::string message, platform::me
     UINT type = MB_OK;
 
     switch (level) {
-        case MessageLevel::Error:
+        case platform::messagebox::error:
             type |= MB_ICONERROR;
             break;
-        case MessageLevel::Warning:
+        case platform::messagebox::warn:
             type |= MB_ICONWARNING;
             break;
-        case MessageLevel::Info:
+        case platform::messagebox::info:
             type |= MB_ICONINFORMATION;
             break;
-        case MessageLevel::Question:
+        case platform::messagebox::question:
             type |= MB_YESNO | MB_ICONQUESTION;
             break;
     }
