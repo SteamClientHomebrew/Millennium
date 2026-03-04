@@ -181,6 +181,59 @@ static void maybe_set_env_if_unset(const char* env_name, const std::string& valu
     setenv(env_name, value.c_str(), 1);
 }
 
+static std::string merge_injected_libraries(const char* library_path)
+{
+    const char* existing_value = getenv("DYLD_INSERT_LIBRARIES");
+    if (!existing_value || existing_value[0] == '\0') {
+        return std::string(library_path);
+    }
+
+    std::string existing(existing_value);
+    size_t start = 0;
+    while (start <= existing.size()) {
+        const size_t end = existing.find(':', start);
+        const std::string entry = existing.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        const char* normalized_entry = entry.c_str();
+        char resolved_entry[PATH_MAX];
+
+        if (!entry.empty() && realpath(entry.c_str(), resolved_entry)) {
+            normalized_entry = resolved_entry;
+        }
+
+        if (strcmp(normalized_entry, library_path) == 0) {
+            return existing;
+        }
+
+        if (end == std::string::npos) {
+            break;
+        }
+        start = end + 1;
+    }
+
+    return std::string(library_path) + ":" + existing;
+}
+
+static void ensure_child_hook_injection_for_children()
+{
+    const char* configured_child_hook = getenv(kChildHookPathEnv);
+    if (!configured_child_hook || configured_child_hook[0] == '\0') {
+        return;
+    }
+
+    if (access(configured_child_hook, R_OK) != 0) {
+        return;
+    }
+
+    char resolved_path[PATH_MAX];
+    const char* child_hook_path = configured_child_hook;
+    if (realpath(configured_child_hook, resolved_path)) {
+        child_hook_path = resolved_path;
+    }
+
+    const std::string merged_libraries = merge_injected_libraries(child_hook_path);
+    setenv("DYLD_INSERT_LIBRARIES", merged_libraries.c_str(), 1);
+}
+
 static void ensure_runtime_environment_defaults()
 {
     std::string runtime_path;
@@ -231,6 +284,7 @@ static void start_millennium()
 
     ensure_runtime_environment_defaults();
     ensure_frontend_bridge_prerequisites();
+    ensure_child_hook_injection_for_children();
 
     const char* runtime_path = getenv(kRuntimePathEnv);
     if (!runtime_path || runtime_path[0] == '\0') {
