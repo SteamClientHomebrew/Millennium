@@ -103,7 +103,8 @@ void backend_initializer::python_set_plugin_loader_ud(std::weak_ptr<plugin_loade
     PyObject* capsule = PyCapsule_New(new std::weak_ptr<plugin_loader>(std::move(wp)), plugin_loader_userdata_binding_name, [](PyObject* cap)
     {
         auto* wp = static_cast<std::weak_ptr<plugin_loader>*>(PyCapsule_GetPointer(cap, plugin_loader_userdata_binding_name));
-        if (wp) wp->~weak_ptr<plugin_loader>();
+        // The weak_ptr is heap-allocated with `new`; `delete` already invokes
+        // the destructor exactly once.
         delete wp;
     });
 

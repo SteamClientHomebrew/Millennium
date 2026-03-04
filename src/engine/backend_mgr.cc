@@ -132,7 +132,7 @@ PythonEnvPath GetPythonEnvPaths()
 
 backend_manager::~backend_manager()
 {
-#if defined(__linux__) || defined(MILLENNIUM_32BIT)
+#if defined(__linux__) || defined(__APPLE__) || defined(MILLENNIUM_32BIT)
     logger.log("Shutting down backend_manager...");
     this->shutdown();
 #endif
@@ -331,10 +331,7 @@ bool backend_manager::destroy_python_vms()
         logger.log("Notified plugin [{}] to shut down...", pluginName);
     }
 
-    std::unique_lock<std::mutex> lk(mtx_hasAllPythonPluginsShutdown);
-    cv_hasAllPythonPluginsShutdown.wait(lk);
-
-    logger.log("All plugins have acknowledged shutdown, joining threads...");
+    logger.log("Joining plugin threads after shutdown notification...");
 
     /** Join all Python threads after they've been shutdown */
     for (auto it = this->m_pythonInstances.begin(); it != this->m_pythonInstances.end(); /* No increment */) {
