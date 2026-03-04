@@ -289,10 +289,12 @@ import('{ftpPath}')
 void webkit_world_mgr::expose_millennium_to_ctx(int context_id, const std::string& session_id, bool can_reload)
 {
     try {
-        /** add binding for initial context */
+        /**
+         * Expose binding for the whole target session so legacy/public-context
+         * webkit shims can still reach backend FFI.
+         */
         const json add_binding_params = {
-            { "name",               ffi_constants::binding_name },
-            { "executionContextId", context_id                  }
+            { "name", ffi_constants::binding_name }
         };
         m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
 

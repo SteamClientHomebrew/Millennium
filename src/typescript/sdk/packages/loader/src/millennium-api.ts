@@ -76,7 +76,7 @@ class FFI_Binder {
 	private requestTimeout = 5000;
 
 	async call(payloadType: IpcMethod, pluginName: string, methodName: string, argumentList: any[]): Promise<any> {
-		if (!window.hasOwnProperty('__private_millennium_ffi_do_not_use__')) {
+		if (typeof (window as any).__private_millennium_ffi_do_not_use__ !== 'function') {
 			console.error("Millennium FFI is not available in this context. To use the FFI, make sure you've selected the 'millennium' context");
 			return;
 		}
