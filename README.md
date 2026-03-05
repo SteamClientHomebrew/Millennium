@@ -25,8 +25,9 @@ Installing Millennium is only a few steps. See [this page](https://docs.steambre
 
 ### macOS (Experimental)
 
-macOS support defaults to a passive tier0 install path for direct `Steam.app`
-launches. For active development, use `./scripts/launch_macos.sh`.
+macOS support now defaults to a wrapper-app install path (`Steam Millennium.app`)
+that does not overwrite Steam-tracked runtime files. For active development, use
+`./scripts/launch_macos.sh`.
 
 #### Install
 
@@ -45,16 +46,29 @@ bun install
 bun run build
 ```
 
-3. Install Millennium into Steam's runtime bundle (passive tier0 mode):
+3. Install Millennium wrapper app and runtime payload:
 
 ```bash
 ./scripts/install_macos.sh
 ```
 
-By default, `install_macos.sh` writes `BootStrapperInhibitAll=enable` into
-`Steam.cfg`. Use `--skip-steam-cfg-inhibit-all` to skip that for the current run.
+4. Start Steam through the installed app bundle:
 
-4. Start Steam normally from `Steam.app`.
+```bash
+open "/Applications/Steam Millennium.app"
+```
+
+If `/Applications` is not writable, installer falls back to:
+
+```bash
+open "$HOME/Applications/Steam Millennium.app"
+```
+
+Legacy tier0 mode is still available when direct `Steam.app` patching is needed:
+
+```bash
+./scripts/install_macos.sh --tier0-legacy --steam-cfg-inhibit-all
+```
 
 Once Millennium is installed, you can find its related settings within the Steam user interface.
 
@@ -66,7 +80,7 @@ You can also open Millennium from the steam url:
 open 'steam://millennium/settings'
 ```
 
-You can use `./scripts/install_macos.sh --help` for additional options (`--status`, `--repair`, `--uninstall`, `--restore-steam-cfg`).
+You can use `./scripts/install_macos.sh --help` for additional options (`--status`, `--repair`, `--uninstall`, `--tier0-legacy`, `--restore-steam-cfg`).
 
 #### Run (Development/Debug)
 
@@ -140,7 +154,7 @@ Supported Platforms:
 
 -   Windows (x86/x64/ARM) NT (10 and newer)
 -   Linux (x86/x86_64/i686/i386)
--   macOS (experimental passive tier0 install via `./scripts/install_macos.sh`, development launch via `./scripts/launch_macos.sh`)
+-   macOS (experimental wrapper app install via `./scripts/install_macos.sh`, legacy tier0 via `--tier0-legacy`, development launch via `./scripts/launch_macos.sh`)
 
 ## Sponsors
 

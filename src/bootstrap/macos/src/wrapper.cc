@@ -25,6 +25,7 @@ constexpr const char* kDebugPortEnv = "MILLENNIUM_DEBUG_PORT";
 constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
 constexpr const char* kHookHelperPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
 constexpr const char* kChildHookPathEnv = "MILLENNIUM_CHILD_HOOK_PATH";
+constexpr const char* kAssetsRootEnv = "MILLENNIUM_ASSETS_ROOT";
 constexpr const char* kBrowserContextPathEnv = "MILLENNIUM_BROWSER_CONTEXT_PATH";
 constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kCefRemoteDebuggingMarker = ".cef-enable-remote-debugging";
@@ -48,6 +49,17 @@ static bool get_executable_path(char* output, size_t output_size)
     }
 
     strncpy(output, resolved, output_size - 1);
+    output[output_size - 1] = '\0';
+    return true;
+}
+
+static bool get_executable_path_raw(char* output, size_t output_size)
+{
+    uint32_t size = static_cast<uint32_t>(output_size);
+    if (_NSGetExecutablePath(output, &size) != 0) {
+        return false;
+    }
+
     output[output_size - 1] = '\0';
     return true;
 }
@@ -515,6 +527,70 @@ static bool sync_text_file(const std::filesystem::path& source, const std::files
     return write_text_file(target, source_content);
 }
 
+static bool resolve_bootstrap_asset_sources(const char* wrapper_directory, std::filesystem::path* loader_source_dir, std::filesystem::path* frontend_source)
+{
+    if (!wrapper_directory || !loader_source_dir || !frontend_source) {
+        return false;
+    }
+
+    auto has_valid_layout = [](const std::filesystem::path& candidate_root, std::filesystem::path* resolved_loader_dir, std::filesystem::path* resolved_frontend) -> bool
+    {
+        const std::filesystem::path loader_dir = candidate_root / "loader";
+        const std::filesystem::path loader_entry = loader_dir / "millennium.js";
+        const std::filesystem::path chunks_dir = loader_dir / "chunks";
+        const std::filesystem::path frontend_module = candidate_root / kBootstrapFrontendModuleName;
+        const std::filesystem::path frontend_binary = candidate_root / "frontend.bin";
+
+        std::error_code error;
+        const bool has_loader_entry = std::filesystem::is_regular_file(loader_entry, error) && !error;
+        error.clear();
+        const bool has_chunks_dir = std::filesystem::is_directory(chunks_dir, error) && !error;
+        error.clear();
+        const bool has_frontend_module = std::filesystem::is_regular_file(frontend_module, error) && !error;
+        error.clear();
+        const bool has_frontend_binary = std::filesystem::is_regular_file(frontend_binary, error) && !error;
+
+        if (!has_loader_entry || !has_chunks_dir || (!has_frontend_module && !has_frontend_binary)) {
+            return false;
+        }
+
+        *resolved_loader_dir = loader_dir;
+        *resolved_frontend = has_frontend_module ? frontend_module : frontend_binary;
+        return true;
+    };
+
+    std::vector<std::filesystem::path> candidates;
+    const char* configured_assets_root = getenv(kAssetsRootEnv);
+    if (configured_assets_root && configured_assets_root[0] != '\0') {
+        candidates.emplace_back(configured_assets_root);
+    }
+
+    candidates.emplace_back(std::filesystem::path(wrapper_directory) / ".." / "Resources" / "millennium-assets");
+
+    for (const std::filesystem::path& candidate : candidates) {
+        std::error_code canonical_error;
+        const std::filesystem::path resolved_candidate = std::filesystem::weakly_canonical(candidate, canonical_error);
+        if (has_valid_layout(canonical_error ? candidate : resolved_candidate, loader_source_dir, frontend_source)) {
+            return true;
+        }
+    }
+
+    const std::filesystem::path repo_root(MILLENNIUM_ROOT);
+    const std::filesystem::path legacy_loader_dir = repo_root / "src" / "typescript" / "sdk" / "packages" / "loader" / "build";
+    const std::filesystem::path legacy_frontend = repo_root / "build" / "frontend.bin";
+
+    std::error_code legacy_error;
+    if (std::filesystem::is_regular_file(legacy_loader_dir / "millennium.js", legacy_error) && !legacy_error &&
+        std::filesystem::is_directory(legacy_loader_dir / "chunks", legacy_error) && !legacy_error && std::filesystem::is_regular_file(legacy_frontend, legacy_error) &&
+        !legacy_error) {
+        *loader_source_dir = legacy_loader_dir;
+        *frontend_source = legacy_frontend;
+        return true;
+    }
+
+    return false;
+}
+
 static bool prepare_macos_bootstrap_assets(const char* steam_executable_path)
 {
     const char* separator = strrchr(steam_executable_path, '/');
@@ -532,7 +608,23 @@ static bool prepare_macos_bootstrap_assets(const char* steam_executable_path)
         return false;
     }
 
-    const std::filesystem::path loader_source_dir = std::filesystem::path(MILLENNIUM_ROOT) / "src" / "typescript" / "sdk" / "packages" / "loader" / "build";
+    char executable_path[PATH_MAX];
+    if (!get_executable_path_raw(executable_path, sizeof(executable_path))) {
+        return false;
+    }
+
+    char wrapper_directory_buffer[PATH_MAX];
+    strncpy(wrapper_directory_buffer, executable_path, sizeof(wrapper_directory_buffer) - 1);
+    wrapper_directory_buffer[sizeof(wrapper_directory_buffer) - 1] = '\0';
+
+    const char* wrapper_directory = dirname(wrapper_directory_buffer);
+
+    std::filesystem::path loader_source_dir;
+    std::filesystem::path frontend_source;
+    if (!resolve_bootstrap_asset_sources(wrapper_directory, &loader_source_dir, &frontend_source)) {
+        return false;
+    }
+
     if (!sync_text_file(loader_source_dir / "millennium.js", loader_target_dir / "millennium.js")) {
         return false;
     }
@@ -572,7 +664,7 @@ static bool prepare_macos_bootstrap_assets(const char* steam_executable_path)
         }
     }
 
-    if (!sync_text_file(std::filesystem::path(MILLENNIUM_ROOT) / "build" / "frontend.bin", bootstrap_root / kBootstrapFrontendModuleName)) {
+    if (!sync_text_file(frontend_source, bootstrap_root / kBootstrapFrontendModuleName)) {
         return false;
     }
 
@@ -692,6 +784,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "[Millennium] Failed to locate the real Steam runtime. Set %s or reinstall Steam.\n", kSteamExecutableEnv);
         return 1;
     }
+    setenv(kSteamExecutableEnv, target_steam_path, 1);
 
     configure_debug_environment(argc, argv);
 
