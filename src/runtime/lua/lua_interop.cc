@@ -155,7 +155,7 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
     ipc_main::vm_call_result result;
 
     if (lua_isstring(L, -1)) {
-        std::string res = std::string(lua_tostring(L, -1));
+        result.value = std::string(lua_tostring(L, -1));
     } else if (lua_isboolean(L, -1)) {
         result.value = bool(lua_toboolean(L, -1));
     } else if (lua_isnumber(L, -1)) {
