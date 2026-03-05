@@ -80,8 +80,18 @@ extern "C" int luaopen_logger_lib(lua_State* L)
     }
     lua_pop(L, 1);
 
-    plugin_logger* backend = new plugin_logger(pluginName);
-    get_plugin_logger_mgr().push_back(backend);
+    /* reuse existing logger so MEP subscription listeners survive plugin restarts. */
+    plugin_logger* backend = nullptr;
+    for (auto* existing : get_plugin_logger_mgr()) {
+        if (existing->get_plugin_name(false) == pluginName) {
+            backend = existing;
+            break;
+        }
+    }
+    if (!backend) {
+        backend = new plugin_logger(pluginName);
+        get_plugin_logger_mgr().push_back(backend);
+    }
 
     luaL_newlib(L, loggerFunctions);
 

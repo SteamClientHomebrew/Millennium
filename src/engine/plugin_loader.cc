@@ -45,6 +45,7 @@
 #include "millennium/logger.h"
 #include "millennium/plugin_webkit_store.h"
 #include "millennium/auth.h"
+#include "mep/console_capture.h"
 #include <memory>
 #include <mutex>
 #include <fmt/ranges.h>
@@ -56,8 +57,8 @@ using namespace std::chrono;
 
 std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium = std::make_shared<InterpreterMutex>();
 
-extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
-extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
+extern std::mutex mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
+extern std::condition_variable cv_hasSteamUnloaded, cv_hasSteamUIStartedLoading;
 extern std::atomic<bool> ab_shouldDisconnectFrontend;
 
 plugin_loader::plugin_loader(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<millennium_updater> millennium_updater)
@@ -89,6 +90,8 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 
     m_millennium_updater->set_ipc_main(m_ipc_main);
     m_millennium_backend->set_ipc_main(m_ipc_main);
+
+    mep::console_capture::instance().start(m_cdp, m_plugin_manager);
 
     m_thread_pool->enqueue([this]()
     {
@@ -353,7 +356,6 @@ void plugin_loader::log_enabled_plugins()
 void plugin_loader::start_plugin_backends()
 {
     std::weak_ptr<plugin_loader> weak_plugin_loader = weak_from_this();
-    m_backend_initializer->start_package_manager(weak_plugin_loader);
     this->log_enabled_plugins();
 
     std::weak_ptr<backend_initializer> weak_init = std::weak_ptr(m_backend_initializer);
@@ -363,21 +365,12 @@ void plugin_loader::start_plugin_backends()
             continue;
         }
 
-        if (plugin.backend_type == plugin_manager::backend_t::Lua) {
-            m_backend_manager->create_lua_vm(plugin, [weak_init, weak_plugin_loader](auto plugin, lua_State* L)
-            {
-                if (auto init = weak_init.lock()) {
-                    init->lua_backend_started_cb(plugin, weak_plugin_loader, L);
-                }
-            });
-        } else {
-            m_backend_manager->create_python_vm(plugin, [weak_init, weak_plugin_loader](auto plugin)
-            {
-                if (auto init = weak_init.lock()) {
-                    init->python_backend_started_cb(plugin, weak_plugin_loader);
-                }
-            });
-        }
+        m_backend_manager->create_lua_vm(plugin, [weak_init, weak_plugin_loader](auto plugin, lua_State* L)
+        {
+            if (auto init = weak_init.lock()) {
+                init->lua_backend_started_cb(plugin, weak_plugin_loader, L);
+            }
+        });
     }
 }
 void plugin_loader::set_plugin_enable(std::string plugin_name, bool enabled)
@@ -403,7 +396,7 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
 
     /** destroy all plugins that need to be disabled */
     for (const auto& name : plugins_to_disable)
-        m_backend_manager->destroy_generic_vm(name);
+        m_backend_manager->destroy_lua_vm(name);
 
     /** if any new backends were enabled, we need to start them */
     if (should_start_backends) start_plugin_backends();

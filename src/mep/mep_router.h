@@ -29,29 +29,27 @@
  */
 
 #pragma once
-#include "millennium/plugin_loader.h"
-#include "millennium/millennium_updater.h"
-#include "mep/mep_router.h"
-#include "mep/mep_server.h"
 
-class millennium
+#include "mep_message.h"
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+
+namespace mep
+{
+using handler_fn = std::function<response_t(const request_t&, const std::shared_ptr<client_context>&)>;
+
+class router
 {
   public:
-    millennium();
-    void entry();
-
-    std::shared_ptr<plugin_loader> get_plugin_loader();
+    void register_handler(const std::string& method, handler_fn handler);
+    response_t dispatch(const request_t& request, const std::shared_ptr<client_context>& ctx) const;
 
   private:
-    void check_for_updates();
-
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<plugin_loader> m_plugin_loader;
-    std::shared_ptr<head::millennium_backend> m_millennium_backend;
-    std::shared_ptr<millennium_updater> m_millennium_updater;
-
-    mep::router m_mep_router;
-    mep::server m_mep_server;
+    mutable std::mutex m_mutex;
+    std::unordered_map<std::string, handler_fn> m_handlers;
 };
 
-extern std::unique_ptr<millennium> g_millennium;
+} // namespace mep

@@ -30,7 +30,7 @@
 
 /**
  * NOTICE:
- * This is not a automatically generated file nor is it owned by any of Chromium's partners.
+ * This is not an automatically generated file nor is it owned by any of Chromium's partners.
  * Although this reversal works in Millennium, I wouldn't recommend its use in other apps unless you know how to update it.
  */
 #pragma once

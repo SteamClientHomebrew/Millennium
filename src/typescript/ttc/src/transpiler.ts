@@ -182,7 +182,7 @@ function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
 
 	function resolveWithExtensions(base: string): string | null {
 		for (const ext of ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx']) {
-			if (fs.existsSync(base + ext)) return base + ext;
+		    if (fs.existsSync(base + ext) && fs.statSync(base + ext).isFile()) return base + ext;
 		}
 		return null;
 	}

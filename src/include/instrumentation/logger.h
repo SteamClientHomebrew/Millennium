@@ -61,12 +61,12 @@ static inline void log_debug(const char* fmt, ...)
     va_start(args, fmt);
 #ifdef _WIN32
     char buf[1024];
-    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[36mMWHLBH-DEBUG\033[0m ", timebuf);
+    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[36mHHX64-DEBUG\033[0m ", timebuf);
     OutputDebugStringA(buf);
     vsnprintf(buf, sizeof(buf), fmt, args);
     OutputDebugStringA(buf);
 #else
-    fprintf(stderr, "[%s] \033[1m\033[36mMWHLBH-DEBUG\033[0m ", timebuf);
+    fprintf(stderr, "[%s] \033[1m\033[36mHHX64-DEBUG\033[0m ", timebuf);
     vfprintf(stderr, fmt, args);
 #endif
     va_end(args);
@@ -80,12 +80,12 @@ static inline void log_info(const char* fmt, ...)
     va_start(args, fmt);
 #ifdef _WIN32
     char buf[1024];
-    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[36mMWHLBH-INFO\033[0m ", timebuf);
+    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[36mHHX64-INFO\033[0m ", timebuf);
     OutputDebugStringA(buf);
     vsnprintf(buf, sizeof(buf), fmt, args);
     OutputDebugStringA(buf);
 #else
-    fprintf(stderr, "[%s] \033[1m\033[36mMWHLBH-INFO\033[0m ", timebuf);
+    fprintf(stderr, "[%s] \033[1m\033[36mHHX64-INFO\033[0m ", timebuf);
     vfprintf(stderr, fmt, args);
 #endif
     va_end(args);
@@ -99,12 +99,12 @@ static inline void log_warning(const char* fmt, ...)
     va_start(args, fmt);
 #ifdef _WIN32
     char buf[1024];
-    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[33mMWHLBH-WARN\033[0m ", timebuf);
+    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[33mHHX64-WARN\033[0m ", timebuf);
     OutputDebugStringA(buf);
     vsnprintf(buf, sizeof(buf), fmt, args);
     OutputDebugStringA(buf);
 #else
-    fprintf(stderr, "[%s] \033[1m\033[33mMWHLBH-WARN\033[0m ", timebuf);
+    fprintf(stderr, "[%s] \033[1m\033[33mHHX64-WARN\033[0m ", timebuf);
     vfprintf(stderr, fmt, args);
 #endif
     va_end(args);
@@ -118,12 +118,12 @@ static inline void log_error(const char* fmt, ...)
     va_start(args, fmt);
 #ifdef _WIN32
     char buf[1024];
-    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[31mMWHLBH-ERROR\033[0m  ", timebuf);
+    snprintf(buf, sizeof(buf), "[%s] \033[1m\033[31mHHX64-ERROR\033[0m  ", timebuf);
     OutputDebugStringA(buf);
     vsnprintf(buf, sizeof(buf), fmt, args);
     OutputDebugStringA(buf);
 #else
-    fprintf(stderr, "[%s] \033[1m\033[31mMWHLBH-ERROR\033[0m ", timebuf);
+    fprintf(stderr, "[%s] \033[1m\033[31mHHX64-ERROR\033[0m ", timebuf);
     vfprintf(stderr, fmt, args);
 #endif
     va_end(args);

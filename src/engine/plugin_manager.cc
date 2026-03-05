@@ -199,13 +199,13 @@ plugin_manager::plugin_t plugin_manager::get_plugin_internal_metadata(nlohmann::
     /** Check if the plugin json contains all the required fields */
     lint_plugin(json, entry.path().filename().string());
 
-    const auto backend_type = json.value("backendType", "python") == "lua" ? backend_t::Lua : backend_t::Python;
+    const auto backend_type = backend_t::Lua;
 
     plugin_manager::plugin_t plugin;
     plugin.plugin_json = json;
     plugin.plugin_name = json["name"];
     plugin.plugin_base_dir = entry.path();
-    plugin.plugin_backend_dir = entry.path() / json.value("backend", "backend") / (backend_type == backend_t::Lua ? "main.lua" : "main.py");
+    plugin.plugin_backend_dir = entry.path() / json.value("backend", "backend") / "main.lua";
     plugin.plugin_frontend_dir = entry.path() / ".millennium" / "Dist" / "index.js";
     plugin.plugin_webkit_path = entry.path() / ".millennium" / "Dist" / "webkit.js";
     plugin.backend_type = backend_type;

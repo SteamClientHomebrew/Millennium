@@ -28,30 +28,33 @@
  * SOFTWARE.
  */
 
-#pragma once
-#include "millennium/plugin_loader.h"
-#include "millennium/millennium_updater.h"
-#include "mep/mep_router.h"
-#include "mep/mep_server.h"
+#include "mep_router.h"
 
-class millennium
+namespace mep
 {
-  public:
-    millennium();
-    void entry();
 
-    std::shared_ptr<plugin_loader> get_plugin_loader();
+void router::register_handler(const std::string& method, handler_fn handler)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_handlers[method] = std::move(handler);
+}
 
-  private:
-    void check_for_updates();
+response_t router::dispatch(const request_t& request, const std::shared_ptr<client_context>& ctx) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<plugin_loader> m_plugin_loader;
-    std::shared_ptr<head::millennium_backend> m_millennium_backend;
-    std::shared_ptr<millennium_updater> m_millennium_updater;
+    auto it = m_handlers.find(request.method);
+    if (it == m_handlers.end()) {
+        return response_t::err(request.id, "unknown method: " + request.method);
+    }
 
-    mep::router m_mep_router;
-    mep::server m_mep_server;
-};
+    try {
+        return it->second(request, ctx);
+    } catch (const std::exception& e) {
+        return response_t::err(request.id, std::string("handler threw: ") + e.what());
+    } catch (...) {
+        return response_t::err(request.id, "handler threw an unknown exception");
+    }
+}
 
-extern std::unique_ptr<millennium> g_millennium;
+} // namespace mep

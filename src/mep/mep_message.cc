@@ -28,30 +28,48 @@
  * SOFTWARE.
  */
 
-#pragma once
-#include "millennium/plugin_loader.h"
-#include "millennium/millennium_updater.h"
-#include "mep/mep_router.h"
-#include "mep/mep_server.h"
+#include "mep_message.h"
 
-class millennium
+namespace mep
 {
-  public:
-    millennium();
-    void entry();
+std::optional<request_t> request_t::from_json(const nlohmann::json& j) noexcept
+{
+    try {
+        request_t r;
+        r.id = j.at("id").get<std::string>();
+        r.method = j.at("method").get<std::string>();
+        r.params = j.value("params", nlohmann::json(nullptr));
+        return r;
+    } catch (...) {
+        return std::nullopt;
+    }
+}
 
-    std::shared_ptr<plugin_loader> get_plugin_loader();
+nlohmann::json request_t::to_json() const
+{
+    return {
+        { "id",     id     },
+        { "method", method },
+        { "params", params }
+    };
+}
 
-  private:
-    void check_for_updates();
+response_t response_t::ok(const std::string& id, nlohmann::json result)
+{
+    return { id, std::move(result), std::nullopt };
+}
 
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<plugin_loader> m_plugin_loader;
-    std::shared_ptr<head::millennium_backend> m_millennium_backend;
-    std::shared_ptr<millennium_updater> m_millennium_updater;
+response_t response_t::err(const std::string& id, const std::string& message)
+{
+    return { id, nullptr, message };
+}
 
-    mep::router m_mep_router;
-    mep::server m_mep_server;
-};
-
-extern std::unique_ptr<millennium> g_millennium;
+nlohmann::json response_t::to_json() const
+{
+    return {
+        { "id",     id                                                       },
+        { "result", result                                                   },
+        { "error",  error ? nlohmann::json(*error) : nlohmann::json(nullptr) }
+    };
+}
+} // namespace mep

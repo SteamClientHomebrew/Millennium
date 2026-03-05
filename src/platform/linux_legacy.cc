@@ -96,11 +96,6 @@ int Deprecated_HookedMain(int argc, char** argv, char** envp)
 {
     RemoveFromLdPreload();
     logger.log("Hooked main() with PID: {}", getpid());
-    logger.log("Loading python libraries from {}", LIBPYTHON_RUNTIME_PATH);
-
-    if (!dlopen(LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
-        LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
-    }
 
     /** Start Millennium on a new thread to prevent I/O blocking */
     g_millenniumThread = std::make_unique<std::thread>(Posix_AttachMillennium);

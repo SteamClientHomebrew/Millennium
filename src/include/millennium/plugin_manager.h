@@ -39,7 +39,6 @@ class plugin_manager
   public:
     enum class backend_t
     {
-        Python,
         Lua
     };
 

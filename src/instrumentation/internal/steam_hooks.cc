@@ -37,8 +37,8 @@
 #include "millennium/steam_hooks.h"
 #include "millennium/cmdline_parse.h"
 
-std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
-std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
+std::mutex mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
+std::condition_variable cv_hasSteamUnloaded, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
 std::atomic<bool> atm_hasBackendsAlreadyLoaded{ false };
 
 std::string STEAM_DEVELOPER_TOOLS_PORT = "8080";

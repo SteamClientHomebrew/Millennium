@@ -3,7 +3,7 @@
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|___|_|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -33,6 +33,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <numeric>
+#include <algorithm>
 #include <re2/re2.h>
 #include <re2/set.h>
 #include <vector>
@@ -59,12 +61,6 @@ typedef struct
     uint32_t match_id;
     const char* plugin_name;
 } match_plugin_map_t;
-
-typedef struct
-{
-    RE2** patterns;
-    uint32_t count;
-} regex_cache_t;
 
 static inline bool safe_mul_u32(uint32_t a, uint32_t b, uint32_t* result)
 {
@@ -305,167 +301,6 @@ static char* preprocess_replacement(const char* replacement, const char* plugin_
     return result;
 }
 
-static char* apply_substitution(RE2* re, const char* input, uint32_t input_size, const char* replacement, uint32_t* out_size)
-{
-    if (!re || !re->ok() || !input || !replacement || !out_size) {
-        log_error("Invalid parameters to apply_substitution\n");
-        return NULL;
-    }
-
-    if (input_size > MAX_FILE_SIZE) {
-        log_error("Input size %u exceeds maximum %u\n", input_size, MAX_FILE_SIZE);
-        return NULL;
-    }
-
-    std::string output(input, input_size);
-    int count;
-
-    try {
-        count = RE2::GlobalReplace(&output, *re, replacement);
-    } catch (const std::exception& e) {
-        log_error("RE2::GlobalReplace threw exception: %s\n", e.what());
-        return NULL;
-    } catch (...) {
-        log_error("RE2::GlobalReplace threw unknown exception\n");
-        return NULL;
-    }
-
-    if (count == 0) {
-        log_info("No match found\n");
-        return NULL;
-    }
-
-    if (output.size() > MAX_FILE_SIZE) {
-        log_error("Output size %zu exceeds maximum %u\n", output.size(), MAX_FILE_SIZE);
-        return NULL;
-    }
-
-    log_info("Applied %d substitution(s), new size: %zu\n", count, output.size());
-
-    char* result = (char*)malloc(output.size());
-    if (!result) {
-        log_error("Failed to allocate %zu bytes\n", output.size());
-        return NULL;
-    }
-
-    memcpy(result, output.data(), output.size());
-    *out_size = static_cast<uint32_t>(output.size());
-    return result;
-}
-
-static regex_cache_t* compile_transform_patterns(const transform_data_t* transforms, int count)
-{
-    if (!transforms || count < 0 || count > (int)MAX_PATTERN_COUNT) {
-        return NULL;
-    }
-
-    regex_cache_t* cache = (regex_cache_t*)malloc(sizeof(regex_cache_t));
-    if (!cache) return NULL;
-
-    cache->patterns = (RE2**)calloc(count, sizeof(RE2*));
-    if (!cache->patterns) {
-        free(cache);
-        return NULL;
-    }
-    cache->count = count;
-
-    for (int i = 0; i < count; i++) {
-        if (transforms[i].count > 0 && transforms[i].matches && transforms[i].matches[0]) {
-            try {
-                cache->patterns[i] = new RE2(transforms[i].matches[0]);
-                if (!cache->patterns[i]->ok()) {
-                    log_error("Failed to compile pattern %d: %s\n", i, cache->patterns[i]->error().c_str());
-                    delete cache->patterns[i];
-                    cache->patterns[i] = NULL;
-                }
-            } catch (const std::exception& e) {
-                log_error("Exception compiling pattern %d: %s\n", i, e.what());
-                cache->patterns[i] = NULL;
-            } catch (...) {
-                log_error("Unknown exception compiling pattern %d\n", i);
-                cache->patterns[i] = NULL;
-            }
-        }
-    }
-
-    return cache;
-}
-
-static void free_regex_cache(regex_cache_t* cache)
-{
-    if (!cache) return;
-    if (cache->patterns) {
-        for (uint32_t i = 0; i < cache->count; i++) {
-            delete cache->patterns[i];
-        }
-        free(cache->patterns);
-    }
-    free(cache);
-}
-
-static int apply_transform_set(const transform_data_t* transform, RE2* compiled_pattern, const char* plugin_name, char** buffer, uint32_t* buffer_size)
-{
-    if (!transform || !compiled_pattern || !plugin_name || !buffer || !*buffer || !buffer_size) {
-        return -1;
-    }
-
-    if (*buffer_size > MAX_FILE_SIZE) {
-        log_error("Buffer size exceeds maximum\n");
-        return -1;
-    }
-
-    for (int i = 0; i < transform->count; i++) {
-        if (!transform->replaces || !transform->replaces[i]) {
-            continue;
-        }
-
-        char* processed_replacement = preprocess_replacement(transform->replaces[i], plugin_name);
-        if (!processed_replacement) {
-            log_error("Failed to preprocess replacement string\n");
-            continue;
-        }
-
-        log_info("Applying transform %d: match='%s' replace='%s'\n", i, transform->matches ? transform->matches[i] : "NULL", processed_replacement);
-
-        uint32_t new_size = 0;
-        char* new_buffer = apply_substitution(compiled_pattern, *buffer, *buffer_size, processed_replacement, &new_size);
-
-        free(processed_replacement);
-
-        if (new_buffer) {
-            free(*buffer);
-            *buffer = new_buffer;
-            *buffer_size = new_size;
-        }
-    }
-
-    return 0;
-}
-
-static void log_matches(const match_list_t* matches, const char** finds, const transform_data_t* transforms)
-{
-    if (!matches) return;
-
-    log_info("Processing %d match entries\n", matches->count);
-    for (int i = 0; i < matches->count; i++) {
-        const char* pattern = (finds && finds[i]) ? finds[i] : "NULL";
-        int transform_count = transforms ? transforms[i].count : 0;
-        log_info("  [%d] pattern: '%s' (%d transforms)\n", i, pattern, transform_count);
-    }
-}
-
-static void log_file_matches(const match_list_t* matches)
-{
-    if (!matches) return;
-
-    log_info("Found %d matches in file\n", matches->count);
-    for (int i = 0; i < matches->count; i++) {
-        if (matches->froms && matches->tos) {
-            log_info("  Match %d: offset %llu-%llu\n", i, matches->froms[i], matches->tos[i]);
-        }
-    }
-}
-
 static int re2_multi_match(const char** patterns, uint32_t pattern_count, const char* text, uint32_t text_size, match_list_t* matches)
 {
     if (!patterns || !text || !matches || text_size > MAX_FILE_SIZE) {
@@ -618,8 +453,228 @@ static int re2_multi_match(const char** patterns, uint32_t pattern_count, const 
     return 0;
 }
 
+/**
+ * Run a single RE2 pattern against a buffer and return the first match bounds.
+ * Returns true if a match was found, false otherwise.
+ */
+static bool re2_find_in_buffer(const char* pattern, const char* buffer, uint32_t buffer_size, uint64_t* out_from, uint64_t* out_to)
+{
+    if (!pattern || !buffer || !out_from || !out_to || buffer_size > MAX_FILE_SIZE) {
+        return false;
+    }
+
+    try {
+        RE2 re(pattern);
+        if (!re.ok()) {
+            log_error("Failed to compile find pattern: %s\n", re.error().c_str());
+            return false;
+        }
+
+        re2::StringPiece text(buffer, buffer_size);
+        re2::StringPiece match;
+
+        if (!re.Match(text, 0, buffer_size, RE2::UNANCHORED, &match, 1)) {
+            return false;
+        }
+
+        ptrdiff_t offset = match.data() - buffer;
+        if (offset < 0 || (size_t)offset > buffer_size) {
+            return false;
+        }
+
+        *out_from = (uint64_t)offset;
+        size_t end;
+        if (!safe_add_size((size_t)offset, match.size(), &end) || end > buffer_size) {
+            *out_to = buffer_size;
+        } else {
+            *out_to = (uint64_t)end;
+        }
+
+        return true;
+    } catch (const std::exception& e) {
+        log_error("Exception in re2_find_in_buffer: %s\n", e.what());
+        return false;
+    } catch (...) {
+        log_error("Unknown exception in re2_find_in_buffer\n");
+        return false;
+    }
+}
+
+/**
+ * Apply a GlobalReplace only within [from, to) of input, splice the result
+ * back into a new full-length buffer. Returns NULL if the pattern has no match
+ * within the region (graceful no-op — caller keeps the original buffer).
+ */
+static char* apply_scoped_substitution(RE2* re, const char* input, uint32_t input_size, uint64_t from, uint64_t to, const char* replacement, uint32_t* out_size)
+{
+    if (!re || !re->ok() || !input || !replacement || !out_size) {
+        log_error("Invalid parameters to apply_scoped_substitution\n");
+        return NULL;
+    }
+
+    if (from > to || to > input_size || input_size > MAX_FILE_SIZE) {
+        log_error("Invalid bounds [%llu, %llu) for input_size %u\n", from, to, input_size);
+        return NULL;
+    }
+
+    std::string region(input + from, to - from);
+    int count;
+
+    try {
+        count = RE2::GlobalReplace(&region, *re, replacement);
+    } catch (const std::exception& e) {
+        log_error("GlobalReplace threw exception: %s\n", e.what());
+        return NULL;
+    } catch (...) {
+        log_error("GlobalReplace threw unknown exception\n");
+        return NULL;
+    }
+
+    if (count == 0) {
+        return NULL; /** no match within the region — graceful no-op */
+    }
+
+    uint32_t suffix_len = input_size - (uint32_t)to;
+    size_t new_total;
+    if (!safe_add_size((size_t)from, region.size(), &new_total) || !safe_add_size(new_total, suffix_len, &new_total)) {
+        log_error("New total size overflow\n");
+        return NULL;
+    }
+
+    if (new_total > MAX_FILE_SIZE) {
+        log_error("Scoped substitution result would exceed MAX_FILE_SIZE\n");
+        return NULL;
+    }
+
+    char* result = (char*)malloc(new_total);
+    if (!result) {
+        log_error("Failed to allocate result buffer (%zu bytes)\n", new_total);
+        return NULL;
+    }
+
+    memcpy(result, input, from);
+    memcpy(result + from, region.data(), region.size());
+    memcpy(result + from + region.size(), input + to, suffix_len);
+
+    *out_size = (uint32_t)new_total;
+    log_info("Scoped substitution: %d replacement(s) in [%llu, %llu), new total size: %u\n", count, from, to, *out_size);
+    return result;
+}
+
+/**
+ * Apply all transforms for a single patch, scoped to [from, to).
+ * Each transform compiles its own match pattern. After each replacement the
+ * `to` bound is adjusted by the size delta so subsequent transforms within
+ * the same find region remain correctly positioned.
+ */
+static void apply_transform_set_scoped(const transform_data_t* transform, const char* plugin_name, char** buffer, uint32_t* buffer_size, uint64_t from, uint64_t to)
+{
+    if (!transform || !plugin_name || !buffer || !*buffer || !buffer_size) {
+        return;
+    }
+
+    for (int i = 0; i < transform->count; i++) {
+        if (!transform->matches || !transform->matches[i] || !transform->replaces || !transform->replaces[i]) {
+            continue;
+        }
+
+        char* processed = preprocess_replacement(transform->replaces[i], plugin_name);
+        if (!processed) {
+            log_error("Failed to preprocess replacement for plugin '%s' transform %d\n", plugin_name, i);
+            continue;
+        }
+
+        try {
+            RE2 pattern(transform->matches[i]);
+            if (!pattern.ok()) {
+                log_error("Failed to compile transform match for plugin '%s' transform %d: %s\n", plugin_name, i, pattern.error().c_str());
+                free(processed);
+                continue;
+            }
+
+            log_info("Plugin '%s' transform %d: match='%s' in [%llu, %llu)\n", plugin_name, i, transform->matches[i], from, to);
+
+            uint32_t new_size = 0;
+            char* new_buffer = apply_scoped_substitution(&pattern, *buffer, *buffer_size, from, to, processed, &new_size);
+
+            free(processed);
+
+            if (new_buffer) {
+                int64_t delta = (int64_t)new_size - (int64_t)*buffer_size;
+                to = (uint64_t)((int64_t)to + delta); /** shift end of region by size change */
+                free(*buffer);
+                *buffer = new_buffer;
+                *buffer_size = new_size;
+            }
+        } catch (const std::exception& e) {
+            free(processed);
+            log_error("Exception in transform %d for plugin '%s': %s\n", i, plugin_name, e.what());
+        } catch (...) {
+            free(processed);
+            log_error("Unknown exception in transform %d for plugin '%s'\n", i, plugin_name);
+        }
+    }
+}
+
+/**
+ * Run all find patterns against the original file content and perform a
+ * pairwise overlap check across different plugins. Overlapping [from, to)
+ * intervals between two distinct plugins indicate a conflict: the
+ * alphabetically-earlier
+ * plugin wins; the later one may partially or fully
+ * become a no-op on the modified content.
+ */
+static void detect_and_log_conflicts(const char** finds, int find_count, match_list_t* matches, match_plugin_map_t* plugin_map, const char* file_content, uint32_t f_size,
+                                     const char* filename)
+{
+    if (!finds || find_count <= 0 || !matches || !plugin_map || !file_content) {
+        return;
+    }
+
+    match_list_t original_bounds = { 0 };
+    if (re2_multi_match(finds, (uint32_t)find_count, file_content, f_size, &original_bounds) != 0) {
+        log_error("detect_and_log_conflicts: re2_multi_match failed\n");
+        return;
+    }
+
+    for (int i = 0; i < original_bounds.count; i++) {
+        for (int j = i + 1; j < original_bounds.count; j++) {
+            uint32_t idx_i = original_bounds.ids[i];
+            uint32_t idx_j = original_bounds.ids[j];
+
+            if (idx_i >= (uint32_t)find_count || idx_j >= (uint32_t)find_count) {
+                continue;
+            }
+
+            if (idx_i >= (uint32_t)matches->count || idx_j >= (uint32_t)matches->count) {
+                continue;
+            }
+
+            const char* plugin_i = plugin_map[matches->ids[idx_i]].plugin_name;
+            const char* plugin_j = plugin_map[matches->ids[idx_j]].plugin_name;
+
+            if (!plugin_i || !plugin_j || strcmp(plugin_i, plugin_j) == 0) {
+                continue; /** same plugin — not a cross-plugin conflict */
+            }
+
+            uint64_t a = original_bounds.froms[i], b = original_bounds.tos[i];
+            uint64_t c = original_bounds.froms[j], d = original_bounds.tos[j];
+
+            if (a < d && c < b) {
+                const char* winner = (strcmp(plugin_i, plugin_j) < 0) ? plugin_i : plugin_j;
+                const char* loser = (strcmp(plugin_i, plugin_j) < 0) ? plugin_j : plugin_i;
+                log_error("[CONFLICT] '%s' and '%s' have overlapping find regions [%llu, %llu) and [%llu, %llu) in '%s'\n", plugin_i, plugin_j, a, b, c, d,
+                          filename ? filename : "unknown");
+                log_error("  '%s' patches first (alphabetical order). '%s' may partially or fully become a no-op on the modified content.\n", winner, loser);
+            }
+        }
+    }
+
+    match_list_destroy(&original_bounds);
+}
+
 extern "C" int handle_file_patches(platform::shared_memory::lb_shm_arena_t* arena, match_list_t* matches, match_plugin_map_t* plugin_map, char* file_content, uint32_t f_size,
-                                   char** out_content, uint32_t* out_size)
+                                   char** out_content, uint32_t* out_size, const char* filename)
 {
     if (!arena || !matches || !plugin_map || !file_content || !out_content || !out_size) {
         log_error("Invalid parameters to handle_file_patches\n");
@@ -634,83 +689,80 @@ extern "C" int handle_file_patches(platform::shared_memory::lb_shm_arena_t* aren
     transform_data_t* transforms = NULL;
     const char** finds = NULL;
     char* working_buffer = NULL;
-    match_list_t file_matches = { 0 };
-    regex_cache_t* pattern_cache = NULL;
     uint32_t working_size = f_size;
     int ret = -1;
 
-    log_info("Starting file patching, initial size: %u\n", f_size);
+    log_info("Starting file patching for '%s', size: %u, %d plugin patch(es)\n", filename ? filename : "?", f_size, matches->count);
 
     if (get_transform_from_matches(arena, matches, &finds, &transforms) != 0) {
         log_error("Failed to get transforms from matches\n");
         goto cleanup;
     }
 
-    log_matches(matches, finds, transforms);
+    /** detect cross-plugin find region overlaps on the original content and log warnings */
+    detect_and_log_conflicts(finds, matches->count, matches, plugin_map, file_content, f_size, filename);
 
-    if (re2_multi_match(finds, matches->count, file_content, f_size, &file_matches) != 0) {
-        log_error("re2_multi_match failed\n");
-        goto cleanup;
-    }
-
-    log_file_matches(&file_matches);
-
-    // Allocate working buffer with size check
-    size_t alloc_size;
-    if (!safe_mul_size(f_size, 2, &alloc_size)) {
-        log_error("Working buffer size overflow\n");
-        goto cleanup;
-    }
-
-    if (alloc_size > MAX_FILE_SIZE * 2) {
-        alloc_size = MAX_FILE_SIZE * 2;
-    }
-
-    working_buffer = (char*)malloc(alloc_size);
+    working_buffer = (char*)malloc(f_size);
     if (!working_buffer) {
         log_error("Failed to allocate working buffer\n");
         goto cleanup;
     }
     memcpy(working_buffer, file_content, f_size);
 
-    pattern_cache = compile_transform_patterns(transforms, matches->count);
-    if (!pattern_cache) {
-        log_error("Failed to compile pattern cache\n");
-        goto cleanup;
-    }
+    /**
+     * Sort patch indices alphabetically by plugin name — this is the load order guarantee.
+     * It is deterministic on every OS and machine, and no plugin author can influence it
+     * through configuration. Within the sorted order, each plugin's find pattern is
+     * re-executed against the live (already-modified) buffer so that offset drift from
+     * prior plugins' size-changing substitutions is automatically handled.
+     */
+    {
+        std::vector<int> sorted(matches->count);
+        std::iota(sorted.begin(), sorted.end(), 0);
+        std::sort(sorted.begin(), sorted.end(), [&](int a, int b)
+        {
+            const char* na = plugin_map[matches->ids[a]].plugin_name;
+            const char* nb = plugin_map[matches->ids[b]].plugin_name;
+            if (!na) return false;
+            if (!nb) return true;
+            return strcmp(na, nb) < 0;
+        });
 
-    for (int i = 0; i < file_matches.count; i++) {
-        uint32_t match_id = file_matches.ids[i];
+        for (int si : sorted) {
+            if (!finds[si] || !finds[si][0]) {
+                continue;
+            }
 
-        // Bounds check on match_id
-        if (match_id >= matches->count) {
-            log_error("match_id %u out of bounds (max %u)\n", match_id, matches->count);
-            continue;
-        }
+            const char* plugin_name = plugin_map[matches->ids[si]].plugin_name;
+            if (!plugin_name) {
+                continue;
+            }
 
-        const char* plugin_name = plugin_map[match_id].plugin_name;
-        if (!plugin_name) {
-            log_error("NULL plugin_name for match_id %u\n", match_id);
-            continue;
-        }
+            /**
+             * Re-run the find pattern against the current working buffer.
+             * This accounts for any size changes made by earlier plugins so that
+             * byte offsets remain accurate even when substitutions grew or shrank
+             * the content.
+             */
+            uint64_t from = 0, to = 0;
+            if (!re2_find_in_buffer(finds[si], working_buffer, working_size, &from, &to)) {
+                log_info("Plugin '%s': find did not match current buffer (graceful no-op)\n", plugin_name);
+                continue;
+            }
 
-        log_info("Processing match %d for plugin '%s'\n", i, plugin_name);
-
-        if (match_id < pattern_cache->count && pattern_cache->patterns[match_id]) {
-            apply_transform_set(&transforms[i], pattern_cache->patterns[match_id], plugin_name, &working_buffer, &working_size);
+            log_info("Plugin '%s': find matched [%llu, %llu) — applying %d transform(s)\n", plugin_name, from, to, transforms[si].count);
+            apply_transform_set_scoped(&transforms[si], plugin_name, &working_buffer, &working_size, from, to);
         }
     }
 
     *out_content = working_buffer;
     *out_size = working_size;
-    working_buffer = NULL; // Transfer ownership
+    working_buffer = NULL; /** transfer ownership */
     ret = 0;
 
-    log_info("Patching complete, final size: %u\n", working_size);
+    log_info("Patching complete for '%s', final size: %u\n", filename ? filename : "?", working_size);
 
 cleanup:
-    free_regex_cache(pattern_cache);
-    match_list_destroy(&file_matches);
     if (transforms) {
         for (int i = 0; i < matches->count; i++) {
             free(transforms[i].matches);
@@ -720,7 +772,6 @@ cleanup:
     }
     free(finds);
     free(working_buffer);
-
     return ret;
 }
 
@@ -790,7 +841,7 @@ int find_file_matches(char* file_content, uint32_t size, char* local_path, char*
 
     char* out_data = NULL;
     uint32_t out_size = 0;
-    int ret = handle_file_patches(arena, &matches, plugin_map, file_content, size, &out_data, &out_size);
+    int ret = handle_file_patches(arena, &matches, plugin_map, file_content, size, &out_data, &out_size, local_path);
 
     if (ret == 0) {
         log_info("[find_file_matches] out_size: %u\n", out_size);

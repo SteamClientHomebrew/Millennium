@@ -32,6 +32,9 @@
 #include "millennium/logger.h"
 #include "millennium/core_ipc.h"
 #include "millennium/plugin_webkit_world_mgr.h"
+#include "mep/ffi_recorder.h"
+
+#include <chrono>
 
 ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<ipc_main> ipc_main)
     : m_client(client), m_plugin_manager(std::move(plugin_manager)), m_ipc_main(std::move(ipc_main))
@@ -99,7 +102,22 @@ void ffi_binder::binding_call_hdlr(const json& params)
         }
 
         const auto request_id = payload["call_id"].get<int>();
+
+        const auto t0 = std::chrono::steady_clock::now();
         const auto result = m_ipc_main->process_message(payload);
+        const auto t1 = std::chrono::steady_clock::now();
+
+        {
+            const int msg_id = payload.value("id", -1);
+            const double dur = std::chrono::duration<double, std::milli>(t1 - t0).count();
+            std::string plugin = payload.value("data", json::object()).value("pluginName", std::string{});
+            std::string method = payload.value("data", json::object()).value("methodName", std::string{});
+
+            if (!plugin.empty() && msg_id != ipc_main::ipc_method::FRONT_END_LOADED) {
+                mep::ffi_recorder::instance().record({ plugin, method, "fe_to_be", payload.value("data", json::object()).dump(), result.dump(), dur,
+                                                       std::chrono::system_clock::now(), payload.value("caller", std::string{}) });
+            }
+        }
 
         try {
             this->callback_into_js(params, request_id, result);

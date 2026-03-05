@@ -37,14 +37,17 @@
 #include "millennium/logger.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/millennium.h"
+#include "mep/mep_hooks.h"
 
 std::unique_ptr<millennium> g_millennium;
 
-millennium::millennium()
+millennium::millennium() : m_mep_server(m_mep_router)
 {
     m_plugin_manager = std::make_shared<plugin_manager>();
     m_millennium_updater = std::make_shared<millennium_updater>();
     m_plugin_loader = std::make_shared<plugin_loader>(m_plugin_manager, m_millennium_updater);
+
+    mep::register_mep_handlers(m_mep_router, m_plugin_loader);
 
     m_millennium_updater->win32_update_legacy_shims();
     this->check_for_updates();
@@ -98,6 +101,10 @@ void millennium::entry()
     platform::shared_memory::init();
     platform::health::check_health();
 
+    m_mep_server.start();
+
     m_plugin_loader->start_plugin_backends();
     m_plugin_loader->start_plugin_frontends();
+
+    m_mep_server.stop();
 }

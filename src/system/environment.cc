@@ -173,20 +173,13 @@ void platform::environment::setup()
 
 #ifdef _WIN32
     std::map<std::string, std::string> environment_windows = {
-        { "MILLENNIUM__PLUGINS_PATH", platform::get_install_path().string() + "/plugins"        },
-        { "MILLENNIUM__CONFIG_PATH",  platform::get_install_path().string() + "/ext"            },
-        { "MILLENNIUM__LOGS_PATH",    platform::get_install_path().string() + "/ext/logs"       },
-        { "MILLENNIUM__DATA_LIB",     dataLibPath                                               },
-#if defined(MILLENNIUM_64BIT)
-        { "MILLENNIUM__PYTHON_ENV",   platform::get_install_path().string() + "/ext/data/pyx64" },
-#elif defined(MILLENNIUM_32BIT)
-        { "MILLENNIUM__PYTHON_ENV", platform::get_install_path().string() + "/ext/data/cache" },
-#else
-#error "Invalid platform"
-#endif
-        { "MILLENNIUM__SHIMS_PATH",   shimsPath                                                 },
-        { "MILLENNIUM__ASSETS_PATH",  assetsPath                                                },
-        { "MILLENNIUM__INSTALL_PATH", platform::get_install_path().string()                     }
+        { "MILLENNIUM__PLUGINS_PATH", platform::get_install_path().string() + "/plugins"  },
+        { "MILLENNIUM__CONFIG_PATH",  platform::get_install_path().string() + "/ext"      },
+        { "MILLENNIUM__LOGS_PATH",    platform::get_install_path().string() + "/ext/logs" },
+        { "MILLENNIUM__DATA_LIB",     dataLibPath                                         },
+        { "MILLENNIUM__SHIMS_PATH",   shimsPath                                           },
+        { "MILLENNIUM__ASSETS_PATH",  assetsPath                                          },
+        { "MILLENNIUM__INSTALL_PATH", platform::get_install_path().string()               }
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
 #elif __linux__
@@ -194,24 +187,12 @@ void platform::environment::setup()
     const std::string configDir = get("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
     const std::string dataDir = get("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
     const std::string stateDir = get("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
-    const static std::string pythonEnv = fmt::format("{}/millennium/.venv", dataDir);
-    const std::string pythonEnvBin = fmt::format("{}/bin/{}", pythonEnv, MILLENNIUM__PYTHON_BIN_NAME);
-    if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        int result =
-            std::system(fmt::format("\"{}/bin/{}\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_BIN_NAME, pythonEnv).c_str());
-
-        if (result != 0) {
-            LOG_ERROR("Failed to create python virtual environment");
-        }
-    }
 
     const std::string customLdPreload = get("MILLENNIUM_RUNTIME_PATH");
 
     std::map<std::string, std::string> environment_unix = {
         { "OPENSSL_CONF", "/dev/null" },
         { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so" },
-
-        { "LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH },
 
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam", homeDir) },
         { "MILLENNIUM__PLUGINS_PATH", fmt::format("{}/millennium/plugins", dataDir) },
@@ -220,13 +201,7 @@ void platform::environment::setup()
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
-
-        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
-
-        { "MILLENNIUM__PYTHON_ENV", pythonEnv },
-        { "LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin },
-        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/{}", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) },
-        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/{}/lib-dynload", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) }
+        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT },
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
@@ -234,16 +209,9 @@ void platform::environment::setup()
     const std::string configDir = fmt::format("{}/Library/Application Support", homeDir);
     const std::string dataDir = fmt::format("{}/Library/Application Support", homeDir);
     const std::string stateDir = fmt::format("{}/Library/Logs", homeDir);
-    const static std::string pythonEnv = fmt::format("{}/Millennium/runtime", dataDir);
-    const std::string pythonEnvBin = fmt::format("{}/bin/{}", pythonEnv, MILLENNIUM__PYTHON_BIN_NAME);
-
-    if (access(pythonEnvBin.c_str(), F_OK) == -1) {
-        std::system(fmt::format("\"{}/bin/{}\" -m venv \"{}\" --system-site-packages --symlinks", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_BIN_NAME, pythonEnv).c_str());
-    }
 
     std::map<std::string, std::string> environment_macos = {
         { "MILLENNIUM_RUNTIME_PATH", "/usr/local/lib/millennium/libmillennium_x86.dylib" },
-        { "LIBPYTHON_RUNTIME_PATH", LIBPYTHON_RUNTIME_PATH },
 
         { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
         { "MILLENNIUM__PLUGINS_PATH", fmt::format("{}/Millennium/plugins", dataDir) },
@@ -252,13 +220,7 @@ void platform::environment::setup()
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
-
-        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT }, /** The script the user will run to update millennium. */
-
-        { "MILLENNIUM__PYTHON_ENV", pythonEnv },
-        { "LIBPYTHON_RUNTIME_BIN_PATH", pythonEnvBin },
-        { "LIBPYTHON_BUILTIN_MODULES_PATH", fmt::format("{}/lib/{}", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) },
-        { "LIBPYTHON_BUILTIN_MODULES_DLL_PATH", fmt::format("{}/lib/{}/lib-dynload", MILLENNIUM__PYTHON_ENV, MILLENNIUM__PYTHON_STDLIB_DIR) }
+        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT },
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif

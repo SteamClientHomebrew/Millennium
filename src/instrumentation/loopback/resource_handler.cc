@@ -244,7 +244,7 @@ int handle_loopback_request(const char* url, char** out_data, uint32_t* out_size
         goto cleanup;
     }
 
-    find_file_matches(file_data.content, file_data.size, local_short_path, &out_file_data, &out_file_size);
+    find_file_matches(file_data.content, file_data.size, local_path, &out_file_data, &out_file_size);
     *out_data = out_file_data;
     *out_size = out_file_size;
     file_data.content = NULL; /** transfer ownership */
