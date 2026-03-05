@@ -36,6 +36,30 @@ import { API_URL } from '../utils/globals';
 import { PyIsPluginInstalled, PyUpdatePluginStatus, PyInstallPlugin } from '../utils/ffi';
 import { formatString, locale } from '../utils/localization-manager';
 
+function normalizeInstallResponse(result: unknown): { success: boolean; message?: string } {
+	if (typeof result === 'string') {
+		try {
+			const parsed = JSON.parse(result);
+			return {
+				success: Boolean(parsed?.success),
+				message: parsed?.error ?? parsed?.message,
+			};
+		} catch {
+			return { success: false, message: result };
+		}
+	}
+
+	if (result && typeof result === 'object') {
+		const typed = result as Record<string, unknown>;
+		return {
+			success: Boolean(typed.success),
+			message: (typed.error as string) ?? (typed.message as string),
+		};
+	}
+
+	return { success: false, message: locale.errorFailedToStartThemeInstaller };
+}
+
 const OnInstallComplete = (data: any, props: InstallerProps) => {
 	const EnablePlugin = async () => {
 		await PyUpdatePluginStatus({ pluginJson: JSON.stringify([{ plugin_name: data?.pluginJson?.name, enabled: true }]) });
@@ -100,7 +124,13 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 		return false;
 	}
 
-	const isInstalled = await PyIsPluginInstalled({ plugin_name: data?.pluginJson?.name });
+	const pluginName = data?.pluginJson?.name;
+	if (!pluginName || typeof pluginName !== 'string') {
+		props?.ShowMessageBox(locale.errorInvalidID, locale.errorMessageTitle);
+		return false;
+	}
+
+	const isInstalled = await PyIsPluginInstalled({ plugin_name: pluginName });
 
 	if (isInstalled) {
 		props?.ShowMessageBox(formatString(locale.strAlreadyInPluginLibrary, data?.pluginJson?.common_name ?? locale.strUnknown), locale.strAlreadyInstalled, {
@@ -114,17 +144,17 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 
 	const downloadUrl = API_URL + data?.downloadUrl;
 
-	PyInstallPlugin({ download_url: downloadUrl, total_size: data?.fileSize }).then((result: any) => {
-		try {
-			const jsonResponse = JSON.parse(result);
+	PyInstallPlugin({ download_url: downloadUrl, total_size: data?.fileSize })
+		.then((result: unknown) => {
+			const response = normalizeInstallResponse(result);
+			if (response.success) return;
 
-			if (!jsonResponse?.success) {
-				throw new Error(jsonResponse?.message);
-			}
-		} catch (error) {
-			props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, error), locale.errorMessageTitle);
-		}
-	});
+			const message = response.message || locale.errorFailedToStartThemeInstaller;
+			props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, String(message)), locale.errorMessageTitle);
+		})
+		.catch((error: unknown) => {
+			props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, String(error)), locale.errorMessageTitle);
+		});
 
 	return {
 		onInstallComplete: OnInstallComplete.bind(null, data, props),

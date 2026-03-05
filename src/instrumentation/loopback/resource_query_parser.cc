@@ -31,6 +31,8 @@
 #define _POSIX_C_SOURCE 200809L
 #ifdef __linux__
 #include <linux/limits.h>
+#elif __APPLE__
+#include <limits.h>
 #elif _WIN32
 #include <windows.h>
 #define PATH_MAX MAX_PATH
@@ -89,6 +91,9 @@ int urlp_path_from_lb(const char* url, char** out_abs, char** out_rel)
         }
     }
     snprintf(file_path, PATH_MAX, "%s/steamui%s", steam_path, path);
+#elif __APPLE__
+    const char* home = getenv("HOME");
+    snprintf(file_path, PATH_MAX, "%s/Library/Application Support/Steam/steamui%s", home ? home : "/Users", path);
 #else
     const char* home = getenv("HOME");
     snprintf(file_path, PATH_MAX, "%s/.steam/steam/steamui%s", home ? home : "/home", path);

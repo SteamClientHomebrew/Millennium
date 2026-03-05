@@ -36,12 +36,20 @@
 #include "millennium/logger.h"
 #include "millennium/semver.h"
 #include "millennium/filesystem.h"
+#include "millennium/backend_mgr.h"
 #include <exception>
 #include <fmt/core.h>
 #include <lua.hpp>
 #include <nlohmann/json.hpp>
 #include "mep/ffi_recorder.h"
 #include <chrono>
+
+extern std::shared_ptr<InterpreterMutex> g_shouldTerminateMillennium;
+
+static bool IsMillenniumShuttingDown()
+{
+    return g_shouldTerminateMillennium && g_shouldTerminateMillennium->flag.load();
+}
 
 /**
  * RAII-style Lua stack guard to ensure stack cleanup in all code paths
@@ -212,11 +220,19 @@ int Lua_RemoveBrowserModule(lua_State* L)
 
     std::shared_ptr<plugin_loader> loader = backend_initializer::get_plugin_loader_from_lua_vm(L);
     if (!loader) {
+        if (IsMillenniumShuttingDown()) {
+            lua_pushboolean(L, 1);
+            return 1;
+        }
         return luaL_error(L, "Failed to contact Millennium's plugin loader, it's likely shut down.");
     }
 
     std::shared_ptr<head::millennium_backend> backend = loader->get_millennium_backend();
     if (!backend) {
+        if (IsMillenniumShuttingDown()) {
+            lua_pushboolean(L, 1);
+            return 1;
+        }
         return luaL_error(L, "Failed to contact Millennium's backend, it's likely shut down.");
     }
 
@@ -224,6 +240,11 @@ int Lua_RemoveBrowserModule(lua_State* L)
     if (auto webkit_mgr = webkit_mgr_weak.lock()) {
         const bool success = webkit_mgr->remove_browser_hook(static_cast<unsigned long long>(hookId));
         lua_pushboolean(L, success);
+        return 1;
+    }
+
+    if (IsMillenniumShuttingDown()) {
+        lua_pushboolean(L, 1);
         return 1;
     }
 

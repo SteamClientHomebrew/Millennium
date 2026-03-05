@@ -31,12 +31,15 @@
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
 #include "millennium/cmdline_parse.h"
+#include <cstring>
 
 #ifdef _WIN32
 #include <Windows.h>
 #include <shellapi.h>
 #elif __linux__
 #include <dlfcn.h>
+#elif defined(__APPLE__)
+#include <crt_externs.h>
 #endif
 
 bool CommandLineArguments::has_argument(const std::string& targetArgument)
@@ -73,11 +76,72 @@ bool CommandLineArguments::has_argument(const std::string& targetArgument)
     bool result = func(targetArgument.c_str());
     dlclose(handle);
     return result;
+#elif defined(__APPLE__)
+    int* argc = _NSGetArgc();
+    char*** argv = _NSGetArgv();
+    if (!argc || !argv || !*argv) {
+        return false;
+    }
+
+    for (int i = 1; i < *argc; ++i) {
+        const char* argument = (*argv)[i];
+        if (argument && targetArgument == argument) {
+            return true;
+        }
+    }
+    return false;
+#else
+    return false;
 #endif
 }
 
 unsigned short CommandLineArguments::get_remote_debugger_port()
 {
+    /**
+     * Always prefer explicit -devtools-port when present.
+     * This keeps CDP attachment aligned with wrapper/bootstrap on macOS.
+     */
+#if defined(__APPLE__)
+    int* argc = _NSGetArgc();
+    char*** argv = _NSGetArgv();
+    if (argc && argv && *argv) {
+        constexpr const char* option = "-devtools-port";
+        constexpr size_t option_len = 14;
+
+        for (int i = 1; i < *argc; ++i) {
+            const char* argument = (*argv)[i];
+            if (!argument) {
+                continue;
+            }
+
+            if (strcmp(argument, option) == 0) {
+                if (i + 1 < *argc && (*argv)[i + 1]) {
+                    try {
+                        return static_cast<unsigned short>(std::stoi((*argv)[i + 1]));
+                    } catch (const std::exception&) {
+                        return 0;
+                    }
+                }
+
+                return 0;
+            }
+
+            if (strncmp(argument, "-devtools-port=", option_len + 1) == 0) {
+                const char* value = argument + option_len + 1;
+                if (!value || value[0] == '\0') {
+                    return 0;
+                }
+
+                try {
+                    return static_cast<unsigned short>(std::stoi(value));
+                } catch (const std::exception&) {
+                    return 0;
+                }
+            }
+        }
+    }
+#endif
+
     const char* portValue = GetAppropriateDevToolsPort(CommandLineArguments::has_argument("-dev"));
 
     if (!portValue) {

@@ -89,15 +89,24 @@ set(SOURCE_FILES
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
     list(APPEND SOURCE_FILES "${VERSION_FILE}")
+elseif(APPLE)
+    enable_language(OBJCXX)
+    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/platform/macos_window_style.mm")
 elseif(UNIX)
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
+    list(APPEND SOURCE_FILES
+        ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c
+        ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c
+    )
 endif()
 
 add_library(hhx64 SHARED ${SOURCE_FILES})
 
 if(WIN32)
     target_link_libraries(hhx64 minhook wsock32)
+endif()
+
+if(APPLE)
+    target_link_libraries(hhx64 "-framework AppKit" "-framework QuartzCore")
 endif()
 
 target_link_libraries(hhx64 re2)
@@ -107,7 +116,7 @@ set_target_properties(hhx64 PROPERTIES
     SUFFIX ""
 )
 
-if(UNIX)
+if(UNIX AND NOT APPLE)
     set_target_properties(hhx64 PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
     set_target_properties(hhx64 PROPERTIES POSITION_INDEPENDENT_CODE ON)
 elseif(WIN32)

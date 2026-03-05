@@ -100,6 +100,7 @@ inline std::string Get(const char* url, bool retry = true, const long timeout = 
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, MILLENNIUM_USERAGENT);
+        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // Follow redirects
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);   // 10 seconds timeout
 
@@ -134,6 +135,7 @@ inline std::string Post(const char* url, const std::string& postData, bool retry
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteByteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         curl_easy_setopt(curl, CURLOPT_USERAGENT, MILLENNIUM_USERAGENT);
+        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
         while (true) {

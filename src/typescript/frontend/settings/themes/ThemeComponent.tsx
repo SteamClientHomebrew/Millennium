@@ -62,6 +62,11 @@ export enum UIReloadProps {
 }
 
 export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReloadProps) => {
+	if (!themeName || typeof themeName !== 'string') {
+		console.error('ChangeActiveTheme called with invalid theme name:', themeName);
+		return false;
+	}
+
 	await callable<[{ theme_name: string }]>('Core_ChangeActiveTheme')({ theme_name: themeName });
 
 	return new Promise((resolve) => {
@@ -72,7 +77,9 @@ export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReload
 				break;
 			case UIReloadProps.Prompt:
 				Utils.PromptReload((hasClickedOk) => {
-					SteamClient.Browser.RestartJSContext();
+					if (hasClickedOk) {
+						SteamClient.Browser.RestartJSContext();
+					}
 					resolve(hasClickedOk);
 				});
 				break;

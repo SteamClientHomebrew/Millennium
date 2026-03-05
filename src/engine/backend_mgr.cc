@@ -52,7 +52,7 @@ backend_manager::backend_manager(std::shared_ptr<plugin_manager> plugin_manager,
 
 backend_manager::~backend_manager()
 {
-#if defined(__linux__) || defined(MILLENNIUM_32BIT)
+#if defined(__linux__) || defined(__APPLE__) || defined(MILLENNIUM_32BIT)
     logger.log("Shutting down backend_manager...");
     this->shutdown();
 #endif
@@ -350,8 +350,7 @@ void* backend_manager::Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, siz
             free(ptr);
         }
         return nullptr;
-    }
-    else {
+    } else {
         void* newptr = realloc(ptr, nsize);
         if (!newptr) {
             return nullptr;

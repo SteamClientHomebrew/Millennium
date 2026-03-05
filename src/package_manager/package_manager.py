@@ -39,8 +39,23 @@ from config import Config
 
 def get_installed_packages():
     logger.log("Installed packages:")
-    
-    package_map = {dist.metadata["Name"]: dist.version for dist in importlib.metadata.distributions()}
+    package_map = {}
+    runtime_prefix = os.path.realpath(os.getenv("MILLENNIUM__PYTHON_ENV", ""))
+
+    for dist in importlib.metadata.distributions():
+        name = dist.metadata.get("Name")
+        if not name:
+            continue
+
+        # Ignore globally-installed packages so dependency checks reflect
+        # Millennium's runtime env only.
+        if runtime_prefix:
+            dist_root = os.path.realpath(str(dist.locate_file("")))
+            if not dist_root.startswith(runtime_prefix):
+                continue
+
+        package_map[name] = dist.version
+
     str_packages = [f"{name}=={version}" for name, version in package_map.items()]
 
     logger.log(" ".join(str_packages))
@@ -102,7 +117,7 @@ def pip(cmd, config: Config):
 
 def install_packages(package_names, config: Config):
     pip(["install", "--upgrade", "pip", "setuptools", "wheel"], config)
-    pip(["install"] + package_names, config)
+    pip(["install", "--upgrade", "--ignore-installed"] + package_names, config)
 
 
 def uninstall_packages(package_names, config: Config):

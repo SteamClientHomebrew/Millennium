@@ -140,8 +140,18 @@ std::weak_ptr<head::plugin_installer> head::library_updater::get_plugin_updater(
     return plugin_updater;
 }
 
+void head::library_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
+{
+    m_ipc_main = std::move(ipc_main);
+}
+
 void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
 {
+    if (!m_ipc_main) {
+        logger.warn("Skipping installer progress dispatch because IPC bridge is not ready. status='{}', progress={}", status, progress);
+        return;
+    }
+
     // Completion events always go through immediately.
     if (!is_complete) {
         auto now = std::chrono::steady_clock::now();

@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include "millennium/logger.h"
 #include <unistd.h>
 #endif
@@ -173,13 +173,13 @@ void platform::environment::setup()
 
 #ifdef _WIN32
     std::map<std::string, std::string> environment_windows = {
-        { "MILLENNIUM__PLUGINS_PATH", platform::get_install_path().string() + "/plugins"        },
-        { "MILLENNIUM__CONFIG_PATH",  platform::get_install_path().string() + "/ext"            },
-        { "MILLENNIUM__LOGS_PATH",    platform::get_install_path().string() + "/ext/logs"       },
-        { "MILLENNIUM__DATA_LIB",     dataLibPath                                               },
-        { "MILLENNIUM__SHIMS_PATH",   shimsPath                                                 },
-        { "MILLENNIUM__ASSETS_PATH",  assetsPath                                                },
-        { "MILLENNIUM__INSTALL_PATH", platform::get_install_path().string()                     }
+        { "MILLENNIUM__PLUGINS_PATH", platform::get_install_path().string() + "/plugins"  },
+        { "MILLENNIUM__CONFIG_PATH",  platform::get_install_path().string() + "/ext"      },
+        { "MILLENNIUM__LOGS_PATH",    platform::get_install_path().string() + "/ext/logs" },
+        { "MILLENNIUM__DATA_LIB",     dataLibPath                                         },
+        { "MILLENNIUM__SHIMS_PATH",   shimsPath                                           },
+        { "MILLENNIUM__ASSETS_PATH",  assetsPath                                          },
+        { "MILLENNIUM__INSTALL_PATH", platform::get_install_path().string()               }
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
 #elif __linux__
@@ -201,7 +201,6 @@ void platform::environment::setup()
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
-
         { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT },
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
@@ -221,13 +220,14 @@ void platform::environment::setup()
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
-
         { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT },
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif
 
 #ifdef __linux__
+    const bool shouldLog = get("MLOG_ENV") == "1" || get("MLOG_ENV") == "true";
+#elif defined(__APPLE__)
     const bool shouldLog = get("MLOG_ENV") == "1" || get("MLOG_ENV") == "true";
 #elif defined(_WIN32)
     const bool shouldLog = false;

@@ -185,6 +185,8 @@ std::optional<nlohmann::json> millennium_updater::find_asset(const nlohmann::jso
     platform_suffix = "windows-x86_64.zip";
 #elif __linux__
     platform_suffix = "linux-x86_64.tar.gz";
+#elif defined(__APPLE__)
+    return std::nullopt;
 #else
     LOG_ERROR("Invalid platform, cannot find platform-specific assets.");
     return std::nullopt;
