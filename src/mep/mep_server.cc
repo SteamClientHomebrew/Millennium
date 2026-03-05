@@ -35,7 +35,11 @@
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 #else
+#if defined(__APPLE__)
+#include <sys/endian.h>
+#else
 #include <endian.h>
+#endif
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/un.h>

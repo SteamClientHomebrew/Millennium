@@ -54,11 +54,6 @@ set(SOURCE_FILES
     runtime/lua/lua_regex.cc
     runtime/lua/lua_datetime.cc
     runtime/lua/lua_hook_api.cc
-    runtime/python/python_api.cc
-    runtime/python/python_gil.cc
-    runtime/python/python_interop.cc
-    runtime/python/python_logger.cc
-    runtime/python/python_stdout_hook.cc
     engine/auth.cc
     engine/backend_init.cc
     engine/backend_mgr.cc
@@ -95,6 +90,12 @@ set(SOURCE_FILES
     system/health_check.cc
     system/logger.cc
     millennium.cc
+    mep/mep_message.cc
+    mep/mep_router.cc
+    mep/mep_server.cc
+    mep/mep_hooks.cc
+    mep/ffi_recorder.cc
+    mep/console_capture.cc
 )
 
 if(WIN32)
