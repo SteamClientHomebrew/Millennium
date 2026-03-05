@@ -32,12 +32,14 @@
 
 #include "millennium/singleton.h"
 
-#include <Python.h>
 #include <array>
 #include <fmt/color.h>
 #include <fmt/core.h>
+#include <atomic>
+#include <functional>
 #include <fstream>
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
 #define RED "\033[31m"
@@ -95,6 +97,7 @@ class logger_base
     {
         std::string message;
         log_level level;
+        std::string timestamp;
     };
 
   protected:
@@ -115,6 +118,12 @@ class plugin_logger : public logger_base
     std::string filename;
     std::string pluginName;
 
+    std::mutex m_listener_mutex;
+    std::unordered_map<int, std::function<void(const log_entry&)>> m_listeners;
+    std::atomic<int> m_listener_id_counter{ 0 };
+
+    void notify_listeners(const log_entry& entry);
+
   public:
     plugin_logger(const std::string& pluginName);
     ~plugin_logger();
@@ -126,6 +135,19 @@ class plugin_logger : public logger_base
 
     std::vector<log_entry> collect_logs();
     std::string get_plugin_name(bool upperCase = true);
+
+    /**
+     * Register a listener that is called with each new log entry as it is written.
+     * Safe to call from any thread. Returns a listener ID for use with remove_listener().
+     */
+    int add_listener(std::function<void(const log_entry&)> fn);
+
+    /**
+     * Deregister the listener with the given ID.
+     * Safe to call from any thread, including during an active notify_listeners() call.
+     * A no-op if @p id is unknown or already removed.
+     */
+    void remove_listener(int id);
 };
 
 class millennium_logger : public logger_base, public singleton<millennium_logger>
@@ -230,15 +252,6 @@ inline void RawToLogger(const std::string pluginName, const std::string message)
 }
 
 void CleanupLoggers();
-
-typedef struct
-{
-    PyObject_HEAD char* prefix;
-    plugin_logger* m_loggerPtr;
-} LoggerObject;
-
-extern PyTypeObject LoggerType;
-PyObject* PyInit_Logger(void);
 
 #if defined(_MSC_VER)
 #define PRETTY_FUNCTION __FUNCSIG__

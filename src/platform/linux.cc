@@ -50,8 +50,8 @@
 #include <string.h>
 
 std::unique_ptr<std::thread> g_millenniumThread;
-extern std::mutex mtx_hasAllPythonPluginsShutdown, mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
-extern std::condition_variable cv_hasSteamUnloaded, cv_hasAllPythonPluginsShutdown, cv_hasSteamUIStartedLoading;
+extern std::mutex mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
+extern std::condition_variable cv_hasSteamUnloaded, cv_hasSteamUIStartedLoading;
 
 int IsSamePath(const char* path1, const char* path2)
 {
@@ -113,11 +113,6 @@ void Posix_AttachMillennium()
 extern "C" __attribute__((visibility("default"))) int StartMillennium()
 {
     logger.log("Hooked main() with PID: {}", getpid());
-    logger.log("Loading python libraries from {}", LIBPYTHON_RUNTIME_PATH);
-
-    if (!dlopen(LIBPYTHON_RUNTIME_PATH, RTLD_LAZY | RTLD_GLOBAL)) {
-        LOG_ERROR("Failed to load python libraries: {},\n\nThis is likely because it was not found on disk, try reinstalling Millennium.", dlerror());
-    }
 
     g_millenniumThread = std::make_unique<std::thread>(Posix_AttachMillennium);
     logger.log("Millennium started successfully.");

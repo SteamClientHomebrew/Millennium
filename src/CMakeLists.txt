@@ -54,11 +54,6 @@ set(SOURCE_FILES
     runtime/lua/lua_regex.cc
     runtime/lua/lua_datetime.cc
     runtime/lua/lua_hook_api.cc
-    runtime/python/python_api.cc
-    runtime/python/python_gil.cc
-    runtime/python/python_interop.cc
-    runtime/python/python_logger.cc
-    runtime/python/python_stdout_hook.cc
     engine/auth.cc
     engine/backend_init.cc
     engine/backend_mgr.cc
@@ -95,6 +90,12 @@ set(SOURCE_FILES
     system/health_check.cc
     system/logger.cc
     millennium.cc
+    mep/mep_message.cc
+    mep/mep_router.cc
+    mep/mep_server.cc
+    mep/mep_hooks.cc
+    mep/ffi_recorder.cc
+    mep/console_capture.cc
 )
 
 if(WIN32)
@@ -161,41 +162,18 @@ endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/detect_aur_helper.cmake)
 
-if(WIN32)
-    include_directories(${MILLENNIUM_BASE}/src/vendor/python/win32)
-elseif(APPLE)
-    set(python_path "$ENV{HOME}/.pyenv/versions/3.11.8")
-    include_directories("${python_path}/include/python3.11")
-    set(MILLENNIUM__PYTHON_ENV "${python_path}")
-    set(LIBPYTHON_RUNTIME_PATH "${python_path}/lib/libpython3.11.dylib")
-    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
-elseif(DISTRO_NIX)
-    set(default_python_path "${NIX_PYTHON}")
-    set(MILLENNIUM__PYTHON_ENV "${NIX_PYTHON}")
-    set(LIBPYTHON_RUNTIME_PATH "${NIX_PYTHON}/lib/libpython-3.11.8.so")
-
-    include_directories("${NIX_PYTHON}/include/python3.11/")
+if(DISTRO_NIX)
     detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "echo {}")
-
-    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
-else()
-    set(default_python_path "/opt/python-i686-3.11.8")
-    set(MILLENNIUM__PYTHON_ENV "${default_python_path}")
-    set(LIBPYTHON_RUNTIME_PATH "${default_python_path}/lib/libpython-3.11.8.so")
-
+elseif(UNIX AND NOT APPLE)
     if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
-        include_directories("${MILLENNIUM_BASE}/src/vendor/python/posix")
         detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
     elseif(NIX_BUILD OR LSB_RELEASE_ID_SHORT STREQUAL "NixOS")
-        include_directories("${default_python_path}/include/python3.11/")
         set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "nix flake update millennium")
     else()
-        include_directories("${MILLENNIUM_BASE}/src/vendor/python/posix")
         set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://steambrew.app/install.sh' | bash")
     endif()
     message(STATUS "[Millennium] Setting MILLENNIUM__UPDATE_SCRIPT_PROMPT to: ${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
-    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
 endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
@@ -212,8 +190,6 @@ elseif(UNIX)
     endif()
 
     add_compile_definitions(MILLENNIUM_SHARED)
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__PYTHON_ENV="${MILLENNIUM__PYTHON_ENV}")
-    target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_PATH="${LIBPYTHON_RUNTIME_PATH}")
     target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
     if(DISTRO_NIX)
         target_compile_definitions(Millennium PRIVATE DISTRO_NIX)
@@ -238,33 +214,10 @@ endif()
 target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)
-    set(PYTHON_LIB "${MILLENNIUM_BASE}/src/vendor/python/lib64/python311.lib")
-    set(PYTHON_LIB_IN_PATH "${MILLENNIUM_BASE}/src/vendor/python/lib64/python311.dll")
-    set(PYTHON_LIB_OUT_PATH "${out_steam_path}/python311.dll")
-
-    if (NOT GITHUB_ACTION_BUILD)
-        add_custom_command(
-            OUTPUT ${PYTHON_LIB_OUT_PATH}
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PYTHON_LIB_IN_PATH} ${PYTHON_LIB_OUT_PATH}
-            COMMENT "Adding Millennium python runtime to Steam directory"
-        )
-
-        add_custom_target(copy_python311_dll ALL DEPENDS ${PYTHON_LIB_OUT_PATH} COMMENT "Ensuring python311.dll is present in Steam directory")
-        add_dependencies(Millennium copy_python311_dll)
-    endif()
-
-    target_link_libraries(Millennium minhook ${PYTHON_LIB} user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
+    target_link_libraries(Millennium minhook user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_link_options(Millennium PRIVATE /NODEFAULTLIB:LIBCMT)
     endif()
 elseif(UNIX)
     target_link_options(Millennium PRIVATE -Wl,--no-undefined)
-
-    if(APPLE)
-        target_link_libraries(Millennium "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
-    elseif(DISTRO_NIX)
-        target_link_libraries(Millennium "${NIX_PYTHON}/lib/libpython-3.11.8.so")
-    else()
-        target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
-    endif()
 endif()

@@ -24,11 +24,15 @@ export function setMillenniumAuthToken(token: string) {
 
 const backendIPC = {
 	postMessage: async (messageId: number, contents: any): Promise<any> => {
-		return new Promise((resolve) => {
-			resolve({
-				returnValue: null,
-			});
-		});
+		/**
+		 * Only handle FRONT_END_LOADED (id=1). Old compiled plugins may still call
+		 * postMessage(0, ...) for CALL_SERVER_METHOD (now handled by ffiBinder.call),
+		 * so we must ignore those to avoid sending empty-method calls.
+		 */
+		if (messageId !== 1) return { returnValue: null };
+		const ffi = window.MILLENNIUM_PRIVATE_INTERNAL_FOREIGN_FUNCTION_INTERFACE_DO_NOT_USE;
+		if (!ffi) return { returnValue: null };
+		return ffi.call(messageId, contents.pluginName ?? '', '', []);
 	},
 };
 
@@ -75,6 +79,17 @@ class FFI_Binder {
 	private nextId = 0;
 	private requestTimeout = 5000;
 
+	/** Capture the full call stack. */
+	private getCaller(): string {
+		try {
+			const stack = new Error().stack;
+			if (!stack) return '';
+			// Drop the "Error" prefix line, keep all "at ..." frames.
+			return stack.split('\n').filter(l => l.trim().startsWith('at ')).map(l => l.trim()).join('\n');
+		} catch { /* noop */ }
+		return '';
+	}
+
 	async call(payloadType: IpcMethod, pluginName: string, methodName: string, argumentList: any[]): Promise<any> {
 		if (!window.hasOwnProperty('__private_millennium_ffi_do_not_use__')) {
 			console.error("Millennium FFI is not available in this context. To use the FFI, make sure you've selected the 'millennium' context");
@@ -82,6 +97,7 @@ class FFI_Binder {
 		}
 
 		const requestId = this.nextId++;
+		const caller = this.getCaller();
 
 		return new Promise((resolve, reject) => {
 			const timeout = setTimeout(() => {
@@ -93,6 +109,7 @@ class FFI_Binder {
 				JSON.stringify({
 					id: payloadType,
 					call_id: requestId,
+					caller,
 					data: {
 						pluginName,
 						methodName,

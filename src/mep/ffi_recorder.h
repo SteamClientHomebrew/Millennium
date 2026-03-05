@@ -29,29 +29,55 @@
  */
 
 #pragma once
-#include "millennium/plugin_loader.h"
-#include "millennium/millennium_updater.h"
-#include "mep/mep_router.h"
-#include "mep/mep_server.h"
 
-class millennium
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace mep
 {
-  public:
-    millennium();
-    void entry();
 
-    std::shared_ptr<plugin_loader> get_plugin_loader();
-
-  private:
-    void check_for_updates();
-
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<plugin_loader> m_plugin_loader;
-    std::shared_ptr<head::millennium_backend> m_millennium_backend;
-    std::shared_ptr<millennium_updater> m_millennium_updater;
-
-    mep::router m_mep_router;
-    mep::server m_mep_server;
+struct ffi_call_entry
+{
+    std::string plugin;
+    std::string method;
+    std::string direction; // "fe_to_be" or "be_to_fe"
+    std::string args;
+    std::string result;
+    double duration_ms;
+    std::chrono::system_clock::time_point timestamp;
+    std::string caller; // e.g. "main.lua:42" — empty if unavailable
 };
 
-extern std::unique_ptr<millennium> g_millennium;
+class ffi_recorder
+{
+  public:
+    using listener_fn = std::function<void(const ffi_call_entry&)>;
+
+    static ffi_recorder& instance();
+
+    void record(ffi_call_entry entry);
+
+    std::vector<ffi_call_entry> get_recent(const std::string& plugin, std::size_t max = 200) const;
+
+    int add_listener(const std::string& plugin, listener_fn fn);
+    void remove_listener(int id);
+
+  private:
+    ffi_recorder() = default;
+
+    static constexpr std::size_t RING_SIZE = 512;
+
+    mutable std::mutex m_ring_mutex;
+    std::vector<ffi_call_entry> m_ring;
+    std::size_t m_write_pos = 0;
+
+    std::mutex m_listener_mutex;
+    std::unordered_map<int, std::pair<std::string, listener_fn>> m_listeners;
+    std::atomic<int> m_id_counter{ 0 };
+};
+} // namespace mep

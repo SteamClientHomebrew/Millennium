@@ -103,9 +103,38 @@ plugin_logger::~plugin_logger()
     file.close();
 }
 
+void plugin_logger::notify_listeners(const log_entry& entry)
+{
+    std::vector<std::function<void(const log_entry&)>> snapshot;
+    {
+        std::lock_guard<std::mutex> lock(m_listener_mutex);
+        snapshot.reserve(m_listeners.size());
+        for (const auto& [id, fn] : m_listeners)
+            snapshot.push_back(fn);
+    }
+    for (const auto& fn : snapshot)
+        fn(entry);
+}
+
+int plugin_logger::add_listener(std::function<void(const log_entry&)> fn)
+{
+    int id = ++m_listener_id_counter;
+    std::lock_guard<std::mutex> lock(m_listener_mutex);
+    m_listeners[id] = std::move(fn);
+    return id;
+}
+
+void plugin_logger::remove_listener(int id)
+{
+    std::lock_guard<std::mutex> lock(m_listener_mutex);
+    m_listeners.erase(id);
+}
+
 void plugin_logger::log(const std::string& message, bool onlyBuffer)
 {
     std::string formatted = fmt::format("{} ", get_plugin_name());
+    std::string ts_bracketed = get_local_time(true);
+    std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
 
     if (!onlyBuffer) {
         std::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
@@ -114,11 +143,16 @@ void plugin_logger::log(const std::string& message, bool onlyBuffer)
         file.flush();
     }
 
-    logBuffer.push_back({ WHITE + get_local_time(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", log_level::info });
+    const log_entry entry{ message, log_level::info, ts };
+    logBuffer.push_back(entry);
+    notify_listeners(entry);
 }
 
 void plugin_logger::warn(const std::string& message, bool onlyBuffer)
 {
+    std::string ts_bracketed = get_local_time(true);
+    std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
+
     if (!onlyBuffer) {
         std::string formatted = fmt::format("{}{}{}", get_local_time(), fmt::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
@@ -127,11 +161,16 @@ void plugin_logger::warn(const std::string& message, bool onlyBuffer)
         file.flush();
     }
 
-    logBuffer.push_back({ WHITE + get_local_time(true) + YELLOW + " " + get_plugin_name() + " " + message + RESET + "\n", log_level::warn });
+    const log_entry entry{ message, log_level::warn, ts };
+    logBuffer.push_back(entry);
+    notify_listeners(entry);
 }
 
 void plugin_logger::error(const std::string& message, bool onlyBuffer)
 {
+    std::string ts_bracketed = get_local_time(true);
+    std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
+
     if (!onlyBuffer) {
         std::string formatted = fmt::format("{}{}{}", get_local_time(), fmt::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_RED << formatted << COL_RESET << '\n';
@@ -140,7 +179,9 @@ void plugin_logger::error(const std::string& message, bool onlyBuffer)
         file.flush();
     }
 
-    logBuffer.push_back({ RED + message + RESET, log_level::error });
+    const log_entry entry{ message, log_level::error, ts };
+    logBuffer.push_back(entry);
+    notify_listeners(entry);
 }
 
 void plugin_logger::print(const std::string& message)
@@ -148,7 +189,9 @@ void plugin_logger::print(const std::string& message)
     file << message;
     file.flush();
 
-    logBuffer.push_back({ message, log_level::info });
+    const log_entry entry{ message, log_level::info, {} };
+    logBuffer.push_back(entry);
+    notify_listeners(entry);
 }
 
 std::vector<logger_base::log_entry> plugin_logger::collect_logs()

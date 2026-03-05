@@ -37,7 +37,6 @@
 #include <memory>
 #include <thread>
 
-#include <Python.h>
 #include <lua.hpp>
 
 struct InterpreterMutex
@@ -59,25 +58,6 @@ struct LuaThreadPoolItem
     {
     }
 };
-
-struct PythonThreadState
-{
-    std::string pluginName;
-    PyThreadState* thread_state;
-    std::shared_ptr<InterpreterMutex> mutex;
-
-    PythonThreadState(std::string pluginName, PyThreadState* thread_state, std::shared_ptr<InterpreterMutex> mutex)
-        : pluginName(pluginName), thread_state(thread_state), mutex(mutex)
-    {
-    }
-};
-
-struct PythonEnvPath
-{
-    std::string pythonPath, pythonLibs, pythonUserLibs;
-};
-
-PythonEnvPath GetPythonEnvPaths();
 
 class backend_manager
 {
@@ -103,34 +83,22 @@ class backend_manager
     void lua_remove_mtx(lua_State* L);
     void lua_remove_mem_tracking(const std::string& pluginName);
 
-    bool python_destroy_vm(std::string targetPluginName, bool isShuttingDown = false);
     bool destroy_lua_vm(std::string pluginName, bool shouldCleanupThreadPool = true, bool isShuttingDown = false);
-    bool destroy_generic_vm(std::string plugin_name);
 
-    bool destroy_python_vms();
     bool destroy_lua_vms(bool isShuttingDown = false);
 
-    bool create_python_vm(plugin_manager::plugin_t& plugin, std::function<void(plugin_manager::plugin_t)> callback);
     bool create_lua_vm(plugin_manager::plugin_t& plugin, std::function<void(plugin_manager::plugin_t, lua_State*)> callback);
 
-    bool has_any_python_backends();
     bool has_any_lua_backends();
 
-    bool has_all_python_backends_stopped();
     bool has_all_lua_backends_stopped();
 
-    bool is_python_backend_running(std::string pluginName);
     bool is_lua_backend_running(std::string pluginName);
     bool is_any_backend_running(std::string plugin_name);
 
-    bool has_python_backend(std::string pluginName);
-
     plugin_manager::backend_t get_plugin_backend_type(std::string pluginName);
 
-    std::optional<std::shared_ptr<PythonThreadState>> python_thread_state_from_plugin_name(std::string pluginName);
     std::optional<lua_State*> lua_thread_state_from_plugin_name(std::string pluginName);
-
-    std::string get_plugin_name_from_thread_state(PyThreadState* thread);
 
   private:
     struct LuaThreadWrapper
@@ -156,14 +124,9 @@ class backend_manager
 
     static std::atomic<size_t>& Lua_GetPluginCounter(const std::string& plugin_name);
 
-    std::mutex m_pythonMutex;
     std::vector<std::tuple<lua_State*, std::unique_ptr<std::mutex>>> m_luaMutexPool;
-    PyThreadState* m_InterpreterThreadSave;
-
-    std::vector<std::tuple<std::string, std::thread>> m_pyThreadPool;
 
     std::vector<std::shared_ptr<LuaThreadPoolItem>> m_luaThreadPool;
-    std::vector<std::shared_ptr<PythonThreadState>> m_pythonInstances;
 
     std::tuple<lua_State*, std::unique_ptr<std::mutex>>* Lua_FindEntry(lua_State* L);
 

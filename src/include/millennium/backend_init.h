@@ -49,32 +49,14 @@ class backend_initializer
     }
 
     static std::shared_ptr<plugin_loader> get_plugin_loader_from_lua_vm(lua_State* L);
-    static std::shared_ptr<plugin_loader> get_plugin_loader_from_python_vm();
-
-    static void python_set_plugin_loader_ud(std::weak_ptr<plugin_loader> wp);
     static int lua_set_plugin_loader_ud(lua_State* L, std::weak_ptr<plugin_loader> wp);
 
-    void python_backend_started_cb(plugin_manager::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader);
     void lua_backend_started_cb(plugin_manager::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader, lua_State* L);
 
     /** Fix an old issue previous versions of Millennium introduced */
     void compat_restore_shared_js_context();
 
-    /**
-     * @brief Start the package manager preload module.
-     * The package manager module is responsible for python package management.
-     * All packages are grouped and shared when needed, to prevent wasting space.
-     */
-    void start_package_manager(std::weak_ptr<plugin_loader> plugin_loader);
-
   private:
-    void python_append_sys_path_modules(std::vector<std::filesystem::path> sitePackages);
-    void python_add_site_packages_directory(std::filesystem::path customPath);
-    void python_invoke_plugin_main_fn(PyObject* global_dict, std::string pluginName);
-    void compat_setup_fake_plugin_settings();
-    void set_plugin_environment_variables(PyObject* globalDictionary, const plugin_manager::plugin_t& plugin);
-    void set_plugin_internal_name(PyObject* globalDictionary, const std::string& pluginName);
-
     std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<backend_manager> m_backend_manager;
     std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;

@@ -36,7 +36,6 @@
 #include "millennium/config.h"
 #include "millennium/types.h"
 
-#include <Python.h>
 #include <lua.hpp>
 #include <variant>
 
@@ -80,9 +79,6 @@ class ipc_main
     vm_call_result lua_evaluate(std::string pluginName, nlohmann::json script);
     void lua_call_frontend_loaded(std::string pluginName);
 
-    vm_call_result python_evaluate(std::string pluginName, nlohmann::json script);
-    void python_call_frontend_loaded(std::string pluginName);
-
     class javascript_evaluation_result
     {
         std::tuple<json /** payload */, bool /** success */> response;
@@ -94,7 +90,6 @@ class ipc_main
         {
         }
 
-        PyObject* to_python() const;
         int to_lua(lua_State* L) const;
         json to_json(const std::string& pluginName) const;
     };

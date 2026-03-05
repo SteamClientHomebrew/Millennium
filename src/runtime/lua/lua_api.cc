@@ -40,6 +40,8 @@
 #include <fmt/core.h>
 #include <lua.hpp>
 #include <nlohmann/json.hpp>
+#include "mep/ffi_recorder.h"
+#include <chrono>
 
 /**
  * RAII-style Lua stack guard to ensure stack cleanup in all code paths
@@ -143,8 +145,35 @@ int Lua_CallFrontendMethod(lua_State* L)
         return luaL_error(L, "Failed to contact Millennium's IPC, it's likely shut down.");
     }
 
+    /* capture Lua caller info (file:line) for FFI trace. */
+    std::string caller;
+    {
+        lua_Debug ar;
+        if (lua_getstack(L, 1, &ar) && lua_getinfo(L, "Sl", &ar)) {
+            const char* src = ar.short_src;
+            if (src && src[0] != '\0') {
+                caller = fmt::format("{}:{}", src, ar.currentline);
+            }
+        }
+    }
+
     const std::string script = ipc->compile_javascript_expression(pluginName, methodName, params);
-    return ipc->evaluate_javascript_expression(script).to_lua(L);
+
+    const auto t0 = std::chrono::steady_clock::now();
+    auto eval_result = ipc->evaluate_javascript_expression(script);
+    const auto t1 = std::chrono::steady_clock::now();
+
+    {
+        const double dur = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        nlohmann::json args_json = nlohmann::json::array();
+        for (const auto& p : params) {
+            std::visit([&args_json](auto&& v) { args_json.push_back(v); }, p);
+        }
+        mep::ffi_recorder::instance().record(
+            { pluginName, methodName, "be_to_fe", args_json.dump(), eval_result.to_json(pluginName).dump(), dur, std::chrono::system_clock::now(), caller });
+    }
+
+    return eval_result.to_lua(L);
 }
 
 int Lua_GetVersionInfo(lua_State* L)

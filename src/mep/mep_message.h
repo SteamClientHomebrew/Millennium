@@ -29,29 +29,40 @@
  */
 
 #pragma once
-#include "millennium/plugin_loader.h"
-#include "millennium/millennium_updater.h"
-#include "mep/mep_router.h"
-#include "mep/mep_server.h"
 
-class millennium
+#include <functional>
+#include <string>
+#include <optional>
+#include <nlohmann/json.hpp>
+
+namespace mep
 {
-  public:
-    millennium();
-    void entry();
-
-    std::shared_ptr<plugin_loader> get_plugin_loader();
-
-  private:
-    void check_for_updates();
-
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<plugin_loader> m_plugin_loader;
-    std::shared_ptr<head::millennium_backend> m_millennium_backend;
-    std::shared_ptr<millennium_updater> m_millennium_updater;
-
-    mep::router m_mep_router;
-    mep::server m_mep_server;
+struct client_context
+{
+    std::function<bool(const nlohmann::json& event)> push;
+    std::function<std::string(std::function<void()> cancel_fn)> subscribe;
+    std::function<bool(const std::string& subscription_id)> unsubscribe;
 };
 
-extern std::unique_ptr<millennium> g_millennium;
+struct request_t
+{
+    std::string id;                  /* caller-assigned correlation ID, echoed verbatim in the response. */
+    std::string method;              /* method name, e.g. "plugin.list" or "plugin.start". */
+    nlohmann::json params = nullptr; /* method-specific parameters; null if the method takes none. */
+
+    static std::optional<request_t> from_json(const nlohmann::json& j) noexcept;
+    nlohmann::json to_json() const;
+};
+
+struct response_t
+{
+    std::string id;
+    nlohmann::json result;
+    std::optional<std::string> error;
+
+    static response_t ok(const std::string& id, nlohmann::json result);
+    static response_t err(const std::string& id, const std::string& message);
+
+    nlohmann::json to_json() const;
+};
+} // namespace mep

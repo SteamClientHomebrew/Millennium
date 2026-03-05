@@ -32,7 +32,9 @@
 #include "millennium/core_ipc.h"
 #include "millennium/encoding.h"
 #include "millennium/logger.h"
+#include "mep/ffi_recorder.h"
 
+#include <chrono>
 #include <cstdint>
 #include <fmt/core.h>
 #include <functional>
@@ -41,27 +43,6 @@
 #include <websocketpp/server.hpp>
 
 using namespace std::placeholders;
-
-PyObject* ipc_main::javascript_evaluation_result::to_python() const
-{
-    if (!valid) {
-        if (error == "frontend is not loaded!") {
-            PyErr_SetString(PyExc_ConnectionError, error.c_str());
-        } else {
-            PyErr_SetString(PyExc_RuntimeError, error.c_str());
-        }
-        return nullptr;
-    }
-
-    const json& response_json = std::get<0>(response);
-    std::string type = response_json["type"];
-
-    if (type == "string") return PyUnicode_FromString(response_json["value"].get<std::string>().c_str());
-    if (type == "boolean") return PyBool_FromLong(response_json["value"]);
-    if (type == "number") return PyLong_FromLong(response_json["value"]);
-
-    return PyUnicode_FromString(fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
-}
 
 int ipc_main::javascript_evaluation_result::to_lua(lua_State* L) const
 {
@@ -212,8 +193,7 @@ ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
 ipc_main::vm_call_result ipc_main::handle_plugin_server_method(const std::string& pluginName, const json& message)
 {
     static const std::unordered_map<plugin_manager::backend_t, std::function<vm_call_result(const std::string&, const json&)>> handlers = {
-        { plugin_manager::backend_t::Python, std::bind(&ipc_main::python_evaluate, this, _1, _2) },
-        { plugin_manager::backend_t::Lua,    std::bind(&ipc_main::lua_evaluate,    this, _1, _2) },
+        { plugin_manager::backend_t::Lua, std::bind(&ipc_main::lua_evaluate, this, _1, _2) },
     };
 
     auto backend = m_backend_manager.lock();
@@ -293,8 +273,7 @@ json ipc_main::on_front_end_loaded(const json& call)
         logger.log("Delegating frontend load for plugin: {}", pluginName);
 
         static const std::unordered_map<plugin_manager::backend_t, std::function<void(const std::string&)>> handlers = {
-            { plugin_manager::backend_t::Python, std::bind(&ipc_main::python_call_frontend_loaded, this, _1) },
-            { plugin_manager::backend_t::Lua,    std::bind(&ipc_main::lua_call_frontend_loaded,    this, _1) }
+            { plugin_manager::backend_t::Lua, std::bind(&ipc_main::lua_call_frontend_loaded, this, _1) }
         };
 
         auto backend = m_backend_manager.lock();
@@ -338,8 +317,24 @@ json ipc_main::call_frontend_method(const json& call)
         }
     }
 
-    const std::string script = this->compile_javascript_expression(call["data"]["pluginName"], call["data"]["methodName"], params);
-    return this->evaluate_javascript_expression(script).to_json(call["data"]["pluginName"]);
+    const std::string pluginName = call["data"]["pluginName"];
+    const std::string methodName = call["data"]["methodName"];
+
+    const std::string script = this->compile_javascript_expression(pluginName, methodName, params);
+
+    const auto t0 = std::chrono::steady_clock::now();
+    auto eval_result = this->evaluate_javascript_expression(script);
+    const auto t1 = std::chrono::steady_clock::now();
+
+    /* record the FFI call (backend → frontend). */
+    if (!pluginName.empty()) {
+        const double dur = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        json result_json = eval_result.to_json(pluginName);
+
+        mep::ffi_recorder::instance().record({ pluginName, methodName, "be_to_fe", call["data"].dump(), result_json.dump(), dur, std::chrono::system_clock::now(), {} });
+    }
+
+    return eval_result.to_json(pluginName);
 }
 
 /**

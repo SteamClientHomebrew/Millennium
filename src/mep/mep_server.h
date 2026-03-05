@@ -29,29 +29,58 @@
  */
 
 #pragma once
-#include "millennium/plugin_loader.h"
-#include "millennium/millennium_updater.h"
-#include "mep/mep_router.h"
-#include "mep/mep_server.h"
 
-class millennium
+#include "mep_router.h"
+#include <atomic>
+#include <cstdint>
+#include <string>
+#include <thread>
+#include <vector>
+
+namespace mep
+{
+
+#ifdef _WIN32
+static constexpr uint16_t DEFAULT_TCP_PORT = 7780;
+#else
+static constexpr const char* DEFAULT_SOCKET_PATH = "/tmp/millennium-mep.sock";
+#endif
+
+static constexpr std::size_t MAX_MESSAGE_SIZE = 4u * 1024u * 1024u;
+
+class server
 {
   public:
-    millennium();
-    void entry();
+#ifdef _WIN32
+    explicit server(router& router, uint16_t port = DEFAULT_TCP_PORT);
+#else
+    explicit server(router& router, std::string socket_path = DEFAULT_SOCKET_PATH);
+#endif
+    ~server();
 
-    std::shared_ptr<plugin_loader> get_plugin_loader();
+    void start();
+    void stop();
+
+    bool is_running() const noexcept;
+
+    using socket_t = int;
 
   private:
-    void check_for_updates();
+    void accept_loop();
+    void handle_client(socket_t client_fd);
 
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<plugin_loader> m_plugin_loader;
-    std::shared_ptr<head::millennium_backend> m_millennium_backend;
-    std::shared_ptr<millennium_updater> m_millennium_updater;
+    bool read_frame(socket_t fd, std::vector<uint8_t>& out) const;
+    bool write_frame(socket_t fd, const std::vector<uint8_t>& data) const;
 
-    mep::router m_mep_router;
-    mep::server m_mep_server;
+    router& m_router;
+#ifdef _WIN32
+    uint16_t m_port;
+#else
+    std::string m_socket_path;
+#endif
+    socket_t m_server_fd = -1;
+    std::atomic<bool> m_running{ false };
+    std::thread m_accept_thread;
 };
 
-extern std::unique_ptr<millennium> g_millennium;
+} // namespace mep
