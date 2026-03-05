@@ -77,7 +77,9 @@ export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReload
 				break;
 			case UIReloadProps.Prompt:
 				Utils.PromptReload((hasClickedOk) => {
-					SteamClient.Browser.RestartJSContext();
+					if (hasClickedOk) {
+						SteamClient.Browser.RestartJSContext();
+					}
 					resolve(hasClickedOk);
 				});
 				break;
