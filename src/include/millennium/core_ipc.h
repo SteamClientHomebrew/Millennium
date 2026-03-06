@@ -36,7 +36,6 @@
 #include "millennium/config.h"
 #include "millennium/types.h"
 
-#include <lua.hpp>
 #include <variant>
 
 class ipc_main
@@ -90,7 +89,6 @@ class ipc_main
         {
         }
 
-        int to_lua(lua_State* L) const;
         json to_json(const std::string& pluginName) const;
     };
 

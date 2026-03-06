@@ -45,11 +45,6 @@ namespace mep
 {
 namespace
 {
-const char* backend_str(plugin_manager::backend_t t)
-{
-    return (t == plugin_manager::backend_t::Lua) ? "lua" : "none";
-}
-
 json plugin_to_json(plugin_manager& pm, backend_manager& bm, const plugin_manager::plugin_t& p)
 {
     const json& pj = p.plugin_json;
@@ -59,7 +54,6 @@ json plugin_to_json(plugin_manager& pm, backend_manager& bm, const plugin_manage
         { "description", pj.value("description", std::string{}) },
         { "enabled", pm.is_enabled(p.plugin_name) },
         { "running", bm.is_any_backend_running(p.plugin_name) },
-        { "backend_type", backend_str(p.backend_type) },
         { "version", pj.contains("version") ? json(pj["version"]) : json(nullptr) },
         { "author", pj.value("author", std::string{}) },
         { "config", pj },
@@ -166,7 +160,7 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         auto name = require_string(req, "name");
         if (!name) return response_t::err(req.id, "missing required param: name");
 
-        loader->get_backend_manager()->destroy_lua_vm(*name);
+        loader->get_backend_manager()->destroy_plugin(*name);
         return response_t::ok(req.id, {
                                           { "name",    *name },
                                           { "running", false }
@@ -179,7 +173,7 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!name) return response_t::err(req.id, "missing required param: name");
 
         auto bm = loader->get_backend_manager();
-        bm->destroy_lua_vm(*name);
+        bm->destroy_plugin(*name);
         loader->set_plugin_enable(*name, true);
         return response_t::ok(req.id, {
                                           { "name",    *name                             },
@@ -198,12 +192,13 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         const auto* p = find_plugin(plugins, *name);
         if (!p) return response_t::err(req.id, "plugin not found: " + *name);
 
-        return response_t::ok(req.id, {
-                                          { "name",         *name                             },
-                                          { "running",      bm->is_any_backend_running(*name) },
-                                          { "enabled",      pm->is_enabled(*name)             },
-                                          { "backend_type", backend_str(p->backend_type)      },
-        });
+        const json result = {
+            { "name",    *name                             },
+            { "running", bm->is_any_backend_running(*name) },
+            { "enabled", pm->is_enabled(*name)             },
+        };
+
+        return response_t::ok(req.id, result);
     });
 
     // plugin.logs — subscribe to a plugin's log stream.
@@ -352,6 +347,7 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
     router.register_handler("plugin.memory", [loader](const request_t& req, const std::shared_ptr<client_context>&)
     {
         auto name = require_string(req, "name");
+        auto bm = loader->get_backend_manager();
 
         if (name) {
             auto pm = loader->get_plugin_manager();
@@ -359,28 +355,36 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             const auto* p = find_plugin(plugins, *name);
             if (!p) return response_t::err(req.id, "plugin not found: " + *name);
 
-            const size_t heap = backend_manager::Lua_GetPluginMemorySnapshotByName(*name);
+            auto metrics = bm->get_plugin_metrics(*name);
             return response_t::ok(req.id, {
-                                              { "name",         *name                        },
-                                              { "heap_bytes",   heap                         },
-                                              { "backend_type", backend_str(p->backend_type) },
+                                              { "name",        *name               },
+                                              { "rss_bytes",   metrics.rss_bytes   },
+                                              { "heap_bytes",  metrics.heap_bytes  },
+                                              { "cpu_percent", metrics.cpu_percent },
             });
         }
 
-        const auto snapshot = backend_manager::Lua_GetAllPluginMemorySnapshot();
+        auto all_metrics = bm->get_all_plugin_metrics();
         auto pm = loader->get_plugin_manager();
         json list = json::array();
 
         for (const auto& p : pm->get_all_plugins()) {
             if (p.is_internal) continue;
+            size_t rss = 0;
             size_t heap = 0;
-            auto it = snapshot.find(p.plugin_name);
-            if (it != snapshot.end()) heap = it->second;
+            double cpu = 0.0;
+            auto it = all_metrics.find(p.plugin_name);
+            if (it != all_metrics.end()) {
+                rss = it->second.rss_bytes;
+                heap = it->second.heap_bytes;
+                cpu = it->second.cpu_percent;
+            }
 
             list.push_back({
-                { "name",         p.plugin_name               },
-                { "heap_bytes",   heap                        },
-                { "backend_type", backend_str(p.backend_type) },
+                { "name",        p.plugin_name },
+                { "rss_bytes",   rss           },
+                { "heap_bytes",  heap          },
+                { "cpu_percent", cpu           },
             });
         }
 

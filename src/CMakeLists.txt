@@ -19,7 +19,6 @@ add_compile_definitions(
     "_CRT_SECURE_NO_WARNINGS"
     "USE_INTERNAL_FPCONV"
     "NGHTTP2_STATICLIB"
-    "LJ_HASJIT"
     "_WEBSOCKETPP_CPP11_THREAD_"
     "_WEBSOCKETPP_CPP11_TYPE_TRAITS_"
     "_WEBSOCKETPP_CPP11_RANDOM_DEVICE_"
@@ -28,14 +27,10 @@ add_compile_definitions(
     "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
     __HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>"
+    __LUA_HOST_OUTPUT_ABSPATH__="$<TARGET_FILE:${MILLENNIUM_RTB_NAME}>"
     __DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>"
 )
 
-if (WIN32)
-    add_compile_definitions("LJ_TARGET_X64")
-elseif(UNIX AND NOT APPLE)
-    add_compile_definitions("LJ_TARGET_X86")
-endif()
 
 include_directories(
     ${MILLENNIUM_BASE}/src
@@ -45,18 +40,11 @@ include_directories(
 )
 
 set(SOURCE_FILES
-    runtime/lua/lua_api.cc
-    runtime/lua/lua_http.cc
-    runtime/lua/lua_interop.cc
-    runtime/lua/lua_logger.cc
-    runtime/lua/lua_utils.cc
-    runtime/lua/lua_filesystem.cc
-    runtime/lua/lua_regex.cc
-    runtime/lua/lua_datetime.cc
-    runtime/lua/lua_hook_api.cc
+    ${MILLENNIUM_BASE}/src/lua_host/lua_interop.cc
     engine/auth.cc
     engine/backend_init.cc
     engine/backend_mgr.cc
+    engine/child_process.cc
     engine/cdp_api.cc
     engine/cdp_connector.cc
     engine/cmdline_parse.cc
@@ -122,6 +110,8 @@ elseif(UNIX AND APPLE)
     add_subdirectory(bootstrap/macos)
 endif()
 
+add_subdirectory(lua_host)
+
 if(UNIX AND NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GNU_SOURCE")
@@ -177,6 +167,21 @@ elseif(UNIX AND NOT APPLE)
 endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
+
+# Build TypeScript frontend before C++ compilation in Release mode.
+# Produces build/frontend.bin + SDK JS chunks that get embedded via incbin.
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT DISTRO_NIX)
+    find_program(BUN_EXECUTABLE bun REQUIRED)
+    add_custom_command(
+        OUTPUT "${MILLENNIUM_BASE}/build/frontend.bin"
+        COMMAND ${BUN_EXECUTABLE} install --frozen-lockfile
+        COMMAND ${BUN_EXECUTABLE} run build
+        WORKING_DIRECTORY "${MILLENNIUM_BASE}/src/typescript"
+        COMMENT "Building TypeScript frontend (bun run build)..."
+    )
+    add_custom_target(build_frontend DEPENDS "${MILLENNIUM_BASE}/build/frontend.bin")
+endif()
+
 include(${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake)
 
 if(WIN32)
@@ -196,6 +201,10 @@ elseif(UNIX)
     endif()
 endif()
 
+if(TARGET build_frontend)
+    add_dependencies(Millennium build_frontend)
+endif()
+
 find_steam_path(Millennium)
 target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
 set_target_properties(Millennium PROPERTIES
@@ -211,7 +220,7 @@ elseif(UNIX AND NOT APPLE)
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
 endif()
 
-target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
+target_link_libraries(Millennium libcurl minizip libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)
     target_link_libraries(Millennium minhook user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)

@@ -29,21 +29,40 @@
  */
 
 #include "millennium/backend_mgr.h"
+#include "millennium/filesystem.h"
 #include "millennium/life_cycle.h"
 #include "millennium/logger.h"
+#include "millennium/plugin_ipc.h"
 #include "state/shared_memory.h"
 
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
-#include <optional>
-
-std::unordered_map<std::string, std::atomic<size_t>> backend_manager::sPluginMemoryUsage;
-std::mutex backend_manager::sPluginMapMutex;
-std::atomic<size_t> backend_manager::sTotalAllocated{ 0 };
+#include <fmt/core.h>
 
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
+
+/**
+ * path to the mllnm_rtb_sandbox executable.
+ * set at compile time via CMake generator expression.
+ */
+#ifndef __LUA_HOST_OUTPUT_ABSPATH__
+#define __LUA_HOST_OUTPUT_ABSPATH__ "mllnm_rtb_sandbox"
+#endif
+
+static std::string get_lua_host_exe()
+{
+    return __LUA_HOST_OUTPUT_ABSPATH__;
+}
+
+static std::string get_socket_path(const std::string& pluginName)
+{
+#ifdef _WIN32
+    const char* tmp = std::getenv("TEMP");
+    if (!tmp) tmp = "C:\\Windows\\Temp";
+    return fmt::format("{}\\millennium-plugin-{}-{}.sock", tmp, GetCurrentProcessId(), pluginName);
+#else
+    return fmt::format("/tmp/millennium-plugin-{}-{}.sock", getpid(), pluginName);
+#endif
+}
 
 backend_manager::backend_manager(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
     : m_plugin_manager(std::move(plugin_manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
@@ -60,7 +79,10 @@ backend_manager::~backend_manager()
 
 void backend_manager::shutdown()
 {
-    logger.warn("Unloading {} plugin(s) and preparing for exit...", this->m_luaThreadPool.size());
+    if (m_has_shutdown.exchange(true)) return;
+
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    logger.warn("Unloading {} plugin(s) and preparing for exit...", m_processes.size());
 
 #ifdef MILLENNIUM_32BIT
     std::exit(0);
@@ -68,328 +90,178 @@ void backend_manager::shutdown()
 
     const auto startTime = std::chrono::steady_clock::now();
 
-    logger.log("[BackendManager::Shutdown] Destroying all Lua instances...");
-    this->destroy_lua_vms(true);
-
-    logger.log("[BackendManager::Shutdown] All plugins have been shut down...");
-
-    /** Shutdown Lua interpreters */
-    for (auto it : m_luaThreadPool) {
-        auto& [pluginName, thread, L, hasFinished] = *it;
-        logger.log("Joining Lua thread for plugin '{}'", pluginName);
-        if (thread.joinable()) {
-            thread.join();
-        }
+    for (auto& [name, process] : m_processes) {
+        logger.log("Shutting down plugin '{}'...", name);
+        process->shutdown();
     }
-    m_luaThreadPool.clear();
+
+    m_processes.clear();
 
     logger.log("Finished shutdown! Bye bye!");
     logger.log("Shutdown took {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
 }
 
-bool backend_manager::has_any_lua_backends()
+bool backend_manager::has_any_backends()
 {
-    return this->m_luaThreadPool.size() > 0;
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    return !m_processes.empty();
 }
 
-bool backend_manager::destroy_lua_vms(bool isShuttingDown)
+bool backend_manager::has_all_backends_stopped()
 {
-    if (m_luaThreadPool.empty()) {
-        logger.log("No Lua instances to destroy.");
-        return true;
-    }
-
-    std::vector<std::string> pluginNames;
-    for (auto it : m_luaThreadPool) {
-        auto& [pluginName, thread, L, hasFinished] = *it;
-        pluginNames.push_back(pluginName);
-    }
-
-    for (auto& pluginName : pluginNames) {
-        logger.log("[Lua] Shutting down plugin [{}]", pluginName);
-        destroy_lua_vm(pluginName, true, isShuttingDown);
-    }
-
-    return true;
-}
-
-void backend_manager::lua_invoke_plugin_unload(lua_State* L, const std::string& pluginName)
-{
-    lua_getglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
-
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        return;
-    }
-
-    lua_getfield(L, -1, "on_unload");
-
-    if (!lua_isfunction(L, -1)) {
-        lua_pop(L, 2);
-        return;
-    }
-
-    if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
-        const char* err = lua_tostring(L, -1);
-        LOG_ERROR("Failed to unload lua plugin '{}': {}", pluginName, err ? err : "unknown error");
-        lua_pop(L, 1);
-    }
-
-    lua_pop(L, 1);
-}
-
-void backend_manager::lua_cleanup_plugin_name_ptr(lua_State* L)
-{
-    void* ud = lua_touserdata(L, lua_upvalueindex(1));
-    if (ud) {
-        delete static_cast<std::shared_ptr<std::string>*>(ud);
-    }
-}
-
-void backend_manager::lua_remove_mtx(lua_State* L)
-{
-    m_luaMutexPool.erase(std::remove_if(m_luaMutexPool.begin(), m_luaMutexPool.end(), [L](const auto& entry) { return std::get<0>(entry) == L; }), m_luaMutexPool.end());
-}
-
-void backend_manager::lua_remove_mem_tracking(const std::string& pluginName)
-{
-    std::lock_guard<std::mutex> lock(sPluginMapMutex);
-    sPluginMemoryUsage.erase(pluginName);
-}
-
-bool backend_manager::destroy_lua_vm(std::string pluginName, bool shouldCleanupThreadPool, bool isShuttingDown)
-{
-    for (auto it = this->m_luaThreadPool.begin(); it != this->m_luaThreadPool.end(); /* No increment */) {
-        auto& [threadPluginName, thread, L, hasFinished] = **it;
-
-        if (threadPluginName != pluginName) {
-            ++it;
-            continue;
-        }
-
-        logger.log("Joining Lua thread for plugin '{}'", pluginName);
-
-        if (thread.joinable()) {
-            thread.join();
-        }
-
-        if (!L) {
-            if (shouldCleanupThreadPool) {
-                it = this->m_luaThreadPool.erase(it);
-            } else {
-                (*it)->hasFinished.store(true);
-                {
-                    std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-                    cv_hasSteamUnloaded.notify_all();
-                }
-                ++it;
-            }
-            m_backend_event_dispatcher->backend_unloaded_event_hdlr({ pluginName }, isShuttingDown);
-            return true;
-        }
-
-        lua_lock(L);
-        {
-            lua_invoke_plugin_unload(L, pluginName);
-            lua_cleanup_plugin_name_ptr(L);
-
-            lua_close(L);
-        }
-        lua_unlock(L);
-
-        lua_remove_mtx(L);
-        lua_remove_mem_tracking(pluginName);
-
-        /** remove all patches from this plugin from the shared memory arena */
-        if (g_lb_patch_arena) {
-            hashmap_remove(g_lb_patch_arena, pluginName.c_str());
-        }
-
-        if (shouldCleanupThreadPool) {
-            it = this->m_luaThreadPool.erase(it);
-        } else {
-            (*it)->hasFinished.store(true);
-            {
-                std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
-                cv_hasSteamUnloaded.notify_all();
-            }
-            ++it;
-        }
-        m_backend_event_dispatcher->backend_unloaded_event_hdlr({ pluginName }, isShuttingDown);
-        return true;
-    }
-    return false;
-}
-
-bool backend_manager::has_all_lua_backends_stopped()
-{
-    for (auto it : m_luaThreadPool) {
-        auto& [pluginName, thread, L, hasFinished] = *it;
-        if (!hasFinished.load()) {
-            return false;
-        }
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    for (auto& [name, process] : m_processes) {
+        if (process->is_alive()) return false;
     }
     return true;
-}
-
-bool backend_manager::is_lua_backend_running(std::string targetPluginName)
-{
-    for (auto it : m_luaThreadPool) {
-        auto& [pluginName, thread, L, hasFinished] = *it;
-        if (targetPluginName == pluginName) {
-            return true;
-        }
-    }
-    return false;
 }
 
 bool backend_manager::is_any_backend_running(std::string plugin_name)
 {
-    return is_lua_backend_running(plugin_name);
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    auto it = m_processes.find(plugin_name);
+    return it != m_processes.end() && it->second->is_alive();
 }
 
-plugin_manager::backend_t backend_manager::get_plugin_backend_type(std::string)
+bool backend_manager::spawn_plugin(plugin_manager::plugin_t& plugin)
 {
-    return plugin_manager::backend_t::Lua;
-}
+    logger.log("Spawning child process for plugin '{}'", plugin.plugin_name);
 
-std::optional<lua_State*> backend_manager::lua_thread_state_from_plugin_name(std::string pluginName)
-{
-    for (auto it : m_luaThreadPool) {
-        auto& [name, thread, L, hasFinished] = *it;
-        if (name == pluginName) {
-            return L;
-        }
-    }
-    return std::nullopt;
-}
+    const std::string exe_path = get_lua_host_exe();
+    const std::string socket_path = get_socket_path(plugin.plugin_name);
 
-std::tuple<lua_State*, std::unique_ptr<std::mutex>>* backend_manager::Lua_FindEntry(lua_State* L)
-{
-    for (auto& entry : m_luaMutexPool) {
-        if (std::get<0>(entry) == L) {
-            return &entry;
-        }
-    }
-    return nullptr;
-}
+    nlohmann::json init_params = {
+        { "plugin_name",  plugin.plugin_name                               },
+        { "backend_dir",  plugin.plugin_backend_dir.parent_path().string() },
+        { "backend_file", plugin.plugin_backend_dir.string()               },
+        { "steam_path",   platform::get_steam_path().string()              }
+    };
 
-void backend_manager::lua_lock(lua_State* L)
-{
-    auto entry = Lua_FindEntry(L);
-    if (!entry) throw std::runtime_error("lua_State not found in pool");
-
-    std::get<1>(*entry)->lock();
-}
-
-void backend_manager::lua_unlock(lua_State* L)
-{
-    auto entry = Lua_FindEntry(L);
-    if (!entry) throw std::runtime_error("lua_State not found in pool");
-
-    std::get<1>(*entry)->unlock();
-}
-
-bool backend_manager::lua_try_lock(lua_State* L)
-{
-    auto entry = Lua_FindEntry(L);
-    if (!entry) throw std::runtime_error("lua_State not found in pool");
-
-    return std::get<1>(*entry)->try_lock();
-}
-
-bool backend_manager::lua_is_locked(lua_State* L)
-{
-    auto entry = Lua_FindEntry(L);
-    if (!entry) throw std::runtime_error("lua_State not found in pool");
-
-    auto& m = std::get<1>(*entry);
-    if (m->try_lock()) {
-        m->unlock();
-        return false;
-    }
-    return true;
-}
-
-std::atomic<size_t>& backend_manager::Lua_GetPluginCounter(const std::string& plugin_name)
-{
-    std::lock_guard<std::mutex> lock(sPluginMapMutex);
-    return sPluginMemoryUsage[plugin_name];
-}
-
-size_t backend_manager::Lua_GetTotalMemory()
-{
-    return sTotalAllocated.load();
-}
-
-size_t backend_manager::Lua_GetPluginMemorySnapshotByName(const std::string& plugin_name)
-{
-    std::lock_guard<std::mutex> lock(sPluginMapMutex);
-    auto it = sPluginMemoryUsage.find(plugin_name);
-    return (it != sPluginMemoryUsage.end()) ? it->second.load() : 0;
-}
-
-std::unordered_map<std::string, size_t> backend_manager::Lua_GetAllPluginMemorySnapshot()
-{
-    std::lock_guard<std::mutex> lock(sPluginMapMutex);
-    std::unordered_map<std::string, size_t> snapshot;
-    for (const auto& pair : sPluginMemoryUsage) {
-        snapshot[pair.first] = pair.second.load();
-    }
-    return snapshot;
-}
-
-void* backend_manager::Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size_t nsize)
-{
-    const std::string& pluginName = **static_cast<std::shared_ptr<std::string>*>(ud);
-
-    if (nsize == 0) {
-        if (ptr) {
-            sTotalAllocated.fetch_sub(osize);
-            Lua_GetPluginCounter(pluginName).fetch_sub(osize);
-            free(ptr);
-        }
-        return nullptr;
-    }
-    else {
-        void* newptr = realloc(ptr, nsize);
-        if (!newptr) {
-            return nullptr;
-        }
-
-        auto& pluginCounter = Lua_GetPluginCounter(pluginName);
-
-        if (ptr) {
-            sTotalAllocated.fetch_sub(osize);
-            pluginCounter.fetch_sub(osize);
-        }
-
-        sTotalAllocated.fetch_add(nsize);
-        pluginCounter.fetch_add(nsize);
-        return newptr;
-    }
-}
-
-bool backend_manager::create_lua_vm(plugin_manager::plugin_t& plugin, std::function<void(plugin_manager::plugin_t, lua_State*)> callback)
-{
-    auto pluginNamePtr = new std::shared_ptr<std::string>(std::make_shared<std::string>(plugin.plugin_name));
-
-    lua_State* L = lua_newstate(backend_manager::Lua_MemoryProfiler, pluginNamePtr);
-    m_luaMutexPool.emplace_back(L, std::make_unique<std::mutex>());
-
-    if (!L) {
-        LOG_ERROR("Failed to create new Lua state");
+    auto process = spawn_plugin_process(plugin.plugin_name, exe_path, socket_path, init_params, m_child_request_handler);
+    if (!process) {
+        LOG_ERROR("Failed to spawn child process for plugin '{}'", plugin.plugin_name);
+        m_backend_event_dispatcher->backend_loaded_event_hdlr({ plugin.plugin_name, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_FAILED });
         return false;
     }
 
-    luaL_openlibs(L);
-
-    std::string pluginName = plugin.plugin_name;
-    std::thread luaThread([L, plugin, callback]() mutable
     {
-        if (callback) callback(plugin, L);
-    });
+        std::lock_guard<std::mutex> lock(m_processes_mutex);
+        m_processes[plugin.plugin_name] = std::move(process);
+    }
 
-    m_luaThreadPool.emplace_back(std::make_shared<LuaThreadPoolItem>(pluginName, luaThread, L));
     return true;
+}
+
+bool backend_manager::destroy_plugin(const std::string& pluginName, bool isShuttingDown)
+{
+    std::unique_ptr<PluginProcess> process;
+
+    {
+        std::lock_guard<std::mutex> lock(m_processes_mutex);
+        auto it = m_processes.find(pluginName);
+        if (it == m_processes.end()) return false;
+
+        process = std::move(it->second);
+        m_processes.erase(it);
+    }
+
+    logger.log("Stopping plugin '{}'...", pluginName);
+    process->shutdown();
+
+    /* remove patches from shared memory */
+    if (g_lb_patch_arena) {
+        hashmap_remove(g_lb_patch_arena, pluginName.c_str());
+    }
+
+    process.reset();
+
+    m_backend_event_dispatcher->backend_unloaded_event_hdlr({ pluginName }, isShuttingDown);
+
+    {
+        std::unique_lock<std::mutex> lk(mtx_hasSteamUnloaded);
+        cv_hasSteamUnloaded.notify_all();
+    }
+
+    return true;
+}
+
+bool backend_manager::destroy_all_plugins(bool isShuttingDown)
+{
+    std::vector<std::string> names;
+
+    {
+        std::lock_guard<std::mutex> lock(m_processes_mutex);
+        for (auto& [name, _] : m_processes) {
+            names.push_back(name);
+        }
+    }
+
+    for (auto& name : names) {
+        destroy_plugin(name, isShuttingDown);
+    }
+
+    return true;
+}
+
+nlohmann::json backend_manager::evaluate(const std::string& pluginName, const nlohmann::json& script)
+{
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    auto it = m_processes.find(pluginName);
+    if (it == m_processes.end()) {
+        return {
+            { "success", false                               },
+            { "error",   "plugin not running: " + pluginName }
+        };
+    }
+
+    try {
+        return it->second->call(plugin_ipc::parent_method::EVALUATE, script);
+    } catch (const std::exception& e) {
+        return {
+            { "success", false                 },
+            { "error",   std::string(e.what()) }
+        };
+    }
+}
+
+void backend_manager::notify_frontend_loaded(const std::string& pluginName)
+{
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    auto it = m_processes.find(pluginName);
+    if (it == m_processes.end()) return;
+
+    try {
+        it->second->call(plugin_ipc::parent_method::ON_FRONTEND_LOADED);
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to notify frontend loaded for '{}': {}", pluginName, e.what());
+    }
+}
+
+void backend_manager::set_child_request_handler(PluginProcess::request_handler handler)
+{
+    m_child_request_handler = std::move(handler);
+
+    /* apply to all existing processes */
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    for (auto& [name, process] : m_processes) {
+        process->set_request_handler(m_child_request_handler);
+    }
+}
+
+PluginProcess::process_metrics backend_manager::get_plugin_metrics(const std::string& pluginName)
+{
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    auto it = m_processes.find(pluginName);
+    if (it == m_processes.end()) return {};
+    return it->second->get_metrics();
+}
+
+std::unordered_map<std::string, PluginProcess::process_metrics> backend_manager::get_all_plugin_metrics()
+{
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    std::unordered_map<std::string, PluginProcess::process_metrics> result;
+    for (auto& [name, process] : m_processes) {
+        result[name] = process->get_metrics();
+    }
+    return result;
 }

@@ -28,31 +28,51 @@
  * SOFTWARE.
  */
 
-#pragma once
+#include "rpc.h"
+#include <lua.hpp>
 
-#include "millennium/fwd_decl.h"
-#include "millennium/life_cycle.h"
-#include "millennium/logger.h"
-#include "millennium/backend_mgr.h"
-#include <memory>
+extern rpc_client* g_rpc;
 
-class backend_initializer
+static void send_log(const char* level, const char* message)
 {
-  public:
-    backend_initializer(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_manager> manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
-        : m_plugin_manager(std::move(plugin_manager)), m_backend_manager(std::move(manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
-    {
-    }
-    ~backend_initializer()
-    {
-        logger.log("Successfully shut down backend_initializer...");
-    }
+    if (!g_rpc) return;
 
-    /** Fix an old issue previous versions of Millennium introduced */
-    void compat_restore_shared_js_context();
+    g_rpc->notify(plugin_ipc::child_method::LOG, {
+        { "level",   level   },
+        { "message", message }
+    });
+}
 
-  private:
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<backend_manager> m_backend_manager;
-    std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
+static int LuaLogInfo(lua_State* L)
+{
+    const char* message = luaL_checkstring(L, 2);
+    send_log("info", message);
+    return 0;
+}
+
+static int LuaLogWarn(lua_State* L)
+{
+    const char* message = luaL_checkstring(L, 2);
+    send_log("warn", message);
+    return 0;
+}
+
+static int LuaLogError(lua_State* L)
+{
+    const char* message = luaL_checkstring(L, 2);
+    send_log("error", message);
+    return 0;
+}
+
+static const luaL_Reg loggerFunctions[] = {
+    { "info",  LuaLogInfo  },
+    { "warn",  LuaLogWarn  },
+    { "error", LuaLogError },
+    { NULL,    NULL        }
 };
+
+extern "C" int luaopen_logger_lib(lua_State* L)
+{
+    luaL_newlib(L, loggerFunctions);
+    return 1;
+}

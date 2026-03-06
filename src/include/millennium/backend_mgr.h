@@ -31,13 +31,13 @@
 #pragma once
 #include "millennium/life_cycle.h"
 #include "millennium/plugin_manager.h"
+#include "millennium/child_process.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <memory>
-#include <thread>
-
-#include <lua.hpp>
+#include <mutex>
+#include <unordered_map>
 
 struct InterpreterMutex
 {
@@ -45,18 +45,6 @@ struct InterpreterMutex
     std::condition_variable cv;
     std::atomic<bool> flag{ false };
     std::atomic<bool> hasFinished{ false };
-};
-
-struct LuaThreadPoolItem
-{
-    std::string pluginName;
-    std::thread thread;
-    lua_State* L;
-    std::atomic<bool> hasFinished{ false };
-
-    LuaThreadPoolItem(std::string pluginName, std::thread& thread, lua_State* L) : pluginName(pluginName), thread(std::move(thread)), L(L)
-    {
-    }
 };
 
 class backend_manager
@@ -67,68 +55,36 @@ class backend_manager
 
     void shutdown();
 
-    void lua_lock(lua_State* L);
-    void lua_unlock(lua_State* L);
-    bool lua_try_lock(lua_State* L);
-    bool lua_is_locked(lua_State* L);
+    bool spawn_plugin(plugin_manager::plugin_t& plugin);
+    bool destroy_plugin(const std::string& pluginName, bool isShuttingDown = false);
 
-    /** trace allocations and frees in each lvm to track total memory usage */
-    static void* Lua_MemoryProfiler(void* ud, void* ptr, size_t osize, size_t nsize);
-    static size_t Lua_GetTotalMemory();
-    static size_t Lua_GetPluginMemorySnapshotByName(const std::string& plugin_name);
-    static std::unordered_map<std::string, size_t> Lua_GetAllPluginMemorySnapshot();
+    /** stop all plugin child processes. */
+    bool destroy_all_plugins(bool isShuttingDown = false);
 
-    void lua_invoke_plugin_unload(lua_State* L, const std::string& pluginName);
-    void lua_cleanup_plugin_name_ptr(lua_State* L);
-    void lua_remove_mtx(lua_State* L);
-    void lua_remove_mem_tracking(const std::string& pluginName);
-
-    bool destroy_lua_vm(std::string pluginName, bool shouldCleanupThreadPool = true, bool isShuttingDown = false);
-
-    bool destroy_lua_vms(bool isShuttingDown = false);
-
-    bool create_lua_vm(plugin_manager::plugin_t& plugin, std::function<void(plugin_manager::plugin_t, lua_State*)> callback);
-
-    bool has_any_lua_backends();
-
-    bool has_all_lua_backends_stopped();
-
-    bool is_lua_backend_running(std::string pluginName);
+    bool has_any_backends();
+    bool has_all_backends_stopped();
     bool is_any_backend_running(std::string plugin_name);
 
-    plugin_manager::backend_t get_plugin_backend_type(std::string pluginName);
+    /** rpc evaluate a lua function in the child process. */
+    json evaluate(const std::string& pluginName, const json& script);
 
-    std::optional<lua_State*> lua_thread_state_from_plugin_name(std::string pluginName);
+    /** rpc notify child that frontend loaded. */
+    void notify_frontend_loaded(const std::string& pluginName);
+
+    /** set the handler for child-initiated RPCs (call_frontend_method, etc.). */
+    void set_child_request_handler(PluginProcess::request_handler handler);
+
+    /** OS-level process metrics. */
+    PluginProcess::process_metrics get_plugin_metrics(const std::string& pluginName);
+    std::unordered_map<std::string, PluginProcess::process_metrics> get_all_plugin_metrics();
 
   private:
-    struct LuaThreadWrapper
-    {
-        lua_State* L;
-        plugin_manager::plugin_t plugin;
-        std::function<void(plugin_manager::plugin_t)> callback;
-        std::thread thread;
+    std::unordered_map<std::string, std::unique_ptr<PluginProcess>> m_processes;
+    std::mutex m_processes_mutex;
 
-        LuaThreadWrapper(lua_State* state, plugin_manager::plugin_t p, std::function<void(plugin_manager::plugin_t)> cb) : L(state), plugin(std::move(p)), callback(std::move(cb))
-        {
-        }
+    PluginProcess::request_handler m_child_request_handler;
 
-        ~LuaThreadWrapper()
-        {
-            if (thread.joinable()) thread.join();
-        }
-    };
-
-    static std::unordered_map<std::string, std::atomic<size_t>> sPluginMemoryUsage;
-    static std::mutex sPluginMapMutex;
-    static std::atomic<size_t> sTotalAllocated;
-
-    static std::atomic<size_t>& Lua_GetPluginCounter(const std::string& plugin_name);
-
-    std::vector<std::tuple<lua_State*, std::unique_ptr<std::mutex>>> m_luaMutexPool;
-
-    std::vector<std::shared_ptr<LuaThreadPoolItem>> m_luaThreadPool;
-
-    std::tuple<lua_State*, std::unique_ptr<std::mutex>>* Lua_FindEntry(lua_State* L);
+    std::atomic<bool> m_has_shutdown{ false };
 
     std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;

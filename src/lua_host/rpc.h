@@ -30,29 +30,41 @@
 
 #pragma once
 
-#include "millennium/fwd_decl.h"
-#include "millennium/life_cycle.h"
-#include "millennium/logger.h"
-#include "millennium/backend_mgr.h"
-#include <memory>
+#include "millennium/plugin_ipc.h"
+#include <nlohmann/json.hpp>
+#include <atomic>
+#include <functional>
+#include <mutex>
+#include <string>
 
-class backend_initializer
+/**
+ * Child-side RPC client — single-threaded, blocking.
+ *
+ * When we need something from the parent (like calling a frontend method), we just
+ * block and read frames until our response shows up. This works because the parent
+ * never sends us a new request while we're already handling one.
+ */
+class rpc_client
 {
   public:
-    backend_initializer(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_manager> manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
-        : m_plugin_manager(std::move(plugin_manager)), m_backend_manager(std::move(manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
-    {
-    }
-    ~backend_initializer()
-    {
-        logger.log("Successfully shut down backend_initializer...");
-    }
+    using request_handler = std::function<nlohmann::json(const std::string& method, const nlohmann::json& params)>;
 
-    /** Fix an old issue previous versions of Millennium introduced */
-    void compat_restore_shared_js_context();
+    explicit rpc_client(plugin_ipc::socket_fd fd);
+    ~rpc_client();
+
+    nlohmann::json call(const std::string& method, const nlohmann::json& params = nullptr);
+    void notify(const std::string& method, const nlohmann::json& params = nullptr);
+    void run(request_handler handler);
+    bool connected() const { return m_connected.load(); }
 
   private:
-    std::shared_ptr<plugin_manager> m_plugin_manager;
-    std::shared_ptr<backend_manager> m_backend_manager;
-    std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
+    bool read_message(nlohmann::json& out);
+    bool send_message(const nlohmann::json& msg);
+    void respond(int id, const nlohmann::json& result);
+    void respond_error(int id, const std::string& error);
+
+    plugin_ipc::socket_fd m_fd;
+    std::atomic<bool> m_connected{true};
+    std::atomic<int> m_next_id{1};
+    std::mutex m_write_mutex;
 };

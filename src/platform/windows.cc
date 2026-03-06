@@ -181,6 +181,7 @@ VOID Win32_DetachMillennium(VOID)
     }
 
     g_millenniumThread.join();
+    g_millennium.reset();
     logger.log("Millennium thread has exited.");
 }
 

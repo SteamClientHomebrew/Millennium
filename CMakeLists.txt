@@ -18,6 +18,9 @@ else()
     set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "libmillennium_bootstrap_86x.so")
 endif()
 
+# Millennium lua host that runs the backend in a sandbox.
+set(MILLENNIUM_RTB_NAME "mllnm_rtb_sandbox" CACHE STRING "Runtime backend sandbox executable name")
+
 add_compile_definitions(__MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}")
 add_compile_definitions(__MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}")
 add_compile_definitions(__MILLENNIUM_BOOTLOADER_OUTPUT_NAME__="${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}")
