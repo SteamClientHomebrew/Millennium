@@ -123,13 +123,15 @@ set(LUA_INCLUDE_DIRS luajit::header)
 set(LUA_LIBRARY      luajit::lib   )
 set(LUA_LIBRARIES    luajit::lib   )
 
-include_directories("${libgit2_SOURCE_DIR}/include")
-include_directories("${minizip_ng_SOURCE_DIR}")
-include_directories("${incbin_SOURCE_DIR}")
-include_directories("${asio_SOURCE_DIR}/asio/include")
-include_directories("${luajit_BINARY_DIR}")
-include_directories("${luajit_SOURCE_DIR}/src")
-include_directories("${CMAKE_SOURCE_DIR}/../hhx64/include")
+include_directories(SYSTEM
+    "${libgit2_SOURCE_DIR}/include"
+    "${minizip_ng_SOURCE_DIR}"
+    "${incbin_SOURCE_DIR}"
+    "${asio_SOURCE_DIR}/asio/include"
+    "${luajit_BINARY_DIR}"
+    "${luajit_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/../hhx64/include"
+)
 
 millennium_process_package("${luajit_SOURCE_DIR}")
 millennium_process_package("${curl_SOURCE_DIR}")
@@ -161,6 +163,12 @@ set(ZLIB_LIBRARIES "${ZLIB_LIBRARY}")
 set(ZLIB_INCLUDE_DIRS "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}")
 set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}")
 
+# Suppress warnings from third-party dependencies
+set(_saved_c_flags   "${CMAKE_C_FLAGS}")
+set(_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
+string(APPEND CMAKE_C_FLAGS   " -w")
+string(APPEND CMAKE_CXX_FLAGS " -w")
+
 add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"       )
 add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
 add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"  )
@@ -174,6 +182,9 @@ add_subdirectory("${lua_cjson_SOURCE_DIR}"     "${lua_cjson_BINARY_DIR}"    )
 if(WIN32)
     add_subdirectory("${minhook_SOURCE_DIR}"       "${minhook_BINARY_DIR}"      )
 endif()
+
+set(CMAKE_C_FLAGS   "${_saved_c_flags}")
+set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
 
 add_dependencies(cjson luajit::lib luajit::header)
 add_dependencies(luajit zlib)
