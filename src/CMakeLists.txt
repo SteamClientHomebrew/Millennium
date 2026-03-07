@@ -26,6 +26,8 @@ add_compile_definitions(
     "ASIO_HAS_STD_INVOKE_RESULT"
     "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
+    $<$<BOOL:${WIN32}>:WIN32_LEAN_AND_MEAN>
+    $<$<BOOL:${WIN32}>:NOMINMAX>
     __HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>"
     __LUA_HOST_OUTPUT_ABSPATH__="$<TARGET_FILE:${MILLENNIUM_RTB_NAME}>"
     __DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>"
@@ -127,6 +129,10 @@ if(UNIX AND NOT APPLE)
 endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/bootstrap_deps.cmake)
+
+if(WIN32 OR UNIX)
+    target_include_directories(${MILLENNIUM_RTB_NAME} PRIVATE "${luajit_BINARY_DIR}")
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/typescript/sdk/packages/loader/build")

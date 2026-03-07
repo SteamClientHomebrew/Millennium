@@ -90,9 +90,10 @@ inline long __stdcall Win32_CrashHandler(EXCEPTION_POINTERS* pExceptionInfo)
  */
 inline void UnhandledExceptionHandler()
 {
-#ifdef _WIN32
-    if (IsDebuggerPresent()) __debugbreak();
-#endif
+    if (IsDebuggerPresent()) {
+        __debugbreak();
+    }
+
     auto const exceptionPtr = std::current_exception();
     std::string errorMessage = "Millennium has a fatal error that it can't recover from, check the logs for more details!\n";
 
@@ -113,10 +114,6 @@ inline void UnhandledExceptionHandler()
         return;
     }
 
-#ifdef _WIN32
     platform::messagebox::show("Oops!", errorMessage.c_str(), platform::messagebox::error);
-#elif __linux__
-    std::cerr << errorMessage << std::endl;
-#endif
 }
 #endif

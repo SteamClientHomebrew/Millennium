@@ -230,11 +230,7 @@ void backend_manager::notify_frontend_loaded(const std::string& pluginName)
     auto it = m_processes.find(pluginName);
     if (it == m_processes.end()) return;
 
-    try {
-        it->second->call(plugin_ipc::parent_method::ON_FRONTEND_LOADED);
-    } catch (const std::exception& e) {
-        LOG_ERROR("Failed to notify frontend loaded for '{}': {}", pluginName, e.what());
-    }
+    it->second->notify_child(plugin_ipc::parent_method::ON_FRONTEND_LOADED);
 }
 
 void backend_manager::set_child_request_handler(PluginProcess::request_handler handler)

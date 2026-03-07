@@ -133,7 +133,7 @@ std::vector<console_entry> console_capture::get_recent(const std::string& plugin
     std::lock_guard<std::mutex> lock(m_ring_mutex);
 
     std::vector<console_entry> out;
-    out.reserve(std::min(max, m_ring.size()));
+    out.reserve((std::min)(max, m_ring.size()));
 
     const std::size_t total = m_ring.size();
     const std::size_t start = (m_write_pos > 0) ? m_write_pos - 1 : 0;

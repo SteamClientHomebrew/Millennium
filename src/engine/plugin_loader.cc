@@ -201,10 +201,8 @@ void plugin_loader::setup_webkit_shims()
 
     for (auto& plugin : plugins) {
         const auto abs_path = std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
-        const auto should_isolate = plugin.plugin_json.value("webkitApiVersion", "1.0.0") == "2.0.0";
-
         if (this->m_plugin_manager->is_enabled(plugin.plugin_name) && std::filesystem::exists(abs_path)) {
-            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path, should_isolate });
+            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path });
         }
     }
 }

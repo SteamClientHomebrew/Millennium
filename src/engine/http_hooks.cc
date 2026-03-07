@@ -201,6 +201,7 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
 
     std::string responseBody = response.value("body", std::string{});
     if (requestUrl.empty() || responseBody.empty()) {
+        m_cdp->send_host("Fetch.continueRequest", params);
         return;
     }
 

@@ -370,15 +370,15 @@ int main(int argc, char* argv[])
     if (argc < 2) {
 #ifdef _WIN32
         MessageBoxA(nullptr,
-            "This is an internal Millennium runtime component.\n"
-            "It is not meant to be run directly.\n\n"
-            "Please launch Steam with Millennium instead.",
-            MILLENNIUM_RTB_NAME, MB_OK | MB_ICONINFORMATION);
+                    "This is an internal Millennium runtime component.\n"
+                    "It is not meant to be run directly.\n\n"
+                    "Please launch Steam with Millennium instead.",
+                    MILLENNIUM_RTB_NAME, MB_OK | MB_ICONINFORMATION);
 #else
         fprintf(stderr,
-            "%s: This is an internal Millennium runtime component.\n"
-            "It is not meant to be run directly. Please launch Steam with Millennium instead.\n",
-            MILLENNIUM_RTB_NAME);
+                "%s: This is an internal Millennium runtime component.\n"
+                "It is not meant to be run directly. Please launch Steam with Millennium instead.\n",
+                MILLENNIUM_RTB_NAME);
 #endif
         return 1;
     }

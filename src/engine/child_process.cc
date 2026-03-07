@@ -581,12 +581,31 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
     }
 #endif
 
-    /* wait for the child to connect back (10s timeout) */
+    /* wait for the child to connect back (10s timeout via select, not SO_RCVTIMEO —
+       SO_RCVTIMEO on a listening socket is inherited by accepted sockets on Windows,
+       which would silently timeout all recv() calls on the IPC channel) */
     {
-        struct timeval tv;
-        tv.tv_sec = 10;
-        tv.tv_usec = 0;
-        setsockopt(server_fd, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&tv), sizeof(tv));
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(server_fd, &fds);
+        struct timeval tv = { 10, 0 };
+#ifdef _WIN32
+        int ready = ::select(0, &fds, nullptr, nullptr, &tv);
+#else
+        int ready = ::select(static_cast<int>(server_fd) + 1, &fds, nullptr, nullptr, &tv);
+#endif
+        if (ready <= 0) {
+            LOG_ERROR("[spawn] accept() timed out waiting for plugin '{}' to connect", plugin_name);
+            plugin_ipc::close_fd(server_fd);
+#ifdef _WIN32
+            TerminateProcess(hProcess, 1);
+            CloseHandle(hProcess);
+#else
+            ::kill(child_pid, SIGTERM);
+            ::waitpid(child_pid, nullptr, 0);
+#endif
+            return nullptr;
+        }
     }
 
     plugin_ipc::socket_fd client_fd = static_cast<plugin_ipc::socket_fd>(::accept(server_fd, nullptr, nullptr));
@@ -598,7 +617,7 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 #else
     if (client_fd < 0) {
 #endif
-        LOG_ERROR("[spawn] accept() failed/timed out for plugin '{}'", plugin_name);
+        LOG_ERROR("[spawn] accept() failed for plugin '{}'", plugin_name);
 #ifdef _WIN32
         TerminateProcess(hProcess, 1);
         CloseHandle(hProcess);

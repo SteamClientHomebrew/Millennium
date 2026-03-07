@@ -31,7 +31,6 @@
 #include "millennium/ffi_binder.h"
 #include "millennium/logger.h"
 #include "millennium/core_ipc.h"
-#include "millennium/plugin_webkit_world_mgr.h"
 #include "mep/ffi_recorder.h"
 
 #include <chrono>
@@ -147,12 +146,7 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
     std::string session_id = params["sessionId"].get<std::string>();
 
     const auto& context = params["context"];
-    if (!context.contains("id") || !context.contains("name")) {
-        return;
-    }
-
-    std::string context_name = context["name"].get<std::string>();
-    if (context_name != webkit_world_mgr::m_context_name) {
+    if (!context.contains("id")) {
         return;
     }
 

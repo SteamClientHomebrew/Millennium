@@ -30,15 +30,23 @@
 
 #pragma once
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <winsock2.h>
+#endif
+
 #include <nlohmann/json.hpp>
 
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#else
+#ifndef _WIN32
 #include <sys/socket.h>
 #include <unistd.h>
 #endif
