@@ -69,4 +69,8 @@ namespace platform
     void safe_remove_directory(const std::filesystem::path& root);
     void make_writable(const std::filesystem::path& p);
     bool remove_directory(const std::filesystem::path& p);
+
+    /** Generate a crash dump directory path for a plugin (e.g. <steam>/ext/crash_dumps/<name>-<timestamp>).
+     *  The directory is NOT created — the child's crash handler creates it only if a crash occurs. */
+    std::string get_crash_dump_dir(const std::string& plugin_name);
 }; // namespace platform

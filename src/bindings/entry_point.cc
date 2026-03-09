@@ -30,6 +30,7 @@
 
 #include "head/entry_point.h"
 #include "head/library_updater.h"
+#include "mep/crash_event_bus.h"
 #include "head/scan.h"
 #include "head/theme_cfg.h"
 #include "head/webkit.h"
@@ -46,6 +47,7 @@
 #include "millennium/config.h"
 #include "millennium/filesystem.h"
 #include <exception>
+#include <fstream>
 
 std::weak_ptr<head::theme_webkit_mgr> head::millennium_backend::get_theme_webkit_mgr()
 {
@@ -116,6 +118,8 @@ head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> n
         register_function(Core_GetPluginBackendLogs),
         register_function(Core_UpdateMillennium),
         register_function(Core_HasPendingMillenniumUpdateRestart),
+        register_function(Core_GetPendingCrashes),
+        register_function(Core_AcknowledgeCrash),
     };
 }
 
@@ -376,6 +380,41 @@ builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builti
         });
     }
 
+    const auto pending_crashes = mep::crash_event_bus::instance().get_pending_crashes();
+    for (const auto& crash : pending_crashes) {
+        if (crash.crash_dump_dir.empty()) continue;
+
+        auto crash_log_path = std::filesystem::path(crash.crash_dump_dir) / "crash.log";
+        if (!std::filesystem::is_regular_file(crash_log_path)) continue;
+
+        std::ifstream file(crash_log_path);
+        if (!file.is_open()) continue;
+
+        std::string content;
+        std::string line;
+        while (std::getline(file, line)) {
+            content += line + "\n";
+            if (line.find("--- End of Crash Report ---") != std::string::npos) break;
+        }
+        if (content.empty()) continue;
+
+        content += "\nCrash dump: " + crash.crash_dump_dir + "\n";
+
+        nlohmann::json crash_entry = {
+            { "message",   Base64Encode(content) },
+            { "level",     2 /* error */         },
+            { "timestamp", ""                    }
+        };
+
+        auto& loggers = get_plugin_logger_mgr();
+        for (size_t i = 0; i < loggers.size() && i < logData.size(); ++i) {
+            if (loggers[i]->get_plugin_name(false) == crash.plugin_name) {
+                logData[i]["logs"].push_back(crash_entry);
+                break;
+            }
+        }
+    }
+
     return logData;
 }
 
@@ -389,6 +428,41 @@ builtin_payload head::millennium_backend::Core_UpdateMillennium(const builtin_pa
 builtin_payload head::millennium_backend::Core_HasPendingMillenniumUpdateRestart(const builtin_payload&)
 {
     return m_millennium_updater->is_pending_restart();
+}
+
+builtin_payload head::millennium_backend::Core_GetPendingCrashes(const builtin_payload&)
+{
+    const auto crashes = mep::crash_event_bus::instance().get_pending_crashes();
+    const auto all_plugins = m_plugin_manager->get_all_plugins();
+    nlohmann::json result = nlohmann::json::array();
+
+    for (const auto& ev : crashes) {
+        std::string display_name = ev.display_name;
+        if (display_name.empty()) {
+            for (const auto& p : all_plugins) {
+                if (p.plugin_name == ev.plugin_name) {
+                    display_name = p.plugin_json.value("common_name", ev.plugin_name);
+                    break;
+                }
+            }
+        }
+        if (display_name.empty()) display_name = ev.plugin_name;
+
+        result.push_back({
+            { "plugin",       ev.plugin_name         },
+            { "displayName",  display_name           },
+            { "exitCode",     (uint32_t)ev.exit_code },
+            { "crashDumpDir", ev.crash_dump_dir      }
+        });
+    }
+
+    return result.dump();
+}
+
+builtin_payload head::millennium_backend::Core_AcknowledgeCrash(const builtin_payload& args)
+{
+    mep::crash_event_bus::instance().acknowledge_crash(args["plugin"].get<std::string>());
+    return {};
 }
 
 builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)

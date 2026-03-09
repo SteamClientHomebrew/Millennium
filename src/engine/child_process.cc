@@ -31,6 +31,10 @@
 #include "millennium/child_process.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_ipc.h"
+#include "millennium/filesystem.h"
+#include "mep/crash_event_bus.h"
+
+#include <filesystem>
 
 #include <cstring>
 #include <future>
@@ -130,6 +134,11 @@ PluginProcess::~PluginProcess()
 
     if (m_reader_thread.joinable()) {
         m_reader_thread.join();
+    }
+
+    /** check if it failed to join and detach as a fallback */
+    if (m_reader_thread.joinable()) {
+        m_reader_thread.detach();
     }
 
     /* clean up the socket file so we don't leak temp entries */
@@ -457,7 +466,8 @@ void PluginProcess::detect_child_exit()
     GetExitCodeProcess(m_process_handle, &exit_code);
 
     if (exit_code != 0 && exit_code != STILL_ACTIVE) {
-        LOG_ERROR("Plugin '{}' crashed (exit code {}). Check %%APPDATA%%/millennium/crashes/ for a crash report and minidump.", m_plugin_name, exit_code);
+        LOG_ERROR("Plugin '{}' crashed (exit code 0x{:08X}). Crash dump: {}", m_plugin_name, exit_code, m_crash_dump_dir.empty() ? "none" : m_crash_dump_dir);
+        mep::crash_event_bus::instance().notify({ m_plugin_name, exit_code, m_crash_dump_dir });
     }
 #else
     int status = 0;
@@ -470,35 +480,12 @@ void PluginProcess::detect_child_exit()
 
     if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
-        const char* sig_name = "unknown";
-        switch (sig) {
-            case SIGSEGV:
-                sig_name = "SIGSEGV (Segmentation fault)";
-                break;
-            case SIGABRT:
-                sig_name = "SIGABRT (Aborted)";
-                break;
-            case SIGBUS:
-                sig_name = "SIGBUS (Bus error)";
-                break;
-            case SIGFPE:
-                sig_name = "SIGFPE (Floating-point exception)";
-                break;
-            case SIGKILL:
-                sig_name = "SIGKILL (Killed)";
-                break;
-            case SIGTERM:
-                sig_name = "SIGTERM (Terminated)";
-                break;
-            default:
-                break;
-        }
-
-        bool has_core = WCOREDUMP(status);
-        LOG_ERROR("Plugin '{}' crashed with signal {} ({}). Check ~/.millennium/crashes/ for a crash report.{}", m_plugin_name, sig, sig_name,
-                  has_core ? " Core dump was generated." : "");
+        LOG_ERROR("Plugin '{}' crashed with signal {} (0x{:08X}). Crash dump: {}", m_plugin_name, sig, (unsigned long)sig, m_crash_dump_dir.empty() ? "none" : m_crash_dump_dir);
+        mep::crash_event_bus::instance().notify({ m_plugin_name, (unsigned long)sig, m_crash_dump_dir });
     } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-        LOG_ERROR("Plugin '{}' exited with code {}.", m_plugin_name, WEXITSTATUS(status));
+        unsigned long code = (unsigned long)WEXITSTATUS(status);
+        LOG_ERROR("Plugin '{}' exited with code {} (0x{:08X}). Crash dump: {}", m_plugin_name, code, code, m_crash_dump_dir.empty() ? "none" : m_crash_dump_dir);
+        mep::crash_event_bus::instance().notify({ m_plugin_name, code, m_crash_dump_dir });
     }
 #endif
 }
@@ -656,6 +643,8 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 #ifdef _WIN32
     process->m_process_handle = hProcess;
 #endif
+
+    process->m_crash_dump_dir = init_params.value("crash_dump_dir", "");
 
     /* wait for the child to finish init and respond.
        we manually register id=0 in the pending map since the reader thread is

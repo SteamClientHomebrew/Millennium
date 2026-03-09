@@ -73,9 +73,10 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::shared_ptr<head::millennium_backend> get_millennium_backend();
     std::shared_ptr<plugin_manager> get_plugin_manager();
 
+    void shutdown();
+
   private:
     void init();
-    void shutdown();
     void setup_child_request_handler();
 
     void init_devtools();
@@ -107,4 +108,5 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::string document_script_id;
     bool has_loaded_core_plugin;
     bool m_child_handler_installed = false;
+    int m_crash_listener_id = -1;
 };

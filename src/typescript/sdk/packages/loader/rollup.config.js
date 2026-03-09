@@ -27,6 +27,9 @@ export default {
 		pureExternalImports: false,
 		preset: 'smallest',
 	},
+	onwarn(warning, warn) {
+		throw new Error(warning.message);
+	},
 	plugins: [
 		del({
 			targets: ['build/*', 'build/.*'],

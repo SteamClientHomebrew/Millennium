@@ -88,6 +88,7 @@ set(SOURCE_FILES
     mep/mep_hooks.cc
     mep/ffi_recorder.cc
     mep/console_capture.cc
+    mep/crash_event_bus.cc
 )
 
 if(WIN32)
@@ -151,6 +152,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}"
                                    MILLENNIUM_DEBUG=1
     )
+
+    # Replace /Zi (shared PDB) with /Z7 (embed debug info per-object) to eliminate
+    # PDB write races when compiling many TUs in parallel on MSVC.
+    if(MSVC)
+        string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+        string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS_DEBUG}")
+        set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "" FORCE)
+        set(CMAKE_C_FLAGS_DEBUG   ${CMAKE_C_FLAGS_DEBUG}   CACHE STRING "" FORCE)
+    endif()
 endif()
 
 if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")

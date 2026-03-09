@@ -106,5 +106,7 @@ void millennium::entry()
     m_plugin_loader->start_plugin_backends();
     m_plugin_loader->start_plugin_frontends();
 
+    /** shutdown Millennium */
+    m_plugin_loader->shutdown();
     m_mep_server.stop();
 }

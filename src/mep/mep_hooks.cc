@@ -32,6 +32,7 @@
 #include "mep_message.h"
 #include "ffi_recorder.h"
 #include "console_capture.h"
+#include "crash_event_bus.h"
 
 #include "millennium/plugin_loader.h"
 #include "millennium/plugin_manager.h"
@@ -292,6 +293,72 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
                                           { "subscription_id", sub_id  },
                                           { "logs",            initial }
         });
+    });
+
+    // plugin.crash — subscribe to plugin crash events.
+    //
+    // initial response:
+    //   { "subscription_id": "<id>" }
+    //
+    // subsequent push events (server → client, unsolicited):
+    //   { "type": "event", "subscription_id": "<id>",
+    //     "data": { "plugin": "<name>", "exit_code": <n>, "crash_dump_dir": "<path>" } }
+    router.register_handler("plugin.crash", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "plugin.crash requires a live connection");
+
+        auto& bus = crash_event_bus::instance();
+        auto cancelled = std::make_shared<std::atomic<bool>>(false);
+        auto listener_id_r = std::make_shared<std::atomic<int>>(-1);
+
+        const std::string sub_id = ctx->subscribe([&bus, listener_id_r, cancelled]()
+        {
+            cancelled->store(true);
+            const int id = listener_id_r->load();
+            if (id >= 0) bus.remove_listener(id);
+        });
+
+        const std::string captured_sub_id = sub_id;
+        const auto ctx_weak = std::weak_ptr<client_context>(ctx);
+
+        const int id = bus.add_listener([ctx_weak, cancelled, captured_sub_id](const crash_event& ev)
+        {
+            if (cancelled->load()) return;
+            auto ctx_s = ctx_weak.lock();
+            if (!ctx_s) return;
+
+            ctx_s->push({
+                { "type",            "event"         },
+                { "subscription_id", captured_sub_id },
+                { "data",
+                 {
+                      { "plugin", ev.plugin_name },
+                      { "exit_code", ev.exit_code },
+                      { "crash_dump_dir", ev.crash_dump_dir },
+                  }                                  },
+            });
+        });
+
+        listener_id_r->store(id);
+
+        return response_t::ok(req.id, {
+                                          { "subscription_id", sub_id }
+        });
+    });
+
+    router.register_handler("plugin.crash.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "plugin.crash.unsubscribe requires a live connection");
+
+        auto sub_id = require_string(req, "subscription_id");
+        if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
+
+        const bool ok = ctx->unsubscribe(*sub_id);
+        return ok ? response_t::ok(req.id,
+                                   {
+                                       { "subscription_id", *sub_id }
+        })
+                  : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
     });
 
     router.register_handler("plugin.logs.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)

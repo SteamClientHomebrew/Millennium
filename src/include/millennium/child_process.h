@@ -128,6 +128,8 @@ class PluginProcess
     request_handler m_request_handler;
     std::mutex m_handler_mutex;
 
+    std::string m_crash_dump_dir;
+
     /* cpu tracking state — need two snapshots to compute delta */
     mutable uint64_t m_prev_utime = 0;
     mutable uint64_t m_prev_stime = 0;

@@ -40,6 +40,7 @@ import { IconButton } from '../../components/IconButton';
 export type LogItem = {
 	level: LogLevel;
 	message: string;
+	timestamp?: string;
 };
 
 export interface LogData {
@@ -64,6 +65,12 @@ interface RenderLogViewerState {
 	logFontSize: number;
 }
 
+let pendingAutoSelect: string | null = null;
+
+export function setLogViewerAutoSelect(pluginName: string) {
+	pendingAutoSelect = pluginName;
+}
+
 export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	constructor(props: {}) {
 		super(props);
@@ -83,6 +90,15 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		PyGetLogData().then((data: any) => {
 			const parsed = JSON.parse(data);
 			this.setState({ logData: parsed });
+
+			if (pendingAutoSelect) {
+				const target = pendingAutoSelect;
+				pendingAutoSelect = null;
+				const match = parsed.find((log: LogData) => log.name === target);
+				if (match) {
+					this.setState({ selectedLog: match, searchedLogs: match.logs });
+				}
+			}
 		});
 	}
 
@@ -111,7 +127,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		if (!selectedLog) return;
 
 		const logsToCopy = (searchQuery.length ? searchedLogs : selectedLog.logs)
-			.map((log) => atob(log.message))
+			.map((log) => (log.timestamp ? `${log.timestamp} ` : '') + atob(log.message))
 			.join('')
 			/** Strip all ANSI colors that were provided by Millennium */
 			.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
@@ -237,9 +253,17 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 				</div>
 
 				<pre className="MillenniumLogs_Text DialogInput DialogTextInputBase" style={{ fontSize: logFontSize + 'px' }}>
-					{(searchQuery?.length ? searchedLogs : selectedLog?.logs)?.map((log, index) => (
-						<Ansi key={index}>{atob(log?.message)}</Ansi>
-					))}
+					{(searchQuery?.length ? searchedLogs : selectedLog?.logs)?.map((log, index) => {
+						const decoded = atob(log?.message);
+						const line = decoded.endsWith('\n') ? decoded : decoded + '\n';
+						const color = log.level === LogLevel.ERROR ? '#ff4444' : log.level === LogLevel.WARNING ? '#ffc82c' : undefined;
+						return (
+							<span key={index} style={color ? { color } : undefined}>
+								{log.timestamp && <span style={{ color: '#888', userSelect: 'text' }}>{log.timestamp} </span>}
+								<Ansi>{line}</Ansi>
+							</span>
+						);
+					})}
 				</pre>
 			</div>
 		);

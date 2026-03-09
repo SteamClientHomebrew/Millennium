@@ -110,6 +110,10 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     builtin_payload Core_UpdateMillennium(const builtin_payload& args);
     builtin_payload Core_HasPendingMillenniumUpdateRestart(const builtin_payload& args);
 
+    /** Crash notification API */
+    builtin_payload Core_GetPendingCrashes(const builtin_payload& args);
+    builtin_payload Core_AcknowledgeCrash(const builtin_payload& args);
+
     /** Browser extensions API */
     builtin_payload Core_GetBrowserExtensions(const builtin_payload& args);
 

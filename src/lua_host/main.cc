@@ -335,11 +335,20 @@ static json handle_frontend_loaded(lua_State* L)
     };
 }
 
+static bool g_on_unload_called = false;
+
 /**
  * Handle "shutdown" request: call on_unload, cleanup, and exit.
  */
 static json handle_shutdown(lua_State* L)
 {
+    if (g_on_unload_called) {
+        return {
+            { "ok", true }
+        };
+    }
+    g_on_unload_called = true;
+
     lua_getglobal(L, "MILLENNIUM_PLUGIN_DEFINITION");
     if (lua_istable(L, -1)) {
         lua_getfield(L, -1, "on_unload");
@@ -415,8 +424,9 @@ int main(int argc, char* argv[])
     g_backend_dir = init_params.value("backend_dir", "");
     g_backend_file = init_params.value("backend_file", "");
     std::string steam_path = init_params.value("steam_path", "");
+    std::string crash_dump_dir = init_params.value("crash_dump_dir", "");
 
-    install_crash_handler(g_plugin_name.c_str(), g_backend_file.c_str(), steam_path.c_str());
+    install_crash_handler(g_plugin_name.c_str(), g_backend_file.c_str(), steam_path.c_str(), crash_dump_dir.c_str());
 
     lua_State* L = luaL_newstate();
     if (!L) {
@@ -553,6 +563,11 @@ int main(int argc, char* argv[])
             { "error", "unknown method: " + method }
         };
     });
+
+    /* If the parent died without sending SHUTDOWN (crash, ExitProcess, etc.)
+       the event loop exits on socket EOF.  Still call on_unload so the plugin
+       gets a chance to persist state. */
+    handle_shutdown(L);
 
     /* cleanup */
     lua_close(L);

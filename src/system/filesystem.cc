@@ -300,4 +300,25 @@ bool remove_directory(const std::filesystem::path& p)
     }
     return true;
 }
+std::string get_crash_dump_dir(const std::string& plugin_name)
+{
+#ifdef _WIN32
+    auto base = get_steam_path() / "ext" / "crash_dumps";
+#else
+    const char* xdg_state = std::getenv("XDG_STATE_HOME");
+    std::filesystem::path base;
+    if (xdg_state && xdg_state[0])
+        base = std::filesystem::path(xdg_state) / "millennium" / "crash_dumps";
+    else {
+        const char* home = std::getenv("HOME");
+        base = std::filesystem::path(home ? home : "/tmp") / ".local" / "state" / "millennium" / "crash_dumps";
+    }
+#endif
+
+    char timestamp[64];
+    time_t now = std::time(nullptr);
+    std::strftime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", std::localtime(&now));
+
+    return (base / (plugin_name + "-" + timestamp)).string();
+}
 } // namespace platform

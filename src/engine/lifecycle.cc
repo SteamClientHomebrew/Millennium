@@ -162,11 +162,19 @@ void backend_event_dispatcher::backend_loaded_event_hdlr(plugin_t plugin)
         logger.log("Successfully loaded '{}'", plugin.pluginName);
     }
 
-    /** Check if its already emitted */
-    if (std::find(this->emittedPlugins.begin(), this->emittedPlugins.end(), plugin) == this->emittedPlugins.end()) {
+    /* deduplicate by plugin name — if the same plugin emits more than once
+       (e.g. a re-spawn or unexpected duplicate), the list would exceed
+       pluginCount and are_all_backends_ready() would never return true,
+       preventing Steam from being patched. */
+    auto it = std::find_if(this->emittedPlugins.begin(), this->emittedPlugins.end(), [&](const plugin_t& p) { return p.pluginName == plugin.pluginName; });
+
+    if (it != this->emittedPlugins.end()) {
+        *it = plugin;
+    } else {
         this->emittedPlugins.push_back(plugin);
-        this->update();
     }
+
+    this->update();
 }
 
 /**

@@ -36,6 +36,8 @@
 #include "state/shared_memory.h"
 
 #include <fmt/core.h>
+#include <thread>
+#include <vector>
 
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
@@ -71,10 +73,7 @@ backend_manager::backend_manager(std::shared_ptr<plugin_manager> plugin_manager,
 
 backend_manager::~backend_manager()
 {
-#if defined(__linux__) || defined(MILLENNIUM_32BIT)
-    logger.log("Shutting down backend_manager...");
     this->shutdown();
-#endif
 }
 
 void backend_manager::shutdown()
@@ -84,15 +83,22 @@ void backend_manager::shutdown()
     std::lock_guard<std::mutex> lock(m_processes_mutex);
     logger.warn("Unloading {} plugin(s) and preparing for exit...", m_processes.size());
 
-#ifdef MILLENNIUM_32BIT
-    std::exit(0);
-#endif
-
     const auto startTime = std::chrono::steady_clock::now();
 
+    /* Send SHUTDOWN RPCs to all plugins in parallel so the total grace period
+       is ~5 s regardless of plugin count, not 5 s × N sequentially. */
+    std::vector<std::thread> shutdown_threads;
+    shutdown_threads.reserve(m_processes.size());
+
     for (auto& [name, process] : m_processes) {
-        logger.log("Shutting down plugin '{}'...", name);
-        process->shutdown();
+        shutdown_threads.emplace_back([&name, &process]() {
+            logger.log("Shutting down plugin '{}'...", name);
+            process->shutdown();
+        });
+    }
+
+    for (auto& t : shutdown_threads) {
+        if (t.joinable()) t.join();
     }
 
     m_processes.clear();
@@ -130,11 +136,16 @@ bool backend_manager::spawn_plugin(plugin_manager::plugin_t& plugin)
     const std::string exe_path = get_lua_host_exe();
     const std::string socket_path = get_socket_path(plugin.plugin_name);
 
+    /* Pre-determine the crash dump directory so both parent and child know
+       the exact path — no filesystem scanning needed after a crash. */
+    const auto crash_dump_dir = platform::get_crash_dump_dir(plugin.plugin_name);
+
     nlohmann::json init_params = {
-        { "plugin_name",  plugin.plugin_name                               },
-        { "backend_dir",  plugin.plugin_backend_dir.parent_path().string() },
-        { "backend_file", plugin.plugin_backend_dir.string()               },
-        { "steam_path",   platform::get_steam_path().string()              }
+        { "plugin_name",    plugin.plugin_name                               },
+        { "backend_dir",    plugin.plugin_backend_dir.parent_path().string() },
+        { "backend_file",   plugin.plugin_backend_dir.string()               },
+        { "steam_path",     platform::get_steam_path().string()              },
+        { "crash_dump_dir", crash_dump_dir                                   }
     };
 
     auto process = spawn_plugin_process(plugin.plugin_name, exe_path, socket_path, init_params, m_child_request_handler);

@@ -190,7 +190,7 @@ VOID Win32_DetachMillennium(VOID)
  * @param fdwReason The reason for calling the DLL.
  * @return True if the DLL was successfully loaded, false otherwise.
  */
-DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReason, [[maybe_unused]] LPVOID lpvReserved)
+DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
@@ -209,16 +209,15 @@ DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReas
         }
         case DLL_PROCESS_DETACH:
         {
-#if defined(MILLENNIUM_64BIT)
-            Win32_DetachMillennium();
-#elif defined(MILLENNIUM_32BIT)
-            if (g_millenniumThread.joinable()) {
-                g_millenniumThread.detach();
+            if (lpvReserved != nullptr) {
+                if (g_millenniumThread.joinable()) {
+                    g_millenniumThread.detach();
+                }
+                g_millennium.release();
+                break;
             }
-            exit(0);
-#else
-#error "Unsupported Platform"
-#endif
+
+            Win32_DetachMillennium();
             break;
         }
     }

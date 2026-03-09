@@ -41,7 +41,7 @@ endif()
 
 # Always ship with debug info so crash dumps are useful
 if(MSVC)
-    target_compile_options(${MILLENNIUM_RTB_NAME} PRIVATE /Zi)
+    target_compile_options(${MILLENNIUM_RTB_NAME} PRIVATE /Z7)
     target_link_options(${MILLENNIUM_RTB_NAME} PRIVATE /DEBUG)
     target_link_libraries(${MILLENNIUM_RTB_NAME} dbghelp)
 else()

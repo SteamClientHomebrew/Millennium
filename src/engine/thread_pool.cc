@@ -67,6 +67,12 @@ thread_pool::thread_pool(size_t num_threads) : stop(false), shutdown_called(fals
 thread_pool::~thread_pool()
 {
     shutdown();
+
+    for (std::thread& worker : workers) {
+        if (worker.joinable()) {
+            worker.detach();
+        }
+    }
 }
 
 void thread_pool::shutdown()

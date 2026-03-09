@@ -1,8 +1,11 @@
 # Build files
 **/build
 
-# Node 
+# Node
 node_modules/
+
+# Incremental TypeScript build cache
+src/typescript/.build-cache.json
 
 # Visual Studio & Visual Studio Code
 .vs*/

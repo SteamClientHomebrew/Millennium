@@ -30,6 +30,7 @@
 
 #include <fstream>
 #include "head/scan.h"
+#include "mep/crash_event_bus.h"
 
 #include "millennium/logger.h"
 #include "millennium/filesystem.h"
@@ -38,13 +39,40 @@ nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> plu
 {
     nlohmann::json result = nlohmann::json::array();
     const auto foundPlugins = plugin_manager->get_all_plugins();
+    const auto pending_crashes = mep::crash_event_bus::instance().get_pending_crashes();
 
     for (const auto& plugin : foundPlugins) {
+        const bool enabled = plugin_manager->is_enabled(plugin.plugin_name);
+
+        /* Determine runtime status: disabled / running / crashed */
+        std::string status = enabled ? "running" : "disabled";
+        nlohmann::json crash_info = nullptr;
+
+        for (const auto& crash : pending_crashes) {
+            if (crash.plugin_name == plugin.plugin_name) {
+                status = "crashed";
+
+                std::string display = crash.display_name;
+                if (display.empty())
+                    display = plugin.plugin_json.value("common_name", plugin.plugin_name);
+
+                crash_info = {
+                    { "plugin",       crash.plugin_name   },
+                    { "displayName",  display             },
+                    { "exitCode",     (uint32_t)crash.exit_code },
+                    { "crashDumpDir", crash.crash_dump_dir }
+                };
+                break;
+            }
+        }
+
         result.push_back({
-            { "path",              plugin.plugin_base_dir.generic_string()        },
-            { "enabled",           plugin_manager->is_enabled(plugin.plugin_name) },
-            { "isChromeExtension", false                                          },
-            { "data",              plugin.plugin_json                             }
+            { "path",              plugin.plugin_base_dir.generic_string() },
+            { "enabled",           enabled                                },
+            { "status",            status                                 },
+            { "crash",             crash_info                             },
+            { "isChromeExtension", false                                  },
+            { "data",              plugin.plugin_json                     }
         });
     }
 

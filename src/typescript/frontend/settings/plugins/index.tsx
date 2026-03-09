@@ -76,8 +76,15 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 		configurablePluginStore: [],
 	};
 
+	private crashEventHandler = () => this.FetchAllPlugins();
+
 	componentDidMount() {
 		this.FetchAllPlugins();
+		window.addEventListener('millennium-plugin-crash', this.crashEventHandler);
+	}
+
+	componentWillUnmount() {
+		window.removeEventListener('millennium-plugin-crash', this.crashEventHandler);
 	}
 
 	getEnabledPlugins(plugins: PluginComponent[]) {

@@ -12,4 +12,4 @@
  * Call install_crash_handler() once, early in main().
  */
 
-void install_crash_handler(const char* plugin_name, const char* backend_file, const char* steam_path);
+void install_crash_handler(const char* plugin_name, const char* backend_file, const char* steam_path, const char* crash_dump_dir);

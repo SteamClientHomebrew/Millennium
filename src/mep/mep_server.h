@@ -33,6 +33,7 @@
 #include "mep_router.h"
 #include <atomic>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <thread>
 #include <vector>
@@ -41,7 +42,13 @@ namespace mep
 {
 
 #ifdef _WIN32
-static constexpr uint16_t DEFAULT_TCP_PORT = 7780;
+/* window AF_UNIX sockets use regular filesystem paths.
+   %TEMP% is per-user so multiple Steam instances won't collide. */
+inline const std::string DEFAULT_SOCKET_PATH = []() -> std::string
+{
+    const char* tmp = std::getenv("TEMP");
+    return std::string(tmp ? tmp : "C:\\Windows\\Temp") + "\\millennium-mep.sock";
+}();
 #else
 static constexpr const char* DEFAULT_SOCKET_PATH = "/tmp/millennium-mep.sock";
 #endif
@@ -51,11 +58,7 @@ static constexpr std::size_t MAX_MESSAGE_SIZE = 4u * 1024u * 1024u;
 class server
 {
   public:
-#ifdef _WIN32
-    explicit server(router& router, uint16_t port = DEFAULT_TCP_PORT);
-#else
     explicit server(router& router, std::string socket_path = DEFAULT_SOCKET_PATH);
-#endif
     ~server();
 
     void start();
@@ -73,11 +76,7 @@ class server
     bool write_frame(socket_t fd, const std::vector<uint8_t>& data) const;
 
     router& m_router;
-#ifdef _WIN32
-    uint16_t m_port;
-#else
     std::string m_socket_path;
-#endif
     socket_t m_server_fd = -1;
     std::atomic<bool> m_running{ false };
     std::thread m_accept_thread;
