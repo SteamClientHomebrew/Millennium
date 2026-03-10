@@ -1,5 +1,5 @@
 /**
- * crash_handler.cc — cross-platform crash reporting for mllnm_rtb_sandbox.
+ * crash_handler.cc — cross-platform crash reporting for the lua sandbox.
  *
  * Linux/macOS: signal handler for SIGSEGV/SIGABRT/SIGBUS/SIGFPE
  *   - writes crash report to ~/.local/state/millennium/crash_dumps/<plugin>-<ts>/crash.log

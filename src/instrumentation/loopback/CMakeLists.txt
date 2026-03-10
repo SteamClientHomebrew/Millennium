@@ -74,7 +74,7 @@ if(WIN32)
 endif()
 
 include_directories("${MILLENNIUM_BASE}/src/include")
-include_directories("${MILLENNIUM_BASE}/src/vendor/subhook")
+include_directories("${snare_SOURCE_DIR}")
 
 set(SOURCE_FILES
     main.cc
@@ -89,9 +89,6 @@ set(SOURCE_FILES
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
     list(APPEND SOURCE_FILES "${VERSION_FILE}")
-elseif(UNIX)
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
 endif()
 
 add_library(hhx64 SHARED ${SOURCE_FILES})

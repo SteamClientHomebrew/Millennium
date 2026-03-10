@@ -43,11 +43,11 @@ extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
 
 /**
- * path to the mllnm_rtb_sandbox executable.
+ * path to the lua sandbox executable.
  * set at compile time via CMake generator expression.
  */
 #ifndef __LUA_HOST_OUTPUT_ABSPATH__
-#define __LUA_HOST_OUTPUT_ABSPATH__ "mllnm_rtb_sandbox"
+#define __LUA_HOST_OUTPUT_ABSPATH__ "millennium_luasb86"
 #endif
 
 static std::string get_lua_host_exe()

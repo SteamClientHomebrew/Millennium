@@ -29,7 +29,7 @@
  */
 
 /*
- * mllnm_rtb_sandbox — standalone child process for a single plugin backend.
+ * millennium_luasb — standalone child process for a single plugin backend.
  *
  * Gets forked by the parent, connects back over the unix socket it was given,
  * spins up a LuaJIT VM, runs the plugin's main.lua, and then sits in an event

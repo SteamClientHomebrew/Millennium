@@ -39,8 +39,7 @@ include_directories(
     ${MILLENNIUM_BASE}/src/include
 )
 include_directories(SYSTEM
-    ${MILLENNIUM_BASE}/src/vendor/subhook
-    ${MILLENNIUM_BASE}/src/vendor/plthook
+    ${snare_SOURCE_DIR}
 )
 
 set(SOURCE_FILES
@@ -102,15 +101,6 @@ if(WIN32)
 elseif(UNIX)
     list(APPEND SOURCE_FILES "platform/linux.cc")
     list(APPEND SOURCE_FILES "platform/linux_legacy.cc")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
-    set_source_files_properties(
-        "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c"
-        "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c"
-        "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c"
-        PROPERTIES COMPILE_OPTIONS "-w"
-    )
 endif()
 
 if(WIN32)

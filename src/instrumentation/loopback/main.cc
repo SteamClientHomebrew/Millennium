@@ -49,10 +49,12 @@
 #include <cstring>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "subhook.h"
+#define SNARE_STATIC
+#define SNARE_IMPLEMENTATION
+#include "libsnare.h"
 
 extern "C" int tramp_cef_browser_host_create_browser(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
-static subhook_t g_cef_hook = nullptr;
+static snare_inline_t g_cef_hook = nullptr;
 
 static void page_rx(void* addr)
 {
@@ -90,20 +92,20 @@ static void install_hook(void)
         return;
     }
 
-    g_cef_hook = subhook_new(cef_fn, reinterpret_cast<void*>(tramp_cef_browser_host_create_browser));
+    g_cef_hook = snare_inline_new(cef_fn, reinterpret_cast<void*>(tramp_cef_browser_host_create_browser));
     if (!g_cef_hook) {
-        fprintf(stderr, "hook: subhook_new failed\n");
+        fprintf(stderr, "hook: snare_inline_new failed\n");
         return;
     }
 
-    if (subhook_install(g_cef_hook) < 0) {
-        fprintf(stderr, "hook: subhook_install failed\n");
-        subhook_free(g_cef_hook);
+    if (snare_inline_install(g_cef_hook) < 0) {
+        fprintf(stderr, "hook: snare_inline_install failed\n");
+        snare_inline_free(g_cef_hook);
         g_cef_hook = nullptr;
         return;
     }
 
-    /* restore RX — subhook leaves the page RWX which Chromium's sandbox detects and kills */
+    /* restore RX — snare leaves the page RWX which Chromium's sandbox detects and kills */
     page_rx(cef_fn);
     fprintf(stderr, "hook: installed on cef_browser_host_create_browser at %p\n", cef_fn);
 }
@@ -198,14 +200,14 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
     }
 
     /* temporarily remove the prologue patch to call the original without recursing */
-    void* src = subhook_get_src(g_cef_hook);
+    void* src = snare_inline_get_src(g_cef_hook);
     page_rwx(src);
-    subhook_remove(g_cef_hook);
+    snare_inline_remove(g_cef_hook);
     page_rx(src);
     auto orig = reinterpret_cast<decltype(&tramp_cef_browser_host_create_browser)>(src);
     int result = orig(_1, c, _3, _4, _5, _6);
     page_rwx(src);
-    subhook_install(g_cef_hook);
+    snare_inline_install(g_cef_hook);
     page_rx(src);
     return result;
 #endif
