@@ -342,12 +342,41 @@ static void on_terminate()
     TerminateProcess(GetCurrentProcess(), 1);
 }
 
+/**
+ * Console control handler — prevents console events (Ctrl+C, console close)
+ * from killing the sandbox process. The parent will send the SHUTDOWN RPC
+ * when it's time to exit; we dont want the default handler to call
+ * ExitProcess(STATUS_CONTROL_C_EXIT) and bypass on_unload.
+ */
+static BOOL WINAPI console_ctrl_handler(DWORD event)
+{
+    switch (event) {
+        case CTRL_C_EVENT:
+        case CTRL_BREAK_EVENT:
+        case CTRL_CLOSE_EVENT:
+        case CTRL_LOGOFF_EVENT:
+        case CTRL_SHUTDOWN_EVENT:
+            /* swallow the event — the parent manages our lifetime. */
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
 void install_crash_handler(const char* plugin_name, const char* backend_file, const char* steam_path, const char* crash_dump_dir)
 {
     s_plugin_name = plugin_name;
     s_backend_file = backend_file;
     s_steam_path = steam_path;
     s_crash_dump_dir = crash_dump_dir;
+
+    /**
+     * ignore console control events — the parent shuts us down via IPC.
+     * Without this, Ctrl+C in the dev console or closing the console window
+     * kills the sandbox with STATUS_CONTROL_C_EXIT (0xC000013A).
+     * This took way too long to fix lol.
+     */
+    SetConsoleCtrlHandler(console_ctrl_handler, TRUE);
 
     /* AddVectoredExceptionHandler fires before SEH unwind and is not
        overridden by the MSVC CRT, unlike SetUnhandledExceptionFilter. */

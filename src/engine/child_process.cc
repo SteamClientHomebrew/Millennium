@@ -227,6 +227,8 @@ void PluginProcess::set_request_handler(request_handler handler)
 
 void PluginProcess::shutdown()
 {
+    m_shutdown_initiated.store(true, std::memory_order_release);
+
     try {
         call(plugin_ipc::parent_method::SHUTDOWN, nullptr, std::chrono::seconds(5));
     } catch (...) {
@@ -458,6 +460,11 @@ void PluginProcess::reader_thread_fn()
 
 void PluginProcess::detect_child_exit()
 {
+    /* If we initiated shutdown via the SHUTDOWN RPC, any exit is expected — not a crash. */
+    if (m_shutdown_initiated.load(std::memory_order_acquire)) {
+        return;
+    }
+
 #ifdef _WIN32
     if (m_process_handle == INVALID_HANDLE_VALUE) return;
 

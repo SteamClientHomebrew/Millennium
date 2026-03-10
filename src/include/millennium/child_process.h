@@ -112,6 +112,7 @@ class PluginProcess
     std::mutex m_write_mutex;
     std::thread m_reader_thread;
     std::atomic<bool> m_running{ true };
+    std::atomic<bool> m_shutdown_initiated{ false };
 
     std::atomic<int> m_next_id{ 1 };
 
