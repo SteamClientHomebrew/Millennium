@@ -65,10 +65,10 @@ interface RenderLogViewerState {
 	logFontSize: number;
 }
 
-let pendingAutoSelect: string | null = null;
+let pendingAutoSelect: string[] | null = null;
 
-export function setLogViewerAutoSelect(pluginName: string) {
-	pendingAutoSelect = pluginName;
+export function setLogViewerAutoSelect(...names: string[]) {
+	pendingAutoSelect = names.filter(Boolean);
 }
 
 export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
@@ -92,9 +92,9 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 			this.setState({ logData: parsed });
 
 			if (pendingAutoSelect) {
-				const target = pendingAutoSelect;
+				const targets = pendingAutoSelect;
 				pendingAutoSelect = null;
-				const match = parsed.find((log: LogData) => log.name === target);
+				const match = parsed.find((log: LogData) => targets.some((t: string) => log.name === t));
 				if (match) {
 					this.setState({ selectedLog: match, searchedLogs: match.logs });
 				}

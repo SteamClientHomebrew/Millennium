@@ -76,9 +76,9 @@ const CrashModal = ({ detail, closeModal, onResolve }: { detail: PluginCrashInfo
 	};
 
 	const viewLogs = () => {
-		setLogViewerAutoSelect(detail.displayName || detail.plugin);
-		Navigation.Navigate('/millennium/settings/logs');
+		setLogViewerAutoSelect(detail.plugin, detail.displayName);
 		closeModal();
+		Navigation.Navigate('/millennium/settings/logs');
 	};
 
 	const hasCrashDir = !!(detail.crashDumpDir || pluginSelf?.steamPath);
