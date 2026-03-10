@@ -63,140 +63,38 @@ jobs:
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
-      - name: Build Millennium Plugin Backend
-        run: |
-          function Install-EmbeddedPython {
-              param(
-                  [Parameter(Mandatory=$true)]
-                  [ValidateSet('x64', 'x86')]
-                  [string]$Architecture,
-
-                  [Parameter(Mandatory=$true)]
-                  [string]$DestinationPath
-              )
-
-              $archSuffix = if ($Architecture -eq 'x64') { 'amd64' } else { 'win32' }
-              $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-$archSuffix.zip"
-              $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
-
-              if (-Not (Test-Path $DestinationPath)) {
-                  New-Item -ItemType Directory -Path $DestinationPath | Out-Null
-              }
-
-              $zipFilePath = Join-Path $DestinationPath "python-3.11.8-embed-$archSuffix.zip"
-              $getPipFilePath = Join-Path $DestinationPath "get-pip.py"
-
-              function Download-File($Url, $DestinationPath) {
-                  $webRequest = [System.Net.HttpWebRequest]::Create($Url)
-                  $webRequest.Method = "GET"
-                  $webRequest.UserAgent = "Millennium.Installer/1.0"
-                  $response = $webRequest.GetResponse()
-                  $responseStream = $response.GetResponseStream()
-                  $fileStream = New-Object System.IO.FileStream($DestinationPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-                  $buffer = New-Object byte[] 8192
-                  while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                      $fileStream.Write($buffer, 0, $bytesRead)
-                  }
-                  $fileStream.Close()
-                  $responseStream.Close()
-              }
-
-              function Extract-ZipFile($zipPath, $extractPath) {
-                  Add-Type -AssemblyName System.IO.Compression.FileSystem
-                  $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
-                  foreach ($entry in $zipArchive.Entries) {
-                      $destinationPath = Join-Path $extractPath $entry.FullName
-                      $destinationDir = [System.IO.Path]::GetDirectoryName($destinationPath)
-                      if (-Not (Test-Path $destinationDir)) {
-                          New-Item -ItemType Directory -Path $destinationDir | Out-Null
-                      }
-                      if ($entry.Name -ne "") {
-                          if (Test-Path $destinationPath) {
-                              Remove-Item $destinationPath -Force
-                          }
-                          $fileStream = [System.IO.File]::Create($destinationPath)
-                          $entryStream = $entry.Open()
-                          $buffer = New-Object byte[] 8192
-                          while (($bytesRead = $entryStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                              $fileStream.Write($buffer, 0, $bytesRead)
-                          }
-                          $fileStream.Close()
-                          $entryStream.Close()
-                      }
-                  }
-                  $zipArchive.Dispose()
-              }
-
-              Download-File -Url $pythonUrl -DestinationPath $zipFilePath
-              Extract-ZipFile -zipPath $zipFilePath -extractPath $DestinationPath
-              Remove-Item $zipFilePath
-              Write-Host "Downloaded python packages to $DestinationPath"
-
-              Set-Content -Path (Join-Path $DestinationPath "python311._pth") -Value @'
-          python311.zip
-          .
-          # The following line has been added by Millennium
-          # This will implicitly run site.main() which lets us pip from 'python -m pip'
-          import site
-          '@
-              Write-Host "Enabled external site package support."
-
-              Download-File -Url $getPipUrl -DestinationPath $getPipFilePath
-              $pythonExe = Join-Path $DestinationPath "python.exe"
-              & $pythonExe $getPipFilePath --no-warn-script-location
-              Remove-Item $getPipFilePath
-              Write-Host "Installed pip on embedded packages"
-          }
-
-          Install-EmbeddedPython -Architecture 'x64' -DestinationPath 'D:/a/env/ext/data/pyx64'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 24
+          bun-version: latest
 
-      - name: Setup PNPM
-        run: npm install -g pnpm
+      - name: Setup Build Tools
+        shell: pwsh
+        run: |
+          $vsDevCmd = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
+
+          cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 & set" |
+          Where-Object { $_ -match '=' } |
+          ForEach-Object {
+              $k,$v = $_ -split '=',2
+              $env:$k = $v
+          }
 
       - name: Build Millennium Backend
         shell: pwsh
         run: |
-          pushd "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools"
 
-          # Initialize Visual Studio x64 host/toolchain and import the environment into PowerShell
-          cmd /c "VsDevCmd.bat -arch=x64 -host_arch=x64 & set" |
-          ForEach-Object {
-            if ($_ -match "=") {
-              $v = $_.Split("=", 2)
-              Set-Item -Force -Path "ENV:\$($v[0])" -Value "$($v[1])"
-            }
-          }
-
-          popd
-          Write-Host "`nVisual Studio 2022 x64 Command Prompt variables set." -ForegroundColor Yellow
-
-          # optional sanity checks (helpful for CI debugging)
-          cmd /c "where cl.exe"
-          cmd /c "cl.exe /Bv" 2>&1 | Write-Host
-
-          pnpm --dir src/sdk install
-          pnpm --dir src/sdk run build
-
-          pnpm --dir src/frontend install
-          pnpm --dir src/frontend run prod
+          bun install --cwd=src/typescript
+          bun run     --cwd=src/typescript build
 
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
-          mkdir build/artifacts
           cmake --build build
 
-          Copy-Item ./src/vendor/python/lib64/python311.dll  D:/a/env/python311.dll
-          Copy-Item ./build/src/millennium.dll               D:/a/env/millennium.dll
-          Copy-Item ./build/src/boot/win32/wsock32.dll       D:/a/env/wsock32.dll
-          Copy-Item ./build/src/boot/win32/version.dll       D:/a/env/version.dll
-          Copy-Item ./build/src/hhx64/millennium.hhx64.dll   D:/a/env/millennium.hhx64.dll
-
-          mkdir D:/a/env/ext/data/assets
-          Move-Item src/pipx D:/a/env/ext/data/assets/pipx
+          Copy-Item ./build/millennium.dll               D:/a/env/millennium.dll
+          Copy-Item ./build/wsock32.dll                  D:/a/env/wsock32.dll
+          Copy-Item ./build/version.dll                  D:/a/env/version.dll
+          Copy-Item ./build/millennium.hhx64.dll         D:/a/env/millennium.hhx64.dll
+          Copy-Item ./build/millennium.luasb64.exe        D:/a/env/millennium.luasb64.exe
 
       - name: Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
@@ -247,26 +145,16 @@ jobs:
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install Dependencies
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386 nodejs npm
-
-      - name: Download Python Dependencies
-        run: |
-          npm install -g pnpm
-
-          wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
-          mkdir -p ~/build/opt/python-i686-3.11.8
-          mkdir -p ~/build/usr/lib/millennium
-          mkdir -p /opt/python-i686-3.11.8/lib
-
-          tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
-          mv ~/build/opt/python-i686-3.11.8/python-build/* ~/build/opt/python-i686-3.11.8/
-
-          cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so /opt/python-i686-3.11.8/lib/libpython-3.11.8.so
-          ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
+          sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386
 
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v2
@@ -280,11 +168,8 @@ jobs:
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
 
-          pnpm --dir src/sdk install
-          pnpm --dir src/sdk run build
-
-          pnpm --dir src/frontend install
-          pnpm --dir src/frontend run prod
+          bun install --cwd=src/typescript
+          bun run     --cwd=src/typescript build
 
           cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
@@ -300,17 +185,12 @@ jobs:
 
           # Create final directory structure
           mkdir -p ~/build/usr/lib/millennium
-          mkdir -p ~/build/usr/bin
-          mkdir -p ~/build/usr/share/millennium
-          mkdir -p ~/build/opt
 
           # Copy binaries and libraries directly to final locations
-          cp build/src/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
-          cp build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
-          cp build/src/hhx64/libmillennium_hhx64.so ~/build/usr/lib/millennium/libmillennium_hhx64.so
-
-          mkdir -p ~/build/usr/share/millennium/assets
-          mv src/pipx ~/build/usr/share/millennium/assets/pipx
+          cp build/libmillennium_x86.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_hhx64.so ~/build/usr/lib/millennium/
+          cp build/millennium_luasb86 ~/build/usr/lib/millennium/
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
