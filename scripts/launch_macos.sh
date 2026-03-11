@@ -94,7 +94,7 @@ abspath_existing() {
 
 ensure_steam_not_running() {
     local matched_processes
-    matched_processes="$(ps -axo pid,ppid,comm,args 2>/dev/null | rg "[s]team_osx|[S]team Helper" || true)"
+    matched_processes="$(ps -axo pid,ppid,comm,args 2>/dev/null | grep -E "[s]team_osx|[S]team Helper" || true)"
 
     if [ -n "${matched_processes}" ]; then
         fail "Steam appears to already be running. Quit Steam before launching through $(basename "$0").
@@ -142,7 +142,7 @@ find_artifact_by_names() {
 
 resolve_bootstrap_asset_paths() {
     local frontend_candidates=(
-        "${REPO_ROOT}/build/frontend.bin"
+        "${REPO_ROOT}/src/typescript/.frontend.bin"
     )
     local loader_candidates=(
         "${REPO_ROOT}/src/typescript/sdk/packages/loader/build/millennium.js"

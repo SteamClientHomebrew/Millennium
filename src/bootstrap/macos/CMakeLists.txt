@@ -17,7 +17,7 @@ foreach(required_var IN ITEMS MILLENNIUM_OUTPUT_NAME MILLENNIUM_BOOTLOADER_OUTPU
     endif()
 endforeach()
 
-add_library(macos-bootstrap SHARED src/bootstrap.cc)
+add_library(macos-bootstrap SHARED dylib_bootstrap.cc)
 target_compile_definitions(macos-bootstrap PRIVATE
     __MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}"
     __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
@@ -29,7 +29,7 @@ set_target_properties(macos-bootstrap PROPERTIES
     SUFFIX ""
 )
 
-add_library(macos-child-hook SHARED src/child_hook.cc)
+add_library(macos-child-hook SHARED child_process_hook.cc)
 target_compile_definitions(macos-child-hook PRIVATE
     __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
 )
@@ -39,7 +39,7 @@ set_target_properties(macos-child-hook PROPERTIES
     SUFFIX ""
 )
 
-add_executable(SteamWrapper src/wrapper.cc)
+add_executable(SteamWrapper steam_launcher.cc)
 target_compile_definitions(SteamWrapper PRIVATE
     __MILLENNIUM_BOOTLOADER_OUTPUT_NAME__="${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}"
     __MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}"

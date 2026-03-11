@@ -3,7 +3,7 @@
 set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly PROXY_SOURCE="${REPO_ROOT}/src/bootstrap/macos/src/tier0_proxy.cc"
+readonly PROXY_SOURCE="${REPO_ROOT}/src/bootstrap/macos/tier0_proxy.cc"
 readonly DEFAULT_STEAM_DIR="${HOME}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS"
 readonly DEFAULT_WRAPPER_BUILD_DIR="${REPO_ROOT}/build/osx-debug/src/bootstrap/macos"
 readonly DEFAULT_RUNTIME_SEARCH_DIRS=(

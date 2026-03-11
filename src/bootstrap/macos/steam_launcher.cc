@@ -577,15 +577,22 @@ static bool resolve_bootstrap_asset_sources(const char* wrapper_directory, std::
 
     const std::filesystem::path repo_root(MILLENNIUM_ROOT);
     const std::filesystem::path legacy_loader_dir = repo_root / "src" / "typescript" / "sdk" / "packages" / "loader" / "build";
-    const std::filesystem::path legacy_frontend = repo_root / "build" / "frontend.bin";
+    const std::filesystem::path legacy_frontend_candidates[] = {
+        repo_root / "src" / "typescript" / ".frontend.bin",
+        repo_root / "build" / "frontend.bin",
+    };
 
     std::error_code legacy_error;
     if (std::filesystem::is_regular_file(legacy_loader_dir / "millennium.js", legacy_error) && !legacy_error &&
-        std::filesystem::is_directory(legacy_loader_dir / "chunks", legacy_error) && !legacy_error && std::filesystem::is_regular_file(legacy_frontend, legacy_error) &&
-        !legacy_error) {
-        *loader_source_dir = legacy_loader_dir;
-        *frontend_source = legacy_frontend;
-        return true;
+        std::filesystem::is_directory(legacy_loader_dir / "chunks", legacy_error) && !legacy_error) {
+        for (const auto& candidate : legacy_frontend_candidates) {
+            legacy_error.clear();
+            if (std::filesystem::is_regular_file(candidate, legacy_error) && !legacy_error) {
+                *loader_source_dir = legacy_loader_dir;
+                *frontend_source = candidate;
+                return true;
+            }
+        }
     }
 
     return false;

@@ -324,17 +324,20 @@ void plugin_loader::start_plugin_frontends()
 
     logger.warn("Unexpectedly Disconnected from Steam, attempting to reconnect...");
 
-#ifdef _WIN32
     auto start = std::chrono::steady_clock::now();
     while (std::chrono::steady_clock::now() - start < std::chrono::seconds(10)) {
-        if (ab_shouldDisconnectFrontend.load()) {
+#ifdef _WIN32
+        if (ab_shouldDisconnectFrontend.load())
+#else
+        if (g_shouldTerminateMillennium->flag.load())
+#endif
+        {
             logger.log("Steam is shutting down, terminating frontend thread pool...");
             return;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-#endif
 
     logger.warn("Reconnecting to Steam...");
     this->start_plugin_frontends();

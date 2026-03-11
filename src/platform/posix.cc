@@ -34,7 +34,6 @@
 #include "state/shared_memory.h"
 
 #include "millennium/millennium.h"
-#include "millennium/crash_handler.h"
 #include "millennium/environment.h"
 #include "millennium/platform_hooks.h"
 #include "millennium/logger.h"

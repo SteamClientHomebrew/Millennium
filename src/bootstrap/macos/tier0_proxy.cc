@@ -12,18 +12,6 @@
 #include <mutex>
 #include <string>
 
-#ifndef __MILLENNIUM_OUTPUT_NAME__
-#define __MILLENNIUM_OUTPUT_NAME__ "libmillennium.dylib"
-#endif
-
-#ifndef __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__
-#define __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__ "libmillennium_hhx64.dylib"
-#endif
-
-#ifndef __MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__
-#define __MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__ "libmillennium_child_hook.dylib"
-#endif
-
 typedef int (*start_millennium_t)(void);
 typedef int (*stop_millennium_t)(void);
 

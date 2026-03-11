@@ -39,6 +39,8 @@ set(MZ_FETCH_LIBS                   OFF CACHE BOOL     "Disable fetching third-p
 set(MZ_ZLIB                         ON  CACHE BOOL     "Enable zlib support in minizip-ng")
 set(USE_BUNDLED_ZLIB 		        OFF CACHE BOOL     "Use bundled zlib in libgit2")
 set(USE_COMPRESSION 		        OFF CACHE BOOL     "Disable compression support in libgit2")
+set(USE_ICONV                       OFF CACHE BOOL     "Disable iconv in libgit2")
+set(MZ_ICONV                        OFF CACHE BOOL     "Disable iconv in minizip-ng")
 set(ZLIB_COMPAT                     ON  CACHE BOOL     "Enable zlib compatibility mode in zlib-ng")
 set(ZLIB_ALIASES                    ON  CACHE BOOL     "Enable zlib alias symbols in zlib-ng")
 set(ZLIB_ENABLE_TESTS               OFF CACHE BOOL     "Disable building tests in zlib-ng")

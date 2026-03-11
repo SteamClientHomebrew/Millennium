@@ -1,3 +1,33 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2026 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #ifdef __APPLE__
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
@@ -7,13 +37,9 @@ static const NSInteger kMillenniumMenuItemTag = 0x4D4C4E4D; // 'MLNM'
 static const int kMaxMenuInstallAttempts = 90;
 static const int64_t kMenuInstallRetryDelayNs = 500 * NSEC_PER_MSEC;
 
-#ifndef MILLENNIUM_MENU_ICON_PATH
-#define MILLENNIUM_MENU_ICON_PATH ""
-#endif
-
 @interface MillenniumMenuHandler : NSObject
 + (instancetype)shared;
-- (void)openMillenniumSettings:(id)sender;
+- (void)openMillenniumURL:(id)sender;
 @end
 
 @implementation MillenniumMenuHandler
@@ -27,10 +53,10 @@ static const int64_t kMenuInstallRetryDelayNs = 500 * NSEC_PER_MSEC;
     return handler;
 }
 
-- (void)openMillenniumSettings:(id)sender
+- (void)openMillenniumURL:(id)sender
 {
-    (void)sender;
-    NSURL* url = [NSURL URLWithString:@"steam://millennium/settings"];
+    NSString* urlString = [(NSMenuItem*)sender representedObject];
+    NSURL* url = [NSURL URLWithString:urlString];
     if (!url) {
         return;
     }
@@ -39,31 +65,12 @@ static const int64_t kMenuInstallRetryDelayNs = 500 * NSEC_PER_MSEC;
 }
 @end
 
-static NSImage* LoadMillenniumMenuIcon()
+static NSMenuItem* MakeMillenniumItem(NSString* title, NSString* urlString)
 {
-    static NSImage* cached_icon = nil;
-    static dispatch_once_t once_token;
-    dispatch_once(&once_token, ^{
-        const char* icon_path = MILLENNIUM_MENU_ICON_PATH;
-        if (!icon_path || icon_path[0] == '\0') {
-            return;
-        }
-
-        NSString* ns_icon_path = [NSString stringWithUTF8String:icon_path];
-        if (!ns_icon_path || ![[NSFileManager defaultManager] fileExistsAtPath:ns_icon_path]) {
-            return;
-        }
-
-        NSImage* icon = [[NSImage alloc] initWithContentsOfFile:ns_icon_path];
-        if (!icon) {
-            return;
-        }
-
-        [icon setSize:NSMakeSize(16, 16)];
-        cached_icon = icon;
-    });
-
-    return cached_icon;
+    NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:title action:@selector(openMillenniumURL:) keyEquivalent:@""];
+    [item setTarget:[MillenniumMenuHandler shared]];
+    [item setRepresentedObject:urlString];
+    return item;
 }
 
 static bool TryInstallMillenniumMenuItem()
@@ -83,25 +90,21 @@ static bool TryInstallMillenniumMenuItem()
         return true;
     }
 
-    NSInteger insert_index = [app_menu numberOfItems];
-    for (NSInteger index = 0; index < [app_menu numberOfItems]; ++index) {
-        NSMenuItem* candidate = [app_menu itemAtIndex:index];
-        if ([candidate isSeparatorItem]) {
-            insert_index = index;
-            break;
-        }
+    // Steam builds the menu incrementally. Wait until it's fully populated
+    // (the standard Steam app menu has ~11 items) before inserting, otherwise
+    // Steam will add items above ours and push them to the wrong position.
+    if ([app_menu numberOfItems] < 9) {
+        return false;
     }
 
-    NSMenuItem* millennium_item = [[NSMenuItem alloc] initWithTitle:@"Millennium"
-                                                             action:@selector(openMillenniumSettings:)
-                                                      keyEquivalent:@""];
-    NSImage* millennium_icon = LoadMillenniumMenuIcon();
-    if (millennium_icon) {
-        [millennium_item setImage:millennium_icon];
-    }
-    [millennium_item setTarget:[MillenniumMenuHandler shared]];
+    NSInteger insert_index = MIN(3, [app_menu numberOfItems]);
+
+    NSMenuItem* millennium_item = MakeMillenniumItem(@"Millennium", @"steam://millennium/settings");
     [millennium_item setTag:kMillenniumMenuItemTag];
     [app_menu insertItem:millennium_item atIndex:insert_index];
+
+    NSMenuItem* library_manager_item = MakeMillenniumItem(@"Millennium Library Manager", @"steam://millennium/sidebar");
+    [app_menu insertItem:library_manager_item atIndex:insert_index + 1];
     return true;
 }
 

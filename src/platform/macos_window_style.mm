@@ -1,11 +1,42 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2026 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #ifdef __APPLE__
 #import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
-#import <dispatch/dispatch.h>
 #include <cstdlib>
+#import <dispatch/dispatch.h>
 
-namespace {
+namespace
+{
 constexpr const char* kEnableEnv = "MILLENNIUM_MACOS_NATIVE_CORNERS";
 constexpr const char* kRadiusEnv = "MILLENNIUM_MACOS_NATIVE_CORNER_RADIUS";
 constexpr CGFloat kDefaultCornerRadius = 10.0;
@@ -14,7 +45,8 @@ constexpr CGFloat kMaxCornerRadius = 20.0;
 constexpr int kBootstrapPasses = 24;
 constexpr int64_t kBootstrapDelayNs = 250 * NSEC_PER_MSEC;
 
-enum class CornerMode {
+enum class CornerMode
+{
     Disabled = 0,
     AutoFrameless = 1,
     ForceAll = 2,
