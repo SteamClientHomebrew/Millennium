@@ -39,6 +39,10 @@
 #include <thread>
 #include <vector>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
 
@@ -145,7 +149,10 @@ bool backend_manager::spawn_plugin(plugin_manager::plugin_t& plugin)
         { "backend_dir",    plugin.plugin_backend_dir.parent_path().string() },
         { "backend_file",   plugin.plugin_backend_dir.string()               },
         { "steam_path",     platform::get_steam_path().string()              },
-        { "crash_dump_dir", crash_dump_dir                                   }
+        { "crash_dump_dir", crash_dump_dir                                   },
+#ifdef _WIN32
+        { "steam_pid",      static_cast<uint64_t>(GetCurrentProcessId())     },
+#endif
     };
 
     auto process = spawn_plugin_process(plugin.plugin_name, exe_path, socket_path, init_params, m_child_request_handler);

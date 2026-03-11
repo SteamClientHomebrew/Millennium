@@ -6,6 +6,7 @@ node_modules/
 
 # Incremental TypeScript build cache
 src/typescript/.build-cache.json
+src/typescript/.frontend.bin
 
 # Visual Studio & Visual Studio Code
 .vs*/

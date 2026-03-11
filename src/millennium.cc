@@ -28,10 +28,10 @@
  * SOFTWARE.
  */
 
+#include "shared/crash_handler.h"
 #include "state/shared_memory.h"
 #include "head/default_cfg.h"
 
-#include "millennium/crash_handler.h"
 #include "millennium/health_check.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"

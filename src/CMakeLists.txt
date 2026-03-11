@@ -75,6 +75,9 @@ set(SOURCE_FILES
     bindings/webkit.cc
     instrumentation/internal/steam_hooks.cc
     state/shared_memory.cc
+    shared/crash_report.cc
+    shared/crash_handler.cc
+    shared/crash_handler_core.cc
     system/config.cc
     system/environment.cc
     system/filesystem.cc
@@ -112,6 +115,10 @@ elseif(UNIX AND APPLE)
 endif()
 
 add_subdirectory(lua_host)
+
+if(WIN32)
+    add_subdirectory(crash_handler)
+endif()
 
 if(UNIX AND NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE")
@@ -183,17 +190,17 @@ endif()
 include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
 
 # Build TypeScript frontend before C++ compilation in Release mode.
-# Produces build/frontend.bin + SDK JS chunks that get embedded via incbin.
+# Produces src/typescript/.frontend.bin + SDK JS chunks that get embedded via incbin.
 if(CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT DISTRO_NIX)
     find_program(BUN_EXECUTABLE bun REQUIRED)
     add_custom_command(
-        OUTPUT "${MILLENNIUM_BASE}/build/frontend.bin"
+        OUTPUT "${MILLENNIUM_BASE}/src/typescript/.frontend.bin"
         COMMAND ${BUN_EXECUTABLE} install --frozen-lockfile
         COMMAND ${BUN_EXECUTABLE} run build
         WORKING_DIRECTORY "${MILLENNIUM_BASE}/src/typescript"
         COMMENT "Building TypeScript frontend (bun run build)..."
     )
-    add_custom_target(build_frontend DEPENDS "${MILLENNIUM_BASE}/build/frontend.bin")
+    add_custom_target(build_frontend DEPENDS "${MILLENNIUM_BASE}/src/typescript/.frontend.bin")
 endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake)

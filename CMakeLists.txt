@@ -21,6 +21,7 @@ endif()
 # Millennium lua host that runs the backend in a sandbox.
 if(WIN32)
     set(MILLENNIUM_RTB_NAME "millennium.luasb64" CACHE STRING "Lua sandbox executable name")
+    set(MILLENNIUM_CRASH_HANDLER_NAME "millennium.crashhandler64" CACHE STRING "Crash handler executable name")
 else()
     set(MILLENNIUM_RTB_NAME "millennium_luasb86" CACHE STRING "Lua sandbox executable name")
 endif()

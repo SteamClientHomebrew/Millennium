@@ -95,6 +95,11 @@ jobs:
           Copy-Item ./build/version.dll                  D:/a/env/version.dll
           Copy-Item ./build/millennium.hhx64.dll         D:/a/env/millennium.hhx64.dll
           Copy-Item ./build/millennium.luasb64.exe        D:/a/env/millennium.luasb64.exe
+          Copy-Item ./build/millennium.crashhandler64.exe D:/a/env/millennium.crashhandler64.exe
+
+          # Collect PDB files for debug symbols
+          New-Item -ItemType Directory -Force -Path D:/a/pdb
+          Get-ChildItem -Path ./build -Recurse -Filter *.pdb | Copy-Item -Destination D:/a/pdb/
 
       - name: Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
@@ -103,6 +108,12 @@ jobs:
           include-hidden-files: true
           name: unsigned-millennium-windows
           path: D:/a/env/
+
+      - name: Upload PDB Symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: millennium-pdb
+          path: D:/a/pdb/
 
       - name: Sign Millennium Build
         id: sign_artifact
@@ -231,6 +242,12 @@ jobs:
           name: millennium-linux
           path: ./artifacts/linux
 
+      - name: Download PDB Symbols
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-pdb
+          path: ./artifacts/pdb
+
       - name: Update Millennium Version
         run: |
           echo "# current version of millennium" > ./scripts/version
@@ -255,6 +272,13 @@ jobs:
           sha256sum ${linux_release_name}.tar.gz > ${linux_release_name}.sha256
           sed -i 's#\./artifacts/release/##g' ${linux_release_name}.sha256
           du -sb ./artifacts/linux | awk '{print $1}' > ${linux_release_name}.installsize
+
+          # setup PDB symbols release
+          pdb_name="millennium-v${{ needs.prepare.outputs.version }}-pdb"
+          pdb_release_name="./artifacts/release/${pdb_name}"
+          cd ./artifacts/pdb && zip -r ../release/${pdb_name}.zip . && cd ../..
+          sha256sum ${pdb_release_name}.zip > ${pdb_release_name}.sha256
+          sed -i 's#\./artifacts/release/##g' ${pdb_release_name}.sha256
 
           cd scripts && npx semantic-release
         env:

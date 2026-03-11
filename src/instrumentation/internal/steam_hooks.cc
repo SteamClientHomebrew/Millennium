@@ -39,6 +39,7 @@
 std::mutex mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
 std::condition_variable cv_hasSteamUnloaded, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
 std::atomic<bool> atm_hasBackendsAlreadyLoaded{ false };
+std::atomic<bool> atm_hasSteamUILoaded{ false };
 
 std::string STEAM_DEVELOPER_TOOLS_PORT = "8080";
 
@@ -426,6 +427,7 @@ VOID HandleSteamUnload()
 VOID HandleSteamLoad()
 {
     logger.log("[DllNotificationCallback] Notified that Steam UI has loaded, notifying main thread...");
+    atm_hasSteamUILoaded.store(true);
     cv_hasSteamUIStartedLoading.notify_all();
 }
 
@@ -526,7 +528,7 @@ bool InitializeSteamHooks()
 
     /** wait for steamui.dll to load (which signifies Steam is actually starting and not updating/verifying files) */
     std::unique_lock<std::mutex> lk(mtx_hasSteamUIStartedLoading);
-    cv_hasSteamUIStartedLoading.wait(lk);
+    cv_hasSteamUIStartedLoading.wait(lk, [] { return atm_hasSteamUILoaded.load(); });
 #elif MILLENNIUM_32BIT
     bool dllRegStatus = true;
 #endif

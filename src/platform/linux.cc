@@ -101,6 +101,8 @@ DESTRUCTOR void Posix_UnInitializeEnvironment()
 
 void Posix_AttachMillennium()
 {
+    install_millennium_crash_handler();
+
     /** Handle signal interrupts (^C) */
     signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
 

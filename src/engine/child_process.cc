@@ -29,6 +29,7 @@
  */
 
 #include "millennium/child_process.h"
+#include "millennium/cmdline_parse.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_ipc.h"
 #include "millennium/filesystem.h"
@@ -546,7 +547,9 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
         si.cb = sizeof(si);
         PROCESS_INFORMATION pi{};
 
-        if (!CreateProcessA(nullptr, const_cast<char*>(cmd.c_str()), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+        DWORD creation_flags = CommandLineArguments::has_argument("-dev") ? 0 : CREATE_NO_WINDOW;
+
+        if (!CreateProcessA(nullptr, const_cast<char*>(cmd.c_str()), nullptr, nullptr, FALSE, creation_flags, nullptr, nullptr, &si, &pi)) {
             LOG_ERROR("[spawn] CreateProcess failed for plugin '{}'", plugin_name);
             plugin_ipc::close_fd(server_fd);
             return nullptr;

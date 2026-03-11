@@ -425,8 +425,9 @@ int main(int argc, char* argv[])
     g_backend_file = init_params.value("backend_file", "");
     std::string steam_path = init_params.value("steam_path", "");
     std::string crash_dump_dir = init_params.value("crash_dump_dir", "");
+    unsigned int steam_pid = init_params.value("steam_pid", 0u);
 
-    install_crash_handler(g_plugin_name.c_str(), g_backend_file.c_str(), steam_path.c_str(), crash_dump_dir.c_str());
+    install_crash_handler(g_plugin_name.c_str(), g_backend_file.c_str(), steam_path.c_str(), crash_dump_dir.c_str(), steam_pid);
 
     lua_State* L = luaL_newstate();
     if (!L) {
