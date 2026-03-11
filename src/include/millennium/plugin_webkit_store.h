@@ -40,7 +40,6 @@ class plugin_webkit_store
     {
         std::string plugin_name;
         std::filesystem::path abs_webkit_path;
-        bool should_isolate;
 
         bool operator==(const item& other) const
         {
@@ -54,7 +53,6 @@ class plugin_webkit_store
 
     ~plugin_webkit_store()
     {
-        logger.log("Successfully shut down plugin_webkit_store...");
     }
 
     std::vector<item> get();

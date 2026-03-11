@@ -199,13 +199,13 @@ static void add_logger_message(const std::string pluginName, const std::string m
     {
         switch (level) {
             case logger_base::log_level::info:
-                logger->log(message, true);
+                logger->log(message);
                 break;
             case logger_base::log_level::warn:
-                logger->warn(message, true);
+                logger->warn(message);
                 break;
             case logger_base::log_level::error:
-                logger->error(message, true);
+                logger->error(message);
                 break;
         }
     };

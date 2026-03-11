@@ -35,9 +35,10 @@
 #include "millennium/environment.h"
 #include "millennium/http_hooks.h"
 #include "millennium/plugin_loader.h"
-#include "millennium/crash_handler.h"
+#include "millennium/steam_hooks.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plat_msg.h"
+#include "shared/crash_handler.h"
 
 #include <MinHook.h>
 #include <thread>
@@ -134,6 +135,8 @@ VOID Win32_MoveVersionHook(VOID)
 
 VOID Win32_AttachMillennium(VOID)
 {
+    install_millennium_crash_handler();
+
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
     if (!Plat_InitializeSteamHooks()) {
         platform::messagebox::show("Millennium Error", "Failed to initialize Steam hooks, Millennium cannot continue startup.", platform::messagebox::error);
@@ -145,10 +148,6 @@ VOID Win32_AttachMillennium(VOID)
 
     Win32_AttachWebHelperHook();
     platform::environment::setup();
-
-    // Set custom terminate handler for easier debugging
-    std::set_terminate(UnhandledExceptionHandler);
-    SetUnhandledExceptionFilter(Win32_CrashHandler);
 
     g_millennium->entry();
     logger.log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
@@ -181,6 +180,7 @@ VOID Win32_DetachMillennium(VOID)
     }
 
     g_millenniumThread.join();
+    g_millennium.reset();
     logger.log("Millennium thread has exited.");
 }
 
@@ -189,7 +189,7 @@ VOID Win32_DetachMillennium(VOID)
  * @param fdwReason The reason for calling the DLL.
  * @return True if the DLL was successfully loaded, false otherwise.
  */
-DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReason, [[maybe_unused]] LPVOID lpvReserved)
+DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
     switch (fdwReason) {
         case DLL_PROCESS_ATTACH:
@@ -208,16 +208,15 @@ DLL_EXPORT INT WINAPI DllMain([[maybe_unused]] HINSTANCE hinstDLL, DWORD fdwReas
         }
         case DLL_PROCESS_DETACH:
         {
-#if defined(MILLENNIUM_64BIT)
-            Win32_DetachMillennium();
-#elif defined(MILLENNIUM_32BIT)
-            if (g_millenniumThread.joinable()) {
-                g_millenniumThread.detach();
+            if (lpvReserved != nullptr) {
+                if (g_millenniumThread.joinable()) {
+                    g_millenniumThread.detach();
+                }
+                g_millennium.release();
+                break;
             }
-            exit(0);
-#else
-#error "Unsupported Platform"
-#endif
+
+            Win32_DetachMillennium();
             break;
         }
     }

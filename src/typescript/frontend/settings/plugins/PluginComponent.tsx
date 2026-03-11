@@ -39,6 +39,8 @@ import { Utils } from '../../utils';
 import { PyUninstallPlugin } from '../../utils/ffi';
 import { locale } from '../../utils/localization-manager';
 import { MillenniumIcons } from '../../components/Icons';
+import { showPluginCrashModal } from '../../components/PluginCrashModal';
+
 
 interface PluginComponentProps {
 	plugin: PluginComponent;
@@ -145,8 +147,21 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 			};
 		}
 
+		if (plugin.status === 'crashed' && plugin.crash) {
+			return {
+				type: TooltipType.Error,
+				content: (
+					<DesktopTooltip toolTipContent={`${plugin.data.common_name} crashed unexpectedly. Click for details.`} direction="top">
+						<div style={{ cursor: 'pointer' }} onClick={() => showPluginCrashModal(plugin.crash, this.props.refetchPlugins)}>
+							<IconsModule.ExclamationPoint color="red" />
+						</div>
+					</DesktopTooltip>
+				),
+			};
+		}
+
 		const statusMap = [
-			{ condition: hasErrors, color: 'red', message: 'encountered errors', type: TooltipType.Error },
+			{ condition: hasErrors, color: '#ffc82c', message: 'encountered errors', type: TooltipType.Error },
 			{ condition: hasWarnings, color: '#ffc82c', message: 'issued warnings', type: TooltipType.Warning },
 		];
 

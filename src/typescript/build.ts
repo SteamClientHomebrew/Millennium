@@ -33,9 +33,83 @@
 
 import { $ } from "bun";
 import chalk from "chalk";
+import { createHash } from "crypto";
+import { existsSync, readFileSync, readdirSync, statSync } from "fs";
+import path from "path";
+
+const ROOT = import.meta.dir;
+const CACHE_FILE = path.join(ROOT, ".build-cache.json");
+
+// Directories/files that are never part of the source hash.
+const SKIP_DIRS = new Set([
+  "node_modules",
+  "build",
+  "dist",
+  ".turbo",
+  ".cache",
+]);
 
 const startTime = performance.now();
-process.stdout.write("\n");
+
+// Paths to hash for each package (relative to ROOT).
+// Directories are walked recursively; SKIP_DIRS entries are ignored.
+const packageSources: Record<string, string[]> = {
+  "@steambrew/ttc": ["ttc/src", "ttc/rollup.config.js", "ttc/package.json"],
+  "@steambrew/client": [
+    "sdk/packages/client/src",
+    "sdk/packages/client/tsconfig.json",
+    "sdk/packages/client/package.json",
+  ],
+  "@steambrew/webkit": [
+    "sdk/packages/browser/src",
+    "sdk/packages/browser/tsconfig.json",
+    "sdk/packages/browser/package.json",
+  ],
+  "@steambrew/api": [
+    "sdk/packages/loader/src",
+    "sdk/packages/loader/rollup.config.js",
+    "sdk/packages/loader/package.json",
+  ],
+  core: ["frontend"], // entire dir; node_modules/build are skipped
+};
+
+// When a package is rebuilt its dependents must also rebuild even if their
+// own sources are unchanged (because the dep's build output changed).
+const dependsOn: Record<string, string[]> = {
+  "@steambrew/api": ["@steambrew/client"],
+  core: ["@steambrew/client", "@steambrew/webkit"],
+};
+
+function hashPath(absPath: string, h: ReturnType<typeof createHash>): void {
+  if (!existsSync(absPath)) return;
+  const s = statSync(absPath);
+  if (s.isFile()) {
+    h.update(absPath + ":");
+    h.update(readFileSync(absPath));
+  } else if (s.isDirectory()) {
+    for (const entry of readdirSync(absPath).sort()) {
+      if (SKIP_DIRS.has(entry)) continue;
+      hashPath(path.join(absPath, entry), h);
+    }
+  }
+}
+
+function computeHash(filter: string): string {
+  const h = createHash("sha256");
+  for (const rel of packageSources[filter] ?? [])
+    hashPath(path.join(ROOT, rel), h);
+  return h.digest("hex");
+}
+
+// Load persisted hashes from last build.
+let cache: Record<string, string> = {};
+if (existsSync(CACHE_FILE)) {
+  try {
+    cache = JSON.parse(readFileSync(CACHE_FILE, "utf-8"));
+  } catch {
+    /* corrupt cache — rebuild everything */
+  }
+}
 
 const steps = [
   "@steambrew/ttc",
@@ -45,11 +119,23 @@ const steps = [
   "core",
 ];
 
+const rebuilt = new Set<string>();
+
 for (const filter of steps) {
+  const hash = computeHash(filter);
+  const depDirty = (dependsOn[filter] ?? []).some((d) => rebuilt.has(d));
+
+  if (cache[filter] === hash && !depDirty) {
+    console.log(`${chalk.dim("skip")}     ${chalk.yellow(filter)}`);
+    continue;
+  }
+
   process.stdout.write(`building ${chalk.yellow(filter)}... `);
   const start = performance.now();
   try {
     await $`bun run --filter ${filter} build`.quiet();
+    rebuilt.add(filter);
+    cache[filter] = hash;
     console.log(
       chalk.dim(`done (${((performance.now() - start) / 1000).toFixed(2)}s)`),
     );
@@ -61,6 +147,9 @@ for (const filter of steps) {
     process.exit(1);
   }
 }
+
+// Persist hashes so the next run can skip unchanged packages.
+await Bun.write(CACHE_FILE, JSON.stringify(cache, null, 2));
 
 console.log(
   `\n${chalk.green("Finished")} build in ${((performance.now() - startTime) / 1000).toFixed(2)}s`,

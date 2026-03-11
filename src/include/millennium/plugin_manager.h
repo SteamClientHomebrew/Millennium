@@ -37,11 +37,6 @@
 class plugin_manager
 {
   public:
-    enum class backend_t
-    {
-        Lua
-    };
-
     static constexpr const char* plugin_config_file = "plugin.json";
 
     struct plugin_t
@@ -52,7 +47,6 @@ class plugin_manager
         std::filesystem::path plugin_backend_dir;
         std::filesystem::path plugin_frontend_dir;
         std::filesystem::path plugin_webkit_path;
-        backend_t backend_type;
         bool is_internal = false;
     };
 

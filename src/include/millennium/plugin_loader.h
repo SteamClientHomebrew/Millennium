@@ -73,9 +73,11 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::shared_ptr<head::millennium_backend> get_millennium_backend();
     std::shared_ptr<plugin_manager> get_plugin_manager();
 
+    void shutdown();
+
   private:
     void init();
-    void shutdown();
+    void setup_child_request_handler();
 
     void init_devtools();
     void devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp);
@@ -105,4 +107,6 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::chrono::system_clock::time_point m_socket_con_time;
     std::string document_script_id;
     bool has_loaded_core_plugin;
+    bool m_child_handler_installed = false;
+    int m_crash_listener_id = -1;
 };

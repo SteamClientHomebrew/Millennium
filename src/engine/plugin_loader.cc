@@ -29,6 +29,7 @@
  */
 
 #include "millennium/core_ipc.h"
+#include "mep/crash_event_bus.h"
 #include "head/entry_point.h"
 #include "millennium/life_cycle.h"
 #include "millennium/millennium_updater.h"
@@ -37,6 +38,7 @@
 #include "millennium/steam_hooks.h"
 #include "millennium/types.h"
 #include "millennium/plugin_loader.h"
+#include "millennium/plugin_ipc.h"
 #include "millennium/url_parser.h"
 #include "millennium/backend_init.h"
 #include "millennium/backend_mgr.h"
@@ -44,7 +46,9 @@
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_webkit_store.h"
+#include "millennium/semver.h"
 #include "millennium/auth.h"
+#include "state/shared_memory.h"
 #include "mep/console_capture.h"
 #include <memory>
 #include <mutex>
@@ -76,7 +80,25 @@ plugin_loader::~plugin_loader()
 
 void plugin_loader::shutdown()
 {
+    if (m_crash_listener_id >= 0) {
+        mep::crash_event_bus::instance().remove_listener(m_crash_listener_id);
+        m_crash_listener_id = -1;
+    }
+    if (m_backend_manager) {
+        m_backend_manager->shutdown();
+    }
     logger.log("Successfully shut down plugin_loader...");
+}
+
+static std::string make_crash_js(const mep::crash_event& ev)
+{
+    const json detail = {
+        { "plugin",       ev.plugin_name                                             },
+        { "displayName",  ev.display_name.empty() ? ev.plugin_name : ev.display_name },
+        { "exitCode",     (uint32_t)ev.exit_code                                     },
+        { "crashDumpDir", ev.crash_dump_dir                                          }
+    };
+    return fmt::format("window.dispatchEvent(new CustomEvent('millennium-plugin-crash',{{detail:{}}}));", detail.dump());
 }
 
 void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
@@ -105,6 +127,31 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     {
         logger.log("Connected to Steam devtools protocol...");
         this->init_devtools();
+
+        if (m_crash_listener_id >= 0) {
+            mep::crash_event_bus::instance().remove_listener(m_crash_listener_id);
+        }
+
+        std::weak_ptr<ipc_main> weak_ipc = m_ipc_main;
+        std::weak_ptr<plugin_manager> weak_pm = m_plugin_manager;
+        m_crash_listener_id = mep::crash_event_bus::instance().add_listener([weak_ipc, weak_pm](mep::crash_event ev)
+        {
+            if (ev.display_name.empty()) {
+                if (auto pm = weak_pm.lock()) {
+                    for (const auto& p : pm->get_all_plugins()) {
+                        if (p.plugin_name == ev.plugin_name) {
+                            ev.display_name = p.plugin_json.value("common_name", ev.plugin_name);
+                            break;
+                        }
+                    }
+                }
+                if (ev.display_name.empty()) ev.display_name = ev.plugin_name;
+            }
+
+            auto ipc = weak_ipc.lock();
+            if (!ipc) return;
+            ipc->evaluate_javascript_expression(make_crash_js(ev));
+        });
     });
 }
 
@@ -118,6 +165,7 @@ void plugin_loader::init()
     m_backend_event_dispatcher = std::make_shared<backend_event_dispatcher>(m_plugin_manager);
     m_backend_manager = std::make_shared<backend_manager>(m_plugin_manager, m_backend_event_dispatcher);
     m_backend_initializer = std::make_shared<backend_initializer>(m_plugin_manager, m_backend_manager, m_backend_event_dispatcher);
+
     m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_plugin_manager);
     m_plugin_ptr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_plugin_manager->get_all_plugins());
     m_enabledPluginsPtr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_plugin_manager->get_enabled_backends());
@@ -127,7 +175,6 @@ void plugin_loader::init()
     /** setup steam hooks once backends have loaded */
     m_backend_event_dispatcher->on_all_backends_ready(Plat_WaitForBackendLoad);
 }
-
 void plugin_loader::init_devtools()
 {
     constexpr auto targetFrame = "SharedJSContext";
@@ -194,10 +241,8 @@ void plugin_loader::setup_webkit_shims()
 
     for (auto& plugin : plugins) {
         const auto abs_path = std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
-        const auto should_isolate = plugin.plugin_json.value("webkitApiVersion", "1.0.0") == "2.0.0";
-
         if (this->m_plugin_manager->is_enabled(plugin.plugin_name) && std::filesystem::exists(abs_path)) {
-            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path, should_isolate });
+            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path });
         }
     }
 }
@@ -295,9 +340,9 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
         logger.log("Notifying frontend of backend load...");
         self->m_backend_initializer->compat_restore_shared_js_context();
 
+        (*insert_ipc)();
         (*insert_millennium)();
         (*reload)();
-        (*insert_ipc)();
     });
 }
 
@@ -356,24 +401,228 @@ void plugin_loader::log_enabled_plugins()
     logger.log("Plugins: {{ {} }}", fmt::join(statuses, ", "));
 }
 
+void plugin_loader::setup_child_request_handler()
+{
+    std::weak_ptr<plugin_loader> weak_self = weak_from_this();
+
+    m_backend_manager->set_child_request_handler([weak_self](const std::string& plugin_name, const std::string& method, const nlohmann::json& params) -> nlohmann::json
+    {
+        auto self = weak_self.lock();
+        if (!self) {
+            return {
+                { "error", "plugin_loader shutting down" }
+            };
+        }
+
+        if (method == plugin_ipc::child_method::CALL_FRONTEND_METHOD) {
+            auto ipc = self->m_ipc_main;
+            if (!ipc) {
+                return {
+                    { "success", false                        },
+                    { "error",   "frontend not connected yet" }
+                };
+            }
+
+            /* child sends {methodName, params}, but process_message expects
+               {pluginName, methodName, argumentList} under "data" */
+            nlohmann::json data = {
+                { "pluginName", plugin_name },
+                { "methodName", params.value("methodName", "") },
+                { "argumentList", params.contains("params") ? params["params"] : nlohmann::json::array() }
+            };
+
+            nlohmann::json call = {
+                { "id",   ipc_main::ipc_method::CALL_FRONTEND_METHOD },
+                { "data", data                                       }
+            };
+            return ipc->process_message(call);
+        }
+
+        if (method == plugin_ipc::child_method::READY) {
+            auto dispatcher = self->m_backend_event_dispatcher;
+            if (dispatcher) {
+                dispatcher->backend_loaded_event_hdlr({ plugin_name, backend_event_dispatcher::backend_ready_event::BACKEND_LOAD_SUCCESS });
+            }
+            return {
+                { "success", true }
+            };
+        }
+
+        if (method == plugin_ipc::child_method::ADD_BROWSER_CSS || method == plugin_ipc::child_method::ADD_BROWSER_JS) {
+            auto backend = self->m_millennium_backend;
+            if (!backend) {
+                return {
+                    { "error", "backend not available" }
+                };
+            }
+            auto webkit_mgr = backend->get_theme_webkit_mgr().lock();
+            if (!webkit_mgr) {
+                return {
+                    { "error", "webkit_mgr not available" }
+                };
+            }
+            const std::string content = params.value("content", "");
+            const std::string pattern = params.value("pattern", ".*");
+            auto type = (method == plugin_ipc::child_method::ADD_BROWSER_CSS) ? network_hook_ctl::TagTypes::STYLESHEET : network_hook_ctl::TagTypes::JAVASCRIPT;
+            auto id = webkit_mgr->add_browser_hook(content, pattern, type);
+            return {
+                { "id", id }
+            };
+        }
+
+        if (method == plugin_ipc::child_method::REMOVE_BROWSER_MODULE) {
+            auto backend = self->m_millennium_backend;
+            if (!backend) {
+                return {
+                    { "error", "backend not available" }
+                };
+            }
+            auto webkit_mgr = backend->get_theme_webkit_mgr().lock();
+            if (!webkit_mgr) {
+                return {
+                    { "error", "webkit_mgr not available" }
+                };
+            }
+            const auto hook_id = params.value("hook_id", 0ULL);
+            const bool ok = webkit_mgr->remove_browser_hook(hook_id);
+            return {
+                { "success", ok }
+            };
+        }
+
+        if (method == plugin_ipc::child_method::LOG) {
+            const std::string level = params.is_object() ? params.value("level", "info") : "info";
+            const std::string message = params.is_object() ? params.value("message", "") : "";
+
+            if (level == "error")
+                ErrorToLogger(plugin_name, message);
+            else if (level == "warn")
+                WarnToLogger(plugin_name, message);
+            else
+                InfoToLogger(plugin_name, message);
+
+            return {
+                { "success", true }
+            };
+        }
+
+        if (method == plugin_ipc::child_method::VERSION) {
+            return {
+                { "version", MILLENNIUM_VERSION }
+            };
+        }
+
+        if (method == plugin_ipc::child_method::STEAM_PATH) {
+            try {
+                return {
+                    { "path", platform::get_steam_path().string() }
+                };
+            } catch (const std::exception& e) {
+                return {
+                    { "path",  ""       },
+                    { "error", e.what() }
+                };
+            }
+        }
+
+        if (method == plugin_ipc::child_method::INSTALL_PATH) {
+            try {
+                return {
+                    { "path", platform::get_install_path().string() }
+                };
+            } catch (const std::exception& e) {
+                return {
+                    { "path",  ""       },
+                    { "error", e.what() }
+                };
+            }
+        }
+
+        if (method == plugin_ipc::child_method::IS_PLUGIN_ENABLED) {
+            const std::string name = params.value("name", "");
+            auto pm = self->m_plugin_manager;
+            if (!pm) {
+                return {
+                    { "enabled", false }
+                };
+            }
+            try {
+                return {
+                    { "enabled", pm->is_enabled(name) }
+                };
+            } catch (const std::exception&) {
+                return {
+                    { "enabled", false }
+                };
+            }
+        }
+
+        if (method == plugin_ipc::child_method::CMP_VERSION) {
+            const std::string v1 = params.value("v1", "");
+            const std::string v2 = params.value("v2", "");
+            const char* s1 = v1.c_str();
+            const char* s2 = v2.c_str();
+            if (s1[0] == 'v' || s1[0] == 'V') s1++;
+            if (s2[0] == 'v' || s2[0] == 'V') s2++;
+            try {
+                return {
+                    { "result", semver::cmp(s1, s2) }
+                };
+            } catch (const std::exception&) {
+                return {
+                    { "result", -2 }
+                };
+            }
+        }
+
+        if (method == plugin_ipc::child_method::PATCHES) {
+            const auto& patches = params.is_object() ? params["patches"] : params;
+
+            if (g_lb_patch_arena && patches.is_array() && !patches.empty()) {
+                auto* patch_list = hashmap_add_key(g_lb_patch_arena, plugin_name.c_str());
+
+                for (const auto& p : patches) {
+                    const std::string file = p.value("file", "");
+                    const std::string find = p.value("find", "");
+                    auto* patch = patchlist_add(g_lb_patch_arena, patch_list, file.c_str(), find.c_str());
+
+                    if (p.contains("transforms") && p["transforms"].is_array()) {
+                        for (const auto& t : p["transforms"]) {
+                            const std::string match = t.value("match", "");
+                            const std::string replace = t.value("replace", "");
+                            patch_add_transform(g_lb_patch_arena, patch, match.c_str(), replace.c_str());
+                        }
+                    }
+                }
+            }
+
+            return {
+                { "success", true }
+            };
+        }
+
+        return {
+            { "error", "unknown method: " + method }
+        };
+    });
+}
+
 void plugin_loader::start_plugin_backends()
 {
-    std::weak_ptr<plugin_loader> weak_plugin_loader = weak_from_this();
+    /* has to be called here and not from init() — weak_from_this() returns an
+       empty weak_ptr when called from the constructor, before make_shared finishes. */
+    if (!m_child_handler_installed) {
+        this->setup_child_request_handler();
+        m_child_handler_installed = true;
+    }
     this->log_enabled_plugins();
-
-    std::weak_ptr<backend_initializer> weak_init = std::weak_ptr(m_backend_initializer);
 
     for (auto& plugin : *m_enabledPluginsPtr) {
         if (m_backend_manager->is_any_backend_running(plugin.plugin_name)) {
             continue;
         }
 
-        m_backend_manager->create_lua_vm(plugin, [weak_init, weak_plugin_loader](auto plugin, lua_State* L)
-        {
-            if (auto init = weak_init.lock()) {
-                init->lua_backend_started_cb(plugin, weak_plugin_loader, L);
-            }
-        });
+        m_backend_manager->spawn_plugin(plugin);
     }
 }
 void plugin_loader::set_plugin_enable(std::string plugin_name, bool enabled)
@@ -399,7 +648,12 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
 
     /** destroy all plugins that need to be disabled */
     for (const auto& name : plugins_to_disable)
-        m_backend_manager->destroy_lua_vm(name);
+        m_backend_manager->destroy_plugin(name);
+
+    /* Refresh stale snapshots so start_plugin_backends() and log_enabled_plugins()
+       see the updated enabled-plugin list rather than the init()-time snapshot. */
+    *m_plugin_ptr = m_plugin_manager->get_all_plugins();
+    *m_enabledPluginsPtr = m_plugin_manager->get_enabled_backends();
 
     /** if any new backends were enabled, we need to start them */
     if (should_start_backends) start_plugin_backends();

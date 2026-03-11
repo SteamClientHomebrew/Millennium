@@ -24,12 +24,31 @@ else()
     set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "libmillennium_bootstrap_86x.so")
 endif()
 
+# Millennium lua host that runs the backend in a sandbox.
+if(WIN32)
+    set(MILLENNIUM_RTB_NAME "millennium.luasb64" CACHE STRING "Lua sandbox executable name")
+    set(MILLENNIUM_CRASH_HANDLER_NAME "millennium.crashhandler64" CACHE STRING "Crash handler executable name")
+else()
+    set(MILLENNIUM_RTB_NAME "millennium_luasb86" CACHE STRING "Lua sandbox executable name")
+endif()
+
 add_compile_definitions(__MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}")
 add_compile_definitions(__MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}")
 add_compile_definitions(__MILLENNIUM_BOOTLOADER_OUTPUT_NAME__="${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}")
 if(DEFINED MILLENNIUM_CHILD_HOOK_OUTPUT_NAME)
     add_compile_definitions(__MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__="${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}")
 endif()
+
+# In release mode, put all build outputs directly in build/ so paths
+# don't break if the source tree is moved.
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
+
+include(FetchContent)
+FetchContent_Declare(snare GIT_REPOSITORY https://github.com/shdwmtr/libsnare.h GIT_TAG main)
+FetchContent_MakeAvailable(snare)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/instrumentation/loopback)

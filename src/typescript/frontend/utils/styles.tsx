@@ -281,7 +281,7 @@ const styles = /* css */ `
 }
 
 .MillenniumLogs_Text {
-	color: inherit;
+	color: white !important;
 	line-height: inherit;
 	padding: var(--MillenniumSpacing-Normal);
 	margin: 0;

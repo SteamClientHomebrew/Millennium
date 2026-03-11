@@ -138,7 +138,7 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id)
     }
     {
         std::lock_guard<std::mutex> lock(m_targets_mutex);
-        auto [it, inserted] = m_attached_targets.try_emplace(target_id, target_context{ "", -1, true });
+        auto [it, inserted] = m_attached_targets.try_emplace(target_id, target_context{ "", true });
 
         if (!inserted) {
             if (it->second.attaching || !it->second.session_id.empty()) {
@@ -179,7 +179,7 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id)
 
         auto frame_tree_result = m_client->send_host("Page.getFrameTree", json::object(), session_id).get();
 
-        if (!frame_tree_result.contains("frameTree") || !frame_tree_result["frameTree"].contains("frame") || !frame_tree_result["frameTree"]["frame"].contains("id")) {
+        if (!frame_tree_result.contains("frameTree") || !frame_tree_result["frameTree"].contains("frame")) {
             LOG_ERROR("webkit_world_mgr: invalid frameTree response for target {}", target_id);
             std::lock_guard<std::mutex> lock(m_targets_mutex);
             auto it = m_attached_targets.find(target_id);
@@ -189,38 +189,14 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id)
             return;
         }
 
-        std::string frame_id = frame_tree_result["frameTree"]["frame"]["id"].get<std::string>();
-
-        const json create_world_params = {
-            { "frameId",             frame_id       },
-            { "worldName",           m_context_name },
-            { "grantUniveralAccess", true           }
-        };
-        auto isolated_world_result = m_client->send_host("Page.createIsolatedWorld", create_world_params, session_id).get();
-
-        if (!isolated_world_result.contains("executionContextId") || !isolated_world_result["executionContextId"].is_number()) {
-            LOG_ERROR("webkit_world_mgr: no valid executionContextId in createIsolatedWorld response for target {}", target_id);
-            std::lock_guard<std::mutex> lock(m_targets_mutex);
-            auto it = m_attached_targets.find(target_id);
-            if (it != m_attached_targets.end()) {
-                it->second.attaching = false;
-            }
-            return;
-        }
-
-        int execution_context_id = isolated_world_result["executionContextId"].get<int>();
-
         /** check if this is a top-level target (can reload) by checking the target info */
-        bool is_top_level = true;
-        if (frame_tree_result["frameTree"]["frame"].contains("parentId")) {
-            is_top_level = false; /** has parent frame = nested target */
-        }
+        bool is_top_level = !frame_tree_result["frameTree"]["frame"].contains("parentId");
 
         {
             std::lock_guard<std::mutex> lock(m_targets_mutex);
-            m_attached_targets[target_id] = target_context{ session_id, execution_context_id, false };
+            m_attached_targets[target_id] = target_context{ session_id, false };
         }
-        expose_millennium_to_ctx(execution_context_id, session_id, is_top_level);
+        expose_millennium_to_ctx(session_id, is_top_level);
 
     } catch (const std::exception& e) {
         LOG_ERROR("webkit_world_mgr: exception while attaching to target {}: {}", target_id, e.what());
@@ -250,22 +226,10 @@ import('{ftpPath}')
     const std::vector<plugin_webkit_store::item> webkit_items = m_plugin_webkit_store->get();
     const std::vector<plugin_manager::plugin_t> plist = m_plugin_manager->get_enabled_plugins();
 
-    /**
-     * Separate isolated and non-isolated webkit modules
-     * Isolated modules (webkitApiVersion 2.0.0) are loaded into their own isolated world
-     *
-     * I decided to maintain backwards compatibility for non-isolated modules as there are unintended
-     * side-effects to changing the execution context of existing plugins without notice.
-     */
-    auto [isolated, non_isolated] = std::accumulate(webkit_items.begin(), webkit_items.end(), std::pair<std::string, std::string>{}, [m_ftp_url](auto acc, const auto& item)
+    const std::string modules = std::accumulate(webkit_items.begin(), webkit_items.end(), std::string{}, [m_ftp_url](auto acc, const auto& item)
     {
-        auto& [iso, non_iso] = acc;
-        auto& target = item.should_isolate ? iso : non_iso;
-
-        if (!target.empty()) target += ",";
-        target += fmt::format("\"{}\"", utils::url::get_url_from_path(m_ftp_url, item.abs_webkit_path.generic_string()));
-
-        return acc;
+        if (!acc.empty()) acc += ",";
+        return acc + fmt::format("\"{}\"", utils::url::get_url_from_path(m_ftp_url, item.abs_webkit_path.generic_string()));
     });
 
     const std::string plugins = std::accumulate(plist.begin(), plist.end(), std::string{}, [](auto acc, auto& p) { return acc + fmt::format("'{}',", p.plugin_name); });
@@ -274,19 +238,19 @@ import('{ftpPath}')
     const std::string ftp_path = m_ftp_url + platform::get_millennium_preload_path();
     const std::string ftp_base = m_ftp_url + GetScrambledApiPathToken();
 
-    return fmt::format(                         //
-        m_api_shim_script,                      //
-        fmt::arg("location", location),         //
-        fmt::arg("ftpPath", ftp_path),          //
-        fmt::arg("token", token),               //
-        fmt::arg("plugins", plugins),           //
-        fmt::arg("legacy_shims", non_isolated), //
-        fmt::arg("ctx_shims", isolated),        //
-        fmt::arg("ftp_base", ftp_base)          //
+    return fmt::format(                      //
+        m_api_shim_script,                   //
+        fmt::arg("location", location),      //
+        fmt::arg("ftpPath", ftp_path),       //
+        fmt::arg("token", token),            //
+        fmt::arg("plugins", plugins),        //
+        fmt::arg("legacy_shims", modules),   //
+        fmt::arg("ctx_shims", ""),           //
+        fmt::arg("ftp_base", ftp_base)       //
     );
 }
 
-void webkit_world_mgr::expose_millennium_to_ctx(int context_id, const std::string& session_id, bool can_reload)
+void webkit_world_mgr::expose_millennium_to_ctx(const std::string& session_id, bool can_reload)
 {
     try {
         /**
@@ -298,29 +262,27 @@ void webkit_world_mgr::expose_millennium_to_ctx(int context_id, const std::strin
         };
         m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
 
-        /** register script to run on every navigation */
+        /** register script to run on every navigation (main world) */
         const json add_script_params = {
-            { "source",    this->compile_api_shim() },
-            { "worldName", m_context_name           }
+            { "source", this->compile_api_shim() }
         };
         m_client->send_host("Page.addScriptToEvaluateOnNewDocument", add_script_params, session_id).get();
 
         if (can_reload) {
             /** reload page to apply CSP bypass and run script */
             m_client->send_host("Page.reload", json::object(), session_id).get();
-            logger.log("webkit_world_mgr: reloaded page for context {} (top-level target)", context_id);
+            logger.log("webkit_world_mgr: reloaded page for session {} (top-level target)", session_id);
         } else {
             /** nested target - can't reload, just evaluate immediately (CSP bypass already applied) */
             const json evaluate_params = {
-                { "contextId",  context_id               },
                 { "expression", this->compile_api_shim() }
             };
             m_client->send_host("Runtime.evaluate", evaluate_params, session_id).get();
-            logger.log("webkit_world_mgr: evaluated script in context {} (nested target, no reload)", context_id);
+            logger.log("webkit_world_mgr: evaluated script in session {} (nested target, no reload)", session_id);
         }
 
     } catch (const std::exception& e) {
-        LOG_ERROR("webkit_world_mgr: failed to expose millennium to context {}: {}", context_id, e.what());
+        LOG_ERROR("webkit_world_mgr: failed to expose millennium to session {}: {}", session_id, e.what());
     }
 }
 

@@ -32,7 +32,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
-#include <ws2tcpip.h>
+#include <afunix.h>
 #pragma comment(lib, "ws2_32.lib")
 #else
 #if defined(__APPLE__)
@@ -170,23 +170,15 @@ struct client_subscriptions
 
 } // namespace
 
-#ifdef _WIN32
-
-server::server(router& r, uint16_t port) : m_router(r), m_port(port)
-{
-}
-
-#else
-
 server::server(router& r, std::string socket_path) : m_router(r), m_socket_path(std::move(socket_path))
 {
 }
 
-#endif
-
 server::~server()
 {
     stop();
+
+    if (m_accept_thread.joinable()) m_accept_thread.detach();
 }
 
 void server::start()
@@ -200,20 +192,30 @@ void server::start()
         throw std::system_error(WSAGetLastError(), std::system_category(), "mep: WSAStartup()");
     }
 
-    m_server_fd = static_cast<socket_t>(::WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT));
+    ::DeleteFileA(m_socket_path.c_str());
+
+    m_server_fd = static_cast<socket_t>(::WSASocket(AF_UNIX, SOCK_STREAM, 0, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT));
     if (m_server_fd == INVALID_SOCKET) {
         m_running = false;
         throw std::system_error(WSAGetLastError(), std::system_category(), "mep: WSASocket()");
     }
+#else
+    ::unlink(m_socket_path.c_str());
 
-    int optval = 1;
-    ::setsockopt(m_server_fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&optval), sizeof(optval));
+    m_server_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+    if (m_server_fd < 0) {
+        m_running = false;
+        throw std::system_error(errno, std::generic_category(), "mep: socket()");
+    }
 
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    addr.sin_port = htons(m_port);
+    set_noinherit(m_server_fd);
+#endif
 
+    sockaddr_un addr{};
+    addr.sun_family = AF_UNIX;
+    ::strncpy(addr.sun_path, m_socket_path.c_str(), sizeof(addr.sun_path) - 1);
+
+#ifdef _WIN32
     if (::bind(m_server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == SOCKET_ERROR) {
         close_socket(m_server_fd);
         m_server_fd = -1;
@@ -228,20 +230,6 @@ void server::start()
         throw std::system_error(WSAGetLastError(), std::system_category(), "mep: listen()");
     }
 #else
-    ::unlink(m_socket_path.c_str());
-
-    m_server_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
-    if (m_server_fd < 0) {
-        m_running = false;
-        throw std::system_error(errno, std::generic_category(), "mep: socket()");
-    }
-
-    set_noinherit(m_server_fd);
-
-    sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    ::strncpy(addr.sun_path, m_socket_path.c_str(), sizeof(addr.sun_path) - 1);
-
     if (::bind(m_server_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         close_socket(m_server_fd);
         m_server_fd = -1;
@@ -268,16 +256,14 @@ void server::stop()
 #ifdef _WIN32
         ::shutdown(m_server_fd, SD_BOTH);
         close_socket(m_server_fd);
+        ::DeleteFileA(m_socket_path.c_str());
 #else
         ::shutdown(m_server_fd, SHUT_RDWR);
         close_socket(m_server_fd);
+        ::unlink(m_socket_path.c_str());
 #endif
         m_server_fd = -1;
     }
-
-#ifndef _WIN32
-    ::unlink(m_socket_path.c_str());
-#endif
 
     if (m_accept_thread.joinable()) m_accept_thread.join();
 
@@ -295,11 +281,7 @@ void server::accept_loop()
 {
     while (m_running) {
         socket_t client_fd = static_cast<socket_t>(::accept(m_server_fd, nullptr, nullptr));
-#ifdef _WIN32
-        if (client_fd == INVALID_SOCKET) {
-#else
         if (client_fd < 0) {
-#endif
             if (!m_running) break;
             continue;
         }

@@ -41,7 +41,7 @@ stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
 
     mkdir -p $out/share/frontend/
-    cp -r build/frontend.bin $out/share/frontend/
+    cp -r src/typescript/.frontend.bin $out/share/frontend/frontend.bin
 
     runHook postInstall
   '';

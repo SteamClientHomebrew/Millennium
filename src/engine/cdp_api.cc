@@ -91,8 +91,10 @@ cdp_client::cdp_client(ws_client::connection_ptr conn) : m_conn(std::move(conn))
 
 cdp_client::~cdp_client()
 {
-    /** call shutdown */
     shutdown();
+
+    if (m_incoming_worker.joinable()) m_incoming_worker.detach();
+    if (m_cleanup_thread.joinable()) m_cleanup_thread.detach();
 }
 
 /**

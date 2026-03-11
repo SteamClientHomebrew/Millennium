@@ -136,9 +136,20 @@ export interface Plugin {
 	__private_browser_extension?: boolean;
 }
 
+export type PluginStatus = 'running' | 'disabled' | 'crashed';
+
+export interface PluginCrashInfo {
+	plugin: string;
+	displayName?: string;
+	exitCode: number;
+	crashDumpDir?: string;
+}
+
 export interface PluginComponent {
 	path: string;
 	enabled: boolean;
+	status: PluginStatus;
+	crash?: PluginCrashInfo;
 	data: Plugin;
 	isChromeExtension?: boolean;
 }

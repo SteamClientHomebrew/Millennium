@@ -28,10 +28,10 @@
  * SOFTWARE.
  */
 
+#include "shared/crash_handler.h"
 #include "state/shared_memory.h"
 #include "head/default_cfg.h"
 
-#include "millennium/crash_handler.h"
 #include "millennium/health_check.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
@@ -106,5 +106,7 @@ void millennium::entry()
     m_plugin_loader->start_plugin_backends();
     m_plugin_loader->start_plugin_frontends();
 
+    /** shutdown Millennium */
+    m_plugin_loader->shutdown();
     m_mep_server.stop();
 }

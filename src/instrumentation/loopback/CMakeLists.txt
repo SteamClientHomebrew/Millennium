@@ -74,7 +74,7 @@ if(WIN32)
 endif()
 
 include_directories("${MILLENNIUM_BASE}/src/include")
-include_directories("${MILLENNIUM_BASE}/src/vendor/subhook")
+include_directories("${snare_SOURCE_DIR}")
 
 set(SOURCE_FILES
     main.cc
@@ -92,11 +92,6 @@ if(WIN32)
 elseif(APPLE)
     enable_language(OBJCXX)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/platform/macos_window_style.mm")
-elseif(UNIX)
-    list(APPEND SOURCE_FILES
-        ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c
-        ${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c
-    )
 endif()
 
 add_library(hhx64 SHARED ${SOURCE_FILES})

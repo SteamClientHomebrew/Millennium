@@ -40,12 +40,11 @@
 unsigned long __stdcall GetLastError(void);
 void* __stdcall AddDllDirectory(const wchar_t* NewDirectory);
 void* __stdcall LoadLibraryExW(const wchar_t* lpLibFileName, void* hFile, unsigned long dwFlags);
-unsigned long __stdcall GetModuleFileNameA(void* hModule, char* lpFilename, unsigned long nSize);
-int __stdcall MessageBoxA(void* hWnd, const char* lpText, const char* lpCaption, unsigned int uType);
+unsigned long __stdcall GetModuleFileNameW(void* hModule, wchar_t* lpFilename, unsigned long nSize);
+int __stdcall MessageBoxW(void* hWnd, const wchar_t* lpText, const wchar_t* lpCaption, unsigned int uType);
 
 // /** fwd decl standard c funcs */
-int _stricmp(const char* str1, const char* str2);
-int wsprintfA(char* buf, const char* fmt, ...);
+int __cdecl wsprintfW(wchar_t* buf, const wchar_t* fmt, ...);
 
 __declspec(dllexport) const char* __get_shim_version(void)
 {

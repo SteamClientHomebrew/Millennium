@@ -48,11 +48,6 @@ class backend_initializer
         logger.log("Successfully shut down backend_initializer...");
     }
 
-    static std::shared_ptr<plugin_loader> get_plugin_loader_from_lua_vm(lua_State* L);
-    static int lua_set_plugin_loader_ud(lua_State* L, std::weak_ptr<plugin_loader> wp);
-
-    void lua_backend_started_cb(plugin_manager::plugin_t plugin, const std::weak_ptr<plugin_loader> weak_plugin_loader, lua_State* L);
-
     /** Fix an old issue previous versions of Millennium introduced */
     void compat_restore_shared_js_context();
 

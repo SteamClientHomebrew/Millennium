@@ -61,3 +61,5 @@ export const PyChangeColor = callable<[{ theme: string; new_color: string; color
 export const PyChangeAccentColor = callable<[{ new_color: string }], string>('Core_ChangeAccentColor');
 export const PyUpdateMillennium = callable<[{ downloadUrl: string; downloadSize: number; background: boolean }], void>('Core_UpdateMillennium');
 export const Core_HasPendingMillenniumUpdateRestart = callable<[], boolean>('Core_HasPendingMillenniumUpdateRestart');
+export const PyGetPendingCrashes = callable<[], string>('Core_GetPendingCrashes');
+export const PyAcknowledgeCrash = callable<[{ plugin: string }], void>('Core_AcknowledgeCrash');

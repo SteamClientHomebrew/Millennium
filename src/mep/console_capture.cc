@@ -41,11 +41,10 @@ console_capture& console_capture::instance()
 
 void console_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)
 {
-    if (m_started.exchange(true)) return;
-
     m_pm = std::move(pm);
     m_cdp = cdp;
     cdp->on("Runtime.consoleAPICalled", [this](const nlohmann::json& params) { on_console_event(params); });
+    m_started.store(true);
 }
 
 nlohmann::json console_capture::get_properties(const std::string& objectId, const std::string& sessionId)
@@ -118,8 +117,8 @@ std::string console_capture::attribute_plugin(const nlohmann::json& params) cons
 
             for (const auto& p : plugins) {
                 if (p.is_internal) continue;
-                const std::string dir = p.plugin_frontend_dir.generic_string();
-                if (!dir.empty() && url.find(dir) != std::string::npos) {
+                const std::string base = p.plugin_base_dir.generic_string();
+                if (!base.empty() && url.find(base) != std::string::npos) {
                     return p.plugin_name;
                 }
             }
@@ -134,7 +133,7 @@ std::vector<console_entry> console_capture::get_recent(const std::string& plugin
     std::lock_guard<std::mutex> lock(m_ring_mutex);
 
     std::vector<console_entry> out;
-    out.reserve(std::min(max, m_ring.size()));
+    out.reserve((std::min)(max, m_ring.size()));
 
     const std::size_t total = m_ring.size();
     const std::size_t start = (m_write_pos > 0) ? m_write_pos - 1 : 0;

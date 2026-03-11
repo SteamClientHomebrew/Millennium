@@ -334,7 +334,7 @@ class FrontendBuild extends MillenniumBuild {
 	protected output(isMillennium: boolean): OutputOptions {
 		return {
 			name: 'millennium_main',
-			file: isMillennium ? '../../../build/frontend.bin' : '.millennium/Dist/index.js',
+			file: isMillennium ? '../.frontend.bin' : '.millennium/Dist/index.js',
 			globals: {
 				react: 'window.SP_REACT',
 				'react-dom': 'window.SP_REACTDOM',

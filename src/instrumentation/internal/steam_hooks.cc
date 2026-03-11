@@ -40,6 +40,7 @@
 std::mutex mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading, mtx_hasBackendsLoaded;
 std::condition_variable cv_hasSteamUnloaded, cv_hasSteamUIStartedLoading, cv_hasBackendsLoaded;
 std::atomic<bool> atm_hasBackendsAlreadyLoaded{ false };
+std::atomic<bool> atm_hasSteamUILoaded{ false };
 
 std::string STEAM_DEVELOPER_TOOLS_PORT = "8080";
 
@@ -504,6 +505,7 @@ VOID HandleSteamUnload()
 VOID HandleSteamLoad()
 {
     logger.log("[DllNotificationCallback] Notified that Steam UI has loaded, notifying main thread...");
+    atm_hasSteamUILoaded.store(true);
     cv_hasSteamUIStartedLoading.notify_all();
 }
 
@@ -604,7 +606,7 @@ bool InitializeSteamHooks()
 
     /** wait for steamui.dll to load (which signifies Steam is actually starting and not updating/verifying files) */
     std::unique_lock<std::mutex> lk(mtx_hasSteamUIStartedLoading);
-    cv_hasSteamUIStartedLoading.wait(lk);
+    cv_hasSteamUIStartedLoading.wait(lk, [] { return atm_hasSteamUILoaded.load(); });
 #elif MILLENNIUM_32BIT
     bool dllRegStatus = true;
 #endif
@@ -625,10 +627,12 @@ bool InitializeSteamHooks()
 #include <dlfcn.h>
 #include <string>
 #include <fmt/format.h>
-#include <subhook.h>
+#define SNARE_STATIC
+#define SNARE_IMPLEMENTATION
+#include <libsnare.h>
 #include <stdlib.h>
 
-static SubHook create_hook;
+static snare_inline create_hook;
 
 /**
  * It seems a2, a3 might be a stack allocated struct pointer, but we don't really need them
@@ -638,10 +642,10 @@ static SubHook create_hook;
 extern "C" int Hooked_CreateSimpleProcess(const char* cmd, unsigned int a2, const char* a3)
 {
     /** temporarily remove the hook to prevent recursive hook calls */
-    SubHook::ScopedRemove remove(&create_hook);
+    snare_inline::scoped_remove remove(&create_hook);
     cmd = Plat_HookedCreateSimpleProcess(cmd);
     /** call the original */
-    return reinterpret_cast<int (*)(const char* cmd, unsigned int flags, const char* cwd)>(create_hook.GetSrc())(cmd, a2, a3);
+    return reinterpret_cast<int (*)(const char* cmd, unsigned int flags, const char* cwd)>(create_hook.get_src())(cmd, a2, a3);
 }
 
 static void* GetModuleHandle(const char* libneedle, const char* symbol)
@@ -673,7 +677,7 @@ bool InitializeSteamHooks()
     }
 
     logger.log("Located {} at address {}", symbol, target);
-    const bool success = create_hook.Install(target, (void*)Hooked_CreateSimpleProcess);
+    const bool success = create_hook.install(target, (void*)Hooked_CreateSimpleProcess);
     logger.log("Hook install success?: {}", success);
     return true;
 }

@@ -19,7 +19,6 @@ add_compile_definitions(
     "_CRT_SECURE_NO_WARNINGS"
     "USE_INTERNAL_FPCONV"
     "NGHTTP2_STATICLIB"
-    "LJ_HASJIT"
     "_WEBSOCKETPP_CPP11_THREAD_"
     "_WEBSOCKETPP_CPP11_TYPE_TRAITS_"
     "_WEBSOCKETPP_CPP11_RANDOM_DEVICE_"
@@ -27,36 +26,28 @@ add_compile_definitions(
     "ASIO_HAS_STD_INVOKE_RESULT"
     "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
+    $<$<BOOL:${WIN32}>:WIN32_LEAN_AND_MEAN>
+    $<$<BOOL:${WIN32}>:NOMINMAX>
     __HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>"
+    __LUA_HOST_OUTPUT_ABSPATH__="$<TARGET_FILE:${MILLENNIUM_RTB_NAME}>"
     __DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>"
 )
 
-if (WIN32)
-    add_compile_definitions("LJ_TARGET_X64")
-elseif(UNIX AND NOT APPLE)
-    add_compile_definitions("LJ_TARGET_X86")
-endif()
 
 include_directories(
     ${MILLENNIUM_BASE}/src
     ${MILLENNIUM_BASE}/src/include
-    ${MILLENNIUM_BASE}/src/vendor/subhook
-    ${MILLENNIUM_BASE}/src/vendor/plthook
+)
+include_directories(SYSTEM
+    ${snare_SOURCE_DIR}
 )
 
 set(SOURCE_FILES
-    runtime/lua/lua_api.cc
-    runtime/lua/lua_http.cc
-    runtime/lua/lua_interop.cc
-    runtime/lua/lua_logger.cc
-    runtime/lua/lua_utils.cc
-    runtime/lua/lua_filesystem.cc
-    runtime/lua/lua_regex.cc
-    runtime/lua/lua_datetime.cc
-    runtime/lua/lua_hook_api.cc
+    ${MILLENNIUM_BASE}/src/lua_host/lua_interop.cc
     engine/auth.cc
     engine/backend_init.cc
     engine/backend_mgr.cc
+    engine/child_process.cc
     engine/cdp_api.cc
     engine/cdp_connector.cc
     engine/cmdline_parse.cc
@@ -84,6 +75,9 @@ set(SOURCE_FILES
     bindings/webkit.cc
     instrumentation/internal/steam_hooks.cc
     state/shared_memory.cc
+    shared/crash_report.cc
+    shared/crash_handler.cc
+    shared/crash_handler_core.cc
     system/config.cc
     system/environment.cc
     system/filesystem.cc
@@ -96,6 +90,7 @@ set(SOURCE_FILES
     mep/mep_hooks.cc
     mep/ffi_recorder.cc
     mep/console_capture.cc
+    mep/crash_event_bus.cc
 )
 
 if(WIN32)
@@ -116,9 +111,6 @@ elseif(UNIX)
     list(APPEND SOURCE_FILES "platform/posix.cc")
     list(APPEND SOURCE_FILES "platform/linux.cc")
     list(APPEND SOURCE_FILES "platform/linux_legacy.cc")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
 endif()
 
 if(WIN32)
@@ -127,6 +119,12 @@ elseif(UNIX AND NOT APPLE AND NOT NIX_BUILD)
     add_subdirectory(bootstrap/linux)
 elseif(UNIX AND APPLE)
     add_subdirectory(bootstrap/macos)
+endif()
+
+add_subdirectory(lua_host)
+
+if(WIN32)
+    add_subdirectory(crash_handler)
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -145,6 +143,10 @@ endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/bootstrap_deps.cmake)
 
+if(WIN32 OR UNIX)
+    target_include_directories(${MILLENNIUM_RTB_NAME} PRIVATE "${luajit_BINARY_DIR}")
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/typescript/sdk/packages/loader/build")
     set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${MILLENNIUM_BASE}/src")
@@ -154,6 +156,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}"
                                    MILLENNIUM_DEBUG=1
     )
+
+    # Replace /Zi (shared PDB) with /Z7 (embed debug info per-object) to eliminate
+    # PDB write races when compiling many TUs in parallel on MSVC.
+    if(MSVC)
+        string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+        string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS_DEBUG}")
+        set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "" FORCE)
+        set(CMAKE_C_FLAGS_DEBUG   ${CMAKE_C_FLAGS_DEBUG}   CACHE STRING "" FORCE)
+    endif()
 endif()
 
 if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -184,6 +195,21 @@ elseif(UNIX AND NOT APPLE)
 endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
+
+# Build TypeScript frontend before C++ compilation in Release mode.
+# Produces src/typescript/.frontend.bin + SDK JS chunks that get embedded via incbin.
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT DISTRO_NIX)
+    find_program(BUN_EXECUTABLE bun REQUIRED)
+    add_custom_command(
+        OUTPUT "${MILLENNIUM_BASE}/src/typescript/.frontend.bin"
+        COMMAND ${BUN_EXECUTABLE} install --frozen-lockfile
+        COMMAND ${BUN_EXECUTABLE} run build
+        WORKING_DIRECTORY "${MILLENNIUM_BASE}/src/typescript"
+        COMMENT "Building TypeScript frontend (bun run build)..."
+    )
+    add_custom_target(build_frontend DEPENDS "${MILLENNIUM_BASE}/src/typescript/.frontend.bin")
+endif()
+
 include(${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake)
 
 if(WIN32)
@@ -202,6 +228,10 @@ elseif(UNIX)
     endif()
 endif()
 
+if(TARGET build_frontend)
+    add_dependencies(Millennium build_frontend)
+endif()
+
 find_steam_path(Millennium)
 target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
 set_target_properties(Millennium PROPERTIES
@@ -217,7 +247,7 @@ elseif(UNIX AND NOT APPLE)
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
 endif()
 
-target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
+target_link_libraries(Millennium libcurl minizip libgit2package nlohmann_json fmt::fmt mINI)
 
 if(WIN32)
     target_link_libraries(Millennium minhook user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)

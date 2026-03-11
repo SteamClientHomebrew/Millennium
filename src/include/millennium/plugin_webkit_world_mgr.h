@@ -50,7 +50,6 @@
 class webkit_world_mgr
 {
   public:
-    static inline std::string m_context_name = "millennium";
 
     explicit webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<network_hook_ctl> network_hook_ctl,
                               std::shared_ptr<plugin_webkit_store> plugin_webkit_store);
@@ -63,7 +62,6 @@ class webkit_world_mgr
     struct target_context
     {
         std::string session_id;
-        int execution_context_id;
         bool attaching{ false };
     };
 
@@ -74,9 +72,6 @@ class webkit_world_mgr
 
     std::unordered_map<std::string, target_context> m_attached_targets;
     std::mutex m_targets_mutex;
-
-    /** map execution context id's to their session id's for reliable binding */
-    std::unordered_map<int, std::string> m_context_to_session;
 
     /** track targets with queued/in-progress attachments to prevent duplicates */
     std::unordered_set<std::string> m_attachments_in_flight;
@@ -91,7 +86,7 @@ class webkit_world_mgr
     void initialize();
     void attach_to_existing_targets();
     void attach_to_target(const std::string& target_id);
-    void expose_millennium_to_ctx(int context_id, const std::string& session_id, bool can_reload);
+    void expose_millennium_to_ctx(const std::string& session_id, bool can_reload);
     void setup_event_listeners();
     bool is_valid_target_url(const std::string& url) const;
     std::string compile_api_shim();

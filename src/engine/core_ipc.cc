@@ -44,35 +44,6 @@
 
 using namespace std::placeholders;
 
-int ipc_main::javascript_evaluation_result::to_lua(lua_State* L) const
-{
-    if (!valid) {
-        lua_pushnil(L);
-        lua_pushstring(L, error.c_str());
-        return 2;
-    }
-
-    const json& response_json = std::get<0>(response);
-
-    std::string type = response_json["type"];
-    if (type == "string") {
-        lua_pushstring(L, response_json["value"].get<std::string>().c_str());
-        return 1;
-    }
-    if (type == "boolean") {
-        lua_pushboolean(L, response_json["value"]);
-        return 1;
-    }
-    if (type == "number") {
-        lua_pushinteger(L, response_json["value"]);
-        return 1;
-    }
-
-    lua_pushnil(L);
-    lua_pushstring(L, fmt::format("Js function returned unaccepted type '{}'. Accepted types [string, boolean, number]", type).c_str());
-    return 2;
-}
-
 json ipc_main::javascript_evaluation_result::to_json(const std::string& pluginName) const
 {
     return {
@@ -181,49 +152,10 @@ ipc_main::vm_call_result ipc_main::handle_core_server_method(const json& call)
 }
 
 /**
- * @brief Handles a plugin "call server method" request by dispatching it to the appropriate backend (Python or Lua).
- * This function uses a static map to associate backend types with their respective handler functions.
- *
- * @param {std::string} pluginName - The name of the plugin making the request.
- * @param {json} message - The JSON message containing the request data.
- *
- * @returns {EvalResult} - The result of the backend method invocation.
- * @note assert is used to ensure that the backend type is known and has a corresponding handler.
- */
-ipc_main::vm_call_result ipc_main::handle_plugin_server_method(const std::string& pluginName, const json& message)
-{
-    static const std::unordered_map<plugin_manager::backend_t, std::function<vm_call_result(const std::string&, const json&)>> handlers = {
-        { plugin_manager::backend_t::Lua, std::bind(&ipc_main::lua_evaluate, this, _1, _2) },
-    };
-
-    auto backend = m_backend_manager.lock();
-    if (!backend) {
-        logger.warn("HandlePluginServerMethod: backend_manager is no longer available");
-        return { false, std::string("backend_manager unavailable") };
-    }
-
-    const auto backendType = backend->get_plugin_backend_type(pluginName);
-    auto it = handlers.find(backendType);
-    assert(it != handlers.end() && "HandlePluginServerMethod: Unknown backend type encountered?");
-
-    return it->second(pluginName, message["data"]);
-}
-
-/**
  * Calls a server method based on the provided JSON message and returns a response.
- * A "server method" is a Python function that is called by the IPC server.
  *
  * @param {json} message - A JSON message containing the method to be called and its arguments.
  * @returns {json} - A JSON response with the result of the server method call.
- *
- * This function constructs a function call script using the provided message, evaluates it using Python,
- * and returns the result. The response may contain the return value, or in case of an error, the error message.
- *
- * The return value's type is determined based on the Python evaluation result:
- * - Boolean: Returned as `true` or `false`.
- * - String: Returned as a Base64-encoded string.
- * - Integer: Returned as an integer.
- * - Error: Returns a failure message and a flag indicating the failure.
  */
 json ipc_main::call_server_method(const json& call)
 {
@@ -234,7 +166,7 @@ json ipc_main::call_server_method(const json& call)
     }
 
     const std::string pluginName = data["pluginName"];
-    const auto response = pluginName == "core" ? handle_core_server_method(call) : handle_plugin_server_method(pluginName, call);
+    const auto response = pluginName == "core" ? handle_core_server_method(call) : this->lua_evaluate(pluginName, call["data"]);
 
     json responseMessage{
         { "success",    response.success },
@@ -253,13 +185,10 @@ json ipc_main::call_server_method(const json& call)
 }
 
 /**
- * Handles the event when the frontend is loaded by evaluating the corresponding Python method.
+ * Handles the event when the frontend is loaded by notifying the plugin backend via RPC.
  *
  * @param {json} message - A JSON message containing the plugin name and event data.
  * @returns {json} - A JSON response indicating success.
- *
- * This function evaluates the `plugin._front_end_loaded()` method using the provided plugin name and
- * returns a response indicating the success of the operation.
  */
 json ipc_main::on_front_end_loaded(const json& call)
 {
@@ -271,23 +200,7 @@ json ipc_main::on_front_end_loaded(const json& call)
     /** make sure the plugin has a backend that should be called. */
     if (plugin != plugins.end() && plugin->plugin_json.value("useBackend", true)) {
         logger.log("Delegating frontend load for plugin: {}", pluginName);
-
-        static const std::unordered_map<plugin_manager::backend_t, std::function<void(const std::string&)>> handlers = {
-            { plugin_manager::backend_t::Lua, std::bind(&ipc_main::lua_call_frontend_loaded, this, _1) }
-        };
-
-        auto backend = m_backend_manager.lock();
-        if (!backend) {
-            logger.warn("Delegating frontend load for plugin: {} but backend_manager not available", pluginName);
-        } else {
-            const auto backendType = backend->get_plugin_backend_type(pluginName);
-            auto it = handlers.find(backendType);
-            if (it != handlers.end()) {
-                it->second(pluginName);
-            } else {
-                logger.warn("Unknown backend type for plugin '{}'", pluginName);
-            }
-        }
+        this->lua_call_frontend_loaded(pluginName);
     }
 
     /** call["iteration"] is always null/0 as its not provided by the frontend since moving it from socket to http hook */

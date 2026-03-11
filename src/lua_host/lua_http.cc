@@ -95,8 +95,19 @@ static size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* use
     return realsize;
 }
 
+static void ensure_curl_init()
+{
+    static bool inited = false;
+    if (!inited) {
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        inited = true;
+    }
+}
+
 static int Lua_HttpRequest(lua_State* L)
 {
+    ensure_curl_init();
+
     CURL* curl;
     CURLcode res;
     HTTPResponse response = { NULL, 0 };
@@ -429,7 +440,6 @@ static const luaL_Reg httpFunctions[] = {
 
 extern "C" int luaopen_http_lib(lua_State* L)
 {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
     luaL_newlib(L, httpFunctions);
     return 1;
 }

@@ -1,5 +1,17 @@
 {
   "version": 2,
+  "buildPresets": [
+    {
+      "name": "windows-debug",
+      "displayName": "windows-debug",
+      "configurePreset": "windows-debug"
+    },
+    {
+      "name": "windows-release",
+      "displayName": "windows-release",
+      "configurePreset": "windows-release"
+    }
+  ],
   "configurePresets": [
     {
       "name": "default",
@@ -41,8 +53,8 @@
       "description": "windows release build.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS_RELEASE": "/O1 /GL /GF /Gy /DNDEBUG",
-        "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "/LTCG /OPT:REF /OPT:ICF /DEBUG:NONE"
+        "CMAKE_CXX_FLAGS_RELEASE": "/O1 /GL /GF /Gy /Zi /DNDEBUG",
+        "CMAKE_SHARED_LINKER_FLAGS_RELEASE": "/LTCG /OPT:REF /OPT:ICF /DEBUG:FULL"
       }
     },
     {
