@@ -1,17 +1,5 @@
 {
   "version": 2,
-  "buildPresets": [
-    {
-      "name": "windows-debug",
-      "displayName": "windows-debug",
-      "configurePreset": "windows-debug"
-    },
-    {
-      "name": "windows-release",
-      "displayName": "windows-release",
-      "configurePreset": "windows-release"
-    }
-  ],
   "configurePresets": [
     {
       "name": "default",
@@ -37,7 +25,9 @@
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "hostOS": ["Windows"]
+          "hostOS": [
+            "Windows"
+          ]
         }
       },
       "cacheVariables": {

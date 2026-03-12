@@ -411,7 +411,9 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 }
 
 #ifdef _WIN32
-#include "MinHook.h"
+#define SNARE_STATIC
+#define SNARE_IMPLEMENTATION
+#include <libsnare.h>
 
 #include "millennium/argp_win32.h"
 #include "millennium/logger.h"
@@ -424,18 +426,19 @@ LdrRegisterDllNotification_t LdrRegisterDllNotification = nullptr;
 LdrUnregisterDllNotification_t LdrUnregisterDllNotification = nullptr;
 PVOID g_NotificationCookie = nullptr;
 
-typedef INT(__cdecl* CreateSimpleProcess_t)(const char* a1, char a2, const char* lpMultiByteStr);
-typedef BOOL(WINAPI* ReadDirectoryChangesW_t)(HANDLE, LPVOID, DWORD, BOOL, DWORD, LPDWORD, LPOVERLAPPED, LPOVERLAPPED_COMPLETION_ROUTINE);
-
-CreateSimpleProcess_t fpCreateSimpleProcess = nullptr;
-ReadDirectoryChangesW_t orig_ReadDirectoryChangesW = NULL;
+static snare_inline_t g_create_hook = nullptr;
+static snare_inline_t g_rdcw_hook   = nullptr;
 
 HMODULE steamTier0Module;
 std::atomic<bool> ab_shouldDisconnectFrontend{ false };
 
 INT Hooked_CreateSimpleProcess(const char* a1, char a2, const char* lpMultiByteStr)
 {
-    return fpCreateSimpleProcess(Plat_HookedCreateSimpleProcess(a1), a2, lpMultiByteStr);
+    snare_inline_remove(g_create_hook);
+    auto orig = reinterpret_cast<INT(__cdecl*)(const char*, char, const char*)>(snare_inline_get_src(g_create_hook));
+    INT result = orig(Plat_HookedCreateSimpleProcess(a1), a2, lpMultiByteStr);
+    snare_inline_install(g_create_hook);
+    return result;
 }
 
 /**
@@ -452,13 +455,12 @@ VOID HandleTier0Dll(PVOID moduleBaseAddress)
 
     FARPROC proc = GetProcAddress(steamTier0Module, "CreateSimpleProcess");
     if (proc != nullptr) {
-        if (MH_CreateHook(reinterpret_cast<LPVOID>(proc), reinterpret_cast<LPVOID>(&Hooked_CreateSimpleProcess), reinterpret_cast<LPVOID*>(&fpCreateSimpleProcess)) != MH_OK) {
+        g_create_hook = snare_inline_new(reinterpret_cast<void*>(proc), reinterpret_cast<void*>(&Hooked_CreateSimpleProcess));
+        if (!g_create_hook || snare_inline_install(g_create_hook) < 0) {
             MessageBoxA(NULL, "Failed to create hook for CreateSimpleProcess", "Error", MB_ICONERROR | MB_OK);
             return;
         }
     }
-
-    MH_EnableHook(MH_ALL_HOOKS);
 }
 
 /**
@@ -566,11 +568,6 @@ bool InitializeSteamHooks()
 {
     const auto startTime = std::chrono::system_clock::now();
 
-    if (MH_Initialize() != MH_OK) {
-        MessageBoxA(NULL, "Failed to initialize MinHook", "Error", MB_ICONERROR | MB_OK);
-        return false;
-    }
-
 #ifdef MILLENNIUM_64BIT
 
     STEAM_DEVELOPER_TOOLS_PORT = std::to_string(GetRandomOpenPort());
@@ -615,11 +612,17 @@ bool InitializeSteamHooks()
 
     /** only hook if developer mode is enabled */
     if (CommandLineArguments::has_argument("-dev")) {
-        MH_CreateHook((LPVOID)&ReadDirectoryChangesW, (LPVOID)&Hooked_ReadDirectoryChangesW, (LPVOID*)&orig_ReadDirectoryChangesW);
-        MH_EnableHook((LPVOID)&ReadDirectoryChangesW);
+        g_rdcw_hook = snare_inline_new(reinterpret_cast<void*>(&ReadDirectoryChangesW), reinterpret_cast<void*>(&Hooked_ReadDirectoryChangesW));
+        if (g_rdcw_hook) snare_inline_install(g_rdcw_hook);
     }
 
     return dllRegStatus;
+}
+
+void UninitializeSteamHooks()
+{
+    if (g_rdcw_hook)   { snare_inline_remove(g_rdcw_hook);   snare_inline_free(g_rdcw_hook);   g_rdcw_hook   = nullptr; }
+    if (g_create_hook) { snare_inline_remove(g_create_hook); snare_inline_free(g_create_hook); g_create_hook = nullptr; }
 }
 #elif __linux__
 #include "millennium/logger.h"

@@ -40,7 +40,6 @@
 #include "millennium/plat_msg.h"
 #include "shared/crash_handler.h"
 
-#include <MinHook.h>
 #include <thread>
 
 /** forward declare function */
@@ -152,9 +151,7 @@ VOID Win32_AttachMillennium(VOID)
     g_millennium->entry();
     logger.log("[Win32_AttachMillennium] Millennium main function has returned, proceeding with shutdown...");
 
-    MH_DisableHook(MH_ALL_HOOKS);
-    MH_Uninitialize();
-    logger.log("MinHook has been uninitialized.");
+    UninitializeSteamHooks();
     /** Deallocate the developer console */
     if (CommandLineArguments::has_argument("-dev")) {
         FreeConsole();

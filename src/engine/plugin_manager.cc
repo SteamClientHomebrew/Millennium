@@ -33,50 +33,12 @@
 #include "millennium/logger.h"
 #include "millennium/config.h"
 #include "millennium/environment.h"
-#include "mini/ini.h"
-
 #include <fmt/core.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-plugin_manager::plugin_manager()
-{
-    const auto path = std::filesystem::path(platform::environment::get("MILLENNIUM__CONFIG_PATH")) / "millennium.ini";
-
-    if (std::filesystem::exists(path)) {
-        logger.log("Found legacy config file at {}, migrating to new config system...", path.string());
-
-        mINI::INIFile iniFile(path.string());
-        mINI::INIStructure ini;
-        iniFile.read(ini);
-
-        if (ini["Settings"].has("enabled_plugins")) {
-            logger.log("Migrating enabled plugins from legacy config...");
-
-            std::string token;
-            std::vector<std::string> enabledPlugins;
-            std::istringstream tokenStream(ini["Settings"]["enabled_plugins"]);
-
-            while (std::getline(tokenStream, token, '|')) {
-                if (token == "core") {
-                    continue; /** no need to migrate it, it doesn't exist anymore */
-                }
-
-                logger.log(" - Migrated plugin: {}", token);
-                enabledPlugins.push_back(token);
-            }
-
-            logger.log("Successfully migrated {} enabled plugins from legacy config.", enabledPlugins.size());
-            CONFIG.set("plugins.enabledPlugins", enabledPlugins);
-        } else {
-            logger.log("No enabled plugins found in legacy config.");
-        }
-
-        logger.warn("Removing legacy config file at {}, it is no longer needed.", path.string());
-        std::filesystem::remove(path);
-    }
-}
+plugin_manager::plugin_manager() {}
 
 nlohmann::json reset_enabled_plugins()
 {

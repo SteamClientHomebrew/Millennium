@@ -71,8 +71,6 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
           "zlib"
           "luajit"
           "luajson"
-          "minhook"
-          "mini"
           "websocketpp"
           "fmt"
           "json"

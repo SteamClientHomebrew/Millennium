@@ -247,10 +247,10 @@ elseif(UNIX AND NOT APPLE)
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
 endif()
 
-target_link_libraries(Millennium libcurl minizip libgit2package nlohmann_json fmt::fmt mINI)
+target_link_libraries(Millennium libcurl minizip libgit2package nlohmann_json fmt::fmt)
 
 if(WIN32)
-    target_link_libraries(Millennium minhook user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
+    target_link_libraries(Millennium user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_link_options(Millennium PRIVATE /NODEFAULTLIB:LIBCMT)
     endif()
