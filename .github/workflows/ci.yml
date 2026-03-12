@@ -170,7 +170,7 @@ jobs:
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v2
         with:
-          cmake-version: "3.21.1"
+          cmake-version: "3.28"
 
       - name: Build Millennium Backend
         run: |
