@@ -235,14 +235,32 @@ void head::theme_config_store::setup_colors()
         if (CONFIG.get("themes.themeColors." + nativeName, nullptr).is_null()) CONFIG.set("themes.themeColors." + nativeName, nlohmann::json::object(), /*skipPropagation=*/false);
 
         for (auto& color : colors[nativeName]) {
-            std::string colorName = color["color"].get<std::string>();
-            std::string defaultHex = color["defaultColor"].get<std::string>();
-            int typeEnum = color["type"].get<int>();
+            if (!color.contains("color") || !color["color"].is_string()) {
+                continue;
+            }
+
+            if (!color.contains("defaultColor") || !color["defaultColor"].is_string()) {
+                continue;
+            }
+
+            if (!color.contains("type") || !color["type"].is_number_integer()) {
+                continue;
+            }
+
+            const std::string colorName = color["color"].get<std::string>();
+            const std::string defaultHex = color["defaultColor"].get<std::string>();
+            const int typeEnum = color["type"].get<int>();
 
             auto colorValue = head::css_parser::convert_from_hex(defaultHex, static_cast<head::color_type>(typeEnum));
+            if (!colorValue.has_value()) {
+                continue;
+            }
 
-            if (CONFIG.get("themes.themeColors." + nativeName + "." + colorName, nullptr).is_null())
-                CONFIG.set("themes.themeColors." + nativeName + "." + colorName, colorValue.value_or(""), /*skipPropagation=*/false);
+            const std::string configPath = "themes.themeColors." + nativeName + "." + colorName;
+            const auto existing = CONFIG.get(configPath, nullptr);
+            if (!existing.is_string()) {
+                CONFIG.set(configPath, colorValue.value(), /*skipPropagation=*/false);
+            }
         }
     }
 }
@@ -256,8 +274,18 @@ nlohmann::json head::theme_config_store::get_colors()
 
     const auto themeColors = CONFIG.get(fmt::format("themes.themeColors.{}", name));
 
-    for (auto& [color, value] : themeColors.items())
-        root += fmt::format("{}: {};", color, value.get<std::string>());
+    for (auto& [color, value] : themeColors.items()) {
+        if (!value.is_string()) {
+            continue;
+        }
+
+        const std::string colorValue = value.get<std::string>();
+        if (colorValue.empty()) {
+            continue;
+        }
+
+        root += fmt::format("{}: {};", color, colorValue);
+    }
 
     root += "}";
     return root;
@@ -275,7 +303,7 @@ nlohmann::json head::theme_config_store::get_color_options(const std::string& th
 
     for (auto& color : root_colors) {
         std::string cname = color["color"].get<std::string>();
-        if (saved_colors.contains(cname)) {
+        if (saved_colors.contains(cname) && saved_colors[cname].is_string()) {
             const auto hex_color = head::css_parser::convert_to_hex(saved_colors[cname].get<std::string>(), static_cast<head::color_type>(color["type"].get<int>()));
             if (hex_color.has_value()) color["hex"] = hex_color.value();
         }
@@ -325,25 +353,35 @@ void head::theme_config_store::setup_conditionals()
         std::string theme_name = theme.value("native", "");
 
         for (auto& [condition_name, condition_value] : conditions.items()) {
-            nlohmann::json default_value;
-            if (condition_value.contains("default")) {
-                default_value = condition_value["default"];
-            } else if (condition_value.contains("values") && condition_value["values"].is_object() && !condition_value["values"].empty()) {
-                default_value = condition_value["values"].begin().value();
-            } else {
+            if (!condition_value.contains("values") || !condition_value["values"].is_object() || condition_value["values"].empty()) {
                 logger.log("Skipping invalid condition: " + condition_name);
                 continue;
             }
 
-            nlohmann::json current_conditions = CONFIG.get(fmt::format("themes.conditions.{}", theme_name), nlohmann::json::object());
+            const auto& values = condition_value["values"];
+            std::string default_value;
 
-            if (!current_conditions.contains(condition_name)) {
-                CONFIG.set(fmt::format("themes.conditions.{}.{}", theme_name, condition_name), default_value);
+            if (condition_value.contains("default") && condition_value["default"].is_string()) {
+                default_value = condition_value["default"].get<std::string>();
             } else {
-                nlohmann::json value = current_conditions[condition_name];
-                if (!condition_value["values"].contains(value)) {
-                    CONFIG.set(fmt::format("themes.conditions.{}.{}", theme_name, condition_name), default_value);
-                }
+                default_value = values.begin().key();
+            }
+
+            if (!values.contains(default_value)) {
+                default_value = values.begin().key();
+            }
+
+            nlohmann::json current_conditions = CONFIG.get(fmt::format("themes.conditions.{}", theme_name), nlohmann::json::object());
+            const std::string keyPath = fmt::format("themes.conditions.{}.{}", theme_name, condition_name);
+
+            if (!current_conditions.contains(condition_name) || !current_conditions[condition_name].is_string()) {
+                CONFIG.set(keyPath, default_value);
+                continue;
+            }
+
+            const std::string current_value = current_conditions[condition_name].get<std::string>();
+            if (!values.contains(current_value)) {
+                CONFIG.set(keyPath, default_value);
             }
         }
     }

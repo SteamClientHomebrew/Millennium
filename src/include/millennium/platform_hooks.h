@@ -30,48 +30,19 @@
 
 #pragma once
 
-#if defined(_WIN32) && !defined(_WIN32_WINNT)
-#define _WIN32_WINNT 0x0A00 /** Windows 10 & 11 */
+#if defined(__linux__) || defined(__APPLE__)
+/**
+ * @brief Decide whether this process should receive Millennium environment setup.
+ */
+bool Plat_ShouldSetupEnvironment();
+
+/**
+ * @brief Platform-specific setup invoked before steam hooks are initialized.
+ */
+void Plat_BeforeAttachMillennium();
+
+/**
+ * @brief Platform-specific cleanup invoked after Millennium detaches.
+ */
+void Plat_AfterDetachMillennium();
 #endif
-
-#include <asio.hpp>
-#include <asio/ip/tcp.hpp>
-#define DEFAULT_DEVTOOLS_PORT "8080"
-extern std::string STEAM_DEVELOPER_TOOLS_PORT;
-const char* GetAppropriateDevToolsPort(const bool isDevMode);
-
-#ifdef _WIN32
-#include <iostream>
-#include <thread>
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#include <winternl.h>
-
-#define LDR_DLL_NOTIFICATION_REASON_LOADED 1
-
-typedef struct _LDR_DLL_NOTIFICATION_DATA
-{
-    ULONG Flags;
-    PCUNICODE_STRING FullDllName;
-    PCUNICODE_STRING BaseDllName;
-    PVOID DllBase;
-    ULONG SizeOfImage;
-} LDR_DLL_NOTIFICATION_DATA, *PLDR_DLL_NOTIFICATION_DATA;
-
-typedef VOID(CALLBACK* PLDR_DLL_NOTIFICATION_FUNCTION)(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context);
-typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction, PVOID Context, PVOID* Cookie);
-typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
-
-bool InitializeSteamHooks();
-void UninitializeSteamHooks();
-
-bool Millennium_Plat_CommandLineIsSetup();
-bool SetupEntryPointHook();
-#elif defined(__linux__) || defined(__APPLE__)
-bool InitializeSteamHooks();
-#endif
-
-void Plat_WaitForBackendLoad();
-bool Plat_InitializeSteamHooks();

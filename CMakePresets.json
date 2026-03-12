@@ -61,6 +61,7 @@
       "name": "osx-release",
       "displayName": "osx-release",
       "description": "MacOS release build.",
+      "binaryDir": "${sourceDir}/build/osx-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -70,6 +71,7 @@
       "name": "osx-debug",
       "displayName": "osx-debug",
       "description": "MacOS debug build.",
+      "binaryDir": "${sourceDir}/build/osx-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
@@ -97,6 +99,16 @@
         "CMAKE_C_FLAGS": "-m32",
         "CMAKE_BUILD_TYPE": "Release"
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "osx-debug",
+      "configurePreset": "osx-debug"
+    },
+    {
+      "name": "osx-release",
+      "configurePreset": "osx-release"
     }
   ]
 }

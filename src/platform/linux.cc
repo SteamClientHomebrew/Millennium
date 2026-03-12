@@ -28,32 +28,20 @@
  * SOFTWARE.
  */
 
-#include "millennium/steam_hooks.h"
-#include <memory>
-#if defined(__linux__) || defined(__APPLE__)
-#include "state/shared_memory.h"
-
-#include "millennium/millennium.h"
-#include "millennium/crash_handler.h"
-#include "millennium/environment.h"
-#include "millennium/plugin_loader.h"
+#ifdef __linux__
+#include "millennium/platform_hooks.h"
 #include "millennium/logger.h"
-
-#include <ctime>
-#include <dlfcn.h>
 #include <fmt/core.h>
-#include <signal.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <thread>
-#include <unistd.h>
+#include <string>
 #include <string.h>
+#include <unistd.h>
 
-std::unique_ptr<std::thread> g_millenniumThread;
-extern std::mutex mtx_hasSteamUnloaded, mtx_hasSteamUIStartedLoading;
-extern std::condition_variable cv_hasSteamUnloaded, cv_hasSteamUIStartedLoading;
-
-int IsSamePath(const char* path1, const char* path2)
+namespace
+{
+int is_same_path(const char* path1, const char* path2)
 {
     char realpath1[PATH_MAX], realpath2[PATH_MAX];
 
@@ -64,75 +52,35 @@ int IsSamePath(const char* path1, const char* path2)
 
     return strcmp(realpath1, realpath2) == 0;
 }
+} // namespace
 
-CONSTRUCTOR void Posix_InitializeEnvironment()
+bool Plat_ShouldSetupEnvironment()
 {
     char path[PATH_MAX];
     ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
 
     if (len == -1) {
         perror("readlink");
-        return;
+        return false;
     }
 
     path[len] = '\0';
 
-    std::string steamPath = fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
-    if (!IsSamePath(path, steamPath.c_str())) {
+    std::string steam_path = fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
+    if (!is_same_path(path, steam_path.c_str())) {
         logger.warn("[Millennium] Process is not running under Steam: {}", path);
-        return;
+        return false;
     }
 
     logger.log("[Millennium] Setting up environment for Steam process: {}", path);
-
-    /** Setup environment variables if loaded into Steam process */
-    platform::environment::setup();
+    return true;
 }
 
-DESTRUCTOR void Posix_UnInitializeEnvironment()
+void Plat_BeforeAttachMillennium()
 {
-    /** destroy the shared memory pool between millennium and the web helper hook */
-    if (g_lb_patch_arena) {
-        platform::shared_memory::sclose(g_lb_patch_arena, SHM_IPC_SIZE);
-        platform::shared_memory::sunlink(SHM_IPC_NAME);
-        g_lb_patch_arena = NULL;
-    }
 }
 
-void Posix_AttachMillennium()
+void Plat_AfterDetachMillennium()
 {
-    install_millennium_crash_handler();
-
-    /** Handle signal interrupts (^C) */
-    signal(SIGINT, [](int /** signalCode */) { std::exit(128 + SIGINT); });
-
-    Plat_InitializeSteamHooks();
-    g_millennium = std::make_unique<millennium>();
-    g_millennium->entry();
-}
-
-/** New interop funcs that receive calls from hooked libXtst */
-extern "C" __attribute__((visibility("default"))) int StartMillennium()
-{
-    logger.log("Hooked main() with PID: {}", getpid());
-
-    g_millenniumThread = std::make_unique<std::thread>(Posix_AttachMillennium);
-    logger.log("Millennium started successfully.");
-    return 0;
-}
-
-extern "C" __attribute__((visibility("default"))) int StopMillennium()
-{
-    logger.log("Unloading Millennium...");
-    g_shouldTerminateMillennium->flag.store(true);
-
-    if (g_millenniumThread && g_millenniumThread->joinable()) {
-        g_millenniumThread->join();
-    }
-
-    g_millennium.reset();
-
-    logger.log("Millennium unloaded successfully.");
-    return 0;
 }
 #endif

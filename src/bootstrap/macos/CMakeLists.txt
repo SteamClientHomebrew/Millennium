@@ -1,64 +1,54 @@
 cmake_minimum_required(VERSION 3.16)
-project(ProcLaunchHook)
+project(MacOSBootstrap LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
-# Add include directory
-include_directories(include)
-
-# Add sources
-set(SOURCES
-    src/main.mm
-    src/watchdog.mm
-    src/exec.mm
-)
-
-set_source_files_properties(
-    src/watchdog.mm
-    PROPERTIES
-    COMPILE_FLAGS "-fobjc-arc"
-)
-
-add_executable(SteamSniper ${SOURCES})
-
-# Link only necessary frameworks - avoid full Cocoa
-find_library(FOUNDATION_FRAMEWORK Foundation)
-find_library(APPKIT_FRAMEWORK AppKit)
-target_link_libraries(SteamSniper ${FOUNDATION_FRAMEWORK} ${APPKIT_FRAMEWORK})
-
-set_target_properties(SteamSniper PROPERTIES
-    OUTPUT_NAME "Millennium"
-    MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_BUNDLE_NAME "Millennium"
-    MACOSX_BUNDLE_BUNDLE_VERSION "1.0"
-    MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
-    MACOSX_BUNDLE_IDENTIFIER "com.millennium.steamsniper"
-    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.xml"
-)
-
-add_custom_command(TARGET SteamSniper POST_BUILD
-    COMMAND /usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" 
-            "$<TARGET_BUNDLE_DIR:SteamSniper>/Contents/Info.plist" || true
-    COMMENT "Making app headless"
-)
-
-if (EXISTS "${CMAKE_SOURCE_DIR}/darwin/AppIcon.icns")
-    set_source_files_properties("${CMAKE_SOURCE_DIR}/darwin/AppIcon.icns" 
-        PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    target_sources(SteamSniper PRIVATE "${CMAKE_SOURCE_DIR}/darwin/AppIcon.icns")
-
-    add_custom_command(TARGET SteamSniper POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-                "${CMAKE_SOURCE_DIR}/darwin/AppIcon.icns" 
-                "$<TARGET_BUNDLE_DIR:SteamSniper>/Contents/Resources/AppIcon.icns"
-        COMMENT "Copying app icon to Resources folder"
-    )
+# Resolve repo root robustly for both standalone wrapper builds (-S src/bootstrap/macos)
+# and top-level builds that include this directory.
+if(DEFINED MILLENNIUM_REPO_ROOT)
+    get_filename_component(MILLENNIUM_RESOLVED_ROOT "${MILLENNIUM_REPO_ROOT}" ABSOLUTE)
+else()
+    get_filename_component(MILLENNIUM_RESOLVED_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 endif()
 
+foreach(required_var IN ITEMS MILLENNIUM_OUTPUT_NAME MILLENNIUM_BOOTLOADER_OUTPUT_NAME MILLENNIUM_HOOK_HELPER_OUTPUT_NAME MILLENNIUM_CHILD_HOOK_OUTPUT_NAME)
+    if(NOT DEFINED ${required_var})
+        message(FATAL_ERROR "${required_var} must be defined before configuring src/bootstrap/macos")
+    endif()
+endforeach()
 
-add_custom_command(TARGET SteamSniper POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_BINARY_DIR}/Millennium" "$<TARGET_BUNDLE_DIR:SteamSniper>/Contents/MacOS/Millennium.Patcher"
-    COMMENT "Moving executable to MacOS folder"
+add_library(macos-bootstrap SHARED dylib_bootstrap.cc)
+target_compile_definitions(macos-bootstrap PRIVATE
+    __MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}"
+    __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
+    __MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__="${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
+)
+set_target_properties(macos-bootstrap PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}"
+    SUFFIX ""
+)
+
+add_library(macos-child-hook SHARED child_process_hook.cc)
+target_compile_definitions(macos-child-hook PRIVATE
+    __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
+)
+set_target_properties(macos-child-hook PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
+    SUFFIX ""
+)
+
+add_executable(SteamWrapper steam_launcher.cc)
+target_compile_definitions(SteamWrapper PRIVATE
+    __MILLENNIUM_BOOTLOADER_OUTPUT_NAME__="${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}"
+    __MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}"
+    __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
+    __MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__="${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
+    MILLENNIUM_ROOT="${MILLENNIUM_RESOLVED_ROOT}"
+)
+set_target_properties(SteamWrapper PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "steam_osx"
+    SUFFIX ""
 )

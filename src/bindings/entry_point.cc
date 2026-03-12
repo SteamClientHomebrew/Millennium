@@ -58,8 +58,10 @@ int head::millennium_backend::get_operating_system()
 {
 #if defined(_WIN32)
     return 0; // Windows
-#elif defined(__APPLE__) || defined(__linux__)
-    return 1; // macOS or Linux
+#elif defined(__linux__)
+    return 1; // Linux
+#elif defined(__APPLE__)
+    return 2; // macOS
 #else
 #error "Unsupported platform"
     return -1; // Unknown
@@ -320,7 +322,20 @@ builtin_payload head::millennium_backend::Core_DownloadPluginUpdate(const builti
 builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_payload& args)
 {
     if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
-        return plugin_updater->install_plugin(args["download_url"], args["total_size"]);
+        if (!args.contains("download_url") || !args["download_url"].is_string()) {
+            LOG_ERROR("Core_InstallPlugin called without a valid 'download_url' string.");
+            return {
+                { "success", false                               },
+                { "error",   "missing or invalid 'download_url'" }
+            };
+        }
+
+        size_t total_size = 0;
+        if (args.contains("total_size") && args["total_size"].is_number()) {
+            total_size = args["total_size"].get<size_t>();
+        }
+
+        return plugin_updater->install_plugin(args["download_url"], total_size);
     }
 
     LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
@@ -329,7 +344,18 @@ builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_paylo
 builtin_payload head::millennium_backend::Core_IsPluginInstalled(const builtin_payload& args)
 {
     if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
-        return plugin_updater->is_plugin_installed(args["pluginName"]);
+        std::string plugin_name;
+
+        if (args.contains("plugin_name") && args["plugin_name"].is_string()) {
+            plugin_name = args["plugin_name"].get<std::string>();
+        } else if (args.contains("pluginName") && args["pluginName"].is_string()) {
+            plugin_name = args["pluginName"].get<std::string>();
+        } else {
+            LOG_ERROR("Core_IsPluginInstalled called without 'plugin_name'/'pluginName' string.");
+            return false;
+        }
+
+        return plugin_updater->is_plugin_installed(plugin_name);
     }
 
     LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
@@ -338,7 +364,18 @@ builtin_payload head::millennium_backend::Core_IsPluginInstalled(const builtin_p
 builtin_payload head::millennium_backend::Core_UninstallPlugin(const builtin_payload& args)
 {
     if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
-        return plugin_updater->uninstall_plugin(args["pluginName"]);
+        std::string plugin_name;
+
+        if (args.contains("pluginName") && args["pluginName"].is_string()) {
+            plugin_name = args["pluginName"].get<std::string>();
+        } else if (args.contains("plugin_name") && args["plugin_name"].is_string()) {
+            plugin_name = args["plugin_name"].get<std::string>();
+        } else {
+            LOG_ERROR("Core_UninstallPlugin called without 'pluginName'/'plugin_name' string.");
+            return false;
+        }
+
+        return plugin_updater->uninstall_plugin(plugin_name);
     }
 
     LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
@@ -487,4 +524,8 @@ builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& fu
 void head::millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
     m_ipc_main = std::move(ipc_main);
+
+    if (m_updater) {
+        m_updater->set_ipc_main(m_ipc_main);
+    }
 }

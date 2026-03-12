@@ -63,9 +63,13 @@ async function initializeMillennium(settings: SettingsProps) {
 	}
 
 	if (theme?.data?.hasOwnProperty('RootColors')) {
-		const rootColors = JSON.parse(await PyGetRootColors());
-		Logger.Log('RootColors found in theme, dispatching...', rootColors);
-		pluginSelf.RootColors = rootColors;
+		try {
+			const rootColors = await PyGetRootColors();
+			Logger.Log('RootColors found in theme, dispatching...', rootColors);
+			pluginSelf.RootColors = rootColors;
+		} catch (error) {
+			Logger.Error('Failed to load root colors from backend', error);
+		}
 	}
 
 	Object.assign(pluginSelf, {
@@ -103,7 +107,11 @@ async function initializeMillennium(settings: SettingsProps) {
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
-	await initializeMillennium(JSON.parse(await PyGetStartupConfig()));
+	try {
+		await initializeMillennium(JSON.parse(await PyGetStartupConfig()));
+	} catch (error) {
+		Logger.Error('Millennium frontend initialization failed, continuing with route registration.', error);
+	}
 	Millennium.AddWindowCreateHook(onWindowCreatedCallback);
 
 	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });

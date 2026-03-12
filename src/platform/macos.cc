@@ -28,50 +28,47 @@
  * SOFTWARE.
  */
 
-#pragma once
+#ifdef __APPLE__
+#include "millennium/logger.h"
+#include "millennium/platform_hooks.h"
+#include <stdint.h>
+#include <limits.h>
+#include <mach-o/dyld.h>
+#include <string.h>
 
-#if defined(_WIN32) && !defined(_WIN32_WINNT)
-#define _WIN32_WINNT 0x0A00 /** Windows 10 & 11 */
-#endif
+extern "C" void Plat_InstallMacOSMenuItems();
+extern "C" void Plat_InstallMacOSNativeWindowStyling();
 
-#include <asio.hpp>
-#include <asio/ip/tcp.hpp>
-#define DEFAULT_DEVTOOLS_PORT "8080"
-extern std::string STEAM_DEVELOPER_TOOLS_PORT;
-const char* GetAppropriateDevToolsPort(const bool isDevMode);
-
-#ifdef _WIN32
-#include <iostream>
-#include <thread>
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#include <winternl.h>
-
-#define LDR_DLL_NOTIFICATION_REASON_LOADED 1
-
-typedef struct _LDR_DLL_NOTIFICATION_DATA
+bool Plat_ShouldSetupEnvironment()
 {
-    ULONG Flags;
-    PCUNICODE_STRING FullDllName;
-    PCUNICODE_STRING BaseDllName;
-    PVOID DllBase;
-    ULONG SizeOfImage;
-} LDR_DLL_NOTIFICATION_DATA, *PLDR_DLL_NOTIFICATION_DATA;
+    char path[PATH_MAX];
+    uint32_t path_size = static_cast<uint32_t>(sizeof(path));
 
-typedef VOID(CALLBACK* PLDR_DLL_NOTIFICATION_FUNCTION)(ULONG NotificationReason, PLDR_DLL_NOTIFICATION_DATA NotificationData, PVOID Context);
-typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction, PVOID Context, PVOID* Cookie);
-typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
+    if (_NSGetExecutablePath(path, &path_size) != 0) {
+        logger.warn("[Millennium] Could not resolve macOS executable path. Continuing with environment setup.");
+        return true;
+    }
 
-bool InitializeSteamHooks();
-void UninitializeSteamHooks();
+    path[sizeof(path) - 1] = '\0';
+    const char* executable_name = strrchr(path, '/');
+    executable_name = executable_name ? executable_name + 1 : path;
 
-bool Millennium_Plat_CommandLineIsSetup();
-bool SetupEntryPointHook();
-#elif defined(__linux__) || defined(__APPLE__)
-bool InitializeSteamHooks();
+    if (strcmp(executable_name, "steam_osx") != 0) {
+        logger.warn("[Millennium] Process is not Steam main executable: {}", path);
+        return false;
+    }
+
+    logger.log("[Millennium] Setting up environment for Steam process: {}", path);
+    return true;
+}
+
+void Plat_BeforeAttachMillennium()
+{
+    Plat_InstallMacOSMenuItems();
+    Plat_InstallMacOSNativeWindowStyling();
+}
+
+void Plat_AfterDetachMillennium()
+{
+}
 #endif
-
-void Plat_WaitForBackendLoad();
-bool Plat_InitializeSteamHooks();

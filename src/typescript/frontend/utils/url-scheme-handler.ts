@@ -79,8 +79,7 @@ const contexts: Record<SteamURLContext, (action?: string, option?: string, param
 			const theme = themes.find((e) => e.native === parameter);
 			const theme_name = !!theme && option === 'enable' ? theme.native : DEFAULT_THEME_NAME;
 
-			ChangeActiveTheme(theme_name, UIReloadProps.Force);
-			SteamClient.Browser.RestartJSContext();
+			await ChangeActiveTheme(theme_name, UIReloadProps.Force);
 		}
 	},
 

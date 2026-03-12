@@ -40,6 +40,7 @@
 
 #include "instrumentation/chromium.h"
 #include "instrumentation/resource_query_parser.h"
+#include <limits.h>
 
 #ifdef __linux__
 #include <linux/limits.h>
@@ -214,6 +215,8 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
     snare_inline_install(g_cef_hook);
     page_rx(src);
     return result;
+#else
+    return 0;
 #endif
 }
 

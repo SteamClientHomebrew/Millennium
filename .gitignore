@@ -1,5 +1,7 @@
 # Build files
 **/build
+src/typescript/.build-cache.json
+src/typescript/.frontend.bin
 
 # Node
 node_modules/
