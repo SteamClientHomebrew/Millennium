@@ -33,6 +33,7 @@ ENABLE_DEV_MODE=0
 EXPLICIT_DEVTOOLS_PORT=""
 EXPLICIT_NATIVE_CORNERS=""
 EXPLICIT_NATIVE_CORNER_RADIUS=""
+PASSTHROUGH_STEAM_ARGS=()
 
 usage() {
     cat <<EOF
@@ -299,7 +300,8 @@ while [ $# -gt 0 ]; do
             break
             ;;
         *)
-            break
+            PASSTHROUGH_STEAM_ARGS+=("$1")
+            shift
             ;;
     esac
 done
@@ -368,7 +370,7 @@ if [ -n "${EXPLICIT_NATIVE_CORNER_RADIUS}" ]; then
 fi
 
 declare -a steam_args
-steam_args=("$@")
+steam_args=("${PASSTHROUGH_STEAM_ARGS[@]}" "$@")
 
 if [ "${ENABLE_DEV_MODE}" -eq 1 ]; then
     has_dev_flag=0
