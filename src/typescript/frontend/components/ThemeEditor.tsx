@@ -191,7 +191,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 
 		const saveColor = async (hexColor: string) => {
 			const newColor = JSON.parse(await PyChangeColor({ theme: this.props.theme.native, color_name: color.color, new_color: hexColor, color_type: color.type }));
-			pluginSelf.RootColors = await PyGetRootColors();
+			pluginSelf.RootColors = JSON.parse(await PyGetRootColors());
 			return newColor;
 		};
 
