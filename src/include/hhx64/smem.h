@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,18 +29,17 @@
  */
 
 #pragma once
-#include <stdint.h>
+
+#include <cstdint>
 #ifdef __linux__
-#include <sys/mman.h>
 #endif
-#include <fcntl.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 #define SHM_IPC_NAME "/lb_millennium_patches"
-#define SHM_IPC_SIZE 1024 * 1024
+#define SHM_IPC_SIZE (1024 * 1024)
 /** macro to convert offset to pointer */
 #define SHM_PTR(arena, off, type) ((type*)((char*)(arena) + (off)))
 #define SHM_OFF(arena, ptr) ((uint32_t)((char*)(ptr) - (char*)(arena)))

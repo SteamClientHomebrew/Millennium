@@ -30,18 +30,16 @@
 
 #ifdef __linux__
 #define _DEFAULT_SOURCE
-#include <X11/Xlib.h>
-#include <X11/extensions/XTest.h>
-#include <string.h>
 #include <dlfcn.h>
-#include <libgen.h>
-#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/time.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <X11/Xlib.h>
+#include <X11/extensions/XTest.h>
+#include <linux/limits.h>
+#include <sys/time.h>
 
 #define COLOR_RESET "\033[0m"
 #define COLOR_INFO "\033[1;34m"
@@ -80,9 +78,9 @@ typedef int (*stop_millennium_t)(void);
         timestamp_buf;                                                                                                                                                             \
     })
 
-#define LOG_INFO(fmt, ...) fprintf(stdout, "%s " COLOR_INFO "BOOTSTRAP-INFO " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
-#define LOG_ERROR(fmt, ...) fprintf(stderr, "%s " COLOR_ERROR "BOOTSTRAP-ERROR " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
-#define LOG_WARN(fmt, ...) fprintf(stderr, "%s " COLOR_WARN "BOOTSTRAP-WARN " COLOR_RESET fmt "\n", GET_TIMESTAMP(), ##__VA_ARGS__)
+#define LOG_INFO(fmt, ...) fprintf(stdout, "%s " COLOR_INFO "BOOTSTRAP-INFO " COLOR_RESET fmt "\n", GET_TIMESTAMP() __VA_OPT__(,) __VA_ARGS__)
+#define LOG_ERROR(fmt, ...) fprintf(stderr, "%s " COLOR_ERROR "BOOTSTRAP-ERROR " COLOR_RESET fmt "\n", GET_TIMESTAMP() __VA_OPT__(,) __VA_ARGS__)
+#define LOG_WARN(fmt, ...) fprintf(stderr, "%s " COLOR_WARN "BOOTSTRAP-WARN " COLOR_RESET fmt "\n", GET_TIMESTAMP() __VA_OPT__(,) __VA_ARGS__)
 
 #ifdef MILLENNIUM_RUNTIME_PATH
 static const char* k_millennium_path = MILLENNIUM_RUNTIME_PATH;
@@ -108,10 +106,10 @@ static const char* get_millennium_library_path(void)
 #define k_millennium_path (get_millennium_library_path())
 #endif
 
-static char* get_process_path(void)
+char* get_process_path(void)
 {
     static char path[PATH_MAX];
-    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    const ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
     if (len != -1) {
         path[len] = '\0';
         return path;
@@ -119,7 +117,7 @@ static char* get_process_path(void)
     return NULL;
 }
 
-static char* get_process_path_parent(void)
+char* get_process_path_parent(void)
 {
     static char parentPath[PATH_MAX];
     char* exePath = get_process_path();
@@ -133,7 +131,7 @@ static char* get_process_path_parent(void)
     return parentPath;
 }
 
-static int load_and_start_millennium(void)
+int load_and_start_millennium(void)
 {
     h_millennium = dlopen(k_millennium_path, RTLD_LAZY | RTLD_GLOBAL);
     if (!h_millennium) {
@@ -141,7 +139,7 @@ static int load_and_start_millennium(void)
         return 0;
     }
 
-    start_millennium_t fn_start_millennium = (start_millennium_t)dlsym(h_millennium, "StartMillennium");
+    const start_millennium_t fn_start_millennium = (start_millennium_t)dlsym(h_millennium, "StartMillennium");
     if (!fn_start_millennium) {
         LOG_ERROR("Failed to locate ordinal HookInterop::StartMillennium: %s", dlerror());
         dlclose(h_millennium);
@@ -149,7 +147,7 @@ static int load_and_start_millennium(void)
         return 0;
     }
 
-    int result = fn_start_millennium();
+    const int result = fn_start_millennium();
     if (result < 0) {
         LOG_ERROR("Failed to start Millennium: %d", result);
         dlclose(h_millennium);
@@ -160,16 +158,16 @@ static int load_and_start_millennium(void)
     return 1;
 }
 
-static void stop_and_unload_millennium(void)
+void stop_and_unload_millennium(void)
 {
     if (!h_millennium) {
         LOG_ERROR("Millennium library is not loaded.");
         return;
     }
 
-    stop_millennium_t fn_stop_millennium = (stop_millennium_t)dlsym(h_millennium, "StopMillennium");
+    const stop_millennium_t fn_stop_millennium = (stop_millennium_t)dlsym(h_millennium, "StopMillennium");
     if (fn_stop_millennium) {
-        int result = fn_stop_millennium();
+        const int result = fn_stop_millennium();
         if (result < 0) {
             LOG_ERROR("Failed to stop Millennium: %d", result);
         }
@@ -181,7 +179,7 @@ static void stop_and_unload_millennium(void)
     h_millennium = NULL;
 }
 
-static void setup_hooks(void)
+void setup_hooks(void)
 {
     const char* p = get_process_path_parent();
     if (!p) {
@@ -203,7 +201,7 @@ static void setup_hooks(void)
     }
 }
 
-static int is_steam_process(void)
+int is_steam_process(void)
 {
     char* p = get_process_path();
     if (!p) return 0;
@@ -255,9 +253,9 @@ static void proxy_sentinel_cleanup(void)
 }
 
 /** Forward legitimate library calls to the original library */
-HOOK_FUNC(XTestFakeButtonEvent, int, (Display * a, unsigned int b, Bool c, unsigned long d), (a, b, c, d))
-HOOK_FUNC(XTestFakeKeyEvent, int, (Display * a, unsigned int b, Bool c, unsigned long d), (a, b, c, d))
 HOOK_FUNC(XTestQueryExtension, int, (Display * a, int* b, int* c, int* d, int* e), (a, b, c, d, e))
-HOOK_FUNC(XTestFakeRelativeMotionEvent, int, (Display * a, int b, int c, unsigned long d), (a, b, c, d))
+HOOK_FUNC(XTestFakeKeyEvent, int, (Display * a, unsigned int b, Bool c, unsigned long d), (a, b, c, d))
+HOOK_FUNC(XTestFakeButtonEvent, int, (Display * a, unsigned int b, Bool c, unsigned long d), (a, b, c, d))
 HOOK_FUNC(XTestFakeMotionEvent, int, (Display * a, int b, int c, int d, unsigned long e), (a, b, c, d, e))
+HOOK_FUNC(XTestFakeRelativeMotionEvent, int, (Display * a, int b, int c, unsigned long d), (a, b, c, d))
 #endif

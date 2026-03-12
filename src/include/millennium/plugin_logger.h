@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,16 +33,15 @@
 #include "millennium/env.h"
 #include "millennium/logger.h"
 
-#include <Python.h>
 #include <chrono>
-#include <fmt/color.h>
-#include <fmt/core.h>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <Python.h>
 #include <sstream>
 #include <vector>
-#include <filesystem>
+#include <fmt/core.h>
 
 #define RED "\033[31m"
 #define GREEN "\033[32m"
@@ -76,12 +75,12 @@ class BackendLogger
 
     std::vector<LogEntry> logBuffer;
 
-    std::string GetLocalTime(bool withHours = false)
+    static std::string GetLocalTime(const bool withHours = false)
     {
         std::stringstream bufferStream;
-        auto now = std::chrono::system_clock::now();
-        auto time = std::chrono::system_clock::to_time_t(now);
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+        const auto now = std::chrono::system_clock::now();
+        const auto time = std::chrono::system_clock::to_time_t(now);
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
         if (withHours) {
             bufferStream << std::put_time(std::localtime(&time), "%H:%M:%S");
@@ -92,24 +91,24 @@ class BackendLogger
         return fmt::format("[{}]", bufferStream.str());
     }
 
-    std::string GetLocalDateStr()
+    static std::string GetLocalDateStr()
     {
-        auto now = std::chrono::system_clock::now();
-        std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
-        std::tm localeTime = *std::localtime(&timeNow);
+        const auto now = std::chrono::system_clock::now();
+        const std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
+        const std::tm localeTime = *std::localtime(&timeNow);
 
-        int year = localeTime.tm_year + 1900;
-        int month = localeTime.tm_mon + 1;
-        int day = localeTime.tm_mday;
-        int hour = localeTime.tm_hour;
-        int min = localeTime.tm_min;
-        int sec = localeTime.tm_sec;
+        const int year = localeTime.tm_year + 1900;
+        const int month = localeTime.tm_mon + 1;
+        const int day = localeTime.tm_mday;
+        const int hour = localeTime.tm_hour;
+        const int min = localeTime.tm_min;
+        const int sec = localeTime.tm_sec;
 
         return fmt::format("[{}-{}-{} @ {}:{}:{}]", year, month, day, hour, min, sec);
     }
 
   public:
-    BackendLogger(const std::string& pluginName) : pluginName(pluginName)
+    explicit BackendLogger(const std::string& pluginName) : pluginName(pluginName)
     {
         this->filename = (std::filesystem::path(GetEnv("MILLENNIUM__LOGS_PATH")) / fmt::format("{}_log.log", pluginName)).generic_string();
         file.open(filename, std::ios::app);
@@ -123,7 +122,7 @@ class BackendLogger
         file.close();
     }
 
-    void Log(const std::string& message, bool onlyBuffer = false)
+    void Log(const std::string& message, const bool onlyBuffer = false)
     {
         std::string formatted = fmt::format("{} ", GetPluginName());
 
@@ -137,10 +136,10 @@ class BackendLogger
         logBuffer.push_back({ WHITE + GetLocalTime(true) + RESET + " " + BLUE + formatted + RESET + message + "\n", _INFO });
     }
 
-    void Warn(const std::string& message, bool onlyBuffer = false)
+    void Warn(const std::string& message, const bool onlyBuffer = false)
     {
         if (!onlyBuffer) {
-            std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+            const std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
             std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
 
             file << formatted;
@@ -150,10 +149,10 @@ class BackendLogger
         logBuffer.push_back({ WHITE + GetLocalTime(true) + YELLOW + " " + GetPluginName() + " " + message + RESET + "\n", _WARN });
     }
 
-    void Error(const std::string& message, bool onlyBuffer = false)
+    void Error(const std::string& message, const bool onlyBuffer = false)
     {
         if (!onlyBuffer) {
-            std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
+            const std::string formatted = fmt::format("{}{}{}", GetLocalTime(), fmt::format(" {} ", GetPluginName()), message.c_str());
             std::cout << COL_RED << formatted << COL_RESET << '\n';
 
             file << formatted;
@@ -176,12 +175,12 @@ class BackendLogger
         return logBuffer;
     }
 
-    std::string GetPluginName(bool upperCase = true)
+    std::string GetPluginName(const bool upperCase = true)
     {
         const auto toUpper = [](const std::string& str)
         {
             std::string result = str;
-            std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+            std::ranges::transform(result.begin(), result.end(), result.begin(), ::toupper);
             return result;
         };
 
@@ -191,9 +190,9 @@ class BackendLogger
 
 extern std::vector<BackendLogger*> g_loggerList;
 
-static void AddLoggerMessage(const std::string pluginName, const std::string message, BackendLogger::LogLevel level)
+static void AddLoggerMessage(const std::string pluginName, const std::string message, const BackendLogger::LogLevel level)
 {
-    for (auto logger : g_loggerList) {
+    for (const auto logger : g_loggerList) {
         if (logger->GetPluginName(false) == pluginName) {
             switch (level) {
                 case BackendLogger::_INFO:
@@ -244,7 +243,7 @@ inline void ErrorToLogger(const std::string pluginNme, const std::string message
 
 inline void RawToLogger(const std::string pluginName, const std::string message)
 {
-    for (auto logger : g_loggerList) {
+    for (const auto logger : g_loggerList) {
         if (logger->GetPluginName(false) == pluginName) {
             logger->Print(message);
             return;

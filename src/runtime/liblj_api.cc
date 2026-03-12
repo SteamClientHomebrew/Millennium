@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,9 +36,11 @@
 #include "millennium/plugin_api_init.h"
 #include "millennium/semver.h"
 #include "millennium/sysfs.h"
+
 #include <exception>
-#include <fmt/core.h>
 #include <lua.hpp>
+
+#include <fmt/core.h>
 #include <nlohmann/json.hpp>
 
 /**
@@ -51,7 +53,7 @@ class LuaStackGuard
     int top;
 
   public:
-    LuaStackGuard(lua_State* L) : L(L), top(lua_gettop(L))
+    explicit LuaStackGuard(lua_State* L) : L(L), top(lua_gettop(L))
     {
     }
     ~LuaStackGuard()
@@ -65,7 +67,7 @@ class LuaStackGuard
 };
 
 /**
- * Helper function to safely get plugin name from Lua global
+ * Helper function to safely get the plugin name from Lua global
  * Returns empty string if not found or error occurs
  */
 static std::string GetPluginNameSafe(lua_State* L)
@@ -110,7 +112,7 @@ int Lua_CallFrontendMethod(lua_State* L)
             return luaL_error(L, "params must be a table");
         }
 
-        int len = (int)lua_objlen(L, 2);
+        const int len = static_cast<int>(lua_objlen(L, 2));
 
         for (int i = 1; i <= len; ++i) {
             lua_rawgeti(L, 2, i);
@@ -134,7 +136,7 @@ int Lua_CallFrontendMethod(lua_State* L)
             }
 
             try {
-                if (typeMap.find(valueType) == typeMap.end()) {
+                if (!typeMap.contains(valueType)) {
                     lua_pop(L, 1);
                     return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
                 }
@@ -157,7 +159,7 @@ int Lua_CallFrontendMethod(lua_State* L)
 
     const std::string script = JavaScript::ConstructFunctionCall(pluginName.c_str(), methodName, params);
 
-    int result = JavaScript::Lua_EvaluateFromSocket(
+    const int result = JavaScript::Lua_EvaluateFromSocket(
         fmt::format("if (typeof window !== 'undefined' && typeof window.MillenniumFrontEndError === 'undefined') {{ window.MillenniumFrontEndError = class MillenniumFrontEndError "
                     "extends Error {{ constructor(message) {{ super(message); this.name = 'MillenniumFrontEndError'; }} }} }}"
                     "if (typeof PLUGIN_LIST === 'undefined' || !PLUGIN_LIST?.['{}']) throw new window.MillenniumFrontEndError('frontend not loaded yet!');\n\n{}",
@@ -205,7 +207,7 @@ int Lua_RemoveBrowserModule(lua_State* L)
     return 1;
 }
 
-unsigned long long Lua_AddBrowserModule(lua_State* L, HttpHookManager::TagTypes type)
+unsigned long long Lua_AddBrowserModule(lua_State* L, const HttpHookManager::TagTypes type)
 {
     const char* content = luaL_checkstring(L, 1);
     const char* pattern = luaL_optstring(L, 2, ".*");
@@ -235,8 +237,7 @@ int Lua_IsPluginEnable(lua_State* L)
     }
 
     try {
-        std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-        const bool isEnabled = settingsStore->IsEnabledPlugin(pluginName);
+        const bool isEnabled = SettingsStore::IsEnabledPlugin(pluginName);
         lua_pushboolean(L, isEnabled);
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to check plugin status for '{}': {}", pluginName, e.what());
@@ -302,7 +303,7 @@ static const luaL_Reg millennium_lib[] = {
     { "call_frontend_method",  Lua_CallFrontendMethod  },
     { "is_plugin_enabled",     Lua_IsPluginEnable      },
     { "cmp_version",           Lua_CompareVersion      },
-    { NULL,                    NULL                    }  // Sentinel
+    { nullptr,                    nullptr                    }  // Sentinel
 };
 
 /**

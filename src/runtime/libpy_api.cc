@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,40 +37,39 @@
 #include "millennium/sysfs.h"
 
 #include <fmt/core.h>
-#include <nlohmann/json.hpp>
 
 PyObject* GetUserSettings([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "get_user_settings is not implemented yet. It will likely be removed in the future.");
-    return NULL;
+    return nullptr;
 }
 
 PyObject* SetUserSettings([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
 {
     PyErr_SetString(PyExc_NotImplementedError, "set_user_settings_key is not implemented yet. It will likely be removed in the future.");
-    return NULL;
+    return nullptr;
 }
 
 PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, PyObject* kwargs)
 {
-    const char* methodName = NULL;
-    PyObject* parameterList = NULL;
+    const char* methodName = nullptr;
+    PyObject* parameterList = nullptr;
 
-    static const char* keywordArgsList[] = { "method_name", "params", NULL };
+    static const char* keywordArgsList[] = { "method_name", "params", nullptr };
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", (char**)keywordArgsList, &methodName, &parameterList)) {
-        return NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|O", const_cast<char**>(keywordArgsList), &methodName, &parameterList)) {
+        return nullptr;
     }
 
     std::vector<JavaScript::JsFunctionConstructTypes> params;
 
-    if (parameterList != NULL) {
+    if (parameterList != nullptr) {
         if (!PyList_Check(parameterList)) {
             PyErr_SetString(PyExc_TypeError, "params must be a list");
-            return NULL;
+            return nullptr;
         }
 
-        Py_ssize_t listSize = PyList_Size(parameterList);
+        const Py_ssize_t listSize = PyList_Size(parameterList);
 
         for (Py_ssize_t i = 0; i < listSize; ++i) {
             PyObject* listItem = PyList_GetItem(parameterList, i);
@@ -81,7 +80,7 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
                 params.push_back({ strValue, typeMap[valueType] });
             } catch (const std::exception&) {
                 PyErr_SetString(PyExc_TypeError, "Millennium's IPC can only handle [bool, str, int]");
-                return NULL;
+                return nullptr;
             }
         }
     }
@@ -91,7 +90,7 @@ PyObject* CallFrontendMethod([[maybe_unused]] PyObject* self, PyObject* args, Py
 
     if (pluginNameObj == nullptr || PyErr_Occurred()) {
         LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
-        return NULL;
+        return nullptr;
     }
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
@@ -125,14 +124,14 @@ PyObject* RemoveBrowserModule([[maybe_unused]] PyObject* self, PyObject* args)
     int moduleId;
 
     if (!PyArg_ParseTuple(args, "i", &moduleId)) {
-        return NULL;
+        return nullptr;
     }
 
     const bool success = HttpHookManager::GetInstance().RemoveHook(moduleId);
     return PyBool_FromLong(success);
 }
 
-unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes type)
+unsigned long long AddBrowserModule(PyObject* args, const HttpHookManager::TagTypes type)
 {
     const char* moduleItem;
     const char* regexSelector = ".*";
@@ -146,12 +145,12 @@ unsigned long long AddBrowserModule(PyObject* args, HttpHookManager::TagTypes ty
 
 PyObject* AddBrowserCss([[maybe_unused]] PyObject* self, PyObject* args)
 {
-    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET));
+    return PyLong_FromLong(static_cast<long>(AddBrowserModule(args, HttpHookManager::TagTypes::STYLESHEET)));
 }
 
 PyObject* AddBrowserJs([[maybe_unused]] PyObject* self, PyObject* args)
 {
-    return PyLong_FromLong((long)AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT));
+    return PyLong_FromLong(static_cast<long>(AddBrowserModule(args, HttpHookManager::TagTypes::JAVASCRIPT)));
 }
 
 /**
@@ -159,15 +158,14 @@ PyObject* AddBrowserJs([[maybe_unused]] PyObject* self, PyObject* args)
  */
 PyObject* IsPluginEnable([[maybe_unused]] PyObject* self, PyObject* args)
 {
-    const char* pluginName = NULL;
+    const char* pluginName = nullptr;
 
     if (!PyArg_ParseTuple(args, "s", &pluginName)) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to parse parameters");
-        return NULL;
+        return nullptr;
     }
 
-    std::unique_ptr<SettingsStore> settingsStore = std::make_unique<SettingsStore>();
-    bool isEnabled = settingsStore->IsEnabledPlugin(pluginName);
+    const bool isEnabled = SettingsStore::IsEnabledPlugin(pluginName);
     return PyBool_FromLong(isEnabled);
 }
 
@@ -178,7 +176,7 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
 
     if (pluginNameObj == nullptr || PyErr_Occurred()) {
         LOG_ERROR("error getting plugin name, can't make IPC request. this is likely a millennium bug.");
-        return NULL;
+        return nullptr;
     }
 
     const std::string pluginName = PyUnicode_AsUTF8(PyObject_Str(pluginNameObj));
@@ -191,32 +189,25 @@ PyObject* EmitReadyMessage([[maybe_unused]] PyObject* self, [[maybe_unused]] PyO
 
 /**
  * Method API for the Millennium module
- * This is injected individually into each plugins Python backend, enabling them to interop with Millennium's internal API.
+ * This is injected individually into each plugin's Python backend, enabling them to interop with Millennium's internal API.
  */
 PyMethodDef* PyGetMillenniumModule()
 {
-#ifdef __linux__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif
-    static PyMethodDef moduleMethods[] = {
-        { "ready",                 EmitReadyMessage,                METH_NOARGS,                  NULL },
-        { "add_browser_css",       AddBrowserCss,                   METH_VARARGS,                 NULL },
-        { "add_browser_js",        AddBrowserJs,                    METH_VARARGS,                 NULL },
-        { "remove_browser_module", RemoveBrowserModule,             METH_VARARGS,                 NULL },
-        { "get_user_settings",     GetUserSettings,                 METH_NOARGS,                  NULL },
-        { "set_user_settings_key", SetUserSettings,                 METH_VARARGS,                 NULL },
-        { "version",               GetVersionInfo,                  METH_NOARGS,                  NULL },
-        { "steam_path",            GetSteamPath,                    METH_NOARGS,                  NULL },
-        { "get_install_path",      GetInstallPath,                  METH_NOARGS,                  NULL },
-        /** this is 100% a valid cast, shut up gcc */
-        { "call_frontend_method",  (PyCFunction)CallFrontendMethod, METH_VARARGS | METH_KEYWORDS, NULL },
-        { "is_plugin_enabled",     IsPluginEnable,                  METH_VARARGS,                 NULL },
-        { NULL,                    NULL,                            0,                            NULL }  // Sentinel
+static PyMethodDef moduleMethods[] = {
+        { "ready",                 EmitReadyMessage,                                  METH_NOARGS,                  nullptr },
+        { "add_browser_css",       AddBrowserCss,                                     METH_VARARGS,                 nullptr },
+        { "add_browser_js",        AddBrowserJs,                                      METH_VARARGS,                 nullptr },
+        { "remove_browser_module", RemoveBrowserModule,                               METH_VARARGS,                 nullptr },
+        { "get_user_settings",     GetUserSettings,                                   METH_NOARGS,                  nullptr },
+        { "set_user_settings_key", SetUserSettings,                                   METH_VARARGS,                 nullptr },
+        { "version",               GetVersionInfo,                                    METH_NOARGS,                  nullptr },
+        { "steam_path",            GetSteamPath,                                      METH_NOARGS,                  nullptr },
+        { "get_install_path",      GetInstallPath,                                    METH_NOARGS,                  nullptr },
+MILLENNIUM_DIAG_PUSH_IGNORE("-Wcast-function-type")
+        { "call_frontend_method",  reinterpret_cast<PyCFunction>(CallFrontendMethod), METH_VARARGS | METH_KEYWORDS, nullptr },
+MILLENNIUM_DIAG_POP
+        { "is_plugin_enabled",     IsPluginEnable,                                    METH_VARARGS,                 nullptr },
+        { nullptr,                 nullptr,                                           0,                            nullptr }  // Sentinel
     };
-#ifdef __linux__
-#pragma GCC diagnostic pop
-#endif
-
     return moduleMethods;
 }

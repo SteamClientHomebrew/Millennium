@@ -1,13 +1,13 @@
-/**
+/*
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2023 - 2026. Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,9 +30,11 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
 #include "millennium/init.h"
+#include "millennium/singleton.h"
 #include "millennium/sysfs.h"
+
+#include <utility>
 
 namespace CoInitializer
 {
@@ -57,10 +59,10 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
             return pluginName == other.pluginName && event == other.event;
         }
 
-        PluginTypeSchema(const std::string& name) : pluginName(name), event(BACKEND_LOAD_SUCCESS)
+        explicit PluginTypeSchema(std::string name) : pluginName(std::move(name)), event(BACKEND_LOAD_SUCCESS)
         {
         }
-        PluginTypeSchema(const std::string& name, eBackendLoadEvents ev) : pluginName(name), event(ev)
+        PluginTypeSchema(std::string name, const eBackendLoadEvents ev) : pluginName(std::move(name)), event(ev)
         {
         }
     };
@@ -74,9 +76,9 @@ class BackendCallbacks : public Singleton<BackendCallbacks>
     void Reset();
 
   private:
-    bool EvaluateBackendStatus();
-    std::string GetFailedBackendsStr();
-    std::string GetSuccessfulBackendsStr();
+    bool EvaluateBackendStatus() const;
+    std::string GetFailedBackendsStr() const;
+    std::string GetSuccessfulBackendsStr() const;
 
     enum eEvents
     {
