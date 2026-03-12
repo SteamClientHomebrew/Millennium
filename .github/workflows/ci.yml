@@ -68,7 +68,7 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Setup Build Tools
+      - name: Build Millennium Backend
         shell: pwsh
         run: |
           $vsDevCmd = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
@@ -80,12 +80,12 @@ jobs:
               Set-Item "env:$k" $v
           }
 
-      - name: Build Millennium Backend
-        shell: pwsh
-        run: |
-
-          bun install --cwd=src/typescript
-          bun run     --cwd=src/typescript build
+          cd src/typescript
+          bun install
+          cd ttc && bun run build && cd ..
+          bun install
+          bun run build
+          cd ../..
 
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           cmake --build build
@@ -179,8 +179,12 @@ jobs:
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
 
-          bun install --cwd=src/typescript
-          bun run     --cwd=src/typescript build
+          cd src/typescript
+          bun install
+          cd ttc && bun run build && cd ..
+          bun install
+          bun run build
+          cd ../..
 
           cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
