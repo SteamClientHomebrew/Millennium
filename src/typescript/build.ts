@@ -73,6 +73,16 @@ const packageSources: Record<string, string[]> = {
   core: ["frontend"], // entire dir; node_modules/build are skipped
 };
 
+// Package name → workspace directory (relative to ROOT).
+// Used with --cwd so package-local node_modules/.bin is in PATH.
+const packageDirs: Record<string, string> = {
+  "@steambrew/ttc": "ttc",
+  "@steambrew/client": "sdk/packages/client",
+  "@steambrew/webkit": "sdk/packages/browser",
+  "@steambrew/api": "sdk/packages/loader",
+  core: "frontend",
+};
+
 // When a package is rebuilt its dependents must also rebuild even if their
 // own sources are unchanged (because the dep's build output changed).
 const dependsOn: Record<string, string[]> = {
@@ -133,7 +143,7 @@ for (const filter of steps) {
   process.stdout.write(`building ${chalk.yellow(filter)}... `);
   const start = performance.now();
   try {
-    await $`bun run --filter ${filter} build`.quiet();
+    await $`bun run --cwd ${packageDirs[filter]} build`.quiet();
     rebuilt.add(filter);
     cache[filter] = hash;
     console.log(

@@ -77,7 +77,7 @@ jobs:
           Where-Object { $_ -match '=' } |
           ForEach-Object {
               $k,$v = $_ -split '=',2
-              $env:$k = $v
+              Set-Item "env:$k" $v
           }
 
       - name: Build Millennium Backend
