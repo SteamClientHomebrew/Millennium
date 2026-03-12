@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -30,26 +30,11 @@
 
 #pragma once
 
-#include "millennium/types.h"
-#include <nlohmann/json.hpp>
-#include <string>
-
-/**
- * Colors utility class for managing Windows accent colors and theme colors
- */
-namespace head
-{
-namespace system_accent_color
-{
-json get_accent_color_win32();
-json get_accent_color_linux();
 #ifdef __APPLE__
-json get_accent_color_macos();
+/**
+ * Reads the macOS system accent color via NSColor.controlAccentColor.
+ * Outputs sRGB components in [0, 1] range.
+ * @return true on success, false if the color could not be resolved.
+ */
+bool Plat_GetMacOSAccentColor(float* r, float* g, float* b);
 #endif
-json extrapolate_color(const std::string& accent_color);
-json plat_get_accent_color(const std::string& accent_color);
-
-std::string adjust_color_intensity(const std::string& hex_color, int percent);
-std::string hex_to_rgb(const std::string& hex_color);
-}; // namespace system_accent_color
-} // namespace head

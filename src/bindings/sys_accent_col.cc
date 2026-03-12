@@ -34,6 +34,9 @@
 #include "millennium/logger.h"
 #include <windows.h>
 #endif
+#ifdef __APPLE__
+#include "millennium/macos_accent_color.h"
+#endif
 
 /** piss off C */
 #ifdef min
@@ -156,12 +159,46 @@ nlohmann::json head::system_accent_color::get_accent_color_win32()
 }
 
 /**
- * TODO: Maybe find a better way to do this. Gnome/KDE/Macos all have different standards.
- * Currently just returns black colors for POSIX systems.
+ * Gets macOS system accent color via NSColor.controlAccentColor (AppKit, macOS 10.14+).
+ * Generates light/dark variants using the same extrapolation as Windows.
  */
-nlohmann::json head::system_accent_color::get_accent_color_posix()
+#ifdef __APPLE__
+nlohmann::json head::system_accent_color::get_accent_color_macos()
 {
-    nlohmann::json color_dictionary = {
+    float r = 0.0f, g = 0.0f, b = 0.0f;
+    if (!Plat_GetMacOSAccentColor(&r, &g, &b)) {
+        return get_accent_color_linux();
+    }
+
+    const std::string accent = fmt::format("#{0:02x}{1:02x}{2:02x}", static_cast<int>(r * 255.0f + 0.5f), static_cast<int>(g * 255.0f + 0.5f), static_cast<int>(b * 255.0f + 0.5f));
+
+    return {
+        { "accent", accent },
+        { "accentRgb", hex_to_rgb(accent) },
+        { "light1", adjust_color_intensity(accent, 15) },
+        { "light1Rgb", hex_to_rgb(adjust_color_intensity(accent, 15)) },
+        { "light2", adjust_color_intensity(accent, 30) },
+        { "light2Rgb", hex_to_rgb(adjust_color_intensity(accent, 30)) },
+        { "light3", adjust_color_intensity(accent, 45) },
+        { "light3Rgb", hex_to_rgb(adjust_color_intensity(accent, 45)) },
+        { "dark1", adjust_color_intensity(accent, -15) },
+        { "dark1Rgb", hex_to_rgb(adjust_color_intensity(accent, -15)) },
+        { "dark2", adjust_color_intensity(accent, -30) },
+        { "dark2Rgb", hex_to_rgb(adjust_color_intensity(accent, -30)) },
+        { "dark3", adjust_color_intensity(accent, -45) },
+        { "dark3Rgb", hex_to_rgb(adjust_color_intensity(accent, -45)) },
+        { "originalAccent", accent },
+    };
+}
+#endif
+
+/**
+ * Linux has no standard accent color API — return neutral fallback.
+ * TODO: could read from GTK/KDE settings in the future.
+ */
+nlohmann::json head::system_accent_color::get_accent_color_linux()
+{
+    return {
         { "accent",         "#000"    },
         { "light1",         "#000"    },
         { "light2",         "#000"    },
@@ -176,10 +213,8 @@ nlohmann::json head::system_accent_color::get_accent_color_posix()
         { "dark1Rgb",       "0, 0, 0" },
         { "dark2Rgb",       "0, 0, 0" },
         { "dark3Rgb",       "0, 0, 0" },
-        { "originalAccent", "#000"    }
+        { "originalAccent", "#000"    },
     };
-
-    return color_dictionary;
 }
 
 /**
@@ -238,8 +273,10 @@ nlohmann::json head::system_accent_color::extrapolate_color(const std::string& a
 {
 #ifdef _WIN32
     std::string originalAccent = get_accent_color_win32()["originalAccent"];
+#elif defined(__APPLE__)
+    std::string originalAccent = get_accent_color_macos()["originalAccent"];
 #else
-    std::string originalAccent = get_accent_color_posix()["originalAccent"];
+    std::string originalAccent = get_accent_color_linux()["originalAccent"];
 #endif
 
     nlohmann::json result = {
@@ -268,8 +305,10 @@ nlohmann::json head::system_accent_color::plat_get_accent_color(const std::strin
     if (accentColor == "DEFAULT_ACCENT_COLOR") {
 #ifdef _WIN32
         return get_accent_color_win32();
+#elif defined(__APPLE__)
+        return get_accent_color_macos();
 #else
-        return get_accent_color_posix();
+        return get_accent_color_linux();
 #endif
     } else {
         return extrapolate_color(accentColor);

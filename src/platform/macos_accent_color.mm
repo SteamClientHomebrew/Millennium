@@ -1,9 +1,9 @@
-/*
+/**
  * ==================================================
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -28,28 +28,18 @@
  * SOFTWARE.
  */
 
-#pragma once
-
-#include "millennium/types.h"
-#include <nlohmann/json.hpp>
-#include <string>
-
-/**
- * Colors utility class for managing Windows accent colors and theme colors
- */
-namespace head
-{
-namespace system_accent_color
-{
-json get_accent_color_win32();
-json get_accent_color_linux();
 #ifdef __APPLE__
-json get_accent_color_macos();
-#endif
-json extrapolate_color(const std::string& accent_color);
-json plat_get_accent_color(const std::string& accent_color);
+#include "millennium/macos_accent_color.h"
+#import <AppKit/AppKit.h>
 
-std::string adjust_color_intensity(const std::string& hex_color, int percent);
-std::string hex_to_rgb(const std::string& hex_color);
-}; // namespace system_accent_color
-} // namespace head
+bool Plat_GetMacOSAccentColor(float* r, float* g, float* b)
+{
+    NSColor* accent = [[NSColor controlAccentColor] colorUsingColorSpace:[NSColorSpace sRGBColorSpace]];
+    if (!accent) return false;
+
+    *r = static_cast<float>([accent redComponent]);
+    *g = static_cast<float>([accent greenComponent]);
+    *b = static_cast<float>([accent blueComponent]);
+    return true;
+}
+#endif
