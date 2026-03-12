@@ -31,7 +31,6 @@
 import english from '../../locales/english.json';
 import polish from '../../locales/polish.json';
 import spanish from '../../locales/spanish.json';
-import latam from '../../locales/latam.json';
 import indonesian from '../../locales/indonesian.json';
 import schinese from '../../locales/schinese.json';
 import german from '../../locales/german.json';
@@ -46,6 +45,7 @@ import ukrainian from '../../locales/ukrainian.json';
 import japanese from '../../locales/japanese.json';
 import hungarian from '../../locales/hungarian.json';
 import koreana from '../../locales/koreana.json';
+import latam from '../../locales/latam.json';
 import { Logger } from './Logger';
 
 interface LocalizationData {
@@ -86,7 +86,8 @@ const localizationFiles: { [key: string]: LocalizationData } = {
 	ukrainian,
 	japanese,
 	hungarian,
-	koreana
+	koreana,
+	latam
 	// Add other languages here
 };
 
