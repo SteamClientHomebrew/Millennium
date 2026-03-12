@@ -118,6 +118,9 @@ __attribute__((constructor)) static void init(void)
 #endif
 
 #ifdef _WIN32
+#define SNARE_STATIC
+#define SNARE_IMPLEMENTATION
+#include "libsnare.h"
 extern snare_inline_t g_win32_cef_hook;
 #endif
 
@@ -221,9 +224,6 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
 }
 
 #if defined(_WIN32)
-#define SNARE_STATIC
-#define SNARE_IMPLEMENTATION
-#include "libsnare.h"
 #include "instrumentation/logger.h"
 #define fn(x) #x
 

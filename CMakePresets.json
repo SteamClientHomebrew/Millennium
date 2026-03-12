@@ -25,9 +25,7 @@
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "hostOS": [
-            "Windows"
-          ]
+          "hostOS": ["Windows"]
         }
       },
       "cacheVariables": {
@@ -99,16 +97,6 @@
         "CMAKE_C_FLAGS": "-m32",
         "CMAKE_BUILD_TYPE": "Release"
       }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "osx-debug",
-      "configurePreset": "osx-debug"
-    },
-    {
-      "name": "osx-release",
-      "configurePreset": "osx-release"
     }
   ]
 }
