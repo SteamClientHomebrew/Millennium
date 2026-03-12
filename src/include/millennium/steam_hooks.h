@@ -41,7 +41,6 @@ extern std::string STEAM_DEVELOPER_TOOLS_PORT;
 const char* GetAppropriateDevToolsPort(const bool isDevMode);
 
 #ifdef _WIN32
-#include "MinHook.h"
 #include <iostream>
 #include <thread>
 #ifndef WIN32_LEAN_AND_MEAN
@@ -66,6 +65,7 @@ typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTI
 typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
 
 bool InitializeSteamHooks();
+void UninitializeSteamHooks();
 
 bool Millennium_Plat_CommandLineIsSetup();
 bool SetupEntryPointHook();

@@ -67,11 +67,6 @@ millennium_process_package("${re2_SOURCE_DIR}")
 add_subdirectory("${abseil_SOURCE_DIR}" "${abseil_BINARY_DIR}")
 add_subdirectory("${re2_SOURCE_DIR}"    "${re2_BINARY_DIR}"   )
 
-if(WIN32)
-    message(STATUS "[hhx64] fetching minhook...")
-    FetchContent_Declare(minhook GIT_REPOSITORY https://github.com/TsudaKageyu/minhook GIT_TAG v1.3.4)
-    FetchContent_MakeAvailable(minhook)
-endif()
 
 include_directories("${MILLENNIUM_BASE}/src/include")
 include_directories("${snare_SOURCE_DIR}")
@@ -94,7 +89,7 @@ endif()
 add_library(hhx64 SHARED ${SOURCE_FILES})
 
 if(WIN32)
-    target_link_libraries(hhx64 minhook wsock32)
+    target_link_libraries(hhx64 wsock32)
 endif()
 
 target_link_libraries(hhx64 re2)

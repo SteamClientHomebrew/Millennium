@@ -10,8 +10,6 @@
     zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5?shallow=true";
     luajit-src.url = "github:SteamClientHomebrew/LuaJIT/v2.1?shallow=true";
     luajson-src.url = "github:SteamClientHomebrew/LuaJSON/master?shallow=true";
-    minhook-src.url = "github:TsudaKageyu/minhook/v1.3.4?shallow=true";
-    mini-src.url = "github:metayeti/mINI/0.9.18?shallow=true";
     websocketpp-src.url = "github:zaphoyd/websocketpp/0.8.2?shallow=true";
     fmt-src.url = "github:fmtlib/fmt/12.0.0?shallow=true";
     json-src.url = "github:nlohmann/json/v3.12.0?shallow=true";
@@ -27,8 +25,6 @@
     zlib-src.flake = false;
     luajit-src.flake = false;
     luajson-src.flake = false;
-    minhook-src.flake = false;
-    mini-src.flake = false;
     websocketpp-src.flake = false;
     fmt-src.flake = false;
     json-src.flake = false;

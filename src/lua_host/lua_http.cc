@@ -256,8 +256,9 @@ static int Lua_HttpRequest(lua_State* L)
     }
 
     if (auth_user && auth_pass) {
-        char* auth_string = (char*)malloc(strlen(auth_user) + strlen(auth_pass) + 2);
-        sprintf(auth_string, "%s:%s", auth_user, auth_pass);
+        size_t auth_len = strlen(auth_user) + strlen(auth_pass) + 2;
+        char* auth_string = (char*)malloc(auth_len);
+        snprintf(auth_string, auth_len, "%s:%s", auth_user, auth_pass);
         curl_easy_setopt(curl, CURLOPT_USERPWD, auth_string);
         curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
         free(auth_string);

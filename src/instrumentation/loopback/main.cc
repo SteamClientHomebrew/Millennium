@@ -117,7 +117,7 @@ __attribute__((constructor)) static void init(void)
 #endif
 
 #ifdef _WIN32
-static int(__cdecl* win32_cef_browser_host_create_browser)(const void*, struct _cef_client_t*, void*, const void*, void*, void*) = nullptr;
+extern snare_inline_t g_win32_cef_hook;
 #endif
 
 extern cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url);
@@ -192,8 +192,12 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
     }
 
 #ifdef _WIN32
-    return win32_cef_browser_host_create_browser(_1, c, _3, _4, _5, _6);
-#else
+    snare_inline_remove(g_win32_cef_hook);
+    auto orig = reinterpret_cast<int(__cdecl*)(const void*, struct _cef_client_t*, void*, const void*, void*, void*)>(snare_inline_get_src(g_win32_cef_hook));
+    int result = orig(_1, c, _3, _4, _5, _6);
+    snare_inline_install(g_win32_cef_hook);
+    return result;
+#elif __linux__
     if (!g_cef_hook) {
         fprintf(stderr, "cef_browser_host_create_browser: hook not installed, call dropped\n");
         return 0;
@@ -214,7 +218,9 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
 }
 
 #if defined(_WIN32)
-#include <MinHook.h>
+#define SNARE_STATIC
+#define SNARE_IMPLEMENTATION
+#include "libsnare.h"
 #include "instrumentation/logger.h"
 #define fn(x) #x
 
@@ -238,35 +244,32 @@ void* get_fn_address()
     return reinterpret_cast<void*>(GetProcAddress((HMODULE)libcef_base_address, hook_fn_name));
 }
 
-static bool g_has_initialized_minhook = false;
+static snare_inline_t g_win32_cef_hook = nullptr;
 
 /**
  * called when the hook is loaded into the web-helper on windows
- * as we aren't using LD_PRELOAD on windows, we have to use min-hook to trampoline
+ * as we aren't using LD_PRELOAD on windows, we have to use snare to trampoline
  * we don't have precedence over the load order in IAT/GOT like on linux/macOS
  */
 void win32_initialize_trampoline()
 {
-    if (MH_Initialize() != MH_OK) {
-        log_error("failed to initialize min-hook...\n");
-        return;
-    }
-
-    g_has_initialized_minhook = true;
-
     void* proc = get_fn_address();
     if (!proc) {
         log_error("ordinate %s not found in %s\n", hook_fn_name, hook_target_dll);
         return;
     }
 
-    if (MH_CreateHook(proc, reinterpret_cast<void*>(&tramp_cef_browser_host_create_browser), reinterpret_cast<void**>(&win32_cef_browser_host_create_browser)) != MH_OK) {
+    g_win32_cef_hook = snare_inline_new(proc, reinterpret_cast<void*>(&tramp_cef_browser_host_create_browser));
+    if (!g_win32_cef_hook) {
         log_error("failed to create hook on %s...\n", hook_fn_name);
         return;
     }
 
-    if (MH_EnableHook(proc) != MH_OK) {
-        log_error("failed to enable hook on %s...\n", hook_fn_name);
+    if (snare_inline_install(g_win32_cef_hook) < 0) {
+        log_error("failed to install hook on %s...\n", hook_fn_name);
+        snare_inline_free(g_win32_cef_hook);
+        g_win32_cef_hook = nullptr;
+        return;
     }
 
     log_info("successfully hooked %s in %s\n", hook_fn_name, hook_target_dll);
@@ -274,13 +277,13 @@ void win32_initialize_trampoline()
 
 /**
  * called when the hook is unloaded from the web-helper.
- * we likely don't actually need to do this, but its good practice.
  */
 void win32_uninitialize_trampoline()
 {
-    if (g_has_initialized_minhook) {
-        MH_Uninitialize();
-        g_has_initialized_minhook = false;
+    if (g_win32_cef_hook) {
+        snare_inline_remove(g_win32_cef_hook);
+        snare_inline_free(g_win32_cef_hook);
+        g_win32_cef_hook = nullptr;
     }
 }
 

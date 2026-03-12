@@ -29,9 +29,7 @@
  */
 
 #pragma once
-#define MINI_CASE_SENSITIVE
 #include <filesystem>
-#include <mini/ini.h>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>

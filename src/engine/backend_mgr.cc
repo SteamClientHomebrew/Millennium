@@ -94,8 +94,11 @@ void backend_manager::shutdown()
     std::vector<std::thread> shutdown_threads;
     shutdown_threads.reserve(m_processes.size());
 
-    for (auto& [name, process] : m_processes) {
-        shutdown_threads.emplace_back([&name, &process]() {
+    for (auto& kv : m_processes) {
+        auto& name = kv.first;
+        auto& process = kv.second;
+        shutdown_threads.emplace_back([&name, &process]()
+        {
             logger.log("Shutting down plugin '{}'...", name);
             process->shutdown();
         });
