@@ -80,7 +80,7 @@
   "updatePanelCheckForUpdates": "Comprobar actualizaciones",
   "updatePanelShowUpdateNotifications": "Mostrar notificaciones de actualizaciones",
   "HoldOn": "¡Espera!",
-  "updateFailedPluginRunning": "Millennium no puede actualizar "{0}" mientras se está ejecutando; primero debes desactivarlo",
+  "updateFailedPluginRunning": "Millennium no puede actualizar \"{0}\" mientras se está ejecutando; primero debes desactivarlo",
   "themeAndPluginUpdateNotification": "Millennium encontró {0} {1} disponibles",
   "updateSingular": "actualización",
   "updatePlural": "actualizaciones",
