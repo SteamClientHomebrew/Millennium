@@ -90,12 +90,13 @@ jobs:
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           cmake --build build
 
-          Copy-Item ./build/millennium.dll               D:/a/env/millennium.dll
-          Copy-Item ./build/wsock32.dll                  D:/a/env/wsock32.dll
-          Copy-Item ./build/version.dll                  D:/a/env/version.dll
-          Copy-Item ./build/millennium.hhx64.dll         D:/a/env/millennium.hhx64.dll
-          Copy-Item ./build/millennium.luasb64.exe        D:/a/env/millennium.luasb64.exe
-          Copy-Item ./build/millennium.crashhandler64.exe D:/a/env/millennium.crashhandler64.exe
+          New-Item -ItemType Directory -Force -Path D:/a/millennium-build
+          Copy-Item ./build/millennium.dll               D:/a/millennium-build/millennium.dll
+          Copy-Item ./build/wsock32.dll                  D:/a/millennium-build/wsock32.dll
+          Copy-Item ./build/version.dll                  D:/a/millennium-build/version.dll
+          Copy-Item ./build/millennium.hhx64.dll         D:/a/millennium-build/millennium.hhx64.dll
+          Copy-Item ./build/millennium.luasb64.exe        D:/a/millennium-build/millennium.luasb64.exe
+          Copy-Item ./build/millennium.crashhandler64.exe D:/a/millennium-build/millennium.crashhandler64.exe
 
           # Collect PDB files for debug symbols
           New-Item -ItemType Directory -Force -Path D:/a/pdb
@@ -107,7 +108,7 @@ jobs:
         with:
           include-hidden-files: true
           name: unsigned-millennium-windows
-          path: D:/a/env/
+          path: D:/a/millennium-build/
 
       - name: Upload PDB Symbols
         uses: actions/upload-artifact@v4
