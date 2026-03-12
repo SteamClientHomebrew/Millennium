@@ -31,6 +31,7 @@
 import english from '../../locales/english.json';
 import polish from '../../locales/polish.json';
 import spanish from '../../locales/spanish.json';
+import latam from '../../locales/latam.json';
 import indonesian from '../../locales/indonesian.json';
 import schinese from '../../locales/schinese.json';
 import german from '../../locales/german.json';
