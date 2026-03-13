@@ -70,6 +70,14 @@ export interface Conditions {
 	[settingName: string]: ICondition;
 }
 
+export interface SliderConfig {
+	min: number;
+	max: number;
+	step?: number;
+	unit?: string;
+	cssVariable: string;
+}
+
 export interface ICondition {
 	default?: string;
 	description?: string;
@@ -80,7 +88,9 @@ export interface ICondition {
 	 * If some conditions include it, those who don't will be put in a separate tab.
 	 */
 	tab?: string;
-	values: {
+	slider?: SliderConfig;
+	section?: string;
+	values?: {
 		[condition: string]: ConditionalControlFlow;
 	};
 }

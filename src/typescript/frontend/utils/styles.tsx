@@ -402,7 +402,8 @@ const styles = /* css */ `
 	width: -webkit-fill-available;
 }
 
-.MillenniumPluginSettingsSliderValue {
+.MillenniumPluginSettingsSliderValue,
+.MillenniumThemeSliderValue {
     position: absolute;
     right: 0;
     top: 5px;

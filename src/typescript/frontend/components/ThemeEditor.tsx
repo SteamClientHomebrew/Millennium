@@ -43,11 +43,12 @@ import {
 	Field,
 	ErrorBoundary,
 	Focusable,
+	findModuleDetailsByExport,
 } from '@steambrew/client';
-import { Conditions, ConditionsStore, ICondition, ThemeItem } from '../types';
+import { Conditions, ConditionsStore, ICondition, SliderConfig, ThemeItem } from '../types';
 import { settingsClasses } from '../utils/classes';
 import { locale } from '../utils/localization-manager';
-import { BBCodeParser } from './SteamComponents';
+import { BBCodeParser, SettingsDialogSubHeader } from './SteamComponents';
 import Styles from '../utils/styles';
 import { PyChangeColor, PyChangeCondition, PyGetRootColors, PyGetThemeColorOptions } from '../utils/ffi';
 
@@ -61,12 +62,18 @@ interface ComponentInterface {
 	conditionType: ConditionType;
 	values: string[];
 	conditionName: string;
+	slider?: SliderConfig;
 }
 
 enum ConditionType {
 	Dropdown,
 	Toggle,
+	Slider,
 }
+
+const SliderComponent = findModuleDetailsByExport(
+	(m) => m?.prototype?.hasOwnProperty('BShouldTriggerHapticOnSnap') && m?.prototype?.hasOwnProperty('ComputeNormalizedValueForMousePosition'),
+)[1];
 
 enum ColorTypes {
 	RawRGB = 1,
@@ -92,12 +99,14 @@ interface ThemeEditorProps {
 }
 
 export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
-	GetConditionType = (value: any): ConditionType => {
-		if (Object.keys(value).every((element: string) => element === 'yes' || element === 'no')) {
-			return ConditionType.Toggle;
-		} else {
-			return ConditionType.Dropdown;
+	GetConditionType = (condition: ICondition): ConditionType => {
+		if (condition.slider) {
+			return ConditionType.Slider;
 		}
+		if (condition.values && Object.keys(condition.values).every((element: string) => element === 'yes' || element === 'no')) {
+			return ConditionType.Toggle;
+		}
+		return ConditionType.Dropdown;
 	};
 
 	UpdateLocalCondition = (conditionName: string, newData: string) => {
@@ -117,13 +126,29 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		});
 	};
 
-	RenderComponentInterface: React.FC<ComponentInterface> = ({ conditionType, values, conditionName }) => {
+	UpdateSliderCssVariable = (cssVariable: string, value: number, unit?: string) => {
+		const cssValue = `${value}${unit ?? ''}`;
+		for (const popup of g_PopupManager.GetPopups()) {
+			const doc = popup.window.document;
+			const styleId = `millennium-slider-${cssVariable}`;
+			let el = doc.getElementById(styleId);
+			if (!el) {
+				el = doc.createElement('style');
+				el.id = styleId;
+				doc.head.appendChild(el);
+			}
+			el.innerText = `:root { ${cssVariable}: ${cssValue}; }`;
+		}
+	};
+
+	RenderComponentInterface: React.FC<ComponentInterface> = ({ conditionType, values, conditionName, slider }) => {
 		let store = pluginSelf?.conditionals?.[this.props.theme.native] as ConditionsStore;
 
 		/** Dropdown items if given that the component is a dropdown */
 		const items = values.map((value: string, index: number) => ({ label: value, data: 'componentId' + index }));
 
 		const [isChecked, setIsChecked] = useState(store[conditionName] === 'yes');
+		const [sliderValue, setSliderValue] = useState(Number(store[conditionName]) || slider?.min || 0);
 
 		useEffect(() => {
 			setIsChecked(store[conditionName] === 'yes');
@@ -159,6 +184,33 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 
 			case ConditionType.Toggle:
 				return <Toggle key={conditionName} value={isChecked} onChange={onCheckChange} navRef={conditionName} />;
+
+			case ConditionType.Slider:
+				return (
+					<>
+						<div className="MillenniumThemeSliderValue">
+							{sliderValue}
+							{slider?.unit ?? ''}
+						</div>
+						<SliderComponent
+							min={slider?.min ?? 0}
+							max={slider?.max ?? 100}
+							step={slider?.step ?? 1}
+							value={sliderValue}
+							onChange={(newValue: number) => {
+								setSliderValue(newValue);
+								this.UpdateSliderCssVariable(slider?.cssVariable, newValue, slider?.unit);
+							}}
+							onChangeComplete={(newValue: number) => {
+								this.UpdateLocalCondition(conditionName, String(newValue)).then((success) => {
+									if (success) {
+										store && (store[conditionName] = String(newValue));
+									}
+								});
+							}}
+						/>
+					</>
+				);
 		}
 	};
 
@@ -170,7 +222,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 	};
 
 	RenderComponent: React.FC<ConditionalComponent> = ({ condition, value, isLastItem }) => {
-		const conditionType: ConditionType = this.GetConditionType(value.values);
+		const conditionType: ConditionType = this.GetConditionType(value);
 
 		return (
 			<Field
@@ -179,8 +231,15 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 				className={condition}
 				key={condition}
 				bottomSeparator={isLastItem ? 'none' : 'standard'}
+				inlineWrap={conditionType === ConditionType.Slider ? 'shift-children-below' : undefined}
+				verticalAlignment={conditionType === ConditionType.Slider ? 'none' : undefined}
 			>
-				<this.RenderComponentInterface conditionType={conditionType} conditionName={condition} values={Object.keys(value?.values)} />
+				<this.RenderComponentInterface
+					conditionType={conditionType}
+					conditionName={condition}
+					values={Object.keys(value?.values ?? {})}
+					slider={value?.slider}
+				/>
 			</Field>
 		);
 	};
@@ -314,13 +373,49 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 			),
 		});
 
-		const createContentPage = (conditions: Record<string, any>) => (
-			<DialogBody className={Classes.SettingsDialogBodyFade}>
-				{Object.entries(conditions).map(([key, value], index) => (
-					<this.RenderComponent condition={key} value={value} key={key} isLastItem={index === Object.keys(conditions).length - 1} />
-				))}
-			</DialogBody>
-		);
+		const createContentPage = (conditions: Record<string, ICondition>) => {
+			const allEntries = Object.entries(conditions);
+			const hasSections = allEntries.some(([, v]) => !!v.section);
+
+			if (!hasSections) {
+				return (
+					<DialogBody className={Classes.SettingsDialogBodyFade}>
+						{allEntries.map(([key, value], index) => (
+							<this.RenderComponent condition={key} value={value} key={key} isLastItem={index === allEntries.length - 1} />
+						))}
+					</DialogBody>
+				);
+			}
+
+			const sections: { name: string | undefined; items: [string, ICondition][] }[] = [];
+			for (const entry of allEntries) {
+				const sectionName = entry[1].section;
+				const existing = sections.find((s) => s.name === sectionName);
+				if (existing) {
+					existing.items.push(entry);
+				} else {
+					sections.push({ name: sectionName, items: [entry] });
+				}
+			}
+
+			return (
+				<DialogBody className={Classes.SettingsDialogBodyFade}>
+					{sections.map((section, sectionIndex) => (
+						<React.Fragment key={section.name ?? '__default'}>
+							{section.name && <SettingsDialogSubHeader>{section.name}</SettingsDialogSubHeader>}
+							{section.items.map(([key, value], index) => (
+								<this.RenderComponent
+									condition={key}
+									value={value}
+									key={key}
+									isLastItem={sectionIndex === sections.length - 1 && index === section.items.length - 1}
+								/>
+							))}
+						</React.Fragment>
+					))}
+				</DialogBody>
+			);
+		};
 
 		const createTabPages = () => {
 			const pages = entries.reduce<{ title: string; conditions: Record<string, any>[] }[]>((acc, [name, patch]) => {

@@ -353,8 +353,32 @@ void head::theme_config_store::setup_conditionals()
         std::string theme_name = theme.value("native", "");
 
         for (auto& [condition_name, condition_value] : conditions.items()) {
-            if (!condition_value.contains("values") || !condition_value["values"].is_object() || condition_value["values"].empty()) {
+            const bool is_slider = condition_value.contains("slider") && condition_value["slider"].is_object();
+            const bool has_values = condition_value.contains("values") && condition_value["values"].is_object() && !condition_value["values"].empty();
+
+            if (!is_slider && !has_values) {
                 logger.log("Skipping invalid condition: " + condition_name);
+                continue;
+            }
+
+            nlohmann::json current_conditions = CONFIG.get(fmt::format("themes.conditions.{}", theme_name), nlohmann::json::object());
+            const std::string keyPath = fmt::format("themes.conditions.{}.{}", theme_name, condition_name);
+
+            if (is_slider) {
+                const auto& slider = condition_value["slider"];
+                std::string default_value;
+
+                if (condition_value.contains("default") && condition_value["default"].is_string()) {
+                    default_value = condition_value["default"].get<std::string>();
+                } else if (slider.contains("min")) {
+                    default_value = std::to_string(slider["min"].get<int>());
+                } else {
+                    default_value = "0";
+                }
+
+                if (!current_conditions.contains(condition_name) || !current_conditions[condition_name].is_string()) {
+                    CONFIG.set(keyPath, default_value);
+                }
                 continue;
             }
 
@@ -370,9 +394,6 @@ void head::theme_config_store::setup_conditionals()
             if (!values.contains(default_value)) {
                 default_value = values.begin().key();
             }
-
-            nlohmann::json current_conditions = CONFIG.get(fmt::format("themes.conditions.{}", theme_name), nlohmann::json::object());
-            const std::string keyPath = fmt::format("themes.conditions.{}.{}", theme_name, condition_name);
 
             if (!current_conditions.contains(condition_name) || !current_conditions[condition_name].is_string()) {
                 CONFIG.set(keyPath, default_value);
