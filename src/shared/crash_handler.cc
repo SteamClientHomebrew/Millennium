@@ -43,19 +43,11 @@ static std::string s_crash_dump_base;
 
 static std::string compute_crash_dump_base()
 {
-#ifdef _WIN32
     try {
-        return (platform::get_steam_path() / "ext" / "crash_dumps").string();
+        return (platform::get_millennium_data_path() / "crash_dumps").string();
     } catch (...) {
         return "crash_dumps";
     }
-#else
-    const char* xdg_state = std::getenv("XDG_STATE_HOME");
-    if (xdg_state && xdg_state[0]) return std::string(xdg_state) + "/millennium/crash_dumps";
-
-    const char* home = std::getenv("HOME");
-    return std::string(home ? home : "/tmp") + "/.local/state/millennium/crash_dumps";
-#endif
 }
 
 static std::string make_crash_dir()
@@ -140,20 +132,25 @@ static void spawn_watchdog()
         return;
     }
 
-    char dll_path[MAX_PATH];
+    // Find crash handler: check next to millennium.dll first (dev builds),
+    // then fall back to LOCALAPPDATA/Millennium/bin/ (production installs).
+    char dll_dir[MAX_PATH];
     HMODULE hSelf = nullptr;
-    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, reinterpret_cast<LPCSTR>(&install_millennium_crash_handler), &hSelf);
-    GetModuleFileNameA(hSelf, dll_path, MAX_PATH);
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&install_millennium_crash_handler), &hSelf);
+    GetModuleFileNameA(hSelf, dll_dir, MAX_PATH);
 
-    char* last_sep = strrchr(dll_path, '\\');
-    if (!last_sep) last_sep = strrchr(dll_path, '/');
-    if (last_sep)
-        *(last_sep + 1) = '\0';
-    else
-        dll_path[0] = '\0';
+    char* last_sep = strrchr(dll_dir, '\\');
+    if (!last_sep) last_sep = strrchr(dll_dir, '/');
+    if (last_sep) *(last_sep + 1) = '\0'; else dll_dir[0] = '\0';
+
+    std::string crash_handler_path = std::string(dll_dir) + "millennium.crashhandler64.exe";
+    if (!std::filesystem::exists(crash_handler_path)) {
+        crash_handler_path = (platform::get_millennium_data_path() / "bin" / "millennium.crashhandler64.exe").string();
+    }
 
     char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "\"%s%s\" --steam-pid=%u --steam-handle=%llX", dll_path, "millennium.crashhandler64.exe", steam_pid,
+    snprintf(cmd, sizeof(cmd), "\"%s\" --steam-pid=%u --steam-handle=%llX", crash_handler_path.c_str(), steam_pid,
              (unsigned long long)(uintptr_t)inheritable_handle);
 
     STARTUPINFOA si{};

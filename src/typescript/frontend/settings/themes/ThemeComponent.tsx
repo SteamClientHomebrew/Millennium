@@ -124,8 +124,8 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 	openThemeFolder() {
 		const { theme } = this.props;
 
-		const themesPath = [pluginSelf.steamPath, 'steamui', 'skins', theme.native].join('/');
-		Utils.BrowseLocalFolder(themesPath);
+		const themeDir = [pluginSelf.themesPath, theme.native].join('/');
+		Utils.BrowseLocalFolder(themeDir);
 	}
 
 	async uninstallTheme() {

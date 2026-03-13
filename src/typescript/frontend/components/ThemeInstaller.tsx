@@ -80,7 +80,6 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 					sOperationText={status}
 					nProgress={progress}
 					nTransitionSec={0.5}
-					key={`installer-progress-${progress}`}
 				/>
 			</>
 		);
@@ -106,7 +105,7 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 	const owner = theme?.github?.owner;
 	const repo = theme?.github?.repo_name;
 
-	const isInstalled = await PyIsThemeInstalled({ owner, repo });
+	const isInstalled = JSON.parse(await PyIsThemeInstalled({ owner, repo }));
 	const { ShowMessageBox } = props;
 
 	const UninstallTheme = (resolve: (value: unknown) => void) => {

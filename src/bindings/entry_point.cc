@@ -170,6 +170,7 @@ builtin_payload head::millennium_backend::Core_GetStartConfig(const builtin_payl
         { "settings", CONFIG.get_all() },
         { "steamPath", platform::get_steam_path() },
         { "installPath", platform::get_install_path() },
+        { "themesPath", platform::get_themes_path() },
         { "millenniumVersion", MILLENNIUM_VERSION },
         { "enabledPlugins", m_plugin_manager->get_enabled_plugin_names() },
         { "updates", m_updater->check_for_updates() },

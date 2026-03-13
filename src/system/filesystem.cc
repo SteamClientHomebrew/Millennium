@@ -82,12 +82,42 @@ std::filesystem::path get_steam_path()
     return cached_path;
 }
 
+std::filesystem::path get_millennium_data_path()
+{
+    static const std::filesystem::path cached = []()
+    {
+#ifdef _WIN32
+        const char* localappdata = std::getenv("LOCALAPPDATA");
+        if (!localappdata || !localappdata[0]) {
+            LOG_ERROR("LOCALAPPDATA is not set, falling back to steam path");
+            return get_steam_path();
+        }
+        return std::filesystem::path(localappdata) / "Millennium";
+#elif __linux__
+        const char* xdg_data = std::getenv("XDG_DATA_HOME");
+        const char* home = std::getenv("HOME");
+        if (xdg_data && xdg_data[0])
+            return std::filesystem::path(xdg_data) / "millennium";
+        return std::filesystem::path(home ? home : "/tmp") / ".local" / "share" / "millennium";
+#elif __APPLE__
+        const char* home = std::getenv("HOME");
+        return std::filesystem::path(home ? home : "/tmp") / "Library" / "Application Support" / "Millennium";
+#endif
+    }();
+    return cached;
+}
+
+std::filesystem::path get_themes_path()
+{
+    return get_millennium_data_path() / "themes";
+}
+
 std::filesystem::path get_install_path()
 {
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef _WIN32
+    return get_millennium_data_path();
+#elif defined(__linux__) || defined(__APPLE__)
     return platform::environment::get("MILLENNIUM__CONFIG_PATH");
-#elif defined(_WIN32)
-    return get_steam_path();
 #endif
 }
 
@@ -302,23 +332,50 @@ bool remove_directory(const std::filesystem::path& p)
 }
 std::string get_crash_dump_dir(const std::string& plugin_name)
 {
-#ifdef _WIN32
-    auto base = get_steam_path() / "ext" / "crash_dumps";
-#else
-    const char* xdg_state = std::getenv("XDG_STATE_HOME");
-    std::filesystem::path base;
-    if (xdg_state && xdg_state[0])
-        base = std::filesystem::path(xdg_state) / "millennium" / "crash_dumps";
-    else {
-        const char* home = std::getenv("HOME");
-        base = std::filesystem::path(home ? home : "/tmp") / ".local" / "state" / "millennium" / "crash_dumps";
-    }
-#endif
+    auto base = get_millennium_data_path() / "crash_dumps";
 
     char timestamp[64];
     time_t now = std::time(nullptr);
     std::strftime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", std::localtime(&now));
 
     return (base / (plugin_name + "-" + timestamp)).string();
+}
+
+void migrate_themes_from_steamui()
+{
+    std::error_code ec;
+    const auto themes_path = get_themes_path();
+    const auto old_skins_path = get_steam_path() / "steamui" / "skins";
+
+    if (!std::filesystem::exists(old_skins_path, ec) || !std::filesystem::is_directory(old_skins_path, ec))
+        return;
+
+    std::filesystem::create_directories(themes_path, ec);
+
+    // Migrate each theme individually — skip themes that already exist at the destination
+    for (const auto& entry : std::filesystem::directory_iterator(old_skins_path, ec)) {
+        const auto name = entry.path().filename();
+        const auto dst = themes_path / name;
+
+        if (std::filesystem::exists(dst, ec)) continue;
+
+        if (entry.is_symlink(ec)) {
+            auto link_target = std::filesystem::read_symlink(entry.path(), ec);
+            if (!ec) std::filesystem::create_directory_symlink(link_target, dst, ec);
+            if (ec) {
+                ec.clear();
+                std::filesystem::create_symlink(link_target, dst, ec);
+            }
+            if (ec) {
+                // No privilege — leave original in place, skip
+                logger.log("Theme migration: symlink '{}' skipped (no privilege), leaving in place.", name.string());
+                ec.clear();
+            }
+        } else if (entry.is_directory(ec)) {
+            std::filesystem::copy(entry.path(), dst,
+                std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks, ec);
+            if (ec) LOG_ERROR("Failed to migrate theme {}: {}", name.string(), ec.message());
+        }
+    }
 }
 } // namespace platform

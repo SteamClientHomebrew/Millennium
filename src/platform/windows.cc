@@ -85,26 +85,20 @@ BOOL AreFilesIdentical(LPCWSTR path1, LPCWSTR path2)
     return same;
 }
 
-/**
- * Initialize Millennium webhelper hook by hardlinking it into the cef bin directory.
- */
-VOID Win32_AttachWebHelperHook(VOID)
+static VOID Win32_CreateHardlink(const std::filesystem::path& hookPath, const std::filesystem::path& targetPath, const char* description)
 {
-    const auto hookPath = platform::get_steam_path() / "millennium.hhx64.dll";
-    const auto targetPath = platform::get_steam_path() / "bin" / "cef" / "cef.win7x64" / "version.dll";
-
     if (!std::filesystem::exists(hookPath)) {
-        platform::messagebox::show("Millennium Error", "Millennium webhelper hook is missing. Please reinstall Millennium.", platform::messagebox::error);
+        platform::messagebox::show("Millennium Error",
+            fmt::format("Millennium {} is missing: {}\nPlease reinstall Millennium.", description, hookPath.string()).c_str(),
+            platform::messagebox::error);
         return;
     }
 
     if (!AreFilesIdentical(hookPath.wstring().c_str(), targetPath.wstring().c_str())) {
-        // Remove existing target if it exists
         DeleteFileW(targetPath.wstring().c_str());
     }
 
     if (std::filesystem::exists(targetPath)) {
-        /** target file exist, and is identical to the hook, so we don't need to hardlink */
         return;
     }
 
@@ -112,9 +106,19 @@ VOID Win32_AttachWebHelperHook(VOID)
     if (!result) {
         platform::messagebox::show(
             "Millennium Error",
-            fmt::format("Failed to create hardlink for Millennium webhelper hook.\nError Code: {}\nMake sure Steam is not running and try again.", GetLastError()).c_str(),
+            fmt::format("Failed to create hardlink for {}.\nError Code: {}\nMake sure Steam is not running and try again.", description, GetLastError()).c_str(),
             platform::messagebox::error);
     }
+}
+
+/**
+ * Initialize Millennium webhelper hook by hardlinking it into the cef bin directory.
+ */
+VOID Win32_AttachWebHelperHook(VOID)
+{
+    const auto hookPath = platform::get_millennium_data_path() / "lib" / "millennium.hhx64.dll";
+    const auto targetPath = platform::get_steam_path() / "bin" / "cef" / "cef.win7x64" / "version.dll";
+    Win32_CreateHardlink(hookPath, targetPath, "webhelper hook");
 }
 
 VOID Win32_MoveVersionHook(VOID)
@@ -132,8 +136,147 @@ VOID Win32_MoveVersionHook(VOID)
     }
 }
 
+/**
+ * Move a single file from src to dst. Tries rename first, falls back to copy+delete.
+ * No-ops if src doesn't exist or dst already exists.
+ */
+static void migrate_file(const std::filesystem::path& src, const std::filesystem::path& dst)
+{
+    std::error_code ec;
+    if (!std::filesystem::exists(src, ec)) {
+        return;
+    }
+    if (std::filesystem::exists(dst, ec)) {
+        logger.log("Migration: skipping {} (already exists at {})", src.string(), dst.string());
+        return;
+    }
+
+    std::filesystem::create_directories(dst.parent_path(), ec);
+    logger.log("Migration: moving {} -> {}", src.string(), dst.string());
+
+    std::filesystem::rename(src, dst, ec);
+    if (!ec) return;
+
+    // rename fails across volumes — copy + delete
+    logger.log("Migration: rename failed ({}), falling back to copy", ec.message());
+    std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+    if (ec) {
+        logger.log("Migration: failed to copy {} -> {}: {}", src.string(), dst.string(), ec.message());
+        return;
+    }
+    std::filesystem::remove(src, ec);
+}
+
+/**
+ * Copy a single file from src to dst (for files that can't be moved, e.g. loaded DLLs).
+ * No-ops if src doesn't exist or dst already exists.
+ */
+static void migrate_file_copy(const std::filesystem::path& src, const std::filesystem::path& dst)
+{
+    std::error_code ec;
+    if (!std::filesystem::exists(src, ec) || std::filesystem::exists(dst, ec)) return;
+
+    std::filesystem::create_directories(dst.parent_path(), ec);
+    std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+    if (ec) logger.log("Migration: failed to copy {} -> {}: {}", src.string(), dst.string(), ec.message());
+}
+
+/**
+ * Move a directory tree from src to dst, preserving symlinks.
+ * Each entry is migrated individually so partially-migrated dirs are handled.
+ * Symlinks are recreated at the destination with their original target.
+ */
+static void migrate_directory(const std::filesystem::path& src, const std::filesystem::path& dst)
+{
+    std::error_code ec;
+    if (!std::filesystem::exists(src, ec) || !std::filesystem::is_directory(src, ec)) return;
+
+    std::filesystem::create_directories(dst, ec);
+
+    for (const auto& entry : std::filesystem::directory_iterator(src, ec)) {
+        const auto name = entry.path().filename();
+        const auto target = dst / name;
+
+        if (std::filesystem::exists(target, ec)) continue;
+
+        if (entry.is_symlink(ec)) {
+            auto link_target = std::filesystem::read_symlink(entry.path(), ec);
+            if (ec) continue;
+
+            // Try directory symlink, then file symlink
+            std::filesystem::create_directory_symlink(link_target, target, ec);
+            if (ec) {
+                ec.clear();
+                std::filesystem::create_symlink(link_target, target, ec);
+            }
+
+            if (!ec) {
+                std::filesystem::remove(entry.path(), ec);
+            } else {
+                logger.log("Migration: symlink '{}' skipped (no privilege).", name.string());
+                platform::messagebox::show("Millennium Migration",
+                    fmt::format("Could not migrate symlink '{}' to the new data directory.\n\n"
+                                "Please manually move or recreate it:\n"
+                                "  From: {}\n"
+                                "  To:   {}\n\n"
+                                "Target: {}", name.string(), entry.path().string(), target.string(), link_target.string()).c_str(),
+                    platform::messagebox::warn);
+                ec.clear();
+            }
+        } else if (entry.is_directory(ec)) {
+            migrate_directory(entry.path(), target);
+            // Remove the source dir if it's now empty
+            std::filesystem::remove(entry.path(), ec);
+        } else {
+            migrate_file(entry.path(), target);
+        }
+    }
+
+    // Remove the source dir if it's now empty
+    std::filesystem::remove(src, ec);
+}
+
+VOID Win32_MigrateToLocalAppData(VOID)
+{
+    const auto dataPath = platform::get_millennium_data_path();
+    const auto steamPath = platform::get_steam_path();
+
+    std::error_code ec;
+
+    // Libraries -> lib/
+    // millennium.dll and wsock32.dll are currently loaded — copy only, can't move.
+    migrate_file_copy(steamPath / "millennium.dll",       dataPath / "lib" / "millennium.dll");
+    migrate_file_copy(steamPath / "wsock32.dll",          dataPath / "lib" / "millennium.bootstrap64.dll");
+    // Prefer new bootstrap name if the updater already placed it
+    migrate_file(steamPath / "millennium.bootstrap64.dll", dataPath / "lib" / "millennium.bootstrap64.dll");
+    migrate_file(steamPath / "millennium.hhx64.dll",       dataPath / "lib" / "millennium.hhx64.dll");
+
+    // Executables -> bin/
+    migrate_file(steamPath / "millennium.luasb64.exe",       dataPath / "bin" / "millennium.luasb64.exe");
+    migrate_file(steamPath / "millennium.crashhandler64.exe", dataPath / "bin" / "millennium.crashhandler64.exe");
+
+    // Config -> config/
+    migrate_file(steamPath / "ext" / "config.json",  dataPath / "config" / "config.json");
+    migrate_file(steamPath / "ext" / "quickcss.css", dataPath / "config" / "quickcss.css");
+    migrate_file(steamPath / "ext" / "themes.json",  dataPath / "config" / "themes.json");
+
+    // Logs and crash dumps
+    migrate_directory(steamPath / "ext" / "logs",        dataPath / "logs");
+    migrate_directory(steamPath / "ext" / "crash_dumps", dataPath / "crash_dumps");
+
+    // Clean up ext/ if empty
+    std::filesystem::remove(steamPath / "ext", ec);
+
+    // Plugins (may contain symlinks to dev plugins)
+    migrate_directory(steamPath / "plugins", dataPath / "plugins");
+
+    // Themes (steamui/skins/ -> themes/)
+    migrate_directory(steamPath / "steamui" / "skins", dataPath / "themes");
+}
+
 VOID Win32_AttachMillennium(VOID)
 {
+    Win32_MigrateToLocalAppData();
     install_millennium_crash_handler();
 
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */

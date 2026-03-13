@@ -92,7 +92,7 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path D:/a/millennium-build
           Copy-Item ./build/millennium.dll               D:/a/millennium-build/millennium.dll
-          Copy-Item ./build/wsock32.dll                  D:/a/millennium-build/wsock32.dll
+          Copy-Item ./build/millennium.bootstrap64.dll    D:/a/millennium-build/millennium.bootstrap64.dll
 Copy-Item ./build/millennium.hhx64.dll         D:/a/millennium-build/millennium.hhx64.dll
           Copy-Item ./build/millennium.luasb64.exe        D:/a/millennium-build/millennium.luasb64.exe
           Copy-Item ./build/millennium.crashhandler64.exe D:/a/millennium-build/millennium.crashhandler64.exe

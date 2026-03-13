@@ -124,6 +124,7 @@ class network_hook_ctl
     std::shared_ptr<std::vector<hook_item>> m_hook_list_ptr;
 
     const char* m_ftp_url = "https://millennium.ftp/";
+    const char* m_themes_url = "https://millennium.host/v1/themes/";
 
     /** Maintain backwards compatibility for themes that explicitly rely on this url */
     const char* m_legacy_hook_url = "https://pseudo.millennium.app/";
@@ -131,7 +132,7 @@ class network_hook_ctl
     const char* m_legacy_virt_css_url = "https://css.millennium.app/";
 
     /** list of all FTP related urls */
-    const std::vector<const char*> m_ftpUrls = { this->m_ftp_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url, this->m_legacy_hook_url };
+    const std::vector<const char*> m_ftpUrls = { this->m_ftp_url, this->m_themes_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url, this->m_legacy_hook_url };
 
     bool is_vfs_request(const nlohmann::basic_json<>& message);
     std::string HandleCssHook(const std::string& body);

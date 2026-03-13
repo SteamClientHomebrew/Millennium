@@ -106,7 +106,6 @@ try {
 				logger.warn('Navigation interface failed to call GetFocusedWindowInstance', e);
 			}
 			if (!win) {
-				logger.warn('Navigation interface could not find any focused window. Falling back to Main Window Instance');
 				win =
 					Router.WindowStore?.GamepadUIMainWindowInstance ||
 					Router?.WindowStore?.SteamUIWindows?.find((window) => window?.BrowserWindow?.name === 'SP Desktop_uid0');

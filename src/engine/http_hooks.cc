@@ -100,6 +100,16 @@ std::filesystem::path network_hook_ctl::path_from_url(const std::string& request
 {
     std::string_view url(requestUrl);
 
+    /** millennium.host URLs resolve to the themes directory */
+    std::string_view themes_prefix(m_themes_url);
+    if (auto pos = url.find(themes_prefix); pos != std::string_view::npos) {
+        std::string relativePath = std::string(url.substr(pos + themes_prefix.size()));
+        if (auto q = relativePath.find('?'); q != std::string::npos) {
+            relativePath = relativePath.substr(0, q);
+        }
+        return platform::get_themes_path() / utils::url::decode_url(relativePath);
+    }
+
     for (std::string_view addr : m_ftpUrls) {
         if (auto pos = url.find(addr); pos != std::string_view::npos) {
             std::string cleaned = std::string(url.substr(0, pos)) + std::string(url.substr(pos + addr.size()));
@@ -187,7 +197,6 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
         if (bFailedRead) {
             responseCode = http_code::NOT_FOUND;
             responseMessage = "millennium couldn't read " + localFilePath.string();
-            LOG_ERROR("failed to retrieve file '{}' info from disk.", localFilePath.string());
         }
 
         fileType = mime::get_file_type(localFilePath.string());
@@ -293,9 +302,9 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
         }
 
         if (hookItem.type == TagTypes::STYLESHEET) {
-            result.cssContent.append(fmt::format("<link rel=\"stylesheet\" href=\"{}\">\n", utils::url::get_url_from_path(m_ftp_url, hookItem.path)));
+            result.cssContent.append(fmt::format("<link rel=\"stylesheet\" href=\"https://millennium.host/v1/themes/{}\">\n", utils::url::encode_url(hookItem.path)));
         } else if (hookItem.type == TagTypes::JAVASCRIPT) {
-            auto jsPath = utils::url::get_url_from_path(m_ftp_url, hookItem.path);
+            auto jsPath = fmt::format("https://millennium.host/v1/themes/{}", utils::url::encode_url(hookItem.path));
             result.script_modules.push_back(jsPath);
             result.linkPreloads.append(fmt::format("<link rel=\"modulepreload\" href=\"{}\" fetchpriority=\"high\">\n", jsPath));
         }
@@ -363,7 +372,7 @@ void network_hook_ctl::init()
         }
     });
 
-    const auto hooks = { this->m_ftp_url, this->m_legacy_hook_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url };
+    const auto hooks = { this->m_ftp_url, this->m_themes_url, this->m_legacy_hook_url, this->m_legacy_virt_js_url, this->m_legacy_virt_css_url };
 
     nlohmann::json patterns = nlohmann::json::array();
     for (const auto& hook : hooks) {

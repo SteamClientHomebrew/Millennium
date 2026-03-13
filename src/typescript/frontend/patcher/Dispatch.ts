@@ -51,7 +51,7 @@ export const DOMModifier = {
 };
 
 export function constructThemePath(nativeName: string, relativePath: string) {
-	return [window.location.origin, 'skins', nativeName, relativePath].join('/');
+	return ['https://millennium.host/v1/themes', nativeName, relativePath].join('/');
 }
 
 export const classListMatch = (classList: string[], affectee: string) => {

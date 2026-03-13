@@ -44,7 +44,7 @@
 head::theme_config_store::theme_config_store(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<theme_webkit_mgr> theme_webkit_mgr)
     : m_plugin_manager(std::move(plugin_manager)), m_theme_webkit_mgr(std::move(theme_webkit_mgr))
 {
-    themes_path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
+    themes_path = platform::get_themes_path();
 
     migrate_old_config();
     on_config_change_hdlr();
@@ -226,13 +226,13 @@ void head::theme_config_store::setup_colors()
 
         std::string nativeName = theme["native"].get<std::string>();
         std::string rootFile = theme["data"]["RootColors"].get<std::string>();
-        const auto colorsPath = platform::get_steam_path() / "steamui" / "skins" / nativeName / rootFile;
+        const auto colorsPath = platform::get_themes_path() / nativeName / rootFile;
 
         colors[nativeName] = head::css_parser::parse_root_colors(colorsPath.generic_string());
 
-        if (CONFIG.get("themes.themeColors", nullptr).is_null()) CONFIG.set("themes.themeColors", nlohmann::json::object(), /*skipPropagation=*/false);
+        if (CONFIG.get("themes.themeColors", nullptr).is_null()) CONFIG.set("themes.themeColors", nlohmann::json::object(), /*skipPropagation=*/true);
 
-        if (CONFIG.get("themes.themeColors." + nativeName, nullptr).is_null()) CONFIG.set("themes.themeColors." + nativeName, nlohmann::json::object(), /*skipPropagation=*/false);
+        if (CONFIG.get("themes.themeColors." + nativeName, nullptr).is_null()) CONFIG.set("themes.themeColors." + nativeName, nlohmann::json::object(), /*skipPropagation=*/true);
 
         for (auto& color : colors[nativeName]) {
             if (!color.contains("color") || !color["color"].is_string()) {
@@ -259,7 +259,7 @@ void head::theme_config_store::setup_colors()
             const std::string configPath = "themes.themeColors." + nativeName + "." + colorName;
             const auto existing = CONFIG.get(configPath, nullptr);
             if (!existing.is_string()) {
-                CONFIG.set(configPath, colorValue.value(), /*skipPropagation=*/false);
+                CONFIG.set(configPath, colorValue.value(), /*skipPropagation=*/true);
             }
         }
     }

@@ -31,7 +31,7 @@
 #include <wchar.h>
 
 #define MAX_PATH 260
-#define MILLENNIUM_LIBRARY_PATH L"millennium.dll"
+/** millennium.dll is loaded from %LOCALAPPDATA%\Millennium\lib\ */
 
 #define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS 0x00001000
 #define LOAD_LIBRARY_SEARCH_USER_DIRS 0x00000400
@@ -43,20 +43,30 @@ void* __stdcall LoadLibraryExW(const wchar_t* lpLibFileName, void* hFile, unsign
 unsigned long __stdcall GetModuleFileNameW(void* hModule, wchar_t* lpFilename, unsigned long nSize);
 int __stdcall MessageBoxW(void* hWnd, const wchar_t* lpText, const wchar_t* lpCaption, unsigned int uType);
 
-// /** fwd decl standard c funcs */
+/** fwd decl standard c funcs */
 int __cdecl wsprintfW(wchar_t* buf, const wchar_t* fmt, ...);
+wchar_t* __cdecl _wgetenv(const wchar_t*);
+
+static wchar_t g_millennium_dll_path[MAX_PATH];
+static wchar_t g_millennium_lib_dir[MAX_PATH];
+
+static int resolve_millennium_path(void)
+{
+    const wchar_t* localappdata = _wgetenv(L"LOCALAPPDATA");
+    if (!localappdata) {
+        MessageBoxW(0, L"Failed to _wgetenv LOCALAPPDATA, this is likely an issue with your Windows installation.", L"Millennium", 0x00000010l /** magic number -> MB_ICONERROR */);
+        return 0;
+    }
+    wsprintfW(g_millennium_lib_dir, L"%s\\Millennium\\lib", localappdata);
+    wsprintfW(g_millennium_dll_path, L"%s\\millennium.dll", g_millennium_lib_dir);
+    return 1;
+}
 
 __declspec(dllexport) const char* __get_shim_version(void)
 {
     return MILLENNIUM_VERSION;
 }
 
-wchar_t* g_millennium_path = 0;
-
-/**
- * Show an error message box if we fail to load Millennium
- * it assumes the message is less than 256 characters (which it should be)
- */
 static void show_error(unsigned long errorCode, const wchar_t* dll_path)
 {
     wchar_t msg[512];
@@ -99,9 +109,14 @@ static int is_steam_client(wchar_t* steam_path, size_t path_size)
 int __stdcall DllMain(void* hinstDLL, unsigned long fdwReason, void* lpReserved)
 {
     if (fdwReason == 1 /** DLL_PROCESS_ATTACH */ && is_steam_client(NULL, 0)) {
-        const void* hModule = LoadLibraryExW(MILLENNIUM_LIBRARY_PATH, NULL, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+        if (!resolve_millennium_path()) {
+            MessageBoxW(0, L"Millennium failed to resolve LOCALAPPDATA path.", L"Millennium", 0x00000010l);
+            return 1;
+        }
+        AddDllDirectory(g_millennium_lib_dir);
+        const void* hModule = LoadLibraryExW(g_millennium_dll_path, NULL, LOAD_LIBRARY_SEARCH_USER_DIRS | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
         if (!hModule) {
-            show_error(GetLastError(), MILLENNIUM_LIBRARY_PATH);
+            show_error(GetLastError(), g_millennium_dll_path);
         }
     }
     return 1;

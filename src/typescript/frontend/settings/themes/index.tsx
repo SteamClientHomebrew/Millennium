@@ -105,8 +105,7 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 	};
 
 	OpenThemesFolder = () => {
-		const themesPath = [pluginSelf.steamPath, 'steamui', 'skins'].join('/');
-		Utils.BrowseLocalFolder(themesPath);
+		Utils.BrowseLocalFolder(pluginSelf.themesPath);
 	};
 
 	InstallPluginMenu = () => {

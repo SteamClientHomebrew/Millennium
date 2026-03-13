@@ -126,7 +126,11 @@ std::vector<head::theme_webkit_mgr::webkit_item> head::theme_webkit_mgr::parse_c
 
 unsigned long long head::theme_webkit_mgr::add_browser_hook(const std::string& path, const std::string& regex, network_hook_ctl::TagTypes type)
 {
-    unsigned long long hook_id = m_network_hook_ctl->add_hook({ (platform::get_steam_path() / "steamui" / path).generic_string(), std::regex(regex), type });
+    /* Store path relative to the themes directory so the hook URL can be
+       constructed as https://millennium.host/<relative_path>. */
+    std::filesystem::path abs_path(path);
+    std::filesystem::path relative = abs_path.lexically_relative(platform::get_themes_path());
+    unsigned long long hook_id = m_network_hook_ctl->add_hook({ relative.generic_string(), std::regex(regex), type });
     m_registered_hooks.push_back(hook_id);
     return hook_id;
 }

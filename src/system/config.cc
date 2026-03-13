@@ -85,8 +85,10 @@ void config_manager::set(const std::string& path, const nlohmann::json& value, b
 
     if (old_value != value) {
         (*current)[last_key] = value;
-        notify_listeners(path, old_value, value);
-        if (!skipPropagation) save_to_disk();
+        if (!skipPropagation) {
+            notify_listeners(path, old_value, value);
+            save_to_disk();
+        }
     }
 }
 

@@ -61,7 +61,7 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 		uxSleepLength: 1000,
 	});
 
-	const updateSuccess = await PyUpdateTheme({ native: updateObject.native });
+	const updateSuccess = JSON.parse(await PyUpdateTheme({ native: updateObject.native }));
 
 	if (updateSuccess) {
 		await setUpdateState({

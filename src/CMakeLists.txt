@@ -28,9 +28,7 @@ add_compile_definitions(
     "CURL_STATICLIB"
     $<$<BOOL:${WIN32}>:WIN32_LEAN_AND_MEAN>
     $<$<BOOL:${WIN32}>:NOMINMAX>
-    __HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>"
-    __LUA_HOST_OUTPUT_ABSPATH__="$<TARGET_FILE:${MILLENNIUM_RTB_NAME}>"
-    __DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>"
+    $<$<CONFIG:Debug>:__LUA_HOST_OUTPUT_ABSPATH__="$<TARGET_FILE:${MILLENNIUM_RTB_NAME}>">
 )
 
 
@@ -158,14 +156,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
                                    MILLENNIUM_DEBUG=1
     )
 
-    # Replace /Zi (shared PDB) with /Z7 (embed debug info per-object) to eliminate
-    # PDB write races when compiling many TUs in parallel on MSVC.
-    if(MSVC)
-        string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-        string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS_DEBUG}")
-        set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "" FORCE)
-        set(CMAKE_C_FLAGS_DEBUG   ${CMAKE_C_FLAGS_DEBUG}   CACHE STRING "" FORCE)
-    endif()
+    # /Z7 embeds debug info per-object, avoiding PDB write races during parallel builds.
+    # Applied per-target so it doesn't leak into FetchContent dependencies.
+    # (lua_host and crash_handler already set /Z7 on their own targets.)
 endif()
 
 if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -243,6 +236,9 @@ set_target_properties(Millennium PROPERTIES
 
 if(WIN32)
     set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(Millennium PRIVATE /Z7)
+    endif()
 elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)

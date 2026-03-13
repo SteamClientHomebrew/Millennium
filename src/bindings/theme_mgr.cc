@@ -43,9 +43,9 @@ head::theme_installer::theme_installer(std::shared_ptr<::plugin_manager> plugin_
 {
 }
 
-std::filesystem::path head::theme_installer::get_skins_folder()
+std::filesystem::path head::theme_installer::get_themes_folder()
 {
-    return std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
+    return platform::get_themes_path();
 }
 
 nlohmann::json head::theme_installer::create_error_response(const std::string& message)
@@ -81,7 +81,7 @@ bool head::theme_installer::is_theme_installed(const std::string& repo, const st
         return false;
     }
 
-    std::filesystem::path path = get_skins_folder() / theme->value("native", std::string());
+    std::filesystem::path path = get_themes_folder() / theme->value("native", std::string());
     bool installed = std::filesystem::exists(path);
     logger.log("is_theme_installed: {}/{} -> {} (path: {})", owner, repo, installed, path.string());
     return installed;
@@ -96,7 +96,7 @@ nlohmann::json head::theme_installer::uninstall_theme(std::shared_ptr<theme_conf
 
     if (!themeOpt->contains("native")) return create_error_response("Theme does not have a native path!");
 
-    std::filesystem::path path = get_skins_folder() / themeOpt->value("native", std::string());
+    std::filesystem::path path = get_themes_folder() / themeOpt->value("native", std::string());
     if (!std::filesystem::exists(path)) return create_error_response("Theme path does not exist!");
 
     if (!platform::remove_directory(path)) return create_error_response("Failed to delete theme folder");
@@ -171,14 +171,14 @@ int head::theme_installer::clone(const std::string& url, const std::filesystem::
 nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner)
 {
     std::error_code ec;
-    std::filesystem::path finalPath = get_skins_folder() / repo;
+    std::filesystem::path finalPath = get_themes_folder() / repo;
 
     if (repo.empty() || owner.empty()) {
         return create_error_response("Repository name and owner cannot be empty");
     }
 
     if (!std::filesystem::exists(finalPath.parent_path(), ec)) {
-        return create_error_response("Skins root directory does not exist: " + finalPath.parent_path().string());
+        return create_error_response("Themes root directory does not exist: " + finalPath.parent_path().string());
     }
 
     if (std::filesystem::exists(finalPath, ec)) {
@@ -264,7 +264,7 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> head::theme_instal
     bool needsCopy = false;
 
     for (auto& theme : themes) {
-        std::filesystem::path path = get_skins_folder() / theme.value("native", "");
+        std::filesystem::path path = get_themes_folder() / theme.value("native", "");
         try {
             if (!std::filesystem::exists(path) || !is_git_repository(path)) throw std::runtime_error("Not a git repo");
 
@@ -278,8 +278,8 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> head::theme_instal
     }
 
     if (needsCopy) {
-        std::filesystem::path src = get_skins_folder();
-        std::filesystem::path dst = get_skins_folder().parent_path() / ("skins-backup-" + std::to_string(std::time(nullptr)));
+        std::filesystem::path src = get_themes_folder();
+        std::filesystem::path dst = get_themes_folder().parent_path() / ("themes-backup-" + std::to_string(std::time(nullptr)));
         std::filesystem::copy(src, dst, std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_symlinks);
     }
 
@@ -289,7 +289,7 @@ std::vector<std::pair<nlohmann::json, std::filesystem::path>> head::theme_instal
 bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
 {
     logger.log("Updating theme " + native);
-    std::filesystem::path path = get_skins_folder() / native;
+    std::filesystem::path path = get_themes_folder() / native;
 
     try {
         if (git_libgit2_init() < 0) {

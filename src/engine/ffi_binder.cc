@@ -159,6 +159,6 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
         };
         m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
     } catch (const std::exception& e) {
-        LOG_ERROR("ffi_binder: failed to re-add binding: {}", e.what());
+        logger.log("ffi_binder: failed to re-add binding: {} (context likely navigated away)", e.what());
     }
 }

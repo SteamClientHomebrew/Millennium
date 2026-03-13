@@ -57,8 +57,8 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		});
 
 		let interval = setInterval(() => {
-			Core_HasPendingMillenniumUpdateRestart().then((hasUpdated: boolean) => {
-				if (hasUpdated) {
+			Core_HasPendingMillenniumUpdateRestart().then((result: any) => {
+				if (JSON.parse(result)) {
 					pluginSelf.millenniumUpdates.updateInProgress = true;
 					ctx.setMillenniumUpdating(false);
 					clearInterval(interval);

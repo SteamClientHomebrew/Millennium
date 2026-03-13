@@ -46,17 +46,15 @@
 extern std::condition_variable cv_hasSteamUnloaded;
 extern std::mutex mtx_hasSteamUnloaded;
 
-/**
- * path to the lua sandbox executable.
- * set at compile time via CMake generator expression.
- */
-#ifndef __LUA_HOST_OUTPUT_ABSPATH__
-#define __LUA_HOST_OUTPUT_ABSPATH__ "millennium_luasb86"
-#endif
-
 static std::string get_lua_host_exe()
 {
+#if defined(__LUA_HOST_OUTPUT_ABSPATH__)
     return __LUA_HOST_OUTPUT_ABSPATH__;
+#elif defined(_WIN32)
+    return (platform::get_millennium_data_path() / "bin" / "millennium.luasb64.exe").string();
+#else
+    return (platform::get_millennium_data_path() / "bin" / "millennium_luasb86").string();
+#endif
 }
 
 static std::string get_socket_path(const std::string& pluginName)

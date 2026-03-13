@@ -42,7 +42,7 @@ class theme_installer
 {
   public:
     theme_installer(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<library_updater> updater);
-    std::filesystem::path get_skins_folder();
+    std::filesystem::path get_themes_folder();
 
     nlohmann::json create_error_response(const std::string& message);
     nlohmann::json create_successful_response();

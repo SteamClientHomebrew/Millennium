@@ -32,6 +32,7 @@
 #include "state/shared_memory.h"
 #include "head/default_cfg.h"
 
+#include "millennium/filesystem.h"
 #include "millennium/health_check.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
@@ -98,6 +99,7 @@ void millennium::check_for_updates()
  */
 void millennium::entry()
 {
+    platform::migrate_themes_from_steamui();
     platform::shared_memory::init();
     platform::health::check_health();
 

@@ -65,7 +65,6 @@ async function initializeMillennium(settings: SettingsProps) {
 	if (theme?.data?.hasOwnProperty('RootColors')) {
 		try {
 			const rootColors = JSON.parse(await PyGetRootColors());
-			Logger.Log('RootColors found in theme, dispatching...', rootColors);
 			pluginSelf.RootColors = rootColors;
 		} catch (error) {
 			Logger.Error('Failed to load root colors from backend', error);
@@ -78,6 +77,7 @@ async function initializeMillennium(settings: SettingsProps) {
 		conditionals: settings?.conditions,
 		steamPath: settings?.steamPath,
 		installPath: settings?.installPath,
+		themesPath: settings?.themesPath,
 		version: settings?.millenniumVersion,
 		enabledPlugins: settings?.enabledPlugins ?? [],
 		updates: settings?.updates ?? [],
@@ -100,8 +100,10 @@ async function initializeMillennium(settings: SettingsProps) {
 	});
 
 	setTimeout(async () => {
-		const pending = JSON.parse(await PyGetPendingCrashes()) as Array<{ plugin: string; exitCode: number; displayName?: string; crashDumpDir?: string }>;
-		pending.forEach(showPluginCrashToast);
+		try {
+			const pending = JSON.parse(await PyGetPendingCrashes()) as Array<{ plugin: string; exitCode: number; displayName?: string; crashDumpDir?: string }>;
+			pending?.forEach?.(showPluginCrashToast);
+		} catch {}
 	}, 5000);
 }
 

@@ -96,7 +96,6 @@ const OnProgressUpdate = ({ progress, status }: { progress: number; status: stri
 					sOperationText={status}
 					nProgress={progress}
 					nTransitionSec={0.5}
-					key={`installer-progress-${progress}`}
 				/>
 			</>
 		);
@@ -130,7 +129,7 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 		return false;
 	}
 
-	const isInstalled = await PyIsPluginInstalled({ plugin_name: pluginName });
+	const isInstalled = JSON.parse(await PyIsPluginInstalled({ plugin_name: pluginName }));
 
 	if (isInstalled) {
 		props?.ShowMessageBox(formatString(locale.strAlreadyInPluginLibrary, data?.pluginJson?.common_name ?? locale.strUnknown), locale.strAlreadyInstalled, {

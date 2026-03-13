@@ -88,7 +88,7 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, setUpdateState
 		uxSleepLength: 1000,
 	});
 
-	const updateSuccess = await PyUpdatePlugin({ id: updateObject?.id, name: updateObject?.pluginDirectory });
+	const updateSuccess = JSON.parse(await PyUpdatePlugin({ id: updateObject?.id, name: updateObject?.pluginDirectory }));
 
 	await setUpdateState({
 		statusText: locale.strComplete,

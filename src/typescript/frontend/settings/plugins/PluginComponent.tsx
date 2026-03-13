@@ -73,7 +73,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		const shouldUninstall = await Utils.ShowMessageBox(`Are you sure you want to uninstall ${plugin.data.common_name}?`, 'Heads up!');
 		if (!shouldUninstall) return;
 
-		const success = await PyUninstallPlugin({ pluginName: plugin.data.name });
+		const success = JSON.parse(await PyUninstallPlugin({ pluginName: plugin.data.name }));
 
 		if (success == false) {
 			Utils.ShowMessageBox(`Failed to uninstall ${plugin.data.common_name}. Check the logs tab for more details.`, 'Whoops', {

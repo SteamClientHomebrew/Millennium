@@ -95,7 +95,7 @@ std::optional<nlohmann::json> head::Plugins::GetPluginFromName(const std::string
  */
 bool head::Themes::IsValid(const std::string& theme_native_name)
 {
-    std::filesystem::path file_path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins" / theme_native_name / "skin.json";
+    std::filesystem::path file_path = platform::get_themes_path() / theme_native_name / "skin.json";
 
     if (!std::filesystem::is_regular_file(file_path)) return false;
 
@@ -109,7 +109,7 @@ bool head::Themes::IsValid(const std::string& theme_native_name)
  */
 nlohmann::ordered_json head::Themes::FindAllThemes()
 {
-    auto path = std::filesystem::path(platform::get_steam_path()) / "steamui" / "skins";
+    auto path = platform::get_themes_path();
     std::filesystem::create_directories(path);
 
     nlohmann::ordered_json themes = nlohmann::ordered_json::array();
