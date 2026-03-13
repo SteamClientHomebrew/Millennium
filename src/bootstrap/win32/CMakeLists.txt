@@ -36,5 +36,3 @@ set_target_properties(preload PROPERTIES
     OUTPUT_NAME "${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}"
     SUFFIX ""
 )
-
-add_subdirectory(legacy)

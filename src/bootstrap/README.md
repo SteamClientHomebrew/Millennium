@@ -2,7 +2,7 @@
 > Note that all sub folders in this directory are "separate" projects from Millennium, they do not compile into the same binary.
 > They are shims that are required for bootstrapping Millennium into Steam.
 >
-> -   Windows -> version.dll || user32.dll (both work, user32.dll is legacy and deprecated as it has some caveats)
+> -   Windows -> wsock32.dll
 > -   Linux -> libXtst.so.6 proxy hook
 > -   macOS (Install, default) -> `Steam Millennium.app` wrapper + runtime payload installed by `scripts/install_macos.sh`
 > -   macOS (Legacy install) -> `libtier0_s.dylib` reexport proxy via `scripts/install_macos.sh --tier0-legacy`

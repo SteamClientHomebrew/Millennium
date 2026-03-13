@@ -10,7 +10,6 @@ if(WIN32)
     set(MILLENNIUM_OUTPUT_NAME                     "millennium.dll"                )
     set(MILLENNIUM_HOOK_HELPER_OUTPUT_NAME         "millennium.hhx64.dll"          )
     set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "wsock32.dll"                   )
-    set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME_LEGACY   "version.dll"                   )
 elseif(APPLE)
     # macOS build names
     set(MILLENNIUM_OUTPUT_NAME                     "libmillennium.dylib"           )
