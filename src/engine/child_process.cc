@@ -489,11 +489,11 @@ void PluginProcess::detect_child_exit()
     if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
         LOG_ERROR("Plugin '{}' crashed with signal {} (0x{:08X}). Crash dump: {}", m_plugin_name, sig, (unsigned long)sig, m_crash_dump_dir.empty() ? "none" : m_crash_dump_dir);
-        mep::crash_event_bus::instance().notify({ m_plugin_name, (unsigned long)sig, m_crash_dump_dir });
+        mep::crash_event_bus::instance().notify({ m_plugin_name, (unsigned long)sig, m_crash_dump_dir, {} });
     } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
         unsigned long code = (unsigned long)WEXITSTATUS(status);
         LOG_ERROR("Plugin '{}' exited with code {} (0x{:08X}). Crash dump: {}", m_plugin_name, code, code, m_crash_dump_dir.empty() ? "none" : m_crash_dump_dir);
-        mep::crash_event_bus::instance().notify({ m_plugin_name, code, m_crash_dump_dir });
+        mep::crash_event_bus::instance().notify({ m_plugin_name, code, m_crash_dump_dir, {} });
     }
 #endif
 }
