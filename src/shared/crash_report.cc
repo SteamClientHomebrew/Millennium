@@ -30,6 +30,7 @@
 
 #include "shared/crash_report.h"
 
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <string>

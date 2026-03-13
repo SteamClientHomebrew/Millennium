@@ -90,12 +90,13 @@ jobs:
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           cmake --build build
 
-          New-Item -ItemType Directory -Force -Path D:/a/millennium-build
-          Copy-Item ./build/millennium.dll               D:/a/millennium-build/millennium.dll
-          Copy-Item ./build/millennium.bootstrap64.dll    D:/a/millennium-build/millennium.bootstrap64.dll
-          Copy-Item ./build/millennium.hhx64.dll         D:/a/millennium-build/millennium.hhx64.dll
-          Copy-Item ./build/millennium.luasb64.exe        D:/a/millennium-build/millennium.luasb64.exe
-          Copy-Item ./build/millennium.crashhandler64.exe D:/a/millennium-build/millennium.crashhandler64.exe
+          New-Item -ItemType Directory -Force -Path D:/a/millennium-build/lib
+          New-Item -ItemType Directory -Force -Path D:/a/millennium-build/bin
+          Copy-Item ./build/millennium.dll               D:/a/millennium-build/lib/millennium.dll
+          Copy-Item ./build/millennium.bootstrap64.dll    D:/a/millennium-build/lib/millennium.bootstrap64.dll
+          Copy-Item ./build/millennium.hhx64.dll         D:/a/millennium-build/lib/millennium.hhx64.dll
+          Copy-Item ./build/millennium.luasb64.exe        D:/a/millennium-build/bin/millennium.luasb64.exe
+          Copy-Item ./build/millennium.crashhandler64.exe D:/a/millennium-build/bin/millennium.crashhandler64.exe
 
           # Collect PDB files for debug symbols
           New-Item -ItemType Directory -Force -Path D:/a/pdb
