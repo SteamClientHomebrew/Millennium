@@ -44,21 +44,6 @@
 
 /** forward declare function */
 std::thread g_millenniumThread;
-
-/**
- * Setup environment variables used throughout Millennium.
- * These are vital to be setup, if they aren't Millennium and its loaded plugins will likely fail to start/run
- */
-CONSTRUCTOR VOID Win32_InitializeEnvironment(VOID)
-{
-    try {
-        platform::environment::setup();
-    } catch (const std::exception& e) {
-        LOG_ERROR("Failed to set up environment variables: {}", e.what());
-        std::exit(EXIT_FAILURE);
-    }
-}
-
 extern std::mutex mtx_hasSteamUIStartedLoading;
 extern std::condition_variable cv_hasSteamUIStartedLoading;
 
@@ -88,9 +73,8 @@ BOOL AreFilesIdentical(LPCWSTR path1, LPCWSTR path2)
 static VOID Win32_CreateHardlink(const std::filesystem::path& hookPath, const std::filesystem::path& targetPath, const char* description)
 {
     if (!std::filesystem::exists(hookPath)) {
-        platform::messagebox::show("Millennium Error",
-            fmt::format("Millennium {} is missing: {}\nPlease reinstall Millennium.", description, hookPath.string()).c_str(),
-            platform::messagebox::error);
+        platform::messagebox::show("Millennium Error", fmt::format("Millennium {} is missing: {}\nPlease reinstall Millennium.", description, hookPath.string()).c_str(),
+                                   platform::messagebox::error);
         return;
     }
 
@@ -215,12 +199,14 @@ static void migrate_directory(const std::filesystem::path& src, const std::files
             } else {
                 logger.log("Migration: symlink '{}' skipped (no privilege).", name.string());
                 platform::messagebox::show("Millennium Migration",
-                    fmt::format("Could not migrate symlink '{}' to the new data directory.\n\n"
-                                "Please manually move or recreate it:\n"
-                                "  From: {}\n"
-                                "  To:   {}\n\n"
-                                "Target: {}", name.string(), entry.path().string(), target.string(), link_target.string()).c_str(),
-                    platform::messagebox::warn);
+                                           fmt::format("Could not migrate symlink '{}' to the new data directory.\n\n"
+                                                       "Please manually move or recreate it:\n"
+                                                       "  From: {}\n"
+                                                       "  To:   {}\n\n"
+                                                       "Target: {}",
+                                                       name.string(), entry.path().string(), target.string(), link_target.string())
+                                               .c_str(),
+                                           platform::messagebox::warn);
                 ec.clear();
             }
         } else if (entry.is_directory(ec)) {
@@ -245,23 +231,23 @@ VOID Win32_MigrateToLocalAppData(VOID)
 
     // Libraries -> lib/
     // millennium.dll and wsock32.dll are currently loaded — copy only, can't move.
-    migrate_file_copy(steamPath / "millennium.dll",       dataPath / "lib" / "millennium.dll");
-    migrate_file_copy(steamPath / "wsock32.dll",          dataPath / "lib" / "millennium.bootstrap64.dll");
+    migrate_file_copy(steamPath / "millennium.dll", dataPath / "lib" / "millennium.dll");
+    migrate_file_copy(steamPath / "wsock32.dll", dataPath / "lib" / "millennium.bootstrap64.dll");
     // Prefer new bootstrap name if the updater already placed it
     migrate_file(steamPath / "millennium.bootstrap64.dll", dataPath / "lib" / "millennium.bootstrap64.dll");
-    migrate_file(steamPath / "millennium.hhx64.dll",       dataPath / "lib" / "millennium.hhx64.dll");
+    migrate_file(steamPath / "millennium.hhx64.dll", dataPath / "lib" / "millennium.hhx64.dll");
 
     // Executables -> bin/
-    migrate_file(steamPath / "millennium.luasb64.exe",       dataPath / "bin" / "millennium.luasb64.exe");
+    migrate_file(steamPath / "millennium.luasb64.exe", dataPath / "bin" / "millennium.luasb64.exe");
     migrate_file(steamPath / "millennium.crashhandler64.exe", dataPath / "bin" / "millennium.crashhandler64.exe");
 
     // Config -> config/
-    migrate_file(steamPath / "ext" / "config.json",  dataPath / "config" / "config.json");
+    migrate_file(steamPath / "ext" / "config.json", dataPath / "config" / "config.json");
     migrate_file(steamPath / "ext" / "quickcss.css", dataPath / "config" / "quickcss.css");
-    migrate_file(steamPath / "ext" / "themes.json",  dataPath / "config" / "themes.json");
+    migrate_file(steamPath / "ext" / "themes.json", dataPath / "config" / "themes.json");
 
     // Logs and crash dumps
-    migrate_directory(steamPath / "ext" / "logs",        dataPath / "logs");
+    migrate_directory(steamPath / "ext" / "logs", dataPath / "logs");
     migrate_directory(steamPath / "ext" / "crash_dumps", dataPath / "crash_dumps");
 
     // Clean up ext/ if empty
@@ -276,7 +262,6 @@ VOID Win32_MigrateToLocalAppData(VOID)
 
 VOID Win32_AttachMillennium(VOID)
 {
-    Win32_MigrateToLocalAppData();
     install_millennium_crash_handler();
 
     /** Starts the CEF arg hook, it doesn't wait for the hook to be installed, it waits for the hook to be setup */
@@ -322,6 +307,21 @@ VOID Win32_DetachMillennium(VOID)
     g_millenniumThread.join();
     g_millennium.reset();
     logger.log("Millennium thread has exited.");
+}
+
+/**
+ * Setup environment variables used throughout Millennium.
+ * These are vital to be setup, if they aren't Millennium and its loaded plugins will likely fail to start/run
+ */
+CONSTRUCTOR VOID Win32_InitializeEnvironment(VOID)
+{
+    try {
+        Win32_MigrateToLocalAppData();
+        platform::environment::setup();
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to set up environment variables: {}", e.what());
+        std::exit(EXIT_FAILURE);
+    }
 }
 
 /**
