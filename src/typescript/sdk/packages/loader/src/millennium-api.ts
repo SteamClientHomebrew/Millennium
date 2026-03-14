@@ -57,11 +57,9 @@ class FFI_Binder {
 		{
 			resolve: (value: any) => void;
 			reject: (error: Error) => void;
-			timeout: NodeJS.Timeout;
 		}
 	>();
 	private nextId = 0;
-	private requestTimeout = 5000;
 
 	/** Capture the full call stack. */
 	private getCaller(): string {
@@ -84,11 +82,7 @@ class FFI_Binder {
 		const caller = this.getCaller();
 
 		return new Promise((resolve, reject) => {
-			const timeout = setTimeout(() => {
-				this.pendingRequests.delete(requestId);
-				reject(new Error(`Request ${requestId} timed out`));
-			}, this.requestTimeout);
-			this.pendingRequests.set(requestId, { resolve, reject, timeout });
+			this.pendingRequests.set(requestId, { resolve, reject });
 			(window as any).__private_millennium_ffi_do_not_use__(
 				JSON.stringify({
 					id: payloadType,
@@ -111,7 +105,6 @@ class FFI_Binder {
 			return;
 		}
 
-		clearTimeout(pending.timeout);
 		this.pendingRequests.delete(requestId);
 		if (response.success) {
 			pending.resolve(JSON.stringify(response.returnJson));
@@ -122,7 +115,6 @@ class FFI_Binder {
 
 	destroy() {
 		this.pendingRequests.forEach((pending) => {
-			clearTimeout(pending.timeout);
 			pending.reject(new Error('Manager destroyed'));
 		});
 		this.pendingRequests.clear();
