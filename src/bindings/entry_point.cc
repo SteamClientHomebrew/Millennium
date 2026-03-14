@@ -48,6 +48,7 @@
 #include "millennium/filesystem.h"
 #include <exception>
 #include <fstream>
+#include <thread>
 
 std::weak_ptr<head::theme_webkit_mgr> head::millennium_backend::get_theme_webkit_mgr()
 {
@@ -114,6 +115,7 @@ head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> n
         register_function(Core_IsThemeInstalled),
         register_function(Core_GetThemeFromGitPair),
         register_function(Core_DownloadPluginUpdate),
+        register_function(Core_KillPluginBackend),
         register_function(Core_InstallPlugin),
         register_function(Core_IsPluginInstalled),
         register_function(Core_UninstallPlugin),
@@ -276,12 +278,33 @@ builtin_payload head::millennium_backend::Core_GetThemeColorOptions(const builti
 /** Theme installer related API's */
 builtin_payload head::millennium_backend::Core_InstallTheme(const builtin_payload& args)
 {
-    if (auto theme_updater = m_updater->get_theme_updater().lock()) {
-        return theme_updater->install_theme(m_theme_config, args["repo"], args["owner"]);
-    }
+    auto theme_updater_weak = m_updater->get_theme_updater();
+    auto updater = m_updater;
+    auto themeConfig = m_theme_config;
+    auto repo = args["repo"].get<std::string>();
+    auto owner = args["owner"].get<std::string>();
+    int op_id = updater->start_operation();
 
-    LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
-    return false;
+    std::thread([theme_updater_weak, updater, themeConfig, repo, owner, op_id]() {
+        updater->set_thread_op_id(op_id);
+        try {
+            if (auto theme_updater = theme_updater_weak.lock()) {
+                auto result = theme_updater->install_theme(themeConfig, repo, owner);
+                bool success = result.value("success", false);
+                if (!success) {
+                    updater->dispatch_progress(result.value("message", "Install failed"), 0, true, false);
+                }
+            } else {
+                LOG_ERROR("Failed to lock theme_updater, it likely shutdown.");
+                updater->dispatch_progress("Install failed", 0, true, false);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Background theme install failed: {}", e.what());
+            updater->dispatch_progress("Install failed", 0, true, false);
+        }
+    }).detach();
+
+    return nlohmann::json{{ "success", true }, { "started", true }, { "opId", op_id }};
 }
 builtin_payload head::millennium_backend::Core_UninstallTheme(const builtin_payload& args)
 {
@@ -294,7 +317,25 @@ builtin_payload head::millennium_backend::Core_UninstallTheme(const builtin_payl
 }
 builtin_payload head::millennium_backend::Core_DownloadThemeUpdate(const builtin_payload& args)
 {
-    return m_updater->download_theme_update(m_theme_config, args["native"]);
+    auto updater = m_updater;
+    auto themeConfig = m_theme_config;
+    auto native = args["native"].get<std::string>();
+    int op_id = updater->start_operation();
+
+    std::thread([updater, themeConfig, native, op_id]() {
+        updater->set_thread_op_id(op_id);
+        try {
+            bool success = updater->download_theme_update(themeConfig, native);
+            if (!success) {
+                updater->dispatch_progress("Update failed", 0, true, false);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Background theme update failed: {}", e.what());
+            updater->dispatch_progress("Update failed", 0, true, false);
+        }
+    }).detach();
+
+    return nlohmann::json{{ "opId", op_id }};
 }
 builtin_payload head::millennium_backend::Core_IsThemeInstalled(const builtin_payload& args)
 {
@@ -318,29 +359,72 @@ builtin_payload head::millennium_backend::Core_GetThemeFromGitPair(const builtin
 /** Plugin related API's */
 builtin_payload head::millennium_backend::Core_DownloadPluginUpdate(const builtin_payload& args)
 {
-    return m_updater->download_plugin_update(args["id"], args["name"]);
+    auto updater = m_updater;
+    auto id = args["id"].get<std::string>();
+    auto name = args["name"].get<std::string>();
+    int op_id = updater->start_operation();
+
+    std::thread([updater, id, name, op_id]() {
+        updater->set_thread_op_id(op_id);
+        try {
+            bool success = updater->download_plugin_update(id, name);
+            if (!success) {
+                updater->dispatch_progress("Update failed", 0, true, false);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Background plugin update failed: {}", e.what());
+            updater->dispatch_progress("Update failed", 0, true, false);
+        }
+    }).detach();
+
+    return nlohmann::json{{ "opId", op_id }};
+}
+builtin_payload head::millennium_backend::Core_KillPluginBackend(const builtin_payload& args)
+{
+    auto pluginName = args["pluginName"].get<std::string>();
+    g_millennium->get_plugin_loader()->get_backend_manager()->destroy_plugin(pluginName);
+    return {};
 }
 builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_payload& args)
 {
-    if (auto plugin_updater = m_updater->get_plugin_updater().lock()) {
-        if (!args.contains("download_url") || !args["download_url"].is_string()) {
-            LOG_ERROR("Core_InstallPlugin called without a valid 'download_url' string.");
-            return {
-                { "success", false                               },
-                { "error",   "missing or invalid 'download_url'" }
-            };
-        }
-
-        size_t total_size = 0;
-        if (args.contains("total_size") && args["total_size"].is_number()) {
-            total_size = args["total_size"].get<size_t>();
-        }
-
-        return plugin_updater->install_plugin(args["download_url"], total_size);
+    if (!args.contains("download_url") || !args["download_url"].is_string()) {
+        LOG_ERROR("Core_InstallPlugin called without a valid 'download_url' string.");
+        return {
+            { "success", false                               },
+            { "error",   "missing or invalid 'download_url'" }
+        };
     }
 
-    LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
-    return false;
+    auto plugin_updater_weak = m_updater->get_plugin_updater();
+    auto updater = m_updater;
+    auto download_url = args["download_url"].get<std::string>();
+    int op_id = updater->start_operation();
+
+    size_t total_size = 0;
+    if (args.contains("total_size") && args["total_size"].is_number()) {
+        total_size = args["total_size"].get<size_t>();
+    }
+
+    std::thread([plugin_updater_weak, updater, download_url, total_size, op_id]() {
+        updater->set_thread_op_id(op_id);
+        try {
+            if (auto plugin_updater = plugin_updater_weak.lock()) {
+                auto result = plugin_updater->install_plugin(download_url, total_size);
+                bool success = result.value("success", false);
+                if (!success) {
+                    updater->dispatch_progress(result.value("error", "Install failed"), 0, true, false);
+                }
+            } else {
+                LOG_ERROR("Failed to lock plugin_updater, it likely shutdown.");
+                updater->dispatch_progress("Install failed", 0, true, false);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("Background plugin install failed: {}", e.what());
+            updater->dispatch_progress("Install failed", 0, true, false);
+        }
+    }).detach();
+
+    return nlohmann::json{{ "success", true }, { "started", true }, { "opId", op_id }};
 }
 builtin_payload head::millennium_backend::Core_IsPluginInstalled(const builtin_payload& args)
 {

@@ -145,7 +145,13 @@ void head::library_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
     m_ipc_main = std::move(ipc_main);
 }
 
-void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete)
+// Thread-local state for per-operation progress dispatching.
+// Each background thread gets its own op_id and throttle state.
+static thread_local int t_current_op_id = 0;
+static thread_local std::chrono::steady_clock::time_point t_last_dispatch_time{};
+static thread_local double t_last_dispatched_progress = -1.0;
+
+void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete, bool success)
 {
     if (!m_ipc_main) {
         logger.warn("Skipping installer progress dispatch because IPC bridge is not ready. status='{}', progress={}", status, progress);
@@ -155,8 +161,8 @@ void head::library_updater::dispatch_progress(const std::string& status, double 
     // Completion events always go through immediately.
     if (!is_complete) {
         auto now = std::chrono::steady_clock::now();
-        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_dispatch_time).count();
-        double delta = std::abs(progress - m_last_dispatched_progress);
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - t_last_dispatch_time).count();
+        double delta = std::abs(progress - t_last_dispatched_progress);
 
         // Throttle: skip if progress hasn't moved ≥2% and it's been less than 250ms.
         // This prevents flooding the CDP channel during rapid download/extraction callbacks.
@@ -164,10 +170,24 @@ void head::library_updater::dispatch_progress(const std::string& status, double 
             return;
         }
 
-        m_last_dispatched_progress = progress;
-        m_last_dispatch_time = now;
+        t_last_dispatched_progress = progress;
+        t_last_dispatch_time = now;
     }
 
-    std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete };
+    int op_id = t_current_op_id;
+    std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete, success, op_id };
     m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));
+}
+
+int head::library_updater::start_operation()
+{
+    return m_next_op_id.fetch_add(1);
+}
+
+void head::library_updater::set_thread_op_id(int op_id)
+{
+    t_current_op_id = op_id;
+    // Reset per-thread throttle state for the new operation.
+    t_last_dispatch_time = {};
+    t_last_dispatched_progress = -1.0;
 }

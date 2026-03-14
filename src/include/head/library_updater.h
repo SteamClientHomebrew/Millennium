@@ -34,11 +34,13 @@
 #include "head/plugin_mgr.h"
 #include "head/theme_mgr.h"
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <thread>
 
 namespace head
 {
@@ -61,7 +63,13 @@ class library_updater : public std::enable_shared_from_this<library_updater>
     std::weak_ptr<plugin_installer> get_plugin_updater();
     void set_ipc_main(std::shared_ptr<ipc_main> ipc_main);
 
-    void dispatch_progress(const std::string& status, double progress, bool is_complete);
+    void dispatch_progress(const std::string& status, double progress, bool is_complete, bool success = true);
+
+    /** Generate a unique operation ID for a new concurrent install/update. */
+    int start_operation();
+
+    /** Set the operation ID for the calling thread (used by dispatch_progress). */
+    void set_thread_op_id(int op_id);
 
   private:
     std::string api_url = "https://steambrew.app/api/checkupdates";
@@ -74,7 +82,6 @@ class library_updater : public std::enable_shared_from_this<library_updater>
     std::optional<json> cached_updates;
     bool m_has_checked_for_updates;
 
-    std::chrono::steady_clock::time_point m_last_dispatch_time{};
-    double m_last_dispatched_progress = -1.0;
+    std::atomic<int> m_next_op_id{1};
 };
 } // namespace head

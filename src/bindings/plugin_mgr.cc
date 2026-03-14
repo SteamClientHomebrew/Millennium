@@ -180,14 +180,21 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
         std::filesystem::path tempZipPath = tempDir / (name + ".zip");
         logger.log("Temporary zip path: {}", tempZipPath.string());
 
+        m_updater->dispatch_progress("Downloading plugin update...", 5, false);
         logger.log("Downloading plugin archive...");
-        Http::DownloadWithProgress({ url, 0 }, tempZipPath, nullptr);
+        Http::DownloadWithProgress({ url, 0 }, tempZipPath, [&](size_t downloaded, size_t total)
+        {
+            if (total > 0) {
+                double percent = (double(downloaded) / total) * 100.0;
+                m_updater->dispatch_progress("Downloading plugin update...", 5.0 + (45.0 * (percent / 100.0)), false);
+            }
+        });
         logger.log("Download complete. Extracting plugin '{}' into '{}'", name, tempDir.string());
 
         Util::ExtractZipArchive(tempZipPath.string(), tempDir.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
-            m_updater->dispatch_progress("Extracting plugin archive...", 50.0 + (45.0 * (percent / 100.0)), false);
+            m_updater->dispatch_progress("Extracting plugin archive...", 50.0 + (40.0 * (percent / 100.0)), false);
         });
 
         logger.log("Extraction complete.");
@@ -213,22 +220,23 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
         logger.log("Preparing target plugin directory: {}", targetFolder.string());
         std::filesystem::create_directories(targetFolder);
 
+        m_updater->dispatch_progress("Copying plugin files...", 92, false);
         logger.log("Copying plugin files to target directory...");
         for (auto& p : std::filesystem::recursive_directory_iterator(extractedFolder)) {
             auto rel = std::filesystem::relative(p.path(), extractedFolder);
             std::filesystem::path dest = targetFolder / rel;
             if (std::filesystem::is_directory(p)) {
-                logger.log("Creating directory: {}", dest.string());
                 std::filesystem::create_directories(dest);
             } else {
-                logger.log("Copying file: {} -> {}", p.path().string(), dest.string());
                 std::filesystem::copy_file(p, dest, std::filesystem::copy_options::overwrite_existing);
             }
         }
 
         logger.log("Plugin '{}' installed successfully to '{}'", name, targetFolder.string());
+        m_updater->dispatch_progress("Cleaning up...", 96, false);
         logger.log("Cleaning up temporary files...");
         std::filesystem::remove_all(tempDir);
+        m_updater->dispatch_progress("Done!", 100, true);
         logger.log("Update process for plugin '{}' completed successfully.", name);
         return true;
     } catch (const std::exception& e) {

@@ -416,12 +416,19 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
         }
 
         logger.log("Downloading theme update from: {}", downloadUrl);
+        m_updater->dispatch_progress("Downloading theme update...", 5, false);
 
         tempDir = get_themes_folder() / ("__tmp_" + GenerateUUID());
         std::filesystem::create_directories(tempDir);
         std::filesystem::path zipPath = tempDir / (repo + ".zip");
 
-        Http::DownloadWithProgress({ downloadUrl, 0 }, zipPath, nullptr);
+        Http::DownloadWithProgress({ downloadUrl, 0 }, zipPath, [&](size_t downloaded, size_t total)
+        {
+            if (total > 0) {
+                double percent = (double(downloaded) / total) * 100.0;
+                m_updater->dispatch_progress("Downloading theme update...", 5.0 + (45.0 * (percent / 100.0)), false);
+            }
+        });
         logger.log("Download complete. Extracting...");
 
         const bool extracted = Util::ExtractZipArchive(zipPath.string(), tempDir.string(), [&](int current, int total, const char*)
@@ -450,6 +457,7 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
             return false;
         }
 
+        m_updater->dispatch_progress("Copying updated theme files...", 92, false);
         logger.log("Copying updated theme files to: {}", themePath.string());
         for (const auto& p : std::filesystem::recursive_directory_iterator(extractedFolder)) {
             auto rel = std::filesystem::relative(p.path(), extractedFolder);
@@ -463,12 +471,15 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
 
         write_metadata(themePath, owner, repo, latestCommit);
 
+        m_updater->dispatch_progress("Cleaning up...", 96, false);
         logger.log("Cleaning up temporary files...");
         std::filesystem::remove_all(tempDir);
         tempDir.clear();
 
         /** trigger config update to regenerate config */
         themeConfig->on_config_change_hdlr();
+
+        m_updater->dispatch_progress("Done!", 100, true);
         logger.log("Theme '{}' updated successfully.", native);
         return true;
     } catch (const std::exception& e) {

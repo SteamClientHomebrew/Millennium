@@ -99,6 +99,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
 
     /** Plugin related API's */
     builtin_payload Core_DownloadPluginUpdate(const builtin_payload& args);
+    builtin_payload Core_KillPluginBackend(const builtin_payload& args);
     builtin_payload Core_InstallPlugin(const builtin_payload& args);
     builtin_payload Core_IsPluginInstalled(const builtin_payload& args);
     builtin_payload Core_UninstallPlugin(const builtin_payload& args);
