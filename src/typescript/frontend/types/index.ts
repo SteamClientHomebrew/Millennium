@@ -255,6 +255,8 @@ export interface IProgressProps {
 	progress: number;
 	status: string;
 	isComplete: boolean;
+	success?: boolean;
+	opId?: number;
 }
 
 export interface InstallerProps {

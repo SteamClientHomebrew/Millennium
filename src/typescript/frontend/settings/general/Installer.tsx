@@ -46,37 +46,56 @@ export enum InstallType {
 export interface RendererProps {
 	onInstallComplete: () => React.ReactNode;
 	onProgressUpdate: ({ progress, status }: { progress: number; status: string }) => React.ReactElement;
+	opId: number;
 }
 
 /**
- * Module-level progress listener for installer events dispatched from C++.
- * Use registerInstallerProgressListener / unregisterInstallerProgressListener
- * rather than reaching into pluginSelf directly.
+ * Per-operation progress listeners for installer events dispatched from C++.
+ * Each concurrent install/update operation is identified by a unique opId.
+ * opId=0 is reserved for Millennium's own self-updater.
  */
-let _progressListener: ((event: IProgressProps) => void) | null = null;
-let _pendingEvent: IProgressProps | null = null;
+const _progressListeners = new Map<number, (event: IProgressProps) => void>();
+const _pendingEvents = new Map<number, IProgressProps>();
 
-export function registerInstallerProgressListener(listener: (event: IProgressProps) => void) {
-	_progressListener = listener;
+export function registerInstallerProgressListener(opId: number, listener: (event: IProgressProps) => void) {
+	_progressListeners.set(opId, listener);
 	// Drain any event that arrived before the listener was registered.
-	if (_pendingEvent) {
-		listener(_pendingEvent);
-		_pendingEvent = null;
+	const pending = _pendingEvents.get(opId);
+	if (pending) {
+		listener(pending);
+		_pendingEvents.delete(opId);
 	}
 }
 
-export function unregisterInstallerProgressListener() {
-	_progressListener = null;
+export function unregisterInstallerProgressListener(opId: number) {
+	_progressListeners.delete(opId);
+	_pendingEvents.delete(opId);
 }
 
-function InstallerMessageEmitter(status: string, progress: number, isComplete: boolean) {
+export function waitForInstallerComplete(
+	opId: number,
+	onProgress: (event: IProgressProps) => void,
+): Promise<boolean> {
+	return new Promise((resolve) => {
+		registerInstallerProgressListener(opId, (event) => {
+			onProgress(event);
+			if (event.isComplete) {
+				unregisterInstallerProgressListener(opId);
+				resolve(event.success ?? true);
+			}
+		});
+	});
+}
+
+function InstallerMessageEmitter(status: string, progress: number, isComplete: boolean, success: boolean = true, opId: number = 0) {
 	try {
-		const event: IProgressProps = { progress, status, isComplete };
-		if (_progressListener) {
-			_progressListener(event);
+		const event: IProgressProps = { progress, status, isComplete, success, opId };
+		const listener = _progressListeners.get(opId);
+		if (listener) {
+			listener(event);
 		} else {
 			// Buffer the latest event so it can be replayed once a listener registers.
-			_pendingEvent = event;
+			_pendingEvents.set(opId, event);
 		}
 	} catch (error) {
 		console.error('Failed to emit installer progress:', error);
@@ -212,10 +231,11 @@ export class Installer {
 
 		function RenderInstallerProgress() {
 			const [event, setEvent] = useState<IProgressProps>(null);
+			const opId = renderProps.opId;
 
 			useEffect(() => {
-				registerInstallerProgressListener(setEvent);
-				return () => unregisterInstallerProgressListener();
+				registerInstallerProgressListener(opId, setEvent);
+				return () => unregisterInstallerProgressListener(opId);
 			}, []);
 
 			useEffect(() => {

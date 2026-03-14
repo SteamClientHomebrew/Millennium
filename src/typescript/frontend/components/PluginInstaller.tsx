@@ -143,20 +143,26 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 
 	const downloadUrl = API_URL + data?.downloadUrl;
 
-	PyInstallPlugin({ download_url: downloadUrl, total_size: data?.fileSize })
-		.then((result: unknown) => {
-			const response = normalizeInstallResponse(result);
-			if (response.success) return;
-
+	/** Start installer and extract opId for per-operation progress tracking */
+	let opId = 0;
+	try {
+		const result = await PyInstallPlugin({ download_url: downloadUrl, total_size: data?.fileSize });
+		const response = normalizeInstallResponse(result);
+		if (!response.success) {
 			const message = response.message || locale.errorFailedToStartThemeInstaller;
 			props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, String(message)), locale.errorMessageTitle);
-		})
-		.catch((error: unknown) => {
-			props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, String(error)), locale.errorMessageTitle);
-		});
+			return false;
+		}
+		const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+		opId = parsed?.opId ?? 0;
+	} catch (error: unknown) {
+		props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, String(error)), locale.errorMessageTitle);
+		return false;
+	}
 
 	return {
 		onInstallComplete: OnInstallComplete.bind(null, data, props),
 		onProgressUpdate: OnProgressUpdate,
+		opId,
 	};
 };

@@ -143,29 +143,30 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 		}
 	}
 
-	/** Run installer in the background */
-	PyInstallTheme({ repo, owner }).then((result: any) => {
-		try {
-			const response = JSON.parse(result);
-			if (!response?.success) {
-				ShowMessageBox(response?.message ?? locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle, {
-					onOK: () => props?.modal?.Close?.(),
-					onCancel: () => props?.modal?.Close?.(),
-				});
-			}
-		} catch {
-			// result was not JSON (e.g. null/undefined on unexpected early exit)
-			if (!result) {
-				ShowMessageBox(locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle, {
-					onOK: () => props?.modal?.Close?.(),
-					onCancel: () => props?.modal?.Close?.(),
-				});
-			}
+	/** Start installer and extract opId for per-operation progress tracking */
+	let opId = 0;
+	try {
+		const result: any = await PyInstallTheme({ repo, owner });
+		const response = typeof result === 'string' ? JSON.parse(result) : result;
+		if (!response?.success) {
+			ShowMessageBox(response?.message ?? locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle, {
+				onOK: () => props?.modal?.Close?.(),
+				onCancel: () => props?.modal?.Close?.(),
+			});
+			return false;
 		}
-	});
+		opId = response?.opId ?? 0;
+	} catch {
+		ShowMessageBox(locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle, {
+			onOK: () => props?.modal?.Close?.(),
+			onCancel: () => props?.modal?.Close?.(),
+		});
+		return false;
+	}
 
 	return {
 		onInstallComplete: OnInstallComplete.bind(null, data, props),
 		onProgressUpdate: OnProgressUpdate,
+		opId,
 	};
 };

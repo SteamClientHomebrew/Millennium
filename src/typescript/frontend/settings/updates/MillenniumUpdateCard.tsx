@@ -53,7 +53,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 			return; /** no-op outside Windows */
 		}
 
-		registerInstallerProgressListener(({ progress, status, isComplete }) => {
+		registerInstallerProgressListener(0, ({ progress, status, isComplete }) => {
 			ctx.setMillenniumUpdateProgress({ statusText: status, progress, isComplete });
 		});
 
@@ -68,7 +68,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		}, 100);
 
 		return () => {
-			unregisterInstallerProgressListener();
+			unregisterInstallerProgressListener(0);
 			clearInterval(interval);
 		};
 	}, []);
