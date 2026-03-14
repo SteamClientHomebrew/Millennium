@@ -34,6 +34,7 @@ import { DesktopSideBarFocusedItemType, useDesktopMenu } from '../quick-access/D
 import { getPluginView } from '../utils/globals';
 import { IconButton } from './IconButton';
 import { PluginComponent, ThemeItem } from '../types';
+import { locale } from '../utils/localization-manager';
 
 interface TitleProps extends PropsWithChildren {
 	text: ReactNode;
@@ -60,7 +61,7 @@ export const TitleView = () => {
 
 	if (!focusedItem) {
 		return (
-			<Title text="Library Settings">
+			<Title text={locale.strLibrarySettings}>
 				<IconButton name="Settings" onClick={onSettingsClick} />
 			</Title>
 		);

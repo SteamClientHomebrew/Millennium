@@ -131,7 +131,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 	async uninstallTheme() {
 		const { theme, fetchThemes } = this.props;
 
-		const shouldUninstall = await Utils.ShowMessageBox(`Are you sure you want to uninstall ${theme.data.name}?`, 'Heads up!');
+		const shouldUninstall = await Utils.ShowMessageBox(formatString(locale.themeUninstallConfirm, theme.data.name), locale.strHeadsUp);
 		if (!shouldUninstall) return;
 
 		PyUninstallTheme({ owner: theme.data.github.owner, repo: theme.data.github.repo_name }).then(() => {
@@ -155,10 +155,10 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 				<Separator />
 				{/* {isActive ? <MenuItem onSelected={onUseDefault}>Disable</MenuItem> : <MenuItem onSelected={() => onChangeTheme(theme)}>Set as active</MenuItem>} */}
 				<MenuItem onSelected={this.openThemeSettings.bind(this)} disabled={!this.bIsThemeConfigurable}>
-					Configure
+					{locale.strConfigure}
 				</MenuItem>
-				<MenuItem onSelected={this.openThemeFolder.bind(this)}>Browse local files</MenuItem>
-				<MenuItem onSelected={this.uninstallTheme.bind(this)}>Uninstall</MenuItem>
+				<MenuItem onSelected={this.openThemeFolder.bind(this)}>{locale.optionBrowseLocalFiles}</MenuItem>
+				<MenuItem onSelected={this.uninstallTheme.bind(this)}>{locale.uninstall}</MenuItem>
 			</Menu>,
 			event.currentTarget ?? window,
 		);
@@ -208,11 +208,11 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 					className={joinClassNames('MillenniumButton', settingsClasses.SettingsDialogButton)}
 					onClick={() => (isActive ? onUseDefault() : onChangeTheme(theme))}
 				>
-					{isActive ? 'Disable' : 'Use'}
+					{isActive ? locale.strDisable : locale.strUse}
 				</DialogButton>
 
 				{theme?.data?.funding?.kofi && (
-					<DesktopTooltip toolTipContent={`Donate to ${theme?.data?.author ?? 'anonymous'}`}>
+					<DesktopTooltip toolTipContent={formatString(locale.strDonateTo, theme?.data?.author ?? locale.aboutThemeAnonymous)}>
 						{/* <IconButton> doesn't allow for react-icons, etc. */}
 						<DialogButton
 							className={joinClassNames('MillenniumButton', 'MillenniumIconButton', settingsClasses.SettingsDialogButton)}
@@ -224,7 +224,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 					</DesktopTooltip>
 				)}
 
-				<IconButton name="KaratDown" onClick={this.showCtxMenu} text="Show menu" />
+				<IconButton name="KaratDown" onClick={this.showCtxMenu} text={locale.strShowMenu} />
 			</Field>
 		);
 	}

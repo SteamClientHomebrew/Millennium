@@ -31,6 +31,7 @@
 import { ConfirmModal, pluginSelf, showModal, ShowModalResult, SuspensefulImage, TextField } from '@steambrew/client';
 import React, { useEffect } from 'react';
 import { Utils } from '../../utils';
+import { locale } from '../../utils/localization-manager';
 
 import { PLUGINS_URL } from '../../utils/globals';
 import { Installer } from '../general/Installer';
@@ -46,15 +47,15 @@ function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) 
 
 	return (
 		<ConfirmModal
-			strTitle="Enter an ID"
+			strTitle={locale.strEnterAnId}
 			strDescription={
 				<>
-					Install a user plugin from an ID. These ID's can be found after selecting a plugin at <Utils.URLComponent url={PLUGINS_URL} />
+					{locale.pluginInstallerDescription} <Utils.URLComponent url={PLUGINS_URL} />
 					<br />
 					<br />
 					<TextField
 						// @ts-ignore
-						placeholder={'Enter an ID here...'}
+						placeholder={locale.strEnterIdPlaceholder}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
 					/>
@@ -68,7 +69,7 @@ function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) 
 			onCancel={() => {
 				modal?.Close();
 			}}
-			strOKButtonText="Download & Install"
+			strOKButtonText={locale.strDownloadAndInstall}
 		/>
 	);
 }

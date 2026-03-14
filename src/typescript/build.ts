@@ -70,7 +70,7 @@ const packageSources: Record<string, string[]> = {
     "sdk/packages/loader/rollup.config.js",
     "sdk/packages/loader/package.json",
   ],
-  core: ["frontend"], // entire dir; node_modules/build are skipped
+  core: ["frontend", "../locales"], // entire dir; node_modules/build are skipped
 };
 
 // Package name → workspace directory (relative to ROOT).

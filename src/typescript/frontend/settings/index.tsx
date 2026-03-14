@@ -130,7 +130,7 @@ export function MillenniumSettings() {
 			<UpdateContextProvider>
 				<Styles />
 				{/* @ts-ignore */}
-				<SidebarNavigation className={className} pages={settingsPages} title={'Millennium'} />
+				<SidebarNavigation className={className} pages={settingsPages} title={locale.strMillennium} />
 			</UpdateContextProvider>
 		</ConfigProvider>
 	);
@@ -139,14 +139,14 @@ export function MillenniumSettings() {
 function RenderSettingsModal(_: any, retObj: any) {
 	const items = [
 		{
-			name: 'Millennium',
+			name: locale.strMillennium,
 			onClick: () => {
 				Navigation.Navigate('/millennium/settings');
 			},
 			visible: true,
 		},
 		{
-			name: 'Millennium Library Manager',
+			name: locale.strMillenniumLibraryManager,
 			onClick: () => {
 				useQuickAccessStore.getState().openQuickAccess();
 			},

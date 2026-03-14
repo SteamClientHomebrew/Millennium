@@ -34,7 +34,7 @@ import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuCont
 import { getPluginConfigurableStatus, getPluginRenderers, getPluginView } from '../utils/globals';
 import { DesktopTooltip } from '../components/SteamComponents';
 import { useEffect, useState } from 'react';
-import { locale } from '../utils/localization-manager';
+import { formatString, locale } from '../utils/localization-manager';
 
 interface RenderPluginViewsProps {
 	plugins: PluginComponent[];
@@ -121,7 +121,7 @@ export const RenderPluginView = () => {
 		return (
 			<PanelSection>
 				<PanelSectionRow>
-					Failed to find a renderer for <b>{focusedItem?.data?.name}</b>. Please check if the plugin is loaded correctly.
+					{formatString(locale.pluginRendererError, focusedItem?.data?.name)}
 				</PanelSectionRow>
 			</PanelSection>
 		);
@@ -148,7 +148,7 @@ export const PluginSelectorView = () => {
 	}
 
 	return (
-		<PanelSection title="Plugin Settings">
+		<PanelSection title={locale.strPluginSettings}>
 			{plugins?.map((plugin) => (
 				<RenderPluginViews
 					plugins={plugins}

@@ -37,7 +37,7 @@ import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
 import { PluginComponent } from '../../types';
 import { Utils } from '../../utils';
 import { PyUninstallPlugin } from '../../utils/ffi';
-import { locale } from '../../utils/localization-manager';
+import { formatString, locale } from '../../utils/localization-manager';
 import { MillenniumIcons } from '../../components/Icons';
 import { showPluginCrashModal } from '../../components/PluginCrashModal';
 
@@ -70,13 +70,13 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 	async uninstallPlugin() {
 		const { plugin, refetchPlugins } = this.props;
 
-		const shouldUninstall = await Utils.ShowMessageBox(`Are you sure you want to uninstall ${plugin.data.common_name}?`, 'Heads up!');
+		const shouldUninstall = await Utils.ShowMessageBox(formatString(locale.pluginUninstallConfirm, plugin.data.common_name), locale.strHeadsUp);
 		if (!shouldUninstall) return;
 
 		const success = JSON.parse(await PyUninstallPlugin({ pluginName: plugin.data.name }));
 
 		if (success == false) {
-			Utils.ShowMessageBox(`Failed to uninstall ${plugin.data.common_name}. Check the logs tab for more details.`, 'Whoops', {
+			Utils.ShowMessageBox(formatString(locale.pluginUninstallFailed, plugin.data.common_name), locale.errorMessageTitle, {
 				bAlertDialog: true,
 			});
 		}
@@ -105,14 +105,14 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		const millenniumPluginConfigMenuItem = () => (
 			<DesktopTooltip toolTipContent={reason} direction="left">
 				<MenuItem onSelected={this.openPluginSettings.bind(this)} disabled={!isPluginConfigurable}>
-					Configure
+					{locale.strConfigure}
 				</MenuItem>
 			</DesktopTooltip>
 		);
 
 		const chromeExtensionConfigMenuItem = () => (
 			<DesktopTooltip toolTipContent={reason} direction="left">
-				<MenuItem onSelected={this.openPluginSettings.bind(this)}>Configure</MenuItem>
+				<MenuItem onSelected={this.openPluginSettings.bind(this)}>{locale.strConfigure}</MenuItem>
 			</DesktopTooltip>
 		);
 
@@ -124,10 +124,10 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 					{plugin.data.common_name}
 				</MenuItem>
 				<Separator />
-				<MenuItem onSelected={() => {}}>Reload</MenuItem>
+				<MenuItem onSelected={() => {}}>{locale.strReload}</MenuItem>
 				{config()}
-				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>Uninstall</MenuItem>
-				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>Browse local files</MenuItem>
+				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>{locale.uninstall}</MenuItem>
+				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>{locale.optionBrowseLocalFiles}</MenuItem>
 			</Menu>,
 			e.currentTarget ?? window,
 		);
@@ -140,7 +140,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 			return {
 				type: TooltipType.None,
 				content: (
-					<DesktopTooltip toolTipContent={'This plugin is an external chrome extension'} direction="top">
+					<DesktopTooltip toolTipContent={locale.pluginChromeExtension} direction="top">
 						<MillenniumIcons.ChromeExtension />
 					</DesktopTooltip>
 				),
@@ -151,7 +151,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 			return {
 				type: TooltipType.Error,
 				content: (
-					<DesktopTooltip toolTipContent={`${plugin.data.common_name} crashed unexpectedly. Click for details.`} direction="top">
+					<DesktopTooltip toolTipContent={formatString(locale.pluginCrashedTooltip, plugin.data.common_name)} direction="top">
 						<div style={{ cursor: 'pointer' }} onClick={() => showPluginCrashModal(plugin.crash, this.props.refetchPlugins)}>
 							<IconsModule.ExclamationPoint color="red" />
 						</div>
@@ -161,8 +161,8 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		}
 
 		const statusMap = [
-			{ condition: hasErrors, color: '#ffc82c', message: 'encountered errors', type: TooltipType.Error },
-			{ condition: hasWarnings, color: '#ffc82c', message: 'issued warnings', type: TooltipType.Warning },
+			{ condition: hasErrors, color: '#ffc82c', localeKey: 'pluginEncounteredErrors' as keyof typeof locale, type: TooltipType.Error },
+			{ condition: hasWarnings, color: '#ffc82c', localeKey: 'pluginIssuedWarnings' as keyof typeof locale, type: TooltipType.Warning },
 		];
 
 		const status = statusMap.find((entry) => entry.condition);
@@ -171,7 +171,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 		return {
 			type: status.type,
 			content: (
-				<DesktopTooltip toolTipContent={`${plugin?.data?.common_name} ${status.message}. Please check the logs tab for more details.`} direction="top">
+				<DesktopTooltip toolTipContent={formatString(locale[status.localeKey], plugin?.data?.common_name)} direction="top">
 					<IconsModule.ExclamationPoint color={status.color} />
 				</DesktopTooltip>
 			),
@@ -206,7 +206,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				data-plugin-status={type}
 			>
 				<Toggle key={plugin.data.name} disabled={plugin.data.name === 'core'} value={isEnabled} onChange={onSelectionChange.bind(null, index)} />
-				<IconButton name="KaratDown" onClick={this.showCtxMenu} text="Show menu" />
+				<IconButton name="KaratDown" onClick={this.showCtxMenu} text={locale.strShowMenu} />
 			</Field>
 		);
 	}

@@ -30,6 +30,7 @@
 
 import { ConfirmModal, pluginSelf, ProgressBar, showModal, ShowModalResult } from '@steambrew/client';
 import { Utils } from '../../utils';
+import { formatString, locale } from '../../utils/localization-manager';
 import { UpdateCard } from './UpdateCard';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { updateMillennium } from '../../utils/updateMillennium';
@@ -79,16 +80,16 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 
 	const GetManualUpdateDescription = () => {
 		if (pluginSelf.platformType === OSType.Darwin) {
-			return `Automatic Millennium updates are not yet available on macOS.\n\nRebuild the current branch, reinstall it with \`./scripts/install_macos.sh --repair\`, then restart Steam to finish updating to ${millenniumUpdates?.newVersion?.tag_name}.`;
+			return formatString(locale.millenniumUpdateMacOS, millenniumUpdates?.newVersion?.tag_name);
 		}
 
-		return `To update Millennium to ${millenniumUpdates?.newVersion?.tag_name}, run the following command in your terminal:\n\n\`${pluginSelf.millenniumLinuxUpdateScript}\``;
+		return formatString(locale.millenniumUpdateLinux, millenniumUpdates?.newVersion?.tag_name, pluginSelf.millenniumLinuxUpdateScript);
 	};
 
 	const StartManualUpdate = () => {
 		showModal(
 			<ConfirmModal
-				strTitle={'Update Millennium'}
+				strTitle={locale.strUpdateMillennium}
 				strDescription={<Markdown>{GetManualUpdateDescription()}</Markdown>}
 				bAlertDialog={true}
 			/>,
@@ -116,7 +117,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 
 	return (
 		<>
-			<SettingsDialogSubHeader>Millennium</SettingsDialogSubHeader>
+			<SettingsDialogSubHeader>{locale.strMillennium}</SettingsDialogSubHeader>
 			<UpdateCard
 				update={{
 					name: VersionInformation(),

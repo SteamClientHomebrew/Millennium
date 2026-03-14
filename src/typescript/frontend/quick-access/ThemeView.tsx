@@ -88,7 +88,7 @@ export const ThemeSelectorView = () => {
 	}
 
 	return (
-		<PanelSection title="Theme Settings">
+		<PanelSection title={locale.strThemeSettings}>
 			{(themes as ThemeItem[])?.map((theme) => (
 				<RenderThemeViews key={theme.native} theme={theme} />
 			))}

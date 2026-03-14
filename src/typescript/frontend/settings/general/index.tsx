@@ -147,10 +147,10 @@ export const GeneralViewModal: React.FC = () => {
 				<SettingsDialogSubHeader>{locale.strAbout}</SettingsDialogSubHeader>
 
 				<Field label={locale.strAboutVersion}>{pluginSelf.version}</Field>
-				<Field label={'Client API version'}>{window.MILLENNIUM_FRONTEND_LIB_VERSION}</Field>
-				<Field label={'Browser API version'}>{window.MILLENNIUM_BROWSER_LIB_VERSION}</Field>
+				<Field label={locale.strClientApiVersion}>{window.MILLENNIUM_FRONTEND_LIB_VERSION}</Field>
+				<Field label={locale.strBrowserApiVersion}>{window.MILLENNIUM_BROWSER_LIB_VERSION}</Field>
 				<Field label={locale.strAboutBuildDate}>{new Date(pluginSelf.buildDate).toLocaleString(navigator.language)}</Field>
-				<Field label={'Loader build date'} bottomSeparator="none">
+				<Field label={locale.strLoaderBuildDate} bottomSeparator="none">
 					{new Date(window.MILLENNIUM_LOADER_BUILD_DATE).toLocaleString(navigator.language)}
 				</Field>
 			</DialogControlsSection>

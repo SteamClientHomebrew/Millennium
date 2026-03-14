@@ -32,7 +32,7 @@ import { DialogButton, DialogControlsSection, IconsModule, SteamSpinner, TextFie
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';
-import { locale } from '../../utils/localization-manager';
+import { formatString, locale } from '../../utils/localization-manager';
 import { PyGetLogData } from '../../utils/ffi';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { IconButton } from '../../components/IconButton';
@@ -197,7 +197,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		if (millenniumItems.length) {
 			components.push(
 				<DialogControlsSection>
-					<SettingsDialogSubHeader>Millennium Logs</SettingsDialogSubHeader>
+					<SettingsDialogSubHeader>{locale.logPanelMillenniumLogs}</SettingsDialogSubHeader>
 					<div className="MillenniumButtonsSection MillenniumLogsSection">{millenniumItems.map((log) => this.renderLogItemButton(log))}</div>
 				</DialogControlsSection>,
 			);
@@ -206,7 +206,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		if (userPlugins.length) {
 			components.push(
 				<DialogControlsSection>
-					<SettingsDialogSubHeader>User Plugins</SettingsDialogSubHeader>
+					<SettingsDialogSubHeader>{locale.logPanelUserPlugins}</SettingsDialogSubHeader>
 					<div className="MillenniumButtonsSection MillenniumLogsSection">{userPlugins.map((log) => this.renderLogItemButton(log))}</div>
 				</DialogControlsSection>,
 			);
@@ -224,29 +224,29 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 					<div className="MillenniumLogs_NavContainer">
 						<DialogButton onClick={() => this.setState({ selectedLog: null })} className={`MillenniumButton ${settingsClasses.SettingsDialogButton}`}>
 							<IconsModule.Carat direction="left" />
-							Back
+							{locale.strBack}
 						</DialogButton>
 						{/* @ts-ignore */}
-						<TextField placeholder="Search..." onChange={this.filterLogsBySearchQuery} />
+						<TextField placeholder={locale.strSearch} onChange={this.filterLogsBySearchQuery} />
 					</div>
 
 					<div className="MillenniumLogs_TextControls">
 						<div className="MillenniumLogs_HeaderTextTypeContainer">
 							<div className="MillenniumLogs_HeaderTextTypeCount" data-type="error" data-count={errorCount}>
-								{errorCount} Errors
+								{formatString(locale.logPanelErrorCount, String(errorCount))}
 							</div>
 							<div className="MillenniumLogs_HeaderTextTypeCount" data-type="warning" data-count={warningCount}>
-								{warningCount} Warnings
+								{formatString(locale.logPanelWarningCount, String(warningCount))}
 							</div>
 						</div>
 
 						<div className="MillenniumLogs_Icons">
-							<IconButton name="Minus" onClick={() => this.setState({ logFontSize: logFontSize - 1 })} text="Decrease font size" />
-							<IconButton name="Add" onClick={() => this.setState({ logFontSize: logFontSize + 1 })} text="Increase font size" />
+							<IconButton name="Minus" onClick={() => this.setState({ logFontSize: logFontSize - 1 })} text={locale.logPanelDecreaseFontSize} />
+							<IconButton name="Add" onClick={() => this.setState({ logFontSize: logFontSize + 1 })} text={locale.logPanelIncreaseFontSize} />
 							<IconButton
 								name={displayCopiedText ? 'Checkmark' : 'Copy'}
 								onClick={this.exportToClipBoard}
-								text={displayCopiedText ? 'Copied to clipboard' : 'Copy to clipboard'}
+								text={displayCopiedText ? locale.logPanelCopiedToClipboard : locale.logPanelCopyToClipboard}
 							/>
 						</div>
 					</div>

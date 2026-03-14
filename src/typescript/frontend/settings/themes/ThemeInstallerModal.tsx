@@ -31,6 +31,7 @@
 import { ConfirmModal, pluginSelf, showModal, ShowModalResult, SuspensefulImage, TextField } from '@steambrew/client';
 import React, { Component, useEffect } from 'react';
 import { Utils } from '../../utils';
+import { locale } from '../../utils/localization-manager';
 
 import FindThemeIdGif from '../../../static/theme_id.gif';
 import { THEMES_URL } from '../../utils/globals';
@@ -47,15 +48,15 @@ function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 
 	return (
 		<ConfirmModal
-			strTitle="Enter an ID"
+			strTitle={locale.strEnterAnId}
 			strDescription={
 				<>
-					Install a user theme from an ID. These ID's can be found after selecting a theme at <Utils.URLComponent url={THEMES_URL} />
+					{locale.themeInstallerDescription} <Utils.URLComponent url={THEMES_URL} />
 					<br />
 					<br />
 					<TextField
 						// @ts-ignore
-						placeholder={'Enter an ID here...'}
+						placeholder={locale.strEnterIdPlaceholder}
 						value={installID}
 						onChange={(e) => setInstallID(e.target.value)}
 					/>
@@ -69,7 +70,7 @@ function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 			onCancel={() => {
 				modal?.Close();
 			}}
-			strOKButtonText="Download & Install"
+			strOKButtonText={locale.strDownloadAndInstall}
 		/>
 	);
 }

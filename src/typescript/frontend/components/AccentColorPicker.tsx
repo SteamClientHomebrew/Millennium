@@ -89,7 +89,7 @@ const RenderAccentColorPicker = () => {
 			bottomSeparator="none"
 		>
 			<DialogButton className={settingsClasses.SettingsDialogButton} disabled={isDefaultColor} onClick={ResetColor}>
-				Reset
+				{locale.strReset}
 			</DialogButton>
 			<input type="color" className="MillenniumColorPicker" value={SanitizeHex(accentColor)} onChange={(event) => handleColorChange(event.target.value)} />
 		</Field>
