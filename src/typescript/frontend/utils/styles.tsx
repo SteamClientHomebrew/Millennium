@@ -342,12 +342,14 @@ const styles = /* css */ `
 }
 
 .MillenniumUpdates_Field[data-expanded="false"] {
-	.MillenniumUpdates_ExpandButton > svg {
-		transform: rotate(180deg);
-	}
-
 	.MillenniumUpdates_Description {
 		height: 0 !important;
+	}
+}
+
+.MillenniumUpdates_Field[data-expanded="true"] {
+	.MillenniumUpdates_ExpandButton > svg {
+		transform: rotate(180deg);
 	}
 }
 
