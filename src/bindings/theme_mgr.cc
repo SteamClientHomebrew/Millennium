@@ -34,13 +34,16 @@
 
 #include "millennium/logger.h"
 #include "millennium/filesystem.h"
+#include "millennium/http.h"
+#include "millennium/encoding.h"
+#include "millennium/zip.h"
 
-#include <git2.h>
-#include <thread>
+#include <fstream>
 
 head::theme_installer::theme_installer(std::shared_ptr<::plugin_manager> plugin_manager, std::shared_ptr<library_updater> updater)
     : m_plugin_manager(std::move(plugin_manager)), m_updater(std::move(updater))
 {
+    migrate_legacy_themes();
 }
 
 std::filesystem::path head::theme_installer::get_themes_folder()
@@ -106,259 +109,397 @@ nlohmann::json head::theme_installer::uninstall_theme(std::shared_ptr<theme_conf
     return create_successful_response();
 }
 
-static void setup_remote_callbacks(git_remote_callbacks& callbacks)
+void head::theme_installer::write_metadata(const std::filesystem::path& themePath, const std::string& owner, const std::string& repo, const std::string& commit)
 {
-    git_remote_init_callbacks(&callbacks, GIT_REMOTE_CALLBACKS_VERSION);
+    nlohmann::json metadata = {
+        { "owner",  owner  },
+        { "repo",   repo   },
+        { "commit", commit }
+    };
+
+    std::ofstream out(themePath / "metadata.json");
+    out << metadata.dump(4);
 }
 
-struct clone_progress_data
+std::optional<nlohmann::json> head::theme_installer::read_metadata(const std::filesystem::path& themePath)
 {
-    std::function<void(size_t received, size_t total, size_t indexed)> callback;
-};
+    std::filesystem::path metadataPath = themePath / "metadata.json";
+    if (!std::filesystem::exists(metadataPath)) return std::nullopt;
 
-int transfer_progress_cb(const git_transfer_progress* stats, void* payload)
-{
-    auto* data = static_cast<clone_progress_data*>(payload);
-    if (!data || !data->callback || !stats) return 0;
+    try {
+        std::ifstream in(metadataPath);
+        nlohmann::json metadata;
+        in >> metadata;
 
-    data->callback(static_cast<size_t>(stats->received_objects), static_cast<size_t>(stats->total_objects), static_cast<size_t>(stats->indexed_objects));
-
-    return 0;
+        if (metadata.contains("owner") && metadata.contains("repo") && metadata.contains("commit")) {
+            return metadata;
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to read metadata.json for theme {}: {}", themePath.filename().string(), e.what());
+    }
+    return std::nullopt;
 }
 
-int head::theme_installer::clone(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback)
+std::string head::theme_installer::get_commit_hash(const std::filesystem::path& repoPath)
 {
-    git_libgit2_init();
-
-/** ignore underlying type definition issues with libgit2 */
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
-    git_clone_options clone_opts = GIT_CLONE_OPTIONS_INIT;
-    git_checkout_options checkout_opts = GIT_CHECKOUT_OPTIONS_INIT;
-    checkout_opts.checkout_strategy = GIT_CHECKOUT_SAFE;
-    clone_opts.checkout_opts = checkout_opts;
-    git_remote_callbacks callbacks = GIT_REMOTE_CALLBACKS_INIT;
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-    setup_remote_callbacks(callbacks);
-
-    clone_progress_data progressData{ progressCallback };
-    if (progressCallback) {
-        callbacks.transfer_progress = transfer_progress_cb;
-        callbacks.payload = &progressData;
+    auto metadata = read_metadata(repoPath);
+    if (metadata) {
+        return metadata->value("commit", "");
     }
 
-    clone_opts.fetch_opts.callbacks = callbacks;
+    /*
+     * migrate legacy git themes by parsing the .git files
+     * this only runs once per theme — after migration, metadata.json is used instead.
+     */
+    std::filesystem::path gitDir = repoPath / ".git";
+    if (!std::filesystem::exists(gitDir) || !std::filesystem::is_directory(gitDir)) return "";
 
-    git_repository* repo = nullptr;
-    int ret = git_clone(&repo, url.c_str(), dstPath.string().c_str(), &clone_opts);
+    try {
+        std::ifstream headFile(gitDir / "HEAD");
+        std::string headContent;
+        std::getline(headFile, headContent);
 
-    if (ret != 0) {
-        outErr = git_error_last() ? git_error_last()->message : "Unknown libgit2 error";
-        if (repo) git_repository_free(repo);
-        git_libgit2_shutdown();
-        return ret;
+        /* strip trailing \r CRLF on windows */
+        if (!headContent.empty() && headContent.back() == '\r') {
+            headContent.pop_back();
+        }
+
+        /* HEAD is either "ref: refs/heads/main" (symbolic) or a raw 40-char hex hash (detached) */
+        std::string ref;
+        if (headContent.size() > 5 && headContent.substr(0, 5) == "ref: ") {
+            ref = headContent.substr(5);
+        } else {
+            return headContent;
+        }
+
+        /* try the loose ref file first: .git/refs/heads/main */
+        std::filesystem::path looseRefPath = gitDir / ref;
+        if (std::filesystem::exists(looseRefPath)) {
+            std::ifstream refFile(looseRefPath);
+            std::string commitHash;
+            std::getline(refFile, commitHash);
+            if (!commitHash.empty() && commitHash.back() == '\r') {
+                commitHash.pop_back();
+            }
+            return commitHash;
+        }
+
+        /* loose ref missing, with git gc or git pack-refs */
+        std::filesystem::path packedRefsPath = gitDir / "packed-refs";
+        if (std::filesystem::exists(packedRefsPath)) {
+            std::ifstream packedFile(packedRefsPath);
+            std::string line;
+            while (std::getline(packedFile, line)) {
+                if (line.empty() || line[0] == '#' || line[0] == '^') continue;
+                if (!line.empty() && line.back() == '\r') line.pop_back();
+
+                /* fmt -> <40-char hash> <ref path> */
+                auto spacePos = line.find(' ');
+                if (spacePos != std::string::npos && line.substr(spacePos + 1) == ref) {
+                    return line.substr(0, spacePos);
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to read git HEAD for {}: {}", repoPath.filename().string(), e.what());
     }
+    return "";
+}
 
-    git_repository_free(repo);
-    git_libgit2_shutdown();
-    return 0;
+void head::theme_installer::migrate_legacy_themes()
+{
+    try {
+        std::filesystem::path themesDir = get_themes_folder();
+        if (!std::filesystem::exists(themesDir)) {
+            return;
+        }
+
+        for (const auto& entry : std::filesystem::directory_iterator(themesDir)) {
+            if (!entry.is_directory()) {
+                continue;
+            }
+
+            std::filesystem::path themePath = entry.path();
+
+            /* skip if already has metadata.json */
+            if (std::filesystem::exists(themePath / "metadata.json")) {
+                continue;
+            }
+
+            /* only migrate if it has .git (was installed via old system) */
+            if (!std::filesystem::exists(themePath / ".git")) {
+                continue;
+            }
+
+            /* read owner/repo from skin.json's github field */
+            std::filesystem::path skinPath = themePath / "skin.json";
+            if (!std::filesystem::exists(skinPath)) {
+                continue;
+            }
+
+            try {
+                std::ifstream skinFile(skinPath);
+                nlohmann::json skinData;
+                skinFile >> skinData;
+
+                if (!skinData.contains("github")) continue;
+
+                std::string owner = skinData["github"].value("owner", "");
+                std::string repo = skinData["github"].value("repo_name", "");
+                if (owner.empty() || repo.empty()) continue;
+
+                std::string commit = get_commit_hash(themePath);
+                if (commit.empty()) continue;
+
+                write_metadata(themePath, owner, repo, commit);
+                logger.log("Migrated legacy theme '{}' ({}/{}) with commit {}", themePath.filename().string(), owner, repo, commit);
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to migrate legacy theme '{}': {}", themePath.filename().string(), e.what());
+            }
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to migrate legacy themes: {}", e.what());
+    }
 }
 
 nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner)
 {
-    std::error_code ec;
-    std::filesystem::path finalPath = get_themes_folder() / repo;
-
-    if (repo.empty() || owner.empty()) {
-        return create_error_response("Repository name and owner cannot be empty");
-    }
-
-    if (!std::filesystem::exists(finalPath.parent_path(), ec)) {
-        return create_error_response("Themes root directory does not exist: " + finalPath.parent_path().string());
-    }
-
-    if (std::filesystem::exists(finalPath, ec)) {
-        if (!platform::remove_directory(finalPath)) {
-            return create_error_response("Failed to remove existing target path: " + finalPath.string());
+    std::filesystem::path tempDir;
+    try {
+        if (repo.empty() || owner.empty()) {
+            return create_error_response("Repository name and owner cannot be empty");
         }
-    } else if (ec) {
-        return create_error_response("Failed to check if path exists: " + ec.message());
-    }
 
-    std::string tmpName = repo + ".tmp-" + std::to_string(std::hash<std::thread::id>()(std::this_thread::get_id()));
-    std::filesystem::path tmpPath = finalPath.parent_path() / tmpName;
+        std::filesystem::path finalPath = get_themes_folder() / repo;
 
-    if (std::filesystem::exists(tmpPath, ec)) {
-        logger.log("Warning: Temporary path already exists, removing: " + tmpPath.string());
-        if (!platform::remove_directory(tmpPath)) {
-            return create_error_response("Failed to clean up existing temporary path: " + tmpPath.string());
+        if (!std::filesystem::exists(finalPath.parent_path())) {
+            return create_error_response("Themes root directory does not exist: " + finalPath.parent_path().string());
         }
-    }
 
-    m_updater->dispatch_progress("Starting Installer...", 10, false);
-
-    std::string cloneErr;
-    std::string url = fmt::format("https://github.com/{}/{}.git", owner, repo);
-    int rc = clone(url, tmpPath, cloneErr, [&](size_t received, size_t total, size_t)
-    {
-        if (total > 0) {
-            int percentage = 40 + static_cast<int>((received * 50.0) / total);
-            m_updater->dispatch_progress("Receiving objects: " + std::to_string(received) + "/" + std::to_string(total), percentage, false);
-        }
-    });
-
-    if (rc != 0) {
-        if (std::filesystem::exists(tmpPath, ec)) {
-            if (!platform::remove_directory(tmpPath)) {
-                logger.log("Warning: Failed to clean up temporary path after clone failure: " + tmpPath.string());
+        if (std::filesystem::exists(finalPath)) {
+            if (!platform::remove_directory(finalPath)) {
+                return create_error_response("Failed to remove existing target path: " + finalPath.string());
             }
         }
-        return create_error_response("Failed to clone theme repository: " + cloneErr);
-    }
 
-    if (!std::filesystem::exists(tmpPath, ec) || ec) {
-        return create_error_response("Clone completed but temporary directory is missing");
-    }
+        m_updater->dispatch_progress("Starting Installer...", 5, false);
 
-    std::filesystem::rename(tmpPath, finalPath, ec);
+        nlohmann::json postBody = {
+            { "owner", owner },
+            { "repo",  repo  }
+        };
+        auto response_str = Http::Post("https://steambrew.app/api/v2/update", postBody.dump());
+        auto response = nlohmann::json::parse(response_str);
 
-    if (ec) {
-        logger.log("Rename failed (" + ec.message() + "), attempting copy fallback");
-        std::filesystem::copy(tmpPath, finalPath, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
+        std::string downloadUrl = response.value("data", nlohmann::json::object()).value("download", "");
+        std::string commitHash = response.value("data", nlohmann::json::object()).value("latestHash", "");
+
+        if (downloadUrl.empty()) {
+            return create_error_response("Failed to resolve download URL for theme");
+        }
+
+        logger.log("Downloading theme from: {}", downloadUrl);
+        m_updater->dispatch_progress("Downloading theme archive...", 10, false);
+
+        tempDir = get_themes_folder() / ("__tmp_" + GenerateUUID());
+        std::filesystem::create_directories(tempDir);
+        std::filesystem::path zipPath = tempDir / (repo + ".zip");
+
+        Http::DownloadWithProgress({ downloadUrl, 0 }, zipPath, [&](size_t downloaded, size_t total)
+        {
+            if (total > 0) {
+                double percent = (double(downloaded) / total) * 100.0;
+                m_updater->dispatch_progress("Downloading theme archive...", 10.0 + (40.0 * (percent / 100.0)), false);
+            }
+        });
+
+        m_updater->dispatch_progress("Extracting theme archive...", 55, false);
+        logger.log("Extracting theme to: {}", tempDir.string());
+
+        const bool extracted = Util::ExtractZipArchive(zipPath.string(), tempDir.string(), [&](int current, int total, const char*)
+        {
+            double percent = (double(current) / total) * 100.0;
+            m_updater->dispatch_progress("Extracting theme archive...", 55.0 + (30.0 * (percent / 100.0)), false);
+        });
+
+        if (!extracted) {
+            std::filesystem::remove_all(tempDir);
+            return create_error_response("Failed to extract theme archive");
+        }
+
+        /* GitHub zips contain a single top-level directory named {repo}-{branch} */
+        std::filesystem::path extractedFolder;
+        for (const auto& entry : std::filesystem::directory_iterator(tempDir)) {
+            if (entry.is_directory()) {
+                extractedFolder = entry.path();
+                break;
+            }
+        }
+
+        if (extractedFolder.empty()) {
+            std::filesystem::remove_all(tempDir);
+            return create_error_response("No directory found in extracted theme archive");
+        }
+
+        m_updater->dispatch_progress("Installing theme...", 88, false);
+
+        std::error_code ec;
+        std::filesystem::rename(extractedFolder, finalPath, ec);
 
         if (ec) {
-            std::error_code cleanupEc;
-            if (std::filesystem::exists(tmpPath)) {
-                std::filesystem::remove_all(tmpPath, cleanupEc);
+            logger.log("Rename failed ({}), attempting copy fallback", ec.message());
+            std::filesystem::create_directories(finalPath);
+            std::filesystem::copy(extractedFolder, finalPath, std::filesystem::copy_options::recursive | std::filesystem::copy_options::overwrite_existing, ec);
+
+            if (ec) {
+                std::filesystem::remove_all(tempDir);
+                if (std::filesystem::exists(finalPath)) {
+                    std::filesystem::remove_all(finalPath);
+                }
+                return create_error_response("Failed to install theme (copy failed): " + ec.message());
             }
-            if (std::filesystem::exists(finalPath)) {
-                std::filesystem::remove_all(finalPath, cleanupEc);
-            }
-            return create_error_response("Failed to install theme (copy failed): " + ec.message());
         }
 
-        if (!platform::remove_directory(tmpPath)) {
-            logger.log("Warning: Failed to remove temporary directory: " + tmpPath.string());
+        write_metadata(finalPath, owner, repo, commitHash);
+
+        m_updater->dispatch_progress("Cleaning up...", 96, false);
+        std::filesystem::remove_all(tempDir);
+        tempDir.clear();
+
+        /** trigger config update to regenerate config */
+        themeConfig->on_config_change_hdlr();
+
+        m_updater->dispatch_progress("Done!", 100, true);
+        return create_successful_response();
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to install theme: {}", e.what());
+        if (!tempDir.empty() && std::filesystem::exists(tempDir)) {
+            std::filesystem::remove_all(tempDir);
         }
+        return create_error_response(std::string("Failed to install theme: ") + e.what());
     }
+}
 
-    if (!std::filesystem::exists(finalPath, ec) || ec) {
-        return create_error_response("Installation completed but theme directory is not accessible");
+bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
+{
+    std::filesystem::path tempDir;
+    try {
+        std::filesystem::path themePath = get_themes_folder() / native;
+        logger.log("Updating theme '{}'", native);
+
+        auto metadata = read_metadata(themePath);
+        if (!metadata) {
+            LOG_ERROR("Cannot update theme '{}': no metadata.json found", native);
+            return false;
+        }
+
+        std::string owner = metadata->value("owner", "");
+        std::string repo = metadata->value("repo", "");
+        if (owner.empty() || repo.empty()) {
+            LOG_ERROR("Cannot update theme '{}': metadata.json missing owner/repo", native);
+            return false;
+        }
+
+        nlohmann::json postBody = {
+            { "owner", owner },
+            { "repo",  repo  }
+        };
+        auto response_str = Http::Post("https://steambrew.app/api/v2/update", postBody.dump());
+        auto response = nlohmann::json::parse(response_str);
+
+        std::string downloadUrl = response.value("data", nlohmann::json::object()).value("download", "");
+        std::string latestCommit = response.value("data", nlohmann::json::object()).value("latestHash", "");
+
+        if (downloadUrl.empty()) {
+            LOG_ERROR("Cannot update theme '{}': API did not return a download URL", native);
+            return false;
+        }
+
+        logger.log("Downloading theme update from: {}", downloadUrl);
+
+        tempDir = get_themes_folder() / ("__tmp_" + GenerateUUID());
+        std::filesystem::create_directories(tempDir);
+        std::filesystem::path zipPath = tempDir / (repo + ".zip");
+
+        Http::DownloadWithProgress({ downloadUrl, 0 }, zipPath, nullptr);
+        logger.log("Download complete. Extracting...");
+
+        const bool extracted = Util::ExtractZipArchive(zipPath.string(), tempDir.string(), [&](int current, int total, const char*)
+        {
+            double percent = (double(current) / total) * 100.0;
+            m_updater->dispatch_progress("Extracting theme archive...", 50.0 + (40.0 * (percent / 100.0)), false);
+        });
+
+        if (!extracted) {
+            std::filesystem::remove_all(tempDir);
+            LOG_ERROR("Failed to extract theme update for '{}'", native);
+            return false;
+        }
+
+        std::filesystem::path extractedFolder;
+        for (const auto& entry : std::filesystem::directory_iterator(tempDir)) {
+            if (entry.is_directory()) {
+                extractedFolder = entry.path();
+                break;
+            }
+        }
+
+        if (extractedFolder.empty()) {
+            std::filesystem::remove_all(tempDir);
+            LOG_ERROR("No directory found in extracted theme archive for '{}'", native);
+            return false;
+        }
+
+        logger.log("Copying updated theme files to: {}", themePath.string());
+        for (const auto& p : std::filesystem::recursive_directory_iterator(extractedFolder)) {
+            auto rel = std::filesystem::relative(p.path(), extractedFolder);
+            std::filesystem::path dest = themePath / rel;
+            if (std::filesystem::is_directory(p)) {
+                std::filesystem::create_directories(dest);
+            } else {
+                std::filesystem::copy_file(p, dest, std::filesystem::copy_options::overwrite_existing);
+            }
+        }
+
+        write_metadata(themePath, owner, repo, latestCommit);
+
+        logger.log("Cleaning up temporary files...");
+        std::filesystem::remove_all(tempDir);
+        tempDir.clear();
+
+        /** trigger config update to regenerate config */
+        themeConfig->on_config_change_hdlr();
+        logger.log("Theme '{}' updated successfully.", native);
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to update theme '{}': {}", native, e.what());
+        if (!tempDir.empty() && std::filesystem::exists(tempDir)) {
+            std::filesystem::remove_all(tempDir);
+        }
+        return false;
     }
-
-    /** trigger config update to regenerate config */
-    themeConfig->on_config_change_hdlr();
-
-    m_updater->dispatch_progress("Done!", 100, true);
-    return create_successful_response();
 }
 
 std::vector<std::pair<nlohmann::json, std::filesystem::path>> head::theme_installer::query_themes_for_updates()
 {
     std::vector<std::pair<nlohmann::json, std::filesystem::path>> updateQuery;
     nlohmann::json themes = head::Themes::FindAllThemes();
-    bool needsCopy = false;
 
     for (auto& theme : themes) {
+        if (!theme["data"].contains("github")) continue;
+
         std::filesystem::path path = get_themes_folder() / theme.value("native", "");
-        try {
-            if (!std::filesystem::exists(path) || !is_git_repository(path)) throw std::runtime_error("Not a git repo");
+        if (!std::filesystem::exists(path)) continue;
 
+        bool hasMetadata = std::filesystem::exists(path / "metadata.json");
+        bool hasGit = std::filesystem::exists(path / ".git");
+
+        if (hasMetadata || hasGit) {
             updateQuery.push_back({ theme, path });
-        } catch (...) {
-            if (theme["data"].contains("github")) {
-                needsCopy = true;
-                updateQuery.push_back({ theme, path });
-            }
         }
-    }
-
-    if (needsCopy) {
-        std::filesystem::path src = get_themes_folder();
-        std::filesystem::path dst = get_themes_folder().parent_path() / ("themes-backup-" + std::to_string(std::time(nullptr)));
-        std::filesystem::copy(src, dst, std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_symlinks);
     }
 
     return updateQuery;
-}
-
-bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
-{
-    logger.log("Updating theme " + native);
-    std::filesystem::path path = get_themes_folder() / native;
-
-    try {
-        if (git_libgit2_init() < 0) {
-            logger.log("Failed to initialize libgit2");
-            return false;
-        }
-
-        git_repository* repo = nullptr;
-        if (git_repository_open(&repo, path.string().c_str()) != 0) {
-            logger.log("Failed to open Git repository: {}", path.string());
-            git_libgit2_shutdown();
-            return false;
-        }
-
-        git_remote* remote = nullptr;
-        if (git_remote_lookup(&remote, repo, "origin") != 0) {
-            git_repository_free(repo);
-            logger.log("Failed to get remote 'origin' for repo: {}", path.string());
-            git_libgit2_shutdown();
-            return false;
-        }
-        /** ignore underlying type definition issues with libgit2 */
-#ifdef __linux__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#endif
-        git_fetch_options fetch_opts = GIT_FETCH_OPTIONS_INIT;
-#ifdef __linux__
-#pragma GCC diagnostic pop
-#endif
-        git_remote_fetch(remote, nullptr, &fetch_opts, nullptr);
-
-        // FETCH_HEAD is always written by git_remote_fetch, regardless of whether
-        // the remote publishes a symbolic HEAD (refs/remotes/origin/HEAD is only
-        // set by git clone, not by git fetch).
-        git_object* obj = nullptr;
-        if (git_revparse_single(&obj, repo, "FETCH_HEAD") != 0) {
-            git_remote_free(remote);
-            git_repository_free(repo);
-            logger.log("Failed to resolve FETCH_HEAD in repo: {}", path.string());
-            git_libgit2_shutdown();
-            return false;
-        }
-
-        if (git_reset(repo, obj, GIT_RESET_HARD, nullptr) != 0) {
-            git_object_free(obj);
-            git_remote_free(remote);
-            git_repository_free(repo);
-            logger.log("Failed to reset repository to origin/HEAD: {}", path.string());
-            git_libgit2_shutdown();
-            return false;
-        }
-
-        git_object_free(obj);
-        git_remote_free(remote);
-        git_repository_free(repo);
-
-        // Shut down libgit2
-        git_libgit2_shutdown();
-    } catch (const std::exception& e) {
-        logger.log("An exception occurred: {}", e.what());
-        git_libgit2_shutdown();
-        return false;
-    }
-
-    /** trigger config update to regenerate config */
-    themeConfig->on_config_change_hdlr();
-    logger.log("Theme {} updated successfully.", native);
-    return true;
 }
 
 nlohmann::json head::theme_installer::make_post_body(const std::vector<nlohmann::json>& update_query)
@@ -478,45 +619,4 @@ nlohmann::json head::theme_installer::create_update_info(const nlohmann::json& t
         { "native", theme["native"] },
         { "name", theme["data"].value("name", theme["native"]) }
     };
-}
-
-std::string head::theme_installer::get_commit_hash(const std::filesystem::path& repoPath)
-{
-    git_libgit2_init();
-    git_repository* repo = nullptr;
-    if (git_repository_open(&repo, repoPath.string().c_str()) != 0) {
-        git_libgit2_shutdown();
-        return "";
-    }
-
-    git_object* obj = nullptr;
-    if (git_revparse_single(&obj, repo, "HEAD") != 0) {
-        git_repository_free(repo);
-        git_libgit2_shutdown();
-        return "";
-    }
-
-    const git_oid* oid = git_object_id(obj);
-    char hash[GIT_OID_HEXSZ + 1];
-    git_oid_tostr(hash, sizeof(hash), oid);
-
-    git_object_free(obj);
-    git_repository_free(repo);
-    git_libgit2_shutdown();
-
-    return std::string(hash);
-}
-
-bool head::theme_installer::is_git_repository(const std::filesystem::path& path)
-{
-    git_libgit2_init();
-    git_repository* repo = nullptr;
-    int ret = git_repository_open(&repo, path.string().c_str());
-    if (ret == 0) {
-        git_repository_free(repo);
-        git_libgit2_shutdown();
-        return true;
-    }
-    git_libgit2_shutdown();
-    return false;
 }

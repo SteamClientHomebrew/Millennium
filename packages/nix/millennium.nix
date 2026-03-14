@@ -74,7 +74,6 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
           "websocketpp"
           "fmt"
           "json"
-          "libgit2"
           "minizip"
           "curl"
           "incbin"

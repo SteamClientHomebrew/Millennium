@@ -72,7 +72,6 @@ check lua_cjson-0c1fabf0.tar.gz    https://github.com/SteamClientHomebrew/LuaJSO
 check websocketpp-0.8.2.tar.gz     https://github.com/zaphoyd/websocketpp/archive/refs/tags/0.8.2.tar.gz
 check fmt-12.0.0.tar.gz            https://github.com/fmtlib/fmt/archive/refs/tags/12.0.0.tar.gz
 check nlohmann_json-v3.12.0.tar.gz https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.tar.gz
-check libgit2-v1.9.1.tar.gz        https://github.com/libgit2/libgit2/archive/refs/tags/v1.9.1.tar.gz
 check minizip_ng-4.0.10.tar.gz     https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.10.tar.gz
 check curl-8_13_0.tar.gz           https://github.com/curl/curl/archive/refs/tags/curl-8_13_0.tar.gz
 check incbin-22061f51.tar.gz       https://github.com/graphitemaster/incbin/archive/22061f51fe9f2f35f061f85c2b217b55dd75310d.tar.gz

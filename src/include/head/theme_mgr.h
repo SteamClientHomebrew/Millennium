@@ -52,7 +52,6 @@ class theme_installer
     nlohmann::json uninstall_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner);
     nlohmann::json install_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& repo, const std::string& owner);
 
-    int clone(const std::string& url, const std::filesystem::path& dstPath, std::string& outErr, std::function<void(size_t, size_t, size_t)> progressCallback);
     bool update_theme(std::shared_ptr<theme_config_store> themeConfig, const std::string& native);
 
     std::vector<std::pair<nlohmann::json, std::filesystem::path>> query_themes_for_updates();
@@ -65,13 +64,15 @@ class theme_installer
     std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<library_updater> m_updater;
 
-    std::string make_temp_dir_name(const std::filesystem::path& base, const std::string& repo);
-    bool is_git_repository(const std::filesystem::path& path);
     bool has_github_data(const nlohmann::json& theme);
     std::string get_repository_name(const nlohmann::json& theme);
     const nlohmann::json* find_remote_theme(const nlohmann::json& remote, const std::string& repoName);
     bool has_updates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
     nlohmann::json create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
+
+    void write_metadata(const std::filesystem::path& themePath, const std::string& owner, const std::string& repo, const std::string& commit);
+    std::optional<nlohmann::json> read_metadata(const std::filesystem::path& themePath);
     std::string get_commit_hash(const std::filesystem::path& path);
+    void migrate_legacy_themes();
 };
 } // namespace head

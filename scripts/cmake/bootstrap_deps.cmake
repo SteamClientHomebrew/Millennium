@@ -33,13 +33,9 @@ set(FMT_DOC                         OFF CACHE BOOL     "Disable building documen
 set(FMT_TEST                        OFF CACHE BOOL     "Disable building tests in fmt")
 set(FMT_INSTALL                     ON  CACHE BOOL     "Enable installation of fmt")
 set(MULTIPLE_THREADS 		        OFF CACHE BOOL     "Disable multithreading support in lua cjson")
-set(BUILD_CLI  			            OFF CACHE BOOL     "Disable building CLI in libgit2")
 set(MZ_BZIP2                        OFF CACHE BOOL     "Disable bzip2 support in minizip-ng")
 set(MZ_FETCH_LIBS                   OFF CACHE BOOL     "Disable fetching third-party libs in minizip-ng")
 set(MZ_ZLIB                         ON  CACHE BOOL     "Enable zlib support in minizip-ng")
-set(USE_BUNDLED_ZLIB 		        OFF CACHE BOOL     "Use bundled zlib in libgit2")
-set(USE_COMPRESSION 		        OFF CACHE BOOL     "Disable compression support in libgit2")
-set(USE_ICONV                       OFF CACHE BOOL     "Disable iconv in libgit2")
 set(MZ_ICONV                        OFF CACHE BOOL     "Disable iconv in minizip-ng")
 set(ZLIB_COMPAT                     ON  CACHE BOOL     "Enable zlib compatibility mode in zlib-ng")
 set(ZLIB_ALIASES                    ON  CACHE BOOL     "Enable zlib alias symbols in zlib-ng")
@@ -54,7 +50,6 @@ else()
     set(CURL_USE_OPENSSL            ON  CACHE BOOL     "Use OpenSSL for TLS/SSL" FORCE)
     set(CURL_USE_SCHANNEL           OFF CACHE INTERNAL "" FORCE)
     set(CURL_WINDOWS_SSPI           OFF CACHE INTERNAL "" FORCE)
-    set(REGEX_BACKEND               "builtin" CACHE STRING "Use builtin regex instead of PCRE" FORCE)
 endif()
 
 
@@ -83,7 +78,6 @@ if(DISTRO_NIX)
     FetchContent_Declare(websocketpp    SOURCE_DIR "${MILLENNIUM_BASE}/deps/websocketpp"    SOURCE_SUBDIR fakedir )
     FetchContent_Declare(fmt            SOURCE_DIR "${MILLENNIUM_BASE}/deps/fmt"            SOURCE_SUBDIR fakedir )
     FetchContent_Declare(nlohmann_json  SOURCE_DIR "${MILLENNIUM_BASE}/deps/json"           SOURCE_SUBDIR fakedir )
-    FetchContent_Declare(libgit2        SOURCE_DIR "${MILLENNIUM_BASE}/deps/libgit2"        SOURCE_SUBDIR fakedir )
     FetchContent_Declare(minizip_ng     SOURCE_DIR "${MILLENNIUM_BASE}/deps/minizip"        SOURCE_SUBDIR fakedir )
     FetchContent_Declare(curl           SOURCE_DIR "${MILLENNIUM_BASE}/deps/curl"           SOURCE_SUBDIR fakedir )
     FetchContent_Declare(incbin         SOURCE_DIR "${MILLENNIUM_BASE}/deps/incbin"         SOURCE_SUBDIR fakedir )
@@ -96,14 +90,13 @@ else()
     FetchContent_Declare(websocketpp   URL "file://${THIRDPARTY_DIR}/websocketpp-0.8.2.tar.gz"     DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(fmt           URL "file://${THIRDPARTY_DIR}/fmt-12.0.0.tar.gz"            DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(nlohmann_json URL "file://${THIRDPARTY_DIR}/nlohmann_json-v3.12.0.tar.gz" DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
-    FetchContent_Declare(libgit2       URL "file://${THIRDPARTY_DIR}/libgit2-v1.9.1.tar.gz"        DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(minizip_ng    URL "file://${THIRDPARTY_DIR}/minizip_ng-4.0.10.tar.gz"     DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(curl          URL "file://${THIRDPARTY_DIR}/curl-8_13_0.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(incbin        URL "file://${THIRDPARTY_DIR}/incbin-22061f51.tar.gz"        DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(asio          URL "file://${THIRDPARTY_DIR}/asio-1-30-0.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
 endif()
 
-set(DEPENDENCIES zlib luajit incbin websocketpp fmt nlohmann_json minizip_ng libgit2 lua_cjson curl asio)
+set(DEPENDENCIES zlib luajit incbin websocketpp fmt nlohmann_json minizip_ng lua_cjson curl asio)
 
 
 foreach(dep ${DEPENDENCIES})
@@ -120,7 +113,6 @@ set(LUA_LIBRARY      luajit::lib   )
 set(LUA_LIBRARIES    luajit::lib   )
 
 include_directories(SYSTEM
-    "${libgit2_SOURCE_DIR}/include"
     "${minizip_ng_SOURCE_DIR}"
     "${incbin_SOURCE_DIR}"
     "${asio_SOURCE_DIR}/asio/include"
@@ -134,7 +126,6 @@ millennium_process_package("${curl_SOURCE_DIR}")
 millennium_process_package("${websocketpp_SOURCE_DIR}")
 millennium_process_package("${fmt_SOURCE_DIR}")
 millennium_process_package("${nlohmann_json_SOURCE_DIR}")
-millennium_process_package("${libgit2_SOURCE_DIR}")
 millennium_process_package("${minizip_ng_SOURCE_DIR}")
 millennium_process_package("${lua_cjson_SOURCE_DIR}")
 
@@ -166,7 +157,6 @@ add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
 add_subdirectory("${websocketpp_SOURCE_DIR}"   "${websocketpp_BINARY_DIR}"  )
 add_subdirectory("${fmt_SOURCE_DIR}"           "${fmt_BINARY_DIR}"          )
 add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}")
-add_subdirectory("${libgit2_SOURCE_DIR}"       "${libgit2_BINARY_DIR}"      )
 add_subdirectory("${minizip_ng_SOURCE_DIR}"    "${minizip_ng_BINARY_DIR}"   )
 add_subdirectory("${lua_cjson_SOURCE_DIR}"     "${lua_cjson_BINARY_DIR}"    )
 

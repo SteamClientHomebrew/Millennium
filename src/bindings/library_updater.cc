@@ -159,7 +159,7 @@ void head::library_updater::dispatch_progress(const std::string& status, double 
         double delta = std::abs(progress - m_last_dispatched_progress);
 
         // Throttle: skip if progress hasn't moved ≥2% and it's been less than 250ms.
-        // This prevents flooding the CDP channel during rapid libgit2 callbacks.
+        // This prevents flooding the CDP channel during rapid download/extraction callbacks.
         if (delta < 2.0 && elapsed_ms < 250) {
             return;
         }

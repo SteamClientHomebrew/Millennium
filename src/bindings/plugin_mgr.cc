@@ -93,7 +93,7 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
         const auto downloadPath = get_plugins_path();
         std::filesystem::create_directories(downloadPath);
         std::string uuidStr = GenerateUUID();
-        std::filesystem::path zipPath = downloadPath / uuidStr;
+        std::filesystem::path zipPath = downloadPath / (uuidStr + ".zip");
 
         auto progressCallback = [&](size_t downloaded, size_t)
         {
@@ -110,6 +110,7 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
         });
 
         if (!extracted) {
+            std::filesystem::remove(zipPath);
             throw std::runtime_error("Failed to extract plugin archive");
         }
 
@@ -167,11 +168,12 @@ std::vector<nlohmann::json> head::plugin_installer::get_plugin_data()
 
 bool head::plugin_installer::update_plugin(const std::string& id, const std::string& name)
 {
+    std::filesystem::path tempDir;
     try {
         std::string url = "https://steambrew.app/api/v1/plugins/download?id=" + id + "&n=" + name + ".zip";
         logger.log("Starting plugin update for '{}'. Download URL: {}", name, url);
 
-        std::filesystem::path tempDir = get_plugins_path() / "__tmp_extract";
+        tempDir = get_plugins_path() / ("__tmp_" + GenerateUUID());
         logger.log("Creating temporary extraction directory: {}", tempDir.string());
         std::filesystem::create_directories(tempDir);
 
@@ -231,6 +233,9 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
         return true;
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to update plugin '{}': {}", name, e.what());
+        if (!tempDir.empty()) {
+            std::filesystem::remove_all(tempDir);
+        }
         return false;
     }
 }
