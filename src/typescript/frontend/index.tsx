@@ -36,7 +36,7 @@ import { ParseLocalTheme } from './patcher/ThemeParser';
 import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
 import { MillenniumDesktopSidebar } from './quick-access';
 import { DesktopMenuProvider } from './quick-access/DesktopMenuContext';
-import { MillenniumSettings } from './settings';
+import { handleSettingsReturnNavigation, MillenniumSettings } from './settings';
 import { MillenniumQuickCssEditor } from './settings/quickcss';
 import { SettingsProps, SystemAccentColor, ThemeItem, ThemeItemV1 } from './types';
 import { PyGetRootColors, PyGetStartupConfig } from './utils/ffi';
@@ -147,4 +147,8 @@ export default async function PluginMain() {
 
 	// @ts-ignore
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
+
+	// If the user was in Millennium Settings when a JS context restart happened,
+	// navigate back to settings and restore the original start_page.
+	handleSettingsReturnNavigation();
 }

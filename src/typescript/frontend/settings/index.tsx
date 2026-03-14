@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+import { useEffect, useState } from 'react';
 import { Classes, DialogBody, IconsModule, Navigation, SidebarNavigation, SidebarNavigationPage } from '@steambrew/client';
 import { locale } from '../utils/localization-manager';
 import { settingsClasses } from '../utils/classes';
@@ -121,16 +122,79 @@ const tabSpotLogs: SidebarNavigationPage = {
 	route: '/millennium/settings/logs',
 };
 
+const SETTINGS_TAB_KEY = 'millennium-settings-tab';
+const SETTINGS_RETURN_KEY = 'millennium-return-to-settings';
+const SETTINGS_ORIGINAL_START_PAGE_KEY = 'millennium-original-start-page';
+
+/**
+ * Restore the user's start_page after a JS context restart brought them back to settings.
+ * Called from PluginMain on startup.
+ */
+export function handleSettingsReturnNavigation(): boolean {
+	const shouldReturn = sessionStorage.getItem(SETTINGS_RETURN_KEY);
+	if (!shouldReturn) return false;
+
+	sessionStorage.removeItem(SETTINGS_RETURN_KEY);
+
+	const originalStartPage = sessionStorage.getItem(SETTINGS_ORIGINAL_START_PAGE_KEY);
+	if (originalStartPage !== null) {
+		try {
+			(window as any).settingsStore.m_ClientSettings.start_page = originalStartPage;
+		} catch {}
+		sessionStorage.removeItem(SETTINGS_ORIGINAL_START_PAGE_KEY);
+	}
+
+	Navigation.Navigate('/millennium/settings');
+	return true;
+}
+
 export function MillenniumSettings() {
 	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings ModalDialogPopup`;
 	const settingsPages = [tabSpotGeneral, 'separator', tabSpotThemes, tabSpotQuickCSS, tabSpotPlugins, 'separator', tabSpotUpdates, tabSpotLogs];
+	const [currentPage, setCurrentPage] = useState(() => sessionStorage.getItem(SETTINGS_TAB_KEY) || undefined);
+
+	useEffect(() => {
+		// Flag that we're in settings — survives RestartJSContext since cleanup won't run.
+		sessionStorage.setItem(SETTINGS_RETURN_KEY, 'true');
+
+		// Temporarily swap start_page to "library" so restarts load faster.
+		try {
+			const store = (window as any).settingsStore?.m_ClientSettings;
+			if (store && !sessionStorage.getItem(SETTINGS_ORIGINAL_START_PAGE_KEY)) {
+				sessionStorage.setItem(SETTINGS_ORIGINAL_START_PAGE_KEY, String(store.start_page));
+				store.start_page = 'library';
+			}
+		} catch {}
+
+		return () => {
+			// Normal navigation away — clear flag and restore start_page.
+			sessionStorage.removeItem(SETTINGS_RETURN_KEY);
+
+			const saved = sessionStorage.getItem(SETTINGS_ORIGINAL_START_PAGE_KEY);
+			if (saved !== null) {
+				try {
+					(window as any).settingsStore.m_ClientSettings.start_page = saved;
+				} catch {}
+				sessionStorage.removeItem(SETTINGS_ORIGINAL_START_PAGE_KEY);
+			}
+		};
+	}, []);
 
 	return (
 		<ConfigProvider>
 			<UpdateContextProvider>
 				<Styles />
 				{/* @ts-ignore */}
-				<SidebarNavigation className={className} pages={settingsPages} title={locale.strMillennium} />
+				<SidebarNavigation
+					className={className}
+					pages={settingsPages}
+					title={locale.strMillennium}
+					page={currentPage}
+					onPageRequested={(page: string) => {
+						setCurrentPage(page);
+						sessionStorage.setItem(SETTINGS_TAB_KEY, page);
+					}}
+				/>
 			</UpdateContextProvider>
 		</ConfigProvider>
 	);
