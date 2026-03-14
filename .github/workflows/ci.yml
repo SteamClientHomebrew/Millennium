@@ -59,6 +59,7 @@ jobs:
           submodules: true
 
       - name: Update Millennium Version
+        if: ${{ needs.prepare.outputs.version != '' }}
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
@@ -153,6 +154,7 @@ jobs:
           submodules: true
 
       - name: Update Millennium Version
+        if: ${{ needs.prepare.outputs.version != '' }}
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
@@ -254,6 +256,7 @@ jobs:
           path: ./artifacts/pdb
 
       - name: Update Millennium Version
+        if: ${{ needs.prepare.outputs.version != '' }}
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
