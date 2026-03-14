@@ -28,75 +28,57 @@
  * SOFTWARE.
  */
 
-import { produce } from 'immer';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { formatString, locale, SteamLocale } from '../../utils/localization-manager';
-import { PyFindAllPlugins, PyUpdatePlugin } from '../../utils/ffi';
+import { PyFindAllPlugins, PyKillPluginBackend, PyUpdatePlugin, PyUpdatePluginStatus } from '../../utils/ffi';
 import { Utils } from '../../utils';
 import { UpdateCard } from './UpdateCard';
 import { UpdateContextProviderState, useUpdateContext } from './useUpdateContext';
-import { useState } from 'react';
-import { sleep } from '@steambrew/client';
+import { waitForInstallerComplete } from '../general/Installer';
 
 // TODO: Type this
 type UpdateItemType = any;
-
-interface UpdateState {
-	statusText: string;
-	progress: number;
-	uxSleepLength: number;
-}
 
 const FindPluginByName = async (pluginName: string) => {
 	const allPlugins = JSON.parse(await PyFindAllPlugins());
 	return allPlugins.find((plugin: any) => plugin.data.name === pluginName);
 };
 
-const StartPluginUpdate = async (ctx: UpdateContextProviderState, setUpdateState: (ctx: UpdateState) => Promise<unknown>, updateObject: UpdateItemType, index: number) => {
-	const { setUpdatingPlugins, isAnyUpdating, fetchAvailableUpdates } = ctx;
-	if (isAnyUpdating()) return;
+const StartPluginUpdate = async (ctx: UpdateContextProviderState, updateObject: UpdateItemType) => {
+	const key: string = updateObject?.id ?? updateObject?.pluginDirectory;
+	const { setUpdatingPlugin, setPluginProgress, fetchAvailableUpdates } = ctx;
+	if (ctx.updatingPlugins[key]) return;
 
-	setUpdatingPlugins((prev) =>
-		produce(prev, (draft) => {
-			draft[index] = !draft[index];
-		}),
-	);
+	setUpdatingPlugin(key, true);
+	setPluginProgress(key, { statusText: locale.strPreparing, progress: 0 });
 
-	await setUpdateState({
-		statusText: locale.strPreparing,
-		progress: 10,
-		uxSleepLength: 1000,
+	const pluginName = updateObject?.pluginInfo?.pluginJson?.name;
+	const wasEnabled = (await FindPluginByName(pluginName))?.enabled;
+
+	if (wasEnabled) {
+		await PyKillPluginBackend({ pluginName });
+	}
+
+	const result: any = await PyUpdatePlugin({ id: updateObject?.id, name: updateObject?.pluginDirectory });
+	const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+	const opId: number = parsed?.opId ?? 0;
+
+	const updateSuccess = await waitForInstallerComplete(opId, ({ progress, status }) => {
+		setPluginProgress(key, { statusText: status, progress });
 	});
 
-	/** Generally unsafe to try to update the plugin when its running, so we prevent that */
-	if ((await FindPluginByName(updateObject?.pluginInfo?.pluginJson?.name))?.enabled) {
-		await Utils.ShowMessageBox(formatString(locale.updateFailedPluginRunning, updateObject?.pluginInfo?.pluginJson?.common_name), locale.HoldOn, {
-			bAlertDialog: true,
-		});
-
-		setUpdatingPlugins((prev) =>
-			produce(prev, (draft) => {
-				draft[index] = false;
-			}),
-		);
+	if (wasEnabled) {
+		if (!updateSuccess) {
+			await Utils.ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), SteamLocale('#Generic_Error'), { bAlertDialog: true });
+		}
+		setPluginProgress(key, { statusText: locale.strComplete, progress: 100 });
+		sessionStorage.setItem('millennium-settings-tab', '/millennium/settings/updates');
+		await PyUpdatePluginStatus({ pluginJson: JSON.stringify([{ plugin_name: pluginName, enabled: true }]) });
 		return;
 	}
 
-	await setUpdateState({
-		statusText: locale.strUpdatingPlugin,
-		progress: 60,
-		uxSleepLength: 1000,
-	});
-
-	const updateSuccess = JSON.parse(await PyUpdatePlugin({ id: updateObject?.id, name: updateObject?.pluginDirectory }));
-
-	await setUpdateState({
-		statusText: locale.strComplete,
-		progress: 100,
-		uxSleepLength: 1000,
-	});
-
 	if (updateSuccess) {
+		setPluginProgress(key, { statusText: locale.strComplete, progress: 100 });
 		await fetchAvailableUpdates(true);
 	} else {
 		Utils.ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), SteamLocale('#Generic_Error'), {
@@ -104,23 +86,14 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, setUpdateState
 		});
 	}
 
-	setUpdatingPlugins((prev) =>
-		produce(prev, (draft) => {
-			draft[index] = false;
-		}),
-	);
+	setUpdatingPlugin(key, false);
+	setPluginProgress(key, null);
 };
 
 export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
 	if (!pluginUpdates || !pluginUpdates.length) return null;
 
 	const ctx = useUpdateContext();
-	const [updateState, setUpdateState] = useState<UpdateState>(null);
-
-	const setNewState = async (newState: UpdateState): Promise<unknown> => {
-		setUpdateState(newState);
-		return await sleep(newState.uxSleepLength);
-	};
 
 	return (
 		<>
@@ -135,10 +108,10 @@ export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
 					}}
 					index={index}
 					totalCount={pluginUpdates.length}
-					isUpdating={ctx.updatingPlugins[index]}
-					progress={updateState?.progress}
-					statusText={updateState?.statusText}
-					onUpdateClick={() => StartPluginUpdate(ctx, setNewState, update, index)}
+					isUpdating={ctx.updatingPlugins[update?.id ?? update?.pluginDirectory]}
+					progress={ctx.pluginProgress[update?.id ?? update?.pluginDirectory]?.progress}
+					statusText={ctx.pluginProgress[update?.id ?? update?.pluginDirectory]?.statusText}
+					onUpdateClick={() => StartPluginUpdate(ctx, update)}
 				/>
 			))}
 		</>

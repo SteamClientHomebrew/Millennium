@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { pluginSelf, sleep } from '@steambrew/client';
+import { pluginSelf } from '@steambrew/client';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { formatString, locale, SteamLocale } from '../../utils/localization-manager';
 import { UpdateCard, UpdateItemType } from './UpdateCard';
@@ -36,40 +36,26 @@ import { UpdateContextProviderState, useUpdateContext } from './useUpdateContext
 import { PyUpdateTheme } from '../../utils/ffi';
 import { ThemeItem } from '../../types';
 import { Utils } from '../../utils';
-import { produce } from 'immer';
-import { useState } from 'react';
+import { waitForInstallerComplete } from '../general/Installer';
 
-interface UpdateState {
-	statusText: string;
-	progress: number;
-	uxSleepLength: number;
-}
+async function StartThemeUpdate(ctx: UpdateContextProviderState, updateObject: UpdateItemType) {
+	const key = updateObject.native;
+	const { setUpdatingTheme, setThemeProgress, fetchAvailableUpdates } = ctx;
+	if (ctx.updatingThemes[key]) return;
 
-async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState: (newState: UpdateState) => Promise<unknown>, updateObject: UpdateItemType, index: number) {
-	const { setUpdatingThemes, isAnyUpdating, fetchAvailableUpdates } = ctx;
-	if (isAnyUpdating()) return;
+	setUpdatingTheme(key, true);
+	setThemeProgress(key, { statusText: locale.strPreparing, progress: 0 });
 
-	setUpdatingThemes((prev) =>
-		produce(prev, (draft) => {
-			draft[index] = true;
-		}),
-	);
+	const result: any = await PyUpdateTheme({ native: updateObject.native });
+	const parsed = typeof result === 'string' ? JSON.parse(result) : result;
+	const opId: number = parsed?.opId ?? 0;
 
-	await setUpdateState({
-		statusText: locale.strUpdatingTheme,
-		progress: 100,
-		uxSleepLength: 1000,
+	const updateSuccess = await waitForInstallerComplete(opId, ({ progress, status }) => {
+		setThemeProgress(key, { statusText: status, progress });
 	});
 
-	const updateSuccess = JSON.parse(await PyUpdateTheme({ native: updateObject.native }));
-
 	if (updateSuccess) {
-		await setUpdateState({
-			statusText: locale.strFinishedUpdating,
-			progress: 100,
-			uxSleepLength: 1000,
-		});
-
+		setThemeProgress(key, { statusText: locale.strFinishedUpdating, progress: 100 });
 		await fetchAvailableUpdates(true);
 		const activeTheme: ThemeItem = pluginSelf.activeTheme;
 
@@ -81,23 +67,14 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 		Utils.ShowMessageBox(formatString(locale.updateFailed, updateObject?.name), SteamLocale('#Generic_Error'));
 	}
 
-	setUpdatingThemes((prev) =>
-		produce(prev, (draft) => {
-			draft[index] = false;
-		}),
-	);
+	setUpdatingTheme(key, false);
+	setThemeProgress(key, null);
 }
 
 export function ThemeUpdateCard({ themeUpdates }: { themeUpdates: UpdateItemType[] }) {
 	if (!themeUpdates || !themeUpdates.length) return null;
 
 	const ctx = useUpdateContext();
-	const [updateState, setUpdateState] = useState<UpdateState>(null);
-
-	const setNewState = async (newState: UpdateState): Promise<unknown> => {
-		setUpdateState(newState);
-		return await sleep(newState.uxSleepLength);
-	};
 
 	return (
 		<>
@@ -107,10 +84,10 @@ export function ThemeUpdateCard({ themeUpdates }: { themeUpdates: UpdateItemType
 					update={update}
 					index={index}
 					totalCount={themeUpdates.length}
-					isUpdating={ctx.updatingThemes[index]}
-					progress={updateState?.progress}
-					statusText={updateState?.statusText}
-					onUpdateClick={StartThemeUpdate.spread(ctx, setNewState, update, index)}
+					isUpdating={ctx.updatingThemes[update.native]}
+					progress={ctx.themeProgress[update.native]?.progress}
+					statusText={ctx.themeProgress[update.native]?.statusText}
+					onUpdateClick={() => StartThemeUpdate(ctx, update)}
 				/>
 			))}
 		</>

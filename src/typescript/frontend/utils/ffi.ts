@@ -42,6 +42,7 @@ export const PyGetThemeInfo = callable<[{ repo: string; owner: string; asString:
 export const PyUninstallPlugin = callable<[{ pluginName: string }], boolean>('Core_UninstallPlugin');
 export const PyUpdateTheme = callable<[{ native: string }], boolean>('Core_DownloadThemeUpdate');
 export const PyUpdatePlugin = callable<[{ id: string; name: string }], boolean>('Core_DownloadPluginUpdate');
+export const PyKillPluginBackend = callable<[{ pluginName: string }], void>('Core_KillPluginBackend');
 export const PyResyncUpdates = callable<[{ force: boolean }], string>('Core_GetUpdates');
 export const PyInstallPlugin = callable<[{ download_url: string; total_size: number }], void>('Core_InstallPlugin');
 export const PyIsPluginInstalled = callable<[{ plugin_name: string }], boolean>('Core_IsPluginInstalled');

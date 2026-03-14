@@ -43,15 +43,24 @@ export type MillenniumUpdateProgress = {
 	isComplete: boolean;
 };
 
+export type InstallerProgress = {
+	statusText: string;
+	progress: number;
+};
+
 export type UpdateContextProviderState = {
 	isUpdatingMillennium: boolean;
 	setMillenniumUpdating: React.Dispatch<React.SetStateAction<boolean>>;
 	millenniumUpdateProgress: MillenniumUpdateProgress;
 	setMillenniumUpdateProgress: (progress: MillenniumUpdateProgress) => void;
-	updatingThemes: boolean[];
-	setUpdatingThemes: React.Dispatch<React.SetStateAction<boolean[]>>;
-	updatingPlugins: boolean[];
-	setUpdatingPlugins: React.Dispatch<React.SetStateAction<boolean[]>>;
+	updatingThemes: Record<string, boolean>;
+	setUpdatingTheme: (key: string, updating: boolean) => void;
+	updatingPlugins: Record<string, boolean>;
+	setUpdatingPlugin: (key: string, updating: boolean) => void;
+	themeProgress: Record<string, InstallerProgress | null>;
+	setThemeProgress: (key: string, progress: InstallerProgress | null) => void;
+	pluginProgress: Record<string, InstallerProgress | null>;
+	setPluginProgress: (key: string, progress: InstallerProgress | null) => void;
 	isAnyUpdating: () => boolean;
 	hasAnyUpdates: () => boolean;
 	themeUpdates: Array<UpdateItemType> | null;
@@ -74,12 +83,75 @@ export const NotifyUpdateListeners = () => {
 
 const UpdateContext = createContext<UpdateContextProviderState | null>(null);
 
+/**
+ * Module-level operation state that survives component unmount/remount.
+ * When the user navigates away from settings and comes back, ongoing update
+ * state is preserved here and re-read by the newly mounted provider.
+ */
+const _opState = {
+	updatingThemes: {} as Record<string, boolean>,
+	updatingPlugins: {} as Record<string, boolean>,
+	themeProgress: {} as Record<string, InstallerProgress | null>,
+	pluginProgress: {} as Record<string, InstallerProgress | null>,
+};
+
+let _syncToComponent: (() => void) | null = null;
+
+function _notifyOpChange() {
+	_syncToComponent?.();
+}
+
+/** Stable setter functions provided via context — safe to capture in async closures. */
+const opSetUpdatingTheme = (key: string, updating: boolean) => {
+	_opState.updatingThemes = { ..._opState.updatingThemes, [key]: updating };
+	_notifyOpChange();
+};
+
+const opSetUpdatingPlugin = (key: string, updating: boolean) => {
+	_opState.updatingPlugins = { ..._opState.updatingPlugins, [key]: updating };
+	_notifyOpChange();
+};
+
+const opSetThemeProgress = (key: string, progress: InstallerProgress | null) => {
+	_opState.themeProgress = { ..._opState.themeProgress, [key]: progress };
+	_notifyOpChange();
+};
+
+const opSetPluginProgress = (key: string, progress: InstallerProgress | null) => {
+	_opState.pluginProgress = { ..._opState.pluginProgress, [key]: progress };
+	_notifyOpChange();
+};
+
+/**
+ * Module-level fetchAvailableUpdates — survives unmount so background update
+ * completions can refresh the list without calling setState on a dead component.
+ */
+const _fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
+	try {
+		if (force || !pluginSelf.hasCheckedForUpdates) {
+			const updates = JSON.parse(await PyResyncUpdates({ force: true }));
+			pluginSelf.updates.themes = updates.themes;
+			pluginSelf.updates.plugins = updates.plugins;
+			pluginSelf.hasCheckedForUpdates = true;
+			NotifyUpdateListeners();
+		}
+		pluginSelf.connectionFailed = false;
+		_syncToComponent?.();
+		return true;
+	} catch {
+		pluginSelf.connectionFailed = true;
+		return false;
+	}
+};
+
 export class UpdateContextProvider extends React.Component<UpdateContextProviderProps, Partial<UpdateContextProviderState>> {
 	constructor(props: UpdateContextProviderProps) {
 		super(props);
 		this.state = {
-			updatingThemes: [],
-			updatingPlugins: [],
+			updatingThemes: _opState.updatingThemes,
+			updatingPlugins: _opState.updatingPlugins,
+			themeProgress: _opState.themeProgress,
+			pluginProgress: _opState.pluginProgress,
 			isUpdatingMillennium: false,
 			millenniumUpdateProgress: { statusText: 'Starting updater...', progress: 0, isComplete: false },
 			themeUpdates: null,
@@ -89,16 +161,17 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		};
 	}
 
-	setUpdatingPlugins = (updater: (prev: boolean[]) => boolean[]) => {
-		return this.setState((prevState) => {
-			return { updatingPlugins: updater(prevState.updatingPlugins) };
+	private syncFromOpState = () => {
+		this.setState({
+			updatingThemes: _opState.updatingThemes,
+			updatingPlugins: _opState.updatingPlugins,
+			themeProgress: _opState.themeProgress,
+			pluginProgress: _opState.pluginProgress,
+			themeUpdates: pluginSelf.updates?.themes ?? null,
+			pluginUpdates: pluginSelf.updates?.plugins ?? null,
+			hasUpdateError: Boolean(pluginSelf?.updates?.themes?.error || pluginSelf?.updates?.plugins?.error),
+			hasReceivedUpdates: Boolean(pluginSelf.hasCheckedForUpdates),
 		});
-	};
-
-	setUpdatingThemes = (updater: (prev: boolean[]) => boolean[]) => {
-		return this.setState((prevState) => ({
-			updatingThemes: updater(prevState.updatingThemes),
-		}));
 	};
 
 	setMillenniumUpdating = (newState: boolean) => {
@@ -110,12 +183,18 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 	};
 
 	componentDidMount() {
-		this.fetchAvailableUpdates();
+		_syncToComponent = this.syncFromOpState;
+		// Re-sync in case operations completed while unmounted.
+		this.syncFromOpState();
+		_fetchAvailableUpdates();
+	}
+
+	componentWillUnmount() {
+		_syncToComponent = null;
 	}
 
 	isAnyUpdating = () => {
-		const { updatingThemes, updatingPlugins } = this.state;
-		return updatingThemes.some((u) => u) || updatingPlugins.some((u) => u);
+		return Object.values(_opState.updatingThemes).some((u) => u) || Object.values(_opState.updatingPlugins).some((u) => u);
 	};
 
 	hasAnyUpdates = () => {
@@ -127,35 +206,6 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 		const hasAnyUpdate = hasThemeUpdates || hasPluginUpdates || hasMillenniumUpdate;
 		return hasAnyUpdate;
-	};
-
-	forceFetchUpdates = async () => {
-		const updates = JSON.parse(await PyResyncUpdates({ force: true }));
-		pluginSelf.updates.themes = updates.themes;
-		pluginSelf.updates.plugins = updates.plugins;
-		NotifyUpdateListeners();
-	};
-
-	fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
-		try {
-			if (force || !pluginSelf.hasCheckedForUpdates) {
-				await this.forceFetchUpdates();
-				pluginSelf.hasCheckedForUpdates = true;
-			}
-			pluginSelf.connectionFailed = false;
-
-			this.setState({
-				themeUpdates: pluginSelf.updates.themes,
-				pluginUpdates: pluginSelf.updates.plugins,
-				hasUpdateError: Boolean(pluginSelf?.updates?.themes?.error || pluginSelf?.updates?.plugins?.error),
-				hasReceivedUpdates: true,
-			});
-
-			return true;
-		} catch (exception) {
-			pluginSelf.connectionFailed = true;
-			return false;
-		}
 	};
 
 	render() {
@@ -170,15 +220,19 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 					pluginUpdates: this.state.pluginUpdates,
 					isUpdatingMillennium: this.state.isUpdatingMillennium,
 					millenniumUpdateProgress: this.state.millenniumUpdateProgress,
+					themeProgress: this.state.themeProgress,
+					pluginProgress: this.state.pluginProgress,
 					hasReceivedUpdates: this.state.hasReceivedUpdates,
 					hasUpdateError: this.state.hasUpdateError,
-					setUpdatingThemes: this.setUpdatingThemes,
-					setUpdatingPlugins: this.setUpdatingPlugins,
+					setUpdatingTheme: opSetUpdatingTheme,
+					setUpdatingPlugin: opSetUpdatingPlugin,
 					setMillenniumUpdating: this.setMillenniumUpdating,
 					setMillenniumUpdateProgress: this.setMillenniumUpdateProgress,
+					setThemeProgress: opSetThemeProgress,
+					setPluginProgress: opSetPluginProgress,
 					isAnyUpdating: this.isAnyUpdating,
 					hasAnyUpdates: this.hasAnyUpdates,
-					fetchAvailableUpdates: this.fetchAvailableUpdates,
+					fetchAvailableUpdates: _fetchAvailableUpdates,
 				}}
 			>
 				{this.props.children}

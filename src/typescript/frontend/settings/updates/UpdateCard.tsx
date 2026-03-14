@@ -112,7 +112,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 			return (
 				<DialogButton className={joinClassNames(settingsClasses.SettingsDialogButton, 'MillenniumButton')}>
 					<MillenniumIcons.LoadingSpinner />
-					{statusText}
+					{statusText || locale.updatePanelIsUpdating}
 				</DialogButton>
 			);
 		}
