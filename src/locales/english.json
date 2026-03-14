@@ -156,5 +156,7 @@
   "pluginIsNotEnabled": "This plugin is disabled!",
   "themeConfigChangeReloadHeader": "Hold Up!",
   "themeConfigChangeReloadBody": "Your theme settings have been updated. Would you like to reload the Steam UI to apply the changes?",
-  "strConfirm": "Let's do it!"
+  "strConfirm": "Let's do it!",
+  "logPanelNoLogsHeader": "No logs",
+  "logPanelNoLogsBody": "No log data is available yet. Logs will appear here once Millennium or your plugins produce output."
 }

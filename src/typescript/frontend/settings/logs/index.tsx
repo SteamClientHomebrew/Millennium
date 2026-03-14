@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, IconsModule, TextField, joinClassNames, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, SteamSpinner, TextField, joinClassNames, pluginSelf } from '@steambrew/client';
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';
@@ -36,6 +36,7 @@ import { locale } from '../../utils/localization-manager';
 import { PyGetLogData } from '../../utils/ffi';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { IconButton } from '../../components/IconButton';
+import { Placeholder } from '../../components/Placeholder';
 
 export type LogItem = {
 	level: LogLevel;
@@ -179,7 +180,6 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 
 	renderSelector() {
 		const { logData } = this.state;
-		if (!logData) return null;
 
 		/** Millennium specific logs */
 		const millenniumNames = new Set(['Millennium', 'Standard Output', 'Package Manager']);
@@ -270,7 +270,16 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	}
 
 	render() {
-		const { selectedLog } = this.state;
+		const { logData, selectedLog } = this.state;
+
+		if (logData === undefined) {
+			return <SteamSpinner background="transparent" />;
+		}
+
+		if (logData.length === 0) {
+			return <Placeholder icon={<IconsModule.TextCodeBlock />} header={locale.logPanelNoLogsHeader} body={locale.logPanelNoLogsBody} />;
+		}
+
 		return !selectedLog ? this.renderSelector() : this.renderViewer();
 	}
 }
