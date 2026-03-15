@@ -135,6 +135,7 @@ IPC_RET(Core_SetBackendConfig, CONFIG.SetAll(nlohmann::json::parse(ARGS["config"
 
 /** Theme and Plugin update API */
 IPC_RET(Core_GetUpdates, updater->CheckForUpdates(ARGS.value("force", false)).value_or(nullptr))
+IPC_NIL(Core_ResetUpdateCheckState, updater->ResetCheckState())
 
 /** Theme manager API */
 IPC_RET(Core_GetActiveTheme, themeConfig->GetActiveTheme())

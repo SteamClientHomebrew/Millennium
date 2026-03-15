@@ -324,7 +324,13 @@ bool ThemeInstaller::UpdateTheme(std::shared_ptr<ThemeConfig> themeConfig, const
 #ifdef __linux__
 #pragma GCC diagnostic pop
 #endif
-        git_remote_fetch(remote, nullptr, &fetch_opts, nullptr);
+        if (git_remote_fetch(remote, nullptr, &fetch_opts, nullptr) != 0) {
+            git_remote_free(remote);
+            git_repository_free(repo);
+            Logger.Log("Failed to fetch from remote 'origin' for repo: {}", path.string());
+            git_libgit2_shutdown();
+            return false;
+        }
 
         git_object* obj = nullptr;
         if (git_revparse_single(&obj, repo, "refs/remotes/origin/HEAD") != 0) {

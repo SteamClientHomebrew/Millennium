@@ -33,7 +33,7 @@ import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { formatString, locale, SteamLocale } from '../../utils/localization-manager';
 import { UpdateCard, UpdateItemType } from './UpdateCard';
 import { UpdateContextProviderState, useUpdateContext } from './useUpdateContext';
-import { PyUpdateTheme } from '../../utils/ffi';
+import { PyUpdateTheme, PyResetUpdateCheckState } from '../../utils/ffi';
 import { ThemeItem } from '../../types';
 import { Utils } from '../../utils';
 import { produce } from 'immer';
@@ -70,6 +70,9 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, setUpdateState:
 			uxSleepLength: 1000,
 		});
 
+		// Reset the update check state to force a fresh check on next startup
+		// This prevents the theme from showing as needing an update after restart
+		await PyResetUpdateCheckState();
 		await fetchAvailableUpdates(true);
 		const activeTheme: ThemeItem = pluginSelf.activeTheme;
 

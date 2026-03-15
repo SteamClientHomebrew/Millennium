@@ -49,6 +49,7 @@ class Updater
 
     std::optional<json> GetCachedUpdates() const;
     bool HasCheckedForUpdates() const;
+    void ResetCheckState();
 
     std::optional<json> CheckForUpdates(bool force = false);
     std::string ResyncUpdates();
