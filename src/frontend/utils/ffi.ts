@@ -43,6 +43,7 @@ export const PyUninstallPlugin = callable<[{ pluginName: string }], boolean>('Co
 export const PyUpdateTheme = callable<[{ native: string }], boolean>('Core_DownloadThemeUpdate');
 export const PyUpdatePlugin = callable<[{ id: string; name: string }], boolean>('Core_DownloadPluginUpdate');
 export const PyResyncUpdates = callable<[{ force: boolean }], string>('Core_GetUpdates');
+export const PyResetUpdateCheckState = callable<[], void>('Core_ResetUpdateCheckState');
 export const PyInstallPlugin = callable<[{ download_url: string; total_size: number }], void>('Core_InstallPlugin');
 export const PyIsPluginInstalled = callable<[{ plugin_name: string }], boolean>('Core_IsPluginInstalled');
 export const PySetUpdateNotificationStatus = callable<[{ status: boolean }], boolean>('updater.set_update_notifs_status');

@@ -65,6 +65,12 @@ bool Updater::HasCheckedForUpdates() const
     return has_checked_for_updates;
 }
 
+void Updater::ResetCheckState()
+{
+    has_checked_for_updates = false;
+    cached_updates = std::nullopt;
+}
+
 std::optional<json> Updater::CheckForUpdates(bool force)
 {
     try {
