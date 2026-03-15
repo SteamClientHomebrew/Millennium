@@ -1,23 +1,31 @@
 {
+  cmake,
+  ninja,
+  pkg-config,
+  git,
+  cacert,
+
   lib,
-  stdenv,
-  callPackage,
-  fetchFromGitHub,
+  pkgsi686Linux,
 
   inputs,
+  millennium-python ? pkgsi686Linux.python311,
   millennium-shims,
   millennium-assets,
   millennium-frontend,
-  millennium-32,
-  millennium-64,
+  ...
 }:
-stdenv.mkDerivation {
-  pname = "millennium";
+pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
+  pname = "millennium-32";
   version = "2.34.0";
 
-  phases = [
-    "installPhase"
-    "fixupPhase"
+  src = inputs.millennium-src;
+
+  nativeBuildInputs = [
+    cmake
+    ninja
+    pkg-config
+    git
   ];
 
   buildInputs = [
@@ -25,8 +33,8 @@ stdenv.mkDerivation {
     pkgsi686Linux.libpsl
     pkgsi686Linux.openssl
     pkgsi686Linux.libxtst
+    pkgsi686Linux.python311
     cacert
-    millennium-python
   ];
 
   cmakeGenerator = "Ninja";
@@ -39,9 +47,9 @@ stdenv.mkDerivation {
     "-DNIX_FRONTEND=${millennium-frontend}/share/frontend"
     "-DNIX_SHIMS=${millennium-shims}/share/millennium/shims"
     "-DNIX_PYTHON=${millennium-python}"
+    "-DNIX_PYTHON_LIB=${millennium-python}/lib/libpython${millennium-python.pythonVersion}.so"
     "-DCURL_CA_BUNDLE=${cacert}/etc/ssl/certs/ca-bundle.crt"
     "-DCURL_CA_PATH=${cacert}/etc/ssl/certs"
-    "--preset=linux-release"
   ];
 
   postPatch = ''
@@ -62,15 +70,16 @@ stdenv.mkDerivation {
           "zlib"
           "luajit"
           "luajson"
+          "minhook"
+          "mini"
           "websocketpp"
           "fmt"
           "json"
+          "libgit2"
           "minizip"
           "curl"
           "incbin"
           "asio"
-          "abseil"
-          "re2"
         ];
       in
       lib.concatStrings (map (dep: "prepare_dep ${dep} \"${inputs."${dep}-src"}\"\n") deps)
@@ -94,27 +103,34 @@ stdenv.mkDerivation {
     git -C deps/luajit commit -m "Dummy Commit for Nix Build" > /dev/null 2>&1
 
     chmod -R u+rwx deps/
+
+    echo "[Nix] Patching root CMakeLists to IGNORE 64-bit source..."
+    sed -i '/add_subdirectory.*src\/hhx64)/s/^/#/' CMakeLists.txt
+
+    echo "[Nix] Patching src/CMakeLists.txt to replace dynamic target reference..."
+    sed -i 's|\$<TARGET_FILE:hhx64>|libmillennium_hhx64.so|g' src/CMakeLists.txt
   '';
+
+  buildPhase = ''
+    runHook preBuild
+    cmake --build .
+    runHook postBuild
+  '';
+
   installPhase = ''
-    mkdir -p $out/lib
+    runHook preInstall
 
-    echo "[Nix Millennium] Merging 32-bit libraries..."
-    cp -v ${millennium-32}/lib/*.so $out/lib/
+    mkdir -p $out/lib/
+    install -Dm755 src/libmillennium_x86.so                      $out/lib/libmillennium_x86.so
+    install -Dm755 src/boot/linux/libmillennium_bootstrap_86x.so $out/lib/libmillennium_bootstrap_86x.so
 
-    echo "[Nix Millennium] Merging 64-bit libraries..."
-    cp -v ${millennium-64}/lib/*.so $out/lib/
+    runHook postInstall
   '';
-
-  passthru = {
-    assets = millennium-assets;
-    shims = millennium-shims;
-    frontend = millennium-frontend;
-  };
 
   meta = {
     homepage = "https://steambrew.app/";
     license = lib.licenses.mit;
-    description = "Modding framework to create, manage and use themes/plugins for Steam";
+    description = "32-bit Millennium Library for interfacing with the 32-bit Steam frontend";
 
     longDescription = "An open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead";
 
@@ -123,7 +139,7 @@ stdenv.mkDerivation {
     ];
 
     platforms = [
-      "x86_64-linux"
+      "i686-linux"
     ];
   };
-}
+})

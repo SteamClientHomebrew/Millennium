@@ -3,13 +3,16 @@
   pnpm_9,
   fetchPnpmDeps,
   pnpmConfigHook,
+
+  lib,
   stdenv,
+
   millennium-src,
   ...
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-frontend";
-  version = "1.0.0";
+  version = "2.34.0";
 
   src = millennium-src;
 
@@ -46,4 +49,17 @@ stdenv.mkDerivation (finalAttrs: {
     runHook postInstall
   '';
 
+  meta = {
+    homepage = "https://steambrew.app/";
+    license = lib.licenses.mit;
+    description = "Frontend for Millennium";
+
+    maintainers = [
+      lib.maintainers.trivaris
+    ];
+
+    platforms = [
+      "x86_64-linux"
+    ];
+  };
 })

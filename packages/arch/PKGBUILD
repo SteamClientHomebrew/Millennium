@@ -1,6 +1,6 @@
 # Maintainers: SteamClientHomebrew <https://github.com/SteamClientHomebrew>
 
-pkgver=2.34.0
+pkgver=2.35.0
 pkgname="millennium"
 _pkgdir="Millennium"
 pkgrel=5
