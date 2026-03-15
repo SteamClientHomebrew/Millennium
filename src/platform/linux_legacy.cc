@@ -36,6 +36,8 @@
 
 #include <unistd.h>
 #include <dlfcn.h>
+#include <limits.h>
+#include <string.h>
 
 #include <regex>
 #include <thread>
@@ -49,8 +51,16 @@ extern std::unique_ptr<std::thread> g_millenniumThread;
 /** fwd decl of attach function */
 void Posix_AttachMillennium();
 
-/** fwd decl of path comparison function */
-int IsSamePath(const char* path1, const char* path2);
+/** Resolve symlinks and compare two filesystem paths. */
+static int IsSamePath(const char* path1, const char* path2)
+{
+    char realpath1[PATH_MAX], realpath2[PATH_MAX];
+
+    if (!realpath(path1, realpath1) || !realpath(path2, realpath2))
+        return 0;
+
+    return strcmp(realpath1, realpath2) == 0;
+}
 
 /**
  * After Millennium has been loaded,
