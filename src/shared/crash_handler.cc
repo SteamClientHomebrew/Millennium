@@ -33,6 +33,7 @@
 #include "shared/crash_report.h"
 #include "millennium/filesystem.h"
 
+#include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
