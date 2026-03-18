@@ -64,7 +64,11 @@ class environment
 
         for (int i = 0; environ[i] != nullptr; ++i) {
             std::string current(environ[i]);
-            if (current.substr(0, name.length() + 1) == name + "=") {
+            if (
+                current.size() > name.length() &&
+                current[name.length()] == '=' &&
+                current.compare(0, name.length(), name) == 0
+            ) {
                 environ[i] = stored_string.get();
                 allocated_strings.push_back(std::move(stored_string));
                 return true;
@@ -81,6 +85,7 @@ class environment
         while (environ[count] != nullptr)
             count++;
 
+        char** old_environ = environ;
         char** new_environ = new char*[count + 2];
 
         for (int i = 0; i < count; ++i) {
@@ -91,6 +96,7 @@ class environment
         new_environ[count + 1] = nullptr;
 
         environ = new_environ;
+        delete[] old_environ;
         allocated_strings.push_back(std::move(strEnv));
 
         return true;
@@ -115,7 +121,7 @@ void SetEnv(const std::string& key, const std::string& value)
 #endif
 }
 
-std::string GetEnv(const std::string key)
+std::string GetEnv(const char* key)
 {
 #ifdef _WIN32
     static bool hasSetup = false;
@@ -126,7 +132,7 @@ std::string GetEnv(const std::string key)
     }
 #endif
 
-    const char* szVariable = getenv(key.c_str());
+    const char* szVariable = getenv(key);
 
     if (szVariable == nullptr) {
         return {};
@@ -136,10 +142,10 @@ std::string GetEnv(const std::string key)
     return strVariable;
 }
 
-std::string GetEnvWithFallback(const std::string key, const std::string fallback)
+std::string GetEnvWithFallback(const char* key, std::string fallback)
 {
     std::string var = GetEnv(key);
-    return var.empty() ? fallback : var;
+    return var.empty() ? std::move(fallback) : std::move(var);
 }
 
 /**

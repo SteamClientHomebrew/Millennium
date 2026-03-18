@@ -33,6 +33,7 @@
 #include "head/scan.h"
 #include "head/theme_cfg.h"
 
+#include "millennium/env.h"
 #include "millennium/millennium_api.h"
 #include "millennium/millennium_updater.h"
 #include "millennium/plugin_api_init.h"
