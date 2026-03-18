@@ -53,5 +53,5 @@ extern std::map<std::string, std::string> envVariables;
 #endif
 
 void SetupEnvironmentVariables();
-[[nodiscard]] std::string GetEnv(std::string key);
-[[nodiscard]] std::string GetEnvWithFallback(std::string key, std::string fallback);
+[[nodiscard]] std::string GetEnv(const char* key);
+[[nodiscard]] std::string GetEnvWithFallback(const char* key, std::string fallback);

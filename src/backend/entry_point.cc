@@ -129,7 +129,7 @@ IPC_NIL(Core_SaveQuickCss, SystemIO::WriteFileSync(fmt::format("{}/quickcss.css"
 IPC_RET(Core_GetSteamPath, SystemIO::GetSteamPath())
 IPC_RET(Core_FindAllThemes, Millennium::Themes::FindAllThemes())
 IPC_RET(Core_FindAllPlugins, Millennium::Plugins::FindAllPlugins())
-IPC_RET(Core_GetEnvironmentVar, GetEnv(ARGS["variable"]))
+IPC_RET(Core_GetEnvironmentVar, GetEnv(ARGS["variable"].get<std::string>().c_str()))
 IPC_RET(Core_GetBackendConfig, CONFIG.GetAll())
 IPC_RET(Core_SetBackendConfig, CONFIG.SetAll(nlohmann::json::parse(ARGS["config"].get<std::string>()), ARGS.value("skipPropagation", false)))
 
