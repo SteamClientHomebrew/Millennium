@@ -108,7 +108,9 @@ void CEFBrowser::onMessage([[maybe_unused]] websocketpp::client<websocketpp::con
         json["result"]["targetInfos"].is_array()) {
         const auto targets = json["result"]["targetInfos"];
 
-        auto targetIterator = std::ranges::find_if(targets, [](const auto& target) { return target["title"] == "SharedJSContext"; });
+MILLENNIUM_DIAG_PUSH_IGNORE("-Wpass-failed")
+        const auto targetIterator = std::ranges::find_if(targets, [](const auto& target) { return target["title"] == "SharedJSContext"; });
+MILLENNIUM_DIAG_POP
 
         if (targetIterator != targets.end() && !m_sharedJsConnected) {
             Logger.Log("Found SharedJSContext target, attaching...");
