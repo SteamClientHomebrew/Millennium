@@ -41,9 +41,13 @@ function(millennium_process_package input_path)
         message(WARNING "Could not find ${input_path} to patch.")
     endif()
 endfunction()
-
+if(DISTRO_NIX)
+FetchContent_Declare(abseil SOURCE_DIR "${MILLENNIUM_BASE}/deps/abseil"     SOURCE_SUBDIR fakedir)
+FetchContent_Declare(re2    SOURCE_DIR "${MILLENNIUM_BASE}/deps/re2"        SOURCE_SUBDIR fakedir)
+else()
 FetchContent_Declare(abseil GIT_REPOSITORY https://github.com/abseil/abseil-cpp GIT_TAG 20240722.0 SOURCE_SUBDIR fakedir)
 FetchContent_Declare(re2    GIT_REPOSITORY https://github.com/google/re2        GIT_TAG 2025-11-05 SOURCE_SUBDIR fakedir)
+endif()
 
 FetchContent_MakeAvailable(abseil re2)
 

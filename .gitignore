@@ -20,3 +20,5 @@ scripts/RC*
 # macOS system files
 **/.DS_Store
 
+# Nix build files
+**/result

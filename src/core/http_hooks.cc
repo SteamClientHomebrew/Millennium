@@ -63,7 +63,10 @@ static const std::unordered_set<std::string> g_doNotHook = {
 
     /** Ignore YouTube-related content */
     R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)",
-    R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"
+    R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)",
+
+    /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
+    R"(https?:\/\/(?:[\w-]+\.)*chromewebstore\.google\.com\/[^\s"']*)",
 };
 // clang-format on
 

@@ -10,7 +10,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test-pkgbuild:
+    uses: ./.github/workflows/test-pkgbuild.yml
+
   aur-push:
+    needs: test-pkgbuild
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
