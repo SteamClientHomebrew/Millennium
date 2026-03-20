@@ -108,6 +108,7 @@ class BackendManager : public Singleton<BackendManager>
 
     static std::atomic<size_t>& Lua_GetPluginCounter(const std::string& plugin_name);
 
+    bool m_hasShutdown = false;
     std::mutex m_pythonMutex;
     std::vector<std::tuple<lua_State*, std::unique_ptr<std::mutex>>> m_luaMutexPool;
     PyThreadState* m_InterpreterThreadSave;

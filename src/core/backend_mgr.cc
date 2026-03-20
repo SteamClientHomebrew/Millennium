@@ -210,6 +210,9 @@ done:
  */
 void BackendManager::Shutdown()
 {
+    if (m_hasShutdown) return;
+    m_hasShutdown = true;
+
     Logger.Warn("Unloading {} plugin(s) and preparing for exit...", this->m_pythonInstances.size() + this->m_luaThreadPool.size());
 
 #ifdef MILLENNIUM_32BIT
