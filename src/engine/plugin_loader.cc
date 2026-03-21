@@ -29,6 +29,7 @@
  */
 
 #include "millennium/core_ipc.h"
+#include "millennium/plugin_config.h"
 #include "mep/crash_event_bus.h"
 #include "head/entry_point.h"
 #include "millennium/life_cycle.h"
@@ -186,7 +187,10 @@ void plugin_loader::init_devtools()
         auto targets = m_cdp->send_host("Target.getTargets").get();
 
         if (targets.contains("targetInfos") && targets["targetInfos"].is_array() && !targets["targetInfos"].empty()) {
-            auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(), [&](const auto& target) { return target.value("title", "") == targetFrame; });
+            auto it = std::find_if(targets["targetInfos"].begin(), targets["targetInfos"].end(), [&](const auto& target)
+            {
+                return target.value("title", "") == targetFrame;
+            });
 
             if (it != targets["targetInfos"].end()) {
                 auto targetId = it->at("targetId").get<std::string>();
@@ -230,8 +234,14 @@ std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr
 
     browserProps->name = "CEFBrowser";
     browserProps->fetch_socket_url = std::bind(&socket_utils::get_steam_browser_context, socketHelpers);
-    browserProps->on_connect = [this](std::shared_ptr<cdp_client> cdp) { this->devtools_connection_hdlr(std::move(cdp)); };
-    return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps] { ptrSocketHelpers->connect_socket(browserProps); }));
+    browserProps->on_connect = [this](std::shared_ptr<cdp_client> cdp)
+    {
+        this->devtools_connection_hdlr(std::move(cdp));
+    };
+    return std::make_shared<std::thread>(std::thread([ptrSocketHelpers = socketHelpers, browserProps]
+    {
+        ptrSocketHelpers->connect_socket(browserProps);
+    }));
 }
 
 void plugin_loader::setup_webkit_shims()
@@ -326,15 +336,38 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
         self->m_cdp->send("Page.enable").get();
 
         if (!self->document_script_id.empty()) {
-            self->m_cdp->send("Page.removeScriptToEvaluateOnNewDocument", json{{ "identifier", self->document_script_id }}).get();
+            const json params = {
+                { "identifier", self->document_script_id }
+            };
+
+            self->m_cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
             self->document_script_id.clear();
         }
 
         json params = {
             { "source", self->cdp_generate_shim_module() }
         };
-        auto resultId = self->m_cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
-        self->document_script_id = resultId["identifier"].get<std::string>();
+
+        constexpr int max_retries = 3;
+        for (int attempt = 0; attempt < max_retries; ++attempt) {
+            try {
+                auto result = self->m_cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
+
+                if (!result.contains("identifier") || !result["identifier"].is_string()) {
+                    LOG_ERROR("Page.addScriptToEvaluateOnNewDocument returned unexpected result: {}", result.dump());
+                    continue;
+                }
+
+                self->document_script_id = result["identifier"].get<std::string>();
+                return;
+            } catch (const std::exception& e) {
+                LOG_ERROR("Page.addScriptToEvaluateOnNewDocument failed (attempt {}/{}): {}", attempt + 1, max_retries, e.what());
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        }
+
+        LOG_ERROR("Failed to register SDK script after {} attempts — frontend will not load", max_retries);
     });
 
     /**
@@ -594,16 +627,23 @@ void plugin_loader::setup_child_request_handler()
 
             CURL* curl = curl_easy_init();
             if (!curl) {
-                return {{ "error", "failed to initialize curl" }};
+                return {
+                    { "error", "failed to initialize curl" }
+                };
             }
 
             static constexpr size_t MAX_RESPONSE_BODY = 64u * 1024u * 1024u; /* 64 MB */
 
-            struct body_ctx { std::string data; bool exceeded; };
+            struct body_ctx
+            {
+                std::string data;
+                bool exceeded;
+            };
             body_ctx body{ {}, false };
             nlohmann::json response_headers = nlohmann::json::object();
 
-            auto write_cb = +[](char* ptr, size_t size, size_t nmemb, void* ud) -> size_t {
+            auto write_cb = +[](char* ptr, size_t size, size_t nmemb, void* ud) -> size_t
+            {
                 auto* ctx = static_cast<body_ctx*>(ud);
                 size_t bytes = size * nmemb;
                 if (ctx->data.size() + bytes > MAX_RESPONSE_BODY) {
@@ -614,19 +654,25 @@ void plugin_loader::setup_child_request_handler()
                 return bytes;
             };
 
-            struct header_ctx { nlohmann::json* headers; };
+            struct header_ctx
+            {
+                nlohmann::json* headers;
+            };
             header_ctx hctx{ &response_headers };
 
-            auto header_cb = +[](char* buf, size_t size, size_t nitems, void* ud) -> size_t {
+            auto header_cb = +[](char* buf, size_t size, size_t nitems, void* ud) -> size_t
+            {
                 size_t len = size * nitems;
                 auto* ctx = static_cast<header_ctx*>(ud);
                 std::string line(buf, len);
-                while (!line.empty() && (line.back() == '\r' || line.back() == '\n')) line.pop_back();
+                while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+                    line.pop_back();
                 auto colon = line.find(':');
                 if (colon != std::string::npos && !line.empty()) {
                     std::string key = line.substr(0, colon);
                     std::string val = line.substr(colon + 1);
-                    while (!val.empty() && val.front() == ' ') val.erase(val.begin());
+                    while (!val.empty() && val.front() == ' ')
+                        val.erase(val.begin());
                     (*ctx->headers)[key] = val;
                 }
                 return len;
@@ -686,11 +732,15 @@ void plugin_loader::setup_child_request_handler()
             curl_easy_cleanup(curl);
 
             if (body.exceeded) {
-                return {{ "error", "response body exceeded 64 MB limit" }};
+                return {
+                    { "error", "response body exceeded 64 MB limit" }
+                };
             }
 
             if (res != CURLE_OK) {
-                return {{ "error", curl_easy_strerror(res) }};
+                return {
+                    { "error", curl_easy_strerror(res) }
+                };
             }
 
             return {
@@ -709,24 +759,35 @@ void plugin_loader::setup_child_request_handler()
             const std::string user_agent = params.value("user_agent", "Millennium/1.0");
 
             if (dest.empty()) {
-                return {{ "error", "path is required" }};
+                return {
+                    { "error", "path is required" }
+                };
             }
 
             FILE* fp = fopen(dest.c_str(), "wb");
             if (!fp) {
-                return {{ "error", "failed to open file: " + dest }};
+                return {
+                    { "error", "failed to open file: " + dest }
+                };
             }
 
             CURL* curl = curl_easy_init();
             if (!curl) {
                 fclose(fp);
-                return {{ "error", "failed to initialize curl" }};
+                return {
+                    { "error", "failed to initialize curl" }
+                };
             }
 
-            struct dl_ctx { FILE* fp; size_t written; };
+            struct dl_ctx
+            {
+                FILE* fp;
+                size_t written;
+            };
             dl_ctx ctx{ fp, 0 };
 
-            auto write_cb = +[](char* ptr, size_t size, size_t nmemb, void* ud) -> size_t {
+            auto write_cb = +[](char* ptr, size_t size, size_t nmemb, void* ud) -> size_t
+            {
                 auto* c = static_cast<dl_ctx*>(ud);
                 size_t bytes = fwrite(ptr, size, nmemb, c->fp);
                 c->written += bytes * size;
@@ -763,13 +824,54 @@ void plugin_loader::setup_child_request_handler()
 
             if (res != CURLE_OK) {
                 std::filesystem::remove(dest);
-                return {{ "error", curl_easy_strerror(res) }};
+                return {
+                    { "error", curl_easy_strerror(res) }
+                };
             }
 
             return {
-                { "success",      true         },
-                { "status",       status_code  },
-                { "bytes_written", ctx.written  }
+                { "success",       true        },
+                { "status",        status_code },
+                { "bytes_written", ctx.written }
+            };
+        }
+
+        if (method == plugin_ipc::child_method::CONFIG_GET) {
+            auto r = plugin_config::get(plugin_name, params.value("key", ""));
+            return r.success ? json{{ "value", r.value }} : json{{ "error", r.value }};
+        }
+
+        if (method == plugin_ipc::child_method::CONFIG_SET) {
+            auto ipc = self->m_ipc_main;
+            plugin_config::notify_targets targets{ ipc ? plugin_config::eval_js_fn(
+                                                             [ipc](const std::string& s)
+            {
+                ipc->evaluate_javascript_expression(s);
+            })
+                                                       : plugin_config::eval_js_fn{},
+                                                   {} };
+            json value = params.contains("value") ? params["value"] : json(nullptr);
+            auto r = plugin_config::set(targets, plugin_config::origin::lua_child, plugin_name, params.value("key", ""), value);
+            return r.success ? json{{ "success", true }} : json{{ "error", r.value }};
+        }
+
+        if (method == plugin_ipc::child_method::CONFIG_DELETE) {
+            auto ipc = self->m_ipc_main;
+            plugin_config::notify_targets targets{ ipc ? plugin_config::eval_js_fn(
+                                                             [ipc](const std::string& s)
+            {
+                ipc->evaluate_javascript_expression(s);
+            })
+                                                       : plugin_config::eval_js_fn{},
+                                                   {} };
+            auto r = plugin_config::del(targets, plugin_config::origin::lua_child, plugin_name, params.value("key", ""));
+            return r.success ? json{{ "success", true }} : json{{ "error", r.value }};
+        }
+
+        if (method == plugin_ipc::child_method::CONFIG_GET_ALL) {
+            auto r = plugin_config::get_all(plugin_name);
+            return {
+                { "config", r.value }
             };
         }
 

@@ -42,6 +42,15 @@ enum IpcMethod {
 	CALL_SERVER_METHOD,
 	FRONT_END_LOADED,
 	CALL_FRONTEND_METHOD,
+	PLUGIN_CONFIG,
+}
+
+enum ConfigMethod {
+	GET,
+	SET,
+	DELETE,
+	GET_ALL,
+	DELETE_ALL,
 }
 
 interface ResponsePayload {
@@ -72,7 +81,7 @@ class FFI_Binder {
 		return '';
 	}
 
-	async call(payloadType: IpcMethod, pluginName: string, methodName: string, argumentList: any[]): Promise<any> {
+	async call(payloadType: IpcMethod, pluginName: string, methodName: string | number, argumentList: any): Promise<any> {
 		if (typeof (window as any).__private_millennium_ffi_do_not_use__ !== 'function') {
 			console.error("Millennium FFI is not available in this context. To use the FFI, make sure you've selected the 'millennium' context");
 			return;
@@ -168,14 +177,121 @@ export const Millennium = {
 // @ts-expect-error. The types don't have pluginName on callServerMethod, but it is used in the client.
 window.Millennium = Millennium;
 
-// Callable wrapper
-export const callable =
-	<Args extends any[] = [], Return = void | IPC_types>(cb: (route: string, ...args: Args) => Promise<Return>, route: string): ((...args: Args) => Promise<Return>) =>
-	(...args: Args) =>
-		cb(route, ...args);
+// Callable wrapper — creates a reusable RPC function for a given route.
+export function callable(pluginNameOrFn: string | ((...args: any[]) => any), route: string) {
+	if (typeof pluginNameOrFn === 'function') {
+		// Old API: callable(__call_server_method__, route)
+		// __call_server_method__(route, ...args) → Millennium.callServerMethod(pluginName, route, ...args)
+		return (...args: any[]) => pluginNameOrFn(route, ...args);
+	}
+	return (...args: any[]) => Millennium.callServerMethod(pluginNameOrFn, route, ...args);
+}
 
 // Only define pluginSelf if on loopback host
 const m_private_context: any = undefined;
 export const pluginSelf = isClient ? m_private_context : undefined;
 
 export const BindPluginSettings = (pluginName: string) => window.MILLENNIUM_PLUGIN_SETTINGS_STORE?.[pluginName]?.settingsStore;
+
+type ConfigChangeCallback = (key: string, value: any) => void;
+const _pluginConfigListeners = new Map<string, Set<ConfigChangeCallback>>();
+
+(window as any).__millennium_plugin_config_changed__ = (
+	pluginName: string,
+	key: string,
+	valueJson: string,
+) => {
+	try {
+		const listeners = _pluginConfigListeners.get(pluginName);
+		if (!listeners) return;
+		const value = JSON.parse(valueJson);
+		listeners.forEach(cb => cb(key, value));
+	} catch (e) {
+		console.error('[Millennium] Config change error:', e);
+	}
+};
+
+export function subscribePluginConfig(pluginName: string, cb: ConfigChangeCallback): () => void {
+	let set = _pluginConfigListeners.get(pluginName);
+	if (!set) {
+		set = new Set();
+		_pluginConfigListeners.set(pluginName, set);
+	}
+	set.add(cb);
+	return () => {
+		set!.delete(cb);
+		if (set!.size === 0) _pluginConfigListeners.delete(pluginName);
+	};
+}
+
+async function _configCall(pluginName: string, method: ConfigMethod, args: Record<string, any> = {}) {
+	const raw = await ffiBinder.call(IpcMethod.PLUGIN_CONFIG, pluginName, method, args);
+	return JSON.parse(raw);
+}
+
+export const pluginConfig = {
+	get: <T = any>(pluginName: string, key: string): Promise<T> =>
+		_configCall(pluginName, ConfigMethod.GET, { key }),
+
+	set: (pluginName: string, key: string, value: any): Promise<void> =>
+		_configCall(pluginName, ConfigMethod.SET, { key, value }),
+
+	delete: (pluginName: string, key: string): Promise<void> =>
+		_configCall(pluginName, ConfigMethod.DELETE, { key }),
+
+	getAll: <T = Record<string, any>>(pluginName: string): Promise<T> =>
+		_configCall(pluginName, ConfigMethod.GET_ALL, {}),
+};
+
+const _React = () => (window as any).SP_REACT;
+
+export function usePluginConfig<T = any>(pluginName: string, key?: string): [T | undefined, (...args: any[]) => Promise<void>] {
+	const React = _React();
+	const [state, setState] = React.useState(undefined as T | undefined);
+
+	React.useEffect(() => {
+		let cancelled = false;
+
+		const fetchInitial = async () => {
+			try {
+				const result = key
+					? await pluginConfig.get<T>(pluginName, key)
+					: await pluginConfig.getAll(pluginName);
+				if (!cancelled) setState(result as T);
+			} catch {
+				/* initial fetch failed — leave as undefined */
+			}
+		};
+
+		fetchInitial();
+
+		const unsub = subscribePluginConfig(pluginName, (changedKey, value) => {
+			if (cancelled) return;
+			if (key) {
+				if (changedKey === key) setState(value);
+			} else {
+				setState((prev: any) => ({ ...prev, [changedKey]: value }));
+			}
+		});
+
+		return () => {
+			cancelled = true;
+			unsub();
+		};
+	}, [pluginName, key]);
+
+	const setter = React.useCallback(
+		key
+			? async (value: T) => {
+					await pluginConfig.set(pluginName, key, value);
+					setState(value);
+				}
+			: async (k: string, v: any) => {
+					await pluginConfig.set(pluginName, k, v);
+					setState((prev: any) => ({ ...prev, [k]: v }));
+				},
+		[pluginName, key],
+	);
+
+	return [state, setter];
+}

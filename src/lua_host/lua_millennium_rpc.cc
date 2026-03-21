@@ -29,6 +29,7 @@
  */
 
 #include "rpc.h"
+#include "lua_config_rpc.h"
 #include "millennium/types.h"
 #include <lua.hpp>
 
@@ -238,23 +239,11 @@ static int RPC_CompareVersion(lua_State* L)
     return 1;
 }
 
-static int RPC_GetUserSettings(lua_State* L)
-{
-    return luaL_error(L, "get_user_settings is not implemented yet.");
-}
-
-static int RPC_SetUserSettings(lua_State* L)
-{
-    return luaL_error(L, "set_user_settings_key is not implemented yet.");
-}
-
 static const luaL_Reg millennium_lib[] = {
     { "ready",                 RPC_EmitReadyMessage    },
     { "add_browser_css",       RPC_AddBrowserCss       },
     { "add_browser_js",        RPC_AddBrowserJs        },
     { "remove_browser_module", RPC_RemoveBrowserModule },
-    { "get_user_settings",     RPC_GetUserSettings     },
-    { "set_user_settings_key", RPC_SetUserSettings     },
     { "version",               RPC_GetVersionInfo      },
     { "steam_path",            RPC_GetSteamPath        },
     { "get_install_path",      RPC_GetInstallPath      },
@@ -267,5 +256,6 @@ static const luaL_Reg millennium_lib[] = {
 extern "C" int luaopen_millennium_lib(lua_State* L)
 {
     luaL_newlib(L, millennium_lib);
+    register_config_module(L);
     return 1;
 }

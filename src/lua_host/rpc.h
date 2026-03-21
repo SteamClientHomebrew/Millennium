@@ -67,4 +67,6 @@ class rpc_client
     std::atomic<bool> m_connected{true};
     std::atomic<int> m_next_id{1};
     std::mutex m_write_mutex;
+
+    std::vector<nlohmann::json> m_deferred_notifications;
 };

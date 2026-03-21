@@ -269,6 +269,15 @@ void backend_manager::notify_frontend_loaded(const std::string& pluginName)
     it->second->notify_child(plugin_ipc::parent_method::ON_FRONTEND_LOADED);
 }
 
+void backend_manager::notify_child(const std::string& pluginName, const std::string& method, const nlohmann::json& params)
+{
+    std::lock_guard<std::mutex> lock(m_processes_mutex);
+    auto it = m_processes.find(pluginName);
+    if (it == m_processes.end()) return;
+
+    it->second->notify_child(method, params);
+}
+
 void backend_manager::set_child_request_handler(PluginProcess::request_handler handler)
 {
     m_child_request_handler = std::move(handler);

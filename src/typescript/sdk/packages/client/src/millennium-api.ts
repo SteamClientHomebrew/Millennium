@@ -63,6 +63,20 @@ declare global {
 
 const BindPluginSettings: () => any = (): any => undefined;
 
+const pluginConfig: {
+	get: <T = any>(key: string) => Promise<T>;
+	set: (key: string, value: any) => Promise<void>;
+	delete: (key: string) => Promise<void>;
+	getAll: <T = Record<string, any>>() => Promise<T>;
+} = { get: async () => undefined as any, set: async () => {}, delete: async () => {}, getAll: async () => ({}) as any };
+
+const usePluginConfig: {
+	<T = any>(key: string): [T | undefined, (value: T) => Promise<void>];
+	(): [Record<string, any>, (key: string, value: any) => Promise<void>];
+} = (() => [undefined, async () => {}]) as any;
+
+const subscribePluginConfig: (cb: (key: string, value: any) => void) => () => void = () => () => {};
+
 interface CDPMessage {
 	id?: number;
 	method: string;
@@ -191,4 +205,4 @@ class MillenniumChromeDevToolsProtocol {
 
 const ChromeDevToolsProtocol: MillenniumChromeDevToolsProtocol = new MillenniumChromeDevToolsProtocol();
 const Millennium: Millennium = window.Millennium;
-export { BindPluginSettings, callable, ChromeDevToolsProtocol, Millennium };
+export { BindPluginSettings, callable, ChromeDevToolsProtocol, Millennium, pluginConfig, subscribePluginConfig, usePluginConfig };

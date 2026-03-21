@@ -70,7 +70,7 @@ class theme_installer
     bool has_updates(const std::filesystem::path& path, const nlohmann::json& remoteTheme);
     nlohmann::json create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme);
 
-    void write_metadata(const std::filesystem::path& themePath, const std::string& owner, const std::string& repo, const std::string& commit);
+    bool write_metadata(const std::filesystem::path& themePath, const std::string& owner, const std::string& repo, const std::string& commit);
     std::optional<nlohmann::json> read_metadata(const std::filesystem::path& themePath);
     std::string get_commit_hash(const std::filesystem::path& path);
     void migrate_legacy_themes();

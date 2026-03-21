@@ -71,6 +71,8 @@ class backend_manager
     /** rpc notify child that frontend loaded. */
     void notify_frontend_loaded(const std::string& pluginName);
 
+    void notify_child(const std::string& pluginName, const std::string& method, const nlohmann::json& params = nullptr);
+
     /** set the handler for child-initiated RPCs (call_frontend_method, etc.). */
     void set_child_request_handler(PluginProcess::request_handler handler);
 

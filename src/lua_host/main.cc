@@ -38,6 +38,7 @@
 
 #include "rpc.h"
 #include "crash_handler.h"
+#include "lua_config_rpc.h"
 #include "millennium/types.h"
 #include "millennium/plugin_ipc.h"
 
@@ -552,6 +553,13 @@ int main(int argc, char* argv[])
             return {
                 { "heap_bytes", heap_kb * 1024 + heap_extra }
             };
+        }
+
+        if (method == plugin_ipc::parent_method::CONFIG_CHANGED) {
+            std::string key = params.value("key", "");
+            json value = params.value("value", json(nullptr));
+            dispatch_config_change(L, key, value);
+            return {{ "ok", true }};
         }
 
         if (method == plugin_ipc::parent_method::SHUTDOWN) {

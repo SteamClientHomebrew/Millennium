@@ -7,6 +7,7 @@ set(LUA_HOST_SOURCES
     ${MILLENNIUM_BASE}/src/shared/crash_report.cc
     ${MILLENNIUM_BASE}/src/shared/crash_handler_core.cc
     lua_millennium_rpc.cc
+    lua_config_rpc.cc
     lua_logger_rpc.cc
     lua_http.cc
     lua_utils.cc

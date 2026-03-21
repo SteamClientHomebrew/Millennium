@@ -202,7 +202,6 @@ void platform::environment::setup()
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
-        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT },
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
@@ -221,7 +220,6 @@ void platform::environment::setup()
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
-        { "MILLENNIUM__UPDATE_SCRIPT_PROMPT", MILLENNIUM__UPDATE_SCRIPT_PROMPT },
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif

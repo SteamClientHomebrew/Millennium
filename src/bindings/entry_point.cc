@@ -29,6 +29,7 @@
  */
 
 #include "head/entry_point.h"
+#include "millennium/linux_distro_helpers.h"
 #include "head/library_updater.h"
 #include "mep/crash_event_bus.h"
 #include "head/scan.h"
@@ -127,13 +128,27 @@ head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> n
     };
 }
 
-const char* head::millennium_backend::get_millennium_updater_script()
+std::string head::millennium_backend::get_millennium_updater_script()
 {
-#ifdef MILLENNIUM__UPDATE_SCRIPT_PROMPT
-    return MILLENNIUM__UPDATE_SCRIPT_PROMPT;
+#ifdef __linux__
+    constexpr const char* default_script = "curl -fsSL 'https://steambrew.app/install.sh' | bash";
+
+    /**
+     * check if we are installed from nix flake
+     * TODO: if we get merged into nixpkgs, does this work?
+     */
+    if (access("/etc/NIXOS", F_OK) == 0) {
+        return "nix flake update millennium";
+    }
+
+    /* check if we're on arch being managed by an AUR manager */
+    if (program_in_path("pacman") && millennium_is_pacman_managed()) {
+        return get_aur_update_command();
+    }
+
+    return default_script;
 #else
-#error "missing MILLENNIUM__UPDATE_SCRIPT_PROMPT";
-    return nullptr;
+    return {};
 #endif
 }
 
@@ -195,7 +210,7 @@ builtin_payload head::millennium_backend::Core_GetStartConfig(const builtin_payl
 
     return {
         { "accent_color", m_theme_config->get_accent_color() },
-        { "conditions", CONFIG.get({"themes", "conditions"}, nlohmann::json::object()) },
+        { "conditions", CONFIG.get({ "themes", "conditions" }, nlohmann::json::object()) },
         { "active_theme", m_theme_config->get_active_theme() },
         { "settings", CONFIG.get_all() },
         { "steamPath", platform::get_steam_path() },
@@ -314,7 +329,8 @@ builtin_payload head::millennium_backend::Core_InstallTheme(const builtin_payloa
     auto owner = args["owner"].get<std::string>();
     int op_id = updater->start_operation();
 
-    std::thread([theme_updater_weak, updater, themeConfig, repo, owner, op_id]() {
+    std::thread([theme_updater_weak, updater, themeConfig, repo, owner, op_id]()
+    {
         updater->set_thread_op_id(op_id);
         try {
             if (auto theme_updater = theme_updater_weak.lock()) {
@@ -333,7 +349,11 @@ builtin_payload head::millennium_backend::Core_InstallTheme(const builtin_payloa
         }
     }).detach();
 
-    return nlohmann::json{{ "success", true }, { "started", true }, { "opId", op_id }};
+    return nlohmann::json{
+        { "success", true  },
+        { "started", true  },
+        { "opId",    op_id }
+    };
 }
 builtin_payload head::millennium_backend::Core_UninstallTheme(const builtin_payload& args)
 {
@@ -351,7 +371,8 @@ builtin_payload head::millennium_backend::Core_DownloadThemeUpdate(const builtin
     auto native = args["native"].get<std::string>();
     int op_id = updater->start_operation();
 
-    std::thread([updater, themeConfig, native, op_id]() {
+    std::thread([updater, themeConfig, native, op_id]()
+    {
         updater->set_thread_op_id(op_id);
         try {
             bool success = updater->download_theme_update(themeConfig, native);
@@ -364,7 +385,9 @@ builtin_payload head::millennium_backend::Core_DownloadThemeUpdate(const builtin
         }
     }).detach();
 
-    return nlohmann::json{{ "opId", op_id }};
+    return nlohmann::json{
+        { "opId", op_id }
+    };
 }
 builtin_payload head::millennium_backend::Core_IsThemeInstalled(const builtin_payload& args)
 {
@@ -394,7 +417,8 @@ builtin_payload head::millennium_backend::Core_DownloadPluginUpdate(const builti
     auto commit = args.value("commit", std::string{});
     int op_id = updater->start_operation();
 
-    std::thread([updater, id, name, commit, op_id]() {
+    std::thread([updater, id, name, commit, op_id]()
+    {
         updater->set_thread_op_id(op_id);
         try {
             bool success = updater->download_plugin_update(id, name, commit);
@@ -407,7 +431,9 @@ builtin_payload head::millennium_backend::Core_DownloadPluginUpdate(const builti
         }
     }).detach();
 
-    return nlohmann::json{{ "opId", op_id }};
+    return nlohmann::json{
+        { "opId", op_id }
+    };
 }
 builtin_payload head::millennium_backend::Core_KillPluginBackend(const builtin_payload& args)
 {
@@ -435,7 +461,8 @@ builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_paylo
         total_size = args["total_size"].get<size_t>();
     }
 
-    std::thread([plugin_updater_weak, updater, download_url, total_size, op_id]() {
+    std::thread([plugin_updater_weak, updater, download_url, total_size, op_id]()
+    {
         updater->set_thread_op_id(op_id);
         try {
             if (auto plugin_updater = plugin_updater_weak.lock()) {
@@ -454,7 +481,11 @@ builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_paylo
         }
     }).detach();
 
-    return nlohmann::json{{ "success", true }, { "started", true }, { "opId", op_id }};
+    return nlohmann::json{
+        { "success", true  },
+        { "started", true  },
+        { "opId",    op_id }
+    };
 }
 builtin_payload head::millennium_backend::Core_IsPluginInstalled(const builtin_payload& args)
 {

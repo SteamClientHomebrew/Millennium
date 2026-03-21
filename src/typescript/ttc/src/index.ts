@@ -30,11 +30,6 @@
  * SOFTWARE.
  */
 
-/**
- * this component serves as:
- * - typescript transpiler
- * - rollup configurator
- */
 import { BuildType, ValidateParameters } from './query-parser';
 import { CheckForUpdates } from './version-control';
 import { ValidatePlugin } from './check-health';

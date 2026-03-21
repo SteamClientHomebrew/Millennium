@@ -76,8 +76,7 @@ json rpc_client::call(const std::string& method, const json& params)
         throw std::runtime_error("rpc_client: failed to send request");
     }
 
-    /* just keep reading until our response shows up — the parent won't
-       send us a new request while we're mid-call, so this is safe. */
+    /* notifications can interleave while we wait for our response — defer them */
     while (m_connected.load()) {
         json msg;
         if (!read_message(msg)) {
@@ -93,7 +92,11 @@ json rpc_client::call(const std::string& method, const json& params)
             return msg.value("result", json(nullptr));
         }
 
-        /* unexpected message while waiting for response — shouldn't happen */
+        if (type == plugin_ipc::TYPE_NOTIFY) {
+            m_deferred_notifications.push_back(std::move(msg));
+            continue;
+        }
+
         fprintf(stderr, "[lua-host] unexpected message while waiting for response id=%d: %s\n", id, msg.dump().c_str());
     }
 
@@ -132,6 +135,25 @@ void rpc_client::respond_error(int id, const std::string& error)
 
 void rpc_client::run(request_handler handler)
 {
+    auto dispatch_notification = [&](const json& notif)
+    {
+        try {
+            handler(notif.value("method", ""), notif.value("params", json(nullptr)));
+        } catch (...) {
+        }
+    };
+
+    auto drain_deferred = [&]()
+    {
+        while (!m_deferred_notifications.empty()) {
+            auto batch = std::move(m_deferred_notifications);
+            m_deferred_notifications.clear();
+            for (const auto& notif : batch) {
+                dispatch_notification(notif);
+            }
+        }
+    };
+
     while (m_connected.load()) {
         json msg;
         if (!read_message(msg)) break;
@@ -150,15 +172,8 @@ void rpc_client::run(request_handler handler)
                 respond_error(id, e.what());
             }
         } else if (type == plugin_ipc::TYPE_NOTIFY) {
-            std::string method = msg.value("method", "");
-            json params = msg.value("params", json(nullptr));
-
-            try {
-                handler(method, params);
-            } catch (...) {
-                /* notifications don't get responses */
-            }
+            dispatch_notification(msg);
         }
-        /* ignore responses — we only get those inside call() */
+        drain_deferred();
     }
 }

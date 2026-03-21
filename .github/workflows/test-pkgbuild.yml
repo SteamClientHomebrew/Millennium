@@ -2,6 +2,12 @@ name: Test Arch PKGBUILD
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to checkout (branch, tag, or SHA). Defaults to the triggering ref.'
+        type: string
+        required: false
+        default: ''
   workflow_dispatch:
 
 concurrency:
@@ -29,6 +35,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref || github.ref }}
           submodules: true
 
       - name: Build package
@@ -47,8 +54,52 @@ jobs:
 
       - name: Verify package
         run: |
-          echo "Built packages:"
+          echo "=== Built packages ==="
           ls -lh /home/builder/pkg/*.pkg.tar.zst
+
           echo ""
-          echo "Package contents:"
-          tar -tf /home/builder/pkg/*.pkg.tar.zst | grep -E '\.(so|so\.[0-9]|$)' | head -20
+          echo "=== Extracting package for verification ==="
+          mkdir -p /tmp/pkg-verify
+          tar -xf /home/builder/pkg/*.pkg.tar.zst -C /tmp/pkg-verify
+
+          echo ""
+          echo "=== Verifying required binaries are present ==="
+          REQUIRED=(
+            "usr/lib/millennium/libmillennium_x86.so"
+            "usr/lib/millennium/libmillennium_hhx64.so"
+            "usr/lib/millennium/libmillennium_bootstrap_x86.so"
+            "usr/lib/millennium/libmillennium_luavm_x86"
+            "usr/lib/millennium/libmillennium_bootstrap_hhx64.so"
+          )
+          MISSING=0
+          for f in "${REQUIRED[@]}"; do
+            if [ -f "/tmp/pkg-verify/$f" ]; then
+              echo "  FOUND:   $f"
+            else
+              echo "  MISSING: $f"
+              MISSING=1
+            fi
+          done
+          [ $MISSING -eq 0 ] || { echo "ERROR: one or more required binaries missing from package"; exit 1; }
+
+          echo ""
+          echo "=== Verifying binary architectures ==="
+          check_arch() {
+            local path="$1" bits="$2"
+            local info
+            info=$(file "/tmp/pkg-verify/$path")
+            if echo "$info" | grep -q "ELF ${bits}-bit"; then
+              echo "  OK  (${bits}-bit ELF): $path"
+            else
+              echo "  FAIL (expected ${bits}-bit ELF): $path"
+              echo "       got: $info"
+              return 1
+            fi
+          }
+          ARCH_FAIL=0
+          check_arch "usr/lib/millennium/libmillennium_x86.so"             32 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_bootstrap_x86.so"   32 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_luavm_x86"          32 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_hhx64.so"           64 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_bootstrap_hhx64.so" 64 || ARCH_FAIL=1
+          [ $ARCH_FAIL -eq 0 ] || { echo "ERROR: binary architecture mismatch"; exit 1; }

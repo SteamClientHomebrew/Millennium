@@ -1,7 +1,7 @@
 # shellcheck disable=SC2034,SC2086,SC2128,SC2148,SC2154,SC2164,SC2291
 # Maintainers: SteamClientHomebrew <https://github.com/SteamClientHomebrew>
 
-pkgver=3.0.0_beta.7
+pkgver=3.0.0_beta.10
 pkgname="millennium"
 _Pkgname="Millennium"
 pkgrel=5
@@ -32,7 +32,7 @@ makedepends=(
     'libx11'
     'libxtst'
 )
-source=("git+${url}.git#commit=7032b17a912aad61204322a5cfc855e34738d363") # TODO: update to commit on main branch when we merge.
+source=("git+${url}.git#commit=d7ac8620b46e9d0a41b140430fb06f68e1729532") # TODO: update to commit on main branch when we merge.
 sha256sums=('SKIP')
 options=(!debug)
 install="${pkgname}.install"

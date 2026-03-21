@@ -36,7 +36,7 @@ import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuCon
 import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
 import { PluginComponent } from '../../types';
 import { Utils } from '../../utils';
-import { PyUninstallPlugin } from '../../utils/ffi';
+import { PyUninstallPlugin, PyPluginConfigGetAll, PyPluginConfigDeleteAll } from '../../utils/ffi';
 import { formatString, locale } from '../../utils/localization-manager';
 import { MillenniumIcons } from '../../components/Icons';
 import { showPluginCrashModal } from '../../components/PluginCrashModal';
@@ -79,6 +79,21 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 			Utils.ShowMessageBox(formatString(locale.pluginUninstallFailed, plugin.data.common_name), locale.errorMessageTitle, {
 				bAlertDialog: true,
 			});
+		} else {
+			try {
+				const configData = JSON.parse(await PyPluginConfigGetAll({ pluginName: plugin.data.name }));
+				if (configData && Object.keys(configData).length > 0) {
+					const shouldDelete = await Utils.ShowMessageBox(
+						formatString(locale.pluginDeleteConfigPrompt ?? 'Do you want to delete saved settings for {0}?', plugin.data.common_name),
+						locale.strHeadsUp,
+					);
+					if (shouldDelete) {
+						await PyPluginConfigDeleteAll({ pluginName: plugin.data.name });
+					}
+				}
+			} catch {
+				/* no config data or error — skip silently */
+			}
 		}
 
 		await refetchPlugins();

@@ -198,21 +198,6 @@ if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_DEBUG "")
 endif()
 
-include(${MILLENNIUM_BASE}/scripts/cmake/detect_aur_helper.cmake)
-
-if(DISTRO_NIX)
-    detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
-    set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "echo {}")
-elseif(UNIX AND NOT APPLE)
-    if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
-        detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
-    elseif(NIX_BUILD OR LSB_RELEASE_ID_SHORT STREQUAL "NixOS")
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "nix flake update millennium")
-    else()
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://steambrew.app/install.sh' | bash")
-    endif()
-    message(STATUS "[Millennium] Setting MILLENNIUM__UPDATE_SCRIPT_PROMPT to: ${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
-endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
 
@@ -222,7 +207,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT DISTRO_NIX)
     find_program(BUN_EXECUTABLE bun REQUIRED)
     message(STATUS "[Millennium] Building TypeScript frontend...")
     execute_process(
-        COMMAND ${BUN_EXECUTABLE} install --frozen-lockfile
+        COMMAND ${BUN_EXECUTABLE} install
         WORKING_DIRECTORY "${MILLENNIUM_BASE}/src/typescript"
         RESULT_VARIABLE _bun_result
     )
@@ -243,12 +228,10 @@ include(${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake)
 
 if(WIN32)
     add_library(Millennium SHARED "${SOURCE_FILES}")
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="https://github.com/SteamClientHomebrew/Installer/releases/latest/download/MillenniumInstaller-Windows.exe")
 elseif(UNIX)
     add_library(Millennium SHARED "${SOURCE_FILES}")
 
     add_compile_definitions(MILLENNIUM_SHARED)
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
     if(APPLE)
         target_compile_definitions(Millennium PRIVATE MILLENNIUM_MENU_ICON_PATH="${MILLENNIUM_BASE}/src/bootstrap/macos/AppIcon.icns")
     endif()

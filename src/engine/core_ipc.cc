@@ -30,8 +30,8 @@
 
 #include "millennium/auth.h"
 #include "millennium/core_ipc.h"
-#include "millennium/encoding.h"
 #include "millennium/logger.h"
+#include "millennium/plugin_config.h"
 #include "mep/ffi_recorder.h"
 
 #include <chrono>
@@ -162,10 +162,14 @@ json ipc_main::call_server_method(const json& call)
     const auto& data = call["data"];
     if (!data.contains("pluginName")) {
         LOG_ERROR("no plugin backend specified, doing nothing...");
-        return {};
+        return {
+            { "success",    false                           },
+            { "returnJson", "no plugin backend specified"   }
+        };
     }
 
     const std::string pluginName = data["pluginName"];
+
     const auto response = pluginName == "core" ? handle_core_server_method(call) : this->lua_evaluate(pluginName, call["data"]);
 
     json responseMessage{
@@ -195,7 +199,10 @@ json ipc_main::on_front_end_loaded(const json& call)
     const std::string pluginName = call["data"]["pluginName"];
 
     const auto plugins = m_plugin_manager->get_all_plugins();
-    auto plugin = std::find_if(plugins.begin(), plugins.end(), [&pluginName](const auto& p) { return p.plugin_name == pluginName; });
+    auto plugin = std::find_if(plugins.begin(), plugins.end(), [&pluginName](const auto& p)
+    {
+        return p.plugin_name == pluginName;
+    });
 
     /** make sure the plugin has a backend that should be called. */
     if (plugin != plugins.end() && plugin->plugin_json.value("useBackend", true)) {
@@ -208,6 +215,74 @@ json ipc_main::on_front_end_loaded(const json& call)
         { "id",      (call.contains("iteration") ? call["iteration"] : nlohmann::json(nullptr)) },
         { "success", true                                                                       }
     };
+}
+
+json ipc_main::plugin_config_method(const json& call)
+{
+    const auto& data = call["data"];
+    if (!data.contains("pluginName")) {
+        LOG_ERROR("plugin_config_method: no pluginName specified");
+        return {};
+    }
+
+    const std::string pluginName = data["pluginName"];
+    const int method = data.value("methodName", -1);
+
+    if (method < 0 || method > config_method::CONFIG_DELETE_ALL) {
+        return {
+            { "success",    false                                              },
+            { "returnJson", "unknown config method: " + std::to_string(method) }
+        };
+    }
+
+    const auto response = handle_plugin_config(pluginName, static_cast<config_method>(method), data);
+
+    json responseMessage{
+        { "success",    response.success },
+        { "pluginName", pluginName       }
+    };
+    std::visit([&](auto&& arg)
+    {
+        if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::monostate>)
+            responseMessage["returnJson"] = nullptr;
+        else
+            responseMessage["returnJson"] = arg;
+    }, response.value);
+    return responseMessage;
+}
+
+ipc_main::vm_call_result ipc_main::handle_plugin_config(const std::string& pluginName, ipc_main::config_method method, const json& data)
+{
+    const auto& args = data.contains("argumentList") ? data["argumentList"] : json::object();
+    plugin_config::notify_targets targets{ {}, m_backend_manager.lock() };
+
+    auto to_result = [](const plugin_config::result& r) -> vm_call_result
+    {
+        return { r.success, r.success ? r.value : std::variant<std::monostate, bool, uint64_t, int64_t, double, std::string, json>(r.value.get<std::string>()) };
+    };
+
+    try {
+        switch (method) {
+            case CONFIG_SET:
+            {
+                json value = args.contains("value") ? args["value"] : json(nullptr);
+                return to_result(plugin_config::set(targets, plugin_config::origin::frontend, pluginName, args.value("key", ""), value));
+            }
+            case CONFIG_GET:
+                return to_result(plugin_config::get(pluginName, args.value("key", "")));
+            case CONFIG_DELETE:
+                return to_result(plugin_config::del(targets, plugin_config::origin::frontend, pluginName, args.value("key", "")));
+            case CONFIG_GET_ALL:
+                return to_result(plugin_config::get_all(pluginName));
+            case CONFIG_DELETE_ALL:
+                return to_result(plugin_config::delete_all(pluginName));
+
+            default:
+                return { false, std::string("unknown config method") };
+        }
+    } catch (const std::exception& ex) {
+        return { false, std::string(ex.what()) };
+    }
 }
 
 json ipc_main::call_frontend_method(const json& call)
@@ -267,7 +342,8 @@ json ipc_main::process_message(const json payload)
         const std::unordered_map<int, std::function<nlohmann::json(nlohmann::json)>> handlers = {
             { ipc_main::ipc_method::CALL_SERVER_METHOD,   std::bind(&ipc_main::call_server_method,   this, _1) },
             { ipc_main::ipc_method::FRONT_END_LOADED,     std::bind(&ipc_main::on_front_end_loaded,  this, _1) },
-            { ipc_main::ipc_method::CALL_FRONTEND_METHOD, std::bind(&ipc_main::call_frontend_method, this, _1) }
+            { ipc_main::ipc_method::CALL_FRONTEND_METHOD, std::bind(&ipc_main::call_frontend_method, this, _1) },
+            { ipc_main::ipc_method::PLUGIN_CONFIG,        std::bind(&ipc_main::plugin_config_method, this, _1) }
         };
 
         int messageId = payload["id"].get<int>();

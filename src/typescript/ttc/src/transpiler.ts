@@ -50,28 +50,19 @@ import { pathToFileURL } from 'url';
 import dotenv from 'dotenv';
 import injectProcessEnv from 'rollup-plugin-inject-process-env';
 import { performance } from 'perf_hooks';
-import { ExecutePluginModule, InitializePlugins } from './plugin-api';
+import { parse } from '@babel/parser';
+import _generate from '@babel/generator';
+import _template from '@babel/template';
+import * as t from '@babel/types';
 import { Logger } from './logger';
 import { PluginJson } from './plugin-json';
 import constSysfsExpr from './static-embed';
+import astTransforms, { type Transform } from './ast-transforms';
+
+const generate = (typeof _generate === 'function' ? _generate : (_generate as any).default) as typeof _generate;
+const template = (typeof _template === 'function' ? _template : (_template as any).default) as typeof _template;
 
 const env = dotenv.config().parsed ?? {};
-
-declare global {
-	interface Window {
-		PLUGIN_LIST: any;
-		MILLENNIUM_PLUGIN_SETTINGS_STORE: any;
-	}
-}
-
-declare const pluginName: string, millennium_main: any, MILLENNIUM_BACKEND_IPC: any, MILLENNIUM_IS_CLIENT_MODULE: boolean;
-
-declare const MILLENNIUM_API: {
-	callable: (fn: Function, route: string) => any;
-	__INTERNAL_CALL_WEBKIT_METHOD__: (pluginName: string, methodName: string, kwargs: any) => any;
-};
-
-declare const __call_server_method__: (methodName: string, kwargs: any) => any;
 
 export interface TranspilerProps {
 	minify: boolean;
@@ -85,46 +76,62 @@ enum BuildTarget {
 	Webkit,
 }
 
-const kCallServerMethod = 'const __call_server_method__ = (methodName, kwargs) => Millennium.callServerMethod(pluginName, methodName, kwargs)';
+const buildPluginWrapper = template.statements({
+	syntacticPlaceholders: true,
+})(`
+	const MILLENNIUM_IS_CLIENT_MODULE = %%isClient%%;
+	const pluginName = %%pluginName%%;
+	(window.PLUGIN_LIST ||= {})[pluginName] ||= {};
+	window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS ||= {};
 
-function __wrapped_callable__(route: string) {
-	if (route.startsWith('webkit:')) {
-		return MILLENNIUM_API.callable(
-			(methodName: string, kwargs: any) => MILLENNIUM_API.__INTERNAL_CALL_WEBKIT_METHOD__(pluginName, methodName, kwargs),
-			route.replace(/^webkit:/, ''),
-		);
-	}
+	let PluginEntryPointMain = function () {
+		%%chunkBody%%
+		return millennium_main;
+	};
 
-	return MILLENNIUM_API.callable(__call_server_method__, route);
-}
-
-function wrapEntryPoint(code: string): string {
-	return `let PluginEntryPointMain = function() { ${code} return millennium_main; };`;
-}
+	(async () => {
+		const PluginModule = PluginEntryPointMain();
+		Object.assign(window.PLUGIN_LIST[pluginName], {
+			...PluginModule,
+			__millennium_internal_plugin_name_do_not_use_or_change__: pluginName,
+		});
+		const pluginProps = await PluginModule.default();
+		if (
+			pluginProps &&
+			pluginProps.title !== undefined &&
+			pluginProps.icon !== undefined &&
+			pluginProps.content !== undefined
+		) {
+			window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS[pluginName] = pluginProps;
+		}
+		if (MILLENNIUM_IS_CLIENT_MODULE) {
+			MILLENNIUM_BACKEND_IPC.postMessage(1, { pluginName: pluginName });
+		}
+	})();
+`);
 
 function insertMillennium(target: BuildTarget, props: TranspilerProps): InputPluginOption {
 	return {
-		name: '',
+		name: 'insert-millennium',
 		generateBundle(_: unknown, bundle: OutputBundle) {
 			for (const fileName in bundle) {
 				const chunk = bundle[fileName];
-				if (chunk.type !== 'chunk') continue;
+                if (chunk.type !== 'chunk') {
+                    continue;
+				}
 
-				let code = `\
-const MILLENNIUM_IS_CLIENT_MODULE = ${target === BuildTarget.Plugin};
-const pluginName = "${props.pluginName}";
-${InitializePlugins.toString()}
-${InitializePlugins.name}()
-${kCallServerMethod}
-${__wrapped_callable__.toString()}
-${wrapEntryPoint(chunk.code)}
-${ExecutePluginModule.toString()}
-${ExecutePluginModule.name}()`;
+				const chunkAst = parse(chunk.code, { sourceType: 'script', plugins: ['jsx'] });
+				const wrapped = buildPluginWrapper({
+					isClient:  t.booleanLiteral(target === BuildTarget.Plugin),
+					pluginName: t.stringLiteral(props.pluginName),
+					chunkBody: chunkAst.program.body,
+				});
 
+				const program = t.program(Array.isArray(wrapped) ? wrapped : [wrapped]);
+				let code = generate(program).code;
 				if (props.minify) {
 					code = minify_sync(code).code ?? code;
 				}
-
 				chunk.code = code;
 			}
 		},
@@ -227,6 +234,34 @@ function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
 	};
 }
 
+const PLUGIN_NAME_INJECTIONS: Transform[] = [
+	{ type: 'inject_arg', match: ['client', 'BindPluginSettings'],       arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'get'],      arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'set'],      arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'delete'],   arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'getAll'],   arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'usePluginConfig'],          arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'subscribePluginConfig'],    arg: 'pluginName' },
+];
+
+const FRONTEND_TRANSFORMS: Transform[] = [
+	/* override pluginSelf */
+	{ type: 'rename', match: ['client', 'pluginSelf'],                           replacement: 'window.PLUGIN_LIST[pluginName]' },
+	/* inject plugin name */
+	{ type: 'inject_arg', match: ['client', 'callable'],                         arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'Millennium', 'callServerMethod'],   arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['client', 'Millennium', 'exposeObj'],          arg: 'exports' },
+	...PLUGIN_NAME_INJECTIONS,
+];
+
+const WEBKIT_TRANSFORMS: Transform[] = [
+	/* inject plugin name */
+	{ type: 'inject_arg', match: ['webkit', 'callable'],                         arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['webkit', 'Millennium', 'callServerMethod'],   arg: 'pluginName' },
+	{ type: 'inject_arg', match: ['webkit', 'Millennium', 'exposeObj'],          arg: 'exports' },
+	...PLUGIN_NAME_INJECTIONS,
+];
+
 abstract class MillenniumBuild {
 	protected abstract readonly externals: ReadonlySet<string>;
 	protected abstract readonly forbidden: ReadonlyMap<string, string>;
@@ -320,12 +355,8 @@ class FrontendBuild extends MillenniumBuild {
 				delimiters: ['', ''],
 				preventAssignment: true,
 				'process.env.NODE_ENV': JSON.stringify('production'),
-				'Millennium.callServerMethod': '__call_server_method__',
-				'client.callable': '__wrapped_callable__',
-				'client.pluginSelf': 'window.PLUGIN_LIST[pluginName]',
-				'client.Millennium.exposeObj(': 'client.Millennium.exposeObj(exports, ',
-				'client.BindPluginSettings()': 'client.BindPluginSettings(pluginName)',
 			}),
+			astTransforms(FRONTEND_TRANSFORMS),
 			...(Object.keys(env).length > 0 ? [injectProcessEnv(env)] : []),
 			...(this.props.minify ? [terser()] : []),
 		];
@@ -336,7 +367,7 @@ class FrontendBuild extends MillenniumBuild {
 			name: 'millennium_main',
 			file: isMillennium ? '../.frontend.bin' : '.millennium/Dist/index.js',
 			globals: {
-				react: 'window.SP_REACT',
+				'react': 'window.SP_REACT',
 				'react-dom': 'window.SP_REACTDOM',
 				'react-dom/client': 'window.SP_REACTDOM',
 				'react/jsx-runtime': 'SP_JSX_FACTORY',
@@ -369,14 +400,7 @@ class WebkitBuild extends MillenniumBuild {
 			commonjs(),
 			json(),
 			sysfsPlugin,
-			replace({
-				delimiters: ['', ''],
-				preventAssignment: true,
-				'Millennium.callServerMethod': '__call_server_method__',
-				'webkit.callable': '__wrapped_callable__',
-				'webkit.Millennium.exposeObj(': 'webkit.Millennium.exposeObj(exports, ',
-				'client.BindPluginSettings()': 'client.BindPluginSettings(pluginName)',
-			}),
+			astTransforms(WEBKIT_TRANSFORMS),
 			...(this.props.minify ? [babel({ presets: ['@babel/preset-env', '@babel/preset-react'], babelHelpers: 'bundled' })] : []),
 			...(Object.keys(env).length > 0 ? [injectProcessEnv(env)] : []),
 		];

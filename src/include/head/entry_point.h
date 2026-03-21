@@ -54,7 +54,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     millennium_backend(std::shared_ptr<network_hook_ctl> network_hook, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<millennium_updater> millennium_updater);
     ~millennium_backend();
 
-    const char* get_millennium_updater_script();
+    std::string get_millennium_updater_script();
     std::weak_ptr<theme_webkit_mgr> get_theme_webkit_mgr();
     int get_operating_system();
 

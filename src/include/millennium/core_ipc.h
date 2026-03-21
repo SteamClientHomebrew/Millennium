@@ -58,7 +58,17 @@ class ipc_main
     {
         CALL_SERVER_METHOD,
         FRONT_END_LOADED,
-        CALL_FRONTEND_METHOD
+        CALL_FRONTEND_METHOD,
+        PLUGIN_CONFIG
+    };
+
+    enum config_method
+    {
+        CONFIG_GET,
+        CONFIG_SET,
+        CONFIG_DELETE,
+        CONFIG_GET_ALL,
+        CONFIG_DELETE_ALL
     };
 
     enum ipc_error
@@ -108,6 +118,9 @@ class ipc_main
 
     vm_call_result handle_plugin_server_method(const std::string& pluginName, const json& message);
     vm_call_result handle_core_server_method(const json& call);
+
+    json plugin_config_method(const json& call);
+    vm_call_result handle_plugin_config(const std::string& pluginName, config_method method, const json& data);
 
     std::shared_ptr<plugin_manager> m_plugin_manager;
     std::shared_ptr<cdp_client> m_cdp;

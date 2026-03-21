@@ -10,16 +10,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test-pkgbuild:
-    uses: ./.github/workflows/test-pkgbuild.yml
-
-  aur-push:
-    needs: test-pkgbuild
+  update-pkgbuild:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    outputs:
+      updated_sha: ${{ steps.push.outputs.updated_sha }}
+      branch: ${{ steps.set-branch.outputs.branch }}
 
+    steps:
       - name: Set branch based on release type
         id: set-branch
         run: |
@@ -70,12 +67,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit and push PKGBUILD changes
+        id: push
         run: |
           git config --local user.email "github-actions@github.com"
           git config --local user.name "GitHub Actions"
           git add ./packages/arch/PKGBUILD
-          git commit -m "Update PKGBUILD for release ${{ github.event.release.tag_name }}" || exit 0
+          git commit -m "Update PKGBUILD for release ${{ github.event.release.tag_name }}" || true
           git push origin ${{ steps.set-branch.outputs.branch }}
+          echo "updated_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+  test-pkgbuild:
+    needs: update-pkgbuild
+    uses: ./.github/workflows/test-pkgbuild.yml
+    with:
+      ref: ${{ needs.update-pkgbuild.outputs.updated_sha }}
+
+  publish-aur:
+    needs: [update-pkgbuild, test-pkgbuild]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout correct branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-pkgbuild.outputs.updated_sha }}
 
       - name: Publish AUR package
         uses: KSXGitHub/github-actions-deploy-aur@master

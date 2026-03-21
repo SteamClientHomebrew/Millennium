@@ -80,6 +80,10 @@ constexpr const char* CMP_VERSION = "cmp_version";
 constexpr const char* PATCHES = "patches";
 constexpr const char* HTTP_REQUEST = "http_request";
 constexpr const char* HTTP_DOWNLOAD = "http_download";
+constexpr const char* CONFIG_GET = "config_get";
+constexpr const char* CONFIG_SET = "config_set";
+constexpr const char* CONFIG_DELETE = "config_delete";
+constexpr const char* CONFIG_GET_ALL = "config_get_all";
 } // namespace child_method
 
 namespace parent_method
@@ -89,6 +93,7 @@ constexpr const char* EVALUATE = "evaluate";
 constexpr const char* ON_FRONTEND_LOADED = "on_frontend_loaded";
 constexpr const char* GET_METRICS = "get_metrics";
 constexpr const char* SHUTDOWN = "shutdown";
+constexpr const char* CONFIG_CHANGED = "config_changed";
 } // namespace parent_method
 
 #ifdef _WIN32

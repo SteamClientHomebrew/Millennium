@@ -69,7 +69,11 @@ bool head::library_updater::download_plugin_update(const std::string& id, const 
 
 bool head::library_updater::download_theme_update(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
 {
-    return theme_updater->update_theme(themeConfig, native);
+    bool ok = theme_updater->update_theme(themeConfig, native);
+    if (ok) {
+        cached_updates.reset();
+    }
+    return ok;
 }
 
 std::optional<json> head::library_updater::get_cached_updates() const
@@ -111,7 +115,12 @@ std::optional<json> head::library_updater::check_for_updates(bool force)
         json resp = json::parse(response_str);
 
         if (resp.contains("themes") && !resp["themes"].empty() && !resp["themes"].contains("error")) {
+            logger.log("[update-check] API returned {} theme(s), processing...", resp["themes"].size());
+            for (const auto& t : resp["themes"]) {
+                logger.log("[update-check] API theme name='{}' commit='{}'", t.value("name", "?"), t.value("commit", "?"));
+            }
             resp["themes"] = theme_updater->process_update(themes["update_query"], resp["themes"]);
+            logger.log("[update-check] After filtering: {} theme(s) have updates", resp["themes"].size());
         }
 
         cached_updates = resp;

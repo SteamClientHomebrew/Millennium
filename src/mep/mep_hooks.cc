@@ -38,6 +38,7 @@
 #include "millennium/plugin_manager.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
+#include "millennium/plugin_config.h"
 #include "state/shared_memory.h"
 
 #include <fstream>
@@ -631,6 +632,61 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         }
 
         return response_t::ok(req.id, result);
+    });
+
+    auto make_mep_targets = [loader]() -> plugin_config::notify_targets {
+        auto ipc = loader->get_ipc_main();
+        return {
+            ipc ? plugin_config::eval_js_fn([ipc](const std::string& s) { ipc->evaluate_javascript_expression(s); })
+                : plugin_config::eval_js_fn{},
+            loader->get_backend_manager()
+        };
+    };
+
+    router.register_handler("plugin.config.get", [](const request_t& req, const std::shared_ptr<client_context>&)
+    {
+        auto name = require_string(req, "name");
+        if (!name) return response_t::err(req.id, "missing required param: name");
+        auto key = require_string(req, "key");
+        if (!key) return response_t::err(req.id, "missing required param: key");
+
+        auto r = plugin_config::get(*name, *key);
+        return r.success ? response_t::ok(req.id, { { "value", r.value } })
+                         : response_t::err(req.id, r.value.get<std::string>());
+    });
+
+    router.register_handler("plugin.config.set", [make_mep_targets](const request_t& req, const std::shared_ptr<client_context>&)
+    {
+        auto name = require_string(req, "name");
+        if (!name) return response_t::err(req.id, "missing required param: name");
+        auto key = require_string(req, "key");
+        if (!key) return response_t::err(req.id, "missing required param: key");
+
+        json value = (!req.params.is_null() && req.params.contains("value")) ? req.params["value"] : json(nullptr);
+        auto r = plugin_config::set(make_mep_targets(), plugin_config::origin::external,
+                                    *name, *key, value);
+        return r.success ? response_t::ok(req.id, r.value) : response_t::err(req.id, r.value.get<std::string>());
+    });
+
+    router.register_handler("plugin.config.delete", [make_mep_targets](const request_t& req, const std::shared_ptr<client_context>&)
+    {
+        auto name = require_string(req, "name");
+        if (!name) return response_t::err(req.id, "missing required param: name");
+        auto key = require_string(req, "key");
+        if (!key) return response_t::err(req.id, "missing required param: key");
+
+        auto r = plugin_config::del(make_mep_targets(), plugin_config::origin::external,
+                                    *name, *key);
+        return r.success ? response_t::ok(req.id, r.value) : response_t::err(req.id, r.value.get<std::string>());
+    });
+
+    router.register_handler("plugin.config.get_all", [](const request_t& req, const std::shared_ptr<client_context>&)
+    {
+        auto name = require_string(req, "name");
+        if (!name) return response_t::err(req.id, "missing required param: name");
+
+        auto r = plugin_config::get_all(*name);
+        return response_t::ok(req.id, { { "config", r.value } });
     });
 
     router.register_handler("file.list", [](const request_t& req, const std::shared_ptr<client_context>&)

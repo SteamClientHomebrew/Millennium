@@ -109,7 +109,7 @@ nlohmann::json head::theme_installer::uninstall_theme(std::shared_ptr<theme_conf
     return create_successful_response();
 }
 
-void head::theme_installer::write_metadata(const std::filesystem::path& themePath, const std::string& owner, const std::string& repo, const std::string& commit)
+bool head::theme_installer::write_metadata(const std::filesystem::path& themePath, const std::string& owner, const std::string& repo, const std::string& commit)
 {
     nlohmann::json metadata = {
         { "owner",  owner  },
@@ -118,7 +118,20 @@ void head::theme_installer::write_metadata(const std::filesystem::path& themePat
     };
 
     std::ofstream out(themePath / "metadata.json");
+    if (!out) {
+        LOG_ERROR("Failed to open metadata.json for writing in '{}'", themePath.string());
+        return false;
+    }
+
     out << metadata.dump(4);
+    out.flush();
+
+    if (!out.good()) {
+        LOG_ERROR("Failed to write metadata.json in '{}'", themePath.string());
+        return false;
+    }
+
+    return true;
 }
 
 std::optional<nlohmann::json> head::theme_installer::read_metadata(const std::filesystem::path& themePath)
@@ -251,7 +264,10 @@ void head::theme_installer::migrate_legacy_themes()
                 std::string commit = get_commit_hash(themePath);
                 if (commit.empty()) continue;
 
-                write_metadata(themePath, owner, repo, commit);
+                if (!write_metadata(themePath, owner, repo, commit)) {
+                    LOG_ERROR("Failed to write metadata during migration of '{}'", themePath.filename().string());
+                    continue;
+                }
                 logger.log("Migrated legacy theme '{}' ({}/{}) with commit {}", themePath.filename().string(), owner, repo, commit);
             } catch (const std::exception& e) {
                 LOG_ERROR("Failed to migrate legacy theme '{}': {}", themePath.filename().string(), e.what());
@@ -360,7 +376,13 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
             }
         }
 
-        write_metadata(finalPath, owner, repo, commitHash);
+        if (!write_metadata(finalPath, owner, repo, commitHash)) {
+            std::filesystem::remove_all(tempDir);
+            if (std::filesystem::exists(finalPath)) {
+                std::filesystem::remove_all(finalPath);
+            }
+            return create_error_response("Failed to write metadata after theme install");
+        }
 
         m_updater->dispatch_progress("Cleaning up...", 96, false);
         std::filesystem::remove_all(tempDir);
@@ -409,6 +431,12 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
 
         std::string downloadUrl = response.value("data", nlohmann::json::object()).value("download", "");
         std::string latestCommit = response.value("data", nlohmann::json::object()).value("latestHash", "");
+
+        logger.log("[update-download] theme='{}' latestHash='{}' downloadUrl='{}'", native, latestCommit, downloadUrl);
+
+        if (latestCommit.empty()) {
+            logger.warn("[update-download] theme='{}': API returned empty latestHash — metadata will be written with blank commit", native);
+        }
 
         if (downloadUrl.empty()) {
             LOG_ERROR("Cannot update theme '{}': API did not return a download URL", native);
@@ -469,7 +497,20 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
             }
         }
 
-        write_metadata(themePath, owner, repo, latestCommit);
+        if (!write_metadata(themePath, owner, repo, latestCommit)) {
+            std::filesystem::remove_all(tempDir);
+            LOG_ERROR("[update-download] theme='{}': write_metadata FAILED — this will cause a repeated update loop", native);
+            return false;
+        }
+
+        /* Verify the write round-trips correctly */
+        {
+            std::string verify = get_commit_hash(themePath);
+            logger.log("[update-download] theme='{}' metadata written, verify read-back='{}'", native, verify);
+            if (verify != latestCommit) {
+                LOG_ERROR("[update-download] theme='{}': metadata read-back mismatch! wrote='{}' read='{}'", native, latestCommit, verify);
+            }
+        }
 
         m_updater->dispatch_progress("Cleaning up...", 96, false);
         logger.log("Cleaning up temporary files...");
@@ -584,7 +625,12 @@ nlohmann::json head::theme_installer::process_update(const nlohmann::json& updat
         const std::string repoName = get_repository_name(theme);
         const auto remoteTheme = find_remote_theme(remote, repoName);
 
-        if (remoteTheme != nullptr && has_updates(path, *remoteTheme)) {
+        if (remoteTheme == nullptr) {
+            logger.log("[update-check] theme='{}' (repo='{}'): no matching entry in API response, skipping", path.filename().string(), repoName);
+            continue;
+        }
+
+        if (has_updates(path, *remoteTheme)) {
             updatedThemes.push_back(create_update_info(theme, *remoteTheme));
         }
     }
@@ -618,7 +664,12 @@ bool head::theme_installer::has_updates(const std::filesystem::path& path, const
 {
     const std::string remoteCommit = remoteTheme.value("commit", "");
     const std::string localCommit = get_commit_hash(path);
-    return localCommit != remoteCommit;
+    const bool differs = localCommit != remoteCommit;
+
+    logger.log("[update-check] theme='{}' local='{}' remote='{}' has_update={}",
+               path.filename().string(), localCommit, remoteCommit, differs);
+
+    return differs;
 }
 
 nlohmann::json head::theme_installer::create_update_info(const nlohmann::json& theme, const nlohmann::json& remoteTheme)
