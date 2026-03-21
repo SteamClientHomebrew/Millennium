@@ -7,7 +7,7 @@ _Pkgname="Millennium"
 pkgrel=5
 pkgdesc="${_Pkgname} is an open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead."
 arch=('x86_64')
-url="https://github.com/SteamClientHomebrew/${_Pkgname}"
+url="https://steambrew.app"
 license=('MIT')
 depends=(
     'git'
@@ -32,7 +32,7 @@ makedepends=(
     'libx11'
     'libxtst'
 )
-source=("git+${url}.git#commit=d7ac8620b46e9d0a41b140430fb06f68e1729532") # TODO: update to commit on main branch when we merge.
+source=("git+https://github.com/SteamClientHomebrew/${_Pkgname}.git#commit=d7ac8620b46e9d0a41b140430fb06f68e1729532") # TODO: update to commit on main branch when we merge.
 sha256sums=('SKIP')
 options=(!debug)
 install="${pkgname}.install"
