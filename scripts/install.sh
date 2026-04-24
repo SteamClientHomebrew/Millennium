@@ -8,7 +8,7 @@
 #
 # ==================================================
 
-# Copyright (c) 2025 Project Millennium
+# Copyright (c) 2026 Project Millennium
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ readonly RELEASES_URI="https://api.github.com/repos/${GITHUB_ACCOUNT}/releases"
 readonly DOWNLOAD_URI="https://github.com/${GITHUB_ACCOUNT}/releases/download"
 readonly INSTALL_DIR="/tmp/millennium"
 DRY_RUN=0
+ALLOW_BETA=0
 
 log() { printf "%b\n" "$1"; }
 is_root() { [ "$(id -u)" -eq 0 ]; }
@@ -69,16 +70,22 @@ fetch_release_info() {
 
         [ "$(echo "${response}" | jq 'length')" -eq 0 ] && break
 
-        tag=$(echo "${response}" | jq -r '
-            .[] | select(.prerelease == false) | .tag_name
-        ' | head -n1)
+        if [ "${ALLOW_BETA}" -eq 1 ]; then
+            tag=$(echo "${response}" | jq -r '
+                .[] | .tag_name
+            ' | head -n1)
+        else
+            tag=$(echo "${response}" | jq -r '
+                .[] | select(.prerelease == false) | .tag_name
+            ' | head -n1)
+        fi
 
         if [ -n "${tag}" ] && [ "${tag}" != "null" ]; then
             size=$(echo "${response}" | jq -r "
-                .[] 
-                | select(.tag_name == \"${tag}\") 
-                | .assets[] 
-                | select(.name == \"millennium-v${tag#v}-${target}.tar.gz\") 
+                .[]
+                | select(.tag_name == \"${tag}\")
+                | .assets[]
+                | select(.name == \"millennium-v${tag#v}-${target}.tar.gz\")
                 | .size
             ")
             echo "${tag#v}:${size:-0}"
@@ -88,7 +95,11 @@ fetch_release_info() {
         page=$((page + 1))
     done
 
-    log "No non-prerelease releases found."
+    if [ "${ALLOW_BETA}" -eq 1 ]; then
+        log "No releases or prereleases found."
+    else
+        log "No non-prerelease releases found."
+    fi
     return 1
 }
 
@@ -161,6 +172,7 @@ main() {
     for arg in "$@"; do
         case ${arg} in
             --dry-run) DRY_RUN=1; shift ;;
+            --beta) ALLOW_BETA=1; shift ;;
         esac
     done
 
@@ -184,7 +196,12 @@ main() {
     sha256digest=$(curl -sL "${sha256_uri}")
     installed_size=$(format_size "$(curl -sL "${install_size_uri}")")
 
-    log "\nPackages (1) millennium@${tag}-x86_64\n"
+    if [ "${ALLOW_BETA}" -eq 1 ]; then
+        log "\nPackages (1) millennium@${tag}-x86_64 [BETA]\n"
+    else
+        log "\nPackages (1) millennium@${tag}-x86_64\n"
+    fi
+
     log "Total Download Size:  $(printf "%10s\n" "${size}")"
     log "Total Installed Size: $(printf "%10s\n" "${installed_size}")"
 
