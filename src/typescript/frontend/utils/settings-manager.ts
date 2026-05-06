@@ -38,7 +38,7 @@ class SettingsManager {
 
 	constructor() {
 		backend.config.millennium.getConfig().then((cfg) => {
-			this.settings = cfg as AppConfig;
+			this.settings = cfg;
 		});
 	}
 

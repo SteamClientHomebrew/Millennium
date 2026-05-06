@@ -117,7 +117,7 @@ class Bootstrap {
 		await this.importShimsInContext(ctxShimList);
 	}
 
-	async StartPreloader(millenniumAuthToken: string, shimList?: string[], enabledPlugins?: string[]) {
+	async StartPreloader(millenniumAuthToken: string, shimList?: string[]) {
 		this.init(millenniumAuthToken);
 
 		await this.waitForClientReady();

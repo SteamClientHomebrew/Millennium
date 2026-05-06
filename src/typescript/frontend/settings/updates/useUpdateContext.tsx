@@ -32,6 +32,7 @@ import React, { createContext, useContext } from 'react';
 import { backend } from '../../utils/ffi';
 import { pluginSelf } from '@steambrew/client';
 import { UpdateItemType } from './UpdateCard';
+import { PluginUpdateInfo } from '../../types';
 
 type UpdateContextProviderProps = {
 	children: React.ReactNode;
@@ -64,7 +65,7 @@ export type UpdateContextProviderState = {
 	isAnyUpdating: () => boolean;
 	hasAnyUpdates: () => boolean;
 	themeUpdates: Array<UpdateItemType> | null;
-	pluginUpdates: any;
+	pluginUpdates: PluginUpdateInfo[] | null;
 	hasReceivedUpdates: boolean;
 	hasUpdateError: boolean;
 	fetchAvailableUpdates: (force?: boolean) => Promise<boolean>;
@@ -201,7 +202,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		const { themeUpdates, pluginUpdates } = this.state;
 
 		const hasThemeUpdates = (themeUpdates?.length ?? 0) > 0;
-		const hasPluginUpdates = pluginUpdates?.some((update: any) => update?.hasUpdate) ?? false;
+		const hasPluginUpdates = pluginUpdates?.some((update) => update?.hasUpdate) ?? false;
 		const hasMillenniumUpdate = pluginSelf?.millenniumUpdates?.hasUpdate;
 
 		const hasAnyUpdate = hasThemeUpdates || hasPluginUpdates || hasMillenniumUpdate;

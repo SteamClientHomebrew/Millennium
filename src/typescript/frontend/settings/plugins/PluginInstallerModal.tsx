@@ -34,7 +34,7 @@ import { Utils } from '../../utils';
 import { locale } from '../../utils/localization-manager';
 
 import { PLUGINS_URL } from '../../utils/globals';
-import { Installer } from '../general/Installer';
+import { Installer, InstallType } from '../general/Installer';
 
 interface PluginIdModalProps {
 	installer: Installer;
@@ -63,7 +63,7 @@ function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) 
 			}
 			bHideCloseIcon={true}
 			onOK={() => {
-				installer.OpenInstallPrompt(installID, refetchDataCb);
+				installer.OpenInstallPrompt(installID, InstallType.Plugin, refetchDataCb);
 				modal?.Close();
 			}}
 			onCancel={() => {

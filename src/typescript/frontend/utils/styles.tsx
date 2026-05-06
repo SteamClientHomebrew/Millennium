@@ -336,7 +336,7 @@ const styles = /* css */ `
  */
 
 .MillenniumUpdates_CheckForUpdates {
-    display: flex;
+    display: flex !important;
     justify-content: center;
     align-items: center;
     gap: 10px;

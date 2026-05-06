@@ -35,13 +35,13 @@ import { UpdateCard } from './UpdateCard';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { updateMillennium } from '../../utils/updateMillennium';
 import { useEffect } from 'react';
-import { OSType } from '../../types';
+import { MillenniumUpdates, OSType } from '../../types';
 import Markdown from 'markdown-to-jsx';
 import { useUpdateContext } from './useUpdateContext';
 import { backend } from '../../utils/ffi';
 import { registerInstallerProgressListener, unregisterInstallerProgressListener } from '../general/Installer';
 
-export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: any }) => {
+export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates: MillenniumUpdates }) => {
 	const ctx = useUpdateContext();
 
 	if (!millenniumUpdates || !millenniumUpdates?.hasUpdate) {
@@ -58,8 +58,8 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 		});
 
 		let interval = setInterval(() => {
-			backend.updater.hasPendingMillenniumUpdateRestart().then((result: any) => {
-				if (JSON.parse(result)) {
+			backend.updater.hasPendingMillenniumUpdateRestart().then((result) => {
+				if (result) {
 					pluginSelf.millenniumUpdates.updateInProgress = true;
 					ctx.setMillenniumUpdating(false);
 					clearInterval(interval);
@@ -79,11 +79,12 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 	}
 
 	const GetManualUpdateDescription = () => {
+		const tagName = millenniumUpdates?.newVersion?.tag_name ?? '';
 		if (pluginSelf.platformType === OSType.Darwin) {
-			return formatString(locale.millenniumUpdateMacOS, millenniumUpdates?.newVersion?.tag_name);
+			return formatString(locale.millenniumUpdateMacOS, tagName);
 		}
 
-		return formatString(locale.millenniumUpdateLinux, millenniumUpdates?.newVersion?.tag_name, pluginSelf.millenniumLinuxUpdateScript);
+		return formatString(locale.millenniumUpdateLinux, tagName, pluginSelf.millenniumLinuxUpdateScript);
 	};
 
 	const StartManualUpdate = () => {
@@ -117,9 +118,9 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 			<UpdateCard
 				update={{
 					name: VersionInformation(),
-					message: millenniumUpdates?.newVersion?.body,
-					date: Utils.toTimeAgo(millenniumUpdates?.newVersion?.published_at),
-					commit: millenniumUpdates?.newVersion?.html_url,
+					message: millenniumUpdates?.newVersion?.body ?? '',
+					date: Utils.toTimeAgo(millenniumUpdates?.newVersion?.published_at ?? ''),
+					commit: millenniumUpdates?.newVersion?.html_url ?? '',
 				}}
 				index={0}
 				totalCount={1}

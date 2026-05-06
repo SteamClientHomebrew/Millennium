@@ -38,12 +38,13 @@ import { locale } from '../../utils/localization-manager';
 import { Placeholder } from '../../components/Placeholder';
 import { settingsClasses } from '../../utils/classes';
 import { MillenniumIcons } from '../../components/Icons';
+import { MillenniumUpdates, PluginUpdateInfo } from '../../types';
+import { UpdateItemType } from './UpdateCard';
 
-// TODO: Type this properly, this is a mess. Im too lazy to do it right now
 interface UpdateProps {
-	themeUpdates: any[];
-	pluginUpdates: any[];
-	millenniumUpdates: any;
+	themeUpdates: UpdateItemType[];
+	pluginUpdates: PluginUpdateInfo[];
+	millenniumUpdates: MillenniumUpdates;
 }
 
 const RenderAvailableUpdates: React.FC<UpdateProps> = ({ millenniumUpdates, themeUpdates, pluginUpdates }) => {
@@ -106,7 +107,7 @@ const UpdatesViewModal: React.FC = () => {
 		<RenderAvailableUpdates
 			millenniumUpdates={pluginSelf.millenniumUpdates}
 			themeUpdates={themeUpdates ?? []}
-			pluginUpdates={pluginUpdates?.filter((update: any) => update?.hasUpdate)}
+			pluginUpdates={pluginUpdates?.filter((update) => update?.hasUpdate) ?? []}
 		/>
 	);
 };

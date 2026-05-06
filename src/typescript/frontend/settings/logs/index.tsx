@@ -88,14 +88,13 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	}
 
 	componentDidMount() {
-		backend.plugins.getBackendLogs().then((data: any) => {
-			const parsed = JSON.parse(data);
-			this.setState({ logData: parsed });
+		backend.plugins.getBackendLogs().then((data: LogData[]) => {
+			this.setState({ logData: data });
 
 			if (pendingAutoSelect) {
 				const targets = pendingAutoSelect;
 				pendingAutoSelect = null;
-				const match = parsed.find((log: LogData) => targets.some((t: string) => log.name === t));
+				const match = data.find((log: LogData) => targets.some((t: string) => log.name === t));
 				if (match) {
 					this.setState({ selectedLog: match, searchedLogs: match.logs });
 				}

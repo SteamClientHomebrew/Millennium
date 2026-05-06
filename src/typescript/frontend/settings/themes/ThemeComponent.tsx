@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ffi, DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu } from '@steambrew/client';
+import { DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu } from '@steambrew/client';
 import { ThemeItem } from '../../types';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';
 import { Utils } from '../../utils';
@@ -66,7 +66,7 @@ export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReload
 		return false;
 	}
 
-	await ffi<[string]>('Core_ChangeActiveTheme')(themeName);
+    await backend.themes.setActiveTheme(themeName);
 
 	return new Promise((resolve) => {
 		switch (reloadProps) {

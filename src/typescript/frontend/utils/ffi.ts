@@ -29,35 +29,50 @@
  */
 
 import { ffi } from '@steambrew/client';
+import {
+	BackendOpResult,
+	InstallStartResponse,
+	OpIdResponse,
+	PluginCrashInfo,
+	PluginComponent,
+	SettingsProps,
+	SystemAccentColor,
+	ThemeColorOption,
+	ThemeItem,
+	UpdatesResponse,
+} from '../types';
+import { AppConfig } from './AppConfig';
+import { LogData } from '../settings/logs';
 
 export const backend = {
 	getSteamPath: ffi<[], string>('Core_GetSteamPath'),
 
 	plugins: {
-		getPlugins: ffi<[], any>('Core_FindAllPlugins'),
-		togglePlugin: ffi<[pluginJson: string], any>('Core_ChangePluginStatus'),
-		install: ffi<[downloadUrl: string, totalSize: number], void>('Core_InstallPlugin'),
-		isInstalled: ffi<[pluginName: string], any>('Core_IsPluginInstalled'),
-		uninstall: ffi<[pluginName: string], any>('Core_UninstallPlugin'),
-		update: ffi<[id: string, name: string, commit: string], boolean>('Core_DownloadPluginUpdate'),
+		getPlugins: ffi<[], PluginComponent[]>('Core_FindAllPlugins'),
+		togglePlugin: ffi<[pluginJson: string], void>('Core_ChangePluginStatus'),
+		install: ffi<[downloadUrl: string, totalSize: number], InstallStartResponse>('Core_InstallPlugin'),
+		isInstalled: ffi<[pluginName: string], boolean>('Core_IsPluginInstalled'),
+		uninstall: ffi<[pluginName: string], boolean>('Core_UninstallPlugin'),
+		update: ffi<[id: string, name: string, commit: string], OpIdResponse>('Core_DownloadPluginUpdate'),
 		stop: ffi<[pluginName: string], void>('Core_KillPluginBackend'),
-		getBackendLogs: ffi<[], any>('Core_GetPluginBackendLogs'),
+		getBackendLogs: ffi<[], LogData[]>('Core_GetPluginBackendLogs'),
 	},
 
 	themes: {
-		activeTheme: ffi<[], string>('Core_GetActiveTheme'),
-		getTheme: ffi<[repo: string, owner: string, asString: boolean], any>('Core_GetThemeFromGitPair'),
-		getThemes: ffi<[], any>('Core_FindAllThemes'),
-		install: ffi<[owner: string, repo: string], void>('Core_InstallTheme'),
-		uninstall: ffi<[owner: string, repo: string], void>('Core_UninstallTheme'),
-		isInstalled: ffi<[owner: string, repo: string], any>('Core_IsThemeInstalled'),
-		update: ffi<[native: string], boolean>('Core_DownloadThemeUpdate'),
-		colorOptions: ffi<[themeName: string], any>('Core_GetThemeColorOptions'),
-		doesUseAccentColor: ffi<[]>('Core_DoesThemeUseAccentColor'),
-		getRootColors: ffi<[], any>('Core_GetRootColors'),
-		setThemeConfig: ffi<[theme: string, newData: string, condition: string], boolean>('Core_ChangeCondition'),
-		setThemeColor: ffi<[theme: string, colorName: string, newColor: string, colorType: number], any>('Core_ChangeColor'),
-		setAccentColor: ffi<[newColor: string], any>('Core_ChangeAccentColor'),
+		activeTheme: ffi<[], ThemeItem>('Core_GetActiveTheme'),
+		setActiveTheme: ffi<[themeName: string], void>('Core_ChangeActiveTheme'),
+		getTheme: ffi<[repo: string, owner: string, asString: boolean], ThemeItem | false>('Core_GetThemeFromGitPair'),
+		getThemes: ffi<[], ThemeItem[]>('Core_FindAllThemes'),
+		install: ffi<[owner: string, repo: string], InstallStartResponse>('Core_InstallTheme'),
+		uninstall: ffi<[owner: string, repo: string], BackendOpResult>('Core_UninstallTheme'),
+		isInstalled: ffi<[owner: string, repo: string], boolean>('Core_IsThemeInstalled'),
+		update: ffi<[native: string], OpIdResponse>('Core_DownloadThemeUpdate'),
+		colorOptions: ffi<[themeName: string], ThemeColorOption[]>('Core_GetThemeColorOptions'),
+		doesUseAccentColor: ffi<[], boolean>('Core_DoesThemeUseAccentColor'),
+		getRootColors: ffi<[], string>('Core_GetRootColors'),
+		setThemeConfig: ffi<[theme: string, newData: string, condition: string], BackendOpResult>('Core_ChangeCondition'),
+		setThemeColor: ffi<[theme: string, colorName: string, newColor: string, colorType: number], string>('Core_ChangeColor'),
+		setAccentColor: ffi<[newColor: string], SystemAccentColor>('Core_ChangeAccentColor'),
 	},
 
 	environment: {
@@ -66,31 +81,31 @@ export const backend = {
 
 	config: {
 		millennium: {
-			getConfig: ffi<[], any>('Core_GetBackendConfig'),
+			getConfig: ffi<[], AppConfig>('Core_GetBackendConfig'),
 			setConfig: ffi<[config: string, skipPropagation: boolean], void>('Core_SetBackendConfig'),
 		},
 		plugins: {
-			getAll: ffi<[pluginName: string], any>('PluginConfig_GetAll'),
-			removeAll: ffi<[pluginName: string], any>('PluginConfig_DeleteAll'),
+			getAll: ffi<[pluginName: string], Record<string, unknown>>('PluginConfig_GetAll'),
+			removeAll: ffi<[pluginName: string], BackendOpResult>('PluginConfig_DeleteAll'),
 		},
 
-		getInitService: ffi<[], any>('Core_GetStartConfig'),
+		getInitService: ffi<[], SettingsProps>('Core_GetStartConfig'),
 	},
 
 	quickCss: {
-		registerWatcher: ffi<[]>('Core_WatchQuickCss'),
-		destroyWatcher: ffi<[]>('Core_UnwatchQuickCss'),
+		registerWatcher: ffi<[], void>('Core_WatchQuickCss'),
+		destroyWatcher: ffi<[], void>('Core_UnwatchQuickCss'),
 	},
 
 	updater: {
-		getUpdates: ffi<[force: boolean], any>('Core_GetUpdates'),
+		getUpdates: ffi<[force: boolean], UpdatesResponse>('Core_GetUpdates'),
 
 		updateMillennium: ffi<[downloadUrl: string, downloadSize: number, background: boolean], void>('Core_UpdateMillennium'),
 		hasPendingMillenniumUpdateRestart: ffi<[], boolean>('Core_HasPendingMillenniumUpdateRestart'),
 	},
 
 	crashHandler: {
-		getPendingCrashes: ffi<[], any>('Core_GetPendingCrashes'),
+		getPendingCrashes: ffi<[], PluginCrashInfo[]>('Core_GetPendingCrashes'),
 		acknowledgeCrash: ffi<[plugin: string], void>('Core_AcknowledgeCrash'),
 	},
 };

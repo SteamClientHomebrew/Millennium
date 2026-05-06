@@ -2,7 +2,7 @@ import { ConfirmModal, Field, pluginSelf, showModal } from '@steambrew/client';
 import { PluginComponent } from '../types';
 import { locale } from '../utils/localization-manager';
 import { backend } from '../utils/ffi';
-import { Installer } from '../settings/general/Installer';
+import { Installer, InstallType } from '../settings/general/Installer';
 import { Logger } from '../utils/Logger';
 import Markdown from 'markdown-to-jsx';
 
@@ -23,7 +23,7 @@ const SupersededPluginModal = ({ plugins, closeModal, onDismiss }: { plugins: Pl
 		}
 
 		const installer = new Installer();
-		installer.OpenInstallPrompt(EXTENDIUM_ID, () => {});
+		installer.OpenInstallPrompt(EXTENDIUM_ID, InstallType.Plugin, () => {});
 	};
 
 	return (

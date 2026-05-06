@@ -46,9 +46,8 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, updateObject: U
 	setUpdatingTheme(key, true);
 	setThemeProgress(key, { statusText: locale.strPreparing, progress: 0 });
 
-	const result: any = await backend.themes.update(updateObject.native);
-	const parsed = typeof result === 'string' ? JSON.parse(result) : result;
-	const opId: number = parsed?.opId ?? 0;
+	const result = await backend.themes.update(updateObject.native);
+	const opId: number = result?.opId ?? 0;
 
 	const updateSuccess = await waitForInstallerComplete(opId, ({ progress, status }) => {
 		setThemeProgress(key, { statusText: status, progress });

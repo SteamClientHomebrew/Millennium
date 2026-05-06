@@ -35,16 +35,18 @@ import { Utils } from '../../utils';
 import { UpdateCard } from './UpdateCard';
 import { UpdateContextProviderState, useUpdateContext } from './useUpdateContext';
 import { waitForInstallerComplete } from '../general/Installer';
-
-// TODO: Type this
-type UpdateItemType = any;
+import { PluginUpdateInfo } from '../../types';
 
 const FindPluginByName = async (pluginName: string) => {
 	const allPlugins = await backend.plugins.getPlugins();
-	return allPlugins.find((plugin: any) => plugin.data.name === pluginName);
+	return allPlugins.find((plugin) => plugin.data.name === pluginName);
 };
 
-const StartPluginUpdate = async (ctx: UpdateContextProviderState, updateObject: UpdateItemType) => {
+const StartPluginUpdate = async (ctx: UpdateContextProviderState, updateObject: PluginUpdateInfo) => {
+	const pluginName = updateObject?.pluginInfo?.pluginJson?.name;
+	const commit = updateObject?.pluginInfo?.commit;
+	if (!pluginName || !commit) return;
+
 	const key: string = updateObject?.id ?? updateObject?.pluginDirectory;
 	const { setUpdatingPlugin, setPluginProgress, fetchAvailableUpdates } = ctx;
 	if (ctx.updatingPlugins[key]) return;
@@ -52,16 +54,14 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, updateObject: 
 	setUpdatingPlugin(key, true);
 	setPluginProgress(key, { statusText: locale.strPreparing, progress: 0 });
 
-	const pluginName = updateObject?.pluginInfo?.pluginJson?.name;
 	const wasEnabled = (await FindPluginByName(pluginName))?.enabled;
 
 	if (wasEnabled) {
 		await backend.plugins.stop(pluginName);
 	}
 
-	const result: any = await backend.plugins.update(updateObject?.id, updateObject?.pluginDirectory, updateObject?.pluginInfo?.commit);
-	const parsed = typeof result === 'string' ? JSON.parse(result) : result;
-	const opId: number = parsed?.opId ?? 0;
+	const result = await backend.plugins.update(updateObject.id, updateObject.pluginDirectory, commit);
+	const opId: number = result?.opId ?? 0;
 
 	const updateSuccess = await waitForInstallerComplete(opId, ({ progress, status }) => {
 		setPluginProgress(key, { statusText: status, progress });
@@ -90,7 +90,7 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, updateObject: 
 	setPluginProgress(key, null);
 };
 
-export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
+export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: PluginUpdateInfo[] }) {
 	if (!pluginUpdates || !pluginUpdates.length) return null;
 
 	const ctx = useUpdateContext();
@@ -98,7 +98,7 @@ export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: any[] }) {
 	return (
 		<>
 			<SettingsDialogSubHeader>{locale.settingsPanelPlugins}</SettingsDialogSubHeader>
-			{pluginUpdates?.map((update: any, index: number) => (
+			{pluginUpdates?.map((update, index) => (
 				<UpdateCard
 					update={{
 						name: update?.pluginInfo?.pluginJson?.common_name,

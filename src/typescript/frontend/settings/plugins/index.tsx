@@ -103,9 +103,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 		const checkedItems = this.getEnabledPlugins(plugins);
 		const pluginNames = plugins.map((p) => p.data.common_name);
 		const pluginsWithLogs = new Map<string, PluginStatusProps>();
-
-		const result = await backend.plugins.getBackendLogs();
-		const logData: LogData[] = JSON.parse(result as any);
+		const logData: LogData[] = await backend.plugins.getBackendLogs();
 
 		for (let plugin of logData) {
 			if (pluginNames.includes(plugin.name)) {

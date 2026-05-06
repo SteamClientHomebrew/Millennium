@@ -44,7 +44,7 @@ import {
 	ErrorBoundary,
 	findModuleDetailsByExport,
 } from '@steambrew/client';
-import { ConditionsStore, ICondition, SliderConfig, ThemeItem } from '../types';
+import { ConditionsStore, ICondition, SliderConfig, ThemeColorOption, ThemeItem } from '../types';
 import { settingsClasses } from '../utils/classes';
 import { locale } from '../utils/localization-manager';
 import { BBCodeParser, SettingsDialogSubHeader } from './SteamComponents';
@@ -74,24 +74,6 @@ const SliderComponent = findModuleDetailsByExport(
 	(m) => m?.prototype?.hasOwnProperty('BShouldTriggerHapticOnSnap') && m?.prototype?.hasOwnProperty('ComputeNormalizedValueForMousePosition'),
 )[1];
 
-enum ColorTypes {
-	RawRGB = 1,
-	RGB = 2,
-	RawRGBA = 3,
-	RGBA = 4,
-	Hex = 5,
-	Unknown = 6,
-}
-
-interface ColorProps {
-	name?: string;
-	description?: string;
-	color: string;
-	type: ColorTypes;
-	hex: string;
-	defaultColor: string;
-}
-
 interface ThemeEditorProps {
 	theme: ThemeItem;
 	isSidebar: boolean;
@@ -112,8 +94,8 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const activeTheme: ThemeItem = this.props.theme as ThemeItem;
 
 		return new Promise<boolean>((resolve) => {
-			backend.themes.setThemeConfig(activeTheme.native, newData, conditionName).then((response: any) => {
-				const success = (response?.success as boolean) ?? false;
+			backend.themes.setThemeConfig(activeTheme.native, newData, conditionName).then((response) => {
+				const success = response?.success ?? false;
 
 				success && (pluginSelf.ConditionConfigHasChanged = true);
 				resolve(success);
@@ -209,7 +191,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		}
 	};
 
-	UpdateCSSColors = (color: ColorProps, newColor: string) => {
+	UpdateCSSColors = (color: ThemeColorOption, newColor: string) => {
 		for (const popup of g_PopupManager.GetPopups()) {
 			const rootColors = popup.window.document.getElementById('RootColors');
 			rootColors.innerHTML = rootColors.innerHTML.replace(new RegExp(`${color.color}:.*?;`, 'g'), `${color.color}: ${newColor};`);
@@ -234,7 +216,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		);
 	};
 
-	RenderColorComponent: React.FC<{ color: ColorProps; index: number }> = ({ color, index }) => {
+	RenderColorComponent: React.FC<{ color: ThemeColorOption; index: number }> = ({ color, index }) => {
 		const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 		const [colorState, setColorState] = useState(color?.hex ?? '#000000');
 
@@ -276,12 +258,10 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 	};
 
 	RenderColorsOpts: React.FC = () => {
-		const [themeColors, setThemeColors] = useState<ColorProps[]>();
+		const [themeColors, setThemeColors] = useState<ThemeColorOption[]>();
 
 		useEffect(() => {
-			backend.themes.colorOptions(this.props.theme.native).then((result: any) => {
-				setThemeColors(result as ColorProps[]);
-			});
+			backend.themes.colorOptions(this.props.theme.native).then(setThemeColors);
 		}, []);
 
 		return (
@@ -297,8 +277,8 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		const tabItems = useMemo(
 			() =>
 				pages
-					.filter((page) => typeof page !== 'string')
-					.map((page: SidebarNavigationPage) => ({
+					.filter((page): page is SidebarNavigationPage => typeof page !== 'string')
+					.map((page) => ({
 						label: page.title as string,
 						data: page.content,
 					})),

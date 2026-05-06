@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, ConfirmModalProps, Millennium, pluginSelf, showModal, ShowModalResult } from '@steambrew/client';
+import { ConfirmModal, ConfirmModalProps, Millennium, pluginSelf, ProgressBar, showModal, ShowModalResult } from '@steambrew/client';
 import React, { useEffect, useState } from 'react';
 import { StartThemeInstaller } from '../../components/ThemeInstaller';
 import { IProgressProps } from '../../types';
@@ -37,6 +37,7 @@ import { API_URL } from '../../utils/globals';
 import { locale } from '../../utils/localization-manager';
 import { Logger } from '../../utils/Logger';
 import { IncrementPluginDownloadFromId, IncrementThemeDownloadFromId } from '../../utils/update-bump';
+import Styles from 'utils/styles';
 
 export enum InstallType {
 	Plugin,
@@ -45,7 +46,7 @@ export enum InstallType {
 
 export interface RendererProps {
 	onInstallComplete: () => React.ReactNode;
-	onProgressUpdate: ({ progress, status }: { progress: number; status: string }) => React.ReactElement;
+	onProgressUpdate: ({ status }: { status: string }) => React.ReactElement;
 	opId: number;
 }
 
@@ -99,7 +100,43 @@ function InstallerMessageEmitter(status: string, progress: number, isComplete: b
 	}
 }
 
-Millennium.exposeObj?.({ InstallerMessageEmitter });
+Millennium.exposeObj({ InstallerMessageEmitter });
+
+export const OnProgressUpdate = ({ status }: { status: string }) => {
+	const RenderBody = () => {
+		return (
+			<>
+                <Styles />
+                <style>
+                    {`.MillenniumInstallerDialog .DialogButton { display: none; }
+                    .MillenniumInstallerDialog_ProgressStatus { font-weight: 500; float: right; margin-bottom: 10px; }
+                    .DialogBodyText { margin-bottom: unset; }`}
+                </style>
+				<div className='MillenniumInstallerDialog_ProgressStatus'>{status}</div>
+				<ProgressBar
+                    /* @ts-ignore */
+					className="MillenniumInstallerDialog_ProgressBar"
+                    indeterminate
+                    nProgress={0}
+				/>
+			</>
+		);
+	};
+
+	return (
+		<ConfirmModal
+			className="MillenniumInstallerDialog"
+			strTitle={locale.strInstallProgress}
+			strDescription={<RenderBody />}
+			onCancel={() => {}}
+			bHideCloseIcon
+            bAlertDialog
+			bOKDisabled
+			bCancelDisabled
+			bDisableBackgroundDismiss
+		/>
+	);
+};
 
 export class Installer {
 	async FetchPluginInfo(id: string) {
@@ -114,7 +151,7 @@ export class Installer {
 		} catch (error) {
 			throw new Error(locale.errorFailedToFetchPlugin + (error as Error).message);
 		}
-	}
+    }
 
 	async FetchThemeInfo(id: string) {
 		try {
@@ -130,20 +167,25 @@ export class Installer {
 		}
 	}
 
-	async FetchInformationFromId(id: string) {
-		if (!id) {
-			throw new Error(locale.errorInvalidID);
-		}
-
-		switch (id.length) {
-			case 20:
-				return { type: InstallType.Theme, data: await this.FetchThemeInfo(id) };
-			case 12:
-				return { type: InstallType.Plugin, data: await this.FetchPluginInfo(id) };
-			default:
-				throw new Error(locale.errorInvalidID);
-		}
-	}
+	async FetchInformationFromId(id: string, type: InstallType) {
+        if (!id) {
+            throw new Error(locale.errorInvalidID);
+        }
+        const map = {
+            [InstallType.Theme]: {
+                length: 20,
+                fetch: this.FetchThemeInfo,
+            },
+            [InstallType.Plugin]: {
+                length: 12,
+                fetch: this.FetchPluginInfo,
+            },
+        };
+        if (id.length !== map[type].length) {
+            throw new Error(locale.errorInvalidID);
+        }
+        return await map[type].fetch.call(this, id);
+    }
 
 	/**
 	 * Shows the initial "proceed with installation?" modal.
@@ -183,7 +225,7 @@ export class Installer {
 		});
 	}
 
-	async OpenInstallPrompt(id: string, refetchDataCb: () => void) {
+	async OpenInstallPrompt(id: string, type: InstallType, refetchDataCb: () => void) {
 		let modal: ShowModalResult;
 		let renderProps: RendererProps;
 		// Local state setter for the modal — avoids mutable pluginSelf properties.
@@ -239,11 +281,11 @@ export class Installer {
 				event?.isComplete && setTimeout(() => OnInstallComplete(), 1000);
 			}, [event]);
 
-			return <renderProps.onProgressUpdate progress={event?.progress ?? 0} status={event?.status ?? locale.strUnknown} />;
+			return <renderProps.onProgressUpdate status={event?.status ?? locale.strUnknown} />;
 		}
 
 		try {
-			const { type, data } = await this.FetchInformationFromId(id);
+			const data = await this.FetchInformationFromId(id, type);
 			modal = await this.PromptInstallation(type, data, (setter) => {
 				updateInstallerState = setter;
 			});

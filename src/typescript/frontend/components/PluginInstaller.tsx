@@ -28,37 +28,12 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, ProgressBarWithInfo } from '@steambrew/client';
+import { ConfirmModal } from '@steambrew/client';
 import { InstallerProps } from '../types';
-import Styles from '../utils/styles';
-import { RendererProps } from '../settings/general/Installer';
+import { OnProgressUpdate, RendererProps } from '../settings/general/Installer';
 import { API_URL } from '../utils/globals';
 import { backend } from '../utils/ffi';
 import { formatString, locale } from '../utils/localization-manager';
-
-function normalizeInstallResponse(result: unknown): { success: boolean; message?: string } {
-	if (typeof result === 'string') {
-		try {
-			const parsed = JSON.parse(result);
-			return {
-				success: Boolean(parsed?.success),
-				message: parsed?.error ?? parsed?.message,
-			};
-		} catch {
-			return { success: false, message: result };
-		}
-	}
-
-	if (result && typeof result === 'object') {
-		const typed = result as Record<string, unknown>;
-		return {
-			success: Boolean(typed.success),
-			message: (typed.error as string) ?? (typed.message as string),
-		};
-	}
-
-	return { success: false, message: locale.errorFailedToStartThemeInstaller };
-}
 
 const OnInstallComplete = (data: any, props: InstallerProps) => {
 	const EnablePlugin = async () => {
@@ -81,37 +56,6 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 			onCancel={() => {
 				props?.modal?.Close?.();
 			}}
-		/>
-	);
-};
-
-const OnProgressUpdate = ({ progress, status }: { progress: number; status: string }) => {
-	const RenderBody = () => {
-		return (
-			<>
-				<Styles />
-				<ProgressBarWithInfo
-					/* @ts-ignore */
-					className="MillenniumInstallerDialog_ProgressBar"
-					sOperationText={status}
-					nProgress={progress}
-					nTransitionSec={0.5}
-				/>
-			</>
-		);
-	};
-
-	return (
-		<ConfirmModal
-			className="MillenniumInstallerDialog"
-			strTitle={locale.strInstallProgress}
-			strDescription={<RenderBody />}
-			bHideCloseIcon={true}
-			onCancel={() => {}}
-			bAlertDialog={true}
-			bCancelDisabled={true}
-			bDisableBackgroundDismiss={true}
-			bOKDisabled={true}
 		/>
 	);
 };
@@ -147,14 +91,12 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 	let opId = 0;
 	try {
 		const result = await backend.plugins.install(downloadUrl, data?.fileSize);
-		const response = normalizeInstallResponse(result);
-		if (!response.success) {
-			const message = response.message || locale.errorFailedToStartThemeInstaller;
-			props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, String(message)), locale.errorMessageTitle);
+		if (!result?.success) {
+			const message = result?.error ?? result?.message ?? locale.errorFailedToStartThemeInstaller;
+			props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, message), locale.errorMessageTitle);
 			return false;
 		}
-		const parsed = typeof result === 'string' ? JSON.parse(result) : result;
-		opId = parsed?.opId ?? 0;
+		opId = result.opId ?? 0;
 	} catch (error: unknown) {
 		props?.ShowMessageBox(formatString(locale.errorFailedToDownloadPlugin, String(error)), locale.errorMessageTitle);
 		return false;

@@ -28,19 +28,20 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, ProgressBarWithInfo } from '@steambrew/client';
-import { InstallerProps, Theme, ThemeItem } from '../types';
-import { RendererProps } from '../settings/general/Installer';
+import { ConfirmModal } from '@steambrew/client';
+import { InstallerProps, Theme } from '../types';
+import { OnProgressUpdate, RendererProps } from '../settings/general/Installer';
 import { backend } from '../utils/ffi';
-import Styles from '../utils/styles';
 import { formatString, locale } from '../utils/localization-manager';
 import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';
 
 const OnInstallComplete = (data: any, props: InstallerProps) => {
 	const UseNewTheme = async () => {
 		try {
-			const themeData: ThemeItem = await backend.themes.getTheme(data?.skin_data?.github?.repo_name, data?.skin_data?.github?.owner, true);
-			await ChangeActiveTheme(themeData?.native, UIReloadProps.Force);
+			const themeData = await backend.themes.getTheme(data?.skin_data?.github?.repo_name, data?.skin_data?.github?.owner, true);
+			if (themeData) {
+				await ChangeActiveTheme(themeData.native, UIReloadProps.Force);
+			}
 		} catch (error) {
 			console.error('Error finding theme on disk:', error);
 		}
@@ -69,36 +70,6 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 	);
 };
 
-const OnProgressUpdate = ({ progress, status }: { progress: number; status: string }) => {
-	const RenderBody = () => {
-		return (
-			<>
-				<Styles />
-				<ProgressBarWithInfo
-					/* @ts-ignore */
-					className="MillenniumInstallerDialog_ProgressBar"
-					sOperationText={status}
-					nProgress={progress}
-					nTransitionSec={0.5}
-				/>
-			</>
-		);
-	};
-
-	return (
-		<ConfirmModal
-			className="MillenniumInstallerDialog"
-			strTitle={locale.strInstallProgress}
-			strDescription={<RenderBody />}
-			bHideCloseIcon={true}
-			onCancel={() => {}}
-			bAlertDialog={true}
-			bCancelDisabled={true}
-			bDisableBackgroundDismiss={true}
-		/>
-	);
-};
-
 export const StartThemeInstaller = async (data: any, props: InstallerProps): Promise<RendererProps | boolean> => {
 	const theme: Theme = data?.skin_data;
 
@@ -109,8 +80,8 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 	const { ShowMessageBox } = props;
 
 	const UninstallTheme = (resolve: (value: unknown) => void) => {
-		backend.themes.uninstall(owner, repo).then((response: any) => {
-			if (!response || !response?.success) {
+		backend.themes.uninstall(owner, repo).then((response) => {
+			if (!response?.success) {
 				ShowMessageBox(formatString(locale.errorFailedToUninstallTheme, response?.message ?? locale.strUnknown), locale.errorMessageTitle, {
 					onOK: () => props?.modal?.Close?.(),
 					onCancel: () => props?.modal?.Close?.(),
@@ -144,8 +115,7 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 	/** Start installer and extract opId for per-operation progress tracking */
 	let opId = 0;
 	try {
-		const result: any = await backend.themes.install(owner, repo);
-		const response = typeof result === 'string' ? JSON.parse(result) : result;
+		const response = await backend.themes.install(owner, repo);
 		if (!response?.success) {
 			ShowMessageBox(response?.message ?? locale.errorFailedToStartThemeInstaller, locale.errorMessageTitle, {
 				onOK: () => props?.modal?.Close?.(),

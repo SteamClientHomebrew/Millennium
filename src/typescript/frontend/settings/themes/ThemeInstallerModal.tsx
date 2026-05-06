@@ -34,7 +34,7 @@ import { Utils } from '../../utils';
 import { locale } from '../../utils/localization-manager';
 
 import { THEMES_URL } from '../../utils/globals';
-import { Installer } from '../general/Installer';
+import { Installer, InstallType } from '../general/Installer';
 
 interface ThemeIdModalProps {
 	installer: Installer;
@@ -63,7 +63,7 @@ function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 			}
 			bHideCloseIcon={true}
 			onOK={() => {
-				installer.OpenInstallPrompt(installID, refetchDataCb);
+				installer.OpenInstallPrompt(installID, InstallType.Theme, refetchDataCb);
 				modal?.Close();
 			}}
 			onCancel={() => {

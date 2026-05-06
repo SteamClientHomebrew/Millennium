@@ -66,12 +66,8 @@ export const DesktopMenuProvider: React.FC<DesktopMenuProviderProps> = ({ childr
 	const [focusedItemType, setFocusedItemType] = useState<DesktopSideBarFocusedItemType | undefined>(undefined);
 
 	useEffect(() => {
-		backend.plugins.getPlugins().then((plugins: any) => {
-			setPlugins(plugins);
-		});
-		backend.themes.getThemes().then((themes: any) => {
-			setThemes(themes);
-		});
+		backend.plugins.getPlugins().then(setPlugins);
+		backend.themes.getThemes().then(setThemes);
 	}, []);
 
 	const openMenu = useCallback((userdata?: any) => {

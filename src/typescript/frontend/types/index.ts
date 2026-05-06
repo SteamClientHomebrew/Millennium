@@ -195,6 +195,74 @@ export interface UpdateItem {
 	name: string;
 }
 
+/** Plugin update entry returned by the steambrew updates API. */
+export interface PluginUpdateInfo {
+	id: string;
+	name: string;
+	pluginDirectory: string;
+	hasUpdate?: boolean;
+	pluginInfo?: {
+		commit?: string;
+		pluginJson?: { name: string; common_name?: string };
+		[key: string]: any;
+	};
+	[key: string]: any;
+}
+
+/** Response shape for `Core_GetUpdates`. Either side can also degrade to `{ error }`. */
+export interface UpdatesResponse {
+	themes?: UpdateItem[] | { error: string };
+	plugins?: PluginUpdateInfo[] | { error: string };
+}
+
+/** Generic `{success, error/message}` result returned by uninstall/setCondition handlers. */
+export interface BackendOpResult {
+	success: boolean;
+	message?: string;
+	error?: string;
+}
+
+/** Response shape for backgrounded install operations (`Core_InstallTheme` / `Core_InstallPlugin`). */
+export interface InstallStartResponse {
+	success: boolean;
+	started?: boolean;
+	opId?: number;
+	message?: string;
+	error?: string;
+}
+
+/** Response shape for backgrounded update operations. */
+export interface OpIdResponse {
+	opId: number;
+}
+
+export enum ColorType {
+	RawRGB = 1,
+	RGB = 2,
+	RawRGBA = 3,
+	RGBA = 4,
+	Hex = 5,
+	Unknown = 6,
+}
+
+/** A single color editable in the theme color picker, returned by `Core_GetThemeColorOptions`. */
+export interface ThemeColorOption {
+	name?: string;
+	description?: string;
+	color: string;
+	type: ColorType;
+	hex: string;
+	defaultColor: string;
+}
+
+/** Shape of `m_millennium_updater->has_any_updates()` (sent inside SettingsProps). */
+export interface MillenniumUpdates {
+	hasUpdate: boolean;
+	updateInProgress: boolean;
+	newVersion: GitHubRelease | null;
+	platformRelease: GitHubReleaseAsset | null;
+}
+
 export interface Settings {
 	active: string;
 	scripts: boolean;
@@ -214,18 +282,11 @@ export interface SettingsProps {
 	enabledPlugins: string;
 	hasCheckedForUpdates: boolean;
 
-	updates: {
-		themes?: UpdateItem[];
-		plugins?: any[];
-	};
-	millenniumUpdates?: {
-		hasUpdate: boolean;
-		newVersion?: GitHubRelease;
-		updateInProgress: boolean;
-	};
+	updates: UpdatesResponse;
+	millenniumUpdates?: MillenniumUpdates;
 
-    buildDate: string;
-    gitCommitOid: string;
+	buildDate: string;
+	gitCommitOid: string;
 	platformType: OSType;
 	millenniumLinuxUpdateScript?: string;
 	quickCss: string;

@@ -57,7 +57,7 @@ async function OnQuickCssFileChanged() {
 	UpdateStylesLive(cssContent);
 }
 
-Millennium.exposeObj?.({ OnQuickCssFileChanged });
+Millennium.exposeObj({ OnQuickCssFileChanged });
 
 export const MillenniumQuickCssEditor = () => {
 	const g_ModalManagerInstance = g_ModalManager();
