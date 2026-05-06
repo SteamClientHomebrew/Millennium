@@ -38,7 +38,7 @@
 #include "millennium/filesystem.h"
 #include "millennium/logger.h"
 
-#include <fmt/format.h>
+#include <format>
 #include <regex>
 #include <sstream>
 
@@ -285,7 +285,7 @@ nlohmann::json head::theme_config_store::get_colors()
             continue;
         }
 
-        root += fmt::format("{}: {};", color, colorValue);
+        root += std::format("{}: {};", color, colorValue);
     }
 
     root += "}";
@@ -451,7 +451,7 @@ std::string head::theme_config_store::get_slider_css()
         const std::string unit = slider.value("unit", "");
         const std::string value = saved[name].get<std::string>();
 
-        root += fmt::format(" {}: {}{};", css_var, value, unit);
+        root += std::format(" {}: {}{};", css_var, value, unit);
     }
 
     root += " }";

@@ -221,7 +221,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
             SetHandleInformation(hParentRead, HANDLE_FLAG_INHERIT, 0);
 
             cmd_line.ensure_param("--remote-debugging-pipe");
-            cmd_line.ensure_param("--remote-debugging-io-pipes", fmt::format("{},{}", reinterpret_cast<uintptr_t>(hChildRead), reinterpret_cast<uintptr_t>(hChildWrite)).c_str());
+            cmd_line.ensure_param("--remote-debugging-io-pipes", std::format("{},{}", reinterpret_cast<uintptr_t>(hChildRead), reinterpret_cast<uintptr_t>(hChildWrite)).c_str());
 
             g_cdp_pipe_read = hParentRead;
             g_cdp_pipe_write = hParentWrite;
@@ -540,7 +540,7 @@ void uninitialize_steam_hooks()
 
 #include <dlfcn.h>
 #include <string>
-#include <fmt/format.h>
+#include <format>
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
 #include <libsnare.h>

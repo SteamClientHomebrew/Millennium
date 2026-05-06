@@ -29,7 +29,7 @@
  */
 
 #include "head/sys_accent_col.h"
-#include "fmt/format.h"
+#include <format>
 #ifdef _WIN32
 #include "millennium/logger.h"
 #include <windows.h>
@@ -113,7 +113,7 @@ AccentColors GetAccentColors()
  */
 std::string CastToHex(unsigned long color)
 {
-    return fmt::format("#{0:02x}{1:02x}{2:02x}", R(color), G(color), B(color));
+    return std::format("#{0:02x}{1:02x}{2:02x}", R(color), G(color), B(color));
 }
 
 /**
@@ -121,7 +121,7 @@ std::string CastToHex(unsigned long color)
  */
 std::string CastToRgb(unsigned long color)
 {
-    return fmt::format("{}, {}, {}", R(color), G(color), B(color));
+    return std::format("{}, {}, {}", R(color), G(color), B(color));
 }
 
 /**
@@ -170,7 +170,7 @@ nlohmann::json head::system_accent_color::get_accent_color_macos()
         return get_accent_color_linux();
     }
 
-    const std::string accent = fmt::format("#{0:02x}{1:02x}{2:02x}", static_cast<int>(r * 255.0f + 0.5f), static_cast<int>(g * 255.0f + 0.5f), static_cast<int>(b * 255.0f + 0.5f));
+    const std::string accent = std::format("#{0:02x}{1:02x}{2:02x}", static_cast<int>(r * 255.0f + 0.5f), static_cast<int>(g * 255.0f + 0.5f), static_cast<int>(b * 255.0f + 0.5f));
 
     return {
         { "accent", accent },
@@ -244,7 +244,7 @@ std::string head::system_accent_color::adjust_color_intensity(const std::string&
     g = adjust(g);
     b = adjust(b);
 
-    return fmt::format("#{0:02x}{1:02x}{2:02x}", r, g, b);
+    return std::format("#{0:02x}{1:02x}{2:02x}", r, g, b);
 }
 
 /**
@@ -263,7 +263,7 @@ std::string head::system_accent_color::hex_to_rgb(const std::string& hex_color)
     int g = std::stoi(color.substr(2, 2), nullptr, 16);
     int b = std::stoi(color.substr(4, 2), nullptr, 16);
 
-    return fmt::format("{}, {}, {}", r, g, b);
+    return std::format("{}, {}, {}", r, g, b);
 }
 
 /**

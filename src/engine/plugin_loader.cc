@@ -57,7 +57,22 @@
 #include "head/entry_point.h"
 
 #include <curl/curl.h>
-#include <fmt/ranges.h>
+#include <format>
+
+namespace
+{
+template <typename Range> std::string join_strings(const Range& items, std::string_view sep)
+{
+    std::string out;
+    bool first = true;
+    for (const auto& item : items) {
+        if (!first) out += sep;
+        out += item;
+        first = false;
+    }
+    return out;
+}
+}
 
 #ifdef __linux__
 #include <mutex>
@@ -100,7 +115,7 @@ static std::string make_crash_js(const mep::crash_event& ev)
         { "exitCode",     (uint32_t)ev.exit_code                                     },
         { "crashDumpDir", ev.crash_dump_dir                                          }
     };
-    return fmt::format("window.dispatchEvent(new CustomEvent('millennium-plugin-crash',{{detail:{}}}));", detail.dump());
+    return std::format("window.dispatchEvent(new CustomEvent('millennium-plugin-crash',{{detail:{}}}));", detail.dump());
 }
 
 void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
@@ -257,9 +272,9 @@ std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::
     const std::string preload_path = platform::get_millennium_preload_path();
     const std::string token = GetAuthToken();
     const std::string ftp_path = m_network_hook_ctl->get_ftp_url() + preload_path;
-    const std::string module_list = fmt::format(R"("{}")", fmt::join(modules, R"(", ")"));
+    const std::string module_list = std::format(R"("{}")", join_strings(modules, R"(", ")"));
 
-    return fmt::format("import('{}').then(m => (new m.default).StartPreloader('{}', [{}]))", ftp_path, token, module_list);
+    return std::format("import('{}').then(m => (new m.default).StartPreloader('{}', [{}]))", ftp_path, token, module_list);
 }
 
 std::string plugin_loader::cdp_generate_shim_module()
@@ -268,7 +283,7 @@ std::string plugin_loader::cdp_generate_shim_module()
     std::vector<plugin_manager::plugin_t> plugins = m_plugin_manager->get_all_plugins();
 
     /** Add the builtin Millennium plugin first so it starts loading before all others */
-    script_list.push_back(fmt::format("{}{}/millennium-frontend.js", m_network_hook_ctl->get_ftp_url(), GetScrambledApiPathToken()));
+    script_list.push_back(std::format("{}{}/millennium-frontend.js", m_network_hook_ctl->get_ftp_url(), GetScrambledApiPathToken()));
 
     for (auto& plugin : plugins) {
         if (!m_plugin_manager->is_enabled(plugin.plugin_name)) {
@@ -322,7 +337,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
 
                     const json create_world_params = {
                         { "frameId", frame_id },
-                        { "worldName", fmt::format("millennium-{}", plugin.plugin_name) },
+                        { "worldName", std::format("millennium-{}", plugin.plugin_name) },
                         { "grantUniversalAccess", false }
                     };
                     auto world_result = self->m_cdp->send("Page.createIsolatedWorld", create_world_params).get();
@@ -494,10 +509,10 @@ void plugin_loader::log_enabled_plugins()
     statuses.reserve(m_plugin_ptr->size());
 
     for (const auto& plugin : *m_plugin_ptr) {
-        statuses.push_back(fmt::format("{}: {}", plugin.plugin_name, m_plugin_manager->is_enabled(plugin.plugin_name) ? "enabled" : "disabled"));
+        statuses.push_back(std::format("{}: {}", plugin.plugin_name, m_plugin_manager->is_enabled(plugin.plugin_name) ? "enabled" : "disabled"));
     }
 
-    logger.log("Plugins: {{ {} }}", fmt::join(statuses, ", "));
+    logger.log("Plugins: {{ {} }}", join_strings(statuses, ", "));
 }
 
 void plugin_loader::setup_child_request_handler()

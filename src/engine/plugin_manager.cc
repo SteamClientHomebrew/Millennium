@@ -33,7 +33,7 @@
 #include "millennium/logger.h"
 #include "millennium/config.h"
 #include "millennium/environment.h"
-#include <fmt/core.h>
+#include <format>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -143,7 +143,7 @@ void plugin_manager::lint_plugin(nlohmann::json json, std::string pluginName)
 
         if (!json.contains(property)) {
             if (required) {
-                throw std::runtime_error(fmt::format("plugin configuration must contain '{}'", property));
+                throw std::runtime_error(std::format("plugin configuration must contain '{}'", property));
             } else {
                 logger.warn("plugin '{}' doesn't contain a property field '{}' in '{}'", pluginName, property, plugin_manager::plugin_config_file);
             }

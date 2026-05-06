@@ -72,7 +72,7 @@ void ffi_binder::callback_into_js(const json params, const int request_id, order
 {
     json eval_params = {
         { "contextId", params["executionContextId"] },
-        { "expression", fmt::format("window.{}.__handleResponse({}, {})", ffi_constants::frontend_binding_name, request_id, result.dump()) }
+        { "expression", std::format("window.{}.__handleResponse({}, {})", ffi_constants::frontend_binding_name, request_id, result.dump()) }
     };
 
     auto eval_result = m_client->send_host("Runtime.evaluate", eval_params, params["sessionId"].get<std::string>()).get();
@@ -137,7 +137,7 @@ void ffi_binder::extension_route_hdlr(const json& params)
 
         json eval_params = {
             { "contextId", context_id },
-            { "expression", fmt::format("window.{}.__handleCDPResponse({})", ffi_constants::extension_frontend_response_name, response.dump()) }
+            { "expression", std::format("window.{}.__handleCDPResponse({})", ffi_constants::extension_frontend_response_name, response.dump()) }
         };
         m_client->send_host("Runtime.evaluate", eval_params, session_id);
 
@@ -151,7 +151,7 @@ void ffi_binder::extension_route_hdlr(const json& params)
         try {
             json eval_params = {
                 { "contextId", context_id },
-                { "expression", fmt::format("window.{}.__handleCDPResponse({})", ffi_constants::extension_frontend_response_name, error_response.dump()) }
+                { "expression", std::format("window.{}.__handleCDPResponse({})", ffi_constants::extension_frontend_response_name, error_response.dump()) }
             };
             m_client->send_host("Runtime.evaluate", eval_params, session_id);
         } catch (...) {
@@ -233,14 +233,14 @@ void ffi_binder::cdp_proxy_hdlr(const json& params)
             const std::string error = payload.value("error", "unknown error");
             json eval_params = {
                 { "contextId", main_ctx },
-                { "expression", fmt::format("{}({}, {})", ffi_constants::millennium_cdp_reject, callback_id, json(error).dump()) }
+                { "expression", std::format("{}({}, {})", ffi_constants::millennium_cdp_reject, callback_id, json(error).dump()) }
             };
             m_client->send_host("Runtime.evaluate", eval_params, main_session);
         } else {
             const json result = payload.value("result", json::object());
             json eval_params = {
                 { "contextId", main_ctx },
-                { "expression", fmt::format("{}({}, {})", ffi_constants::millennium_cdp_resolve, callback_id, result.dump()) }
+                { "expression", std::format("{}({}, {})", ffi_constants::millennium_cdp_resolve, callback_id, result.dump()) }
             };
             m_client->send_host("Runtime.evaluate", eval_params, main_session);
         }
@@ -290,10 +290,10 @@ void ffi_binder::cdp_proxy_call(const std::string& plugin_name, int callback_id,
     const bool targets_shared_js = target_session.has_value() && (target_session.value() == m_client->get_shared_js_session_id());
 
     if (BLOCKED_CDP_METHODS_ALWAYS.count(method) || (targets_shared_js && BLOCKED_CDP_METHODS_SHARED_JS.count(method))) {
-        const std::string msg = fmt::format("Millennium prohibits calls to '{}' for user safety", method);
+        const std::string msg = std::format("Millennium prohibits calls to '{}' for user safety", method);
         json eval_params = {
             { "contextId", main_ctx_id },
-            { "expression", fmt::format("{}({}, {})", ffi_constants::millennium_cdp_reject, callback_id, json(msg).dump()) }
+            { "expression", std::format("{}({}, {})", ffi_constants::millennium_cdp_reject, callback_id, json(msg).dump()) }
         };
         m_client->send_host("Runtime.evaluate", eval_params, session_id);
         return;
@@ -314,7 +314,7 @@ void ffi_binder::cdp_proxy_call(const std::string& plugin_name, int callback_id,
         const char* js_fn = is_error ? ffi_constants::millennium_cdp_reject : ffi_constants::millennium_cdp_resolve;
         json eval_params = {
             { "contextId", main_ctx },
-            { "expression", fmt::format("{}({}, {})", js_fn, callback_id, value.dump()) }
+            { "expression", std::format("{}({}, {})", js_fn, callback_id, value.dump()) }
         };
         m_client->send_host("Runtime.evaluate", eval_params, main_sess);
     };
@@ -351,7 +351,7 @@ void ffi_binder::cdp_event_dispatch(const std::string& method, const json& param
     for (const auto& [ctx_id, session_id] : targets) {
         json eval_params = {
             { "contextId", ctx_id },
-            { "expression", fmt::format("window.__millennium_cdp_event__({})", event_data.dump()) }
+            { "expression", std::format("window.__millennium_cdp_event__({})", event_data.dump()) }
         };
         m_client->send_host("Runtime.evaluate", eval_params, session_id);
     }

@@ -68,12 +68,9 @@ check() {
 
 check zlib-2.2.5.tar.gz            https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.2.5.tar.gz
 check luajit-89550023.tar.gz       https://github.com/SteamClientHomebrew/LuaJIT/archive/89550023569c3e195e75e12951c067fe5591e0d2.tar.gz
-check lua_cjson-0c1fabf0.tar.gz    https://github.com/SteamClientHomebrew/LuaJSON/archive/0c1fabf07c42f3907287d1e4f729e0620c1fe6fd.tar.gz
-check fmt-12.0.0.tar.gz            https://github.com/fmtlib/fmt/archive/refs/tags/12.0.0.tar.gz
 check nlohmann_json-v3.12.0.tar.gz https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.tar.gz
 check minizip_ng-4.0.10.tar.gz     https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.10.tar.gz
 check curl-8_13_0.tar.gz           https://github.com/curl/curl/archive/refs/tags/curl-8_13_0.tar.gz
-check incbin-22061f51.tar.gz       https://github.com/graphitemaster/incbin/archive/22061f51fe9f2f35f061f85c2b217b55dd75310d.tar.gz
 
 echo ""
 echo "$PASS passed, $FAIL failed"

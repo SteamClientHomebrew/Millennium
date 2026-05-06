@@ -33,7 +33,7 @@
 #include "millennium/environment.h"
 #include "millennium/plat_msg.h"
 
-#include <fmt/core.h>
+#include <format>
 #include <fstream>
 #include <chrono>
 #include <ctime>
@@ -172,14 +172,14 @@ void config_manager::load_from_disk()
                 std::filesystem::copy_file(_filename, backup, std::filesystem::copy_options::overwrite_existing, bec);
                 const std::string backup_note = bec ? std::string("backup failed: ") + bec.message() : std::string("a backup has been saved to ") + backup;
 
-                platform::messagebox::show("Millennium", fmt::format("The config file at '{}' contains invalid JSON and will be reset to defaults ({}).", _filename, backup_note),
+                platform::messagebox::show("Millennium", std::format("The config file at '{}' contains invalid JSON and will be reset to defaults ({}).", _filename, backup_note),
                                            platform::messagebox::level::warn);
                 _data = nlohmann::json::object();
             }
         } else if (file_exists) {
             logger.warn("Could not open existing config file (likely transient lock): {}. Disabling persistence for this session.", _filename);
             platform::messagebox::show("Millennium",
-                                       fmt::format("Could not open the config file at '{}' (it may be temporarily locked by another process). Your settings on disk are preserved; "
+                                       std::format("Could not open the config file at '{}' (it may be temporarily locked by another process). Your settings on disk are preserved; "
                                                    "defaults will be used until the next launch.",
                                                    _filename),
                                        platform::messagebox::level::warn);

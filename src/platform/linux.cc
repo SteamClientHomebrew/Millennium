@@ -31,7 +31,7 @@
 #ifdef __linux__
 #include "millennium/platform_hooks.h"
 #include "millennium/logger.h"
-#include <fmt/core.h>
+#include <format>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +66,7 @@ bool platform::should_setup_environment()
 
     path[len] = '\0';
 
-    std::string steam_path = fmt::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
+    std::string steam_path = std::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
     if (!is_same_path(path, steam_path.c_str())) {
         logger.warn("[Millennium] Process is not running under Steam: {}", path);
         return false;

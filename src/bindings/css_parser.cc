@@ -31,7 +31,7 @@
 #include "head/css_parser.h"
 
 #include <fstream>
-#include <fmt/core.h>
+#include <format>
 #include <regex>
 #include <sstream>
 
@@ -58,10 +58,10 @@ std::optional<std::string> head::css_parser::convert_from_hex(const std::string&
 
     switch (type) {
         case color_type::RawRGB:
-            return fmt::format("{}, {}, {}", r, g, b);
+            return std::format("{}, {}, {}", r, g, b);
 
         case color_type::RGB:
-            return fmt::format("rgb({}, {}, {})", r, g, b);
+            return std::format("rgb({}, {}, {})", r, g, b);
 
         case color_type::RawRGBA:
         case color_type::RGBA:
@@ -69,9 +69,9 @@ std::optional<std::string> head::css_parser::convert_from_hex(const std::string&
             const double a = (hex.size() == 8) ? std::stoi(hex.substr(6, 2), nullptr, 16) / 255.0 : 1.0;
 
             if (type == color_type::RawRGBA) {
-                return fmt::format("{}, {}, {}, {:.2f}", r, g, b, a);
+                return std::format("{}, {}, {}, {:.2f}", r, g, b, a);
             }
-            return fmt::format("rgba({}, {}, {}, {:.2f})", r, g, b, a);
+            return std::format("rgba({}, {}, {}, {:.2f})", r, g, b, a);
         }
 
         default:
@@ -100,12 +100,12 @@ std::optional<std::string> head::css_parser::convert_to_hex(const std::string& c
     }
 
     if (type == color_type::RawRGB || type == color_type::RGB) {
-        return fmt::format("#{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]));
+        return std::format("#{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]));
     }
 
     if (type == color_type::RawRGBA || type == color_type::RGBA) {
         const int alpha = static_cast<int>(values[3] * 255.0);
-        return fmt::format("#{:02x}{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]), alpha);
+        return std::format("#{:02x}{:02x}{:02x}{:02x}", static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2]), alpha);
     }
 
     return std::nullopt;

@@ -188,7 +188,7 @@ void head::library_updater::dispatch_progress(const std::string& status, double 
     }
 
     int op_id = t_current_op_id;
-    std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete, success, op_id };
+    std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete, success, static_cast<int64_t>(op_id) };
     m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));
 }
 

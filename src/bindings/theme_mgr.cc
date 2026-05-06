@@ -315,7 +315,7 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
         }
 
         logger.log("Downloading theme from: {}", downloadUrl);
-        m_updater->dispatch_progress("Downloading theme archive...", 10, false);
+        m_updater->dispatch_progress("Downloading theme...", 10, false);
 
         tempDir = get_themes_folder() / ("__tmp_" + GenerateUUID());
         std::filesystem::create_directories(tempDir);
@@ -325,17 +325,17 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
         {
             if (total > 0) {
                 double percent = (double(downloaded) / total) * 100.0;
-                m_updater->dispatch_progress("Downloading theme archive...", 10.0 + (40.0 * (percent / 100.0)), false);
+                m_updater->dispatch_progress("Downloading theme...", 10.0 + (40.0 * (percent / 100.0)), false);
             }
         });
 
-        m_updater->dispatch_progress("Extracting theme archive...", 55, false);
+        m_updater->dispatch_progress("Setting up theme...", 55, false);
         logger.log("Extracting theme to: {}", tempDir.string());
 
         const bool extracted = Util::ExtractZipArchive(zipPath.string(), tempDir.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
-            m_updater->dispatch_progress("Extracting theme archive...", 55.0 + (30.0 * (percent / 100.0)), false);
+            m_updater->dispatch_progress("Setting up theme...", 55.0 + (30.0 * (percent / 100.0)), false);
         });
 
         if (!extracted) {

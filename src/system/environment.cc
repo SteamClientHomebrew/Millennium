@@ -38,7 +38,7 @@
 #include "millennium/filesystem.h"
 #include "millennium/auth.h"
 
-#include <fmt/core.h>
+#include <format>
 #include <stdlib.h>
 #include <string>
 #include <iostream>
@@ -186,9 +186,9 @@ void platform::environment::setup()
     environment.insert(environment_windows.begin(), environment_windows.end());
 #elif __linux__
     const std::string homeDir = get("HOME");
-    const std::string configDir = get("XDG_CONFIG_HOME", fmt::format("{}/.config", homeDir));
-    const std::string dataDir = get("XDG_DATA_HOME", fmt::format("{}/.local/share", homeDir));
-    const std::string stateDir = get("XDG_STATE_HOME", fmt::format("{}/.local/state", homeDir));
+    const std::string configDir = get("XDG_CONFIG_HOME", std::format("{}/.config", homeDir));
+    const std::string dataDir = get("XDG_DATA_HOME", std::format("{}/.local/share", homeDir));
+    const std::string stateDir = get("XDG_STATE_HOME", std::format("{}/.local/state", homeDir));
 
     const std::string customLdPreload = get("MILLENNIUM_RUNTIME_PATH");
 
@@ -196,10 +196,10 @@ void platform::environment::setup()
         { "OPENSSL_CONF", "/dev/null" },
         { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so" },
 
-        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/.steam/steam/ubuntu12_32/steam", homeDir) },
-        { "MILLENNIUM__PLUGINS_PATH", fmt::format("{}/millennium/plugins", dataDir) },
-        { "MILLENNIUM__CONFIG_PATH", fmt::format("{}/millennium", configDir) },
-        { "MILLENNIUM__LOGS_PATH", fmt::format("{}/millennium/logs", stateDir) },
+        { "MILLENNIUM__STEAM_EXE_PATH", std::format("{}/.steam/steam/ubuntu12_32/steam", homeDir) },
+        { "MILLENNIUM__PLUGINS_PATH", std::format("{}/millennium/plugins", dataDir) },
+        { "MILLENNIUM__CONFIG_PATH", std::format("{}/millennium", configDir) },
+        { "MILLENNIUM__LOGS_PATH", std::format("{}/millennium/logs", stateDir) },
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
@@ -207,17 +207,17 @@ void platform::environment::setup()
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
     const std::string homeDir = platform::environment::get("HOME");
-    const std::string configDir = fmt::format("{}/Library/Application Support", homeDir);
-    const std::string dataDir = fmt::format("{}/Library/Application Support", homeDir);
-    const std::string stateDir = fmt::format("{}/Library/Logs", homeDir);
+    const std::string configDir = std::format("{}/Library/Application Support", homeDir);
+    const std::string dataDir = std::format("{}/Library/Application Support", homeDir);
+    const std::string stateDir = std::format("{}/Library/Logs", homeDir);
 
     std::map<std::string, std::string> environment_macos = {
         { "MILLENNIUM_RUNTIME_PATH", "/usr/local/lib/millennium/libmillennium_x86.dylib" },
 
-        { "MILLENNIUM__STEAM_EXE_PATH", fmt::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
-        { "MILLENNIUM__PLUGINS_PATH", fmt::format("{}/Millennium/plugins", dataDir) },
-        { "MILLENNIUM__CONFIG_PATH", fmt::format("{}/Millennium", configDir) },
-        { "MILLENNIUM__LOGS_PATH", fmt::format("{}/Millennium/logs", stateDir) },
+        { "MILLENNIUM__STEAM_EXE_PATH", std::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
+        { "MILLENNIUM__PLUGINS_PATH", std::format("{}/Millennium/plugins", dataDir) },
+        { "MILLENNIUM__CONFIG_PATH", std::format("{}/Millennium", configDir) },
+        { "MILLENNIUM__LOGS_PATH", std::format("{}/Millennium/logs", stateDir) },
         { "MILLENNIUM__DATA_LIB", dataLibPath },
         { "MILLENNIUM__SHIMS_PATH", shimsPath },
         { "MILLENNIUM__ASSETS_PATH", assetsPath },
@@ -238,7 +238,7 @@ void platform::environment::setup()
 #if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
 #define RED "\033[31m"
 #define RESET "\033[0m"
-        if (shouldLog) std::cout << fmt::format("{}={}", key, value) << std::endl;
+        if (shouldLog) std::cout << std::format("{}={}", key, value) << std::endl;
 #endif
         set(key, value);
     }

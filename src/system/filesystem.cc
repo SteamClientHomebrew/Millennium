@@ -39,7 +39,7 @@
 #include "millennium/auth.h"
 #include "millennium/environment.h"
 
-#include <fmt/core.h>
+#include <format>
 #include <fstream>
 #include <iostream>
 
@@ -76,9 +76,9 @@ std::filesystem::path get_steam_path()
         std::string steamPath(buffer.data(), dataSize > 0 && buffer[dataSize - 1] == '\0' ? dataSize - 1 : dataSize);
         return std::filesystem::path(steamPath);
 #elif __linux__
-        return std::filesystem::path(fmt::format("{}/.steam/steam/", std::getenv("HOME")));
+        return std::filesystem::path(std::format("{}/.steam/steam/", std::getenv("HOME")));
 #elif __APPLE__
-        return std::filesystem::path(fmt::format("{}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS", std::getenv("HOME")));
+        return std::filesystem::path(std::format("{}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS", std::getenv("HOME")));
 #endif
     }();
     return cached_path;
@@ -210,7 +210,7 @@ void write_file_bytes(const std::filesystem::path& filePath, const std::vector<u
 
 std::string get_millennium_preload_path()
 {
-    return fmt::format("{}/millennium.js", GetScrambledApiPathToken());
+    return std::format("{}/millennium.js", GetScrambledApiPathToken());
 }
 
 void safe_remove_directory(const std::filesystem::path& root)

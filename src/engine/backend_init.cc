@@ -79,7 +79,7 @@ void backend_initializer::compat_restore_shared_js_context()
         return;
     }
 
-    std::string fileContent = fmt::format(
+    std::string fileContent = std::format(
         R"(<!doctype html><html style="width: 100%; height: 100%"><head><title>SharedJSContext</title><meta charset="utf-8"><script defer="defer" src="/libraries/{}"></script><script defer="defer" src="/library.js"></script><link href="/css/library.css" rel="stylesheet"></head><body style="width: 100%; height: 100%; margin: 0; overflow: hidden;"><div id="root" style="height:100%; width: 100%"></div><div style="display:none"></div></body></html>)",
         libraryChunkJS);
 

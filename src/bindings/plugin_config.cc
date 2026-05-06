@@ -32,7 +32,7 @@
 #include "millennium/encoding.h"
 #include "millennium/plugin_config.h"
 
-#include <fmt/format.h>
+#include <format>
 
 namespace plugin_config
 {
@@ -64,7 +64,7 @@ void notify_change(const notify_targets& t, origin src, const std::string& plugi
     const std::string value_json = value.is_null() ? "null" : value.dump();
 
     if (src != origin::frontend && t.eval_js) {
-        std::string script = fmt::format(R"(window.__millennium_plugin_config_changed__ && window.__millennium_plugin_config_changed__(atob("{}"), atob("{}"), atob("{}")))",
+        std::string script = std::format(R"(window.__millennium_plugin_config_changed__ && window.__millennium_plugin_config_changed__(atob("{}"), atob("{}"), atob("{}")))",
                                          Base64Encode(plugin_name), Base64Encode(key), Base64Encode(value_json));
         t.eval_js(script);
     }

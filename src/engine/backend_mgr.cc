@@ -35,7 +35,7 @@
 #include "millennium/plugin_ipc.h"
 #include "state/shared_memory.h"
 
-#include <fmt/core.h>
+#include <format>
 #include <thread>
 #include <vector>
 
@@ -65,9 +65,9 @@ static std::string get_socket_path(const std::string& pluginName)
 #ifdef _WIN32
     const char* tmp = std::getenv("TEMP");
     if (!tmp) tmp = "C:\\Windows\\Temp";
-    return fmt::format("{}\\millennium-plugin-{}-{}.sock", tmp, GetCurrentProcessId(), pluginName);
+    return std::format("{}\\millennium-plugin-{}-{}.sock", tmp, GetCurrentProcessId(), pluginName);
 #else
-    return fmt::format("/tmp/millennium-plugin-{}-{}.sock", getpid(), pluginName);
+    return std::format("/tmp/millennium-plugin-{}-{}.sock", getpid(), pluginName);
 #endif
 }
 

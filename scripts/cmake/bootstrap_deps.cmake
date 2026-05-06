@@ -6,7 +6,6 @@ set(BUILD_TESTS                     OFF CACHE BOOL     "Disable building tests" 
 set(BUILD_EXAMPLES                  OFF CACHE BOOL     "Disable building examples" FORCE)
 set(CMAKE_CXX_STANDARD_REQUIRED     ON  CACHE BOOL     "Enforce C++ standard" FORCE)
 set(CMAKE_C_STANDARD_REQUIRED       ON  CACHE BOOL     "Enforce C standard" FORCE)
-set(USE_INTERNAL_FPCONV             ON  CACHE BOOL     "Use internal strtod() / g_fmt() code for performance" FORCE)
 set(NGHTTP2_STATICLIB               ON  CACHE BOOL     "Use static nghttp2 library" FORCE)
 set(BUILD_CURL_EXE                  OFF CACHE BOOL     "" FORCE)
 set(CURL_USE_LIBSSH2                OFF CACHE BOOL     "" FORCE)
@@ -28,11 +27,6 @@ set(CURL_DISABLE_IMAP               ON  CACHE BOOL     "Disable IMAP" FORCE)
 set(CURL_DISABLE_SMTP               ON  CACHE BOOL     "Disable SMTP" FORCE)
 set(CURL_DISABLE_GOPHER             ON  CACHE BOOL     "Disable Gopher" FORCE)
 set(CURL_USE_LIBPSL 		            OFF CACHE BOOL     "Disable libpsl" FORCE)
-set(FMT_HEADER_ONLY                 ON  CACHE BOOL     "Use fmt as header-only library" FORCE)
-set(FMT_DOC                         OFF CACHE BOOL     "Disable building documentation in fmt" FORCE)
-set(FMT_TEST                        OFF CACHE BOOL     "Disable building tests in fmt" FORCE)
-set(FMT_INSTALL                     ON  CACHE BOOL     "Enable installation of fmt" FORCE)
-set(MULTIPLE_THREADS 		            OFF CACHE BOOL     "Disable multithreading support in lua cjson" FORCE)
 set(MZ_BZIP2                        OFF CACHE BOOL     "Disable bzip2 support in minizip-ng" FORCE)
 set(MZ_FETCH_LIBS                   OFF CACHE BOOL     "Disable fetching third-party libs in minizip-ng" FORCE)
 set(MZ_ZLIB                         ON  CACHE BOOL     "Enable zlib support in minizip-ng" FORCE)
@@ -86,27 +80,21 @@ if(DISTRO_NIX)
 
   FetchContent_Declare(zlib           SOURCE_DIR "${MILLENNIUM_BASE}/deps/zlib"                                 )
   FetchContent_Declare(luajit         SOURCE_DIR "${MILLENNIUM_BASE}/deps/luajit"         SOURCE_SUBDIR fakedir )
-  FetchContent_Declare(lua_cjson      SOURCE_DIR "${MILLENNIUM_BASE}/deps/luajson"        SOURCE_SUBDIR fakedir )
-  FetchContent_Declare(fmt            SOURCE_DIR "${MILLENNIUM_BASE}/deps/fmt"            SOURCE_SUBDIR fakedir )
   FetchContent_Declare(nlohmann_json  SOURCE_DIR "${MILLENNIUM_BASE}/deps/json"           SOURCE_SUBDIR fakedir )
   FetchContent_Declare(minizip_ng     SOURCE_DIR "${MILLENNIUM_BASE}/deps/minizip"        SOURCE_SUBDIR fakedir )
   FetchContent_Declare(curl           SOURCE_DIR "${MILLENNIUM_BASE}/deps/curl"           SOURCE_SUBDIR fakedir )
-  FetchContent_Declare(incbin         SOURCE_DIR "${MILLENNIUM_BASE}/deps/incbin"         SOURCE_SUBDIR fakedir )
   FetchContent_Declare(re2            SOURCE_DIR "${MILLENNIUM_BASE}/deps/re2"            SOURCE_SUBDIR fakedir )
 else()
   set(THIRDPARTY_DIR "${MILLENNIUM_BASE}/thirdparty")
   FetchContent_Declare(zlib          URL "file://${THIRDPARTY_DIR}/zlib-2.2.5.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
   FetchContent_Declare(luajit        URL "file://${THIRDPARTY_DIR}/luajit-89550023.tar.gz"        DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
-  FetchContent_Declare(lua_cjson     URL "file://${THIRDPARTY_DIR}/lua_cjson-0c1fabf0.tar.gz"    DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
-  FetchContent_Declare(fmt           URL "file://${THIRDPARTY_DIR}/fmt-12.0.0.tar.gz"            DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
   FetchContent_Declare(nlohmann_json URL "file://${THIRDPARTY_DIR}/nlohmann_json-v3.12.0.tar.gz" DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
   FetchContent_Declare(minizip_ng    URL "file://${THIRDPARTY_DIR}/minizip_ng-4.0.10.tar.gz"     DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
   FetchContent_Declare(curl          URL "file://${THIRDPARTY_DIR}/curl-8_13_0.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
-  FetchContent_Declare(incbin        URL "file://${THIRDPARTY_DIR}/incbin-22061f51.tar.gz"        DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
   FetchContent_Declare(re2           GIT_REPOSITORY https://github.com/google/re2 GIT_TAG 2022-04-01 SOURCE_SUBDIR fakedir)
 endif()
 
-set(DEPENDENCIES zlib luajit incbin fmt nlohmann_json minizip_ng lua_cjson curl re2)
+set(DEPENDENCIES zlib luajit nlohmann_json minizip_ng curl re2)
 
 set(_saved_msg_level "${CMAKE_MESSAGE_LOG_LEVEL}")
 set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
@@ -150,7 +138,6 @@ set(LUA_LIBRARIES    luajit::lib   )
 
 include_directories(SYSTEM
     "${minizip_ng_SOURCE_DIR}"
-    "${incbin_SOURCE_DIR}"
     "${luajit_BINARY_DIR}"
     "${luajit_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/../hhx64/include"
@@ -158,10 +145,8 @@ include_directories(SYSTEM
 
 millennium_process_package("${luajit_SOURCE_DIR}")
 millennium_process_package("${curl_SOURCE_DIR}")
-millennium_process_package("${fmt_SOURCE_DIR}")
 millennium_process_package("${nlohmann_json_SOURCE_DIR}")
 millennium_process_package("${minizip_ng_SOURCE_DIR}")
-millennium_process_package("${lua_cjson_SOURCE_DIR}")
 millennium_process_package("${re2_SOURCE_DIR}")
 
 
@@ -189,15 +174,12 @@ string(APPEND CMAKE_CXX_FLAGS " -w")
 
 add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"       )
 add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
-add_subdirectory("${fmt_SOURCE_DIR}"           "${fmt_BINARY_DIR}"          )
 add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}")
 add_subdirectory("${minizip_ng_SOURCE_DIR}"    "${minizip_ng_BINARY_DIR}"   )
-add_subdirectory("${lua_cjson_SOURCE_DIR}"     "${lua_cjson_BINARY_DIR}"    )
 
 set(CMAKE_C_FLAGS   "${_saved_c_flags}")
 set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
 set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_msg_level}")
 
-add_dependencies(cjson luajit::lib luajit::header)
 add_dependencies(luajit zlib)
 add_dependencies(minizip zlib)

@@ -121,7 +121,7 @@ VOID Win32_AttachWebHelperHook(VOID)
         if (!result) {
             platform::messagebox::show(
                 "Millennium Error",
-                fmt::format("Failed to create hardlink for Millennium webhelper hook.\nTarget: {}\nError Code: {}\nMake sure Steam is not running and try again.",
+                std::format("Failed to create hardlink for Millennium webhelper hook.\nTarget: {}\nError Code: {}\nMake sure Steam is not running and try again.",
                             targetPath.string(), GetLastError())
                     .c_str(),
                 platform::messagebox::error);
@@ -140,7 +140,7 @@ VOID Win32_MoveVersionHook(VOID)
 
     if (!MoveFileExW(versionHookPath.wstring().c_str(), targetPath.wstring().c_str(), MOVEFILE_REPLACE_EXISTING)) {
         const DWORD error = GetLastError();
-        platform::messagebox::show("Millennium Error", fmt::format("Failed to move legacy version.dll hook.\nError Code: {}", error).c_str(), platform::messagebox::error);
+        platform::messagebox::show("Millennium Error", std::format("Failed to move legacy version.dll hook.\nError Code: {}", error).c_str(), platform::messagebox::error);
     }
 }
 
@@ -150,7 +150,7 @@ static void move_to_temp(const fs::path& file, const fs::path& temp_dir)
     std::error_code ec;
     if (!fs::exists(file, ec)) return;
 
-    fs::path dest = temp_dir / fmt::format("{}.{}.tmp", file.filename().string(), GenerateUUID());
+    fs::path dest = temp_dir / std::format("{}.{}.tmp", file.filename().string(), GenerateUUID());
     if (!MoveFileExW(file.wstring().c_str(), dest.wstring().c_str(), MOVEFILE_REPLACE_EXISTING)) {
         logger.warn("Migration: could not move {} (error: {})", file.string(), GetLastError());
     } else {

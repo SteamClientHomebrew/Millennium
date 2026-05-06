@@ -304,7 +304,7 @@ void network_hook_ctl::init()
     nlohmann::json patterns = nlohmann::json::array();
     for (const auto& hook : hooks) {
         patterns.push_back({
-            { "urlPattern", fmt::format("{}*", hook) },
+            { "urlPattern", std::format("{}*", hook) },
             { "requestStage", "Request" }
         });
     }
@@ -360,7 +360,7 @@ void network_hook_ctl::set_cdp_client(std::shared_ptr<cdp_client> cdp)
 
 std::string get_cdp_isolated_ctx_script()
 {
-    const std::string url = fmt::format("https://millennium.ftp/{}/cdp-isolated-ctx.js", GetScrambledApiPathToken());
+    const std::string url = std::format("https://millennium.ftp/{}/cdp-isolated-ctx.js", GetScrambledApiPathToken());
     auto it = INTERNAL_FTP_CALL_DATA.find(url);
     if (it != INTERNAL_FTP_CALL_DATA.end()) {
         return it->second();

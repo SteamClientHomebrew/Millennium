@@ -303,7 +303,7 @@ void millennium_updater::win32_move_old_millennium_version([[maybe_unused]] std:
         }
 
         std::string base_filename = source_path.filename().string();
-        std::string temp_file_name = fmt::format("{}.uuid{}.tmp", base_filename, GenerateUUID());
+        std::string temp_file_name = std::format("{}.uuid{}.tmp", base_filename, GenerateUUID());
 
         std::filesystem::path dest_path = temp_path / temp_file_name;
         std::filesystem::path source_wide = source_path.wstring();
@@ -358,7 +358,7 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
     };
 
     try {
-        tempFilePath = std::filesystem::temp_directory_path() / fmt::format("millennium-{}.zip", GenerateUUID());
+        tempFilePath = std::filesystem::temp_directory_path() / std::format("millennium-{}.zip", GenerateUUID());
 
 #ifdef UPDATER_DEBUG_MODE
         DEBUG_LOG("[DEBUG] === DRY RUN MODE ENABLED ===");
@@ -391,7 +391,7 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
         {
             if (total == 0) return;
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;
-            this->dispatch_progress_to_frontend(fmt::format("Processing file {}/{}", current, total), progress, false);
+            this->dispatch_progress_to_frontend(std::format("Processing file {}/{}", current, total), progress, false);
         });
 
         if (!extracted) {
@@ -409,7 +409,7 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
 
     } catch (const std::exception& e) {
         LOG_ERROR("Update failed: {}", e.what());
-        this->dispatch_progress_to_frontend(fmt::format("Update failed: {}", e.what()), 0.0f, true);
+        this->dispatch_progress_to_frontend(std::format("Update failed: {}", e.what()), 0.0f, true);
         cleanup_temp_file();
         update_state(false);
         throw;
@@ -496,11 +496,11 @@ void millennium_updater::win32_update_legacy_shims()
                 logger.warn("Failed to create temporary directory: {}", ec.message());
             }
 
-            const auto destPath = tempPath / fmt::format("{}.uuid{}.tmp", SHIM_LOADER_PATH, GenerateUUID());
+            const auto destPath = tempPath / std::format("{}.uuid{}.tmp", SHIM_LOADER_PATH, GenerateUUID());
 
             if (!MoveFileExW(oldShimPath.wstring().c_str(), destPath.wstring().c_str(), MOVEFILE_REPLACE_EXISTING)) {
                 const DWORD error = GetLastError();
-                throw std::runtime_error(fmt::format("Failed to move old shim to temp location. Error: {}", error));
+                throw std::runtime_error(std::format("Failed to move old shim to temp location. Error: {}", error));
             }
 
             logger.log("Moved old shim to temporary location: {}", destPath.string());
@@ -511,7 +511,7 @@ void millennium_updater::win32_update_legacy_shims()
 
     } catch (std::exception& e) {
         LOG_ERROR("Failed to update {}: {}", SHIM_LOADER_PATH, e.what());
-        platform::messagebox::show("Millennium", fmt::format("Failed to update {}, it's recommended that you reinstall Millennium.", SHIM_LOADER_PATH),
+        platform::messagebox::show("Millennium", std::format("Failed to update {}, it's recommended that you reinstall Millennium.", SHIM_LOADER_PATH),
                                    platform::messagebox::error);
     }
 #endif

@@ -42,6 +42,7 @@
 #include <memory>
 #include <map>
 #include <string>
+#include <vector>
 
 using builtin_payload = nlohmann::ordered_json;
 
@@ -122,8 +123,9 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     builtin_payload Core_GetPendingCrashes(const builtin_payload& args);
     builtin_payload Core_AcknowledgeCrash(const builtin_payload& args);
 
-    /** Browser extensions API */
-    builtin_payload Core_GetBrowserExtensions(const builtin_payload& args);
+    /** Plugin config API */
+    builtin_payload PluginConfig_GetAll(const builtin_payload& args);
+    builtin_payload PluginConfig_DeleteAll(const builtin_payload& args);
 
     builtin_payload ipc_message_hdlr(const std::string& functionName, const builtin_payload& args);
     void set_ipc_main(std::shared_ptr<ipc_main> ipc_main);
@@ -137,7 +139,13 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     std::shared_ptr<theme_webkit_mgr> m_theme_webkit_mgr;
     std::shared_ptr<network_hook_ctl> m_network_hook_ctl; /** store network hook controller as shared_ptr (was reference) */
 
-    std::map<std::string, std::function<builtin_payload(const builtin_payload&)>> function_map;
+    struct registered_function
+    {
+        std::vector<std::string> param_names;
+        std::function<builtin_payload(const builtin_payload&)> fn;
+    };
+
+    std::map<std::string, registered_function> function_map;
 
     std::unique_ptr<platform::file_watcher> m_quickcss_watcher;
 };

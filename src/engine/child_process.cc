@@ -63,7 +63,7 @@ static PluginProcess::process_metrics read_proc_metrics(pid_t pid)
 
     /* rss from /proc/<pid>/statm — second field is resident pages */
     {
-        std::ifstream f(fmt::format("/proc/{}/statm", pid));
+        std::ifstream f(std::format("/proc/{}/statm", pid));
         if (f.is_open()) {
             size_t size_pages = 0, resident_pages = 0;
             f >> size_pages >> resident_pages;
@@ -260,7 +260,7 @@ PluginProcess::process_metrics PluginProcess::get_metrics()
 
 #if defined(__linux__)
     {
-        std::ifstream f(fmt::format("/proc/{}/stat", m_pid));
+        std::ifstream f(std::format("/proc/{}/stat", m_pid));
         if (f.is_open()) {
             std::string line;
             std::getline(f, line);

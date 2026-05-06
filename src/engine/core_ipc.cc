@@ -37,7 +37,7 @@
 
 #include <chrono>
 #include <cstdint>
-#include <fmt/core.h>
+#include <format>
 #include <functional>
 
 using namespace std::placeholders;
@@ -74,7 +74,7 @@ ipc_main::javascript_evaluation_result ipc_main::evaluate_javascript_expression(
         }
         return javascript_evaluation_result(std::move(response), true);
     } catch (const nlohmann::detail::exception& ex) {
-        return javascript_evaluation_result({}, false, fmt::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what()));
+        return javascript_evaluation_result({}, false, std::format("Millennium couldn't decode the response from {}, reason: {}", script, ex.what()));
     } catch (const std::exception&) {
         return javascript_evaluation_result({}, false, "frontend is not loaded!");
     }
@@ -99,8 +99,8 @@ const std::string ipc_main::compile_javascript_expression(std::string plugin, st
     std::string expression;
     expression.reserve(error_handler.size() + 256);
 
-    expression = fmt::format(error_handler, plugin);
-    expression += fmt::format("window.PLUGIN_LIST['{}'].{}(", plugin, methodName);
+    expression = std::vformat(error_handler, std::make_format_args(plugin));
+    expression += std::format("window.PLUGIN_LIST['{}'].{}(", plugin, methodName);
 
     for (size_t i = 0; i < fnParams.size(); ++i) {
         if (i > 0) expression += ", ";
@@ -111,9 +111,9 @@ const std::string ipc_main::compile_javascript_expression(std::string plugin, st
             if constexpr (std::is_same_v<T, std::string>) {
                 /** if the param is a string, the best way to escape it
                  * is to just pass it as base64 and decode it on the frontend */
-                return fmt::format(R"(atob("{}"))", Base64Encode(arg));
+                return std::format(R"(atob("{}"))", Base64Encode(arg));
             } else {
-                return fmt::format("{}", arg);
+                return std::format("{}", arg);
             }
         }, fnParams[i]);
     }
@@ -354,12 +354,12 @@ ordered_json ipc_main::process_message(const json payload)
         return it != handlers.end() ? it->second(payload) : nlohmann::ordered_json{};
     } catch (const nlohmann::detail::exception& ex) {
         return {
-            { "error", fmt::format("JSON parsing error: {}", ex.what()) },
+            { "error", std::format("JSON parsing error: {}", ex.what()) },
             { "type", ipc_main::ipc_error::INTERNAL_ERROR }
         };
     } catch (const std::exception& ex) {
         return {
-            { "error", fmt::format("An error occurred while processing the message: {}", ex.what()) },
+            { "error", std::format("An error occurred while processing the message: {}", ex.what()) },
             { "type", ipc_main::ipc_error::INTERNAL_ERROR }
         };
     }

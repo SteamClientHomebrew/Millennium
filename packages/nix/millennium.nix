@@ -61,13 +61,10 @@ stdenv.mkDerivation {
         deps = [
           "zlib"
           "luajit"
-          "luajson"
           "websocketpp"
-          "fmt"
           "json"
           "minizip"
           "curl"
-          "incbin"
           "asio"
           "abseil"
           "re2"

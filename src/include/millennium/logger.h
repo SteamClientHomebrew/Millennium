@@ -33,9 +33,8 @@
 #include "millennium/singleton.h"
 
 #include <array>
-#include <fmt/color.h>
-#include <fmt/core.h>
 #include <atomic>
+#include <format>
 #include <functional>
 #include <fstream>
 #include <mutex>
@@ -60,7 +59,6 @@
 #define COL_WHITE "\033[37m"
 #define COL_RESET "\033[0m"
 
-#define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)
 #define MILLENNIUM_REPOSITORY "https://github.com/SteamClientHomebrew/Millennium"
 
 constexpr std::array<char, 1024> __sanitize_nt(const char* path)
@@ -168,23 +166,23 @@ class millennium_logger : public logger_base, public singleton<millennium_logger
     void print(std::string type, const std::string& message, std::string color = COL_WHITE);
     void log_plugin_message(std::string pname, std::string val);
 
-    template <typename... Args> void log(std::string fmt, Args&&... args)
+    template <typename... Args> void log(std::string fmt_str, Args&&... args)
     {
-        print(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_GREEN);
+        print(" INFO ", (sizeof...(args) == 0) ? fmt_str : std::vformat(fmt_str, std::make_format_args(args...)), COL_GREEN);
     }
 
-    template <typename... Args> void private_error_do_not_use(std::string fmt, const char* file, int line, const char* function, Args&&... args)
+    template <typename... Args> void private_error_do_not_use(std::string fmt_str, const char* file, int line, const char* function, Args&&... args)
     {
-        std::string remoteRepository = fmt::format("{}/blob/{}{}#L{}", MILLENNIUM_REPOSITORY, GIT_COMMIT_HASH, __get_source_loc(file).data(), line);
+        std::string remoteRepository = std::format("{}/blob/{}{}#L{}", MILLENNIUM_REPOSITORY, GIT_COMMIT_HASH, __get_source_loc(file).data(), line);
 
-        print(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
+        print(" ERROR ", (sizeof...(args) == 0) ? fmt_str : std::vformat(fmt_str, std::make_format_args(args...)), COL_RED);
         print(" * FUNCTION: ", function, COL_RED);
         print(" * LOCATION: ", remoteRepository, COL_RED);
     }
 
-    template <typename... Args> void warn(std::string fmt, Args&&... args)
+    template <typename... Args> void warn(std::string fmt_str, Args&&... args)
     {
-        print(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
+        print(" WARN ", (sizeof...(args) == 0) ? fmt_str : std::vformat(fmt_str, std::make_format_args(args...)), COL_YELLOW);
     }
 };
 
@@ -274,4 +272,4 @@ void CleanupLoggers();
 #define LOG_ERROR(fmt, ...) logger.private_error_do_not_use(fmt, __sanitize_nt(__FILE__).data(), __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
 #endif
 #endif
-#define GET_GITHUB_URL_FROM_HERE() fmt::format("{}/blob/{}{}#L{}", MILLENNIUM_REPOSITORY, GIT_COMMIT_HASH, __get_source_loc(__sanitize_nt(__FILE__).data()).data(), __LINE__)
+#define GET_GITHUB_URL_FROM_HERE() std::format("{}/blob/{}{}#L{}", MILLENNIUM_REPOSITORY, GIT_COMMIT_HASH, __get_source_loc(__sanitize_nt(__FILE__).data()).data(), __LINE__)

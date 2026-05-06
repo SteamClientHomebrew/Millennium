@@ -48,6 +48,7 @@
 #include "millennium/config.h"
 #include "millennium/file_watcher.h"
 #include "millennium/filesystem.h"
+#include "millennium/plugin_config.h"
 #include <exception>
 #include <fstream>
 #include <thread>
@@ -96,45 +97,47 @@ head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> n
                                              std::shared_ptr<millennium_updater> millennium_updater)
     : m_plugin_manager(std::move(plugin_manager)), m_millennium_updater(std::move(millennium_updater)), m_network_hook_ctl(network_hook_ctl)
 {
-#define register_function(name) { #name, std::bind(&millennium_backend::name, this, std::placeholders::_1) }
+#define register_function(name, ...) { #name, registered_function{ { __VA_ARGS__ }, std::bind(&millennium_backend::name, this, std::placeholders::_1) } }
     function_map = {
-        register_function(Core_ChangePluginStatus),
+        register_function(Core_ChangePluginStatus, "pluginJson"),
         register_function(Core_GetStartConfig),
         register_function(Core_LoadQuickCss),
-        register_function(Core_SaveQuickCss),
+        register_function(Core_SaveQuickCss, "css"),
         register_function(Core_WatchQuickCss),
         register_function(Core_UnwatchQuickCss),
         register_function(Core_GetSteamPath),
         register_function(Core_FindAllThemes),
         register_function(Core_FindAllPlugins),
-        register_function(Core_GetEnvironmentVar),
+        register_function(Core_GetEnvironmentVar, "variable"),
         register_function(Core_GetBackendConfig),
-        register_function(Core_SetBackendConfig),
-        register_function(Core_GetUpdates),
+        register_function(Core_SetBackendConfig, "config", "skipPropagation"),
+        register_function(Core_GetUpdates, "force"),
         register_function(Core_GetActiveTheme),
-        register_function(Core_ChangeActiveTheme),
+        register_function(Core_ChangeActiveTheme, "theme_name"),
         register_function(Core_GetSystemColors),
-        register_function(Core_ChangeAccentColor),
-        register_function(Core_ChangeColor),
-        register_function(Core_ChangeCondition),
+        register_function(Core_ChangeAccentColor, "new_color"),
+        register_function(Core_ChangeColor, "theme", "color_name", "new_color", "color_type"),
+        register_function(Core_ChangeCondition, "theme", "newData", "condition"),
         register_function(Core_GetRootColors),
         register_function(Core_DoesThemeUseAccentColor),
-        register_function(Core_GetThemeColorOptions),
-        register_function(Core_InstallTheme),
-        register_function(Core_UninstallTheme),
-        register_function(Core_DownloadThemeUpdate),
-        register_function(Core_IsThemeInstalled),
-        register_function(Core_GetThemeFromGitPair),
-        register_function(Core_DownloadPluginUpdate),
-        register_function(Core_KillPluginBackend),
-        register_function(Core_InstallPlugin),
-        register_function(Core_IsPluginInstalled),
-        register_function(Core_UninstallPlugin),
+        register_function(Core_GetThemeColorOptions, "theme_name"),
+        register_function(Core_InstallTheme, "owner", "repo"),
+        register_function(Core_UninstallTheme, "owner", "repo"),
+        register_function(Core_DownloadThemeUpdate, "native"),
+        register_function(Core_IsThemeInstalled, "owner", "repo"),
+        register_function(Core_GetThemeFromGitPair, "repo", "owner", "asString"),
+        register_function(Core_DownloadPluginUpdate, "id", "name", "commit"),
+        register_function(Core_KillPluginBackend, "pluginName"),
+        register_function(Core_InstallPlugin, "download_url", "total_size"),
+        register_function(Core_IsPluginInstalled, "pluginName"),
+        register_function(Core_UninstallPlugin, "pluginName"),
         register_function(Core_GetPluginBackendLogs),
-        register_function(Core_UpdateMillennium),
+        register_function(Core_UpdateMillennium, "downloadUrl", "downloadSize", "background"),
         register_function(Core_HasPendingMillenniumUpdateRestart),
         register_function(Core_GetPendingCrashes),
-        register_function(Core_AcknowledgeCrash),
+        register_function(Core_AcknowledgeCrash, "plugin"),
+        register_function(PluginConfig_GetAll, "plugin_name"),
+        register_function(PluginConfig_DeleteAll, "plugin_name"),
     };
 }
 
@@ -242,7 +245,7 @@ builtin_payload head::millennium_backend::Core_GetStartConfig(const builtin_payl
 
 const std::string get_quick_css_path()
 {
-    return fmt::format("{}/quick.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
+    return std::format("{}/quick.css", platform::environment::get("MILLENNIUM__CONFIG_PATH"));
 }
 
 /** Quick CSS utilities */
@@ -335,7 +338,7 @@ builtin_payload head::millennium_backend::Core_GetSystemColors(const builtin_pay
 builtin_payload head::millennium_backend::Core_ChangeAccentColor(const builtin_payload& args)
 {
     m_theme_config->set_accent_color(args["new_color"]);
-    return {};
+    return m_theme_config->get_accent_color();
 }
 builtin_payload head::millennium_backend::Core_ChangeColor(const builtin_payload& args)
 {
@@ -678,13 +681,27 @@ builtin_payload head::millennium_backend::Core_GetPendingCrashes(const builtin_p
         });
     }
 
-    return result.dump();
+    return result;
 }
 
 builtin_payload head::millennium_backend::Core_AcknowledgeCrash(const builtin_payload& args)
 {
     mep::crash_event_bus::instance().acknowledge_crash(args["plugin"].get<std::string>());
     return {};
+}
+
+/** Plugin config API */
+builtin_payload head::millennium_backend::PluginConfig_GetAll(const builtin_payload& args)
+{
+    auto r = plugin_config::get_all(args["plugin_name"].get<std::string>());
+    if (!r.success) return { { "success", false }, { "error", r.value.get<std::string>() } };
+    return r.value;
+}
+
+builtin_payload head::millennium_backend::PluginConfig_DeleteAll(const builtin_payload& args)
+{
+    auto r = plugin_config::delete_all(args["plugin_name"].get<std::string>());
+    return { { "success", r.success } };
 }
 
 builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& functionName, const builtin_payload& args)
@@ -702,8 +719,21 @@ builtin_payload head::millennium_backend::ipc_message_hdlr(const std::string& fu
         throw std::runtime_error(errorMsg);
     }
 
-    /** call the functions with provided args */
-    return (std::any_cast<std::function<builtin_payload(const builtin_payload&)>>(it->second))(args);
+    const auto& reg = it->second;
+
+    /* ffi() v2 sends positional arrays; older callable() sends named objects.
+       Zip the array onto the registered param names so handlers keep using
+       args["key"] regardless of which API the caller used. */
+    if (args.is_array()) {
+        builtin_payload obj = builtin_payload::object();
+        const size_t n = std::min(args.size(), reg.param_names.size());
+        for (size_t i = 0; i < n; ++i) {
+            obj[reg.param_names[i]] = args[i];
+        }
+        return reg.fn(obj);
+    }
+
+    return reg.fn(args);
 }
 
 void head::millennium_backend::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)

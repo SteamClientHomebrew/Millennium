@@ -8,7 +8,7 @@ set(VERSION_FILENAME     "${MILLENNIUM_OUTPUT_NAME}")
 set(VERSION_PRODUCT      "Millennium")
 set(VERSION_FILETYPE     "VFT_DLL")
 
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use" FORCE)
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD   11 CACHE STRING "C standard to use"   FORCE)
 
 include(ExternalProject)
@@ -20,9 +20,7 @@ include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
 
 add_compile_definitions(
     "_CRT_SECURE_NO_WARNINGS"
-    "USE_INTERNAL_FPCONV"
     "NGHTTP2_STATICLIB"
-    "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
     $<$<BOOL:${WIN32}>:WIN32_LEAN_AND_MEAN>
     $<$<BOOL:${WIN32}>:NOMINMAX>
@@ -150,23 +148,6 @@ target_include_directories(${MILLENNIUM_RTB_NAME} PRIVATE
     ${luajit_SOURCE_DIR}/src
 )
 
-if(UNIX AND NOT APPLE)
-    target_sources(${MILLENNIUM_RTB_NAME} PRIVATE
-        ${lua_cjson_SOURCE_DIR}/lua_cjson.c
-        ${lua_cjson_SOURCE_DIR}/strbuf.c
-        ${lua_cjson_SOURCE_DIR}/g_fmt.c
-        ${lua_cjson_SOURCE_DIR}/dtoa.c
-    )
-    target_include_directories(${MILLENNIUM_RTB_NAME} PRIVATE ${lua_cjson_SOURCE_DIR})
-    target_compile_definitions(${MILLENNIUM_RTB_NAME} PRIVATE USE_INTERNAL_FPCONV)
-    set_source_files_properties(
-        ${lua_cjson_SOURCE_DIR}/lua_cjson.c
-        TARGET_DIRECTORY ${MILLENNIUM_RTB_NAME}
-        PROPERTIES COMPILE_OPTIONS "-w;-include;strings.h"
-    )
-elseif(WIN32 OR APPLE)
-    target_link_libraries(${MILLENNIUM_RTB_NAME} cjson)
-endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/typescript/sdk/packages/loader/build")
@@ -251,7 +232,7 @@ elseif(UNIX AND NOT APPLE)
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
 endif()
 
-target_link_libraries(Millennium libcurl minizip nlohmann_json fmt::fmt)
+target_link_libraries(Millennium libcurl minizip nlohmann_json)
 
 if(WIN32)
     target_link_libraries(Millennium user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)

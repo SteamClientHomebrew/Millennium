@@ -38,7 +38,7 @@
 
 #include "rpc.h"
 #include "crash_handler.h"
-#include "lua_config_rpc.h"
+#include "lua_api.h"
 #include "millennium/types.h"
 #include "millennium/plugin_ipc.h"
 
@@ -59,15 +59,6 @@
 #include <sys/un.h>
 #include <unistd.h>
 #endif
-
-extern "C" int luaopen_cjson(lua_State* L);
-extern "C" int luaopen_millennium_lib(lua_State* L);
-extern "C" int luaopen_http_lib(lua_State* L);
-extern "C" int luaopen_utils_lib(lua_State* L);
-extern "C" int luaopen_logger_lib(lua_State* L);
-extern "C" int luaopen_fs_lib(lua_State* L);
-extern "C" int luaopen_regex_lib(lua_State* L);
-extern "C" int luaopen_datatime_lib(lua_State* L);
 
 rpc_client* g_rpc = nullptr;
 
@@ -210,9 +201,12 @@ static json handle_evaluate(lua_State* L, const json& params)
     std::string methodName = params["methodName"];
     std::vector<json> argValues;
 
-    if (params.contains("argumentList") && params["argumentList"].is_object()) {
-        for (auto it = params["argumentList"].begin(); it != params["argumentList"].end(); ++it) {
-            argValues.push_back(it.value());
+    if (params.contains("argumentList")) {
+        const auto& list = params["argumentList"];
+        if (list.is_object() || list.is_array()) {
+            for (auto it = list.begin(); it != list.end(); ++it) {
+                argValues.push_back(it.value());
+            }
         }
     }
 
@@ -473,7 +467,7 @@ int main(int argc, char* argv[])
     register_preloaded_module(L, "logger", luaopen_logger_lib);
     register_preloaded_module(L, "fs", luaopen_fs_lib);
     register_preloaded_module(L, "regex", luaopen_regex_lib);
-    register_preloaded_module(L, "datetime", luaopen_datatime_lib);
+    register_preloaded_module(L, "datetime", luaopen_datetime_lib);
 
     lua_pop(L, 2);
 

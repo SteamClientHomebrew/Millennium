@@ -1,4 +1,4 @@
-#include "lua_config_rpc.h"
+#include "lua_api.h"
 #include "rpc.h"
 
 #include "millennium/plugin_ipc.h"

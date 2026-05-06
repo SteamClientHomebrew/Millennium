@@ -69,8 +69,8 @@ std::string logger_base::get_local_time(bool withHours)
     } else {
         bufferStream << std::put_time(std::localtime(&time), "%M:%S");
     }
-    bufferStream << fmt::format(".{:03}", ms.count());
-    return fmt::format("[{}]", bufferStream.str());
+    bufferStream << std::format(".{:03}", ms.count());
+    return std::format("[{}]", bufferStream.str());
 }
 
 std::string logger_base::get_local_date_str()
@@ -86,15 +86,15 @@ std::string logger_base::get_local_date_str()
     int min = localeTime.tm_min;
     int sec = localeTime.tm_sec;
 
-    return fmt::format("[{}-{}-{} @ {}:{}:{}]", year, month, day, hour, min, sec);
+    return std::format("[{}-{}-{} @ {}:{}:{}]", year, month, day, hour, min, sec);
 }
 
 plugin_logger::plugin_logger(const std::string& pluginName) : pluginName(pluginName)
 {
-    this->filename = (std::filesystem::path(platform::environment::get("MILLENNIUM__LOGS_PATH")) / fmt::format("{}_log.log", pluginName)).generic_string();
+    this->filename = (std::filesystem::path(platform::environment::get("MILLENNIUM__LOGS_PATH")) / std::format("{}_log.log", pluginName)).generic_string();
     file.open(filename, std::ios::app);
 
-    file << fmt::format("\n\n\n--------------------------------- [{}] ---------------------------------\n", get_local_date_str());
+    file << std::format("\n\n\n--------------------------------- [{}] ---------------------------------\n", get_local_date_str());
     file.flush();
 }
 
@@ -132,12 +132,12 @@ void plugin_logger::remove_listener(int id)
 
 void plugin_logger::log(const std::string& message, bool onlyBuffer)
 {
-    std::string formatted = fmt::format("{} ", get_plugin_name());
+    std::string formatted = std::format("{} ", get_plugin_name());
     std::string ts_bracketed = get_local_time(true);
     std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
 
     if (!onlyBuffer) {
-        std::cout << fmt::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
+        std::cout << std::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
 
         file << formatted << message << "\n";
         file.flush();
@@ -154,7 +154,7 @@ void plugin_logger::warn(const std::string& message, bool onlyBuffer)
     std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
 
     if (!onlyBuffer) {
-        std::string formatted = fmt::format("{}{}{}", get_local_time(), fmt::format(" {} ", get_plugin_name()), message.c_str());
+        std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
 
         file << formatted;
@@ -172,7 +172,7 @@ void plugin_logger::error(const std::string& message, bool onlyBuffer)
     std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
 
     if (!onlyBuffer) {
-        std::string formatted = fmt::format("{}{}{}", get_local_time(), fmt::format(" {} ", get_plugin_name()), message.c_str());
+        std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_RED << formatted << COL_RESET << '\n';
 
         file << formatted;
@@ -221,14 +221,14 @@ std::string millennium_logger::get_local_time_stamp()
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
     bufferStream << std::put_time(std::localtime(&time), "%M:%S");
-    bufferStream << fmt::format(".{:03}", ms.count());
-    return fmt::format("[{}]", bufferStream.str());
+    bufferStream << std::format(".{:03}", ms.count());
+    return std::format("[{}]", bufferStream.str());
 }
 
 void millennium_logger::print(std::string type, const std::string& message, std::string color)
 {
     std::lock_guard<std::mutex> lock(log_mutex);
-    std::cout << fmt::format("{}\033[1m{}{}{}\033[0m{}\n", get_local_time_stamp(), color, type, COL_RESET, message);
+    std::cout << std::format("{}\033[1m{}{}{}\033[0m{}\n", get_local_time_stamp(), color, type, COL_RESET, message);
 }
 
 millennium_logger::millennium_logger()
@@ -263,6 +263,6 @@ void millennium_logger::log_plugin_message(std::string pluginName, std::string s
         return result;
     };
 
-    std::string message = fmt::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", get_local_time_stamp(), toUpper(pluginName), strMessage);
+    std::string message = std::format("{} \033[1m\033[34m{} \033[0m\033[0m{}\n", get_local_time_stamp(), toUpper(pluginName), strMessage);
     std::cout << message;
 }

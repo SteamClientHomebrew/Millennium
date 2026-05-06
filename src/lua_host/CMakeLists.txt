@@ -21,14 +21,15 @@ set(LUA_HOST_SOURCES
     crash_handler.cc
     ${MILLENNIUM_BASE}/src/shared/crash_report.cc
     ${MILLENNIUM_BASE}/src/shared/crash_handler_core.cc
-    lua_millennium_rpc.cc
-    lua_config_rpc.cc
-    lua_logger_rpc.cc
-    lua_http.cc
-    lua_utils.cc
-    lua_filesystem.cc
-    lua_regex.cc
-    lua_datetime.cc
+    api/millennium.cc
+    api/config.cc
+    api/logger.cc
+    api/http.cc
+    api/utils.cc
+    api/filesystem.cc
+    api/regex.cc
+    api/datetime.cc
+    api/json.c
 )
 
 if(WIN32)
@@ -44,17 +45,23 @@ target_compile_definitions(${MILLENNIUM_RTB_NAME} PRIVATE
 target_include_directories(${MILLENNIUM_RTB_NAME} PRIVATE
     ${MILLENNIUM_BASE}/src
     ${MILLENNIUM_BASE}/src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/api/cjson
 )
 
 target_link_libraries(${MILLENNIUM_RTB_NAME}
     luajit::lib
     nlohmann_json
-    fmt::fmt
 )
 
-if(NOT UNIX OR APPLE)
-    target_link_libraries(${MILLENNIUM_RTB_NAME} cjson)
-endif()
+# Suppress warnings on vendored cjson sources.
+set_source_files_properties(
+    api/cjson/lua_cjson.c
+    api/cjson/strbuf.c
+    api/cjson/fpconv.c
+    TARGET_DIRECTORY ${MILLENNIUM_RTB_NAME}
+    PROPERTIES COMPILE_OPTIONS "$<IF:$<C_COMPILER_ID:MSVC>,/w,-w>"
+)
 
 # Always ship with debug info so crash dumps are useful
 if(MSVC)

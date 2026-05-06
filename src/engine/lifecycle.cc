@@ -52,7 +52,7 @@ std::string backend_event_dispatcher::str_get_failed_backends()
         }
     }
 
-    return failedBackends.empty() ? "none" : fmt::format("[{}]", failedBackends.substr(0, failedBackends.size() - 2));
+    return failedBackends.empty() ? "none" : std::format("[{}]", failedBackends.substr(0, failedBackends.size() - 2));
 }
 
 /**
@@ -76,7 +76,7 @@ std::string backend_event_dispatcher::str_get_successful_backends()
         }
     }
 
-    return successfulBackends.empty() ? "none" : fmt::format("[{}]", successfulBackends.substr(0, successfulBackends.size() - 2));
+    return successfulBackends.empty() ? "none" : std::format("[{}]", successfulBackends.substr(0, successfulBackends.size() - 2));
 }
 
 /**
@@ -96,9 +96,10 @@ bool backend_event_dispatcher::are_all_backends_ready()
         const std::string failedBackends = str_get_failed_backends();
         const std::string successfulBackends = str_get_successful_backends();
 
-        auto color = failedBackends == "none" ? fmt::color::lime_green : fmt::color::orange_red;
-        logger.log("Finished preparing backends: {} failed, {} successful", fmt::format(fmt::fg(color), failedBackends),
-                   fmt::format(fmt::fg(fmt::color::lime_green), successfulBackends));
+        constexpr const char* lime_green = "\033[38;2;50;205;50m";
+        constexpr const char* orange_red = "\033[38;2;255;69;0m";
+        const char* failed_color = failedBackends == "none" ? lime_green : orange_red;
+        logger.log("Finished preparing backends: {}{}\033[0m failed, {}{}\033[0m successful", failed_color, failedBackends, lime_green, successfulBackends);
 
         return true;
     }

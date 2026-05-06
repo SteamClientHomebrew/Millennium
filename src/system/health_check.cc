@@ -56,8 +56,8 @@ void platform::health::check_health()
     }
 #elif _WIN32
     const auto steam_cfg = steam_path / "Steam.cfg";
-    const auto bootstrap_error = fmt::format("Millennium is incompatible with your {} config. Remove this file to allow Steam updates.", steam_cfg.string());
-    const auto cef_error = fmt::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cef_remote_debugger_file.string());
+    const auto bootstrap_error = std::format("Millennium is incompatible with your {} config. Remove this file to allow Steam updates.", steam_cfg.string());
+    const auto cef_error = std::format("Failed to remove deprecated file: {}\nRemove manually and restart Steam.", cef_remote_debugger_file.string());
 
     auto show_bootstrap_error = [&]()
     {

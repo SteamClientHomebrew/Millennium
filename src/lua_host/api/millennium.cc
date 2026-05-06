@@ -29,7 +29,7 @@
  */
 
 #include "rpc.h"
-#include "lua_config_rpc.h"
+#include "lua_api.h"
 #include "millennium/types.h"
 #include <lua.hpp>
 

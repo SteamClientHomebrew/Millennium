@@ -39,7 +39,7 @@
 #include <filesystem>
 #include <functional>
 #include <utility>
-#include <fmt/format.h>
+#include <format>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <regex>
@@ -123,16 +123,16 @@ class network_hook_ctl
         // clang-format off
         void add_stylesheet(const std::string& href)
         {
-            m_css += fmt::format(R"(<link rel="stylesheet" href="{}">)""\n", href);
+            m_css += std::format(R"(<link rel="stylesheet" href="{}">)""\n", href);
         }
         void add_script_module(const std::string& href)
         {
-            m_preloads += fmt::format(R"(<link rel="modulepreload" href="{}" fetchpriority="high">)""\n", href);
-            m_scripts += fmt::format(R"(<script type="module" src="{}"></script>)""\n", href);
+            m_preloads += std::format(R"(<link rel="modulepreload" href="{}" fetchpriority="high">)""\n", href);
+            m_scripts += std::format(R"(<script type="module" src="{}"></script>)""\n", href);
         }
         void add_inline_style(const std::string& id, const std::string& css)
         {
-            m_css += fmt::format(R"(<style id="{}">{}</style>)""\n", id, css);
+            m_css += std::format(R"(<style id="{}">{}</style>)""\n", id, css);
         }
         // clang-format on
 

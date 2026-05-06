@@ -31,8 +31,6 @@
 #pragma once
 #include "millennium/cdp_api.h"
 
-#include <fmt/format.h>
-
 class socket_utils
 {
   public:
