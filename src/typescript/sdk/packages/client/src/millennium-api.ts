@@ -25,7 +25,7 @@ type Millennium = {
 	 */
 	callServerMethod: (methodName: string, kwargs?: object) => Promise<any>;
 	findElement: (privateDocument: Document, querySelector: string, timeOut?: number) => Promise<NodeListOf<Element>>;
-	exposeObj?: <T extends object>(obj: T) => any;
+	exposeObj: <T extends object>(obj: T) => any;
 	AddWindowCreateHook?: (callback: (context: object) => void) => void;
 };
 
@@ -64,7 +64,7 @@ const callable: <
  * const result = await method('value'); // result is MyObject, not a JSON string
  * ```
  */
-const ffi: <Params extends Json[] = [], Return extends Json | void = Json>(route: string) => (...params: Params) => Promise<Return> =
+const ffi: <Params extends Json[] = [], Return = Json | void>(route: string) => (...params: Params) => Promise<Return> =
 	(_route: string) =>
 	(..._params: any[]) =>
 		Promise.resolve(undefined as any);

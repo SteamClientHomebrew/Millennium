@@ -58,7 +58,7 @@ export type Transform = RenameTransform | InjectArgTransform | InjectConstTransf
 
 function getMemberPath(node: any): string[] | null {
 	if (node.type === 'Identifier') return [node.name];
-	if (node.type === 'MemberExpression' && !node.computed) {
+	if ((node.type === 'MemberExpression' || node.type === 'OptionalMemberExpression') && !node.computed) {
 		const obj = getMemberPath(node.object);
 		if (!obj) return null;
 		if (node.property.type === 'Identifier') return [...obj, node.property.name];
@@ -95,30 +95,32 @@ export default function astTransforms(transforms: Transform[]): Plugin {
 			// transform → [{start, end}]
 			const icMatches = new Map<InjectConstTransform, Array<{ start: number; end: number }>>();
 
-			traverse(ast, {
-				CallExpression(nodePath) {
-					const callee = nodePath.node.callee;
-					const memberPath = getMemberPath(callee);
-					if (!memberPath) return;
+			const handleCall = (nodePath: any) => {
+				const callee = nodePath.node.callee;
+				const memberPath = getMemberPath(callee);
+				if (!memberPath) return;
 
-					const injection = findTransform<InjectArgTransform>(injections, memberPath, 'inject_arg');
-					if (injection) {
-						const args = nodePath.node.arguments;
+				const injection = findTransform<InjectArgTransform>(injections, memberPath, 'inject_arg');
+				if (injection) {
+					const args = nodePath.node.arguments;
 
-						if (args.length > 0 && args[0].type === 'Identifier' && (args[0] as any).name === injection.arg) {
-							return;
-						}
-
-						const calleeEnd = (callee as any).end as number;
-						let parenPos = calleeEnd;
-						while (parenPos < code.length && code[parenPos] !== '(') parenPos++;
-
-						const prefix = args.length > 0 ? `${injection.arg}, ` : injection.arg;
-						magic.appendLeft(parenPos + 1, prefix);
-						modified = true;
+					if (args.length > 0 && args[0].type === 'Identifier' && (args[0] as any).name === injection.arg) {
 						return;
 					}
-				},
+
+					const calleeEnd = (callee as any).end as number;
+					let parenPos = calleeEnd;
+					while (parenPos < code.length && code[parenPos] !== '(') parenPos++;
+
+					const prefix = args.length > 0 ? `${injection.arg}, ` : injection.arg;
+					magic.appendLeft(parenPos + 1, prefix);
+					modified = true;
+				}
+			};
+
+			traverse(ast, {
+				CallExpression: handleCall,
+				OptionalCallExpression: handleCall,
 				MemberExpression(nodePath) {
 					const memberPath = getMemberPath(nodePath.node);
 					if (!memberPath) return;
