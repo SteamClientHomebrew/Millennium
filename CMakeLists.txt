@@ -38,8 +38,6 @@ if(DEFINED MILLENNIUM_CHILD_HOOK_OUTPUT_NAME)
     add_compile_definitions(__MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__="${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}")
 endif()
 
-# Put all build outputs directly in build/ so paths don't mirror
-# the source tree layout.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
@@ -47,5 +45,16 @@ include(FetchContent)
 FetchContent_Declare(snare GIT_REPOSITORY https://github.com/shdwmtr/libsnare.h GIT_TAG main)
 FetchContent_MakeAvailable(snare)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/instrumentation/loopback)
+option(MILLENNIUM_BUILD_MAIN         "Build main Millennium library and tools"            ON)
+option(MILLENNIUM_BUILD_TESTS        "Build testing suite for Millennium"                 ON)
+option(MILLENNIUM_RUN_TESTS_ON_BUILD "Run native tests automatically after building them" ON)
+
+if(MILLENNIUM_BUILD_MAIN)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/instrumentation/loopback)
+endif()
+
+if(MILLENNIUM_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+endif()

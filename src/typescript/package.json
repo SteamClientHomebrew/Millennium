@@ -5,7 +5,9 @@
 		"sdk/packages/browser",
 		"sdk/packages/cdp-isolated-ctx",
 		"sdk/packages/loader",
-		"frontend"
+		"sdk/packages/test",
+		"frontend",
+		"../../tests/ffi"
 	],
 	"overrides": {
 		"@codemirror/view": "6.41.0",

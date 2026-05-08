@@ -73,6 +73,7 @@ function(millennium_process_package input_path)
   endif()
 endfunction()
 
+message("")
 message(STATUS "[Millennium] Configuring dependencies...")
 
 if(DISTRO_NIX)
@@ -129,6 +130,17 @@ if(MSVC)
     file(WRITE "${minizip_ng_SOURCE_DIR}/CMakeLists.txt" "${_mz_content}")
     unset(_mz_content)
   endif()
+endif()
+
+if(EXISTS "${curl_SOURCE_DIR}/CMakeLists.txt")
+  file(READ "${curl_SOURCE_DIR}/CMakeLists.txt" _curl_content)
+  string(REPLACE
+    "message(WARNING \"Perl not found. Will not build manuals.\")"
+    "# patched out by Millennium bootstrap_deps.cmake — manuals not shipped"
+    _curl_content "${_curl_content}"
+  )
+  file(WRITE "${curl_SOURCE_DIR}/CMakeLists.txt" "${_curl_content}")
+  unset(_curl_content)
 endif()
 
 set(LUA_INCLUDE_DIR  luajit::header)

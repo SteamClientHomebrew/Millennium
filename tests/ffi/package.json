@@ -1,0 +1,13 @@
+{
+  "name": "@millennium/test-ffi",
+  "private": true,
+  "type": "module",
+  "description": "FFI contract test suite — verifies frontend ↔ C++ backend wire format for every endpoint declared in src/typescript/frontend/utils/ffi.ts.",
+  "scripts": {
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@steambrew/test": "workspace:*",
+    "@types/bun": "^1.1.0"
+  }
+}

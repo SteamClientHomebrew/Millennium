@@ -1,0 +1,14 @@
+{
+	"extends": "../../src/typescript/frontend/tsconfig.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@steambrew/client": ["../../src/typescript/sdk/packages/test/src/client-shim.ts"],
+			"@/*": ["../../src/typescript/*"]
+		},
+		"types": ["bun"],
+		"noUnusedLocals": false,
+		"noUnusedParameters": false
+	},
+	"include": ["./**/*.ts"]
+}
