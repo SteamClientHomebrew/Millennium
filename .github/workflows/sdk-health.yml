@@ -29,7 +29,9 @@ jobs:
       - name: Evaluate
         id: compare
         run: |
-          if [ "${{ steps.cache.outputs.cache-hit }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.cache.outputs.cache-hit }}" = "true" ]; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
